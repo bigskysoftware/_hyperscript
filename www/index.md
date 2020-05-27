@@ -5,11 +5,11 @@ title: ///hypescript
 
 <div class="hero full-width">
 <div class="c">
-<h1><span class="s1">/</span><span class="s2">/</span><span class="s3">/</span><span class="s4">_</span>hypescript</h1>
+<h1><span class="s1">/</span><span class="s2">/</span><span class="s3">/</span><span class="s4">_</span>hyperscript</h1>
 </div>
 </div>
 
-hypescript is a small web scripting language based [applescript](https://en.wikipedia.org/wiki/Applescript) and
+hyperscript is a small web scripting language based [applescript](https://en.wikipedia.org/wiki/Applescript) and
  [hypertalk](https://en.wikipedia.org/wiki/HyperTalk)
 
 it is a companion project of <https://htmx.org>
@@ -34,7 +34,7 @@ it is a companion project of <https://htmx.org>
 
 ## Grammar
 
-     hypescript => action_list;
+     hyperscript => action_list;
      action_list => action {["then", action]};
      on_expr => "on", IDENTIFIER;
      action => [on_expr] operation_expr;

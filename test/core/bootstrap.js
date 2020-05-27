@@ -1,4 +1,4 @@
-describe("Bootstrap hypescript test", function() {
+describe("Bootstrap hyperscript test", function() {
 
     beforeEach(function() {
         this.server = makeServer();
@@ -11,7 +11,7 @@ describe("Bootstrap hypescript test", function() {
 
     it("hypes a single div", function(){
         var div = make("<div _='add foo'></div>");
-        hypescript.getHyped(div);
+        hyperscript.getHyped(div);
         div.classList.contains("foo").should.equal(false);
         div.click();
         div.classList.contains("foo").should.equal(true);
@@ -19,7 +19,7 @@ describe("Bootstrap hypescript test", function() {
 
     it("toggle works", function(){
         var div = make("<div _='toggle foo'></div>");
-        hypescript.getHyped(div);
+        hyperscript.getHyped(div);
         div.classList.contains("foo").should.equal(false);
         div.click();
         div.classList.contains("foo").should.equal(true);
@@ -30,7 +30,7 @@ describe("Bootstrap hypescript test", function() {
     it("hypes can target another div", function(){
         var bar = make("<div id='bar'></div>");
         var div = make("<div _='add foo on #bar'></div>");
-        hypescript.getHyped(div);
+        hyperscript.getHyped(div);
         bar.classList.contains("foo").should.equal(false);
         div.classList.contains("foo").should.equal(false);
         div.click();
@@ -41,7 +41,7 @@ describe("Bootstrap hypescript test", function() {
     it("hypes can have more than one action ", function(){
         var bar = make("<div id='bar'></div>");
         var div = make("<div _='add foo on #bar then add blah'></div>");
-        hypescript.getHyped(div);
+        hyperscript.getHyped(div);
         bar.classList.contains("foo").should.equal(false);
         div.classList.contains("foo").should.equal(false);
         bar.classList.contains("blah").should.equal(false);
@@ -60,7 +60,7 @@ describe("Bootstrap hypescript test", function() {
     it("hypes can call javascript ", function(){
         try {
             var div = make("<div _='call globalFunction(\"foo\")'></div>");
-            hypescript.getHyped(div);
+            hyperscript.getHyped(div);
             div.click();
             "foo".should.equal(calledWith);
         } finally {
@@ -70,7 +70,7 @@ describe("Bootstrap hypescript test", function() {
 
     it("hypes can wait", function(finished){
         var div = make("<div _='add foo then wait 20ms then add bar'></div>");
-        hypescript.getHyped(div);
+        hyperscript.getHyped(div);
         div.classList.contains("foo").should.equal(false);
         div.classList.contains("bar").should.equal(false);
         div.click();
