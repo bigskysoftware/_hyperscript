@@ -1,4 +1,4 @@
-# `///_hyperscript`
+# `///_hypescript`
 
 ## introduction
 

@@ -5,7 +5,7 @@
         define([], factory);
     } else {
         // Browser globals
-        root.hyperscript = factory();
+        root.hypescript = factory();
     }
 }(typeof self !== 'undefined' ? self : this, function () {
 return (function () {
@@ -215,8 +215,8 @@ return (function () {
         function getHyped(elt) {
             if (elt) {
                 var hypeScript = elt.getAttribute("_")
-                    || elt.getAttribute("hscript")
-                    || elt.getAttribute("data-hscript");
+                    || elt.getAttribute("hypescript")
+                    || elt.getAttribute("data-hypescript");
                 var hyperScript = parse(hypeScript);
                 if (hyperScript.on) {
                     var event = hyperScript.on.value;
@@ -226,7 +226,7 @@ return (function () {
                 elt.addEventListener(event, makeEvalAction(elt, hyperScript.actions))
             } else {
                 var fn = function(){
-                    var all = document.querySelectorAll("[_], [hscript], [data-hscript]");
+                    var all = document.querySelectorAll("[_], [hypescript], [data-hypescript]");
                     for (var i = 0; i < all.length; i++) {
                         var elt = all[i];
                         getHyped(elt);

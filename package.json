@@ -1,14 +1,14 @@
 {
-  "name": "hyperscript.org",
+  "name": "hypescript.org",
   "description": "a small scripting language for the web",
   "keywords": [
     "scripting",
     "HTML"
   ],
   "version": "0.0.1-alpha0",
-  "homepage": "https://hyperscript.org/",
+  "homepage": "https://hypescript.org/",
   "bugs": {
-    "url": "https://github.com/bigskysoftware/hyperscript/issues"
+    "url": "https://github.com/bigskysoftware/hypescript/issues"
   },
   "license": "BSD 2-Clause",
   "files": [
@@ -16,17 +16,17 @@
     "README.md",
     "dist/*.js"
   ],
-  "main": "",
-  "unpkg": "dist/hyperscript.min.js",
+  "main": "dist/hypescript.min.js",
+  "unpkg": "dist/hypescript.min.js",
   "scripts": {
     "test": "mocha-chrome test/index.html",
-    "dist": "cp -r src/* dist/ && npm run-script uglify && gzip -k -f  > dist/hyperscript.min.js.gz && exit",
+    "dist": "cp -r src/* dist/ && npm run-script uglify && gzip -k -f dist/hypescript.min.js > dist/hypescript.min.js.gz && exit",
     "www": "node scripts/www.js",
-    "uglify": "uglifyjs -m eval -o dist/hyperscript.min.js dist/hyperscript.js"
+    "uglify": "uglifyjs -m eval -o dist/hypescript.min.js dist/hypescript.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bigskysoftware/hyperscript.git"
+    "url": "git+https://github.com/bigskysoftware/hypescript.git"
   },
   "devDependencies": {
     "@11ty/eleventy": "^0.10.0",
