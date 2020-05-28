@@ -11,7 +11,7 @@ title: ///hypescript
 
 ## intro
 
-hypescript is a small scripting language designed to be embedded in HTML and based on [applescript](https://en.wikipedia.org/wiki/Applescript) and
+hypescript is a small scripting language designed to be embedded in HTML and inspired by
  [hypertalk](https://en.wikipedia.org/wiki/HyperTalk)
 
 it is a companion project of <https://htmx.org>
