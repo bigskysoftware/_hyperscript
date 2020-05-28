@@ -5,7 +5,7 @@ title: ///hypescript
 
 <div class="hero full-width">
 <div class="c">
-<h1><span class="s1">/</span><span class="s2">/</span><span class="s3">/</span><span class="s4">_</span>hypescript</h1>
+<h1><span class="s1">/</span><span class="s2">/</span><span class="s3">/</span><span class="s4">_</span>hypescri<span class="s4">p</span>t</h1>
 </div>
 </div>
 
