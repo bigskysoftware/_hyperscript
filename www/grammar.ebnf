@@ -1,0 +1,10 @@
+ hypescript => action_list;
+ action_list => action {["then", action]};
+ on_expr => "on", IDENTIFIER;
+ action => [on_expr] operation_expr;
+ operation_expr => add_expr | remove_expr | toggle_expr | call_expr | wait_expr
+ add_expr => "add", IDENTIFIER, [on_expr];
+ remove_expr => "remove", IDENTIFIER, [on_expr];
+ toggle_expr => "toggle", IDENTIFIER, [on_expr];
+ call_expr => "call" ? javascript_method_call_expr ?;
+ wait_expr => "wait" time_expr;

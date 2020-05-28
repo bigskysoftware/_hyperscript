@@ -55,9 +55,21 @@ return (function () {
             }
         }
 
+        function makeEvent(eventName, detail) {
+            var evt;
+            if (window.CustomEvent && typeof window.CustomEvent === 'function') {
+                evt = new CustomEvent(eventName, {bubbles: true, cancelable: true, detail: detail});
+            } else {
+                evt = getDocument().createEvent('CustomEvent');
+                evt.initCustomEvent(eventName, true, true, detail);
+            }
+            return evt;
+        }
+
         //-----------------------------------------------
-        // Eval
+        // Runtime
         //-----------------------------------------------
+
         function makeEvalAction(elt, actionList) {
             return function () {
                 evalActionList(elt, actionList.slice(0));
@@ -82,6 +94,13 @@ return (function () {
             return function() { return eval(js); }.call(context);
         }
 
+        function triggerEvent(elt, eventName) {
+            var detail = {sent_by:elt};
+            var event = makeEvent(eventName, detail);
+            var eventResult = elt.dispatchEvent(event);
+            return eventResult;
+        }
+
         function evalAction(elt, action) {
             if (action.operation.on) {
                 var targets = document.querySelectorAll(action.operation.on.value);
@@ -91,13 +110,29 @@ return (function () {
             for (var i = 0; i < targets.length; i++) {
                 var target = targets[i];
                 if (action.operation.type === "add") {
-                    target.classList.add(action.operation.value);
+                    if (action.operation.attribute.name === "class") {
+                        target.classList.add(action.operation.attribute.value);
+                    } else {
+                        // TODO handle styles
+                        target.setAttribute(action.operation.attribute.name, action.operation.attribute.value)
+                    }
                 } else if (action.operation.type === "remove") {
-                    target.classList.remove(action.operation.value);
+                    if (action.operation.attribute.name === "class") {
+                        target.classList.remove(action.operation.attribute.value);
+                    } else {
+                        // TODO handle styles
+                        target.removeAttribute(action.operation.attribute.name)
+                    }
                 } else if (action.operation.type === "toggle") {
-                    target.classList.toggle(action.operation.value);
+                    if (action.operation.attribute.name === "class") {
+                        // TODO handle styles
+                        target.classList.toggle(action.operation.attribute.value);
+                    } else {
+                    }
                 } else if (action.operation.type === "call") {
                     evalJavascriptInContext(action.operation.expr, elt);
+                } else if (action.operation.type === "send") {
+                    triggerEvent(target, action.operation.name);
                 }
             }
         }
@@ -106,11 +141,38 @@ return (function () {
         // Parser
         //-----------------------------------------------
 
-        function parseOnExpression(tokens) {
-            if (match(tokens,"on")) {
+        function parseTargetExpression(tokens, token) {
+            if (match(tokens, token)) {
                 return {
-                    type: "on",
+                    type: token,
                     value: tokens.shift()
+                }
+            }
+        }
+
+        function parseOnExpression(tokens) {
+            return parseTargetExpression(tokens, "on");
+        }
+
+        function parseToExpression(tokens) {
+            return parseTargetExpression(tokens, "to");
+        }
+
+        function parseFromExpression(tokens) {
+            return parseTargetExpression(tokens, "from");
+        }
+
+        function parseAttributeExpression(token) {
+            if (token.indexOf(".") === 0) {
+                return {
+                    name:"class",
+                    value: token.substr(1)
+                }
+            } else {
+                var nameValue = token.split("=");
+                return {
+                    name: nameValue[0],
+                    value:nameValue[1]
                 }
             }
         }
@@ -119,8 +181,8 @@ return (function () {
             if (match(tokens, "add")) {
                 return {
                     type: "add",
-                    value: tokens.shift(),
-                    on: parseOnExpression(tokens)
+                    attribute: parseAttributeExpression(tokens.shift()),
+                    on: parseToExpression(tokens)
                 }
             }
         }
@@ -129,8 +191,8 @@ return (function () {
             if (match(tokens, "remove")) {
                 return {
                     type: "remove",
-                    value: tokens.shift(),
-                    on: parseOnExpression(tokens)
+                    attribute: parseAttributeExpression(tokens.shift()),
+                    on: parseFromExpression(tokens)
                 }
             }
         }
@@ -139,7 +201,7 @@ return (function () {
             if (match(tokens, "toggle")) {
                 return {
                     type: "toggle",
-                    value: tokens.shift(),
+                    attribute: parseAttributeExpression(tokens.shift()),
                     on: parseOnExpression(tokens)
                 }
             }
@@ -169,6 +231,16 @@ return (function () {
             }
         }
 
+        function parseSendExpr(tokens) {
+            if (match(tokens, "send")) {
+                return {
+                    type: "send",
+                    name: tokens.shift(),
+                    on: parseToExpression(tokens)
+                }
+            }
+        }
+
         function parseOperationExpression(tokens) {
             var expr = parseAddExpr(tokens);
             if(expr) return expr;
@@ -184,6 +256,9 @@ return (function () {
 
             expr = parseWaitExpr(tokens);
             if(expr) return expr;
+
+            expr = parseSendExpr(tokens);
+            if(expr) return expr;
         }
 
         function parseAction(tokens) {
@@ -193,15 +268,26 @@ return (function () {
             }
         }
 
-        function parseHyperScript(tokens) {
-            var hyperScript = {
-                on:parseOnExpression(tokens),
+        function parseActionList(tokens) {
+            var actionList = {
+                type: "action_list",
+                on: parseOnExpression(tokens),
                 actions: []
             }
             do {
-                hyperScript.actions.push(parseAction(tokens));
+                actionList.actions.push(parseAction(tokens));
             } while (match(tokens, "then"))
-            return hyperScript;
+            return actionList;
+        }
+
+        function parseHypeScript(tokens) {
+            var hypeScript = {
+                type: "hype_script",
+                actionLists: []
+            }
+            do {
+                hypeScript.actionLists.push(parseActionList(tokens));
+            } while (match(tokens, "and"))
         }
 
         //-----------------------------------------------
@@ -209,7 +295,19 @@ return (function () {
         //-----------------------------------------------
         function parse(string) {
             var tokens = splitOnWhitespace(string);
-            return parseHyperScript(tokens);
+            return parseHypeScript(tokens);
+        }
+
+        function applyHypeScript(hypeScript, elt) {
+            for (var i = 0; i < hypeScript.actionLists.length; i++) {
+                var actionList = hypeScript.actionLists[i];
+                if (actionList.on) {
+                    var event = actionList.on.value;
+                } else {
+                    var event = defaultEvent(elt);
+                }
+                elt.addEventListener(event, makeEvalAction(elt, actionList.actions))
+            }
         }
 
         function getHyped(elt) {
@@ -217,13 +315,11 @@ return (function () {
                 var hypeScript = elt.getAttribute("_")
                     || elt.getAttribute("hypescript")
                     || elt.getAttribute("data-hypescript");
-                var hyperScript = parse(hypeScript);
-                if (hyperScript.on) {
-                    var event = hyperScript.on.value;
-                } else {
-                    var event = defaultEvent(elt);
+                if (hypeScript) {
+                    var hypeScript = parse(hypeScript);
+
+                    applyHypeScript(hypeScript, elt);
                 }
-                elt.addEventListener(event, makeEvalAction(elt, hyperScript.actions))
             } else {
                 var fn = function(){
                     var all = document.querySelectorAll("[_], [hypescript], [data-hypescript]");
