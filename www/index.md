@@ -9,6 +9,8 @@ title: ///hypescript
 </div>
 </div>
 
+## intro
+
 hypescript is a small scripting language designed to be embedded in HTML and based on [applescript](https://en.wikipedia.org/wiki/Applescript) and
  [hypertalk](https://en.wikipedia.org/wiki/HyperTalk)
 
