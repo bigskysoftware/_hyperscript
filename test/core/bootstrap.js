@@ -53,9 +53,9 @@ describe("Bootstrap hypescript test", function() {
     window.globalFunction = function(val){
         calledWith = val;
     }
-    it("hypes can call javascript ", function(){
+    it("hypes can eval javascript ", function(){
         try {
-            var div = make("<div _='call globalFunction(\"foo\")'></div>");
+            var div = make("<div _='eval globalFunction(\"foo\")'></div>");
             div.click();
             "foo".should.equal(calledWith);
         } finally {
