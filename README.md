@@ -31,3 +31,14 @@ _hyperscript.start();
            Do some stuff
 </div>
 ```
+
+## website & docs
+
+* <https://hyperscript.org>
+* <https://hyperscript.org/docs>
+
+## contributing
+
+* please write code, including tests, in ES5 for [IE 11 compatibility](https://stackoverflow.com/questions/39902809/support-for-es6-in-internet-explorer-11)
+* please include test cases in [`/test`](https://github.com/bigskysoftware/_hyperscript/tree/dev/test) and docs in [`/www`](https://github.com/bigskysoftware/_hyperscript/tree/dev/www)
+* development pull requests should be against the `dev` branch, docs fixes can be made directly against `master`
