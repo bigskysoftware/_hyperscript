@@ -5,7 +5,7 @@
         define([], factory);
     } else {
         // Browser globals
-        root.hypescript = factory();
+        root._hyperscript = factory();
     }
 }(typeof self !== 'undefined' ? self : this, function () {
     return (function () {

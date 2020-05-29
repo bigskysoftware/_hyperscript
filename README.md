@@ -1,8 +1,8 @@
-# `///_hypescript`
+# `///_hyperscript`
 
 ## introduction
 
-hypescript is a small web scripting language based [applescript](https://en.wikipedia.org/wiki/Applescript) and
+_hyperscript is a small web scripting language based [applescript](https://en.wikipedia.org/wiki/Applescript) and
  [hypertalk](https://en.wikipedia.org/wiki/HyperTalk)
 
 it is a companion project of <https://htmx.org>

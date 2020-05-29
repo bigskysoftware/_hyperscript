@@ -1,4 +1,4 @@
-describe("hypescript tokenizer", function() {
+describe("_hyperscript tokenizer", function() {
 
     it("handles basic token types", function () {
         var tokens = hyperscript.tokenize("foo");

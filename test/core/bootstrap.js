@@ -1,4 +1,4 @@
-describe("Bootstrap hypescript test", function() {
+describe("Bootstrap _hyperscript test", function() {
 
     beforeEach(function() {
         this.server = makeServer();
