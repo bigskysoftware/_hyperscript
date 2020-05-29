@@ -492,7 +492,7 @@
                     consumeRestOfCommand: consumeRestOfCommand,
                     parseInterval: parseInterval,
                     parseCommandList: parseCommandList,
-                    parseHypeScript: parseHypeScript,
+                    parseHyperscript: parseHypeScript,
                     addCommand: addCommand,
                 }
             }();
@@ -786,10 +786,6 @@
             //-----------------------------------------------
             // API
             //-----------------------------------------------
-            function parse(string) {
-                var tokens = _lexer.tokenize(string);
-                return _parser.parseHypeScript(tokens);
-            }
 
             function makeEventListener(actionList, elt) {
                 return function (event) {
@@ -797,7 +793,7 @@
                 };
             }
 
-            function applyHypeScript(hypeScript, elt) {
+            function apply(hypeScript, elt) {
                 _runtime.forEach(hypeScript, hypeScript.commandLists, function (commandList) {
                     var event = commandList.on.value;
                     _runtime.forTargets(commandList, commandList.from, elt, function (from) {
@@ -806,25 +802,26 @@
                 });
             }
 
-            function init(elt) {
-                if (arguments.length === 0) {
-                    var fn = function () {
-                        var elts = document.querySelectorAll("[_], [hs], [data-hs]");
-                        _runtime.forEach(document, elts, function (elt) {
-                            init(elt);
-                        })
-                    }
-                    if (document.readyState !== 'loading') {
-                        fn();
-                    } else {
-                        document.addEventListener('DOMContentLoaded', fn);
-                    }
+            function start() {
+                var fn = function () {
+                    var elts = document.querySelectorAll("[_], [hs], [data-hs]");
+                    _runtime.forEach(document, elts, function (elt) {
+                        init(elt);
+                    })
+                }
+                if (document.readyState !== 'loading') {
+                    fn();
                 } else {
-                    var hypeScript = _runtime.getScript(elt);
-                    if (hypeScript) {
-                        var parseTree = parse(hypeScript);
-                        applyHypeScript(parseTree, elt);
-                    }
+                    document.addEventListener('DOMContentLoaded', fn);
+                }
+            }
+
+            function init(elt) {
+                var hypeScript = _runtime.getScript(elt);
+                if (hypeScript) {
+                    var tokens = _lexer.tokenize(string);
+                    var hyperScript =  _parser.parseHyperscript(tokens);
+                    apply(hyperScript, elt);
                 }
             }
 
@@ -832,7 +829,8 @@
                 lexer: _lexer,
                 parser: _parser,
                 runtime: _runtime,
-                getHyped: init
+                init: init,
+                start: start
             }
         }
     )()
