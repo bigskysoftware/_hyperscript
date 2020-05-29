@@ -367,7 +367,7 @@
                 }
 
                 function raiseError(tokens, message) {
-                    message = message || "Unexpected Token : " + tokens.list[0].value;
+                    message = message || "Unexpected Token : " + tokens.currentToken().value;
                     var error = new Error(message);
                     error.tokens = tokens;
                     throw error
