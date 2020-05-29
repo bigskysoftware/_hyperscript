@@ -305,6 +305,12 @@
             //-----------------------------------------------
             var _parser = function () {
 
+                var COMMANDS = {}
+
+                function addCommand(name, definition) {
+                    COMMANDS[name] = definition;
+                }
+
                 function parseInterval(tokens) {
                     var number = tokens.requireTokenType(tokens, "NUMBER");
                     var factor = 1;
@@ -468,6 +474,7 @@
                     parseInterval: parseInterval,
                     parseCommandList: parseCommandList,
                     parseHypeScript: parseHypeScript,
+                    addCommand: addCommand,
                 }
             }();
 
@@ -475,6 +482,9 @@
             // Runtime
             //-----------------------------------------------
             var _runtime = function () {
+
+                var GLOBALS = {};
+
                 function matchesSelector(elt, selector) {
                     // noinspection JSUnresolvedVariable
                     var matchesFunction = elt.matches ||
@@ -538,6 +548,24 @@
                     return evt;
                 }
 
+                function enter(commandList, event, elt) {
+                    var ctx = {
+                        meta: {
+                            parser:_parser,
+                            lexer:_lexer,
+                            runtime:_runtime,
+                            current:commandList
+                        },
+                        me: elt,
+                        event: event,
+                        window: window,
+                        document: document,
+                        body: body,
+                        globals: GLOBALS,
+                    }
+                    actionList.start.exec(actionList.start, elt, ctx);
+                }
+
 
                 return {
                     forEach: forEach,
@@ -554,12 +582,8 @@
             //-----------------------------------------------
             // Commands
             //-----------------------------------------------
-            var COMMANDS = {}
-            function addCommand(name, definition) {
-                COMMANDS[name] = definition;
-            }
 
-            addCommand("add", function (parser, runtime, tokens) {
+            _parser.addCommand("add", function (parser, runtime, tokens) {
                 return {
                     type: "add",
                     attribute: parser.parseAttributeExpression(tokens),
@@ -577,7 +601,7 @@
                 };
             });
 
-            addCommand("remove", function (parser, runtime,tokens) {
+            _parser.addCommand("remove", function (parser, runtime,tokens) {
                 return {
                     type: "remove",
                     attribute: parser.parseAttributeExpression(tokens),
@@ -595,7 +619,7 @@
                 }
             });
 
-            addCommand("toggle", function (parser, runtime, tokens) {
+            _parser.addCommand("toggle", function (parser, runtime, tokens) {
                 return {
                     type: "toggle",
                     attribute: parser.parseAttributeExpression(tokens),
@@ -617,7 +641,7 @@
                 }
             })
 
-            addCommand("eval", function (parser, runtime, tokens) {
+            _parser.addCommand("eval", function (parser, runtime, tokens) {
                 var evalExpr = {
                     type: "eval",
                     eval: parser.consumeRestOfCommand(tokens),
@@ -629,7 +653,7 @@
                 return evalExpr;
             })
 
-            addCommand("wait", function (parser, runtime, tokens) {
+            _parser.addCommand("wait", function (parser, runtime, tokens) {
                 return {
                     type: "wait",
                     time: parser.parseInterval(tokens),
@@ -641,7 +665,7 @@
                 }
             })
 
-            addCommand("send", function (parser, runtime, tokens) {
+            _parser.addCommand("send", function (parser, runtime, tokens) {
 
                 var eventName = tokens.requireTokenType(tokens, "IDENTIFIER");
                 var details = [];
@@ -674,7 +698,7 @@
                 }
             })
 
-            addCommand("take", function (parser, runtime, tokens) {
+            _parser.addCommand("take", function (parser, runtime, tokens) {
                 return {
                     type: "take",
                     classRef: tokens.requireTokenType(tokens, "CLASS_REF"),
@@ -690,7 +714,7 @@
                 }
             })
 
-            addCommand("log", function (parser, runtime, tokens) {
+            _parser.addCommand("log", function (parser, runtime, tokens) {
                 return {
                     type: "log",
                     expr: parser.parseValueExpression(tokens),
@@ -701,7 +725,7 @@
                 }
             })
 
-            addCommand("set", function (parser, runtime, tokens) {
+            _parser.addCommand("set", function (parser, runtime, tokens) {
 
                 var target = parser.parseTargetExpression(tokens);
                 var propPath = []
@@ -741,11 +765,7 @@
 
             function makeEventListener(actionList, elt) {
                 return function (event) {
-                    var ctx = {
-                        me: elt,
-                        event: event
-                    }
-                    actionList.start.exec(actionList.start, elt, ctx);
+                    _runtime.enter(actionList.start, event, elt)
                 };
             }
 
@@ -787,7 +807,6 @@
                 lexer: _lexer,
                 parser: _parser,
                 runtime: _runtime,
-                addCommand: addCommand,
                 getHyped: getHyped
             }
         }
