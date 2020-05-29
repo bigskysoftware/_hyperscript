@@ -343,10 +343,10 @@
                         type: "method_call",
                         root: root,
                         args: args,
-                        evaluate: function (elt, context) {
-                            var rootValue = this.root.evaluate(elt, context);
+                        evaluate: function (context) {
+                            var rootValue = this.root.evaluate(context);
                             var argValues = args.map(function (arg) {
-                                return arg.evaluate(elt, context);
+                                return arg.evaluate(context);
                             })
                             return rootValue.apply(null, argValues); //TODO get the *this* right
                         }
@@ -360,8 +360,8 @@
                             type: "dereference",
                             root: root,
                             prop: prop,
-                            evaluate: function(elt, context) {
-                                var rootValue = this.root.evaluate(elt, context);
+                            evaluate: function(context) {
+                                var rootValue = this.root.evaluate(context);
                                 return rootValue[this.prop.value];
                             }
                         };
@@ -401,9 +401,9 @@
                         var id = {
                             type: "symbol",
                             value: identifier.value,
-                            evaluate: function(elt, context) {
+                            evaluate: function(context) {
                                 if (this.value === "me" || this.value === "my") {
-                                    return elt;
+                                    return context["me"];
                                 } else {
                                     var fromContext = context[this.value];
                                     if (fromContext) {
@@ -520,8 +520,8 @@
                     return matchesFunction && matchesFunction.call(elt, selector);
                 }
 
-                function forTargets(that, targetsProp, elt, callback) {
-                    var targets = evalTargetExpr(that[targetsProp], elt);
+                function forTargets(that, targetsProp, context, callback) {
+                    var targets = evalTargetExpr(that[targetsProp], context);
                     forEach(that, targets, function (target) {
                         callback.call(this, target);
                     });
@@ -535,28 +535,26 @@
                     return eventResult;
                 }
 
+                function getMe(context) {
+                    return context["me"];
+                }
+
                 // TODO this should probably live on the expression
-                function evalTargetExpr(expr, elt) {
+                function evalTargetExpr(expr, context) {
                     if (expr) {
                         if (expr.value === "me" || expr.value === "my") {
-                            return [elt];
+                            return [context["me"]];
                         } else {
                             return document.querySelectorAll(expr.value);
                         }
                     } else {
-                        return [elt];
+                        return [getMe(context)];
                     }
                 }
 
                 function forEach(that, arr, func) {
                     for (var i = 0; i < arr.length; i++) {
                         func.call(that, arr[i]);
-                    }
-                }
-
-                function exec(cmd, elt, context) {
-                    if (cmd) {
-                        cmd.exec(elt, context);
                     }
                 }
 
@@ -587,7 +585,7 @@
                         globals: GLOBALS,
                     }
                     // lets get this party started
-                    exec(commandList.start, elt, ctx);
+                    commandList.start.exec(ctx);
                 }
 
                 function getScript(elt) {
@@ -605,25 +603,27 @@
                 function apply(hypeScript, elt) {
                     _runtime.forEach(hypeScript, hypeScript.commandLists, function (commandList) {
                         var event = commandList.on.value;
-                        _runtime.forTargets(commandList, "from", elt, function (from) {
+                        _runtime.forTargets(commandList, "from", {me:elt}, function (from) {
                             from.addEventListener(event, makeEventListener(commandList, elt));
                         });
                     });
                 }
 
+                function next(current, context) {
+                    if (current.next) {
+                        current.next.exec(context);
+                    }
+                }
+
                 return {
                     forEach: forEach,
                     triggerEvent: triggerEvent,
-                    evalTargetExpr: evalTargetExpr,
                     forTargets: forTargets,
-                    evaluate: function (that, elt, context) {
-                        return that.evaluate(elt, context);
-                    },
-                    exec: exec,
+                    next: next,
                     matchesSelector: matchesSelector,
-                    makeEvent: makeEvent,
                     enter:enter,
                     getScript: getScript,
+                    getMe: getMe,
                     apply:apply
                 }
             }();
@@ -637,15 +637,15 @@
                     type: "add",
                     attribute: parser.parseAttributeExpression(tokens),
                     to: parser.parseTargetExpression(tokens, "to"),
-                    exec: function(elt, context) {
-                        runtime.forTargets(this, "to", elt, function (target) {
+                    exec: function(context) {
+                        runtime.forTargets(this, "to", context, function (target) {
                             if (this.attribute.name === "class") {
                                 target.classList.add(this.attribute.value);
                             } else {
                                 target.setAttribute(this.attribute.name, this.attribute.value)
                             }
                         });
-                        runtime.exec(this.next, elt, context);
+                        runtime.next(this, context);
                     }
                 };
             });
@@ -663,7 +663,7 @@
                                 target.removeAttribute(this.attribute.name)
                             }
                         });
-                        runtime.exec(this.next, elt, context);
+                        runtime.next(this, context);
                     }
                 }
             });
@@ -685,31 +685,30 @@
                                 }
                             }
                         });
-                        runtime.exec(this.next, elt, context);
+                        runtime.next(this, context);
                     }
                 }
             })
 
             _parser.addCommand("eval", function (parser, runtime, tokens) {
-                var evalExpr = {
+                return {
                     type: "eval",
                     eval: parser.consumeRestOfCommand(tokens),
-                    exec: function(elt, context) {
+                    exec: function (elt, context) {
                         eval(this.eval);
-                        runtime.exec(this.next, elt, context);
+                        runtime.next(this, context);
                     }
-                }
-                return evalExpr;
+                };
             })
 
             _parser.addCommand("wait", function (parser, runtime, tokens) {
                 return {
                     type: "wait",
                     time: parser.parseInterval(tokens),
-                    exec: function(elt, context) {
-                        var next = this.next;
+                    exec: function(context) {
+                        var copyOfThis = this;
                         setTimeout(function () {
-                            runtime.exec(next, elt, context);
+                            runtime.next(copyOfThis, context);
                         }, this.time);
                     }
                 }
@@ -735,15 +734,15 @@
                     eventName: eventName,
                     details: details,
                     to: to,
-                    exec: function(elt, context) {
-                        runtime.forTargets(this, "to", elt, function (target) {
+                    exec: function(context) {
+                        runtime.forTargets(this, "to", context, function (target) {
                             var detailsValue = {}
                             runtime.forEach(this, this.details, function (detail) {
-                                detailsValue[detail[0].value] = runtime.evaluate(detail[1]);
+                                detailsValue[detail[0].value] = detail[1].evaluate(context);
                             });
                             runtime.triggerEvent(target, this.eventName.value, detailsValue);
                         })
-                        runtime.exec(this.next, elt, context);
+                        runtime.next(this, context);
                     }
                 }
             })
@@ -753,13 +752,13 @@
                     type: "take",
                     classRef: tokens.requireTokenType(tokens, "CLASS_REF"),
                     from: parser.parseTargetExpression(tokens, "from"),
-                    exec: function(elt, context) {
+                    exec: function(context) {
                         var clazz = this.classRef.value.substr(1);
-                        runtime.forTargets(this, "from", elt, function (target) {
+                        runtime.forTargets(this, "from", context, function (target) {
                             target.classList.remove(clazz)
                         });
-                        elt.classList.add(clazz);
-                        runtime.exec(this.next, elt, context);
+                        runtime.getMe(context).classList.add(clazz);
+                        runtime.next(this, context);
                     }
                 }
             })
@@ -768,9 +767,9 @@
                 return {
                     type: "log",
                     expr: parser.parseValueExpression(tokens),
-                    exec: function(elt, context) {
-                        console.log(this.expr.evaluate(elt, context));
-                        runtime.exec(this.next, elt, context);
+                    exec: function(context) {
+                        console.log(this.expr.evaluate(context));
+                        runtime.next(this, context);
                     }
                 }
             })
@@ -779,9 +778,9 @@
                 return {
                     type: "call",
                     expr: parser.parseValueExpression(tokens),
-                    exec: function(elt, context) {
-                        this.expr.evaluate(elt, context);
-                        runtime.exec(this.next, elt, context);
+                    exec: function(context) {
+                        this.expr.evaluate(context);
+                        runtime.next(this, context);
                     }
                 }
             })
@@ -801,9 +800,9 @@
                     target: target,
                     propPath: propPath,
                     value: value,
-                    exec: function(elt, context) {
-                        var value = runtime.evaluate(this.value, elt, context);
-                        runtime.forTargets(this, "target", elt, function (target) {
+                    exec: function(context) {
+                        var value = this.value.evaluate(context);
+                        runtime.forTargets(this, "target", context, function (target) {
                             var finalTarget = target;
                             var propPathClone = this.propPath.slice();
                             while (propPathClone.length > 1) {
@@ -811,7 +810,7 @@
                             }
                             finalTarget[propPathClone[0]] = value;
                         })
-                        runtime.exec(this.next, elt, context);
+                        runtime.next(this, context);
                     }
                 }
             })
