@@ -333,6 +333,23 @@
                     }
                 }
 
+                function parseFunctionCall(tokens, root) {
+                    var args = [];
+                    do {
+                        args.push(parseValueExpression(tokens));
+                    } while (tokens.matchOpToken(","))
+
+                    return {
+                        type: "method_call",
+                        root: root,
+                        args: args,
+                        evaluate: function (elt, context) {
+                            var rootValue = this.root.evaluate(elt, context);
+                            return rootValue[this.prop.value];
+                        }
+                    };
+                }
+
                 function maybeParseDots(tokens, root) {
                     if (tokens.matchOpToken(".")) {
                         var prop = tokens.requireTokenType("IDENTIFIER");
@@ -340,12 +357,14 @@
                             type: "dereference",
                             root: root,
                             prop: prop,
-                            evaluate: function (self, elt, context) {
-                                var rootValue = self.root.evaluate(self.root, elt, context);
-                                return rootValue[self.prop.value];
+                            evaluate: function(elt, context) {
+                                var rootValue = this.root.evaluate(this.root, elt, context);
+                                return rootValue[this.prop.value];
                             }
                         };
                         return maybeParseDots(tokens, deref);
+                    } else if (tokens.matchOpToken("(")) {
+                        return  parseFunctionCall(tokens, root);
                     } else {
                         return root;
                     }
@@ -358,7 +377,7 @@
                             type: "string",
                             value: stringToken.value,
                             evaluate: function(self) {
-                                return self.value;
+                                return this.value;
                             }
                         }
                     }
@@ -369,7 +388,7 @@
                             type: "number",
                             value: number.value,
                             evaluate: function(self) {
-                                return self.value;
+                                return this.value;
                             }
                         }
                     }
@@ -379,11 +398,11 @@
                         var id = {
                             type: "variable",
                             value: identifier.value,
-                            evaluate: function (self, elt, context) {
-                                if (self.value === "me" || self.value === "my") {
+                            evaluate: function(elt, context) {
+                                if (this.value === "me" || this.value === "my") {
                                     return elt;
                                 } else {
-                                    return context[self.value];
+                                    return context[this.value];
                                 }
                             }
                         };
@@ -493,10 +512,10 @@
                     return matchesFunction && matchesFunction.call(elt, selector);
                 }
 
-                function forTargets(targetExpr, elt, callback) {
-                    var targets = evalTargetExpr(targetExpr, elt);
-                    forEach(targets, function (target) {
-                        callback(target);
+                function forTargets(that, targetsProp, elt, callback) {
+                    var targets = evalTargetExpr(that[targetsProp], elt);
+                    forEach(that, targets, function (target) {
+                        callback.call(this, target);
                     });
                 }
 
@@ -521,15 +540,15 @@
                     }
                 }
 
-                function forEach(arr, func) {
+                function forEach(that, arr, func) {
                     for (var i = 0; i < arr.length; i++) {
-                        func(arr[i]);
+                        func.call(that, arr[i]);
                     }
                 }
 
-                function execNext(that, elt, context) {
-                    if (that.next) {
-                        that.next.exec(that.next, elt, context);
+                function exec(cmd, elt, context) {
+                    if (cmd) {
+                        cmd.exec(elt, context);
                     }
                 }
 
@@ -560,13 +579,18 @@
                         event: event,
                         window: window,
                         document: document,
-                        body: body,
+                        body: document.body,
                         globals: GLOBALS,
                     }
                     // lets get this party started
-                    commandList.start.exec(commandList.start, elt, ctx);
+                    exec(commandList.start, elt, ctx);
                 }
 
+                function getScript(elt) {
+                    return elt.getAttribute("_")
+                        || elt.getAttribute("hs")
+                        || elt.getAttribute("data-hs");
+                }
 
                 return {
                     forEach: forEach,
@@ -574,10 +598,11 @@
                     evalTargetExpr: evalTargetExpr,
                     forTargets: forTargets,
                     evaluate: evaluate,
-                    execNext: execNext,
+                    exec: exec,
                     matchesSelector: matchesSelector,
                     makeEvent: makeEvent,
-                    enter:enter
+                    enter:enter,
+                    getScript: getScript
                 }
             }();
 
@@ -590,15 +615,15 @@
                     type: "add",
                     attribute: parser.parseAttributeExpression(tokens),
                     to: parser.parseTargetExpression(tokens, "to"),
-                    exec: function (self, elt, context) {
-                        runtime.forTargets(self.to, elt, function (target) {
-                            if (self.attribute.name === "class") {
-                                target.classList.add(self.attribute.value);
+                    exec: function(elt, context) {
+                        runtime.forTargets(this, "to", elt, function (target) {
+                            if (this.attribute.name === "class") {
+                                target.classList.add(this.attribute.value);
                             } else {
-                                target.setAttribute(self.attribute.name, self.attribute.value)
+                                target.setAttribute(this.attribute.name, this.attribute.value)
                             }
                         });
-                        runtime.execNext(self, elt, context);
+                        runtime.exec(this.next, elt, context);
                     }
                 };
             });
@@ -608,15 +633,15 @@
                     type: "remove",
                     attribute: parser.parseAttributeExpression(tokens),
                     from: parser.parseTargetExpression(tokens, "from"),
-                    exec: function (self, elt, context) {
-                        runtime.forTargets(self.from, elt, function (target) {
-                            if (self.attribute.name === "class") {
-                                target.classList.remove(self.attribute.value);
+                    exec: function(elt, context) {
+                        runtime.forTargets(this, "from", elt, function (target) {
+                            if (this.attribute.name === "class") {
+                                target.classList.remove(this.attribute.value);
                             } else {
-                                target.removeAttribute(self.attribute.name)
+                                target.removeAttribute(this.attribute.name)
                             }
                         });
-                        runtime.execNext(self, elt, context);
+                        runtime.exec(this.next, elt, context);
                     }
                 }
             });
@@ -626,19 +651,19 @@
                     type: "toggle",
                     attribute: parser.parseAttributeExpression(tokens),
                     on: parser.parseTargetExpression(tokens, "on"),
-                    exec: function (self, elt, context) {
-                        runtime.forTargets(self.on, elt, function (target) {
-                            if (self.attribute.name === "class") {
-                                target.classList.toggle(self.attribute.value);
+                    exec: function(elt, context) {
+                        runtime.forTargets(this, "on", elt, function (target) {
+                            if (this.attribute.name === "class") {
+                                target.classList.toggle(this.attribute.value);
                             } else {
-                                if (target.getAttribute(self.attribute.name)) {
-                                    target.removeAttribute(self.attribute.name);
+                                if (target.getAttribute(this.attribute.name)) {
+                                    target.removeAttribute(this.attribute.name);
                                 } else {
-                                    target.setAttribute(self.attribute.name, self.attribute.value);
+                                    target.setAttribute(this.attribute.name, this.attribute.value);
                                 }
                             }
                         });
-                        runtime.execNext(self, elt, context);
+                        runtime.exec(this.next, elt, context);
                     }
                 }
             })
@@ -647,9 +672,9 @@
                 var evalExpr = {
                     type: "eval",
                     eval: parser.consumeRestOfCommand(tokens),
-                    exec: function (self, elt, context) {
-                        eval(self.eval);
-                        runtime.execNext(self, elt, context);
+                    exec: function(elt, context) {
+                        eval(this.eval);
+                        runtime.exec(this.next, elt, context);
                     }
                 }
                 return evalExpr;
@@ -659,10 +684,11 @@
                 return {
                     type: "wait",
                     time: parser.parseInterval(tokens),
-                    exec: function (self, elt, context) {
+                    exec: function(elt, context) {
+                        var next = this.next;
                         setTimeout(function () {
-                            runtime.execNext(self, elt, context);
-                        }, self.time);
+                            runtime.exec(next, elt, context);
+                        }, this.time);
                     }
                 }
             })
@@ -687,15 +713,15 @@
                     eventName: eventName,
                     details: details,
                     to: to,
-                    exec: function (self, elt, context) {
-                        runtime.forTargets(self.to, elt, function (target) {
+                    exec: function(elt, context) {
+                        runtime.forTargets(this, "to", elt, function (target) {
                             var detailsValue = {}
-                            runtime.forEach(self.details, function (detail) {
+                            runtime.forEach(this, this.details, function (detail) {
                                 detailsValue[detail[0].value] = runtime.evaluate(detail[1]);
                             });
-                            runtime.triggerEvent(target, self.eventName.value, detailsValue);
+                            runtime.triggerEvent(target, this.eventName.value, detailsValue);
                         })
-                        runtime.execNext(self, elt, context);
+                        runtime.exec(this.next, elt, context);
                     }
                 }
             })
@@ -705,13 +731,13 @@
                     type: "take",
                     classRef: tokens.requireTokenType(tokens, "CLASS_REF"),
                     from: parser.parseTargetExpression(tokens, "from"),
-                    exec: function (self, elt, context) {
-                        var clazz = self.classRef.value.substr(1);
-                        runtime.forTargets(self.from, elt, function (target) {
+                    exec: function(elt, context) {
+                        var clazz = this.classRef.value.substr(1);
+                        runtime.forTargets(this, "from", elt, function (target) {
                             target.classList.remove(clazz)
                         });
                         elt.classList.add(clazz);
-                        runtime.execNext(self, elt, context);
+                        runtime.exec(this.next, elt, context);
                     }
                 }
             })
@@ -720,9 +746,9 @@
                 return {
                     type: "log",
                     expr: parser.parseValueExpression(tokens),
-                    exec: function (self, elt, context) {
-                        console.log(runtime.evaluate(self.expr));
-                        runtime.execNext(self, elt, context);
+                    exec: function(elt, context) {
+                        console.log(runtime.evaluate(this.expr));
+                        runtime.exec(this.next, elt, context);
                     }
                 }
             })
@@ -742,17 +768,17 @@
                     target: target,
                     propPath: propPath,
                     value: value,
-                    exec: function (self, elt, context) {
-                        var value = runtime.evaluate(self.value, elt, context);
-                        runtime.forTargets(self.target, elt, function (target) {
+                    exec: function(elt, context) {
+                        var value = runtime.evaluate(this.value, elt, context);
+                        runtime.forTargets(this, "target", elt, function (target) {
                             var finalTarget = target;
-                            var propPathClone = self.propPath.slice();
+                            var propPathClone = this.propPath.slice();
                             while (propPathClone.length > 1) {
                                 finalTarget = finalTarget[propPathClone.shift()];
                             }
                             finalTarget[propPathClone[0]] = value;
                         })
-                        runtime.execNext(self, elt, context);
+                        runtime.exec(this.next, elt, context);
                     }
                 }
             })
@@ -767,14 +793,14 @@
 
             function makeEventListener(actionList, elt) {
                 return function (event) {
-                    _runtime.enter(actionList.start, event, elt)
+                    _runtime.enter(actionList, event, elt)
                 };
             }
 
             function applyHypeScript(hypeScript, elt) {
-                _runtime.forEach(hypeScript.commandLists, function (commandList) {
+                _runtime.forEach(hypeScript, hypeScript.commandLists, function (commandList) {
                     var event = commandList.on.value;
-                    _runtime.forTargets(commandList.from, elt, function (from) {
+                    _runtime.forTargets(commandList, commandList.from, elt, function (from) {
                         from.addEventListener(event, makeEventListener(commandList, elt));
                     });
                 });
@@ -783,7 +809,8 @@
             function init(elt) {
                 if (arguments.length === 0) {
                     var fn = function () {
-                        _runtime.forEach(document.querySelectorAll("[_], [hs], [data-hs]"), function(elt){
+                        var elts = document.querySelectorAll("[_], [hs], [data-hs]");
+                        _runtime.forEach(document, elts, function (elt) {
                             init(elt);
                         })
                     }
@@ -793,9 +820,7 @@
                         document.addEventListener('DOMContentLoaded', fn);
                     }
                 } else {
-                    var hypeScript = elt.getAttribute("_")
-                        || elt.getAttribute("hs")
-                        || elt.getAttribute("data-hs");
+                    var hypeScript = _runtime.getScript(elt);
                     if (hypeScript) {
                         var parseTree = parse(hypeScript);
                         applyHypeScript(parseTree, elt);
