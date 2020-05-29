@@ -11,7 +11,7 @@ function make(htmlStr) {
         var  wa = getWorkArea();
         for (var  i = fragment.childNodes.length - 1; i >= 0; i--) {
             var child = fragment.childNodes[i];
-            _hyperscript.getHyped(child);
+            _hyperscript.init(child);
             wa.appendChild(child);
         }
         return wa.lastChild;

@@ -345,7 +345,10 @@
                         args: args,
                         evaluate: function (elt, context) {
                             var rootValue = this.root.evaluate(elt, context);
-                            return rootValue[this.prop.value];
+                            var argValues = args.map(function (arg) {
+                                return arg.evaluate(elt, context);
+                            })
+                            return rootValue.apply(null, argValues); //TODO get the *this* right
                         }
                     };
                 }
@@ -358,7 +361,7 @@
                             root: root,
                             prop: prop,
                             evaluate: function(elt, context) {
-                                var rootValue = this.root.evaluate(this.root, elt, context);
+                                var rootValue = this.root.evaluate(elt, context);
                                 return rootValue[this.prop.value];
                             }
                         };
@@ -396,13 +399,18 @@
                     var identifier = tokens.matchTokenType('IDENTIFIER');
                     if (identifier) {
                         var id = {
-                            type: "variable",
+                            type: "symbol",
                             value: identifier.value,
                             evaluate: function(elt, context) {
                                 if (this.value === "me" || this.value === "my") {
                                     return elt;
                                 } else {
-                                    return context[this.value];
+                                    var fromContext = context[this.value];
+                                    if (fromContext) {
+                                        return fromContext;
+                                    } else {
+                                        return window[this.value];
+                                    }
                                 }
                             }
                         };
@@ -552,10 +560,6 @@
                     }
                 }
 
-                function evaluate(that, elt, context) {
-                    return that.evaluate(that, elt, context);
-                }
-
                 function makeEvent(eventName, detail) {
                     var evt;
                     if (window.CustomEvent && typeof window.CustomEvent === 'function') {
@@ -592,17 +596,35 @@
                         || elt.getAttribute("data-hs");
                 }
 
+                function makeEventListener(actionList, elt) {
+                    return function (event) {
+                        _runtime.enter(actionList, event, elt)
+                    };
+                }
+
+                function apply(hypeScript, elt) {
+                    _runtime.forEach(hypeScript, hypeScript.commandLists, function (commandList) {
+                        var event = commandList.on.value;
+                        _runtime.forTargets(commandList, "from", elt, function (from) {
+                            from.addEventListener(event, makeEventListener(commandList, elt));
+                        });
+                    });
+                }
+
                 return {
                     forEach: forEach,
                     triggerEvent: triggerEvent,
                     evalTargetExpr: evalTargetExpr,
                     forTargets: forTargets,
-                    evaluate: evaluate,
+                    evaluate: function (that, elt, context) {
+                        return that.evaluate(elt, context);
+                    },
                     exec: exec,
                     matchesSelector: matchesSelector,
                     makeEvent: makeEvent,
                     enter:enter,
-                    getScript: getScript
+                    getScript: getScript,
+                    apply:apply
                 }
             }();
 
@@ -747,7 +769,18 @@
                     type: "log",
                     expr: parser.parseValueExpression(tokens),
                     exec: function(elt, context) {
-                        console.log(runtime.evaluate(this.expr));
+                        console.log(this.expr.evaluate(elt, context));
+                        runtime.exec(this.next, elt, context);
+                    }
+                }
+            })
+
+            _parser.addCommand("call", function (parser, runtime, tokens) {
+                return {
+                    type: "call",
+                    expr: parser.parseValueExpression(tokens),
+                    exec: function(elt, context) {
+                        this.expr.evaluate(elt, context);
                         runtime.exec(this.next, elt, context);
                     }
                 }
@@ -787,21 +820,6 @@
             // API
             //-----------------------------------------------
 
-            function makeEventListener(actionList, elt) {
-                return function (event) {
-                    _runtime.enter(actionList, event, elt)
-                };
-            }
-
-            function apply(hypeScript, elt) {
-                _runtime.forEach(hypeScript, hypeScript.commandLists, function (commandList) {
-                    var event = commandList.on.value;
-                    _runtime.forTargets(commandList, commandList.from, elt, function (from) {
-                        from.addEventListener(event, makeEventListener(commandList, elt));
-                    });
-                });
-            }
-
             function start() {
                 var fn = function () {
                     var elts = document.querySelectorAll("[_], [hs], [data-hs]");
@@ -817,11 +835,11 @@
             }
 
             function init(elt) {
-                var hypeScript = _runtime.getScript(elt);
-                if (hypeScript) {
-                    var tokens = _lexer.tokenize(string);
+                var src = _runtime.getScript(elt);
+                if (src) {
+                    var tokens = _lexer.tokenize(src);
                     var hyperScript =  _parser.parseHyperscript(tokens);
-                    apply(hyperScript, elt);
+                    _runtime.apply(hyperScript, elt);
                 }
             }
 

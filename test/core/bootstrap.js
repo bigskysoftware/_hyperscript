@@ -51,11 +51,11 @@ describe("Bootstrap _hyperscript test", function() {
         div.classList.contains("blah").should.equal(true);
     })
 
-    var calledWith = null;
-    window.globalFunction = function(val){
-        calledWith = val;
-    }
     it("hyperscript can eval javascript ", function(){
+        var calledWith = null;
+        window.globalFunction = function(val){
+            calledWith = val;
+        }
         try {
             var div = make("<div _='on click eval globalFunction(\"foo\")'></div>");
             div.click();
@@ -133,10 +133,24 @@ describe("Bootstrap _hyperscript test", function() {
 
     it("hyperscript can send events with args", function(){
         var div = make("<div _='on click send foo {x:42} to #bar'></div>");
-        var bar = make("<div id='bar' _='on foo debug then set my.innerHTML to event.detail.x '></div>");
+        var bar = make("<div id='bar' _='on foo set my.innerHTML to event.detail.x '></div>");
         bar.classList.contains("foo-sent").should.equal(false);
         div.click();
         bar.innerHTML.should.equal("42");
+    })
+
+    it("hyperscript can call functions", function(){
+        var calledWith = null;
+        window.globalFunction = function(val){
+            calledWith = val;
+        }
+        try {
+            var div = make("<div _='on click call globalFunction(\"foo\")'></div>");
+            div.click();
+            "foo".should.equal(calledWith);
+        } finally {
+            delete window.globalFunction;
+        }
     })
 
 
