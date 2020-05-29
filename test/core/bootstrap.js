@@ -119,4 +119,16 @@ describe("Bootstrap hypescript test", function() {
         d3.classList.contains("foo").should.equal(false);
     })
 
+    it("hypes can set properties", function(){
+        var d1 = make("<div id='d1' _='on click set #d1.innerHTML to \"foo\"'></div>");
+        d1.click();
+        d1.innerHTML.should.equal("foo");
+    })
+
+    it("hypes can set styles", function(){
+        var d1 = make("<div _='on click set my.style.color to \"red\"'>lolwat</div>");
+        d1.click();
+        d1.style.color.should.equal("red");
+    })
+
 });

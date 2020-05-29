@@ -46,7 +46,7 @@
                 }
 
                 function isValidCSSIDChar(c) {
-                    return isAlpha(c) || isNumeric(c) || c === "-" || c === "_" || c === ":" || c === ".";
+                    return isAlpha(c) || isNumeric(c) || c === "-" || c === "_" || c === ":";
                 }
 
                 function isWhitespace(c) {
@@ -72,6 +72,15 @@
                 }
 
                 function makeTokensObject(tokens, consumed, source) {
+                    function requireOpToken(value) {
+                        var token = matchOpToken(value);
+                        if (token) {
+                            return token;
+                        } else {
+                            raiseError(tokens, "Expected  " + value);
+                        }
+                    }
+
                     function matchOpToken(value) {
                         if (currentToken() && currentToken().value === value && currentToken().type !== "STRING") {
                             return consumeToken();
@@ -93,17 +102,25 @@
                         }
                     }
 
-                    function consumeToken() {
-                        var match = tokens.shift();
-                        consumed.push(match);
-                        return match;
+                    function requireToken(value, type) {
+                        var token = matchToken(value, type);
+                        if(token) {
+                            return token;
+                        } else {
+                            raiseError(tokens, "Expected token " + value);
+                        }
                     }
-
                     function matchToken(value, type) {
                         var type = type || "IDENTIFIER";
                         if (currentToken() && currentToken().value === value && currentToken().type === type) {
                             return consumeToken();
                         }
+                    }
+
+                    function consumeToken() {
+                        var match = tokens.shift();
+                        consumed.push(match);
+                        return match;
                     }
 
                     function hasMore() {
@@ -116,10 +133,12 @@
 
                     return {
                         matchOpToken: matchOpToken,
-                        requireTokenType: requireTokenType,
+                        requireOpToken:requireOpToken,
                         matchTokenType: matchTokenType,
+                        requireTokenType: requireTokenType,
                         consumeToken: consumeToken,
                         matchToken: matchToken,
+                        requireToken: requireToken,
                         list: tokens,
                         source: source,
                         hasMore:hasMore,
@@ -229,7 +248,8 @@
 
                     function consumeString() {
                         var string = makeToken("STRING");
-                        var value = consumeChar();
+                        consumeChar(); // consume leading quote
+                        var value = "";
                         while (currentChar() && currentChar() !== '"') {
                             if (currentChar() === "\")") {
                                 consumeChar();
@@ -241,6 +261,7 @@
                         } else {
                             consumeChar(); // consume final quote
                         }
+                        string.value = value;
                         string.end = position;
                         return string;
                     }
@@ -296,7 +317,7 @@
                 }
 
                 function parseTargetExpression(tokens, identifier, required) {
-                    if (tokens.matchToken(identifier)) {
+                    if (tokens.matchToken(identifier) || identifier == null) {
                         return {
                             type: "target",
                             value: tokens.requireTokenType("IDENTIFIER", "CLASS_REF", "ID_REF").value
@@ -304,6 +325,32 @@
                     } else if (required) {
                         raiseError(tokens, "Required token '" + identifier + "' not found");
                     }
+                }
+
+                function parseValueExpression(tokens) {
+                    var stringToken = tokens.matchTokenType('STRING');
+                    if (stringToken) {
+                        return {
+                            type: "string",
+                            value: stringToken.value,
+                            eval: function(self) {
+                                return self.value;
+                            }
+                        }
+                    }
+
+                    var number = tokens.matchTokenType('NUMBER');
+                    if (number) {
+                        return {
+                            type: "number",
+                            value: number.value,
+                            eval: function(self) {
+                                return self.value;
+                            }
+                        }
+                    }
+
+                    raiseError(tokens, "Unexpected value: " + tokens.currentToken().value);
                 }
 
                 function parseAttributeExpression(tokens) {
@@ -382,6 +429,7 @@
                     // parser API
                     parseAttributeExpression: parseAttributeExpression,
                     parseTargetExpression: parseTargetExpression,
+                    parseValueExpression: parseValueExpression,
                     consumeRestOfCommand: consumeRestOfCommand,
                     parseInterval: parseInterval,
                     parseCommandList: parseCommandList,
@@ -415,9 +463,14 @@
                     return eventResult;
                 }
 
+                // TODO this should probably live on the expression
                 function evalTargetExpr(expr, elt) {
                     if (expr) {
-                        return document.querySelectorAll(expr.value);
+                        if (expr.value === "me" || expr.value === "my") {
+                            return [elt];
+                        } else {
+                            return document.querySelectorAll(expr.value);
+                        }
                     } else {
                         return [elt];
                     }
@@ -433,6 +486,10 @@
                     if (that.next) {
                         that.next.exec(that.next, elt, context);
                     }
+                }
+
+                function evaluate(that, elt, context) {
+                    return that.eval(that, elt, context);
                 }
 
                 function makeEvent(eventName, detail) {
@@ -452,6 +509,7 @@
                     triggerEvent: triggerEvent,
                     evalTargetExpr: evalTargetExpr,
                     forTargets: forTargets,
+                    evaluate: evaluate,
                     execNext: execNext,
                     matchesSelector: matchesSelector,
                     makeEvent: makeEvent
@@ -573,6 +631,36 @@
                             target.classList.remove(clazz)
                         });
                         elt.classList.add(clazz);
+                        runtime.execNext(self, elt, context);
+                    }
+                }
+            })
+
+            addCommand("set", function (parser, runtime, tokens) {
+                var target = parser.parseTargetExpression(tokens);
+                var propPath = []
+                while (tokens.matchOpToken(".")) {
+                    propPath.push(tokens.requireTokenType("IDENTIFIER").value)
+                }
+                tokens.requireToken("to");
+                var value = parser.parseValueExpression(tokens);
+
+                return {
+                    type: "set",
+                    target: target,
+                    propPath: propPath,
+                    value: value,
+                    exec: function (self, elt, context) {
+                        var value = runtime.evaluate(self.value, elt, context);
+                        runtime.forTargets(self.target, elt, function (target) {
+                            var finalTarget = target;
+                            var propPathClone = self.propPath.slice();
+                            while (propPathClone.length > 1) {
+                                finalTarget = finalTarget[propPathClone.shift()];
+                            }
+                            finalTarget[propPathClone[0]] = value;
+                        })
+                        runtime.execNext(self, elt, context);
                     }
                 }
             })
