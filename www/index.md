@@ -19,7 +19,7 @@ it is a companion project of <https://htmx.org>
 ## sample
 
 ```html
-<button _="toggle .clicked">
+<button _="on click toggle .clicked">
   Toggle the "clicked" class on me
 </button>
 
@@ -27,9 +27,9 @@ it is a companion project of <https://htmx.org>
   Mouse Over Me!
 </div>
 
-<div _="on click call aJavascriptFunction() then
+<div _="on click eval aJavascriptFunction() then
                  wait 10s then 
-                 call anotherJavascriptFunction()">
+                 eval anotherJavascriptFunction()">
            Do some stuff
 </div>
 ```
