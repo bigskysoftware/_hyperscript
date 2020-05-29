@@ -563,7 +563,8 @@
                         body: body,
                         globals: GLOBALS,
                     }
-                    actionList.start.exec(actionList.start, elt, ctx);
+                    // lets get this party started
+                    commandList.start.exec(commandList.start, elt, ctx);
                 }
 
 
@@ -575,7 +576,8 @@
                     evaluate: evaluate,
                     execNext: execNext,
                     matchesSelector: matchesSelector,
-                    makeEvent: makeEvent
+                    makeEvent: makeEvent,
+                    enter:enter
                 }
             }();
 
@@ -778,27 +780,25 @@
                 });
             }
 
-            function getHyped(elt) {
-                if (elt) {
+            function init(elt) {
+                if (arguments.length === 0) {
+                    var fn = function () {
+                        _runtime.forEach(document.querySelectorAll("[_], [hs], [data-hs]"), function(elt){
+                            init(elt);
+                        })
+                    }
+                    if (document.readyState !== 'loading') {
+                        fn();
+                    } else {
+                        document.addEventListener('DOMContentLoaded', fn);
+                    }
+                } else {
                     var hypeScript = elt.getAttribute("_")
                         || elt.getAttribute("hs")
                         || elt.getAttribute("data-hs");
                     if (hypeScript) {
                         var parseTree = parse(hypeScript);
                         applyHypeScript(parseTree, elt);
-                    }
-                } else {
-                    var fn = function () {
-                        var all = document.querySelectorAll("[_], [hs], [data-hs]");
-                        for (var i = 0; i < all.length; i++) {
-                            var elt = all[i];
-                            getHyped(elt);
-                        }
-                    }
-                    if (document.readyState !== 'loading') {
-                        fn();
-                    } else {
-                        document.addEventListener('DOMContentLoaded', fn);
                     }
                 }
             }
@@ -807,7 +807,7 @@
                 lexer: _lexer,
                 parser: _parser,
                 runtime: _runtime,
-                getHyped: getHyped
+                getHyped: init
             }
         }
     )()
