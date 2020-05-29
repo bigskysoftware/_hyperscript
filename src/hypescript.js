@@ -327,13 +327,31 @@
                     }
                 }
 
+                function maybeParseDots(tokens, root) {
+                    if (tokens.matchOpToken(".")) {
+                        var prop = tokens.requireTokenType("IDENTIFIER");
+                        var deref = {
+                            type: "dereference",
+                            root: root,
+                            prop: prop,
+                            evaluate: function (self, elt, context) {
+                                var rootValue = self.root.evaluate(self.root, elt, context);
+                                return rootValue[self.prop.value];
+                            }
+                        };
+                        return maybeParseDots(tokens, deref);
+                    } else {
+                        return root;
+                    }
+                }
+
                 function parseValueExpression(tokens) {
                     var stringToken = tokens.matchTokenType('STRING');
                     if (stringToken) {
                         return {
                             type: "string",
                             value: stringToken.value,
-                            eval: function(self) {
+                            evaluate: function(self) {
                                 return self.value;
                             }
                         }
@@ -344,10 +362,26 @@
                         return {
                             type: "number",
                             value: number.value,
-                            eval: function(self) {
+                            evaluate: function(self) {
                                 return self.value;
                             }
                         }
+                    }
+
+                    var identifier = tokens.matchTokenType('IDENTIFIER');
+                    if (identifier) {
+                        var id = {
+                            type: "variable",
+                            value: identifier.value,
+                            evaluate: function (self, elt, context) {
+                                if (self.value === "me" || self.value === "my") {
+                                    return elt;
+                                } else {
+                                    return context[self.value];
+                                }
+                            }
+                        };
+                        return maybeParseDots(tokens, id);
                     }
 
                     raiseError(tokens, "Unexpected value: " + tokens.currentToken().value);
@@ -456,8 +490,9 @@
                     });
                 }
 
-                function triggerEvent(elt, eventName) {
-                    var detail = {sent_by: elt};
+                function triggerEvent(elt, eventName, detail) {
+                    var detail = detail || {};
+                    detail["sentBy"] = elt;
                     var event = makeEvent(eventName, detail);
                     var eventResult = elt.dispatchEvent(event);
                     return eventResult;
@@ -489,7 +524,7 @@
                 }
 
                 function evaluate(that, elt, context) {
-                    return that.eval(that, elt, context);
+                    return that.evaluate(that, elt, context);
                 }
 
                 function makeEvent(eventName, detail) {
@@ -607,13 +642,32 @@
             })
 
             addCommand("send", function (parser, runtime, tokens) {
+
+                var eventName = tokens.requireTokenType(tokens, "IDENTIFIER");
+                var details = [];
+                if (tokens.matchOpToken("{")) {
+                    do {
+                        var name = tokens.requireTokenType(tokens, "IDENTIFIER");
+                        tokens.requireOpToken(":");
+                        var value = parser.parseValueExpression(tokens);
+                        details.push([name, value]);
+                    } while (tokens.matchOpToken(","))
+                    tokens.requireOpToken("}");
+                }
+                var to = parser.parseTargetExpression(tokens, "to");
+
                 return {
                     type: "send",
-                    eventName: tokens.matchTokenType(tokens, "IDENTIFIER"),
-                    to: parser.parseTargetExpression(tokens, "to"),
+                    eventName: eventName,
+                    details: details,
+                    to: to,
                     exec: function (self, elt, context) {
                         runtime.forTargets(self.to, elt, function (target) {
-                            runtime.triggerEvent(target, self.eventName.value);
+                            var detailsValue = {}
+                            runtime.forEach(self.details, function (detail) {
+                                detailsValue[detail[0].value] = runtime.evaluate(detail[1]);
+                            });
+                            runtime.triggerEvent(target, self.eventName.value, detailsValue);
                         })
                         runtime.execNext(self, elt, context);
                     }
@@ -636,7 +690,18 @@
                 }
             })
 
+            addCommand("debug", function (parser, runtime, tokens) {
+                return {
+                    type: "debug",
+                    exec: function (self, elt, context) {
+                        console.log(self, elt, context);
+                        runtime.execNext(self, elt, context);
+                    }
+                }
+            })
+
             addCommand("set", function (parser, runtime, tokens) {
+
                 var target = parser.parseTargetExpression(tokens);
                 var propPath = []
                 while (tokens.matchOpToken(".")) {
@@ -677,7 +742,6 @@
                 return function (event) {
                     var ctx = {
                         me: elt,
-                        detail: event.detail,
                         event: event
                     }
                     actionList.start.exec(actionList.start, elt, ctx);

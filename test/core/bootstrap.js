@@ -131,4 +131,13 @@ describe("Bootstrap hypescript test", function() {
         d1.style.color.should.equal("red");
     })
 
+    it("hypes can send events with args", function(){
+        var div = make("<div _='on click send foo {x:42} to #bar'></div>");
+        var bar = make("<div id='bar' _='on foo debug then set my.innerHTML to event.detail.x '></div>");
+        bar.classList.contains("foo-sent").should.equal(false);
+        div.click();
+        bar.innerHTML.should.equal("42");
+    })
+
+
 });
