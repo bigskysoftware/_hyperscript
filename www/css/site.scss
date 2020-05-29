@@ -1,5 +1,5 @@
 $midBlue: #3465a4;
-$lightBlue: #3d72d7;
+$lightBlue: lighten($midBlue, 30%);
 
 body {
     margin: 0px;
@@ -42,16 +42,20 @@ code {
     margin-top: -1em;
     font-size: 2em;
     .s1 {
-        color: $lightBlue;
+        color: $midBlue;
     }
     .s2 {
-        color: lighten($lightBlue, 10%);
+        color: lighten($midBlue, 10%);
     }
     .s3 {
-        color: lighten($lightBlue, 20%);
+        color: lighten($midBlue, 20%);
     }
     .s4 {
-        color: lighten($lightBlue, 30%);
+        color: lighten($midBlue, 30%);
+    }
+    &.light {
+        background: none;
+        color: #1f1f1f;
     }
 }
 

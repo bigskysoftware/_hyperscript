@@ -1,9 +1,10 @@
-# `///_hyperscript`
+[![//_hyperscript](https://hyperscript.org/img/light_logo.png "the underscore is silent")](https://hyperscript.org)
+
+*the underscore is silent*
 
 ## introduction
 
-_hyperscript is a small web scripting language based [applescript](https://en.wikipedia.org/wiki/Applescript) and
- [hypertalk](https://en.wikipedia.org/wiki/HyperTalk)
+`_hyperscript` is a small web scripting language inspired by [hypertalk](https://en.wikipedia.org/wiki/HyperTalk)
 
 it is a companion project of <https://htmx.org>
 
@@ -23,4 +24,4 @@ it is a companion project of <https://htmx.org>
               call anotherJavascriptFunction()">
            Do some stuff
 </div>
-```
+```r
