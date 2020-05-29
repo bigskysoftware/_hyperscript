@@ -87,8 +87,8 @@
                         }
                     }
 
-                    function requireTokenType(type1, type2, type3) {
-                        var token = matchTokenType(type1, type2, type3);
+                    function requireTokenType(type1, type2, type3, type4) {
+                        var token = matchTokenType(type1, type2, type3, type4);
                         if (token) {
                             return token;
                         } else {
@@ -96,8 +96,8 @@
                         }
                     }
 
-                    function matchTokenType(type1, type2, type3) {
-                        if (currentToken() && currentToken().type && [type1, type2, type3].indexOf(currentToken().type) >= 0) {
+                    function matchTokenType(type1, type2, type3, type4) {
+                        if (currentToken() && currentToken().type && [type1, type2, type3, type4].indexOf(currentToken().type) >= 0) {
                             return consumeToken();
                         }
                     }
@@ -324,12 +324,27 @@
 
                 function parseTargetExpression(tokens, identifier, required) {
                     if (tokens.matchToken(identifier) || identifier == null) {
+                        var value = tokens.requireTokenType("IDENTIFIER", "CLASS_REF", "ID_REF", "STRING").value;
                         return {
                             type: "target",
-                            value: tokens.requireTokenType("IDENTIFIER", "CLASS_REF", "ID_REF").value
+                            value: value,
+                            evaluate: function (context) {
+                                if (this.value === "me" || this.value === "my") {
+                                    return [_runtime.getMe(context)];
+                                } else {
+                                    return document.querySelectorAll(this.value);
+                                }
+                            }
                         }
                     } else if (required) {
                         raiseError(tokens, "Required token '" + identifier + "' not found");
+                    } else {
+                        return {
+                            type: "implicit_me",
+                            evaluate: function (context) {
+                                return [_runtime.getMe(context)];
+                            }
+                        }
                     }
                 }
 
@@ -403,7 +418,7 @@
                             value: identifier.value,
                             evaluate: function(context) {
                                 if (this.value === "me" || this.value === "my") {
-                                    return context["me"];
+                                    return _runtime.getMe(context);
                                 } else {
                                     var fromContext = context[this.value];
                                     if (fromContext) {
@@ -499,8 +514,7 @@
                     parseValueExpression: parseValueExpression,
                     consumeRestOfCommand: consumeRestOfCommand,
                     parseInterval: parseInterval,
-                    parseCommandList: parseCommandList,
-                    parseHyperscript: parseHypeScript,
+                    parseHyperScript: parseHypeScript,
                     addCommand: addCommand,
                 }
             }();
@@ -521,7 +535,7 @@
                 }
 
                 function forTargets(that, targetsProp, context, callback) {
-                    var targets = evalTargetExpr(that[targetsProp], context);
+                    var targets = that[targetsProp].evaluate(context);
                     forEach(that, targets, function (target) {
                         callback.call(this, target);
                     });
@@ -537,19 +551,6 @@
 
                 function getMe(context) {
                     return context["me"];
-                }
-
-                // TODO this should probably live on the expression
-                function evalTargetExpr(expr, context) {
-                    if (expr) {
-                        if (expr.value === "me" || expr.value === "my") {
-                            return [context["me"]];
-                        } else {
-                            return document.querySelectorAll(expr.value);
-                        }
-                    } else {
-                        return [getMe(context)];
-                    }
                 }
 
                 function forEach(that, arr, func) {
@@ -837,7 +838,7 @@
                 var src = _runtime.getScript(elt);
                 if (src) {
                     var tokens = _lexer.tokenize(src);
-                    var hyperScript =  _parser.parseHyperscript(tokens);
+                    var hyperScript =  _parser.parseHyperScript(tokens);
                     _runtime.apply(hyperScript, elt);
                 }
             }
