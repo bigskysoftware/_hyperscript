@@ -12,36 +12,6 @@
             'use strict';
 
             //-----------------------------------------------
-            // Utilities
-            //-----------------------------------------------
-            function matchesSelector(elt, selector) {
-                // noinspection JSUnresolvedVariable
-                var matchesFunction = elt.matches ||
-                    elt.matchesSelector || elt.msMatchesSelector || elt.mozMatchesSelector
-                    || elt.webkitMatchesSelector || elt.oMatchesSelector;
-                return matchesFunction && matchesFunction.call(elt, selector);
-            }
-
-            function defaultEvent(elt) {
-                if (matchesSelector(elt, 'form'))
-                    return 'submit';
-                if (matchesSelector(elt, 'input, textarea, select'))
-                    return 'change';
-                return 'click';
-            }
-
-            function makeEventListener(actionList, elt) {
-                return function (event) {
-                    var ctx = {
-                        me: elt,
-                        detail: event.detail,
-                        event: event
-                    }
-                    actionList.start.exec(actionList.start, elt, ctx);
-                };
-            }
-
-            //-----------------------------------------------
             // Lexer
             //-----------------------------------------------
             var _lexer = function() {
@@ -325,12 +295,14 @@
                     return parseFloat(number.value) * factor;
                 }
 
-                function parseTargetExpression(tokens, identifier) {
+                function parseTargetExpression(tokens, identifier, required) {
                     if (tokens.matchToken(identifier)) {
                         return {
                             type: "target",
                             value: tokens.requireTokenType("IDENTIFIER", "CLASS_REF", "ID_REF").value
                         }
+                    } else if (required) {
+                        raiseError(tokens, "Required token '" + identifier + "' not found");
                     }
                 }
 
@@ -383,7 +355,8 @@
                 function parseCommandList(tokens) {
                     var commandList = {
                         type: "command_list",
-                        on: parseTargetExpression(tokens, "on"),
+                        on: parseTargetExpression(tokens, "on", true),
+                        from: parseTargetExpression(tokens, "from"),
                         start: parseCommand(tokens)
                     }
                     var last = commandList.start;
@@ -420,8 +393,17 @@
             // Runtime
             //-----------------------------------------------
             var _runtime = function () {
+                function matchesSelector(elt, selector) {
+                    // noinspection JSUnresolvedVariable
+                    var matchesFunction = elt.matches ||
+                        elt.matchesSelector || elt.msMatchesSelector || elt.mozMatchesSelector
+                        || elt.webkitMatchesSelector || elt.oMatchesSelector;
+                    return matchesFunction && matchesFunction.call(elt, selector);
+                }
+
                 function forTargets(targetExpr, elt, callback) {
-                    forEach(evalTargetExpr(targetExpr, elt), function (target) {
+                    var targets = evalTargetExpr(targetExpr, elt);
+                    forEach(targets, function (target) {
                         callback(target);
                     });
                 }
@@ -588,16 +570,24 @@
                 return _parser.parseHypeScript(tokens);
             }
 
-            function applyHypeScript(hypeScript, elt) {
-                for (var i = 0; i < hypeScript.commandLists.length; i++) {
-                    var actionList = hypeScript.commandLists[i];
-                    if (actionList.on) {
-                        var event = actionList.on.value;
-                    } else {
-                        var event = defaultEvent(elt);
+            function makeEventListener(actionList, elt) {
+                return function (event) {
+                    var ctx = {
+                        me: elt,
+                        detail: event.detail,
+                        event: event
                     }
-                    elt.addEventListener(event, makeEventListener(actionList, elt));
-                }
+                    actionList.start.exec(actionList.start, elt, ctx);
+                };
+            }
+
+            function applyHypeScript(hypeScript, elt) {
+                _runtime.forEach(hypeScript.commandLists, function (commandList) {
+                    var event = commandList.on.value;
+                    _runtime.forTargets(commandList.from, elt, function (from) {
+                        from.addEventListener(event, makeEventListener(commandList, elt));
+                    });
+                });
             }
 
             function getHyped(elt) {

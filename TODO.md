@@ -2,10 +2,9 @@
 ## TODOs
 
 * documentation
-* external commands API (XCMDs)
+* tests (lol)
 * `take` command
 * `call` command - call javascript w/ special symbol behavior
-* `from` modifier on event declaration
-* `closest` support in target declarations
+* `closest x`, 'siblings', 'parent', 'cousins' support in target declarations
 * style attribute syntax
 * `send` event arguments
