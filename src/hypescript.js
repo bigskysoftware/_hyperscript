@@ -562,6 +562,21 @@
                 }
             })
 
+            addCommand("take", function (parser, runtime, tokens) {
+                return {
+                    type: "take",
+                    classRef: tokens.requireTokenType(tokens, "CLASS_REF"),
+                    from: parser.parseTargetExpression(tokens, "from"),
+                    exec: function (self, elt, context) {
+                        var clazz = self.classRef.value.substr(1);
+                        runtime.forTargets(self.from, elt, function (target) {
+                            target.classList.remove(clazz)
+                        });
+                        elt.classList.add(clazz);
+                    }
+                }
+            })
+
             //-----------------------------------------------
             // API
             //-----------------------------------------------
