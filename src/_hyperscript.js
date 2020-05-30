@@ -62,7 +62,7 @@
                         if (token) {
                             return token;
                         } else {
-                            raiseError(tokens, "Expected  " + value);
+                            raiseError(this, "Expected  " + value);
                         }
                     }
 
@@ -77,7 +77,7 @@
                         if (token) {
                             return token;
                         } else {
-                            raiseError(tokens, "Expected one of " + JSON.stringify([type1, type2, type3]));
+                            raiseError(this, "Expected one of " + JSON.stringify([type1, type2, type3]));
                         }
                     }
 
@@ -92,7 +92,7 @@
                         if(token) {
                             return token;
                         } else {
-                            raiseError(tokens, "Expected token " + value);
+                            raiseError(this, "Expected token " + value);
                         }
                     }
                     function matchToken(value, type) {
@@ -313,8 +313,8 @@
                     return parseFloat(number.value) * factor;
                 }
 
-                function parseTargetExpression(tokens, identifier, required) {
-                    if (tokens.matchToken(identifier) || identifier == null) {
+                function parseTargetExpression(tokens, proposition, required) {
+                    if (tokens.matchToken(proposition) || proposition == null) {
                         var value = tokens.requireTokenType("IDENTIFIER", "CLASS_REF", "ID_REF", "STRING").value;
                         return {
                             type: "target",
@@ -328,7 +328,7 @@
                             }
                         }
                     } else if (required) {
-                        raiseParseError(tokens, "Required token '" + identifier + "' not found");
+                        raiseParseError(tokens, "Required token '" + proposition + "' not found");
                     } else {
                         return {
                             type: "implicit_me",
@@ -436,7 +436,7 @@
                         }
                     } else {
                         var name = tokens.matchTokenType( "IDENTIFIER");
-                        tokens.matchOpToken("=");
+                        tokens.requireOpToken("=");
                         var value = tokens.matchTokenType( "IDENTIFIER", "STRING");
                         return {
                             name: name.value,
@@ -459,8 +459,17 @@
                     return tokens.source.substr(firstToken.start, lastToken.end);
                 }
 
+                function createParserContext(tokens) {
+                    var currentToken = tokens.currentToken();
+                    var source = tokens.source;
+                    var lines = source.split("\n");
+                    var contextLine = lines[currentToken.line - 1];
+                    return contextLine + "\n" + " ".repeat(currentToken.column) + "^^\n\n";
+                }
+
                 function raiseParseError(tokens, message) {
-                    message = message || "Unexpected Token : " + tokens.currentToken().value;
+                    message = (message || "Unexpected Token : " + tokens.currentToken().value) + "\n\n" +
+                        createParserContext(tokens);
                     var error = new Error(message);
                     error.tokens = tokens;
                     throw error
@@ -474,29 +483,38 @@
                 }
 
                 function parseCommandList(tokens) {
-                    var commandList = {
-                        type: "command_list",
-                        on: parseTargetExpression(tokens, "on", true),
-                        from: parseTargetExpression(tokens, "from"),
-                        start: parseCommand(tokens)
-                    }
-                    var last = commandList.start;
+                    var start = parseCommand(tokens);
+                    var last = start;
                     while (tokens.matchToken( "then")) {
                         last.next = parseCommand(tokens);
                         last = last.next;
                     }
-                    return commandList;
+                    return start;
+                }
+
+                function parseEventListener(tokens) {
+                    var eventListener = {
+                        type: "event_listener",
+                        on: parseTargetExpression(tokens, "on", true),
+                        from: parseTargetExpression(tokens, "from"),
+                    }
+                    eventListener.start = parseCommandList(tokens);
+                    return eventListener;
                 }
 
                 function parseHyperScript(tokens) {
                     var hypeScript = {
-                        type: "hype_script",
-                        commandLists: []
+                        type: "_hyperscript",
+                        eventListeners: []
                     }
                     do {
-                        hypeScript.commandLists.push(parseCommandList(tokens));
+                        hypeScript.eventListeners.push(parseEventListener(tokens));
                     } while (tokens.matchToken( "end") && tokens.hasMore())
                     return hypeScript;
+                }
+
+                function isCommandStart(token) {
+                    return token.type === "IDENTIFIER" && COMMANDS[token.value];
                 }
 
                 return {
@@ -504,11 +522,13 @@
                     parseAttributeExpression: parseAttributeExpression,
                     parseTargetExpression: parseTargetExpression,
                     parseValueExpression: parseValueExpression,
+                    parseCommandList: parseCommandList,
                     consumeRestOfCommand: consumeRestOfCommand,
                     parseInterval: parseInterval,
                     parseHyperScript: parseHyperScript,
                     raiseParseError: raiseParseError,
                     addCommand: addCommand,
+                    isCommandStart: isCommandStart,
                 }
             }();
 
@@ -586,7 +606,7 @@
                 function enter(commandList, event, elt) {
                     var ctx = makeContext(commandList, elt, event);
                     // lets get this party started
-                    commandList.start.exec(ctx);
+                    commandList.exec(ctx);
                 }
 
                 function getScript(elt) {
@@ -599,17 +619,17 @@
                     return null;
                 }
 
-                function makeEventListener(actionList, elt) {
+                function makeEventListener(eventListener, elt) {
                     return function (event) {
-                        _runtime.enter(actionList, event, elt)
+                        enter(eventListener.start, event, elt)
                     };
                 }
 
                 function apply(hypeScript, elt) {
-                    _runtime.forEach(hypeScript, hypeScript.commandLists, function (commandList) {
-                        var event = commandList.on.value;
-                        _runtime.forTargets(commandList, "from", {me:elt}, function (from) {
-                            from.addEventListener(event, makeEventListener(commandList, elt));
+                    _runtime.forEach(hypeScript, hypeScript.eventListeners, function (eventListener) {
+                        var event = eventListener.on.value;
+                        _runtime.forTargets(eventListener, "from", {me:elt}, function (from) {
+                            from.addEventListener(event, makeEventListener(eventListener, elt));
                         });
                     });
                 }
@@ -634,19 +654,45 @@
                     }).join(", ");
                 }
 
+                function evaluate(str) {
+                    var customEvent = makeEvent("eval", {string: str});
+                    var tokens = _lexer.tokenize(str);
+                    if (_parser.isCommandStart(tokens.currentToken())) {
+                        var start =  _parser.parseCommandList(tokens);
+                        var ctx = makeContext(start, document.body, customEvent);
+                        start.exec(ctx);
+                        return ctx["it"];
+                    } else {
+                        var expression = _parser.parseValueExpression(tokens);
+                        var ctx = makeContext(expression, document.body, customEvent);
+                        return expression.evaluate(ctx);
+                    }
+                }
+
+                function initElement(elt) {
+                    var src = getScript(elt);
+                    if (src) {
+                        var tokens = _lexer.tokenize(src);
+                        var hyperScript =  _parser.parseHyperScript(tokens);
+                        apply(hyperScript, elt);
+                    }
+                }
+
                 return {
                     forEach: forEach,
                     triggerEvent: triggerEvent,
                     forTargets: forTargets,
                     next: next,
                     matchesSelector: matchesSelector,
-                    enter:enter,
                     getScript: getScript,
                     getMe: getMe,
                     apply:apply,
                     addGlobal:addGlobal,
                     setScriptAttrs: setScriptAttrs,
-                    getScriptSelector: getScriptSelector                }
+                    initElement: initElement,
+                    evaluate: evaluate,
+                    getScriptSelector: getScriptSelector
+                }
             }();
 
             //-----------------------------------------------
@@ -859,18 +905,18 @@
             }
 
             function init(elt) {
-                var src = _runtime.getScript(elt);
-                if (src) {
-                    var tokens = _lexer.tokenize(src);
-                    var hyperScript =  _parser.parseHyperScript(tokens);
-                    _runtime.apply(hyperScript, elt);
-                }
+                _runtime.initElement(elt);
+            }
+
+            function evaluate(str) {
+                _runtime.evaluate(str);
             }
 
             return {
                 lexer: _lexer,
                 parser: _parser,
                 runtime: _runtime,
+                evaluate: evaluate,
                 init: init,
                 start: start
             }
