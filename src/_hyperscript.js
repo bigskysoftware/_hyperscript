@@ -137,7 +137,7 @@
                     var position = 0;
                     var column = 0;
                     var line = 1;
-                    var lastToken = null;
+                    var lastToken = "<START>";
 
                     while (position < source.length) {
                         consumeWhitespace();
@@ -273,7 +273,7 @@
                     }
 
                     function possiblePrecedingSymbol() {
-                        return isAlpha(lastToken) || lastToken === ")" || lastToken === "}" || lastToken === "]"
+                        return isAlpha(lastToken) || isNumeric(lastToken) || lastToken === ")" || lastToken === "}" || lastToken === "]"
                     }
 
                     function consumeWhitespace() {
