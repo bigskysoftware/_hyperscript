@@ -120,20 +120,20 @@ describe("_hyperscript boostrapping", function() {
     })
 
     it("can set properties", function(){
-        var d1 = make("<div id='d1' _='on click set #d1.innerHTML to \"foo\"'></div>");
+        var d1 = make("<div id='d1' _='on click put \"foo\" into #d1.innerHTML'></div>");
         d1.click();
         d1.innerHTML.should.equal("foo");
     })
 
     it("can set styles", function(){
-        var d1 = make("<div _='on click set my.style.color to \"red\"'>lolwat</div>");
+        var d1 = make("<div _='on click put \"red\" into my.style.color'>lolwat</div>");
         d1.click();
         d1.style.color.should.equal("red");
     })
 
     it("can send events with args", function(){
         var div = make("<div _='on click send foo {x:42} to #bar'></div>");
-        var bar = make("<div id='bar' _='on foo set my.innerHTML to event.detail.x '></div>");
+        var bar = make("<div id='bar' _='on foo put event.detail.x into my.innerHTML'></div>");
         bar.classList.contains("foo-sent").should.equal(false);
         div.click();
         bar.innerHTML.should.equal("42");

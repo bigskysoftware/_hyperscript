@@ -852,15 +852,15 @@
                 }
             })
 
-            _parser.addCommand("set", function (parser, runtime, tokens) {
+            _parser.addCommand("put", function (parser, runtime, tokens) {
 
+                var value = parser.parseValueExpression(tokens);
+                tokens.requireToken("into");
                 var target = parser.parseTargetExpression(tokens);
                 var propPath = []
                 while (tokens.matchOpToken(".")) {
                     propPath.push(tokens.requireTokenType("IDENTIFIER").value)
                 }
-                tokens.requireToken("to");
-                var value = parser.parseValueExpression(tokens);
 
                 return {
                     type: "set",
