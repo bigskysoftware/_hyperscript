@@ -13,7 +13,7 @@
 </head>
 <body style="padding:20px;font-family: sans-serif">
 
-<h1 style="margin-top: 40px">htmx.js test suite</h1>
+<h1 style="margin-top: 40px">_hyperscript.js test suite</h1>
 
 <h2 >Scratch Page</h2>
 <ul>
@@ -32,12 +32,13 @@
     mocha.setup('bdd');
     mocha.checkLeaks();
     should = chai.should();
+    assert = chai.assert;
 </script>
 
 <script src="util/util.js"></script>
 
-<!--<script src="core/tokenizer.js"></script>-->
 <script src="core/bootstrap.js"></script>
+<script src="core/tokenizer.js"></script>
 
 <div id="mocha"></div>
 
