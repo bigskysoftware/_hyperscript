@@ -353,7 +353,6 @@
                     do {
                         args.push(parseValueExpression(tokens));
                     } while (tokens.matchOpToken(","))
-                    tokens.requireOpToken(")");
 
                     return {
                         type: "method_call",
@@ -504,7 +503,7 @@
                     }
                     do {
                         hypeScript.commandLists.push(parseCommandList(tokens));
-                    } while (tokens.matchToken( "end") && tokens.hasMore())
+                    } while (tokens.matchToken( "end"))
                     return hypeScript;
                 }
 

@@ -14,19 +14,6 @@ table {
     font-size: 18px;
 }
 
-.info-table table tbody tr td:first-of-type {
-    white-space: nowrap;
-}
-
-.full-width {
-    margin-left: calc(50% - 50vw);
-    margin-right: calc(50% - 50vw);
-}
-
-.hide {
-    display:none;
-}
-
 .active a {
     font-weight: bold;
 }
@@ -57,6 +44,21 @@ code {
         background: none;
         color: #1f1f1f;
     }
+    @media(max-width:45em) {
+        margin-top: -1em;
+        font-size: 1.3em;
+    }
+}
+
+.nav {
+    font-size: 1.2em;
+    border-bottom: solid 1px lightgray;
+    padding: 12px;
+    a {
+        margin: 8px;
+        font-weight: bold;
+    }
+    margin: 0px;
 }
 
 p {
@@ -91,62 +93,31 @@ a {
     text-align: center;
 }
 
-.nav {
-ul {
-    list-style: none;
-    padding-left: 12px;
-}
-}
-
-.hamburger {
-    display: none;
-}
-
 h2:not(:first-child) {
     margin-top: 42px;
 }
+
 h3 {
     margin-top: 32px;
 }
+
 h4 {
     margin-top: 16px;
 }
 
 /* customized version of lit.css */
+.full-width {
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+}
+
+.hide {
+    display:none;
+}
+
 * + *{
     box-sizing: border-box;
     margin: .5em 0;
-}
-
-@media(max-width:45em) {
-    #nav {
-        height: 0px;
-        overflow: hidden;
-        text-align: center;
-        font-size: 22px;
-&.show {
-     height: initial;
- }
-}
-
-pre[class*="language-"]  {
-    margin-left: calc(50% - 50vw) !important;
-    margin-right: calc(50% - 50vw) !important;
-    overflow-x: scroll !important;
-    border-radius: 0 !important;
-}
-.info-table  {
-    margin-left: calc(50% - 50vw) !important;
-    margin-right: calc(50% - 50vw) !important;
-    overflow-x: scroll !important;
-}
-.no-mobile {
-    display: none !important;
-}
-.hamburger {
-    display: inline-block;
-    float: right;
-}
 }
 
 @media(min-width:45em) {
