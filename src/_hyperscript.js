@@ -339,7 +339,7 @@
                     }
                 }
 
-                function parseFunctionCall(tokens, root) {
+                function parseFunctionCall(tokens, expr) {
                     var args = [];
                     do {
                         args.push(parseValueExpression(tokens));
@@ -348,14 +348,19 @@
 
                     return {
                         type: "method_call",
-                        root: root,
+                        root: expr.root,
+                        function: expr.prop.value,
                         args: args,
                         evaluate: function (context) {
-                            var rootValue = this.root.evaluate(context);
                             var argValues = args.map(function (arg) {
                                 return arg.evaluate(context);
                             })
-                            return rootValue.apply(null, argValues); //TODO get the *this* right
+                            if (this.root) {
+                                var that = this.root.evaluate(context);
+                                return that[this.function].apply(that, argValues);
+                            } else {
+                                return _runtime.resolveSymbol(this.function, context).apply(null, argValues)
+                            }
                         }
                     };
                 }
@@ -407,18 +412,9 @@
                     if (identifier) {
                         var id = {
                             type: "symbol",
-                            value: identifier.value,
+                            name: identifier.value,
                             evaluate: function(context) {
-                                if (this.value === "me" || this.value === "my") {
-                                    return _runtime.getMe(context);
-                                } else {
-                                    var fromContext = context[this.value];
-                                    if (fromContext) {
-                                        return fromContext;
-                                    } else {
-                                        return window[this.value];
-                                    }
-                                }
+                                return _runtime.resolveSymbol(this.name, context);
                             }
                         };
                         return maybeParseDots(tokens, id);
@@ -612,8 +608,6 @@
                         },
                         me: elt,
                         event: event,
-                        window: window,
-                        document: document,
                         body: document.body,
                         globals: GLOBALS
                     }
@@ -658,8 +652,12 @@
                     }
                 }
 
-                function addGlobal(name, value) {
+                function setGlobal(name, value) {
                     GLOBALS[name] = value;
+                }
+
+                function getGlobal(name) {
+                    return GLOBALS[name];
                 }
 
                 function setScriptAttrs(values) {
@@ -696,6 +694,19 @@
                     }
                 }
 
+                function resolveSymbol(str, context) {
+                    if (str === "me" || str === "my") {
+                        return _runtime.getMe(context);
+                    } else {
+                        var fromContext = context[str];
+                        if (fromContext) {
+                            return fromContext;
+                        } else {
+                            return window[str];
+                        }
+                    }
+                }
+
                 return {
                     forEach: forEach,
                     triggerEvent: triggerEvent,
@@ -705,11 +716,13 @@
                     getScript: getScript,
                     getMe: getMe,
                     apply:apply,
-                    addGlobal:addGlobal,
+                    setGlobal:setGlobal,
+                    getGlobal:getGlobal,
                     setScriptAttrs: setScriptAttrs,
                     initElement: initElement,
                     evaluate: evaluate,
-                    getScriptSelector: getScriptSelector
+                    getScriptSelector: getScriptSelector,
+                    resolveSymbol: resolveSymbol
                 }
             }();
 
@@ -909,7 +922,8 @@
                     type: "call",
                     expr: parser.parseValueExpression(tokens),
                     exec: function(context) {
-                        this.expr.evaluate(context);
+                        var value = this.expr.evaluate(context);
+                        context["it"] = value;
                         runtime.next(this, context);
                     }
                 }
