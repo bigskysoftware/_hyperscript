@@ -44,11 +44,6 @@
   width: 100%;
 }
 
-.card:focus {
-  outline: 0;
-  border: solid $midBlue;
-}
-
 hr {
   outline: 0;
 }
@@ -66,12 +61,6 @@ a[href]:hover, .btn:hover {
   max-width: 55em;
   padding: 1em;
   margin: auto;
-}
-
-.btn.primary {
-  color: white;
-  background: $midBlue;
-  border: solid $midBlue;
 }
 
 td {

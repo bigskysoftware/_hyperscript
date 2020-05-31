@@ -1,5 +1,3 @@
-@use 'recss';
-
 $midBlue: #3465a4;
 $lightBlue: lighten($midBlue, 30%);
 
@@ -107,3 +105,107 @@ h4 {
     margin-top: 16px;
 }
 
+/* customized version of lit.css */
+.full-width {
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+}
+
+.hide {
+    display:none;
+}
+
+* + *{
+    box-sizing: border-box;
+    margin: .5em 0;
+}
+
+@media(min-width:45em) {
+    .col {
+        display: table-cell;
+    }
+    .\31 {
+        width: 5%;
+    }
+    .\33 {
+        width: 22%;
+    }
+    .\34 {
+        width: 30%;
+    }
+    .\35 {
+        width: 40%;
+    }
+    .\32 {
+        width: 15%;
+    }
+    .row {
+        display: table;
+        border-spacing: 1em 0;
+    }
+}
+
+.w-100,
+.row {
+    width: 100%;
+}
+
+.card:focus {
+    outline: 0;
+    border: solid $midBlue;
+}
+
+hr {
+    outline: 0;
+}
+
+.card {
+    padding: 1em;
+    border: solid #eee;
+}
+
+a[href]:hover, .btn:hover {
+    opacity: .6;
+}
+
+.c {
+    max-width: 55em;
+    padding: 1em;
+    margin: auto;
+}
+
+.btn.primary {
+    color: white;
+    background: $midBlue;
+    border: solid $midBlue;
+}
+
+td {
+    padding: 1em;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+th {
+    padding: 1em;
+    text-align: left;
+    border-bottom: 2px solid #eee;
+}
+
+.btn {
+    padding: 1em;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    background: white;
+    border: solid;
+    cursor:pointer;
+}
+
+pre {
+    overflow: auto;
+}
+
+table.delete-row-example .kutty-swapping {
+    opacity: 0;
+    transition: visibility 0s 1s, opacity 1s linear;
+}
