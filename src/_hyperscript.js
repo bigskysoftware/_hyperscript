@@ -472,20 +472,6 @@
                     }
                 }
 
-                function consumeRestOfCommand(tokens) {
-                    var firstToken = null;
-                    var lastToken = null;
-                    while (tokens.hasMore()) {
-                        if (tokens.currentToken() !== 'then') {
-                            lastToken = tokens.consumeToken();
-                        }
-                        if (firstToken == null) {
-                            firstToken = lastToken;
-                        }
-                    }
-                    return tokens.source.substr(firstToken.start, lastToken.end);
-                }
-
                 function createParserContext(tokens) {
                     var currentToken = tokens.currentToken();
                     var source = tokens.source;
@@ -556,7 +542,6 @@
                     parseTargetExpression: parseTargetExpression,
                     parseValueExpression: parseValueExpression,
                     parseCommandList: parseCommandList,
-                    consumeRestOfCommand: consumeRestOfCommand,
                     parseInterval: parseInterval,
                     parseHyperScript: parseHyperScript,
                     raiseParseError: raiseParseError,
@@ -831,17 +816,6 @@
                         runtime.next(this, context);
                     }
                 }
-            })
-
-            _parser.addCommand("eval", function (parser, runtime, tokens) {
-                return {
-                    type: "eval",
-                    eval: parser.consumeRestOfCommand(tokens),
-                    exec: function (elt, context) {
-                        eval(this.eval);
-                        runtime.next(this, context);
-                    }
-                };
             })
 
             _parser.addCommand("wait", function (parser, runtime, tokens) {
