@@ -821,10 +821,10 @@
                             if (this.classRef) {
                                 target.classList.toggle(this.classRef.value);
                             } else {
-                                if (target.getAttribute(this.attribute.name)) {
-                                    target.removeAttribute(this.attribute.name);
+                                if (target.getAttribute(this.attributeRef.name)) {
+                                    target.removeAttribute(this.attributeRef.name);
                                 } else {
-                                    target.setAttribute(this.attribute.name, this.attribute.value.evaluate(context));
+                                    target.setAttribute(this.attributeRef.name, this.attributeRef.value.evaluate(context));
                                 }
                             }
                         });
