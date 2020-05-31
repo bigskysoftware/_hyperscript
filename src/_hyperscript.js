@@ -435,22 +435,7 @@
                 }
 
                 function parseAttributeExpression(tokens) {
-                    if (tokens.matchOpToken("[")) {
-                        var name = tokens.matchTokenType( "IDENTIFIER");
-                        var value = null;
-                        if(tokens.matchOpToken("=")) {
-                            value = parseValueExpression(tokens);
-                        }
-                        tokens.requireOpToken("]");
-                        return {
-                            type: "attribute_expression",
-                            name: name.value,
-                            value: value,
-                            evaluate: function(){
-                                return this.value;
-                            }
-                        }
-                    }
+                    return parseExpression("attributeRef", tokens);
                 }
 
                 function createParserContext(tokens) {
@@ -474,6 +459,17 @@
                 function parseExpression(type, tokens) {
                     var expressionDef = EXPRESSIONS[type];
                     if (expressionDef) return expressionDef(_parser, _runtime, tokens);
+                }
+
+                function parseAnyExpressionOf(types, tokens) {
+                    for (var i = 0; i < types.length; i++) {
+                        var type = types[i];
+                        var expression = parseExpression(type, tokens);
+                        if (expression) {
+                            return expression;
+                        }
+                    }
+                    return null;
                 }
 
                 function parseCommand(tokens) {
@@ -523,6 +519,8 @@
 
                 return {
                     // parser API
+                    parseExpression: parseExpression,
+                    parseAnyExpressionOf: parseAnyExpressionOf,
                     parseClassRefExpression: parseClassRefExpression,
                     parseAttributeExpression: parseAttributeExpression,
                     parseTargetExpression: parseTargetExpression,
@@ -773,6 +771,25 @@
                 }
             })
 
+            _parser.addExpression("attributeRef", function(parser, runtime, tokens){
+                if (tokens.matchOpToken("[")) {
+                    var name = tokens.matchTokenType( "IDENTIFIER");
+                    var value = null;
+                    if(tokens.matchOpToken("=")) {
+                        value = _parser.parseValueExpression(tokens);
+                    }
+                    tokens.requireOpToken("]");
+                    return {
+                        type: "attribute_expression",
+                        name: name.value,
+                        value: value,
+                        evaluate: function(){
+                            return this.value;
+                        }
+                    }
+                }
+            })
+
             _parser.addExpression("literals", function (parser, runtime, tokenName) {
                 return _parser.parseExpressions("string", "number", "idRef", "classRef");
             });
@@ -824,7 +841,7 @@
             });
 
             _parser.addCommand("remove", function (parser, runtime,tokens) {
-                var classRef = parser.parseClassRefExpression(tokens);
+                var classRef = parser.parseExpression("classRef", tokens);
                 var attributeRef = null;
                 var elementExpr = null;
                 if(classRef == null) {
