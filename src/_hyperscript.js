@@ -344,87 +344,8 @@
                     }
                 }
 
-                function parseFunctionCall(tokens, expr) {
-                    var args = [];
-                    do {
-                        args.push(parseValueExpression(tokens));
-                    } while (tokens.matchOpToken(","))
-                    tokens.requireOpToken(")");
-
-                    return {
-                        type: "method_call",
-                        root: expr.root,
-                        function: expr.prop.value,
-                        args: args,
-                        evaluate: function (context) {
-                            var argValues = args.map(function (arg) {
-                                return arg.evaluate(context);
-                            })
-                            if (this.root) {
-                                var that = this.root.evaluate(context);
-                                return that[this.function].apply(that, argValues);
-                            } else {
-                                return _runtime.resolveSymbol(this.function, context).apply(null, argValues)
-                            }
-                        }
-                    };
-                }
-
-                function maybeParseDots(tokens, root) {
-                    if (tokens.matchOpToken(".")) {
-                        var prop = tokens.requireTokenType("IDENTIFIER");
-                        var deref = {
-                            type: "dereference",
-                            root: root,
-                            prop: prop,
-                            evaluate: function(context) {
-                                var rootValue = this.root.evaluate(context);
-                                return rootValue[this.prop.value];
-                            }
-                        };
-                        return maybeParseDots(tokens, deref);
-                    } else if (tokens.matchOpToken("(")) {
-                        return  parseFunctionCall(tokens, root);
-                    } else {
-                        return root;
-                    }
-                }
-
-                function parseLeafExpression(tokens) {
-                    //return parseAnyExpressionOf("string", "number", "idRef", "classRef", "attributeRef", "symbol");
-
-                    var string = parseExpression("string", tokens);
-                    if(string) {
-                        return string;
-                    }
-
-                    var number = parseExpression("number", tokens);
-                    if(number) {
-                        return number;
-                    }
-
-                    var idRef = parseExpression("idRef", tokens);
-                    if(idRef) {
-                        return idRef;
-                    }
-
-                    var classRef = parseExpression("classRef", tokens);
-                    if(classRef) {
-                        return classRef;
-                    }
-
-                    var symbol = parseExpression("symbol", tokens);
-                    if(symbol) {
-                        return symbol;
-                    }
-                }
-
                 function parseValueExpression(tokens) {
-                    var leaf = parseLeafExpression(tokens);
-                    if (leaf) {
-                        return maybeParseDots(tokens, leaf);
-                    }
-                    raiseParseError(tokens, "Unexpected value: " + tokens.currentToken().value);
+                    return parseExpression("expression", tokens);
                 }
 
                 function parseClassRefExpression(tokens) {
@@ -453,9 +374,9 @@
                     throw error
                 }
 
-                function parseExpression(type, tokens) {
+                function parseExpression(type, tokens, root) {
                     var expressionDef = EXPRESSIONS[type];
-                    if (expressionDef) return expressionDef(_parser, _runtime, tokens);
+                    if (expressionDef) return expressionDef(_parser, _runtime, tokens, root);
                 }
 
                 function parseAnyExpressionOf(types, tokens) {
@@ -466,7 +387,6 @@
                             return expression;
                         }
                     }
-                    return null;
                 }
 
                 function parseCommand(tokens) {
@@ -787,10 +707,6 @@
                 }
             })
 
-            _parser.addExpression("literals", function (parser, runtime, tokenName) {
-                return _parser.parseExpressions("string", "number", "idRef", "classRef");
-            });
-
             _parser.addExpression("symbol", function(parser, runtime, tokens) {
                 var identifier = tokens.matchTokenType('IDENTIFIER');
                 if (identifier) {
@@ -804,6 +720,74 @@
                 }
             });
 
+            _parser.addExpression("leaf", function(parser, runtime, tokens) {
+                return parser.parseAnyExpressionOf(["string", "number", "idRef", "classRef", "symbol", "propertyRef"], tokens)
+            });
+
+            _parser.addExpression("propertyAccess", function (parser, runtime, tokens, root) {
+                if (tokens.matchOpToken(".")) {
+                    var prop = tokens.requireTokenType("IDENTIFIER");
+                    var propertyAccess = {
+                        type: "propertyAccess",
+                        root: root,
+                        prop: prop,
+                        evaluate: function(context) {
+                            var rootValue = this.root.evaluate(context);
+                            return rootValue[this.prop.value];
+                        }
+                    };
+                    return _parser.parseExpression("indirectExpression", tokens, propertyAccess);
+                }
+            });
+
+            _parser.addExpression("functionCall", function (parser, runtime, tokens, root) {
+                if (tokens.matchOpToken("(")) {
+                    var args = [];
+                    do {
+                        args.push(parser.parseValueExpression(tokens));
+                    } while (tokens.matchOpToken(","))
+                    tokens.requireOpToken(")");
+                    var functionCall = {
+                        type: "functionCall",
+                        root: root,
+                        args: args,
+                        evaluate: function (context) {
+                            var argValues = args.map(function (arg) {
+                                return arg.evaluate(context);
+                            })
+                            if (this.root.root) {
+                                var that = this.root.root.evaluate(context);
+                                return that[this.root.name].apply(that, argValues);
+                            } else {
+                                return this.root.evaluate(context).apply(null, argValues)
+                            }
+                        }
+                    };
+                    return _parser.parseExpression("indirectExpression", tokens, functionCall);
+                }
+            });
+
+            _parser.addExpression("indirectExpression", function (parser, runtime, tokens, root) {
+                var propAccess = parser.parseExpression("propertyAccess", tokens, root);
+                if (propAccess) {
+                    return propAccess;
+                }
+
+                var functionCall = parser.parseExpression("functionCall", tokens, root);
+                if (functionCall) {
+                    return functionCall;
+                }
+
+                return root;
+            });
+
+            _parser.addExpression("expression", function (parser, runtime, tokens) {
+                var leaf = _parser.parseExpression("leaf", tokens);
+                if (leaf) {
+                    return _parser.parseExpression("indirectExpression", tokens, leaf);
+                }
+                _parser.raiseParseError(tokens, "Unexpected value: " + tokens.currentToken().value);
+            });
 
             //-----------------------------------------------
             // Commands
