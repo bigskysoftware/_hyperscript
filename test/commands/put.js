@@ -82,7 +82,5 @@ describe("the put command", function() {
         d1.innerHTML.should.equal("*foo");
     })
 
-
-
 });
 
