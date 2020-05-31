@@ -297,9 +297,14 @@
             var _parser = function () {
 
                 var COMMANDS = {}
+                var EXPRESSIONS = {}
 
                 function addCommand(name, definition) {
                     COMMANDS[name] = definition;
+                }
+
+                function addExpression(name, definition) {
+                    EXPRESSIONS[name] = definition;
                 }
 
                 function parseInterval(tokens) {
@@ -386,52 +391,32 @@
                 }
 
                 function parseValueExpression(tokens) {
-                    var stringToken = tokens.matchTokenType('STRING');
-                    if (stringToken) {
-                        return {
-                            type: "string",
-                            value: stringToken.value,
-                            evaluate: function(self) {
-                                return this.value;
-                            }
-                        }
+
+                    var string = parseExpression("string", tokens);
+                    if(string) {
+                        return string;
                     }
 
-                    var number = tokens.matchTokenType('NUMBER');
-                    if (number) {
-                        return {
-                            type: "number",
-                            value: number.value,
-                            evaluate: function(self) {
-                                return this.value;
-                            }
-                        }
+                    var number = parseExpression("number", tokens);
+                    if(number) {
+                        return number;
                     }
 
-                    var identifier = tokens.matchTokenType('IDENTIFIER');
-                    if (identifier) {
-                        var id = {
-                            type: "symbol",
-                            name: identifier.value,
-                            evaluate: function(context) {
-                                return _runtime.resolveSymbol(this.name, context);
-                            }
-                        };
-                        return maybeParseDots(tokens, id);
+                    var idRef = parseExpression("idRef", tokens);
+                    if(idRef) {
+                        return idRef;
                     }
 
-                    var elementId = tokens.matchTokenType('ID_REF');
-                    if (elementId) {
-                        var id = {
-                            type: "id_ref",
-                            value: elementId.value.substr(1),
-                            evaluate: function(context) {
-                                return document.getElementById(this.value);
-                            }
-                        };
-                        return maybeParseDots(tokens, id);
+                    var classRef = parseExpression("classRef", tokens);
+                    if(classRef) {
+                        return classRef;
                     }
 
+
+                    var symbol = parseExpression("symbol", tokens);
+                    if(symbol) {
+                        return symbol;
+                    }
 
                     raiseParseError(tokens, "Unexpected value: " + tokens.currentToken().value);
                 }
@@ -484,6 +469,11 @@
                     var error = new Error(message);
                     error.tokens = tokens;
                     throw error
+                }
+
+                function parseExpression(type, tokens) {
+                    var expressionDef = EXPRESSIONS[type];
+                    if (expressionDef) return expressionDef(_parser, _runtime, tokens);
                 }
 
                 function parseCommand(tokens) {
@@ -542,6 +532,7 @@
                     parseHyperScript: parseHyperScript,
                     raiseParseError: raiseParseError,
                     addCommand: addCommand,
+                    addExpression: addExpression,
                     isCommandStart: isCommandStart,
                 }
             }();
@@ -725,6 +716,80 @@
                     resolveSymbol: resolveSymbol
                 }
             }();
+
+            //-----------------------------------------------
+            // Expressions
+            //-----------------------------------------------
+
+            _parser.addExpression("string", function(parser, runtime, tokens) {
+                var stringToken = tokens.matchTokenType('STRING');
+                if (stringToken) {
+                    return {
+                        type: "string",
+                        value: stringToken.value,
+                        evaluate: function(context) {
+                            return this.value;
+                        }
+                    }
+                }
+            })
+
+            _parser.addExpression("number", function(parser, runtime, tokens) {
+                var number = tokens.matchTokenType('NUMBER');
+                if (number) {
+                    return {
+                        type: "number",
+                        value: number.value,
+                        evaluate: function(context) {
+                            return this.value;
+                        }
+                    }
+                }
+            })
+
+            _parser.addExpression("idRef", function(parser, runtime, tokens){
+                var elementId = tokens.matchTokenType('ID_REF');
+                if (elementId) {
+                    var id = {
+                        type: "idRef",
+                        value: elementId.value.substr(1),
+                        evaluate: function(context) {
+                            return document.getElementById(this.value);
+                        }
+                    };
+                }
+            })
+
+            _parser.addExpression("classRef", function(parser, runtime, tokens){
+                var elementId = tokens.matchTokenType('CLASS_REF');
+                if (elementId) {
+                    var id = {
+                        type: "classRef",
+                        value: elementId.value.substr(1),
+                        evaluate: function(context) {
+                            return document.querySelectorAll(this.value);
+                        }
+                    };
+                }
+            })
+
+            _parser.addExpression("literals", function (parser, runtime, tokenName) {
+                return _parser.parseExpressions("string", "number", "idRef", "classRef");
+            });
+
+            _parser.addExpression("symbol", function(parser, runtime, tokens) {
+                var identifier = tokens.matchTokenType('IDENTIFIER');
+                if (identifier) {
+                    var id = {
+                        type: "symbol",
+                        name: identifier.value,
+                        evaluate: function(context) {
+                            return _runtime.resolveSymbol(this.name, context);
+                        }
+                    };
+                }
+            });
+
 
             //-----------------------------------------------
             // Commands
