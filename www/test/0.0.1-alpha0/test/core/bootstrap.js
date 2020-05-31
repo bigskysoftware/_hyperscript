@@ -51,20 +51,6 @@ describe("_hyperscript boostrapping", function() {
         div.classList.contains("blah").should.equal(true);
     })
 
-    it("can eval javascript ", function(){
-        var calledWith = null;
-        window.globalFunction = function(val){
-            calledWith = val;
-        }
-        try {
-            var div = make("<div _='on click eval globalFunction(\"foo\")'></div>");
-            div.click();
-            "foo".should.equal(calledWith);
-        } finally {
-            delete window.globalFunction;
-        }
-    })
-
     it("can wait", function(finished){
         var div = make("<div _='on click " +
             "                             add .foo then " +
