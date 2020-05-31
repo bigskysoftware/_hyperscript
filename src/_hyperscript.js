@@ -390,7 +390,8 @@
                     }
                 }
 
-                function parseValueExpression(tokens) {
+                function parseLeafExpression(tokens) {
+                    //return parseAnyExpressionOf("string", "number", "idRef", "classRef", "attributeRef", "symbol");
 
                     var string = parseExpression("string", tokens);
                     if(string) {
@@ -412,12 +413,17 @@
                         return classRef;
                     }
 
-
                     var symbol = parseExpression("symbol", tokens);
                     if(symbol) {
                         return symbol;
                     }
+                }
 
+                function parseValueExpression(tokens) {
+                    var leaf = parseLeafExpression(tokens);
+                    if (leaf) {
+                        return maybeParseDots(tokens, leaf);
+                    }
                     raiseParseError(tokens, "Unexpected value: " + tokens.currentToken().value);
                 }
 
@@ -788,7 +794,7 @@
             _parser.addExpression("symbol", function(parser, runtime, tokens) {
                 var identifier = tokens.matchTokenType('IDENTIFIER');
                 if (identifier) {
-                    var id = {
+                    return {
                         type: "symbol",
                         name: identifier.value,
                         evaluate: function(context) {
