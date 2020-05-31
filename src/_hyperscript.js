@@ -881,14 +881,27 @@
             })
 
             _parser.addCommand("log", function (parser, runtime, tokens) {
+                var exprs = [parser.parseValueExpression(tokens)];
+                while (tokens.matchOpToken(",")) {
+                    exprs.push(parser.parseValueExpression(tokens));
+                }
+                if (tokens.matchToken("with")) {
+                    var withExpr = parser.parseValueExpression(tokens);
+                }
                 return {
                     type: "log",
-                    expr: parser.parseValueExpression(tokens),
+                    exprs: exprs,
+                    withExpr: withExpr,
                     exec: function(context) {
-                        console.log(this.expr.evaluate(context));
+                        var values = this.exprs.map(function(e){return e.evaluate(context)});
+                        var logger = console.log;
+                        if (this.withExpr) {
+                            logger = this.withExpr.evaluate(context);
+                        }
+                        logger.apply(console, values);
                         runtime.next(this, context);
                     }
-                }
+                };
             })
 
             _parser.addCommand("call", function (parser, runtime, tokens) {
