@@ -93,9 +93,9 @@ describe("_hyperscript boostrapping", function() {
     })
 
     it("can take a class from other elements", function(){
-        var d1 = make("<div class='foo'></div>");
-        var d2 = make("<div _='on click take .foo from div'></div>");
-        var d3 = make("<div></div>");
+        var d1 = make("<div class='divs foo'></div>");
+        var d2 = make("<div class='divs' _='on click take .foo from .divs'></div>");
+        var d3 = make("<div  class='divs'></div>");
         d1.classList.contains("foo").should.equal(true);
         d2.classList.contains("foo").should.equal(false);
         d3.classList.contains("foo").should.equal(false);

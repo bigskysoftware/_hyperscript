@@ -647,7 +647,10 @@
                 if (classRef) {
                     return {
                         type: "classRef",
-                        value: classRef.value.substr(1),
+                        value: classRef.value,
+                        className: function() {
+                            return this.value.substr(1);
+                        },
                         evaluate: function (context) {
                             return document.querySelectorAll(this.value);
                         }
@@ -791,8 +794,6 @@
                             var symbolValue = value.evaluate(context);
                             if (symbolValue) {
                                 return [symbolValue]; //TODO, check if array?
-                            } else {
-                                return document.querySelectorAll(value.name); // so beautiful
                             }
                         }
                     }
@@ -828,7 +829,7 @@
                     exec: function (context) {
                         runtime.forEach(this, this.to.evaluate(context), function (target) {
                             if (this.classRef) {
-                                target.classList.add(this.classRef.value);
+                                target.classList.add(this.classRef.className());
                             } else {
                                 target.setAttribute(this.attributeRef.name, this.attributeRef.value.evaluate(context))
                             }
@@ -870,7 +871,7 @@
                         } else {
                             runtime.forEach(this, this.from.evaluate(context), function (target) {
                                 if (this.classRef) {
-                                    target.classList.remove(this.classRef.value);
+                                    target.classList.remove(this.classRef.className());
                                 } else {
                                     target.removeAttribute(this.attributeRef.name)
                                 }
@@ -903,7 +904,7 @@
                     exec: function (context) {
                         runtime.forEach(this, this.on.evaluate(context), function (target) {
                             if (this.classRef) {
-                                target.classList.toggle(this.classRef.value);
+                                target.classList.toggle(this.classRef.className());
                             } else {
                                 if (target.getAttribute(this.attributeRef.name)) {
                                     target.removeAttribute(this.attributeRef.name);
@@ -1044,15 +1045,30 @@
                     propPath: propPath,
                     value: value,
                     exec: function (context) {
-                        var value = this.value.evaluate(context);
-                        runtime.forEach(this, this.target.evaluate(context), function (target) {
-                            var finalTarget = target;
-                            var propPathClone = this.propPath.slice();
-                            while (propPathClone.length > 1) {
-                                finalTarget = finalTarget[propPathClone.shift()];
+                        var val = this.value.evaluate(context);
+                        if (this.propPath.length === 0) {
+                            if (this.target.value.type === "symbol") {
+                                context[this.target.value.name] = val;
+                            } else if (this.target.value.type === "idRef") {
+                                var idValue = this.target.value.evaluate(context);
+                                idValue.innerHTML = val;
+                            } else if (this.target.value.type === "classRef") {
+                                runtime.forEach(this, this.target.evaluate(context), function (target) {
+                                    target.innerHTML = val;
+                                });
+                            } else {
+                                throw "Bad root value for put"; // TODO - runtime errors
                             }
-                            finalTarget[propPathClone[0]] = value;
-                        })
+                        } else {
+                            runtime.forEach(this, this.target.evaluate(context), function (target) {
+                                var finalTarget = target;
+                                var propPathClone = this.propPath.slice();
+                                while (propPathClone.length > 1) {
+                                    finalTarget = finalTarget[propPathClone.shift()];
+                                }
+                                finalTarget[propPathClone[0]] = val;
+                            })
+                        }
                         runtime.next(this, context);
                     }
                 }
