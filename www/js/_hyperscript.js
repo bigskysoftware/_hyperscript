@@ -15,30 +15,10 @@
             // Lexer
             //-----------------------------------------------
             var _lexer = function() {
-                var optable = {
-                    '+': 'PLUS',
-                    '-': 'MINUS',
-                    '*': 'MULTIPLY',
-                    '.': 'PERIOD',
-                    '\\': 'BACKSLASH',
-                    ':': 'COLON',
-                    '%': 'PERCENT',
-                    '|': 'PIPE',
-                    '!': 'EXCLAMATION',
-                    '?': 'QUESTION',
-                    '#': 'POUND',
-                    '&': 'AMPERSAND',
-                    ';': 'SEMI',
-                    ',': 'COMMA',
-                    '(': 'L_PAREN',
-                    ')': 'R_PAREN',
-                    '<': 'L_ANG',
-                    '>': 'R_ANG',
-                    '{': 'L_BRACE',
-                    '}': 'R_BRACE',
-                    '[': 'L_BRACKET',
-                    ']': 'R_BRACKET',
-                    '=': 'EQUALS'
+                var OP_TABLE = {'+': 'PLUS', '-': 'MINUS', '*': 'MULTIPLY', '.': 'PERIOD', '\\': 'BACKSLASH', ':': 'COLON',
+                    '%': 'PERCENT', '|': 'PIPE', '!': 'EXCLAMATION', '?': 'QUESTION', '#': 'POUND', '&': 'AMPERSAND',
+                    ';': 'SEMI', ',': 'COMMA', '(': 'L_PAREN', ')': 'R_PAREN', '<': 'L_ANG', '>': 'R_ANG', '{': 'L_BRACE',
+                    '}': 'R_BRACE', '[': 'L_BRACKET', ']': 'R_BRACKET', '=': 'EQUALS'
                 };
 
                 function isValidCSSClassChar(c) {
@@ -57,7 +37,6 @@
                     return "[Line: " + token.line + ", Column: " + token.col + "]"
                 }
 
-
                 function isNewline(c) {
                     return c === '\r' || c === '\n';
                 }
@@ -71,18 +50,24 @@
                         (c >= 'A' && c <= 'Z');
                 }
 
+
                 function makeTokensObject(tokens, consumed, source) {
+
+                    function raiseError(tokens, error) {
+                        _parser.raiseParseError(tokens, error);
+                    }
+
                     function requireOpToken(value) {
                         var token = matchOpToken(value);
                         if (token) {
                             return token;
                         } else {
-                            raiseError(tokens, "Expected  " + value);
+                            raiseError(this, "Expected '" + value +"' but found '" + currentToken().value + "'");
                         }
                     }
 
                     function matchOpToken(value) {
-                        if (currentToken() && currentToken().value === value && currentToken().type !== "STRING") {
+                        if (currentToken() && currentToken().op && currentToken().value === value) {
                             return consumeToken();
                         }
                     }
@@ -92,7 +77,7 @@
                         if (token) {
                             return token;
                         } else {
-                            raiseError(tokens, "Expected one of " + JSON.stringify([type1, type2, type3]));
+                            raiseError(this, "Expected one of " + JSON.stringify([type1, type2, type3]));
                         }
                     }
 
@@ -107,7 +92,7 @@
                         if(token) {
                             return token;
                         } else {
-                            raiseError(tokens, "Expected token " + value);
+                            raiseError(this, "Expected '" + value +"' but found '" + currentToken().value + "'");
                         }
                     }
                     function matchToken(value, type) {
@@ -152,30 +137,36 @@
                     var position = 0;
                     var column = 0;
                     var line = 1;
-                    var lastToken = "START";
+                    var lastToken = "<START>";
 
                     while (position < source.length) {
                         consumeWhitespace();
                         if (currentChar() === "-" && nextChar() === "-") {
                             consumeComment();
                         } else {
-                            if (isPrecendingWhitespace() && currentChar() === "." && isAlpha(nextChar())) {
+                            if (!possiblePrecedingSymbol() && currentChar() === "." && isAlpha(nextChar())) {
                                 tokens.push(consumeClassReference());
-                            } else if (isPrecendingWhitespace() && currentChar() === "#" && isAlpha(nextChar())) {
+                            } else if (!possiblePrecedingSymbol() && currentChar() === "#" && isAlpha(nextChar())) {
                                 tokens.push(consumeIdReference());
                             } else if (isAlpha(currentChar())) {
                                 tokens.push(consumeIdentifier());
                             } else if (isNumeric(currentChar())) {
                                 tokens.push(consumeNumber());
-                            } else if (currentChar() === '"') {
+                            } else if (currentChar() === '"' || currentChar() === "'") {
                                 tokens.push(consumeString());
-                            } else if (optable[currentChar()]) {
-                                tokens.push(makeToken(optable[currentChar()], consumeChar()));
+                            } else if (OP_TABLE[currentChar()]) {
+                                tokens.push(makeOpToken(OP_TABLE[currentChar()], consumeChar()));
                             }
                         }
                     }
 
                     return makeTokensObject(tokens, [], source);
+
+                    function makeOpToken(type, value) {
+                        var token = makeToken(type, value);
+                        token.op = true;
+                        return token;
+                    }
 
                     function makeToken(type, value) {
                         return {
@@ -189,7 +180,7 @@
                     }
 
                     function consumeComment() {
-                        while (!isNewline(currentChar())) {
+                        while (currentChar() && !isNewline(currentChar())) {
                             consumeChar();
                         }
                         consumeChar();
@@ -248,15 +239,15 @@
 
                     function consumeString() {
                         var string = makeToken("STRING");
-                        consumeChar(); // consume leading quote
+                        var startChar = consumeChar(); // consume leading quote
                         var value = "";
-                        while (currentChar() && currentChar() !== '"') {
-                            if (currentChar() === "\")") {
-                                consumeChar();
+                        while (currentChar() && currentChar() !== startChar) {
+                            if (currentChar() === "\\") {
+                                consumeChar(); // consume escape char and move on
                             }
                             value += consumeChar();
                         }
-                        if (currentChar() !== '"') {
+                        if (currentChar() !== startChar) {
                             throw Error("Unterminated string at " + positionString(string));
                         } else {
                             consumeChar(); // consume final quote
@@ -281,8 +272,8 @@
                         return lastToken;
                     }
 
-                    function isPrecendingWhitespace() {
-                        return lastToken === "START" || isWhitespace(lastToken);
+                    function possiblePrecedingSymbol() {
+                        return isAlpha(lastToken) || isNumeric(lastToken) || lastToken === ")" || lastToken === "}" || lastToken === "]"
                     }
 
                     function consumeWhitespace() {
@@ -322,8 +313,8 @@
                     return parseFloat(number.value) * factor;
                 }
 
-                function parseTargetExpression(tokens, identifier, required) {
-                    if (tokens.matchToken(identifier) || identifier == null) {
+                function parseTargetExpression(tokens, proposition, required) {
+                    if (tokens.matchToken(proposition) || proposition == null) {
                         var value = tokens.requireTokenType("IDENTIFIER", "CLASS_REF", "ID_REF", "STRING").value;
                         return {
                             type: "target",
@@ -337,7 +328,7 @@
                             }
                         }
                     } else if (required) {
-                        raiseError(tokens, "Required token '" + identifier + "' not found");
+                        raiseParseError(tokens, "Required token '" + proposition + "' not found");
                     } else {
                         return {
                             type: "implicit_me",
@@ -433,23 +424,50 @@
                         return maybeParseDots(tokens, id);
                     }
 
-                    raiseError(tokens, "Unexpected value: " + tokens.currentToken().value);
+                    var elementId = tokens.matchTokenType('ID_REF');
+                    if (elementId) {
+                        var id = {
+                            type: "id_ref",
+                            value: elementId.value.substr(1),
+                            evaluate: function(context) {
+                                return document.getElementById(this.value);
+                            }
+                        };
+                        return maybeParseDots(tokens, id);
+                    }
+
+
+                    raiseParseError(tokens, "Unexpected value: " + tokens.currentToken().value);
                 }
 
-                function parseAttributeExpression(tokens) {
+                function parseClassRefExpression(tokens) {
                     var classRef = tokens.matchTokenType("CLASS_REF");
                     if (classRef) {
                         return {
-                            name: "class",
-                            value: classRef.value.substr(1)
+                            type: "class_ref",
+                            value: classRef.value.substr(1),
+                            evaluate: function(context) {
+                                return document.body.querySelectorAll(this.value);
+                            }
                         }
-                    } else {
+                    }
+                }
+
+                function parseAttributeExpression(tokens) {
+                    if (tokens.matchOpToken("[")) {
                         var name = tokens.matchTokenType( "IDENTIFIER");
-                        tokens.matchOpToken("=");
-                        var value = tokens.matchTokenType( "IDENTIFIER", "STRING");
+                        var value = null;
+                        if(tokens.matchOpToken("=")) {
+                            value = parseValueExpression(tokens);
+                        }
+                        tokens.requireOpToken("]");
                         return {
+                            type: "attribute_expression",
                             name: name.value,
-                            value: value.value
+                            value: value,
+                            evaluate: function(){
+                                return this.value;
+                            }
                         }
                     }
                 }
@@ -468,8 +486,19 @@
                     return tokens.source.substr(firstToken.start, lastToken.end);
                 }
 
-                function raiseError(tokens, message) {
-                    message = message || "Unexpected Token : " + tokens.currentToken().value;
+                function createParserContext(tokens) {
+                    var currentToken = tokens.currentToken();
+                    var source = tokens.source;
+                    var lines = source.split("\n");
+                    var line = currentToken ? currentToken.line - 1 : lines.length - 1;
+                    var contextLine = lines[line];
+                    var offset = currentToken ? currentToken.column : contextLine.length - 1;
+                    return contextLine + "\n" + " ".repeat(offset) + "^^\n\n";
+                }
+
+                function raiseParseError(tokens, message) {
+                    message = (message || "Unexpected Token : " + tokens.currentToken().value) + "\n\n" +
+                        createParserContext(tokens);
                     var error = new Error(message);
                     error.tokens = tokens;
                     throw error
@@ -479,44 +508,60 @@
                     var commandName = tokens.matchTokenType("IDENTIFIER");
                     var commandDef = COMMANDS[commandName.value];
                     if (commandDef) return commandDef(_parser, _runtime, tokens);
-                    raiseError(tokens);
+                    raiseParseError(tokens);
                 }
 
                 function parseCommandList(tokens) {
-                    var commandList = {
-                        type: "command_list",
-                        on: parseTargetExpression(tokens, "on", true),
-                        from: parseTargetExpression(tokens, "from"),
-                        start: parseCommand(tokens)
-                    }
-                    var last = commandList.start;
+                    var start = parseCommand(tokens);
+                    var last = start;
                     while (tokens.matchToken( "then")) {
                         last.next = parseCommand(tokens);
                         last = last.next;
                     }
-                    return commandList;
+                    return start;
                 }
 
-                function parseHypeScript(tokens) {
+                function parseEventListener(tokens) {
+                    var eventListener = {
+                        type: "event_listener",
+                        on: parseTargetExpression(tokens, "on", true),
+                        from: parseTargetExpression(tokens, "from"),
+                    }
+                    eventListener.start = parseCommandList(tokens);
+                    return eventListener;
+                }
+
+                function parseHyperScript(tokens) {
                     var hypeScript = {
-                        type: "hype_script",
-                        commandLists: []
+                        type: "_hyperscript",
+                        eventListeners: []
                     }
                     do {
-                        hypeScript.commandLists.push(parseCommandList(tokens));
+                        hypeScript.eventListeners.push(parseEventListener(tokens));
                     } while (tokens.matchToken( "end") && tokens.hasMore())
+                    if (tokens.hasMore()) {
+                        raiseParseError(tokens);
+                    }
                     return hypeScript;
+                }
+
+                function isCommandStart(token) {
+                    return token.type === "IDENTIFIER" && COMMANDS[token.value];
                 }
 
                 return {
                     // parser API
+                    parseClassRefExpression: parseClassRefExpression,
                     parseAttributeExpression: parseAttributeExpression,
                     parseTargetExpression: parseTargetExpression,
                     parseValueExpression: parseValueExpression,
+                    parseCommandList: parseCommandList,
                     consumeRestOfCommand: consumeRestOfCommand,
                     parseInterval: parseInterval,
-                    parseHyperScript: parseHypeScript,
+                    parseHyperScript: parseHyperScript,
+                    raiseParseError: raiseParseError,
                     addCommand: addCommand,
+                    isCommandStart: isCommandStart,
                 }
             }();
 
@@ -526,6 +571,7 @@
             var _runtime = function () {
 
                 var GLOBALS = {};
+                var SCRIPT_ATTRIBUTES = ["_", "script", "data-script"];
 
                 function matchesSelector(elt, selector) {
                     // noinspection JSUnresolvedVariable
@@ -571,42 +617,52 @@
                     return evt;
                 }
 
-                function enter(commandList, event, elt) {
+                function makeContext(commandList, elt, event) {
                     var ctx = {
                         meta: {
-                            parser:_parser,
-                            lexer:_lexer,
-                            runtime:_runtime,
-                            current:commandList
+                            parser: _parser,
+                            lexer: _lexer,
+                            runtime: _runtime,
+                            command_list: commandList
                         },
                         me: elt,
                         event: event,
                         window: window,
                         document: document,
                         body: document.body,
-                        globals: GLOBALS,
+                        globals: GLOBALS
                     }
+                    ctx.meta.ctx = ctx;
+                    return ctx;
+                }
+
+                function enter(commandList, event, elt) {
+                    var ctx = makeContext(commandList, elt, event);
                     // lets get this party started
-                    commandList.start.exec(ctx);
+                    commandList.exec(ctx);
                 }
 
                 function getScript(elt) {
-                    return elt.getAttribute("_")
-                        || elt.getAttribute("hs")
-                        || elt.getAttribute("data-hs");
+                    for (var i = 0; i < SCRIPT_ATTRIBUTES.length; i++) {
+                        var scriptAttribute = SCRIPT_ATTRIBUTES[i];
+                        if (elt.hasAttribute(scriptAttribute)) {
+                            return elt.getAttribute(scriptAttribute)
+                        }
+                    }
+                    return null;
                 }
 
-                function makeEventListener(actionList, elt) {
+                function makeEventListener(eventListener, elt) {
                     return function (event) {
-                        _runtime.enter(actionList, event, elt)
+                        enter(eventListener.start, event, elt)
                     };
                 }
 
                 function apply(hypeScript, elt) {
-                    _runtime.forEach(hypeScript, hypeScript.commandLists, function (commandList) {
-                        var event = commandList.on.value;
-                        _runtime.forTargets(commandList, "from", {me:elt}, function (from) {
-                            from.addEventListener(event, makeEventListener(commandList, elt));
+                    _runtime.forEach(hypeScript, hypeScript.eventListeners, function (eventListener) {
+                        var event = eventListener.on.value;
+                        _runtime.forTargets(eventListener, "from", {me:elt}, function (from) {
+                            from.addEventListener(event, makeEventListener(eventListener, elt));
                         });
                     });
                 }
@@ -617,16 +673,58 @@
                     }
                 }
 
+                function addGlobal(name, value) {
+                    GLOBALS[name] = value;
+                }
+
+                function setScriptAttrs(values) {
+                    SCRIPT_ATTRIBUTES = values;
+                }
+
+                function getScriptSelector() {
+                    return SCRIPT_ATTRIBUTES.map(function (attribute) {
+                        return "[" + attribute + "]";
+                    }).join(", ");
+                }
+
+                function evaluate(str) {
+                    var customEvent = makeEvent("eval", {string: str});
+                    var tokens = _lexer.tokenize(str);
+                    if (_parser.isCommandStart(tokens.currentToken())) {
+                        var start =  _parser.parseCommandList(tokens);
+                        var ctx = makeContext(start, document.body, customEvent);
+                        start.exec(ctx);
+                        return ctx["it"];
+                    } else {
+                        var expression = _parser.parseValueExpression(tokens);
+                        var ctx = makeContext(expression, document.body, customEvent);
+                        return expression.evaluate(ctx);
+                    }
+                }
+
+                function initElement(elt) {
+                    var src = getScript(elt);
+                    if (src) {
+                        var tokens = _lexer.tokenize(src);
+                        var hyperScript =  _parser.parseHyperScript(tokens);
+                        apply(hyperScript, elt);
+                    }
+                }
+
                 return {
                     forEach: forEach,
                     triggerEvent: triggerEvent,
                     forTargets: forTargets,
                     next: next,
                     matchesSelector: matchesSelector,
-                    enter:enter,
                     getScript: getScript,
                     getMe: getMe,
-                    apply:apply
+                    apply:apply,
+                    addGlobal:addGlobal,
+                    setScriptAttrs: setScriptAttrs,
+                    initElement: initElement,
+                    evaluate: evaluate,
+                    getScriptSelector: getScriptSelector
                 }
             }();
 
@@ -635,16 +733,26 @@
             //-----------------------------------------------
 
             _parser.addCommand("add", function (parser, runtime, tokens) {
+                var classRef = parser.parseClassRefExpression(tokens);
+                var attributeRef = null;
+                if(classRef == null) {
+                    attributeRef = parser.parseAttributeExpression(tokens);
+                    if (attributeRef == null) {
+                        parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
+                    }
+                }
+                var to = parser.parseTargetExpression(tokens, "to");
                 return {
                     type: "add",
-                    attribute: parser.parseAttributeExpression(tokens),
-                    to: parser.parseTargetExpression(tokens, "to"),
+                    classRef: classRef,
+                    attributeRef: attributeRef,
+                    to: to,
                     exec: function(context) {
                         runtime.forTargets(this, "to", context, function (target) {
-                            if (this.attribute.name === "class") {
-                                target.classList.add(this.attribute.value);
+                            if (this.classRef) {
+                                target.classList.add(this.classRef.value);
                             } else {
-                                target.setAttribute(this.attribute.name, this.attribute.value)
+                                target.setAttribute(this.attributeRef.name, this.attributeRef.value.evaluate(context))
                             }
                         });
                         runtime.next(this, context);
@@ -653,37 +761,70 @@
             });
 
             _parser.addCommand("remove", function (parser, runtime,tokens) {
+                var classRef = parser.parseClassRefExpression(tokens);
+                var attributeRef = null;
+                var elementExpr = null;
+                if(classRef == null) {
+                    attributeRef = parser.parseAttributeExpression(tokens);
+                    if (attributeRef == null) {
+                        elementExpr = _parser.parseValueExpression(tokens)
+                        if (elementExpr == null) {
+                            parser.raiseParseError(tokens, "Expected either a class reference, attribute expression or value expression");
+                        }
+                    }
+                }
+                if (elementExpr == null) {
+                    var from = parser.parseTargetExpression(tokens, "from");
+                }
+
                 return {
                     type: "remove",
-                    attribute: parser.parseAttributeExpression(tokens),
-                    from: parser.parseTargetExpression(tokens, "from"),
-                    exec: function(elt, context) {
-                        runtime.forTargets(this, "from", elt, function (target) {
-                            if (this.attribute.name === "class") {
-                                target.classList.remove(this.attribute.value);
-                            } else {
-                                target.removeAttribute(this.attribute.name)
-                            }
-                        });
+                    classRef: classRef,
+                    attributeRef: attributeRef,
+                    elementExpr: elementExpr,
+                    from: from,
+                    exec: function(context) {
+                        if(this.elementExpr) {
+                            var elementToRemove = this.elementExpr.evaluate(context);
+                            elementToRemove.parentElement.removeChild(elementToRemove);
+                        } else {
+                            runtime.forTargets(this, "from", context, function (target) {
+                                if (this.classRef) {
+                                    target.classList.remove(this.classRef.value);
+                                } else {
+                                    target.removeAttribute(this.attributeRef.name)
+                                }
+                            });
+                        }
                         runtime.next(this, context);
                     }
                 }
             });
 
             _parser.addCommand("toggle", function (parser, runtime, tokens) {
+                var classRef = parser.parseClassRefExpression(tokens);
+                var attributeRef = null;
+                if(classRef == null) {
+                    attributeRef = parser.parseAttributeExpression(tokens);
+                    if (attributeRef == null) {
+                        parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
+                    }
+                }
+                var on = parser.parseTargetExpression(tokens, "on");
                 return {
                     type: "toggle",
-                    attribute: parser.parseAttributeExpression(tokens),
-                    on: parser.parseTargetExpression(tokens, "on"),
-                    exec: function(elt, context) {
-                        runtime.forTargets(this, "on", elt, function (target) {
-                            if (this.attribute.name === "class") {
-                                target.classList.toggle(this.attribute.value);
+                    classRef: classRef,
+                    attributeRef: attributeRef,
+                    on: on,
+                    exec: function(context) {
+                        runtime.forTargets(this, "on", context, function (target) {
+                            if (this.classRef) {
+                                target.classList.toggle(this.classRef.value);
                             } else {
                                 if (target.getAttribute(this.attribute.name)) {
                                     target.removeAttribute(this.attribute.name);
                                 } else {
-                                    target.setAttribute(this.attribute.name, this.attribute.value);
+                                    target.setAttribute(this.attribute.name, this.attribute.value.evaluate(context));
                                 }
                             }
                         });
@@ -787,18 +928,18 @@
                 }
             })
 
-            _parser.addCommand("set", function (parser, runtime, tokens) {
+            _parser.addCommand("put", function (parser, runtime, tokens) {
 
+                var value = parser.parseValueExpression(tokens);
+                tokens.requireToken("into");
                 var target = parser.parseTargetExpression(tokens);
                 var propPath = []
                 while (tokens.matchOpToken(".")) {
                     propPath.push(tokens.requireTokenType("IDENTIFIER").value)
                 }
-                tokens.requireToken("to");
-                var value = parser.parseValueExpression(tokens);
 
                 return {
-                    type: "set",
+                    type: "put",
                     target: target,
                     propPath: propPath,
                     value: value,
@@ -821,33 +962,37 @@
             // API
             //-----------------------------------------------
 
-            function start() {
+            function start(scriptAttrs) {
+                if (scriptAttrs) {
+                    _runtime.setScriptAttrs(scriptAttrs);
+                }
                 var fn = function () {
-                    var elts = document.querySelectorAll("[_], [hs], [data-hs]");
-                    _runtime.forEach(document, elts, function (elt) {
+                    var elements = document.querySelectorAll(_runtime.getScriptSelector());
+                    _runtime.forEach(document, elements, function (elt) {
                         init(elt);
                     })
-                }
+                };
                 if (document.readyState !== 'loading') {
                     fn();
                 } else {
                     document.addEventListener('DOMContentLoaded', fn);
                 }
+                return true;
             }
 
             function init(elt) {
-                var src = _runtime.getScript(elt);
-                if (src) {
-                    var tokens = _lexer.tokenize(src);
-                    var hyperScript =  _parser.parseHyperScript(tokens);
-                    _runtime.apply(hyperScript, elt);
-                }
+                _runtime.initElement(elt);
+            }
+
+            function evaluate(str) {
+                _runtime.evaluate(str);
             }
 
             return {
                 lexer: _lexer,
                 parser: _parser,
                 runtime: _runtime,
+                evaluate: evaluate,
                 init: init,
                 start: start
             }

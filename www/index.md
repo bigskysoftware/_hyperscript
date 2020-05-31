@@ -38,7 +38,7 @@ it is a companion project of <https://htmx.org>
 </div>
 <div id="help"> I'm a helpful message!</div>
 
-<button _="on click log me then call alert('yep, it’s an alert')">
+<button _="on click log me then call alert('yep, it\’s an alert')">
     Show An Alert
 </button>
 ```
@@ -79,7 +79,7 @@ it is a companion project of <https://htmx.org>
         <div id="help"> I'm a helpful message!</div>
     </div>
     <div class="4 col">
-        <button _='on click log me then call alert("yep, it’s an alert - check the console...")'>
+        <button _="on click log me then call alert('yep, it\'s an alert - check the console...')">
             Show An Alert
         </button>
     </div>
