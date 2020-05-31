@@ -320,10 +320,6 @@
                     return parseFloat(number.value) * factor;
                 }
 
-                function parseTargetExpression(tokens, proposition, required) {
-                    return parseExpression("target", tokens);
-                }
-
                 function createParserContext(tokens) {
                     var currentToken = tokens.currentToken();
                     var source = tokens.source;
@@ -381,7 +377,7 @@
                         raiseParseError(tokens, "Expected event name")
                     }
                     if (tokens.matchToken("from")) {
-                        var from = parseTargetExpression(tokens);
+                        var from = parseExpression("target", tokens);
                         if (from == null) {
                             raiseParseError(tokens, "Expected target value")
                         }
@@ -417,7 +413,6 @@
                     // parser API
                     parseExpression: parseExpression,
                     parseAnyExpressionOf: parseAnyExpressionOf,
-                    parseTargetExpression: parseTargetExpression,
                     parseCommandList: parseCommandList,
                     parseInterval: parseInterval,
                     parseHyperScript: parseHyperScript,
@@ -820,7 +815,7 @@
                 }
 
                 if (tokens.matchToken("to")) {
-                    var to = parser.parseTargetExpression(tokens);
+                    var to = parser.parseExpression("target", tokens);
                 } else {
                     var to = parser.parseExpression("implicitMeTarget");
                 }
@@ -857,7 +852,7 @@
                     }
                 }
                 if (tokens.matchToken("from")) {
-                    var from = parser.parseTargetExpression(tokens);
+                    var from = parser.parseExpression("target", tokens);
                 } else {
                     var from = parser.parseExpression("implicitMeTarget");
                 }
@@ -896,7 +891,7 @@
                     }
                 }
                 if (tokens.matchToken("on")) {
-                    var on = parser.parseTargetExpression(tokens);
+                    var on = parser.parseExpression("target", tokens);
                 }  else {
                     var on = parser.parseExpression("implicitMeTarget");
                 }
@@ -949,7 +944,7 @@
                     tokens.requireOpToken("}");
                 }
                 if (tokens.matchToken("to")) {
-                    var to = parser.parseTargetExpression(tokens);
+                    var to = parser.parseExpression("target", tokens);
                 }  else {
                     var to = parser.parseExpression("implicitMeTarget");
                 }
@@ -976,7 +971,7 @@
                 var classRef = tokens.requireTokenType(tokens, "CLASS_REF");
 
                 if (tokens.matchToken("from")) {
-                    var from = parser.parseTargetExpression(tokens);
+                    var from = parser.parseExpression("target", tokens);
                 } else {
                     var from = parser.parseExpression("implicitAllTarget")
                 }
@@ -1037,7 +1032,7 @@
 
                 var value = parser.parseExpression("expression", tokens);
                 tokens.requireToken("into");
-                var target = parser.parseTargetExpression(tokens);
+                var target = parser.parseExpression("target", tokens);
                 var propPath = []
                 while (tokens.matchOpToken(".")) {
                     propPath.push(tokens.requireTokenType("IDENTIFIER").value)
