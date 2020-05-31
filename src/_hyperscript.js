@@ -422,16 +422,7 @@
                 }
 
                 function parseClassRefExpression(tokens) {
-                    var classRef = tokens.matchTokenType("CLASS_REF");
-                    if (classRef) {
-                        return {
-                            type: "class_ref",
-                            value: classRef.value.substr(1),
-                            evaluate: function(context) {
-                                return document.body.querySelectorAll(this.value);
-                            }
-                        }
-                    }
+                    return parseExpression("classRef", tokens);
                 }
 
                 function parseAttributeExpression(tokens) {
@@ -759,11 +750,11 @@
             })
 
             _parser.addExpression("classRef", function(parser, runtime, tokens){
-                var elementId = tokens.matchTokenType('CLASS_REF');
-                if (elementId) {
-                    var id = {
+                var classRef = tokens.matchTokenType('CLASS_REF');
+                if (classRef) {
+                    return {
                         type: "classRef",
-                        value: elementId.value.substr(1),
+                        value: classRef.value.substr(1),
                         evaluate: function(context) {
                             return document.querySelectorAll(this.value);
                         }
