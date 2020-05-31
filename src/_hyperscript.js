@@ -309,17 +309,6 @@
                     EXPRESSIONS[name] = definition;
                 }
 
-                function parseInterval(tokens) {
-                    var number = tokens.requireTokenType(tokens, "NUMBER");
-                    var factor = 1;
-                    if (tokens.matchToken("s")) {
-                        factor = 1000;
-                    } else if (tokens.matchToken("ms")) {
-                        // do nothing
-                    }
-                    return parseFloat(number.value) * factor;
-                }
-
                 function createParserContext(tokens) {
                     var currentToken = tokens.currentToken();
                     var source = tokens.source;
@@ -414,7 +403,6 @@
                     parseExpression: parseExpression,
                     parseAnyExpressionOf: parseAnyExpressionOf,
                     parseCommandList: parseCommandList,
-                    parseInterval: parseInterval,
                     parseHyperScript: parseHyperScript,
                     raiseParseError: raiseParseError,
                     addCommand: addCommand,
@@ -718,6 +706,24 @@
                 };
             });
 
+            _parser.addExpression("millisecondLiteral", function (parser, runtime, tokens) {
+                var number = tokens.requireTokenType(tokens, "NUMBER");
+                var factor = 1;
+                if (tokens.matchToken("s")) {
+                    factor = 1000;
+                } else if (tokens.matchToken("ms")) {
+                    // do nothing
+                }
+                return {
+                    type: "millisecondLiteral",
+                    number: number,
+                    factor:factor,
+                    evaluate: function (context) {
+                            return parseFloat(this.number.value) * this.factor;
+                    }
+                };
+            });
+
             _parser.addExpression("leaf", function (parser, runtime, tokens) {
                 return parser.parseAnyExpressionOf(["string", "number", "idRef", "classRef", "symbol", "propertyRef"], tokens)
             });
@@ -931,12 +937,12 @@
             _parser.addCommand("wait", function (parser, runtime, tokens) {
                 return {
                     type: "wait",
-                    time: parser.parseInterval(tokens),
+                    time: parser.parseExpression('millisecondLiteral', tokens),
                     exec: function (context) {
                         var copyOfThis = this;
                         setTimeout(function () {
                             runtime.next(copyOfThis, context);
-                        }, this.time);
+                        }, this.time.evaluate(context));
                     }
                 }
             })
