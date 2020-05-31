@@ -58,6 +58,30 @@ describe("the put command", function() {
         d2.innerHTML.should.equal("foo");
     })
 
+    it("can insert before", function(){
+        var d1 = make("<div id='d1' _='on click put \"<div>foo</div>\" before #d1'></div>");
+        d1.click();
+        d1.previousSibling.innerHTML.should.equal("foo");
+    })
+
+    it("can insert after", function(){
+        var d1 = make("<div id='d1' _='on click put \"<div>foo</div>\" after #d1'></div>");
+        d1.click();
+        d1.nextSibling.innerHTML.should.equal("foo");
+    })
+
+    it("can insert after beginning", function(){
+        var d1 = make("<div id='d1' _='on click put \"foo\" afterbegin #d1'>*</div>");
+        d1.click();
+        d1.innerHTML.should.equal("foo*");
+    })
+
+    it("can insert before end", function(){
+        var d1 = make("<div id='d1' _='on click put \"foo\" beforeend #d1'>*</div>");
+        d1.click();
+        d1.innerHTML.should.equal("*foo");
+    })
+
 
 
 });

@@ -581,6 +581,15 @@
                     }
                 }
 
+                function evaluatePropPath(root, path) {
+                    var finalValue = root;
+                    var pathClone = path.slice();
+                    while (pathClone.length > 0) {
+                        finalValue = finalValue[pathClone.shift()];
+                    }
+                    return finalValue;
+                }
+
                 return {
                     forEach: forEach,
                     triggerEvent: triggerEvent,
@@ -595,7 +604,8 @@
                     initElement: initElement,
                     evaluate: evaluate,
                     getScriptSelector: getScriptSelector,
-                    resolveSymbol: resolveSymbol
+                    resolveSymbol: resolveSymbol,
+                    evaluatePropPath: evaluatePropPath
                 }
             }();
 
@@ -1032,7 +1042,16 @@
             _parser.addCommand("put", function (parser, runtime, tokens) {
 
                 var value = parser.parseExpression("expression", tokens);
-                tokens.requireToken("into");
+
+                var operation = tokens.matchToken("into") ||
+                    tokens.matchToken("before") ||
+                    tokens.matchToken("afterbegin") ||
+                    tokens.matchToken("beforeend") ||
+                    tokens.matchToken("after");
+
+                if (operation == null) {
+                    parser.raiseParseError(tokens, "Expected one of 'into', 'before', 'afterbegin', 'beforeend', 'after'")
+                }
                 var target = parser.parseExpression("target", tokens);
                 var propPath = []
                 while (tokens.matchOpToken(".")) {
@@ -1043,10 +1062,11 @@
                     type: "put",
                     target: target,
                     propPath: propPath,
+                    op: operation.value,
                     value: value,
                     exec: function (context) {
                         var val = this.value.evaluate(context);
-                        if (this.propPath.length === 0) {
+                        if (this.propPath.length === 0 && this.op === "into") {
                             if (this.target.value.type === "symbol") {
                                 context[this.target.value.name] = val;
                             } else if (this.target.value.type === "idRef") {
@@ -1060,13 +1080,26 @@
                                 throw "Bad root value for put"; // TODO - runtime errors
                             }
                         } else {
+                            var that = this;
                             runtime.forEach(this, this.target.evaluate(context), function (target) {
-                                var finalTarget = target;
-                                var propPathClone = this.propPath.slice();
-                                while (propPathClone.length > 1) {
-                                    finalTarget = finalTarget[propPathClone.shift()];
+                                if (that.op === "into") {
+                                    var propPathClone = that.propPath.slice();
+                                    var finalProp = propPathClone.pop();
+                                    var finalTarget = _runtime.evaluatePropPath(target, propPathClone);
+                                    finalTarget[finalProp] = val;
+                                } else if (that.op === "before") {
+                                    var finalTarget = _runtime.evaluatePropPath(target, that.propPath);
+                                    finalTarget.insertAdjacentHTML('beforebegin', val);
+                                } else if (that.op === "afterbegin") {
+                                    var finalTarget = _runtime.evaluatePropPath(target, that.propPath);
+                                    finalTarget.insertAdjacentHTML('afterbegin', val);
+                                } else if (that.op === "beforeend") {
+                                    var finalTarget = _runtime.evaluatePropPath(target, that.propPath);
+                                    finalTarget.insertAdjacentHTML('beforeend', val);
+                                } else if (that.op === "after") {
+                                    var finalTarget = _runtime.evaluatePropPath(target, that.propPath);
+                                    finalTarget.insertAdjacentHTML('afterend', val);
                                 }
-                                finalTarget[propPathClone[0]] = val;
                             })
                         }
                         runtime.next(this, context);
