@@ -83,7 +83,7 @@ describe("_hyperscript boostrapping", function() {
     })
 
     it("can change non-class properties", function(){
-        var div = make("<div _='on click add foo=bar'></div>");
+        var div = make("<div _='on click add [foo=\"bar\"]'></div>");
         div.hasAttribute("foo").should.equal(false);
         div.click();
         div.getAttribute("foo").should.equal("bar");

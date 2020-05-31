@@ -62,7 +62,7 @@
                         if (token) {
                             return token;
                         } else {
-                            raiseError(this, "Expected  " + value);
+                            raiseError(this, "Expected '" + value +"' but found '" + currentToken().value + "'");
                         }
                     }
 
@@ -92,7 +92,7 @@
                         if(token) {
                             return token;
                         } else {
-                            raiseError(this, "Expected token " + value);
+                            raiseError(this, "Expected '" + value +"' but found '" + currentToken().value + "'");
                         }
                     }
                     function matchToken(value, type) {
@@ -424,23 +424,50 @@
                         return maybeParseDots(tokens, id);
                     }
 
+                    var elementId = tokens.matchTokenType('ID_REF');
+                    if (elementId) {
+                        var id = {
+                            type: "id_ref",
+                            value: elementId.value.substr(1),
+                            evaluate: function(context) {
+                                return document.getElementById(this.value);
+                            }
+                        };
+                        return maybeParseDots(tokens, id);
+                    }
+
+
                     raiseParseError(tokens, "Unexpected value: " + tokens.currentToken().value);
                 }
 
-                function parseAttributeExpression(tokens) {
+                function parseClassRefExpression(tokens) {
                     var classRef = tokens.matchTokenType("CLASS_REF");
                     if (classRef) {
                         return {
-                            name: "class",
-                            value: classRef.value.substr(1)
+                            type: "class_ref",
+                            value: classRef.value.substr(1),
+                            evaluate: function(context) {
+                                return document.body.querySelectorAll(this.value);
+                            }
                         }
-                    } else {
+                    }
+                }
+
+                function parseAttributeExpression(tokens) {
+                    if (tokens.matchOpToken("[")) {
                         var name = tokens.matchTokenType( "IDENTIFIER");
-                        tokens.requireOpToken("=");
-                        var value = tokens.matchTokenType( "IDENTIFIER", "STRING");
+                        var value = null;
+                        if(tokens.matchOpToken("=")) {
+                            value = parseValueExpression(tokens);
+                        }
+                        tokens.requireOpToken("]");
                         return {
+                            type: "attribute_expression",
                             name: name.value,
-                            value: value.value
+                            value: value,
+                            evaluate: function(){
+                                return this.value;
+                            }
                         }
                     }
                 }
@@ -463,8 +490,10 @@
                     var currentToken = tokens.currentToken();
                     var source = tokens.source;
                     var lines = source.split("\n");
-                    var contextLine = lines[currentToken.line - 1];
-                    return contextLine + "\n" + " ".repeat(currentToken.column) + "^^\n\n";
+                    var line = currentToken ? currentToken.line - 1 : lines.length - 1;
+                    var contextLine = lines[line];
+                    var offset = currentToken ? currentToken.column : contextLine.length - 1;
+                    return contextLine + "\n" + " ".repeat(offset) + "^^\n\n";
                 }
 
                 function raiseParseError(tokens, message) {
@@ -510,6 +539,9 @@
                     do {
                         hypeScript.eventListeners.push(parseEventListener(tokens));
                     } while (tokens.matchToken( "end") && tokens.hasMore())
+                    if (tokens.hasMore()) {
+                        raiseParseError(tokens);
+                    }
                     return hypeScript;
                 }
 
@@ -519,6 +551,7 @@
 
                 return {
                     // parser API
+                    parseClassRefExpression: parseClassRefExpression,
                     parseAttributeExpression: parseAttributeExpression,
                     parseTargetExpression: parseTargetExpression,
                     parseValueExpression: parseValueExpression,
@@ -700,16 +733,26 @@
             //-----------------------------------------------
 
             _parser.addCommand("add", function (parser, runtime, tokens) {
+                var classRef = parser.parseClassRefExpression(tokens);
+                var attributeRef = null;
+                if(classRef == null) {
+                    attributeRef = parser.parseAttributeExpression(tokens);
+                    if (attributeRef == null) {
+                        parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
+                    }
+                }
+                var to = parser.parseTargetExpression(tokens, "to");
                 return {
                     type: "add",
-                    attribute: parser.parseAttributeExpression(tokens),
-                    to: parser.parseTargetExpression(tokens, "to"),
+                    classRef: classRef,
+                    attributeRef: attributeRef,
+                    to: to,
                     exec: function(context) {
                         runtime.forTargets(this, "to", context, function (target) {
-                            if (this.attribute.name === "class") {
-                                target.classList.add(this.attribute.value);
+                            if (this.classRef) {
+                                target.classList.add(this.classRef.value);
                             } else {
-                                target.setAttribute(this.attribute.name, this.attribute.value)
+                                target.setAttribute(this.attributeRef.name, this.attributeRef.value.evaluate(context))
                             }
                         });
                         runtime.next(this, context);
@@ -718,37 +761,70 @@
             });
 
             _parser.addCommand("remove", function (parser, runtime,tokens) {
+                var classRef = parser.parseClassRefExpression(tokens);
+                var attributeRef = null;
+                var elementExpr = null;
+                if(classRef == null) {
+                    attributeRef = parser.parseAttributeExpression(tokens);
+                    if (attributeRef == null) {
+                        elementExpr = _parser.parseValueExpression(tokens)
+                        if (elementExpr == null) {
+                            parser.raiseParseError(tokens, "Expected either a class reference, attribute expression or value expression");
+                        }
+                    }
+                }
+                if (elementExpr == null) {
+                    var from = parser.parseTargetExpression(tokens, "from");
+                }
+
                 return {
                     type: "remove",
-                    attribute: parser.parseAttributeExpression(tokens),
-                    from: parser.parseTargetExpression(tokens, "from"),
-                    exec: function(elt, context) {
-                        runtime.forTargets(this, "from", elt, function (target) {
-                            if (this.attribute.name === "class") {
-                                target.classList.remove(this.attribute.value);
-                            } else {
-                                target.removeAttribute(this.attribute.name)
-                            }
-                        });
+                    classRef: classRef,
+                    attributeRef: attributeRef,
+                    elementExpr: elementExpr,
+                    from: from,
+                    exec: function(context) {
+                        if(this.elementExpr) {
+                            var elementToRemove = this.elementExpr.evaluate(context);
+                            elementToRemove.parentElement.removeChild(elementToRemove);
+                        } else {
+                            runtime.forTargets(this, "from", context, function (target) {
+                                if (this.classRef) {
+                                    target.classList.remove(this.classRef.value);
+                                } else {
+                                    target.removeAttribute(this.attributeRef.name)
+                                }
+                            });
+                        }
                         runtime.next(this, context);
                     }
                 }
             });
 
             _parser.addCommand("toggle", function (parser, runtime, tokens) {
+                var classRef = parser.parseClassRefExpression(tokens);
+                var attributeRef = null;
+                if(classRef == null) {
+                    attributeRef = parser.parseAttributeExpression(tokens);
+                    if (attributeRef == null) {
+                        parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
+                    }
+                }
+                var on = parser.parseTargetExpression(tokens, "on");
                 return {
                     type: "toggle",
-                    attribute: parser.parseAttributeExpression(tokens),
-                    on: parser.parseTargetExpression(tokens, "on"),
-                    exec: function(elt, context) {
-                        runtime.forTargets(this, "on", elt, function (target) {
-                            if (this.attribute.name === "class") {
-                                target.classList.toggle(this.attribute.value);
+                    classRef: classRef,
+                    attributeRef: attributeRef,
+                    on: on,
+                    exec: function(context) {
+                        runtime.forTargets(this, "on", context, function (target) {
+                            if (this.classRef) {
+                                target.classList.toggle(this.classRef.value);
                             } else {
                                 if (target.getAttribute(this.attribute.name)) {
                                     target.removeAttribute(this.attribute.name);
                                 } else {
-                                    target.setAttribute(this.attribute.name, this.attribute.value);
+                                    target.setAttribute(this.attribute.name, this.attribute.value.evaluate(context));
                                 }
                             }
                         });
@@ -863,7 +939,7 @@
                 }
 
                 return {
-                    type: "set",
+                    type: "put",
                     target: target,
                     propPath: propPath,
                     value: value,
