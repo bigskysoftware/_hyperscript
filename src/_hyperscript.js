@@ -742,7 +742,7 @@
                             })
                             if (this.root.root) {
                                 var that = this.root.root.evaluate(context);
-                                return that[this.root.name].apply(that, argValues);
+                                return that[this.root.prop.value].apply(that, argValues);
                             } else {
                                 return this.root.evaluate(context).apply(null, argValues)
                             }
