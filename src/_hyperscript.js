@@ -473,6 +473,7 @@
                         },
                         me: elt,
                         event: event,
+                        detail: event.detail,
                         body: document.body,
                         globals: GLOBALS
                     }
@@ -548,7 +549,7 @@
                         start.exec(ctx);
                         return ctx["it"];
                     } else {
-                        var expression = parseExpression("expression", tokens);
+                        var expression = _parser.parseExpression("expression", tokens);
                         var ctx = makeContext(expression, document.body, customEvent);
                         return expression.evaluate(ctx);
                     }
@@ -624,9 +625,10 @@
             _parser.addExpression("number", function (parser, runtime, tokens) {
                 var number = tokens.matchTokenType('NUMBER');
                 if (number) {
+                    var value = parseFloat(number.value)
                     return {
                         type: "number",
-                        value: number.value,
+                        value: value,
                         evaluate: function (context) {
                             return this.value;
                         }
@@ -1189,7 +1191,7 @@
             }
 
             function evaluate(str) {
-                _runtime.evaluate(str);
+                return _runtime.evaluate(str);
             }
 
             return {

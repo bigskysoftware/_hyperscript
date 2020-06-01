@@ -61,6 +61,5 @@ describe("the if command", function() {
     })
 
 
-
 });
 
