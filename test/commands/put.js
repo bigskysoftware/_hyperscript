@@ -19,12 +19,6 @@ describe("the put command", function() {
         d1.style.color.should.equal("red");
     })
 
-    it("can set globals", function(){
-        var d1 = make("<div _='on click put \"red\" into globals.temp'>lolwat</div>");
-        d1.click();
-        _hyperscript.runtime.getGlobal("temp").should.equal("red");
-    })
-
     it("can set javascript globals", function(){
         try {
             var d1 = make("<div _='on click put \"red\" into window.temp'>lolwat</div>");
