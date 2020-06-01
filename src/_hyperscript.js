@@ -350,26 +350,28 @@
                 }
 
                 function parseCommandList(tokens) {
+                    var list = [];
                     if (tokens.hasMore() && isCommandStart(tokens.currentToken())) {
-                        var start = parseCommand(tokens);
-                        var last = start;
+                        list.push(parseCommand(tokens));
                         while (tokens.matchToken("then")) {
-                            last.next = parseCommand(tokens);
-                            last = last.next;
+                            list.push(parseCommand(tokens));
                         }
-                        return start;
+                        return list;
                     } else {
-                        return {
+                        return [{
                             type:"emptyCommandList",
-                            exec:function(){}
-                        }
+                            exec:function(){},
+                            transpile:function(){
+                                return "";
+                            }
+                        }]
                     }
                 }
 
                 function parseEventListener(tokens) {
                     tokens.requireToken("on");
-                    var symbol = parseExpression("symbol", tokens);
-                    if (symbol == null) {
+                    var on = parseExpression("symbol", tokens);
+                    if (on == null) {
                         raiseParseError(tokens, "Expected event name")
                     }
                     if (tokens.matchToken("from")) {
@@ -377,13 +379,25 @@
                         if (from == null) {
                             raiseParseError(tokens, "Expected target value")
                         }
+                    } else {
+                        var from = parseExpression("implicitMeTarget", tokens);
                     }
+                    var list = parseCommandList(tokens);
                     var eventListener = {
                         type: "eventListener",
-                        on: symbol,
-                        from: from
+                        on: on,
+                        from: from,
+                        list: list,
+                        transpile : function() {
+                            return "(function(me){" +
+                                "_hyperscript.runtime.forEach(null, " + from.transpile() + ", function(target){\n" +
+                                "  elt.addEventListener('" + on.name + "', function(event){\n" +
+                                list.map(function(cmd){ return "    " + cmd.transpile()}).join("\n") +
+                                "  })\n" +
+                                "})\n" +
+                                "})"
+                        }
                     };
-                    eventListener.start = parseCommandList(tokens);
                     return eventListener;
                 }
 
@@ -409,6 +423,7 @@
                     // parser API
                     parseExpression: parseExpression,
                     parseAnyExpressionOf: parseAnyExpressionOf,
+                    parseCommand: parseCommand,
                     parseCommandList: parseCommandList,
                     parseHyperScript: parseHyperScript,
                     raiseParseError: raiseParseError,
@@ -481,12 +496,6 @@
                     return ctx;
                 }
 
-                function enter(commandList, event, elt) {
-                    var ctx = makeContext(commandList, elt, event);
-                    // lets get this party started
-                    commandList.exec(ctx);
-                }
-
                 function getScript(elt) {
                     for (var i = 0; i < SCRIPT_ATTRIBUTES.length; i++) {
                         var scriptAttribute = SCRIPT_ATTRIBUTES[i];
@@ -497,22 +506,12 @@
                     return null;
                 }
 
-                function makeEventListener(eventListener, elt) {
-                    return function (event) {
-                        enter(eventListener.start, event, elt)
-                    };
-                }
-
                 function apply(hypeScript, elt) {
                     _runtime.forEach(hypeScript, hypeScript.eventListeners, function (eventListener) {
-                        var event = eventListener.on.name;
-                        if (eventListener.from) {
-                            _runtime.forEach(eventListener, eventListener.from.evaluate({}), function (from) {
-                                from.addEventListener(event, makeEventListener(eventListener, elt));
-                            });
-                        } else {
-                            elt.addEventListener(event, makeEventListener(eventListener, elt));
-                        }
+                        var source = eventListener.transpile();
+                        console.log(source);
+                        var listener = eval(source);
+                        listener.call(null, elt);
                     });
                 }
 
@@ -614,9 +613,16 @@
                 if (stringToken) {
                     return {
                         type: "string",
-                        value: stringToken.value,
+                        token: stringToken,
                         evaluate: function (context) {
-                            return this.value;
+                            return this.token.value;
+                        },
+                        transpile: function() {
+                            if (stringToken.value.indexOf("'") === 0) {
+                                return "'" + stringToken.value + "'";
+                            } else {
+                                return '"' + stringToken.value + '"';
+                            }
                         }
                     }
                 }
@@ -625,12 +631,17 @@
             _parser.addExpression("number", function (parser, runtime, tokens) {
                 var number = tokens.matchTokenType('NUMBER');
                 if (number) {
+                    var numberToken = number;
                     var value = parseFloat(number.value)
                     return {
                         type: "number",
                         value: value,
+                        numberToken: numberToken,
                         evaluate: function (context) {
                             return this.value;
+                        },
+                        transpile: function() {
+                            return numberToken.value;
                         }
                     }
                 }
@@ -644,6 +655,9 @@
                         value: elementId.value.substr(1),
                         evaluate: function (context) {
                             return document.getElementById(this.value);
+                        },
+                        transpile: function(){
+                            return "document.getElementById('" + this.value + "')"
                         }
                     };
                 }
@@ -660,6 +674,9 @@
                         },
                         evaluate: function (context) {
                             return document.querySelectorAll(this.value);
+                        },
+                        transpile: function(){
+                            return "document.querySelectorAll('" + this.value + "')"
                         }
                     };
                 }
@@ -679,6 +696,14 @@
                         value: value,
                         evaluate: function (context) {
                             return {name: this.name, value: this.value ? this.value.evaluate(context) : null};
+                        },
+                        transpile: function() {
+                            if (this.value) {
+                                console.log(this.value)
+                                return "({name: '" + this.name + "', value: " + this.value.transpile() + "})";
+                            } else {
+                                return "({name: '" + this.name + "'})";
+                            }
                         }
                     }
                 }
@@ -692,6 +717,9 @@
                         name: identifier.value,
                         evaluate: function (context) {
                             return _runtime.resolveSymbol(this.name, context);
+                        },
+                        transpile: function () {
+                            return identifier.value;
                         }
                     };
                 }
@@ -702,15 +730,21 @@
                     type: "implicitMeTarget",
                     evaluate: function (context) {
                         return [_runtime.getMe(context)];
+                    },
+                    transpile : function() {
+                        return "[me]"
                     }
                 };
             });
 
             _parser.addExpression("implicitAllTarget", function (parser, runtime, tokens) {
                 return {
-                    type: "implicitMeTarget",
+                    type: "implicitAllTarget",
                     evaluate: function (context) {
                         return document.querySelectorAll("*");
+                    },
+                    transpile: function() {
+                        return 'document.querySelectorAll("*")';
                     }
                 };
             });
@@ -729,6 +763,9 @@
                     factor:factor,
                     evaluate: function (context) {
                             return parseFloat(this.number.value) * this.factor;
+                    },
+                    transpile: function(){
+                        return parseFloat(this.number.value);
                     }
                 };
             });
@@ -736,16 +773,22 @@
             _parser.addExpression("boolean", function(parser, runtime, tokens){
                 if (tokens.matchToken("true")) {
                     return {
-                        type: "trueLiteral",
+                        type: "boolean",
                         evaluate:function(){
                             return true;
+                        },
+                        transpile : function() {
+                            return "true";
                         }
                     }
                 } else if (tokens.matchToken("false")) {
                     return {
-                        type: "falseLiteral",
+                        type: "boolean",
                         evaluate:function(){
                             return false;
+                        },
+                        transpile : function() {
+                            return "false";
                         }
                     }
                 }
@@ -765,6 +808,9 @@
                         evaluate: function (context) {
                             var rootValue = this.root.evaluate(context);
                             return rootValue[this.prop.value];
+                        },
+                        transpile : function() {
+                            return root.transpile() + "." + prop.value;
                         }
                     };
                     return _parser.parseExpression("indirectExpression", tokens, propertyAccess);
@@ -792,6 +838,9 @@
                             } else {
                                 return this.root.evaluate(context).apply(null, argValues)
                             }
+                        },
+                        transpile: function(){
+                            return this.root.transpile() + "(" + args.map(function(arg) { args.transpile() }).join(",") + ")"
                         }
                     };
                     return _parser.parseExpression("indirectExpression", tokens, functionCall);
@@ -839,6 +888,18 @@
                                 return [symbolValue]; //TODO, check if array?
                             }
                         }
+                    },
+                    transpile: function (context) {
+                        if (value.type === "classRef") {
+                            return value.transpile();
+                        } else if (value.type === "idRef") {
+                            return "[" + value.transpile() + "]";
+                        } else {
+                            var symbolValue = value.evaluate(context);
+                            if (symbolValue) {
+                                return "[" + symbolValue + "]"; //TODO, check if array?
+                            }
+                        }
                     }
                 };
             });
@@ -879,8 +940,19 @@
                             }
                         });
                         runtime.next(this, context);
+                    },
+                    transpile : function() {
+                            if (this.classRef) {
+                                return "_hyperscript.runtime.forEach(null, " + to.transpile()  + ", function (target) {" +
+                                "  target.classList.add('" + classRef.className() + "')" +
+                                "})";
+                            } else {
+                                return "_hyperscript.runtime.forEach(null, " + to.transpile()  + ", function (target) {" +
+                                    "  target.setAttribute('" + attributeRef.name + "', " + attributeRef.transpile() +".value)" +
+                                    "})";
+                            }
+                        }
                     }
-                };
             });
 
             _parser.addCommand("remove", function (parser, runtime, tokens) {

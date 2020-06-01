@@ -43,3 +43,29 @@ function parseAndEval(type, src, ctx) {
     ctx = ctx || {}
     return _hyperscript.parser.parseExpression(type, _hyperscript.lexer.tokenize(src ) ).evaluate(ctx)
 }
+
+function parseAndTranspileCommand(type, src, ctx) {
+    ctx = ctx || {}
+    var transpile = _hyperscript.parser.parseCommand(_hyperscript.lexer.tokenize(src)).transpile();
+    var evalString = "(function(" + Object.keys(ctx).join(",") + "){return " + transpile + "})";
+    console.log("transpile: " + transpile);
+    console.log("evalString: " + evalString);
+    var args = Object.keys(ctx).map(function (key) {
+        return ctx[key]
+    });
+    console.log("args", args);
+    return eval(evalString).apply(null, args);
+}
+
+function parseAndTranspile(type, src, ctx) {
+    ctx = ctx || {}
+    var transpile = _hyperscript.parser.parseExpression(type, _hyperscript.lexer.tokenize(src) ).transpile();
+    var evalString = "(function(" + Object.keys(ctx).join(",") + "){return " + transpile + "})";
+    console.log("transpile: " + transpile);
+    console.log("evalString: " + evalString);
+    var args = Object.keys(ctx).map(function (key) {
+        return ctx[key]
+    });
+    console.log("args", args);
+    return eval(evalString).apply(null, args);
+}
