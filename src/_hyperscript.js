@@ -462,8 +462,12 @@
                 }
 
                 function forEach(that, arr, func) {
-                    for (var i = 0; i < arr.length; i++) {
-                        func.call(that, arr[i]);
+                    if (Array.isArray(arr)) {
+                        for (var i = 0; i < arr.length; i++) {
+                            func.call(that, arr[i]);
+                        }
+                    } else {
+                        func(arr);
                     }
                 }
 
@@ -995,6 +999,23 @@
                             });
                         }
                         runtime.next(this, context);
+                    },
+                    transpile : function() {
+                        if (this.elementExpr) {
+                            return "_hyperscript.runtime.forEach(null, " + elementExpr.transpile()  + ", function (target) {" +
+                                "  target.parentElement.removeChild(target)" +
+                                "})";
+                        } else {
+                            if (this.classRef) {
+                                return "_hyperscript.runtime.forEach(null, " + from.transpile()  + ", function (target) {" +
+                                    "  target.classList.remove('" + classRef.className() + "')" +
+                                    "})";
+                            } else {
+                                return "_hyperscript.runtime.forEach(null, " + from.transpile()  + ", function (target) {" +
+                                    "  target.removeAttribute('" + attributeRef.name + "')" +
+                                    "})";
+                            }
+                        }
                     }
                 }
             });
@@ -1032,6 +1053,21 @@
                             }
                         });
                         runtime.next(this, context);
+                    },
+                    transpile : function() {
+                        if (this.classRef) {
+                            return "_hyperscript.runtime.forEach(null, " + on.transpile()  + ", function (target) {" +
+                                "  target.classList.toggle('" + classRef.className() + "')" +
+                                "})";
+                        } else {
+                            return "_hyperscript.runtime.forEach(null, " + on.transpile()  + ", function (target) {" +
+                                "  if(target.hasAttribute('" + attributeRef.name + "')) {\n" +
+                                "    target.removeAttribute('" + attributeRef.name + "');\n" +
+                                "  } else { \n" +
+                                "    target.setAttribute('" + attributeRef.name + "', " + attributeRef.transpile() +".value)" +
+                                "  }" +
+                                "})";
+                        }
                     }
                 }
             })
