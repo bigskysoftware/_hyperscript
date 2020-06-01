@@ -45,13 +45,13 @@ describe("the put command", function() {
     })
 
     it("can set into id ref", function(){
-        var d1 = make("<div id='d1' _='on click put \"foo\" into #d1'></div>");
+        var d1 = make("<div id='d1' _='on click put \"foo\" into #d1.innerHTML'></div>");
         d1.click();
         d1.innerHTML.should.equal("foo");
     })
 
     it("can set into class ref", function(){
-        var d1 = make("<div class='divs' _='on click put \"foo\" into .divs'></div>");
+        var d1 = make("<div class='divs' _='on click put \"foo\" into .divs.innerHTML'></div>");
         var d2 = make("<div class='divs''></div>");
         d1.click();
         d1.innerHTML.should.equal("foo");

@@ -350,13 +350,20 @@
                 }
 
                 function parseCommandList(tokens) {
-                    var start = parseCommand(tokens);
-                    var last = start;
-                    while (tokens.matchToken("then")) {
-                        last.next = parseCommand(tokens);
-                        last = last.next;
+                    if (tokens.hasMore() && isCommandStart(tokens.currentToken())) {
+                        var start = parseCommand(tokens);
+                        var last = start;
+                        while (tokens.matchToken("then")) {
+                            last.next = parseCommand(tokens);
+                            last = last.next;
+                        }
+                        return start;
+                    } else {
+                        return {
+                            type:"emptyCommandList",
+                            exec:function(){}
+                        }
                     }
-                    return start;
                 }
 
                 function parseEventListener(tokens) {
@@ -724,8 +731,26 @@
                 };
             });
 
+            _parser.addExpression("boolean", function(parser, runtime, tokens){
+                if (tokens.matchToken("true")) {
+                    return {
+                        type: "trueLiteral",
+                        evaluate:function(){
+                            return true;
+                        }
+                    }
+                } else if (tokens.matchToken("false")) {
+                    return {
+                        type: "falseLiteral",
+                        evaluate:function(){
+                            return false;
+                        }
+                    }
+                }
+            });
+
             _parser.addExpression("leaf", function (parser, runtime, tokens) {
-                return parser.parseAnyExpressionOf(["string", "number", "idRef", "classRef", "symbol", "propertyRef"], tokens)
+                return parser.parseAnyExpressionOf(["boolean", "string", "number", "idRef", "classRef", "symbol", "propertyRef"], tokens)
             });
 
             _parser.addExpression("propertyAccess", function (parser, runtime, tokens, root) {
@@ -1064,27 +1089,23 @@
                     propPath.push(tokens.requireTokenType("IDENTIFIER").value)
                 }
 
+                var directWrite = propPath.length === 0 && operation.value === "into";
+                var symbolWrite = directWrite && target.value.type === "symbol";
+                if (directWrite && !symbolWrite) {
+                    parser.raiseParseError(tokens, "Can only put directly into symbols, not references")
+                }
+
                 return {
                     type: "put",
                     target: target,
                     propPath: propPath,
                     op: operation.value,
+                    symbolWrite: symbolWrite,
                     value: value,
                     exec: function (context) {
                         var val = this.value.evaluate(context);
-                        if (this.propPath.length === 0 && this.op === "into") {
-                            if (this.target.value.type === "symbol") {
-                                context[this.target.value.name] = val;
-                            } else if (this.target.value.type === "idRef") {
-                                var idValue = this.target.value.evaluate(context);
-                                idValue.innerHTML = val;
-                            } else if (this.target.value.type === "classRef") {
-                                runtime.forEach(this, this.target.evaluate(context), function (target) {
-                                    target.innerHTML = val;
-                                });
-                            } else {
-                                throw "Bad root value for put"; // TODO - runtime errors
-                            }
+                        if (this.symbolWrite) {
+                            context[this.target.value.name] = val; // TODO locked symbol check
                         } else {
                             var that = this;
                             runtime.forEach(this, this.target.evaluate(context), function (target) {
@@ -1107,6 +1128,34 @@
                                     finalTarget.insertAdjacentHTML('afterend', val);
                                 }
                             })
+                        }
+                        runtime.next(this, context);
+                    }
+                };
+            })
+
+            _parser.addCommand("if", function (parser, runtime, tokens) {
+                var expr = parser.parseExpression("expression", tokens);
+                var trueBranch = parser.parseCommandList(tokens);
+                if (tokens.matchToken("else")) {
+                    var falseBranch = parser.parseCommandList(tokens);
+                }
+                if (tokens.hasMore()) {
+                    tokens.requireToken("end");
+                }
+                return {
+                    type: "if",
+                    expr: expr,
+                    trueBranch: trueBranch,
+                    falseBranch: falseBranch,
+                    exec: function (context) {
+                        var value = this.expr.evaluate(context);
+                        if (value) {
+                            trueBranch.exec(context);
+                        } else {
+                            if (falseBranch) {
+                                falseBranch.exec(context);
+                            }
                         }
                         runtime.next(this, context);
                     }
