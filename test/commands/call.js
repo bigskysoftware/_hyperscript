@@ -1,11 +1,9 @@
 describe("the call command", function() {
 
     beforeEach(function () {
-        this.server = makeServer();
         clearWorkArea();
     });
     afterEach(function () {
-        this.server.restore();
         clearWorkArea();
     });
 

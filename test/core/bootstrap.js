@@ -1,11 +1,9 @@
 describe("_hyperscript boostrapping", function() {
 
     beforeEach(function() {
-        this.server = makeServer();
         clearWorkArea();
     });
     afterEach(function()  {
-        this.server.restore();
         clearWorkArea();
     });
 
