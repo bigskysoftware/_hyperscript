@@ -677,8 +677,8 @@
                         type: "attribute_expression",
                         name: name.value,
                         value: value,
-                        evaluate: function () {
-                            return this.value;
+                        evaluate: function (context) {
+                            return {name: this.name, value: this.value ? this.value.evaluate(context) : null};
                         }
                     }
                 }
@@ -874,7 +874,8 @@
                             if (this.classRef) {
                                 target.classList.add(this.classRef.className());
                             } else {
-                                target.setAttribute(this.attributeRef.name, this.attributeRef.value.evaluate(context))
+                                var attributeValue = this.attributeRef.evaluate(context)
+                                target.setAttribute(attributeValue.name, attributeValue.value)
                             }
                         });
                         runtime.next(this, context);
@@ -916,7 +917,8 @@
                                 if (this.classRef) {
                                     target.classList.remove(this.classRef.className());
                                 } else {
-                                    target.removeAttribute(this.attributeRef.name)
+                                    var attributeValue = this.attributeRef.evaluate(context);
+                                    target.removeAttribute(attributeValue.name)
                                 }
                             });
                         }
@@ -949,10 +951,11 @@
                             if (this.classRef) {
                                 target.classList.toggle(this.classRef.className());
                             } else {
-                                if (target.getAttribute(this.attributeRef.name)) {
-                                    target.removeAttribute(this.attributeRef.name);
+                                var attributeResult = this.attributeRef.evaluate(context);
+                                if (target.getAttribute(attributeResult.name)) {
+                                    target.removeAttribute(attributeResult.value);
                                 } else {
-                                    target.setAttribute(this.attributeRef.name, this.attributeRef.value.evaluate(context));
+                                    target.setAttribute(attributeResult.name, attributeResult.value);
                                 }
                             }
                         });
