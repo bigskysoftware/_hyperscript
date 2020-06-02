@@ -392,9 +392,9 @@
                         transpile : function() {
                             return "(function(me){" +
                                 "var my = me;\n" +
-                                "_hyperscript.runtime.forEach(null, " + from.transpile() + ", function(target){\n" +
+                                "_hyperscript.runtime.forEach(null, " + transpile(from) + ", function(target){\n" +
                                 "  target.addEventListener('" + on.name + "', function(event){\n" +
-                                start.transpile() +
+                                transpile(start) +
                                 "  })\n" +
                                 "})\n" +
                                 "})"
@@ -421,11 +421,15 @@
                     return token.type === "IDENTIFIER" && COMMANDS[token.value];
                 }
 
-                function transpileNext(cmd) {
-                    if(cmd.next) {
-                        return "\n" + cmd.next.transpile();
+                function transpile(node, defaultVal) {
+                    if (node == null) {
+                        return defaultVal;
+                    }
+                    var src = node.transpile();
+                    if (node.next) {
+                        return src + "\n" + transpile(node.next)
                     } else {
-                        return "";
+                        return src;
                     }
                 }
 
@@ -440,7 +444,7 @@
                     addCommand: addCommand,
                     addExpression: addExpression,
                     isCommandStart: isCommandStart,
-                    transpileNext: transpileNext,
+                    transpile:transpile
                 }
             }();
 
@@ -621,7 +625,7 @@
                         value: value,
                         transpile: function() {
                             if (this.value) {
-                                return "({name: '" + this.name + "', value: " + this.value.transpile() + "})";
+                                return "({name: '" + this.name + "', value: " + parser.transpile(this.value) + "})";
                             } else {
                                 return "({name: '" + this.name + "'})";
                             }
@@ -646,7 +650,7 @@
                         type:"objectLiteral",
                         fields: fields,
                         transpile: function() {
-                            return "({" + fields.map(function(field){return field.name.value + ":" + field.value.transpile()}).join(", ") + "})";
+                            return "({" + fields.map(function(field){return field.name.value + ":" + parser.transpile(field.value)}).join(", ") + "})";
                         }
                     }
                 }
@@ -733,7 +737,7 @@
                         root: root,
                         prop: prop,
                         transpile : function() {
-                            return root.transpile() + "." + prop.value;
+                            return parser.transpile(root) + "." + prop.value;
                         }
                     };
                     return _parser.parseExpression("indirectExpression", tokens, propertyAccess);
@@ -752,7 +756,7 @@
                         root: root,
                         args: args,
                         transpile: function(){
-                            return this.root.transpile() + "(" + args.map(function(arg) { return arg.transpile() }).join(",") + ")"
+                            return parser.transpile(root) + "(" + args.map(function(arg) { return parser.transpile(arg) }).join(",") + ")"
                         }
                     };
                     return _parser.parseExpression("indirectExpression", tokens, functionCall);
@@ -791,11 +795,11 @@
                     value: value,
                     transpile: function (context) {
                         if (value.type === "classRef") {
-                            return value.transpile();
+                            return parser.transpile(value);
                         } else if (value.type === "idRef") {
-                            return "[" + value.transpile() + "]";
+                            return "[" + parser.transpile(value) + "]";
                         } else {
-                            return "[" + value.transpile() + "]"; //TODO, check if array?
+                            return "[" + parser.transpile(value) + "]"; //TODO, check if array?
                         }
                     }
                 };
@@ -829,13 +833,13 @@
                     to: to,
                     transpile : function() {
                             if (this.classRef) {
-                                return "_hyperscript.runtime.forEach(null, " + to.transpile()  + ", function (target) {" +
+                                return "_hyperscript.runtime.forEach(null, " + parser.transpile(to)  + ", function (target) {" +
                                 "  target.classList.add('" + classRef.className() + "')" +
-                                "})" + parser.transpileNext(this);
+                                "})";
                             } else {
-                                return "_hyperscript.runtime.forEach(null, " + to.transpile()  + ", function (target) {" +
-                                    "  target.setAttribute('" + attributeRef.name + "', " + attributeRef.transpile() +".value)" +
-                                    "})" + parser.transpileNext(this);
+                                return "_hyperscript.runtime.forEach(null, " + parser.transpile(to)  + ", function (target) {" +
+                                    "  target.setAttribute('" + attributeRef.name + "', " + parser.transpile(attributeRef) +".value)" +
+                                    "})";
                             }
                         }
                     }
@@ -868,18 +872,18 @@
                     from: from,
                     transpile : function() {
                         if (this.elementExpr) {
-                            return "_hyperscript.runtime.forEach(null, " + elementExpr.transpile()  + ", function (target) {" +
+                            return "_hyperscript.runtime.forEach(null, " + parser.transpile(elementExpr)  + ", function (target) {" +
                                 "  target.parentElement.removeChild(target)" +
-                                "})" + parser.transpileNext(this);
+                                "})";
                         } else {
                             if (this.classRef) {
-                                return "_hyperscript.runtime.forEach(null, " + from.transpile()  + ", function (target) {" +
+                                return "_hyperscript.runtime.forEach(null, " + parser.transpile(from)  + ", function (target) {" +
                                     "  target.classList.remove('" + classRef.className() + "')" +
-                                    "})" + parser.transpileNext(this);
+                                    "})";
                             } else {
-                                return "_hyperscript.runtime.forEach(null, " + from.transpile()  + ", function (target) {" +
+                                return "_hyperscript.runtime.forEach(null, " + parser.transpile(from)  + ", function (target) {" +
                                     "  target.removeAttribute('" + attributeRef.name + "')" +
-                                    "})" + parser.transpileNext(this);
+                                    "})";
                             }
                         }
                     }
@@ -907,17 +911,17 @@
                     on: on,
                     transpile : function() {
                         if (this.classRef) {
-                            return "_hyperscript.runtime.forEach(null, " + on.transpile()  + ", function (target) {" +
+                            return "_hyperscript.runtime.forEach(null, " + parser.transpile(on)  + ", function (target) {" +
                                 "  target.classList.toggle('" + classRef.className() + "')" +
-                                "})" + parser.transpileNext(this);
+                                "})";
                         } else {
-                            return "_hyperscript.runtime.forEach(null, " + on.transpile()  + ", function (target) {" +
+                            return "_hyperscript.runtime.forEach(null, " + parser.transpile(on)  + ", function (target) {" +
                                 "  if(target.hasAttribute('" + attributeRef.name + "')) {\n" +
                                 "    target.removeAttribute('" + attributeRef.name + "');\n" +
                                 "  } else { \n" +
-                                "    target.setAttribute('" + attributeRef.name + "', " + attributeRef.transpile() +".value)" +
+                                "    target.setAttribute('" + attributeRef.name + "', " + parser.transpile(attributeRef) +".value)" +
                                 "  }" +
-                                "})" + parser.transpileNext(this);
+                                "})";
                         }
                     }
                 }
@@ -928,7 +932,9 @@
                     type: "wait",
                     time: parser.parseExpression('millisecondLiteral', tokens),
                     transpile: function () {
-                        return "setTimeout(function () { " + parser.transpileNext(this) + " }, " + this.time.transpile() + ")";
+                        var capturedNext = this.next;
+                        delete this.next;
+                        return "setTimeout(function () { " + parser.transpile(capturedNext) + " }, " + parser.transpile(this.time) + ")";
                     }
                 }
             })
@@ -949,9 +955,9 @@
                     details: details,
                     to: to,
                     transpile:function() {
-                        return "_hyperscript.runtime.forEach(null, " + to.transpile()  + ", function (target) {" +
-                            "  _hyperscript.runtime.triggerEvent(target, '" + eventName.value + "'," + (details ? details.transpile() : "{}") + ")" +
-                            "})" + parser.transpileNext(this);
+                        return "_hyperscript.runtime.forEach(null, " + parser.transpile(to)  + ", function (target) {" +
+                            "  _hyperscript.runtime.triggerEvent(target, '" + eventName.value + "'," + parser.transpile(details, "{}") + ")" +
+                            "})";
                     }
                 }
             })
@@ -970,8 +976,8 @@
                     from: from,
                     transpile: function () {
                         var clazz = this.classRef.value.substr(1);
-                        return "  _hyperscript.runtime.forEach(this, " + from.transpile() + ", function (target) { target.classList.remove('" + clazz + "') }); " +
-                            "me.classList.add('"+ clazz + "');" + parser.transpileNext(this);
+                        return "  _hyperscript.runtime.forEach(this, " + parser.transpile(from) + ", function (target) { target.classList.remove('" + clazz + "') }); " +
+                            "me.classList.add('"+ clazz + "');";
                     }
                 }
             })
@@ -990,9 +996,9 @@
                     withExpr: withExpr,
                     transpile: function () {
                         if (withExpr) {
-                          return withExpr.transpile() + "(" + exprs.map(function(expr){return expr.transpile()}).join(", ") + ")" + parser.transpileNext(this);
+                          return parser.transpile(withExpr) + "(" + exprs.map(function(expr){return parser.transpile(expr)}).join(", ") + ")";
                         } else {
-                            return "console.log(" + exprs.map(function(expr){return expr.transpile()}).join(", ") + ")" + parser.transpileNext(this);
+                            return "console.log(" + exprs.map(function(expr){return parser.transpile(expr)}).join(", ") + ")";
                         }
                     }
                 };
@@ -1003,7 +1009,7 @@
                     type: "call",
                     expr: parser.parseExpression("expression", tokens),
                     transpile : function() {
-                        return "var it = " + this.expr.transpile() + parser.transpileNext(this);                    }
+                        return "var it = " + parser.transpile(this.expr);                    }
                 }
             })
 
@@ -1041,29 +1047,29 @@
                     value: value,
                     transpile: function (context) {
                         if (this.symbolWrite) {
-                            return "var " + target.value.name + " = " + value.transpile() + parser.transpileNext(this);
+                            return "var " + target.value.name + " = " + parser.transpile(value);
                         } else {
                             var dotPath = propPath.length === 0 ? "" : "." + propPath.join(".");
                             if (this.op === "into") {
-                                return "_hyperscript.runtime.forEach(null, " + target.transpile()  + ", function (target) {" +
-                                "  target" + dotPath + "=" + value.transpile() +
-                                "})" + parser.transpileNext(this);
+                                return "_hyperscript.runtime.forEach(null, " + parser.transpile(target)  + ", function (target) {" +
+                                "  target" + dotPath + "=" + parser.transpile(value) +
+                                "})";
                             } else if (this.op === "before") {
-                                return "_hyperscript.runtime.forEach(null, " + target.transpile()  + ", function (target) {" +
-                                    "  target" + dotPath + ".insertAdjacentHTML('beforebegin', " + value.transpile() + ")" +
-                                    "})" + parser.transpileNext(this);
+                                return "_hyperscript.runtime.forEach(null, " + parser.transpile(target)  + ", function (target) {" +
+                                    "  target" + dotPath + ".insertAdjacentHTML('beforebegin', " + parser.transpile(value) + ")" +
+                                    "})";
                             } else if (this.op === "afterbegin") {
-                                return "_hyperscript.runtime.forEach(null, " + target.transpile()  + ", function (target) {" +
-                                    "  target" + dotPath + ".insertAdjacentHTML('afterbegin', " + value.transpile() + ")" +
-                                    "})" + parser.transpileNext(this);
+                                return "_hyperscript.runtime.forEach(null, " + parser.transpile(target)  + ", function (target) {" +
+                                    "  target" + dotPath + ".insertAdjacentHTML('afterbegin', " + parser.transpile(value) + ")" +
+                                    "})";
                             } else if (this.op === "beforeend") {
-                                return "_hyperscript.runtime.forEach(null, " + target.transpile()  + ", function (target) {" +
-                                    "  target" + dotPath + ".insertAdjacentHTML('beforeend', " + value.transpile() + ")" +
-                                    "})" + parser.transpileNext(this);
+                                return "_hyperscript.runtime.forEach(null, " + parser.transpile(target)  + ", function (target) {" +
+                                    "  target" + dotPath + ".insertAdjacentHTML('beforeend', " + parser.transpile(value) + ")" +
+                                    "})";
                             } else if (this.op === "after") {
-                                return "_hyperscript.runtime.forEach(null, " + target.transpile()  + ", function (target) {" +
-                                    "  target" + dotPath + ".insertAdjacentHTML('afterend', " + value.transpile() + ")" +
-                                    "})" + parser.transpileNext(this);
+                                return "_hyperscript.runtime.forEach(null, " + parser.transpile(target)  + ", function (target) {" +
+                                    "  target" + dotPath + ".insertAdjacentHTML('afterend', " + parser.transpile(value) + ")" +
+                                    "})";
                             }
                         }
                     }
@@ -1085,8 +1091,8 @@
                     trueBranch: trueBranch,
                     falseBranch: falseBranch,
                     transpile: function () {
-                        return "if(" + expr.transpile() + "){" + "" + trueBranch.transpile() + "}" +
-                            "   else {" + (falseBranch ? falseBranch.transpile() : "") + "}"
+                        return "if(" + parser.transpile(expr) + "){" + "" + parser.transpile(trueBranch) + "}" +
+                            "   else {" + parser.transpile(falseBranch, "") + "}"
 
                     }
                 }
