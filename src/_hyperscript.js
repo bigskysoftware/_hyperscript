@@ -362,7 +362,6 @@
                     } else {
                         return {
                             type:"emptyCommandList",
-                            exec:function(){},
                             transpile:function(){
                                 return "";
                             }
@@ -517,7 +516,7 @@
                 }
 
                 function evaluate(str) {
-
+                    throw "TODO - implement"
                 }
 
                 function initElement(elt) {
