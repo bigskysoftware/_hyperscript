@@ -39,63 +39,32 @@ function clearWorkArea() {
     getWorkArea().innerHTML = "";
 }
 
-function removeWhiteSpace(str) {
-    return str.replace(/\s/g, "");
+function parseAndEval(type, src, ctx) {
+    return parseAndTranspile(type, src, ctx);
 }
 
-function getHTTPMethod(xhr) {
-    return xhr.requestHeaders['X-HTTP-Method-Override'] || xhr.method;
+function parseAndTranspileCommand(type, src, ctx, debug) {
+    ctx = ctx || {}
+    var compiled = _hyperscript.parser.parseCommand(_hyperscript.lexer.tokenize(src)).transpile();
+    var evalString = "(function(" + Object.keys(ctx).join(",") + "){return " + compiled + "})";
+    if(debug) console.log("transpile: " + compiled);
+    if(debug)  console.log("evalString: " + evalString);
+    var args = Object.keys(ctx).map(function (key) {
+        return ctx[key]
+    });
+    if(debug)  console.log("args", args);
+    return eval(evalString).apply(null, args);
 }
 
-function makeServer(){
-    var server = sinon.fakeServer.create();
-    server.fakeHTTPMethods = true;
-    server.getHTTPMethod = function(xhr) {
-        return getHTTPMethod(xhr);
-    }
-    return server;
-}
-
-function parseParams(str) {
-    var re = /([^&=]+)=?([^&]*)/g;
-    var decode = function (str) {
-        return decodeURIComponent(str.replace(/\+/g, ' '));
-    };
-    var params = {}, e;
-    if (str) {
-        if (str.substr(0, 1) == '?') {
-            str = str.substr(1);
-        }
-        while (e = re.exec(str)) {
-            var k = decode(e[1]);
-            var v = decode(e[2]);
-            if (params[k] !== undefined) {
-                if (!Array.isArray(params[k])) {
-                    params[k] = [params[k]];
-                }
-                params[k].push(v);
-            } else {
-                params[k] = v;
-            }
-        }
-    }
-    return params;
-}
-
-
-function getQuery(url) {
-    var question = url.indexOf("?");
-    var hash = url.indexOf("#");
-    if(hash==-1 && question==-1) return "";
-    if(hash==-1) hash = url.length;
-    return question==-1 || hash==question+1 ? url.substring(hash) :
-        url.substring(question+1,hash);
-}
-
-function getParameters(xhr) {
-    if (getHTTPMethod(xhr) == "GET") {
-        return parseParams(getQuery(xhr.url));
-    } else {
-        return parseParams(xhr.requestBody);
-    }
+function parseAndTranspile(type, src, ctx, debug) {
+    ctx = ctx || {}
+    var compiled = _hyperscript.parser.parseExpression(type, _hyperscript.lexer.tokenize(src) ).transpile();
+    var evalString = "(function(" + Object.keys(ctx).join(",") + "){return " + compiled + "})";
+    if(debug) console.log("transpile: " + compiled);
+    if(debug) console.log("evalString: " + evalString);
+    var args = Object.keys(ctx).map(function (key) {
+        return ctx[key]
+    });
+    if(debug) console.log("args", args);
+    return eval(evalString).apply(null, args);
 }
