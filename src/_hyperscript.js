@@ -392,7 +392,7 @@
                         transpile : function() {
                             return "(function(me){" +
                                 "var my = me;\n" +
-                                "_hyperscript.runtime.forEach(null, " + transpile(from) + ", function(target){\n" +
+                                "_hyperscript.runtime.forEach( " + transpile(from) + ", function(target){\n" +
                                 "  target.addEventListener('" + on.name + "', function(event){\n" +
                                 transpile(start) +
                                 "  })\n" +
@@ -481,10 +481,10 @@
                     return eventResult;
                 }
 
-                function forEach(that, arr, func) {
+                function forEach(arr, func) {
                     if (arr.length) {
                         for (var i = 0; i < arr.length; i++) {
-                            func.call(that, arr[i]);
+                            func(arr[i]);
                         }
                     } else {
                         func(arr);
@@ -502,7 +502,7 @@
                 }
 
                 function apply(hypeScript, elt) {
-                    _runtime.forEach(hypeScript, hypeScript.eventListeners, function (eventListener) {
+                    _runtime.forEach(hypeScript.eventListeners, function (eventListener) {
                         var source = eventListener.transpile();
                         var listener = eval(source);
                         listener.call(null, elt);
@@ -833,11 +833,11 @@
                     to: to,
                     transpile : function() {
                             if (this.classRef) {
-                                return "_hyperscript.runtime.forEach(null, " + parser.transpile(to)  + ", function (target) {" +
+                                return "_hyperscript.runtime.forEach( " + parser.transpile(to)  + ", function (target) {" +
                                 "  target.classList.add('" + classRef.className() + "')" +
                                 "})";
                             } else {
-                                return "_hyperscript.runtime.forEach(null, " + parser.transpile(to)  + ", function (target) {" +
+                                return "_hyperscript.runtime.forEach( " + parser.transpile(to)  + ", function (target) {" +
                                     "  target.setAttribute('" + attributeRef.name + "', " + parser.transpile(attributeRef) +".value)" +
                                     "})";
                             }
@@ -872,16 +872,16 @@
                     from: from,
                     transpile : function() {
                         if (this.elementExpr) {
-                            return "_hyperscript.runtime.forEach(null, " + parser.transpile(elementExpr)  + ", function (target) {" +
+                            return "_hyperscript.runtime.forEach( " + parser.transpile(elementExpr)  + ", function (target) {" +
                                 "  target.parentElement.removeChild(target)" +
                                 "})";
                         } else {
                             if (this.classRef) {
-                                return "_hyperscript.runtime.forEach(null, " + parser.transpile(from)  + ", function (target) {" +
+                                return "_hyperscript.runtime.forEach( " + parser.transpile(from)  + ", function (target) {" +
                                     "  target.classList.remove('" + classRef.className() + "')" +
                                     "})";
                             } else {
-                                return "_hyperscript.runtime.forEach(null, " + parser.transpile(from)  + ", function (target) {" +
+                                return "_hyperscript.runtime.forEach( " + parser.transpile(from)  + ", function (target) {" +
                                     "  target.removeAttribute('" + attributeRef.name + "')" +
                                     "})";
                             }
@@ -911,11 +911,11 @@
                     on: on,
                     transpile : function() {
                         if (this.classRef) {
-                            return "_hyperscript.runtime.forEach(null, " + parser.transpile(on)  + ", function (target) {" +
+                            return "_hyperscript.runtime.forEach( " + parser.transpile(on)  + ", function (target) {" +
                                 "  target.classList.toggle('" + classRef.className() + "')" +
                                 "})";
                         } else {
-                            return "_hyperscript.runtime.forEach(null, " + parser.transpile(on)  + ", function (target) {" +
+                            return "_hyperscript.runtime.forEach( " + parser.transpile(on)  + ", function (target) {" +
                                 "  if(target.hasAttribute('" + attributeRef.name + "')) {\n" +
                                 "    target.removeAttribute('" + attributeRef.name + "');\n" +
                                 "  } else { \n" +
@@ -955,7 +955,7 @@
                     details: details,
                     to: to,
                     transpile:function() {
-                        return "_hyperscript.runtime.forEach(null, " + parser.transpile(to)  + ", function (target) {" +
+                        return "_hyperscript.runtime.forEach( " + parser.transpile(to)  + ", function (target) {" +
                             "  _hyperscript.runtime.triggerEvent(target, '" + eventName.value + "'," + parser.transpile(details, "{}") + ")" +
                             "})";
                     }
@@ -976,7 +976,7 @@
                     from: from,
                     transpile: function () {
                         var clazz = this.classRef.value.substr(1);
-                        return "  _hyperscript.runtime.forEach(this, " + parser.transpile(from) + ", function (target) { target.classList.remove('" + clazz + "') }); " +
+                        return "  _hyperscript.runtime.forEach(" + parser.transpile(from) + ", function (target) { target.classList.remove('" + clazz + "') }); " +
                             "me.classList.add('"+ clazz + "');";
                     }
                 }
@@ -1051,23 +1051,23 @@
                         } else {
                             var dotPath = propPath.length === 0 ? "" : "." + propPath.join(".");
                             if (this.op === "into") {
-                                return "_hyperscript.runtime.forEach(null, " + parser.transpile(target)  + ", function (target) {" +
+                                return "_hyperscript.runtime.forEach( " + parser.transpile(target)  + ", function (target) {" +
                                 "  target" + dotPath + "=" + parser.transpile(value) +
                                 "})";
                             } else if (this.op === "before") {
-                                return "_hyperscript.runtime.forEach(null, " + parser.transpile(target)  + ", function (target) {" +
+                                return "_hyperscript.runtime.forEach( " + parser.transpile(target)  + ", function (target) {" +
                                     "  target" + dotPath + ".insertAdjacentHTML('beforebegin', " + parser.transpile(value) + ")" +
                                     "})";
                             } else if (this.op === "afterbegin") {
-                                return "_hyperscript.runtime.forEach(null, " + parser.transpile(target)  + ", function (target) {" +
+                                return "_hyperscript.runtime.forEach( " + parser.transpile(target)  + ", function (target) {" +
                                     "  target" + dotPath + ".insertAdjacentHTML('afterbegin', " + parser.transpile(value) + ")" +
                                     "})";
                             } else if (this.op === "beforeend") {
-                                return "_hyperscript.runtime.forEach(null, " + parser.transpile(target)  + ", function (target) {" +
+                                return "_hyperscript.runtime.forEach( " + parser.transpile(target)  + ", function (target) {" +
                                     "  target" + dotPath + ".insertAdjacentHTML('beforeend', " + parser.transpile(value) + ")" +
                                     "})";
                             } else if (this.op === "after") {
-                                return "_hyperscript.runtime.forEach(null, " + parser.transpile(target)  + ", function (target) {" +
+                                return "_hyperscript.runtime.forEach( " + parser.transpile(target)  + ", function (target) {" +
                                     "  target" + dotPath + ".insertAdjacentHTML('afterend', " + parser.transpile(value) + ")" +
                                     "})";
                             }
@@ -1108,7 +1108,7 @@
                 }
                 var fn = function () {
                     var elements = document.querySelectorAll(_runtime.getScriptSelector());
-                    _runtime.forEach(document, elements, function (elt) {
+                    _runtime.forEach(elements, function (elt) {
                         init(elt);
                     })
                 };
