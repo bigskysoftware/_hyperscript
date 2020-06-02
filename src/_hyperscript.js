@@ -329,7 +329,7 @@
 
                 function parseExpression(type, tokens, root) {
                     var expressionDef = EXPRESSIONS[type];
-                    if (expressionDef) return expressionDef(_parser, _runtime, tokens, root);
+                    if (expressionDef) return expressionDef(_parser, tokens, root);
                 }
 
                 function parseAnyExpressionOf(types, tokens) {
@@ -345,7 +345,7 @@
                 function parseCommand(tokens) {
                     var commandName = tokens.matchTokenType("IDENTIFIER");
                     var commandDef = COMMANDS[commandName.value];
-                    if (commandDef) return commandDef(_parser, _runtime, tokens);
+                    if (commandDef) return commandDef(_parser, tokens);
                     raiseParseError(tokens);
                 }
 
@@ -545,7 +545,7 @@
             // Expressions
             //-----------------------------------------------
 
-            _parser.addExpression("string", function (parser, runtime, tokens) {
+            _parser.addExpression("string", function (parser, tokens) {
                 var stringToken = tokens.matchTokenType('STRING');
                 if (stringToken) {
                     return {
@@ -562,7 +562,7 @@
                 }
             })
 
-            _parser.addExpression("number", function (parser, runtime, tokens) {
+            _parser.addExpression("number", function (parser, tokens) {
                 var number = tokens.matchTokenType('NUMBER');
                 if (number) {
                     var numberToken = number;
@@ -578,7 +578,7 @@
                 }
             })
 
-            _parser.addExpression("idRef", function (parser, runtime, tokens) {
+            _parser.addExpression("idRef", function (parser, tokens) {
                 var elementId = tokens.matchTokenType('ID_REF');
                 if (elementId) {
                     return {
@@ -591,7 +591,7 @@
                 }
             })
 
-            _parser.addExpression("classRef", function (parser, runtime, tokens) {
+            _parser.addExpression("classRef", function (parser, tokens) {
                 var classRef = tokens.matchTokenType('CLASS_REF');
                 if (classRef) {
                     return {
@@ -607,7 +607,7 @@
                 }
             })
 
-            _parser.addExpression("attributeRef", function (parser, runtime, tokens) {
+            _parser.addExpression("attributeRef", function (parser, tokens) {
                 if (tokens.matchOpToken("[")) {
                     var name = tokens.matchTokenType("IDENTIFIER");
                     var value = null;
@@ -630,7 +630,7 @@
                 }
             })
 
-            _parser.addExpression("objectLiteral", function (parser, runtime, tokens) {
+            _parser.addExpression("objectLiteral", function (parser, tokens) {
                 if (tokens.matchOpToken("{")) {
                     var fields = []
                     if (!tokens.matchOpToken("}")) {
@@ -654,7 +654,7 @@
 
             })
 
-            _parser.addExpression("symbol", function (parser, runtime, tokens) {
+            _parser.addExpression("symbol", function (parser, tokens) {
                 var identifier = tokens.matchTokenType('IDENTIFIER');
                 if (identifier) {
                     return {
@@ -667,7 +667,7 @@
                 }
             });
 
-            _parser.addExpression("implicitMeTarget", function (parser, runtime, tokens) {
+            _parser.addExpression("implicitMeTarget", function (parser, tokens) {
                 return {
                     type: "implicitMeTarget",
                     transpile : function() {
@@ -676,7 +676,7 @@
                 };
             });
 
-            _parser.addExpression("implicitAllTarget", function (parser, runtime, tokens) {
+            _parser.addExpression("implicitAllTarget", function (parser, tokens) {
                 return {
                     type: "implicitAllTarget",
                     transpile: function() {
@@ -685,7 +685,7 @@
                 };
             });
 
-            _parser.addExpression("millisecondLiteral", function (parser, runtime, tokens) {
+            _parser.addExpression("millisecondLiteral", function (parser, tokens) {
                 var number = tokens.requireTokenType(tokens, "NUMBER");
                 var factor = 1;
                 if (tokens.matchToken("s")) {
@@ -703,7 +703,7 @@
                 };
             });
 
-            _parser.addExpression("boolean", function(parser, runtime, tokens){
+            _parser.addExpression("boolean", function(parser, tokens){
                 if (tokens.matchToken("true")) {
                     return {
                         type: "boolean",
@@ -721,11 +721,11 @@
                 }
             });
 
-            _parser.addExpression("leaf", function (parser, runtime, tokens) {
+            _parser.addExpression("leaf", function (parser, tokens) {
                 return parser.parseAnyExpressionOf(["boolean", "string", "number", "idRef", "classRef", "symbol", "propertyRef"], tokens)
             });
 
-            _parser.addExpression("propertyAccess", function (parser, runtime, tokens, root) {
+            _parser.addExpression("propertyAccess", function (parser, tokens, root) {
                 if (tokens.matchOpToken(".")) {
                     var prop = tokens.requireTokenType("IDENTIFIER");
                     var propertyAccess = {
@@ -740,7 +740,7 @@
                 }
             });
 
-            _parser.addExpression("functionCall", function (parser, runtime, tokens, root) {
+            _parser.addExpression("functionCall", function (parser, tokens, root) {
                 if (tokens.matchOpToken("(")) {
                     var args = [];
                     do {
@@ -759,7 +759,7 @@
                 }
             });
 
-            _parser.addExpression("indirectExpression", function (parser, runtime, tokens, root) {
+            _parser.addExpression("indirectExpression", function (parser, tokens, root) {
                 var propAccess = parser.parseExpression("propertyAccess", tokens, root);
                 if (propAccess) {
                     return propAccess;
@@ -773,7 +773,7 @@
                 return root;
             });
 
-            _parser.addExpression("expression", function (parser, runtime, tokens) {
+            _parser.addExpression("expression", function (parser, tokens) {
                 var leaf = _parser.parseExpression("leaf", tokens);
                 if (leaf) {
                     return _parser.parseExpression("indirectExpression", tokens, leaf);
@@ -781,7 +781,7 @@
                 _parser.raiseParseError(tokens, "Unexpected value: " + tokens.currentToken().value);
             });
 
-            _parser.addExpression("target", function (parser, runtime, tokens) {
+            _parser.addExpression("target", function (parser, tokens) {
                 var value = parser.parseAnyExpressionOf(["symbol", "classRef", "idRef"], tokens);
                 if (value == null) {
                     parser.raiseParseError(tokens, "Expected a valid target expression");
@@ -805,7 +805,7 @@
             // Commands
             //-----------------------------------------------
 
-            _parser.addCommand("add", function (parser, runtime, tokens) {
+            _parser.addCommand("add", function (parser, tokens) {
 
                 var classRef = parser.parseExpression("classRef", tokens);
                 var attributeRef = null;
@@ -841,7 +841,7 @@
                     }
             });
 
-            _parser.addCommand("remove", function (parser, runtime, tokens) {
+            _parser.addCommand("remove", function (parser, tokens) {
                 var classRef = parser.parseExpression("classRef", tokens);
                 var attributeRef = null;
                 var elementExpr = null;
@@ -886,7 +886,7 @@
                 }
             });
 
-            _parser.addCommand("toggle", function (parser, runtime, tokens) {
+            _parser.addCommand("toggle", function (parser, tokens) {
                 var classRef = parser.parseExpression("classRef", tokens);
                 var attributeRef = null;
                 if (classRef == null) {
@@ -923,7 +923,7 @@
                 }
             })
 
-            _parser.addCommand("wait", function (parser, runtime, tokens) {
+            _parser.addCommand("wait", function (parser, tokens) {
                 return {
                     type: "wait",
                     time: parser.parseExpression('millisecondLiteral', tokens),
@@ -933,7 +933,7 @@
                 }
             })
 
-            _parser.addCommand("send", function (parser, runtime, tokens) {
+            _parser.addCommand("send", function (parser, tokens) {
 
                 var eventName = tokens.requireTokenType(tokens, "IDENTIFIER");
                 var details = parser.parseExpression("objectLiteral", tokens);
@@ -956,7 +956,7 @@
                 }
             })
 
-            _parser.addCommand("take", function (parser, runtime, tokens) {
+            _parser.addCommand("take", function (parser, tokens) {
                 var classRef = tokens.requireTokenType(tokens, "CLASS_REF");
 
                 if (tokens.matchToken("from")) {
@@ -976,7 +976,7 @@
                 }
             })
 
-            _parser.addCommand("log", function (parser, runtime, tokens) {
+            _parser.addCommand("log", function (parser, tokens) {
                 var exprs = [parser.parseExpression("expression", tokens)];
                 while (tokens.matchOpToken(",")) {
                     exprs.push(parser.parseExpression("expression", tokens));
@@ -998,7 +998,7 @@
                 };
             })
 
-            _parser.addCommand("call", function (parser, runtime, tokens) {
+            _parser.addCommand("call", function (parser, tokens) {
                 return {
                     type: "call",
                     expr: parser.parseExpression("expression", tokens),
@@ -1007,7 +1007,7 @@
                 }
             })
 
-            _parser.addCommand("put", function (parser, runtime, tokens) {
+            _parser.addCommand("put", function (parser, tokens) {
 
                 var value = parser.parseExpression("expression", tokens);
 
@@ -1070,7 +1070,7 @@
                 };
             })
 
-            _parser.addCommand("if", function (parser, runtime, tokens) {
+            _parser.addCommand("if", function (parser, tokens) {
                 var expr = parser.parseExpression("expression", tokens);
                 var trueBranch = parser.parseCommandList(tokens);
                 if (tokens.matchToken("else")) {
