@@ -5,4 +5,9 @@ describe("the symbol expression", function () {
         result.should.equal(42);
     });
 
+    it("resolves global context properly", function () {
+        var result = parseAndTranspile("expression", "document", {foo:42})
+        result.should.equal(document);
+    });
+
 });

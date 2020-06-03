@@ -9,7 +9,7 @@ title: ///_hyperscript
 </div>
 </div>
 <div class="center nav full-width">
-<a href="/">home</a> <a href="/docs">docs</a> <a href="/extending">extending</a> <a href="">github</a>
+<a href="/">home</a> <a href="/docs">docs</a> <a href="/extending">extending</a> <a href="https://github.com/bigskysoftware/_hyperscript">github</a>
 </div>
 
 ## intro

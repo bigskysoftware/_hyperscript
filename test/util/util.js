@@ -58,7 +58,7 @@ function parseAndTranspileCommand(type, src, ctx, debug) {
 
 function parseAndTranspile(type, src, ctx, debug) {
     ctx = ctx || {}
-    var compiled = _hyperscript.parser.parseExpression(type, _hyperscript.lexer.tokenize(src) ).transpile();
+    var compiled = _hyperscript.parser.parseGrammarType(type, _hyperscript.lexer.tokenize(src) ).transpile();
     var evalString = "(function(" + Object.keys(ctx).join(",") + "){return " + compiled + "})";
     if(debug) console.log("transpile: " + compiled);
     if(debug) console.log("evalString: " + evalString);
