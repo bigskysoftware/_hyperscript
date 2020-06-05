@@ -39,32 +39,19 @@ function clearWorkArea() {
     getWorkArea().innerHTML = "";
 }
 
-function parseAndEval(type, src, ctx) {
-    return parseAndTranspile(type, src, ctx);
+function evalHyperScript(typeOrSrc, srcOrCtx, ctx) {
+    return _hyperscript.runtime.evaluate(typeOrSrc, srcOrCtx, ctx);
 }
 
-function parseAndTranspileCommand(type, src, ctx, debug) {
-    ctx = ctx || {}
-    var compiled = _hyperscript.parser.parseCommand(_hyperscript.lexer.tokenize(src)).transpile();
-    var evalString = "(function(" + Object.keys(ctx).join(",") + "){return " + compiled + "})";
-    if(debug) console.log("transpile: " + compiled);
-    if(debug)  console.log("evalString: " + evalString);
-    var args = Object.keys(ctx).map(function (key) {
-        return ctx[key]
-    });
-    if(debug)  console.log("args", args);
-    return eval(evalString).apply(null, args);
+function getParseErrorFor(srcOrType, src) {
+    try {
+        evalHyperScript(srcOrType, src);
+    } catch(e) {
+        return e.message;
+    }
 }
 
-function parseAndTranspile(type, src, ctx, debug) {
-    ctx = ctx || {}
-    var compiled = _hyperscript.parser.parseGrammarType(type, _hyperscript.lexer.tokenize(src) ).transpile();
-    var evalString = "(function(" + Object.keys(ctx).join(",") + "){return " + compiled + "})";
-    if(debug) console.log("transpile: " + compiled);
-    if(debug) console.log("evalString: " + evalString);
-    var args = Object.keys(ctx).map(function (key) {
-        return ctx[key]
-    });
-    if(debug) console.log("args", args);
-    return eval(evalString).apply(null, args);
+function startsWith(str, expected) {
+    assert.isNotNull(str);
+    assert.equal(str.indexOf(expected), 0, "Expected string:\n\n" + str + "\n\nto start with:\n\n" + expected + "\n\n");
 }

@@ -453,8 +453,35 @@
                     }).join(", ");
                 }
 
-                function evaluate(str) {
-                    throw "TODO - implement"
+                function isType(o, type) {
+                    return Object.prototype.toString.call(o) === "[object " + type + "]";
+                }
+
+                function evaluate(typeOrSrc, srcOrCtx, ctxArg) {
+                    if (isType(srcOrCtx, "Object")) {
+                        var src = typeOrSrc;
+                        var ctx = srcOrCtx;
+                        var type = "expression"
+                    } else if (isType(srcOrCtx, "String")) {
+                        var src = srcOrCtx;
+                        var type = typeOrSrc
+                        var ctx = ctxArg;
+                    } else {
+                        var src = typeOrSrc;
+                            var ctx = {};
+                        var type = "expression";
+                    }
+                    ctx = ctx || {};
+                    var compiled = _parser.parseElement(type, _lexer.tokenize(src) ).transpile();
+                    var evalString = "(function(" + Object.keys(ctx).join(",") + "){return " + compiled + "})";
+                    // TODO parser debugging
+                    if(false) console.log("transpile: " + compiled);
+                    if(false) console.log("evalString: " + evalString);
+                    var args = Object.keys(ctx).map(function (key) {
+                        return ctx[key]
+                    });
+                    if(false) console.log("args", args);
+                    return eval(evalString).apply(null, args);
                 }
 
                 function initElement(elt) {

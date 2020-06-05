@@ -9,13 +9,13 @@ describe("the idRef expression", function() {
 
     it("basic id ref works", function () {
         var div = make("<div id='d1'></div>");
-        var value = parseAndTranspile("idRef", "#d1");
+        var value = evalHyperScript("#d1");
         value.should.equal(div);
     })
 
     it("basic id ref works w no match", function () {
         var div = make("<div></div>");
-        var value = parseAndTranspile("idRef", "#d1");
+        var value = evalHyperScript("#d1");
         should.equal(value, null);
     })
 

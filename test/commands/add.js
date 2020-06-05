@@ -10,7 +10,7 @@ describe("the add command", function() {
     it("can add class ref on a single div transpiled", function () {
         var div = make("<div/>");
         div.classList.contains("foo").should.equal(false);
-        parseAndTranspileCommand("add", "add .foo", {me:div})
+        evalHyperScript("addCmd", "add .foo", {me:div})
         div.classList.contains("foo").should.equal(true);
     })
 
@@ -19,7 +19,7 @@ describe("the add command", function() {
         var div = make("<div'></div>");
         bar.classList.contains("foo").should.equal(false);
         div.classList.contains("foo").should.equal(false);
-        parseAndTranspileCommand("add", "add .foo to #bar", {me:div})
+        evalHyperScript("addCmd", "add .foo to #bar", {me:div})
         bar.classList.contains("foo").should.equal(true);
         div.classList.contains("foo").should.equal(false);
     })
@@ -27,7 +27,7 @@ describe("the add command", function() {
     it("can add non-class attributes transpiled", function(){
         var div = make("<div></div>");
         div.hasAttribute("foo").should.equal(false);
-        parseAndTranspileCommand("add", "add [foo=\"bar\"]", {me:div})
+        evalHyperScript("addCmd", "add [foo=\"bar\"]", {me:div})
         div.getAttribute("foo").should.equal("bar");
     })
 
