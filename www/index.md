@@ -28,12 +28,8 @@ it is a companion project of <https://htmx.org>
   Toggle the "clicked" class on me
 </button>
 
-<div _="on mouseenter 
-           add .visible to #help 
-        end
-        on mouseleave 
-           remove .visible from #help 
-        end">
+<div _="on mouseenter add .visible to #help end
+        on mouseleave remove .visible from #help end">
   Mouse Over Me!
 </div>
 <div id="help"> I'm a helpful message!</div>
