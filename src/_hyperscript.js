@@ -814,7 +814,7 @@
 
             _parser.addGrammarElement("eventListener", function (parser, tokens) {
                 tokens.requireToken("on");
-                var on = parser.parseElement("symbol", tokens);
+                var on = parser.parseElement("dotPath", tokens);
                 if (on == null) {
                     parser.raiseParseError(tokens, "Expected event name")
                 }
@@ -836,7 +836,7 @@
                         return "(function(me){" +
                             "var my = me;\n" +
                             "_hyperscript.runtime.forEach( " + parser.transpile(from) + ", function(target){\n" +
-                            "  target.addEventListener('" + on.name + "', function(event){\n" +
+                            "  target.addEventListener('" + parser.transpile(on) + "', function(event){\n" +
                             parser.transpile(start) +
                             "  })\n" +
                             "})\n" +
@@ -984,9 +984,28 @@
                 }
             })
 
+            _parser.addGrammarElement("dotPath", function (parser, tokens) {
+                var root = _parser.parseElement("symbol", tokens);
+                var path = [];
+                if (root) {
+                    while (tokens.matchOpToken(".")) {
+                        path.push(tokens.requireTokenType("IDENTIFIER"));
+                    }
+                    return {
+                        type: "dotPath",
+                        path: path,
+                        transpile: function () {
+                            return parser.transpile(root) + path.join(".");
+                        }
+                    }
+                }
+            });
+
             _parser.addGrammarElement("sendCmd", function (parser, tokens) {
                 if (tokens.matchToken("send")) {
-                    var eventName = tokens.requireTokenType(tokens, "IDENTIFIER");
+
+                    var eventName = parser.parseElement("dotPath", tokens);
+
                     var details = parser.parseElement("objectLiteral", tokens);
                     if (tokens.matchToken("to")) {
                         var to = parser.parseElement("target", tokens);
@@ -1001,7 +1020,7 @@
                         to: to,
                         transpile: function () {
                             return "_hyperscript.runtime.forEach( " + parser.transpile(to) + ", function (target) {" +
-                                "  _hyperscript.runtime.triggerEvent(target, '" + eventName.value + "'," + parser.transpile(details, "{}") + ")" +
+                                "  _hyperscript.runtime.triggerEvent(target, '" + parser.transpile(eventName) + "'," + parser.transpile(details, "{}") + ")" +
                                 "})";
                         }
                     }
