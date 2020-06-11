@@ -678,24 +678,18 @@
                     number: number,
                     factor: factor,
                     transpile: function () {
-                        return parseFloat(this.number.value);
+                        return factor * parseFloat(this.number.value);
                     }
                 };
             });
 
             _parser.addGrammarElement("boolean", function (parser, tokens) {
-                if (tokens.matchToken("true")) {
+                var booleanLiteral = tokens.matchToken("true") || tokens.matchToken("false");
+                if (booleanLiteral) {
                     return {
                         type: "boolean",
                         transpile: function () {
-                            return "true";
-                        }
-                    }
-                } else if (tokens.matchToken("false")) {
-                    return {
-                        type: "boolean",
-                        transpile: function () {
-                            return "false";
+                            return booleanLiteral.value;
                         }
                     }
                 }
