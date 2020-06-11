@@ -490,10 +490,19 @@
                         var tokens = _lexer.tokenize(src);
                         var hyperScript = _parser.parseHyperScript(tokens);
                         var transpiled = _parser.transpile(hyperScript);
-                        console.log(transpiled);
+                        if(false) console.log(transpiled);
                         var hyperscriptObj = eval(transpiled);
                         hyperscriptObj.applyEventListenersTo(elt);
                     }
+                }
+
+                function ajax(method, url, callback, data) {
+                    var xhr = new XMLHttpRequest();
+                    xhr.onload = function() {
+                        callback(this.response)
+                    };
+                    xhr.open(method, url);
+                    xhr.send(JSON.stringify(data));
                 }
 
                 return {
@@ -506,6 +515,7 @@
                     initElement: initElement,
                     evaluate: evaluate,
                     getScriptSelector: getScriptSelector,
+                    ajax: ajax,
                 }
             }();
 
@@ -692,7 +702,7 @@
             });
 
             _parser.addGrammarElement("leaf", function (parser, tokens) {
-                return parser.parseAnyOf(["boolean", "string", "number", "idRef", "classRef", "symbol", "propertyRef"], tokens)
+                return parser.parseAnyOf(["boolean", "string", "number", "idRef", "classRef", "symbol", "propertyRef", "objectLiteral"], tokens)
             });
 
             _parser.addGrammarElement("propertyAccess", function (parser, tokens, root) {
@@ -775,7 +785,7 @@
 
             _parser.addGrammarElement("command", function (parser, tokens) {
                 return parser.parseAnyOf(["onCmd", "addCmd", "removeCmd", "toggleCmd", "waitCmd", "sendCmd",
-                    "takeCmd", "logCmd", "callCmd", "putCmd", "ifCmd"], tokens);
+                    "takeCmd", "logCmd", "callCmd", "putCmd", "ifCmd", "requestCmd"], tokens);
             })
 
             _parser.addGrammarElement("commandList", function (parser, tokens) {
@@ -1175,6 +1185,37 @@
 
                         }
                     }
+                }
+            })
+
+            _parser.addGrammarElement("requestCmd", function (parser, tokens) {
+                if (tokens.matchToken("request")) {
+                    var method = tokens.matchToken("GET") || tokens.matchToken("POST");
+                    if (method == null) {
+                        parser.raiseParseError(tokens, "Requires either GET or POST");
+                    }
+                    var url = parser.parseElement("string", tokens);
+                    if (method == null) {
+                        parser.raiseParseError(tokens, "Requires a URL");
+                    }
+                    if (tokens.matchToken("with")) {
+                        var data = parser.parseElement("expression", tokens);
+                        if (method == null) {
+                            parser.raiseParseError(tokens, "Requires a URL");
+                        }
+                    }
+                    return {
+                        type: "requestCommand",
+                        method: method,
+                        transpile: function () {
+                            var capturedNext = this.next;
+                            delete this.next;
+                            return "_hyperscript.runtime.ajax('" + method.value + "', " +
+                                 parser.transpile(url) + ", " +
+                                 "function(it){ " + parser.transpile(capturedNext) + " }," +
+                                parser.transpile(data, "null") + ")";
+                        }
+                    };
                 }
             })
 

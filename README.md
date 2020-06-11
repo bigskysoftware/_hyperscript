@@ -4,7 +4,7 @@
 
 ## introduction
 
-`_hyperscript` is a small, open web scripting language inspired by [hypertalk](https://en.wikipedia.org/wiki/HyperTalk)
+`_hyperscript` is a small, open scripting language inspired by [hypertalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf)
 
 it is a companion project of <https://htmx.org>
 
