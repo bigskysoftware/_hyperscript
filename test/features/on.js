@@ -1,4 +1,4 @@
-describe("the add command", function() {
+describe("the on feature", function() {
 
     beforeEach(function () {
         clearWorkArea();

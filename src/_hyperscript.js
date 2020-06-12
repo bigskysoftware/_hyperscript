@@ -908,7 +908,7 @@
                     }
                     var rhs = parser.parseElement("unaryExpression", tokens);
                     expr = {
-                        type: "logicalNot",
+                        type: "mathOperator",
                         operator: mathOp.value,
                         lhs: expr,
                         rhs: rhs,
@@ -925,8 +925,36 @@
                 return parser.parseAnyOf(["mathOperator", "unaryExpression"], tokens);
             });
 
-            _parser.addGrammarElement("logicalOperator", function (parser, tokens) {
+            _parser.addGrammarElement("comparisonOperator", function (parser, tokens) {
                 var expr = parser.parseElement("mathExpression", tokens);
+                var comparisonOp, initialComparisonOp = null;
+                comparisonOp = tokens.matchAnyOpToken("<", ">", "<=", ">=", "==", "===")
+                while (comparisonOp) {
+                    initialComparisonOp = initialComparisonOp || comparisonOp;
+                    if(initialComparisonOp.value !== comparisonOp.value) {
+                        parser.raiseParseError(tokens, "You must parenthesize comparison operations with different operators")
+                    }
+                    var rhs = parser.parseElement("mathExpression", tokens);
+                    expr = {
+                        type: "comparisonOperator",
+                        operator: comparisonOp.value,
+                        lhs: expr,
+                        rhs: rhs,
+                        transpile: function () {
+                            return parser.transpile(this.lhs) + " " + this.operator + " " + parser.transpile(this.rhs);
+                        }
+                    }
+                    comparisonOp = tokens.matchAnyOpToken("<", ">", "<=", ">=", "==", "===")
+                }
+                return expr;
+            });
+
+            _parser.addGrammarElement("comparisonExpression", function (parser, tokens) {
+                return parser.parseAnyOf(["comparisonOperator", "mathExpression"], tokens);
+            });
+
+            _parser.addGrammarElement("logicalOperator", function (parser, tokens) {
+                var expr = parser.parseElement("comparisonExpression", tokens);
                 var logicalOp, initialLogicalOp = null;
                 logicalOp = tokens.matchToken("and") || tokens.matchToken("or");
                 while (logicalOp) {
@@ -934,7 +962,7 @@
                     if(initialLogicalOp.value !== logicalOp.value) {
                         parser.raiseParseError(tokens, "You must parenthesize logical operations with different operators")
                     }
-                    var rhs = parser.parseElement("mathExpression", tokens);
+                    var rhs = parser.parseElement("comparisonExpression", tokens);
                     expr = {
                         type: "logicalOperator",
                         operator: logicalOp.value,

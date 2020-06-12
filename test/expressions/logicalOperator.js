@@ -1,4 +1,4 @@
-describe("the mathOperator expression", function () {
+describe("the logicalOperator expression", function () {
 
     it("and works", function () {
         var result = evalHyperScript("true and false")
