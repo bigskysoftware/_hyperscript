@@ -190,7 +190,9 @@
                             } else if (OP_TABLE[currentChar()]) {
                                 tokens.push(makeOpToken(OP_TABLE[currentChar()], consumeChar()));
                             } else {
-                                throw Error("Unknown token: " + currentChar() + " ");
+                                if (position < source.length) {
+                                    throw Error("Unknown token: " + currentChar() + " ");
+                                }
                             }
                         }
                     }
@@ -863,8 +865,21 @@
                 }
             });
 
+            _parser.addGrammarElement("negativeNumber", function (parser, tokens) {
+                if (tokens.matchOpToken("-")) {
+                    var root = parser.parseElement("unaryExpression", tokens);
+                    return {
+                        type: "negativeNumber",
+                        root: root,
+                        transpile: function () {
+                            return "-" + parser.transpile(root);
+                        }
+                    };
+                }
+            });
+
             _parser.addGrammarElement("unaryExpression", function (parser, tokens) {
-                return parser.parseAnyOf(["logicalNot", "primaryExpression"], tokens);
+                return parser.parseAnyOf(["logicalNot", "negativeNumber", "primaryExpression"], tokens);
             });
 
             _parser.addGrammarElement("mathOperator", function (parser, tokens) {
