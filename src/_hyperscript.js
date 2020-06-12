@@ -910,8 +910,36 @@
                 return parser.parseAnyOf(["mathOperator", "unaryExpression"], tokens);
             });
 
+            _parser.addGrammarElement("logicalOperator", function (parser, tokens) {
+                var expr = parser.parseElement("mathExpression", tokens);
+                var logicalOp, initialLogicalOp = null;
+                logicalOp = tokens.matchToken("and") || tokens.matchToken("or");
+                while (logicalOp) {
+                    initialLogicalOp = initialLogicalOp || logicalOp;
+                    if(initialLogicalOp.value !== logicalOp.value) {
+                        parser.raiseParseError(tokens, "You must parenthesize logical operations with different operators")
+                    }
+                    var rhs = parser.parseElement("mathExpression", tokens);
+                    expr = {
+                        type: "logicalOperator",
+                        operator: logicalOp.value,
+                        lhs: expr,
+                        rhs: rhs,
+                        transpile: function () {
+                            return parser.transpile(this.lhs) + " " + (this.operator === "and" ? " && " : " || ") + " " + parser.transpile(this.rhs);
+                        }
+                    }
+                    logicalOp = tokens.matchToken("and") || tokens.matchToken("or");
+                }
+                return expr;
+            });
+
+            _parser.addGrammarElement("logicalExpression", function (parser, tokens) {
+                return parser.parseAnyOf(["logicalOperator", "mathExpression"], tokens);
+            });
+
             _parser.addGrammarElement("expression", function (parser, tokens) {
-                return parser.parseElement("mathExpression", tokens);
+                return parser.parseElement("logicalExpression", tokens);
             });
 
             _parser.addGrammarElement("target", function (parser, tokens) {
