@@ -281,7 +281,7 @@
                     function consumeOp() {
                         var value = consumeChar(); // consume leading char
                         while (currentChar() && OP_TABLE[value + currentChar()]) {
-                          value += consumeChar();
+                            value += consumeChar();
                         }
                         var op = makeOpToken(OP_TABLE[value], value);
                         op.value = value;
@@ -461,7 +461,7 @@
                 function getScript(elt) {
                     for (var i = 0; i < SCRIPT_ATTRIBUTES.length; i++) {
                         var scriptAttribute = SCRIPT_ATTRIBUTES[i];
-                        if (elt.hasAttribute(scriptAttribute)) {
+                        if (elt.hasAttribute && elt.hasAttribute(scriptAttribute)) {
                             return elt.getAttribute(scriptAttribute)
                         }
                     }
@@ -499,7 +499,7 @@
                         var ctx = ctxArg;
                     } else {
                         var src = typeOrSrc;
-                            var ctx = {};
+                        var ctx = {};
                         var type = "expression";
                     }
                     ctx = ctx || {};
@@ -521,7 +521,7 @@
                         var tokens = _lexer.tokenize(src);
                         var hyperScript = _parser.parseHyperScript(tokens);
                         var transpiled = _parser.transpile(hyperScript);
-                        if(false) console.log(transpiled);
+                        if(true) console.log(transpiled);
                         var hyperscriptObj = eval(transpiled);
                         hyperscriptObj.applyEventListenersTo(elt);
                     }
@@ -1250,17 +1250,17 @@
             })
 
             _parser.addGrammarElement("dotPath", function (parser, tokens) {
-                var root = _parser.parseElement("symbol", tokens);
-                var path = [];
+                var root = tokens.matchTokenType("IDENTIFIER");
                 if (root) {
+                    var path = [root.value];
                     while (tokens.matchOpToken(".")) {
-                        path.push(tokens.requireTokenType("IDENTIFIER"));
+                        path.push(tokens.requireTokenType("IDENTIFIER").value);
                     }
                     return {
                         type: "dotPath",
                         path: path,
                         transpile: function () {
-                            return parser.transpile(root) + path.join(".");
+                            return path.join(".");
                         }
                     }
                 }
@@ -1473,8 +1473,8 @@
                             var capturedNext = this.next;
                             delete this.next;
                             return "_hyperscript.runtime.ajax('" + method.value + "', " +
-                                 parser.transpile(url) + ", " +
-                                 "function(it){ " + parser.transpile(capturedNext) + " }," +
+                                parser.transpile(url) + ", " +
+                                "function(it){ " + parser.transpile(capturedNext) + " }," +
                                 parser.transpile(data, "null") + ")";
                         }
                     };
