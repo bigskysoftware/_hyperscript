@@ -35,6 +35,10 @@
                     ')': 'R_PAREN',
                     '<': 'L_ANG',
                     '>': 'R_ANG',
+                    '<=': 'LTE_ANG',
+                    '>=': 'GTE_ANG',
+                    '==': 'EQ',
+                    '===': 'EQQ',
                     '{': 'L_BRACE',
                     '}': 'R_BRACE',
                     '[': 'L_BRACKET',
@@ -188,7 +192,7 @@
                             } else if (currentChar() === '"' || currentChar() === "'") {
                                 tokens.push(consumeString());
                             } else if (OP_TABLE[currentChar()]) {
-                                tokens.push(makeOpToken(OP_TABLE[currentChar()], consumeChar()));
+                                tokens.push(consumeOp());
                             } else {
                                 if (position < source.length) {
                                     throw Error("Unknown token: " + currentChar() + " ");
@@ -272,6 +276,17 @@
                         number.value = value;
                         number.end = position;
                         return number;
+                    }
+
+                    function consumeOp() {
+                        var value = consumeChar(); // consume leading char
+                        while (currentChar() && OP_TABLE[value + currentChar()]) {
+                          value += consumeChar();
+                        }
+                        var op = makeOpToken(OP_TABLE[value], value);
+                        op.value = value;
+                        op.end = position;
+                        return op;
                     }
 
                     function consumeString() {
