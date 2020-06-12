@@ -19,6 +19,7 @@
                     '+': 'PLUS',
                     '-': 'MINUS',
                     '*': 'MULTIPLY',
+                    '/': 'DIVIDE',
                     '.': 'PERIOD',
                     '\\': 'BACKSLASH',
                     ':': 'COLON',
@@ -86,6 +87,16 @@
                         }
                     }
 
+                    function matchAnyOpToken(op1, op2, op3) {
+                        for (var i = 0; i < arguments.length; i++) {
+                            var opToken = arguments[i];
+                            var match = matchOpToken(opToken);
+                            if (match) {
+                                return match;
+                            }
+                        }
+                    }
+
                     function matchOpToken(value) {
                         if (currentToken() && currentToken().op && currentToken().value === value) {
                             return consumeToken();
@@ -138,6 +149,7 @@
                     }
 
                     return {
+                        matchAnyOpToken: matchAnyOpToken,
                         matchOpToken: matchOpToken,
                         requireOpToken: requireOpToken,
                         matchTokenType: matchTokenType,
@@ -177,6 +189,8 @@
                                 tokens.push(consumeString());
                             } else if (OP_TABLE[currentChar()]) {
                                 tokens.push(makeOpToken(OP_TABLE[currentChar()], consumeChar()));
+                            } else {
+                                throw Error("Unknown token: " + currentChar() + " ");
                             }
                         }
                     }
@@ -523,6 +537,20 @@
             // Expressions
             //-----------------------------------------------
 
+            _parser.addGrammarElement("parenthesized", function (parser, tokens) {
+                if (tokens.matchOpToken('(')) {
+                    var expr = parser.parseElement("expression", tokens);
+                    tokens.requireOpToken(")");
+                    return {
+                        type: "parenthesized",
+                        expr: expr,
+                        transpile: function () {
+                            return "(" + parser.transpile(expr) + ")";
+                        }
+                    }
+                }
+            })
+
             _parser.addGrammarElement("string", function (parser, tokens) {
                 var stringToken = tokens.matchTokenType('STRING');
                 if (stringToken) {
@@ -761,7 +789,7 @@
             });
 
             _parser.addGrammarElement("leaf", function (parser, tokens) {
-                return parser.parseAnyOf(["boolean", "null", "string", "number", "idRef", "classRef", "symbol", "propertyRef", "objectLiteral", "arrayLiteral", "blockLiteral"], tokens)
+                return parser.parseAnyOf(["parenthesized", "boolean", "null", "string", "number", "idRef", "classRef", "symbol", "propertyRef", "objectLiteral", "arrayLiteral", "blockLiteral"], tokens)
             });
 
             _parser.addGrammarElement("propertyAccess", function (parser, tokens, root) {
@@ -814,12 +842,61 @@
                 return root;
             });
 
-            _parser.addGrammarElement("expression", function (parser, tokens) {
+            _parser.addGrammarElement("primaryExpression", function (parser, tokens) {
                 var leaf = parser.parseElement("leaf", tokens);
                 if (leaf) {
                     return parser.parseElement("indirectExpression", tokens, leaf);
                 }
                 parser.raiseParseError(tokens, "Unexpected value: " + tokens.currentToken().value);
+            });
+
+            _parser.addGrammarElement("logicalNot", function (parser, tokens) {
+                if (tokens.matchToken("not")) {
+                    var root = parser.parseElement("unaryExpression", tokens);
+                    return {
+                        type: "logicalNot",
+                        root: root,
+                        transpile: function () {
+                            return "!" + parser.transpile(root);
+                        }
+                    };
+                }
+            });
+
+            _parser.addGrammarElement("unaryExpression", function (parser, tokens) {
+                return parser.parseAnyOf(["logicalNot", "primaryExpression"], tokens);
+            });
+
+            _parser.addGrammarElement("mathOperator", function (parser, tokens) {
+                var expr = parser.parseElement("unaryExpression", tokens);
+                var mathOp, initialMathOp = null;
+                mathOp = tokens.matchAnyOpToken("+", "-", "*", "/", "%")
+                while (mathOp) {
+                    initialMathOp = initialMathOp || mathOp;
+                    if(initialMathOp.value !== mathOp.value) {
+                        parser.raiseParseError(tokens, "You must parenthesize math operations with different operators")
+                    }
+                    var rhs = parser.parseElement("unaryExpression", tokens);
+                    expr = {
+                        type: "logicalNot",
+                        operator: mathOp.value,
+                        lhs: expr,
+                        rhs: rhs,
+                        transpile: function () {
+                            return parser.transpile(this.lhs) + " " + this.operator + " " + parser.transpile(this.rhs);
+                        }
+                    }
+                    mathOp = tokens.matchAnyOpToken("+", "-", "*", "/", "%")
+                }
+                return expr;
+            });
+
+            _parser.addGrammarElement("mathExpression", function (parser, tokens) {
+                return parser.parseAnyOf(["mathOperator", "unaryExpression"], tokens);
+            });
+
+            _parser.addGrammarElement("expression", function (parser, tokens) {
+                return parser.parseElement("mathExpression", tokens);
             });
 
             _parser.addGrammarElement("target", function (parser, tokens) {
