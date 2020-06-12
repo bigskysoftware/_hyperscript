@@ -80,6 +80,7 @@ on.
 |  name | description | example
 |-------|-------------|---------
 | [add](/commands/add) | Adds content to a given target | `add .myClass to me`
+| [ajax](/commands/ajax) | Send an AJAX request | `ajax GET "/demo" then put it into my.innerHTML`
 | [call](/commands/call) | Evaluates an expression (e.g. a Javascript Function) | `call alert('yep, you can call javascript!)`
 | [if](/commands/if) | A conditional control flow command | `if me.selected then call alert('I\'m selected!')`
 | [log](/commands/log) | Logs a given expression to the console, if possible | `log me`
@@ -94,8 +95,12 @@ on.
 
 |  name | description | example
 |-------|-------------|---------
+| [arrau literal](/expressions/array-literal) | An array literal, as in JavaScript | `[1, 2, 3]`
 | [attribute reference](/expressions/attribute-reference) | An attribute reference | `[selected=true]`
+| [block literal](/expressions/block-literal) | An anonymous function with an expression body | `\ x -> x * x`
+| [boolean](/expressions/boolean) | Boolean literals | `true` `false`
 | [class reference](/expressions/class-reference) | A class reference | `.active`
+| [comparison oeprator](/expressions/comparison-operator) | Comparison operators | `x < y` `z === "foo"`
 | [id reference](/expressions/id-reference) | A class reference | `#main-div`
 | [number](/expressions/number) | A number | `3.14`
 | [string](/expressions/string) | A string | `"a string", 'another string'`

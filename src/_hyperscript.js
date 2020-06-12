@@ -536,7 +536,21 @@
                     xhr.send(JSON.stringify(data));
                 }
 
+                function typeCheck(value, typeString, nullOk) {
+                    if (value == null && nullOk) {
+                        return value;
+                    }
+                    var typeName = Object.prototype.toString.call(value).slice(8, -1);
+                    var typeCheckValue = value && typeName === typeString;
+                    if (typeCheckValue) {
+                        return value;
+                    } else {
+                        throw new Error("Typecheck failed!  Expected: " + typeString + ", Found: " + typeName);
+                    }
+                }
+
                 return {
+                    typeCheck: typeCheck,
                     forEach: forEach,
                     triggerEvent: triggerEvent,
                     matchesSelector: matchesSelector,
@@ -867,6 +881,25 @@
                 parser.raiseParseError(tokens, "Unexpected value: " + tokens.currentToken().value);
             });
 
+            _parser.addGrammarElement("postfixExpression", function (parser, tokens) {
+                var root = parser.parseElement("primaryExpression", tokens);
+                if (tokens.matchOpToken(":")) {
+                    var typeName = tokens.requireTokenType("IDENTIFIER");
+                    var nullOk = !tokens.matchOpToken("!");
+                    return {
+                        type: "typeCheck",
+                        typeName: typeName,
+                        root: root,
+                        nullOk: nullOk,
+                        transpile: function () {
+                            return "_hyperscript.runtime.typeCheck(" + parser.transpile(root) + ", '" + typeName.value + "', " + nullOk + ")";
+                        }
+                    }
+                } else {
+                    return root;
+                }
+            });
+
             _parser.addGrammarElement("logicalNot", function (parser, tokens) {
                 if (tokens.matchToken("not")) {
                     var root = parser.parseElement("unaryExpression", tokens);
@@ -894,7 +927,7 @@
             });
 
             _parser.addGrammarElement("unaryExpression", function (parser, tokens) {
-                return parser.parseAnyOf(["logicalNot", "negativeNumber", "primaryExpression"], tokens);
+                return parser.parseAnyOf(["logicalNot", "negativeNumber", "postfixExpression"], tokens);
             });
 
             _parser.addGrammarElement("mathOperator", function (parser, tokens) {
