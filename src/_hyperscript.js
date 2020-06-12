@@ -695,8 +695,41 @@
                 }
             });
 
+            _parser.addGrammarElement("null", function (parser, tokens) {
+                if (tokens.matchToken('null')) {
+                    return {
+                        type: "null",
+                        transpile: function () {
+                            return "null";
+                        }
+                    }
+                }
+            });
+
+            _parser.addGrammarElement("arrayLiteral", function (parser, tokens) {
+                if (tokens.matchOpToken('[')) {
+                    var values = [];
+                    if (!tokens.matchOpToken(']')) {
+                        do {
+                            var expr = parser.parseElement("expression", tokens);
+                            if (expr == null) {
+                                parser.raiseParseError(tokens, "Expected an expression");
+                            }
+                            values.push(expr);
+                        } while(tokens.matchOpToken(","))
+                        tokens.requireOpToken("]");
+                    }
+                    return {
+                        type: "arrayLiteral",
+                        transpile: function () {
+                            return "[" + values.map(function(v){ return parser.transpile(v) }).join(", ") + "]";
+                        }
+                    }
+                }
+            });
+
             _parser.addGrammarElement("leaf", function (parser, tokens) {
-                return parser.parseAnyOf(["boolean", "string", "number", "idRef", "classRef", "symbol", "propertyRef", "objectLiteral"], tokens)
+                return parser.parseAnyOf(["boolean", "null", "string", "number", "idRef", "classRef", "symbol", "propertyRef", "objectLiteral", "arrayLiteral"], tokens)
             });
 
             _parser.addGrammarElement("propertyAccess", function (parser, tokens, root) {
@@ -750,11 +783,11 @@
             });
 
             _parser.addGrammarElement("expression", function (parser, tokens) {
-                var leaf = _parser.parseElement("leaf", tokens);
+                var leaf = parser.parseElement("leaf", tokens);
                 if (leaf) {
-                    return _parser.parseElement("indirectExpression", tokens, leaf);
+                    return parser.parseElement("indirectExpression", tokens, leaf);
                 }
-                _parser.raiseParseError(tokens, "Unexpected value: " + tokens.currentToken().value);
+                parser.raiseParseError(tokens, "Unexpected value: " + tokens.currentToken().value);
             });
 
             _parser.addGrammarElement("target", function (parser, tokens) {
