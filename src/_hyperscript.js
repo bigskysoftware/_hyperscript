@@ -721,6 +721,7 @@
                     }
                     return {
                         type: "arrayLiteral",
+                        values:values,
                         transpile: function () {
                             return "[" + values.map(function(v){ return parser.transpile(v) }).join(", ") + "]";
                         }
@@ -728,8 +729,39 @@
                 }
             });
 
+            _parser.addGrammarElement("blockLiteral", function (parser, tokens) {
+                if (tokens.matchOpToken('\\')) {
+                    var args = []
+                    var arg1 = tokens.matchTokenType("IDENTIFIER");
+                    if (arg1) {
+                        args.push(arg1);
+                        while (tokens.matchOpToken(",")) {
+                            args.push(tokens.requireTokenType("IDENTIFIER"));
+                        }
+                    }
+                    // TODO compound op token
+                    tokens.requireOpToken("-");
+                    tokens.requireOpToken(">");
+                    var expr = parser.parseElement("expression", tokens);
+                    if (expr == null) {
+                        parser.raiseParseError(tokens, "Expected an expression");
+                    }
+                    return {
+                        type: "blockLiteral",
+                        args: args,
+                        expr: expr,
+                        transpile: function () {
+                            return "function(" + args.map(function (arg) {
+                                    return arg.value
+                                }).join(", ") + "){ return " +
+                                parser.transpile(expr) + " }";
+                        }
+                    }
+                }
+            });
+
             _parser.addGrammarElement("leaf", function (parser, tokens) {
-                return parser.parseAnyOf(["boolean", "null", "string", "number", "idRef", "classRef", "symbol", "propertyRef", "objectLiteral", "arrayLiteral"], tokens)
+                return parser.parseAnyOf(["boolean", "null", "string", "number", "idRef", "classRef", "symbol", "propertyRef", "objectLiteral", "arrayLiteral", "blockLiteral"], tokens)
             });
 
             _parser.addGrammarElement("propertyAccess", function (parser, tokens, root) {
