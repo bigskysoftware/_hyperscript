@@ -14,11 +14,36 @@
             //-----------------------------------------------
             // Lexer
             //-----------------------------------------------
-            var _lexer = function() {
-                var OP_TABLE = {'+': 'PLUS', '-': 'MINUS', '*': 'MULTIPLY', '.': 'PERIOD', '\\': 'BACKSLASH', ':': 'COLON',
-                    '%': 'PERCENT', '|': 'PIPE', '!': 'EXCLAMATION', '?': 'QUESTION', '#': 'POUND', '&': 'AMPERSAND',
-                    ';': 'SEMI', ',': 'COMMA', '(': 'L_PAREN', ')': 'R_PAREN', '<': 'L_ANG', '>': 'R_ANG', '{': 'L_BRACE',
-                    '}': 'R_BRACE', '[': 'L_BRACKET', ']': 'R_BRACKET', '=': 'EQUALS'
+            var _lexer = function () {
+                var OP_TABLE = {
+                    '+': 'PLUS',
+                    '-': 'MINUS',
+                    '*': 'MULTIPLY',
+                    '/': 'DIVIDE',
+                    '.': 'PERIOD',
+                    '\\': 'BACKSLASH',
+                    ':': 'COLON',
+                    '%': 'PERCENT',
+                    '|': 'PIPE',
+                    '!': 'EXCLAMATION',
+                    '?': 'QUESTION',
+                    '#': 'POUND',
+                    '&': 'AMPERSAND',
+                    ';': 'SEMI',
+                    ',': 'COMMA',
+                    '(': 'L_PAREN',
+                    ')': 'R_PAREN',
+                    '<': 'L_ANG',
+                    '>': 'R_ANG',
+                    '<=': 'LTE_ANG',
+                    '>=': 'GTE_ANG',
+                    '==': 'EQ',
+                    '===': 'EQQ',
+                    '{': 'L_BRACE',
+                    '}': 'R_BRACE',
+                    '[': 'L_BRACKET',
+                    ']': 'R_BRACKET',
+                    '=': 'EQUALS'
                 };
 
                 function isValidCSSClassChar(c) {
@@ -63,6 +88,16 @@
                             return token;
                         } else {
                             raiseError(this, "Expected '" + value + "' but found '" + currentToken().value + "'");
+                        }
+                    }
+
+                    function matchAnyOpToken(op1, op2, op3) {
+                        for (var i = 0; i < arguments.length; i++) {
+                            var opToken = arguments[i];
+                            var match = matchOpToken(opToken);
+                            if (match) {
+                                return match;
+                            }
                         }
                     }
 
@@ -118,6 +153,7 @@
                     }
 
                     return {
+                        matchAnyOpToken: matchAnyOpToken,
                         matchOpToken: matchOpToken,
                         requireOpToken: requireOpToken,
                         matchTokenType: matchTokenType,
@@ -156,7 +192,11 @@
                             } else if (currentChar() === '"' || currentChar() === "'") {
                                 tokens.push(consumeString());
                             } else if (OP_TABLE[currentChar()]) {
-                                tokens.push(makeOpToken(OP_TABLE[currentChar()], consumeChar()));
+                                tokens.push(consumeOp());
+                            } else {
+                                if (position < source.length) {
+                                    throw Error("Unknown token: " + currentChar() + " ");
+                                }
                             }
                         }
                     }
@@ -238,6 +278,17 @@
                         return number;
                     }
 
+                    function consumeOp() {
+                        var value = consumeChar(); // consume leading char
+                        while (currentChar() && OP_TABLE[value + currentChar()]) {
+                          value += consumeChar();
+                        }
+                        var op = makeOpToken(OP_TABLE[value], value);
+                        op.value = value;
+                        op.end = position;
+                        return op;
+                    }
+
                     function consumeString() {
                         var string = makeToken("STRING");
                         var startChar = consumeChar(); // consume leading quote
@@ -298,15 +349,10 @@
             //-----------------------------------------------
             var _parser = function () {
 
-                var COMMANDS = {}
-                var EXPRESSIONS = {}
+                var GRAMMAR = {}
 
-                function addCommand(name, definition) {
-                    COMMANDS[name] = definition;
-                }
-
-                function addExpression(name, definition) {
-                    EXPRESSIONS[name] = definition;
+                function addGrammarElement(name, definition) {
+                    GRAMMAR[name] = definition;
                 }
 
                 function createParserContext(tokens) {
@@ -327,121 +373,45 @@
                     throw error
                 }
 
-                function parseExpression(type, tokens, root) {
-                    var expressionDef = EXPRESSIONS[type];
-                    if (expressionDef) return expressionDef(_parser, _runtime, tokens, root);
+                function parseElement(type, tokens, root) {
+                    var expressionDef = GRAMMAR[type];
+                    if (expressionDef) return expressionDef(_parser, tokens, root);
                 }
 
-                function parseAnyExpressionOf(types, tokens) {
+                function parseAnyOf(types, tokens) {
                     for (var i = 0; i < types.length; i++) {
                         var type = types[i];
-                        var expression = parseExpression(type, tokens);
+                        var expression = parseElement(type, tokens);
                         if (expression) {
                             return expression;
                         }
                     }
                 }
 
-                function parseCommand(tokens) {
-                    var commandName = tokens.matchTokenType("IDENTIFIER");
-                    var commandDef = COMMANDS[commandName.value];
-                    if (commandDef) return commandDef(_parser, _runtime, tokens);
-                    raiseParseError(tokens);
-                }
-
-                function parseCommandList(tokens) {
-                    if (tokens.hasMore() && isCommandStart(tokens.currentToken())) {
-                        var start = parseCommand(tokens);
-                        var current = start;
-                        while (tokens.matchToken("then")) {
-                            var next = parseCommand(tokens);
-                            current.next = next;
-                            current = next;
-                        }
-                        return start;
-                    } else {
-                        return {
-                            type:"emptyCommandList",
-                            exec:function(){},
-                            transpile:function(){
-                                return "";
-                            }
-                        }
-                    }
-                }
-
-                function parseEventListener(tokens) {
-                    tokens.requireToken("on");
-                    var on = parseExpression("symbol", tokens);
-                    if (on == null) {
-                        raiseParseError(tokens, "Expected event name")
-                    }
-                    if (tokens.matchToken("from")) {
-                        var from = parseExpression("target", tokens);
-                        if (from == null) {
-                            raiseParseError(tokens, "Expected target value")
-                        }
-                    } else {
-                        var from = parseExpression("implicitMeTarget", tokens);
-                    }
-                    var start = parseCommandList(tokens);
-                    var eventListener = {
-                        type: "eventListener",
-                        on: on,
-                        from: from,
-                        start: start,
-                        transpile : function() {
-                            return "(function(me){" +
-                                "var my = me;\n" +
-                                "_hyperscript.runtime.forEach(null, " + from.transpile() + ", function(target){\n" +
-                                "  target.addEventListener('" + on.name + "', function(event){\n" +
-                                start.transpile() +
-                                "  })\n" +
-                                "})\n" +
-                                "})"
-                        }
-                    };
-                    return eventListener;
-                }
-
                 function parseHyperScript(tokens) {
-                    var hypeScript = {
-                        type: "_hyperscript",
-                        eventListeners: []
-                    }
-                    do {
-                        hypeScript.eventListeners.push(parseEventListener(tokens));
-                    } while (tokens.matchToken("end") && tokens.hasMore())
-                    if (tokens.hasMore()) {
-                        raiseParseError(tokens);
-                    }
-                    return hypeScript;
+                    return parseElement("hyperscript", tokens)
                 }
 
-                function isCommandStart(token) {
-                    return token.type === "IDENTIFIER" && COMMANDS[token.value];
-                }
-
-                function transpileNext(cmd) {
-                    if(cmd.next) {
-                        return "\n" + cmd.next.transpile();
+                function transpile(node, defaultVal) {
+                    if (node == null) {
+                        return defaultVal;
+                    }
+                    var src = node.transpile();
+                    if (node.next) {
+                        return src + "\n" + transpile(node.next)
                     } else {
-                        return "";
+                        return src;
                     }
                 }
 
                 return {
                     // parser API
-                    parseExpression: parseExpression,
-                    parseAnyExpressionOf: parseAnyExpressionOf,
-                    parseCommand: parseCommand,
-                    parseCommandList: parseCommandList,
+                    parseElement: parseElement,
+                    parseAnyOf: parseAnyOf,
                     parseHyperScript: parseHyperScript,
                     raiseParseError: raiseParseError,
-                    addCommand: addCommand,
-                    addExpression: addExpression,
-                    isCommandStart: isCommandStart,
-                    transpileNext: transpileNext,
+                    addGrammarElement: addGrammarElement,
+                    transpile: transpile
                 }
             }();
 
@@ -478,10 +448,10 @@
                     return eventResult;
                 }
 
-                function forEach(that, arr, func) {
+                function forEach(arr, func) {
                     if (arr.length) {
                         for (var i = 0; i < arr.length; i++) {
-                            func.call(that, arr[i]);
+                            func(arr[i]);
                         }
                     } else {
                         func(arr);
@@ -498,11 +468,9 @@
                     return null;
                 }
 
-                function apply(hypeScript, elt) {
-                    _runtime.forEach(hypeScript, hypeScript.eventListeners, function (eventListener) {
-                        var source = eventListener.transpile();
-                        var listener = eval(source);
-                        listener.call(null, elt);
+                function applyEventListeners(hypeScript, elt) {
+                    forEach(hypeScript.eventListeners, function (eventListener) {
+                        eventListener(elt);
                     });
                 }
 
@@ -516,8 +484,35 @@
                     }).join(", ");
                 }
 
-                function evaluate(str) {
+                function isType(o, type) {
+                    return Object.prototype.toString.call(o) === "[object " + type + "]";
+                }
 
+                function evaluate(typeOrSrc, srcOrCtx, ctxArg) {
+                    if (isType(srcOrCtx, "Object")) {
+                        var src = typeOrSrc;
+                        var ctx = srcOrCtx;
+                        var type = "expression"
+                    } else if (isType(srcOrCtx, "String")) {
+                        var src = srcOrCtx;
+                        var type = typeOrSrc
+                        var ctx = ctxArg;
+                    } else {
+                        var src = typeOrSrc;
+                            var ctx = {};
+                        var type = "expression";
+                    }
+                    ctx = ctx || {};
+                    var compiled = _parser.parseElement(type, _lexer.tokenize(src) ).transpile();
+                    var evalString = "(function(" + Object.keys(ctx).join(",") + "){return " + compiled + "})";
+                    // TODO parser debugging
+                    if(false) console.log("transpile: " + compiled);
+                    if(false) console.log("evalString: " + evalString);
+                    var args = Object.keys(ctx).map(function (key) {
+                        return ctx[key]
+                    });
+                    if(false) console.log("args", args);
+                    return eval(evalString).apply(null, args);
                 }
 
                 function initElement(elt) {
@@ -525,20 +520,47 @@
                     if (src) {
                         var tokens = _lexer.tokenize(src);
                         var hyperScript = _parser.parseHyperScript(tokens);
-                        apply(hyperScript, elt);
+                        var transpiled = _parser.transpile(hyperScript);
+                        if(false) console.log(transpiled);
+                        var hyperscriptObj = eval(transpiled);
+                        hyperscriptObj.applyEventListenersTo(elt);
+                    }
+                }
+
+                function ajax(method, url, callback, data) {
+                    var xhr = new XMLHttpRequest();
+                    xhr.onload = function() {
+                        callback(this.response)
+                    };
+                    xhr.open(method, url);
+                    xhr.send(JSON.stringify(data));
+                }
+
+                function typeCheck(value, typeString, nullOk) {
+                    if (value == null && nullOk) {
+                        return value;
+                    }
+                    var typeName = Object.prototype.toString.call(value).slice(8, -1);
+                    var typeCheckValue = value && typeName === typeString;
+                    if (typeCheckValue) {
+                        return value;
+                    } else {
+                        throw new Error("Typecheck failed!  Expected: " + typeString + ", Found: " + typeName);
                     }
                 }
 
                 return {
+                    typeCheck: typeCheck,
                     forEach: forEach,
                     triggerEvent: triggerEvent,
                     matchesSelector: matchesSelector,
                     getScript: getScript,
-                    apply: apply,
+                    applyEventListeners: applyEventListeners,
                     setScriptAttrs: setScriptAttrs,
                     initElement: initElement,
                     evaluate: evaluate,
                     getScriptSelector: getScriptSelector,
+                    ajax: ajax,
                 }
             }();
 
@@ -546,13 +568,27 @@
             // Expressions
             //-----------------------------------------------
 
-            _parser.addExpression("string", function (parser, runtime, tokens) {
+            _parser.addGrammarElement("parenthesized", function (parser, tokens) {
+                if (tokens.matchOpToken('(')) {
+                    var expr = parser.parseElement("expression", tokens);
+                    tokens.requireOpToken(")");
+                    return {
+                        type: "parenthesized",
+                        expr: expr,
+                        transpile: function () {
+                            return "(" + parser.transpile(expr) + ")";
+                        }
+                    }
+                }
+            })
+
+            _parser.addGrammarElement("string", function (parser, tokens) {
                 var stringToken = tokens.matchTokenType('STRING');
                 if (stringToken) {
                     return {
                         type: "string",
                         token: stringToken,
-                        transpile: function() {
+                        transpile: function () {
                             if (stringToken.value.indexOf("'") === 0) {
                                 return "'" + stringToken.value + "'";
                             } else {
@@ -563,7 +599,7 @@
                 }
             })
 
-            _parser.addExpression("number", function (parser, runtime, tokens) {
+            _parser.addGrammarElement("number", function (parser, tokens) {
                 var number = tokens.matchTokenType('NUMBER');
                 if (number) {
                     var numberToken = number;
@@ -572,57 +608,57 @@
                         type: "number",
                         value: value,
                         numberToken: numberToken,
-                        transpile: function() {
+                        transpile: function () {
                             return numberToken.value;
                         }
                     }
                 }
             })
 
-            _parser.addExpression("idRef", function (parser, runtime, tokens) {
+            _parser.addGrammarElement("idRef", function (parser, tokens) {
                 var elementId = tokens.matchTokenType('ID_REF');
                 if (elementId) {
                     return {
                         type: "idRef",
                         value: elementId.value.substr(1),
-                        transpile: function(){
+                        transpile: function () {
                             return "document.getElementById('" + this.value + "')"
                         }
                     };
                 }
             })
 
-            _parser.addExpression("classRef", function (parser, runtime, tokens) {
+            _parser.addGrammarElement("classRef", function (parser, tokens) {
                 var classRef = tokens.matchTokenType('CLASS_REF');
                 if (classRef) {
                     return {
                         type: "classRef",
                         value: classRef.value,
-                        className: function() {
+                        className: function () {
                             return this.value.substr(1);
                         },
-                        transpile: function(){
+                        transpile: function () {
                             return "document.querySelectorAll('" + this.value + "')"
                         }
                     };
                 }
             })
 
-            _parser.addExpression("attributeRef", function (parser, runtime, tokens) {
+            _parser.addGrammarElement("attributeRef", function (parser, tokens) {
                 if (tokens.matchOpToken("[")) {
                     var name = tokens.matchTokenType("IDENTIFIER");
                     var value = null;
                     if (tokens.matchOpToken("=")) {
-                        value = parser.parseExpression("expression", tokens);
+                        value = parser.parseElement("expression", tokens);
                     }
                     tokens.requireOpToken("]");
                     return {
                         type: "attribute_expression",
                         name: name.value,
                         value: value,
-                        transpile: function() {
+                        transpile: function () {
                             if (this.value) {
-                                return "({name: '" + this.name + "', value: " + this.value.transpile() + "})";
+                                return "({name: '" + this.name + "', value: " + parser.transpile(this.value) + "})";
                             } else {
                                 return "({name: '" + this.name + "'})";
                             }
@@ -631,23 +667,25 @@
                 }
             })
 
-            _parser.addExpression("objectLiteral", function (parser, runtime, tokens) {
+            _parser.addGrammarElement("objectLiteral", function (parser, tokens) {
                 if (tokens.matchOpToken("{")) {
                     var fields = []
                     if (!tokens.matchOpToken("}")) {
                         do {
                             var name = tokens.requireTokenType("IDENTIFIER");
                             tokens.requireOpToken(":");
-                            var value = parser.parseExpression("expression", tokens);
+                            var value = parser.parseElement("expression", tokens);
                             fields.push({name: name, value: value});
                         } while (tokens.matchOpToken(","))
                         tokens.requireOpToken("}");
                     }
                     return {
-                        type:"objectLiteral",
+                        type: "objectLiteral",
                         fields: fields,
-                        transpile: function() {
-                            return "({" + fields.map(function(field){return field.name.value + ":" + field.value.transpile()}).join(", ") + "})";
+                        transpile: function () {
+                            return "({" + fields.map(function (field) {
+                                return field.name.value + ":" + parser.transpile(field.value)
+                            }).join(", ") + "})";
                         }
                     }
                 }
@@ -655,7 +693,7 @@
 
             })
 
-            _parser.addExpression("symbol", function (parser, runtime, tokens) {
+            _parser.addGrammarElement("symbol", function (parser, tokens) {
                 var identifier = tokens.matchTokenType('IDENTIFIER');
                 if (identifier) {
                     return {
@@ -668,25 +706,25 @@
                 }
             });
 
-            _parser.addExpression("implicitMeTarget", function (parser, runtime, tokens) {
+            _parser.addGrammarElement("implicitMeTarget", function (parser, tokens) {
                 return {
                     type: "implicitMeTarget",
-                    transpile : function() {
+                    transpile: function () {
                         return "[me]"
                     }
                 };
             });
 
-            _parser.addExpression("implicitAllTarget", function (parser, runtime, tokens) {
+            _parser.addGrammarElement("implicitAllTarget", function (parser, tokens) {
                 return {
                     type: "implicitAllTarget",
-                    transpile: function() {
+                    transpile: function () {
                         return 'document.querySelectorAll("*")';
                     }
                 };
             });
 
-            _parser.addExpression("millisecondLiteral", function (parser, runtime, tokens) {
+            _parser.addGrammarElement("millisecondLiteral", function (parser, tokens) {
                 var number = tokens.requireTokenType(tokens, "NUMBER");
                 var factor = 1;
                 if (tokens.matchToken("s")) {
@@ -698,75 +736,136 @@
                     type: "millisecondLiteral",
                     number: number,
                     factor: factor,
-                    transpile: function(){
-                        return parseFloat(this.number.value);
+                    transpile: function () {
+                        return factor * parseFloat(this.number.value);
                     }
                 };
             });
 
-            _parser.addExpression("boolean", function(parser, runtime, tokens){
-                if (tokens.matchToken("true")) {
+            _parser.addGrammarElement("boolean", function (parser, tokens) {
+                var booleanLiteral = tokens.matchToken("true") || tokens.matchToken("false");
+                if (booleanLiteral) {
                     return {
                         type: "boolean",
-                        transpile : function() {
-                            return "true";
-                        }
-                    }
-                } else if (tokens.matchToken("false")) {
-                    return {
-                        type: "boolean",
-                        transpile : function() {
-                            return "false";
+                        transpile: function () {
+                            return booleanLiteral.value;
                         }
                     }
                 }
             });
 
-            _parser.addExpression("leaf", function (parser, runtime, tokens) {
-                return parser.parseAnyExpressionOf(["boolean", "string", "number", "idRef", "classRef", "symbol", "propertyRef"], tokens)
+            _parser.addGrammarElement("null", function (parser, tokens) {
+                if (tokens.matchToken('null')) {
+                    return {
+                        type: "null",
+                        transpile: function () {
+                            return "null";
+                        }
+                    }
+                }
             });
 
-            _parser.addExpression("propertyAccess", function (parser, runtime, tokens, root) {
+            _parser.addGrammarElement("arrayLiteral", function (parser, tokens) {
+                if (tokens.matchOpToken('[')) {
+                    var values = [];
+                    if (!tokens.matchOpToken(']')) {
+                        do {
+                            var expr = parser.parseElement("expression", tokens);
+                            if (expr == null) {
+                                parser.raiseParseError(tokens, "Expected an expression");
+                            }
+                            values.push(expr);
+                        } while(tokens.matchOpToken(","))
+                        tokens.requireOpToken("]");
+                    }
+                    return {
+                        type: "arrayLiteral",
+                        values:values,
+                        transpile: function () {
+                            return "[" + values.map(function(v){ return parser.transpile(v) }).join(", ") + "]";
+                        }
+                    }
+                }
+            });
+
+            _parser.addGrammarElement("blockLiteral", function (parser, tokens) {
+                if (tokens.matchOpToken('\\')) {
+                    var args = []
+                    var arg1 = tokens.matchTokenType("IDENTIFIER");
+                    if (arg1) {
+                        args.push(arg1);
+                        while (tokens.matchOpToken(",")) {
+                            args.push(tokens.requireTokenType("IDENTIFIER"));
+                        }
+                    }
+                    // TODO compound op token
+                    tokens.requireOpToken("-");
+                    tokens.requireOpToken(">");
+                    var expr = parser.parseElement("expression", tokens);
+                    if (expr == null) {
+                        parser.raiseParseError(tokens, "Expected an expression");
+                    }
+                    return {
+                        type: "blockLiteral",
+                        args: args,
+                        expr: expr,
+                        transpile: function () {
+                            return "function(" + args.map(function (arg) {
+                                    return arg.value
+                                }).join(", ") + "){ return " +
+                                parser.transpile(expr) + " }";
+                        }
+                    }
+                }
+            });
+
+            _parser.addGrammarElement("leaf", function (parser, tokens) {
+                return parser.parseAnyOf(["parenthesized", "boolean", "null", "string", "number", "idRef", "classRef", "symbol", "propertyRef", "objectLiteral", "arrayLiteral", "blockLiteral"], tokens)
+            });
+
+            _parser.addGrammarElement("propertyAccess", function (parser, tokens, root) {
                 if (tokens.matchOpToken(".")) {
                     var prop = tokens.requireTokenType("IDENTIFIER");
                     var propertyAccess = {
                         type: "propertyAccess",
                         root: root,
                         prop: prop,
-                        transpile : function() {
-                            return root.transpile() + "." + prop.value;
+                        transpile: function () {
+                            return parser.transpile(root) + "." + prop.value;
                         }
                     };
-                    return _parser.parseExpression("indirectExpression", tokens, propertyAccess);
+                    return _parser.parseElement("indirectExpression", tokens, propertyAccess);
                 }
             });
 
-            _parser.addExpression("functionCall", function (parser, runtime, tokens, root) {
+            _parser.addGrammarElement("functionCall", function (parser, tokens, root) {
                 if (tokens.matchOpToken("(")) {
                     var args = [];
                     do {
-                        args.push(parser.parseExpression("expression", tokens));
+                        args.push(parser.parseElement("expression", tokens));
                     } while (tokens.matchOpToken(","))
                     tokens.requireOpToken(")");
                     var functionCall = {
                         type: "functionCall",
                         root: root,
                         args: args,
-                        transpile: function(){
-                            return this.root.transpile() + "(" + args.map(function(arg) { return arg.transpile() }).join(",") + ")"
+                        transpile: function () {
+                            return parser.transpile(root) + "(" + args.map(function (arg) {
+                                return parser.transpile(arg)
+                            }).join(",") + ")"
                         }
                     };
-                    return _parser.parseExpression("indirectExpression", tokens, functionCall);
+                    return _parser.parseElement("indirectExpression", tokens, functionCall);
                 }
             });
 
-            _parser.addExpression("indirectExpression", function (parser, runtime, tokens, root) {
-                var propAccess = parser.parseExpression("propertyAccess", tokens, root);
+            _parser.addGrammarElement("indirectExpression", function (parser, tokens, root) {
+                var propAccess = parser.parseElement("propertyAccess", tokens, root);
                 if (propAccess) {
                     return propAccess;
                 }
 
-                var functionCall = parser.parseExpression("functionCall", tokens, root);
+                var functionCall = parser.parseElement("functionCall", tokens, root);
                 if (functionCall) {
                     return functionCall;
                 }
@@ -774,16 +873,153 @@
                 return root;
             });
 
-            _parser.addExpression("expression", function (parser, runtime, tokens) {
-                var leaf = _parser.parseExpression("leaf", tokens);
+            _parser.addGrammarElement("primaryExpression", function (parser, tokens) {
+                var leaf = parser.parseElement("leaf", tokens);
                 if (leaf) {
-                    return _parser.parseExpression("indirectExpression", tokens, leaf);
+                    return parser.parseElement("indirectExpression", tokens, leaf);
                 }
-                _parser.raiseParseError(tokens, "Unexpected value: " + tokens.currentToken().value);
+                parser.raiseParseError(tokens, "Unexpected value: " + tokens.currentToken().value);
             });
 
-            _parser.addExpression("target", function (parser, runtime, tokens) {
-                var value = parser.parseAnyExpressionOf(["symbol", "classRef", "idRef"], tokens);
+            _parser.addGrammarElement("postfixExpression", function (parser, tokens) {
+                var root = parser.parseElement("primaryExpression", tokens);
+                if (tokens.matchOpToken(":")) {
+                    var typeName = tokens.requireTokenType("IDENTIFIER");
+                    var nullOk = !tokens.matchOpToken("!");
+                    return {
+                        type: "typeCheck",
+                        typeName: typeName,
+                        root: root,
+                        nullOk: nullOk,
+                        transpile: function () {
+                            return "_hyperscript.runtime.typeCheck(" + parser.transpile(root) + ", '" + typeName.value + "', " + nullOk + ")";
+                        }
+                    }
+                } else {
+                    return root;
+                }
+            });
+
+            _parser.addGrammarElement("logicalNot", function (parser, tokens) {
+                if (tokens.matchToken("not")) {
+                    var root = parser.parseElement("unaryExpression", tokens);
+                    return {
+                        type: "logicalNot",
+                        root: root,
+                        transpile: function () {
+                            return "!" + parser.transpile(root);
+                        }
+                    };
+                }
+            });
+
+            _parser.addGrammarElement("negativeNumber", function (parser, tokens) {
+                if (tokens.matchOpToken("-")) {
+                    var root = parser.parseElement("unaryExpression", tokens);
+                    return {
+                        type: "negativeNumber",
+                        root: root,
+                        transpile: function () {
+                            return "-" + parser.transpile(root);
+                        }
+                    };
+                }
+            });
+
+            _parser.addGrammarElement("unaryExpression", function (parser, tokens) {
+                return parser.parseAnyOf(["logicalNot", "negativeNumber", "postfixExpression"], tokens);
+            });
+
+            _parser.addGrammarElement("mathOperator", function (parser, tokens) {
+                var expr = parser.parseElement("unaryExpression", tokens);
+                var mathOp, initialMathOp = null;
+                mathOp = tokens.matchAnyOpToken("+", "-", "*", "/", "%")
+                while (mathOp) {
+                    initialMathOp = initialMathOp || mathOp;
+                    if(initialMathOp.value !== mathOp.value) {
+                        parser.raiseParseError(tokens, "You must parenthesize math operations with different operators")
+                    }
+                    var rhs = parser.parseElement("unaryExpression", tokens);
+                    expr = {
+                        type: "mathOperator",
+                        operator: mathOp.value,
+                        lhs: expr,
+                        rhs: rhs,
+                        transpile: function () {
+                            return parser.transpile(this.lhs) + " " + this.operator + " " + parser.transpile(this.rhs);
+                        }
+                    }
+                    mathOp = tokens.matchAnyOpToken("+", "-", "*", "/", "%")
+                }
+                return expr;
+            });
+
+            _parser.addGrammarElement("mathExpression", function (parser, tokens) {
+                return parser.parseAnyOf(["mathOperator", "unaryExpression"], tokens);
+            });
+
+            _parser.addGrammarElement("comparisonOperator", function (parser, tokens) {
+                var expr = parser.parseElement("mathExpression", tokens);
+                var comparisonOp, initialComparisonOp = null;
+                comparisonOp = tokens.matchAnyOpToken("<", ">", "<=", ">=", "==", "===")
+                while (comparisonOp) {
+                    initialComparisonOp = initialComparisonOp || comparisonOp;
+                    if(initialComparisonOp.value !== comparisonOp.value) {
+                        parser.raiseParseError(tokens, "You must parenthesize comparison operations with different operators")
+                    }
+                    var rhs = parser.parseElement("mathExpression", tokens);
+                    expr = {
+                        type: "comparisonOperator",
+                        operator: comparisonOp.value,
+                        lhs: expr,
+                        rhs: rhs,
+                        transpile: function () {
+                            return parser.transpile(this.lhs) + " " + this.operator + " " + parser.transpile(this.rhs);
+                        }
+                    }
+                    comparisonOp = tokens.matchAnyOpToken("<", ">", "<=", ">=", "==", "===")
+                }
+                return expr;
+            });
+
+            _parser.addGrammarElement("comparisonExpression", function (parser, tokens) {
+                return parser.parseAnyOf(["comparisonOperator", "mathExpression"], tokens);
+            });
+
+            _parser.addGrammarElement("logicalOperator", function (parser, tokens) {
+                var expr = parser.parseElement("comparisonExpression", tokens);
+                var logicalOp, initialLogicalOp = null;
+                logicalOp = tokens.matchToken("and") || tokens.matchToken("or");
+                while (logicalOp) {
+                    initialLogicalOp = initialLogicalOp || logicalOp;
+                    if(initialLogicalOp.value !== logicalOp.value) {
+                        parser.raiseParseError(tokens, "You must parenthesize logical operations with different operators")
+                    }
+                    var rhs = parser.parseElement("comparisonExpression", tokens);
+                    expr = {
+                        type: "logicalOperator",
+                        operator: logicalOp.value,
+                        lhs: expr,
+                        rhs: rhs,
+                        transpile: function () {
+                            return parser.transpile(this.lhs) + " " + (this.operator === "and" ? " && " : " || ") + " " + parser.transpile(this.rhs);
+                        }
+                    }
+                    logicalOp = tokens.matchToken("and") || tokens.matchToken("or");
+                }
+                return expr;
+            });
+
+            _parser.addGrammarElement("logicalExpression", function (parser, tokens) {
+                return parser.parseAnyOf(["logicalOperator", "mathExpression"], tokens);
+            });
+
+            _parser.addGrammarElement("expression", function (parser, tokens) {
+                return parser.parseElement("logicalExpression", tokens);
+            });
+
+            _parser.addGrammarElement("target", function (parser, tokens) {
+                var value = parser.parseAnyOf(["symbol", "classRef", "idRef"], tokens);
                 if (value == null) {
                     parser.raiseParseError(tokens, "Expected a valid target expression");
                 }
@@ -792,304 +1028,456 @@
                     value: value,
                     transpile: function (context) {
                         if (value.type === "classRef") {
-                            return value.transpile();
+                            return parser.transpile(value);
                         } else if (value.type === "idRef") {
-                            return "[" + value.transpile() + "]";
+                            return "[" + parser.transpile(value) + "]";
                         } else {
-                            return "[" + value.transpile() + "]"; //TODO, check if array?
+                            return "[" + parser.transpile(value) + "]"; //TODO, check if array?
                         }
                     }
                 };
             });
 
-            //-----------------------------------------------
-            // Commands
-            //-----------------------------------------------
+            _parser.addGrammarElement("command", function (parser, tokens) {
+                return parser.parseAnyOf(["onCmd", "addCmd", "removeCmd", "toggleCmd", "waitCmd", "sendCmd",
+                    "takeCmd", "logCmd", "callCmd", "putCmd", "ifCmd", "ajaxCmd"], tokens);
+            })
 
-            _parser.addCommand("add", function (parser, runtime, tokens) {
-
-                var classRef = parser.parseExpression("classRef", tokens);
-                var attributeRef = null;
-                if (classRef == null) {
-                    attributeRef = parser.parseExpression("attributeRef", tokens);
-                    if (attributeRef == null) {
-                        parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
-                    }
-                }
-
-                if (tokens.matchToken("to")) {
-                    var to = parser.parseExpression("target", tokens);
-                } else {
-                    var to = parser.parseExpression("implicitMeTarget");
-                }
-
-                return {
-                    type: "add",
-                    classRef: classRef,
-                    attributeRef: attributeRef,
-                    to: to,
-                    transpile : function() {
-                            if (this.classRef) {
-                                return "_hyperscript.runtime.forEach(null, " + to.transpile()  + ", function (target) {" +
-                                "  target.classList.add('" + classRef.className() + "')" +
-                                "})" + parser.transpileNext(this);
-                            } else {
-                                return "_hyperscript.runtime.forEach(null, " + to.transpile()  + ", function (target) {" +
-                                    "  target.setAttribute('" + attributeRef.name + "', " + attributeRef.transpile() +".value)" +
-                                    "})" + parser.transpileNext(this);
-                            }
-                        }
-                    }
-            });
-
-            _parser.addCommand("remove", function (parser, runtime, tokens) {
-                var classRef = parser.parseExpression("classRef", tokens);
-                var attributeRef = null;
-                var elementExpr = null;
-                if (classRef == null) {
-                    attributeRef = parser.parseExpression("attributeRef", tokens);
-                    if (attributeRef == null) {
-                        elementExpr = parser.parseExpression("expression", tokens)
-                        if (elementExpr == null) {
-                            parser.raiseParseError(tokens, "Expected either a class reference, attribute expression or value expression");
-                        }
-                    }
-                }
-                if (tokens.matchToken("from")) {
-                    var from = parser.parseExpression("target", tokens);
-                } else {
-                    var from = parser.parseExpression("implicitMeTarget");
-                }
-
-                return {
-                    type: "remove",
-                    classRef: classRef,
-                    attributeRef: attributeRef,
-                    elementExpr: elementExpr,
-                    from: from,
-                    transpile : function() {
-                        if (this.elementExpr) {
-                            return "_hyperscript.runtime.forEach(null, " + elementExpr.transpile()  + ", function (target) {" +
-                                "  target.parentElement.removeChild(target)" +
-                                "})" + parser.transpileNext(this);
-                        } else {
-                            if (this.classRef) {
-                                return "_hyperscript.runtime.forEach(null, " + from.transpile()  + ", function (target) {" +
-                                    "  target.classList.remove('" + classRef.className() + "')" +
-                                    "})" + parser.transpileNext(this);
-                            } else {
-                                return "_hyperscript.runtime.forEach(null, " + from.transpile()  + ", function (target) {" +
-                                    "  target.removeAttribute('" + attributeRef.name + "')" +
-                                    "})" + parser.transpileNext(this);
-                            }
-                        }
-                    }
-                }
-            });
-
-            _parser.addCommand("toggle", function (parser, runtime, tokens) {
-                var classRef = parser.parseExpression("classRef", tokens);
-                var attributeRef = null;
-                if (classRef == null) {
-                    attributeRef = parser.parseExpression("attributeRef", tokens);
-                    if (attributeRef == null) {
-                        parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
-                    }
-                }
-                if (tokens.matchToken("on")) {
-                    var on = parser.parseExpression("target", tokens);
-                }  else {
-                    var on = parser.parseExpression("implicitMeTarget");
-                }
-                return {
-                    type: "toggle",
-                    classRef: classRef,
-                    attributeRef: attributeRef,
-                    on: on,
-                    transpile : function() {
-                        if (this.classRef) {
-                            return "_hyperscript.runtime.forEach(null, " + on.transpile()  + ", function (target) {" +
-                                "  target.classList.toggle('" + classRef.className() + "')" +
-                                "})" + parser.transpileNext(this);
-                        } else {
-                            return "_hyperscript.runtime.forEach(null, " + on.transpile()  + ", function (target) {" +
-                                "  if(target.hasAttribute('" + attributeRef.name + "')) {\n" +
-                                "    target.removeAttribute('" + attributeRef.name + "');\n" +
-                                "  } else { \n" +
-                                "    target.setAttribute('" + attributeRef.name + "', " + attributeRef.transpile() +".value)" +
-                                "  }" +
-                                "})" + parser.transpileNext(this);
-                        }
-                    }
+            _parser.addGrammarElement("commandList", function (parser, tokens) {
+                var cmd = parser.parseElement("command", tokens);
+                if (cmd) {
+                    tokens.matchToken("then");
+                    cmd.next = parser.parseElement("commandList", tokens);
+                    return cmd;
                 }
             })
 
-            _parser.addCommand("wait", function (parser, runtime, tokens) {
-                return {
-                    type: "wait",
-                    time: parser.parseExpression('millisecondLiteral', tokens),
-                    transpile: function () {
-                        return "setTimeout(function () { " + parser.transpileNext(this) + " }, " + this.time.transpile() + ")";
-                    }
-                }
-            })
-
-            _parser.addCommand("send", function (parser, runtime, tokens) {
-
-                var eventName = tokens.requireTokenType(tokens, "IDENTIFIER");
-                var details = parser.parseExpression("objectLiteral", tokens);
-                if (tokens.matchToken("to")) {
-                    var to = parser.parseExpression("target", tokens);
-                }  else {
-                    var to = parser.parseExpression("implicitMeTarget");
-                }
-
-                return {
-                    type: "send",
-                    eventName: eventName,
-                    details: details,
-                    to: to,
-                    transpile:function() {
-                        return "_hyperscript.runtime.forEach(null, " + to.transpile()  + ", function (target) {" +
-                            "  _hyperscript.runtime.triggerEvent(target, '" + eventName.value + "'," + (details ? details.transpile() : "{}") + ")" +
-                            "})" + parser.transpileNext(this);
-                    }
-                }
-            })
-
-            _parser.addCommand("take", function (parser, runtime, tokens) {
-                var classRef = tokens.requireTokenType(tokens, "CLASS_REF");
-
-                if (tokens.matchToken("from")) {
-                    var from = parser.parseExpression("target", tokens);
-                } else {
-                    var from = parser.parseExpression("implicitAllTarget")
-                }
-                return {
-                    type: "take",
-                    classRef: classRef,
-                    from: from,
-                    transpile: function () {
-                        var clazz = this.classRef.value.substr(1);
-                        return "  _hyperscript.runtime.forEach(this, " + from.transpile() + ", function (target) { target.classList.remove('" + clazz + "') }); " +
-                            "me.classList.add('"+ clazz + "');" + parser.transpileNext(this);
-                    }
-                }
-            })
-
-            _parser.addCommand("log", function (parser, runtime, tokens) {
-                var exprs = [parser.parseExpression("expression", tokens)];
-                while (tokens.matchOpToken(",")) {
-                    exprs.push(parser.parseExpression("expression", tokens));
-                }
-                if (tokens.matchToken("with")) {
-                    var withExpr = parser.parseExpression("expression", tokens);
-                }
-                return {
-                    type: "log",
-                    exprs: exprs,
-                    withExpr: withExpr,
-                    transpile: function () {
-                        if (withExpr) {
-                          return withExpr.transpile() + "(" + exprs.map(function(expr){return expr.transpile()}).join(", ") + ")" + parser.transpileNext(this);
-                        } else {
-                            return "console.log(" + exprs.map(function(expr){return expr.transpile()}).join(", ") + ")" + parser.transpileNext(this);
-                        }
-                    }
-                };
-            })
-
-            _parser.addCommand("call", function (parser, runtime, tokens) {
-                return {
-                    type: "call",
-                    expr: parser.parseExpression("expression", tokens),
-                    transpile : function() {
-                        return "var it = " + this.expr.transpile() + parser.transpileNext(this);                    }
-                }
-            })
-
-            _parser.addCommand("put", function (parser, runtime, tokens) {
-
-                var value = parser.parseExpression("expression", tokens);
-
-                var operation = tokens.matchToken("into") ||
-                    tokens.matchToken("before") ||
-                    tokens.matchToken("afterbegin") ||
-                    tokens.matchToken("beforeend") ||
-                    tokens.matchToken("after");
-
-                if (operation == null) {
-                    parser.raiseParseError(tokens, "Expected one of 'into', 'before', 'afterbegin', 'beforeend', 'after'")
-                }
-                var target = parser.parseExpression("target", tokens);
-                var propPath = []
-                while (tokens.matchOpToken(".")) {
-                    propPath.push(tokens.requireTokenType("IDENTIFIER").value)
-                }
-
-                var directWrite = propPath.length === 0 && operation.value === "into";
-                var symbolWrite = directWrite && target.value.type === "symbol";
-                if (directWrite && !symbolWrite) {
-                    parser.raiseParseError(tokens, "Can only put directly into symbols, not references")
-                }
-
-                return {
-                    type: "put",
-                    target: target,
-                    propPath: propPath,
-                    op: operation.value,
-                    symbolWrite: symbolWrite,
-                    value: value,
-                    transpile: function (context) {
-                        if (this.symbolWrite) {
-                            return "var " + target.value.name + " = " + value.transpile() + parser.transpileNext(this);
-                        } else {
-                            var dotPath = propPath.length === 0 ? "" : "." + propPath.join(".");
-                            if (this.op === "into") {
-                                return "_hyperscript.runtime.forEach(null, " + target.transpile()  + ", function (target) {" +
-                                "  target" + dotPath + "=" + value.transpile() +
-                                "})" + parser.transpileNext(this);
-                            } else if (this.op === "before") {
-                                return "_hyperscript.runtime.forEach(null, " + target.transpile()  + ", function (target) {" +
-                                    "  target" + dotPath + ".insertAdjacentHTML('beforebegin', " + value.transpile() + ")" +
-                                    "})" + parser.transpileNext(this);
-                            } else if (this.op === "afterbegin") {
-                                return "_hyperscript.runtime.forEach(null, " + target.transpile()  + ", function (target) {" +
-                                    "  target" + dotPath + ".insertAdjacentHTML('afterbegin', " + value.transpile() + ")" +
-                                    "})" + parser.transpileNext(this);
-                            } else if (this.op === "beforeend") {
-                                return "_hyperscript.runtime.forEach(null, " + target.transpile()  + ", function (target) {" +
-                                    "  target" + dotPath + ".insertAdjacentHTML('beforeend', " + value.transpile() + ")" +
-                                    "})" + parser.transpileNext(this);
-                            } else if (this.op === "after") {
-                                return "_hyperscript.runtime.forEach(null, " + target.transpile()  + ", function (target) {" +
-                                    "  target" + dotPath + ".insertAdjacentHTML('afterend', " + value.transpile() + ")" +
-                                    "})" + parser.transpileNext(this);
-                            }
-                        }
-                    }
-                };
-            })
-
-            _parser.addCommand("if", function (parser, runtime, tokens) {
-                var expr = parser.parseExpression("expression", tokens);
-                var trueBranch = parser.parseCommandList(tokens);
-                if (tokens.matchToken("else")) {
-                    var falseBranch = parser.parseCommandList(tokens);
-                }
+            _parser.addGrammarElement("hyperscript", function (parser, tokens) {
+                var eventListeners = []
+                do {
+                    eventListeners.push(parser.parseElement("eventListener", tokens));
+                } while (tokens.matchToken("end") && tokens.hasMore())
                 if (tokens.hasMore()) {
-                    tokens.requireToken("end");
+                    parser.raiseParseError(tokens);
                 }
                 return {
-                    type: "if",
-                    expr: expr,
-                    trueBranch: trueBranch,
-                    falseBranch: falseBranch,
+                    type: "hyperscript",
+                    eventListeners: eventListeners,
                     transpile: function () {
-                        return "if(" + expr.transpile() + "){" + "" + trueBranch.transpile() + "}" +
-                            "   else {" + (falseBranch ? falseBranch.transpile() : "") + "}"
-
+                        return "(function(){\n" +
+                            "var eventListeners = []\n" +
+                            eventListeners.map(function (el) {
+                                return "eventListeners.push(" + parser.transpile(el) + ");\n"
+                            }) +
+                            "      function applyEventListenersTo(elt) { _hyperscript.runtime.applyEventListeners(this, elt) }" +
+                            "      return {eventListeners:eventListeners, applyEventListenersTo:applyEventListenersTo}\n" +
+                            "})()"
                     }
+                };
+            })
+
+
+            _parser.addGrammarElement("eventListener", function (parser, tokens) {
+                tokens.requireToken("on");
+                var on = parser.parseElement("dotPath", tokens);
+                if (on == null) {
+                    parser.raiseParseError(tokens, "Expected event name")
+                }
+                if (tokens.matchToken("from")) {
+                    var from = parser.parseElement("target", tokens);
+                    if (from == null) {
+                        parser.raiseParseError(tokens, "Expected target value")
+                    }
+                } else {
+                    var from = parser.parseElement("implicitMeTarget", tokens);
+                }
+                var start = parser.parseElement("commandList", tokens);
+                var eventListener = {
+                    type: "eventListener",
+                    on: on,
+                    from: from,
+                    start: start,
+                    transpile: function () {
+                        return "(function(me){" +
+                            "var my = me;\n" +
+                            "_hyperscript.runtime.forEach( " + parser.transpile(from) + ", function(target){\n" +
+                            "  target.addEventListener('" + parser.transpile(on) + "', function(event){\n" +
+                            parser.transpile(start) +
+                            "  })\n" +
+                            "})\n" +
+                            "})"
+                    }
+                };
+                return eventListener;
+            });
+
+            _parser.addGrammarElement("addCmd", function (parser, tokens) {
+                if (tokens.matchToken("add")) {
+                    var classRef = parser.parseElement("classRef", tokens);
+                    var attributeRef = null;
+                    if (classRef == null) {
+                        attributeRef = parser.parseElement("attributeRef", tokens);
+                        if (attributeRef == null) {
+                            parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
+                        }
+                    }
+
+                    if (tokens.matchToken("to")) {
+                        var to = parser.parseElement("target", tokens);
+                    } else {
+                        var to = parser.parseElement("implicitMeTarget");
+                    }
+
+                    return {
+                        type: "addCmd",
+                        classRef: classRef,
+                        attributeRef: attributeRef,
+                        to: to,
+                        transpile: function () {
+                            if (this.classRef) {
+                                return "_hyperscript.runtime.forEach( " + parser.transpile(to) + ", function (target) {" +
+                                    "  target.classList.add('" + classRef.className() + "')" +
+                                    "})";
+                            } else {
+                                return "_hyperscript.runtime.forEach( " + parser.transpile(to) + ", function (target) {" +
+                                    "  target.setAttribute('" + attributeRef.name + "', " + parser.transpile(attributeRef) + ".value)" +
+                                    "})";
+                            }
+                        }
+                    }
+                }
+            });
+
+            _parser.addGrammarElement("removeCmd", function (parser, tokens) {
+                if (tokens.matchToken("remove")) {
+                    var classRef = parser.parseElement("classRef", tokens);
+                    var attributeRef = null;
+                    var elementExpr = null;
+                    if (classRef == null) {
+                        attributeRef = parser.parseElement("attributeRef", tokens);
+                        if (attributeRef == null) {
+                            elementExpr = parser.parseElement("expression", tokens)
+                            if (elementExpr == null) {
+                                parser.raiseParseError(tokens, "Expected either a class reference, attribute expression or value expression");
+                            }
+                        }
+                    }
+                    if (tokens.matchToken("from")) {
+                        var from = parser.parseElement("target", tokens);
+                    } else {
+                        var from = parser.parseElement("implicitMeTarget");
+                    }
+
+                    return {
+                        type: "removeCmd",
+                        classRef: classRef,
+                        attributeRef: attributeRef,
+                        elementExpr: elementExpr,
+                        from: from,
+                        transpile: function () {
+                            if (this.elementExpr) {
+                                return "_hyperscript.runtime.forEach( " + parser.transpile(elementExpr) + ", function (target) {" +
+                                    "  target.parentElement.removeChild(target)" +
+                                    "})";
+                            } else {
+                                if (this.classRef) {
+                                    return "_hyperscript.runtime.forEach( " + parser.transpile(from) + ", function (target) {" +
+                                        "  target.classList.remove('" + classRef.className() + "')" +
+                                        "})";
+                                } else {
+                                    return "_hyperscript.runtime.forEach( " + parser.transpile(from) + ", function (target) {" +
+                                        "  target.removeAttribute('" + attributeRef.name + "')" +
+                                        "})";
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            _parser.addGrammarElement("toggleCmd", function (parser, tokens) {
+                if (tokens.matchToken("toggle")) {
+                    var classRef = parser.parseElement("classRef", tokens);
+                    var attributeRef = null;
+                    if (classRef == null) {
+                        attributeRef = parser.parseElement("attributeRef", tokens);
+                        if (attributeRef == null) {
+                            parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
+                        }
+                    }
+                    if (tokens.matchToken("on")) {
+                        var on = parser.parseElement("target", tokens);
+                    } else {
+                        var on = parser.parseElement("implicitMeTarget");
+                    }
+                    return {
+                        type: "toggleCmd",
+                        classRef: classRef,
+                        attributeRef: attributeRef,
+                        on: on,
+                        transpile: function () {
+                            if (this.classRef) {
+                                return "_hyperscript.runtime.forEach( " + parser.transpile(on) + ", function (target) {" +
+                                    "  target.classList.toggle('" + classRef.className() + "')" +
+                                    "})";
+                            } else {
+                                return "_hyperscript.runtime.forEach( " + parser.transpile(on) + ", function (target) {" +
+                                    "  if(target.hasAttribute('" + attributeRef.name + "')) {\n" +
+                                    "    target.removeAttribute('" + attributeRef.name + "');\n" +
+                                    "  } else { \n" +
+                                    "    target.setAttribute('" + attributeRef.name + "', " + parser.transpile(attributeRef) + ".value)" +
+                                    "  }" +
+                                    "})";
+                            }
+                        }
+                    }
+                }
+            })
+
+            _parser.addGrammarElement("waitCmd", function (parser, tokens) {
+                if (tokens.matchToken("wait")) {
+                    var time = parser.parseElement('millisecondLiteral', tokens);
+                    return {
+                        type: "waitCmd",
+                        time: time,
+                        transpile: function () {
+                            var capturedNext = this.next;
+                            delete this.next;
+                            return "setTimeout(function () { " + parser.transpile(capturedNext) + " }, " + parser.transpile(this.time) + ")";
+                        }
+                    }
+                }
+            })
+
+            _parser.addGrammarElement("dotPath", function (parser, tokens) {
+                var root = _parser.parseElement("symbol", tokens);
+                var path = [];
+                if (root) {
+                    while (tokens.matchOpToken(".")) {
+                        path.push(tokens.requireTokenType("IDENTIFIER"));
+                    }
+                    return {
+                        type: "dotPath",
+                        path: path,
+                        transpile: function () {
+                            return parser.transpile(root) + path.join(".");
+                        }
+                    }
+                }
+            });
+
+            _parser.addGrammarElement("sendCmd", function (parser, tokens) {
+                if (tokens.matchToken("send")) {
+
+                    var eventName = parser.parseElement("dotPath", tokens);
+
+                    var details = parser.parseElement("objectLiteral", tokens);
+                    if (tokens.matchToken("to")) {
+                        var to = parser.parseElement("target", tokens);
+                    } else {
+                        var to = parser.parseElement("implicitMeTarget");
+                    }
+
+                    return {
+                        type: "sendCmd",
+                        eventName: eventName,
+                        details: details,
+                        to: to,
+                        transpile: function () {
+                            return "_hyperscript.runtime.forEach( " + parser.transpile(to) + ", function (target) {" +
+                                "  _hyperscript.runtime.triggerEvent(target, '" + parser.transpile(eventName) + "'," + parser.transpile(details, "{}") + ")" +
+                                "})";
+                        }
+                    }
+                }
+            })
+
+            _parser.addGrammarElement("takeCmd", function (parser, tokens) {
+                if (tokens.matchToken("take")) {
+                    var classRef = tokens.requireTokenType(tokens, "CLASS_REF");
+
+                    if (tokens.matchToken("from")) {
+                        var from = parser.parseElement("target", tokens);
+                    } else {
+                        var from = parser.parseElement("implicitAllTarget")
+                    }
+                    return {
+                        type: "takeCmd",
+                        classRef: classRef,
+                        from: from,
+                        transpile: function () {
+                            var clazz = this.classRef.value.substr(1);
+                            return "  _hyperscript.runtime.forEach(" + parser.transpile(from) + ", function (target) { target.classList.remove('" + clazz + "') }); " +
+                                "me.classList.add('" + clazz + "');";
+                        }
+                    }
+                }
+            })
+
+            _parser.addGrammarElement("logCmd", function (parser, tokens) {
+                if (tokens.matchToken("log")) {
+                    var exprs = [parser.parseElement("expression", tokens)];
+                    while (tokens.matchOpToken(",")) {
+                        exprs.push(parser.parseElement("expression", tokens));
+                    }
+                    if (tokens.matchToken("with")) {
+                        var withExpr = parser.parseElement("expression", tokens);
+                    }
+                    return {
+                        type: "logCmd",
+                        exprs: exprs,
+                        withExpr: withExpr,
+                        transpile: function () {
+                            if (withExpr) {
+                                return parser.transpile(withExpr) + "(" + exprs.map(function (expr) {
+                                    return parser.transpile(expr)
+                                }).join(", ") + ")";
+                            } else {
+                                return "console.log(" + exprs.map(function (expr) {
+                                    return parser.transpile(expr)
+                                }).join(", ") + ")";
+                            }
+                        }
+                    };
+                }
+            })
+
+            _parser.addGrammarElement("callCmd", function (parser, tokens) {
+                if (tokens.matchToken("call")) {
+                    return {
+                        type: "callCmd",
+                        expr: parser.parseElement("expression", tokens),
+                        transpile: function () {
+                            return "var it = " + parser.transpile(this.expr);
+                        }
+                    }
+                }
+            })
+
+            _parser.addGrammarElement("putCmd", function (parser, tokens) {
+                if (tokens.matchToken("put")) {
+
+                    var value = parser.parseElement("expression", tokens);
+
+                    var operation = tokens.matchToken("into") ||
+                        tokens.matchToken("before") ||
+                        tokens.matchToken("afterbegin") ||
+                        tokens.matchToken("beforeend") ||
+                        tokens.matchToken("after");
+
+                    if (operation == null) {
+                        parser.raiseParseError(tokens, "Expected one of 'into', 'before', 'afterbegin', 'beforeend', 'after'")
+                    }
+                    var target = parser.parseElement("target", tokens);
+                    var propPath = []
+                    while (tokens.matchOpToken(".")) {
+                        propPath.push(tokens.requireTokenType("IDENTIFIER").value)
+                    }
+
+                    var directWrite = propPath.length === 0 && operation.value === "into";
+                    var symbolWrite = directWrite && target.value.type === "symbol";
+                    if (directWrite && !symbolWrite) {
+                        parser.raiseParseError(tokens, "Can only put directly into symbols, not references")
+                    }
+
+                    return {
+                        type: "putCmd",
+                        target: target,
+                        propPath: propPath,
+                        op: operation.value,
+                        symbolWrite: symbolWrite,
+                        value: value,
+                        transpile: function () {
+                            if (this.symbolWrite) {
+                                return "var " + target.value.name + " = " + parser.transpile(value);
+                            } else {
+                                var dotPath = propPath.length === 0 ? "" : "." + propPath.join(".");
+                                if (this.op === "into") {
+                                    return "_hyperscript.runtime.forEach( " + parser.transpile(target) + ", function (target) {" +
+                                        "  target" + dotPath + "=" + parser.transpile(value) +
+                                        "})";
+                                } else if (this.op === "before") {
+                                    return "_hyperscript.runtime.forEach( " + parser.transpile(target) + ", function (target) {" +
+                                        "  target" + dotPath + ".insertAdjacentHTML('beforebegin', " + parser.transpile(value) + ")" +
+                                        "})";
+                                } else if (this.op === "afterbegin") {
+                                    return "_hyperscript.runtime.forEach( " + parser.transpile(target) + ", function (target) {" +
+                                        "  target" + dotPath + ".insertAdjacentHTML('afterbegin', " + parser.transpile(value) + ")" +
+                                        "})";
+                                } else if (this.op === "beforeend") {
+                                    return "_hyperscript.runtime.forEach( " + parser.transpile(target) + ", function (target) {" +
+                                        "  target" + dotPath + ".insertAdjacentHTML('beforeend', " + parser.transpile(value) + ")" +
+                                        "})";
+                                } else if (this.op === "after") {
+                                    return "_hyperscript.runtime.forEach( " + parser.transpile(target) + ", function (target) {" +
+                                        "  target" + dotPath + ".insertAdjacentHTML('afterend', " + parser.transpile(value) + ")" +
+                                        "})";
+                                }
+                            }
+                        }
+                    }
+                }
+            })
+
+            _parser.addGrammarElement("ifCmd", function (parser, tokens) {
+                if (tokens.matchToken("if")) {
+                    var expr = parser.parseElement("expression", tokens);
+                    var trueBranch = parser.parseElement("commandList", tokens);
+                    if (tokens.matchToken("else")) {
+                        var falseBranch = parser.parseElement("commandList", tokens);
+                    }
+                    if (tokens.hasMore()) {
+                        tokens.requireToken("end");
+                    }
+                    return {
+                        type: "ifCmd",
+                        expr: expr,
+                        trueBranch: trueBranch,
+                        falseBranch: falseBranch,
+                        transpile: function () {
+                            return "if(" + parser.transpile(expr) + "){" + "" + parser.transpile(trueBranch) + "}" +
+                                "   else {" + parser.transpile(falseBranch, "") + "}"
+
+                        }
+                    }
+                }
+            })
+
+            _parser.addGrammarElement("ajaxCmd", function (parser, tokens) {
+                if (tokens.matchToken("ajax")) {
+                    var method = tokens.matchToken("GET") || tokens.matchToken("POST");
+                    if (method == null) {
+                        parser.raiseParseError(tokens, "Requires either GET or POST");
+                    }
+                    if (method.value === "GET") {
+                        tokens.requireToken("from");
+                    } else {
+                        tokens.requireToken("to");
+                    }
+
+                    var url = parser.parseElement("string", tokens);
+                    if (url == null) {
+                        parser.raiseParseError(tokens, "Requires a URL");
+                    }
+                    if (tokens.matchToken("with")) {
+                        tokens.requireToken("body");
+                        var data = parser.parseElement("expression", tokens);
+                        if (data == null) {
+                            parser.raiseParseError(tokens, "Requires a URL");
+                        }
+                    }
+                    return {
+                        type: "requestCommand",
+                        method: method,
+                        transpile: function () {
+                            var capturedNext = this.next;
+                            delete this.next;
+                            return "_hyperscript.runtime.ajax('" + method.value + "', " +
+                                 parser.transpile(url) + ", " +
+                                 "function(it){ " + parser.transpile(capturedNext) + " }," +
+                                parser.transpile(data, "null") + ")";
+                        }
+                    };
                 }
             })
 
@@ -1103,7 +1491,7 @@
                 }
                 var fn = function () {
                     var elements = document.querySelectorAll(_runtime.getScriptSelector());
-                    _runtime.forEach(document, elements, function (elt) {
+                    _runtime.forEach(elements, function (elt) {
                         init(elt);
                     })
                 };
