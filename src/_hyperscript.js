@@ -1007,7 +1007,7 @@
 
             _parser.addGrammarElement("command", function (parser, tokens) {
                 return parser.parseAnyOf(["onCmd", "addCmd", "removeCmd", "toggleCmd", "waitCmd", "sendCmd",
-                    "takeCmd", "logCmd", "callCmd", "putCmd", "ifCmd", "requestCmd"], tokens);
+                    "takeCmd", "logCmd", "callCmd", "putCmd", "ifCmd", "ajaxCmd"], tokens);
             })
 
             _parser.addGrammarElement("commandList", function (parser, tokens) {
@@ -1410,19 +1410,26 @@
                 }
             })
 
-            _parser.addGrammarElement("requestCmd", function (parser, tokens) {
-                if (tokens.matchToken("request")) {
+            _parser.addGrammarElement("ajaxCmd", function (parser, tokens) {
+                if (tokens.matchToken("ajax")) {
                     var method = tokens.matchToken("GET") || tokens.matchToken("POST");
                     if (method == null) {
                         parser.raiseParseError(tokens, "Requires either GET or POST");
                     }
+                    if (method.value === "GET") {
+                        tokens.requireToken("from");
+                    } else {
+                        tokens.requireToken("to");
+                    }
+
                     var url = parser.parseElement("string", tokens);
-                    if (method == null) {
+                    if (url == null) {
                         parser.raiseParseError(tokens, "Requires a URL");
                     }
                     if (tokens.matchToken("with")) {
+                        tokens.requireToken("body");
                         var data = parser.parseElement("expression", tokens);
-                        if (method == null) {
+                        if (data == null) {
                             parser.raiseParseError(tokens, "Requires a URL");
                         }
                     }
