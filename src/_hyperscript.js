@@ -78,6 +78,9 @@
 
                 function makeTokensObject(tokens, consumed, source) {
 
+                    var ignoreWhiteSpace = true;
+                    matchTokenType("WHITESPACE"); // consume any initial whitespace
+
                     function raiseError(tokens, error) {
                         _parser.raiseParseError(tokens, error);
                     }
@@ -141,6 +144,9 @@
                     function consumeToken() {
                         var match = tokens.shift();
                         consumed.push(match);
+                        if(ignoreWhiteSpace) {
+                            matchTokenType("WHITESPACE"); // consume any whitespace until the next token
+                        }
                         return match;
                     }
 
@@ -177,11 +183,12 @@
                     var lastToken = "<START>";
 
                     while (position < source.length) {
-                        consumeWhitespace();
                         if (currentChar() === "-" && nextChar() === "-") {
                             consumeComment();
                         } else {
-                            if (!possiblePrecedingSymbol() && currentChar() === "." && isAlpha(nextChar())) {
+                            if (isWhitespace(currentChar())) {
+                                tokens.push(consumeWhitespace());
+                            } else if (!possiblePrecedingSymbol() && currentChar() === "." && isAlpha(nextChar())) {
                                 tokens.push(consumeClassReference());
                             } else if (!possiblePrecedingSymbol() && currentChar() === "#" && isAlpha(nextChar())) {
                                 tokens.push(consumeIdReference());
@@ -329,13 +336,18 @@
                     }
 
                     function consumeWhitespace() {
+                        var whitespace = makeToken("WHITESPACE");
+                        var value = "";
                         while (currentChar() && isWhitespace(currentChar())) {
                             if (isNewline(currentChar())) {
                                 column = 0;
                                 line++;
                             }
-                            consumeChar();
+                            value += consumeChar();
                         }
+                        whitespace.value = value;
+                        whitespace.end = position;
+                        return whitespace;
                     }
                 }
 
