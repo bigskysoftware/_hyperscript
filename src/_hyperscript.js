@@ -1158,6 +1158,15 @@
                 } else {
                     var from = parser.parseElement("implicitMeTarget", tokens);
                 }
+
+                var args = [];
+                if (tokens.matchOpToken("(")) {
+                    do {
+                        args.push(tokens.requireTokenType('IDENTIFIER'));
+                    } while (tokens.matchOpToken(","))
+                    tokens.requireOpToken(')')
+                }
+
                 var start = parser.parseElement("commandList", tokens);
                 var eventListener = {
                     type: "eventListener",
@@ -1169,6 +1178,7 @@
                             "var my = me;\n" +
                             "_hyperscript.runtime.forEach( " + parser.transpile(from) + ", function(target){\n" +
                             "  target.addEventListener('" + parser.transpile(on) + "', function(event){\n" +
+                            args.map(function(arg){return "var " + arg.value + " = event.detail." + arg.value + ";"}).join("\n") + "\n" +
                             parser.transpile(start) +
                             "  })\n" +
                             "})\n" +

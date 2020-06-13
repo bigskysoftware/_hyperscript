@@ -23,5 +23,13 @@ describe("the on feature", function() {
         div.classList.contains("clicked").should.equal(true);
     })
 
+    it("can pick detail fields out by name", function(){
+        var bar = make("<div id='d1' _='on click send custom {foo:\"fromBar\"} to #d2'></div>");
+        var div = make("<div id='d2' _='on custom(foo) call me.classList.add(foo)'></div>");
+        div.classList.contains("fromBar").should.equal(false);
+        bar.click();
+        div.classList.contains("fromBar").should.equal(true);
+    })
+
 });
 
