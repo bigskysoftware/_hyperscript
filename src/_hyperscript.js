@@ -458,6 +458,32 @@
                     }
                 }
 
+                function evalTarget(root, path) {
+                    if (root.length) {
+                        var last = root;
+                    } else {
+                        var last = [root];
+                    }
+
+                    while (path.length > 0) {
+                        var prop = path.shift();
+                        var next = []
+                        // flat map
+                        for (var i = 0; i < last.length; i++) {
+                            var element = last[i];
+                            var nextVal = element[prop];
+                            if (nextVal && nextVal.length) {
+                                next = next.concat(nextVal);
+                            } else {
+                                next.push(nextVal);
+                            }
+                        }
+                        last = next;
+                    }
+
+                    return last;
+                }
+
                 function getScript(elt) {
                     for (var i = 0; i < SCRIPT_ATTRIBUTES.length; i++) {
                         var scriptAttribute = SCRIPT_ATTRIBUTES[i];
@@ -552,6 +578,7 @@
                 return {
                     typeCheck: typeCheck,
                     forEach: forEach,
+                    evalTarget: evalTarget,
                     triggerEvent: triggerEvent,
                     matchesSelector: matchesSelector,
                     getScript: getScript,
@@ -1019,21 +1046,24 @@
             });
 
             _parser.addGrammarElement("target", function (parser, tokens) {
-                var value = parser.parseAnyOf(["symbol", "classRef", "idRef"], tokens);
-                if (value == null) {
+                var root = parser.parseAnyOf(["symbol", "classRef", "idRef"], tokens);
+                if (root == null) {
                     parser.raiseParseError(tokens, "Expected a valid target expression");
                 }
+
+                var propPath = []
+                while (tokens.matchOpToken(".")) {
+                    propPath.push(tokens.requireTokenType("IDENTIFIER").value)
+                }
+
                 return {
                     type: "target",
-                    value: value,
-                    transpile: function (context) {
-                        if (value.type === "classRef") {
-                            return parser.transpile(value);
-                        } else if (value.type === "idRef") {
-                            return "[" + parser.transpile(value) + "]";
-                        } else {
-                            return "[" + parser.transpile(value) + "]"; //TODO, check if array?
-                        }
+                    propPath: propPath,
+                    root: root,
+                    transpile: function () {
+                        return "_hyperscript.runtime.evalTarget(" + parser.transpile(root) + ", [" + propPath.map(function (prop) {
+                            return "\"" + prop + "\""
+                        }).join(", ") + "])";
                     }
                 };
             });
@@ -1301,14 +1331,24 @@
                     } else {
                         var from = parser.parseElement("implicitAllTarget")
                     }
+
+                    if (tokens.matchToken("for")) {
+                        var forElt = parser.parseElement("target", tokens);
+                    } else {
+                        var forElt = parser.parseElement("implicitMeTarget")
+                    }
+
                     return {
                         type: "takeCmd",
                         classRef: classRef,
                         from: from,
+                        forElt: forElt,
                         transpile: function () {
                             var clazz = this.classRef.value.substr(1);
                             return "  _hyperscript.runtime.forEach(" + parser.transpile(from) + ", function (target) { target.classList.remove('" + clazz + "') }); " +
-                                "me.classList.add('" + clazz + "');";
+                                "_hyperscript.runtime.forEach( " + parser.transpile(forElt) + ", function (target) {" +
+                                "  target.classList.add('" + clazz + "')" +
+                                "})";
                         }
                     }
                 }
@@ -1369,13 +1409,9 @@
                         parser.raiseParseError(tokens, "Expected one of 'into', 'before', 'afterbegin', 'beforeend', 'after'")
                     }
                     var target = parser.parseElement("target", tokens);
-                    var propPath = []
-                    while (tokens.matchOpToken(".")) {
-                        propPath.push(tokens.requireTokenType("IDENTIFIER").value)
-                    }
 
-                    var directWrite = propPath.length === 0 && operation.value === "into";
-                    var symbolWrite = directWrite && target.value.type === "symbol";
+                    var directWrite = target.propPath.length === 0 && operation.value === "into";
+                    var symbolWrite = directWrite && target.root.type === "symbol";
                     if (directWrite && !symbolWrite) {
                         parser.raiseParseError(tokens, "Can only put directly into symbols, not references")
                     }
@@ -1383,34 +1419,33 @@
                     return {
                         type: "putCmd",
                         target: target,
-                        propPath: propPath,
                         op: operation.value,
                         symbolWrite: symbolWrite,
                         value: value,
                         transpile: function () {
                             if (this.symbolWrite) {
-                                return "var " + target.value.name + " = " + parser.transpile(value);
+                                return "var " + target.root.name + " = " + parser.transpile(value);
                             } else {
-                                var dotPath = propPath.length === 0 ? "" : "." + propPath.join(".");
                                 if (this.op === "into") {
+                                    var lastProperty = target.propPath.pop(); // steal last property for assignment
                                     return "_hyperscript.runtime.forEach( " + parser.transpile(target) + ", function (target) {" +
-                                        "  target" + dotPath + "=" + parser.transpile(value) +
+                                        "  target." + lastProperty + "=" + parser.transpile(value) +
                                         "})";
                                 } else if (this.op === "before") {
                                     return "_hyperscript.runtime.forEach( " + parser.transpile(target) + ", function (target) {" +
-                                        "  target" + dotPath + ".insertAdjacentHTML('beforebegin', " + parser.transpile(value) + ")" +
+                                        "  target.insertAdjacentHTML('beforebegin', " + parser.transpile(value) + ")" +
                                         "})";
                                 } else if (this.op === "afterbegin") {
                                     return "_hyperscript.runtime.forEach( " + parser.transpile(target) + ", function (target) {" +
-                                        "  target" + dotPath + ".insertAdjacentHTML('afterbegin', " + parser.transpile(value) + ")" +
+                                        "  target.insertAdjacentHTML('afterbegin', " + parser.transpile(value) + ")" +
                                         "})";
                                 } else if (this.op === "beforeend") {
                                     return "_hyperscript.runtime.forEach( " + parser.transpile(target) + ", function (target) {" +
-                                        "  target" + dotPath + ".insertAdjacentHTML('beforeend', " + parser.transpile(value) + ")" +
+                                        "  target.insertAdjacentHTML('beforeend', " + parser.transpile(value) + ")" +
                                         "})";
                                 } else if (this.op === "after") {
                                     return "_hyperscript.runtime.forEach( " + parser.transpile(target) + ", function (target) {" +
-                                        "  target" + dotPath + ".insertAdjacentHTML('afterend', " + parser.transpile(value) + ")" +
+                                        "  target.insertAdjacentHTML('afterend', " + parser.transpile(value) + ")" +
                                         "})";
                                 }
                             }
