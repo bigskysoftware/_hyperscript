@@ -150,6 +150,16 @@
                         return match;
                     }
 
+                    function consumeUntilWhitespace() {
+                        var tokenList = [];
+                        ignoreWhiteSpace = false;
+                        while (currentToken() && currentToken().type !== "WHITESPACE") {
+                            tokenList.push(consumeToken());
+                        }
+                        ignoreWhiteSpace = true;
+                        return tokenList;
+                    }
+
                     function hasMore() {
                         return tokens.length > 0;
                     }
@@ -170,7 +180,8 @@
                         list: tokens,
                         source: source,
                         hasMore: hasMore,
-                        currentToken: currentToken
+                        currentToken: currentToken,
+                        consumeUntilWhitespace: consumeUntilWhitespace
                     }
                 }
 
@@ -633,6 +644,20 @@
                             } else {
                                 return '"' + stringToken.value + '"';
                             }
+                        }
+                    }
+                }
+            })
+
+            _parser.addGrammarElement("nakedString", function (parser, tokens) {
+                if (tokens.hasMore()) {
+                    var tokenArr = tokens.consumeUntilWhitespace();
+                    tokens.matchTokenType("WHITESPACE");
+                    return {
+                        type: "nakedString",
+                        tokens: tokenArr,
+                        transpile: function () {
+                                return "'" + tokenArr.map(function(t){return t.value}).join("") + "'";
                         }
                     }
                 }
@@ -1499,20 +1524,17 @@
                     if (method.value === "GET") {
                         tokens.requireToken("from");
                     } else {
-                        tokens.requireToken("to");
+                        if (!tokens.matchToken("to")) {
+                            var data = parser.parseElement("expression", tokens);
+                            tokens.requireToken("to");
+                        }
                     }
 
                     var url = parser.parseElement("string", tokens);
                     if (url == null) {
-                        parser.raiseParseError(tokens, "Requires a URL");
+                        var url = parser.parseElement("nakedString", tokens);
                     }
-                    if (tokens.matchToken("with")) {
-                        tokens.requireToken("body");
-                        var data = parser.parseElement("expression", tokens);
-                        if (data == null) {
-                            parser.raiseParseError(tokens, "Requires a URL");
-                        }
-                    }
+
                     return {
                         type: "requestCommand",
                         method: method,
@@ -1521,7 +1543,7 @@
                             delete this.next;
                             return "_hyperscript.runtime.ajax('" + method.value + "', " +
                                 parser.transpile(url) + ", " +
-                                "function(it){ " + parser.transpile(capturedNext) + " }," +
+                                "function(response){ " + parser.transpile(capturedNext) + " }," +
                                 parser.transpile(data, "null") + ")";
                         }
                     };
