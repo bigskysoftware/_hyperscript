@@ -87,20 +87,23 @@ on.
 | [put](/commands/put) | Puts a value into a given variable or property| `put "cool!" into me.innerHTML`
 | [remove](/commands/remove) | Removes content | `log "bye, bye" then remove me`
 | [send](/commands/send) | Sends an event | `send customEvent to #a-div`
+| [set](/commands/set) | Sets a variable or property to a given value | `set x to 0`
 | [take](/commands/take) | Takes a class from a set of elements | `take .active from .tabs`
 | [toggle](/commands/toggle) | Toggles content on a target | `toggle .clicked on me`
+| [trigger](/commands/trigger) | triggers an event on the current element | `trigger customEvent`
 | [wait](/commands/wait) | Waits a given amount of time before resuming the command list | `wait 2s then remove me`
 
 ### Expressions
 
 |  name | description | example
 |-------|-------------|---------
-| [arrau literal](/expressions/array-literal) | An array literal, as in JavaScript | `[1, 2, 3]`
+| [array literal](/expressions/array-literal) | An array literal, as in JavaScript | `[1, 2, 3]`
 | [attribute reference](/expressions/attribute-reference) | An attribute reference | `[selected=true]`
 | [block literal](/expressions/block-literal) | An anonymous function with an expression body | `\ x -> x * x`
-| [boolean](/expressions/boolean) | Boolean literals | `true` `false`
+| [boolean](/expressions/boolean) | Boolean literals | `true`<br/>`false`
 | [class reference](/expressions/class-reference) | A class reference | `.active`
-| [comparison oeprator](/expressions/comparison-operator) | Comparison operators | `x < y` `z === "foo"`
+| [comparison oeprator](/expressions/comparison-operator) | Comparison operators | `x < y`<br/>`z === "foo"`
 | [id reference](/expressions/id-reference) | A class reference | `#main-div`
 | [number](/expressions/number) | A number | `3.14`
+| [object literal](/expressions/object-literal) | A javascript-style object literal | `{foo:"bar"}`
 | [string](/expressions/string) | A string | `"a string", 'another string'`
