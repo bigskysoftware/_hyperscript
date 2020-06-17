@@ -1133,7 +1133,7 @@
 
             _parser.addGrammarElement("command", function (parser, tokens) {
                 return parser.parseAnyOf(["onCmd", "addCmd", "removeCmd", "toggleCmd", "waitCmd", "sendCmd", "triggerCmd",
-                    "takeCmd", "logCmd", "callCmd", "putCmd", "ifCmd", "ajaxCmd"], tokens);
+                    "takeCmd", "logCmd", "callCmd", "putCmd", "setCmd", "ifCmd", "ajaxCmd"], tokens);
             })
 
             _parser.addGrammarElement("commandList", function (parser, tokens) {
@@ -1538,6 +1538,40 @@
                                         "  target.insertAdjacentHTML('afterend', " + parser.transpile(value) + ")" +
                                         "})";
                                 }
+                            }
+                        }
+                    }
+                }
+            })
+
+            _parser.addGrammarElement("setCmd", function (parser, tokens) {
+                if (tokens.matchToken("set")) {
+
+                    var target = parser.parseElement("target", tokens);
+
+                    tokens.requireToken("to");
+
+                    var value = parser.parseElement("expression", tokens);
+
+                    var directWrite = target.propPath.length === 0;
+                    var symbolWrite = directWrite && target.root.type === "symbol";
+                    if (directWrite && !symbolWrite) {
+                        parser.raiseParseError(tokens, "Can only put directly into symbols, not references")
+                    }
+
+                    return {
+                        type: "setCmd",
+                        target: target,
+                        symbolWrite: symbolWrite,
+                        value: value,
+                        transpile: function () {
+                            if (this.symbolWrite) {
+                                return "var " + target.root.name + " = " + parser.transpile(value);
+                            } else {
+                                var lastProperty = target.propPath.pop(); // steal last property for assignment
+                                return "_hyperscript.runtime.forEach( " + parser.transpile(target) + ", function (target) {" +
+                                    "  target." + lastProperty + "=" + parser.transpile(value) +
+                                    "})";
                             }
                         }
                     }
