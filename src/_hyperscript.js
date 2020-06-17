@@ -757,6 +757,32 @@
 
             })
 
+            _parser.addGrammarElement("namedArgumentList", function (parser, tokens) {
+                if (tokens.matchOpToken("(")) {
+                    var fields = []
+                    if (!tokens.matchOpToken(")")) {
+                        do {
+                            var name = tokens.requireTokenType("IDENTIFIER");
+                            tokens.requireOpToken(":");
+                            var value = parser.parseElement("expression", tokens);
+                            fields.push({name: name, value: value});
+                        } while (tokens.matchOpToken(","))
+                        tokens.requireOpToken(")");
+                    }
+                    return {
+                        type: "namedArgumentList",
+                        fields: fields,
+                        transpile: function () {
+                            return "({_namedArgList_:true, " + fields.map(function (field) {
+                                return field.name.value + ":" + parser.transpile(field.value)
+                            }).join(", ") + "})";
+                        }
+                    }
+                }
+
+
+            })
+
             _parser.addGrammarElement("symbol", function (parser, tokens) {
                 var identifier = tokens.matchTokenType('IDENTIFIER');
                 if (identifier) {
@@ -1106,7 +1132,7 @@
             });
 
             _parser.addGrammarElement("command", function (parser, tokens) {
-                return parser.parseAnyOf(["onCmd", "addCmd", "removeCmd", "toggleCmd", "waitCmd", "sendCmd",
+                return parser.parseAnyOf(["onCmd", "addCmd", "removeCmd", "toggleCmd", "waitCmd", "sendCmd", "triggerCmd",
                     "takeCmd", "logCmd", "callCmd", "putCmd", "ifCmd", "ajaxCmd"], tokens);
             })
 
@@ -1134,9 +1160,9 @@
                         return "(function(){\n" +
                             "var eventListeners = []\n" +
                             eventListeners.map(function (el) {
-                                return "eventListeners.push(" + parser.transpile(el) + ");\n"
-                            }) +
-                            "      function applyEventListenersTo(elt) { _hyperscript.runtime.applyEventListeners(this, elt) }" +
+                                return "  eventListeners.push(" + parser.transpile(el) + ");\n"
+                            }).join("") +
+                            "      function applyEventListenersTo(elt) { _hyperscript.runtime.applyEventListeners(this, elt) }\n" +
                             "      return {eventListeners:eventListeners, applyEventListenersTo:applyEventListenersTo}\n" +
                             "})()"
                     }
@@ -1348,7 +1374,7 @@
 
                     var eventName = parser.parseElement("dotPath", tokens);
 
-                    var details = parser.parseElement("objectLiteral", tokens);
+                    var details = parser.parseElement("namedArgumentList", tokens);
                     if (tokens.matchToken("to")) {
                         var to = parser.parseElement("target", tokens);
                     } else {
@@ -1364,6 +1390,23 @@
                             return "_hyperscript.runtime.forEach( " + parser.transpile(to) + ", function (target) {" +
                                 "  _hyperscript.runtime.triggerEvent(target, '" + parser.transpile(eventName) + "'," + parser.transpile(details, "{}") + ")" +
                                 "})";
+                        }
+                    }
+                }
+            })
+
+            _parser.addGrammarElement("triggerCmd", function (parser, tokens) {
+                if (tokens.matchToken("trigger")) {
+
+                    var eventName = parser.parseElement("dotPath", tokens);
+                    var details = parser.parseElement("namedArgumentList", tokens);
+
+                    return {
+                        type: "triggerCmd",
+                        eventName: eventName,
+                        details: details,
+                        transpile: function () {
+                            return "_hyperscript.runtime.triggerEvent(me, '" + parser.transpile(eventName) + "'," + parser.transpile(details, "{}") + ");";
                         }
                     }
                 }

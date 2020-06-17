@@ -24,7 +24,7 @@ describe("the on feature", function() {
     })
 
     it("can pick detail fields out by name", function(){
-        var bar = make("<div id='d1' _='on click send custom {foo:\"fromBar\"} to #d2'></div>");
+        var bar = make("<div id='d1' _='on click send custom(foo:\"fromBar\") to #d2'></div>");
         var div = make("<div id='d2' _='on custom(foo) call me.classList.add(foo)'></div>");
         div.classList.contains("fromBar").should.equal(false);
         bar.click();

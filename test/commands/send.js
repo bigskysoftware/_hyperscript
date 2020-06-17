@@ -16,7 +16,7 @@ describe("the send command", function() {
     })
 
     it("can send events with args", function(){
-        var div = make("<div _='on click send foo {x:42} to #bar'></div>");
+        var div = make("<div _='on click send foo(x:42) to #bar'></div>");
         var bar = make("<div id='bar' _='on foo put event.detail.x into my.innerHTML'></div>");
         bar.classList.contains("foo-sent").should.equal(false);
         div.click();
