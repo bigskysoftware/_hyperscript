@@ -18,7 +18,6 @@ is provided, to the targeted element(s).
 ### Examples
 
 ```html
-
 <div _="on click add .clicked">Click Me!</div>
 
 <div _="on click add .clacked to #another-div">Click Me!</div>
