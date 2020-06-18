@@ -19,5 +19,4 @@ is provided, to the targeted element(s).
 <div _="on click add .clacked to #another-div">Click Me!</div>
 
 <button _="on click add [disabled='true']">Disable Me!</button>
-
 ```
