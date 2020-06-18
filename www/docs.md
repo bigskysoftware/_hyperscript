@@ -5,6 +5,19 @@ title: ///_hyperscript
 
 ## Documentation
 
+### Quick Start
+
+```html
+<script src="https://unpkg.com/hyperscript.org@0.0.1-alpha1/dist/_hyperscript.min.js"></script>
+<script>
+_hyperscript.start();
+</script>
+
+<div _="on click call alert('You clicked me!)">
+  Click Me!
+</div>
+```
+
 ### Introduction
 
 hyperscript is a small, expressive scripting language designed to embed well directly in HTML (thus satisfying the

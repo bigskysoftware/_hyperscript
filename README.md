@@ -12,7 +12,7 @@ it is a companion project of <https://htmx.org>
 
 ```html
 
-<script src="https://unpkg.com/hyperscript.org@0.0.1-alpha0/dist/hyperscript.min.js"></script>
+<script src="https://unpkg.com/hyperscript.org@0.0.1-alpha1/dist/_hyperscript.min.js"></script>
 <script>
 _hyperscript.start();
 </script>
