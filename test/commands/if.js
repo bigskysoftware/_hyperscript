@@ -50,6 +50,33 @@ describe("the if command", function() {
         d1.innerHTML.should.equal("foo");
     })
 
+    it("basic else if branch works", function(){
+        var d1 = make("<div _='on click if false else if true put \"foo\" into me.innerHTML'></div>");
+        d1.click();
+        d1.innerHTML.should.equal("foo");
+    })
+
+    it("basic else if branch works with end", function(){
+        var d1 = make("<div _='on click if false " +
+            "                                  else if true put \"foo\" into me.innerHTML end'></div>");
+        d1.click();
+        d1.innerHTML.should.equal("foo");
+    })
+
+    it("triple else if branch works", function(){
+        var d1 = make("<div _='on click if false else if false else put \"foo\" into me.innerHTML'></div>");
+        d1.click();
+        d1.innerHTML.should.equal("foo");
+    })
+
+    it("tripple else if branch works with end", function(){
+        var d1 = make("<div _='on click if false " +
+            "                                  else if false" +
+            "                                  else put \"foo\" into me.innerHTML end'></div>");
+        d1.click();
+        d1.innerHTML.should.equal("foo");
+    })
+
     it("basic else branch works with multiple commands", function(){
         var d1 = make("<div _='on click if false put \"bar\" into me.innerHTML" +
             "                                  else log me then" +
