@@ -1,3 +1,8 @@
+---
+layout: layout.njk
+title: ///_hyperscript
+---
+
 ## The `on` Feature
 
 ### Syntax
