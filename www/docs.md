@@ -139,7 +139,7 @@ Below is a reference for the various features, commands and expressions availabl
 |  name | description | example
 |-------|-------------|---------
 | [add](/commands/add) | Adds content to a given target | `add .myClass to me`
-| [ajax](/commands/ajax) | Send an AJAX request | `ajax GET "/demo" then put it into my.innerHTML`
+| [ajax](/commands/ajax) | Send an AJAX request | `ajax GET /demo then put response into my.innerHTML`
 | [call/get](/commands/call) | Evaluates an expression (e.g. a Javascript Function) | `call alert('yep, you can call javascript!)` <br/><br/> `get prompt('Enter your name')`
 | [if](/commands/if) | A conditional control flow command | `if me.selected then call alert('I\'m selected!')`
 | [log](/commands/log) | Logs a given expression to the console, if possible | `log me`
