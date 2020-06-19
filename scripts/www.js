@@ -7,6 +7,7 @@ fs.ensureDirSync(currentReleaseRoot);
 fs.copySync("node_modules/mocha/mocha.js", currentReleaseRoot + "/node_modules/mocha/mocha.js");
 fs.copySync("node_modules/mocha/mocha.css", currentReleaseRoot + "/node_modules/mocha/mocha.css");
 fs.copySync("node_modules/chai/chai.js", currentReleaseRoot + "/node_modules/chai/chai.js");
+fs.copySync("node_modules/sinon/pkg/sinon.js", currentReleaseRoot + "/node_modules/sinon/pkg/sinon.js");
 fs.copySync("test/", currentReleaseRoot + "/test");
 fs.copySync("src/", currentReleaseRoot + "/src");
 fs.copySync("src/_hyperscript.js", "www/js/_hyperscript.js");
