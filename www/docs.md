@@ -19,7 +19,7 @@ _hyperscript.start();
 Then add some hyperscript to an element:
 
 ```html
-<div _="on click call alert('You clicked me!)">
+<div _="on click call alert('You clicked me!')">
   Click Me!
 </div>
 ```
