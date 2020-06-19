@@ -72,6 +72,12 @@ pre[class*="language-"] {
     margin-bottom: 24px !important;
     margin-left: 48px !important;
     margin-right: 48px !important;
+    @media(max-width:45em) {
+        margin-left: calc(50% - 50vw) !important;
+        margin-right: calc(50% - 50vw) !important;
+        overflow-x: scroll !important;
+        border-radius: 0 !important;
+    }
 }
 
 blockquote {
@@ -83,6 +89,12 @@ blockquote {
 table {
     margin: 16px;
     width: 90%;
+    @media(max-width:45em) {
+        margin-left: calc(50% - 50vw) !important;
+        margin-right: calc(50% - 50vw) !important;
+        overflow-x: scroll !important;
+        border-radius: 0 !important;
+    }
 }
 
 a {
