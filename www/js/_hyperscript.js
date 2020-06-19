@@ -554,13 +554,9 @@
                     ctx = ctx || {};
                     var compiled = _parser.parseElement(type, _lexer.tokenize(src) ).transpile();
                     var evalString = "(function(" + Object.keys(ctx).join(",") + "){return " + compiled + "})";
-                    // TODO parser debugging
-                    if(false) console.log("transpile: " + compiled);
-                    if(false) console.log("evalString: " + evalString);
                     var args = Object.keys(ctx).map(function (key) {
                         return ctx[key]
                     });
-                    if(false) console.log("args", args);
                     return eval(evalString).apply(null, args);
                 }
 
@@ -570,7 +566,9 @@
                         var tokens = _lexer.tokenize(src);
                         var hyperScript = _parser.parseHyperScript(tokens);
                         var transpiled = _parser.transpile(hyperScript);
-                        if(true) console.log(transpiled);
+                        if (elt.getAttribute('debug') === "true") {
+                            console.log(transpiled);
+                        }
                         var hyperscriptObj = eval(transpiled);
                         hyperscriptObj.applyEventListenersTo(elt);
                     }
