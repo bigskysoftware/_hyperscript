@@ -7,7 +7,7 @@ title: ///_hyperscript
 
 ### Syntax
 
-`if <conditional> then <command-list> [else <command-list] end`
+`if <conditional> [then] <command-list> [else <command-list] end`
 
 ### Description
 

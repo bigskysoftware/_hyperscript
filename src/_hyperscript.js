@@ -1585,6 +1585,7 @@
             _parser.addGrammarElement("ifCmd", function (parser, tokens) {
                 if (tokens.matchToken("if")) {
                     var expr = parser.parseElement("expression", tokens);
+                    tokens.matchToken("then"); // optional 'then'
                     var trueBranch = parser.parseElement("commandList", tokens);
                     if (tokens.matchToken("else")) {
                         var falseBranch = parser.parseElement("commandList", tokens);
