@@ -10,7 +10,7 @@ title: ///_hyperscript
 Load hyperscript and start it:
 
 ```html
-<script src="https://unpkg.com/hyperscript.org@0.0.1-alpha1/dist/_hyperscript.min.js"></script>
+<script src="https://unpkg.com/hyperscript.org@0.0.1-alpha2"></script>
 <script>
 _hyperscript.start();
 </script>
