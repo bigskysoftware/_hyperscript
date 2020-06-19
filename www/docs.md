@@ -7,12 +7,18 @@ title: ///_hyperscript
 
 ### Quick Start
 
+Load hyperscript and start it:
+
 ```html
 <script src="https://unpkg.com/hyperscript.org@0.0.1-alpha1/dist/_hyperscript.min.js"></script>
 <script>
 _hyperscript.start();
 </script>
+```
 
+Then add some hyperscript to an element:
+
+```html
 <div _="on click call alert('You clicked me!)">
   Click Me!
 </div>
@@ -25,7 +31,7 @@ hyperscript is a small, expressive scripting language designed to embed well dir
 and the two integrate automatically when used together.
 
 hyperscript is inspired by the [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf) programming language
-and has a distinct english-like syntax, and provided native event handling syntax.  hyperscript transpiles down to ES5.1 
+and has a distinct english-like syntax, with native event-handling syntax.  hyperscript transpiles to ES5.1 
 and thus is compatible with all modern browsers, as well as IE11.
 
 #### Yet Another Language?
@@ -34,11 +40,12 @@ I know.
 
 The initial motivation for the language was the [event model](https://htmx.org/reference/#events) in htmx.  I wanted
 to have a way to utilize these events naturally and directly within HTML.  Most HTML tags support `on*` attributes
-for handling standard DOM events (e.g. `onClick`) but that doesn't work for custom events.  In intercooler I had
-handled this by adding a bunch of custom event attributes, but that always felt a bit hacky and wasn't general enough
-to handle custom events triggered by response headers.
+for handling standard DOM events (e.g. `onClick`) but that doesn't work for custom events.  In intercooler, I had
+handled this by adding a bunch of custom event attributes, but that always felt hacky and wasn't general enough
+to handle custom events triggered by response headers, etc.
 
-Additionally, I wanted to have a way to address some features from intercooler.js, without junking up the core of the library:
+Additionally, I wanted to have a way to address some useful features from intercooler.js, but without causing htmx
+to lose focus on the core request/response processing infrastructure:
 
 * [`ic-add-class`](http://intercoolerjs.org/attributes/ic-add-class.html) and [`ic-remove-class`](http://intercoolerjs.org/attributes/ic-remove-class.html)
 * [`ic-remove-after`](http://intercoolerjs.org/attributes/ic-remove-after.html)
@@ -46,7 +53,7 @@ Additionally, I wanted to have a way to address some features from intercooler.j
 * [`ic-action`](http://intercoolerjs.org/attributes/ic-action.html) and all the associated attributes
 
 The more I looked at it, the more I thought that there was a need for a small, domain specific language for all this, rather 
-than an explosion in attributes and inline javascript.
+than an explosion in attributes and inline javascript, or a hacky custom syntax as with `ic-action`.
 
 #### The Language
 
@@ -94,8 +101,19 @@ is the [`on`](/features/on) feature, which instantiates an event listener on the
 
 A feature then contains a series of [commands](#commands), a term taken from HyperTalk.  A more standard name would
 be "statements", but calling them "commands" is fun.  A command typically consists of a starting keyword (which makes
-parsing easy!) and then a series of keywords and [expressions](#expressions).  Some commands contain lists of other
-commands as well.
+parsing easy!) and then a series of keywords and [expressions](#expressions).
+
+A command list is a series of commands, optionally separated by the `then` keyword:
+
+```html
+<div _="on click add .fadeMe then wait 200ms then remove me">
+  Fade & Remove Me
+</div>
+```
+
+The `then` keyword is particularly recommended when commands are on the same line, for clarity.
+
+Some commands, such as the [if](/commands/if) command contain lists of other commands as well.
 
 Expressions are the root syntactic element.  Some should be very familiar to developers:
 
@@ -122,7 +140,7 @@ Below is a reference for the various features, commands and expressions availabl
 |-------|-------------|---------
 | [add](/commands/add) | Adds content to a given target | `add .myClass to me`
 | [ajax](/commands/ajax) | Send an AJAX request | `ajax GET "/demo" then put it into my.innerHTML`
-| [call](/commands/call) | Evaluates an expression (e.g. a Javascript Function) | `call alert('yep, you can call javascript!)`
+| [call/get](/commands/call) | Evaluates an expression (e.g. a Javascript Function) | `call alert('yep, you can call javascript!)` <br/><br/> `get prompt('Enter your name')`
 | [if](/commands/if) | A conditional control flow command | `if me.selected then call alert('I\'m selected!')`
 | [log](/commands/log) | Logs a given expression to the console, if possible | `log me`
 | [put](/commands/put) | Puts a value into a given variable or property| `put "cool!" into me.innerHTML`

@@ -579,7 +579,7 @@
                 function ajax(method, url, callback, data) {
                     var xhr = new XMLHttpRequest();
                     xhr.onload = function() {
-                        callback(this.response)
+                        callback(this.response, xhr);
                     };
                     xhr.open(method, url);
                     xhr.send(JSON.stringify(data));
@@ -1473,7 +1473,7 @@
             })
 
             _parser.addGrammarElement("callCmd", function (parser, tokens) {
-                if (tokens.matchToken("call")) {
+                if (tokens.matchToken("call") || tokens.matchToken("get")) {
                     return {
                         type: "callCmd",
                         expr: parser.parseElement("expression", tokens),
@@ -1491,12 +1491,16 @@
 
                     var operation = tokens.matchToken("into") ||
                         tokens.matchToken("before") ||
-                        tokens.matchToken("afterbegin") ||
-                        tokens.matchToken("beforeend") ||
                         tokens.matchToken("after");
 
+                    if (operation == null && tokens.matchToken("at")) {
+                        operation = tokens.matchToken("start") ||
+                            tokens.matchToken("end");
+                        tokens.requireToken("of");
+                    }
+
                     if (operation == null) {
-                        parser.raiseParseError(tokens, "Expected one of 'into', 'before', 'afterbegin', 'beforeend', 'after'")
+                        parser.raiseParseError(tokens, "Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
                     }
                     var target = parser.parseElement("target", tokens);
 
@@ -1525,11 +1529,11 @@
                                     return "_hyperscript.runtime.forEach( " + parser.transpile(target) + ", function (target) {" +
                                         "  target.insertAdjacentHTML('beforebegin', " + parser.transpile(value) + ")" +
                                         "})";
-                                } else if (this.op === "afterbegin") {
+                                } else if (this.op === "start") {
                                     return "_hyperscript.runtime.forEach( " + parser.transpile(target) + ", function (target) {" +
                                         "  target.insertAdjacentHTML('afterbegin', " + parser.transpile(value) + ")" +
                                         "})";
-                                } else if (this.op === "beforeend") {
+                                } else if (this.op === "end") {
                                     return "_hyperscript.runtime.forEach( " + parser.transpile(target) + ", function (target) {" +
                                         "  target.insertAdjacentHTML('beforeend', " + parser.transpile(value) + ")" +
                                         "})";
@@ -1608,9 +1612,7 @@
                     if (method == null) {
                         parser.raiseParseError(tokens, "Requires either GET or POST");
                     }
-                    if (method.value === "GET") {
-                        tokens.requireToken("from");
-                    } else {
+                    if (method.value !== "GET") {
                         if (!tokens.matchToken("to")) {
                             var data = parser.parseElement("expression", tokens);
                             tokens.requireToken("to");
@@ -1630,7 +1632,7 @@
                             delete this.next;
                             return "_hyperscript.runtime.ajax('" + method.value + "', " +
                                 parser.transpile(url) + ", " +
-                                "function(response){ " + parser.transpile(capturedNext) + " }," +
+                                "function(response, xhr){ " + parser.transpile(capturedNext) + " }," +
                                 parser.transpile(data, "null") + ")";
                         }
                     };

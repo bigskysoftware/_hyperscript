@@ -11,7 +11,7 @@ describe("the ajax command", function() {
 
     it("can do a simple get", function(){
         this.server.respondWith("GET", "/test", [200, {}, 'yay']);
-        var div = make("<div _='on click ajax GET from \"/test\" then put response into my.innerHTML'></div>");
+        var div = make("<div _='on click ajax GET \"/test\" then put response into my.innerHTML'></div>");
         div.click();
         this.server.respond();
         div.innerHTML.should.equal("yay");
@@ -19,7 +19,7 @@ describe("the ajax command", function() {
 
     it("can do a simple get w/ naked URL", function(){
         this.server.respondWith("GET", "/test", [200, {}, 'yay']);
-        var div = make("<div _='on click ajax GET from /test then put response into my.innerHTML'></div>");
+        var div = make("<div _='on click ajax GET /test then put response into my.innerHTML'></div>");
         div.click();
         this.server.respond();
         div.innerHTML.should.equal("yay");

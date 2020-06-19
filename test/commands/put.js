@@ -63,13 +63,13 @@ describe("the put command", function() {
     })
 
     it("can insert after beginning", function(){
-        var d1 = make("<div id='d1' _='on click put \"foo\" afterbegin #d1'>*</div>");
+        var d1 = make("<div id='d1' _='on click put \"foo\" at start of #d1'>*</div>");
         d1.click();
         d1.innerHTML.should.equal("foo*");
     })
 
     it("can insert before end", function(){
-        var d1 = make("<div id='d1' _='on click put \"foo\" beforeend #d1'>*</div>");
+        var d1 = make("<div id='d1' _='on click put \"foo\" at end of #d1'>*</div>");
         d1.click();
         d1.innerHTML.should.equal("*foo");
     })
