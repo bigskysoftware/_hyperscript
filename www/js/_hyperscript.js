@@ -1170,7 +1170,7 @@
 
             _parser.addGrammarElement("eventListener", function (parser, tokens) {
                 tokens.requireToken("on");
-                var on = parser.parseElement("dotPath", tokens);
+                var on = parser.parseElement("dotOrColonPath", tokens);
                 if (on == null) {
                     parser.raiseParseError(tokens, "Expected event name")
                 }
@@ -1350,18 +1350,24 @@
                 }
             })
 
-            _parser.addGrammarElement("dotPath", function (parser, tokens) {
+            // TODO  - colon path needs to eventually become part of ruby-style symbols
+            _parser.addGrammarElement("dotOrColonPath", function (parser, tokens) {
                 var root = tokens.matchTokenType("IDENTIFIER");
                 if (root) {
                     var path = [root.value];
-                    while (tokens.matchOpToken(".")) {
-                        path.push(tokens.requireTokenType("IDENTIFIER").value);
+
+                    var separator = tokens.matchOpToken(".") || tokens.matchOpToken(":");
+                    if (separator) {
+                        do {
+                            path.push(tokens.requireTokenType("IDENTIFIER").value);
+                        } while (tokens.matchOpToken(separator.value))
                     }
+
                     return {
-                        type: "dotPath",
+                        type: "dotOrColonPath",
                         path: path,
                         transpile: function () {
-                            return path.join(".");
+                            return path.join(separator ? separator.value : "");
                         }
                     }
                 }
@@ -1370,7 +1376,7 @@
             _parser.addGrammarElement("sendCmd", function (parser, tokens) {
                 if (tokens.matchToken("send")) {
 
-                    var eventName = parser.parseElement("dotPath", tokens);
+                    var eventName = parser.parseElement("dotOrColonPath", tokens);
 
                     var details = parser.parseElement("namedArgumentList", tokens);
                     if (tokens.matchToken("to")) {
@@ -1396,7 +1402,7 @@
             _parser.addGrammarElement("triggerCmd", function (parser, tokens) {
                 if (tokens.matchToken("trigger")) {
 
-                    var eventName = parser.parseElement("dotPath", tokens);
+                    var eventName = parser.parseElement("dotOrColonPath", tokens);
                     var details = parser.parseElement("namedArgumentList", tokens);
 
                     return {
