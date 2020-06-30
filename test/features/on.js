@@ -4,7 +4,7 @@ describe("the on feature", function() {
         clearWorkArea();
     });
     afterEach(function () {
-        // clearWorkArea();
+         clearWorkArea();
     });
 
     it("can respond to events with dots in names", function(){

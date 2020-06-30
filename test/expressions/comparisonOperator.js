@@ -69,5 +69,29 @@ describe("the comparisonOperator expression", function () {
     });
 
 
+    it("not equal works", function () {
+        var result = evalHyperScript("1 != 2")
+        result.should.equal(true);
+
+        var result = evalHyperScript("2 != 1")
+        result.should.equal(true);
+
+        var result = evalHyperScript("2 != 2")
+        result.should.equal(false);
+    });
+
+
+    it("triple not equal works", function () {
+        var result = evalHyperScript("1 !== 2")
+        result.should.equal(true);
+
+        var result = evalHyperScript("2 !== 1")
+        result.should.equal(true);
+
+        var result = evalHyperScript("2 !== 2")
+        result.should.equal(true);
+    });
+
+
 
 });
