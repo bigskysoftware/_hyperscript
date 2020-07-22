@@ -89,7 +89,7 @@ describe("the comparisonOperator expression", function () {
         result.should.equal(true);
 
         var result = evalHyperScript("2 !== 2")
-        result.should.equal(true);
+        result.should.equal(false);
     });
 
 

@@ -22,4 +22,11 @@ describe("_hyperscript regressions", function() {
         div.innerHTML.should.equal("bar");
     })
 
+    it("can trigger htmx events", function(){
+        var div1 = make("<div id='div1' _='on htmx:foo put \"foo\" into my.innerHTML'></div>");
+        var div2 = make("<div _='on click send htmx:foo to #div1'></div>");
+        div2.click();
+        div1.innerHTML.should.equal("foo");
+    })
+
 });
