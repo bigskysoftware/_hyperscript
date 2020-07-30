@@ -390,7 +390,7 @@
                     return contextLine + "\n" + " ".repeat(offset) + "^^\n\n";
                 }
 
-                function raiseParseError(tokens, message) {
+                function raiseParseError(tokens:any, message?:string) {
                     message = (message || "Unexpected Token : " + tokens.currentToken().value) + "\n\n" +
                         createParserContext(tokens);
                     var error = new Error(message);
@@ -861,7 +861,7 @@
 
             _parser.addGrammarElement("arrayLiteral", function (parser, tokens) {
                 if (tokens.matchOpToken('[')) {
-                    var values = [];
+                    var values:any[] = [];
                     if (!tokens.matchOpToken(']')) {
                         do {
                             var expr = parser.parseElement("expression", tokens);
@@ -884,7 +884,7 @@
 
             _parser.addGrammarElement("blockLiteral", function (parser, tokens) {
                 if (tokens.matchOpToken('\\')) {
-                    var args = []
+                    var args:any[] = []
                     var arg1 = tokens.matchTokenType("IDENTIFIER");
                     if (arg1) {
                         args.push(arg1);
@@ -917,7 +917,7 @@
                 return parser.parseAnyOf(["parenthesized", "boolean", "null", "string", "number", "idRef", "classRef", "symbol", "propertyRef", "objectLiteral", "arrayLiteral", "blockLiteral"], tokens)
             });
 
-            _parser.addGrammarElement("propertyAccess", function (parser, tokens, root) {
+            _parser.addGrammarElement("propertyAccess", function (parser:Parser, tokens:Tokens, root) {
                 if (tokens.matchOpToken(".")) {
                     var prop = tokens.requireTokenType("IDENTIFIER");
                     var propertyAccess = {
@@ -934,7 +934,7 @@
 
             _parser.addGrammarElement("functionCall", function (parser, tokens, root) {
                 if (tokens.matchOpToken("(")) {
-                    var args = [];
+                    var args:any[] = [];
                     do {
                         args.push(parser.parseElement("expression", tokens));
                     } while (tokens.matchOpToken(","))
@@ -1150,7 +1150,7 @@
             })
 
             _parser.addGrammarElement("hyperscript", function (parser, tokens) {
-                var eventListeners = []
+                var eventListeners:any[] = []
                 do {
                     eventListeners.push(parser.parseElement("eventListener", tokens));
                 } while (tokens.matchToken("end") && tokens.hasMore())
@@ -1189,7 +1189,7 @@
                     var from = parser.parseElement("implicitMeTarget", tokens);
                 }
 
-                var args = [];
+                var args:any[] = [];
                 if (tokens.matchOpToken("(")) {
                     do {
                         args.push(tokens.requireTokenType('IDENTIFIER'));

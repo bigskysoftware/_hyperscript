@@ -56,23 +56,27 @@ interface Parser {
     parseElement: (type:any, tokens?:any, root?:any) => any
     parseAnyOf: (types:any, tokens:any) => any
     parseHyperScript: (tokens:any) => any
-    raiseParseError: (tokens:any, message:string) => any
+    raiseParseError: (tokens:any, message?:string) => any
     addGrammarElement: (name:string, definition:GrammarElement) => any
     transpile: (node:any, defaultVal?:any) => string
 }
 
 interface GrammarElement {
-    (parser:Parser, tokens:Tokens): (GrammarElementResult | undefined)
+    (parser:Parser, tokens:Tokens, root?:any): (GrammarElementResult | undefined)
 }
 
 // TODO: updated "any" references with actual types
 interface GrammarElementResult {
 	type: string
+	target?: any
+	op?: any
+	symbolWrite?: boolean
+	value?: any
 	classRef?: any
 	attributeRef?: any
 	on?:any
     fields?: GrammarElementField[]
-    transpile: () => (string | number)
+    transpile: () => (string | number | undefined)
 }
 
 
