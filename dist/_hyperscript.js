@@ -102,7 +102,7 @@
                         return token;
                     }
                     else {
-                        raiseError(this, "Expected one of " + JSON.stringify([type1, type2, type3]));
+                        raiseError(this, "Expected one of " + JSON.stringify([type1, type2, type3, type4]));
                     }
                 }
                 function matchTokenType(type1, type2, type3, type4) {
@@ -137,7 +137,10 @@
                     var tokenList = [];
                     ignoreWhiteSpace = false;
                     while (currentToken() && currentToken().type !== "WHITESPACE") {
-                        tokenList.push(consumeToken());
+                        var nextToken = consumeToken();
+                        if (nextToken != undefined) {
+                            tokenList.push(nextToken);
+                        }
                     }
                     ignoreWhiteSpace = true;
                     return tokenList;
@@ -440,11 +443,12 @@
                 }
             }
             function evalTarget(root, path) {
+                var last;
                 if (root.length) {
-                    var last = root;
+                    last = root;
                 }
                 else {
-                    var last = [root];
+                    last = [root];
                 }
                 while (path.length > 0) {
                     var prop = path.shift();
@@ -490,20 +494,23 @@
                 return Object.prototype.toString.call(o) === "[object " + type + "]";
             }
             function evaluate(typeOrSrc, srcOrCtx, ctxArg) {
+                var src;
+                var type;
+                var ctx;
                 if (isType(srcOrCtx, "Object")) {
-                    var src = typeOrSrc;
-                    var ctx = srcOrCtx;
-                    var type = "expression";
+                    src = typeOrSrc;
+                    ctx = srcOrCtx;
+                    type = "expression";
                 }
                 else if (isType(srcOrCtx, "String")) {
-                    var src = srcOrCtx;
-                    var type = typeOrSrc;
-                    var ctx = ctxArg;
+                    src = srcOrCtx;
+                    type = typeOrSrc;
+                    ctx = ctxArg;
                 }
                 else {
-                    var src = typeOrSrc;
-                    var ctx = {};
-                    var type = "expression";
+                    src = typeOrSrc;
+                    ctx = {};
+                    type = "expression";
                 }
                 ctx = ctx || {};
                 var compiled = _parser.parseElement(type, _lexer.tokenize(src)).transpile();

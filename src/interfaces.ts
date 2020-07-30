@@ -24,11 +24,11 @@ interface Lexer {
 }
 
 interface Token {
+    type: string
+    value?: string
+    op?: boolean
     line?: number
     col?: number
-    op?: boolean
-    value?: any
-    type?: any
     start?: number
     end?: number
     column?: number
@@ -71,8 +71,14 @@ interface GrammarElementResult {
 	classRef?: any
 	attributeRef?: any
 	on?:any
-    fields?: {name: string, value: any}[]
-    transpile: () => string
+    fields?: GrammarElementField[]
+    transpile: () => (string | number)
+}
+
+
+interface GrammarElementField {
+	name: any
+	value: any
 }
 
 // Function signatures for _runtime object.  

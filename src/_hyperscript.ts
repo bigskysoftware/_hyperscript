@@ -93,7 +93,7 @@
                         }
                     }
 
-                    function matchAnyOpToken(op1, op2, op3) {
+                    function matchAnyOpToken(op1:string, op2?:string, op3?:string) {
                         for (var i = 0; i < arguments.length; i++) {
                             var opToken = arguments[i];
                             var match = matchOpToken(opToken);
@@ -103,18 +103,18 @@
                         }
                     }
 
-                    function matchOpToken(value) {
+                    function matchOpToken(value:string) {
                         if (currentToken() && currentToken().op && currentToken().value === value) {
                             return consumeToken();
                         }
                     }
 
-                    function requireTokenType(type1, type2, type3, type4) {
+                    function requireTokenType(type1:string, type2?:string, type3?:string, type4?:string) {
                         var token = matchTokenType(type1, type2, type3, type4);
                         if (token) {
                             return token;
                         } else {
-                            raiseError(this, "Expected one of " + JSON.stringify([type1, type2, type3]));
+                            raiseError(this, "Expected one of " + JSON.stringify([type1, type2, type3, type4]));
                         }
                     }
 
@@ -140,7 +140,7 @@
                         }
                     }
 
-                    function consumeToken():Token {
+                    function consumeToken(): (Token|undefined) {
                         var match = tokens.shift();
                         consumed.push(match);
                         if(ignoreWhiteSpace) {
@@ -153,7 +153,10 @@
                         var tokenList:Token[] = [];
                         ignoreWhiteSpace = false;
                         while (currentToken() && currentToken().type !== "WHITESPACE") {
-                            tokenList.push(consumeToken());
+                            var nextToken = consumeToken()
+                            if(nextToken != undefined) {
+                                tokenList.push(nextToken);
+                            }
                         }
                         ignoreWhiteSpace = true;
                         return tokenList;
@@ -186,7 +189,7 @@
 
                 function tokenize(string:string) {
                     var source = string;
-                    var tokens = [];
+                    var tokens:Token[] = [];
                     var position = 0;
                     var column = 0;
                     var line = 1;
@@ -220,13 +223,13 @@
 
                     return makeTokensObject(tokens, [], source);
 
-                    function makeOpToken(type, value) {
+                    function makeOpToken(type:string, value:string) {
                         var token = makeToken(type, value);
                         token.op = true;
                         return token;
                     }
 
-                    function makeToken(type:any, value?:any):Token {
+                    function makeToken(type:any, value?:string):Token {
                         return {
                             type: type,
                             value: value,
@@ -395,12 +398,12 @@
                     throw error
                 }
 
-                function parseElement(type, tokens, root) {
+                function parseElement(type:string, tokens:any, root?:any) {
                     var expressionDef = GRAMMAR[type];
                     if (expressionDef) return expressionDef(_parser, tokens, root);
                 }
 
-                function parseAnyOf(types, tokens) {
+                function parseAnyOf(types:string[], tokens) {
                     for (var i = 0; i < types.length; i++) {
                         var type = types[i];
                         var expression = parseElement(type, tokens);
@@ -410,11 +413,11 @@
                     }
                 }
 
-                function parseHyperScript(tokens) {
+                function parseHyperScript(tokens:any) {
                     return parseElement("hyperscript", tokens)
                 }
 
-                function transpile(node, defaultVal) {
+                function transpile(node, defaultVal?) {
                     if (node == null) {
                         return defaultVal;
                     }
@@ -481,15 +484,16 @@
                 }
 
                 function evalTarget(root, path) {
+                    var last:any[]
                     if (root.length) {
-                        var last = root;
+                        last = root;
                     } else {
-                        var last = [root];
+                        last = [root];
                     }
 
                     while (path.length > 0) {
                         var prop = path.shift();
-                        var next = []
+                        var next:any[] = []
                         // flat map
                         for (var i = 0; i < last.length; i++) {
                             var element = last[i];
@@ -537,18 +541,21 @@
                 }
 
                 function evaluate(typeOrSrc, srcOrCtx, ctxArg) {
+                    var src:string
+                    var type:string
+                    var ctx:Object
                     if (isType(srcOrCtx, "Object")) {
-                        var src = typeOrSrc;
-                        var ctx = srcOrCtx;
-                        var type = "expression"
+                        src = typeOrSrc;
+                        ctx = srcOrCtx;
+                        type = "expression"
                     } else if (isType(srcOrCtx, "String")) {
-                        var src = srcOrCtx;
-                        var type = typeOrSrc
-                        var ctx = ctxArg;
+                        src = srcOrCtx;
+                        type = typeOrSrc
+                        ctx = ctxArg;
                     } else {
-                        var src = typeOrSrc;
-                        var ctx = {};
-                        var type = "expression";
+                        src = typeOrSrc;
+                        ctx = {};
+                        type = "expression";
                     }
                     ctx = ctx || {};
                     var compiled = _parser.parseElement(type, _lexer.tokenize(src) ).transpile();
@@ -730,7 +737,7 @@
 
             _parser.addGrammarElement("objectLiteral", function (parser, tokens) {
                 if (tokens.matchOpToken("{")) {
-                    var fields = []
+                    var fields:GrammarElementField[] = []
                     if (!tokens.matchOpToken("}")) {
                         do {
                             var name = tokens.requireTokenType("IDENTIFIER");
@@ -756,7 +763,7 @@
 
             _parser.addGrammarElement("namedArgumentList", function (parser, tokens) {
                 if (tokens.matchOpToken("(")) {
-                    var fields = []
+                    var fields:GrammarElementField[] = []
                     if (!tokens.matchOpToken(")")) {
                         do {
                             var name = tokens.requireTokenType("IDENTIFIER");
