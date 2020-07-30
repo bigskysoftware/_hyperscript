@@ -8,13 +8,13 @@
         root._hyperscript = factory();
     }
 }(typeof self !== 'undefined' ? self : this, function () {
-    return (function () {
+    return (function ():Hyperscript {
             'use strict';
 
             //-----------------------------------------------
             // Lexer
-            //-----------------------------------------------
-            var _lexer = function () {
+            //-----------------------------------------------            
+            var _lexer = function ():Lexer {
                 var OP_TABLE = {
                     '+': 'PLUS',
                     '-': 'MINUS',
@@ -46,37 +46,36 @@
                     '=': 'EQUALS'
                 };
 
-                function isValidCSSClassChar(c) {
+                function isValidCSSClassChar(c:string) {
                     return isAlpha(c) || isNumeric(c) || c === "-" || c === "_";
                 }
 
-                function isValidCSSIDChar(c) {
+                function isValidCSSIDChar(c:string) {
                     return isAlpha(c) || isNumeric(c) || c === "-" || c === "_" || c === ":";
                 }
 
-                function isWhitespace(c) {
+                function isWhitespace(c:string) {
                     return c === " " || c === "\t" || isNewline(c);
                 }
 
-                function positionString(token) {
+                function positionString(token:Token) {
                     return "[Line: " + token.line + ", Column: " + token.col + "]"
                 }
 
-                function isNewline(c) {
+                function isNewline(c:string) {
                     return c === '\r' || c === '\n';
                 }
 
-                function isNumeric(c) {
+                function isNumeric(c:string) {
                     return c >= '0' && c <= '9';
                 }
 
-                function isAlpha(c) {
+                function isAlpha(c:string) {
                     return (c >= 'a' && c <= 'z') ||
                         (c >= 'A' && c <= 'Z');
                 }
 
-
-                function makeTokensObject(tokens, consumed, source) {
+                function makeTokensObject(tokens:Token[], consumed, source): Tokens {
 
                     var ignoreWhiteSpace = true;
                     matchTokenType("WHITESPACE"); // consume any initial whitespace
@@ -119,13 +118,13 @@
                         }
                     }
 
-                    function matchTokenType(type1, type2, type3, type4) {
+                    function matchTokenType(type1?:string, type2?:string, type3?:string, type4?:string) {
                         if (currentToken() && currentToken().type && [type1, type2, type3, type4].indexOf(currentToken().type) >= 0) {
                             return consumeToken();
                         }
                     }
 
-                    function requireToken(value, type) {
+                    function requireToken(value, type:string) {
                         var token = matchToken(value, type);
                         if (token) {
                             return token;
@@ -134,14 +133,14 @@
                         }
                     }
 
-                    function matchToken(value, type) {
-                        var type = type || "IDENTIFIER";
-                        if (currentToken() && currentToken().value === value && currentToken().type === type) {
+                    function matchToken(value, type?:string) {
+                        var _type = type || "IDENTIFIER";
+                        if (currentToken() && currentToken().value === value && currentToken().type === _type) {
                             return consumeToken();
                         }
                     }
 
-                    function consumeToken() {
+                    function consumeToken():Token {
                         var match = tokens.shift();
                         consumed.push(match);
                         if(ignoreWhiteSpace) {
@@ -151,7 +150,7 @@
                     }
 
                     function consumeUntilWhitespace() {
-                        var tokenList = [];
+                        var tokenList:Token[] = [];
                         ignoreWhiteSpace = false;
                         while (currentToken() && currentToken().type !== "WHITESPACE") {
                             tokenList.push(consumeToken());
@@ -164,7 +163,7 @@
                         return tokens.length > 0;
                     }
 
-                    function currentToken() {
+                    function currentToken():Token {
                         return tokens[0];
                     }
 
@@ -185,7 +184,7 @@
                     }
                 }
 
-                function tokenize(string) {
+                function tokenize(string:string) {
                     var source = string;
                     var tokens = [];
                     var position = 0;
@@ -227,7 +226,7 @@
                         return token;
                     }
 
-                    function makeToken(type, value) {
+                    function makeToken(type:any, value?:any):Token {
                         return {
                             type: type,
                             value: value,
@@ -370,11 +369,11 @@
             //-----------------------------------------------
             // Parser
             //-----------------------------------------------
-            var _parser = function () {
+            var _parser = function ():Parser {
 
                 var GRAMMAR = {}
 
-                function addGrammarElement(name, definition) {
+                function addGrammarElement(name:string, definition:GrammarElement) {
                     GRAMMAR[name] = definition;
                 }
 
@@ -441,10 +440,10 @@
             //-----------------------------------------------
             // Runtime
             //-----------------------------------------------
-            var _runtime = function () {
+            var _runtime = function ():Runtime {
                 var SCRIPT_ATTRIBUTES = ["_", "script", "data-script"];
 
-                function matchesSelector(elt, selector) {
+                function matchesSelector(elt:Element, selector:string):boolean {
                     // noinspection JSUnresolvedVariable
                     var matchesFunction = elt.matches ||
                         elt.matchesSelector || elt.msMatchesSelector || elt.mozMatchesSelector
@@ -452,7 +451,7 @@
                     return matchesFunction && matchesFunction.call(elt, selector);
                 }
 
-                function makeEvent(eventName, detail) {
+                function makeEvent(eventName:string, detail):Event {
                     var evt;
                     if (window.CustomEvent && typeof window.CustomEvent === 'function') {
                         evt = new CustomEvent(eventName, {bubbles: true, cancelable: true, detail: detail});
@@ -463,7 +462,7 @@
                     return evt;
                 }
 
-                function triggerEvent(elt, eventName, detail) {
+                function triggerEvent(elt:Element, eventName:string, detail:Object):boolean {
                     var detail = detail || {};
                     detail["sentBy"] = elt;
                     var event = makeEvent(eventName, detail);
@@ -471,7 +470,7 @@
                     return eventResult;
                 }
 
-                function forEach(arr, func) {
+                function forEach(arr:any[], func) {
                     if (arr.length) {
                         for (var i = 0; i < arr.length; i++) {
                             func(arr[i]);
@@ -507,7 +506,7 @@
                     return last;
                 }
 
-                function getScript(elt) {
+                function getScript(elt:Element) {
                     for (var i = 0; i < SCRIPT_ATTRIBUTES.length; i++) {
                         var scriptAttribute = SCRIPT_ATTRIBUTES[i];
                         if (elt.hasAttribute && elt.hasAttribute(scriptAttribute)) {
@@ -517,13 +516,13 @@
                     return null;
                 }
 
-                function applyEventListeners(hypeScript, elt) {
+                function applyEventListeners(hypeScript, elt:Element) {
                     forEach(hypeScript.eventListeners, function (eventListener) {
                         eventListener(elt);
                     });
                 }
 
-                function setScriptAttrs(values) {
+                function setScriptAttrs(values:string[]) {
                     SCRIPT_ATTRIBUTES = values;
                 }
 
@@ -533,7 +532,7 @@
                     }).join(", ");
                 }
 
-                function isType(o, type) {
+                function isType(o:any, type:string) {
                     return Object.prototype.toString.call(o) === "[object " + type + "]";
                 }
 
@@ -560,7 +559,7 @@
                     return eval(evalString).apply(null, args);
                 }
 
-                function initElement(elt) {
+                function initElement(elt:Element) {
                     var src = getScript(elt);
                     if (src) {
                         var tokens = _lexer.tokenize(src);
@@ -574,7 +573,7 @@
                     }
                 }
 
-                function ajax(method, url, callback, data) {
+                function ajax(method:string, url:string, callback, data) {
                     var xhr = new XMLHttpRequest();
                     xhr.onload = function() {
                         callback(this.response, xhr);
@@ -583,7 +582,7 @@
                     xhr.send(JSON.stringify(data));
                 }
 
-                function typeCheck(value, typeString, nullOk) {
+                function typeCheck(value:any, typeString:string, nullOk:boolean) {
                     if (value == null && nullOk) {
                         return value;
                     }
@@ -1660,11 +1659,11 @@
                 return true;
             }
 
-            function init(elt) {
+            function init(elt:Element) {
                 _runtime.initElement(elt);
             }
 
-            function evaluate(str) {
+            function evaluate(str:string) {
                 return _runtime.evaluate(str);
             }
 

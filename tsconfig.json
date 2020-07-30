@@ -1,0 +1,21 @@
+{
+	"compilerOptions": {
+		"allowJs": false,
+		"checkJs": false,
+		"noImplicitAny": false, // TODO
+		"noImplicitThis": false, // TODO
+		"outFile": "dist/_hyperscript.js",
+		"strict": false, // TODO
+		"strictBindCallApply": false, // TODO
+		"strictFunctionTypes": false, // TODO
+		"strictNullChecks": true,
+		"strictPropertyInitialization": true,
+		"target": "ES6"
+	},
+	"include":[
+		"src/*"
+	],
+	"exclude": [
+		"node_modules"
+	]
+}
