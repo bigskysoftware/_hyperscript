@@ -77,6 +77,10 @@
                         (c >= 'A' && c <= 'Z');
                 }
 
+                function isIdentifierChar(c) {
+                    return (c === "_" || c === "$");
+                }
+
 
                 function makeTokensObject(tokens, consumed, source) {
 
@@ -205,7 +209,7 @@
                                 tokens.push(consumeClassReference());
                             } else if (!possiblePrecedingSymbol() && currentChar() === "#" && isAlpha(nextChar())) {
                                 tokens.push(consumeIdReference());
-                            } else if (isAlpha(currentChar())) {
+                            } else if (isAlpha(currentChar()) || isIdentifierChar(currentChar())) {
                                 tokens.push(consumeIdentifier());
                             } else if (isNumeric(currentChar())) {
                                 tokens.push(consumeNumber());
@@ -273,7 +277,7 @@
                     function consumeIdentifier() {
                         var identifier = makeToken("IDENTIFIER");
                         var value = consumeChar();
-                        while (isAlpha(currentChar())) {
+                        while (isAlpha(currentChar()) || isIdentifierChar(currentChar())) {
                             value += consumeChar();
                         }
                         identifier.value = value;

@@ -44,5 +44,33 @@ describe("the call command", function() {
         }
     })
 
+    it("can call functions w/ underscores", function(){
+        var called = false;
+        window.global_function = function(){
+            called = true;
+        }
+        try {
+            var div = make("<div _='on click call global_function()'></div>");
+            div.click();
+            called.should.equal(true);
+        } finally {
+            delete window.global_function;
+        }
+    })
+
+    it("can call functions w/ dollar signs", function(){
+        var called = false;
+        window.$ = function(){
+            called = true;
+        }
+        try {
+            var div = make("<div _='on click call $()'></div>");
+            div.click();
+            called.should.equal(true);
+        } finally {
+            delete window.$;
+        }
+    })
+
 });
 
