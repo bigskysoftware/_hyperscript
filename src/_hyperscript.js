@@ -931,10 +931,12 @@
             _parser.addGrammarElement("functionCall", function (parser, tokens, root) {
                 if (tokens.matchOpToken("(")) {
                     var args = [];
-                    do {
-                        args.push(parser.parseElement("expression", tokens));
-                    } while (tokens.matchOpToken(","))
-                    tokens.requireOpToken(")");
+                    if (!tokens.matchOpToken(')')) {
+                        do {
+                            args.push(parser.parseElement("expression", tokens));
+                        } while (tokens.matchOpToken(","))
+                        tokens.requireOpToken(")");
+                    }
                     var functionCall = {
                         type: "functionCall",
                         root: root,

@@ -30,5 +30,19 @@ describe("the call command", function() {
         }
     })
 
+    it("can call no argument functions", function(){
+        var called = false;
+        window.globalFunction = function(){
+            called = true;
+        }
+        try {
+            var div = make("<div _='on click call globalFunction()'></div>");
+            div.click();
+            called.should.equal(true);
+        } finally {
+            delete window.globalFunction;
+        }
+    })
+
 });
 
