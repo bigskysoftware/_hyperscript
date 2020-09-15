@@ -11,6 +11,18 @@
     return (function () {
             'use strict';
 
+            // Public API
+            var _hyperscript = {
+                lexer: _lexer,
+                parser: _parser,
+                runtime: _runtime,
+                evaluate: evaluate,
+                processNode: processNode,
+                config: {
+                    attributes : "_, script, data-script"
+                }
+            };
+
             //====================================================================
             // Utilities
             //====================================================================
@@ -1753,17 +1765,6 @@
                     _hyperscript.config = mergeObjects(_hyperscript.config , metaConfig)
                 }
             }
-
-            var _hyperscript = {
-                lexer: _lexer,
-                parser: _parser,
-                runtime: _runtime,
-                evaluate: evaluate,
-                processNode: processNode,
-                config: {
-                    attributes : "_, script, data-script"
-                }
-            };
 
             ready(function () {
                 mergeMetaConfig();
