@@ -11,18 +11,6 @@
     return (function () {
             'use strict';
 
-            // Public API
-            var _hyperscript = {
-                lexer: _lexer,
-                parser: _parser,
-                runtime: _runtime,
-                evaluate: evaluate,
-                processNode: processNode,
-                toJS: compileToJS,
-                config: {
-                    attributes : "_, script, data-script"
-                }
-            };
 
             //====================================================================
             // Utilities
@@ -1781,7 +1769,18 @@
                 })
             })
 
-            return _hyperscript;
+            /* Public API */
+            return {
+                lexer: _lexer,
+                parser: _parser,
+                runtime: _runtime,
+                evaluate: evaluate,
+                processNode: processNode,
+                toJS: compileToJS,
+                config: {
+                    attributes : "_, script, data-script"
+                }
+            }
         }
     )()
 }));
