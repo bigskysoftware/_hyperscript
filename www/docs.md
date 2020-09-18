@@ -7,13 +7,10 @@ title: ///_hyperscript
 
 ### Quick Start
 
-Load hyperscript and start it:
+Include hyperscript:
 
 ```html
-<script src="https://unpkg.com/hyperscript.org@0.0.1-alpha2"></script>
-<script>
-_hyperscript.start();
-</script>
+<script src="https://unpkg.com/hyperscript.org@0.0.1"></script>
 ```
 
 Then add some hyperscript to an element:

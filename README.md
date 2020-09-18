@@ -13,9 +13,6 @@ it is a companion project of <https://htmx.org>
 ```html
 
 <script src="https://unpkg.com/hyperscript.org@0.0.1-alpha"></script>
-<script>
-_hyperscript.start();
-</script>
 
 <button _="on click toggle .clicked">
   Toggle the "clicked" class on me
