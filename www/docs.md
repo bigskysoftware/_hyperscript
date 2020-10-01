@@ -10,7 +10,7 @@ title: ///_hyperscript
 Include hyperscript:
 
 ```html
-<script src="https://unpkg.com/hyperscript.org@0.0.1"></script>
+<script src="https://unpkg.com/hyperscript.org@0.0.2"></script>
 ```
 
 Then add some hyperscript to an element:
