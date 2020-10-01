@@ -13,7 +13,7 @@ it is a companion project of <https://htmx.org>
 ## samples
 
 ```html
-<script src="https://unpkg.com/hyperscript.org@0.0.2"></script>
+<script src="https://unpkg.com/hyperscript.org@0.0.3"></script>
 
 <button _="on click toggle .big-text">
   Toggle the "clicked" class on me
