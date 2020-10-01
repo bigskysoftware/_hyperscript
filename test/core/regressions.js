@@ -29,4 +29,12 @@ describe("_hyperscript regressions", function() {
         div1.innerHTML.should.equal("foo");
     })
 
+    it("can remove class by id", function(){
+        var form = make("<form class='hideme' id='email-form'></form>");
+        var div = make("<div _='on click remove .hideme from #email-form'></div>");
+        form.classList.contains('hideme').should.equal(true);
+        div.click();
+        form.classList.contains('hideme').should.equal(false);
+    })
+
 });
