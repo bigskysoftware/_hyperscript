@@ -16,7 +16,7 @@ it is a companion project of <https://htmx.org>
 <script src="https://unpkg.com/hyperscript.org@0.0.2"></script>
 
 <button _="on click toggle .big-text">
-  Toggle the "clicked" class on me
+  Toggle the "big-text" class on me on click
 </button>
 
 <div _="on mouseenter add .visible to #help end
