@@ -159,7 +159,7 @@ Below is a reference for the various features, commands and expressions availabl
 | [boolean](/expressions/boolean) | Boolean literals | `true`<br/>`false`
 | [class reference](/expressions/class-reference) | A class reference | `.active`
 | [comparison oeprator](/expressions/comparison-operator) | Comparison operators | `x < y`<br/>`z === "foo"`
-| [id reference](/expressions/id-reference) | A class reference | `#main-div`
+| [id reference](/expressions/id-reference) | An id reference | `#main-div`
 | [logical oeprator](/expressions/logical-operator) | Logical operators | `x and y`<br/>`z or false`
 | [math operator](/expressions/math-operator) | A mathematical operator | `1 + 2`
 | [number](/expressions/number) | A number | `3.14`
