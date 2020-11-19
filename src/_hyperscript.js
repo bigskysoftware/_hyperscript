@@ -1733,7 +1733,7 @@
             //====================================================================
             function ready(fn) {
                 if (document.readyState !== 'loading') {
-                    fn();
+                    setTimeout(fn,0);
                 } else {
                     document.addEventListener('DOMContentLoaded', fn);
                 }
