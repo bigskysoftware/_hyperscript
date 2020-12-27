@@ -158,9 +158,9 @@ Below is a reference for the various features, commands and expressions availabl
 | [block literal](/expressions/block-literal) | An anonymous function with an expression body | `\ x -> x * x`
 | [boolean](/expressions/boolean) | Boolean literals | `true`<br/>`false`
 | [class reference](/expressions/class-reference) | A class reference | `.active`
-| [comparison oeprator](/expressions/comparison-operator) | Comparison operators | `x < y`<br/>`z === "foo"`
+| [comparison operator](/expressions/comparison-operator) | Comparison operators | `x < y`<br/>`z === "foo"`
 | [id reference](/expressions/id-reference) | A class reference | `#main-div`
-| [logical oeprator](/expressions/logical-operator) | Logical operators | `x and y`<br/>`z or false`
+| [logical operator](/expressions/logical-operator) | Logical operators | `x and y`<br/>`z or false`
 | [math operator](/expressions/math-operator) | A mathematical operator | `1 + 2`
 | [number](/expressions/number) | A number | `3.14`
 | [object literal](/expressions/object-literal) | A javascript-style object literal | `{foo:"bar"}`
