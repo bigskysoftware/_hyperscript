@@ -39,5 +39,10 @@ describe("the on feature", function() {
         div.classList.contains("fromBar").should.equal(true);
     })
 
+    it("can fire an event on load", function(){
+        var div = make("<div id='d1' _='on load put \"Loaded\" into my.innerHTML'></div>");
+        div.innerText.should.equal("Loaded");
+    })
+
 });
 
