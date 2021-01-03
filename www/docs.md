@@ -154,7 +154,7 @@ Below is a reference for the various features, commands and expressions availabl
 |  name | description | example
 |-------|-------------|---------
 | [array literal](/expressions/array-literal) | An array literal, as in JavaScript | `[1, 2, 3]`
-| [attribute reference](/expressions/attribute-reference) | An attribute reference | `[selected=true]`
+| [attribute reference](/expressions/attribute-ref) | An attribute reference | `[selected=true]`
 | [block literal](/expressions/block-literal) | An anonymous function with an expression body | `\ x -> x * x`
 | [boolean](/expressions/boolean) | Boolean literals | `true`<br/>`false`
 | [class reference](/expressions/class-reference) | A class reference | `.active`
