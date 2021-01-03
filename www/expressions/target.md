@@ -18,7 +18,7 @@ title: ///_hyperscript
 A target expressions consists of a root expression that can be either a symbol, an [id ref](/expresssions/id-ref) or
 a [class ref](/expresssions/class-ref).  Following that is an optional number of property invocations forming a property chain.
 
-The root expression is evaluated.  If there is a prpoerty chain, the root value is iterated over (if it is a list) using 
+The root expression is evaluated.  If there is a property chain, the root value is iterated over (if it is a list) using 
 the property chain as the final target.
 
 ### Examples
