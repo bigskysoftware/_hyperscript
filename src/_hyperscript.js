@@ -452,18 +452,6 @@
                     return parseElement("hyperscript", tokens)
                 }
 
-                function transpile(node, defaultVal) {
-                    if (node == null) {
-                        return defaultVal;
-                    }
-                    var src = node.transpile();
-                    if (node.next) {
-                        return src + "\n" + transpile(node.next)
-                    } else {
-                        return src;
-                    }
-                }
-
                 return {
                     // parser API
                     parseElement: parseElement,
@@ -471,7 +459,6 @@
                     parseHyperScript: parseHyperScript,
                     raiseParseError: raiseParseError,
                     addGrammarElement: addGrammarElement,
-                    transpile: transpile
                 }
             }();
 
@@ -687,8 +674,8 @@
                         return {
                             type: "parenthesized",
                             expr: expr,
-                            transpile: function () {
-                                return "(" + parser.transpile(expr) + ")";
+                            evaluate: function () {
+                                return expr.evaluate();
                             }
                         }
                     }
@@ -700,12 +687,8 @@
                         return {
                             type: "string",
                             token: stringToken,
-                            transpile: function () {
-                                if (stringToken.value.indexOf("'") === 0) {
-                                    return "'" + stringToken.value + "'";
-                                } else {
-                                    return '"' + stringToken.value + '"';
-                                }
+                            evaluate: function () {
+                                return stringToken.value;
                             }
                         }
                     }
@@ -718,10 +701,8 @@
                         return {
                             type: "nakedString",
                             tokens: tokenArr,
-                            transpile: function () {
-                                return "'" + tokenArr.map(function (t) {
-                                    return t.value
-                                }).join("") + "'";
+                            evaluate: function () {
+                                return tokenArr.map(function (t) {return t.value}).join("");
                             }
                         }
                     }
@@ -736,8 +717,8 @@
                             type: "number",
                             value: value,
                             numberToken: numberToken,
-                            transpile: function () {
-                                return numberToken.value;
+                            evaluate: function () {
+                                return value;
                             }
                         }
                     }
@@ -749,8 +730,8 @@
                         return {
                             type: "idRef",
                             value: elementId.value.substr(1),
-                            transpile: function () {
-                                return "document.getElementById('" + this.value + "')"
+                            evaluate: function () {
+                                return document.getElementById(this.value);
                             }
                         };
                     }
@@ -765,8 +746,8 @@
                             className: function () {
                                 return this.value.substr(1);
                             },
-                            transpile: function () {
-                                return "document.querySelectorAll('" + this.value + "')"
+                            evaluate: function () {
+                                return document.querySelectorAll(this.value);
                             }
                         };
                     }
@@ -784,11 +765,11 @@
                             type: "attribute_expression",
                             name: name.value,
                             value: value,
-                            transpile: function () {
+                            evaluate: function () {
                                 if (this.value) {
-                                    return "({name: '" + this.name + "', value: " + parser.transpile(this.value) + "})";
+                                    return {name:this.name, value:this.value.evaluate()};
                                 } else {
-                                    return "({name: '" + this.name + "'})";
+                                    return {name:this.name};
                                 }
                             }
                         }
@@ -810,10 +791,12 @@
                         return {
                             type: "objectLiteral",
                             fields: fields,
-                            transpile: function () {
-                                return "({" + fields.map(function (field) {
-                                    return field.name.value + ":" + parser.transpile(field.value)
-                                }).join(", ") + "})";
+                            evaluate: function () {
+                                var returnVal = {};
+                                for (var i = 0; i < fields.length; i++) {
+                                    var field = fields[i];
+                                    returnVal[field.name] = field.value.evaluate();
+                                }
                             }
                         }
                     }
@@ -836,10 +819,12 @@
                         return {
                             type: "namedArgumentList",
                             fields: fields,
-                            transpile: function () {
-                                return "({_namedArgList_:true, " + fields.map(function (field) {
-                                    return field.name.value + ":" + parser.transpile(field.value)
-                                }).join(", ") + "})";
+                            evaluate: function () {
+                                var returnVal = {_namedArgList_:true};
+                                for (var i = 0; i < fields.length; i++) {
+                                    var field = fields[i];
+                                    returnVal[field.name] = field.value.evaluate();
+                                }
                             }
                         }
                     }
@@ -853,7 +838,7 @@
                         return {
                             type: "symbol",
                             name: identifier.value,
-                            transpile: function () {
+                            evaluate: function () {
                                 return identifier.value;
                             }
                         };
