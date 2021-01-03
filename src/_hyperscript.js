@@ -612,6 +612,7 @@
                             }
                             var hyperscriptObj = eval(transpiled);
                             hyperscriptObj.applyEventListenersTo(elt);
+                            triggerEvent(elt, 'load');
                         }
                     }
                 }

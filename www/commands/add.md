@@ -11,8 +11,8 @@ title: ///_hyperscript
 
 ### Description
 
-The `add` command allows you to add a class (via a [class ref](/expresssions/class-ref)) or an attribute
-(via an [attribute ref](/expresssions/attribute-ref)) to either the current element or, if a [target expression](/expressions/target)
+The `add` command allows you to add a class (via a [class ref](/expressions/class-reference)) or an attribute
+(via an [attribute ref](/expressions/attribute-ref)) to either the current element or, if a [target expression](/expressions/target)
 is provided, to the targeted element(s).
 
 ### Examples
