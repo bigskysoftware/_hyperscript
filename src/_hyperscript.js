@@ -550,7 +550,7 @@
 
                 function applyEventListeners(hypeScript, elt) {
                     forEach(hypeScript.eventListeners, function (eventListener) {
-                        eventListener(elt);
+                        elt.addEventListener(eventListener.on, elt.execute);
                     });
                 }
 
@@ -579,12 +579,8 @@
                         var type = "expression";
                     }
                     ctx = ctx || {};
-                    var compiled = _parser.parseElement(type, _lexer.tokenize(src) ).transpile();
-                    var evalString = "(function(" + Object.keys(ctx).join(",") + "){return " + compiled + "})";
-                    var args = Object.keys(ctx).map(function (key) {
-                        return ctx[key]
-                    });
-                    return eval(evalString).apply(null, args);
+                    var compiled = _parser.parseElement(type, _lexer.tokenize(src) );
+                    return compiled.evaluate(ctx);
                 }
 
                 function processNode(elt) {
@@ -606,12 +602,7 @@
                             internalData.script = src;
                             var tokens = _lexer.tokenize(src);
                             var hyperScript = _parser.parseHyperScript(tokens);
-                            var transpiled = _parser.transpile(hyperScript);
-                            if (elt.getAttribute('debug') === "true") {
-                                console.log(transpiled);
-                            }
-                            var hyperscriptObj = eval(transpiled);
-                            hyperscriptObj.applyEventListenersTo(elt);
+                            _runtime.applyEventListeners(hyperScript, elt);
                             triggerEvent(elt, 'load');
                         }
                     }
@@ -675,8 +666,8 @@
                         return {
                             type: "parenthesized",
                             expr: expr,
-                            evaluate: function () {
-                                return expr.evaluate();
+                            evaluate: function (context) {
+                                return expr.evaluate(context);
                             }
                         }
                     }
@@ -688,7 +679,7 @@
                         return {
                             type: "string",
                             token: stringToken,
-                            evaluate: function () {
+                            evaluate: function (context) {
                                 return stringToken.value;
                             }
                         }
@@ -702,7 +693,7 @@
                         return {
                             type: "nakedString",
                             tokens: tokenArr,
-                            evaluate: function () {
+                            evaluate: function (context) {
                                 return tokenArr.map(function (t) {return t.value}).join("");
                             }
                         }
@@ -731,7 +722,7 @@
                         return {
                             type: "idRef",
                             value: elementId.value.substr(1),
-                            evaluate: function () {
+                            evaluate: function (context) {
                                 return document.getElementById(this.value);
                             }
                         };
@@ -744,7 +735,7 @@
                         return {
                             type: "classRef",
                             value: classRef.value,
-                            className: function () {
+                            className: function (context) {
                                 return this.value.substr(1);
                             },
                             evaluate: function () {
@@ -766,7 +757,7 @@
                             type: "attribute_expression",
                             name: name.value,
                             value: value,
-                            evaluate: function () {
+                            evaluate: function (context) {
                                 if (this.value) {
                                     return {name:this.name, value:this.value.evaluate()};
                                 } else {
@@ -792,12 +783,13 @@
                         return {
                             type: "objectLiteral",
                             fields: fields,
-                            evaluate: function () {
+                            evaluate: function (context) {
                                 var returnVal = {};
                                 for (var i = 0; i < fields.length; i++) {
                                     var field = fields[i];
-                                    returnVal[field.name] = field.value.evaluate();
+                                    returnVal[field.name.value] = field.value.evaluate(context);
                                 }
+                                return returnVal;
                             }
                         }
                     }
@@ -820,11 +812,11 @@
                         return {
                             type: "namedArgumentList",
                             fields: fields,
-                            evaluate: function () {
+                            evaluate: function (context) {
                                 var returnVal = {_namedArgList_:true};
                                 for (var i = 0; i < fields.length; i++) {
                                     var field = fields[i];
-                                    returnVal[field.name] = field.value.evaluate();
+                                    returnVal[field.name] = field.value.evaluate(context);
                                 }
                             }
                         }
@@ -839,7 +831,7 @@
                         return {
                             type: "symbol",
                             name: identifier.value,
-                            evaluate: function () {
+                            evaluate: function (context) {
                                 return identifier.value;
                             }
                         };
@@ -849,8 +841,8 @@
                 _parser.addGrammarElement("implicitMeTarget", function (parser, tokens) {
                     return {
                         type: "implicitMeTarget",
-                        transpile: function () {
-                            return "[me]"
+                        evaluate: function (context) {
+                            return context.me
                         }
                     };
                 });
@@ -858,8 +850,8 @@
                 _parser.addGrammarElement("implicitAllTarget", function (parser, tokens) {
                     return {
                         type: "implicitAllTarget",
-                        transpile: function () {
-                            return 'document.querySelectorAll("*")';
+                        evaluate: function (context) {
+                            return document.querySelectorAll("*");
                         }
                     };
                 });
@@ -876,7 +868,7 @@
                         type: "millisecondLiteral",
                         number: number,
                         factor: factor,
-                        transpile: function () {
+                        evaluate: function (context) {
                             return factor * parseFloat(this.number.value);
                         }
                     };
@@ -887,8 +879,8 @@
                     if (booleanLiteral) {
                         return {
                             type: "boolean",
-                            transpile: function () {
-                                return booleanLiteral.value;
+                            evaluate: function (context) {
+                                return booleanLiteral.value === "true";
                             }
                         }
                     }
@@ -898,8 +890,8 @@
                     if (tokens.matchToken('null')) {
                         return {
                             type: "null",
-                            transpile: function () {
-                                return "null";
+                            evaluate: function (context) {
+                                return null;
                             }
                         }
                     }
@@ -921,10 +913,8 @@
                         return {
                             type: "arrayLiteral",
                             values: values,
-                            transpile: function () {
-                                return "[" + values.map(function (v) {
-                                    return parser.transpile(v)
-                                }).join(", ") + "]";
+                            evaluate: function (context) {
+                                return values.map(function (v) {return v.evaluate(context);});
                             }
                         }
                     }
@@ -952,10 +942,12 @@
                             args: args,
                             expr: expr,
                             transpile: function () {
-                                return "function(" + args.map(function (arg) {
-                                        return arg.value
-                                    }).join(", ") + "){ return " +
-                                    parser.transpile(expr) + " }";
+                                return null;
+                                // TODO
+                                // "function(" + args.map(function (arg) {
+                                //         return arg.value
+                                //     }).join(", ") + "){ return " +
+                                //     parser.transpile(expr) + " }";
                             }
                         }
                     }
@@ -972,8 +964,9 @@
                             type: "propertyAccess",
                             root: root,
                             prop: prop,
-                            transpile: function () {
-                                return parser.transpile(root) + "." + prop.value;
+                            evaluate: function (context) {
+                                var root = root.evaluate(context);
+                                return root == null ? null : root[prop.value];
                             }
                         };
                         return _parser.parseElement("indirectExpression", tokens, propertyAccess);
@@ -1035,8 +1028,8 @@
                             typeName: typeName,
                             root: root,
                             nullOk: nullOk,
-                            transpile: function () {
-                                return "_hyperscript.runtime.typeCheck(" + parser.transpile(root) + ", '" + typeName.value + "', " + nullOk + ")";
+                            evaluate: function (context) {
+                                return _runtime.typeCheck(root.evaluate(context), this.typeName.value, this.nullOk);
                             }
                         }
                     } else {
@@ -1050,8 +1043,8 @@
                         return {
                             type: "logicalNot",
                             root: root,
-                            transpile: function () {
-                                return "!" + parser.transpile(root);
+                            evaluate: function (context) {
+                                return ! + root.evaluate(context);
                             }
                         };
                     }
@@ -1063,8 +1056,8 @@
                         return {
                             type: "negativeNumber",
                             root: root,
-                            transpile: function () {
-                                return "-" + parser.transpile(root);
+                            evaluate: function () {
+                                return -1 * root.evaluate();
                             }
                         };
                     }
@@ -1089,8 +1082,20 @@
                             operator: mathOp.value,
                             lhs: expr,
                             rhs: rhs,
-                            transpile: function () {
-                                return parser.transpile(this.lhs) + " " + this.operator + " " + parser.transpile(this.rhs);
+                            evaluate: function (context) {
+                                var lhsVal = this.lhs.evaluate(context);
+                                var rhsVal = this.rhs.evaluate(context);
+                                if (this.operator === "+") {
+                                    return lhsVal + rhsVal;
+                                } else if (this.operator === "-") {
+                                    return lhsVal - rhsVal;
+                                } else if (this.operator === "*") {
+                                    return lhsVal * rhsVal;
+                                } else if (this.operator === "/") {
+                                    return lhsVal / rhsVal;
+                                } else if (this.operator === "%") {
+                                    return lhsVal % rhsVal;
+                                }
                             }
                         }
                         mathOp = tokens.matchAnyOpToken("+", "-", "*", "/", "%")
@@ -1117,9 +1122,26 @@
                             operator: comparisonOp.value,
                             lhs: expr,
                             rhs: rhs,
-                            transpile: function () {
-                                return parser.transpile(this.lhs) + " " + this.operator + " " + parser.transpile(this.rhs);
-                            }
+                            evaluate: function (context) {
+                                var lhsVal = this.lhs.evaluate(context);
+                                var rhsVal = this.rhs.evaluate(context);
+                                if (this.operator === "<") {
+                                    return lhsVal < rhsVal;
+                                } else if (this.operator === ">") {
+                                    return lhsVal > rhsVal;
+                                } else if (this.operator === "<=") {
+                                    return lhsVal <= rhsVal;
+                                } else if (this.operator === ">=") {
+                                    return lhsVal >= rhsVal;
+                                } else if (this.operator === "==") {
+                                    return lhsVal == rhsVal;
+                                } else if (this.operator === "===") {
+                                    return lhsVal === rhsVal;
+                                } else if (this.operator === "!=") {
+                                    return lhsVal != rhsVal;
+                                } else if (this.operator === "!==") {
+                                    return lhsVal !== rhsVal;
+                                }                            }
                         }
                         comparisonOp = tokens.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==")
                     }
@@ -1145,8 +1167,14 @@
                             operator: logicalOp.value,
                             lhs: expr,
                             rhs: rhs,
-                            transpile: function () {
-                                return parser.transpile(this.lhs) + " " + (this.operator === "and" ? " && " : " || ") + " " + parser.transpile(this.rhs);
+                            evaluate: function (context) {
+                                var lhsVal = this.lhs.evaluate(context);
+                                var rhsVal = this.rhs.evaluate(context);
+                                if (this.operator === "and") {
+                                    return lhsVal && rhsVal;
+                                } else {
+                                    return lhsVal || rhsVal;
+                                }
                             }
                         }
                         logicalOp = tokens.matchToken("and") || tokens.matchToken("or");
@@ -1210,15 +1238,8 @@
                     return {
                         type: "hyperscript",
                         eventListeners: eventListeners,
-                        transpile: function () {
-                            return "(function(){\n" +
-                                "var eventListeners = []\n" +
-                                eventListeners.map(function (el) {
-                                    return "  eventListeners.push(" + parser.transpile(el) + ");\n"
-                                }).join("") +
-                                "      function applyEventListenersTo(elt) { _hyperscript.runtime.applyEventListeners(this, elt) }\n" +
-                                "      return {eventListeners:eventListeners, applyEventListenersTo:applyEventListenersTo}\n" +
-                                "})()"
+                        execute: function () {
+                            // no op
                         }
                     };
                 })
@@ -1252,18 +1273,8 @@
                         on: on,
                         from: from,
                         start: start,
-                        transpile: function () {
-                            return "(function(me){" +
-                                "var my = me;\n" +
-                                "_hyperscript.runtime.forEach( " + parser.transpile(from) + ", function(target){\n" +
-                                "  target.addEventListener('" + parser.transpile(on) + "', function(event){\n" +
-                                args.map(function (arg) {
-                                    return "var " + arg.value + " = event.detail." + arg.value + ";"
-                                }).join("\n") + "\n" +
-                                parser.transpile(start) +
-                                "  })\n" +
-                                "})\n" +
-                                "})"
+                        execute: function () {
+                            start.execute();
                         }
                     };
                     return eventListener;
