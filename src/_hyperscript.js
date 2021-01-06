@@ -640,6 +640,23 @@
                     }
                 }
 
+                function getMe(context) {
+                    return context["me"];
+                }
+
+                function resolveSymbol(str, context) {
+                    if (str === "me" || str === "my") {
+                        return getMe(context);
+                    } else {
+                        var fromContext = context[str];
+                        if (fromContext) {
+                            return fromContext;
+                        } else {
+                            return window[str];
+                        }
+                    }
+                }
+
                 return {
                     typeCheck: typeCheck,
                     forEach: forEach,
@@ -652,6 +669,7 @@
                     evaluate: evaluate,
                     getScriptSelector: getScriptSelector,
                     ajax: ajax,
+                    resolveSymbol: resolveSymbol
                 }
             }();
 
@@ -832,7 +850,7 @@
                             type: "symbol",
                             name: identifier.value,
                             evaluate: function (context) {
-                                return identifier.value;
+                                return _runtime.resolveSymbol(context);
                             }
                         };
                     }
