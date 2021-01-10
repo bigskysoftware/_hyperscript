@@ -548,9 +548,33 @@
                     return null;
                 }
 
+                var GLOBALS = {}
+                function makeContext(root, elt, event) {
+                    var ctx = {
+                        meta: {
+                            parser: _parser,
+                            lexer: _lexer,
+                            runtime: _runtime,
+                            root: root
+                        },
+                        me: elt,
+                        event: event,
+                        detail: event.detail,
+                        body: document.body,
+                        globals: GLOBALS
+                    }
+                    ctx.meta.ctx = ctx;
+                    return ctx;
+                }
+
                 function applyEventListeners(hypeScript, elt) {
-                    forEach(hypeScript.eventListeners, function (eventListener) {
-                        elt.addEventListener(eventListener.on, elt.execute);
+                    forEach(hypeScript.onFeatures, function (onFeature) {
+                        forEach(onFeature.from ? onFeature.from.evaluate({}) : [elt], function(target){
+                            target.addEventListener(onFeature.on.evaluate(), function(evt){
+                                var ctx = makeContext(onFeature, elt, evt);
+                                onFeature.execute(ctx)
+                            });
+                        })
                     });
                 }
 
@@ -657,6 +681,18 @@
                     }
                 }
 
+                function next(command, ctx) {
+                    if (command) {
+                        if (command.handleNext) {
+                            command.handleNext(ctx);
+                        } else if (command.next) {
+                            command.next.execute(ctx);
+                        } else {
+                            next(command.parentCommand, ctx)
+                        }
+                    }
+                }
+
                 return {
                     typeCheck: typeCheck,
                     forEach: forEach,
@@ -669,7 +705,8 @@
                     evaluate: evaluate,
                     getScriptSelector: getScriptSelector,
                     ajax: ajax,
-                    resolveSymbol: resolveSymbol
+                    resolveSymbol: resolveSymbol,
+                    next: next
                 }
             }();
 
@@ -753,7 +790,7 @@
                         return {
                             type: "classRef",
                             value: classRef.value,
-                            className: function (context) {
+                            className: function () {
                                 return this.value.substr(1);
                             },
                             evaluate: function () {
@@ -777,7 +814,7 @@
                             value: value,
                             evaluate: function (context) {
                                 if (this.value) {
-                                    return {name:this.name, value:this.value.evaluate()};
+                                    return {name:this.name, value:this.value.evaluate(context)};
                                 } else {
                                     return {name:this.name};
                                 }
@@ -1223,10 +1260,8 @@
                         type: "target",
                         propPath: propPath,
                         root: root,
-                        transpile: function () {
-                            return "_hyperscript.runtime.evalTarget(" + parser.transpile(root) + ", [" + propPath.map(function (prop) {
-                                return "\"" + prop + "\""
-                            }).join(", ") + "])";
+                        evaluate: function (ctx) {
+                            return _runtime.evalTarget(root.evaluate(ctx), propPath);
                         }
                     };
                 });
@@ -1246,35 +1281,34 @@
                 })
 
                 _parser.addGrammarElement("hyperscript", function (parser, tokens) {
-                    var eventListeners = []
+                    var onFeatures = []
                     do {
-                        eventListeners.push(parser.parseElement("eventListener", tokens));
+                        onFeatures.push(parser.parseElement("onFeature", tokens));
                     } while (tokens.matchToken("end") && tokens.hasMore())
                     if (tokens.hasMore()) {
                         parser.raiseParseError(tokens);
                     }
                     return {
                         type: "hyperscript",
-                        eventListeners: eventListeners,
+                        onFeatures: onFeatures,
                         execute: function () {
                             // no op
                         }
                     };
                 })
 
-                _parser.addGrammarElement("eventListener", function (parser, tokens) {
+                _parser.addGrammarElement("onFeature", function (parser, tokens) {
                     tokens.requireToken("on");
                     var on = parser.parseElement("dotOrColonPath", tokens);
                     if (on == null) {
                         parser.raiseParseError(tokens, "Expected event name")
                     }
+                    var from = null;
                     if (tokens.matchToken("from")) {
-                        var from = parser.parseElement("target", tokens);
+                        from = parser.parseElement("target", tokens);
                         if (from == null) {
                             parser.raiseParseError(tokens, "Expected target value")
                         }
-                    } else {
-                        var from = parser.parseElement("implicitMeTarget", tokens);
                     }
 
                     var args = [];
@@ -1286,16 +1320,16 @@
                     }
 
                     var start = parser.parseElement("commandList", tokens);
-                    var eventListener = {
-                        type: "eventListener",
+                    var onFeature = {
+                        type: "onFeature",
                         on: on,
                         from: from,
                         start: start,
-                        execute: function () {
-                            start.execute();
+                        execute: function (ctx) {
+                            start.execute(ctx);
                         }
                     };
-                    return eventListener;
+                    return onFeature;
                 });
 
                 _parser.addGrammarElement("addCmd", function (parser, tokens) {
@@ -1320,16 +1354,17 @@
                             classRef: classRef,
                             attributeRef: attributeRef,
                             to: to,
-                            transpile: function () {
+                            execute: function (ctx) {
                                 if (this.classRef) {
-                                    return "_hyperscript.runtime.forEach( " + parser.transpile(to) + ", function (target) {" +
-                                        "  target.classList.add('" + classRef.className() + "')" +
-                                        "})";
+                                    _runtime.forEach(to.evaluate(ctx), function(target){
+                                        target.classList.add(classRef.className());
+                                    })
                                 } else {
-                                    return "_hyperscript.runtime.forEach( " + parser.transpile(to) + ", function (target) {" +
-                                        "  target.setAttribute('" + attributeRef.name + "', " + parser.transpile(attributeRef) + ".value)" +
-                                        "})";
+                                    _runtime.forEach(to.evaluate(ctx), function(target){
+                                        target.setAttribute(attributeRef.name, attributeRef.evaluate(ctx).value);
+                                    })
                                 }
+                                _runtime.next(this, ctx);
                             }
                         }
                     }
@@ -1402,19 +1437,19 @@
                             classRef: classRef,
                             attributeRef: attributeRef,
                             on: on,
-                            transpile: function () {
+                            execute: function (ctx) {
                                 if (this.classRef) {
-                                    return "_hyperscript.runtime.forEach( " + parser.transpile(on) + ", function (target) {" +
-                                        "  target.classList.toggle('" + classRef.className() + "')" +
-                                        "})";
+                                    _runtime.forEach( on.evaluate(ctx), function (target) {
+                                        target.classList.toggle(classRef.className())
+                                    });
                                 } else {
-                                    return "_hyperscript.runtime.forEach( " + parser.transpile(on) + ", function (target) {" +
-                                        "  if(target.hasAttribute('" + attributeRef.name + "')) {\n" +
-                                        "    target.removeAttribute('" + attributeRef.name + "');\n" +
-                                        "  } else { \n" +
-                                        "    target.setAttribute('" + attributeRef.name + "', " + parser.transpile(attributeRef) + ".value)" +
-                                        "  }" +
-                                        "})";
+                                    _runtime.forEach( on.evaluate(ctx), function (target) {
+                                        if(target.hasAttribute(attributeRef.name )) {
+                                            target.removeAttribute( attributeRef.name );
+                                        } else {
+                                            target.setAttribute(attributeRef.name, attributeRef.value.evaluate(ctx))
+                                        }
+                                    });
                                 }
                             }
                         }
@@ -1424,15 +1459,16 @@
                 _parser.addGrammarElement("waitCmd", function (parser, tokens) {
                     if (tokens.matchToken("wait")) {
                         var time = parser.parseElement('millisecondLiteral', tokens);
-                        return {
+                        var waitCmd = {
                             type: "waitCmd",
                             time: time,
-                            transpile: function () {
-                                var capturedNext = this.next;
-                                delete this.next;
-                                return "setTimeout(function () { " + parser.transpile(capturedNext) + " }, " + parser.transpile(this.time) + ")";
+                            execute: function (ctx) {
+                                setTimeout(function () {
+                                    _runtime.next(waitCmd, ctx);
+                                }, time.evaluate(ctx));
                             }
-                        }
+                        };
+                        return waitCmd
                     }
                 })
 
@@ -1452,7 +1488,7 @@
                         return {
                             type: "dotOrColonPath",
                             path: path,
-                            transpile: function () {
+                            evaluate: function () {
                                 return path.join(separator ? separator.value : "");
                             }
                         }
@@ -1471,15 +1507,16 @@
                             var to = parser.parseElement("implicitMeTarget");
                         }
 
+
                         return {
                             type: "sendCmd",
                             eventName: eventName,
                             details: details,
                             to: to,
-                            transpile: function () {
-                                return "_hyperscript.runtime.forEach( " + parser.transpile(to) + ", function (target) {" +
-                                    "  _hyperscript.runtime.triggerEvent(target, '" + parser.transpile(eventName) + "'," + parser.transpile(details, "{}") + ")" +
-                                    "})";
+                            execute: function (ctx) {
+                                _runtime.forEach(to.evaluate(ctx), function (target) {
+                                    _runtime.triggerEvent(target, eventName.evaluate(ctx), details ? details.evaluate(ctx) : {});
+                                });
                             }
                         }
                     }

@@ -51,8 +51,8 @@ describe("_hyperscript boostrapping", function() {
 
     it("can wait", function(finished){
         var div = make("<div _='on click " +
-            "                             add .foo then " +
-            "                             wait 20ms then " +
+            "                             add .foo" +
+            "                             wait 20ms " +
             "                             add .bar'></div>");
         div.classList.contains("foo").should.equal(false);
         div.classList.contains("bar").should.equal(false);
