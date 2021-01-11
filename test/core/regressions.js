@@ -14,6 +14,7 @@ describe("_hyperscript regressions", function() {
         div.innerHTML.should.equal("");
         input.value = "foo";
         input.dispatchEvent(new Event("onchange"));
+        div.innerHTML.should.equal("foo");
         input.value = "";
         input.dispatchEvent(new Event("onchange"));
         div.innerHTML.should.equal("foo");

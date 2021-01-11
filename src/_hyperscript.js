@@ -604,7 +604,7 @@
                     }
                     ctx = ctx || {};
                     var compiled = _parser.parseElement(type, _lexer.tokenize(src) );
-                    return compiled.evaluate(ctx);
+                    return compiled.evaluate ? compiled.evaluate(ctx) : compiled.execute(ctx);
                 }
 
                 function processNode(elt) {
@@ -673,6 +673,7 @@
                         return getMe(context);
                     } else {
                         var fromContext = context[str];
+
                         if (fromContext) {
                             return fromContext;
                         } else {
@@ -871,8 +872,9 @@
                                 var returnVal = {_namedArgList_:true};
                                 for (var i = 0; i < fields.length; i++) {
                                     var field = fields[i];
-                                    returnVal[field.name] = field.value.evaluate(context);
+                                    returnVal[field.name.value] = field.value.evaluate(context);
                                 }
+                                return returnVal;
                             }
                         }
                     }
@@ -887,7 +889,7 @@
                             type: "symbol",
                             name: identifier.value,
                             evaluate: function (context) {
-                                return _runtime.resolveSymbol(context);
+                                return _runtime.resolveSymbol(identifier.value, context);
                             }
                         };
                     }
@@ -996,13 +998,15 @@
                             type: "blockLiteral",
                             args: args,
                             expr: expr,
-                            transpile: function () {
-                                return null;
-                                // TODO
-                                // "function(" + args.map(function (arg) {
-                                //         return arg.value
-                                //     }).join(", ") + "){ return " +
-                                //     parser.transpile(expr) + " }";
+                            evaluate: function (ctx) {
+                                var returnFunc = function(){
+                                    //TODO - push scope
+                                    for (var i = 0; i < args.length; i++) {
+                                        ctx[args[i].value] = arguments[i];
+                                    }
+                                    return expr.evaluate(ctx)
+                                }
+                                return returnFunc;
                             }
                         }
                     }
@@ -1020,8 +1024,8 @@
                             root: root,
                             prop: prop,
                             evaluate: function (context) {
-                                var root = root.evaluate(context);
-                                return root == null ? null : root[prop.value];
+                                var rootVal = root.evaluate(context);
+                                return rootVal == null ? null : rootVal[prop.value];
                             }
                         };
                         return _parser.parseElement("indirectExpression", tokens, propertyAccess);
@@ -1041,10 +1045,16 @@
                             type: "functionCall",
                             root: root,
                             args: args,
-                            transpile: function () {
-                                return parser.transpile(root) + "(" + args.map(function (arg) {
-                                    return parser.transpile(arg)
-                                }).join(",") + ")"
+                            evaluate: function (ctx) {
+                                if (root.root) {
+                                    var thisArg = root.root.evaluate(ctx);
+                                    var func = thisArg[root.prop.value];
+                                } else {
+                                    var thisArg = null;
+                                    var func = root.evaluate(ctx);
+                                }
+                                var argVals = args.map(function(val){return val.evaluate(ctx);})
+                                return func.apply(thisArg, argVals);
                             }
                         };
                         return _parser.parseElement("indirectExpression", tokens, functionCall);
@@ -1322,11 +1332,19 @@
                     var start = parser.parseElement("commandList", tokens);
                     var onFeature = {
                         type: "onFeature",
+                        args: args,
                         on: on,
                         from: from,
                         start: start,
                         execute: function (ctx) {
-                            start.execute(ctx);
+                            if (start.execute) {
+                                _runtime.forEach(args, function (arg) {
+                                    ctx[arg.value] = ctx.event[arg.value] || (ctx.event.detail ? ctx.event.detail[arg.value] : null);
+                                });
+                                start.execute(ctx);
+                            } else {
+                                console.log("Need to implement execute", start);
+                            }
                         }
                     };
                     return onFeature;
@@ -1349,7 +1367,7 @@
                             var to = parser.parseElement("implicitMeTarget");
                         }
 
-                        return {
+                        var addCmd = {
                             type: "addCmd",
                             classRef: classRef,
                             attributeRef: attributeRef,
@@ -1364,9 +1382,10 @@
                                         target.setAttribute(attributeRef.name, attributeRef.evaluate(ctx).value);
                                     })
                                 }
-                                _runtime.next(this, ctx);
+                                _runtime.next(addCmd, ctx);
                             }
-                        }
+                        };
+                        return addCmd
                     }
                 });
 
@@ -1390,30 +1409,34 @@
                             var from = parser.parseElement("implicitMeTarget");
                         }
 
-                        return {
+                        var removeCmd = {
                             type: "removeCmd",
                             classRef: classRef,
                             attributeRef: attributeRef,
                             elementExpr: elementExpr,
                             from: from,
-                            transpile: function () {
-                                if (this.elementExpr) {
-                                    return "_hyperscript.runtime.forEach( " + parser.transpile(elementExpr) + ", function (target) {" +
-                                        "  target.parentElement.removeChild(target)" +
-                                        "})";
-                                } else {
-                                    if (this.classRef) {
-                                        return "_hyperscript.runtime.forEach( " + parser.transpile(from) + ", function (target) {" +
-                                            "  target.classList.remove('" + classRef.className() + "')" +
-                                            "})";
+                            execute: function (ctx) {
+                                {
+                                    if (elementExpr) {
+                                        _runtime.forEach(elementExpr.evaluate(ctx), function (target) {
+                                            target.parentElement.removeChild(target);
+                                        });
                                     } else {
-                                        return "_hyperscript.runtime.forEach( " + parser.transpile(from) + ", function (target) {" +
-                                            "  target.removeAttribute('" + attributeRef.name + "')" +
-                                            "})";
+                                        if (classRef) {
+                                            _runtime.forEach(from.evaluate(ctx), function(target){
+                                                target.classList.remove(classRef.className());
+                                            })
+                                        } else {
+                                            _runtime.forEach(from.evaluate(ctx), function(target){
+                                                target.removeAttribute(attributeRef.name);
+                                            })
+                                        }
                                     }
+                                    _runtime.next(removeCmd, ctx);
                                 }
                             }
-                        }
+                        };
+                        return removeCmd
                     }
                 });
 
@@ -1432,7 +1455,7 @@
                         } else {
                             var on = parser.parseElement("implicitMeTarget");
                         }
-                        return {
+                        var toggleCmd = {
                             type: "toggleCmd",
                             classRef: classRef,
                             attributeRef: attributeRef,
@@ -1451,8 +1474,10 @@
                                         }
                                     });
                                 }
+                                _runtime.next(toggleCmd, ctx);
                             }
-                        }
+                        };
+                        return toggleCmd
                     }
                 })
 
@@ -1508,7 +1533,7 @@
                         }
 
 
-                        return {
+                        var sendCmd = {
                             type: "sendCmd",
                             eventName: eventName,
                             details: details,
@@ -1517,8 +1542,10 @@
                                 _runtime.forEach(to.evaluate(ctx), function (target) {
                                     _runtime.triggerEvent(target, eventName.evaluate(ctx), details ? details.evaluate(ctx) : {});
                                 });
+                                _runtime.next(sendCmd, ctx);
                             }
-                        }
+                        };
+                        return sendCmd
                     }
                 })
 
@@ -1528,14 +1555,16 @@
                         var eventName = parser.parseElement("dotOrColonPath", tokens);
                         var details = parser.parseElement("namedArgumentList", tokens);
 
-                        return {
+                        var triggerCmd = {
                             type: "triggerCmd",
                             eventName: eventName,
                             details: details,
-                            transpile: function () {
-                                return "_hyperscript.runtime.triggerEvent(me, '" + parser.transpile(eventName) + "'," + parser.transpile(details, "{}") + ");";
+                            execute: function (ctx) {
+                                _runtime.triggerEvent(_runtime.resolveSymbol("me", ctx), eventName.evaluate(ctx) ,details ? details.evaluate(ctx) : {});
+                                _runtime.next(triggerCmd, ctx);
                             }
-                        }
+                        };
+                        return triggerCmd
                     }
                 })
 
@@ -1555,19 +1584,24 @@
                             var forElt = parser.parseElement("implicitMeTarget")
                         }
 
-                        return {
+                        var takeCmd = {
                             type: "takeCmd",
                             classRef: classRef,
                             from: from,
                             forElt: forElt,
-                            transpile: function () {
-                                var clazz = this.classRef.value.substr(1);
-                                return "  _hyperscript.runtime.forEach(" + parser.transpile(from) + ", function (target) { target.classList.remove('" + clazz + "') }); " +
-                                    "_hyperscript.runtime.forEach( " + parser.transpile(forElt) + ", function (target) {" +
-                                    "  target.classList.add('" + clazz + "')" +
-                                    "})";
+                            execute: function (ctx) {
+                                // TODO - expression?
+                                var clazz = this.classRef.value.substr(1)
+                                _runtime.forEach(from.evaluate(ctx), function(target){
+                                    target.classList.remove(clazz);
+                                })
+                                _runtime.forEach(forElt.evaluate(ctx), function(target){
+                                    target.classList.add(clazz);
+                                });
+                                _runtime.next(takeCmd, ctx);
                             }
-                        }
+                        };
+                        return takeCmd
                     }
                 })
 
@@ -1580,34 +1614,39 @@
                         if (tokens.matchToken("with")) {
                             var withExpr = parser.parseElement("expression", tokens);
                         }
-                        return {
+                        var logCmd = {
                             type: "logCmd",
                             exprs: exprs,
                             withExpr: withExpr,
-                            transpile: function () {
+                            execute: function (ctx) {
                                 if (withExpr) {
-                                    return parser.transpile(withExpr) + "(" + exprs.map(function (expr) {
-                                        return parser.transpile(expr)
-                                    }).join(", ") + ")";
+                                    withExpr.evaluate(ctx).apply(null, exprs.map(function (expr) {
+                                        return expr.evaluate(ctx)
+                                    }));
                                 } else {
-                                    return "console.log(" + exprs.map(function (expr) {
-                                        return parser.transpile(expr)
-                                    }).join(", ") + ")";
+                                    console.log.apply(null, exprs.map(function (expr) {
+                                        return expr.evaluate(ctx)
+                                    }));
                                 }
+                                _runtime.next(logCmd, ctx);
                             }
                         };
+                        return logCmd;
                     }
                 })
 
                 _parser.addGrammarElement("callCmd", function (parser, tokens) {
                     if (tokens.matchToken("call") || tokens.matchToken("get")) {
-                        return {
+                        var expr = parser.parseElement("expression", tokens);
+                        var callCmd = {
                             type: "callCmd",
-                            expr: parser.parseElement("expression", tokens),
-                            transpile: function () {
-                                return "var it = " + parser.transpile(this.expr);
+                            expr: expr,
+                            execute: function (ctx) {
+                                ctx.it = expr.evaluate(ctx);
+                                _runtime.next(callCmd, ctx);
                             }
-                        }
+                        };
+                        return callCmd
                     }
                 })
 
@@ -1631,47 +1670,50 @@
                         }
                         var target = parser.parseElement("target", tokens);
 
-                        var directWrite = target.propPath.length === 0 && operation.value === "into";
+                        var op = operation.value;
+                        var directWrite = target.propPath.length === 0 && op === "into";
                         var symbolWrite = directWrite && target.root.type === "symbol";
                         if (directWrite && !symbolWrite) {
                             parser.raiseParseError(tokens, "Can only put directly into symbols, not references")
                         }
 
-                        return {
+                        var putCmd = {
                             type: "putCmd",
                             target: target,
-                            op: operation.value,
+                            op: op,
                             symbolWrite: symbolWrite,
                             value: value,
-                            transpile: function () {
-                                if (this.symbolWrite) {
-                                    return "var " + target.root.name + " = " + parser.transpile(value);
+                            execute: function (ctx) {
+                                if (symbolWrite) {
+                                    ctx[target.root.name] = value.evaluate(ctx);
                                 } else {
-                                    if (this.op === "into") {
-                                        var lastProperty = target.propPath.pop(); // steal last property for assignment
-                                        return "_hyperscript.runtime.forEach( " + parser.transpile(target) + ", function (target) {" +
-                                            "  target." + lastProperty + "=" + parser.transpile(value) +
-                                            "})";
-                                    } else if (this.op === "before") {
-                                        return "_hyperscript.runtime.forEach( " + parser.transpile(target) + ", function (target) {" +
-                                            "  target.insertAdjacentHTML('beforebegin', " + parser.transpile(value) + ")" +
-                                            "})";
-                                    } else if (this.op === "start") {
-                                        return "_hyperscript.runtime.forEach( " + parser.transpile(target) + ", function (target) {" +
-                                            "  target.insertAdjacentHTML('afterbegin', " + parser.transpile(value) + ")" +
-                                            "})";
-                                    } else if (this.op === "end") {
-                                        return "_hyperscript.runtime.forEach( " + parser.transpile(target) + ", function (target) {" +
-                                            "  target.insertAdjacentHTML('beforeend', " + parser.transpile(value) + ")" +
-                                            "})";
-                                    } else if (this.op === "after") {
-                                        return "_hyperscript.runtime.forEach( " + parser.transpile(target) + ", function (target) {" +
-                                            "  target.insertAdjacentHTML('afterend', " + parser.transpile(value) + ")" +
-                                            "})";
+                                    if (op === "into") {
+                                        var lastProperty = target.propPath.slice(-1); // steal last property for assignment
+                                        _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath.slice(0, -1)), function(target){
+                                            target[lastProperty] = value.evaluate(ctx);
+                                        })
+                                    } else if (op === "before") {
+                                        _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath), function(target){
+                                            target.insertAdjacentHTML('beforebegin', value.evaluate(ctx));
+                                        })
+                                    } else if (op === "start") {
+                                        _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath), function(target){
+                                            target.insertAdjacentHTML('afterbegin', value.evaluate(ctx));
+                                        })
+                                    } else if (op === "end") {
+                                        _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath), function(target){
+                                            target.insertAdjacentHTML('beforeend', value.evaluate(ctx));
+                                        })
+                                    } else if (op === "after") {
+                                        _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath), function(target){
+                                            target.insertAdjacentHTML('afterend', value.evaluate(ctx));
+                                        })
                                     }
                                 }
+                                _runtime.next(putCmd, ctx);
                             }
-                        }
+                        };
+                        return putCmd
                     }
                 })
 
@@ -1690,22 +1732,24 @@
                             parser.raiseParseError(tokens, "Can only put directly into symbols, not references")
                         }
 
-                        return {
+                        var setCmd = {
                             type: "setCmd",
                             target: target,
                             symbolWrite: symbolWrite,
                             value: value,
-                            transpile: function () {
-                                if (this.symbolWrite) {
-                                    return "var " + target.root.name + " = " + parser.transpile(value);
+                            execute: function (ctx) {
+                                if (symbolWrite) {
+                                    ctx[target.root.name] = value.evaluate(ctx);
                                 } else {
-                                    var lastProperty = target.propPath.pop(); // steal last property for assignment
-                                    return "_hyperscript.runtime.forEach( " + parser.transpile(target) + ", function (target) {" +
-                                        "  target." + lastProperty + "=" + parser.transpile(value) +
-                                        "})";
+                                    var lastProperty = target.propPath.slice(-1); // steal last property for assignment
+                                    _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath.slice(0, -1)), function (target) {
+                                        target[lastProperty] = value.evaluate(ctx);
+                                    })
                                 }
+                                _runtime.next(setCmd, ctx);
                             }
-                        }
+                        };
+                        return setCmd
                     }
                 })
 
@@ -1720,17 +1764,21 @@
                         if (tokens.hasMore()) {
                             tokens.requireToken("end");
                         }
-                        return {
+                        var ifCmd = {
                             type: "ifCmd",
                             expr: expr,
                             trueBranch: trueBranch,
                             falseBranch: falseBranch,
-                            transpile: function () {
-                                return "if(" + parser.transpile(expr) + "){" + "" + parser.transpile(trueBranch) + "}" +
-                                    "   else {" + parser.transpile(falseBranch, "") + "}"
-
+                            execute: function (ctx) {
+                                if(expr.evaluate(ctx)) {
+                                    trueBranch.execute(ctx);
+                                } else if(falseBranch) {
+                                    falseBranch.execute(ctx);
+                                }
+                                _runtime.next(ifCmd, ctx);
                             }
-                        }
+                        };
+                        return ifCmd
                     }
                 })
 
@@ -1752,18 +1800,20 @@
                             var url = parser.parseElement("nakedString", tokens);
                         }
 
-                        return {
+                        var ajaxCmd = {
                             type: "requestCommand",
                             method: method,
-                            transpile: function () {
-                                var capturedNext = this.next;
-                                delete this.next;
-                                return "_hyperscript.runtime.ajax('" + method.value + "', " +
-                                    parser.transpile(url) + ", " +
-                                    "function(response, xhr){ " + parser.transpile(capturedNext) + " }," +
-                                    parser.transpile(data, "null") + ")";
+                            execute: function (ctx) {
+                                _runtime.ajax(method.value , url.evaluate(ctx),
+                                    function(response, xhr){
+                                        ctx.response = response;
+                                        ctx.xhr = xhr;
+                                        _runtime.next(ajaxCmd, ctx);
+                                    },
+                                    data ? data.evaluate(ctx) : {});
                             }
                         };
+                        return ajaxCmd;
                     }
                 })
             }
