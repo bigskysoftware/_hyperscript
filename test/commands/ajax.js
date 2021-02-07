@@ -55,16 +55,5 @@ describe("the ajax command", function() {
         div.innerHTML.should.equal("bar");
     })
 
-    it("ajax calls next command", function(){
-        this.server.respondWith("POST", "/test", function(xhr){
-            var params = JSON.parse(xhr.requestBody);
-            xhr.respond(200, {}, params["foo"]);
-        });
-        var div = make("<div _='on click ajax POST {foo:\"bar\"} to /test then put response into my.innerHTML'></div>");
-        div.click();
-        this.server.respond();
-        div.innerHTML.should.equal("bar");
-    })
-
 });
 

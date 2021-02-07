@@ -74,12 +74,5 @@ describe("the put command", function() {
         d1.innerHTML.should.equal("*foo");
     })
 
-    it("put calls next command", function(){
-        var d1 = make("<div id='d1' _='on click put \"foo\" into #d1.innerHTML then add [foo=\"bar\"]'></div>");
-        d1.click();
-        d1.getAttribute("foo").should.equal("bar");
-    })
-
-
 });
 

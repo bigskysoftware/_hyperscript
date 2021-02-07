@@ -55,13 +55,4 @@ describe("the send command", function() {
         bar.innerHTML.should.equal("42");
     })
 
-    it("send calls next command", function(){
-        var div = make("<div _='on click send foo to #bar then add [foo=\"bar\"]'></div>");
-        var bar = make("<div id='bar' _='on foo add .foo-sent'></div>");
-        bar.classList.contains("foo-sent").should.equal(false);
-        div.click();
-        div.getAttribute("foo").should.equal("bar");
-    })
-
-
 });

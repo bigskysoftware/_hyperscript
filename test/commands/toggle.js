@@ -38,12 +38,5 @@ describe("the toggle command", function() {
         div.hasAttribute("foo").should.equal(false);
     })
 
-    it("toggle calls next command", function () {
-        var div = make("<div _='on click toggle .foo then add [foo=\"bar\"]'></div>");
-        div.click();
-        div.getAttribute("foo").should.equal("bar");
-    })
-
-
 });
 

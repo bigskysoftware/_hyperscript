@@ -26,11 +26,6 @@ describe("the log command", function() {
         var d1 = make("<div _='on click log me, my with console.error'></div>");
         d1.click();
     })
-    it("log calls next command", function(){
-        var d1 = make("<div _='on click log me then add [foo=\"bar\"]'></div>");
-        d1.click();
-        d1.getAttribute("foo").should.equal("bar");
-    })
 
 });
 

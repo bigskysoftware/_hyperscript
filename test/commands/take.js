@@ -51,11 +51,5 @@ describe("the take command", function() {
         d3.classList.contains("foo").should.equal(false);
     })
 
-    it("take calls next command", function(){
-        var d2 = make("<div class='div' _='on click take .foo from .div then add [foo=\"bar\"]'></div>");
-        d2.click();
-        d2.getAttribute("foo").should.equal("bar");
-    })
-
 });
 

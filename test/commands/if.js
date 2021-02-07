@@ -85,15 +85,6 @@ describe("the if command", function() {
         d1.innerHTML.should.equal("foo");
     })
 
-    it("if calls next command", function(){
-        var d1 = make("<div _='on click if false then log me end then add [foo=\"bar\"]'></div>");
-        d1.click();
-        d1.getAttribute("foo").should.equal("bar");
-        var d1 = make("<div _='on click if false then log me else log me end then add [foo=\"bar\"]'></div>");
-        d1.click();
-        d1.getAttribute("foo").should.equal("bar");
-    })
-
 
 });
 
