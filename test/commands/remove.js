@@ -46,5 +46,11 @@ describe("the remove command", function() {
         assert.isNull(div2.parentElement);
     })
 
+    it("remove calls next command", function () {
+        var div = make("<div class='foo' _='on click remove .foo then add [foo=\"bar\"]'></div>");
+        div.click();
+        div.getAttribute("foo").should.equal("bar");
+    })
+
 });
 

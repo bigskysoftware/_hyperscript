@@ -56,5 +56,10 @@ describe("the trigger command", function() {
         div.innerHTML.should.equal("42");
     })
 
+    it("trigger calls next command", function(){
+        var div = make("<div _='on click trigger foo then add [foo=\"bar\"]'></div>");
+        div.click();
+        div.getAttribute("foo").should.equal("bar");
+    })
 
 });

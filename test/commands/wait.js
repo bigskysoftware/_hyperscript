@@ -24,5 +24,14 @@ describe("the wait command", function() {
         }, 30)
     })
 
+    it("wait calls next command", function(finished){
+        var div = make("<div _='on click wait 20ms then add [foo=\"bar\"]'></div>");
+        div.click();
+        setTimeout(function(){
+            div.getAttribute("foo").should.equal("bar");
+            finished();
+        }, 30)
+    })
+
 });
 

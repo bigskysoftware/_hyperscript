@@ -72,5 +72,20 @@ describe("the call command", function() {
         }
     })
 
+    it("call calls nex tcommand", function(){
+        var called = false;
+        window.global_function = function(){
+            called = true;
+        }
+        try {
+            var div = make("<div _='on click call global_function() then add [foo=\"bar\"]'></div>");
+            div.click();
+            div.getAttribute("foo").should.equal("bar");
+        } finally {
+            delete window.global_function;
+        }
+    })
+
+
 });
 

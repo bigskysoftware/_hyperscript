@@ -55,5 +55,11 @@ describe("the add command", function() {
         div.getAttribute("foo").should.equal("bar");
     })
 
+    it("add calls next command", function(){
+        var div = make("<div _='on click add .foo add [foo=\"bar\"]'></div>");
+        div.click();
+        div.getAttribute("foo").should.equal("bar");
+    })
+
 });
 

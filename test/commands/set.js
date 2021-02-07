@@ -50,5 +50,11 @@ describe("the set command", function() {
         d2.innerHTML.should.equal("foo");
     })
 
+    it("set calls next command", function(){
+        var d1 = make("<div id='d1' _='on click set #d1.innerHTML to \"foo\" then add [foo=\"bar\"]'></div>");
+        d1.click();
+        d1.getAttribute("foo").should.equal("bar");
+    })
+
 });
 
