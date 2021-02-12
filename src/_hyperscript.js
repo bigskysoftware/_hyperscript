@@ -452,8 +452,16 @@
                     return parseElement("hyperscript", tokens)
                 }
 
+                function setParent(elt, parent) {
+                    if (elt) {
+                        elt.parent = parent;
+                        setParent(elt.next, parent);
+                    }
+                }
+
                 return {
                     // parser API
+                    setParent: setParent,
                     parseElement: parseElement,
                     parseAnyOf: parseAnyOf,
                     parseHyperScript: parseHyperScript,
@@ -689,7 +697,7 @@
                         } else if (command.next) {
                             command.next.execute(ctx);
                         } else {
-                            next(command.parentCommand, ctx)
+                            next(command.parent, ctx)
                         }
                     }
                 }
@@ -1278,7 +1286,7 @@
 
                 _parser.addGrammarElement("command", function (parser, tokens) {
                     return parser.parseAnyOf(["onCmd", "addCmd", "removeCmd", "toggleCmd", "waitCmd", "sendCmd", "triggerCmd",
-                        "takeCmd", "logCmd", "callCmd", "putCmd", "setCmd", "ifCmd", "ajaxCmd"], tokens);
+                        "takeCmd", "logCmd", "callCmd", "putCmd", "setCmd", "ifCmd", "forCmd", "ajaxCmd"], tokens);
                 })
 
                 _parser.addGrammarElement("commandList", function (parser, tokens) {
@@ -1347,6 +1355,7 @@
                             }
                         }
                     };
+                    parser.setParent(start, onFeature);
                     return onFeature;
                 });
 
@@ -1775,10 +1784,53 @@
                                 } else if(falseBranch) {
                                     falseBranch.execute(ctx);
                                 }
-                                _runtime.next(ifCmd, ctx);
                             }
                         };
+                        parser.setParent(trueBranch, ifCmd);
+                        parser.setParent(falseBranch, ifCmd);
                         return ifCmd
+                    }
+                })
+
+                _parser.addGrammarElement("forCmd", function (parser, tokens) {
+                    if (tokens.matchToken("for")) {
+                        var identifier = tokens.requireTokenType('IDENTIFIER');
+                        tokens.matchToken("in"); // optional 'then'
+                        var expression = parser.parseElement("expression", tokens);
+                        var loop = parser.parseElement("commandList", tokens);
+                        if (tokens.hasMore()) {
+                            tokens.requireToken("end");
+                        }
+                        var forCmd = {
+                            type: "forCmd",
+                            identifier: identifier.value,
+                            expression: expression,
+                            loop: loop,
+                            execute: function (ctx) {
+                                ctx[identifier.value + "_iterator"] = {
+                                    index: 0,
+                                    value: expression.evaluate(ctx)
+                                };
+                                forCmd.handleNext(ctx);
+                            },
+                            handleNext: function (ctx) {
+                                var iterator = ctx[identifier.value + "_iterator"];
+                                if (iterator.value === null ||
+                                    iterator.index >= iterator.value.length) {
+                                    if (forCmd.next) {
+                                        forCmd.next.execute(ctx);
+                                    } else {
+                                        _runtime.next(forCmd.parent, ctx)
+                                    }
+                                } else {
+                                    ctx[identifier.value] = iterator.value[iterator.index];
+                                    iterator.index++;
+                                    loop.execute(ctx);
+                                }
+                            }
+                        };
+                        parser.setParent(loop, forCmd);
+                        return forCmd
                     }
                 })
 

@@ -85,6 +85,26 @@ describe("the if command", function() {
         d1.innerHTML.should.equal("foo");
     })
 
+    it("true branch with a wait works", function(done){
+        var d1 = make("<div _='on click if true wait 10 ms then put \"foo\" into me.innerHTML'></div>");
+        d1.click();
+        d1.innerHTML.should.equal("");
+        setTimeout(function(){
+            d1.innerHTML.should.equal("foo");
+            done();
+        }, 20)
+    })
+
+    it("false branch with a wait works", function(done){
+        var d1 = make("<div _='on click if false else wait 10 ms then put \"foo\" into me.innerHTML'></div>");
+        d1.click();
+        d1.innerHTML.should.equal("");
+        setTimeout(function(){
+            d1.innerHTML.should.equal("foo");
+            done();
+        }, 20)
+    })
+
 
 });
 
