@@ -1783,6 +1783,8 @@
                                     trueBranch.execute(ctx);
                                 } else if(falseBranch) {
                                     falseBranch.execute(ctx);
+                                } else {
+                                    _runtime.next(ifCmd, ctx);
                                 }
                             }
                         };
