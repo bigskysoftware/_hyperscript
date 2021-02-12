@@ -30,6 +30,26 @@ it is a companion project of <https://htmx.org>
 </button>
 ```
 
+### fade an element out
+
+fade an element out using CSS, then remove it. the code to do this is shown below in both JS and \_hyperscript.
+
+```html
+<div onclick="
+    this.classList.add('fade')
+    this.addEventListener('transitionend', () => {
+      this.parentElement.remove(notice)
+    }, { once: true })">
+  This is a notice. Click to dismiss.
+</div>
+```
+
+```html
+<div _="on click add .fade then wait for transitionend then remove">
+  This is a notice. Click to dismiss.
+</div>
+```
+
 ## demos
 
 <div class="row">
