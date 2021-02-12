@@ -38,7 +38,7 @@ fade an element out using CSS, then remove it. the code to do this is shown belo
 <div onclick="
     this.classList.add('fade')
     this.addEventListener('transitionend', () => {
-      this.parentElement.remove(notice)
+      this.parentElement.remove(this)
     }, { once: true })">
   This is a notice. Click to dismiss.
 </div>
