@@ -105,7 +105,7 @@ describe("the if command", function() {
         }, 20)
     })
 
-    it("if properly passes execution along if child is not executed", function(done){
+    it("if properly passes execution along if child is not executed", function(){
         var d1 = make("<div _='on click if false end put \"foo\" into me.innerHTML'></div>");
         d1.click();
         d1.innerHTML.should.equal("foo");

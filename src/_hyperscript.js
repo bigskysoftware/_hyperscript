@@ -921,24 +921,6 @@
                     };
                 });
 
-                _parser.addGrammarElement("millisecondLiteral", function (parser, tokens) {
-                    var number = tokens.requireTokenType(tokens, "NUMBER");
-                    var factor = 1;
-                    if (tokens.matchToken("s")) {
-                        factor = 1000;
-                    } else if (tokens.matchToken("ms")) {
-                        // do nothing
-                    }
-                    return {
-                        type: "millisecondLiteral",
-                        number: number,
-                        factor: factor,
-                        evaluate: function (context) {
-                            return factor * parseFloat(this.number.value);
-                        }
-                    };
-                });
-
                 _parser.addGrammarElement("boolean", function (parser, tokens) {
                     var booleanLiteral = tokens.matchToken("true") || tokens.matchToken("false");
                     if (booleanLiteral) {
@@ -1492,16 +1474,45 @@
 
                 _parser.addGrammarElement("waitCmd", function (parser, tokens) {
                     if (tokens.matchToken("wait")) {
-                        var time = parser.parseElement('millisecondLiteral', tokens);
-                        var waitCmd = {
-                            type: "waitCmd",
-                            time: time,
-                            execute: function (ctx) {
-                                setTimeout(function () {
-                                    _runtime.next(waitCmd, ctx);
-                                }, time.evaluate(ctx));
+
+                        // wait on event
+                        if (tokens.matchToken("for")) {
+                            var evt = parser.parseElement("dotOrColonPath", tokens);
+                            if (evt == null) {
+                                parser.raiseParseError(tokens, "Expected event name")
                             }
-                        };
+                            // wait on event
+                            var waitCmd = {
+                                type: "waitCmd",
+                                event: evt,
+                                execute: function (ctx) {
+                                    var eventName = evt.evaluate(ctx);
+                                    var me = ctx['me'];
+                                    var listener = function(){
+                                        me.removeEventListener(eventName, listener);
+                                        _runtime.next(waitCmd, ctx);
+                                    };
+                                    me.addEventListener(eventName, listener)
+                                }
+                            };
+                        } else {
+                            var time = parser.parseElement("expression", tokens);
+                            var factor = 1;
+                            if (tokens.matchToken("s") || tokens.matchToken("seconds")) {
+                                factor = 1000;
+                            } else if (tokens.matchToken("ms") || tokens.matchToken("milliseconds")) {
+                                // do nothing
+                            }
+                            var waitCmd = {
+                                type: "waitCmd",
+                                time: time,
+                                execute: function (ctx) {
+                                    setTimeout(function () {
+                                        _runtime.next(waitCmd, ctx);
+                                    }, time.evaluate(ctx) * factor);
+                                }
+                            };
+                        }
                         return waitCmd
                     }
                 })
