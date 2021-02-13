@@ -649,16 +649,6 @@
                     return data;
                 }
 
-
-                function ajax(method, url, callback, data) {
-                    var xhr = new XMLHttpRequest();
-                    xhr.onload = function() {
-                        callback(this.response, xhr);
-                    };
-                    xhr.open(method, url);
-                    xhr.send(JSON.stringify(data));
-                }
-
                 function typeCheck(value, typeString, nullOk) {
                     if (value == null && nullOk) {
                         return value;
@@ -672,13 +662,11 @@
                     }
                 }
 
-                function getMe(context) {
-                    return context["me"];
-                }
-
                 function resolveSymbol(str, context) {
                     if (str === "me" || str === "my") {
-                        return getMe(context);
+                        return context["me"];
+                    } if (str === "it" || str === "its") {
+                        return context["it"];
                     } else {
                         var fromContext = context[str];
 
@@ -713,7 +701,6 @@
                     processNode: processNode,
                     evaluate: evaluate,
                     getScriptSelector: getScriptSelector,
-                    ajax: ajax,
                     resolveSymbol: resolveSymbol,
                     next: next
                 }
@@ -857,8 +844,6 @@
                             }
                         }
                     }
-
-
                 })
 
                 _parser.addGrammarElement("namedArgumentList", function (parser, tokens) {
@@ -1268,7 +1253,7 @@
 
                 _parser.addGrammarElement("command", function (parser, tokens) {
                     return parser.parseAnyOf(["onCmd", "addCmd", "removeCmd", "toggleCmd", "waitCmd", "sendCmd", "triggerCmd",
-                        "takeCmd", "logCmd", "callCmd", "putCmd", "setCmd", "ifCmd", "forCmd", "ajaxCmd"], tokens);
+                        "takeCmd", "logCmd", "callCmd", "putCmd", "setCmd", "ifCmd", "forCmd", "fetchCmd"], tokens);
                 })
 
                 _parser.addGrammarElement("commandList", function (parser, tokens) {
@@ -1847,38 +1832,58 @@
                     }
                 })
 
-                _parser.addGrammarElement("ajaxCmd", function (parser, tokens) {
-                    if (tokens.matchToken("ajax")) {
-                        var method = tokens.matchToken("GET") || tokens.matchToken("POST");
-                        if (method == null) {
-                            parser.raiseParseError(tokens, "Requires either GET or POST");
-                        }
-                        if (method.value !== "GET") {
-                            if (!tokens.matchToken("to")) {
-                                var data = parser.parseElement("expression", tokens);
-                                tokens.requireToken("to");
-                            }
-                        }
-
+                _parser.addGrammarElement("fetchCmd", function (parser, tokens) {
+                    if (tokens.matchToken("fetch")) {
                         var url = parser.parseElement("string", tokens);
                         if (url == null) {
                             var url = parser.parseElement("nakedString", tokens);
                         }
+                        if (url == null) {
+                            parser.raiseParseError(tokens, "Expected a URL");
+                        }
 
-                        var ajaxCmd = {
-                            type: "requestCommand",
-                            method: method,
+                        var args = parser.parseElement("objectLiteral", tokens);
+
+                        var type = "text";
+                        if (tokens.matchToken("as")) {
+                            if (tokens.matchToken("json")) {
+                                type = "json";
+                            } else if (tokens.matchToken("response")) {
+                                type = "response";
+                            } else if (tokens.matchToken("text")) {
+                            } else {
+                                parser.raiseParseError(tokens, "Unknown response type: " + tokens.currentToken());
+                            }
+                        }
+
+                        var fetchCmd = {
+                            type: "fetchCmd",
                             execute: function (ctx) {
-                                _runtime.ajax(method.value , url.evaluate(ctx),
-                                    function(response, xhr){
-                                        ctx.response = response;
-                                        ctx.xhr = xhr;
-                                        _runtime.next(ajaxCmd, ctx);
-                                    },
-                                    data ? data.evaluate(ctx) : {});
+                                fetch(url.evaluate(ctx), args ? args.evaluate(ctx) : null)
+                                    .then(function (value) {
+                                        if (type === "response") {
+                                            ctx.it = value;
+                                            _runtime.next(fetchCmd, ctx);
+                                        } else if (type === "json") {
+                                            value.json().then(function(result){
+                                                ctx.it = result;
+                                                _runtime.next(fetchCmd, ctx);
+                                            })
+                                        } else {
+                                            value.text().then(function(result){
+                                                ctx.it = result;
+                                                _runtime.next(fetchCmd, ctx);
+                                            })
+                                        }
+                                    })
+                                    .catch(function(reason){
+                                        _runtime.triggerEvent(ctx.me, "fetch:error", {
+                                            reason: reason
+                                        })
+                                    })
                             }
                         };
-                        return ajaxCmd;
+                        return fetchCmd;
                     }
                 })
             }
