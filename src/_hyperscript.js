@@ -553,6 +553,9 @@
                             return elt.getAttribute(scriptAttribute)
                         }
                     }
+                    if (elt.type === "text/hyperscript") {
+                        return elt.innerText;
+                    }
                     return null;
                 }
 
@@ -621,11 +624,17 @@
                         initElement(elt);
                     }
                     forEach(elt.querySelectorAll(selector), function (elt) {
-                        initElement(elt);
+                        initElement(elt, document.body);
+                    })
+                    if (elt.type === "text/hyperscript") {
+                        initElement(elt, document.body);
+                    }
+                    forEach(elt.querySelectorAll("[type=\'text/hyperscript\']"), function (elt) {
+                        initElement(elt, document.body);
                     })
                 }
 
-                function initElement(elt) {
+                function initElement(elt, target) {
                     var internalData = getInternalData(elt);
                     if (!internalData.initialized) {
                         var src = getScript(elt);
@@ -634,8 +643,8 @@
                             internalData.script = src;
                             var tokens = _lexer.tokenize(src);
                             var hyperScript = _parser.parseHyperScript(tokens);
-                            _runtime.applyEventListeners(hyperScript, elt);
-                            triggerEvent(elt, 'load');
+                            _runtime.applyEventListeners(hyperScript, target || elt);
+                            triggerEvent(target || elt, 'load');
                         }
                     }
                 }

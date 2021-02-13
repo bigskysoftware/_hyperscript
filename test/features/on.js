@@ -44,5 +44,10 @@ describe("the on feature", function() {
         div.innerText.should.equal("Loaded");
     })
 
+    it("can be in a top level script tag", function(){
+        var div = make("<script type='text/hyperscript'>on load put \"Loaded\" into #d1.innerHTML</script><div id='d1'></div>");
+        byId('d1').innerText.should.equal("Loaded");
+    })
+
 });
 
