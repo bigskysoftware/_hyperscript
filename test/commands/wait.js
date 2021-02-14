@@ -39,5 +39,27 @@ describe("the wait command", function() {
         div.classList.contains("bar").should.equal(true);
     })
 
+    it("can wait on event on another element", function(){
+        var div = make("<div _='on click " +
+            "                             add .foo then " +
+            "                             wait for foo from #d2 then " +
+            "                             add .bar'></div>");
+        var div2 = make("<div id='d2'></div>");
+
+        div.classList.contains("foo").should.equal(false);
+        div.classList.contains("bar").should.equal(false);
+        div.click();
+        div.classList.contains("foo").should.equal(true);
+        div.classList.contains("bar").should.equal(false);
+
+        div.dispatchEvent(new CustomEvent("foo"));
+        div.classList.contains("foo").should.equal(true);
+        div.classList.contains("bar").should.equal(false);
+
+        div2.dispatchEvent(new CustomEvent("foo"));
+        div.classList.contains("foo").should.equal(true);
+        div.classList.contains("bar").should.equal(true);
+    })
+
 });
 

@@ -503,8 +503,12 @@
                 }
 
                 function forEach(arr, func) {
-                    for (var i = 0; i < arr.length; i++) {
-                        func(arr[i]);
+                    if (arr.length != null) {
+                        for (var i = 0; i < arr.length; i++) {
+                            func(arr[i]);
+                        }
+                    } else {
+                        func(arr);
                     }
                 }
 
@@ -562,7 +566,8 @@
                             parser: _parser,
                             lexer: _lexer,
                             runtime: _runtime,
-                            root: root
+                            root: root,
+                            iterators: root
                         },
                         me: elt,
                         event: event,
@@ -677,9 +682,14 @@
                     } if (str === "it" || str === "its") {
                         return context["it"];
                     } else {
+                        if (context.meta && context.meta.context) {
+                            var fromMetaContext = context.meta.context[str];
+                            if (typeof fromMetaContext !== "undefined") {
+                                return fromMetaContext;
+                            }
+                        }
                         var fromContext = context[str];
-
-                        if (fromContext) {
+                        if (typeof fromContext !== "undefined") {
                             return fromContext;
                         } else {
                             return window[str];
@@ -1312,12 +1322,11 @@
                         if (on == null) {
                             parser.raiseParseError(tokens, "Expected event name")
                         }
-                        var from = null;
-                        if (tokens.matchToken("from")) {
-                            from = parser.parseElement("target", tokens);
-                            if (from == null) {
-                                parser.raiseParseError(tokens, "Expected target value")
-                            }
+
+                        var filter = null;
+                        if (tokens.matchOpToken('[')) {
+                            filter = parser.parseElement("expression", tokens);
+                            tokens.requireOpToken(']');
                         }
 
                         var args = [];
@@ -1328,14 +1337,37 @@
                             tokens.requireOpToken(')')
                         }
 
+                        var from = null;
+                        if (tokens.matchToken("from")) {
+                            from = parser.parseElement("target", tokens);
+                            if (from == null) {
+                                parser.raiseParseError(tokens, "Expected target value")
+                            }
+                        }
+
                         var start = parser.parseElement("commandList", tokens);
                         var onFeature = {
                             type: "onFeature",
                             args: args,
                             on: on,
                             from: from,
+                            filter: filter,
                             start: start,
                             execute: function (ctx) {
+                                if(filter) {
+                                    var initialCtx = ctx.meta.context;
+                                    ctx.meta.context = ctx.event;
+                                    try {
+                                        var value = filter.evaluate(ctx);
+                                        if (value) {
+                                            // match the javascript semantics for if statements
+                                        } else {
+                                            return;
+                                        }
+                                    } finally {
+                                        ctx.meta.context = initialCtx;
+                                    }
+                                }
                                 _runtime.forEach(args, function (arg) {
                                     ctx[arg.value] = ctx.event[arg.value] || (ctx.event.detail ? ctx.event.detail[arg.value] : null);
                                 });
@@ -1544,18 +1576,22 @@
                             if (evt == null) {
                                 parser.raiseParseError(tokens, "Expected event name")
                             }
+                            if (tokens.matchToken("from")) {
+                                var on = parser.parseElement("expression", tokens);
+                            }
                             // wait on event
                             var waitCmd = {
                                 type: "waitCmd",
                                 event: evt,
+                                on: on,
                                 execute: function (ctx) {
                                     var eventName = evt.evaluate(ctx);
-                                    var me = ctx['me'];
+                                    var target = on ? on.evaluate(ctx) : ctx['me'];
                                     var listener = function(){
-                                        me.removeEventListener(eventName, listener);
+                                        target.removeEventListener(eventName, listener);
                                         _runtime.next(waitCmd, ctx);
                                     };
-                                    me.addEventListener(eventName, listener)
+                                    target.addEventListener(eventName, listener)
                                 }
                             };
                         } else {
@@ -1725,8 +1761,16 @@
                             type: "callCmd",
                             expr: expr,
                             execute: function (ctx) {
-                                ctx.it = expr.evaluate(ctx);
-                                _runtime.next(callCmd, ctx);
+                                var it = expr.evaluate(ctx);
+                                if (it && it.then) {
+                                    it.then(function (value) {
+                                        ctx.it = value;
+                                        _runtime.next(callCmd, ctx);
+                                    })
+                                } else {
+                                    ctx.it = it;
+                                    _runtime.next(callCmd, ctx);
+                                }
                             }
                         };
                         return callCmd
@@ -1760,6 +1804,36 @@
                             parser.raiseParseError(tokens, "Can only put directly into symbols, not references")
                         }
 
+                        var putter = function(valueToPut, ctx){
+                            if (symbolWrite) {
+                                ctx[target.root.name] = valueToPut;
+                            } else {
+                                if (op === "into") {
+                                    var lastProperty = target.propPath.slice(-1); // steal last property for assignment
+                                    _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath.slice(0, -1)), function(target){
+                                        target[lastProperty] = valueToPut;
+                                    })
+                                } else if (op === "before") {
+                                    _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath), function(target){
+                                        target.insertAdjacentHTML('beforebegin', valueToPut);
+                                    })
+                                } else if (op === "start") {
+                                    _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath), function(target){
+                                        target.insertAdjacentHTML('afterbegin', valueToPut);
+                                    })
+                                } else if (op === "end") {
+                                    _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath), function(target){
+                                        target.insertAdjacentHTML('beforeend', valueToPut);
+                                    })
+                                } else if (op === "after") {
+                                    _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath), function(target){
+                                        target.insertAdjacentHTML('afterend', valueToPut);
+                                    })
+                                }
+                            }
+                            _runtime.next(putCmd, ctx);
+                        }
+
                         var putCmd = {
                             type: "putCmd",
                             target: target,
@@ -1767,33 +1841,14 @@
                             symbolWrite: symbolWrite,
                             value: value,
                             execute: function (ctx) {
-                                if (symbolWrite) {
-                                    ctx[target.root.name] = value.evaluate(ctx);
+                                var valueToPut = value.evaluate(ctx);
+                                if (valueToPut.then) {
+                                    valueToPut.then(function(finalValue){
+                                        putter(finalValue, ctx);
+                                    })
                                 } else {
-                                    if (op === "into") {
-                                        var lastProperty = target.propPath.slice(-1); // steal last property for assignment
-                                        _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath.slice(0, -1)), function(target){
-                                            target[lastProperty] = value.evaluate(ctx);
-                                        })
-                                    } else if (op === "before") {
-                                        _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath), function(target){
-                                            target.insertAdjacentHTML('beforebegin', value.evaluate(ctx));
-                                        })
-                                    } else if (op === "start") {
-                                        _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath), function(target){
-                                            target.insertAdjacentHTML('afterbegin', value.evaluate(ctx));
-                                        })
-                                    } else if (op === "end") {
-                                        _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath), function(target){
-                                            target.insertAdjacentHTML('beforeend', value.evaluate(ctx));
-                                        })
-                                    } else if (op === "after") {
-                                        _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath), function(target){
-                                            target.insertAdjacentHTML('afterend', value.evaluate(ctx));
-                                        })
-                                    }
+                                    putter(valueToPut, ctx);
                                 }
-                                _runtime.next(putCmd, ctx);
                             }
                         };
                         return putCmd
@@ -1815,21 +1870,32 @@
                             parser.raiseParseError(tokens, "Can only put directly into symbols, not references")
                         }
 
+                        var setter = function(valueToSet, ctx) {
+                            if (symbolWrite) {
+                                ctx[target.root.name] = valueToSet;
+                            } else {
+                                var lastProperty = target.propPath.slice(-1); // steal last property for assignment
+                                _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath.slice(0, -1)), function (target) {
+                                    target[lastProperty] = valueToSet;
+                                })
+                            }
+                            _runtime.next(setCmd, ctx);
+                        }
+
                         var setCmd = {
                             type: "setCmd",
                             target: target,
                             symbolWrite: symbolWrite,
                             value: value,
                             execute: function (ctx) {
-                                if (symbolWrite) {
-                                    ctx[target.root.name] = value.evaluate(ctx);
-                                } else {
-                                    var lastProperty = target.propPath.slice(-1); // steal last property for assignment
-                                    _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath.slice(0, -1)), function (target) {
-                                        target[lastProperty] = value.evaluate(ctx);
+                                var valueToSet = value.evaluate(ctx);
+                                if (valueToSet.then) {
+                                    valueToSet.then(function(finalValue){
+                                        setter(finalValue, ctx);
                                     })
+                                } else {
+                                    setter(valueToSet, ctx);
                                 }
-                                _runtime.next(setCmd, ctx);
                             }
                         };
                         return setCmd
@@ -1883,14 +1949,14 @@
                             expression: expression,
                             loop: loop,
                             execute: function (ctx) {
-                                ctx[identifier.value + "_iterator"] = {
+                                ctx.meta.iterators[identifier.value] = {
                                     index: 0,
                                     value: expression.evaluate(ctx)
                                 };
                                 forCmd.handleNext(ctx);
                             },
                             handleNext: function (ctx) {
-                                var iterator = ctx[identifier.value + "_iterator"];
+                                var iterator = ctx.meta.iterators[identifier.value];
                                 if (iterator.value === null ||
                                     iterator.index >= iterator.value.length) {
                                     if (forCmd.next) {
