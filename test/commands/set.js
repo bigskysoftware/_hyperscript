@@ -50,5 +50,26 @@ describe("the set command", function() {
         d2.innerHTML.should.equal("foo");
     })
 
+    it("set waits on promises", function(done){
+        window.promiseAString = function(){
+            return new Promise(function(finish){
+                window.finish = finish;
+            });
+        }
+        try {
+            var d1 = make("<div id='d1' _='on click set #d1.innerHTML to promiseAString()'></div>");
+            d1.click();
+            d1.innerHTML.should.equal("");
+            finish("foo");
+            setTimeout(function () {
+                d1.innerHTML.should.equal("foo");
+                done();
+            }, 20);
+        } finally {
+            delete window.promiseAString;
+            delete window.finish;
+        }
+    })
+
 });
 

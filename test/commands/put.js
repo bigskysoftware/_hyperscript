@@ -74,5 +74,28 @@ describe("the put command", function() {
         d1.innerHTML.should.equal("*foo");
     })
 
+    it("waits on promises", function(done){
+        window.promiseAString = function(){
+            return new Promise(function(finish){
+                window.finish = finish;
+            });
+        }
+        try {
+            var d1 = make("<div id='d1' _='on click put promiseAString() into #d1.innerHTML'></div>");
+            d1.click();
+            d1.innerHTML.should.equal("");
+            finish("foo");
+            setTimeout(function () {
+                d1.innerHTML.should.equal("foo");
+                done();
+            }, 20);
+        } finally {
+            delete window.promiseAString;
+            delete window.finish;
+        }
+    })
+
+
+
 });
 

@@ -1684,8 +1684,16 @@
                             type: "callCmd",
                             expr: expr,
                             execute: function (ctx) {
-                                ctx.it = expr.evaluate(ctx);
-                                _runtime.next(callCmd, ctx);
+                                var it = expr.evaluate(ctx);
+                                if (it && it.then) {
+                                    it.then(function (value) {
+                                        ctx.it = value;
+                                        _runtime.next(callCmd, ctx);
+                                    })
+                                } else {
+                                    ctx.it = it;
+                                    _runtime.next(callCmd, ctx);
+                                }
                             }
                         };
                         return callCmd
@@ -1719,6 +1727,36 @@
                             parser.raiseParseError(tokens, "Can only put directly into symbols, not references")
                         }
 
+                        var putter = function(valueToPut, ctx){
+                            if (symbolWrite) {
+                                ctx[target.root.name] = valueToPut;
+                            } else {
+                                if (op === "into") {
+                                    var lastProperty = target.propPath.slice(-1); // steal last property for assignment
+                                    _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath.slice(0, -1)), function(target){
+                                        target[lastProperty] = valueToPut;
+                                    })
+                                } else if (op === "before") {
+                                    _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath), function(target){
+                                        target.insertAdjacentHTML('beforebegin', valueToPut);
+                                    })
+                                } else if (op === "start") {
+                                    _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath), function(target){
+                                        target.insertAdjacentHTML('afterbegin', valueToPut);
+                                    })
+                                } else if (op === "end") {
+                                    _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath), function(target){
+                                        target.insertAdjacentHTML('beforeend', valueToPut);
+                                    })
+                                } else if (op === "after") {
+                                    _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath), function(target){
+                                        target.insertAdjacentHTML('afterend', valueToPut);
+                                    })
+                                }
+                            }
+                            _runtime.next(putCmd, ctx);
+                        }
+
                         var putCmd = {
                             type: "putCmd",
                             target: target,
@@ -1726,33 +1764,14 @@
                             symbolWrite: symbolWrite,
                             value: value,
                             execute: function (ctx) {
-                                if (symbolWrite) {
-                                    ctx[target.root.name] = value.evaluate(ctx);
+                                var valueToPut = value.evaluate(ctx);
+                                if (valueToPut.then) {
+                                    valueToPut.then(function(finalValue){
+                                        putter(finalValue, ctx);
+                                    })
                                 } else {
-                                    if (op === "into") {
-                                        var lastProperty = target.propPath.slice(-1); // steal last property for assignment
-                                        _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath.slice(0, -1)), function(target){
-                                            target[lastProperty] = value.evaluate(ctx);
-                                        })
-                                    } else if (op === "before") {
-                                        _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath), function(target){
-                                            target.insertAdjacentHTML('beforebegin', value.evaluate(ctx));
-                                        })
-                                    } else if (op === "start") {
-                                        _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath), function(target){
-                                            target.insertAdjacentHTML('afterbegin', value.evaluate(ctx));
-                                        })
-                                    } else if (op === "end") {
-                                        _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath), function(target){
-                                            target.insertAdjacentHTML('beforeend', value.evaluate(ctx));
-                                        })
-                                    } else if (op === "after") {
-                                        _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath), function(target){
-                                            target.insertAdjacentHTML('afterend', value.evaluate(ctx));
-                                        })
-                                    }
+                                    putter(valueToPut, ctx);
                                 }
-                                _runtime.next(putCmd, ctx);
                             }
                         };
                         return putCmd
@@ -1774,21 +1793,32 @@
                             parser.raiseParseError(tokens, "Can only put directly into symbols, not references")
                         }
 
+                        var setter = function(valueToSet, ctx) {
+                            if (symbolWrite) {
+                                ctx[target.root.name] = valueToSet;
+                            } else {
+                                var lastProperty = target.propPath.slice(-1); // steal last property for assignment
+                                _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath.slice(0, -1)), function (target) {
+                                    target[lastProperty] = valueToSet;
+                                })
+                            }
+                            _runtime.next(setCmd, ctx);
+                        }
+
                         var setCmd = {
                             type: "setCmd",
                             target: target,
                             symbolWrite: symbolWrite,
                             value: value,
                             execute: function (ctx) {
-                                if (symbolWrite) {
-                                    ctx[target.root.name] = value.evaluate(ctx);
-                                } else {
-                                    var lastProperty = target.propPath.slice(-1); // steal last property for assignment
-                                    _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath.slice(0, -1)), function (target) {
-                                        target[lastProperty] = value.evaluate(ctx);
+                                var valueToSet = value.evaluate(ctx);
+                                if (valueToSet.then) {
+                                    valueToSet.then(function(finalValue){
+                                        setter(finalValue, ctx);
                                     })
+                                } else {
+                                    setter(valueToSet, ctx);
                                 }
-                                _runtime.next(setCmd, ctx);
                             }
                         };
                         return setCmd

@@ -72,5 +72,27 @@ describe("the call command", function() {
         }
     })
 
+    it("call functions that return promises are waited on", function(done){
+        var called = false;
+        window.promiseAnInt = function(){
+            return new Promise(function(finish){
+                window.finish = finish;
+            });
+        }
+        try {
+            var div = make("<div _='on click call promiseAnInt() then put it into my.innerHTML'></div>");
+            div.click();
+            div.innerText.should.equal("");
+            finish(42);
+            setTimeout(function () {
+                div.innerText.should.equal("42");
+                done();
+            }, 20);
+        } finally {
+            delete window.promiseAnInt;
+            delete window.finish;
+        }
+    })
+
 });
 
