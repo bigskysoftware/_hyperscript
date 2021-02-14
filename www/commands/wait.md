@@ -7,7 +7,7 @@ title: ///_hyperscript
 
 ### Syntax
 
-`wait for <event>`
+`wait for <event> [from <source>]`
 
 `wait <time-expr>`
 
@@ -15,7 +15,7 @@ title: ///_hyperscript
 
 The `wait` command can either wait for an event to occur or for a fixed amount of time
 
-In the form `wait for <event>` the hyperscript will pause until the element receives the specified event. 
+In the form `wait for <event> [from <source>]` the hyperscript will pause until the element receives the specified event. 
 
 In the `wait <time-expr>` form, it waits the given amount of time, which can be in the following formats:
 

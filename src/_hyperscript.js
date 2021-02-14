@@ -1499,18 +1499,22 @@
                             if (evt == null) {
                                 parser.raiseParseError(tokens, "Expected event name")
                             }
+                            if (tokens.matchToken("from")) {
+                                var on = parser.parseElement("expression", tokens);
+                            }
                             // wait on event
                             var waitCmd = {
                                 type: "waitCmd",
                                 event: evt,
+                                on: on,
                                 execute: function (ctx) {
                                     var eventName = evt.evaluate(ctx);
-                                    var me = ctx['me'];
+                                    var target = on ? on.evaluate(ctx) : ctx['me'];
                                     var listener = function(){
-                                        me.removeEventListener(eventName, listener);
+                                        target.removeEventListener(eventName, listener);
                                         _runtime.next(waitCmd, ctx);
                                     };
-                                    me.addEventListener(eventName, listener)
+                                    target.addEventListener(eventName, listener)
                                 }
                             };
                         } else {
