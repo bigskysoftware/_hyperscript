@@ -503,7 +503,7 @@
                 }
 
                 function forEach(arr, func) {
-                    if (arr.length) {
+                    if (arr.length != null) {
                         for (var i = 0; i < arr.length; i++) {
                             func(arr[i]);
                         }
@@ -566,7 +566,8 @@
                             parser: _parser,
                             lexer: _lexer,
                             runtime: _runtime,
-                            root: root
+                            root: root,
+                            iterators: root
                         },
                         me: elt,
                         event: event,
@@ -677,9 +678,14 @@
                     } if (str === "it" || str === "its") {
                         return context["it"];
                     } else {
+                        if (context.meta && context.meta.context) {
+                            var fromMetaContext = context.meta.context[str];
+                            if (typeof fromMetaContext !== "undefined") {
+                                return fromMetaContext;
+                            }
+                        }
                         var fromContext = context[str];
-
-                        if (fromContext) {
+                        if (typeof fromContext !== "undefined") {
                             return fromContext;
                         } else {
                             return window[str];
@@ -1297,6 +1303,13 @@
                     if (on == null) {
                         parser.raiseParseError(tokens, "Expected event name")
                     }
+
+                    var filter = null;
+                    if (tokens.matchOpToken('[')) {
+                        filter = parser.parseElement("expression", tokens);
+                        tokens.requireOpToken(']');
+                    }
+
                     var from = null;
                     if (tokens.matchToken("from")) {
                         from = parser.parseElement("target", tokens);
@@ -1319,16 +1332,27 @@
                         args: args,
                         on: on,
                         from: from,
+                        filter: filter,
                         start: start,
                         execute: function (ctx) {
-                            if (start.execute) {
-                                _runtime.forEach(args, function (arg) {
-                                    ctx[arg.value] = ctx.event[arg.value] || (ctx.event.detail ? ctx.event.detail[arg.value] : null);
-                                });
-                                start.execute(ctx);
-                            } else {
-                                console.log("Need to implement execute", start);
+                            if(filter) {
+                                var initialCtx = ctx.meta.context;
+                                ctx.meta.context = ctx.event;
+                                try {
+                                    var value = filter.evaluate(ctx);
+                                    if (value) {
+                                        // match the javascript semantics for if statements
+                                    } else {
+                                        return;
+                                    }
+                                } finally {
+                                    ctx.meta.context = initialCtx;
+                                }
                             }
+                            _runtime.forEach(args, function (arg) {
+                                ctx[arg.value] = ctx.event[arg.value] || (ctx.event.detail ? ctx.event.detail[arg.value] : null);
+                            });
+                            start.execute(ctx);
                         }
                     };
                     parser.setParent(start, onFeature);
@@ -1814,14 +1838,14 @@
                             expression: expression,
                             loop: loop,
                             execute: function (ctx) {
-                                ctx[identifier.value + "_iterator"] = {
+                                ctx.meta.iterators[identifier.value] = {
                                     index: 0,
                                     value: expression.evaluate(ctx)
                                 };
                                 forCmd.handleNext(ctx);
                             },
                             handleNext: function (ctx) {
-                                var iterator = ctx[identifier.value + "_iterator"];
+                                var iterator = ctx.meta.iterators[identifier.value];
                                 if (iterator.value === null ||
                                     iterator.index >= iterator.value.length) {
                                     if (forCmd.next) {

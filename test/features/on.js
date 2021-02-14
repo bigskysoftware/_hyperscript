@@ -49,5 +49,27 @@ describe("the on feature", function() {
         byId('d1').innerText.should.equal("Loaded");
     })
 
+    it("can have a simple event filter", function(){
+        var div = make("<div id='d1' _='on click[false] log event then put \"Clicked\" into my.innerHTML'></div>");
+        div.click();
+        byId('d1').innerText.should.equal("");
+    })
+
+    it("can refer to event properties directly in filter", function(){
+        var div = make("<div _='on click[buttons==0] log event then put \"Clicked\" into my.innerHTML'></div>");
+        div.click();
+        div.innerText.should.equal("Clicked");
+
+        div = make("<div _='on click[buttons==1] log event then put \"Clicked\" into my.innerHTML'></div>");
+        div.click();
+        div.innerText.should.equal("");
+
+        div = make("<div _='on click[buttons==1 and buttons==0] log event then put \"Clicked\" into my.innerHTML'></div>");
+        div.click();
+        div.innerText.should.equal("");
+    })
+
+
+
 });
 
