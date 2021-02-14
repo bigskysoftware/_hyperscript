@@ -503,12 +503,8 @@
                 }
 
                 function forEach(arr, func) {
-                    if (arr.length) {
-                        for (var i = 0; i < arr.length; i++) {
-                            func(arr[i]);
-                        }
-                    } else {
-                        func(arr);
+                    for (var i = 0; i < arr.length; i++) {
+                        func(arr[i]);
                     }
                 }
 
@@ -570,7 +566,7 @@
                         },
                         me: elt,
                         event: event,
-                        detail: event.detail,
+                        detail: event ? event.detail : null,
                         body: document.body,
                         globals: GLOBALS
                     }
@@ -623,15 +619,19 @@
                     if (matchesSelector(elt, selector)) {
                         initElement(elt);
                     }
-                    forEach(elt.querySelectorAll(selector), function (elt) {
-                        initElement(elt, document.body);
-                    })
+                    if (elt.querySelectorAll) {
+                        forEach(elt.querySelectorAll(selector), function (elt) {
+                            initElement(elt, document.body);
+                        });
+                    }
                     if (elt.type === "text/hyperscript") {
                         initElement(elt, document.body);
                     }
-                    forEach(elt.querySelectorAll("[type=\'text/hyperscript\']"), function (elt) {
-                        initElement(elt, document.body);
-                    })
+                    if (elt.querySelectorAll) {
+                        forEach(elt.querySelectorAll("[type=\'text/hyperscript\']"), function (elt) {
+                            initElement(elt, document.body);
+                        });
+                    }
                 }
 
                 function initElement(elt, target) {
@@ -711,6 +711,7 @@
                     evaluate: evaluate,
                     getScriptSelector: getScriptSelector,
                     resolveSymbol: resolveSymbol,
+                    makeContext: makeContext,
                     next: next
                 }
             }();
@@ -1261,7 +1262,7 @@
                 });
 
                 _parser.addGrammarElement("command", function (parser, tokens) {
-                    return parser.parseAnyOf(["onCmd", "addCmd", "removeCmd", "toggleCmd", "waitCmd", "sendCmd", "triggerCmd",
+                    return parser.parseAnyOf(["addCmd", "removeCmd", "toggleCmd", "waitCmd", "sendCmd", "triggerCmd",
                         "takeCmd", "logCmd", "callCmd", "putCmd", "setCmd", "ifCmd", "forCmd", "fetchCmd"], tokens);
                 })
 
@@ -1276,8 +1277,17 @@
 
                 _parser.addGrammarElement("hyperscript", function (parser, tokens) {
                     var onFeatures = []
+                    var functionFeatures = []
                     do {
-                        onFeatures.push(parser.parseElement("onFeature", tokens));
+                        var feature = parser.parseElement("feature", tokens);
+                        if (feature == null) {
+                            parser.raiseParseError("Unexpected feature type : " + tokens.currentToken());
+                        }
+                        if (feature.type === "onFeature") {
+                            onFeatures.push(feature);
+                        } else if(feature.type === "functionFeature") {
+                            functionFeatures.push(feature);
+                        }
                     } while (tokens.matchToken("end") && tokens.hasMore())
                     if (tokens.hasMore()) {
                         parser.raiseParseError(tokens);
@@ -1285,54 +1295,113 @@
                     return {
                         type: "hyperscript",
                         onFeatures: onFeatures,
+                        functions: functionFeatures,
                         execute: function () {
                             // no op
                         }
                     };
                 })
 
+                _parser.addGrammarElement("feature", function (parser, tokens) {
+                    return parser.parseAnyOf(["onFeature", "functionFeature"], tokens);
+                })
+
                 _parser.addGrammarElement("onFeature", function (parser, tokens) {
-                    tokens.requireToken("on");
-                    var on = parser.parseElement("dotOrColonPath", tokens);
-                    if (on == null) {
-                        parser.raiseParseError(tokens, "Expected event name")
-                    }
-                    var from = null;
-                    if (tokens.matchToken("from")) {
-                        from = parser.parseElement("target", tokens);
-                        if (from == null) {
-                            parser.raiseParseError(tokens, "Expected target value")
+                    if (tokens.matchToken("on")) {
+                        var on = parser.parseElement("dotOrColonPath", tokens);
+                        if (on == null) {
+                            parser.raiseParseError(tokens, "Expected event name")
                         }
-                    }
+                        var from = null;
+                        if (tokens.matchToken("from")) {
+                            from = parser.parseElement("target", tokens);
+                            if (from == null) {
+                                parser.raiseParseError(tokens, "Expected target value")
+                            }
+                        }
 
-                    var args = [];
-                    if (tokens.matchOpToken("(")) {
-                        do {
-                            args.push(tokens.requireTokenType('IDENTIFIER'));
-                        } while (tokens.matchOpToken(","))
-                        tokens.requireOpToken(')')
-                    }
+                        var args = [];
+                        if (tokens.matchOpToken("(")) {
+                            do {
+                                args.push(tokens.requireTokenType('IDENTIFIER'));
+                            } while (tokens.matchOpToken(","))
+                            tokens.requireOpToken(')')
+                        }
 
-                    var start = parser.parseElement("commandList", tokens);
-                    var onFeature = {
-                        type: "onFeature",
-                        args: args,
-                        on: on,
-                        from: from,
-                        start: start,
-                        execute: function (ctx) {
-                            if (start.execute) {
+                        var start = parser.parseElement("commandList", tokens);
+                        var onFeature = {
+                            type: "onFeature",
+                            args: args,
+                            on: on,
+                            from: from,
+                            start: start,
+                            execute: function (ctx) {
                                 _runtime.forEach(args, function (arg) {
                                     ctx[arg.value] = ctx.event[arg.value] || (ctx.event.detail ? ctx.event.detail[arg.value] : null);
                                 });
                                 start.execute(ctx);
+                            }
+                        };
+                        parser.setParent(start, onFeature);
+                        return onFeature;
+                    }
+                });
+
+                _parser.addGrammarElement("functionFeature", function (parser, tokens) {
+                    if (tokens.matchToken('def')) {
+                        var functionName = parser.parseElement("dotOrColonPath", tokens);
+                        var nameVal = functionName.evaluate();
+                        var nameSpace = nameVal.split(".");
+                        var funcName = nameSpace.pop();
+
+                        var args = [];
+                        if (tokens.matchOpToken("(")) {
+                            if (tokens.matchOpToken(")")) {
+                                // emtpy args list
                             } else {
-                                console.log("Need to implement execute", start);
+                                do {
+                                    args.push(tokens.requireTokenType('IDENTIFIER'));
+                                } while (tokens.matchOpToken(","))
+                                tokens.requireOpToken(')')
                             }
                         }
-                    };
-                    parser.setParent(start, onFeature);
-                    return onFeature;
+
+                        var start = parser.parseElement("commandList", tokens);
+                        var functionFeature = {
+                            type: "functionFeature",
+                            name: funcName,
+                            args: args,
+                            start: start,
+                            execute: function (ctx) {
+                                // no-op
+                            }
+                        };
+
+                        var root = window;
+                        while (nameSpace.length > 0) {
+                            var propertyName = nameSpace.shift();
+                            var newRoot = root[propertyName];
+                            if (newRoot == null) {
+                                newRoot = {};
+                                root[propertyName] = newRoot;
+                            }
+                            root = newRoot;
+                        }
+
+                        root[funcName] = function() {
+                            var ctx = _runtime.makeContext(document.body, document.body, null);
+                            for (var i = 0; i < arguments.length; i++) {
+                                var argumentVal = arguments[i];
+                                var name = args[i];
+                                if (name) {
+                                    ctx[name.value] = argumentVal;
+                                }
+                            }
+                            start.execute(ctx);
+                        };
+                        parser.setParent(start, functionFeature);
+                        return functionFeature;
+                    }
                 });
 
                 _parser.addGrammarElement("addCmd", function (parser, tokens) {
