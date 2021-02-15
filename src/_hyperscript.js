@@ -503,7 +503,9 @@
                 }
 
                 function forEach(arr, func) {
-                    if (arr.length != null) {
+                    if (arr == null) {
+                        // do nothing
+                    } else if (arr.length != null) {
                         for (var i = 0; i < arr.length; i++) {
                             func(arr[i]);
                         }
@@ -513,6 +515,9 @@
                 }
 
                 function evalTarget(root, path) {
+                    if (root == null) {
+                        return null;
+                    }
                     if (root.length) {
                         var last = root;
                     } else {
