@@ -47,6 +47,57 @@ describe("the def feature", function() {
         delete window.utils;
     })
 
+    it("is called synchronouslyish", function(done){
+        var script = make(
+            "<script type='text/hyperscript'>" +
+            "def foo() " +
+            "  log me" +
+            "end" +
+            "</script>");
+        var bar = make("<div _='on click call foo() then add .called to #d1'></div>");
+        var div = make("<div id='d1'></div>");
+        div.classList.contains("called").should.equal(false);
+        bar.click();
+        setTimeout(function () {
+            div.classList.contains("called").should.equal(true);
+            delete window.foo;
+            done();
+        }, 10);
+    })
+
+    it("can return a value synchronouslyish", function(done){
+        var script = make(
+            "<script type='text/hyperscript'>" +
+            "def foo() " +
+            "  return \"foo\"" +
+            "end" +
+            "</script>");
+        var bar = make("<div _='on click call foo() then put it into #d1.innerText'></div>");
+        var div = make("<div id='d1'></div>");
+        div.innerText.should.equal("");
+        bar.click();
+        setTimeout(function () {
+            div.innerText.should.equal("foo");
+            delete window.foo;
+            done();
+        }, 10);
+    })
+
+    it("can interop with javascript", function(done){
+        var script = make(
+            "<script type='text/hyperscript'>" +
+            "def foo() " +
+            "  return \"foo\"" +
+            "end" +
+            "</script>");
+
+        foo().then(function(val){
+            val.should.equal("foo");
+            delete window.foo;
+            done();
+        })
+    })
+
 
 });
 

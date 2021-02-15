@@ -514,6 +514,10 @@
                     }
                 }
 
+                function asyncEval(ctx, op, args) {
+
+                }
+
                 function evalTarget(root, path) {
                     if (root == null) {
                         return null;
@@ -564,7 +568,6 @@
                     return null;
                 }
 
-                var GLOBALS = {}
                 function makeContext(root, elt, event) {
                     var ctx = {
                         meta: {
@@ -577,8 +580,7 @@
                         me: elt,
                         event: event,
                         detail: event ? event.detail : null,
-                        body: document.body,
-                        globals: GLOBALS
+                        body: document.body
                     }
                     ctx.meta.ctx = ctx;
                     return ctx;
@@ -1277,7 +1279,7 @@
                 });
 
                 _parser.addGrammarElement("command", function (parser, tokens) {
-                    return parser.parseAnyOf(["addCmd", "removeCmd", "toggleCmd", "waitCmd", "sendCmd", "triggerCmd",
+                    return parser.parseAnyOf(["addCmd", "removeCmd", "toggleCmd", "waitCmd", "returnCmd", "sendCmd", "triggerCmd",
                         "takeCmd", "logCmd", "callCmd", "putCmd", "setCmd", "ifCmd", "forCmd", "fetchCmd"], tokens);
                 })
 
@@ -1425,6 +1427,18 @@
                             root = newRoot;
                         }
 
+                        var end = start;
+                        while (end.next) {
+                            end = end.next;
+                        }
+                        end.next = {
+                            type: "implicitReturn",
+                            execute: function (ctx) {
+                                // automatically return at the end of the function if nothing else does
+                                ctx.meta.resolve();
+                            }
+                        }
+
                         root[funcName] = function() {
                             var ctx = _runtime.makeContext(document.body, document.body, null);
                             for (var i = 0; i < arguments.length; i++) {
@@ -1434,7 +1448,13 @@
                                     ctx[name.value] = argumentVal;
                                 }
                             }
+                            var resolve = null;
+                            var promise = new Promise(function(returnCall){
+                                resolve = returnCall;
+                            });
+                            ctx.meta.resolve = resolve;
                             start.execute(ctx);
+                            return promise
                         };
                         parser.setParent(start, functionFeature);
                         return functionFeature;
@@ -1670,6 +1690,31 @@
                             }
                         };
                         return sendCmd
+                    }
+                })
+
+                _parser.addGrammarElement("returnCmd", function (parser, tokens) {
+                    if (tokens.matchToken("return")) {
+
+                        var value = parser.parseElement("expression", tokens);
+
+                        var returnCmd = {
+                            type: "returnCmd",
+                            value: value,
+                            execute: function (ctx) {
+                                var resolve = ctx.meta.resolve;
+                                if (resolve) {
+                                    if (value) {
+                                        resolve(value.evaluate(ctx));
+                                    } else {
+                                        resolve()
+                                    }
+                                } else {
+                                    throw "Unable to return in this context...";
+                                }
+                            }
+                        };
+                        return returnCmd
                     }
                 })
 
