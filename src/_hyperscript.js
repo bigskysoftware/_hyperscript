@@ -215,6 +215,7 @@
                         matchToken: matchToken,
                         requireToken: requireToken,
                         list: tokens,
+                        consumed: consumed,
                         source: source,
                         hasMore: hasMore,
                         currentToken: currentToken,
@@ -1410,6 +1411,8 @@
                             onFeatures.push(feature);
                         } else if(feature.type === "functionFeature") {
                             functionFeatures.push(feature);
+                        } else if (feature.type === "workerFeature") {
+                            feature.execute();
                         }
                     } while (tokens.matchToken("end") && tokens.hasMore())
                     if (tokens.hasMore()) {
@@ -1426,7 +1429,11 @@
                 })
 
                 _parser.addGrammarElement("feature", function (parser, tokens) {
-                    return parser.parseAnyOf(["onFeature", "functionFeature"], tokens);
+                    return parser.parseAnyOf([
+                        "onFeature",
+                        "functionFeature",
+                        "workerFeature",
+                    ], tokens);
                 })
 
                 _parser.addGrammarElement("onFeature", function (parser, tokens) {
@@ -1573,6 +1580,38 @@
                         return functionFeature;
                     }
                 });
+
+                _parser.addGrammarElement("workerFeature", function(parser, tokens) {
+                    if (tokens.matchToken('worker')) {
+                        var name = parser.parseElement("dotOrColonPath", tokens);
+                        var qualifiedName = name.evaluate();
+                        var nameSpace = qualifiedName.split(".");
+                        var workerName = nameSpace.pop();
+
+                        // Consume worker methods
+
+                        var bodyStartIndex = tokens.consumed.length;
+                        var bodyEndIndex = tokens.consumed.length;
+                        do {
+                            parser.parseElement('functionFeature', tokens);
+                            tokens.matchToken('end'); // function end
+                            bodyEndIndex = tokens.consumed.length;
+                        } while (!tokens.matchToken("end")); // worker end
+
+
+                        var bodyTokens = tokens.consumed.slice(bodyStartIndex, bodyEndIndex);
+
+                        return {
+                            type: 'workerFeature',
+                            name: workerName,
+                            execute: function (ctx) {
+                                // TODO actually implement
+                                console.log("=== Worker "+workerName+" ===");
+                                console.log(bodyTokens);
+                            }
+                        };
+                    }
+                })
 
                 _parser.addGrammarElement("addCmd", function (parser, tokens) {
                     if (tokens.matchToken("add")) {
