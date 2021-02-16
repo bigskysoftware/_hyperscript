@@ -514,6 +514,44 @@
                     }
                 }
 
+                var ARRAY_SENTINEL = {array_sentinel:true}
+                function linearize(args) {
+                    var arr = [];
+                    for (var i = 0; i < args.length; i++) {
+                        var arg = args[i];
+                        if (Array.isArray(arg)) {
+                            arr.push(ARRAY_SENTINEL);
+                            for (var j = 0; j < arg.length; j++) {
+                                arr.push(arg[j]);
+                            }
+                            arr.push(ARRAY_SENTINEL);
+                        } else {
+                            arr.push(arg);
+                        }
+                    }
+                    return arr;
+                }
+
+                function delinearize(values){
+                    var arr = [];
+                    for (var i = 0; i < values.length; i++) {
+                        var value = values[i];
+                        if (value === ARRAY_SENTINEL) {
+                            value = values[++i];
+                            var valueArray = [];
+                            arr.push(valueArray);
+                            while (value !== ARRAY_SENTINEL) {
+                                valueArray.push(value);
+                                value = values[++i];
+                            }
+                        } else {
+                            arr.push(value);
+                        }
+                    }
+                    return arr;
+
+                }
+
                 function mixedEval(ctx, op) {
                     var args = []
                     var async = false;
@@ -540,7 +578,9 @@
                     }
                     if (async) {
                         return new Promise(function(resolve){
-                            Promise.all(args).then(function(values){
+                            var linearized = linearize(args);
+                            Promise.all(linearized).then(function(values){
+                                values = delinearize(values);
                                 resolve(op.apply(null, values));
                             })
                         })

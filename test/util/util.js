@@ -32,6 +32,15 @@ function promiseAnIntIn(millis) {
     })
 }
 
+function promiseValueBackIn(value, millis) {
+    return new Promise(function(resolve, reject){
+        setTimeout(function () {
+            console.log("resolving");
+            resolve(value);
+        }, millis);
+    })
+}
+
 function ready(fn) {
     if (document.readyState !== 'loading') {
         fn();
