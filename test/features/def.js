@@ -47,10 +47,26 @@ describe("the def feature", function() {
         delete window.utils;
     })
 
-    it("is called synchronouslyish", function(done){
+    it("is called synchronously", function(){
         var script = make(
             "<script type='text/hyperscript'>" +
             "def foo() " +
+            "  log me" +
+            "end" +
+            "</script>");
+        var bar = make("<div _='on click call foo() then add .called to #d1'></div>");
+        var div = make("<div id='d1'></div>");
+        div.classList.contains("called").should.equal(false);
+        bar.click();
+        div.classList.contains("called").should.equal(true);
+        delete window.foo;
+    })
+
+    it("cal call asynchronously", function(done){
+        var script = make(
+            "<script type='text/hyperscript'>" +
+            "def foo() " +
+            "  wait 1ms" +
             "  log me" +
             "end" +
             "</script>");
@@ -65,10 +81,26 @@ describe("the def feature", function() {
         }, 10);
     })
 
-    it("can return a value synchronouslyish", function(done){
+    it("can return a value synchronously", function(){
         var script = make(
             "<script type='text/hyperscript'>" +
             "def foo() " +
+            "  return \"foo\"" +
+            "end" +
+            "</script>");
+        var bar = make("<div _='on click call foo() then put it into #d1.innerText'></div>");
+        var div = make("<div id='d1'></div>");
+        div.innerText.should.equal("");
+        bar.click();
+        div.innerText.should.equal("foo");
+        delete window.foo;
+    })
+
+    it("can return a value asynchronously", function(done){
+        var script = make(
+            "<script type='text/hyperscript'>" +
+            "def foo() " +
+            "  wait 1ms" +
             "  return \"foo\"" +
             "end" +
             "</script>");
@@ -83,15 +115,27 @@ describe("the def feature", function() {
         }, 10);
     })
 
-    it("can interop with javascript", function(done){
+    it("can interop with javascript", function(){
         var script = make(
             "<script type='text/hyperscript'>" +
             "def foo() " +
             "  return \"foo\"" +
             "end" +
             "</script>");
+        foo().should.equal("foo");
+        delete window.foo;
+    })
 
-        foo().then(function(val){
+    it("can interop with javascript asynchronously", function(done){
+        var script = make(
+            "<script type='text/hyperscript'>" +
+            "def foo() " +
+            "  wait 1ms" +
+            "  return \"foo\"" +
+            "end" +
+            "</script>");
+        var result = foo();
+        result.then(function(val){
             val.should.equal("foo");
             delete window.foo;
             done();

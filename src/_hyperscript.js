@@ -1055,7 +1055,6 @@
                             type: "arrayLiteral",
                             values: values,
                             evaluate: function (context) {
-                                return values.map(function (v) {return v.evaluate(context);});
                                 var op = function(values){
                                     return values;
                                 }
@@ -1542,7 +1541,10 @@
                             type: "implicitReturn",
                             execute: function (ctx) {
                                 // automatically return at the end of the function if nothing else does
-                                ctx.meta.resolve();
+                                ctx.meta.returned = true;
+                                if(ctx.meta.resolve){
+                                    ctx.meta.resolve();
+                                }
                             }
                         }
 
@@ -1559,9 +1561,13 @@
                             var promise = new Promise(function(returnCall){
                                 resolve = returnCall;
                             });
-                            ctx.meta.resolve = resolve;
                             start.execute(ctx);
-                            return promise
+                            if (ctx.meta.returned) {
+                                return ctx.meta.returnValue;
+                            } else {
+                                ctx.meta.resolve = resolve;
+                                return promise
+                            }
                         };
                         parser.setParent(start, functionFeature);
                         return functionFeature;
@@ -1810,6 +1816,7 @@
                             value: value,
                             execute: function (ctx) {
                                 var resolve = ctx.meta.resolve;
+                                ctx.meta.returned = true;
                                 if (resolve) {
                                     if (value) {
                                         resolve(value.evaluate(ctx));
@@ -1817,7 +1824,8 @@
                                         resolve()
                                     }
                                 } else {
-                                    throw "Unable to return in this context...";
+                                    ctx.meta.returned = true;
+                                    ctx.meta.returnValue = value.evaluate(ctx);
                                 }
                             }
                         };
