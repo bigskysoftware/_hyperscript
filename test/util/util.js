@@ -23,6 +23,15 @@ function make(htmlStr) {
     }
 }
 
+function promiseAnIntIn(millis) {
+    return new Promise(function(resolve, reject){
+        setTimeout(function () {
+            console.log("resolving");
+            resolve(42);
+        }, millis);
+    })
+}
+
 function ready(fn) {
     if (document.readyState !== 'loading') {
         fn();

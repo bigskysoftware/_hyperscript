@@ -40,4 +40,12 @@ describe("the mathOperator expression", function () {
         result.should.equal(1 + (2 * 3));
     });
 
+    it("can use mixed expressions", function(done) {
+        var result = evalHyperScript("1 + promiseAnIntIn(10)")
+        result.then(function(value){
+            value.should.equal(43);
+            done();
+        })
+    })
+
 });
