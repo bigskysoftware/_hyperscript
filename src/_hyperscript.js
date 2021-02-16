@@ -514,8 +514,39 @@
                     }
                 }
 
-                function asyncEval(ctx, op, args) {
-
+                function mixedEval(ctx, op) {
+                    var args = []
+                    var async = false;
+                    for (var i = 2; i < arguments.length; i++) {
+                        var argument = arguments[i];
+                        if (Array.isArray(argument)) {
+                            var arr = [];
+                            for (var j = 0; j < argument.length; j++) {
+                                var element = argument[j];
+                                var value = element.evaluate(ctx);
+                                if (value.next) {
+                                    async = true;
+                                }
+                                arr.push(value);
+                            }
+                            args.push(arr);
+                        } else {
+                            var value = argument.evaluate(ctx);
+                            if (value.next) {
+                                async = true;
+                            }
+                            args.push(value);
+                        }
+                    }
+                    if (async) {
+                        return Promise.resolve(function(resolve){
+                            Promise.all(args).then(function(values){
+                                resolve(op.apply(null, values));
+                            })
+                        })
+                    } else {
+                        return op.apply(null, args);
+                    }
                 }
 
                 function evalTarget(root, path) {
@@ -729,7 +760,8 @@
                     getScriptSelector: getScriptSelector,
                     resolveSymbol: resolveSymbol,
                     makeContext: makeContext,
-                    next: next
+                    next: next,
+                    mixedEval: mixedEval
                 }
             }();
 
@@ -849,11 +881,13 @@
                 _parser.addGrammarElement("objectLiteral", function (parser, tokens) {
                     if (tokens.matchOpToken("{")) {
                         var fields = []
+                        var valueExpressions = []
                         if (!tokens.matchOpToken("}")) {
                             do {
                                 var name = tokens.requireTokenType("IDENTIFIER");
                                 tokens.requireOpToken(":");
                                 var value = parser.parseElement("expression", tokens);
+                                valueExpressions.push(value);
                                 fields.push({name: name, value: value});
                             } while (tokens.matchOpToken(","))
                             tokens.requireOpToken("}");
@@ -862,12 +896,15 @@
                             type: "objectLiteral",
                             fields: fields,
                             evaluate: function (context) {
-                                var returnVal = {};
-                                for (var i = 0; i < fields.length; i++) {
-                                    var field = fields[i];
-                                    returnVal[field.name.value] = field.value.evaluate(context);
+                                var op = function(values){
+                                    var returnVal = {};
+                                    for (var i = 0; i < values.length; i++) {
+                                        var field = fields[i];
+                                        returnVal[field.name.value] = values[i];
+                                    }
+                                    return returnVal;
                                 }
-                                return returnVal;
+                                return _runtime.mixedEval(context, op, valueExpressions)
                             }
                         }
                     }
@@ -876,11 +913,13 @@
                 _parser.addGrammarElement("namedArgumentList", function (parser, tokens) {
                     if (tokens.matchOpToken("(")) {
                         var fields = []
+                        var valueExpressions = []
                         if (!tokens.matchOpToken(")")) {
                             do {
                                 var name = tokens.requireTokenType("IDENTIFIER");
                                 tokens.requireOpToken(":");
                                 var value = parser.parseElement("expression", tokens);
+                                valueExpressions.push(value);
                                 fields.push({name: name, value: value});
                             } while (tokens.matchOpToken(","))
                             tokens.requireOpToken(")");
@@ -889,12 +928,15 @@
                             type: "namedArgumentList",
                             fields: fields,
                             evaluate: function (context) {
-                                var returnVal = {_namedArgList_:true};
-                                for (var i = 0; i < fields.length; i++) {
-                                    var field = fields[i];
-                                    returnVal[field.name.value] = field.value.evaluate(context);
+                                var op = function(values){
+                                    var returnVal = {_namedArgList_:true};
+                                    for (var i = 0; i < values.length; i++) {
+                                        var field = fields[i];
+                                        returnVal[field.name.value] = values[i];
+                                    }
+                                    return returnVal;
                                 }
-                                return returnVal;
+                                return _runtime.mixedEval(context, op, valueExpressions)
                             }
                         }
                     }
@@ -974,6 +1016,10 @@
                             values: values,
                             evaluate: function (context) {
                                 return values.map(function (v) {return v.evaluate(context);});
+                                var op = function(values){
+                                    return values;
+                                }
+                                return _runtime.mixedEval(context, op, values);
                             }
                         }
                     }
@@ -1026,8 +1072,10 @@
                             root: root,
                             prop: prop,
                             evaluate: function (context) {
-                                var rootVal = root.evaluate(context);
-                                return rootVal == null ? null : rootVal[prop.value];
+                                var op = function(rootVal){
+                                    return rootVal == null ? null : rootVal[prop.value];
+                                }
+                                return _runtime.mixedEval(context, op, root)
                             }
                         };
                         return _parser.parseElement("indirectExpression", tokens, propertyAccess);
@@ -1049,14 +1097,17 @@
                             args: args,
                             evaluate: function (ctx) {
                                 if (root.root) {
-                                    var thisArg = root.root.evaluate(ctx);
-                                    var func = thisArg[root.prop.value];
+                                    var op = function(thisArg, argVals){
+                                        var func = thisArg[root.prop.value];
+                                        return func.apply(thisArg, argVals);
+                                    }
+                                    return _runtime.mixedEval(ctx, op, root.root, args);
                                 } else {
-                                    var thisArg = null;
-                                    var func = root.evaluate(ctx);
+                                    var op = function(func, argVals){
+                                        return func.apply(null, argVals);
+                                    }
+                                    return _runtime.mixedEval(ctx, op, root, args);
                                 }
-                                var argVals = args.map(function(val){return val.evaluate(ctx);})
-                                return func.apply(thisArg, argVals);
                             }
                         };
                         return _parser.parseElement("indirectExpression", tokens, functionCall);
@@ -1111,7 +1162,9 @@
                             type: "logicalNot",
                             root: root,
                             evaluate: function (context) {
-                                return ! + root.evaluate(context);
+                                return _runtime.mixedEval(context, function (val) {
+                                    return !val;
+                                    }, root);
                             }
                         };
                     }
@@ -1123,8 +1176,10 @@
                         return {
                             type: "negativeNumber",
                             root: root,
-                            evaluate: function () {
-                                return -1 * root.evaluate();
+                            evaluate: function (context) {
+                                return _runtime.mixedEval(context, function(value){
+                                    return -1 * value;
+                                }, root);
                             }
                         };
                     }
@@ -1140,29 +1195,30 @@
                     mathOp = tokens.matchAnyOpToken("+", "-", "*", "/", "%")
                     while (mathOp) {
                         initialMathOp = initialMathOp || mathOp;
-                        if (initialMathOp.value !== mathOp.value) {
+                        var operator = mathOp.value;
+                        if (initialMathOp.value !== operator) {
                             parser.raiseParseError(tokens, "You must parenthesize math operations with different operators")
                         }
                         var rhs = parser.parseElement("unaryExpression", tokens);
                         expr = {
                             type: "mathOperator",
-                            operator: mathOp.value,
                             lhs: expr,
                             rhs: rhs,
                             evaluate: function (context) {
-                                var lhsVal = this.lhs.evaluate(context);
-                                var rhsVal = this.rhs.evaluate(context);
-                                if (this.operator === "+") {
-                                    return lhsVal + rhsVal;
-                                } else if (this.operator === "-") {
-                                    return lhsVal - rhsVal;
-                                } else if (this.operator === "*") {
-                                    return lhsVal * rhsVal;
-                                } else if (this.operator === "/") {
-                                    return lhsVal / rhsVal;
-                                } else if (this.operator === "%") {
-                                    return lhsVal % rhsVal;
-                                }
+                                var op = function (lhsVal, rhsVal) {
+                                    if (operator === "+") {
+                                        return lhsVal + rhsVal;
+                                    } else if (operator === "-") {
+                                        return lhsVal - rhsVal;
+                                    } else if (operator === "*") {
+                                        return lhsVal * rhsVal;
+                                    } else if (operator === "/") {
+                                        return lhsVal / rhsVal;
+                                    } else if (operator === "%") {
+                                        return lhsVal % rhsVal;
+                                    }
+                                };
+                                return _runtime.mixedEval(context, op, this.lhs, this.rhs);
                             }
                         }
                         mathOp = tokens.matchAnyOpToken("+", "-", "*", "/", "%")
@@ -1190,25 +1246,27 @@
                             lhs: expr,
                             rhs: rhs,
                             evaluate: function (context) {
-                                var lhsVal = this.lhs.evaluate(context);
-                                var rhsVal = this.rhs.evaluate(context);
-                                if (this.operator === "<") {
-                                    return lhsVal < rhsVal;
-                                } else if (this.operator === ">") {
-                                    return lhsVal > rhsVal;
-                                } else if (this.operator === "<=") {
-                                    return lhsVal <= rhsVal;
-                                } else if (this.operator === ">=") {
-                                    return lhsVal >= rhsVal;
-                                } else if (this.operator === "==") {
-                                    return lhsVal == rhsVal;
-                                } else if (this.operator === "===") {
-                                    return lhsVal === rhsVal;
-                                } else if (this.operator === "!=") {
-                                    return lhsVal != rhsVal;
-                                } else if (this.operator === "!==") {
-                                    return lhsVal !== rhsVal;
-                                }                            }
+                                var op = function (lhsVal, rhsVal) {
+                                    if (this.operator === "<") {
+                                        return lhsVal < rhsVal;
+                                    } else if (this.operator === ">") {
+                                        return lhsVal > rhsVal;
+                                    } else if (this.operator === "<=") {
+                                        return lhsVal <= rhsVal;
+                                    } else if (this.operator === ">=") {
+                                        return lhsVal >= rhsVal;
+                                    } else if (this.operator === "==") {
+                                        return lhsVal == rhsVal;
+                                    } else if (this.operator === "===") {
+                                        return lhsVal === rhsVal;
+                                    } else if (this.operator === "!=") {
+                                        return lhsVal != rhsVal;
+                                    } else if (this.operator === "!==") {
+                                        return lhsVal !== rhsVal;
+                                    }
+                                }
+                                return _runtime.mixedEval(context, op, expr, rhs);
+                            }
                         }
                         comparisonOp = tokens.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==")
                     }
@@ -1235,13 +1293,14 @@
                             lhs: expr,
                             rhs: rhs,
                             evaluate: function (context) {
-                                var lhsVal = this.lhs.evaluate(context);
-                                var rhsVal = this.rhs.evaluate(context);
-                                if (this.operator === "and") {
-                                    return lhsVal && rhsVal;
-                                } else {
-                                    return lhsVal || rhsVal;
-                                }
+                                var op = function (lhsVal, rhsVal) {
+                                    if (this.operator === "and") {
+                                        return lhsVal && rhsVal;
+                                    } else {
+                                        return lhsVal || rhsVal;
+                                    }
+                                };
+                                return _runtime.mixedEval(context, op, expr, rhs);
                             }
                         }
                         logicalOp = tokens.matchToken("and") || tokens.matchToken("or");
@@ -1273,7 +1332,10 @@
                         propPath: propPath,
                         root: root,
                         evaluate: function (ctx) {
-                            return _runtime.evalTarget(root.evaluate(ctx), propPath);
+                            var op = function(targetRoot) {
+                                return _runtime.evalTarget(targetRoot, propPath);
+                            }
+                            return _runtime.mixedEval(ctx, op, root);
                         }
                     };
                 });
