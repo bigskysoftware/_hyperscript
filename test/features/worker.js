@@ -1,4 +1,4 @@
-describe("the def feature", function() {
+describe("the worker feature", function() {
 
     beforeEach(function () {
         clearWorkArea();
@@ -10,68 +10,80 @@ describe("the def feature", function() {
     it("can define a basic no arg function in a worker", function(done){
         var script = make(
             "<script type='text/hyperscript'>" +
-            "worker foo" +
-            "  def fn " +
+            "worker example" +
+            "  def func " +
             "    return 1 " +
             "  end " +
             "end" +
             "</script>");
-        foo.fn().then(function (result) {
-            assert.equal(result, 1);
-            delete window.foo;
-            done();
+        setTimeout(function awaiter() {
+            if (!('example' in window)) return setTimeout(awaiter)
+            window.example.func().then(function (result) {
+                assert.equal(result, 1);
+                delete window.example;
+                done();
+            });
+        });
     })
 
     it("can define a basic one arg function", function(done){
         var script = make(
             "<script type='text/hyperscript'>" +
-            "worker foo" +
+            "worker example" +
             "  def fn(n) " +
             "    return n " +
             "  end " +
             "end" +
             "</script>");
-        foo.fn(1).then(function (result) {
-            assert.equal(result, 1);
-            delete window.foo;
-            done();
+        setTimeout(function awaiter() {
+            if (!('example' in window)) return setTimeout(awaiter)
+            window.example.fn(1).then(function (result) {
+                assert.equal(result, 1);
+                delete window.example;
+                done();
+            });
         });
     })
 
     it("can evaluate expressions in worker functions", function(done){
         var script = make(
             "<script type='text/hyperscript'>" +
-            "worker foo" +
+            "worker example" +
             "  def fn(n) " +
             "    return n + 1 " +
             "  end " +
             "end" +
             "</script>");
-        foo.fn(1).then(function (result) {
-            assert.equal(result, 2);
-            delete window.foo;
-            done();
+        setTimeout(function awaiter() {
+            if (!('example' in window)) return setTimeout(awaiter)
+            window.example.fn(1).then(function (result) {
+                assert.equal(result, 2);
+                delete window.example;
+                done();
+            });
         });
     })
 
     it("workers can be namespaced", function(done){
         var script = make(
             "<script type='text/hyperscript'>" +
-            "worker foo.bar.baz" +
+            "worker example.foo.bar" +
             "  def fn " +
             "    return 1 " +
             "  end " +
             "end" +
             "</script>");
-        foo.bar.baz.fn().then(function (result) {
-            assert.equal(result, 1);
-            delete window.foo;
-            done();
+        setTimeout(function awaiter() {
+            if (!('example' in window)) return setTimeout(awaiter)
+            window.example.foo.bar.fn().then(function (result) {
+                assert.equal(result, 1);
+                delete window.example;
+                done();
+            });
         });
     })
 
     it('can import external scripts', function(done) {
-
-    })
+        assert(false);
+    });
 });
-
