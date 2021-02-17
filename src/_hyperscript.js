@@ -2044,58 +2044,50 @@
                         }
                         var target = parser.parseElement("target", tokens);
 
-                        var op = operation.value;
-                        var directWrite = target.propPath.length === 0 && op === "into";
+                        var operation = operation.value;
+                        var directWrite = target.propPath.length === 0 && operation === "into";
                         var symbolWrite = directWrite && target.root.type === "symbol";
                         if (directWrite && !symbolWrite) {
                             parser.raiseParseError(tokens, "Can only put directly into symbols, not references")
                         }
 
-                        var putter = function(valueToPut, ctx){
-                            if (symbolWrite) {
-                                ctx[target.root.name] = valueToPut;
-                            } else {
-                                if (op === "into") {
-                                    var lastProperty = target.propPath.slice(-1); // steal last property for assignment
-                                    _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath.slice(0, -1)), function(target){
-                                        target[lastProperty] = valueToPut;
-                                    })
-                                } else if (op === "before") {
-                                    _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath), function(target){
-                                        target.insertAdjacentHTML('beforebegin', valueToPut);
-                                    })
-                                } else if (op === "start") {
-                                    _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath), function(target){
-                                        target.insertAdjacentHTML('afterbegin', valueToPut);
-                                    })
-                                } else if (op === "end") {
-                                    _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath), function(target){
-                                        target.insertAdjacentHTML('beforeend', valueToPut);
-                                    })
-                                } else if (op === "after") {
-                                    _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath), function(target){
-                                        target.insertAdjacentHTML('afterend', valueToPut);
-                                    })
-                                }
-                            }
-                            _runtime.next(putCmd, ctx);
-                        }
-
                         var putCmd = {
                             type: "putCmd",
                             target: target,
-                            op: op,
+                            operation: operation,
                             symbolWrite: symbolWrite,
                             value: value,
                             execute: function (ctx) {
-                                var valueToPut = value.evaluate(ctx);
-                                if (valueToPut.then) {
-                                    valueToPut.then(function(finalValue){
-                                        putter(finalValue, ctx);
-                                    })
-                                } else {
-                                    putter(valueToPut, ctx);
+                                var op = function(root, valueToPut){
+                                    if (symbolWrite) {
+                                        ctx[target.root.name] = valueToPut;
+                                    } else {
+                                        if (operation === "into") {
+                                            var lastProperty = target.propPath.slice(-1); // steal last property for assignment
+                                            _runtime.forEach(_runtime.evalTarget(root, target.propPath.slice(0, -1)), function(target){
+                                                target[lastProperty] = valueToPut;
+                                            })
+                                        } else if (operation === "before") {
+                                            _runtime.forEach(_runtime.evalTarget(root, target.propPath), function(target){
+                                                target.insertAdjacentHTML('beforebegin', valueToPut);
+                                            })
+                                        } else if (operation === "start") {
+                                            _runtime.forEach(_runtime.evalTarget(root, target.propPath), function(target){
+                                                target.insertAdjacentHTML('afterbegin', valueToPut);
+                                            })
+                                        } else if (operation === "end") {
+                                            _runtime.forEach(_runtime.evalTarget(root, target.propPath), function(target){
+                                                target.insertAdjacentHTML('beforeend', valueToPut);
+                                            })
+                                        } else if (operation === "after") {
+                                            _runtime.forEach(_runtime.evalTarget(root, target.propPath), function(target){
+                                                target.insertAdjacentHTML('afterend', valueToPut);
+                                            })
+                                        }
+                                    }
+                                    _runtime.next(this, ctx);
                                 }
+                                _runtime.mixedEval(this, ctx, op, target.root, value)
                             }
                         };
                         return putCmd
