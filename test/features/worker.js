@@ -16,13 +16,10 @@ describe("the worker feature", function() {
             "  end " +
             "end" +
             "</script>");
-        setTimeout(function awaiter() {
-            if (!('example' in window)) return setTimeout(awaiter)
-            window.example.func().then(function (result) {
-                assert.equal(result, 1);
-                delete window.example;
-                done();
-            });
+        window.example.func().then(function (result) {
+            assert.equal(result, 1);
+            delete window.example;
+            done();
         });
     })
 
@@ -35,13 +32,10 @@ describe("the worker feature", function() {
             "  end " +
             "end" +
             "</script>");
-        setTimeout(function awaiter() {
-            if (!('example' in window)) return setTimeout(awaiter)
-            window.example.fn(1).then(function (result) {
-                assert.equal(result, 1);
-                delete window.example;
-                done();
-            });
+        window.example.fn(1).then(function (result) {
+            assert.equal(result, 1);
+            delete window.example;
+            done();
         });
     })
 
@@ -54,13 +48,10 @@ describe("the worker feature", function() {
             "  end " +
             "end" +
             "</script>");
-        setTimeout(function awaiter() {
-            if (!('example' in window)) return setTimeout(awaiter)
-            window.example.fn(1).then(function (result) {
-                assert.equal(result, 2);
-                delete window.example;
-                done();
-            });
+        window.example.fn(1).then(function (result) {
+            assert.equal(result, 2);
+            delete window.example;
+            done();
         });
     })
 
@@ -73,13 +64,10 @@ describe("the worker feature", function() {
             "  end " +
             "end" +
             "</script>");
-        setTimeout(function awaiter() {
-            if (!('example' in window)) return setTimeout(awaiter)
-            window.example.foo.bar.fn().then(function (result) {
-                assert.equal(result, 1);
-                delete window.example;
-                done();
-            });
+        window.example.foo.bar.fn().then(function (result) {
+            assert.equal(result, 1);
+            delete window.example;
+            done();
         });
     })
 
