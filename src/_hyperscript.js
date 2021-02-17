@@ -791,7 +791,7 @@
                         if (typeof fromContext !== "undefined") {
                             return fromContext;
                         } else {
-                            return window[str];
+                            return globalScope[str];
                         }
                     }
                 }
@@ -1607,7 +1607,6 @@
                         switch (e.data.type) {
                         case 'init':
                             importScripts(e.data._hyperscript);
-                            importScripts.apply(self, e.data.extraScripts);
                             var tokens = _hyperscript.lexer._makeTokensObject(e.data.tokens, [], '');
                             self.window = {};
                             var parsed = _hyperscript.parser.parseElement('hyperscript', tokens);
@@ -1650,6 +1649,19 @@
                         var nameSpace = qualifiedName.split(".");
                         var workerName = nameSpace.pop();
 
+                        // Parse extra scripts
+                        var extraScripts = [];
+                        if (tokens.matchOpToken("(")) {
+                            if (tokens.matchOpToken(")")) {
+                                // no external scripts
+                            } else {
+                                do {
+                                    extraScripts.push(tokens.requireTokenType('STRING').value);
+                                } while (tokens.matchOpToken(","))
+                                tokens.requireOpToken(')')
+                            }
+                        }
+
                         // Consume worker methods
 
                         var funcNames = [];
@@ -1657,13 +1669,14 @@
                         var bodyEndIndex = tokens.consumed.length;
                         do {
                             var functionFeature = parser.parseElement('functionFeature', tokens);
-                            funcNames.push(functionFeature.name)
-                            tokens.matchToken('end'); // function end
-                            bodyEndIndex = tokens.consumed.length;
-                        } while (!tokens.matchToken("end") && tokens.hasMore()); // worker end
+                            if (functionFeature) {
+                                funcNames.push(functionFeature.name);
+                                bodyEndIndex = tokens.consumed.length;
+                            } else break;
+                        } while (tokens.matchToken("end") && tokens.hasMore()); // worker end
 
 
-                        var bodyTokens = tokens.consumed.slice(bodyStartIndex, bodyEndIndex);
+                        var bodyTokens = tokens.consumed.slice(bodyStartIndex, bodyEndIndex + 1);
 
                         // Create worker
 
@@ -1675,12 +1688,14 @@
 
                         // Send init message to worker
 
-                        worker.postMessage({
+                        var msg
+                        worker.postMessage(msg = {
                             type: 'init',
                             _hyperscript: currentScriptSrc,
-                            extraScripts: [],
+                            extraScripts: extraScripts,
                             tokens: bodyTokens
                         });
+
                         var workerPromise = new Promise(function (resolve, reject) {
                             worker.addEventListener('message', function(e) {
                                 if (e.data.type === 'didInit') {
