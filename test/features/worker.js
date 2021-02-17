@@ -109,6 +109,18 @@ describe("the worker feature", function() {
     })
 
     it('can import external scripts', function(done) {
-        assert(false);
+        var script = make(
+            "<script type='text/hyperscript'>" +
+            "worker example('data:text/javascript,self.a=1', 'data:text/javascript,self.b=2')" +
+            "  def func " +
+            "    return a + b " +
+            "  end " +
+            "end" +
+            "</script>");
+        window.example.func().then(function (result) {
+            assert.equal(result, 3);
+            delete window.example;
+            done();
+        });
     });
 });
