@@ -1612,7 +1612,7 @@
                             self.window = {};
                             var parsed = _hyperscript.parser.parseElement('hyperscript', tokens);
                             functions = Object.keys(self.window);
-                            postMessage({ type: 'didInit', functions: functions });
+                            postMessage({ type: 'didInit' });
                             break;
                         case 'call':
                             try {
@@ -1654,13 +1654,15 @@
 
                         // Consume worker methods
 
+                        var funcNames = [];
                         var bodyStartIndex = tokens.consumed.length;
                         var bodyEndIndex = tokens.consumed.length;
                         do {
-                            parser.parseElement('functionFeature', tokens);
+                            var functionFeature = parser.parseElement('functionFeature', tokens);
+                            funcNames.push(functionFeature.name)
                             tokens.matchToken('end'); // function end
                             bodyEndIndex = tokens.consumed.length;
-                        } while (!tokens.matchToken("end")); // worker end
+                        } while (!tokens.matchToken("end") && tokens.hasMore()); // worker end
 
 
                         var bodyTokens = tokens.consumed.slice(bodyStartIndex, bodyEndIndex);
@@ -1686,49 +1688,47 @@
                                 if (e.data.type === 'didInit') {
                                     console.log('Worker '+qualifiedName+' initialized, response:')
                                     console.log(e.data)
-                                    resolve(e.data.functions)
+                                    resolve()
                                 }
                             }, { once: true });
                         })
 
                         // Create function stubs
 
-                        var functionsPromise = workerPromise.then(function(funcNames) {
-                            var stubs = {};
-                            funcNames.forEach(function(funcName) {
-                                stubs[funcName] = function() {
-                                    var args = arguments;
-                                    return new Promise(function (resolve, reject) {
-                                        var id = invocationIdCounter++;
-                                        var msg = {
-                                            type: 'call',
-                                            function: funcName,
-                                            args: Array.from(args),
-                                            id: id
-                                        };
-                                        console.log("Sending invocation to worker:")
-                                        console.log(msg)
-                                        worker.postMessage(msg)
-                                        worker.addEventListener('message', function returnListener(e) {
-                                            if (e.data.id === id) {
-                                                worker.removeEventListener('message', returnListener);
-                                                if (e.data.type === 'resolve') resolve(e.data.value);
-                                                else reject(e.data.error);
-                                            }
-                                        }, { once: true });
-                                    });
-                                }
-                            })
-                            assignToNamespace(nameSpace, workerName, stubs)
-                        });
-
                         return {
                             type: 'workerFeature',
                             name: workerName,
                             execute: function (ctx) {
-                                // TODO actually implement
                                 console.log("=== Worker "+workerName+" ===");
                                 console.log(bodyTokens);
+                                var stubs = {};
+                                funcNames.forEach(function(funcName) {
+                                    stubs[funcName] = function() {
+                                        var args = arguments;
+                                        return new Promise(function (resolve, reject) {
+                                            var id = invocationIdCounter++;
+                                            var msg = {
+                                                type: 'call',
+                                                function: funcName,
+                                                args: Array.from(args),
+                                                id: id
+                                            };
+                                            console.log("Sending invocation to worker:")
+                                            console.log(msg)
+                                            workerPromise.then(function () {
+                                                worker.postMessage(msg)
+                                                worker.addEventListener('message', function returnListener(e) {
+                                                    if (e.data.id === id) {
+                                                        worker.removeEventListener('message', returnListener);
+                                                        if (e.data.type === 'resolve') resolve(e.data.value);
+                                                        else reject(e.data.error);
+                                                    }
+                                                }, { once: true });
+                                            })
+                                        });
+                                    }
+                                })
+                                assignToNamespace(nameSpace, workerName, stubs)
                             }
                         };
                     }
