@@ -1422,6 +1422,7 @@
                 _parser.addGrammarElement("hyperscript", function (parser, tokens) {
                     var onFeatures = []
                     var functionFeatures = []
+                    var workerFeatures = []
                     do {
                         var feature = parser.parseElement("feature", tokens);
                         if (feature == null) {
@@ -1430,6 +1431,7 @@
                         if (feature.type === "onFeature") {
                             onFeatures.push(feature);
                         } else if(feature.type === "functionFeature") {
+                            feature.execute();
                             functionFeatures.push(feature);
                         } else if (feature.type === "workerFeature") {
                             feature.execute();
@@ -1442,6 +1444,7 @@
                         type: "hyperscript",
                         onFeatures: onFeatures,
                         functions: functionFeatures,
+                        workers: workerFeatures,
                         execute: function () {
                             // no op
                         }
@@ -1545,7 +1548,30 @@
                             args: args,
                             start: start,
                             execute: function (ctx) {
-                                // no-op
+                                assignToNamespace(nameSpace, funcName, function() {
+                                    // null, worker
+                                    var root = 'document' in globalScope ? document.body : null
+                                    var elt = 'document' in globalScope ? document.body : globalScope
+                                    var ctx = _runtime.makeContext(root, elt, null);
+                                    for (var i = 0; i < arguments.length; i++) {
+                                        var argumentVal = arguments[i];
+                                        var name = args[i];
+                                        if (name) {
+                                            ctx[name.value] = argumentVal;
+                                        }
+                                    }
+                                    var resolve = null;
+                                    var promise = new Promise(function(returnCall){
+                                        resolve = returnCall;
+                                    });
+                                    start.execute(ctx);
+                                    if (ctx.meta.returned) {
+                                        return ctx.meta.returnValue;
+                                    } else {
+                                        ctx.meta.resolve = resolve;
+                                        return promise
+                                    }
+                                });
                             }
                         };
 
@@ -1564,30 +1590,6 @@
                             }
                         }
 
-                        assignToNamespace(nameSpace, funcName, function() {
-                            // null, worker
-                            var root = 'document' in globalScope ? document.body : null
-                            var elt = 'document' in globalScope ? document.body : globalScope
-                            var ctx = _runtime.makeContext(root, elt, null);
-                            for (var i = 0; i < arguments.length; i++) {
-                                var argumentVal = arguments[i];
-                                var name = args[i];
-                                if (name) {
-                                    ctx[name.value] = argumentVal;
-                                }
-                            }
-                            var resolve = null;
-                            var promise = new Promise(function(returnCall){
-                                resolve = returnCall;
-                            });
-                            start.execute(ctx);
-                            if (ctx.meta.returned) {
-                                return ctx.meta.returnValue;
-                            } else {
-                                ctx.meta.resolve = resolve;
-                                return promise
-                            }
-                        });
                         parser.setParent(start, functionFeature);
                         return functionFeature;
                     }
@@ -1597,6 +1599,50 @@
                 if ('document' in globalScope) currentScriptSrc = document.currentScript.src;
 
                 var invocationIdCounter = 0
+
+                function workerFunc() {
+                    /* WORKER BOUNDARY */
+                    self.onmessage = function (e) {
+                        switch (e.data.type) {
+                        case 'init':
+                            importScripts(e.data._hyperscript);
+                            importScripts.apply(self, e.data.extraScripts);
+                            var tokens = _hyperscript.lexer._makeTokensObject(e.data.tokens, [], '');
+                            self.window = {};
+                            var parsed = _hyperscript.parser.parseElement('hyperscript', tokens);
+                            functions = Object.keys(self.window);
+                            postMessage({ type: 'didInit', functions: functions });
+                            break;
+                        case 'call':
+                            try {
+                                var result = self.window[e.data.function].apply(self, e.data.args)
+                                Promise.resolve(result).then(function(value) {
+                                    postMessage({
+                                        type: 'resolve',
+                                        id: e.data.id,
+                                        value: value
+                                    })
+                                }).catch(function (error) {
+                                    postMessage({
+                                        type: 'reject',
+                                        id: e.data.id,
+                                        error: error
+                                    })
+                                })
+                            } catch (error) {
+                                console.log('Responding with error:')
+                                console.log(error)
+                                postMessage({
+                                    type: 'reject',
+                                    id: e.data.id,
+                                    error: error
+                                })
+                            }
+                            break;
+                        }
+                    }
+                    /* WORKER BOUNDARY */
+                }
 
                 _parser.addGrammarElement("workerFeature", function(parser, tokens) {
                     if (tokens.matchToken('worker')) {
@@ -1620,49 +1666,8 @@
 
                         // Create worker
 
-                        var workerFunc = function () {
-                            /* WORKER BOUNDARY */
-                            self.onmessage = function (e) {
-                                switch (e.data.type) {
-                                case 'init':
-                                    importScripts(e.data._hyperscript);
-                                    importScripts.apply(self, e.data.extraScripts);
-                                    var tokens = _hyperscript.lexer._makeTokensObject(e.data.tokens, [], '');
-                                    self.window = {};
-                                    var parsed = _hyperscript.parser.parseElement('hyperscript', tokens);
-                                    functions = Object.keys(self.window);
-                                    postMessage({ type: 'didInit', functions: functions });
-                                    break;
-                                case 'call':
-                                    try {
-                                        var result = self.window[e.data.function].apply(self, e.data.args)
-                                        Promise.resolve(result).then(function(value) {
-                                            postMessage({
-                                                type: 'resolve',
-                                                id: e.data.id,
-                                                value: value
-                                            })
-                                        }).catch(function (error) {
-                                            postMessage({
-                                                type: 'reject',
-                                                id: e.data.id,
-                                                error: error
-                                            })
-                                        })
-                                    } catch (error) {
-                                        console.log('Responding with error:')
-                                        console.log(error)
-                                        postMessage({
-                                            type: 'reject',
-                                            id: e.data.id,
-                                            error: error
-                                        })
-                                    }
-                                    break;
-                                }
-                            }
-                            /* WORKER BOUNDARY */
-                        }
+                        // extract the body of the function, which was only defined so
+                        // that we can get syntax highlighting
                         var workerCode = workerFunc.toString().split('/* WORKER BOUNDARY */')[1];
                         var blob = new Blob([workerCode], { type: 'text/javascript' });
                         var worker = new Worker(URL.createObjectURL(blob));
