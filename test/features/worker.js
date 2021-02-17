@@ -43,6 +43,7 @@ describe("the worker feature", function() {
         var div;
         window.finish = function() {        
             div.innerHTML.should.equal('2');
+            delete window.finish;
             done();
         }
         var script = make(
