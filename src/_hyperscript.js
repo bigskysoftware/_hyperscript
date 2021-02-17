@@ -552,10 +552,10 @@
 
                 }
 
-                function mixedEval(ctx, op) {
+                function mixedEval(parseElement, ctx, op) {
                     var args = []
                     var async = false;
-                    for (var i = 2; i < arguments.length; i++) {
+                    for (var i = 3; i < arguments.length; i++) {
                         var argument = arguments[i];
                         if (Array.isArray(argument)) {
                             var arr = [];
@@ -581,11 +581,11 @@
                             var linearized = linearize(args);
                             Promise.all(linearized).then(function(values){
                                 values = delinearize(values);
-                                resolve(op.apply(null, values));
+                                resolve(op.apply(parseElement, values));
                             })
                         })
                     } else {
-                        return op.apply(null, args);
+                        return op.apply(parseElement, args);
                     }
                 }
 
@@ -944,7 +944,7 @@
                                     }
                                     return returnVal;
                                 }
-                                return _runtime.mixedEval(context, op, valueExpressions)
+                                return _runtime.mixedEval(this, context, op, valueExpressions)
                             }
                         }
                     }
@@ -976,7 +976,7 @@
                                     }
                                     return returnVal;
                                 }
-                                return _runtime.mixedEval(context, op, valueExpressions)
+                                return _runtime.mixedEval(this, context, op, valueExpressions)
                             }
                         }
                     }
@@ -1058,7 +1058,7 @@
                                 var op = function(values){
                                     return values;
                                 }
-                                return _runtime.mixedEval(context, op, values);
+                                return _runtime.mixedEval(this, context, op, values);
                             }
                         }
                     }
@@ -1114,7 +1114,7 @@
                                 var op = function(rootVal){
                                     return rootVal == null ? null : rootVal[prop.value];
                                 }
-                                return _runtime.mixedEval(context, op, root)
+                                return _runtime.mixedEval(this, context, op, root)
                             }
                         };
                         return _parser.parseElement("indirectExpression", tokens, propertyAccess);
@@ -1140,13 +1140,13 @@
                                         var func = thisArg[root.prop.value];
                                         return func.apply(thisArg, argVals);
                                     }
-                                    return _runtime.mixedEval(ctx, op, root.root, args);
+                                    return _runtime.mixedEval(this, ctx, op, root.root, args);
                                 } else {
                                     var op = function(func, argVals){
                                         var apply = func.apply(null, argVals);
                                         return apply;
                                     }
-                                    return _runtime.mixedEval(ctx, op, root, args);
+                                    return _runtime.mixedEval(this, ctx, op, root, args);
                                 }
                             }
                         };
@@ -1202,7 +1202,7 @@
                             type: "logicalNot",
                             root: root,
                             evaluate: function (context) {
-                                return _runtime.mixedEval(context, function (val) {
+                                return _runtime.mixedEval(this, context, function (val) {
                                     return !val;
                                     }, root);
                             }
@@ -1217,7 +1217,7 @@
                             type: "negativeNumber",
                             root: root,
                             evaluate: function (context) {
-                                return _runtime.mixedEval(context, function(value){
+                                return _runtime.mixedEval(this, context, function(value){
                                     return -1 * value;
                                 }, root);
                             }
@@ -1246,21 +1246,20 @@
                             rhs: rhs,
                             operator: operator,
                             evaluate: function (context) {
-                                var theOperator = this.operator;
                                 var op = function (lhsVal, rhsVal) {
-                                    if (theOperator === "+") {
+                                    if (this.operator === "+") {
                                         return lhsVal + rhsVal;
-                                    } else if (theOperator === "-") {
+                                    } else if (this.operator === "-") {
                                         return lhsVal - rhsVal;
-                                    } else if (theOperator === "*") {
+                                    } else if (this.operator === "*") {
                                         return lhsVal * rhsVal;
-                                    } else if (theOperator === "/") {
+                                    } else if (this.operator === "/") {
                                         return lhsVal / rhsVal;
-                                    } else if (theOperator === "%") {
+                                    } else if (this.operator === "%") {
                                         return lhsVal % rhsVal;
                                     }
                                 };
-                                return _runtime.mixedEval(context, op, this.lhs, this.rhs);
+                                return _runtime.mixedEval(this, context, op, this.lhs, this.rhs);
                             }
                         }
                         mathOp = tokens.matchAnyOpToken("+", "-", "*", "/", "%")
@@ -1288,27 +1287,26 @@
                             lhs: expr,
                             rhs: rhs,
                             evaluate: function (context) {
-                                var theOperator = this.operator;
                                 var op = function (lhsVal, rhsVal) {
-                                    if (theOperator === "<") {
+                                    if (this.operator === "<") {
                                         return lhsVal < rhsVal;
-                                    } else if (theOperator === ">") {
+                                    } else if (this.operator === ">") {
                                         return lhsVal > rhsVal;
-                                    } else if (theOperator === "<=") {
+                                    } else if (this.operator === "<=") {
                                         return lhsVal <= rhsVal;
-                                    } else if (theOperator === ">=") {
+                                    } else if (this.operator === ">=") {
                                         return lhsVal >= rhsVal;
-                                    } else if (theOperator === "==") {
+                                    } else if (this.operator === "==") {
                                         return lhsVal == rhsVal;
-                                    } else if (theOperator === "===") {
+                                    } else if (this.operator === "===") {
                                         return lhsVal === rhsVal;
-                                    } else if (theOperator === "!=") {
+                                    } else if (this.operator === "!=") {
                                         return lhsVal != rhsVal;
-                                    } else if (theOperator === "!==") {
+                                    } else if (this.operator === "!==") {
                                         return lhsVal !== rhsVal;
                                     }
                                 }
-                                return _runtime.mixedEval(context, op, this.lhs, this.rhs);
+                                return _runtime.mixedEval(this, context, op, this.lhs, this.rhs);
                             }
                         }
                         comparisonOp = tokens.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==")
@@ -1336,15 +1334,14 @@
                             lhs: expr,
                             rhs: rhs,
                             evaluate: function (context) {
-                                var theOperator = this.operator;
                                 var op = function (lhsVal, rhsVal) {
-                                    if (theOperator === "and") {
+                                    if (this.operator === "and") {
                                         return lhsVal && rhsVal;
                                     } else {
                                         return lhsVal || rhsVal;
                                     }
                                 };
-                                return _runtime.mixedEval(context, op, this.lhs, this.rhs);
+                                return _runtime.mixedEval(this, context, op, this.lhs, this.rhs);
                             }
                         }
                         logicalOp = tokens.matchToken("and") || tokens.matchToken("or");
@@ -1379,7 +1376,7 @@
                             var op = function(targetRoot) {
                                 return _runtime.evalTarget(targetRoot, propPath);
                             }
-                            return _runtime.mixedEval(ctx, op, root);
+                            return _runtime.mixedEval(this, ctx, op, root);
                         }
                     };
                 });
