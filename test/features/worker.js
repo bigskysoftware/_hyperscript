@@ -41,11 +41,6 @@ describe("the worker feature", function() {
 
     it('can call functions from within _hyperscript', function (done) {
         var div;
-        window.finish = function() {        
-            div.innerHTML.should.equal('2');
-            delete window.finish;
-            done();
-        }
         var script = make(
             "<script type='text/hyperscript'>" +
             "worker example" +
@@ -56,7 +51,12 @@ describe("the worker feature", function() {
             "</script>");
         div = make("<div _='on click call example.fn(1)"+
                    "        then put it into my.innerHTML"+
-                   "        then call finish()'></div>");
+                   "        then trigger finishTest'></div>");
+        div.addEventListener('finishTest', function() {
+            div.innerHTML.should.equal('2');
+            delete window.example;
+            done();
+        })
         div.click();
     })
 
