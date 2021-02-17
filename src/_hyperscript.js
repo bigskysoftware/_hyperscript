@@ -1659,7 +1659,7 @@
                 if ('document' in globalScope) var currentScriptSrc = document.currentScript.src;
                 var invocationIdCounter = 0
 
-                function workerFunc() {
+                var workerFunc = function() {
                     /* WORKER BOUNDARY */
                     self.onmessage = function (e) {
                         switch (e.data.type) {
