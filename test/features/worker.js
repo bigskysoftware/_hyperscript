@@ -39,6 +39,26 @@ describe("the worker feature", function() {
         });
     })
 
+    it('can call functions from within _hyperscript', function (done) {
+        var div;
+        window.finish = function() {        
+            div.innerHTML.should.equal('2');
+            done();
+        }
+        var script = make(
+            "<script type='text/hyperscript'>" +
+            "worker example" +
+            "  def fn(n) " +
+            "    return n + 1 " +
+            "  end " +
+            "end" +
+            "</script>");
+        div = make("<div _='on click call example.fn(1)"+
+                   "        then put it into my.innerHTML"+
+                   "        then call finish()'></div>");
+        div.click();
+    })
+
     it("can evaluate expressions in worker functions", function(done){
         var script = make(
             "<script type='text/hyperscript'>" +
