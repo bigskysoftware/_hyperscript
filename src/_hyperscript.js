@@ -575,6 +575,10 @@
                     var wrappedAsyncs = false;
                     for (var i = 3; i < arguments.length; i++) {
                         var argument = arguments[i];
+                        if (argument == null) {
+                            args[i] = null;
+                            continue;
+                        }
                         if (Array.isArray(argument)) {
                             var arr = [];
                             for (var j = 0; j < argument.length; j++) {
@@ -1652,15 +1656,22 @@
                             to: to,
                             execute: function (ctx) {
                                 if (this.classRef) {
-                                    _runtime.forEach(to.evaluate(ctx), function(target){
-                                        target.classList.add(classRef.className());
-                                    })
+                                    var op = function(to){
+                                        _runtime.forEach(to, function(target){
+                                            target.classList.add(classRef.className());
+                                        })
+                                        _runtime.next(addCmd, ctx);
+                                    }
+                                    _runtime.mixedEval(this, ctx, op, to);
                                 } else {
-                                    _runtime.forEach(to.evaluate(ctx), function(target){
-                                        target.setAttribute(attributeRef.name, attributeRef.evaluate(ctx).value);
-                                    })
+                                    var op = function(to, attributeRef){
+                                        _runtime.forEach(to, function(target){
+                                            target.setAttribute(attributeRef.name, attributeRef.value);
+                                        })
+                                        _runtime.next(addCmd, ctx);
+                                    }
+                                    _runtime.mixedEval(this, ctx, op, to, attributeRef);
                                 }
-                                _runtime.next(addCmd, ctx);
                             }
                         };
                         return addCmd
@@ -1695,22 +1706,29 @@
                             from: from,
                             execute: function (ctx) {
                                 {
-                                    if (elementExpr) {
-                                        _runtime.forEach(elementExpr.evaluate(ctx), function (target) {
-                                            target.parentElement.removeChild(target);
-                                        });
-                                    } else {
-                                        if (classRef) {
-                                            _runtime.forEach(from.evaluate(ctx), function(target){
-                                                target.classList.remove(classRef.className());
-                                            })
-                                        } else {
-                                            _runtime.forEach(from.evaluate(ctx), function(target){
-                                                target.removeAttribute(attributeRef.name);
-                                            })
+                                    if (this.elementExpr) {
+                                        var op = function(element) {
+                                            _runtime.forEach(element, function (target) {
+                                                target.parentElement.removeChild(target);
+                                            });
+                                            _runtime.next(removeCmd, ctx);
                                         }
+                                        return _runtime.mixedEval(this, ctx, op, elementExpr);
+                                    } else {
+                                        var op = function(from) {
+                                            if (this.classRef) {
+                                                _runtime.forEach(from, function(target){
+                                                    target.classList.remove(classRef.className());
+                                                })
+                                            } else {
+                                                _runtime.forEach(from, function(target){
+                                                    target.removeAttribute(attributeRef.name);
+                                                })
+                                            }
+                                            _runtime.next(removeCmd, ctx);
+                                        }
+                                        return _runtime.mixedEval(this, ctx, op, from);
                                     }
-                                    _runtime.next(removeCmd, ctx);
                                 }
                             }
                         };
@@ -1739,20 +1757,24 @@
                             attributeRef: attributeRef,
                             on: on,
                             execute: function (ctx) {
-                                if (this.classRef) {
-                                    _runtime.forEach( on.evaluate(ctx), function (target) {
-                                        target.classList.toggle(classRef.className())
-                                    });
-                                } else {
-                                    _runtime.forEach( on.evaluate(ctx), function (target) {
-                                        if(target.hasAttribute(attributeRef.name )) {
-                                            target.removeAttribute( attributeRef.name );
-                                        } else {
-                                            target.setAttribute(attributeRef.name, attributeRef.value.evaluate(ctx))
-                                        }
-                                    });
+                                var op = function(on, value) {
+                                    if (this.classRef) {
+                                        _runtime.forEach( on, function (target) {
+                                            target.classList.toggle(classRef.className())
+                                        });
+                                    } else {
+                                        _runtime.forEach( on, function (target) {
+                                            if(target.hasAttribute(attributeRef.name )) {
+                                                target.removeAttribute( attributeRef.name );
+                                            } else {
+                                                target.setAttribute(attributeRef.name, value)
+                                            }
+                                        });
+                                    }
+                                    _runtime.next(this, ctx);
                                 }
-                                _runtime.next(toggleCmd, ctx);
+                                return _runtime.mixedEval(this, ctx, op, on, attributeRef ? attributeRef.value : null);
+
                             }
                         };
                         return toggleCmd
@@ -1777,13 +1799,16 @@
                                 event: evt,
                                 on: on,
                                 execute: function (ctx) {
-                                    var eventName = evt.evaluate(ctx);
-                                    var target = on ? on.evaluate(ctx) : ctx['me'];
-                                    var listener = function(){
-                                        target.removeEventListener(eventName, listener);
-                                        _runtime.next(waitCmd, ctx);
-                                    };
-                                    target.addEventListener(eventName, listener)
+                                    var eventName = evt.evaluate(ctx); // OK
+                                    var op = function(on) {
+                                        var target = on ? on : ctx['me'];
+                                        var listener = function(){
+                                            target.removeEventListener(eventName, listener);
+                                            _runtime.next(waitCmd, ctx);
+                                        };
+                                        target.addEventListener(eventName, listener)
+                                    }
+                                    _runtime.mixedEval(this, ctx, op, on);
                                 }
                             };
                         } else {
@@ -1798,9 +1823,12 @@
                                 type: "waitCmd",
                                 time: time,
                                 execute: function (ctx) {
-                                    setTimeout(function () {
-                                        _runtime.next(waitCmd, ctx);
-                                    }, time.evaluate(ctx) * factor);
+                                    var op = function(time){
+                                        setTimeout(function () {
+                                            _runtime.next(waitCmd, ctx);
+                                        }, time * factor);
+                                    }
+                                    _runtime.mixedEval(this, ctx, op, time);
                                 }
                             };
                         }
