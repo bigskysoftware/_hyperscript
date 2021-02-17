@@ -552,9 +552,27 @@
 
                 }
 
+                function unwrapAsyncs(values) {
+                    for (var i = 0; i < values.length; i++) {
+                        var value = values[i];
+                        if (value.asyncWrapper) {
+                            values[i] = value.value;
+                        }
+                        if (Array.isArray(value)) {
+                            for (var j = 0; j < value.length; j++) {
+                                var valueElement = value[j];
+                                if (valueElement.asyncWrapper) {
+                                    value[j] = valueElement.value;
+                                }
+                            }
+                        }
+                    }
+                }
+
                 function mixedEval(parseElement, ctx, op) {
                     var args = []
                     var async = false;
+                    var wrappedAsyncs = false;
                     for (var i = 3; i < arguments.length; i++) {
                         var argument = arguments[i];
                         if (Array.isArray(argument)) {
@@ -564,6 +582,8 @@
                                 var value = element.evaluate(ctx);
                                 if (value.then) {
                                     async = true;
+                                } else if (value.asyncWrapper) {
+                                    wrappedAsyncs = true;
                                 }
                                 arr.push(value);
                             }
@@ -572,6 +592,8 @@
                             var value = argument.evaluate(ctx);
                             if (value.then) {
                                 async = true;
+                            } else if (value.asyncWrapper) {
+                                wrappedAsyncs = true;
                             }
                             args.push(value);
                         }
@@ -581,10 +603,16 @@
                             var linearized = linearize(args);
                             Promise.all(linearized).then(function(values){
                                 values = delinearize(values);
+                                if (wrappedAsyncs) {
+                                    unwrapAsyncs(values);
+                                }
                                 resolve(op.apply(parseElement, values));
                             })
                         })
                     } else {
+                        if (wrappedAsyncs) {
+                            unwrapAsyncs(args);
+                        }
                         return op.apply(parseElement, args);
                     }
                 }
@@ -1353,8 +1381,27 @@
                     return parser.parseAnyOf(["logicalOperator", "mathExpression"], tokens);
                 });
 
+                _parser.addGrammarElement("asyncExpression", function (parser, tokens) {
+                    if (tokens.matchToken('async')) {
+                        var value = parser.parseElement("logicalExpression", tokens);
+                        var expr = {
+                            type: "asyncExpression",
+                            value: value,
+                            evaluate: function (context) {
+                                return {
+                                    asyncWrapper: true,
+                                    value: this.value.evaluate(context)
+                                }
+                            }
+                        }
+                        return expr;
+                    } else {
+                        return parser.parseElement("logicalExpression", tokens);
+                    }
+                });
+
                 _parser.addGrammarElement("expression", function (parser, tokens) {
-                    return parser.parseElement("logicalExpression", tokens);
+                    return parser.parseElement("asyncExpression", tokens);
                 });
 
                 _parser.addGrammarElement("target", function (parser, tokens) {

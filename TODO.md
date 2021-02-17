@@ -2,7 +2,6 @@
 
 ### Language Features
 * Support a `timeout` modifier for async commands like `fetch`, `call`, `wait for` etc.
-* Support an `async` modifier for expressions that allow a promise to pass through the runtime unresolved
 * Array improvements
     * support the [] operator
     * add `first`, `last` and `random` pseudo-properties
@@ -32,6 +31,7 @@
 ```
 
 ### Language Infrastructure
+* Complete transformation of all statements/commands to use _runtime.mixedEval()
 * Figure out exception propagation in mixed/mode evaluation
     * throw?
     * catch blocks?  Associated with functions?
