@@ -579,21 +579,25 @@
                             var arr = [];
                             for (var j = 0; j < argument.length; j++) {
                                 var element = argument[j];
-                                var value = element.evaluate(ctx);
-                                if (value.then) {
-                                    async = true;
-                                } else if (value.asyncWrapper) {
-                                    wrappedAsyncs = true;
+                                var value = element.evaluate(ctx); // OK
+                                if (value) {
+                                    if (value.then) {
+                                        async = true;
+                                    } else if (value.asyncWrapper) {
+                                        wrappedAsyncs = true;
+                                    }
                                 }
                                 arr.push(value);
                             }
                             args.push(arr);
                         } else {
-                            var value = argument.evaluate(ctx);
-                            if (value.then) {
-                                async = true;
-                            } else if (value.asyncWrapper) {
-                                wrappedAsyncs = true;
+                            var value = argument.evaluate(ctx); // OK
+                            if (value) {
+                                if (value.then) {
+                                    async = true;
+                                } else if (value.asyncWrapper) {
+                                    wrappedAsyncs = true;
+                                }
                             }
                             args.push(value);
                         }
@@ -687,8 +691,8 @@
 
                 function applyEventListeners(hypeScript, elt) {
                     forEach(hypeScript.onFeatures, function (onFeature) {
-                        forEach(onFeature.from ? onFeature.from.evaluate({}) : [elt], function(target){
-                            target.addEventListener(onFeature.on.evaluate(), function(evt){
+                        forEach(onFeature.from ? onFeature.from.evaluate({}) : [elt], function(target){ // OK NO PROMISE
+                            target.addEventListener(onFeature.on.evaluate(), function(evt){ // OK NO PROMISE
                                 var ctx = makeContext(onFeature, elt, evt);
                                 onFeature.execute(ctx)
                             });
@@ -722,7 +726,7 @@
                     }
                     ctx = ctx || {};
                     var compiled = _parser.parseElement(type, _lexer.tokenize(src) );
-                    return compiled.evaluate ? compiled.evaluate(ctx) : compiled.execute(ctx);
+                    return compiled.evaluate ? compiled.evaluate(ctx) : compiled.execute(ctx); // OK
                 }
 
                 function processNode(elt) {
@@ -845,7 +849,7 @@
                             type: "parenthesized",
                             expr: expr,
                             evaluate: function (context) {
-                                return expr.evaluate(context);
+                                return expr.evaluate(context); //OK
                             }
                         }
                     }
@@ -937,7 +941,10 @@
                             value: value,
                             evaluate: function (context) {
                                 if (this.value) {
-                                    return {name:this.name, value:this.value.evaluate(context)};
+                                    var op = function(val){
+                                        return {name:this.name, value:val}
+                                    }
+                                    return _runtime.mixedEval(this, context, op, this.value)
                                 } else {
                                     return {name:this.name};
                                 }
@@ -1119,7 +1126,7 @@
                                     for (var i = 0; i < args.length; i++) {
                                         ctx[args[i].value] = arguments[i];
                                     }
-                                    return expr.evaluate(ctx)
+                                    return expr.evaluate(ctx) //OK
                                 }
                                 return returnFunc;
                             }
@@ -1215,7 +1222,10 @@
                             root: root,
                             nullOk: nullOk,
                             evaluate: function (context) {
-                                return _runtime.typeCheck(root.evaluate(context), this.typeName.value, this.nullOk);
+                                var op = function(val){
+                                    return _runtime.typeCheck(val, this.typeName.value, this.nullOk);
+                                }
+                                return _runtime.mixedEval(this, context, op, root);
                             }
                         }
                     } else {
@@ -1390,7 +1400,7 @@
                             evaluate: function (context) {
                                 return {
                                     asyncWrapper: true,
-                                    value: this.value.evaluate(context)
+                                    value: this.value.evaluate(context) //OK
                                 }
                             }
                         }
@@ -1515,7 +1525,7 @@
                                     var initialCtx = ctx.meta.context;
                                     ctx.meta.context = ctx.event;
                                     try {
-                                        var value = filter.evaluate(ctx);
+                                        var value = filter.evaluate(ctx); //OK NO PROMISE
                                         if (value) {
                                             // match the javascript semantics for if statements
                                         } else {
@@ -1539,7 +1549,7 @@
                 _parser.addGrammarElement("functionFeature", function (parser, tokens) {
                     if (tokens.matchToken('def')) {
                         var functionName = parser.parseElement("dotOrColonPath", tokens);
-                        var nameVal = functionName.evaluate();
+                        var nameVal = functionName.evaluate(); // OK
                         var nameSpace = nameVal.split(".");
                         var funcName = nameSpace.pop();
 
