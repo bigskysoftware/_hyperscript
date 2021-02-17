@@ -92,6 +92,22 @@ describe("the worker feature", function() {
         });
     })
 
+    it('can access globall scope in worker function', function (done) {
+        var script = make(
+            "<script type='text/hyperscript'>" +
+            "worker example" +
+            "  def func " +
+            "    return Math.max(1, 2) " +
+            "  end " +
+            "end" +
+            "</script>");
+        window.example.func().then(function (result) {
+            assert.equal(result, 2);
+            delete window.example;
+            done();
+        });
+    })
+
     it('can import external scripts', function(done) {
         assert(false);
     });
