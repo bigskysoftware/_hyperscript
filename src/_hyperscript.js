@@ -1631,7 +1631,6 @@
                                     self.window = {};
                                     var parsed = _hyperscript.parser.parseElement('hyperscript', tokens);
                                     functions = Object.keys(self.window);
-                                    /* test */ self.window.fn()
                                     postMessage({ type: 'didInit', functions: functions });
                                     break;
                                 case 'call':
