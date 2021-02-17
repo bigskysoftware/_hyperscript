@@ -16,6 +16,8 @@
             // Utilities
             //====================================================================
 
+            var globalScope = typeof self !== 'undefined' ? self : this;
+
             function mergeObjects(obj1, obj2) {
                 for (var key in obj2) {
                     if (obj2.hasOwnProperty(key)) {
@@ -41,6 +43,23 @@
                     console.log("ERROR: ", msg);
                 }
             }
+
+                function assignToNamespace(nameSpace, name, value) {
+                    // we use window instead of globalScope here so that we can
+                    // intercept this in workers
+                    var root = window;
+                    while (nameSpace.length > 0) {
+                        var propertyName = nameSpace.shift();
+                        var newRoot = root[propertyName];
+                        if (newRoot == null) {
+                            newRoot = {};
+                            root[propertyName] = newRoot;
+                        }
+                        root = newRoot;
+                    }
+
+                    root[name] = value;
+                }
 
             //====================================================================
             // Lexer
@@ -401,7 +420,8 @@
                 }
 
                 return {
-                    tokenize: tokenize
+                    tokenize: tokenize,
+                    _makeTokensObject: makeTokensObject
                 }
             }();
 
@@ -652,7 +672,7 @@
                         me: elt,
                         event: event,
                         detail: event ? event.detail : null,
-                        body: document.body
+                        body: 'document' in globalScope ? document.body : null
                     }
                     ctx.meta.ctx = ctx;
                     return ctx;
@@ -1499,21 +1519,6 @@
                     }
                 });
 
-                function assignToNamespace(nameSpace, name, value) {
-                    var root = window;
-                    while (nameSpace.length > 0) {
-                        var propertyName = nameSpace.shift();
-                        var newRoot = root[propertyName];
-                        if (newRoot == null) {
-                            newRoot = {};
-                            root[propertyName] = newRoot;
-                        }
-                        root = newRoot;
-                    }
-
-                    root[name] = value;
-                }
-
                 _parser.addGrammarElement("functionFeature", function (parser, tokens) {
                     if (tokens.matchToken('def')) {
                         var functionName = parser.parseElement("dotOrColonPath", tokens);
@@ -1560,7 +1565,10 @@
                         }
 
                         assignToNamespace(nameSpace, funcName, function() {
-                            var ctx = _runtime.makeContext(document.body, document.body, null);
+                            // null, worker
+                            var root = 'document' in globalScope ? document.body : null
+                            var elt = 'document' in globalScope ? document.body : globalScope
+                            var ctx = _runtime.makeContext(root, elt, null);
                             for (var i = 0; i < arguments.length; i++) {
                                 var argumentVal = arguments[i];
                                 var name = args[i];
@@ -1585,6 +1593,11 @@
                     }
                 });
 
+                var currentScriptSrc
+                if ('document' in globalScope) currentScriptSrc = document.currentScript.src;
+
+                var invocationIdCounter = 0
+
                 _parser.addGrammarElement("workerFeature", function(parser, tokens) {
                     if (tokens.matchToken('worker')) {
                         var name = parser.parseElement("dotOrColonPath", tokens);
@@ -1607,7 +1620,51 @@
 
                         // Create worker
 
-                        var workerCode = "onmessage=function(){postMessage({ type: 'didInit', functions: [] })}";
+                        var workerFunc = function () {
+                            /* WORKER BOUNDARY */
+                            self.onmessage = function (e) {
+                                switch (e.data.type) {
+                                case 'init':
+                                    importScripts(e.data._hyperscript);
+                                    importScripts.apply(self, e.data.extraScripts);
+                                    var tokens = _hyperscript.lexer._makeTokensObject(e.data.tokens, [], '');
+                                    self.window = {};
+                                    var parsed = _hyperscript.parser.parseElement('hyperscript', tokens);
+                                    functions = Object.keys(self.window);
+                                    /* test */ self.window.fn()
+                                    postMessage({ type: 'didInit', functions: functions });
+                                    break;
+                                case 'call':
+                                    try {
+                                        var result = self.window[e.data.function].apply(self, e.data.args)
+                                        Promise.resolve(result).then(function(value) {
+                                            postMessage({
+                                                type: 'resolve',
+                                                id: e.data.id,
+                                                value: value
+                                            })
+                                        }).catch(function (error) {
+                                            postMessage({
+                                                type: 'reject',
+                                                id: e.data.id,
+                                                error: error
+                                            })
+                                        })
+                                    } catch (error) {
+                                        console.log('Responding with error:')
+                                        console.log(error)
+                                        postMessage({
+                                            type: 'reject',
+                                            id: e.data.id,
+                                            error: error
+                                        })
+                                    }
+                                    break;
+                                }
+                            }
+                            /* WORKER BOUNDARY */
+                        }
+                        var workerCode = workerFunc.toString().split('/* WORKER BOUNDARY */')[1];
                         var blob = new Blob([workerCode], { type: 'text/javascript' });
                         var worker = new Worker(URL.createObjectURL(blob));
 
@@ -1615,15 +1672,16 @@
 
                         worker.postMessage({
                             type: 'init',
-                            hyperscript: document.currentScript.src,
+                            _hyperscript: currentScriptSrc,
                             extraScripts: [],
                             tokens: bodyTokens
                         });
                         var workerPromise = new Promise(function (resolve, reject) {
                             worker.addEventListener('message', function(e) {
                                 if (e.data.type === 'didInit') {
-                                    console.log('Worker '+qualifiedName+' initialized, exposing functions '+e.data.functions)
-                                    resolve(e.functions)
+                                    console.log('Worker '+qualifiedName+' initialized, response:')
+                                    console.log(e.data)
+                                    resolve(e.data.functions)
                                 }
                             }, { once: true });
                         })
@@ -1632,16 +1690,20 @@
 
                         var functionsPromise = workerPromise.then(function(funcNames) {
                             var stubs = {};
-                            for (var i = 0; i < funcNames.length; i++) {
-                                stubs[funcNames[i]] = function() {
+                            funcNames.forEach(function(funcName) {
+                                stubs[funcName] = function() {
+                                    var args = arguments;
                                     return new Promise(function (resolve, reject) {
                                         var id = invocationIdCounter++;
-                                        worker.postMessage({
+                                        var msg = {
                                             type: 'call',
-                                            function: funcNames[i],
-                                            args: Array.from(arguments),
+                                            function: funcName,
+                                            args: Array.from(args),
                                             id: id
-                                        });
+                                        };
+                                        console.log("Sending invocation to worker:")
+                                        console.log(msg)
+                                        worker.postMessage(msg)
                                         worker.addEventListener('message', function returnListener(e) {
                                             if (e.data.id === id) {
                                                 worker.removeEventListener('message', returnListener);
@@ -1651,34 +1713,8 @@
                                         }, { once: true });
                                     });
                                 }
-                            }
-                            assignToNamespace(nameSpace, workerName, worker)
-                        });
-
-                        // Create worker
-
-                        var workerCode = "onmessage=function(){postMessage({ type: 'didInit', functions: [] })}";
-                        var blob = new Blob([workerCode], { type: 'text/javascript' });
-                        var worker = new Worker(URL.createObjectURL(blob));
-
-                        // Send init message to worker
-
-                        worker.postMessage({
-                            type: 'init',
-                            hyperscript: document.currentScript.src,
-                            extraScripts: [],
-                            tokens: tokens
-                        });
-                        var workerPromise = new Promise(function (resolve, reject) {
-                            worker.addEventListener('message', function(e) {
-                                if (e.data.type === 'didInit') resolve(e.functions);
-                            }, { once: true });
-                        })
-
-                        // Create function stubs
-
-                        var functionsPromise = workerPromise.then(function(functions) {
-                            var stubs = {};
+                            })
+                            assignToNamespace(nameSpace, workerName, stubs)
                         });
 
                         return {
@@ -2361,13 +2397,15 @@
                 return _parser.transpile(hyperScript);
             }
 
-            ready(function () {
-                mergeMetaConfig();
-                processNode(document.body);
-                document.addEventListener("htmx:load", function(evt){
-                    processNode(evt.detail.elt);
+            if ('document' in globalScope) {
+                ready(function () {
+                    mergeMetaConfig();
+                    processNode(document.body);
+                    document.addEventListener("htmx:load", function(evt){
+                        processNode(evt.detail.elt);
+                    })
                 })
-            })
+            }
 
             /* Public API */
             return {
