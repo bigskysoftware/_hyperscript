@@ -1434,6 +1434,7 @@
                             feature.execute();
                             functionFeatures.push(feature);
                         } else if (feature.type === "workerFeature") {
+                            workerFeatures.push(feature);
                             feature.execute();
                         }
                     } while (tokens.matchToken("end") && tokens.hasMore())
