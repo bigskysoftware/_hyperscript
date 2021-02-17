@@ -92,7 +92,7 @@ describe("the worker feature", function() {
         });
     })
 
-    it('can access globall scope in worker function', function (done) {
+    it('can access global scope in worker function', function (done) {
         var script = make(
             "<script type='text/hyperscript'>" +
             "worker example" +
