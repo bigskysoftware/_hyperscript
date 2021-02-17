@@ -1499,6 +1499,21 @@
                     }
                 });
 
+                function assignToNamespace(nameSpace, name, value) {
+                    var root = window;
+                    while (nameSpace.length > 0) {
+                        var propertyName = nameSpace.shift();
+                        var newRoot = root[propertyName];
+                        if (newRoot == null) {
+                            newRoot = {};
+                            root[propertyName] = newRoot;
+                        }
+                        root = newRoot;
+                    }
+
+                    root[name] = value;
+                }
+
                 _parser.addGrammarElement("functionFeature", function (parser, tokens) {
                     if (tokens.matchToken('def')) {
                         var functionName = parser.parseElement("dotOrColonPath", tokens);
@@ -1529,17 +1544,6 @@
                             }
                         };
 
-                        var root = window;
-                        while (nameSpace.length > 0) {
-                            var propertyName = nameSpace.shift();
-                            var newRoot = root[propertyName];
-                            if (newRoot == null) {
-                                newRoot = {};
-                                root[propertyName] = newRoot;
-                            }
-                            root = newRoot;
-                        }
-
                         var end = start;
                         while (end.next) {
                             end = end.next;
@@ -1555,7 +1559,7 @@
                             }
                         }
 
-                        root[funcName] = function() {
+                        assignToNamespace(nameSpace, funcName, function() {
                             var ctx = _runtime.makeContext(document.body, document.body, null);
                             for (var i = 0; i < arguments.length; i++) {
                                 var argumentVal = arguments[i];
@@ -1575,7 +1579,7 @@
                                 ctx.meta.resolve = resolve;
                                 return promise
                             }
-                        };
+                        });
                         parser.setParent(start, functionFeature);
                         return functionFeature;
                     }
@@ -1600,6 +1604,82 @@
 
 
                         var bodyTokens = tokens.consumed.slice(bodyStartIndex, bodyEndIndex);
+
+                        // Create worker
+
+                        var workerCode = "onmessage=function(){postMessage({ type: 'didInit', functions: [] })}";
+                        var blob = new Blob([workerCode], { type: 'text/javascript' });
+                        var worker = new Worker(URL.createObjectURL(blob));
+
+                        // Send init message to worker
+
+                        worker.postMessage({
+                            type: 'init',
+                            hyperscript: document.currentScript.src,
+                            extraScripts: [],
+                            tokens: bodyTokens
+                        });
+                        var workerPromise = new Promise(function (resolve, reject) {
+                            worker.addEventListener('message', function(e) {
+                                if (e.data.type === 'didInit') {
+                                    console.log('Worker '+qualifiedName+' initialized, exposing functions '+e.data.functions)
+                                    resolve(e.functions)
+                                }
+                            }, { once: true });
+                        })
+
+                        // Create function stubs
+
+                        var functionsPromise = workerPromise.then(function(funcNames) {
+                            var stubs = {};
+                            for (var i = 0; i < funcNames.length; i++) {
+                                stubs[funcNames[i]] = function() {
+                                    return new Promise(function (resolve, reject) {
+                                        var id = invocationIdCounter++;
+                                        worker.postMessage({
+                                            type: 'call',
+                                            function: funcNames[i],
+                                            args: Array.from(arguments),
+                                            id: id
+                                        });
+                                        worker.addEventListener('message', function returnListener(e) {
+                                            if (e.data.id === id) {
+                                                worker.removeEventListener('message', returnListener);
+                                                if (e.data.type === 'resolve') resolve(e.data.value);
+                                                else reject(e.data.error);
+                                            }
+                                        }, { once: true });
+                                    });
+                                }
+                            }
+                            assignToNamespace(nameSpace, workerName, worker)
+                        });
+
+                        // Create worker
+
+                        var workerCode = "onmessage=function(){postMessage({ type: 'didInit', functions: [] })}";
+                        var blob = new Blob([workerCode], { type: 'text/javascript' });
+                        var worker = new Worker(URL.createObjectURL(blob));
+
+                        // Send init message to worker
+
+                        worker.postMessage({
+                            type: 'init',
+                            hyperscript: document.currentScript.src,
+                            extraScripts: [],
+                            tokens: tokens
+                        });
+                        var workerPromise = new Promise(function (resolve, reject) {
+                            worker.addEventListener('message', function(e) {
+                                if (e.data.type === 'didInit') resolve(e.functions);
+                            }, { once: true });
+                        })
+
+                        // Create function stubs
+
+                        var functionsPromise = workerPromise.then(function(functions) {
+                            var stubs = {};
+                        });
 
                         return {
                             type: 'workerFeature',
