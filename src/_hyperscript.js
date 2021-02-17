@@ -2043,10 +2043,13 @@
                             details: details,
                             to: to,
                             execute: function (ctx) {
-                                _runtime.forEach(to.evaluate(ctx), function (target) {
-                                    _runtime.triggerEvent(target, eventName.evaluate(ctx), details ? details.evaluate(ctx) : {});
-                                });
-                                _runtime.next(sendCmd, ctx);
+                                var op = function(to, eventName, details){
+                                    _runtime.forEach(to, function (target) {
+                                        _runtime.triggerEvent(target, eventName, details ? details : {});
+                                    });
+                                    _runtime.next(sendCmd, ctx);
+                                }
+                                _runtime.mixedEval(this, ctx, op, to, eventName, details);
                             }
                         };
                         return sendCmd
@@ -2062,18 +2065,21 @@
                             type: "returnCmd",
                             value: value,
                             execute: function (ctx) {
-                                var resolve = ctx.meta.resolve;
-                                ctx.meta.returned = true;
-                                if (resolve) {
-                                    if (value) {
-                                        resolve(value.evaluate(ctx));
-                                    } else {
-                                        resolve()
-                                    }
-                                } else {
+                                var op = function (value) {
+                                    var resolve = ctx.meta.resolve;
                                     ctx.meta.returned = true;
-                                    ctx.meta.returnValue = value.evaluate(ctx);
-                                }
+                                    if (resolve) {
+                                        if (value) {
+                                            resolve(value);
+                                        } else {
+                                            resolve()
+                                        }
+                                    } else {
+                                        ctx.meta.returned = true;
+                                        ctx.meta.returnValue = value;
+                                    }
+                                };
+                                _runtime.mixedEval(this, ctx, op, value);
                             }
                         };
                         return returnCmd
