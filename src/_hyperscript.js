@@ -1607,6 +1607,7 @@
                         switch (e.data.type) {
                         case 'init':
                             importScripts(e.data._hyperscript);
+                            importScripts(e.data.extraScripts);
                             var tokens = _hyperscript.lexer._makeTokensObject(e.data.tokens, [], '');
                             self.window = {};
                             var parsed = _hyperscript.parser.parseElement('hyperscript', tokens);
@@ -1656,7 +1657,10 @@
                                 // no external scripts
                             } else {
                                 do {
-                                    extraScripts.push(tokens.requireTokenType('STRING').value);
+                                    extraScripts.push(new URL(
+                                            tokens.requireTokenType('STRING').value,
+                                            location.href
+                                        ).href);
                                 } while (tokens.matchOpToken(","))
                                 tokens.requireOpToken(')')
                             }
@@ -1695,6 +1699,7 @@
                             extraScripts: extraScripts,
                             tokens: bodyTokens
                         });
+                        console.log(msg)
 
                         var workerPromise = new Promise(function (resolve, reject) {
                             worker.addEventListener('message', function(e) {
@@ -1709,6 +1714,7 @@
                         return {
                             type: 'workerFeature',
                             name: workerName,
+                            worker: worker,
                             execute: function (ctx) {
                                 var stubs = {};
                                 funcNames.forEach(function(funcName) {
