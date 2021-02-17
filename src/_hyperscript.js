@@ -16,8 +16,6 @@
             // Utilities
             //====================================================================
 
-            var globalScope = typeof self !== 'undefined' ? self : this;
-
             function mergeObjects(obj1, obj2) {
                 for (var key in obj2) {
                     if (obj2.hasOwnProperty(key)) {
@@ -44,22 +42,24 @@
                 }
             }
 
-                function assignToNamespace(nameSpace, name, value) {
-                    // we use window instead of globalScope here so that we can
-                    // intercept this in workers
-                    var root = window;
-                    while (nameSpace.length > 0) {
-                        var propertyName = nameSpace.shift();
-                        var newRoot = root[propertyName];
-                        if (newRoot == null) {
-                            newRoot = {};
-                            root[propertyName] = newRoot;
-                        }
-                        root = newRoot;
+            function assignToNamespace(nameSpace, name, value) {
+                // we use window instead of globalScope here so that we can
+                // intercept this in workers
+                var root = window;
+                while (nameSpace.length > 0) {
+                    var propertyName = nameSpace.shift();
+                    var newRoot = root[propertyName];
+                    if (newRoot == null) {
+                        newRoot = {};
+                        root[propertyName] = newRoot;
                     }
-
-                    root[name] = value;
+                    root = newRoot;
                 }
+
+                root[name] = value;
+            }
+
+            var globalScope = typeof self !== 'undefined' ? self : this;
 
             //====================================================================
             // Lexer
@@ -421,7 +421,7 @@
 
                 return {
                     tokenize: tokenize,
-                    _makeTokensObject: makeTokensObject
+                    makeTokensObject: makeTokensObject
                 }
             }();
 
@@ -1596,9 +1596,9 @@
                     }
                 });
 
-                var currentScriptSrc
-                if ('document' in globalScope) currentScriptSrc = document.currentScript.src;
+                // Stuff for workers
 
+                if ('document' in globalScope) var currentScriptSrc = document.currentScript.src;
                 var invocationIdCounter = 0
 
                 function workerFunc() {
@@ -1607,34 +1607,32 @@
                         switch (e.data.type) {
                         case 'init':
                             importScripts(e.data._hyperscript);
-                            importScripts(e.data.extraScripts);
-                            var tokens = _hyperscript.lexer._makeTokensObject(e.data.tokens, [], '');
+                            importScripts.apply(self, e.data.extraScripts);
+                            var tokens = _hyperscript.lexer.makeTokensObject(e.data.tokens, [], '');
+                            
+                            // this is so hacky
                             self.window = {};
                             var parsed = _hyperscript.parser.parseElement('hyperscript', tokens);
-                            functions = Object.keys(self.window);
+                            self.functions = self.window;
+                            delete self.window;
+
                             postMessage({ type: 'didInit' });
                             break;
                         case 'call':
                             try {
-                                var result = self.window[e.data.function].apply(self, e.data.args)
+                                var result = self.functions[e.data.function].apply(self, e.data.args)
                                 Promise.resolve(result).then(function(value) {
                                     postMessage({
                                         type: 'resolve',
                                         id: e.data.id,
                                         value: value
                                     })
-                                }).catch(function (error) {
-                                    postMessage({
-                                        type: 'reject',
-                                        id: e.data.id,
-                                        error: error
-                                    })
                                 })
                             } catch (error) {
                                 postMessage({
                                     type: 'reject',
                                     id: e.data.id,
-                                    error: error
+                                    error: error.toString()
                                 })
                             }
                             break;
@@ -1657,12 +1655,11 @@
                                 // no external scripts
                             } else {
                                 do {
-                                    extraScripts.push(new URL(
-                                            tokens.requireTokenType('STRING').value,
-                                            location.href
-                                        ).href);
-                                } while (tokens.matchOpToken(","))
-                                tokens.requireOpToken(')')
+                                    var extraScript = tokens.requireTokenType('STRING').value;
+                                    var absoluteUrl = new URL(extraScript, location.href).href;
+                                    extraScripts.push(absoluteUrl);
+                                } while (tokens.matchOpToken(","));
+                                tokens.requireOpToken(')');
                             }
                         }
 
@@ -1692,54 +1689,50 @@
 
                         // Send init message to worker
 
-                        var msg
-                        worker.postMessage(msg = {
+                        worker.postMessage({
                             type: 'init',
                             _hyperscript: currentScriptSrc,
                             extraScripts: extraScripts,
                             tokens: bodyTokens
                         });
-                        console.log(msg)
 
                         var workerPromise = new Promise(function (resolve, reject) {
                             worker.addEventListener('message', function(e) {
-                                if (e.data.type === 'didInit') {
-                                    resolve()
-                                }
+                                if (e.data.type === 'didInit') resolve();
                             }, { once: true });
-                        })
+                        });
 
                         // Create function stubs
+                        var stubs = {};
+                        funcNames.forEach(function(funcName) {
+                            stubs[funcName] = function() {
+                                var args = arguments;
+                                return new Promise(function (resolve, reject) {
+                                    var id = invocationIdCounter++;
+                                    worker.addEventListener('message', function returnListener(e) {
+                                        if (e.data.id !== id) return;
+                                        worker.removeEventListener('message', returnListener);
+                                        if (e.data.type === 'resolve') resolve(e.data.value);
+                                        else reject(e.data.error);
+                                    });
+                                    workerPromise.then(function () {
+                                        // Worker has been initialized, send invocation.
+                                        worker.postMessage({
+                                            type: 'call',
+                                            function: funcName,
+                                            args: Array.from(args),
+                                            id: id
+                                        });
+                                    });
+                                });
+                            };
+                        });
 
                         return {
                             type: 'workerFeature',
                             name: workerName,
                             worker: worker,
                             execute: function (ctx) {
-                                var stubs = {};
-                                funcNames.forEach(function(funcName) {
-                                    stubs[funcName] = function() {
-                                        var args = arguments;
-                                        return new Promise(function (resolve, reject) {
-                                            var id = invocationIdCounter++;
-                                            workerPromise.then(function () {
-                                                worker.postMessage({
-                                                    type: 'call',
-                                                    function: funcName,
-                                                    args: Array.from(args),
-                                                    id: id
-                                                })
-                                                worker.addEventListener('message', function returnListener(e) {
-                                                    if (e.data.id === id) {
-                                                        worker.removeEventListener('message', returnListener);
-                                                        if (e.data.type === 'resolve') resolve(e.data.value);
-                                                        else reject(e.data.error);
-                                                    }
-                                                }, { once: true });
-                                            })
-                                        });
-                                    }
-                                })
                                 assignToNamespace(nameSpace, workerName, stubs)
                             }
                         };
