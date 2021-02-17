@@ -42,6 +42,25 @@
                 }
             }
 
+            function assignToNamespace(nameSpace, name, value) {
+                // we use window instead of globalScope here so that we can
+                // intercept this in workers
+                var root = window;
+                while (nameSpace.length > 0) {
+                    var propertyName = nameSpace.shift();
+                    var newRoot = root[propertyName];
+                    if (newRoot == null) {
+                        newRoot = {};
+                        root[propertyName] = newRoot;
+                    }
+                    root = newRoot;
+                }
+
+                root[name] = value;
+            }
+
+            var globalScope = typeof self !== 'undefined' ? self : this;
+
             //====================================================================
             // Lexer
             //====================================================================
@@ -215,6 +234,7 @@
                         matchToken: matchToken,
                         requireToken: requireToken,
                         list: tokens,
+                        consumed: consumed,
                         source: source,
                         hasMore: hasMore,
                         currentToken: currentToken,
@@ -400,7 +420,8 @@
                 }
 
                 return {
-                    tokenize: tokenize
+                    tokenize: tokenize,
+                    makeTokensObject: makeTokensObject
                 }
             }();
 
@@ -687,7 +708,7 @@
                         me: elt,
                         event: event,
                         detail: event ? event.detail : null,
-                        body: document.body
+                        body: 'document' in globalScope ? document.body : null
                     }
                     ctx.meta.ctx = ctx;
                     return ctx;
@@ -806,7 +827,7 @@
                         if (typeof fromContext !== "undefined") {
                             return fromContext;
                         } else {
-                            return window[str];
+                            return globalScope[str];
                         }
                     }
                 }
@@ -1459,6 +1480,7 @@
                 _parser.addGrammarElement("hyperscript", function (parser, tokens) {
                     var onFeatures = []
                     var functionFeatures = []
+                    var workerFeatures = []
                     do {
                         var feature = parser.parseElement("feature", tokens);
                         if (feature == null) {
@@ -1467,7 +1489,11 @@
                         if (feature.type === "onFeature") {
                             onFeatures.push(feature);
                         } else if(feature.type === "functionFeature") {
+                            feature.execute();
                             functionFeatures.push(feature);
+                        } else if (feature.type === "workerFeature") {
+                            workerFeatures.push(feature);
+                            feature.execute();
                         }
                     } while (tokens.matchToken("end") && tokens.hasMore())
                     if (tokens.hasMore()) {
@@ -1477,6 +1503,7 @@
                         type: "hyperscript",
                         onFeatures: onFeatures,
                         functions: functionFeatures,
+                        workers: workerFeatures,
                         execute: function () {
                             // no op
                         }
@@ -1484,7 +1511,11 @@
                 })
 
                 _parser.addGrammarElement("feature", function (parser, tokens) {
-                    return parser.parseAnyOf(["onFeature", "functionFeature"], tokens);
+                    return parser.parseAnyOf([
+                        "onFeature",
+                        "functionFeature",
+                        "workerFeature",
+                    ], tokens);
                 })
 
                 _parser.addGrammarElement("onFeature", function (parser, tokens) {
@@ -1576,20 +1607,32 @@
                             args: args,
                             start: start,
                             execute: function (ctx) {
-                                // no-op
+                                assignToNamespace(nameSpace, funcName, function() {
+                                    // null, worker
+                                    var root = 'document' in globalScope ? document.body : null
+                                    var elt = 'document' in globalScope ? document.body : globalScope
+                                    var ctx = _runtime.makeContext(root, elt, null);
+                                    for (var i = 0; i < arguments.length; i++) {
+                                        var argumentVal = arguments[i];
+                                        var name = args[i];
+                                        if (name) {
+                                            ctx[name.value] = argumentVal;
+                                        }
+                                    }
+                                    var resolve = null;
+                                    var promise = new Promise(function(returnCall){
+                                        resolve = returnCall;
+                                    });
+                                    start.execute(ctx);
+                                    if (ctx.meta.returned) {
+                                        return ctx.meta.returnValue;
+                                    } else {
+                                        ctx.meta.resolve = resolve;
+                                        return promise
+                                    }
+                                });
                             }
                         };
-
-                        var root = window;
-                        while (nameSpace.length > 0) {
-                            var propertyName = nameSpace.shift();
-                            var newRoot = root[propertyName];
-                            if (newRoot == null) {
-                                newRoot = {};
-                                root[propertyName] = newRoot;
-                            }
-                            root = newRoot;
-                        }
 
                         var end = start;
                         while (end.next) {
@@ -1606,31 +1649,153 @@
                             }
                         }
 
-                        root[funcName] = function() {
-                            var ctx = _runtime.makeContext(document.body, document.body, null);
-                            for (var i = 0; i < arguments.length; i++) {
-                                var argumentVal = arguments[i];
-                                var name = args[i];
-                                if (name) {
-                                    ctx[name.value] = argumentVal;
-                                }
-                            }
-                            var resolve = null;
-                            var promise = new Promise(function(returnCall){
-                                resolve = returnCall;
-                            });
-                            start.execute(ctx);
-                            if (ctx.meta.returned) {
-                                return ctx.meta.returnValue;
-                            } else {
-                                ctx.meta.resolve = resolve;
-                                return promise
-                            }
-                        };
                         parser.setParent(start, functionFeature);
                         return functionFeature;
                     }
                 });
+
+                // Stuff for workers
+
+                if ('document' in globalScope) var currentScriptSrc = document.currentScript.src;
+                var invocationIdCounter = 0
+
+                function workerFunc() {
+                    /* WORKER BOUNDARY */
+                    self.onmessage = function (e) {
+                        switch (e.data.type) {
+                        case 'init':
+                            importScripts(e.data._hyperscript);
+                            importScripts.apply(self, e.data.extraScripts);
+                            var tokens = _hyperscript.lexer.makeTokensObject(e.data.tokens, [], '');
+                            
+                            // this is so hacky
+                            self.window = {};
+                            var parsed = _hyperscript.parser.parseElement('hyperscript', tokens);
+                            self.functions = self.window;
+                            delete self.window;
+
+                            postMessage({ type: 'didInit' });
+                            break;
+                        case 'call':
+                            try {
+                                var result = self.functions[e.data.function].apply(self, e.data.args)
+                                Promise.resolve(result).then(function(value) {
+                                    postMessage({
+                                        type: 'resolve',
+                                        id: e.data.id,
+                                        value: value
+                                    })
+                                })
+                            } catch (error) {
+                                postMessage({
+                                    type: 'reject',
+                                    id: e.data.id,
+                                    error: error.toString()
+                                })
+                            }
+                            break;
+                        }
+                    }
+                    /* WORKER BOUNDARY */
+                }
+
+                _parser.addGrammarElement("workerFeature", function(parser, tokens) {
+                    if (tokens.matchToken('worker')) {
+                        var name = parser.parseElement("dotOrColonPath", tokens);
+                        var qualifiedName = name.evaluate();
+                        var nameSpace = qualifiedName.split(".");
+                        var workerName = nameSpace.pop();
+
+                        // Parse extra scripts
+                        var extraScripts = [];
+                        if (tokens.matchOpToken("(")) {
+                            if (tokens.matchOpToken(")")) {
+                                // no external scripts
+                            } else {
+                                do {
+                                    var extraScript = tokens.requireTokenType('STRING').value;
+                                    var absoluteUrl = new URL(extraScript, location.href).href;
+                                    extraScripts.push(absoluteUrl);
+                                } while (tokens.matchOpToken(","));
+                                tokens.requireOpToken(')');
+                            }
+                        }
+
+                        // Consume worker methods
+
+                        var funcNames = [];
+                        var bodyStartIndex = tokens.consumed.length;
+                        var bodyEndIndex = tokens.consumed.length;
+                        do {
+                            var functionFeature = parser.parseElement('functionFeature', tokens);
+                            if (functionFeature) {
+                                funcNames.push(functionFeature.name);
+                                bodyEndIndex = tokens.consumed.length;
+                            } else break;
+                        } while (tokens.matchToken("end") && tokens.hasMore()); // worker end
+
+
+                        var bodyTokens = tokens.consumed.slice(bodyStartIndex, bodyEndIndex + 1);
+
+                        // Create worker
+
+                        // extract the body of the function, which was only defined so
+                        // that we can get syntax highlighting
+                        var workerCode = workerFunc.toString().split('/* WORKER BOUNDARY */')[1];
+                        var blob = new Blob([workerCode], { type: 'text/javascript' });
+                        var worker = new Worker(URL.createObjectURL(blob));
+
+                        // Send init message to worker
+
+                        worker.postMessage({
+                            type: 'init',
+                            _hyperscript: currentScriptSrc,
+                            extraScripts: extraScripts,
+                            tokens: bodyTokens
+                        });
+
+                        var workerPromise = new Promise(function (resolve, reject) {
+                            worker.addEventListener('message', function(e) {
+                                if (e.data.type === 'didInit') resolve();
+                            }, { once: true });
+                        });
+
+                        // Create function stubs
+                        var stubs = {};
+                        funcNames.forEach(function(funcName) {
+                            stubs[funcName] = function() {
+                                var args = arguments;
+                                return new Promise(function (resolve, reject) {
+                                    var id = invocationIdCounter++;
+                                    worker.addEventListener('message', function returnListener(e) {
+                                        if (e.data.id !== id) return;
+                                        worker.removeEventListener('message', returnListener);
+                                        if (e.data.type === 'resolve') resolve(e.data.value);
+                                        else reject(e.data.error);
+                                    });
+                                    workerPromise.then(function () {
+                                        // Worker has been initialized, send invocation.
+                                        worker.postMessage({
+                                            type: 'call',
+                                            function: funcName,
+                                            args: Array.from(args),
+                                            id: id
+                                        });
+                                    });
+                                });
+                            };
+                        });
+
+                        return {
+                            type: 'workerFeature',
+                            name: workerName,
+                            worker: worker,
+                            execute: function (ctx) {
+                                assignToNamespace(nameSpace, workerName, stubs)
+                            }
+                        };
+                    }
+                })
 
                 _parser.addGrammarElement("addCmd", function (parser, tokens) {
                     if (tokens.matchToken("add")) {
@@ -2316,13 +2481,15 @@
                 return _parser.transpile(hyperScript);
             }
 
-            ready(function () {
-                mergeMetaConfig();
-                processNode(document.body);
-                document.addEventListener("htmx:load", function(evt){
-                    processNode(evt.detail.elt);
+            if ('document' in globalScope) {
+                ready(function () {
+                    mergeMetaConfig();
+                    processNode(document.body);
+                    document.addEventListener("htmx:load", function(evt){
+                        processNode(evt.detail.elt);
+                    })
                 })
-            })
+            }
 
             /* Public API */
             return {
