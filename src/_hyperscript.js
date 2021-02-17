@@ -1631,8 +1631,6 @@
                                     })
                                 })
                             } catch (error) {
-                                console.log('Responding with error:')
-                                console.log(error)
                                 postMessage({
                                     type: 'reject',
                                     id: e.data.id,
@@ -1686,8 +1684,6 @@
                         var workerPromise = new Promise(function (resolve, reject) {
                             worker.addEventListener('message', function(e) {
                                 if (e.data.type === 'didInit') {
-                                    console.log('Worker '+qualifiedName+' initialized, response:')
-                                    console.log(e.data)
                                     resolve()
                                 }
                             }, { once: true });
@@ -1699,24 +1695,19 @@
                             type: 'workerFeature',
                             name: workerName,
                             execute: function (ctx) {
-                                console.log("=== Worker "+workerName+" ===");
-                                console.log(bodyTokens);
                                 var stubs = {};
                                 funcNames.forEach(function(funcName) {
                                     stubs[funcName] = function() {
                                         var args = arguments;
                                         return new Promise(function (resolve, reject) {
                                             var id = invocationIdCounter++;
-                                            var msg = {
-                                                type: 'call',
-                                                function: funcName,
-                                                args: Array.from(args),
-                                                id: id
-                                            };
-                                            console.log("Sending invocation to worker:")
-                                            console.log(msg)
                                             workerPromise.then(function () {
-                                                worker.postMessage(msg)
+                                                worker.postMessage({
+                                                    type: 'call',
+                                                    function: funcName,
+                                                    args: Array.from(args),
+                                                    id: id
+                                                })
                                                 worker.addEventListener('message', function returnListener(e) {
                                                     if (e.data.id === id) {
                                                         worker.removeEventListener('message', returnListener);
