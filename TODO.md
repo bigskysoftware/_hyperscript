@@ -15,6 +15,8 @@
   on click wait 2s then log "one click at a time causes execution"
   on every click wait 2s then log "every click causes execution"
 ```
+  * basically reimplement the throttle/delay functionality from htmx
+* functions should be able to be marked `sync` to make only one execution at a time occur
 * support a `loop` command (see HyperTalk) to support indefinite looping
 * support a non-blocking `listen` command for listening for an event without blocking
 ```
@@ -29,9 +31,16 @@
   wait for transitionend on #bar
   remove .finishTransition from #bar
 ```
+* support a `find` expression or statement that allows for general querying against the DOM
+```
+  find .foo
+  find .foo .bar
+  find .foo in bar
+  find one div.foo in section.bar
+  find one div.foo in section.bar where children.count > 2
+```
 
 ### Language Infrastructure
-* Complete transformation of all statements/commands to use _runtime.mixedEval()
 * Figure out exception propagation in mixed/mode evaluation
     * throw?
     * catch blocks?  Associated with functions?
