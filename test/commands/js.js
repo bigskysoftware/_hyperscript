@@ -33,7 +33,7 @@ describe('The (inline) js command', function () {
 
     it('can return values to _hyperscript', function () {
     	var div = make("<div _=\"on click js return 'test success' end " +
-    				   "        then put it in my.innerHTML\"></div>");
+    				   "        then put it into my.innerHTML\"></div>");
     	div.click();
     	div.innerHTML.should.equal('test success');
     })
