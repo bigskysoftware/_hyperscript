@@ -16,16 +16,26 @@ describe('The (top-level) js feature', function () {
     	delete window.testSuccess;
     })
 
-    it('can declare functions, which are then accessible from hyperscript', function() {
+    it('can expose globals', function() {
+    	window.testSuccess = false
+    	var script = make("<script type=text/hyperscript>" +
+    					  "  js " +
+    					  "    return { foo: 'test succeeded' }; "
+    					  "  end ");
+    	assertEquals(window.foo, 'test succeeded')
+    	delete window.foo
+    })
+
+    it('can expose functions', function() {
     	window.testSuccess = false
     	var script = make("<script type=text/hyperscript>" +
     					  "  js " +
     					  "    function foo() { " +
     					  "      return 'test succeeded'; " +
     					  "    } " +
+    					  "    return { foo: foo }; "
     					  "  end ");
-    	var div = make("<div _='on click put foo() into my.innerHTML'>test failed</div>")
-    	div.click()
-    	div.innerHTML.should.equal('test succeeded');
+    	assertEquals(window.foo(), 'test succeeded')
+    	delete window.foo
     })
 })
