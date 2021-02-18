@@ -42,6 +42,11 @@
                 }
             }
 
+            // https://stackoverflow.com/a/8843181
+            function varargConstructor(Cls, args) {
+                return new (Cls.bind.apply(Cls, [Cls].concat(args)));
+            }
+
             function assignToNamespace(nameSpace, name, value) {
                 // we use window instead of globalScope here so that we can
                 // intercept this in workers
@@ -129,6 +134,10 @@
 
                 function isIdentifierChar(c) {
                     return (c === "_" || c === "$");
+                }
+
+                function isReservedChar(c) {
+                    return (c === "`" || c === "^");
                 }
 
 
@@ -268,6 +277,8 @@
                                 tokens.push(consumeString());
                             } else if (OP_TABLE[currentChar()]) {
                                 tokens.push(consumeOp());
+                            } else if (isReservedChar(currentChar())) {
+                                tokens.push(makeToken('RESERVED', currentChar))
                             } else {
                                 if (position < source.length) {
                                     throw Error("Unknown token: " + currentChar() + " ");
@@ -1484,7 +1495,7 @@
 
                 _parser.addGrammarElement("command", function (parser, tokens) {
                     return parser.parseAnyOf(["addCmd", "removeCmd", "toggleCmd", "waitCmd", "returnCmd", "sendCmd", "triggerCmd",
-                        "takeCmd", "logCmd", "callCmd", "putCmd", "setCmd", "ifCmd", "forCmd", "fetchCmd", "throwCmd"], tokens);
+                        "takeCmd", "logCmd", "callCmd", "putCmd", "setCmd", "ifCmd", "forCmd", "fetchCmd", "throwCmd", "jsCmd"], tokens);
                 })
 
                 _parser.addGrammarElement("commandList", function (parser, tokens) {
@@ -1513,6 +1524,14 @@
                         } else if (feature.type === "workerFeature") {
                             workerFeatures.push(feature);
                             feature.execute();
+                        } else if (feature.type === "jsFeature") {
+                            feature.execute();
+                            // because the jsFeature production eats the `end`
+                            // token, the loop condition will be false. we are
+                            // working around that.
+                            //
+                            // see: `_parser.addGrammarElement("jsFeature")`
+                            if (tokens.hasMore()) continue;
                         }
                     } while (tokens.matchToken("end") && tokens.hasMore())
                     if (tokens.hasMore()) {
@@ -1534,6 +1553,7 @@
                         "onFeature",
                         "functionFeature",
                         "workerFeature",
+                        "jsFeature"
                     ], tokens);
                 })
 
@@ -1854,6 +1874,104 @@
                             worker: worker,
                             execute: function (ctx) {
                                 assignToNamespace(nameSpace, workerName, stubs)
+                            }
+                        };
+                    }
+                })
+
+                _parser.addGrammarElement("jsFeature", function(parser, tokens) {
+                    if (tokens.matchToken('js')) {
+
+                        // eat tokens until `end`
+
+                        var jsSourceStart = tokens.currentToken().start;
+                        var jsLastToken = null;
+
+                        while (tokens.hasMore()) {
+                            jsLastToken = tokens.consumeToken()
+                            if (jsLastToken.type === "IDENTIFIER"
+                                && jsLastToken.value === "end") {
+                                break;
+                            }
+                        }
+
+                        var jsSourceEnd = jsLastToken.start;
+
+                        var jsSource = tokens.source.substring(jsSourceStart, jsSourceEnd);
+
+                        var func = new Function(jsSource);
+
+                        return {
+                            type: 'jsFeature',
+                            jsSource: jsSource,
+                            function: func,
+                            execute: function() {
+                                mergeObjects(globalScope, func())
+                            }
+                        }
+                    }
+                })
+
+                _parser.addGrammarElement("jsCmd", function (parser, tokens) {
+                    if (tokens.matchToken('js')) {
+
+                        // Parse inputs
+                        var inputs = [];
+                        if (tokens.matchOpToken("(")) {
+                            if (tokens.matchOpToken(")")) {
+                                // empty input list
+                            } else {
+                                do {
+                                    var inp = tokens.requireTokenType('IDENTIFIER');
+                                    inputs.push(inp.value);
+                                } while (tokens.matchOpToken(","));
+                                tokens.requireOpToken(')');
+                            }
+                        }
+
+                        // eat tokens until `end`
+
+                        var jsSourceStart = tokens.currentToken().start;
+                        var jsLastToken = null;
+
+                        while (tokens.hasMore()) {
+                            jsLastToken = tokens.consumeToken()
+                            if (jsLastToken.type === "IDENTIFIER"
+                                && jsLastToken.value === "end") {
+                                // we wrongly eat the end token, we deal with this
+                                // in the "hyperscript" production
+                                // TODO: fix, needs lookahead?
+                                break;
+                            }
+                        }
+
+                        var jsSourceEnd = jsLastToken.start;
+
+                        var jsSource = tokens.source.substring(jsSourceStart, jsSourceEnd);
+
+                        var func = varargConstructor(Function, inputs.concat([jsSource]));
+
+                        var callCmd;
+                        return callCmd = {
+                            type: "jsCmd",
+                            jsSource: "jsSource",
+                            function: func,
+                            inputs: inputs,
+                            execute: function(ctx) {
+                                var args = [];
+                                inputs.forEach(function (input) {
+                                    args.push(_runtime.resolveSymbol(input, ctx))
+                                });
+                                var result = func.apply(globalScope, args)
+                                if (result && typeof result.then === 'function') {
+                                    result.then(function(actualResult) {
+                                        ctx.it = actualResult
+                                        _runtime.next(this, ctx)
+                                    })
+                                } else {
+                                    ctx.it = result
+                                    _runtime.next(this, ctx)
+                                }
                             }
                         };
                     }
