@@ -42,6 +42,11 @@
                 }
             }
 
+            // https://stackoverflow.com/a/8843181
+            function varargConstructor(Cls, args) {
+                return new (Cls.bind.apply(Cls, [Cls].concat(args)));
+            }
+
             function assignToNamespace(nameSpace, name, value) {
                 // we use window instead of globalScope here so that we can
                 // intercept this in workers
@@ -1484,7 +1489,7 @@
 
                 _parser.addGrammarElement("command", function (parser, tokens) {
                     return parser.parseAnyOf(["addCmd", "removeCmd", "toggleCmd", "waitCmd", "returnCmd", "sendCmd", "triggerCmd",
-                        "takeCmd", "logCmd", "callCmd", "putCmd", "setCmd", "ifCmd", "forCmd", "fetchCmd", "throwCmd"], tokens);
+                        "takeCmd", "logCmd", "callCmd", "putCmd", "setCmd", "ifCmd", "forCmd", "fetchCmd", "throwCmd", "jsCmd"], tokens);
                 })
 
                 _parser.addGrammarElement("commandList", function (parser, tokens) {
@@ -1871,20 +1876,6 @@
                 _parser.addGrammarElement("jsFeature", function(parser, tokens) {
                     if (tokens.matchToken('js')) {
 
-                        // // Parse inputs
-                        // var inputs = [];
-                        // if (tokens.matchOpToken("(")) {
-                        //     if (tokens.matchOpToken(")")) {
-                        //         // empty input list
-                        //     } else {
-                        //         do {
-                        //             var inp = tokens.requireTokenType('IDENTIFIER');
-                        //             inputs.push(inp);
-                        //         } while (tokens.matchOpToken(","));
-                        //         tokens.requireOpToken(')');
-                        //     }
-                        // }
-
                         // eat tokens until `end`
 
                         var jsSourceStart = tokens.currentToken().start;
@@ -1912,6 +1903,68 @@
                                 mergeObjects(globalScope, func())
                             }
                         }
+                    }
+                })
+
+                _parser.addGrammarElement("jsCmd", function (parser, tokens) {
+                    if (tokens.matchToken('js')) {
+
+                        // Parse inputs
+                        var inputs = [];
+                        if (tokens.matchOpToken("(")) {
+                            if (tokens.matchOpToken(")")) {
+                                // empty input list
+                            } else {
+                                do {
+                                    var inp = tokens.requireTokenType('IDENTIFIER');
+                                    inputs.push(inp.value);
+                                } while (tokens.matchOpToken(","));
+                                tokens.requireOpToken(')');
+                            }
+                        }
+
+                        // eat tokens until `end`
+
+                        var jsSourceStart = tokens.currentToken().start;
+                        var jsLastToken = null;
+
+                        while (tokens.hasMore()) {
+                            jsLastToken = tokens.consumeToken()
+                            if (jsLastToken.type === "IDENTIFIER"
+                                && jsLastToken.value === "end") {
+                                break;
+                            }
+                        }
+
+                        var jsSourceEnd = jsLastToken.start;
+
+                        var jsSource = tokens.source.substring(jsSourceStart, jsSourceEnd);
+
+                        var func = varargConstructor(Function, inputs.concat([jsSource]));
+
+                        var callCmd;
+                        return callCmd = {
+                            type: "jsCmd",
+                            jsSource: "jsSource",
+                            function: func,
+                            inputs: inputs,
+                            execute: function(ctx) {
+                                var args = [];
+                                inputs.forEach(function (input) {
+                                    args.push(_runtime.resolveSymbol(input, ctx))
+                                });
+                                var result = func.apply(globalScope, args)
+                                if (result && typeof result.then === 'function') {
+                                    result.then(function(actualResult) {
+                                        ctx.it = actualResult
+                                        _runtime.next(this, ctx)
+                                    })
+                                } else {
+                                    ctx.it = result
+                                    _runtime.next(this, ctx)
+                                }
+                            }
+                        };
                     }
                 })
 
