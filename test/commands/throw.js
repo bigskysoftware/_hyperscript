@@ -172,6 +172,30 @@ describe("the throw command", function() {
         });
     })
 
+    it("can throw inside an event handler", function(){
+        var d1 = make("<div id='d1' _='on click throw \"foo\" then" +
+            "                                          put \"bar\" into my.innerHTML'></div>");
+        d1.click();
+        d1.innerText.should.equal("");
+    })
+
+    it("can respond to exceptions in an event handler with an event handler", function(){
+        var d1 = make("<div id='d1' _='on click throw \"foo\" then put \"bar\" into my.innerHTML end" +
+            "                                 on exception(error) put error into my.innerHTML end '></div>");
+        d1.click();
+        d1.innerText.should.equal("foo");
+    })
+
+    it("can respond to async exceptions in an event handler with an event handler", function(done){
+        var d1 = make("<div id='d1' _='on click wait 2ms then throw \"foo\" then put \"bar\" into my.innerHTML end" +
+            "                                 on exception(error) put error into my.innerHTML end '></div>");
+        d1.click();
+        d1.innerText.should.equal("");
+        setTimeout(function(){
+            d1.innerText.should.equal("foo");
+            done();
+        }, 10)
+    })
 
 
 });

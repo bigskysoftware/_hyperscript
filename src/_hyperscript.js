@@ -1592,6 +1592,26 @@
                                 _runtime.forEach(args, function (arg) {
                                     ctx[arg.value] = ctx.event[arg.value] || (ctx.event.detail ? ctx.event.detail[arg.value] : null);
                                 });
+
+                                var end = start;
+                                while (end.next) {
+                                    end = end.next;
+                                }
+                                end.next = {
+                                    type: "implicitReturn",
+                                    execute: function (ctx) {
+                                        // automatically resolve at the end of an event handler if nothing else does
+                                        ctx.meta.resolve();
+                                    }
+                                }
+
+                                ctx.meta.resolve = function(){
+                                    // clean up here
+                                }
+                                ctx.meta.reject = function(err){
+                                    console.error(err);
+                                    _runtime.triggerEvent(ctx.me, 'exception', {error:err})
+                                }
                                 start.execute(ctx);
                             }
                         };
