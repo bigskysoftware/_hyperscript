@@ -39,6 +39,24 @@
   find one div.foo in section.bar
   find one div.foo in section.bar where children.count > 2
 ```
+* inline js both at the top level (mainly for workers) and inside functions
+```
+js
+  function foo() {
+    // some garbage js
+  }
+end
+
+def foo()
+  set x to 10
+  js
+    in: x
+    out: y
+    var y = x + someJavscriptFunction();
+  end
+  log y
+ end
+```
 
 #### Speculative Language Featurs
 * A two-way binding system (maybe a global two way-bound namespace? hyperplane?)
