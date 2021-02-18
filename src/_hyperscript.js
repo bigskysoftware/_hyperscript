@@ -1938,6 +1938,9 @@
                             jsLastToken = tokens.consumeToken()
                             if (jsLastToken.type === "IDENTIFIER"
                                 && jsLastToken.value === "end") {
+                                // we wrongly eat the end token, we deal with this
+                                // in the "hyperscript" production
+                                // TODO: fix, needs lookahead?
                                 break;
                             }
                         }
