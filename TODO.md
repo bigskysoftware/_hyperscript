@@ -6,17 +6,17 @@
     * support the [] operator
     * add `first`, `last` and `random` pseudo-properties
     * property references off of arrays (that are not `length`, `first`, `last` or `random`) are flatMaps
-* the `on` feature needs to support a count filter
+* the `on` feature needs to support a count filter (and numeric ranges)
 ```on click 1 log "first click"
-   on click 2 and on log "not first click
+   on click 2.. on log "this ain't my first click"
 ```
-* the `on` feature should by default only allow one concurrent execution, unless modified with the `every` keyword
+* implement the throttle, delay and maybe enqueued functionality from htmx
 ```
-  on click wait 2s then log "one click at a time causes execution"
-  on every click wait 2s then log "every click causes execution"
+  on click delay 100ms before log "delayed click"
+  on click throttle 100ms log "throttled click"
+  on click enqueued log "throttled click"
 ```
-  * basically reimplement the throttle/delay functionality from htmx
-* functions should be able to be marked `sync` to make only one execution at a time occur
+* functions should be able to be marked `sync` to make only one execution at a time occur, in serial fashion
 * support a `loop` command (see HyperTalk) to support indefinite looping
 * support a non-blocking `listen` command for listening for an event without blocking
 ```
@@ -40,14 +40,18 @@
   find one div.foo in section.bar where children.count > 2
 ```
 
+#### Speculative Language Featurs
+* A two-way binding system (maybe a global two way-bound namespace? hyperplane?)
+* A reversable syntax for state-based transformations of DOM elements
+```
+  while hover add .foo
+```
+
 ### Language Infrastructure
-* Figure out exception propagation in mixed/mode evaluation
-    * throw?
-    * catch blocks?  Associated with functions?
-    * events?
+* catch blocks for functions?
 
 ### Parser Infrastructure
 * Recovering parser (we are single error right now)
 * Pull hyperscript core out?
-* Make parser pluggable with new syntactic elements
+* Make parser pluggable with new syntactic elements (commands, features and primary/top-level expressions at least)
 * Make tokenizer pluggable with new tokenization elements

@@ -69,6 +69,52 @@ describe("the on feature", function() {
         div.innerText.should.equal("");
     })
 
+    it("can click after a positive event filter", function(){
+        var div = make("<div _='on foo(bar)[bar] put \"triggered\" into my.innerHTML'></div>");
+        div.dispatchEvent(new CustomEvent("foo", {detail: {bar:false}}));
+        div.innerText.should.equal("");
+
+        div.dispatchEvent(new CustomEvent("foo", {detail: {bar:true}}));
+        div.innerText.should.equal("triggered");
+
+    })
+
+    it("one event at a time is allowed to execute by default", function(){
+
+        var i = 1;
+        window.increment = function(){
+            return i++;
+        }
+
+        var div = make("<div _='on click put increment() into my.innerHTML then wait for a customEvent'></div>");
+        div.click()
+        div.innerText.should.equal("1");
+        div.click()
+        div.innerText.should.equal("1");
+        div.dispatchEvent(new CustomEvent("customEvent"));
+        div.innerText.should.equal("1");
+        div.click()
+        div.innerText.should.equal("2");
+        delete window.increment;
+    })
+
+    it("multiple event handlers at a time are allowed to execute with the every keyword", function(){
+
+        var i = 1;
+        window.increment = function(){
+            return i++;
+        }
+
+        var div = make("<div _='on every click put increment() into my.innerHTML then wait for a customEvent'></div>");
+        div.click()
+        div.innerText.should.equal("1");
+        div.click()
+        div.innerText.should.equal("2");
+        div.click()
+        div.innerText.should.equal("3");
+        delete window.increment;
+    })
+
 
 
 });

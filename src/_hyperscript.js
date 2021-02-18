@@ -1539,15 +1539,13 @@
 
                 _parser.addGrammarElement("onFeature", function (parser, tokens) {
                     if (tokens.matchToken("on")) {
+                        var every = false;
+                        if (tokens.matchToken("every")) {
+                            every = true;
+                        }
                         var on = parser.parseElement("dotOrColonPath", tokens);
                         if (on == null) {
                             parser.raiseParseError(tokens, "Expected event name")
-                        }
-
-                        var filter = null;
-                        if (tokens.matchOpToken('[')) {
-                            filter = parser.parseElement("expression", tokens);
-                            tokens.requireOpToken(']');
                         }
 
                         var args = [];
@@ -1556,6 +1554,12 @@
                                 args.push(tokens.requireTokenType('IDENTIFIER'));
                             } while (tokens.matchOpToken(","))
                             tokens.requireOpToken(')')
+                        }
+
+                        var filter = null;
+                        if (tokens.matchOpToken('[')) {
+                            filter = parser.parseElement("expression", tokens);
+                            tokens.requireOpToken(']');
                         }
 
                         var from = null;
@@ -1567,14 +1571,38 @@
                         }
 
                         var start = parser.parseElement("commandList", tokens);
+
+                        var end = start;
+                        while (end.next) {
+                            end = end.next;
+                        }
+                        end.next = {
+                            type: "implicitReturn",
+                            execute: function (ctx) {
+                                // automatically resolve at the end of an event handler if nothing else does
+                                ctx.meta.resolve();
+                            }
+                        }
+
                         var onFeature = {
                             type: "onFeature",
                             args: args,
                             on: on,
+                            every: every,
                             from: from,
                             filter: filter,
                             start: start,
+                            executing: false,
+                            execCount: 0,
                             execute: function (ctx) {
+                                if (this.executing && this.every === false) {
+                                    return;
+                                }
+                                this.execCount++;
+                                this.executing = true;
+                                _runtime.forEach(args, function (arg) {
+                                    ctx[arg.value] = ctx.event[arg.value] || (ctx.event.detail ? ctx.event.detail[arg.value] : null);
+                                });
                                 if(filter) {
                                     var initialCtx = ctx.meta.context;
                                     ctx.meta.context = ctx.event;
@@ -1583,34 +1611,21 @@
                                         if (value) {
                                             // match the javascript semantics for if statements
                                         } else {
+                                            this.executing = false;
                                             return;
                                         }
                                     } finally {
                                         ctx.meta.context = initialCtx;
                                     }
                                 }
-                                _runtime.forEach(args, function (arg) {
-                                    ctx[arg.value] = ctx.event[arg.value] || (ctx.event.detail ? ctx.event.detail[arg.value] : null);
-                                });
-
-                                var end = start;
-                                while (end.next) {
-                                    end = end.next;
-                                }
-                                end.next = {
-                                    type: "implicitReturn",
-                                    execute: function (ctx) {
-                                        // automatically resolve at the end of an event handler if nothing else does
-                                        ctx.meta.resolve();
-                                    }
-                                }
 
                                 ctx.meta.resolve = function(){
-                                    // clean up here
+                                    onFeature.executing = false;
                                 }
                                 ctx.meta.reject = function(err){
                                     console.error(err);
                                     _runtime.triggerEvent(ctx.me, 'exception', {error:err})
+                                    onFeature.executing = false;
                                 }
                                 start.execute(ctx);
                             }
@@ -1998,6 +2013,7 @@
 
                         // wait on event
                         if (tokens.matchToken("for")) {
+                            tokens.matchToken("a"); // optional "a"
                             var evt = parser.parseElement("dotOrColonPath", tokens);
                             if (evt == null) {
                                 parser.raiseParseError(tokens, "Expected event name")
