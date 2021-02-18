@@ -15,6 +15,7 @@ describe("the typecheck expression", function () {
             var result = evalHyperScript("true : String")
             throw new Error("should not reach");
         } catch(e) {
+            console.log(e.message);
             e.message.indexOf("Typecheck failed!").should.equal(0);
         }
     });
@@ -29,6 +30,7 @@ describe("the typecheck expression", function () {
             var result = evalHyperScript("null : String!")
             throw new Error("should not reach");
         } catch(e) {
+            console.log(e.message);
             e.message.indexOf("Typecheck failed!").should.equal(0);
         }
     });

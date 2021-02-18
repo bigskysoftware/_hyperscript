@@ -123,4 +123,23 @@ describe("the worker feature", function() {
             done();
         });
     });
+
+    it("exceptions propogate from a worker", function(done){
+        var script = make(
+            "<script type='text/hyperscript'>" +
+            "worker example" +
+            "  def func " +
+            "    throw 'foo'" +
+            "  end " +
+            "end" +
+            "</script>");
+        window.example.func().catch(function (error) {
+            assert.equal(error, "foo");
+            delete window.example;
+            done();
+        });
+    })
+
+
+
 });

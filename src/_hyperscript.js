@@ -590,7 +590,7 @@
                     }
                 }
 
-                function mixedEval(parseElement, op, ctx) {
+                function unifiedEval(parseElement, op, ctx) {
                     var args = [ctx]
                     var async = false;
                     var wrappedAsyncs = false;
@@ -628,21 +628,40 @@
                         }
                     }
                     if (async) {
-                        return new Promise(function(resolve){
+                        return new Promise(function(resolve, reject){
                             var linearized = linearize(args);
                             Promise.all(linearized).then(function(values){
                                 values = delinearize(values);
                                 if (wrappedAsyncs) {
                                     unwrapAsyncs(values);
                                 }
-                                resolve(op.apply(parseElement, values));
+                                try{
+                                    var apply = op.apply(parseElement, values);
+                                    resolve(apply);
+                                } catch(e) {
+                                    reject(e);
+                                }
+                            }).catch(function(reason){
+                                if (ctx.meta && ctx.meta.reject) {
+                                    ctx.meta.reject(reason);
+                                } else {
+                                    // TODO: no meta context to reject with, trigger event?
+                                }
                             })
                         })
                     } else {
                         if (wrappedAsyncs) {
                             unwrapAsyncs(args);
                         }
-                        return op.apply(parseElement, args);
+                        try {
+                            return op.apply(parseElement, args);
+                        } catch (e) {
+                            if (ctx.meta && ctx.meta.reject) {
+                                ctx.meta.reject(e);
+                            } else {
+                                throw e;
+                            }
+                        }
                     }
                 }
 
@@ -858,7 +877,7 @@
                     resolveSymbol: resolveSymbol,
                     makeContext: makeContext,
                     next: next,
-                    mixedEval: mixedEval
+                    unifiedEval: unifiedEval
                 }
             }();
 
@@ -969,7 +988,7 @@
                                     var op = function(context, val){
                                         return {name:this.name, value:val}
                                     }
-                                    return _runtime.mixedEval(this, op, context, this.value)
+                                    return _runtime.unifiedEval(this, op, context, this.value)
                                 } else {
                                     return {name:this.name};
                                 }
@@ -1004,7 +1023,7 @@
                                     }
                                     return returnVal;
                                 }
-                                return _runtime.mixedEval(this, op, context, valueExpressions)
+                                return _runtime.unifiedEval(this, op, context, valueExpressions)
                             }
                         }
                     }
@@ -1036,7 +1055,7 @@
                                     }
                                     return returnVal;
                                 }
-                                return _runtime.mixedEval(this, op, context, valueExpressions)
+                                return _runtime.unifiedEval(this, op, context, valueExpressions)
                             }
                         }
                     }
@@ -1118,7 +1137,7 @@
                                 var op = function(context, values){
                                     return values;
                                 }
-                                return _runtime.mixedEval(this, op, context, values);
+                                return _runtime.unifiedEval(this, op, context, values);
                             }
                         }
                     }
@@ -1174,7 +1193,7 @@
                                 var op = function(context, rootVal){
                                     return rootVal == null ? null : rootVal[prop.value];
                                 }
-                                return _runtime.mixedEval(this, op, context, root)
+                                return _runtime.unifiedEval(this, op, context, root)
                             }
                         };
                         return _parser.parseElement("indirectExpression", tokens, propertyAccess);
@@ -1200,13 +1219,13 @@
                                         var func = thisArg[root.prop.value];
                                         return func.apply(thisArg, argVals);
                                     }
-                                    return _runtime.mixedEval(this, op, ctx, root.root, args);
+                                    return _runtime.unifiedEval(this, op, ctx, root.root, args);
                                 } else {
                                     var op = function(context, func, argVals){
                                         var apply = func.apply(null, argVals);
                                         return apply;
                                     }
-                                    return _runtime.mixedEval(this, op, ctx, root, args);
+                                    return _runtime.unifiedEval(this, op, ctx, root, args);
                                 }
                             }
                         };
@@ -1250,7 +1269,7 @@
                                 var op = function(context, val){
                                     return _runtime.typeCheck(val, this.typeName.value, this.nullOk);
                                 }
-                                return _runtime.mixedEval(this, op, context, root);
+                                return _runtime.unifiedEval(this, op, context, root);
                             }
                         }
                     } else {
@@ -1265,7 +1284,7 @@
                             type: "logicalNot",
                             root: root,
                             evaluate: function (context) {
-                                return _runtime.mixedEval(this, function (context, val) {
+                                return _runtime.unifiedEval(this, function (context, val) {
                                     return !val;
                                     }, context, root);
                             }
@@ -1280,7 +1299,7 @@
                             type: "negativeNumber",
                             root: root,
                             evaluate: function (context) {
-                                return _runtime.mixedEval(this, function(context, value){
+                                return _runtime.unifiedEval(this, function(context, value){
                                     return -1 * value;
                                 }, context, root);
                             }
@@ -1322,7 +1341,7 @@
                                         return lhsVal % rhsVal;
                                     }
                                 };
-                                return _runtime.mixedEval(this, op, context, this.lhs, this.rhs);
+                                return _runtime.unifiedEval(this, op, context, this.lhs, this.rhs);
                             }
                         }
                         mathOp = tokens.matchAnyOpToken("+", "-", "*", "/", "%")
@@ -1369,7 +1388,7 @@
                                         return lhsVal !== rhsVal;
                                     }
                                 }
-                                return _runtime.mixedEval(this, op, context, this.lhs, this.rhs);
+                                return _runtime.unifiedEval(this, op, context, this.lhs, this.rhs);
                             }
                         }
                         comparisonOp = tokens.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==")
@@ -1404,7 +1423,7 @@
                                         return lhsVal || rhsVal;
                                     }
                                 };
-                                return _runtime.mixedEval(this, op, context, this.lhs, this.rhs);
+                                return _runtime.unifiedEval(this, op, context, this.lhs, this.rhs);
                             }
                         }
                         logicalOp = tokens.matchToken("and") || tokens.matchToken("or");
@@ -1458,14 +1477,14 @@
                             var op = function(context, targetRoot) {
                                 return _runtime.evalTarget(targetRoot, propPath);
                             }
-                            return _runtime.mixedEval(this, op, ctx, root);
+                            return _runtime.unifiedEval(this, op, ctx, root);
                         }
                     };
                 });
 
                 _parser.addGrammarElement("command", function (parser, tokens) {
                     return parser.parseAnyOf(["addCmd", "removeCmd", "toggleCmd", "waitCmd", "returnCmd", "sendCmd", "triggerCmd",
-                        "takeCmd", "logCmd", "callCmd", "putCmd", "setCmd", "ifCmd", "forCmd", "fetchCmd"], tokens);
+                        "takeCmd", "logCmd", "callCmd", "putCmd", "setCmd", "ifCmd", "forCmd", "fetchCmd", "throwCmd"], tokens);
                 })
 
                 _parser.addGrammarElement("commandList", function (parser, tokens) {
@@ -1619,15 +1638,17 @@
                                             ctx[name.value] = argumentVal;
                                         }
                                     }
-                                    var resolve = null;
-                                    var promise = new Promise(function(returnCall){
-                                        resolve = returnCall;
+                                    var resolve, reject = null;
+                                    var promise = new Promise(function(theResolve, theReject){
+                                        resolve = theResolve;
+                                        reject = theReject;
                                     });
                                     start.execute(ctx);
                                     if (ctx.meta.returned) {
                                         return ctx.meta.returnValue;
                                     } else {
                                         ctx.meta.resolve = resolve;
+                                        ctx.meta.reject = reject;
                                         return promise
                                     }
                                 });
@@ -1679,11 +1700,17 @@
                         case 'call':
                             try {
                                 var result = self.functions[e.data.function].apply(self, e.data.args)
-                                Promise.resolve(result).then(function(value) {
+                                Promise.resolve(result).then(function (value) {
                                     postMessage({
                                         type: 'resolve',
                                         id: e.data.id,
                                         value: value
+                                    })
+                                }).catch(function(error){
+                                    postMessage({
+                                        type: 'reject',
+                                        id: e.data.id,
+                                        error: error.toString()
                                     })
                                 })
                             } catch (error) {
@@ -1827,7 +1854,7 @@
                                         })
                                         _runtime.next(addCmd, ctx);
                                     }
-                                    _runtime.mixedEval(this, op, ctx, to);
+                                    _runtime.unifiedEval(this, op, ctx, to);
                                 } else {
                                     var op = function(context, to, attributeRef){
                                         _runtime.forEach(to, function(target){
@@ -1835,7 +1862,7 @@
                                         })
                                         _runtime.next(addCmd, ctx);
                                     }
-                                    _runtime.mixedEval(this, op, ctx, to, attributeRef);
+                                    _runtime.unifiedEval(this, op, ctx, to, attributeRef);
                                 }
                             }
                         };
@@ -1878,7 +1905,7 @@
                                             });
                                             _runtime.next(removeCmd, ctx);
                                         }
-                                        return _runtime.mixedEval(this, op, ctx, elementExpr);
+                                        return _runtime.unifiedEval(this, op, ctx, elementExpr);
                                     } else {
                                         var op = function(context, from) {
                                             if (this.classRef) {
@@ -1892,7 +1919,7 @@
                                             }
                                             _runtime.next(removeCmd, ctx);
                                         }
-                                        return _runtime.mixedEval(this, op, ctx, from);
+                                        return _runtime.unifiedEval(this, op, ctx, from);
                                     }
                                 }
                             }
@@ -1938,7 +1965,7 @@
                                     }
                                     _runtime.next(this, ctx);
                                 }
-                                return _runtime.mixedEval(this, op, ctx, on, attributeRef ? attributeRef.value : null);
+                                return _runtime.unifiedEval(this, op, ctx, on, attributeRef ? attributeRef.value : null);
 
                             }
                         };
@@ -1973,7 +2000,7 @@
                                         };
                                         target.addEventListener(eventName, listener)
                                     }
-                                    _runtime.mixedEval(this, op, ctx, on);
+                                    _runtime.unifiedEval(this, op, ctx, on);
                                 }
                             };
                         } else {
@@ -1993,7 +2020,7 @@
                                             _runtime.next(waitCmd, ctx);
                                         }, time * factor);
                                     }
-                                    _runtime.mixedEval(this, op, ctx, time);
+                                    _runtime.unifiedEval(this, op, ctx, time);
                                 }
                             };
                         }
@@ -2049,7 +2076,7 @@
                                     });
                                     _runtime.next(sendCmd, ctx);
                                 }
-                                _runtime.mixedEval(this, op, ctx, to, eventName, details);
+                                _runtime.unifiedEval(this, op, ctx, to, eventName, details);
                             }
                         };
                         return sendCmd
@@ -2079,7 +2106,7 @@
                                         ctx.meta.returnValue = value;
                                     }
                                 };
-                                _runtime.mixedEval(this, op, ctx, value);
+                                _runtime.unifiedEval(this, op, ctx, value);
                             }
                         };
                         return returnCmd
@@ -2102,7 +2129,7 @@
                                     _runtime.triggerEvent(_runtime.resolveSymbol("me", ctx), eventNameStr ,details ? details : {});
                                     _runtime.next(triggerCmd, ctx);
                                 };
-                                return _runtime.mixedEval(this, op, ctx, details);
+                                return _runtime.unifiedEval(this, op, ctx, details);
                             }
                         };
                         return triggerCmd
@@ -2142,7 +2169,7 @@
                                     });
                                     _runtime.next(takeCmd, ctx);
                                 }
-                                _runtime.mixedEval(this, op, ctx, from, forElt);
+                                _runtime.unifiedEval(this, op, ctx, from, forElt);
                             }
                         };
                         return takeCmd
@@ -2171,10 +2198,32 @@
                                     }
                                     _runtime.next(logCmd, ctx);
                                 };
-                                return _runtime.mixedEval(this, op, ctx, withExpr, exprs);
+                                return _runtime.unifiedEval(this, op, ctx, withExpr, exprs);
                             }
                         };
                         return logCmd;
+                    }
+                })
+
+                _parser.addGrammarElement("throwCmd", function (parser, tokens) {
+                    if (tokens.matchToken("throw")) {
+                        var expr = parser.parseElement("expression", tokens);
+                        var throwCmd = {
+                            type: "throwCmd",
+                            expr: expr,
+                            execute: function (ctx) {
+                                var op = function(ctx, expr) {
+                                    var reject = ctx.meta && ctx.meta.reject;
+                                    if (reject) {
+                                        reject(expr);
+                                    } else {
+                                        throw expr;
+                                    }
+                                };
+                                return _runtime.unifiedEval(this, op, ctx, expr);
+                            }
+                        };
+                        return throwCmd;
                     }
                 })
 
@@ -2189,7 +2238,7 @@
                                     ctx.it = it;
                                     _runtime.next(callCmd, ctx);
                                 }
-                                _runtime.mixedEval(this, op, ctx, expr);
+                                _runtime.unifiedEval(this, op, ctx, expr);
                             }
                         };
                         return callCmd
@@ -2259,7 +2308,7 @@
                                     }
                                     _runtime.next(this, ctx);
                                 }
-                                _runtime.mixedEval(this, op, ctx, target.root, value)
+                                _runtime.unifiedEval(this, op, ctx, target.root, value)
                             }
                         };
                         return putCmd
@@ -2298,7 +2347,7 @@
                                     }
                                     _runtime.next(this, ctx);
                                 }
-                                _runtime.mixedEval(this, op, ctx, symbolWrite ? null : target.root, value);
+                                _runtime.unifiedEval(this, op, ctx, symbolWrite ? null : target.root, value);
                             }
                         };
                         return setCmd
@@ -2331,7 +2380,7 @@
                                         _runtime.next(ifCmd, ctx);
                                     }
                                 };
-                                _runtime.mixedEval(this, op, ctx, expr);
+                                _runtime.unifiedEval(this, op, ctx, expr);
                             }
                         };
                         parser.setParent(trueBranch, ifCmd);
@@ -2362,7 +2411,7 @@
                                     };
                                     this.handleNext(ctx);
                                 }
-                                _runtime.mixedEval(this, op, ctx, expression);
+                                _runtime.unifiedEval(this, op, ctx, expression);
                             },
                             handleNext: function (ctx) {
                                 var iterator = ctx.meta.iterators[identifier.value];
@@ -2438,7 +2487,7 @@
                                             })
                                         })
                                 }
-                                _runtime.mixedEval(this, op, ctx, url, args)
+                                _runtime.unifiedEval(this, op, ctx, url, args)
                             }
                         };
                         return fetchCmd;
