@@ -76,6 +76,103 @@ describe("the throw command", function() {
         });
     })
 
+    it("exceptions propagate from a worker", function(done){
+        var script = make(
+            "<script type='text/hyperscript'>" +
+            "worker example" +
+            "  def func " +
+            "    throw 'foo'" +
+            "  end " +
+            "end" +
+            "</script>");
+        window.example.func().catch(function (error) {
+            assert.equal(error, "foo");
+            delete window.example;
+            done();
+        });
+    })
+
+    it("async exceptions propagate from a worker", function(done){
+        var script = make(
+            "<script type='text/hyperscript'>" +
+            "worker example" +
+            "  def func " +
+            "    wait 2ms" +
+            "    throw 'foo'" +
+            "  end " +
+            "end" +
+            "</script>");
+        window.example.func().catch(function (error) {
+            assert.equal(error, "foo");
+            delete window.example;
+            done();
+        });
+    })
+
+    it("exceptions propagate from a worker through a function", function(done){
+        var script = make(
+            "<script type='text/hyperscript'>" +
+            "worker example" +
+            "  def func " +
+            "    throw 'foo'" +
+            "  end " +
+            "end " +
+            "def foo() " +
+            "  return example.func() " +
+            "end " +
+            "</script>");
+        foo().catch(function (error) {
+            assert.equal(error, "foo");
+            delete window.example;
+            delete window.foo;
+            done();
+        });
+    })
+
+    it("exceptions propagate from an async worker through a function", function(done){
+        var script = make(
+            "<script type='text/hyperscript'>" +
+            "worker example" +
+            "  def func " +
+            "    wait 2ms" +
+            "    throw 'foo'" +
+            "  end " +
+            "end " +
+            "def foo() " +
+            "  return example.func() " +
+            "end " +
+            "</script>");
+        foo().catch(function (error) {
+            assert.equal(error, "foo");
+            delete window.example;
+            delete window.foo;
+            done();
+        });
+    })
+
+    it("exceptions propagate from an async worker through an async function", function(done){
+        var script = make(
+            "<script type='text/hyperscript'>" +
+            "worker example" +
+            "  def func " +
+            "    wait 2ms" +
+            "    throw 'foo'" +
+            "  end " +
+            "end " +
+            "def foo() " +
+            "  wait 2ms" +
+            "  return example.func() " +
+            "end " +
+            "</script>");
+        foo().catch(function (error) {
+            assert.equal(error, "foo");
+            delete window.example;
+            delete window.foo;
+            done();
+        });
+    })
+
+
 
 });
 
