@@ -136,6 +136,10 @@
                     return (c === "_" || c === "$");
                 }
 
+                function isReservedChar(c) {
+                    return (c === "`" || c === "^");
+                }
+
 
                 function makeTokensObject(tokens, consumed, source) {
 
@@ -273,6 +277,8 @@
                                 tokens.push(consumeString());
                             } else if (OP_TABLE[currentChar()]) {
                                 tokens.push(consumeOp());
+                            } else if (isReservedChar(currentChar())) {
+                                tokens.push(makeToken('RESERVED', currentChar))
                             } else {
                                 if (position < source.length) {
                                     throw Error("Unknown token: " + currentChar() + " ");
