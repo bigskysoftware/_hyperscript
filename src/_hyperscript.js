@@ -1513,6 +1513,14 @@
                         } else if (feature.type === "workerFeature") {
                             workerFeatures.push(feature);
                             feature.execute();
+                        } else if (feature.type === "jsFeature") {
+                            feature.execute();
+                            // because the jsFeature production eats the `end`
+                            // token, the loop condition will be false. we are
+                            // working around that.
+                            //
+                            // see: `_parser.addGrammarElement("jsFeature")`
+                            if (tokens.hasMore()) continue;
                         }
                     } while (tokens.matchToken("end") && tokens.hasMore())
                     if (tokens.hasMore()) {
@@ -1534,6 +1542,7 @@
                         "onFeature",
                         "functionFeature",
                         "workerFeature",
+                        "jsFeature"
                     ], tokens);
                 })
 
@@ -1856,6 +1865,53 @@
                                 assignToNamespace(nameSpace, workerName, stubs)
                             }
                         };
+                    }
+                })
+
+                _parser.addGrammarElement("jsFeature", function(parser, tokens) {
+                    if (tokens.matchToken('js')) {
+
+                        // // Parse inputs
+                        // var inputs = [];
+                        // if (tokens.matchOpToken("(")) {
+                        //     if (tokens.matchOpToken(")")) {
+                        //         // empty input list
+                        //     } else {
+                        //         do {
+                        //             var inp = tokens.requireTokenType('IDENTIFIER');
+                        //             inputs.push(inp);
+                        //         } while (tokens.matchOpToken(","));
+                        //         tokens.requireOpToken(')');
+                        //     }
+                        // }
+
+                        // eat tokens until `end`
+
+                        var jsSourceStart = tokens.currentToken().start;
+                        var jsLastToken = null;
+
+                        while (tokens.hasMore()) {
+                            jsLastToken = tokens.consumeToken()
+                            if (jsLastToken.type === "IDENTIFIER"
+                                && jsLastToken.value === "end") {
+                                break;
+                            }
+                        }
+
+                        var jsSourceEnd = jsLastToken.start;
+
+                        var jsSource = tokens.source.substring(jsSourceStart, jsSourceEnd);
+
+                        var func = new Function(jsSource);
+
+                        return {
+                            type: 'jsFeature',
+                            jsSource: jsSource,
+                            function: func,
+                            execute: function() {
+                                mergeObjects(globalScope, func())
+                            }
+                        }
                     }
                 })
 
