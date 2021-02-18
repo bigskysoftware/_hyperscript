@@ -597,7 +597,7 @@
                     for (var i = 3; i < arguments.length; i++) {
                         var argument = arguments[i];
                         if (argument == null) {
-                            args[i] = null;
+                            args.push(null);
                             continue;
                         }
                         if (Array.isArray(argument)) {
@@ -2097,8 +2097,12 @@
                             eventName: eventName,
                             details: details,
                             execute: function (ctx) {
-                                _runtime.triggerEvent(_runtime.resolveSymbol("me", ctx), eventName.evaluate(ctx) ,details ? details.evaluate(ctx) : {});
-                                _runtime.next(triggerCmd, ctx);
+                                var eventNameStr = eventName.evaluate(ctx);// OK
+                                var op = function (details) {
+                                    _runtime.triggerEvent(_runtime.resolveSymbol("me", ctx), eventNameStr ,details ? details : {});
+                                    _runtime.next(triggerCmd, ctx);
+                                };
+                                return _runtime.mixedEval(this, ctx, op, details);
                             }
                         };
                         return triggerCmd
@@ -2128,14 +2132,17 @@
                             forElt: forElt,
                             execute: function (ctx) {
                                 // TODO - expression?
-                                var clazz = this.classRef.value.substr(1)
-                                _runtime.forEach(from.evaluate(ctx), function(target){
-                                    target.classList.remove(clazz);
-                                })
-                                _runtime.forEach(forElt.evaluate(ctx), function(target){
-                                    target.classList.add(clazz);
-                                });
-                                _runtime.next(takeCmd, ctx);
+                                var op = function(from, forElt){
+                                    var clazz = this.classRef.value.substr(1)
+                                    _runtime.forEach(from, function(target){
+                                        target.classList.remove(clazz);
+                                    })
+                                    _runtime.forEach(forElt, function(target){
+                                        target.classList.add(clazz);
+                                    });
+                                    _runtime.next(takeCmd, ctx);
+                                }
+                                _runtime.mixedEval(this, ctx, op, from, forElt);
                             }
                         };
                         return takeCmd
@@ -2156,16 +2163,15 @@
                             exprs: exprs,
                             withExpr: withExpr,
                             execute: function (ctx) {
-                                if (withExpr) {
-                                    withExpr.evaluate(ctx).apply(null, exprs.map(function (expr) {
-                                        return expr.evaluate(ctx)
-                                    }));
-                                } else {
-                                    console.log.apply(null, exprs.map(function (expr) {
-                                        return expr.evaluate(ctx)
-                                    }));
-                                }
-                                _runtime.next(logCmd, ctx);
+                                var op = function (withExpr, values) {
+                                    if (withExpr) {
+                                        withExpr.apply(null, values);
+                                    } else {
+                                        console.log.apply(null, values);
+                                    }
+                                    _runtime.next(logCmd, ctx);
+                                };
+                                return _runtime.mixedEval(this, ctx, op, withExpr, exprs);
                             }
                         };
                         return logCmd;
@@ -2179,16 +2185,11 @@
                             type: "callCmd",
                             expr: expr,
                             execute: function (ctx) {
-                                var it = expr.evaluate(ctx);
-                                if (it && it.then) {
-                                    it.then(function (value) {
-                                        ctx.it = value;
-                                        _runtime.next(callCmd, ctx);
-                                    })
-                                } else {
+                                var op = function(it) {
                                     ctx.it = it;
                                     _runtime.next(callCmd, ctx);
                                 }
+                                _runtime.mixedEval(this, ctx, op, expr);
                             }
                         };
                         return callCmd
@@ -2280,32 +2281,24 @@
                             parser.raiseParseError(tokens, "Can only put directly into symbols, not references")
                         }
 
-                        var setter = function(valueToSet, ctx) {
-                            if (symbolWrite) {
-                                ctx[target.root.name] = valueToSet;
-                            } else {
-                                var lastProperty = target.propPath.slice(-1); // steal last property for assignment
-                                _runtime.forEach(_runtime.evalTarget(target.root.evaluate(ctx), target.propPath.slice(0, -1)), function (target) {
-                                    target[lastProperty] = valueToSet;
-                                })
-                            }
-                            _runtime.next(setCmd, ctx);
-                        }
-
                         var setCmd = {
                             type: "setCmd",
                             target: target,
                             symbolWrite: symbolWrite,
                             value: value,
                             execute: function (ctx) {
-                                var valueToSet = value.evaluate(ctx);
-                                if (valueToSet.then) {
-                                    valueToSet.then(function(finalValue){
-                                        setter(finalValue, ctx);
-                                    })
-                                } else {
-                                    setter(valueToSet, ctx);
+                                var op = function(root, valueToSet) {
+                                    if (symbolWrite) {
+                                        ctx[target.root.name] = valueToSet;
+                                    } else {
+                                        var lastProperty = target.propPath.slice(-1); // steal last property for assignment
+                                        _runtime.forEach(_runtime.evalTarget(root, target.propPath.slice(0, -1)), function (target) {
+                                            target[lastProperty] = valueToSet;
+                                        })
+                                    }
+                                    _runtime.next(this, ctx);
                                 }
+                                _runtime.mixedEval(this, ctx, op, symbolWrite ? null : target.root, value);
                             }
                         };
                         return setCmd
@@ -2329,13 +2322,16 @@
                             trueBranch: trueBranch,
                             falseBranch: falseBranch,
                             execute: function (ctx) {
-                                if(expr.evaluate(ctx)) {
-                                    trueBranch.execute(ctx);
-                                } else if(falseBranch) {
-                                    falseBranch.execute(ctx);
-                                } else {
-                                    _runtime.next(ifCmd, ctx);
-                                }
+                                var op = function (expr) {
+                                    if(expr) {
+                                        trueBranch.execute(ctx);
+                                    } else if(falseBranch) {
+                                        falseBranch.execute(ctx);
+                                    } else {
+                                        _runtime.next(ifCmd, ctx);
+                                    }
+                                };
+                                _runtime.mixedEval(this, ctx, op, expr);
                             }
                         };
                         parser.setParent(trueBranch, ifCmd);
@@ -2359,11 +2355,14 @@
                             expression: expression,
                             loop: loop,
                             execute: function (ctx) {
-                                ctx.meta.iterators[identifier.value] = {
-                                    index: 0,
-                                    value: expression.evaluate(ctx)
-                                };
-                                forCmd.handleNext(ctx);
+                                var op = function(value) {
+                                    ctx.meta.iterators[identifier.value] = {
+                                        index: 0,
+                                        value: value
+                                    };
+                                    this.handleNext(ctx);
+                                }
+                                _runtime.mixedEval(this, ctx, op, expression);
                             },
                             handleNext: function (ctx) {
                                 var iterator = ctx.meta.iterators[identifier.value];
@@ -2412,29 +2411,34 @@
 
                         var fetchCmd = {
                             type: "fetchCmd",
+                            url:url,
+                            args:args,
                             execute: function (ctx) {
-                                fetch(url.evaluate(ctx), args ? args.evaluate(ctx) : null)
-                                    .then(function (value) {
-                                        if (type === "response") {
-                                            ctx.it = value;
-                                            _runtime.next(fetchCmd, ctx);
-                                        } else if (type === "json") {
-                                            value.json().then(function(result){
-                                                ctx.it = result;
+                                var op = function(url, args){
+                                    fetch(url, args)
+                                        .then(function (value) {
+                                            if (type === "response") {
+                                                ctx.it = value;
                                                 _runtime.next(fetchCmd, ctx);
-                                            })
-                                        } else {
-                                            value.text().then(function(result){
-                                                ctx.it = result;
-                                                _runtime.next(fetchCmd, ctx);
-                                            })
-                                        }
-                                    })
-                                    .catch(function(reason){
-                                        _runtime.triggerEvent(ctx.me, "fetch:error", {
-                                            reason: reason
+                                            } else if (type === "json") {
+                                                value.json().then(function(result){
+                                                    ctx.it = result;
+                                                    _runtime.next(fetchCmd, ctx);
+                                                })
+                                            } else {
+                                                value.text().then(function(result){
+                                                    ctx.it = result;
+                                                    _runtime.next(fetchCmd, ctx);
+                                                })
+                                            }
                                         })
-                                    })
+                                        .catch(function(reason){
+                                            _runtime.triggerEvent(ctx.me, "fetch:error", {
+                                                reason: reason
+                                            })
+                                        })
+                                }
+                                _runtime.mixedEval(this, ctx, op, url, args)
                             }
                         };
                         return fetchCmd;
@@ -2450,8 +2454,8 @@
                 _runtime.processNode(elt);
             }
 
-            function evaluate(str) {
-                return _runtime.evaluate(str);
+            function evaluate(str) { //OK
+                return _runtime.evaluate(str); //OK
             }
 
             //====================================================================
