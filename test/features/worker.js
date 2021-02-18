@@ -124,11 +124,28 @@ describe("the worker feature", function() {
         });
     });
 
-    it("exceptions propogate from a worker", function(done){
+    it("exceptions propagate from a worker", function(done){
         var script = make(
             "<script type='text/hyperscript'>" +
             "worker example" +
             "  def func " +
+            "    throw 'foo'" +
+            "  end " +
+            "end" +
+            "</script>");
+        window.example.func().catch(function (error) {
+            assert.equal(error, "foo");
+            delete window.example;
+            done();
+        });
+    })
+
+    it("exceptions propagate from a worker", function(done){
+        var script = make(
+            "<script type='text/hyperscript'>" +
+            "worker example" +
+            "  def func " +
+            "    wait 2ms" +
             "    throw 'foo'" +
             "  end " +
             "end" +
