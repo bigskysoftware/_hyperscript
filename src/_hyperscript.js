@@ -590,17 +590,15 @@
                     }
                 }
 
-                function mixedEval(parseElement, ctx, op) {
-                    var args = []
+                function mixedEval(parseElement, op, ctx) {
+                    var args = [ctx]
                     var async = false;
                     var wrappedAsyncs = false;
                     for (var i = 3; i < arguments.length; i++) {
                         var argument = arguments[i];
                         if (argument == null) {
                             args.push(null);
-                            continue;
-                        }
-                        if (Array.isArray(argument)) {
+                        } else if (Array.isArray(argument)) {
                             var arr = [];
                             for (var j = 0; j < argument.length; j++) {
                                 var element = argument[j];
@@ -615,7 +613,7 @@
                                 arr.push(value);
                             }
                             args.push(arr);
-                        } else {
+                        } else if(argument.evaluate) {
                             var value = argument.evaluate(ctx); // OK
                             if (value) {
                                 if (value.then) {
@@ -625,6 +623,8 @@
                                 }
                             }
                             args.push(value);
+                        } else {
+                            args.push(argument);
                         }
                     }
                     if (async) {
@@ -966,10 +966,10 @@
                             value: value,
                             evaluate: function (context) {
                                 if (this.value) {
-                                    var op = function(val){
+                                    var op = function(context, val){
                                         return {name:this.name, value:val}
                                     }
-                                    return _runtime.mixedEval(this, context, op, this.value)
+                                    return _runtime.mixedEval(this, op, context, this.value)
                                 } else {
                                     return {name:this.name};
                                 }
@@ -996,7 +996,7 @@
                             type: "objectLiteral",
                             fields: fields,
                             evaluate: function (context) {
-                                var op = function(values){
+                                var op = function(context, values){
                                     var returnVal = {};
                                     for (var i = 0; i < values.length; i++) {
                                         var field = fields[i];
@@ -1004,7 +1004,7 @@
                                     }
                                     return returnVal;
                                 }
-                                return _runtime.mixedEval(this, context, op, valueExpressions)
+                                return _runtime.mixedEval(this, op, context, valueExpressions)
                             }
                         }
                     }
@@ -1028,7 +1028,7 @@
                             type: "namedArgumentList",
                             fields: fields,
                             evaluate: function (context) {
-                                var op = function(values){
+                                var op = function(context, values){
                                     var returnVal = {_namedArgList_:true};
                                     for (var i = 0; i < values.length; i++) {
                                         var field = fields[i];
@@ -1036,7 +1036,7 @@
                                     }
                                     return returnVal;
                                 }
-                                return _runtime.mixedEval(this, context, op, valueExpressions)
+                                return _runtime.mixedEval(this, op, context, valueExpressions)
                             }
                         }
                     }
@@ -1115,10 +1115,10 @@
                             type: "arrayLiteral",
                             values: values,
                             evaluate: function (context) {
-                                var op = function(values){
+                                var op = function(context, values){
                                     return values;
                                 }
-                                return _runtime.mixedEval(this, context, op, values);
+                                return _runtime.mixedEval(this, op, context, values);
                             }
                         }
                     }
@@ -1171,10 +1171,10 @@
                             root: root,
                             prop: prop,
                             evaluate: function (context) {
-                                var op = function(rootVal){
+                                var op = function(context, rootVal){
                                     return rootVal == null ? null : rootVal[prop.value];
                                 }
-                                return _runtime.mixedEval(this, context, op, root)
+                                return _runtime.mixedEval(this, op, context, root)
                             }
                         };
                         return _parser.parseElement("indirectExpression", tokens, propertyAccess);
@@ -1196,17 +1196,17 @@
                             args: args,
                             evaluate: function (ctx) {
                                 if (root.root) {
-                                    var op = function(thisArg, argVals){
+                                    var op = function(context, thisArg, argVals){
                                         var func = thisArg[root.prop.value];
                                         return func.apply(thisArg, argVals);
                                     }
-                                    return _runtime.mixedEval(this, ctx, op, root.root, args);
+                                    return _runtime.mixedEval(this, op, ctx, root.root, args);
                                 } else {
-                                    var op = function(func, argVals){
+                                    var op = function(context, func, argVals){
                                         var apply = func.apply(null, argVals);
                                         return apply;
                                     }
-                                    return _runtime.mixedEval(this, ctx, op, root, args);
+                                    return _runtime.mixedEval(this, op, ctx, root, args);
                                 }
                             }
                         };
@@ -1247,10 +1247,10 @@
                             root: root,
                             nullOk: nullOk,
                             evaluate: function (context) {
-                                var op = function(val){
+                                var op = function(context, val){
                                     return _runtime.typeCheck(val, this.typeName.value, this.nullOk);
                                 }
-                                return _runtime.mixedEval(this, context, op, root);
+                                return _runtime.mixedEval(this, op, context, root);
                             }
                         }
                     } else {
@@ -1265,9 +1265,9 @@
                             type: "logicalNot",
                             root: root,
                             evaluate: function (context) {
-                                return _runtime.mixedEval(this, context, function (val) {
+                                return _runtime.mixedEval(this, function (context, val) {
                                     return !val;
-                                    }, root);
+                                    }, context, root);
                             }
                         };
                     }
@@ -1280,9 +1280,9 @@
                             type: "negativeNumber",
                             root: root,
                             evaluate: function (context) {
-                                return _runtime.mixedEval(this, context, function(value){
+                                return _runtime.mixedEval(this, function(context, value){
                                     return -1 * value;
-                                }, root);
+                                }, context, root);
                             }
                         };
                     }
@@ -1309,7 +1309,7 @@
                             rhs: rhs,
                             operator: operator,
                             evaluate: function (context) {
-                                var op = function (lhsVal, rhsVal) {
+                                var op = function (context, lhsVal, rhsVal) {
                                     if (this.operator === "+") {
                                         return lhsVal + rhsVal;
                                     } else if (this.operator === "-") {
@@ -1322,7 +1322,7 @@
                                         return lhsVal % rhsVal;
                                     }
                                 };
-                                return _runtime.mixedEval(this, context, op, this.lhs, this.rhs);
+                                return _runtime.mixedEval(this, op, context, this.lhs, this.rhs);
                             }
                         }
                         mathOp = tokens.matchAnyOpToken("+", "-", "*", "/", "%")
@@ -1350,7 +1350,7 @@
                             lhs: expr,
                             rhs: rhs,
                             evaluate: function (context) {
-                                var op = function (lhsVal, rhsVal) {
+                                var op = function (context, lhsVal, rhsVal) {
                                     if (this.operator === "<") {
                                         return lhsVal < rhsVal;
                                     } else if (this.operator === ">") {
@@ -1369,7 +1369,7 @@
                                         return lhsVal !== rhsVal;
                                     }
                                 }
-                                return _runtime.mixedEval(this, context, op, this.lhs, this.rhs);
+                                return _runtime.mixedEval(this, op, context, this.lhs, this.rhs);
                             }
                         }
                         comparisonOp = tokens.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==")
@@ -1397,14 +1397,14 @@
                             lhs: expr,
                             rhs: rhs,
                             evaluate: function (context) {
-                                var op = function (lhsVal, rhsVal) {
+                                var op = function (context, lhsVal, rhsVal) {
                                     if (this.operator === "and") {
                                         return lhsVal && rhsVal;
                                     } else {
                                         return lhsVal || rhsVal;
                                     }
                                 };
-                                return _runtime.mixedEval(this, context, op, this.lhs, this.rhs);
+                                return _runtime.mixedEval(this, op, context, this.lhs, this.rhs);
                             }
                         }
                         logicalOp = tokens.matchToken("and") || tokens.matchToken("or");
@@ -1455,10 +1455,10 @@
                         propPath: propPath,
                         root: root,
                         evaluate: function (ctx) {
-                            var op = function(targetRoot) {
+                            var op = function(context, targetRoot) {
                                 return _runtime.evalTarget(targetRoot, propPath);
                             }
-                            return _runtime.mixedEval(this, ctx, op, root);
+                            return _runtime.mixedEval(this, op, ctx, root);
                         }
                     };
                 });
@@ -1821,21 +1821,21 @@
                             to: to,
                             execute: function (ctx) {
                                 if (this.classRef) {
-                                    var op = function(to){
+                                    var op = function(context, to){
                                         _runtime.forEach(to, function(target){
                                             target.classList.add(classRef.className());
                                         })
                                         _runtime.next(addCmd, ctx);
                                     }
-                                    _runtime.mixedEval(this, ctx, op, to);
+                                    _runtime.mixedEval(this, op, ctx, to);
                                 } else {
-                                    var op = function(to, attributeRef){
+                                    var op = function(context, to, attributeRef){
                                         _runtime.forEach(to, function(target){
                                             target.setAttribute(attributeRef.name, attributeRef.value);
                                         })
                                         _runtime.next(addCmd, ctx);
                                     }
-                                    _runtime.mixedEval(this, ctx, op, to, attributeRef);
+                                    _runtime.mixedEval(this, op, ctx, to, attributeRef);
                                 }
                             }
                         };
@@ -1872,15 +1872,15 @@
                             execute: function (ctx) {
                                 {
                                     if (this.elementExpr) {
-                                        var op = function(element) {
+                                        var op = function(context, element) {
                                             _runtime.forEach(element, function (target) {
                                                 target.parentElement.removeChild(target);
                                             });
                                             _runtime.next(removeCmd, ctx);
                                         }
-                                        return _runtime.mixedEval(this, ctx, op, elementExpr);
+                                        return _runtime.mixedEval(this, op, ctx, elementExpr);
                                     } else {
-                                        var op = function(from) {
+                                        var op = function(context, from) {
                                             if (this.classRef) {
                                                 _runtime.forEach(from, function(target){
                                                     target.classList.remove(classRef.className());
@@ -1892,7 +1892,7 @@
                                             }
                                             _runtime.next(removeCmd, ctx);
                                         }
-                                        return _runtime.mixedEval(this, ctx, op, from);
+                                        return _runtime.mixedEval(this, op, ctx, from);
                                     }
                                 }
                             }
@@ -1922,7 +1922,7 @@
                             attributeRef: attributeRef,
                             on: on,
                             execute: function (ctx) {
-                                var op = function(on, value) {
+                                var op = function(context, on, value) {
                                     if (this.classRef) {
                                         _runtime.forEach( on, function (target) {
                                             target.classList.toggle(classRef.className())
@@ -1938,7 +1938,7 @@
                                     }
                                     _runtime.next(this, ctx);
                                 }
-                                return _runtime.mixedEval(this, ctx, op, on, attributeRef ? attributeRef.value : null);
+                                return _runtime.mixedEval(this, op, ctx, on, attributeRef ? attributeRef.value : null);
 
                             }
                         };
@@ -1965,7 +1965,7 @@
                                 on: on,
                                 execute: function (ctx) {
                                     var eventName = evt.evaluate(ctx); // OK
-                                    var op = function(on) {
+                                    var op = function(context, on) {
                                         var target = on ? on : ctx['me'];
                                         var listener = function(){
                                             target.removeEventListener(eventName, listener);
@@ -1973,7 +1973,7 @@
                                         };
                                         target.addEventListener(eventName, listener)
                                     }
-                                    _runtime.mixedEval(this, ctx, op, on);
+                                    _runtime.mixedEval(this, op, ctx, on);
                                 }
                             };
                         } else {
@@ -1988,12 +1988,12 @@
                                 type: "waitCmd",
                                 time: time,
                                 execute: function (ctx) {
-                                    var op = function(time){
+                                    var op = function(context, time){
                                         setTimeout(function () {
                                             _runtime.next(waitCmd, ctx);
                                         }, time * factor);
                                     }
-                                    _runtime.mixedEval(this, ctx, op, time);
+                                    _runtime.mixedEval(this, op, ctx, time);
                                 }
                             };
                         }
@@ -2043,13 +2043,13 @@
                             details: details,
                             to: to,
                             execute: function (ctx) {
-                                var op = function(to, eventName, details){
+                                var op = function(context, to, eventName, details){
                                     _runtime.forEach(to, function (target) {
                                         _runtime.triggerEvent(target, eventName, details ? details : {});
                                     });
                                     _runtime.next(sendCmd, ctx);
                                 }
-                                _runtime.mixedEval(this, ctx, op, to, eventName, details);
+                                _runtime.mixedEval(this, op, ctx, to, eventName, details);
                             }
                         };
                         return sendCmd
@@ -2065,7 +2065,7 @@
                             type: "returnCmd",
                             value: value,
                             execute: function (ctx) {
-                                var op = function (value) {
+                                var op = function (context, value) {
                                     var resolve = ctx.meta.resolve;
                                     ctx.meta.returned = true;
                                     if (resolve) {
@@ -2079,7 +2079,7 @@
                                         ctx.meta.returnValue = value;
                                     }
                                 };
-                                _runtime.mixedEval(this, ctx, op, value);
+                                _runtime.mixedEval(this, op, ctx, value);
                             }
                         };
                         return returnCmd
@@ -2098,11 +2098,11 @@
                             details: details,
                             execute: function (ctx) {
                                 var eventNameStr = eventName.evaluate(ctx);// OK
-                                var op = function (details) {
+                                var op = function (context, details) {
                                     _runtime.triggerEvent(_runtime.resolveSymbol("me", ctx), eventNameStr ,details ? details : {});
                                     _runtime.next(triggerCmd, ctx);
                                 };
-                                return _runtime.mixedEval(this, ctx, op, details);
+                                return _runtime.mixedEval(this, op, ctx, details);
                             }
                         };
                         return triggerCmd
@@ -2132,7 +2132,7 @@
                             forElt: forElt,
                             execute: function (ctx) {
                                 // TODO - expression?
-                                var op = function(from, forElt){
+                                var op = function(context, from, forElt){
                                     var clazz = this.classRef.value.substr(1)
                                     _runtime.forEach(from, function(target){
                                         target.classList.remove(clazz);
@@ -2142,7 +2142,7 @@
                                     });
                                     _runtime.next(takeCmd, ctx);
                                 }
-                                _runtime.mixedEval(this, ctx, op, from, forElt);
+                                _runtime.mixedEval(this, op, ctx, from, forElt);
                             }
                         };
                         return takeCmd
@@ -2163,7 +2163,7 @@
                             exprs: exprs,
                             withExpr: withExpr,
                             execute: function (ctx) {
-                                var op = function (withExpr, values) {
+                                var op = function(ctx, withExpr, values) {
                                     if (withExpr) {
                                         withExpr.apply(null, values);
                                     } else {
@@ -2171,7 +2171,7 @@
                                     }
                                     _runtime.next(logCmd, ctx);
                                 };
-                                return _runtime.mixedEval(this, ctx, op, withExpr, exprs);
+                                return _runtime.mixedEval(this, op, ctx, withExpr, exprs);
                             }
                         };
                         return logCmd;
@@ -2185,11 +2185,11 @@
                             type: "callCmd",
                             expr: expr,
                             execute: function (ctx) {
-                                var op = function(it) {
+                                var op = function(context, it) {
                                     ctx.it = it;
                                     _runtime.next(callCmd, ctx);
                                 }
-                                _runtime.mixedEval(this, ctx, op, expr);
+                                _runtime.mixedEval(this, op, ctx, expr);
                             }
                         };
                         return callCmd
@@ -2230,7 +2230,7 @@
                             symbolWrite: symbolWrite,
                             value: value,
                             execute: function (ctx) {
-                                var op = function(root, valueToPut){
+                                var op = function(context, root, valueToPut){
                                     if (symbolWrite) {
                                         ctx[target.root.name] = valueToPut;
                                     } else {
@@ -2259,7 +2259,7 @@
                                     }
                                     _runtime.next(this, ctx);
                                 }
-                                _runtime.mixedEval(this, ctx, op, target.root, value)
+                                _runtime.mixedEval(this, op, ctx, target.root, value)
                             }
                         };
                         return putCmd
@@ -2287,7 +2287,7 @@
                             symbolWrite: symbolWrite,
                             value: value,
                             execute: function (ctx) {
-                                var op = function(root, valueToSet) {
+                                var op = function(context, root, valueToSet) {
                                     if (symbolWrite) {
                                         ctx[target.root.name] = valueToSet;
                                     } else {
@@ -2298,7 +2298,7 @@
                                     }
                                     _runtime.next(this, ctx);
                                 }
-                                _runtime.mixedEval(this, ctx, op, symbolWrite ? null : target.root, value);
+                                _runtime.mixedEval(this, op, ctx, symbolWrite ? null : target.root, value);
                             }
                         };
                         return setCmd
@@ -2322,7 +2322,7 @@
                             trueBranch: trueBranch,
                             falseBranch: falseBranch,
                             execute: function (ctx) {
-                                var op = function (expr) {
+                                var op = function (context, expr) {
                                     if(expr) {
                                         trueBranch.execute(ctx);
                                     } else if(falseBranch) {
@@ -2331,7 +2331,7 @@
                                         _runtime.next(ifCmd, ctx);
                                     }
                                 };
-                                _runtime.mixedEval(this, ctx, op, expr);
+                                _runtime.mixedEval(this, op, ctx, expr);
                             }
                         };
                         parser.setParent(trueBranch, ifCmd);
@@ -2355,14 +2355,14 @@
                             expression: expression,
                             loop: loop,
                             execute: function (ctx) {
-                                var op = function(value) {
+                                var op = function(context, value) {
                                     ctx.meta.iterators[identifier.value] = {
                                         index: 0,
                                         value: value
                                     };
                                     this.handleNext(ctx);
                                 }
-                                _runtime.mixedEval(this, ctx, op, expression);
+                                _runtime.mixedEval(this, op, ctx, expression);
                             },
                             handleNext: function (ctx) {
                                 var iterator = ctx.meta.iterators[identifier.value];
@@ -2414,7 +2414,7 @@
                             url:url,
                             args:args,
                             execute: function (ctx) {
-                                var op = function(url, args){
+                                var op = function(context, url, args){
                                     fetch(url, args)
                                         .then(function (value) {
                                             if (type === "response") {
@@ -2438,7 +2438,7 @@
                                             })
                                         })
                                 }
-                                _runtime.mixedEval(this, ctx, op, url, args)
+                                _runtime.mixedEval(this, op, ctx, url, args)
                             }
                         };
                         return fetchCmd;
