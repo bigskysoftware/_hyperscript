@@ -37,4 +37,12 @@ describe('The (inline) js command', function () {
     	div.click();
     	div.innerHTML.should.equal('test success');
     })
+
+    it('can do both of the above', function () {
+    	var div = make("<div _=\"on click set a to 1 " +
+    				   "         then js(a) return a + 1 end " +
+    				   "         then put it into my.innerHTML\"></div>");
+    	div.click();
+    	div.innerHTML.should.equal('2');
+    })
 })
