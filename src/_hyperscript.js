@@ -1533,8 +1533,8 @@
                             // see: `_parser.addGrammarElement("jsFeature")`
                             if (tokens.hasMore()) continue;
                         }
-                    } while (((tokens.currentToken() && tokens.currentToken().value === "on")
-                               || tokens.matchToken("end")) && tokens.hasMore())
+                        var chainedOn = feature.type === "onFeature" && tokens.currentToken() && tokens.currentToken().value === "on";
+                    } while ((chainedOn || tokens.matchToken("end")) && tokens.hasMore())
                     if (tokens.hasMore()) {
                         parser.raiseParseError(tokens);
                     }
