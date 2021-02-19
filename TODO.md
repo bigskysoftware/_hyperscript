@@ -65,6 +65,7 @@ def foo()
   log y
  end
 ```
+* support double dash comments `-- this is a comment`
 
 #### Speculative Language Featurs
 * A two-way binding system (maybe a global two way-bound namespace? hyperplane?)
