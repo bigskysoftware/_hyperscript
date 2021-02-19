@@ -791,7 +791,7 @@
                     }
                     if (elt.querySelectorAll) {
                         forEach(elt.querySelectorAll(selector), function (elt) {
-                            initElement(elt, document.body);
+                            initElement(elt);
                         });
                     }
                     if (elt.type === "text/hyperscript") {
