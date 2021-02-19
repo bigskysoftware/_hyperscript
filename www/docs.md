@@ -12,6 +12,14 @@ title: ///_hyperscript
 
 * [introduction](#introduction)
 * [install & quick start](#install)
+* [the language](#lang)
+  * [features](#features)
+    * [on](#on)
+    * [def](#def)
+    * [worker](#worker)
+    * [js](#js)
+  * [commands](#commands)
+  * [expressions](#expressions)
 * [asynch behavior](#async)
 * [history](#history)
 
@@ -98,11 +106,24 @@ Then add some hyperscript to an element:
 </div>
 ```
 
-#### The Language
+## <a name="lang"></a>[The Language](#lang)
 
-So, what does hyperscript look like?  
+hyperscript is based, in part on [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf) and thus has a distinctive, english-like syntax.  This may be off-putting at first, but it has a few advantages:
 
-As mentioned above, hyperscript is designed to embed well directly within HTML:
+* It is obvious when some code is hyperscript, since it looks so different than most other languages
+* Commands (statements) always start with a keyword, making it easy to parse
+* It reads well once you are used to it
+
+The syntax will grow on you over time and, in any event, most scripts are small enough anyway.
+
+### <a name="features"></a>[Features](#features)
+
+The top level constructs in hyperscript are called "features" and they
+provide the entry point into hyperscript.  The most common feature is the `on` feature:
+
+### <a name="on"></a>[The On Feature](#on)
+
+The [on feature](/features/on) allows you to embed event handlers directly in HTML and respond to events with hyperscript:
 
 ```html
 <button _="on click add .clicked">
@@ -111,23 +132,126 @@ As mentioned above, hyperscript is designed to embed well directly within HTML:
 ```
 
 The underscore (`_`) attribute is where hyperscript is stored.  You can also use `script` or `data-script` attribute, or 
-configure a different attribute if you don't like those.
+configure a different attribute if you don't like any of those.
 
 The script above says
 
-> On the 'click' event for this button, add the 'clicked' class to the button
+> On the 'click' event for this button, add the 'clicked' class to this button
 
-The syntax reads a lot like the english does.  This is intentional and drawn from HyperTalk (and its successors, such 
-as AppleTalk)
+Note how the hyperscript syntax reads a lot like the english does, making a lot of hyperscript code self-documenting.
 
-You can extend this example to target another element like so:
+#### <a name="on_every"></a>[On Every](#on_every)
+
+By default, the event handler will be run synchronously, so if you trigger again before it is finished, it will ignore the new event.  You can modify this behavior with the `every` modifier:
 
 ```html
-<div id="a-div">I'm a div</div>
-<button _="on click add .clicked to #a-div">
-  Add The "clicked" Class To That Div Above Me
+<button _="on every click add .clicked">
+  Add The "clicked" Class To Me
 </button>
 ```
+#### <a name="on_filters"></a>[On Filters](#on_filters)
+
+You can filter events by adding a bracketed expression after the event name.  The expression should return a boolean value `true` if the
+event handler should execute.  Note that symbols referenced in the expression will be resolved against the event, as well as the global
+scope.  This lets you for example test for a middle click:
+
+```html
+<button _="on click[button==1] add .clicked">
+  Middle-Click To Add The "clicked" Class To Me
+</button>
+```
+### <a name="def"></a>[The Def Feature](#def)
+
+The [def feature](/features/def) allows you define new hyperscript functions, and must be embedded in a `script` tag:
+
+```html
+<script type="text/hyperscript">
+  def waitAndReturn() 
+    wait 2s
+    return "I waited..."
+  end
+</script>
+```
+
+This will define a global function, `waitAndReturn()` that can be
+invoked from anywhere in hyperscript.  The function will also be available in javascript:
+
+```js
+  var str = waitAndReturn();
+  str.then(function(val){
+    console.log("String is: " + val);
+  })
+```
+
+In javascript, you must explicitly deal with the `Promise` created by the `wait` command, but the hyperscript runtime [takes care of all that](#async) for you behind the scenes.
+
+Note that if you have a normal, synchronous function like this:
+
+```html
+<script type="text/hyperscript">
+  def waitAndReturn() 
+    return "I waited..."
+  end
+</script>
+```
+
+then javascript could use it the normal, synchronous way:
+
+```js
+  var str = waitAndReturn();
+  console.log("String is: " + str);
+```
+
+hyperscript functions can take parameters and return values in the expected way:
+
+```html
+<script type="text/hyperscript">
+  def increment(i) 
+    return i + 1
+  end
+</script>
+```
+
+### <a name="workers"></a>[The Worker Feature](#workers)
+
+The [worker feature](/features/worker) allows you define a [WebWorker](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers) in hyperscript
+
+
+```html
+<script type="text/hyperscript">
+  worker Incrementer
+    def increment(i) 
+      return i + 1
+    end
+  end
+</script>
+```
+
+TODO....
+
+### <a name="js"></a>[The JS Feature](#js)
+
+The [js feature](/features/worker) allows you define javascript within hyperscript script tags.  You might do this for performance reasons, since the hyperscript runtime is more focused on flexibility, rather than performance.  This feature is most useful in [workers](#workers), when you want to pass javascript across to the worker's implementation:
+
+```html
+<script type="text/hyperscript">
+  worker CoinMiner
+    js
+      function mineNext() {
+        // a javascript implementation...
+      }
+    end
+    def nextCoin() 
+      return mineNext()
+    end
+  end
+</script>
+```
+
+Note that there is also a way to include [inline javascript](#inline_js)
+within a hyperscript function, for local optimizations around the hyperscript runtime.
+
+========= TODO fold this in 
 
 Now the `clicked` class will be added to the div with the id `a-div`, rather than to the element the event handler is
 on.
