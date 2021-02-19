@@ -2,6 +2,14 @@
 
 ### Language Features
 * Support a `timeout` modifier for async commands like `fetch`, `call`, `wait for` etc.
+* Support an `elsewhere` modifier for the `on` feature, akin to the click-away concept from AlpineJS:
+```html
+<div _="on click elsewhere trigger hide
+        on hide remove .visible from me">
+  <a _="on click send hide to my.parent">dismiss</a>
+  A Modal (click elsewhere to dismiss)
+</div>
+```
 * Array improvements
     * support the [] operator
     * add `first`, `last` and `random` pseudo-properties

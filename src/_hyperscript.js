@@ -1533,7 +1533,8 @@
                             // see: `_parser.addGrammarElement("jsFeature")`
                             if (tokens.hasMore()) continue;
                         }
-                    } while (tokens.matchToken("end") && tokens.hasMore())
+                    } while (((tokens.currentToken() && tokens.currentToken().value === "on")
+                               || tokens.matchToken("end")) && tokens.hasMore())
                     if (tokens.hasMore()) {
                         parser.raiseParseError(tokens);
                     }
