@@ -1892,18 +1892,23 @@
                         var jsSourceStart = tokens.currentToken().start;
                         var jsLastToken = null;
 
-                        var funcNames = []
-                        var expectFunctionDeclaration = false
+                        var funcNames = [];
+                        var funcName = "";
+                        var expectFunctionDeclaration = false;
                         while (tokens.hasMore()) {
                             jsLastToken = tokens.consumeToken()
                             if (jsLastToken.type === "IDENTIFIER"
                                 && jsLastToken.value === "end") {
                                 break;
                             } else if (expectFunctionDeclaration) {
-                                if (jsLastToken.type === "IDENTIFIER") {
-                                    funcNames.push(jsLastToken.value);
+                                if (jsLastToken.type === "IDENTIFIER"
+                                    || jsLastToken.type === "NUMBER") {
+                                    funcName += jsLastToken.value;
+                                } else {
+                                    if (funcName !== "") funcNames.push(funcName);
+                                    funcName = "";
+                                    expectFunctionDeclaration = false;
                                 }
-                                expectFunctionDeclaration = false;
                             } else if (jsLastToken.type === "IDENTIFIER"
                                        && jsLastToken.value === "function") {
                                 expectFunctionDeclaration = true;
