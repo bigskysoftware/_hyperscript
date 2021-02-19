@@ -465,6 +465,11 @@
                     throw error
                 }
 
+                function requireElement(message, type, tokens, root) {
+                    var result = parseElement(type, tokens, root);
+                    return result || raiseParseError(tokens, message);
+                }
+
                 function parseElement(type, tokens, root) {
                     var expressionDef = GRAMMAR[type];
                     if (expressionDef) return expressionDef(_parser, tokens, root);
@@ -494,6 +499,7 @@
                 return {
                     // parser API
                     setParent: setParent,
+                    requireElement: requireElement,
                     parseElement: parseElement,
                     parseAnyOf: parseAnyOf,
                     parseHyperScript: parseHyperScript,
@@ -809,12 +815,16 @@
                     if (!internalData.initialized) {
                         var src = getScript(elt);
                         if (src) {
-                            internalData.initialized = true;
-                            internalData.script = src;
-                            var tokens = _lexer.tokenize(src);
-                            var hyperScript = _parser.parseHyperScript(tokens);
-                            _runtime.applyEventListeners(hyperScript, target || elt);
-                            triggerEvent(target || elt, 'load');
+                            try {
+                                internalData.initialized = true;
+                                internalData.script = src;
+                                var tokens = _lexer.tokenize(src);
+                                var hyperScript = _parser.parseHyperScript(tokens);
+                                _runtime.applyEventListeners(hyperScript, target || elt);
+                                triggerEvent(target || elt, 'load');
+                            } catch(e) {
+                                console.error("hyperscript errors were found on the following element:", elt, "\n\n", e.message);
+                            }
                         }
                     }
                 }
@@ -1564,10 +1574,7 @@
                         if (tokens.matchToken("every")) {
                             every = true;
                         }
-                        var on = parser.parseElement("dotOrColonPath", tokens);
-                        if (on == null) {
-                            parser.raiseParseError(tokens, "Expected event name")
-                        }
+                        var on = parser.requireElement("Expected event name", "dotOrColonPath", tokens);
 
                         var args = [];
                         if (tokens.matchOpToken("(")) {
@@ -1585,13 +1592,10 @@
 
                         var from = null;
                         if (tokens.matchToken("from")) {
-                            from = parser.parseElement("target", tokens);
-                            if (from == null) {
-                                parser.raiseParseError(tokens, "Expected target value")
-                            }
+                            from = parser.requireElement("Expected target value", "target", tokens);
                         }
 
-                        var start = parser.parseElement("commandList", tokens);
+                        var start = parser.requireElement("Expected a command list", "commandList", tokens);
 
                         var end = start;
                         while (end.next) {
