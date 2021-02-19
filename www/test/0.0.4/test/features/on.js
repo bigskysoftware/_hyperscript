@@ -115,6 +115,42 @@ describe("the on feature", function() {
         delete window.increment;
     })
 
+    it("can have multiple event handlers", function(){
+
+        var i = 1;
+        window.increment = function(){
+            return i++;
+        }
+
+        var div = make("<div _='on foo put increment() into my.innerHTML end" +
+            "                          on bar put increment() into my.innerHTML'></div>");
+        div.dispatchEvent(new CustomEvent("foo"));
+        div.innerText.should.equal("1");
+        div.dispatchEvent(new CustomEvent("bar"));
+        div.innerText.should.equal("2");
+        div.dispatchEvent(new CustomEvent("foo"));
+        div.innerText.should.equal("3");
+        delete window.increment;
+    })
+
+    it("can have multiple event handlers, no end", function(){
+
+        var i = 1;
+        window.increment = function(){
+            return i++;
+        }
+
+        var div = make("<div _='on foo put increment() into my.innerHTML" +
+            "                          on bar put increment() into my.innerHTML'></div>");
+        div.dispatchEvent(new CustomEvent("foo"));
+        div.innerText.should.equal("1");
+        div.dispatchEvent(new CustomEvent("bar"));
+        div.innerText.should.equal("2");
+        div.dispatchEvent(new CustomEvent("foo"));
+        div.innerText.should.equal("3");
+        delete window.increment;
+    })
+
 
 
 });

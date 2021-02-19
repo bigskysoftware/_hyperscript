@@ -33,8 +33,8 @@ hyperscript is a companion project of [htmx](https://htmx.org)
   Toggle the "big-text" class on me on click
 </button>
 
-<div _="on mouseenter add .visible to #help end
-        on mouseleave remove .visible from #help end">
+<div _="on mouseenter add .visible to #help
+        on mouseleave remove .visible from #help">
   Mouse Over Me!
 </div>
 <div id="help"> I'm a helpful message!</div>
@@ -72,12 +72,8 @@ Here are the examples above in demo form:
           transition: opacity 200ms ease-in;
         }
         </style>
-        <div _="on mouseenter 
-                   add .visible to #help 
-                end
-                on mouseleave 
-                   remove .visible from #help 
-                end">
+        <div _="on mouseenter add .visible to #help 
+                on mouseleave remove .visible from #help">
           Mouse Over Me!
         </div>
         <div id="help"> I'm a helpful message!</div>
