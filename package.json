@@ -36,6 +36,8 @@
     "mocha": "^7.1.1",
     "mocha-chrome": "^2.2.0",
     "sinon": "^9.0.2",
-    "uglify-js": "^3.9.1"
+    "uglify-js": "^3.9.1",
+    "node-sass": "^5.0.0",
+    "sass": "^1.32.8"
   }
 }

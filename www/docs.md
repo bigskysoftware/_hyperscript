@@ -3,7 +3,79 @@ layout: layout.njk
 title: ///_hyperscript
 ---
 
-## Documentation
+<div class="row">
+<div class="2 col nav">
+
+**Contents**
+
+<div id="contents">
+
+* [introduction](#introduction)
+
+</div>
+
+</div>
+<div class="10 col">
+
+
+## <a name="introduction"></a>[Introduction](#introduction)
+
+hyperscript is a small, expressive scripting language for the web, inspired by the 
+[HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf) programming language
+which gives it a distinct, english-like syntax, along with native event-handling.
+
+One of the primary features of hyperscript is the ability to embed logic directly on HTML elements:
+
+```html
+<button _="on click put 'I was clicked!' into my.innerHTML">
+  Click Me!
+</button>
+``` 
+<button _="on click put 'I was clicked!' into my.innerHTML">
+  Click Me!
+</button>
+
+By embedding the event trigger logic directly in the HTML, you make it much easier to understand what a given element
+is up to.  Hyperscript is designed to read easily and be powerful enough that many common web patterns can be 
+comfortably written directly inline.  (Of course, if you need to, you can pull logic out to [functions](#functions) as 
+well.)
+
+One of the most interesting aspect of hyperscript is that it is *async-transparent*.  That is, you can write code
+that is asynchronous in a linear manner.  Consider the following hyperscript function:
+
+```javascript
+def getString()
+  fetch /aString
+  return it
+end
+```
+This is an asynchronous function, issuing a `GET` to `/aString` on the server.  Note that you do not need to annotate
+the function as asynchronous, however.
+
+Now consider this hyperscript event handler:
+
+```html
+<button _="on click put getString() into my.innerHTML">
+  Click Me!
+</button>
+``` 
+
+This button, when clicked, will invoke the `getString()` method *and wait for it to complete* before putting the
+result into the button.  The hyperscript runtime determines dynamically if something is asynchronous and adjusts
+the execution accordingly.  This lets you do some pretty neat stuff:
+
+```html
+<button _="on click add .fadeOut to me 
+                    then wait 2s 
+                    then remove .fadeOut from me">
+  Click Me!
+</button>
+``` 
+
+This even handler will add a class, `.fadeOut` to the button and then wait 2 seconds, then remove it.  You can do
+all this without callbacks or any sort of `await` syntax.  It just works.  :)
+
+This gives you a flavor of the language, and I hope perks your interest.  Now let's get down to brass tacks...
 
 ### Quick Start
 
@@ -20,16 +92,6 @@ Then add some hyperscript to an element:
   Click Me!
 </div>
 ```
-
-### Introduction
-
-hyperscript is a small, expressive scripting language designed to embed well directly in HTML (thus satisfying the
-[Locality of Behaviour Principle](https://htmx.org/locality-of-behaviour/)). It is a companion project of [htmx](https://htmx.org)
-and the two integrate automatically when used together.
-
-hyperscript is inspired by the [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf) programming language
-and has a distinct english-like syntax, with native event-handling syntax.  hyperscript transpiles to ES5.1 
-and thus is compatible with all modern browsers, as well as IE11.
 
 #### Yet Another Language?
 
@@ -166,3 +228,5 @@ Below is a reference for the various features, commands and expressions availabl
 | [object literal](/expressions/object-literal) | A javascript-style object literal | `{foo:"bar"}`
 | [string](/expressions/string) | A string | `"a string", 'another string'`
 | [target](/expressions/target) | A target for update | `.buttons.parent`
+
+</div>

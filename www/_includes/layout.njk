@@ -8,17 +8,50 @@
     <script src="https://unpkg.com/prismjs@1.20.0/plugins/autoloader/prism-autoloader.min.js"></script>
     <script src="/js/_hyperscript.js"></script>
 </head>
-<body hx-ext="class-tools">
-<div class="c content">
-    <div class="hero full-width">
-        <div class="c">
-            <h1><span class="s1">/</span><span class="s2">/</span><span class="s3">/</span><span class="s4">_</span><span class="s2">h</span>yper<span class="s2">s</span>cript</h1>
+<body>
+<div class="top-nav">
+    <div class="c">
+        <div class="menu">
+            <div class="logo-wrapper">
+                <a href="/"><img height="36px" src="/img/light_logo.png"></a>
+                <svg onclick="document.getElementById('nav').classList.toggle('show')" class="hamburger" viewBox="0 0 100 80" width="25" height="25" style="margin-bottom:-5px">
+                    <rect width="100" height="20" style="fill:rgb(52, 101, 164)" rx="10"></rect>
+                    <rect y="30" width="100" height="20" style="fill:rgb(52, 101, 164)" rx="10"></rect>
+                    <rect y="60" width="100" height="20" style="fill:rgb(52, 101, 164)" rx="10"></rect>
+                </svg>
+            </div>
+            {% if page.url.indexOf("/examples/") == 0 %}
+            <div id="nav" class="navigation nav"> <!-- don't boost on demo pages, sinon hijacks everything :/ -->
+                {% else %}
+                <div id="nav" class="navigation" hx-boost="true">
+                    {% endif %}
+                    <div class="navigation-items" preload="mouseover">
+                        <div>
+                            <a href="/docs/">docs</a>
+                        </div>
+<!--                        <div>-->
+<!--                            <a href="/reference/">reference</a>-->
+<!--                        </div>-->
+<!--                        <div>-->
+<!--                            <a href="/examples/">examples</a>-->
+<!--                        </div>-->
+                        <div>
+                            <a href="/talk/">talk</a>
+                        </div>
+                        <div>
+                            <a href="https://github.com/sponsors/bigskysoftware?o=esb">sponsor</a>
+                        </div>
+                    </div>
+                    <div class="github-stars">
+                        <a href="https://github.com/bigskysoftware/_hyperscript">github</a>
+                        <iframe style="margin:auto;" src="https://ghbtns.com/github-btn.html?user=bigskysoftware&repo=_hyperscript&type=star&count=true" frameborder="0" scrolling="0" width="150" height="20" title="Star htmx on GitHub"></iframe>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="center nav full-width">
-        <a href="/">home</a> <a href="/docs">docs</a> <a href="https://github.com/bigskysoftware/_hyperscript">github</a>
-        <iframe style="margin:auto;" src="https://ghbtns.com/github-btn.html?user=bigskysoftware&repo=_hyperscript&type=star&count=true" frameborder="0" scrolling="0" width="150" height="20" title="Star hyperscript on GitHub"></iframe>
-    </div>
+</div>
+<div class="c content">
     {{ content | safe }}
 </div>
 </body>

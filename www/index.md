@@ -5,12 +5,26 @@ title: ///_hyperscript
 
 ## intro
 
-`_hyperscript` is a small, open scripting language designed to be embedded in HTML and inspired by
+hyperscript is a scripting language designed for the web, inspired by 
  [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf)
+ 
+hyperscript has many interesting and practical features:
 
-it is a companion project of <https://htmx.org>
+<div style="padding: 16px">
 
-## samples
+* it is [async-transparent](/docs#async), allowing you to mix both asyncrhonous and synchronous code in an intuitive, 
+  linear manner
+* it is event oriented, allowing you to work with DOM events in interesting and novel ways
+* it has DOM-friendly syntax, such as id and class literals
+* it supports [inline Web Workers](/docs#workers), allowing you to easily define a worker and interact with it via 
+  intuitive function calls
+* it is designed to be embedded directly in HTML, making it easy to see what HTML elements are up to
+
+</div>
+
+hyperscript is a companion project of [htmx](https://htmx.org)
+
+## examples
 
 ```html
 <script src="https://unpkg.com/hyperscript.org@0.0.3"></script>
@@ -32,6 +46,8 @@ it is a companion project of <https://htmx.org>
 
 ## demos
 
+Here are the examples above in demo form:
+
 <div class="row">
     <div class="4 col">
         <style>
@@ -42,7 +58,7 @@ it is a companion project of <https://htmx.org>
           font-size: 2em;
         }
         </style>
-        <button _="on click toggle .big-text">
+        <button class="btn primary" _="on click toggle .big-text">
           Toggle .clicked
         </button>
         </div>
@@ -67,7 +83,7 @@ it is a companion project of <https://htmx.org>
         <div id="help"> I'm a helpful message!</div>
     </div>
     <div class="4 col">
-        <button _="on click log me then call alert('yep, it\'s an alert - check the console...')">
+        <button class="btn primary" _="on click log me then call alert('yep, it\'s an alert - check the console...')">
             Show An Alert
         </button>
     </div>
