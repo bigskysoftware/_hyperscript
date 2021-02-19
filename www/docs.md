@@ -192,6 +192,7 @@ Below is a reference for the various features, commands and expressions availabl
 |  name | description | example
 |-------|-------------|---------
 | [on](/features/on) | Creates an event listener | `on click log "clicked!"`
+| [js](/features/js) | Embed JavaScript code at the top level | `js return { foo() {...} } end`
 
 ### <a name='commands'></a>[Commands](#commands)
 
@@ -210,6 +211,7 @@ Below is a reference for the various features, commands and expressions availabl
 | [toggle](/commands/toggle) | Toggles content on a target | `toggle .clicked on me`
 | [trigger](/commands/trigger) | triggers an event on the current element | `trigger customEvent`
 | [wait](/commands/wait) | Waits a given amount of time before resuming the command list | `wait 2s then remove me`
+| [js](/commands/js) | Embed JavaScript code inline | `js(a) return compute(a); end`
 
 ### <a href='expressions'></a>[Expressions](#expressions)
 
