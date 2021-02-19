@@ -67,8 +67,23 @@ def foo()
 ```
 * support double dash comments `-- this is a comment`
 
-#### Speculative Language Featurs
-* A two-way binding system (maybe a global two way-bound namespace? hyperplane?)
+#### Speculative Language Features
+* A two-way binding system (maybe a global two way-bound namespace? hyperplane?
+  some speculation:
+  Hyperplane - hyperscript's two-way binding mechanism.  The hyperplane is a place to store values accessible outside of the normal scope.  There are various dimensions/planes in the hyperplane:
+  
+  ```
+    log |x -- a variable associated with the current 'me'
+    log #foo|x -- a variable associated with the element #foo
+    log ||x -- a global variable stored in memory
+    log |||x -- a persistent variable stored in local storage
+  ```
+  the hyperplane has infrastructure for catching mutations and updating references, as well as fully developed event model, and hyperplane expressions can be embedded in HTML
+
+  ```html
+  <div>#|||somePersistentVar</div>
+  ```
+
 * A reversable syntax for state-based transformations of DOM elements
 ```
   while hover add .foo

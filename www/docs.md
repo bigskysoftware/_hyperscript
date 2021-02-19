@@ -11,6 +11,9 @@ title: ///_hyperscript
 <div id="contents">
 
 * [introduction](#introduction)
+* [install & quick start](#install)
+* [asynch behavior](#async)
+* [history](#history)
 
 </div>
 
@@ -31,7 +34,9 @@ One of the primary features of hyperscript is the ability to embed logic directl
   Click Me!
 </button>
 ``` 
-<button _="on click put 'I was clicked!' into my.innerHTML">
+<button class='btn primary' _="on click put 'I was clicked!' into my.innerHTML 
+                    then wait 2s
+                    then put 'Click Me' into my.innerHTML">
   Click Me!
 </button>
 
@@ -40,7 +45,7 @@ is up to.  Hyperscript is designed to read easily and be powerful enough that ma
 comfortably written directly inline.  (Of course, if you need to, you can pull logic out to [functions](#functions) as 
 well.)
 
-One of the most interesting aspect of hyperscript is that it is *async-transparent*.  That is, you can write code
+One of the most interesting aspect of hyperscript is that it is *[async-transparent](/#async)*.  That is, you can write code
 that is asynchronous in a linear manner.  Consider the following hyperscript function:
 
 ```javascript
@@ -77,7 +82,7 @@ all this without callbacks or any sort of `await` syntax.  It just works.  :)
 
 This gives you a flavor of the language, and I hope perks your interest.  Now let's get down to brass tacks...
 
-### Quick Start
+## <a name="install"></a>[Install & Quick Start](#install)
 
 Include hyperscript:
 
@@ -92,27 +97,6 @@ Then add some hyperscript to an element:
   Click Me!
 </div>
 ```
-
-#### Yet Another Language?
-
-I know.
-
-The initial motivation for the language was the [event model](https://htmx.org/reference/#events) in htmx.  I wanted
-to have a way to utilize these events naturally and directly within HTML.  Most HTML tags support `on*` attributes
-for handling standard DOM events (e.g. `onClick`) but that doesn't work for custom events.  In intercooler, I had
-handled this by adding a bunch of custom event attributes, but that always felt hacky and wasn't general enough
-to handle custom events triggered by response headers, etc.
-
-Additionally, I wanted to have a way to address some useful features from intercooler.js, but without causing htmx
-to lose focus on the core request/response processing infrastructure:
-
-* [`ic-add-class`](http://intercoolerjs.org/attributes/ic-add-class.html) and [`ic-remove-class`](http://intercoolerjs.org/attributes/ic-remove-class.html)
-* [`ic-remove-after`](http://intercoolerjs.org/attributes/ic-remove-after.html)
-* [`ic-post-errors-to`](http://intercoolerjs.org/attributes/ic-post-errors-to.html)
-* [`ic-action`](http://intercoolerjs.org/attributes/ic-action.html) and all the associated attributes
-
-The more I looked at it, the more I thought that there was a need for a small, domain specific language for all this, rather 
-than an explosion in attributes and inline javascript, or a hacky custom syntax as with `ic-action`.
 
 #### The Language
 
@@ -187,48 +171,28 @@ While some are a bit more exotic for an imperative programming language:
 
 Below is a reference for the various features, commands and expressions available in hyperscript:
 
-### <a name='features'></a>[Features](#features)
 
-|  name | description | example
-|-------|-------------|---------
-| [on](/features/on) | Creates an event listener | `on click log "clicked!"`
-| [js](/features/js) | Embed JavaScript code at the top level | `js return { foo() {...} } end`
+## <a name="history"></a>[History, or 'Yet Another Language?'](#history)
 
-### <a name='commands'></a>[Commands](#commands)
+I know.
 
-|  name | description | example
-|-------|-------------|---------
-| [add](/commands/add) | Adds content to a given target | `add .myClass to me`
-| [fetch](/commands/fetch) | Send a fetch request | `fetch /demo then put it into my.innerHTML`
-| [call/get](/commands/call) | Evaluates an expression (e.g. a Javascript Function) | `call alert('yep, you can call javascript!)` <br/><br/> `get prompt('Enter your name')`
-| [if](/commands/if) | A conditional control flow command | `if me.selected then call alert('I\'m selected!')`
-| [log](/commands/log) | Logs a given expression to the console, if possible | `log me`
-| [put](/commands/put) | Puts a value into a given variable or property| `put "cool!" into me.innerHTML`
-| [remove](/commands/remove) | Removes content | `log "bye, bye" then remove me`
-| [send](/commands/send) | Sends an event | `send customEvent to #a-div`
-| [set](/commands/set) | Sets a variable or property to a given value | `set x to 0`
-| [take](/commands/take) | Takes a class from a set of elements | `take .active from .tabs`
-| [toggle](/commands/toggle) | Toggles content on a target | `toggle .clicked on me`
-| [trigger](/commands/trigger) | triggers an event on the current element | `trigger customEvent`
-| [wait](/commands/wait) | Waits a given amount of time before resuming the command list | `wait 2s then remove me`
-| [js](/commands/js) | Embed JavaScript code inline | `js(a) return compute(a); end`
+The initial motivation for the language was the [event model](https://htmx.org/reference/#events) in htmx.  I wanted
+to have a way to utilize these events naturally and directly within HTML.  Most HTML tags support `on*` attributes
+for handling standard DOM events (e.g. `onClick`) but that doesn't work for custom events.  
 
-### <a href='expressions'></a>[Expressions](#expressions)
+In [intercooler](https://intercoolerjs.org), I had
+handled this by adding a bunch of custom event attributes, but that always felt hacky and wasn't general enough
+to handle custom events triggered by response headers, etc.
 
-|  name | description | example
-|-------|-------------|---------
-| [array literal](/expressions/array-literal) | An array literal, as in JavaScript | `[1, 2, 3]`
-| [attribute reference](/expressions/attribute-ref) | An attribute reference | `[selected=true]`
-| [block literal](/expressions/block-literal) | An anonymous function with an expression body | `\ x -> x * x`
-| [boolean](/expressions/boolean) | Boolean literals | `true`<br/>`false`
-| [class reference](/expressions/class-reference) | A class reference | `.active`
-| [comparison operator](/expressions/comparison-operator) | Comparison operators | `x < y`<br/>`z === "foo"`
-| [id reference](/expressions/id-reference) | An id reference | `#main-div`
-| [logical operator](/expressions/logical-operator) | Logical operators | `x and y`<br/>`z or false`
-| [math operator](/expressions/math-operator) | A mathematical operator | `1 + 2`
-| [number](/expressions/number) | A number | `3.14`
-| [object literal](/expressions/object-literal) | A javascript-style object literal | `{foo:"bar"}`
-| [string](/expressions/string) | A string | `"a string", 'another string'`
-| [target](/expressions/target) | A target for update | `.buttons.parent`
+Additionally, I wanted to have a way to address some useful features from intercooler.js, but without causing htmx
+to lose focus on the core request/response processing infrastructure:
+
+* [`ic-add-class`](http://intercoolerjs.org/attributes/ic-add-class.html) and [`ic-remove-class`](http://intercoolerjs.org/attributes/ic-remove-class.html)
+* [`ic-remove-after`](http://intercoolerjs.org/attributes/ic-remove-after.html)
+* [`ic-post-errors-to`](http://intercoolerjs.org/attributes/ic-post-errors-to.html)
+* [`ic-action`](http://intercoolerjs.org/attributes/ic-action.html) and all the associated attributes
+
+The more I looked at it, the more I thought that there was a need for a small, domain specific language for all this, rather 
+than an explosion in attributes and inline javascript, or a hacky custom syntax as with `ic-action`.
 
 </div>
