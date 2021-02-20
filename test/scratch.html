@@ -11,6 +11,28 @@
 <em>Work Area</em>
 <hr/>
 
+<h3>Fun w/ toggles</h3>
+
+<style>
+    .red {
+        transition: 400ms ease-in;
+        background: red;
+    }
+    .red2 {
+        background: red;
+        transition: 2s ease-in;
+    }
+</style>
+<div class="btn btn-primary" _="on click toggle .red for 2s">
+    Toggle Red
+</div>
+
+<div class="btn btn-primary" _="on click toggle .red2 until transitionend">
+    Toggle Red
+</div>
+
+
+<h3>Scroll Other Thing</h3>
 
 <div _="on click log me then send scrollToEnd to #anotherDiv">
     Scroll it
@@ -26,6 +48,7 @@
     <p>P7</p>
     <p>P8</p>
 </div>
+
 
 </body>
 </html>
