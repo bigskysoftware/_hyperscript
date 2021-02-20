@@ -215,6 +215,14 @@
                         return match;
                     }
 
+                    function peekToken() {
+                        var i = 0, match = currentToken()
+                        do {
+                            match = tokens[i++];
+                        } while (ignoreWhiteSpace && match.type === "WHITESPACE")
+                        return match;
+                    }
+
                     function consumeUntilWhitespace() {
                         var tokenList = [];
                         ignoreWhiteSpace = false;
@@ -241,6 +249,7 @@
                         requireTokenType: requireTokenType,
                         consumeToken: consumeToken,
                         matchToken: matchToken,
+                        peekToken: peekToken,
                         requireToken: requireToken,
                         list: tokens,
                         consumed: consumed,
@@ -823,7 +832,7 @@
                                 _runtime.applyEventListeners(hyperScript, target || elt);
                                 triggerEvent(target || elt, 'load');
                             } catch(e) {
-                                console.error("hyperscript errors were found on the following element:", elt, "\n\n", e.message);
+                                console.error("hyperscript errors were found on the following element:", elt, "\n\n", e.message, e.stack);
                             }
                         }
                     }
@@ -1880,17 +1889,19 @@
 
                 _parser.addGrammarElement("jsBody", function (parser, tokens) {
                     var jsSourceStart = tokens.currentToken().start;
-                    var jsLastToken = null;
+                    var jsLastToken = tokens.currentToken();
 
                     var funcNames = [];
                     var funcName = "";
                     var expectFunctionDeclaration = false;
                     while (tokens.hasMore()) {
-                        if (tokens.list[0].type === "IDENTIFIER"
-                            && tokens.list[0].value === "end") {
+                        jsLastToken = tokens.consumeToken();
+                        console.log(tokens.peekToken());
+                        var peek = tokens.peekToken();
+                        if (peek.type === "IDENTIFIER"
+                            && peek.value === "end") {
                             break;
                         }
-                        jsLastToken = tokens.consumeToken()
                         if (expectFunctionDeclaration) {
                             if (jsLastToken.type === "IDENTIFIER"
                                 || jsLastToken.type === "NUMBER") {
@@ -1905,8 +1916,9 @@
                             expectFunctionDeclaration = true;
                         }
                     }
-
                     var jsSourceEnd = jsLastToken.start;
+
+                    console.log(tokens.source.substring(jsSourceStart, jsSourceEnd))
                     return {
                         type: 'jsBody',
                         exposedFunctionNames: funcNames,
@@ -1921,7 +1933,7 @@
 
                         var jsSource = jsBody.jsSource +
                             "\nreturn { " + 
-                            js.exposedFunctionNames.map(function (name) {
+                            jsBody.exposedFunctionNames.map(function (name) {
                                 return name+":"+name;
                             }).join(",") +
                             " } ";
