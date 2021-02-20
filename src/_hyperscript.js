@@ -1770,11 +1770,14 @@
                         case 'init':
                             importScripts(e.data._hyperscript);
                             importScripts.apply(self, e.data.extraScripts);
-                            var tokens = _hyperscript.lexer.makeTokensObject(e.data.tokens, [], '');
+                            var tokens = _hyperscript.lexer.makeTokensObject(e.data.tokens, [], e.data.source);
                             
                             // this is so hacky
                             self.window = {};
                             var parsed = _hyperscript.parser.parseElement('hyperscript', tokens);
+                            Object.keys(self.window).forEach(function (key) {
+                                self[key] = self.window[key]
+                            })
                             self.functions = self.window;
                             delete self.window;
 
@@ -1837,10 +1840,14 @@
                         var bodyStartIndex = tokens.consumed.length;
                         var bodyEndIndex = tokens.consumed.length;
                         do {
-                            var functionFeature = parser.parseElement('functionFeature', tokens);
-                            if (functionFeature) {
-                                funcNames.push(functionFeature.name);
-                                bodyEndIndex = tokens.consumed.length;
+                            var feature = parser.parseAnyOf(['functionFeature', 'jsFeature'], tokens);
+                            if (feature) {
+                                if (feature.type === 'functionFeature') {
+                                    funcNames.push(feature.name);
+                                    bodyEndIndex = tokens.consumed.length;
+                                } else {
+                                    if (tokens.hasMore()) continue;
+                                }
                             } else break;
                         } while (tokens.matchToken("end") && tokens.hasMore()); // worker end
 
@@ -1861,7 +1868,8 @@
                             type: 'init',
                             _hyperscript: currentScriptSrc,
                             extraScripts: extraScripts,
-                            tokens: bodyTokens
+                            tokens: bodyTokens,
+                            source: tokens.source
                         });
 
                         var workerPromise = new Promise(function (resolve, reject) {
@@ -1916,7 +1924,6 @@
                     var expectFunctionDeclaration = false;
                     while (tokens.hasMore()) {
                         jsLastToken = tokens.consumeToken();
-                        console.log(tokens.peekToken());
                         var peek = tokens.peekToken();
                         if (peek.type === "IDENTIFIER"
                             && peek.value === "end") {
@@ -1936,7 +1943,7 @@
                             expectFunctionDeclaration = true;
                         }
                     }
-                    var jsSourceEnd = jsLastToken.start;
+                    var jsSourceEnd = jsLastToken.end + 1;
 
                     console.log(tokens.source.substring(jsSourceStart, jsSourceEnd))
                     return {
