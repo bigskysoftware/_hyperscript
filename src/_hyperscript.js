@@ -1203,6 +1203,26 @@
                     return parser.parseAnyOf(["parenthesized", "boolean", "null", "string", "number", "idRef", "classRef", "symbol", "propertyRef", "objectLiteral", "arrayLiteral", "blockLiteral"], tokens)
                 });
 
+                _parser.addGrammarElement("timeExpression", function(parser, tokens){
+                    var time = parser.requireElement("Expected a time expression", "expression", tokens);
+                    var factor = 1;
+                    if (tokens.matchToken("s") || tokens.matchToken("seconds")) {
+                        factor = 1000;
+                    } else if (tokens.matchToken("ms") || tokens.matchToken("milliseconds")) {
+                        // do nothing
+                    }
+                    return {
+                        type:"timeExpression",
+                        time: time,
+                        factor: factor,
+                        evaluate: function (context) {
+                            return _runtime.unifiedEval(this, function (context, val) {
+                                return val * this.factor
+                            }, context, time);
+                        }
+                    }
+                })
+
                 _parser.addGrammarElement("propertyAccess", function (parser, tokens, root) {
                     if (tokens.matchOpToken(".")) {
                         var prop = tokens.requireTokenType("IDENTIFIER");
@@ -2114,6 +2134,15 @@
                                 parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
                             }
                         }
+                        if (tokens.matchToken("for")) {
+                            var time = parser.requireElement("Expected a time element", "timeExpression", tokens);
+                        } else if (tokens.matchToken("until")) {
+                            var evt = parser.requireElement("Expected event name", "dotOrColonPath", tokens);
+                            if (tokens.matchToken("from")) {
+                                var from = parser.parseElement("expression", tokens);
+                            }
+                        }
+
                         if (tokens.matchToken("on")) {
                             var on = parser.parseElement("target", tokens);
                         } else {
@@ -2124,24 +2153,43 @@
                             classRef: classRef,
                             attributeRef: attributeRef,
                             on: on,
-                            execute: function (ctx) {
-                                var op = function(context, on, value) {
-                                    if (this.classRef) {
-                                        _runtime.forEach( on, function (target) {
-                                            target.classList.toggle(classRef.className())
-                                        });
-                                    } else {
-                                        _runtime.forEach( on, function (target) {
-                                            if(target.hasAttribute(attributeRef.name )) {
-                                                target.removeAttribute( attributeRef.name );
-                                            } else {
-                                                target.setAttribute(attributeRef.name, value)
-                                            }
-                                        });
-                                    }
-                                    _runtime.next(this, ctx);
+                            time: time,
+                            evt: evt,
+                            from: from,
+                            toggle: function(on, value) {
+                                if (this.classRef) {
+                                    _runtime.forEach(on, function (target) {
+                                        target.classList.toggle(classRef.className())
+                                    });
+                                } else {
+                                    _runtime.forEach(on, function (target) {
+                                        if (target.hasAttribute(attributeRef.name)) {
+                                            target.removeAttribute(attributeRef.name);
+                                        } else {
+                                            target.setAttribute(attributeRef.name, value)
+                                        }
+                                    });
                                 }
-                                return _runtime.unifiedEval(this, op, ctx, on, attributeRef ? attributeRef.value : null);
+                            },
+                            execute: function (ctx) {
+                                var op = function(context, on, value, time, evt, from) {
+                                    this.toggle(on, value);
+                                    if (time) {
+                                        setTimeout(function () {
+                                            toggleCmd.toggle(on, value);
+                                            _runtime.next(toggleCmd, ctx);
+                                        }, time);
+                                    } else if (evt) {
+                                        var target = from || ctx.me;
+                                        target.addEventListener(evt, function(){
+                                            toggleCmd.toggle(on, value);
+                                            _runtime.next(toggleCmd, ctx);
+                                        }, { once:true })
+                                    } else {
+                                        _runtime.next(toggleCmd, ctx);
+                                    }
+                                }
+                                return _runtime.unifiedEval(this, op, ctx, on, attributeRef ? attributeRef.value : null, time, evt, from);
 
                             }
                         };
@@ -2155,10 +2203,7 @@
                         // wait on event
                         if (tokens.matchToken("for")) {
                             tokens.matchToken("a"); // optional "a"
-                            var evt = parser.parseElement("dotOrColonPath", tokens);
-                            if (evt == null) {
-                                parser.raiseParseError(tokens, "Expected event name")
-                            }
+                            var evt = _parser.requireElement("Expected event name", "dotOrColonPath", tokens);
                             if (tokens.matchToken("from")) {
                                 var on = parser.parseElement("expression", tokens);
                             }
@@ -2181,21 +2226,15 @@
                                 }
                             };
                         } else {
-                            var time = parser.parseElement("expression", tokens);
-                            var factor = 1;
-                            if (tokens.matchToken("s") || tokens.matchToken("seconds")) {
-                                factor = 1000;
-                            } else if (tokens.matchToken("ms") || tokens.matchToken("milliseconds")) {
-                                // do nothing
-                            }
+                            var time = _parser.requireElement("A time expression is required", "timeExpression", tokens);
                             var waitCmd = {
                                 type: "waitCmd",
                                 time: time,
                                 execute: function (ctx) {
-                                    var op = function(context, time){
+                                    var op = function(context, timeValue){
                                         setTimeout(function () {
-                                            _runtime.next(waitCmd, ctx);
-                                        }, time * factor);
+                                            _runtime.next(waitCmd, context);
+                                        }, timeValue);
                                     }
                                     _runtime.unifiedEval(this, op, ctx, time);
                                 }

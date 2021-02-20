@@ -86,6 +86,6 @@ Here are the examples above in demo form:
 
 ## haiku
 
-*a button at hand<br/>
-often so inscrutable<br/>
-it says what it does*
+*the unknown button<br/>
+so often inscrutable<br/>
+now says what it does*

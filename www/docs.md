@@ -33,10 +33,10 @@ title: ///_hyperscript
 
 ## <a name="introduction"></a>[Introduction](#introduction)
 
-Hyperscript is an expressive scripting language for the web, inspired by the 
-[HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf) programming language, giving it a distinct, english-like syntax and first class event-handling.
+Hyperscript is a scripting language for the web, inspired by the 
+[HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf) programming language, giving it a distinct, english-like syntax & first class event-handling.
 
-One of the primary features of hyperscript is the ability to embed event handlers directly on HTML elements:
+One of the core features of hyperscript is the ability to embed event handlers directly on HTML elements:
 
 ```html
 <button _="on click put 'I was clicked!' into my.innerHTML">
@@ -342,6 +342,45 @@ If you omit a target, the default will be the current element
 ```html
 <!-- removes the .blocked class from the button -->
 <button _="on mouseover remove .blocked">
+  Click Me
+</button>
+```
+
+### <a name="toggler"></a>[Toggle](#toggle)
+
+The [toggle command](/commands/remove) allows you to toggle a class or property on an element or multiple elements in the DOM.  Depending on the syntax you pick, the toggle can be for a fixed amount of time, or until the reception of an event.
+
+Here are some examples:
+
+```html
+<!-- toggle the .checked class on the button -->
+<button _="on click toggle .checked">
+  Click Me
+</button>
+```
+
+You can toggle for a fixed amount of time by using the `for` modifier:
+
+```html
+<!-- toggle the .clicked class on the button for 2 seconds -->
+<button _="on click toggle .clicked for 2 s">
+  Click Me
+</button>
+```
+You can toggle until an event is received by using the `until` modifier:
+
+```html
+<!-- toggle the .clicked class on the button for 2 seconds -->
+<button _="on click toggle .clicked until transitionend">
+  Click Me
+</button>
+```
+
+As with the [add](#add) and [remove](#remove) commands, you can target other elements:
+
+```html
+<!-- toggle the .checked class on the element with the id anotherDiv -->
+<button _="on click toggle .checked on #anotherDiv">
   Click Me
 </button>
 ```

@@ -24,9 +24,9 @@ describe("the for command", function() {
     })
 
     it("waiting in for loop works", function(done){
-        var d1 = make("<div _='on click for x in [1, 2, 3]" +
-            "                                    put x at end of me" +
-            "                                    wait 10ms" +
+        var d1 = make("<div _='on click for x in [1, 2, 3]\n" +
+            "                                    put x at end of me\n" +
+            "                                    wait 10ms\n" +
             "                                  end'></div>");
         d1.click();
         d1.innerHTML.should.equal("1");
