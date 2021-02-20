@@ -1244,6 +1244,31 @@
                     }
                 });
 
+                _parser.addGrammarElement("arrayIndex", function (parser, tokens, root) {
+
+                    if (tokens.matchOpToken("[")) {
+                        var indexExp = parser.parseElement("expression", tokens)
+                        tokens.requireOpToken("]")
+
+                        var arrayIndex = {
+                            type: "arrayIndex",
+                            root: root,
+                            index: indexExp,
+                            evaluate: function (context) {
+                                var index = _runtime.unifiedEval(this, function(context, rootVal) {
+                                    return parseInt(rootVal)
+                                }, context, this.index)
+
+                                return _runtime.unifiedEval(this, function(context, rootVal){
+                                    return rootVal[index];
+                                }, context, root)
+                            }
+                        };
+
+                        return _parser.parseElement("indirectExpression", tokens, arrayIndex);
+                    }
+                });
+
                 _parser.addGrammarElement("indirectExpression", function (parser, tokens, root) {
                     var propAccess = parser.parseElement("propertyAccess", tokens, root);
                     if (propAccess) {
@@ -1253,6 +1278,11 @@
                     var functionCall = parser.parseElement("functionCall", tokens, root);
                     if (functionCall) {
                         return functionCall;
+                    }
+
+                    var arrayIndex = parser.parseElement("arrayIndex", tokens, root);
+                    if (arrayIndex) {
+                        return arrayIndex
                     }
 
                     return root;
