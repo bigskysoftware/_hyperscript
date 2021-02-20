@@ -348,7 +348,7 @@ h1,h2,h3,h4{
 
 }
 
-@media(max-width:45rem) {
+@media(max-width:calc(45rem - .1rem)) {
     .github-stars{
         text-align:center;
         margin-top:1em;

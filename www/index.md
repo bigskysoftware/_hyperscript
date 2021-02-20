@@ -7,18 +7,16 @@ title: ///_hyperscript
 
 hyperscript is a scripting language designed for the web, inspired by 
  [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf)
- 
-hyperscript has many interesting and practical features:
+
+hyperscript features include:
 
 <div style="padding: 16px">
 
-* it is [async-transparent](/docs#async), allowing you to mix both asyncrhonous and synchronous code in an intuitive, 
-  linear manner
-* it is event oriented, allowing you to work with DOM events in interesting and novel ways
-* it has DOM-friendly syntax, such as id and class literals
-* it supports [inline Web Workers](/docs#workers), allowing you to easily define a worker and interact with it via 
-  intuitive function calls
-* it is designed to be embedded directly in HTML, making it easy to see what HTML elements are up to
+* clean, inline embedding on HTML elements
+* excellent tools for working with DOM events
+* DOM-oriented syntax, such as element id and class literals
+* first class [web workers](/docs#workers)
+* [async-transparancy](/docs#async)
 
 </div>
 

@@ -5,7 +5,7 @@ describe("the _hyperscript parser", function() {
         startsWith(msg, "Expected either a class reference or attribute expression")
     })
 
-    it("continues parsing even in the presence of a parse error", function(){
+    it("continues initializing elements in the presence of a parse error", function(){
         var div = make("<div>" +
             "<div id='d1' _='on click bad'></div>" +
             "<div id='d2' _='on click put \"clicked\" into my.innerHTML'></div>" +
