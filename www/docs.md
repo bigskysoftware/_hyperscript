@@ -11,6 +11,17 @@ title: ///_hyperscript
 <div id="contents">
 
 * [introduction](#introduction)
+* [install & quick start](#install)
+* [the language](#lang)
+  * [features](#features)
+    * [on](#on)
+    * [def](#def)
+    * [worker](#worker)
+    * [js](#js)
+  * [commands](#commands)
+  * [expressions](#expressions)
+* [asynch behavior](#async)
+* [history](#history)
 
 </div>
 
@@ -31,7 +42,9 @@ One of the primary features of hyperscript is the ability to embed logic directl
   Click Me!
 </button>
 ``` 
-<button _="on click put 'I was clicked!' into my.innerHTML">
+<button class='btn primary' _="on click put 'I was clicked!' into my.innerHTML 
+                    then wait 2s
+                    then put 'Click Me' into my.innerHTML">
   Click Me!
 </button>
 
@@ -40,7 +53,7 @@ is up to.  Hyperscript is designed to read easily and be powerful enough that ma
 comfortably written directly inline.  (Of course, if you need to, you can pull logic out to [functions](#functions) as 
 well.)
 
-One of the most interesting aspect of hyperscript is that it is *async-transparent*.  That is, you can write code
+One of the most interesting aspect of hyperscript is that it is *[async-transparent](/#async)*.  That is, you can write code
 that is asynchronous in a linear manner.  Consider the following hyperscript function:
 
 ```javascript
@@ -77,7 +90,7 @@ all this without callbacks or any sort of `await` syntax.  It just works.  :)
 
 This gives you a flavor of the language, and I hope perks your interest.  Now let's get down to brass tacks...
 
-### Quick Start
+## <a name="install"></a>[Install & Quick Start](#install)
 
 Include hyperscript:
 
@@ -93,32 +106,24 @@ Then add some hyperscript to an element:
 </div>
 ```
 
-#### Yet Another Language?
+## <a name="lang"></a>[The Language](#lang)
 
-I know.
+hyperscript is based, in part on [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf) and thus has a distinctive, english-like syntax.  This may be off-putting at first, but it has a few advantages:
 
-The initial motivation for the language was the [event model](https://htmx.org/reference/#events) in htmx.  I wanted
-to have a way to utilize these events naturally and directly within HTML.  Most HTML tags support `on*` attributes
-for handling standard DOM events (e.g. `onClick`) but that doesn't work for custom events.  In intercooler, I had
-handled this by adding a bunch of custom event attributes, but that always felt hacky and wasn't general enough
-to handle custom events triggered by response headers, etc.
+* It is obvious when some code is hyperscript, since it looks so different than most other languages
+* Commands (statements) always start with a keyword, making it easy to parse
+* It reads well once you are used to it
 
-Additionally, I wanted to have a way to address some useful features from intercooler.js, but without causing htmx
-to lose focus on the core request/response processing infrastructure:
+The syntax will grow on you over time and, in any event, most scripts are small enough anyway.
 
-* [`ic-add-class`](http://intercoolerjs.org/attributes/ic-add-class.html) and [`ic-remove-class`](http://intercoolerjs.org/attributes/ic-remove-class.html)
-* [`ic-remove-after`](http://intercoolerjs.org/attributes/ic-remove-after.html)
-* [`ic-post-errors-to`](http://intercoolerjs.org/attributes/ic-post-errors-to.html)
-* [`ic-action`](http://intercoolerjs.org/attributes/ic-action.html) and all the associated attributes
+### <a name="features"></a>[Features](#features)
 
-The more I looked at it, the more I thought that there was a need for a small, domain specific language for all this, rather 
-than an explosion in attributes and inline javascript, or a hacky custom syntax as with `ic-action`.
+The top level constructs in hyperscript are called "features" and they
+provide the entry point into hyperscript.  The most common feature is the `on` feature:
 
-#### The Language
+### <a name="on"></a>[The On Feature](#on)
 
-So, what does hyperscript look like?  
-
-As mentioned above, hyperscript is designed to embed well directly within HTML:
+The [on feature](/features/on) allows you to embed event handlers directly in HTML and respond to events with hyperscript:
 
 ```html
 <button _="on click add .clicked">
@@ -127,23 +132,126 @@ As mentioned above, hyperscript is designed to embed well directly within HTML:
 ```
 
 The underscore (`_`) attribute is where hyperscript is stored.  You can also use `script` or `data-script` attribute, or 
-configure a different attribute if you don't like those.
+configure a different attribute if you don't like any of those.
 
 The script above says
 
-> On the 'click' event for this button, add the 'clicked' class to the button
+> On the 'click' event for this button, add the 'clicked' class to this button
 
-The syntax reads a lot like the english does.  This is intentional and drawn from HyperTalk (and its successors, such 
-as AppleTalk)
+Note how the hyperscript syntax reads a lot like the english does, making a lot of hyperscript code self-documenting.
 
-You can extend this example to target another element like so:
+#### <a name="on_every"></a>[On Every](#on_every)
+
+By default, the event handler will be run synchronously, so if you trigger again before it is finished, it will ignore the new event.  You can modify this behavior with the `every` modifier:
 
 ```html
-<div id="a-div">I'm a div</div>
-<button _="on click add .clicked to #a-div">
-  Add The "clicked" Class To That Div Above Me
+<button _="on every click add .clicked">
+  Add The "clicked" Class To Me
 </button>
 ```
+#### <a name="on_filters"></a>[On Filters](#on_filters)
+
+You can filter events by adding a bracketed expression after the event name.  The expression should return a boolean value `true` if the
+event handler should execute.  Note that symbols referenced in the expression will be resolved against the event, as well as the global
+scope.  This lets you for example test for a middle click:
+
+```html
+<button _="on click[button==1] add .clicked">
+  Middle-Click To Add The "clicked" Class To Me
+</button>
+```
+### <a name="def"></a>[The Def Feature](#def)
+
+The [def feature](/features/def) allows you define new hyperscript functions, and must be embedded in a `script` tag:
+
+```html
+<script type="text/hyperscript">
+  def waitAndReturn() 
+    wait 2s
+    return "I waited..."
+  end
+</script>
+```
+
+This will define a global function, `waitAndReturn()` that can be
+invoked from anywhere in hyperscript.  The function will also be available in javascript:
+
+```js
+  var str = waitAndReturn();
+  str.then(function(val){
+    console.log("String is: " + val);
+  })
+```
+
+In javascript, you must explicitly deal with the `Promise` created by the `wait` command, but the hyperscript runtime [takes care of all that](#async) for you behind the scenes.
+
+Note that if you have a normal, synchronous function like this:
+
+```html
+<script type="text/hyperscript">
+  def waitAndReturn() 
+    return "I waited..."
+  end
+</script>
+```
+
+then javascript could use it the normal, synchronous way:
+
+```js
+  var str = waitAndReturn();
+  console.log("String is: " + str);
+```
+
+hyperscript functions can take parameters and return values in the expected way:
+
+```html
+<script type="text/hyperscript">
+  def increment(i) 
+    return i + 1
+  end
+</script>
+```
+
+### <a name="workers"></a>[The Worker Feature](#workers)
+
+The [worker feature](/features/worker) allows you define a [WebWorker](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers) in hyperscript
+
+
+```html
+<script type="text/hyperscript">
+  worker Incrementer
+    def increment(i) 
+      return i + 1
+    end
+  end
+</script>
+```
+
+TODO....
+
+### <a name="js"></a>[The JS Feature](#js)
+
+The [js feature](/features/worker) allows you define javascript within hyperscript script tags.  You might do this for performance reasons, since the hyperscript runtime is more focused on flexibility, rather than performance.  This feature is most useful in [workers](#workers), when you want to pass javascript across to the worker's implementation:
+
+```html
+<script type="text/hyperscript">
+  worker CoinMiner
+    js
+      function mineNext() {
+        // a javascript implementation...
+      }
+    end
+    def nextCoin() 
+      return mineNext()
+    end
+  end
+</script>
+```
+
+Note that there is also a way to include [inline javascript](#inline_js)
+within a hyperscript function, for local optimizations around the hyperscript runtime.
+
+========= TODO fold this in 
 
 Now the `clicked` class will be added to the div with the id `a-div`, rather than to the element the event handler is
 on.
@@ -187,48 +295,28 @@ While some are a bit more exotic for an imperative programming language:
 
 Below is a reference for the various features, commands and expressions available in hyperscript:
 
-### <a name='features'></a>[Features](#features)
 
-|  name | description | example
-|-------|-------------|---------
-| [on](/features/on) | Creates an event listener | `on click log "clicked!"`
-| [js](/features/js) | Embed JavaScript code at the top level | `js return { foo() {...} } end`
+## <a name="history"></a>[History, or 'Yet Another Language?'](#history)
 
-### <a name='commands'></a>[Commands](#commands)
+I know.
 
-|  name | description | example
-|-------|-------------|---------
-| [add](/commands/add) | Adds content to a given target | `add .myClass to me`
-| [fetch](/commands/fetch) | Send a fetch request | `fetch /demo then put it into my.innerHTML`
-| [call/get](/commands/call) | Evaluates an expression (e.g. a Javascript Function) | `call alert('yep, you can call javascript!)` <br/><br/> `get prompt('Enter your name')`
-| [if](/commands/if) | A conditional control flow command | `if me.selected then call alert('I\'m selected!')`
-| [log](/commands/log) | Logs a given expression to the console, if possible | `log me`
-| [put](/commands/put) | Puts a value into a given variable or property| `put "cool!" into me.innerHTML`
-| [remove](/commands/remove) | Removes content | `log "bye, bye" then remove me`
-| [send](/commands/send) | Sends an event | `send customEvent to #a-div`
-| [set](/commands/set) | Sets a variable or property to a given value | `set x to 0`
-| [take](/commands/take) | Takes a class from a set of elements | `take .active from .tabs`
-| [toggle](/commands/toggle) | Toggles content on a target | `toggle .clicked on me`
-| [trigger](/commands/trigger) | triggers an event on the current element | `trigger customEvent`
-| [wait](/commands/wait) | Waits a given amount of time before resuming the command list | `wait 2s then remove me`
-| [js](/commands/js) | Embed JavaScript code inline | `js(a) return compute(a); end`
+The initial motivation for the language was the [event model](https://htmx.org/reference/#events) in htmx.  I wanted
+to have a way to utilize these events naturally and directly within HTML.  Most HTML tags support `on*` attributes
+for handling standard DOM events (e.g. `onClick`) but that doesn't work for custom events.  
 
-### <a href='expressions'></a>[Expressions](#expressions)
+In [intercooler](https://intercoolerjs.org), I had
+handled this by adding a bunch of custom event attributes, but that always felt hacky and wasn't general enough
+to handle custom events triggered by response headers, etc.
 
-|  name | description | example
-|-------|-------------|---------
-| [array literal](/expressions/array-literal) | An array literal, as in JavaScript | `[1, 2, 3]`
-| [attribute reference](/expressions/attribute-ref) | An attribute reference | `[selected=true]`
-| [block literal](/expressions/block-literal) | An anonymous function with an expression body | `\ x -> x * x`
-| [boolean](/expressions/boolean) | Boolean literals | `true`<br/>`false`
-| [class reference](/expressions/class-reference) | A class reference | `.active`
-| [comparison operator](/expressions/comparison-operator) | Comparison operators | `x < y`<br/>`z === "foo"`
-| [id reference](/expressions/id-reference) | An id reference | `#main-div`
-| [logical operator](/expressions/logical-operator) | Logical operators | `x and y`<br/>`z or false`
-| [math operator](/expressions/math-operator) | A mathematical operator | `1 + 2`
-| [number](/expressions/number) | A number | `3.14`
-| [object literal](/expressions/object-literal) | A javascript-style object literal | `{foo:"bar"}`
-| [string](/expressions/string) | A string | `"a string", 'another string'`
-| [target](/expressions/target) | A target for update | `.buttons.parent`
+Additionally, I wanted to have a way to address some useful features from intercooler.js, but without causing htmx
+to lose focus on the core request/response processing infrastructure:
+
+* [`ic-add-class`](http://intercoolerjs.org/attributes/ic-add-class.html) and [`ic-remove-class`](http://intercoolerjs.org/attributes/ic-remove-class.html)
+* [`ic-remove-after`](http://intercoolerjs.org/attributes/ic-remove-after.html)
+* [`ic-post-errors-to`](http://intercoolerjs.org/attributes/ic-post-errors-to.html)
+* [`ic-action`](http://intercoolerjs.org/attributes/ic-action.html) and all the associated attributes
+
+The more I looked at it, the more I thought that there was a need for a small, domain specific language for all this, rather 
+than an explosion in attributes and inline javascript, or a hacky custom syntax as with `ic-action`.
 
 </div>

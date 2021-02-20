@@ -134,7 +134,7 @@ h4 {
 }
 
 
-@media(max-width:calc(45rem - 1px)) {
+@media(max-width:45em) {
     #nav {
         height: 0px;
         overflow: hidden;
@@ -348,7 +348,7 @@ h1,h2,h3,h4{
 
 }
 
-@media(max-width:calc(45rem - 1px)) {
+@media(max-width:45rem) {
     .github-stars{
         text-align:center;
         margin-top:1em;
