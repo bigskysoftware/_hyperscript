@@ -8,7 +8,8 @@ title: ///_hyperscript
 |  name | description | example
 |-------|-------------|---------
 | [on](/features/on) | Creates an event listener | `on click log "clicked!"`
-| [js](/features/js) | Embed JavaScript code at the top level | `js return { foo() {...} } end`
+| [def](/features/def) | Defines a function | [see details...](/features/def)
+| [js](/features/js) | Embed JavaScript code at the top level | [see details...](/features/js)
 
 ## <a name='commands'></a>[Commands](#commands)
 

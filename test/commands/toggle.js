@@ -38,5 +38,30 @@ describe("the toggle command", function() {
         div.hasAttribute("foo").should.equal(false);
     })
 
+    it("can toggle for a fixed amount of time", function (done) {
+        var div = make("<div _='on click toggle .foo for 10ms'></div>");
+        div.classList.contains("foo").should.equal(false);
+        div.click();
+        div.classList.contains("foo").should.equal(true);
+        setTimeout(function () {
+            div.classList.contains("foo").should.equal(false);
+            done();
+        }, 20);
+    })
+
+    it("can toggle until an event on another element", function (done) {
+        var d1 = make("<div id='d1'></div>");
+        var div = make("<div _='on click toggle .foo until foo from #d1'></div>");
+        div.classList.contains("foo").should.equal(false);
+        div.click();
+        div.classList.contains("foo").should.equal(true);
+        d1.dispatchEvent(new CustomEvent("foo"));
+        setTimeout(function () {
+            div.classList.contains("foo").should.equal(false);
+            done();
+        }, 1);
+    })
+
+
 });
 
