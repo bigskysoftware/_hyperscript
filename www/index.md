@@ -82,3 +82,10 @@ Here are the examples above in demo form:
         </button>
     </div>
 </div>
+
+
+## haiku
+
+*a button at hand<br/>
+often so inscrutable<br/>
+it says what it does*

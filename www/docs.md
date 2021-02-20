@@ -19,6 +19,8 @@ title: ///_hyperscript
     * [worker](#worker)
     * [js](#js)
   * [commands](#commands)
+    * [add](#add)
+    * [remove](#remove)
   * [expressions](#expressions)
 * [asynch behavior](#async)
 * [history](#history)
@@ -47,7 +49,7 @@ One of the primary features of hyperscript is the ability to embed event handler
   Click Me!
 </button>
 
-Embedding event handling logic directly on elements in this manner makes it much easier to understand what a given element does, and hyperscript's syntax allows you to respond to any event, even custom events that you create.
+Embedding event handling logic directly on elements in this manner makes it much easier to understand what a given element does & hyperscript's syntax allows you to respond to *any event*, even custom events that you create or that are triggered by [other libraries](https://htmx.org/reference/#events).
 
 Hyperscript reads easily and is expressive enough that many common web patterns can be comfortably written directly inline.  (Of course, if you need to, you can factor logic out to [functions](#functions) as 
 well.)
@@ -280,13 +282,71 @@ within a hyperscript function, for local optimizations.
 
 Commands are the statements of the hyperscript langauge, and make up the body of functions, event handlers and so on.  In hyperscript, all commands start with a term, such as `add`, `remove` or `fetch`. 
 
-Commands may be separated with a `then` keyword.  This is recommended in event handlers (especially one-liners with multiple commands) but
-is not required.
+Commands may be separated with a `then` keyword.  This is recommended in one-liner event handlers but is not required.
 
+### <a name="add"></a>[Add](#add)
 
+The [add command](/commands/add) allows you to add classes or properties to an element or multiple elements in the DOM.
 
-                    return parser.parseAnyOf(["addCmd", "removeCmd", "toggleCmd", "waitCmd", "returnCmd", "sendCmd", "triggerCmd",
-                        "takeCmd", "logCmd", "callCmd", "putCmd", "setCmd", "ifCmd", "forCmd", "fetchCmd", "throwCmd", "jsCmd"], tokens);
+Here are some examples:
+
+```html
+<!-- adds the .clicked class to the div with id #aDiv -->
+<button _="on click add .clicked to #aDiv">
+  Click Me
+</button>
+```
+
+You can add a class to multiple elements by using a class reference instead:
+
+```html
+<!-- adds the .clicked class to all elements with the example class on it -->
+<button _="on click add .clicked to .example">
+  Click Me
+</button>
+```
+
+If you omit a target, the default will be the current element
+
+```html
+<!-- adds the .clicked class to the button -->
+<button _="on click add .clicked">
+  Click Me
+</button>
+```
+
+### <a name="remove"></a>[Remove](#remove)
+
+The [remove command](/commands/remove) allows you to remove classes or properties to an element or multiple elements in the DOM.
+
+Here are some examples:
+
+```html
+<!-- removes the .blocked class from the div with id #aDiv -->
+<button _="on click remove .blocked from #aDiv">
+  Click Me
+</button>
+```
+
+You can remove a class to multiple elements by using a class reference instead:
+
+```html
+<!-- removes the .blocked class from all elements with the .example class on them -->
+<button _="on click remove .blocked from .example">
+  Click Me
+</button>
+```
+
+If you omit a target, the default will be the current element
+
+```html
+<!-- removes the .blocked class from the button -->
+<button _="on mouseover remove .blocked">
+  Click Me
+</button>
+```
+
+["toggleCmd", "waitCmd", "returnCmd", "sendCmd", "triggerCmd", "takeCmd", "logCmd", "callCmd", "putCmd", "setCmd", "ifCmd", "forCmd", "fetchCmd", "throwCmd", "jsCmd"];
 
 
 ========= TODO fold this in 
