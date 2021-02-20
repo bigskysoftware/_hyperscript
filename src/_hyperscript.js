@@ -1892,24 +1892,42 @@
                         var jsSourceStart = tokens.currentToken().start;
                         var jsLastToken = null;
 
+                        var funcNames = [];
+                        var funcName = "";
+                        var expectFunctionDeclaration = false;
                         while (tokens.hasMore()) {
                             jsLastToken = tokens.consumeToken()
                             if (jsLastToken.type === "IDENTIFIER"
                                 && jsLastToken.value === "end") {
                                 break;
+                            } else if (expectFunctionDeclaration) {
+                                if (jsLastToken.type === "IDENTIFIER"
+                                    || jsLastToken.type === "NUMBER") {
+                                    funcName += jsLastToken.value;
+                                } else {
+                                    if (funcName !== "") funcNames.push(funcName);
+                                    funcName = "";
+                                    expectFunctionDeclaration = false;
+                                }
+                            } else if (jsLastToken.type === "IDENTIFIER"
+                                       && jsLastToken.value === "function") {
+                                expectFunctionDeclaration = true;
                             }
                         }
 
                         var jsSourceEnd = jsLastToken.start;
 
-                        var jsSource = tokens.source.substring(jsSourceStart, jsSourceEnd);
-
+                        var jsSource = tokens.source.substring(jsSourceStart, jsSourceEnd) +
+                            "\nreturn { " + 
+                            funcNames.map(function (name) {return name+":"+name}).join(",") +
+                            " };";
                         var func = new Function(jsSource);
 
                         return {
                             type: 'jsFeature',
                             jsSource: jsSource,
                             function: func,
+                            exposedFunctionNames: funcNames,
                             execute: function() {
                                 mergeObjects(globalScope, func())
                             }

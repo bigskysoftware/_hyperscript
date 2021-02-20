@@ -36,4 +36,30 @@ describe('The (top-level) js feature', function () {
     	assert.equal(window.foo(), 'test succeeded')
     	delete window.foo
     })
+
+    it('can hide functions', function() {
+        var script = make("<script type=text/hyperscript>" +
+                          "  js " +
+                          "    function bar() {} " +
+                          "    function foo() { " +
+                          "      return 'test succeeded'; " +
+                          "    } " +
+                          "    return { foo: foo }; " +
+                          "  end ");
+        assert.equal(window.foo(), 'test succeeded')
+        assert.notProperty(window, 'bar')
+        delete window.foo
+    })
+
+    it('does not expose variables', function() {
+        var script = make("<script type=text/hyperscript>" +
+                          "  js " +
+                          "    var foo = 'foo' " +
+                          "    let bar = 'bar' " +
+                          "    const baz = 'baz' " +
+                          "  end ");
+        assert.notProperty(window, 'foo')
+        assert.notProperty(window, 'bar')
+        assert.notProperty(window, 'baz')
+    })
 })

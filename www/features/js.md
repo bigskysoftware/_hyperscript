@@ -19,13 +19,28 @@ js
 end
 ```
 
-Declarations inside the `js` block are local to the block. If the JavaScript body returns an object as shown above, its properties will be copied to the global scope. As a result, this function can then be used in \_hyperscript code:
+`function` declarations inside a JS block will be exposed to the global scope (`let`, `var`, `const` declarations will not be exposed). As a result, this function can then be used in \_hyperscript code:
 
 ```html
 <input type=text _="
     on input call regexFind('(.*)\+.*@.*', 1, my.value" />
 ```
 
+If you don't want to expose all the functions, return an object containing those that you _do_ want to expose:
+
+```hyperscript
+js
+    function regexExec(re, str) {
+        return new RegExp(re).exec(str);
+    }
+
+    function regexFind(re, group, str) {
+        return regexExec(re, str)[group];
+    }
+
+    return { regexFind };
+end
+```
 
 <div hidden><!-- this is not implemented yet -->
 
