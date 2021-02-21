@@ -3,9 +3,18 @@ layout: layout.njk
 title: ///_hyperscript
 ---
 
-# The `js` Command (inline)
+## The `js` Command (inline)
 
 **Note:** This page is about the inline JS command. \_hyperscript also supports [JS blocks at the top level](/features/js/), say, for declaring helper functions.
+
+### Syntax
+
+`js[(<param-list>)] <js-body> end`
+
+* `param-list` is a comma separated list of identifiers, which are \_hyperscript variables that this JavaScript code will have access to
+* `js-body` is some JavaScript code whose return value will be the result of this command (what `it` refers to in the next command).
+
+### Description
 
 The `js` command can be used to embed JavaScript code inline in \_hyperscript, as shown below:
 
