@@ -15,4 +15,23 @@ describe("the _hyperscript parser", function() {
         div2.innerText.should.equal("clicked");
     })
 
+    it("can have comments in scripts", function(){
+        var script = make(
+            "<script type='text/hyperscript'>" +
+            "-- this is a comment\n" +
+            "def foo() -- this is another comment\n" +
+            "  return \"foo\"\n" +
+            "end --end with a comment" +
+            "</script>");
+        foo().should.equal("foo");
+        delete window.foo;
+    })
+
+    it("can have comments in attributes", function(){
+        var div = make("<div _='on click put \"clicked\" into my.innerHTML -- put some content into the div...'></div>")
+        div.click();
+        div.innerText.should.equal("clicked");
+    })
+
+
 })

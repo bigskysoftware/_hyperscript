@@ -830,7 +830,9 @@
                                 var tokens = _lexer.tokenize(src);
                                 var hyperScript = _parser.parseHyperScript(tokens);
                                 _runtime.applyEventListeners(hyperScript, target || elt);
-                                triggerEvent(target || elt, 'load');
+                                setTimeout(function () {
+                                    triggerEvent(target || elt, 'load');
+                                }, 1);
                             } catch(e) {
                                 console.error("hyperscript errors were found on the following element:", elt, "\n\n", e.message, e.stack);
                             }
@@ -1550,26 +1552,29 @@
                     var onFeatures = []
                     var functionFeatures = []
                     var workerFeatures = []
-                    do {
-                        var feature = parser.parseElement("feature", tokens);
-                        if (feature == null) {
-                            parser.raiseParseError("Unexpected feature type : " + tokens.currentToken());
-                        }
-                        if (feature.type === "onFeature") {
-                            onFeatures.push(feature);
-                        } else if(feature.type === "functionFeature") {
-                            feature.execute();
-                            functionFeatures.push(feature);
-                        } else if (feature.type === "workerFeature") {
-                            workerFeatures.push(feature);
-                            feature.execute();
-                        } else if (feature.type === "jsFeature") {
-                            feature.execute();
-                        }
-                        var chainedOn = feature.type === "onFeature" && tokens.currentToken() && tokens.currentToken().value === "on";
-                    } while ((chainedOn || tokens.matchToken("end")) && tokens.hasMore())
+
                     if (tokens.hasMore()) {
-                        parser.raiseParseError(tokens);
+                        do {
+                            var feature = parser.parseElement("feature", tokens);
+                            if (feature == null) {
+                                parser.raiseParseError("Unexpected feature type : " + tokens.currentToken());
+                            }
+                            if (feature.type === "onFeature") {
+                                onFeatures.push(feature);
+                            } else if(feature.type === "functionFeature") {
+                                feature.execute();
+                                functionFeatures.push(feature);
+                            } else if (feature.type === "workerFeature") {
+                                workerFeatures.push(feature);
+                                feature.execute();
+                            } else if (feature.type === "jsFeature") {
+                                feature.execute();
+                            }
+                            var chainedOn = feature.type === "onFeature" && tokens.currentToken() && tokens.currentToken().value === "on";
+                        } while ((chainedOn || tokens.matchToken("end")) && tokens.hasMore())
+                        if (tokens.hasMore()) {
+                            parser.raiseParseError(tokens);
+                        }
                     }
                     return {
                         type: "hyperscript",
@@ -2139,6 +2144,13 @@
                                 parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
                             }
                         }
+
+                        if (tokens.matchToken("on")) {
+                            var on = parser.parseElement("target", tokens);
+                        } else {
+                            var on = parser.parseElement("implicitMeTarget");
+                        }
+
                         if (tokens.matchToken("for")) {
                             var time = parser.requireElement("Expected a time element", "timeExpression", tokens);
                         } else if (tokens.matchToken("until")) {
@@ -2148,11 +2160,6 @@
                             }
                         }
 
-                        if (tokens.matchToken("on")) {
-                            var on = parser.parseElement("target", tokens);
-                        } else {
-                            var on = parser.parseElement("implicitMeTarget");
-                        }
                         var toggleCmd = {
                             type: "toggleCmd",
                             classRef: classRef,
@@ -2178,8 +2185,8 @@
                             },
                             execute: function (ctx) {
                                 var op = function(context, on, value, time, evt, from) {
-                                    this.toggle(on, value);
                                     if (time) {
+                                        this.toggle(on, value);
                                         setTimeout(function () {
                                             toggleCmd.toggle(on, value);
                                             _runtime.next(toggleCmd, ctx);
@@ -2190,7 +2197,9 @@
                                             toggleCmd.toggle(on, value);
                                             _runtime.next(toggleCmd, ctx);
                                         }, { once:true })
+                                        this.toggle(on, value);
                                     } else {
+                                        this.toggle(on, value);
                                         _runtime.next(toggleCmd, ctx);
                                     }
                                 }

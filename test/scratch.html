@@ -11,6 +11,63 @@
 <em>Work Area</em>
 <hr/>
 
+<h3>Fun w/ toggles</h3>
+
+<style>
+    #help {
+        opacity: 0;
+    }
+    #help.visible {
+        opacity: 1;
+        transition: opacity 200ms ease-in;
+    }
+</style>
+<div _="on mouseenter toggle .visible on #help until mouseleave">
+    Mouse Over Me!
+</div>
+<div id="help"> I'm a helpful message!</div>
+
+
+<style>
+    .red {
+        transition: 400ms ease-in;
+        background: red;
+    }
+    .red2 {
+        background: red;
+        transition: 2s ease-in;
+    }
+</style>
+<div class="btn btn-primary" _="on click toggle .red for 2s">
+    Toggle Red
+</div>
+
+<div class="btn btn-primary" _="on click toggle .red2 until transitionend">
+    Toggle Red
+</div>
+
+<style>
+    #throbber {
+        transition: all 800ms ease-in-out;
+    }
+    .red3 {
+        background: red;
+    }
+</style>
+<br/>
+<br/>
+<br/>
+
+<div id="throbber"
+     _="on load
+             for x in [1, 2, 3, 4]
+               toggle .red3 until transitionend
+               then wait for transitionend
+             end">
+    Throbber
+</div>
+
+<h3>Scroll Other Thing</h3>
 
 <div _="on click log me then send scrollToEnd to #anotherDiv">
     Scroll it
@@ -26,6 +83,7 @@
     <p>P7</p>
     <p>P8</p>
 </div>
+
 
 </body>
 </html>
