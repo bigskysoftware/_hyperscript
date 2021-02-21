@@ -31,6 +31,24 @@ describe("the on feature", function() {
         div.classList.contains("clicked").should.equal(true);
     })
 
+    it("supports \"elsewhere\" modifier", function(){
+        var div = make("<div _='on click elsewhere add .clicked'></div>");
+        div.classList.contains("clicked").should.equal(false);
+        div.click();
+        div.classList.contains("clicked").should.equal(false);
+        document.body.click();
+        div.classList.contains("clicked").should.equal(true);
+    })
+
+    it("supports \"from elsewhere\" modifier", function(){
+        var div = make("<div _='on click from elsewhere add .clicked'></div>");
+        div.classList.contains("clicked").should.equal(false);
+        div.click();
+        div.classList.contains("clicked").should.equal(false);
+        document.body.click();
+        div.classList.contains("clicked").should.equal(true);
+    })
+
     it("can pick detail fields out by name", function(){
         var bar = make("<div id='d1' _='on click send custom(foo:\"fromBar\") to #d2'></div>");
         var div = make("<div id='d2' _='on custom(foo) call me.classList.add(foo)'></div>");

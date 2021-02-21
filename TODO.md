@@ -1,7 +1,7 @@
 ## TODOs
 
 ## 0.0.4 features
-* @Deniz Akşimşek Support an `elsewhere` modifier for the `on` feature, akin to the click-away concept from AlpineJS:
+* **_DONE_** @Deniz Akşimşek Support an `elsewhere` modifier for the `on` feature, akin to the click-away concept from AlpineJS:
 ```html
 <div _="on click elsewhere trigger hide
         on hide remove .visible from me">
