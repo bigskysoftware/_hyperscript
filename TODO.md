@@ -1,7 +1,6 @@
 ## TODOs
 
-### Language Features
-* Support a `timeout` modifier for async commands like `fetch`, `call`, `wait for` etc.
+## 0.0.4 features
 * Support an `elsewhere` modifier for the `on` feature, akin to the click-away concept from AlpineJS:
 ```html
 <div _="on click elsewhere trigger hide
@@ -14,6 +13,62 @@
     * support the [] operator
     * add `first`, `last` and `random` pseudo-properties
     * property references off of arrays (that are not `length`, `first`, `last` or `random`) are flatMaps
+* support a `repeat` command (see HyperTalk) to support indefinite looping
+```
+// Infinite loop
+repeat forever
+  call blink()
+end
+
+// Simple repeat without requiring a counter
+repeat 5 times
+    call pulse()
+end
+
+// By default, counter uses "it" convention
+repeat from 1 to 10 
+    put it in myVar
+end
+
+// Loop over an array (counter is still "it")
+repeat in [1, 2, 3, 4, 5]
+    put it in myVar
+end
+
+// Assign a variable name if you don't want to use "it"
+repeat for x in ['a', 'b', 'c', 'd']
+    call myVar(x) 
+end
+
+// This would also work if IterableVariable is an Array or Object
+repeat for x in IterableVariable
+    call JsFn(x)
+end
+
+// until loops
+repeat until myVar is 100 
+    call increment(myVar) 
+end
+
+// while loops
+repeat while myVar < 100
+    call amazingJSHere(myVar)
+end
+
+// event gated loops
+repeat until event foo
+  log "not yet..."
+end
+
+repeat until event foo on #bar 
+  log "not yet..."
+end
+```
+* First pass at documentation
+
+### Language Features
+* Support `is`, `is not`, `is really`, `is greater than` etc.
+* Support a `timeout` modifier for async commands like `fetch`, `call`, `wait for` etc.
 * the `on` feature needs to support a count filter (and numeric ranges)
 ```on click 1 log "first click"
    on click 2.. on log "this ain't my first click"
@@ -25,7 +80,6 @@
   on click enqueued log "throttled click"
 ```
 * functions should be able to be marked `sync` to make only one execution at a time occur, in serial fashion
-* support a `loop` command (see HyperTalk) to support indefinite looping
 * support a non-blocking `listen` command for listening for an event without blocking
 ```
   listen for click on #btn with clicked
@@ -39,33 +93,14 @@
   wait for transitionend on #bar
   remove .finishTransition from #bar
 ```
-* support a `find` expression or statement that allows for general querying against the DOM
+* support a `select` expression or statement that allows for general querying against the DOM
 ```
-  find .foo
-  find .foo .bar
-  find .foo in bar
-  find one div.foo in section.bar
-  find one div.foo in section.bar where children.count > 2
+  select .foo
+  select .foo .bar
+  select .foo in bar
+  select one div.foo in section.bar
+  select one div.foo in section.bar where children.count > 2
 ```
-* inline js both at the top level (mainly for workers) and inside functions
-```
-js
-  function foo() {
-    // some garbage js
-  }
-end
-
-def foo()
-  set x to 10
-  js
-    in: x
-    out: y
-    var y = x + someJavscriptFunction();
-  end
-  log y
- end
-```
-* support double dash comments `-- this is a comment`
 
 #### Speculative Language Features
 * A two-way binding system (maybe a global two way-bound namespace? hyperplane?
