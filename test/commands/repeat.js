@@ -86,7 +86,7 @@ describe("the repeat command", function() {
         delete window.repeatForeverWithReturn;
     })
 
-    it("repeat forever works w/o keyworkd", function(){
+    it("repeat forever works w/o keyword", function(){
         make("" +
             "<script type='text/hyperscript'>" +
             "  def repeatForeverWithReturn()" +
@@ -121,6 +121,60 @@ describe("the repeat command", function() {
         d1.click();
         d1.innerHTML.should.equal("a0ab1abc2");
     })
+
+    it("while keyword works", function(){
+        make("" +
+            "<script type='text/hyperscript'>" +
+            "  def repeatForeverWithReturn()" +
+            "    set retVal to 0" +
+            "    repeat while retVal < 5" +
+            "       set retVal to retVal + 1" +
+            "    end" +
+            "    return retVal" +
+            "  end" +
+            "</script>" +
+            "<div id='d1' _='on click put repeatForeverWithReturn() into my.innerHTML'></div>");
+        var d1 = byId('d1');
+        d1.click();
+        d1.innerHTML.should.equal("5");
+        delete window.repeatForeverWithReturn;
+    })
+
+    it("only executes the init expression once", function(){
+        make("" +
+            "<script type='text/hyperscript'>" +
+            "  def getArray()" +
+            "    set window.called to (window.called or 0) + 1" +
+            "    return [1, 2, 3]" +
+            "  end" +
+            "</script>" +
+            "<div id='d1' _='on click for x in getArray() put x into my.innerHTML end'></div>");
+        var d1 = byId('d1');
+        d1.click();
+        d1.innerHTML.should.equal("3");
+        window.called.should.equal(1);
+        delete window.getArray;
+        delete window.called;
+    })
+
+    it("can nest loops", function(){
+        make("" +
+            "<script type='text/hyperscript'>" +
+            "  def sprayInto(elt)" +
+            "    for x in [1, 2, 3]" +
+            "      for y in [1, 2, 3]" +
+            "        put x * y at end of elt" +
+            "      end" +
+            "    end" +
+            "  end" +
+            "</script>" +
+            "<div id='d1' _='on click call sprayInto(me)'></div>");
+        var d1 = byId('d1');
+        d1.click();
+        d1.innerHTML.should.equal("123246369");
+        delete window.sprayInto;
+    })
+
 
 
 });

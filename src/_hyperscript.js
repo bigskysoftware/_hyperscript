@@ -2650,6 +2650,8 @@
                         } else if (tokens.matchToken("in")) {
                             var identifier = "it";
                             var expression = parser.requireElement("Expected an expression", "expression", tokens);
+                        } else if (tokens.matchToken("while")) {
+                            var whileExpr = parser.requireElement("Expected an expression", "expression", tokens);
                         } else {
                             tokens.matchToken("forever"); // consume optional forever
                             var forever = true;
@@ -2679,12 +2681,13 @@
                             slot: slot,
                             expression: expression,
                             forever: forever,
+                            whileExpr: whileExpr,
                             resolveNext: function() {
                                 return this;
                             },
                             loop: loop,
                             execute: function (ctx) {
-                                var op = function(context, value) {
+                                var op = function(context, value, whileValue) {
                                     var iterator = ctx.meta.iterators[slot];
                                     if (iterator == null) { // loop initialization
                                         ctx.meta.iterators[slot] = {
@@ -2694,6 +2697,7 @@
                                         this.execute(ctx); // continue to loop
                                     } else {
                                         if (this.forever ||
+                                            whileValue ||
                                             (iterator.value !== null &&
                                                 iterator.index < iterator.value.length)) {
                                             if (iterator.value) {
@@ -2726,7 +2730,9 @@
                                         }
                                     }
                                 }
-                                _runtime.unifiedEval(this, op, ctx, expression);
+                                _runtime.unifiedEval(this, op, ctx,
+                                    ctx.meta.iterators[slot] ? ctx.meta.iterators[slot] : expression,
+                                    whileExpr);
                             }
                         };
                         parser.setParent(loop, repeatCmd);
