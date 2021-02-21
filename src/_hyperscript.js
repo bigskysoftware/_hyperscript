@@ -230,7 +230,14 @@
                     }
 
                     function currentToken() {
-                        return tokens[0];
+                        var token = tokens[0];
+                        if (token) {
+                            return token;
+                        } else {
+                            return {
+                                type:"EOF"
+                            }
+                        }
                     }
 
                     return {
@@ -1527,7 +1534,7 @@
 
                 _parser.addGrammarElement("command", function (parser, tokens) {
                     return parser.parseAnyOf(["addCmd", "removeCmd", "toggleCmd", "waitCmd", "returnCmd", "sendCmd", "triggerCmd",
-                        "takeCmd", "logCmd", "callCmd", "putCmd", "setCmd", "ifCmd", "forCmd", "fetchCmd", "throwCmd", "jsCmd"], tokens);
+                        "takeCmd", "logCmd", "callCmd", "putCmd", "setCmd", "ifCmd", "repeatCmd", "fetchCmd", "throwCmd", "jsCmd"], tokens);
                 })
 
                 _parser.addGrammarElement("commandList", function (parser, tokens) {
@@ -2613,17 +2620,20 @@
                     }
                 })
 
-                _parser.addGrammarElement("forCmd", function (parser, tokens) {
-                    if (tokens.matchToken("for")) {
-                        var identifier = tokens.requireTokenType('IDENTIFIER');
-                        tokens.matchToken("in"); // optional 'then'
-                        var expression = parser.parseElement("expression", tokens);
+                _parser.addGrammarElement("repeatCmd", function (parser, tokens) {
+                    if (tokens.matchToken("repeat") || tokens.currentToken().value === "for") {
+                        if (tokens.matchToken("for")) {
+                            var identifier = tokens.requireTokenType('IDENTIFIER');
+                            tokens.matchToken("in"); // optional 'then'
+                            var expression = parser.parseElement("expression", tokens);
+                        }
                         var loop = parser.parseElement("commandList", tokens);
                         if (tokens.hasMore()) {
                             tokens.requireToken("end");
                         }
+
                         var forCmd = {
-                            type: "forCmd",
+                            type: "repeatCmd",
                             identifier: identifier.value,
                             expression: expression,
                             loop: loop,
