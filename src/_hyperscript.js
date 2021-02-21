@@ -834,7 +834,7 @@
                                     triggerEvent(target || elt, 'load');
                                 }, 1);
                             } catch(e) {
-                                console.error("hyperscript errors were found on the following element:", elt, "\n\n", e.message, e.stack);
+                                console.error("hyperscript errors were found on the following element:", elt, "\n\n", e.message);
                             }
                         }
                     }
