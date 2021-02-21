@@ -821,7 +821,9 @@
                                 var tokens = _lexer.tokenize(src);
                                 var hyperScript = _parser.parseHyperScript(tokens);
                                 _runtime.applyEventListeners(hyperScript, target || elt);
-                                triggerEvent(target || elt, 'load');
+                                setTimeout(function () {
+                                    triggerEvent(target || elt, 'load');
+                                }, 1);
                             } catch(e) {
                                 console.error("hyperscript errors were found on the following element:", elt, "\n\n", e.message);
                             }
@@ -2173,8 +2175,8 @@
                             },
                             execute: function (ctx) {
                                 var op = function(context, on, value, time, evt, from) {
-                                    this.toggle(on, value);
                                     if (time) {
+                                        this.toggle(on, value);
                                         setTimeout(function () {
                                             toggleCmd.toggle(on, value);
                                             _runtime.next(toggleCmd, ctx);
@@ -2182,10 +2184,14 @@
                                     } else if (evt) {
                                         var target = from || ctx.me;
                                         target.addEventListener(evt, function(){
-                                            toggleCmd.toggle(on, value);
-                                            _runtime.next(toggleCmd, ctx);
+                                            setTimeout(function(){
+                                                toggleCmd.toggle(on, value);
+                                                _runtime.next(toggleCmd, ctx);
+                                            }, 100)
                                         }, { once:true })
+                                        this.toggle(on, value);
                                     } else {
+                                        this.toggle(on, value);
                                         _runtime.next(toggleCmd, ctx);
                                     }
                                 }

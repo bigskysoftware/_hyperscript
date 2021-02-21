@@ -31,6 +31,25 @@
     Toggle Red
 </div>
 
+<style>
+    #throbber {
+        transition: all 800ms ease-in-out;
+    }
+    .red3 {
+        background: red;
+    }
+</style>
+<br/>
+<br/>
+<br/>
+<div id="throbber"
+     _="on load
+           for x in [1, 2, 3, 4]
+                  toggle .red3 until transitionend
+                  then wait for transitionend
+                end">
+    Throbber
+</div>
 
 <h3>Scroll Other Thing</h3>
 
