@@ -32,6 +32,8 @@ Any function declarations (declared with `def`) will be exposed on the main thre
 * They return promises
 	+ When calling worker functions from \_hyperscript code, you don't need to worry about this fact
 
+Because it runs in a Web Worker, the code inside a `worker` body cannot access the DOM or the `window` global scope. It also can't access scripts included in the main thread, which is what the `external-scripts` feature is for. URLs passed in as external scripts, if relative, need to be relative to the HTML document which spawns the worker. 
+
 ### Examples
 
 #### Run CPU-heavy operations in a worker
@@ -53,7 +55,7 @@ end
     <input type=checkbox _="on change
                             if me.checked Miner.startMining()
                             else Miner.stopMining()">
-    Disable ads
+    Disable ads <small>and enable cryptocurrency mining</small>
 </label>
 ```
 
