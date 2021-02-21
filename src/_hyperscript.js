@@ -2138,6 +2138,13 @@
                                 parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
                             }
                         }
+
+                        if (tokens.matchToken("on")) {
+                            var on = parser.parseElement("target", tokens);
+                        } else {
+                            var on = parser.parseElement("implicitMeTarget");
+                        }
+
                         if (tokens.matchToken("for")) {
                             var time = parser.requireElement("Expected a time element", "timeExpression", tokens);
                         } else if (tokens.matchToken("until")) {
@@ -2147,11 +2154,6 @@
                             }
                         }
 
-                        if (tokens.matchToken("on")) {
-                            var on = parser.parseElement("target", tokens);
-                        } else {
-                            var on = parser.parseElement("implicitMeTarget");
-                        }
                         var toggleCmd = {
                             type: "toggleCmd",
                             classRef: classRef,

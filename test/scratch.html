@@ -14,6 +14,21 @@
 <h3>Fun w/ toggles</h3>
 
 <style>
+    #help {
+        opacity: 0;
+    }
+    #help.visible {
+        opacity: 1;
+        transition: opacity 200ms ease-in;
+    }
+</style>
+<div _="on mouseenter toggle .visible on #help until mouseleave">
+    Mouse Over Me!
+</div>
+<div id="help"> I'm a helpful message!</div>
+
+
+<style>
     .red {
         transition: 400ms ease-in;
         background: red;
@@ -42,12 +57,13 @@
 <br/>
 <br/>
 <br/>
+
 <div id="throbber"
      _="on load
-           for x in [1, 2, 3, 4]
-                  toggle .red3 until transitionend
-                  then wait for transitionend
-                end">
+             for x in [1, 2, 3, 4]
+               toggle .red3 until transitionend
+               then wait for transitionend
+             end">
     Throbber
 </div>
 
