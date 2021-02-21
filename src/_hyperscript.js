@@ -888,8 +888,8 @@
 
                 function next(command, ctx) {
                     if (command) {
-                        if (command.handleNext) {
-                            command.handleNext(ctx);
+                        if (command.resolveNext) {
+                            command.resolveNext().execute(ctx);
                         } else if (command.next) {
                             command.next.execute(ctx);
                         } else {
@@ -2650,7 +2650,8 @@
                         } else if (tokens.matchToken("in")) {
                             var identifier = "it";
                             var expression = parser.requireElement("Expected an expression", "expression", tokens);
-                        } else if (tokens.matchToken("forever")) {
+                        } else {
+                            tokens.matchToken("forever"); // consume optional forever
                             var forever = true;
                         }
 
@@ -2671,60 +2672,65 @@
                             var slot = identifier + "_" + currentToken.position;
                         }
 
-                        var forCmd = {
+                        var repeatCmd = {
                             type: "repeatCmd",
                             identifier: identifier,
                             indexIdentifier: indexIdentifier,
                             slot: slot,
                             expression: expression,
                             forever: forever,
+                            resolveNext: function() {
+                                return this;
+                            },
                             loop: loop,
                             execute: function (ctx) {
                                 var op = function(context, value) {
-                                    ctx.meta.iterators[slot] = {
-                                        index: 0,
-                                        value: value
-                                    };
-                                    this.handleNext(ctx);
+                                    var iterator = ctx.meta.iterators[slot];
+                                    if (iterator == null) { // loop initialization
+                                        ctx.meta.iterators[slot] = {
+                                            index: 0,
+                                            value: value
+                                        };
+                                        this.execute(ctx); // continue to loop
+                                    } else {
+                                        if (this.forever ||
+                                            (iterator.value !== null &&
+                                                iterator.index < iterator.value.length)) {
+                                            if (iterator.value) {
+                                                ctx[identifier] = iterator.value[iterator.index];
+                                                ctx.it = iterator.value[iterator.index];
+                                            } else {
+                                                ctx.it = iterator.index;
+                                            }
+                                            if (indexIdentifier) {
+                                                ctx[indexIdentifier] = iterator.index;
+                                            }
+                                            iterator.index++;
+                                            // TODO: every 1000 iterations set a timeout to avoid stack blowout
+                                            // TODO: of loop.execute() until unifiedEval() has been reworked to not
+                                            // TODO: recursively call execute()
+                                            if (iterator.index % 100 === 0) {
+                                                setTimeout(function () {
+                                                    loop.execute(ctx);
+                                                }, 1);
+                                            } else {
+                                                loop.execute(ctx);
+                                            }
+                                        } else {
+                                            ctx.meta.iterators[slot] = null;
+                                            if (this.next) {
+                                                this.next.execute(ctx);
+                                            } else {
+                                                _runtime.next(this.parent, ctx);
+                                            }
+                                        }
+                                    }
                                 }
                                 _runtime.unifiedEval(this, op, ctx, expression);
-                            },
-                            handleNext: function (ctx) {
-                                var iterator = ctx.meta.iterators[slot];
-                                if (this.forever ||
-                                    (iterator.value !== null &&
-                                     iterator.index < iterator.value.length)) {
-                                    if (iterator.value) {
-                                        ctx[identifier] = iterator.value[iterator.index];
-                                        ctx.it = iterator.value[iterator.index];
-                                    } else {
-                                        ctx.it = iterator.index;
-                                    }
-                                    if (indexIdentifier) {
-                                        ctx[indexIdentifier] = iterator.index;
-                                    }
-                                    iterator.index++;
-                                    // every 1000 iterations set a timeout to avoid stack blowout
-                                    // of loop.execute() until unifiedEval() has been reworked to not
-                                    // recursively call execute()
-                                    if (iterator.index % 100 === 0) {
-                                        setTimeout(function () {
-                                            loop.execute(ctx);
-                                        }, 1);
-                                    } else {
-                                        loop.execute(ctx);
-                                    }
-                                } else {
-                                    if (forCmd.next) {
-                                        forCmd.next.execute(ctx);
-                                    } else {
-                                        _runtime.next(forCmd.parent, ctx)
-                                    }
-                                }
                             }
                         };
-                        parser.setParent(loop, forCmd);
-                        return forCmd
+                        parser.setParent(loop, repeatCmd);
+                        return repeatCmd
                     }
                 })
 

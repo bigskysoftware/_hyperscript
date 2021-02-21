@@ -230,7 +230,14 @@
                     }
 
                     function currentToken() {
-                        return tokens[0];
+                        var token = tokens[0];
+                        if (token) {
+                            return token;
+                        } else {
+                            return {
+                                type:"EOF"
+                            }
+                        }
                     }
 
                     return {
@@ -465,6 +472,11 @@
                     throw error
                 }
 
+                function requireElement(message, type, tokens, root) {
+                    var result = parseElement(type, tokens, root);
+                    return result || raiseParseError(tokens, message);
+                }
+
                 function parseElement(type, tokens, root) {
                     var expressionDef = GRAMMAR[type];
                     if (expressionDef) return expressionDef(_parser, tokens, root);
@@ -494,6 +506,7 @@
                 return {
                     // parser API
                     setParent: setParent,
+                    requireElement: requireElement,
                     parseElement: parseElement,
                     parseAnyOf: parseAnyOf,
                     parseHyperScript: parseHyperScript,
@@ -601,6 +614,7 @@
                     }
                 }
 
+                // TODO - handle execute distinctly from eval, with a loop
                 function unifiedEval(parseElement, op, ctx) {
                     var args = [ctx]
                     var async = false;
@@ -746,8 +760,12 @@
 
                 function applyEventListeners(hypeScript, elt) {
                     forEach(hypeScript.onFeatures, function (onFeature) {
-                        forEach(onFeature.from ? onFeature.from.evaluate({}) : [elt], function(target){ // OK NO PROMISE
+                        forEach(
+                            onFeature.elsewhere ? [document]
+                                : onFeature.from ? onFeature.from.evaluate({})
+                                : [elt], function(target){ // OK NO PROMISE
                             target.addEventListener(onFeature.on.evaluate(), function(evt){ // OK NO PROMISE
+                                if (onFeature.elsewhere && elt.contains(evt.target)) return
                                 var ctx = makeContext(onFeature, elt, evt);
                                 onFeature.execute(ctx)
                             });
@@ -809,12 +827,18 @@
                     if (!internalData.initialized) {
                         var src = getScript(elt);
                         if (src) {
-                            internalData.initialized = true;
-                            internalData.script = src;
-                            var tokens = _lexer.tokenize(src);
-                            var hyperScript = _parser.parseHyperScript(tokens);
-                            _runtime.applyEventListeners(hyperScript, target || elt);
-                            triggerEvent(target || elt, 'load');
+                            try {
+                                internalData.initialized = true;
+                                internalData.script = src;
+                                var tokens = _lexer.tokenize(src);
+                                var hyperScript = _parser.parseHyperScript(tokens);
+                                _runtime.applyEventListeners(hyperScript, target || elt);
+                                setTimeout(function () {
+                                    triggerEvent(target || elt, 'load');
+                                }, 1);
+                            } catch(e) {
+                                console.error("hyperscript errors were found on the following element:", elt, "\n\n", e.message);
+                            }
                         }
                     }
                 }
@@ -1193,6 +1217,26 @@
                     return parser.parseAnyOf(["parenthesized", "boolean", "null", "string", "number", "idRef", "classRef", "symbol", "propertyRef", "objectLiteral", "arrayLiteral", "blockLiteral"], tokens)
                 });
 
+                _parser.addGrammarElement("timeExpression", function(parser, tokens){
+                    var time = parser.requireElement("Expected a time expression", "expression", tokens);
+                    var factor = 1;
+                    if (tokens.matchToken("s") || tokens.matchToken("seconds")) {
+                        factor = 1000;
+                    } else if (tokens.matchToken("ms") || tokens.matchToken("milliseconds")) {
+                        // do nothing
+                    }
+                    return {
+                        type:"timeExpression",
+                        time: time,
+                        factor: factor,
+                        evaluate: function (context) {
+                            return _runtime.unifiedEval(this, function (context, val) {
+                                return val * this.factor
+                            }, context, time);
+                        }
+                    }
+                })
+
                 _parser.addGrammarElement("propertyAccess", function (parser, tokens, root) {
                     if (tokens.matchOpToken(".")) {
                         var prop = tokens.requireTokenType("IDENTIFIER");
@@ -1495,7 +1539,7 @@
 
                 _parser.addGrammarElement("command", function (parser, tokens) {
                     return parser.parseAnyOf(["addCmd", "removeCmd", "toggleCmd", "waitCmd", "returnCmd", "sendCmd", "triggerCmd",
-                        "takeCmd", "logCmd", "callCmd", "putCmd", "setCmd", "ifCmd", "forCmd", "fetchCmd", "throwCmd", "jsCmd"], tokens);
+                        "takeCmd", "logCmd", "callCmd", "putCmd", "setCmd", "ifCmd", "repeatCmd", "fetchCmd", "throwCmd", "jsCmd"], tokens);
                 })
 
                 _parser.addGrammarElement("commandList", function (parser, tokens) {
@@ -1511,32 +1555,34 @@
                     var onFeatures = []
                     var functionFeatures = []
                     var workerFeatures = []
-                    do {
-                        var feature = parser.parseElement("feature", tokens);
-                        if (feature == null) {
-                            parser.raiseParseError("Unexpected feature type : " + tokens.currentToken());
-                        }
-                        if (feature.type === "onFeature") {
-                            onFeatures.push(feature);
-                        } else if(feature.type === "functionFeature") {
-                            feature.execute();
-                            functionFeatures.push(feature);
-                        } else if (feature.type === "workerFeature") {
-                            workerFeatures.push(feature);
-                            feature.execute();
-                        } else if (feature.type === "jsFeature") {
-                            feature.execute();
-                            // because the jsFeature production eats the `end`
-                            // token, the loop condition will be false. we are
-                            // working around that.
-                            //
-                            // see: `_parser.addGrammarElement("jsFeature")`
-                            if (tokens.hasMore()) continue;
-                        }
-                        var chainedOn = feature.type === "onFeature" && tokens.currentToken() && tokens.currentToken().value === "on";
-                    } while ((chainedOn || tokens.matchToken("end")) && tokens.hasMore())
                     if (tokens.hasMore()) {
-                        parser.raiseParseError(tokens);
+                        do {
+                            var feature = parser.parseElement("feature", tokens);
+                            if (feature == null) {
+                                parser.raiseParseError("Unexpected feature type : " + tokens.currentToken());
+                            }
+                            if (feature.type === "onFeature") {
+                                onFeatures.push(feature);
+                            } else if(feature.type === "functionFeature") {
+                                feature.execute();
+                                functionFeatures.push(feature);
+                            } else if (feature.type === "workerFeature") {
+                                workerFeatures.push(feature);
+                                feature.execute();
+                            } else if (feature.type === "jsFeature") {
+                                feature.execute();
+                                // because the jsFeature production eats the `end`
+                                // token, the loop condition will be false. we are
+                                // working around that.
+                                //
+                                // see: `_parser.addGrammarElement("jsFeature")`
+                                if (tokens.hasMore()) continue;
+                            }
+                            var chainedOn = feature.type === "onFeature" && tokens.currentToken() && tokens.currentToken().value === "on";
+                        } while ((chainedOn || tokens.matchToken("end")) && tokens.hasMore())
+                        if (tokens.hasMore()) {
+                            parser.raiseParseError(tokens);
+                        }
                     }
                     return {
                         type: "hyperscript",
@@ -1564,10 +1610,7 @@
                         if (tokens.matchToken("every")) {
                             every = true;
                         }
-                        var on = parser.parseElement("dotOrColonPath", tokens);
-                        if (on == null) {
-                            parser.raiseParseError(tokens, "Expected event name")
-                        }
+                        var on = parser.requireElement("Expected event name", "dotOrColonPath", tokens);
 
                         var args = [];
                         if (tokens.matchOpToken("(")) {
@@ -1584,14 +1627,24 @@
                         }
 
                         var from = null;
+                        var elsewhere = false;
                         if (tokens.matchToken("from")) {
-                            from = parser.parseElement("target", tokens);
-                            if (from == null) {
-                                parser.raiseParseError(tokens, "Expected target value")
+                            if (tokens.matchToken('elsewhere')) {
+                                elsewhere = true;
+                            } else {
+                                from = parser.parseElement("target", tokens)
+                                if (!from) {
+                                    raiseParseError('Expected either target value or "elsewhere".', tokens);
+                                }
                             }
                         }
 
-                        var start = parser.parseElement("commandList", tokens);
+                        // support both "elsewhere" and "from elsewhere"
+                        if (from === null && elsewhere === false && tokens.matchToken("elsewhere")) {
+                            elsewhere = true;
+                        }                        
+
+                        var start = parser.requireElement("Expected a command list", "commandList", tokens);
 
                         var end = start;
                         while (end.next) {
@@ -1611,6 +1664,7 @@
                             on: on,
                             every: every,
                             from: from,
+                            elsewhere: elsewhere,
                             filter: filter,
                             start: start,
                             executing: false,
@@ -1888,24 +1942,42 @@
                         var jsSourceStart = tokens.currentToken().start;
                         var jsLastToken = null;
 
+                        var funcNames = [];
+                        var funcName = "";
+                        var expectFunctionDeclaration = false;
                         while (tokens.hasMore()) {
                             jsLastToken = tokens.consumeToken()
                             if (jsLastToken.type === "IDENTIFIER"
                                 && jsLastToken.value === "end") {
                                 break;
+                            } else if (expectFunctionDeclaration) {
+                                if (jsLastToken.type === "IDENTIFIER"
+                                    || jsLastToken.type === "NUMBER") {
+                                    funcName += jsLastToken.value;
+                                } else {
+                                    if (funcName !== "") funcNames.push(funcName);
+                                    funcName = "";
+                                    expectFunctionDeclaration = false;
+                                }
+                            } else if (jsLastToken.type === "IDENTIFIER"
+                                       && jsLastToken.value === "function") {
+                                expectFunctionDeclaration = true;
                             }
                         }
 
                         var jsSourceEnd = jsLastToken.start;
 
-                        var jsSource = tokens.source.substring(jsSourceStart, jsSourceEnd);
-
+                        var jsSource = tokens.source.substring(jsSourceStart, jsSourceEnd) +
+                            "\nreturn { " + 
+                            funcNames.map(function (name) {return name+":"+name}).join(",") +
+                            " };";
                         var func = new Function(jsSource);
 
                         return {
                             type: 'jsFeature',
                             jsSource: jsSource,
                             function: func,
+                            exposedFunctionNames: funcNames,
                             execute: function() {
                                 mergeObjects(globalScope, func())
                             }
@@ -2092,34 +2164,66 @@
                                 parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
                             }
                         }
+
                         if (tokens.matchToken("on")) {
                             var on = parser.parseElement("target", tokens);
                         } else {
                             var on = parser.parseElement("implicitMeTarget");
                         }
+
+                        if (tokens.matchToken("for")) {
+                            var time = parser.requireElement("Expected a time element", "timeExpression", tokens);
+                        } else if (tokens.matchToken("until")) {
+                            var evt = parser.requireElement("Expected event name", "dotOrColonPath", tokens);
+                            if (tokens.matchToken("from")) {
+                                var from = parser.parseElement("expression", tokens);
+                            }
+                        }
+
                         var toggleCmd = {
                             type: "toggleCmd",
                             classRef: classRef,
                             attributeRef: attributeRef,
                             on: on,
-                            execute: function (ctx) {
-                                var op = function(context, on, value) {
-                                    if (this.classRef) {
-                                        _runtime.forEach( on, function (target) {
-                                            target.classList.toggle(classRef.className())
-                                        });
-                                    } else {
-                                        _runtime.forEach( on, function (target) {
-                                            if(target.hasAttribute(attributeRef.name )) {
-                                                target.removeAttribute( attributeRef.name );
-                                            } else {
-                                                target.setAttribute(attributeRef.name, value)
-                                            }
-                                        });
-                                    }
-                                    _runtime.next(this, ctx);
+                            time: time,
+                            evt: evt,
+                            from: from,
+                            toggle: function(on, value) {
+                                if (this.classRef) {
+                                    _runtime.forEach(on, function (target) {
+                                        target.classList.toggle(classRef.className())
+                                    });
+                                } else {
+                                    _runtime.forEach(on, function (target) {
+                                        if (target.hasAttribute(attributeRef.name)) {
+                                            target.removeAttribute(attributeRef.name);
+                                        } else {
+                                            target.setAttribute(attributeRef.name, value)
+                                        }
+                                    });
                                 }
-                                return _runtime.unifiedEval(this, op, ctx, on, attributeRef ? attributeRef.value : null);
+                            },
+                            execute: function (ctx) {
+                                var op = function(context, on, value, time, evt, from) {
+                                    if (time) {
+                                        this.toggle(on, value);
+                                        setTimeout(function () {
+                                            toggleCmd.toggle(on, value);
+                                            _runtime.next(toggleCmd, ctx);
+                                        }, time);
+                                    } else if (evt) {
+                                        var target = from || ctx.me;
+                                        target.addEventListener(evt, function(){
+                                            toggleCmd.toggle(on, value);
+                                            _runtime.next(toggleCmd, ctx);
+                                        }, { once:true })
+                                        this.toggle(on, value);
+                                    } else {
+                                        this.toggle(on, value);
+                                        _runtime.next(toggleCmd, ctx);
+                                    }
+                                }
+                                return _runtime.unifiedEval(this, op, ctx, on, attributeRef ? attributeRef.value : null, time, evt, from);
 
                             }
                         };
@@ -2133,10 +2237,7 @@
                         // wait on event
                         if (tokens.matchToken("for")) {
                             tokens.matchToken("a"); // optional "a"
-                            var evt = parser.parseElement("dotOrColonPath", tokens);
-                            if (evt == null) {
-                                parser.raiseParseError(tokens, "Expected event name")
-                            }
+                            var evt = _parser.requireElement("Expected event name", "dotOrColonPath", tokens);
                             if (tokens.matchToken("from")) {
                                 var on = parser.parseElement("expression", tokens);
                             }
@@ -2159,21 +2260,15 @@
                                 }
                             };
                         } else {
-                            var time = parser.parseElement("expression", tokens);
-                            var factor = 1;
-                            if (tokens.matchToken("s") || tokens.matchToken("seconds")) {
-                                factor = 1000;
-                            } else if (tokens.matchToken("ms") || tokens.matchToken("milliseconds")) {
-                                // do nothing
-                            }
+                            var time = _parser.requireElement("A time expression is required", "timeExpression", tokens);
                             var waitCmd = {
                                 type: "waitCmd",
                                 time: time,
                                 execute: function (ctx) {
-                                    var op = function(context, time){
+                                    var op = function(context, timeValue){
                                         setTimeout(function () {
-                                            _runtime.next(waitCmd, ctx);
-                                        }, time * factor);
+                                            _runtime.next(waitCmd, context);
+                                        }, timeValue);
                                     }
                                     _runtime.unifiedEval(this, op, ctx, time);
                                 }
@@ -2544,23 +2639,49 @@
                     }
                 })
 
-                _parser.addGrammarElement("forCmd", function (parser, tokens) {
-                    if (tokens.matchToken("for")) {
-                        var identifier = tokens.requireTokenType('IDENTIFIER');
-                        tokens.matchToken("in"); // optional 'then'
-                        var expression = parser.parseElement("expression", tokens);
+                _parser.addGrammarElement("repeatCmd", function (parser, tokens) {
+                    var currentToken = tokens.currentToken();
+                    if (tokens.matchToken("repeat") || currentToken.value === "for") {
+                        if (tokens.matchToken("for")) {
+                            var identifierToken = tokens.requireTokenType('IDENTIFIER');
+                            var identifier = identifierToken.value
+                            tokens.matchToken("in"); // optional 'then'
+                            var expression = parser.requireElement("Expected an expression", "expression", tokens);
+                        } else if (tokens.matchToken("in")) {
+                            var identifier = "it";
+                            var expression = parser.requireElement("Expected an expression", "expression", tokens);
+                        } else if (tokens.matchToken("forever")) {
+                            var forever = true;
+                        }
+
+                        if (tokens.matchToken("index")) {
+                            var identifierToken = tokens.requireTokenType('IDENTIFIER');
+                            var indexIdentifier = identifierToken.value
+                        }
+
                         var loop = parser.parseElement("commandList", tokens);
                         if (tokens.hasMore()) {
                             tokens.requireToken("end");
                         }
+
+                        if (identifier == null) {
+                            identifier = "_implicit_repeat_" + currentToken.position;
+                            var slot = identifier;
+                        } else {
+                            var slot = identifier + "_" + currentToken.position;
+                        }
+
                         var forCmd = {
-                            type: "forCmd",
-                            identifier: identifier.value,
+                            type: "repeatCmd",
+                            identifier: identifier,
+                            indexIdentifier: indexIdentifier,
+                            slot: slot,
                             expression: expression,
+                            forever: forever,
                             loop: loop,
                             execute: function (ctx) {
                                 var op = function(context, value) {
-                                    ctx.meta.iterators[identifier.value] = {
+                                    ctx.meta.iterators[slot] = {
                                         index: 0,
                                         value: value
                                     };
@@ -2569,18 +2690,36 @@
                                 _runtime.unifiedEval(this, op, ctx, expression);
                             },
                             handleNext: function (ctx) {
-                                var iterator = ctx.meta.iterators[identifier.value];
-                                if (iterator.value === null ||
-                                    iterator.index >= iterator.value.length) {
+                                var iterator = ctx.meta.iterators[slot];
+                                if (this.forever ||
+                                    (iterator.value !== null &&
+                                     iterator.index < iterator.value.length)) {
+                                    if (iterator.value) {
+                                        ctx[identifier] = iterator.value[iterator.index];
+                                        ctx.it = iterator.value[iterator.index];
+                                    } else {
+                                        ctx.it = iterator.index;
+                                    }
+                                    if (indexIdentifier) {
+                                        ctx[indexIdentifier] = iterator.index;
+                                    }
+                                    iterator.index++;
+                                    // every 1000 iterations set a timeout to avoid stack blowout
+                                    // of loop.execute() until unifiedEval() has been reworked to not
+                                    // recursively call execute()
+                                    if (iterator.index % 100 === 0) {
+                                        setTimeout(function () {
+                                            loop.execute(ctx);
+                                        }, 1);
+                                    } else {
+                                        loop.execute(ctx);
+                                    }
+                                } else {
                                     if (forCmd.next) {
                                         forCmd.next.execute(ctx);
                                     } else {
                                         _runtime.next(forCmd.parent, ctx)
                                     }
-                                } else {
-                                    ctx[identifier.value] = iterator.value[iterator.index];
-                                    iterator.index++;
-                                    loop.execute(ctx);
                                 }
                             }
                         };

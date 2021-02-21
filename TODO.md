@@ -15,11 +15,6 @@
     * property references off of arrays (that are not `length`, `first`, `last` or `random`) are flatMaps
 * @1dg support a `repeat` command (see HyperTalk) to support indefinite looping
 ```
-// Infinite loop
-repeat forever
-  call blink()
-end
-
 // Simple repeat without requiring a counter
 repeat 5 times
     call pulse()
@@ -28,16 +23,6 @@ end
 // By default, counter uses "it" convention
 repeat from 1 to 10 
     put it in myVar
-end
-
-// Loop over an array (counter is still "it")
-repeat in [1, 2, 3, 4, 5]
-    put it in myVar
-end
-
-// Assign a variable name if you don't want to use "it"
-repeat for x in ['a', 'b', 'c', 'd']
-    call myVar(x) 
 end
 
 // This would also work if IterableVariable is an Array or Object
