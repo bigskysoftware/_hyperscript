@@ -13,7 +13,15 @@
     * support the [] operator
     * add `first`, `last` and `random` pseudo-properties
     * property references off of arrays (that are not `length`, `first`, `last` or `random`) are flatMaps
-* @1dg support a `repeat` command (see HyperTalk) to support indefinite looping
+* First pass at documentation
+* MAYBE @Deniz Akşimşek string expression templating
+```
+   set str to "this $is a ${cool.feature}"
+```
+
+### Language Features
+* Support `is`, `is not`, `is really`, `is greater than` etc.
+* repeat command improvements
 ```
 // Simple repeat without requiring a counter
 repeat 5 times
@@ -29,38 +37,12 @@ end
 repeat for x in IterableVariable
     call JsFn(x)
 end
-
-// until loops
-repeat until myVar is 100 
-    call increment(myVar) 
-end
-
-// while loops
-repeat while myVar < 100
-    call amazingJSHere(myVar)
-end
-
-// event gated loops
-repeat until event foo
-  log "not yet..."
-end
-
-repeat until event foo on #bar 
-  log "not yet..."
-end
-```
-* First pass at documentation
-* MAYBE @Deniz Akşimşek string expression templating
-```
-   set str to "this $is a ${cool.feature}"
 ```
 
-### Language Features
-* Support `is`, `is not`, `is really`, `is greater than` etc.
 * Support a `timeout` modifier for async commands like `fetch`, `call`, `wait for` etc.
 * the `on` feature needs to support a count filter (and numeric ranges)
 ```on click 1 log "first click"
-   on click 2.. on log "this ain't my first click"
+   on click 2 and more log "this ain't my first click"
 ```
 * implement the throttle, delay and maybe enqueued functionality from htmx
 ```

@@ -125,7 +125,7 @@ describe("the repeat command", function() {
     it("while keyword works", function(){
         make("" +
             "<script type='text/hyperscript'>" +
-            "  def repeatForeverWithReturn()" +
+            "  def repeatWhileTest()" +
             "    set retVal to 0" +
             "    repeat while retVal < 5" +
             "       set retVal to retVal + 1" +
@@ -133,11 +133,50 @@ describe("the repeat command", function() {
             "    return retVal" +
             "  end" +
             "</script>" +
-            "<div id='d1' _='on click put repeatForeverWithReturn() into my.innerHTML'></div>");
+            "<div id='d1' _='on click put repeatWhileTest() into my.innerHTML'></div>");
         var d1 = byId('d1');
         d1.click();
         d1.innerHTML.should.equal("5");
-        delete window.repeatForeverWithReturn;
+        delete window.repeatWhileTest;
+    })
+
+    it("until keyword works", function(){
+        make("" +
+            "<script type='text/hyperscript'>" +
+            "  def repeatUntilTest()" +
+            "    set retVal to 0" +
+            "    repeat until retVal == 5" +
+            "       set retVal to retVal + 1" +
+            "    end" +
+            "    return retVal" +
+            "  end" +
+            "</script>" +
+            "<div id='d1' _='on click put repeatUntilTest() into my.innerHTML'></div>");
+        var d1 = byId('d1');
+        d1.click();
+        d1.innerHTML.should.equal("5");
+        delete window.repeatUntilTest;
+    })
+
+    it("until event keyword works", function(done){
+        var div = make("<div id='untilTest'></div>");
+        make("" +
+            "<script type='text/hyperscript'>" +
+            "  def repeatUntilTest()" +
+            "    repeat until event click from #untilTest" +
+            "      wait 2ms" +
+            "    end" +
+            "    return 42" +
+            "  end" +
+            "</script>" +
+            "");
+        var promise = repeatUntilTest();
+        div.click();
+        promise.then(function(value){
+            value.should.equal(42);
+            delete window.repeatUntilTest;
+            done();
+        })
     })
 
     it("only executes the init expression once", function(){

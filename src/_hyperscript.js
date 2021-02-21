@@ -2652,6 +2652,16 @@
                             var expression = parser.requireElement("Expected an expression", "expression", tokens);
                         } else if (tokens.matchToken("while")) {
                             var whileExpr = parser.requireElement("Expected an expression", "expression", tokens);
+                        } else if (tokens.matchToken("until")) {
+                            var isUntil = true;
+                            if (tokens.matchToken("event")) {
+                                var evt = _parser.requireElement("Expected event name", "dotOrColonPath", tokens);
+                                if (tokens.matchToken("from")) {
+                                    var on = parser.parseElement("expression", tokens);
+                                }
+                            } else {
+                                var whileExpr = parser.requireElement("Expected an expression", "expression", tokens);
+                            }
                         } else {
                             tokens.matchToken("forever"); // consume optional forever
                             var forever = true;
@@ -2681,25 +2691,50 @@
                             slot: slot,
                             expression: expression,
                             forever: forever,
+                            until: isUntil,
+                            event: evt,
+                            on: on,
                             whileExpr: whileExpr,
                             resolveNext: function() {
                                 return this;
                             },
                             loop: loop,
                             execute: function (ctx) {
-                                var op = function(context, value, whileValue) {
+                                var op = function(context, value, on, whileValue) {
+                                    console.log("looping");
                                     var iterator = ctx.meta.iterators[slot];
                                     if (iterator == null) { // loop initialization
                                         ctx.meta.iterators[slot] = {
                                             index: 0,
-                                            value: value
+                                            value: value,
+                                            eventFired: false
                                         };
+                                        if (evt) {
+                                            var event = evt.evaluate(ctx); // OK
+                                            var target = on || ctx.me;
+                                            target.addEventListener(event, function (e) {
+                                                ctx.meta.iterators[slot].eventFired = true;
+                                            }, {once: true});
+                                        }
                                         this.execute(ctx); // continue to loop
                                     } else {
-                                        if (this.forever ||
-                                            whileValue ||
-                                            (iterator.value !== null &&
-                                                iterator.index < iterator.value.length)) {
+
+                                        var keepLooping = false;
+                                        if (this.forever) {
+                                            keepLooping = true;
+                                        } else if (this.until) {
+                                            if (evt) {
+                                                keepLooping = ctx.meta.iterators[slot].eventFired == false;
+                                            } else {
+                                                keepLooping = whileValue != true;
+                                            }
+                                        } else if (whileValue) {
+                                            keepLooping = true;
+                                        } else {
+                                            keepLooping = iterator.value !== null && iterator.index < iterator.value.length
+                                        }
+
+                                        if (keepLooping) {
                                             if (iterator.value) {
                                                 ctx[identifier] = iterator.value[iterator.index];
                                                 ctx.it = iterator.value[iterator.index];
@@ -2731,7 +2766,8 @@
                                     }
                                 }
                                 _runtime.unifiedEval(this, op, ctx,
-                                    ctx.meta.iterators[slot] ? ctx.meta.iterators[slot] : expression,
+                                    ctx.meta.iterators[slot] ? null : expression,
+                                    ctx.meta.iterators[slot] ? null : on,
                                     whileExpr);
                             }
                         };
