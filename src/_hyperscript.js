@@ -1915,7 +1915,7 @@
                     }
                 })
 
-                _parser.addGrammarElement("jsBody", function (parser, tokens) {
+                _parser.addGrammarElement("jsBody", function(parser, tokens) {
                     var jsSourceStart = tokens.currentToken().start;
                     var jsLastToken = tokens.currentToken();
 
@@ -1945,7 +1945,6 @@
                     }
                     var jsSourceEnd = jsLastToken.end + 1;
 
-                    console.log(tokens.source.substring(jsSourceStart, jsSourceEnd))
                     return {
                         type: 'jsBody',
                         exposedFunctionNames: funcNames,
@@ -1996,6 +1995,7 @@
                         }
 
                         var jsBody = parser.parseElement('jsBody', tokens);
+                        tokens.matchToken('end');
 
                         var func = varargConstructor(Function, inputs.concat([jsBody.jsSource]));
 
