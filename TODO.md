@@ -35,7 +35,7 @@ repeat in [1, 2, 3, 4, 5]
     put it in myVar
 end
 
-// Assign a counter value if you don't want to use "it"
+// Assign a variable name if you don't want to use "it"
 repeat for x in ['a', 'b', 'c', 'd']
     call myVar(x) 
 end
@@ -45,14 +45,23 @@ repeat for x in IterableVariable
     call JsFn(x)
 end
 
-// while loops
-repeat until myVar equals 100 
+// until loops
+repeat until myVar is 100 
     call increment(myVar) 
 end
 
-// until loops
+// while loops
 repeat while myVar < 100
     call amazingJSHere(myVar)
+end
+
+// event gated loops
+repeat until event foo
+  log "not yet..."
+end
+
+repeat until event foo on #bar 
+  log "not yet..."
 end
 ```
 * First pass at documentation
