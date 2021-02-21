@@ -54,6 +54,15 @@ end
 repeat while myVar < 100
     call amazingJSHere(myVar)
 end
+
+// event gated loops
+repeat until event foo
+  log "not yet..."
+end
+
+repeat until event foo on #bar 
+  log "not yet..."
+end
 ```
 * First pass at documentation
 
