@@ -85,5 +85,22 @@ describe("the repeat command", function() {
         delete window.repeatForeverWithReturn;
     })
 
+    it("basic in loop works", function(){
+        var d1 = make("<div _='on click repeat in [1, 2, 3]" +
+            "                                    put it at end of me" +
+            "                                  end'></div>");
+        d1.click();
+        d1.innerHTML.should.equal("123");
+    })
+
+    it("index syntax works", function(){
+        var d1 = make("<div _='on click repeat for x in [\"a\", \"ab\", \"abc\"] index i" +
+            "                                    put x + i at end of me" +
+            "                                  end'></div>");
+        d1.click();
+        d1.innerHTML.should.equal("a0ab1abc2");
+    })
+
+
 });
 

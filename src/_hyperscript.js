@@ -2628,10 +2628,19 @@
                             var identifierToken = tokens.requireTokenType('IDENTIFIER');
                             var identifier = identifierToken.value
                             tokens.matchToken("in"); // optional 'then'
-                            var expression = parser.parseElement("expression", tokens);
+                            var expression = parser.requireElement("Expected an expression", "expression", tokens);
+                        } else if (tokens.matchToken("in")) {
+                            var identifier = "it";
+                            var expression = parser.requireElement("Expected an expression", "expression", tokens);
                         } else if (tokens.matchToken("forever")) {
                             var forever = true;
                         }
+
+                        if (tokens.matchToken("index")) {
+                            var identifierToken = tokens.requireTokenType('IDENTIFIER');
+                            var indexIdentifier = identifierToken.value
+                        }
+
                         var loop = parser.parseElement("commandList", tokens);
                         if (tokens.hasMore()) {
                             tokens.requireToken("end");
@@ -2647,6 +2656,7 @@
                         var forCmd = {
                             type: "repeatCmd",
                             identifier: identifier,
+                            indexIdentifier: indexIdentifier,
                             slot: slot,
                             expression: expression,
                             forever: forever,
@@ -2671,6 +2681,9 @@
                                         ctx.it = iterator.value[iterator.index];
                                     } else {
                                         ctx.it = iterator.index;
+                                    }
+                                    if (indexIdentifier) {
+                                        ctx[indexIdentifier] = iterator.index;
                                     }
                                     iterator.index++;
                                     // every 1000 iterations set a timeout to avoid stack blowout
