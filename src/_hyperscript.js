@@ -1543,32 +1543,34 @@
                     var onFeatures = []
                     var functionFeatures = []
                     var workerFeatures = []
-                    do {
-                        var feature = parser.parseElement("feature", tokens);
-                        if (feature == null) {
-                            parser.raiseParseError("Unexpected feature type : " + tokens.currentToken());
-                        }
-                        if (feature.type === "onFeature") {
-                            onFeatures.push(feature);
-                        } else if(feature.type === "functionFeature") {
-                            feature.execute();
-                            functionFeatures.push(feature);
-                        } else if (feature.type === "workerFeature") {
-                            workerFeatures.push(feature);
-                            feature.execute();
-                        } else if (feature.type === "jsFeature") {
-                            feature.execute();
-                            // because the jsFeature production eats the `end`
-                            // token, the loop condition will be false. we are
-                            // working around that.
-                            //
-                            // see: `_parser.addGrammarElement("jsFeature")`
-                            if (tokens.hasMore()) continue;
-                        }
-                        var chainedOn = feature.type === "onFeature" && tokens.currentToken() && tokens.currentToken().value === "on";
-                    } while ((chainedOn || tokens.matchToken("end")) && tokens.hasMore())
                     if (tokens.hasMore()) {
-                        parser.raiseParseError(tokens);
+                        do {
+                            var feature = parser.parseElement("feature", tokens);
+                            if (feature == null) {
+                                parser.raiseParseError("Unexpected feature type : " + tokens.currentToken());
+                            }
+                            if (feature.type === "onFeature") {
+                                onFeatures.push(feature);
+                            } else if(feature.type === "functionFeature") {
+                                feature.execute();
+                                functionFeatures.push(feature);
+                            } else if (feature.type === "workerFeature") {
+                                workerFeatures.push(feature);
+                                feature.execute();
+                            } else if (feature.type === "jsFeature") {
+                                feature.execute();
+                                // because the jsFeature production eats the `end`
+                                // token, the loop condition will be false. we are
+                                // working around that.
+                                //
+                                // see: `_parser.addGrammarElement("jsFeature")`
+                                if (tokens.hasMore()) continue;
+                            }
+                            var chainedOn = feature.type === "onFeature" && tokens.currentToken() && tokens.currentToken().value === "on";
+                        } while ((chainedOn || tokens.matchToken("end")) && tokens.hasMore())
+                        if (tokens.hasMore()) {
+                            parser.raiseParseError(tokens);
+                        }
                     }
                     return {
                         type: "hyperscript",
@@ -2184,10 +2186,8 @@
                                     } else if (evt) {
                                         var target = from || ctx.me;
                                         target.addEventListener(evt, function(){
-                                            setTimeout(function(){
-                                                toggleCmd.toggle(on, value);
-                                                _runtime.next(toggleCmd, ctx);
-                                            }, 100)
+                                            toggleCmd.toggle(on, value);
+                                            _runtime.next(toggleCmd, ctx);
                                         }, { once:true })
                                         this.toggle(on, value);
                                     } else {

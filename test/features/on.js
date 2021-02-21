@@ -39,14 +39,20 @@ describe("the on feature", function() {
         div.classList.contains("fromBar").should.equal(true);
     })
 
-    it("can fire an event on load", function(){
+    it("can fire an event on load", function(done){
         var div = make("<div id='d1' _='on load put \"Loaded\" into my.innerHTML'></div>");
-        div.innerText.should.equal("Loaded");
+        setTimeout(function () {
+            div.innerText.should.equal("Loaded");
+            done();
+        }, 1);
     })
 
-    it("can be in a top level script tag", function(){
-        var div = make("<script type='text/hyperscript'>on load put \"Loaded\" into #d1.innerHTML</script><div id='d1'></div>");
-        byId('d1').innerText.should.equal("Loaded");
+    it("can be in a top level script tag", function(done){
+        var div = make("<script type='text/hyperscript'>on load put \"Loaded\" into #loadedDemo.innerHTML</script><div id='loadedDemo'></div>");
+        setTimeout(function () {
+            byId('loadedDemo').innerText.should.equal("Loaded");
+            done();
+        }, 1);
     })
 
     it("can have a simple event filter", function(){
