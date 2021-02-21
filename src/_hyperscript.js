@@ -752,8 +752,12 @@
 
                 function applyEventListeners(hypeScript, elt) {
                     forEach(hypeScript.onFeatures, function (onFeature) {
-                        forEach(onFeature.from ? onFeature.from.evaluate({}) : [elt], function(target){ // OK NO PROMISE
+                        forEach(
+                            onFeature.elsewhere ? [document]
+                                : onFeature.from ? onFeature.from.evaluate({})
+                                : [elt], function(target){ // OK NO PROMISE
                             target.addEventListener(onFeature.on.evaluate(), function(evt){ // OK NO PROMISE
+                                if (onFeature.elsewhere && elt.contains(evt.target)) return
                                 var ctx = makeContext(onFeature, elt, evt);
                                 onFeature.execute(ctx)
                             });
@@ -1615,9 +1619,22 @@
                         }
 
                         var from = null;
+                        var elsewhere = false;
                         if (tokens.matchToken("from")) {
-                            from = parser.requireElement("Expected target value", "target", tokens);
+                            if (tokens.matchToken('elsewhere')) {
+                                elsewhere = true;
+                            } else {
+                                from = parser.parseElement("target", tokens)
+                                if (!from) {
+                                    raiseParseError('Expected either target value or "elsewhere".', tokens);
+                                }
+                            }
                         }
+
+                        // support both "elsewhere" and "from elsewhere"
+                        if (from === null && elsewhere === false && tokens.matchToken("elsewhere")) {
+                            elsewhere = true;
+                        }                        
 
                         var start = parser.requireElement("Expected a command list", "commandList", tokens);
 
@@ -1639,6 +1656,7 @@
                             on: on,
                             every: every,
                             from: from,
+                            elsewhere: elsewhere,
                             filter: filter,
                             start: start,
                             executing: false,
