@@ -1,7 +1,7 @@
 ## TODOs
 
 ## 0.0.4 features
-* Support an `elsewhere` modifier for the `on` feature, akin to the click-away concept from AlpineJS:
+* @Deniz Akşimşek Support an `elsewhere` modifier for the `on` feature, akin to the click-away concept from AlpineJS:
 ```html
 <div _="on click elsewhere trigger hide
         on hide remove .visible from me">
@@ -9,11 +9,11 @@
   A Modal (click elsewhere to dismiss)
 </div>
 ```
-* Array improvements
+* @benpate Array improvements
     * support the [] operator
     * add `first`, `last` and `random` pseudo-properties
     * property references off of arrays (that are not `length`, `first`, `last` or `random`) are flatMaps
-* support a `repeat` command (see HyperTalk) to support indefinite looping
+* @1dg support a `repeat` command (see HyperTalk) to support indefinite looping
 ```
 // Infinite loop
 repeat forever
@@ -65,6 +65,10 @@ repeat until event foo on #bar
 end
 ```
 * First pass at documentation
+* MAYBE @Deniz Akşimşek string expression templating
+```
+   set str to "this $is a ${cool.feature}"
+```
 
 ### Language Features
 * Support `is`, `is not`, `is really`, `is greater than` etc.
