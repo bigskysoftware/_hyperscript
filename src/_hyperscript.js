@@ -614,6 +614,7 @@
                     }
                 }
 
+                // TODO - handle execute distinctly from eval, with a loop
                 function unifiedEval(parseElement, op, ctx) {
                     var args = [ctx]
                     var async = false;
@@ -2621,25 +2622,38 @@
                 })
 
                 _parser.addGrammarElement("repeatCmd", function (parser, tokens) {
-                    if (tokens.matchToken("repeat") || tokens.currentToken().value === "for") {
+                    var currentToken = tokens.currentToken();
+                    if (tokens.matchToken("repeat") || currentToken.value === "for") {
                         if (tokens.matchToken("for")) {
-                            var identifier = tokens.requireTokenType('IDENTIFIER');
+                            var identifierToken = tokens.requireTokenType('IDENTIFIER');
+                            var identifier = identifierToken.value
                             tokens.matchToken("in"); // optional 'then'
                             var expression = parser.parseElement("expression", tokens);
+                        } else if (tokens.matchToken("forever")) {
+                            var forever = true;
                         }
                         var loop = parser.parseElement("commandList", tokens);
                         if (tokens.hasMore()) {
                             tokens.requireToken("end");
                         }
 
+                        if (identifier == null) {
+                            identifier = "_implicit_repeat_" + currentToken.position;
+                            var slot = identifier;
+                        } else {
+                            var slot = identifier + "_" + currentToken.position;
+                        }
+
                         var forCmd = {
                             type: "repeatCmd",
-                            identifier: identifier.value,
+                            identifier: identifier,
+                            slot: slot,
                             expression: expression,
+                            forever: forever,
                             loop: loop,
                             execute: function (ctx) {
                                 var op = function(context, value) {
-                                    ctx.meta.iterators[identifier.value] = {
+                                    ctx.meta.iterators[slot] = {
                                         index: 0,
                                         value: value
                                     };
@@ -2648,18 +2662,33 @@
                                 _runtime.unifiedEval(this, op, ctx, expression);
                             },
                             handleNext: function (ctx) {
-                                var iterator = ctx.meta.iterators[identifier.value];
-                                if (iterator.value === null ||
-                                    iterator.index >= iterator.value.length) {
+                                var iterator = ctx.meta.iterators[slot];
+                                if (this.forever ||
+                                    (iterator.value !== null &&
+                                     iterator.index < iterator.value.length)) {
+                                    if (iterator.value) {
+                                        ctx[identifier] = iterator.value[iterator.index];
+                                        ctx.it = iterator.value[iterator.index];
+                                    } else {
+                                        ctx.it = iterator.index;
+                                    }
+                                    iterator.index++;
+                                    // every 1000 iterations set a timeout to avoid stack blowout
+                                    // of loop.execute() until unifiedEval() has been reworked to not
+                                    // recursively call execute()
+                                    if (iterator.index % 100 === 0) {
+                                        setTimeout(function () {
+                                            loop.execute(ctx);
+                                        }, 1);
+                                    } else {
+                                        loop.execute(ctx);
+                                    }
+                                } else {
                                     if (forCmd.next) {
                                         forCmd.next.execute(ctx);
                                     } else {
                                         _runtime.next(forCmd.parent, ctx)
                                     }
-                                } else {
-                                    ctx[identifier.value] = iterator.value[iterator.index];
-                                    iterator.index++;
-                                    loop.execute(ctx);
                                 }
                             }
                         };
