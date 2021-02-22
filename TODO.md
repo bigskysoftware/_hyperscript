@@ -44,6 +44,7 @@ end
 ```on click 1 log "first click"
    on click 2 and more log "this ain't my first click"
 ```
+* the `on` feature needs to support multiple events
 * implement the throttle, delay and maybe enqueued functionality from htmx
 ```
   on click delay 100ms before log "delayed click"
@@ -51,19 +52,6 @@ end
   on click enqueued log "throttled click"
 ```
 * functions should be able to be marked `sync` to make only one execution at a time occur, in serial fashion
-* support a non-blocking `listen` command for listening for an event without blocking
-```
-  listen for click on #btn with clicked
-  loop while not clicked
-    add .foo to #bar
-    wait for transitionend on #bar
-    remove .foo from #bar
-    wait for transitionend on #bar
-  end
-  add .finishTransition to #bar
-  wait for transitionend on #bar
-  remove .finishTransition from #bar
-```
 * support a `select` expression or statement that allows for general querying against the DOM
 ```
   select .foo
