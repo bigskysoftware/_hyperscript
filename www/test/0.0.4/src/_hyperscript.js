@@ -230,7 +230,14 @@
                     }
 
                     function currentToken() {
-                        return tokens[0];
+                        var token = tokens[0];
+                        if (token) {
+                            return token;
+                        } else {
+                            return {
+                                type:"EOF"
+                            }
+                        }
                     }
 
                     return {
@@ -607,19 +614,59 @@
                     }
                 }
 
-                function unifiedEval(parseElement, op, ctx) {
-                    var args = [ctx]
+                var HALT = {halt_flag:true};
+                function unifiedExec(command,  ctx) {
+                    while(true) {
+                        var next = unifiedEval(command, ctx);
+                        if (next == null) {
+                            console.error(command, " did not return a next element to execute! context: " , ctx)
+                            return;
+                        } else if (next.then) {
+                            next.then(function (resolvedNext) {
+                                unifiedExec(resolvedNext, ctx);
+                            }).catch(function(reason){
+                                if (ctx.meta && ctx.meta.reject) {
+                                    ctx.meta.reject(reason);
+                                } else {
+                                    // TODO: no meta context to reject with, trigger event?
+                                }
+                            });
+                            return;
+                        } else if (next === HALT) {
+                            // done
+                            return;
+                        }  else {
+                            command = next; // move to the next command
+                        }
+                    }
+                }
+
+                function unifiedEval(parseElement,  ctx) {
                     var async = false;
                     var wrappedAsyncs = false;
-                    for (var i = 3; i < arguments.length; i++) {
-                        var argument = arguments[i];
-                        if (argument == null) {
-                            args.push(null);
-                        } else if (Array.isArray(argument)) {
-                            var arr = [];
-                            for (var j = 0; j < argument.length; j++) {
-                                var element = argument[j];
-                                var value = element.evaluate(ctx); // OK
+                    var args = [ctx];
+                    if (parseElement.args) {
+                        for (var i = 0; i < parseElement.args.length; i++) {
+                            var argument = parseElement.args[i];
+                            if (argument == null) {
+                                args.push(null);
+                            } else if (Array.isArray(argument)) {
+                                var arr = [];
+                                for (var j = 0; j < argument.length; j++) {
+                                    var element = argument[j];
+                                    var value = element.evaluate(ctx); // OK
+                                    if (value) {
+                                        if (value.then) {
+                                            async = true;
+                                        } else if (value.asyncWrapper) {
+                                            wrappedAsyncs = true;
+                                        }
+                                    }
+                                    arr.push(value);
+                                }
+                                args.push(arr);
+                            } else if (argument.evaluate) {
+                                var value = argument.evaluate(ctx); // OK
                                 if (value) {
                                     if (value.then) {
                                         async = true;
@@ -627,21 +674,10 @@
                                         wrappedAsyncs = true;
                                     }
                                 }
-                                arr.push(value);
+                                args.push(value);
+                            } else {
+                                args.push(argument);
                             }
-                            args.push(arr);
-                        } else if(argument.evaluate) {
-                            var value = argument.evaluate(ctx); // OK
-                            if (value) {
-                                if (value.then) {
-                                    async = true;
-                                } else if (value.asyncWrapper) {
-                                    wrappedAsyncs = true;
-                                }
-                            }
-                            args.push(value);
-                        } else {
-                            args.push(argument);
                         }
                     }
                     if (async) {
@@ -653,7 +689,7 @@
                                     unwrapAsyncs(values);
                                 }
                                 try{
-                                    var apply = op.apply(parseElement, values);
+                                    var apply = parseElement.op.apply(parseElement, values);
                                     resolve(apply);
                                 } catch(e) {
                                     reject(e);
@@ -671,7 +707,7 @@
                             unwrapAsyncs(args);
                         }
                         try {
-                            return op.apply(parseElement, args);
+                            return parseElement.op.apply(parseElement, args);
                         } catch (e) {
                             if (ctx.meta && ctx.meta.reject) {
                                 ctx.meta.reject(e);
@@ -752,8 +788,12 @@
 
                 function applyEventListeners(hypeScript, elt) {
                     forEach(hypeScript.onFeatures, function (onFeature) {
-                        forEach(onFeature.from ? onFeature.from.evaluate({}) : [elt], function(target){ // OK NO PROMISE
+                        forEach(
+                            onFeature.elsewhere ? [document]
+                                : onFeature.from ? onFeature.from.evaluate({})
+                                : [elt], function(target){ // OK NO PROMISE
                             target.addEventListener(onFeature.on.evaluate(), function(evt){ // OK NO PROMISE
+                                if (onFeature.elsewhere && elt.contains(evt.target)) return
                                 var ctx = makeContext(onFeature, elt, evt);
                                 onFeature.execute(ctx)
                             });
@@ -821,7 +861,9 @@
                                 var tokens = _lexer.tokenize(src);
                                 var hyperScript = _parser.parseHyperScript(tokens);
                                 _runtime.applyEventListeners(hyperScript, target || elt);
-                                triggerEvent(target || elt, 'load');
+                                setTimeout(function () {
+                                    triggerEvent(target || elt, 'load');
+                                }, 1);
                             } catch(e) {
                                 console.error("hyperscript errors were found on the following element:", elt, "\n\n", e.message);
                             }
@@ -872,14 +914,14 @@
                     }
                 }
 
-                function next(command, ctx) {
+                function findNext(command) {
                     if (command) {
-                        if (command.handleNext) {
-                            command.handleNext(ctx);
+                        if (command.resolveNext) {
+                            return command.resolveNext();
                         } else if (command.next) {
-                            command.next.execute(ctx);
+                            return command.next;
                         } else {
-                            next(command.parent, ctx)
+                            return findNext(command.parent)
                         }
                     }
                 }
@@ -897,8 +939,10 @@
                     getScriptSelector: getScriptSelector,
                     resolveSymbol: resolveSymbol,
                     makeContext: makeContext,
-                    next: next,
-                    unifiedEval: unifiedEval
+                    findNext: findNext,
+                    unifiedEval: unifiedEval,
+                    unifiedExec: unifiedExec,
+                    HALT: HALT
                 }
             }();
 
@@ -1004,15 +1048,16 @@
                             type: "attribute_expression",
                             name: name.value,
                             value: value,
-                            evaluate: function (context) {
+                            args: [value],
+                            op:function(context, value){
                                 if (this.value) {
-                                    var op = function(context, val){
-                                        return {name:this.name, value:val}
-                                    }
-                                    return _runtime.unifiedEval(this, op, context, this.value)
+                                    return {name:this.name, value:value}
                                 } else {
                                     return {name:this.name};
                                 }
+                            },
+                            evaluate: function (context) {
+                                return _runtime.unifiedEval(this, context);
                             }
                         }
                     }
@@ -1035,16 +1080,17 @@
                         return {
                             type: "objectLiteral",
                             fields: fields,
-                            evaluate: function (context) {
-                                var op = function(context, values){
-                                    var returnVal = {};
-                                    for (var i = 0; i < values.length; i++) {
-                                        var field = fields[i];
-                                        returnVal[field.name.value] = values[i];
-                                    }
-                                    return returnVal;
+                            args: [valueExpressions],
+                            op:function(context, values){
+                                var returnVal = {};
+                                for (var i = 0; i < values.length; i++) {
+                                    var field = fields[i];
+                                    returnVal[field.name.value] = values[i];
                                 }
-                                return _runtime.unifiedEval(this, op, context, valueExpressions)
+                                return returnVal;
+                            },
+                            evaluate: function (context) {
+                                return _runtime.unifiedEval(this, context);
                             }
                         }
                     }
@@ -1067,16 +1113,17 @@
                         return {
                             type: "namedArgumentList",
                             fields: fields,
-                            evaluate: function (context) {
-                                var op = function(context, values){
-                                    var returnVal = {_namedArgList_:true};
-                                    for (var i = 0; i < values.length; i++) {
-                                        var field = fields[i];
-                                        returnVal[field.name.value] = values[i];
-                                    }
-                                    return returnVal;
+                            args:[valueExpressions],
+                            op:function(context, values){
+                                var returnVal = {_namedArgList_:true};
+                                for (var i = 0; i < values.length; i++) {
+                                    var field = fields[i];
+                                    returnVal[field.name.value] = values[i];
                                 }
-                                return _runtime.unifiedEval(this, op, context, valueExpressions)
+                                return returnVal;
+                            },
+                            evaluate: function (context) {
+                                return _runtime.unifiedEval(this, context);
                             }
                         }
                     }
@@ -1154,11 +1201,12 @@
                         return {
                             type: "arrayLiteral",
                             values: values,
+                            args: [values],
+                            op:function(context, values){
+                                return values;
+                            },
                             evaluate: function (context) {
-                                var op = function(context, values){
-                                    return values;
-                                }
-                                return _runtime.unifiedEval(this, op, context, values);
+                                return _runtime.unifiedEval(this, context);
                             }
                         }
                     }
@@ -1203,6 +1251,28 @@
                     return parser.parseAnyOf(["parenthesized", "boolean", "null", "string", "number", "idRef", "classRef", "symbol", "propertyRef", "objectLiteral", "arrayLiteral", "blockLiteral"], tokens)
                 });
 
+                _parser.addGrammarElement("timeExpression", function(parser, tokens){
+                    var time = parser.requireElement("Expected a time expression", "expression", tokens);
+                    var factor = 1;
+                    if (tokens.matchToken("s") || tokens.matchToken("seconds")) {
+                        factor = 1000;
+                    } else if (tokens.matchToken("ms") || tokens.matchToken("milliseconds")) {
+                        // do nothing
+                    }
+                    return {
+                        type:"timeExpression",
+                        time: time,
+                        factor: factor,
+                        args: [time],
+                        op: function (context, val) {
+                            return val * this.factor
+                        },
+                        evaluate: function (context) {
+                            return _runtime.unifiedEval(this, context);
+                        }
+                    }
+                })
+
                 _parser.addGrammarElement("propertyAccess", function (parser, tokens, root) {
                     if (tokens.matchOpToken(".")) {
                         var prop = tokens.requireTokenType("IDENTIFIER");
@@ -1210,11 +1280,12 @@
                             type: "propertyAccess",
                             root: root,
                             prop: prop,
+                            args: [root],
+                            op:function(context, rootVal){
+                                return rootVal == null ? null : rootVal[prop.value];
+                            },
                             evaluate: function (context) {
-                                var op = function(context, rootVal){
-                                    return rootVal == null ? null : rootVal[prop.value];
-                                }
-                                return _runtime.unifiedEval(this, op, context, root)
+                                return _runtime.unifiedEval(this, context);
                             }
                         };
                         return _parser.parseElement("indirectExpression", tokens, propertyAccess);
@@ -1230,26 +1301,37 @@
                             } while (tokens.matchOpToken(","))
                             tokens.requireOpToken(")");
                         }
-                        var functionCall = {
-                            type: "functionCall",
-                            root: root,
-                            args: args,
-                            evaluate: function (ctx) {
-                                if (root.root) {
-                                    var op = function(context, thisArg, argVals){
-                                        var func = thisArg[root.prop.value];
-                                        return func.apply(thisArg, argVals);
-                                    }
-                                    return _runtime.unifiedEval(this, op, ctx, root.root, args);
-                                } else {
-                                    var op = function(context, func, argVals){
-                                        var apply = func.apply(null, argVals);
-                                        return apply;
-                                    }
-                                    return _runtime.unifiedEval(this, op, ctx, root, args);
+
+                        if (root.root) {
+                            var functionCall = {
+                                type: "functionCall",
+                                root: root,
+                                argExressions: args,
+                                args: [root.root, args],
+                                op: function (context, rootRoot, args) {
+                                    var func = rootRoot[root.prop.value];
+                                    return func.apply(rootRoot, args);
+                                },
+                                evaluate: function (context) {
+                                    return _runtime.unifiedEval(this, context);
                                 }
                             }
-                        };
+                        } else {
+                            var functionCall = {
+                                type: "functionCall",
+                                root: root,
+                                argExressions: args,
+                                args: [root, args],
+                                op: function(context, func, argVals){
+                                    var apply = func.apply(null, argVals);
+                                    return apply;
+                                },
+                                evaluate: function (context) {
+                                    return _runtime.unifiedEval(this, context);
+                                }
+                            }
+                        }
+
                         return _parser.parseElement("indirectExpression", tokens, functionCall);
                     }
                 });
@@ -1286,11 +1368,12 @@
                             typeName: typeName,
                             root: root,
                             nullOk: nullOk,
+                            args: [root],
+                            op: function (context, val) {
+                                return _runtime.typeCheck(val, this.typeName.value, this.nullOk);
+                            },
                             evaluate: function (context) {
-                                var op = function(context, val){
-                                    return _runtime.typeCheck(val, this.typeName.value, this.nullOk);
-                                }
-                                return _runtime.unifiedEval(this, op, context, root);
+                                return _runtime.unifiedEval(this, context);
                             }
                         }
                     } else {
@@ -1304,10 +1387,12 @@
                         return {
                             type: "logicalNot",
                             root: root,
+                            args: [root],
+                            op: function (context, val) {
+                                return !val;
+                            },
                             evaluate: function (context) {
-                                return _runtime.unifiedEval(this, function (context, val) {
-                                    return !val;
-                                    }, context, root);
+                                return _runtime.unifiedEval(this, context);
                             }
                         };
                     }
@@ -1319,10 +1404,12 @@
                         return {
                             type: "negativeNumber",
                             root: root,
+                            args: [root],
+                            op:function(context, value){
+                                return -1 * value;
+                            },
                             evaluate: function (context) {
-                                return _runtime.unifiedEval(this, function(context, value){
-                                    return -1 * value;
-                                }, context, root);
+                                return _runtime.unifiedEval(this, context);
                             }
                         };
                     }
@@ -1348,21 +1435,22 @@
                             lhs: expr,
                             rhs: rhs,
                             operator: operator,
+                            args: [expr, rhs],
+                            op:function (context, lhsVal, rhsVal) {
+                                if (this.operator === "+") {
+                                    return lhsVal + rhsVal;
+                                } else if (this.operator === "-") {
+                                    return lhsVal - rhsVal;
+                                } else if (this.operator === "*") {
+                                    return lhsVal * rhsVal;
+                                } else if (this.operator === "/") {
+                                    return lhsVal / rhsVal;
+                                } else if (this.operator === "%") {
+                                    return lhsVal % rhsVal;
+                                }
+                            },
                             evaluate: function (context) {
-                                var op = function (context, lhsVal, rhsVal) {
-                                    if (this.operator === "+") {
-                                        return lhsVal + rhsVal;
-                                    } else if (this.operator === "-") {
-                                        return lhsVal - rhsVal;
-                                    } else if (this.operator === "*") {
-                                        return lhsVal * rhsVal;
-                                    } else if (this.operator === "/") {
-                                        return lhsVal / rhsVal;
-                                    } else if (this.operator === "%") {
-                                        return lhsVal % rhsVal;
-                                    }
-                                };
-                                return _runtime.unifiedEval(this, op, context, this.lhs, this.rhs);
+                                return _runtime.unifiedEval(this, context);
                             }
                         }
                         mathOp = tokens.matchAnyOpToken("+", "-", "*", "/", "%")
@@ -1389,27 +1477,28 @@
                             operator: comparisonOp.value,
                             lhs: expr,
                             rhs: rhs,
-                            evaluate: function (context) {
-                                var op = function (context, lhsVal, rhsVal) {
-                                    if (this.operator === "<") {
-                                        return lhsVal < rhsVal;
-                                    } else if (this.operator === ">") {
-                                        return lhsVal > rhsVal;
-                                    } else if (this.operator === "<=") {
-                                        return lhsVal <= rhsVal;
-                                    } else if (this.operator === ">=") {
-                                        return lhsVal >= rhsVal;
-                                    } else if (this.operator === "==") {
-                                        return lhsVal == rhsVal;
-                                    } else if (this.operator === "===") {
-                                        return lhsVal === rhsVal;
-                                    } else if (this.operator === "!=") {
-                                        return lhsVal != rhsVal;
-                                    } else if (this.operator === "!==") {
-                                        return lhsVal !== rhsVal;
-                                    }
+                            args: [expr, rhs],
+                            op:function (context, lhsVal, rhsVal) {
+                                if (this.operator === "<") {
+                                    return lhsVal < rhsVal;
+                                } else if (this.operator === ">") {
+                                    return lhsVal > rhsVal;
+                                } else if (this.operator === "<=") {
+                                    return lhsVal <= rhsVal;
+                                } else if (this.operator === ">=") {
+                                    return lhsVal >= rhsVal;
+                                } else if (this.operator === "==") {
+                                    return lhsVal == rhsVal;
+                                } else if (this.operator === "===") {
+                                    return lhsVal === rhsVal;
+                                } else if (this.operator === "!=") {
+                                    return lhsVal != rhsVal;
+                                } else if (this.operator === "!==") {
+                                    return lhsVal !== rhsVal;
                                 }
-                                return _runtime.unifiedEval(this, op, context, this.lhs, this.rhs);
+                            },
+                            evaluate: function (context) {
+                                return _runtime.unifiedEval(this, context);
                             }
                         }
                         comparisonOp = tokens.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==")
@@ -1436,15 +1525,16 @@
                             operator: logicalOp.value,
                             lhs: expr,
                             rhs: rhs,
+                            args: [expr, rhs],
+                            op: function (context, lhsVal, rhsVal) {
+                                if (this.operator === "and") {
+                                    return lhsVal && rhsVal;
+                                } else {
+                                    return lhsVal || rhsVal;
+                                }
+                            },
                             evaluate: function (context) {
-                                var op = function (context, lhsVal, rhsVal) {
-                                    if (this.operator === "and") {
-                                        return lhsVal && rhsVal;
-                                    } else {
-                                        return lhsVal || rhsVal;
-                                    }
-                                };
-                                return _runtime.unifiedEval(this, op, context, this.lhs, this.rhs);
+                                return _runtime.unifiedEval(this, context);
                             }
                         }
                         logicalOp = tokens.matchToken("and") || tokens.matchToken("or");
@@ -1494,18 +1584,19 @@
                         type: "target",
                         propPath: propPath,
                         root: root,
+                        args: [root],
+                        op:function(context, targetRoot) {
+                            return _runtime.evalTarget(targetRoot, propPath);
+                        },
                         evaluate: function (ctx) {
-                            var op = function(context, targetRoot) {
-                                return _runtime.evalTarget(targetRoot, propPath);
-                            }
-                            return _runtime.unifiedEval(this, op, ctx, root);
+                            return _runtime.unifiedEval(this, ctx);
                         }
                     };
                 });
 
                 _parser.addGrammarElement("command", function (parser, tokens) {
                     return parser.parseAnyOf(["addCmd", "removeCmd", "toggleCmd", "waitCmd", "returnCmd", "sendCmd", "triggerCmd",
-                        "takeCmd", "logCmd", "callCmd", "putCmd", "setCmd", "ifCmd", "forCmd", "fetchCmd", "throwCmd", "jsCmd"], tokens);
+                        "takeCmd", "logCmd", "callCmd", "putCmd", "setCmd", "ifCmd", "repeatCmd", "fetchCmd", "throwCmd", "jsCmd"], tokens);
                 })
 
                 _parser.addGrammarElement("commandList", function (parser, tokens) {
@@ -1521,32 +1612,34 @@
                     var onFeatures = []
                     var functionFeatures = []
                     var workerFeatures = []
-                    do {
-                        var feature = parser.parseElement("feature", tokens);
-                        if (feature == null) {
-                            parser.raiseParseError("Unexpected feature type : " + tokens.currentToken());
-                        }
-                        if (feature.type === "onFeature") {
-                            onFeatures.push(feature);
-                        } else if(feature.type === "functionFeature") {
-                            feature.execute();
-                            functionFeatures.push(feature);
-                        } else if (feature.type === "workerFeature") {
-                            workerFeatures.push(feature);
-                            feature.execute();
-                        } else if (feature.type === "jsFeature") {
-                            feature.execute();
-                            // because the jsFeature production eats the `end`
-                            // token, the loop condition will be false. we are
-                            // working around that.
-                            //
-                            // see: `_parser.addGrammarElement("jsFeature")`
-                            if (tokens.hasMore()) continue;
-                        }
-                        var chainedOn = feature.type === "onFeature" && tokens.currentToken() && tokens.currentToken().value === "on";
-                    } while ((chainedOn || tokens.matchToken("end")) && tokens.hasMore())
                     if (tokens.hasMore()) {
-                        parser.raiseParseError(tokens);
+                        do {
+                            var feature = parser.parseElement("feature", tokens);
+                            if (feature == null) {
+                                parser.raiseParseError("Unexpected feature type : " + tokens.currentToken());
+                            }
+                            if (feature.type === "onFeature") {
+                                onFeatures.push(feature);
+                            } else if(feature.type === "functionFeature") {
+                                feature.execute();
+                                functionFeatures.push(feature);
+                            } else if (feature.type === "workerFeature") {
+                                workerFeatures.push(feature);
+                                feature.execute();
+                            } else if (feature.type === "jsFeature") {
+                                feature.execute();
+                                // because the jsFeature production eats the `end`
+                                // token, the loop condition will be false. we are
+                                // working around that.
+                                //
+                                // see: `_parser.addGrammarElement("jsFeature")`
+                                if (tokens.hasMore()) continue;
+                            }
+                            var chainedOn = feature.type === "onFeature" && tokens.currentToken() && tokens.currentToken().value === "on";
+                        } while ((chainedOn || tokens.matchToken("end")) && tokens.hasMore())
+                        if (tokens.hasMore()) {
+                            parser.raiseParseError(tokens);
+                        }
                     }
                     return {
                         type: "hyperscript",
@@ -1591,9 +1684,22 @@
                         }
 
                         var from = null;
+                        var elsewhere = false;
                         if (tokens.matchToken("from")) {
-                            from = parser.requireElement("Expected target value", "target", tokens);
+                            if (tokens.matchToken('elsewhere')) {
+                                elsewhere = true;
+                            } else {
+                                from = parser.parseElement("target", tokens)
+                                if (!from) {
+                                    parser.raiseParseError('Expected either target value or "elsewhere".', tokens);
+                                }
+                            }
                         }
+
+                        // support both "elsewhere" and "from elsewhere"
+                        if (from === null && elsewhere === false && tokens.matchToken("elsewhere")) {
+                            elsewhere = true;
+                        }                        
 
                         var start = parser.requireElement("Expected a command list", "commandList", tokens);
 
@@ -1603,9 +1709,13 @@
                         }
                         end.next = {
                             type: "implicitReturn",
-                            execute: function (ctx) {
+                            op:function(context){
                                 // automatically resolve at the end of an event handler if nothing else does
-                                ctx.meta.resolve();
+                                context.meta.resolve();
+                                return _runtime.HALT;
+                            },
+                            execute: function (ctx) {
+                                // do nothing
                             }
                         }
 
@@ -1615,6 +1725,7 @@
                             on: on,
                             every: every,
                             from: from,
+                            elsewhere: elsewhere,
                             filter: filter,
                             start: start,
                             executing: false,
@@ -1721,12 +1832,16 @@
                         }
                         end.next = {
                             type: "implicitReturn",
-                            execute: function (ctx) {
+                            op: function (context) {
                                 // automatically return at the end of the function if nothing else does
-                                ctx.meta.returned = true;
-                                if(ctx.meta.resolve){
-                                    ctx.meta.resolve();
+                                context.meta.returned = true;
+                                if(context.meta.resolve){
+                                    context.meta.resolve();
                                 }
+                                return _runtime.HALT;
+                            },
+                            execute: function (context) {
+                                // do nothing
                             }
                         }
 
@@ -1892,24 +2007,42 @@
                         var jsSourceStart = tokens.currentToken().start;
                         var jsLastToken = null;
 
+                        var funcNames = [];
+                        var funcName = "";
+                        var expectFunctionDeclaration = false;
                         while (tokens.hasMore()) {
                             jsLastToken = tokens.consumeToken()
                             if (jsLastToken.type === "IDENTIFIER"
                                 && jsLastToken.value === "end") {
                                 break;
+                            } else if (expectFunctionDeclaration) {
+                                if (jsLastToken.type === "IDENTIFIER"
+                                    || jsLastToken.type === "NUMBER") {
+                                    funcName += jsLastToken.value;
+                                } else {
+                                    if (funcName !== "") funcNames.push(funcName);
+                                    funcName = "";
+                                    expectFunctionDeclaration = false;
+                                }
+                            } else if (jsLastToken.type === "IDENTIFIER"
+                                       && jsLastToken.value === "function") {
+                                expectFunctionDeclaration = true;
                             }
                         }
 
                         var jsSourceEnd = jsLastToken.start;
 
-                        var jsSource = tokens.source.substring(jsSourceStart, jsSourceEnd);
-
+                        var jsSource = tokens.source.substring(jsSourceStart, jsSourceEnd) +
+                            "\nreturn { " + 
+                            funcNames.map(function (name) {return name+":"+name}).join(",") +
+                            " };";
                         var func = new Function(jsSource);
 
                         return {
                             type: 'jsFeature',
                             jsSource: jsSource,
                             function: func,
+                            exposedFunctionNames: funcNames,
                             execute: function() {
                                 mergeObjects(globalScope, func())
                             }
@@ -1962,21 +2095,26 @@
                             jsSource: "jsSource",
                             function: func,
                             inputs: inputs,
-                            execute: function(ctx) {
+                            op:function(context){
                                 var args = [];
                                 inputs.forEach(function (input) {
-                                    args.push(_runtime.resolveSymbol(input, ctx))
+                                    args.push(_runtime.resolveSymbol(input, context))
                                 });
                                 var result = func.apply(globalScope, args)
                                 if (result && typeof result.then === 'function') {
-                                    result.then(function(actualResult) {
-                                        ctx.it = actualResult
-                                        _runtime.next(this, ctx)
+                                    return Promise(function(resolve){
+                                        result.then(function(actualResult) {
+                                            context.it = actualResult
+                                            resolve(_runtime.findNext(this));
+                                        })
                                     })
                                 } else {
-                                    ctx.it = result
-                                    _runtime.next(this, ctx)
+                                    context.it = result
+                                    return _runtime.findNext(this);
                                 }
+                            },
+                            execute: function(context) {
+                                return _runtime.unifiedExec(this, context);
                             }
                         };
                     }
@@ -1999,31 +2137,42 @@
                             var to = parser.parseElement("implicitMeTarget");
                         }
 
-                        var addCmd = {
-                            type: "addCmd",
-                            classRef: classRef,
-                            attributeRef: attributeRef,
-                            to: to,
-                            execute: function (ctx) {
-                                if (this.classRef) {
-                                    var op = function(context, to){
-                                        _runtime.forEach(to, function(target){
-                                            target.classList.add(classRef.className());
-                                        })
-                                        _runtime.next(addCmd, ctx);
-                                    }
-                                    _runtime.unifiedEval(this, op, ctx, to);
-                                } else {
-                                    var op = function(context, to, attributeRef){
-                                        _runtime.forEach(to, function(target){
-                                            target.setAttribute(attributeRef.name, attributeRef.value);
-                                        })
-                                        _runtime.next(addCmd, ctx);
-                                    }
-                                    _runtime.unifiedEval(this, op, ctx, to, attributeRef);
+                        if (classRef) {
+                            var addCmd = {
+                                type: "addCmd",
+                                classRef: classRef,
+                                attributeRef: attributeRef,
+                                to: to,
+                                args: [to],
+                                op: function (context, to) {
+                                    _runtime.forEach(to, function (target) {
+                                        target.classList.add(classRef.className());
+                                    })
+                                    return _runtime.findNext(this);
+                                },
+                                execute: function (context) {
+                                    return _runtime.unifiedExec(this, context);
                                 }
                             }
-                        };
+                        } else {
+                            var addCmd = {
+                                type: "addCmd",
+                                classRef: classRef,
+                                attributeRef: attributeRef,
+                                to: to,
+                                args: [to, attributeRef],
+                                op: function (context, to, attrRef) {
+                                    _runtime.forEach(to, function (target) {
+                                        target.setAttribute(attrRef.name, attrRef.value);
+                                    })
+                                    return _runtime.findNext(addCmd, context);
+                                },
+                                execute: function (ctx) {
+                                    return _runtime.unifiedExec(this, ctx);
+                                }
+                            };
+                        }
+
                         return addCmd
                     }
                 });
@@ -2048,40 +2197,50 @@
                             var from = parser.parseElement("implicitMeTarget");
                         }
 
-                        var removeCmd = {
-                            type: "removeCmd",
-                            classRef: classRef,
-                            attributeRef: attributeRef,
-                            elementExpr: elementExpr,
-                            from: from,
-                            execute: function (ctx) {
-                                {
-                                    if (this.elementExpr) {
-                                        var op = function(context, element) {
-                                            _runtime.forEach(element, function (target) {
-                                                target.parentElement.removeChild(target);
-                                            });
-                                            _runtime.next(removeCmd, ctx);
-                                        }
-                                        return _runtime.unifiedEval(this, op, ctx, elementExpr);
-                                    } else {
-                                        var op = function(context, from) {
-                                            if (this.classRef) {
-                                                _runtime.forEach(from, function(target){
-                                                    target.classList.remove(classRef.className());
-                                                })
-                                            } else {
-                                                _runtime.forEach(from, function(target){
-                                                    target.removeAttribute(attributeRef.name);
-                                                })
-                                            }
-                                            _runtime.next(removeCmd, ctx);
-                                        }
-                                        return _runtime.unifiedEval(this, op, ctx, from);
-                                    }
+                        if (elementExpr) {
+                            var removeCmd = {
+                                type: "removeCmd",
+                                classRef: classRef,
+                                attributeRef: attributeRef,
+                                elementExpr: elementExpr,
+                                from: from,
+                                args: [elementExpr],
+                                op: function (context, element) {
+                                    _runtime.forEach(element, function (target) {
+                                        target.parentElement.removeChild(target);
+                                    })
+                                    return _runtime.findNext(this);
+                                },
+                                execute: function (context) {
+                                    return _runtime.unifiedExec(this, context);
                                 }
-                            }
-                        };
+                            };
+                        } else {
+                            var removeCmd = {
+                                type: "removeCmd",
+                                classRef: classRef,
+                                attributeRef: attributeRef,
+                                elementExpr: elementExpr,
+                                from: from,
+                                args: [from],
+                                op: function (context, from) {
+                                    if (this.classRef) {
+                                        _runtime.forEach(from, function(target){
+                                            target.classList.remove(classRef.className());
+                                        })
+                                    } else {
+                                        _runtime.forEach(from, function (target) {
+                                            target.removeAttribute(attributeRef.name);
+                                        })
+                                    }
+                                    return _runtime.findNext(this);
+                                },
+                                execute: function (context) {
+                                    return _runtime.unifiedExec(this, context);
+                                }
+                            };
+
+                        }
                         return removeCmd
                     }
                 });
@@ -2096,35 +2255,71 @@
                                 parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
                             }
                         }
+
                         if (tokens.matchToken("on")) {
                             var on = parser.parseElement("target", tokens);
                         } else {
                             var on = parser.parseElement("implicitMeTarget");
                         }
+
+                        if (tokens.matchToken("for")) {
+                            var time = parser.requireElement("Expected a time element", "timeExpression", tokens);
+                        } else if (tokens.matchToken("until")) {
+                            var evt = parser.requireElement("Expected event name", "dotOrColonPath", tokens);
+                            if (tokens.matchToken("from")) {
+                                var from = parser.parseElement("expression", tokens);
+                            }
+                        }
+
                         var toggleCmd = {
                             type: "toggleCmd",
                             classRef: classRef,
                             attributeRef: attributeRef,
                             on: on,
-                            execute: function (ctx) {
-                                var op = function(context, on, value) {
-                                    if (this.classRef) {
-                                        _runtime.forEach( on, function (target) {
-                                            target.classList.toggle(classRef.className())
-                                        });
-                                    } else {
-                                        _runtime.forEach( on, function (target) {
-                                            if(target.hasAttribute(attributeRef.name )) {
-                                                target.removeAttribute( attributeRef.name );
-                                            } else {
-                                                target.setAttribute(attributeRef.name, value)
-                                            }
-                                        });
-                                    }
-                                    _runtime.next(this, ctx);
+                            time: time,
+                            evt: evt,
+                            from: from,
+                            toggle: function(on, value) {
+                                if (this.classRef) {
+                                    _runtime.forEach(on, function (target) {
+                                        target.classList.toggle(classRef.className())
+                                    });
+                                } else {
+                                    _runtime.forEach(on, function (target) {
+                                        if (target.hasAttribute(attributeRef.name)) {
+                                            target.removeAttribute(attributeRef.name);
+                                        } else {
+                                            target.setAttribute(attributeRef.name, value)
+                                        }
+                                    });
                                 }
-                                return _runtime.unifiedEval(this, op, ctx, on, attributeRef ? attributeRef.value : null);
-
+                            },
+                            args: [on, attributeRef ? attributeRef.value : null, time, evt, from],
+                            op: function(context, on, value, time, evt, from) {
+                                if (time) {
+                                    return new Promise(function(resolve){
+                                        toggleCmd.toggle(on, value);
+                                        setTimeout(function () {
+                                            toggleCmd.toggle(on, value);
+                                            resolve(_runtime.findNext(toggleCmd));
+                                        }, time);
+                                    });
+                                } else if (evt) {
+                                    return new Promise(function (resolve) {
+                                        var target = from || context.me;
+                                        target.addEventListener(evt, function(){
+                                            toggleCmd.toggle(on, value);
+                                            resolve(_runtime.findNext(toggleCmd));
+                                        }, { once:true })
+                                        toggleCmd.toggle(on, value);
+                                    });
+                                } else {
+                                    this.toggle(on, value);
+                                    return _runtime.findNext(toggleCmd);
+                                }
+                            },
+                            execute: function (ctx) {
+                                return _runtime.unifiedExec(this, ctx);
                             }
                         };
                         return toggleCmd
@@ -2137,10 +2332,7 @@
                         // wait on event
                         if (tokens.matchToken("for")) {
                             tokens.matchToken("a"); // optional "a"
-                            var evt = parser.parseElement("dotOrColonPath", tokens);
-                            if (evt == null) {
-                                parser.raiseParseError(tokens, "Expected event name")
-                            }
+                            var evt = _parser.requireElement("Expected event name", "dotOrColonPath", tokens);
                             if (tokens.matchToken("from")) {
                                 var on = parser.parseElement("expression", tokens);
                             }
@@ -2149,37 +2341,35 @@
                                 type: "waitCmd",
                                 event: evt,
                                 on: on,
-                                execute: function (ctx) {
-                                    var eventName = evt.evaluate(ctx); // OK
-                                    var op = function(context, on) {
-                                        var target = on ? on : ctx['me'];
+                                args:[evt, on],
+                                op: function(context, eventName, on) {
+                                    var target = on ? on : context.me;
+                                    return new Promise(function (resolve) {
                                         var listener = function(){
-                                            target.removeEventListener(eventName, listener);
-                                            _runtime.next(waitCmd, ctx);
+                                            resolve(_runtime.findNext(waitCmd));
                                         };
-                                        target.addEventListener(eventName, listener)
-                                    }
-                                    _runtime.unifiedEval(this, op, ctx, on);
+                                        target.addEventListener(eventName, listener, {once:true});
+                                    });
+                                },
+                                execute: function(context) {
+                                    return _runtime.unifiedExec(this, context);
                                 }
                             };
                         } else {
-                            var time = parser.parseElement("expression", tokens);
-                            var factor = 1;
-                            if (tokens.matchToken("s") || tokens.matchToken("seconds")) {
-                                factor = 1000;
-                            } else if (tokens.matchToken("ms") || tokens.matchToken("milliseconds")) {
-                                // do nothing
-                            }
+                            var time = _parser.requireElement("A time expression is required", "timeExpression", tokens);
                             var waitCmd = {
                                 type: "waitCmd",
                                 time: time,
-                                execute: function (ctx) {
-                                    var op = function(context, time){
+                                args: [time],
+                                op: function(context, timeValue){
+                                    return new Promise(function (resolve) {
                                         setTimeout(function () {
-                                            _runtime.next(waitCmd, ctx);
-                                        }, time * factor);
-                                    }
-                                    _runtime.unifiedEval(this, op, ctx, time);
+                                            resolve(_runtime.findNext(waitCmd));
+                                        }, timeValue);
+                                    });
+                                },
+                                execute: function (context) {
+                                    return _runtime.unifiedExec(this, context);
                                 }
                             };
                         }
@@ -2228,14 +2418,15 @@
                             eventName: eventName,
                             details: details,
                             to: to,
-                            execute: function (ctx) {
-                                var op = function(context, to, eventName, details){
-                                    _runtime.forEach(to, function (target) {
-                                        _runtime.triggerEvent(target, eventName, details ? details : {});
-                                    });
-                                    _runtime.next(sendCmd, ctx);
-                                }
-                                _runtime.unifiedEval(this, op, ctx, to, eventName, details);
+                            args: [to, eventName, details],
+                            op: function(context, to, eventName, details){
+                                _runtime.forEach(to, function (target) {
+                                    _runtime.triggerEvent(target, eventName, details ? details : {});
+                                });
+                                return _runtime.findNext(sendCmd);
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedExec(this, context);
                             }
                         };
                         return sendCmd
@@ -2250,22 +2441,24 @@
                         var returnCmd = {
                             type: "returnCmd",
                             value: value,
-                            execute: function (ctx) {
-                                var op = function (context, value) {
-                                    var resolve = ctx.meta.resolve;
-                                    ctx.meta.returned = true;
-                                    if (resolve) {
-                                        if (value) {
-                                            resolve(value);
-                                        } else {
-                                            resolve()
-                                        }
+                            args: [value],
+                            op: function (context, value) {
+                                var resolve = context.meta.resolve;
+                                context.meta.returned = true;
+                                if (resolve) {
+                                    if (value) {
+                                        resolve(value);
                                     } else {
-                                        ctx.meta.returned = true;
-                                        ctx.meta.returnValue = value;
+                                        resolve()
                                     }
-                                };
-                                _runtime.unifiedEval(this, op, ctx, value);
+                                } else {
+                                    context.meta.returned = true;
+                                    context.meta.returnValue = value;
+                                }
+                                return _runtime.HALT;
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedExec(this, context);
                             }
                         };
                         return returnCmd
@@ -2282,13 +2475,13 @@
                             type: "triggerCmd",
                             eventName: eventName,
                             details: details,
-                            execute: function (ctx) {
-                                var eventNameStr = eventName.evaluate(ctx);// OK
-                                var op = function (context, details) {
-                                    _runtime.triggerEvent(_runtime.resolveSymbol("me", ctx), eventNameStr ,details ? details : {});
-                                    _runtime.next(triggerCmd, ctx);
-                                };
-                                return _runtime.unifiedEval(this, op, ctx, details);
+                            args: [eventName, details],
+                            op:function (context, eventNameStr, details) {
+                                _runtime.triggerEvent(context.me, eventNameStr ,details ? details : {});
+                                return _runtime.findNext(triggerCmd);
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedExec(this, context);
                             }
                         };
                         return triggerCmd
@@ -2316,19 +2509,19 @@
                             classRef: classRef,
                             from: from,
                             forElt: forElt,
-                            execute: function (ctx) {
-                                // TODO - expression?
-                                var op = function(context, from, forElt){
-                                    var clazz = this.classRef.value.substr(1)
-                                    _runtime.forEach(from, function(target){
-                                        target.classList.remove(clazz);
-                                    })
-                                    _runtime.forEach(forElt, function(target){
-                                        target.classList.add(clazz);
-                                    });
-                                    _runtime.next(takeCmd, ctx);
-                                }
-                                _runtime.unifiedEval(this, op, ctx, from, forElt);
+                            args: [from, forElt],
+                            op: function(context, from, forElt){
+                                var clazz = this.classRef.value.substr(1)
+                                _runtime.forEach(from, function(target){
+                                    target.classList.remove(clazz);
+                                })
+                                _runtime.forEach(forElt, function(target){
+                                    target.classList.add(clazz);
+                                });
+                                return _runtime.findNext(this);
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedExec(this, context);
                             }
                         };
                         return takeCmd
@@ -2348,16 +2541,17 @@
                             type: "logCmd",
                             exprs: exprs,
                             withExpr: withExpr,
-                            execute: function (ctx) {
-                                var op = function(ctx, withExpr, values) {
-                                    if (withExpr) {
-                                        withExpr.apply(null, values);
-                                    } else {
-                                        console.log.apply(null, values);
-                                    }
-                                    _runtime.next(logCmd, ctx);
-                                };
-                                return _runtime.unifiedEval(this, op, ctx, withExpr, exprs);
+                            args: [withExpr, exprs],
+                            op: function (ctx, withExpr, values) {
+                                if (withExpr) {
+                                    withExpr.apply(null, values);
+                                } else {
+                                    console.log.apply(null, values);
+                                }
+                                return _runtime.findNext(this);
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedExec(this, context);
                             }
                         };
                         return logCmd;
@@ -2370,16 +2564,18 @@
                         var throwCmd = {
                             type: "throwCmd",
                             expr: expr,
-                            execute: function (ctx) {
-                                var op = function(ctx, expr) {
-                                    var reject = ctx.meta && ctx.meta.reject;
-                                    if (reject) {
-                                        reject(expr);
-                                    } else {
-                                        throw expr;
-                                    }
-                                };
-                                return _runtime.unifiedEval(this, op, ctx, expr);
+                            args: [expr],
+                            op: function(ctx, expr) {
+                                var reject = ctx.meta && ctx.meta.reject;
+                                if (reject) {
+                                    reject(expr);
+                                    return _runtime.HALT;
+                                } else {
+                                    throw expr;
+                                }
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedExec(this, context);
                             }
                         };
                         return throwCmd;
@@ -2392,12 +2588,13 @@
                         var callCmd = {
                             type: "callCmd",
                             expr: expr,
-                            execute: function (ctx) {
-                                var op = function(context, it) {
-                                    ctx.it = it;
-                                    _runtime.next(callCmd, ctx);
-                                }
-                                _runtime.unifiedEval(this, op, ctx, expr);
+                            args: [expr],
+                            op: function(context, it) {
+                                context.it = it;
+                                return _runtime.findNext(callCmd);
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedExec(this, context);
                             }
                         };
                         return callCmd
@@ -2437,37 +2634,38 @@
                             operation: operation,
                             symbolWrite: symbolWrite,
                             value: value,
-                            execute: function (ctx) {
-                                var op = function(context, root, valueToPut){
-                                    if (symbolWrite) {
-                                        ctx[target.root.name] = valueToPut;
-                                    } else {
-                                        if (operation === "into") {
-                                            var lastProperty = target.propPath.slice(-1); // steal last property for assignment
-                                            _runtime.forEach(_runtime.evalTarget(root, target.propPath.slice(0, -1)), function(target){
-                                                target[lastProperty] = valueToPut;
-                                            })
-                                        } else if (operation === "before") {
-                                            _runtime.forEach(_runtime.evalTarget(root, target.propPath), function(target){
-                                                target.insertAdjacentHTML('beforebegin', valueToPut);
-                                            })
-                                        } else if (operation === "start") {
-                                            _runtime.forEach(_runtime.evalTarget(root, target.propPath), function(target){
-                                                target.insertAdjacentHTML('afterbegin', valueToPut);
-                                            })
-                                        } else if (operation === "end") {
-                                            _runtime.forEach(_runtime.evalTarget(root, target.propPath), function(target){
-                                                target.insertAdjacentHTML('beforeend', valueToPut);
-                                            })
-                                        } else if (operation === "after") {
-                                            _runtime.forEach(_runtime.evalTarget(root, target.propPath), function(target){
-                                                target.insertAdjacentHTML('afterend', valueToPut);
-                                            })
-                                        }
+                            args: [target.root, value],
+                            op: function(context, root, valueToPut){
+                                if (symbolWrite) {
+                                    context[target.root.name] = valueToPut;
+                                } else {
+                                    if (operation === "into") {
+                                        var lastProperty = target.propPath.slice(-1); // steal last property for assignment
+                                        _runtime.forEach(_runtime.evalTarget(root, target.propPath.slice(0, -1)), function(target){
+                                            target[lastProperty] = valueToPut;
+                                        })
+                                    } else if (operation === "before") {
+                                        _runtime.forEach(_runtime.evalTarget(root, target.propPath), function(target){
+                                            target.insertAdjacentHTML('beforebegin', valueToPut);
+                                        })
+                                    } else if (operation === "start") {
+                                        _runtime.forEach(_runtime.evalTarget(root, target.propPath), function(target){
+                                            target.insertAdjacentHTML('afterbegin', valueToPut);
+                                        })
+                                    } else if (operation === "end") {
+                                        _runtime.forEach(_runtime.evalTarget(root, target.propPath), function(target){
+                                            target.insertAdjacentHTML('beforeend', valueToPut);
+                                        })
+                                    } else if (operation === "after") {
+                                        _runtime.forEach(_runtime.evalTarget(root, target.propPath), function(target){
+                                            target.insertAdjacentHTML('afterend', valueToPut);
+                                        })
                                     }
-                                    _runtime.next(this, ctx);
                                 }
-                                _runtime.unifiedEval(this, op, ctx, target.root, value)
+                                return _runtime.findNext(this);
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedExec(this, context)
                             }
                         };
                         return putCmd
@@ -2494,19 +2692,20 @@
                             target: target,
                             symbolWrite: symbolWrite,
                             value: value,
-                            execute: function (ctx) {
-                                var op = function(context, root, valueToSet) {
-                                    if (symbolWrite) {
-                                        ctx[target.root.name] = valueToSet;
-                                    } else {
-                                        var lastProperty = target.propPath.slice(-1); // steal last property for assignment
-                                        _runtime.forEach(_runtime.evalTarget(root, target.propPath.slice(0, -1)), function (target) {
-                                            target[lastProperty] = valueToSet;
-                                        })
-                                    }
-                                    _runtime.next(this, ctx);
+                            args: [symbolWrite ? null : target.root, value],
+                            op: function(context, root, valueToSet) {
+                                if (symbolWrite) {
+                                    context[target.root.name] = valueToSet;
+                                } else {
+                                    var lastProperty = target.propPath.slice(-1); // steal last property for assignment
+                                    _runtime.forEach(_runtime.evalTarget(root, target.propPath.slice(0, -1)), function (target) {
+                                        target[lastProperty] = valueToSet;
+                                    })
                                 }
-                                _runtime.unifiedEval(this, op, ctx, symbolWrite ? null : target.root, value);
+                                return _runtime.findNext(this);
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedExec(this, context);
                             }
                         };
                         return setCmd
@@ -2529,17 +2728,18 @@
                             expr: expr,
                             trueBranch: trueBranch,
                             falseBranch: falseBranch,
-                            execute: function (ctx) {
-                                var op = function (context, expr) {
-                                    if(expr) {
-                                        trueBranch.execute(ctx);
-                                    } else if(falseBranch) {
-                                        falseBranch.execute(ctx);
-                                    } else {
-                                        _runtime.next(ifCmd, ctx);
-                                    }
-                                };
-                                _runtime.unifiedEval(this, op, ctx, expr);
+                            args: [expr],
+                            op:function (context, expr) {
+                                if(expr) {
+                                    return trueBranch;
+                                } else if(falseBranch) {
+                                    return falseBranch;
+                                } else {
+                                    return _runtime.findNext(this);
+                                }
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedExec(this, context);
                             }
                         };
                         parser.setParent(trueBranch, ifCmd);
@@ -2548,48 +2748,129 @@
                     }
                 })
 
-                _parser.addGrammarElement("forCmd", function (parser, tokens) {
-                    if (tokens.matchToken("for")) {
-                        var identifier = tokens.requireTokenType('IDENTIFIER');
-                        tokens.matchToken("in"); // optional 'then'
-                        var expression = parser.parseElement("expression", tokens);
+                _parser.addGrammarElement("repeatCmd", function (parser, tokens) {
+                    var currentToken = tokens.currentToken();
+                    if (tokens.matchToken("repeat") || currentToken.value === "for") {
+                        if (tokens.matchToken("for")) {
+                            var identifierToken = tokens.requireTokenType('IDENTIFIER');
+                            var identifier = identifierToken.value
+                            tokens.matchToken("in"); // optional 'then'
+                            var expression = parser.requireElement("Expected an expression", "expression", tokens);
+                        } else if (tokens.matchToken("in")) {
+                            var identifier = "it";
+                            var expression = parser.requireElement("Expected an expression", "expression", tokens);
+                        } else if (tokens.matchToken("while")) {
+                            var whileExpr = parser.requireElement("Expected an expression", "expression", tokens);
+                        } else if (tokens.matchToken("until")) {
+                            var isUntil = true;
+                            if (tokens.matchToken("event")) {
+                                var evt = _parser.requireElement("Expected event name", "dotOrColonPath", tokens);
+                                if (tokens.matchToken("from")) {
+                                    var on = parser.parseElement("expression", tokens);
+                                }
+                            } else {
+                                var whileExpr = parser.requireElement("Expected an expression", "expression", tokens);
+                            }
+                        } else {
+                            tokens.matchToken("forever"); // consume optional forever
+                            var forever = true;
+                        }
+
+                        if (tokens.matchToken("index")) {
+                            var identifierToken = tokens.requireTokenType('IDENTIFIER');
+                            var indexIdentifier = identifierToken.value
+                        }
+
                         var loop = parser.parseElement("commandList", tokens);
                         if (tokens.hasMore()) {
                             tokens.requireToken("end");
                         }
-                        var forCmd = {
-                            type: "forCmd",
-                            identifier: identifier.value,
+
+                        if (identifier == null) {
+                            identifier = "_implicit_repeat_" + currentToken.start;
+                            var slot = identifier;
+                        } else {
+                            var slot = identifier + "_" + currentToken.start;
+                        }
+
+                        var repeatCmd = {
+                            type: "repeatCmd",
+                            identifier: identifier,
+                            indexIdentifier: indexIdentifier,
+                            slot: slot,
                             expression: expression,
-                            loop: loop,
-                            execute: function (ctx) {
-                                var op = function(context, value) {
-                                    ctx.meta.iterators[identifier.value] = {
-                                        index: 0,
-                                        value: value
-                                    };
-                                    this.handleNext(ctx);
-                                }
-                                _runtime.unifiedEval(this, op, ctx, expression);
+                            forever: forever,
+                            until: isUntil,
+                            event: evt,
+                            on: on,
+                            whileExpr: whileExpr,
+                            resolveNext: function() {
+                                return this;
                             },
-                            handleNext: function (ctx) {
-                                var iterator = ctx.meta.iterators[identifier.value];
-                                if (iterator.value === null ||
-                                    iterator.index >= iterator.value.length) {
-                                    if (forCmd.next) {
-                                        forCmd.next.execute(ctx);
+                            loop: loop,
+                            args: [whileExpr],
+                            op:function (context, whileValue) {
+                                var iterator = context.meta.iterators[slot];
+                                var keepLooping = false;
+                                if (this.forever) {
+                                    keepLooping = true;
+                                } else if (this.until) {
+                                    if (evt) {
+                                        keepLooping = context.meta.iterators[slot].eventFired == false;
                                     } else {
-                                        _runtime.next(forCmd.parent, ctx)
+                                        keepLooping = whileValue != true;
                                     }
+                                } else if (whileValue) {
+                                    keepLooping = true;
                                 } else {
-                                    ctx[identifier.value] = iterator.value[iterator.index];
-                                    iterator.index++;
-                                    loop.execute(ctx);
+                                    keepLooping = iterator.value !== null && iterator.index < iterator.value.length
                                 }
+
+                                if (keepLooping) {
+                                    if (iterator.value) {
+                                        context[identifier] = iterator.value[iterator.index];
+                                        context.it = iterator.value[iterator.index];
+                                    } else {
+                                        context.it = iterator.index;
+                                    }
+                                    if (indexIdentifier) {
+                                        context[indexIdentifier] = iterator.index;
+                                    }
+                                    iterator.index++;
+                                    return loop;
+                                } else {
+                                    context.meta.iterators[slot] = null;
+                                    return _runtime.findNext(this.parent);
+                                }
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedExec(this, context);
                             }
                         };
-                        parser.setParent(loop, forCmd);
-                        return forCmd
+                        parser.setParent(loop, repeatCmd);
+                        var repeatInit = {
+                            name:"repeatInit",
+                            args: [expression, evt, on],
+                            op:function(context, value, event, on){
+                                context.meta.iterators[slot] = {
+                                    index: 0,
+                                    value: value,
+                                    eventFired: false
+                                };
+                                if (evt) {
+                                    var target = on || context.me;
+                                    target.addEventListener(event, function (e) {
+                                        context.meta.iterators[slot].eventFired = true;
+                                    }, {once: true});
+                                }
+                                return repeatCmd; // continue to loop
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedExec(this, context);
+                            }
+                        }
+                        parser.setParent(repeatCmd, repeatInit);
+                        return repeatInit
                     }
                 })
 
@@ -2620,33 +2901,37 @@
                         var fetchCmd = {
                             type: "fetchCmd",
                             url:url,
-                            args:args,
-                            execute: function (ctx) {
-                                var op = function(context, url, args){
+                            argExrepssions:args,
+                            args: [url, args],
+                            op: function (context, url, args) {
+                                return new Promise(function (resolve, reject) {
                                     fetch(url, args)
                                         .then(function (value) {
                                             if (type === "response") {
-                                                ctx.it = value;
-                                                _runtime.next(fetchCmd, ctx);
+                                                context.it = value;
+                                                resolve(_runtime.findNext(fetchCmd));
                                             } else if (type === "json") {
-                                                value.json().then(function(result){
-                                                    ctx.it = result;
-                                                    _runtime.next(fetchCmd, ctx);
+                                                value.json().then(function (result) {
+                                                    context.it = result;
+                                                    resolve(_runtime.findNext(fetchCmd));
                                                 })
                                             } else {
-                                                value.text().then(function(result){
-                                                    ctx.it = result;
-                                                    _runtime.next(fetchCmd, ctx);
+                                                value.text().then(function (result) {
+                                                    context.it = result;
+                                                    resolve(_runtime.findNext(fetchCmd));
                                                 })
                                             }
                                         })
-                                        .catch(function(reason){
-                                            _runtime.triggerEvent(ctx.me, "fetch:error", {
+                                        .catch(function (reason) {
+                                            _runtime.triggerEvent(context.me, "fetch:error", {
                                                 reason: reason
                                             })
+                                            reject(reason);
                                         })
-                                }
-                                _runtime.unifiedEval(this, op, ctx, url, args)
+                                })
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedExec(this, context)
                             }
                         };
                         return fetchCmd;

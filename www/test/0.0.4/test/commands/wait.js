@@ -24,7 +24,7 @@ describe("the wait command", function() {
         }, 30)
     })
 
-    it("can wait on event", function(){
+    it("can wait on event", function(done){
         var div = make("<div _='on click " +
             "                             add .foo then " +
             "                             wait for foo then " +
@@ -35,11 +35,14 @@ describe("the wait command", function() {
         div.classList.contains("foo").should.equal(true);
         div.classList.contains("bar").should.equal(false);
         div.dispatchEvent(new CustomEvent("foo"));
-        div.classList.contains("foo").should.equal(true);
-        div.classList.contains("bar").should.equal(true);
+        setTimeout(function () {
+            div.classList.contains("foo").should.equal(true);
+            div.classList.contains("bar").should.equal(true);
+            done();
+        }, 10);
     })
 
-    it("can wait on event on another element", function(){
+    it("can wait on event on another element", function(done){
         var div = make("<div _='on click " +
             "                             add .foo then " +
             "                             wait for foo from #d2 then " +
@@ -52,13 +55,12 @@ describe("the wait command", function() {
         div.classList.contains("foo").should.equal(true);
         div.classList.contains("bar").should.equal(false);
 
-        div.dispatchEvent(new CustomEvent("foo"));
-        div.classList.contains("foo").should.equal(true);
-        div.classList.contains("bar").should.equal(false);
-
         div2.dispatchEvent(new CustomEvent("foo"));
-        div.classList.contains("foo").should.equal(true);
-        div.classList.contains("bar").should.equal(true);
+        setTimeout(function(){
+            div.classList.contains("foo").should.equal(true);
+            div.classList.contains("bar").should.equal(true);
+            done();
+        }, 10)
     })
 
 });
