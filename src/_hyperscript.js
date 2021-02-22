@@ -614,19 +614,53 @@
                     }
                 }
 
+                var HALT = {halt_flag:true};
+                function unifiedExec(command,  ctx) {
+                    while(true) {
+                        var next = unifiedEval(command, ctx);
+                        if (next == null) {
+                            console.error(command, " did not return a next element to execute! context: " , ctx)
+                            return;
+                        } else if (next.then) {
+                            next.then(function (resolvedNext) {
+                                unifiedExec(resolvedNext, ctx);
+                            });
+                            return;
+                        } else if (next === HALT) {
+                            // done
+                            return;
+                        }  else {
+                            command = next; // move to the next command
+                        }
+                    }
+                }
+
                 function unifiedEval(parseElement,  ctx) {
                     var async = false;
                     var wrappedAsyncs = false;
                     var args = [ctx];
-                    for (var i = 0; i < parseElement.args.length; i++) {
-                        var argument = parseElement.args[i];
-                        if (argument == null) {
-                            args.push(null);
-                        } else if (Array.isArray(argument)) {
-                            var arr = [];
-                            for (var j = 0; j < argument.length; j++) {
-                                var element = argument[j];
-                                var value = element.evaluate(ctx); // OK
+                    if (parseElement.args) {
+                        for (var i = 0; i < parseElement.args.length; i++) {
+                            var argument = parseElement.args[i];
+                            if (argument == null) {
+                                args.push(null);
+                            } else if (Array.isArray(argument)) {
+                                var arr = [];
+                                for (var j = 0; j < argument.length; j++) {
+                                    var element = argument[j];
+                                    var value = element.evaluate(ctx); // OK
+                                    if (value) {
+                                        if (value.then) {
+                                            async = true;
+                                        } else if (value.asyncWrapper) {
+                                            wrappedAsyncs = true;
+                                        }
+                                    }
+                                    arr.push(value);
+                                }
+                                args.push(arr);
+                            } else if (argument.evaluate) {
+                                var value = argument.evaluate(ctx); // OK
                                 if (value) {
                                     if (value.then) {
                                         async = true;
@@ -634,21 +668,10 @@
                                         wrappedAsyncs = true;
                                     }
                                 }
-                                arr.push(value);
+                                args.push(value);
+                            } else {
+                                args.push(argument);
                             }
-                            args.push(arr);
-                        } else if(argument.evaluate) {
-                            var value = argument.evaluate(ctx); // OK
-                            if (value) {
-                                if (value.then) {
-                                    async = true;
-                                } else if (value.asyncWrapper) {
-                                    wrappedAsyncs = true;
-                                }
-                            }
-                            args.push(value);
-                        } else {
-                            args.push(argument);
                         }
                     }
                     if (async) {
@@ -897,6 +920,18 @@
                     }
                 }
 
+                function findNext(command) {
+                    if (command) {
+                        if (command.resolveNext) {
+                            return command.resolveNext();
+                        } else if (command.next) {
+                            return command.next;
+                        } else {
+                            return findNext(command.parent)
+                        }
+                    }
+                }
+
                 return {
                     typeCheck: typeCheck,
                     forEach: forEach,
@@ -911,7 +946,10 @@
                     resolveSymbol: resolveSymbol,
                     makeContext: makeContext,
                     next: next,
-                    unifiedEval: unifiedEval
+                    findNext: findNext,
+                    unifiedEval: unifiedEval,
+                    unifiedExec: unifiedExec,
+                    HALT: HALT
                 }
             }();
 
@@ -1660,7 +1698,7 @@
                             } else {
                                 from = parser.parseElement("target", tokens)
                                 if (!from) {
-                                    raiseParseError('Expected either target value or "elsewhere".', tokens);
+                                    parser.raiseParseError('Expected either target value or "elsewhere".', tokens);
                                 }
                             }
                         }
@@ -1678,9 +1716,13 @@
                         }
                         end.next = {
                             type: "implicitReturn",
-                            execute: function (ctx) {
+                            op:function(context){
                                 // automatically resolve at the end of an event handler if nothing else does
-                                ctx.meta.resolve();
+                                context.meta.resolve();
+                                return _runtime.HALT;
+                            },
+                            execute: function (ctx) {
+                                // do nothing
                             }
                         }
 
@@ -1803,6 +1845,7 @@
                                 if(ctx.meta.resolve){
                                     ctx.meta.resolve();
                                 }
+                                return _runtime.HALT;
                             }
                         }
 
@@ -2056,21 +2099,26 @@
                             jsSource: "jsSource",
                             function: func,
                             inputs: inputs,
-                            execute: function(ctx) {
+                            op:function(context){
                                 var args = [];
                                 inputs.forEach(function (input) {
-                                    args.push(_runtime.resolveSymbol(input, ctx))
+                                    args.push(_runtime.resolveSymbol(input, context))
                                 });
                                 var result = func.apply(globalScope, args)
                                 if (result && typeof result.then === 'function') {
-                                    result.then(function(actualResult) {
-                                        ctx.it = actualResult
-                                        _runtime.next(this, ctx)
+                                    return Promise(function(resolve){
+                                        result.then(function(actualResult) {
+                                            context.it = actualResult
+                                            resolve(_runtime.findNext(this));
+                                        })
                                     })
                                 } else {
-                                    ctx.it = result
-                                    _runtime.next(this, ctx)
+                                    context.it = result
+                                    return _runtime.findNext(this);
                                 }
+                            },
+                            execute: function(context) {
+                                return _runtime.unifiedExec(this, context);
                             }
                         };
                     }
@@ -2104,10 +2152,10 @@
                                     _runtime.forEach(to, function (target) {
                                         target.classList.add(classRef.className());
                                     })
-                                    _runtime.next(addCmd, context);
+                                    return _runtime.findNext(this);
                                 },
                                 execute: function (context) {
-                                    return _runtime.unifiedEval(this, context);
+                                    return _runtime.unifiedExec(this, context);
                                 }
                             }
                         } else {
@@ -2121,10 +2169,10 @@
                                     _runtime.forEach(to, function (target) {
                                         target.setAttribute(attrRef.name, attrRef.value);
                                     })
-                                    _runtime.next(addCmd, context);
+                                    return _runtime.findNext(addCmd, context);
                                 },
                                 execute: function (ctx) {
-                                    return _runtime.unifiedEval(this, ctx);
+                                    return _runtime.unifiedExec(this, ctx);
                                 }
                             };
                         }
@@ -2165,10 +2213,10 @@
                                     _runtime.forEach(element, function (target) {
                                         target.parentElement.removeChild(target);
                                     })
-                                    _runtime.next(this, context);
+                                    return _runtime.findNext(this);
                                 },
                                 execute: function (context) {
-                                    return _runtime.unifiedEval(this, context);
+                                    return _runtime.unifiedExec(this, context);
                                 }
                             };
                         } else {
@@ -2189,10 +2237,10 @@
                                             target.removeAttribute(attributeRef.name);
                                         })
                                     }
-                                    _runtime.next(this, context);
+                                    return _runtime.findNext(this);
                                 },
                                 execute: function (context) {
-                                    return _runtime.unifiedEval(this, context);
+                                    return _runtime.unifiedExec(this, context);
                                 }
                             };
 
@@ -2253,25 +2301,29 @@
                             args: [on, attributeRef ? attributeRef.value : null, time, evt, from],
                             op: function(context, on, value, time, evt, from) {
                                 if (time) {
-                                    this.toggle(on, value);
-                                    setTimeout(function () {
+                                    return new Promise(function(resolve){
                                         toggleCmd.toggle(on, value);
-                                        _runtime.next(toggleCmd, context);
-                                    }, time);
+                                        setTimeout(function () {
+                                            toggleCmd.toggle(on, value);
+                                            resolve(_runtime.findNext(toggleCmd));
+                                        }, time);
+                                    });
                                 } else if (evt) {
-                                    var target = from || ctx.me;
-                                    target.addEventListener(evt, function(){
+                                    return new Promise(function (resolve) {
+                                        var target = from || context.me;
+                                        target.addEventListener(evt, function(){
+                                            toggleCmd.toggle(on, value);
+                                            resolve(_runtime.next(toggleCmd));
+                                        }, { once:true })
                                         toggleCmd.toggle(on, value);
-                                        _runtime.next(toggleCmd, context);
-                                    }, { once:true })
-                                    this.toggle(on, value);
+                                    });
                                 } else {
                                     this.toggle(on, value);
-                                    _runtime.next(toggleCmd, context);
+                                    return _runtime.findNext(toggleCmd);
                                 }
                             },
                             execute: function (ctx) {
-                                return _runtime.unifiedEval(this, ctx);
+                                return _runtime.unifiedExec(this, ctx);
                             }
                         };
                         return toggleCmd
@@ -2295,15 +2347,16 @@
                                 on: on,
                                 args:[evt, on],
                                 op: function(context, eventName, on) {
-                                    var target = on ? on : context['me'];
-                                    var listener = function(){
-                                        target.removeEventListener(eventName, listener);
-                                        _runtime.next(waitCmd, context);
-                                    };
-                                    target.addEventListener(eventName, listener)
+                                    var target = on ? on : context.me;
+                                    return new Promise(function (resolve) {
+                                        var listener = function(){
+                                            resolve(_runtime.findNext(waitCmd));
+                                        };
+                                        target.addEventListener(eventName, listener, {once:true});
+                                    });
                                 },
                                 execute: function(context) {
-                                    return _runtime.unifiedEval(this, context);
+                                    return _runtime.unifiedExec(this, context);
                                 }
                             };
                         } else {
@@ -2313,12 +2366,14 @@
                                 time: time,
                                 args: [time],
                                 op: function(context, timeValue){
-                                    setTimeout(function () {
-                                        _runtime.next(waitCmd, context);
-                                    }, timeValue);
+                                    return new Promise(function (resolve) {
+                                        setTimeout(function () {
+                                            resolve(_runtime.findNext(waitCmd));
+                                        }, timeValue);
+                                    });
                                 },
                                 execute: function (context) {
-                                    return _runtime.unifiedEval(this, context);
+                                    return _runtime.unifiedExec(this, context);
                                 }
                             };
                         }
@@ -2372,10 +2427,10 @@
                                 _runtime.forEach(to, function (target) {
                                     _runtime.triggerEvent(target, eventName, details ? details : {});
                                 });
-                                _runtime.next(sendCmd, context);
+                                return _runtime.findNext(sendCmd);
                             },
                             execute: function (context) {
-                                return _runtime.unifiedEval(this, context);
+                                return _runtime.unifiedExec(this, context);
                             }
                         };
                         return sendCmd
@@ -2404,9 +2459,10 @@
                                     context.meta.returned = true;
                                     context.meta.returnValue = value;
                                 }
+                                return _runtime.HALT;
                             },
                             execute: function (context) {
-                                return _runtime.unifiedEval(this, context);
+                                return _runtime.unifiedExec(this, context);
                             }
                         };
                         return returnCmd
@@ -2426,10 +2482,10 @@
                             args: [eventName, details],
                             op:function (context, eventNameStr, details) {
                                 _runtime.triggerEvent(context.me, eventNameStr ,details ? details : {});
-                                _runtime.next(triggerCmd, context);
+                                return _runtime.findNext(triggerCmd);
                             },
                             execute: function (context) {
-                                return _runtime.unifiedEval(this, context);
+                                return _runtime.unifiedExec(this, context);
                             }
                         };
                         return triggerCmd
@@ -2466,10 +2522,10 @@
                                 _runtime.forEach(forElt, function(target){
                                     target.classList.add(clazz);
                                 });
-                                _runtime.next(takeCmd, context);
+                                return _runtime.findNext(this);
                             },
                             execute: function (context) {
-                                return _runtime.unifiedEval(this, context);
+                                return _runtime.unifiedExec(this, context);
                             }
                         };
                         return takeCmd
@@ -2496,10 +2552,10 @@
                                 } else {
                                     console.log.apply(null, values);
                                 }
-                                _runtime.next(logCmd, ctx);
+                                return _runtime.findNext(this);
                             },
                             execute: function (context) {
-                                return _runtime.unifiedEval(this, context);
+                                return _runtime.unifiedExec(this, context);
                             }
                         };
                         return logCmd;
@@ -2517,12 +2573,13 @@
                                 var reject = ctx.meta && ctx.meta.reject;
                                 if (reject) {
                                     reject(expr);
+                                    return _runtime.HALT;
                                 } else {
                                     throw expr;
                                 }
                             },
                             execute: function (context) {
-                                return _runtime.unifiedEval(this, context);
+                                return _runtime.unifiedExec(this, context);
                             }
                         };
                         return throwCmd;
@@ -2538,10 +2595,10 @@
                             args: [expr],
                             op: function(context, it) {
                                 context.it = it;
-                                _runtime.next(callCmd, context);
+                                return _runtime.findNext(callCmd);
                             },
                             execute: function (context) {
-                                return _runtime.unifiedEval(this, context);
+                                return _runtime.unifiedExec(this, context);
                             }
                         };
                         return callCmd
@@ -2609,10 +2666,10 @@
                                         })
                                     }
                                 }
-                                return _runtime.next(this, context);
+                                return _runtime.findNext(this);
                             },
                             execute: function (context) {
-                                return _runtime.unifiedEval(this, context)
+                                return _runtime.unifiedExec(this, context)
                             }
                         };
                         return putCmd
@@ -2649,10 +2706,10 @@
                                         target[lastProperty] = valueToSet;
                                     })
                                 }
-                                _runtime.next(this, context);
+                                return _runtime.findNext(this);
                             },
                             execute: function (context) {
-                                return _runtime.unifiedEval(this, context);
+                                return _runtime.unifiedExec(this, context);
                             }
                         };
                         return setCmd
@@ -2678,15 +2735,15 @@
                             args: [expr],
                             op:function (context, expr) {
                                 if(expr) {
-                                    trueBranch.execute(context);
+                                    return trueBranch;
                                 } else if(falseBranch) {
-                                    falseBranch.execute(context);
+                                    return falseBranch;
                                 } else {
-                                    _runtime.next(ifCmd, context);
+                                    return _runtime.findNext(this);
                                 }
                             },
                             execute: function (context) {
-                                return _runtime.unifiedEval(this, context);
+                                return _runtime.unifiedExec(this, context);
                             }
                         };
                         parser.setParent(trueBranch, ifCmd);
@@ -2784,27 +2841,14 @@
                                         context[indexIdentifier] = iterator.index;
                                     }
                                     iterator.index++;
-                                    // TODO: every 1000 iterations set a timeout to avoid stack blowout
-                                    // TODO: of loop.execute() until unifiedEval() has been reworked to not
-                                    // TODO: recursively call execute()
-                                    if (iterator.index % 100 === 0) {
-                                        setTimeout(function () {
-                                            loop.execute(context);
-                                        }, 1);
-                                    } else {
-                                        loop.execute(context);
-                                    }
+                                    return loop;
                                 } else {
                                     context.meta.iterators[slot] = null;
-                                    if (this.parent.next) {
-                                        this.parent.next.execute(context);
-                                    } else {
-                                        _runtime.next(this.parent.parent, context);
-                                    }
+                                    return _runtime.findNext(this.parent);
                                 }
                             },
                             execute: function (context) {
-                                return _runtime.unifiedEval(this, context);
+                                return _runtime.unifiedExec(this, context);
                             }
                         };
                         parser.setParent(loop, repeatCmd);
@@ -2823,10 +2867,10 @@
                                         context.meta.iterators[slot].eventFired = true;
                                     }, {once: true});
                                 }
-                                repeatCmd.execute(context); // continue to loop
+                                return repeatCmd; // continue to loop
                             },
                             execute: function (context) {
-                                return _runtime.unifiedEval(this, context);
+                                return _runtime.unifiedExec(this, context);
                             }
                         }
                         parser.setParent(repeatCmd, repeatInit);
@@ -2863,32 +2907,35 @@
                             url:url,
                             argExrepssions:args,
                             args: [url, args],
-                            op: function(context, url, args){
-                                fetch(url, args)
-                                    .then(function (value) {
-                                        if (type === "response") {
-                                            context.it = value;
-                                            _runtime.next(fetchCmd, context);
-                                        } else if (type === "json") {
-                                            value.json().then(function(result){
-                                                context.it = result;
-                                                _runtime.next(fetchCmd, context);
-                                            })
-                                        } else {
-                                            value.text().then(function(result){
-                                                context.it = result;
-                                                _runtime.next(fetchCmd, context);
-                                            })
-                                        }
-                                    })
-                                    .catch(function(reason){
-                                        _runtime.triggerEvent(context.me, "fetch:error", {
-                                            reason: reason
+                            op: function (context, url, args) {
+                                return new Promise(function (resolve, reject) {
+                                    fetch(url, args)
+                                        .then(function (value) {
+                                            if (type === "response") {
+                                                context.it = value;
+                                                resolve(_runtime.findNext(fetchCmd));
+                                            } else if (type === "json") {
+                                                value.json().then(function (result) {
+                                                    context.it = result;
+                                                    resolve(_runtime.findNext(fetchCmd));
+                                                })
+                                            } else {
+                                                value.text().then(function (result) {
+                                                    context.it = result;
+                                                    resolve(_runtime.findNext(fetchCmd));
+                                                })
+                                            }
                                         })
-                                    })
+                                        .catch(function (reason) {
+                                            // TODO - propogate fetch error?
+                                            _runtime.triggerEvent(context.me, "fetch:error", {
+                                                reason: reason
+                                            })
+                                        })
+                                })
                             },
                             execute: function (context) {
-                                return _runtime.unifiedEval(this, context)
+                                return _runtime.unifiedExec(this, context)
                             }
                         };
                         return fetchCmd;
