@@ -1256,7 +1256,7 @@
                             index: index,
                             evaluate: function(ctx) {
                                 var op = function(ctx, root, index) {
-                                    return root[parseInt(index)]
+                                    return root[index]
                                 }
                                 return _runtime.unifiedEval(this, op, ctx, root, index)
                             }
