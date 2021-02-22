@@ -690,6 +690,81 @@
                     }
                 }
 
+                function unifiedEval2(parseElement,  ctx) {
+                    var async = false;
+                    var wrappedAsyncs = false;
+                    var args = [ctx];
+                    for (var i = 0; i < parseElement.args.length; i++) {
+                        var argument = parseElement.args[i];
+                        if (argument == null) {
+                            args.push(null);
+                        } else if (Array.isArray(argument)) {
+                            var arr = [];
+                            for (var j = 0; j < argument.length; j++) {
+                                var element = argument[j];
+                                var value = element.evaluate(ctx); // OK
+                                if (value) {
+                                    if (value.then) {
+                                        async = true;
+                                    } else if (value.asyncWrapper) {
+                                        wrappedAsyncs = true;
+                                    }
+                                }
+                                arr.push(value);
+                            }
+                            args.push(arr);
+                        } else if(argument.evaluate) {
+                            var value = argument.evaluate(ctx); // OK
+                            if (value) {
+                                if (value.then) {
+                                    async = true;
+                                } else if (value.asyncWrapper) {
+                                    wrappedAsyncs = true;
+                                }
+                            }
+                            args.push(value);
+                        } else {
+                            args.push(argument);
+                        }
+                    }
+                    if (async) {
+                        return new Promise(function(resolve, reject){
+                            var linearized = linearize(args);
+                            Promise.all(linearized).then(function(values){
+                                values = delinearize(values);
+                                if (wrappedAsyncs) {
+                                    unwrapAsyncs(values);
+                                }
+                                try{
+                                    var apply = parseElement.op.apply(parseElement, values);
+                                    resolve(apply);
+                                } catch(e) {
+                                    reject(e);
+                                }
+                            }).catch(function(reason){
+                                if (ctx.meta && ctx.meta.reject) {
+                                    ctx.meta.reject(reason);
+                                } else {
+                                    // TODO: no meta context to reject with, trigger event?
+                                }
+                            })
+                        })
+                    } else {
+                        if (wrappedAsyncs) {
+                            unwrapAsyncs(args);
+                        }
+                        try {
+                            return parseElement.op.apply(parseElement, args);
+                        } catch (e) {
+                            if (ctx.meta && ctx.meta.reject) {
+                                ctx.meta.reject(e);
+                            } else {
+                                throw e;
+                            }
+                        }
+                    }
+                }
+
                 function evalTarget(root, path) {
                     if (root == null) {
                         return null;
@@ -912,7 +987,8 @@
                     resolveSymbol: resolveSymbol,
                     makeContext: makeContext,
                     next: next,
-                    unifiedEval: unifiedEval
+                    unifiedEval: unifiedEval,
+                    unifiedEval2: unifiedEval2
                 }
             }();
 
@@ -1018,15 +1094,16 @@
                             type: "attribute_expression",
                             name: name.value,
                             value: value,
-                            evaluate: function (context) {
+                            args: [value],
+                            op:function(context, value){
                                 if (this.value) {
-                                    var op = function(context, val){
-                                        return {name:this.name, value:val}
-                                    }
-                                    return _runtime.unifiedEval(this, op, context, this.value)
+                                    return {name:this.name, value:value}
                                 } else {
                                     return {name:this.name};
                                 }
+                            },
+                            evaluate: function (context) {
+                                return _runtime.unifiedEval2(this, context);
                             }
                         }
                     }
@@ -1049,16 +1126,17 @@
                         return {
                             type: "objectLiteral",
                             fields: fields,
-                            evaluate: function (context) {
-                                var op = function(context, values){
-                                    var returnVal = {};
-                                    for (var i = 0; i < values.length; i++) {
-                                        var field = fields[i];
-                                        returnVal[field.name.value] = values[i];
-                                    }
-                                    return returnVal;
+                            args: [valueExpressions],
+                            op:function(context, values){
+                                var returnVal = {};
+                                for (var i = 0; i < values.length; i++) {
+                                    var field = fields[i];
+                                    returnVal[field.name.value] = values[i];
                                 }
-                                return _runtime.unifiedEval(this, op, context, valueExpressions)
+                                return returnVal;
+                            },
+                            evaluate: function (context) {
+                                return _runtime.unifiedEval2(this, context);
                             }
                         }
                     }
@@ -1081,16 +1159,17 @@
                         return {
                             type: "namedArgumentList",
                             fields: fields,
-                            evaluate: function (context) {
-                                var op = function(context, values){
-                                    var returnVal = {_namedArgList_:true};
-                                    for (var i = 0; i < values.length; i++) {
-                                        var field = fields[i];
-                                        returnVal[field.name.value] = values[i];
-                                    }
-                                    return returnVal;
+                            args:[valueExpressions],
+                            op:function(context, values){
+                                var returnVal = {_namedArgList_:true};
+                                for (var i = 0; i < values.length; i++) {
+                                    var field = fields[i];
+                                    returnVal[field.name.value] = values[i];
                                 }
-                                return _runtime.unifiedEval(this, op, context, valueExpressions)
+                                return returnVal;
+                            },
+                            evaluate: function (context) {
+                                return _runtime.unifiedEval2(this, context);
                             }
                         }
                     }
@@ -1168,11 +1247,12 @@
                         return {
                             type: "arrayLiteral",
                             values: values,
+                            args: [values],
+                            op:function(context, values){
+                                return values;
+                            },
                             evaluate: function (context) {
-                                var op = function(context, values){
-                                    return values;
-                                }
-                                return _runtime.unifiedEval(this, op, context, values);
+                                return _runtime.unifiedEval2(this, context);
                             }
                         }
                     }
@@ -1229,10 +1309,12 @@
                         type:"timeExpression",
                         time: time,
                         factor: factor,
+                        args: [time],
+                        op: function (context, val) {
+                            return val * this.factor
+                        },
                         evaluate: function (context) {
-                            return _runtime.unifiedEval(this, function (context, val) {
-                                return val * this.factor
-                            }, context, time);
+                            return _runtime.unifiedEval2(this, context);
                         }
                     }
                 })
@@ -1244,11 +1326,12 @@
                             type: "propertyAccess",
                             root: root,
                             prop: prop,
+                            args: [root],
+                            op:function(context, rootVal){
+                                return rootVal == null ? null : rootVal[prop.value];
+                            },
                             evaluate: function (context) {
-                                var op = function(context, rootVal){
-                                    return rootVal == null ? null : rootVal[prop.value];
-                                }
-                                return _runtime.unifiedEval(this, op, context, root)
+                                return _runtime.unifiedEval2(this, context);
                             }
                         };
                         return _parser.parseElement("indirectExpression", tokens, propertyAccess);
@@ -1264,26 +1347,37 @@
                             } while (tokens.matchOpToken(","))
                             tokens.requireOpToken(")");
                         }
-                        var functionCall = {
-                            type: "functionCall",
-                            root: root,
-                            args: args,
-                            evaluate: function (ctx) {
-                                if (root.root) {
-                                    var op = function(context, thisArg, argVals){
-                                        var func = thisArg[root.prop.value];
-                                        return func.apply(thisArg, argVals);
-                                    }
-                                    return _runtime.unifiedEval(this, op, ctx, root.root, args);
-                                } else {
-                                    var op = function(context, func, argVals){
-                                        var apply = func.apply(null, argVals);
-                                        return apply;
-                                    }
-                                    return _runtime.unifiedEval(this, op, ctx, root, args);
+
+                        if (root.root) {
+                            var functionCall = {
+                                type: "functionCall",
+                                root: root,
+                                argExressions: args,
+                                args: [root.root, args],
+                                op: function (context, rootRoot, args) {
+                                    var func = rootRoot[root.prop.value];
+                                    return func.apply(rootRoot, args);
+                                },
+                                evaluate: function (context) {
+                                    return _runtime.unifiedEval2(this, context);
                                 }
                             }
-                        };
+                        } else {
+                            var functionCall = {
+                                type: "functionCall",
+                                root: root,
+                                argExressions: args,
+                                args: [root, args],
+                                op: function(context, func, argVals){
+                                    var apply = func.apply(null, argVals);
+                                    return apply;
+                                },
+                                evaluate: function (context) {
+                                    return _runtime.unifiedEval2(this, context);
+                                }
+                            }
+                        }
+
                         return _parser.parseElement("indirectExpression", tokens, functionCall);
                     }
                 });
@@ -1320,11 +1414,12 @@
                             typeName: typeName,
                             root: root,
                             nullOk: nullOk,
+                            args: [root],
+                            op: function (context, val) {
+                                return _runtime.typeCheck(val, this.typeName.value, this.nullOk);
+                            },
                             evaluate: function (context) {
-                                var op = function(context, val){
-                                    return _runtime.typeCheck(val, this.typeName.value, this.nullOk);
-                                }
-                                return _runtime.unifiedEval(this, op, context, root);
+                                return _runtime.unifiedEval2(this, context);
                             }
                         }
                     } else {
@@ -1338,10 +1433,12 @@
                         return {
                             type: "logicalNot",
                             root: root,
+                            args: [root],
+                            op: function (context, val) {
+                                return !val;
+                            },
                             evaluate: function (context) {
-                                return _runtime.unifiedEval(this, function (context, val) {
-                                    return !val;
-                                    }, context, root);
+                                return _runtime.unifiedEval2(this, context);
                             }
                         };
                     }
@@ -1353,10 +1450,12 @@
                         return {
                             type: "negativeNumber",
                             root: root,
+                            args: [root],
+                            op:function(context, value){
+                                return -1 * value;
+                            },
                             evaluate: function (context) {
-                                return _runtime.unifiedEval(this, function(context, value){
-                                    return -1 * value;
-                                }, context, root);
+                                return _runtime.unifiedEval2(this, context);
                             }
                         };
                     }
@@ -1382,21 +1481,22 @@
                             lhs: expr,
                             rhs: rhs,
                             operator: operator,
+                            args: [expr, rhs],
+                            op:function (context, lhsVal, rhsVal) {
+                                if (this.operator === "+") {
+                                    return lhsVal + rhsVal;
+                                } else if (this.operator === "-") {
+                                    return lhsVal - rhsVal;
+                                } else if (this.operator === "*") {
+                                    return lhsVal * rhsVal;
+                                } else if (this.operator === "/") {
+                                    return lhsVal / rhsVal;
+                                } else if (this.operator === "%") {
+                                    return lhsVal % rhsVal;
+                                }
+                            },
                             evaluate: function (context) {
-                                var op = function (context, lhsVal, rhsVal) {
-                                    if (this.operator === "+") {
-                                        return lhsVal + rhsVal;
-                                    } else if (this.operator === "-") {
-                                        return lhsVal - rhsVal;
-                                    } else if (this.operator === "*") {
-                                        return lhsVal * rhsVal;
-                                    } else if (this.operator === "/") {
-                                        return lhsVal / rhsVal;
-                                    } else if (this.operator === "%") {
-                                        return lhsVal % rhsVal;
-                                    }
-                                };
-                                return _runtime.unifiedEval(this, op, context, this.lhs, this.rhs);
+                                return _runtime.unifiedEval2(this, context);
                             }
                         }
                         mathOp = tokens.matchAnyOpToken("+", "-", "*", "/", "%")
@@ -1423,27 +1523,28 @@
                             operator: comparisonOp.value,
                             lhs: expr,
                             rhs: rhs,
-                            evaluate: function (context) {
-                                var op = function (context, lhsVal, rhsVal) {
-                                    if (this.operator === "<") {
-                                        return lhsVal < rhsVal;
-                                    } else if (this.operator === ">") {
-                                        return lhsVal > rhsVal;
-                                    } else if (this.operator === "<=") {
-                                        return lhsVal <= rhsVal;
-                                    } else if (this.operator === ">=") {
-                                        return lhsVal >= rhsVal;
-                                    } else if (this.operator === "==") {
-                                        return lhsVal == rhsVal;
-                                    } else if (this.operator === "===") {
-                                        return lhsVal === rhsVal;
-                                    } else if (this.operator === "!=") {
-                                        return lhsVal != rhsVal;
-                                    } else if (this.operator === "!==") {
-                                        return lhsVal !== rhsVal;
-                                    }
+                            args: [expr, rhs],
+                            op:function (context, lhsVal, rhsVal) {
+                                if (this.operator === "<") {
+                                    return lhsVal < rhsVal;
+                                } else if (this.operator === ">") {
+                                    return lhsVal > rhsVal;
+                                } else if (this.operator === "<=") {
+                                    return lhsVal <= rhsVal;
+                                } else if (this.operator === ">=") {
+                                    return lhsVal >= rhsVal;
+                                } else if (this.operator === "==") {
+                                    return lhsVal == rhsVal;
+                                } else if (this.operator === "===") {
+                                    return lhsVal === rhsVal;
+                                } else if (this.operator === "!=") {
+                                    return lhsVal != rhsVal;
+                                } else if (this.operator === "!==") {
+                                    return lhsVal !== rhsVal;
                                 }
-                                return _runtime.unifiedEval(this, op, context, this.lhs, this.rhs);
+                            },
+                            evaluate: function (context) {
+                                return _runtime.unifiedEval2(this, context);
                             }
                         }
                         comparisonOp = tokens.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==")
@@ -1470,15 +1571,16 @@
                             operator: logicalOp.value,
                             lhs: expr,
                             rhs: rhs,
+                            args: [expr, rhs],
+                            op: function (context, lhsVal, rhsVal) {
+                                if (this.operator === "and") {
+                                    return lhsVal && rhsVal;
+                                } else {
+                                    return lhsVal || rhsVal;
+                                }
+                            },
                             evaluate: function (context) {
-                                var op = function (context, lhsVal, rhsVal) {
-                                    if (this.operator === "and") {
-                                        return lhsVal && rhsVal;
-                                    } else {
-                                        return lhsVal || rhsVal;
-                                    }
-                                };
-                                return _runtime.unifiedEval(this, op, context, this.lhs, this.rhs);
+                                return _runtime.unifiedEval2(this, context);
                             }
                         }
                         logicalOp = tokens.matchToken("and") || tokens.matchToken("or");
@@ -1528,11 +1630,12 @@
                         type: "target",
                         propPath: propPath,
                         root: root,
+                        args: [root],
+                        op:function(context, targetRoot) {
+                            return _runtime.evalTarget(targetRoot, propPath);
+                        },
                         evaluate: function (ctx) {
-                            var op = function(context, targetRoot) {
-                                return _runtime.evalTarget(targetRoot, propPath);
-                            }
-                            return _runtime.unifiedEval(this, op, ctx, root);
+                            return _runtime.unifiedEval2(this, ctx);
                         }
                     };
                 });
@@ -2461,16 +2564,17 @@
                         var throwCmd = {
                             type: "throwCmd",
                             expr: expr,
-                            execute: function (ctx) {
-                                var op = function(ctx, expr) {
-                                    var reject = ctx.meta && ctx.meta.reject;
-                                    if (reject) {
-                                        reject(expr);
-                                    } else {
-                                        throw expr;
-                                    }
-                                };
-                                return _runtime.unifiedEval(this, op, ctx, expr);
+                            args: [expr],
+                            op: function(ctx, expr) {
+                                var reject = ctx.meta && ctx.meta.reject;
+                                if (reject) {
+                                    reject(expr);
+                                } else {
+                                    throw expr;
+                                }
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedEval2(this, context);
                             }
                         };
                         return throwCmd;
@@ -2483,12 +2587,13 @@
                         var callCmd = {
                             type: "callCmd",
                             expr: expr,
-                            execute: function (ctx) {
-                                var op = function(context, it) {
-                                    ctx.it = it;
-                                    _runtime.next(callCmd, ctx);
-                                }
-                                _runtime.unifiedEval(this, op, ctx, expr);
+                            args: [expr],
+                            op: function(context, it) {
+                                context.it = it;
+                                _runtime.next(callCmd, context);
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedEval2(this, context);
                             }
                         };
                         return callCmd
@@ -2620,17 +2725,18 @@
                             expr: expr,
                             trueBranch: trueBranch,
                             falseBranch: falseBranch,
-                            execute: function (ctx) {
-                                var op = function (context, expr) {
-                                    if(expr) {
-                                        trueBranch.execute(ctx);
-                                    } else if(falseBranch) {
-                                        falseBranch.execute(ctx);
-                                    } else {
-                                        _runtime.next(ifCmd, ctx);
-                                    }
-                                };
-                                _runtime.unifiedEval(this, op, ctx, expr);
+                            args: [expr],
+                            op:function (context, expr) {
+                                if(expr) {
+                                    trueBranch.execute(context);
+                                } else if(falseBranch) {
+                                    falseBranch.execute(context);
+                                } else {
+                                    _runtime.next(ifCmd, context);
+                                }
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedEval2(this, context);
                             }
                         };
                         parser.setParent(trueBranch, ifCmd);
@@ -2803,33 +2909,34 @@
                         var fetchCmd = {
                             type: "fetchCmd",
                             url:url,
-                            args:args,
-                            execute: function (ctx) {
-                                var op = function(context, url, args){
-                                    fetch(url, args)
-                                        .then(function (value) {
-                                            if (type === "response") {
-                                                ctx.it = value;
-                                                _runtime.next(fetchCmd, ctx);
-                                            } else if (type === "json") {
-                                                value.json().then(function(result){
-                                                    ctx.it = result;
-                                                    _runtime.next(fetchCmd, ctx);
-                                                })
-                                            } else {
-                                                value.text().then(function(result){
-                                                    ctx.it = result;
-                                                    _runtime.next(fetchCmd, ctx);
-                                                })
-                                            }
-                                        })
-                                        .catch(function(reason){
-                                            _runtime.triggerEvent(ctx.me, "fetch:error", {
-                                                reason: reason
+                            argExrepssions:args,
+                            args: [url, args],
+                            op: function(context, url, args){
+                                fetch(url, args)
+                                    .then(function (value) {
+                                        if (type === "response") {
+                                            context.it = value;
+                                            _runtime.next(fetchCmd, context);
+                                        } else if (type === "json") {
+                                            value.json().then(function(result){
+                                                context.it = result;
+                                                _runtime.next(fetchCmd, context);
                                             })
+                                        } else {
+                                            value.text().then(function(result){
+                                                context.it = result;
+                                                _runtime.next(fetchCmd, context);
+                                            })
+                                        }
+                                    })
+                                    .catch(function(reason){
+                                        _runtime.triggerEvent(context.me, "fetch:error", {
+                                            reason: reason
                                         })
-                                }
-                                _runtime.unifiedEval(this, op, ctx, url, args)
+                                    })
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedEval2(this, context)
                             }
                         };
                         return fetchCmd;
