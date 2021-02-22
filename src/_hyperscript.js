@@ -2170,31 +2170,42 @@
                             var to = parser.parseElement("implicitMeTarget");
                         }
 
-                        var addCmd = {
-                            type: "addCmd",
-                            classRef: classRef,
-                            attributeRef: attributeRef,
-                            to: to,
-                            execute: function (ctx) {
-                                if (this.classRef) {
-                                    var op = function(context, to){
-                                        _runtime.forEach(to, function(target){
-                                            target.classList.add(classRef.className());
-                                        })
-                                        _runtime.next(addCmd, ctx);
-                                    }
-                                    _runtime.unifiedEval(this, op, ctx, to);
-                                } else {
-                                    var op = function(context, to, attributeRef){
-                                        _runtime.forEach(to, function(target){
-                                            target.setAttribute(attributeRef.name, attributeRef.value);
-                                        })
-                                        _runtime.next(addCmd, ctx);
-                                    }
-                                    _runtime.unifiedEval(this, op, ctx, to, attributeRef);
+                        if (classRef) {
+                            var addCmd = {
+                                type: "addCmd",
+                                classRef: classRef,
+                                attributeRef: attributeRef,
+                                to: to,
+                                args: [to],
+                                op: function (context, to) {
+                                    _runtime.forEach(to, function (target) {
+                                        target.classList.add(classRef.className());
+                                    })
+                                    _runtime.next(addCmd, context);
+                                },
+                                execute: function (context) {
+                                    return _runtime.unifiedEval2(this, context);
                                 }
                             }
-                        };
+                        } else {
+                            var addCmd = {
+                                type: "addCmd",
+                                classRef: classRef,
+                                attributeRef: attributeRef,
+                                to: to,
+                                args: [to, attributeRef],
+                                op: function (context, to, attrRef) {
+                                    _runtime.forEach(to, function (target) {
+                                        target.setAttribute(attrRef.name, attrRef.value);
+                                    })
+                                    _runtime.next(addCmd, context);
+                                },
+                                execute: function (ctx) {
+                                    return _runtime.unifiedEval2(this, ctx);
+                                }
+                            };
+                        }
+
                         return addCmd
                     }
                 });
@@ -2219,40 +2230,50 @@
                             var from = parser.parseElement("implicitMeTarget");
                         }
 
-                        var removeCmd = {
-                            type: "removeCmd",
-                            classRef: classRef,
-                            attributeRef: attributeRef,
-                            elementExpr: elementExpr,
-                            from: from,
-                            execute: function (ctx) {
-                                {
-                                    if (this.elementExpr) {
-                                        var op = function(context, element) {
-                                            _runtime.forEach(element, function (target) {
-                                                target.parentElement.removeChild(target);
-                                            });
-                                            _runtime.next(removeCmd, ctx);
-                                        }
-                                        return _runtime.unifiedEval(this, op, ctx, elementExpr);
-                                    } else {
-                                        var op = function(context, from) {
-                                            if (this.classRef) {
-                                                _runtime.forEach(from, function(target){
-                                                    target.classList.remove(classRef.className());
-                                                })
-                                            } else {
-                                                _runtime.forEach(from, function(target){
-                                                    target.removeAttribute(attributeRef.name);
-                                                })
-                                            }
-                                            _runtime.next(removeCmd, ctx);
-                                        }
-                                        return _runtime.unifiedEval(this, op, ctx, from);
-                                    }
+                        if (elementExpr) {
+                            var removeCmd = {
+                                type: "removeCmd",
+                                classRef: classRef,
+                                attributeRef: attributeRef,
+                                elementExpr: elementExpr,
+                                from: from,
+                                args: [elementExpr],
+                                op: function (context, element) {
+                                    _runtime.forEach(element, function (target) {
+                                        target.parentElement.removeChild(target);
+                                    })
+                                    _runtime.next(this, context);
+                                },
+                                execute: function (context) {
+                                    return _runtime.unifiedEval2(this, context);
                                 }
-                            }
-                        };
+                            };
+                        } else {
+                            var removeCmd = {
+                                type: "removeCmd",
+                                classRef: classRef,
+                                attributeRef: attributeRef,
+                                elementExpr: elementExpr,
+                                from: from,
+                                args: [from],
+                                op: function (context, from) {
+                                    if (this.classRef) {
+                                        _runtime.forEach(from, function(target){
+                                            target.classList.remove(classRef.className());
+                                        })
+                                    } else {
+                                        _runtime.forEach(from, function (target) {
+                                            target.removeAttribute(attributeRef.name);
+                                        })
+                                    }
+                                    _runtime.next(this, context);
+                                },
+                                execute: function (context) {
+                                    return _runtime.unifiedEval2(this, context);
+                                }
+                            };
+
+                        }
                         return removeCmd
                     }
                 });
