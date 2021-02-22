@@ -914,18 +914,6 @@
                     }
                 }
 
-                function next(command, ctx) {
-                    if (command) {
-                        if (command.resolveNext) {
-                            command.resolveNext().execute(ctx);
-                        } else if (command.next) {
-                            command.next.execute(ctx);
-                        } else {
-                            next(command.parent, ctx)
-                        }
-                    }
-                }
-
                 function findNext(command) {
                     if (command) {
                         if (command.resolveNext) {
@@ -951,7 +939,6 @@
                     getScriptSelector: getScriptSelector,
                     resolveSymbol: resolveSymbol,
                     makeContext: makeContext,
-                    next: next,
                     findNext: findNext,
                     unifiedEval: unifiedEval,
                     unifiedExec: unifiedExec,
@@ -2322,7 +2309,7 @@
                                         var target = from || context.me;
                                         target.addEventListener(evt, function(){
                                             toggleCmd.toggle(on, value);
-                                            resolve(_runtime.next(toggleCmd));
+                                            resolve(_runtime.findNext(toggleCmd));
                                         }, { once:true })
                                         toggleCmd.toggle(on, value);
                                     });
