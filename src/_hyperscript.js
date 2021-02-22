@@ -614,83 +614,7 @@
                     }
                 }
 
-                // TODO - handle execute distinctly from eval, with a loop
-                function unifiedEval(parseElement, op, ctx) {
-                    var args = [ctx]
-                    var async = false;
-                    var wrappedAsyncs = false;
-                    for (var i = 3; i < arguments.length; i++) {
-                        var argument = arguments[i];
-                        if (argument == null) {
-                            args.push(null);
-                        } else if (Array.isArray(argument)) {
-                            var arr = [];
-                            for (var j = 0; j < argument.length; j++) {
-                                var element = argument[j];
-                                var value = element.evaluate(ctx); // OK
-                                if (value) {
-                                    if (value.then) {
-                                        async = true;
-                                    } else if (value.asyncWrapper) {
-                                        wrappedAsyncs = true;
-                                    }
-                                }
-                                arr.push(value);
-                            }
-                            args.push(arr);
-                        } else if(argument.evaluate) {
-                            var value = argument.evaluate(ctx); // OK
-                            if (value) {
-                                if (value.then) {
-                                    async = true;
-                                } else if (value.asyncWrapper) {
-                                    wrappedAsyncs = true;
-                                }
-                            }
-                            args.push(value);
-                        } else {
-                            args.push(argument);
-                        }
-                    }
-                    if (async) {
-                        return new Promise(function(resolve, reject){
-                            var linearized = linearize(args);
-                            Promise.all(linearized).then(function(values){
-                                values = delinearize(values);
-                                if (wrappedAsyncs) {
-                                    unwrapAsyncs(values);
-                                }
-                                try{
-                                    var apply = op.apply(parseElement, values);
-                                    resolve(apply);
-                                } catch(e) {
-                                    reject(e);
-                                }
-                            }).catch(function(reason){
-                                if (ctx.meta && ctx.meta.reject) {
-                                    ctx.meta.reject(reason);
-                                } else {
-                                    // TODO: no meta context to reject with, trigger event?
-                                }
-                            })
-                        })
-                    } else {
-                        if (wrappedAsyncs) {
-                            unwrapAsyncs(args);
-                        }
-                        try {
-                            return op.apply(parseElement, args);
-                        } catch (e) {
-                            if (ctx.meta && ctx.meta.reject) {
-                                ctx.meta.reject(e);
-                            } else {
-                                throw e;
-                            }
-                        }
-                    }
-                }
-
-                function unifiedEval2(parseElement,  ctx) {
+                function unifiedEval(parseElement,  ctx) {
                     var async = false;
                     var wrappedAsyncs = false;
                     var args = [ctx];
@@ -987,8 +911,7 @@
                     resolveSymbol: resolveSymbol,
                     makeContext: makeContext,
                     next: next,
-                    unifiedEval: unifiedEval,
-                    unifiedEval2: unifiedEval2
+                    unifiedEval: unifiedEval
                 }
             }();
 
@@ -1103,7 +1026,7 @@
                                 }
                             },
                             evaluate: function (context) {
-                                return _runtime.unifiedEval2(this, context);
+                                return _runtime.unifiedEval(this, context);
                             }
                         }
                     }
@@ -1136,7 +1059,7 @@
                                 return returnVal;
                             },
                             evaluate: function (context) {
-                                return _runtime.unifiedEval2(this, context);
+                                return _runtime.unifiedEval(this, context);
                             }
                         }
                     }
@@ -1169,7 +1092,7 @@
                                 return returnVal;
                             },
                             evaluate: function (context) {
-                                return _runtime.unifiedEval2(this, context);
+                                return _runtime.unifiedEval(this, context);
                             }
                         }
                     }
@@ -1252,7 +1175,7 @@
                                 return values;
                             },
                             evaluate: function (context) {
-                                return _runtime.unifiedEval2(this, context);
+                                return _runtime.unifiedEval(this, context);
                             }
                         }
                     }
@@ -1314,7 +1237,7 @@
                             return val * this.factor
                         },
                         evaluate: function (context) {
-                            return _runtime.unifiedEval2(this, context);
+                            return _runtime.unifiedEval(this, context);
                         }
                     }
                 })
@@ -1331,7 +1254,7 @@
                                 return rootVal == null ? null : rootVal[prop.value];
                             },
                             evaluate: function (context) {
-                                return _runtime.unifiedEval2(this, context);
+                                return _runtime.unifiedEval(this, context);
                             }
                         };
                         return _parser.parseElement("indirectExpression", tokens, propertyAccess);
@@ -1359,7 +1282,7 @@
                                     return func.apply(rootRoot, args);
                                 },
                                 evaluate: function (context) {
-                                    return _runtime.unifiedEval2(this, context);
+                                    return _runtime.unifiedEval(this, context);
                                 }
                             }
                         } else {
@@ -1373,7 +1296,7 @@
                                     return apply;
                                 },
                                 evaluate: function (context) {
-                                    return _runtime.unifiedEval2(this, context);
+                                    return _runtime.unifiedEval(this, context);
                                 }
                             }
                         }
@@ -1419,7 +1342,7 @@
                                 return _runtime.typeCheck(val, this.typeName.value, this.nullOk);
                             },
                             evaluate: function (context) {
-                                return _runtime.unifiedEval2(this, context);
+                                return _runtime.unifiedEval(this, context);
                             }
                         }
                     } else {
@@ -1438,7 +1361,7 @@
                                 return !val;
                             },
                             evaluate: function (context) {
-                                return _runtime.unifiedEval2(this, context);
+                                return _runtime.unifiedEval(this, context);
                             }
                         };
                     }
@@ -1455,7 +1378,7 @@
                                 return -1 * value;
                             },
                             evaluate: function (context) {
-                                return _runtime.unifiedEval2(this, context);
+                                return _runtime.unifiedEval(this, context);
                             }
                         };
                     }
@@ -1496,7 +1419,7 @@
                                 }
                             },
                             evaluate: function (context) {
-                                return _runtime.unifiedEval2(this, context);
+                                return _runtime.unifiedEval(this, context);
                             }
                         }
                         mathOp = tokens.matchAnyOpToken("+", "-", "*", "/", "%")
@@ -1544,7 +1467,7 @@
                                 }
                             },
                             evaluate: function (context) {
-                                return _runtime.unifiedEval2(this, context);
+                                return _runtime.unifiedEval(this, context);
                             }
                         }
                         comparisonOp = tokens.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==")
@@ -1580,7 +1503,7 @@
                                 }
                             },
                             evaluate: function (context) {
-                                return _runtime.unifiedEval2(this, context);
+                                return _runtime.unifiedEval(this, context);
                             }
                         }
                         logicalOp = tokens.matchToken("and") || tokens.matchToken("or");
@@ -1635,7 +1558,7 @@
                             return _runtime.evalTarget(targetRoot, propPath);
                         },
                         evaluate: function (ctx) {
-                            return _runtime.unifiedEval2(this, ctx);
+                            return _runtime.unifiedEval(this, ctx);
                         }
                     };
                 });
@@ -2184,7 +2107,7 @@
                                     _runtime.next(addCmd, context);
                                 },
                                 execute: function (context) {
-                                    return _runtime.unifiedEval2(this, context);
+                                    return _runtime.unifiedEval(this, context);
                                 }
                             }
                         } else {
@@ -2201,7 +2124,7 @@
                                     _runtime.next(addCmd, context);
                                 },
                                 execute: function (ctx) {
-                                    return _runtime.unifiedEval2(this, ctx);
+                                    return _runtime.unifiedEval(this, ctx);
                                 }
                             };
                         }
@@ -2245,7 +2168,7 @@
                                     _runtime.next(this, context);
                                 },
                                 execute: function (context) {
-                                    return _runtime.unifiedEval2(this, context);
+                                    return _runtime.unifiedEval(this, context);
                                 }
                             };
                         } else {
@@ -2269,7 +2192,7 @@
                                     _runtime.next(this, context);
                                 },
                                 execute: function (context) {
-                                    return _runtime.unifiedEval2(this, context);
+                                    return _runtime.unifiedEval(this, context);
                                 }
                             };
 
@@ -2348,7 +2271,7 @@
                                 }
                             },
                             execute: function (ctx) {
-                                return _runtime.unifiedEval2(this, ctx);
+                                return _runtime.unifiedEval(this, ctx);
                             }
                         };
                         return toggleCmd
@@ -2380,7 +2303,7 @@
                                     target.addEventListener(eventName, listener)
                                 },
                                 execute: function(context) {
-                                    return _runtime.unifiedEval2(this, context);
+                                    return _runtime.unifiedEval(this, context);
                                 }
                             };
                         } else {
@@ -2395,7 +2318,7 @@
                                     }, timeValue);
                                 },
                                 execute: function (context) {
-                                    return _runtime.unifiedEval2(this, context);
+                                    return _runtime.unifiedEval(this, context);
                                 }
                             };
                         }
@@ -2452,7 +2375,7 @@
                                 _runtime.next(sendCmd, context);
                             },
                             execute: function (context) {
-                                return _runtime.unifiedEval2(this, context);
+                                return _runtime.unifiedEval(this, context);
                             }
                         };
                         return sendCmd
@@ -2483,7 +2406,7 @@
                                 }
                             },
                             execute: function (context) {
-                                return _runtime.unifiedEval2(this, context);
+                                return _runtime.unifiedEval(this, context);
                             }
                         };
                         return returnCmd
@@ -2506,7 +2429,7 @@
                                 _runtime.next(triggerCmd, context);
                             },
                             execute: function (context) {
-                                return _runtime.unifiedEval2(this, context);
+                                return _runtime.unifiedEval(this, context);
                             }
                         };
                         return triggerCmd
@@ -2546,7 +2469,7 @@
                                 _runtime.next(takeCmd, context);
                             },
                             execute: function (context) {
-                                return _runtime.unifiedEval2(this, context);
+                                return _runtime.unifiedEval(this, context);
                             }
                         };
                         return takeCmd
@@ -2576,7 +2499,7 @@
                                 _runtime.next(logCmd, ctx);
                             },
                             execute: function (context) {
-                                return _runtime.unifiedEval2(this, context);
+                                return _runtime.unifiedEval(this, context);
                             }
                         };
                         return logCmd;
@@ -2599,7 +2522,7 @@
                                 }
                             },
                             execute: function (context) {
-                                return _runtime.unifiedEval2(this, context);
+                                return _runtime.unifiedEval(this, context);
                             }
                         };
                         return throwCmd;
@@ -2618,7 +2541,7 @@
                                 _runtime.next(callCmd, context);
                             },
                             execute: function (context) {
-                                return _runtime.unifiedEval2(this, context);
+                                return _runtime.unifiedEval(this, context);
                             }
                         };
                         return callCmd
@@ -2689,7 +2612,7 @@
                                 return _runtime.next(this, context);
                             },
                             execute: function (context) {
-                                return _runtime.unifiedEval2(this, context)
+                                return _runtime.unifiedEval(this, context)
                             }
                         };
                         return putCmd
@@ -2729,7 +2652,7 @@
                                 _runtime.next(this, context);
                             },
                             execute: function (context) {
-                                return _runtime.unifiedEval2(this, context);
+                                return _runtime.unifiedEval(this, context);
                             }
                         };
                         return setCmd
@@ -2763,7 +2686,7 @@
                                 }
                             },
                             execute: function (context) {
-                                return _runtime.unifiedEval2(this, context);
+                                return _runtime.unifiedEval(this, context);
                             }
                         };
                         parser.setParent(trueBranch, ifCmd);
@@ -2832,80 +2755,82 @@
                                 return this;
                             },
                             loop: loop,
-                            execute: function (ctx) {
-                                var op = function(context, value, on, whileValue) {
-                                    console.log("looping");
-                                    var iterator = ctx.meta.iterators[slot];
-                                    if (iterator == null) { // loop initialization
-                                        ctx.meta.iterators[slot] = {
-                                            index: 0,
-                                            value: value,
-                                            eventFired: false
-                                        };
-                                        if (evt) {
-                                            var event = evt.evaluate(ctx); // OK
-                                            var target = on || ctx.me;
-                                            target.addEventListener(event, function (e) {
-                                                ctx.meta.iterators[slot].eventFired = true;
-                                            }, {once: true});
-                                        }
-                                        this.execute(ctx); // continue to loop
+                            args: [whileExpr],
+                            op:function (context, whileValue) {
+                                var iterator = context.meta.iterators[slot];
+                                var keepLooping = false;
+                                if (this.forever) {
+                                    keepLooping = true;
+                                } else if (this.until) {
+                                    if (evt) {
+                                        keepLooping = context.meta.iterators[slot].eventFired == false;
                                     } else {
+                                        keepLooping = whileValue != true;
+                                    }
+                                } else if (whileValue) {
+                                    keepLooping = true;
+                                } else {
+                                    keepLooping = iterator.value !== null && iterator.index < iterator.value.length
+                                }
 
-                                        var keepLooping = false;
-                                        if (this.forever) {
-                                            keepLooping = true;
-                                        } else if (this.until) {
-                                            if (evt) {
-                                                keepLooping = ctx.meta.iterators[slot].eventFired == false;
-                                            } else {
-                                                keepLooping = whileValue != true;
-                                            }
-                                        } else if (whileValue) {
-                                            keepLooping = true;
-                                        } else {
-                                            keepLooping = iterator.value !== null && iterator.index < iterator.value.length
-                                        }
-
-                                        if (keepLooping) {
-                                            if (iterator.value) {
-                                                ctx[identifier] = iterator.value[iterator.index];
-                                                ctx.it = iterator.value[iterator.index];
-                                            } else {
-                                                ctx.it = iterator.index;
-                                            }
-                                            if (indexIdentifier) {
-                                                ctx[indexIdentifier] = iterator.index;
-                                            }
-                                            iterator.index++;
-                                            // TODO: every 1000 iterations set a timeout to avoid stack blowout
-                                            // TODO: of loop.execute() until unifiedEval() has been reworked to not
-                                            // TODO: recursively call execute()
-                                            if (iterator.index % 100 === 0) {
-                                                setTimeout(function () {
-                                                    loop.execute(ctx);
-                                                }, 1);
-                                            } else {
-                                                loop.execute(ctx);
-                                            }
-                                        } else {
-                                            ctx.meta.iterators[slot] = null;
-                                            if (this.next) {
-                                                this.next.execute(ctx);
-                                            } else {
-                                                _runtime.next(this.parent, ctx);
-                                            }
-                                        }
+                                if (keepLooping) {
+                                    if (iterator.value) {
+                                        context[identifier] = iterator.value[iterator.index];
+                                        context.it = iterator.value[iterator.index];
+                                    } else {
+                                        context.it = iterator.index;
+                                    }
+                                    if (indexIdentifier) {
+                                        context[indexIdentifier] = iterator.index;
+                                    }
+                                    iterator.index++;
+                                    // TODO: every 1000 iterations set a timeout to avoid stack blowout
+                                    // TODO: of loop.execute() until unifiedEval() has been reworked to not
+                                    // TODO: recursively call execute()
+                                    if (iterator.index % 100 === 0) {
+                                        setTimeout(function () {
+                                            loop.execute(context);
+                                        }, 1);
+                                    } else {
+                                        loop.execute(context);
+                                    }
+                                } else {
+                                    context.meta.iterators[slot] = null;
+                                    if (this.parent.next) {
+                                        this.parent.next.execute(context);
+                                    } else {
+                                        _runtime.next(this.parent.parent, context);
                                     }
                                 }
-                                _runtime.unifiedEval(this, op, ctx,
-                                    ctx.meta.iterators[slot] ? null : expression,
-                                    ctx.meta.iterators[slot] ? null : on,
-                                    whileExpr);
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedEval(this, context);
                             }
                         };
                         parser.setParent(loop, repeatCmd);
-                        return repeatCmd
+                        var repeatInit = {
+                            name:"repeatInit",
+                            args: [expression, evt, on],
+                            op:function(context, value, event, on){
+                                context.meta.iterators[slot] = {
+                                    index: 0,
+                                    value: value,
+                                    eventFired: false
+                                };
+                                if (evt) {
+                                    var target = on || context.me;
+                                    target.addEventListener(event, function (e) {
+                                        context.meta.iterators[slot].eventFired = true;
+                                    }, {once: true});
+                                }
+                                repeatCmd.execute(context); // continue to loop
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedEval(this, context);
+                            }
+                        }
+                        parser.setParent(repeatCmd, repeatInit);
+                        return repeatInit
                     }
                 })
 
@@ -2963,7 +2888,7 @@
                                     })
                             },
                             execute: function (context) {
-                                return _runtime.unifiedEval2(this, context)
+                                return _runtime.unifiedEval(this, context)
                             }
                         };
                         return fetchCmd;
