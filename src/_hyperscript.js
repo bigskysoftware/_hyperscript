@@ -2800,10 +2800,10 @@
                         }
 
                         if (identifier == null) {
-                            identifier = "_implicit_repeat_" + currentToken.position;
+                            identifier = "_implicit_repeat_" + currentToken.start;
                             var slot = identifier;
                         } else {
-                            var slot = identifier + "_" + currentToken.position;
+                            var slot = identifier + "_" + currentToken.start;
                         }
 
                         var repeatCmd = {
