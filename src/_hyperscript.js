@@ -2327,28 +2327,28 @@
                                     });
                                 }
                             },
-                            execute: function (ctx) {
-                                var op = function(context, on, value, time, evt, from) {
-                                    if (time) {
-                                        this.toggle(on, value);
-                                        setTimeout(function () {
-                                            toggleCmd.toggle(on, value);
-                                            _runtime.next(toggleCmd, ctx);
-                                        }, time);
-                                    } else if (evt) {
-                                        var target = from || ctx.me;
-                                        target.addEventListener(evt, function(){
-                                            toggleCmd.toggle(on, value);
-                                            _runtime.next(toggleCmd, ctx);
-                                        }, { once:true })
-                                        this.toggle(on, value);
-                                    } else {
-                                        this.toggle(on, value);
-                                        _runtime.next(toggleCmd, ctx);
-                                    }
+                            args: [on, attributeRef ? attributeRef.value : null, time, evt, from],
+                            op: function(context, on, value, time, evt, from) {
+                                if (time) {
+                                    this.toggle(on, value);
+                                    setTimeout(function () {
+                                        toggleCmd.toggle(on, value);
+                                        _runtime.next(toggleCmd, context);
+                                    }, time);
+                                } else if (evt) {
+                                    var target = from || ctx.me;
+                                    target.addEventListener(evt, function(){
+                                        toggleCmd.toggle(on, value);
+                                        _runtime.next(toggleCmd, context);
+                                    }, { once:true })
+                                    this.toggle(on, value);
+                                } else {
+                                    this.toggle(on, value);
+                                    _runtime.next(toggleCmd, context);
                                 }
-                                return _runtime.unifiedEval(this, op, ctx, on, attributeRef ? attributeRef.value : null, time, evt, from);
-
+                            },
+                            execute: function (ctx) {
+                                return _runtime.unifiedEval2(this, ctx);
                             }
                         };
                         return toggleCmd
@@ -2370,17 +2370,17 @@
                                 type: "waitCmd",
                                 event: evt,
                                 on: on,
-                                execute: function (ctx) {
-                                    var eventName = evt.evaluate(ctx); // OK
-                                    var op = function(context, on) {
-                                        var target = on ? on : ctx['me'];
-                                        var listener = function(){
-                                            target.removeEventListener(eventName, listener);
-                                            _runtime.next(waitCmd, ctx);
-                                        };
-                                        target.addEventListener(eventName, listener)
-                                    }
-                                    _runtime.unifiedEval(this, op, ctx, on);
+                                args:[evt, on],
+                                op: function(context, eventName, on) {
+                                    var target = on ? on : context['me'];
+                                    var listener = function(){
+                                        target.removeEventListener(eventName, listener);
+                                        _runtime.next(waitCmd, context);
+                                    };
+                                    target.addEventListener(eventName, listener)
+                                },
+                                execute: function(context) {
+                                    return _runtime.unifiedEval2(this, context);
                                 }
                             };
                         } else {
@@ -2388,13 +2388,14 @@
                             var waitCmd = {
                                 type: "waitCmd",
                                 time: time,
-                                execute: function (ctx) {
-                                    var op = function(context, timeValue){
-                                        setTimeout(function () {
-                                            _runtime.next(waitCmd, context);
-                                        }, timeValue);
-                                    }
-                                    _runtime.unifiedEval(this, op, ctx, time);
+                                args: [time],
+                                op: function(context, timeValue){
+                                    setTimeout(function () {
+                                        _runtime.next(waitCmd, context);
+                                    }, timeValue);
+                                },
+                                execute: function (context) {
+                                    return _runtime.unifiedEval2(this, context);
                                 }
                             };
                         }
@@ -2443,14 +2444,15 @@
                             eventName: eventName,
                             details: details,
                             to: to,
-                            execute: function (ctx) {
-                                var op = function(context, to, eventName, details){
-                                    _runtime.forEach(to, function (target) {
-                                        _runtime.triggerEvent(target, eventName, details ? details : {});
-                                    });
-                                    _runtime.next(sendCmd, ctx);
-                                }
-                                _runtime.unifiedEval(this, op, ctx, to, eventName, details);
+                            args: [to, eventName, details],
+                            op: function(context, to, eventName, details){
+                                _runtime.forEach(to, function (target) {
+                                    _runtime.triggerEvent(target, eventName, details ? details : {});
+                                });
+                                _runtime.next(sendCmd, context);
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedEval2(this, context);
                             }
                         };
                         return sendCmd
@@ -2465,22 +2467,23 @@
                         var returnCmd = {
                             type: "returnCmd",
                             value: value,
-                            execute: function (ctx) {
-                                var op = function (context, value) {
-                                    var resolve = ctx.meta.resolve;
-                                    ctx.meta.returned = true;
-                                    if (resolve) {
-                                        if (value) {
-                                            resolve(value);
-                                        } else {
-                                            resolve()
-                                        }
+                            args: [value],
+                            op: function (context, value) {
+                                var resolve = context.meta.resolve;
+                                context.meta.returned = true;
+                                if (resolve) {
+                                    if (value) {
+                                        resolve(value);
                                     } else {
-                                        ctx.meta.returned = true;
-                                        ctx.meta.returnValue = value;
+                                        resolve()
                                     }
-                                };
-                                _runtime.unifiedEval(this, op, ctx, value);
+                                } else {
+                                    context.meta.returned = true;
+                                    context.meta.returnValue = value;
+                                }
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedEval2(this, context);
                             }
                         };
                         return returnCmd
@@ -2497,13 +2500,13 @@
                             type: "triggerCmd",
                             eventName: eventName,
                             details: details,
-                            execute: function (ctx) {
-                                var eventNameStr = eventName.evaluate(ctx);// OK
-                                var op = function (context, details) {
-                                    _runtime.triggerEvent(_runtime.resolveSymbol("me", ctx), eventNameStr ,details ? details : {});
-                                    _runtime.next(triggerCmd, ctx);
-                                };
-                                return _runtime.unifiedEval(this, op, ctx, details);
+                            args: [eventName, details],
+                            op:function (context, eventNameStr, details) {
+                                _runtime.triggerEvent(context.me, eventNameStr ,details ? details : {});
+                                _runtime.next(triggerCmd, context);
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedEval2(this, context);
                             }
                         };
                         return triggerCmd
@@ -2531,19 +2534,19 @@
                             classRef: classRef,
                             from: from,
                             forElt: forElt,
-                            execute: function (ctx) {
-                                // TODO - expression?
-                                var op = function(context, from, forElt){
-                                    var clazz = this.classRef.value.substr(1)
-                                    _runtime.forEach(from, function(target){
-                                        target.classList.remove(clazz);
-                                    })
-                                    _runtime.forEach(forElt, function(target){
-                                        target.classList.add(clazz);
-                                    });
-                                    _runtime.next(takeCmd, ctx);
-                                }
-                                _runtime.unifiedEval(this, op, ctx, from, forElt);
+                            args: [from, forElt],
+                            op: function(context, from, forElt){
+                                var clazz = this.classRef.value.substr(1)
+                                _runtime.forEach(from, function(target){
+                                    target.classList.remove(clazz);
+                                })
+                                _runtime.forEach(forElt, function(target){
+                                    target.classList.add(clazz);
+                                });
+                                _runtime.next(takeCmd, context);
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedEval2(this, context);
                             }
                         };
                         return takeCmd
@@ -2563,16 +2566,17 @@
                             type: "logCmd",
                             exprs: exprs,
                             withExpr: withExpr,
-                            execute: function (ctx) {
-                                var op = function(ctx, withExpr, values) {
-                                    if (withExpr) {
-                                        withExpr.apply(null, values);
-                                    } else {
-                                        console.log.apply(null, values);
-                                    }
-                                    _runtime.next(logCmd, ctx);
-                                };
-                                return _runtime.unifiedEval(this, op, ctx, withExpr, exprs);
+                            args: [withExpr, exprs],
+                            op: function (ctx, withExpr, values) {
+                                if (withExpr) {
+                                    withExpr.apply(null, values);
+                                } else {
+                                    console.log.apply(null, values);
+                                }
+                                _runtime.next(logCmd, ctx);
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedEval2(this, context);
                             }
                         };
                         return logCmd;
@@ -2654,37 +2658,38 @@
                             operation: operation,
                             symbolWrite: symbolWrite,
                             value: value,
-                            execute: function (ctx) {
-                                var op = function(context, root, valueToPut){
-                                    if (symbolWrite) {
-                                        ctx[target.root.name] = valueToPut;
-                                    } else {
-                                        if (operation === "into") {
-                                            var lastProperty = target.propPath.slice(-1); // steal last property for assignment
-                                            _runtime.forEach(_runtime.evalTarget(root, target.propPath.slice(0, -1)), function(target){
-                                                target[lastProperty] = valueToPut;
-                                            })
-                                        } else if (operation === "before") {
-                                            _runtime.forEach(_runtime.evalTarget(root, target.propPath), function(target){
-                                                target.insertAdjacentHTML('beforebegin', valueToPut);
-                                            })
-                                        } else if (operation === "start") {
-                                            _runtime.forEach(_runtime.evalTarget(root, target.propPath), function(target){
-                                                target.insertAdjacentHTML('afterbegin', valueToPut);
-                                            })
-                                        } else if (operation === "end") {
-                                            _runtime.forEach(_runtime.evalTarget(root, target.propPath), function(target){
-                                                target.insertAdjacentHTML('beforeend', valueToPut);
-                                            })
-                                        } else if (operation === "after") {
-                                            _runtime.forEach(_runtime.evalTarget(root, target.propPath), function(target){
-                                                target.insertAdjacentHTML('afterend', valueToPut);
-                                            })
-                                        }
+                            args: [target.root, value],
+                            op: function(context, root, valueToPut){
+                                if (symbolWrite) {
+                                    context[target.root.name] = valueToPut;
+                                } else {
+                                    if (operation === "into") {
+                                        var lastProperty = target.propPath.slice(-1); // steal last property for assignment
+                                        _runtime.forEach(_runtime.evalTarget(root, target.propPath.slice(0, -1)), function(target){
+                                            target[lastProperty] = valueToPut;
+                                        })
+                                    } else if (operation === "before") {
+                                        _runtime.forEach(_runtime.evalTarget(root, target.propPath), function(target){
+                                            target.insertAdjacentHTML('beforebegin', valueToPut);
+                                        })
+                                    } else if (operation === "start") {
+                                        _runtime.forEach(_runtime.evalTarget(root, target.propPath), function(target){
+                                            target.insertAdjacentHTML('afterbegin', valueToPut);
+                                        })
+                                    } else if (operation === "end") {
+                                        _runtime.forEach(_runtime.evalTarget(root, target.propPath), function(target){
+                                            target.insertAdjacentHTML('beforeend', valueToPut);
+                                        })
+                                    } else if (operation === "after") {
+                                        _runtime.forEach(_runtime.evalTarget(root, target.propPath), function(target){
+                                            target.insertAdjacentHTML('afterend', valueToPut);
+                                        })
                                     }
-                                    _runtime.next(this, ctx);
                                 }
-                                _runtime.unifiedEval(this, op, ctx, target.root, value)
+                                return _runtime.next(this, context);
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedEval2(this, context)
                             }
                         };
                         return putCmd
@@ -2711,19 +2716,20 @@
                             target: target,
                             symbolWrite: symbolWrite,
                             value: value,
-                            execute: function (ctx) {
-                                var op = function(context, root, valueToSet) {
-                                    if (symbolWrite) {
-                                        ctx[target.root.name] = valueToSet;
-                                    } else {
-                                        var lastProperty = target.propPath.slice(-1); // steal last property for assignment
-                                        _runtime.forEach(_runtime.evalTarget(root, target.propPath.slice(0, -1)), function (target) {
-                                            target[lastProperty] = valueToSet;
-                                        })
-                                    }
-                                    _runtime.next(this, ctx);
+                            args: [symbolWrite ? null : target.root, value],
+                            op: function(context, root, valueToSet) {
+                                if (symbolWrite) {
+                                    context[target.root.name] = valueToSet;
+                                } else {
+                                    var lastProperty = target.propPath.slice(-1); // steal last property for assignment
+                                    _runtime.forEach(_runtime.evalTarget(root, target.propPath.slice(0, -1)), function (target) {
+                                        target[lastProperty] = valueToSet;
+                                    })
                                 }
-                                _runtime.unifiedEval(this, op, ctx, symbolWrite ? null : target.root, value);
+                                _runtime.next(this, context);
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedEval2(this, context);
                             }
                         };
                         return setCmd
