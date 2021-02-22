@@ -624,6 +624,12 @@
                         } else if (next.then) {
                             next.then(function (resolvedNext) {
                                 unifiedExec(resolvedNext, ctx);
+                            }).catch(function(reason){
+                                if (ctx.meta && ctx.meta.reject) {
+                                    ctx.meta.reject(reason);
+                                } else {
+                                    // TODO: no meta context to reject with, trigger event?
+                                }
                             });
                             return;
                         } else if (next === HALT) {
@@ -2927,10 +2933,10 @@
                                             }
                                         })
                                         .catch(function (reason) {
-                                            // TODO - propogate fetch error?
                                             _runtime.triggerEvent(context.me, "fetch:error", {
                                                 reason: reason
                                             })
+                                            reject(reason);
                                         })
                                 })
                             },
