@@ -103,7 +103,7 @@ describe("the on feature", function() {
 
     })
 
-    it("one event at a time is allowed to execute by default", function(){
+    it("one event at a time is allowed to execute by default", function(done){
 
         var i = 1;
         window.increment = function(){
@@ -116,10 +116,13 @@ describe("the on feature", function() {
         div.click()
         div.innerText.should.equal("1");
         div.dispatchEvent(new CustomEvent("customEvent"));
-        div.innerText.should.equal("1");
-        div.click()
-        div.innerText.should.equal("2");
-        delete window.increment;
+        setTimeout(function(){
+            div.innerText.should.equal("1");
+            div.click()
+            div.innerText.should.equal("2");
+            delete window.increment;
+            done();
+        }, 20)
     })
 
     it("multiple event handlers at a time are allowed to execute with the every keyword", function(){

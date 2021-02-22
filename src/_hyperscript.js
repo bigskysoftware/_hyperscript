@@ -1845,13 +1845,16 @@
                         }
                         end.next = {
                             type: "implicitReturn",
-                            execute: function (ctx) {
+                            op: function (context) {
                                 // automatically return at the end of the function if nothing else does
-                                ctx.meta.returned = true;
-                                if(ctx.meta.resolve){
-                                    ctx.meta.resolve();
+                                context.meta.returned = true;
+                                if(context.meta.resolve){
+                                    context.meta.resolve();
                                 }
                                 return _runtime.HALT;
+                            },
+                            execute: function (context) {
+                                // do nothing
                             }
                         }
 
