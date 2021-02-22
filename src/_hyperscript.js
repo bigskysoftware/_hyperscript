@@ -1247,21 +1247,18 @@
                 _parser.addGrammarElement("arrayIndex", function (parser, tokens, root) {
 
                     if (tokens.matchOpToken("[")) {
-                        var indexExp = parser.parseElement("expression", tokens)
+                        var index = parser.parseElement("expression", tokens)
                         tokens.requireOpToken("]")
 
                         var arrayIndex = {
                             type: "arrayIndex",
                             root: root,
-                            index: indexExp,
-                            evaluate: function (context) {
-                                var index = _runtime.unifiedEval(this, function(context, rootVal) {
-                                    return parseInt(rootVal)
-                                }, context, this.index)
-
-                                return _runtime.unifiedEval(this, function(context, rootVal){
-                                    return rootVal[index];
-                                }, context, root)
+                            index: index,
+                            evaluate: function(ctx) {
+                                var op = function(ctx, root, index) {
+                                    return root[parseInt(index)]
+                                }
+                                return _runtime.unifiedEval(this, op, ctx, root, index)
                             }
                         };
 
