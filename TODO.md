@@ -52,13 +52,11 @@
 * support `async` command
   * `async log me`
   * `async do wait 2s then log me end`
+* support a synthetic `transitionsComplete` event
+  * currently we are using `transitionEnd` events for gating progress, but this is incorrect because multiple transitions can be in effect and multiple transitionEnds can be fired.  The Right Thing it to keep track of the transitionfired and transitionend count for each element in the DOM (via a body listener), and, when this count reaches zero, fire a synthetic `transitionsdone` event.  We should also fire this event immediately if an event handler is added dynamically and the transition count is already at 0, so you can gate on an element that potentially doesn't have any transitions associated with it.
+     * see http://www.javascriptkit.com/dhtmltutors/css3-transitions-and-jquery2.shtml
 * repeat command improvements
 ```
-// Simple repeat without requiring a counter
-repeat 5 times
-    call pulse()
-end
-
 // By default, counter uses "it" convention
 repeat from 1 to 10 
     put it in myVar
