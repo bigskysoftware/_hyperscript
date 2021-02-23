@@ -38,6 +38,8 @@ title: ///_hyperscript
     * [js](#js-command)
   * [expressions](#expressions)
 * [async transparency](#async)
+  * [async keyword](#async-keyword)
+  * [event driven control flow](#events)
 * [history](#history)
 
 </div>
@@ -832,7 +834,7 @@ from the server, the hyperscript runtime will take care of resuming execution of
 
 Now how much would you pay? :)
 
-### The `async` keyword
+### <a name="async-keywork'></a>[The `async` keyword](#async-keyword)
 
 That's all well and good (and it *is* well and good) but what if you *want* an operation to be asynchronous?  Sometimes
 that comes up.
@@ -846,7 +848,7 @@ to invoke `theAnswer()` but not wait on it to return, you could update the event
 </button>
 ```
 
-### Event Driven Control Flow
+### <a name="events"></a>[Event Driven Control Flow](#events)
 
 One of the extremely interesting abilities that this async-transparent runtime gives hyperscript is the ability to have
 event driven control flow:
