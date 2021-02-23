@@ -33,8 +33,11 @@ title: ///_hyperscript
     * [set](#set)
     * [if](#if)
     * [repeat](#repeat)
+    * [fetch](#fetch)
+    * [throw](#throw)
+    * [js](#js-command)
   * [expressions](#expressions)
-* [asynch behavior](#async)
+* [async transparency](#async)
 * [history](#history)
 
 </div>
@@ -718,7 +721,7 @@ Here are some examples:
 </button>
 ```
 
-### <a name="js"></a>[Inline Javascript](#js)
+### <a name="js-command"></a>[Inline Javascript](#js-command)
 
 Performance is an, ahem, *secondary* consideration in hyperscript and, while it is fast enough
 in most cases, there are times when you may want to kick out to javascript.  You may of course
@@ -754,6 +757,145 @@ And you can use any results return from the javascript in the default `it` varia
   Click Me
 </button>
 ```
+
+## <a name="async"></a>[Async Transparency](#async)
+
+A feature that sets hyperscript apart from other languages is that it is *async transparent*: the runtime largely hides
+the distinction between asynchronous code and synchronous code from the script writer.  You can write a hyperscript 
+function that looks like this:
+
+```html
+<script type="text/hyperscript">
+def theAnswer()
+  return 42
+end
+</script>
+```
+
+And then invoke it from an event handler like so:
+
+```html
+<button _="on click put theAnswer() into my.innerHTML">
+  Get The Answer...
+</button>
+```
+
+So far, so synchronous.  However, if you updated the function to this:
+
+```html
+<script type="text/hyperscript">
+def theAnswer()
+  wait 2s
+  return 42
+end
+</script>
+```
+
+Suddenly the function becomes *asynchronous*.  Under the covers, that `wait` command turns into a `setTimeout()` and,
+if you invoke the method from javascript (which is perfectly acceptable) you would see that the result was a `Promise`
+rather than a number!
+
+Now, here's the trick: that event handler that we defined earlier:
+
+```html
+<button _="on click put theAnswer() into my.innerHTML">
+  Get The Answer...
+</button>
+```
+
+Still works exactly the same.  You don't need to deal with the promise that was returned by `theAnswer()`.  Instead,
+the hyperscript runtime takes care of it for you and, when the Promise from `theAnswer()` resolves, the hyperscript
+will continue executing.
+
+No `async`/`await`, no callbacks, no `.then()` invocations.  It just keeps working the same way.
+
+Now, that might seem like a parlor trick, but what's the real world value?
+
+Well, what if we wanted to fetch the value from the server?  That involve an asynchronous call to the
+`fecth()` API, and the hyperscript runtime is fine with that as well:
+
+```html
+<script type="text/hyperscript">
+def theAnswer()
+  fetch /theAnswer
+  return it
+end
+</script>
+```
+
+The original event handler does not need to be updated to deal with asynchronous code, and the value is now coming from
+the server.  
+
+Now how much would you pay?
+
+### The `async` keyword
+
+That's all well and good (and it *is* well and good) but what if you *want* an operation to be asynchronous?  Sometimes
+that comes up.
+
+Hyperscript provides an `async` keyword that will tell the runtime *not* to synchronize on a value.  So, if you wanted
+to invoke `theAnswer()` but not wait on it to return, you could update the event handler to look like this:
+
+```html
+<button _="on click call async theAnswer(), put 'I called it...' into my.innerHTML">
+  Get The Answer...
+</button>
+```
+
+### Event Driven Control Flow
+
+One of the extremely interesting abilities that this async-transparent runtime gives hyperscript is the ability to have
+event driven control flow:
+
+```html
+<button id="pulsar"
+        _="on click repeat until event stop
+                      add .pulse
+                      wait for transitionend
+                      remove .pulse
+                      wait for transitionend
+                    end">
+  Click me to Pulse...
+</button>
+
+<button _="on click send stop to #pulsar">
+  Stop it from Pulsing
+</button>
+```
+
+Here we have a button that, when clicked, will cycle between having the `.pulse` class on it and off it, with some
+sort of transition defined for that class in CSS.  It will keep cycling through this loop until the button receives
+a `stop` event, which another other button will helpfully send to it.  
+
+Here is a demo of this code:
+<div style="text-align: center">
+<style>
+#pulsar {
+  transition: all 1s ease-in;
+}
+.pulse {
+  background-color: indianred;
+}
+</style>
+<button class="btn" id="pulsar"
+        _="on click repeat until event stop
+                      add .pulse
+                      wait for transitionend
+                      remove .pulse
+                      wait for transitionend
+                    end">
+  Click me to Pulse...
+</button>
+
+<button class="btn primary" _="on click send stop to #pulsar">
+  Stop it from Pulsing
+</button>
+</div>
+
+What's particularly interesting here is that the CSS transition is allowed to finish smoothly, rather than abruptly,
+because the event listener that terminates the loop is only consulted once a complete loop is made.
+
+This I hope gives you a taste of the unique execution model of hyperscript, and what uses it might be put to.
 
 ## <a name="history"></a>[History, or 'Yet Another Language?'](#history)
 
