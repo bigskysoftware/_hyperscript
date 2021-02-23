@@ -20,7 +20,46 @@
 ```
 
 ### Language Features
-* Support `is`, `is not`, `is really`, `is greater than` etc.
+* Support `hide`/`show` pattern
+```html
+<script type="text/hyperscript">
+  def myTransition(op, elt)
+    if op is "hide"
+      -- logic to hide the element
+    else
+      -- logic to show the element
+    end
+  end
+</script>
+
+  hide me # configured default, potentially "myTransition"
+  hide me with opacity
+  hide me with myTransition
+  hide me with visibility
+  hide me with display
+
+  show me
+  show me with opacity
+  show me with myTransition
+  show me with visibility
+  show me with display
+  show me with display inline -- allow a specific display argument as well
+```
+* Figure out an explicit transition API
+  * https://v3.vuejs.org/guide/transitions-enterleave.html#transitioning-single-elements-components
+  * https://github.com/alpinejs/alpine/#x-transition
+  * https://www.educba.com/css-scale/
+  * strawman:
+  ```html
+  transition
+    opacity from 0 to 100
+    transform.scale from 90 to 100
+    add .class1, .class2
+  with ease-out 300ms
+  ```
+* support `async` command
+  * `async log me`
+  * `async do wait 2s then log me end`
 * repeat command improvements
 ```
 // Simple repeat without requiring a counter
@@ -45,11 +84,12 @@ end
    on click 2 and more log "this ain't my first click"
 ```
 * the `on` feature needs to support multiple events
-* implement the throttle, delay and maybe enqueued functionality from htmx
+* implement the throttle, delay/debounce and maybe enqueued functionality from htmx
 ```
   on click delay 100ms before log "delayed click"
-  on click throttle 100ms log "throttled click"
-  on click enqueued log "throttled click"
+  on click throttle 100ms before log "throttled click"
+  on click queue one log "queued click"
+  on click queue all log "throttled click"
 ```
 * functions should be able to be marked `sync` to make only one execution at a time occur, in serial fashion
 * support a `select` expression or statement that allows for general querying against the DOM
