@@ -5,7 +5,7 @@
     * support the [] operator
     * add `first`, `last` and `random` pseudo-properties
     * property references off of arrays (that are not `length`, `first`, `last` or `random`) are flatMaps
-* First pass at documentation
+* @1cg First pass at documentation
 * MAYBE @Deniz Akşimşek string expression templating
 ```
    set str to "this $is a ${cool.feature}"
