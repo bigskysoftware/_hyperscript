@@ -69,7 +69,7 @@ Embedding event handling logic directly on elements in this manner makes it much
 Hyperscript reads easily and is expressive enough that many common web patterns can be comfortably written directly inline.  (Of course, if you need to, you can factor logic out to [functions](#functions) as 
 well.)
 
-One of the most interesting aspects of hyperscript is that it is *[async-transparent](/#async)*.  That is, you can write code
+One of the most interesting aspects of hyperscript is that it is *[async-transparent](#async)*.  That is, you can write code
 that is asynchronous in a linear style.  Consider the following hyperscript function:
 
 ```javascript
