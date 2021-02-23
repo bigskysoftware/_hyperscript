@@ -12,9 +12,9 @@ hyperscript features include:
 
 <div style="padding: 16px">
 
-* clean, inline embedding on HTML elements
-* excellent tools for working with DOM events
-* DOM-oriented syntax, such as element id and class literals
+* inline embedding on HTML elements
+* tools for working with DOM events, including event-driven control flow
+* a DOM-oriented syntax, such as element id and class literals
 * first class [web workers](/docs#workers)
 * [async-transparancy](/docs#async)
 

@@ -21,6 +21,11 @@ title: ///_hyperscript
   * [commands](#commands)
     * [add](#add)
     * [remove](#remove)
+    * [toggle](#toggle)
+    * [wait](#wait)
+    * [return](#return)
+    * [send](#send)
+    * [trigger](#trigger)
   * [expressions](#expressions)
 * [asynch behavior](#async)
 * [history](#history)
@@ -346,9 +351,9 @@ If you omit a target, the default will be the current element
 </button>
 ```
 
-### <a name="toggler"></a>[Toggle](#toggle)
+### <a name="toggle"></a>[Toggle](#toggle)
 
-The [toggle command](/commands/remove) allows you to toggle a class or property on an element or multiple elements in the DOM.  Depending on the syntax you pick, the toggle can be for a fixed amount of time, or until the reception of an event.
+The [toggle command](/commands/toggle) allows you to toggle a class or property on an element or multiple elements in the DOM.  Depending on the syntax you pick, the toggle can be for a fixed amount of time, or until the reception of an event.
 
 Here are some examples:
 
@@ -385,7 +390,90 @@ As with the [add](#add) and [remove](#remove) commands, you can target other ele
 </button>
 ```
 
-["toggleCmd", "waitCmd", "returnCmd", "sendCmd", "triggerCmd", "takeCmd", "logCmd", "callCmd", "putCmd", "setCmd", "ifCmd", "forCmd", "fetchCmd", "throwCmd", "jsCmd"];
+### <a name="wait"></a>[Wait](#wait)
+
+The [wait command](/commands/wait) allows you to wait a fixed amount of time or to wait for an event.  Execution will
+pause for the given period of time, but it will not block other events from happening.
+
+Here are some examples:
+
+```html
+<!-- wait 2 seconds and then remove the button -->
+<button _="on click wait 2s then remove me">
+  Click Me
+</button>
+```
+
+```html
+<!-- add a fadeOut class, wait for the transition to end, then remove the button -->
+<button _="on click add .fadeOut then wait for transitionend then remove me">
+  Click Me
+</button>
+```
+
+### <a name="return"></a>[Return](#return)
+
+The [return command](/commands/return) returns a value for the currently executing function.
+
+Here are some examples:
+
+```html
+<script type="text/hyperscript">
+  def theAnswer() {
+    return 42
+  }
+</script>
+<!-- puts 42 into the button-->
+<button _="on click put theAnswer() into my.innerHTML">
+  Click Me
+</button>
+```
+
+```html
+<script type="text/hyperscript">
+  def theAnswer() {
+    wait 2s
+    return 42
+  }
+</script>
+<!-- puts 42 into the button after a 2 second delay -->
+<button _="on click put theAnswer() into my.innerHTML">
+  Click Me
+</button>
+```
+
+### <a name="send"></a>[Send](#send)
+
+The [send command](/commands/send) sends an event to another element in the DOM.  You can pass arguments to the other
+event via an optional named argument syntax.
+
+Here are some an examples:
+
+```html
+<div _="on click send doIt(answer:42) to #div1">Click Me!</div>
+<div id="div1" _="on doIt(answer) put 'The answer is ' + answer into my.innerHTML"></div>
+```
+
+```html
+<div _="on click send remove to #div1">Click Me!</div>
+<div id="div1" _="on remove remove me">I will be removed...</div>
+```
+
+### <a name="trigger"></a>[Trigger](#trigger)
+
+The [trigger command](/commands/trigger) triggers an event on the current element.  You can use this to centralize logic
+in one event handler.
+
+Here is an examples that centralizes logic to remove an element:
+
+```html
+<div _="on click trigger remove
+        on mouseout trigger remove
+        on remove add .fadeOut then wait until transitionend then remove Me">Click Me!</div>
+```
+
+
+["triggerCmd", "takeCmd", "logCmd", "callCmd", "putCmd", "setCmd", "ifCmd", "repeatCmd", "fetchCmd", "throwCmd", "jsCmd"];
 
 
 ========= TODO fold this in 
