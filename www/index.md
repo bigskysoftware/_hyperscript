@@ -3,6 +3,15 @@ layout: layout.njk
 title: ///_hyperscript
 ---
 
+<div style="background-color: lightgoldenrodyellow; margin: 16px; border-radius: 8px;
+            color: darkgoldenrod; border: gold 1px solid; font-size: 20px">
+  <p>
+    <b>NOTE:</b> hyperscript is still in very early development and may change
+    dramatically between releases.  Please bear this in mind, and jump on the
+    <a style="color: darkgoldenrod;font-weight: bold" href="https://htmx.org/discord">#hyperscript discord channel</a> to work with us as we develop the language.  Thank you!
+  </p> 
+</div>
+
 ## intro
 
 hyperscript is a scripting language designed for the web, inspired by 
