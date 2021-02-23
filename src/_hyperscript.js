@@ -1481,13 +1481,15 @@
 
                 _parser.addGrammarElement("comparisonOperator", function (parser, tokens) {
                     var expr = parser.parseElement("mathExpression", tokens);
-                    var comparisonOp, initialComparisonOp = null;
-                    comparisonOp = tokens.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==")
-                    while (comparisonOp) {
-                        initialComparisonOp = initialComparisonOp || comparisonOp;
-                        if (initialComparisonOp.value !== comparisonOp.value) {
-                            parser.raiseParseError(tokens, "You must parenthesize comparison operations with different operators")
+                    var comparisonOp = tokens.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==")
+                    if (comparisonOp == null && tokens.matchToken("is")) {
+                        if (tokens.matchToken("not")) {
+                            comparisonOp = "!=";
+                        } else {
+                            comparisonOp = "==";
                         }
+                    }
+                    if (comparisonOp) { // Do not allow chained comparisons, which is dumb
                         var rhs = parser.parseElement("mathExpression", tokens);
                         expr = {
                             type: "comparisonOperator",
@@ -1517,8 +1519,7 @@
                             evaluate: function (context) {
                                 return _runtime.unifiedEval(this, context);
                             }
-                        }
-                        comparisonOp = tokens.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==")
+                        };
                     }
                     return expr;
                 });
