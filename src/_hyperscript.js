@@ -2767,12 +2767,13 @@
                 })
 
                 _parser.addGrammarElement("repeatCmd", function (parser, tokens) {
-                    var currentToken = tokens.currentToken();
-                    if (tokens.matchToken("repeat") || currentToken.value === "for") {
+                    var outerStartToken = tokens.currentToken();
+                    if (tokens.matchToken("repeat") || outerStartToken.value === "for") {
+                        var innerStartToken = tokens.currentToken();
                         if (tokens.matchToken("for")) {
                             var identifierToken = tokens.requireTokenType('IDENTIFIER');
                             var identifier = identifierToken.value
-                            tokens.matchToken("in"); // optional 'then'
+                            tokens.requireToken("in");
                             var expression = parser.requireElement("Expected an expression", "expression", tokens);
                         } else if (tokens.matchToken("in")) {
                             var identifier = "it";
@@ -2789,6 +2790,9 @@
                             } else {
                                 var whileExpr = parser.requireElement("Expected an expression", "expression", tokens);
                             }
+                        } else if (tokens.matchTokenType('NUMBER')) {
+                            var times = parseFloat(innerStartToken.value)
+                            tokens.requireToken('times');
                         } else {
                             tokens.matchToken("forever"); // consume optional forever
                             var forever = true;
@@ -2805,10 +2809,10 @@
                         }
 
                         if (identifier == null) {
-                            identifier = "_implicit_repeat_" + currentToken.start;
+                            identifier = "_implicit_repeat_" + outerStartToken.start;
                             var slot = identifier;
                         } else {
-                            var slot = identifier + "_" + currentToken.start;
+                            var slot = identifier + "_" + outerStartToken.start;
                         }
 
                         var repeatCmd = {
@@ -2818,6 +2822,7 @@
                             slot: slot,
                             expression: expression,
                             forever: forever,
+                            times: times,
                             until: isUntil,
                             event: evt,
                             on: on,
@@ -2840,6 +2845,8 @@
                                     }
                                 } else if (whileValue) {
                                     keepLooping = true;
+                                } else if (times) {
+                                    keepLooping = iterator.index < this.times;
                                 } else {
                                     keepLooping = iterator.value !== null && iterator.index < iterator.value.length
                                 }
