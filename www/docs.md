@@ -31,6 +31,8 @@ title: ///_hyperscript
     * [call](#call)
     * [put](#put)
     * [set](#set)
+    * [if](#if)
+    * [repeat](#repeat)
   * [expressions](#expressions)
 * [asynch behavior](#async)
 * [history](#history)
@@ -129,6 +131,51 @@ This may be off-putting at first, but it has advantages:
 * It reads well once you are used to it
 
 The syntax, while alien at first, will grow on you.
+
+Let's consider a simple event handler in hyperscript
+
+```html
+<button _="on click add .aClass to #anotherDiv">
+  Click Me!
+</button>
+``` 
+
+This button, when clicked, will add the `aClass` CSS class to the div with the id `anotherDiv`.  You can see that hyperscript has native syntactic support for CSS class literals and ID references.  This makes it easy to express common DOM manipulations.
+
+This is what hyperscript is designed for: reacting to events and updating DOM elements, acting as a glue language between various events and elements on the page.  Note that hyperscript event handlers can respond to any event, even custom events that you, or a library you are using, has defined, all with a nice, inline syntax that makes it obvious what is happening on inspection.
+
+#### The Basics
+
+Now that you've seen a basic introduction, let's look at the broader language.
+
+A `hyperscript` consists of one or more [features](#features).  The primary entrypoint into hyperscript is  [`on`](/features/on) feature, which defines an event listener on a DOM element.
+
+A feature then contains a series of [commands](#commands) (aka "statements"), a term taken from HyperTalk.  A command consists of a starting keyword and then a series of keywords, [expressions](#expressions) and potentially child commands or command lists.
+
+A command list is a series of commands, optionally separated by the `then` keyword:
+
+```html
+<div _="on click add .fadeMe then wait 200ms then remove me">
+  Fade & Remove Me
+</div>
+```
+
+The `then` keyword is particularly recommended when commands are on the same line, for clarity.
+
+Expressions are the root syntactic element.  Some should be very familiar to developers:
+
+* Number literals - `1.1`
+* String literals = `"hello world"`
+* Array literals = `[1, 2, 3]`
+
+Others are a bit more exotic:
+
+* ID Ref = `#foo`
+* Class Ref = `.tabs`
+
+Below you will find an overview of the various features, commands and expressions in hyperscript, as well as links to more detailed treatments of them.
+
+You may also want to simply head over to the [cookbook](/cookbook) for existing hyperscripts you can start using and modifying for your own needs.
 
 ## <a name="features"></a>[Features](#features)
 
@@ -424,9 +471,9 @@ Here are some examples:
 
 ```html
 <script type="text/hyperscript">
-  def theAnswer() {
+  def theAnswer()
     return 42
-  }
+  end
 </script>
 <!-- puts 42 into the button-->
 <button _="on click put theAnswer() into my.innerHTML">
@@ -436,10 +483,10 @@ Here are some examples:
 
 ```html
 <script type="text/hyperscript">
-  def theAnswer() {
+  def theAnswer()
     wait 2s
     return 42
-  }
+  end
 </script>
 <!-- puts 42 into the button after a 2 second delay -->
 <button _="on click put theAnswer() into my.innerHTML">
@@ -565,53 +612,148 @@ Here is an example function setting a few variables
 </script>
 ```
 
-["ifCmd", "repeatCmd", "fetchCmd", "throwCmd", "jsCmd"];
+### <a name="if"></a>[If](#if)
 
-
-========= TODO fold this in 
-
-Now the `clicked` class will be added to the div with the id `a-div`, rather than to the element the event handler is
-on.
-
-You can see in the example above that hyperscript has native syntactic support for CSS class literals as well as well 
-as ID references.  This makes it easy to express common DOM manipulations without a lot of unnecessary syntax.
-
-#### The Basics
-
-Now that you've seen a basic introduction, let's look at the broader language.
-
-A `hyperscript` consists of one or more [features](#features).  Currently, the only feature supported right now
-is the [`on`](/features/on) feature, which instantiates an event listener on the current DOM element.
-
-A feature then contains a series of [commands](#commands), a term taken from HyperTalk.  A more standard name would
-be "statements", but calling them "commands" is fun.  A command typically consists of a starting keyword (which makes
-parsing easy!) and then a series of keywords and [expressions](#expressions).
-
-A command list is a series of commands, optionally separated by the `then` keyword:
+The [if command](/commands/if) allows for conditional execution and works in the expected manner:
 
 ```html
-<div _="on click add .fadeMe then wait 200ms then remove me">
-  Fade & Remove Me
-</div>
+<script type="text/hyperscript">
+  function isNegative(value)
+    if i < 0
+      return "The value is negative"
+    else
+      return "The value is non-negative"
+    ebd
+  end
+</script>
 ```
 
-The `then` keyword is particularly recommended when commands are on the same line, for clarity.
+### <a name="repeat"></a>[Repeat](#repeat)
 
-Some commands, such as the [if](/commands/if) command contain lists of other commands as well.
+The [repeat command](/commands/repeat) is the looping construct in hyperscript and supports a large number of variants:
 
-Expressions are the root syntactic element.  Some should be very familiar to developers:
+```html
+<script type="text/hyperscript">
+  function loops()
 
-* Number literals - `1.1`
-* String literals = `"hello world"`
-* Array literals = `[1, 2, 3]`
+    -- a basic for loop
+    repeat for x in [1, 2, 3]
+      log x
+    end
 
-While some are a bit more exotic for an imperative programming language:
+    -- you may omit the 'repeat' keyword for a for loop
+    for x in [1, 2, 3]
+      log x
+    end
 
-* ID Ref = `#foo`
-* Class Ref = `.tabs`
+    -- you may repeat without an explicit loop variable and use the implicit `it` symbol
+    repeat in [1, 2, 3]
+      log it
+    end
 
-Below is a reference for the various features, commands and expressions available in hyperscript:
+    -- you may use a while clause to loop while a condition is true
+    repeat while x < 10
+      log x
+    end
 
+    -- you may use an until clause to loop until a condition is true
+    repeat until x is 10
+      log x
+    end
+
+    -- you may use the times clause to repeat a fixed number of times
+    repeat 3 times
+      log 'looping'
+    end
+
+    -- you may use the index clause on any of the above 
+    -- to bind the loop index to a given symbol
+    for x in [1, 2, 3] index i
+      log i, "is", x
+    end
+
+  end
+</script>
+```
+
+### <a name="fetch"></a>[Fetch](#fetch)
+
+The [fetch command](/commands/fetch) issues an AJAX request using the [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch) API.  It is an asynchronous command but, as with all hyperscript, can be used in a linear manner without call backs.  
+
+The results of a fetch will be placed in the `it` variable.  Note that by default the value will be text, but you can use the `as json` modifier to parse it as JSON.
+
+Here are some example usages:
+
+```html
+
+<button _="on click fetch /example then put it into my.innerHTML">
+  Fetch it!
+</button>
+
+<button _="on click fetch /example as json then put it.message into my.innerHTML">
+  Fetch it as JSON!
+</button>
+
+<button _="on click fetch /example {method:'POST'} then put it into my.innerHTML">
+  Fetch it with a POST!
+</button>
+```
+
+### <a name="throw"></a>[Throw](#throw)
+
+The [throw command](/commands/throw) throws an execption, interrupting the currently executing function.
+
+Here are some examples:
+
+```html
+<script type="text/hyperscript">
+  def throws()
+    wait 2s
+    throw
+  end
+</script>
+<!-- will not put anything into the button-->
+<button _="on click put throws() into my.innerHTML">
+  Click Me
+</button>
+```
+
+### <a name="js"></a>[Inline Javascript](#js)
+
+Performance is an, ahem, *secondary* consideration in hyperscript and, while it is fast enough
+in most cases, there are times when you may want to kick out to javascript.  You may of course
+pull logic out to a javascript function and invoke it from hyperscript, but you can also inline
+javascript using the [js command](/commands/js).
+
+Here are some examples:
+
+```html
+<button _="on click js 
+                      console.log('this is js code..');
+                    end">
+  Click Me
+</button>
+```
+
+You can pass variables into the block like so:
+
+```html
+<button _="on click js(me)
+                      console.log(me);
+                    end">
+  Click Me
+</button>
+```
+
+And you can use any results return from the javascript in the default `it` variable: 
+
+```html
+<button _="on click js
+                      return 'This is from javascript...";
+                    end then log it">
+  Click Me
+</button>
+```
 
 ## <a name="history"></a>[History, or 'Yet Another Language?'](#history)
 
