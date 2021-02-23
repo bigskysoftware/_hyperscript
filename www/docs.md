@@ -26,6 +26,11 @@ title: ///_hyperscript
     * [return](#return)
     * [send](#send)
     * [trigger](#trigger)
+    * [take](#take)
+    * [log](#log)
+    * [call](#call)
+    * [put](#put)
+    * [set](#set)
   * [expressions](#expressions)
 * [asynch behavior](#async)
 * [history](#history)
@@ -472,8 +477,95 @@ Here is an examples that centralizes logic to remove an element:
         on remove add .fadeOut then wait until transitionend then remove Me">Click Me!</div>
 ```
 
+### <a name="take"></a>[Take](#take)
 
-["triggerCmd", "takeCmd", "logCmd", "callCmd", "putCmd", "setCmd", "ifCmd", "repeatCmd", "fetchCmd", "throwCmd", "jsCmd"];
+The [take command](/commands/trigger) takes a class from another set of elements.  This can be used to represent an 
+active element in a tabbed UI, for example.
+
+Here is an example on a parent element that takes the class `.active` and assigns it to the clicked anchor.
+```html
+<div _="on click take .active from .tab for event.target">
+    <a class="tab active">Tab 1</a>
+    <a class="tab">Tab 2</a>
+    <a class="tab">Tab 3</a>
+</div>
+```
+
+### <a name="log"></a>[Log](#log)
+
+The [log command](/commands/log) logs a value to the console.
+
+```html
+<div _="on click log me then remove me">
+  Click Me
+</div>
+```
+
+### <a name="call"></a>[Call](#call)
+
+The [call command](/commands/call) calls a function or evaluates an expression and puts the result into the `it`
+variable.
+
+```html
+<div _="on click call getTheAnswer() then put it into my.innerHTML">
+  Click Me
+</div>
+```
+
+`get` is an alias for `call`:
+
+```html
+<div _="on click get getTheAnswer() then put it into my.innerHTML">
+  Click Me
+</div>
+```
+
+You can choose the one that reads more clearly for your use case.
+
+### <a name="put"></a>[Put](#put)
+
+The [put command](/commands/put) puts a value somewhere, either into the DOM, or into a variable or into a property.
+
+Here is a basic example putting 'Clicked' into the divs innerHTML
+```html
+<div _="on click put 'Clicked!' into my.innerHTML">
+  Click Me
+</div>
+```
+
+Here is an example putting 'Clicked' *after* the button.  Additional clicks will keep adding "Clicked"
+```html
+<div _="on click put 'Clicked!' after me">
+  Click Me
+</div>
+```
+
+Other positional options are:
+
+* `before`
+* `at end of`
+* `at start of`
+
+### <a name="set"></a>[Set](#set)
+
+The [set command](/commands/set) sets a value somewhere, either into a variable or into a property.
+
+Here is an example function setting a few variables
+```html
+<script type="text/hyperscript">
+  function numberString(total)
+    set i to total
+    set str to ""
+    repeat while i > 0
+      set str to str + i
+      set i to i - 1
+    end
+    return str
+  end
+</script>
+```
+
+["ifCmd", "repeatCmd", "fetchCmd", "throwCmd", "jsCmd"];
 
 
 ========= TODO fold this in 
