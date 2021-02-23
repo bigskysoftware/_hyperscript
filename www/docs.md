@@ -791,11 +791,13 @@ end
 </script>
 ```
 
-Suddenly the function becomes *asynchronous*.  Under the covers, that `wait` command turns into a `setTimeout()` and,
+Suddenly the function becomes *asynchronous*.  
+
+Under the covers, that `wait` command turns into a `setTimeout()` and,
 if you invoke the method from javascript (which is perfectly acceptable) you would see that the result was a `Promise`
 rather than a number!
 
-Now, here's the trick: that event handler that we defined earlier:
+Now, here's the trick: the event handler that we defined earlier:
 
 ```html
 <button _="on click put theAnswer() into my.innerHTML">
@@ -803,16 +805,18 @@ Now, here's the trick: that event handler that we defined earlier:
 </button>
 ```
 
-Still works exactly the same.  You don't need to deal with the promise that was returned by `theAnswer()`.  Instead,
-the hyperscript runtime takes care of it for you and, when the Promise from `theAnswer()` resolves, the hyperscript
-will continue executing.
+Still works *exactly* the same with no modification.  
 
-No `async`/`await`, no callbacks, no `.then()` invocations.  It just keeps working the same way.
+You don't need to deal with the promise that was returned by `theAnswer()`.  Instead, the hyperscript runtime takes 
+care of it for you and, when the Promise from `theAnswer()` resolves, hyperscript will continue executing.
+
+No `async`/`await`, no callbacks, no `.then()` invocations.  It just keeps working.
 
 Now, that might seem like a parlor trick, but what's the real world value?
 
-Well, what if we wanted to fetch the value from the server?  That involve an asynchronous call to the
-`fecth()` API, and the hyperscript runtime is fine with that as well:
+Well, what if we wanted to fetch the value from the server?  
+
+That involves an asynchronous call to the `fecth()` API, and the hyperscript runtime is fine with that as well:
 
 ```html
 <script type="text/hyperscript">
@@ -823,10 +827,10 @@ end
 </script>
 ```
 
-The original event handler does not need to be updated to deal with asynchronous code, and the value is now coming from
-the server.  
+Again, the original event handler does not need to be updated to deal with asynchronous code.  When the value returns
+from the server, the hyperscript runtime will take care of resuming execution of the event handler.
 
-Now how much would you pay?
+Now how much would you pay? :)
 
 ### The `async` keyword
 
