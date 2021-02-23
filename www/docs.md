@@ -818,7 +818,7 @@ Now, that might seem like a parlor trick, but what's the real world value?
 
 Well, what if we wanted to fetch the value from the server?  
 
-That involves an asynchronous call to the `fecth()` API, and the hyperscript runtime is fine with that as well:
+That involves an asynchronous call to the `fetch()` API, and the hyperscript runtime is fine with that as well:
 
 ```html
 <script type="text/hyperscript">
