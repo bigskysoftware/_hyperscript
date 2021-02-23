@@ -1398,6 +1398,23 @@
                     }
                 });
 
+                _parser.addGrammarElement("noExpression", function (parser, tokens) {
+                    if (tokens.matchToken("no")) {
+                        var root = parser.parseElement("unaryExpression", tokens);
+                        return {
+                            type: "noExpression",
+                            root: root,
+                            args: [root],
+                            op: function (context, val) {
+                                return val == null;
+                            },
+                            evaluate: function (context) {
+                                return _runtime.unifiedEval(this, context);
+                            }
+                        };
+                    }
+                });
+
                 _parser.addGrammarElement("negativeNumber", function (parser, tokens) {
                     if (tokens.matchOpToken("-")) {
                         var root = parser.parseElement("unaryExpression", tokens);
@@ -1416,7 +1433,7 @@
                 });
 
                 _parser.addGrammarElement("unaryExpression", function (parser, tokens) {
-                    return parser.parseAnyOf(["logicalNot", "negativeNumber", "postfixExpression"], tokens);
+                    return parser.parseAnyOf(["logicalNot", "noExpression", "negativeNumber", "postfixExpression"], tokens);
                 });
 
                 _parser.addGrammarElement("mathOperator", function (parser, tokens) {
