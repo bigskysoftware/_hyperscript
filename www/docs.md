@@ -763,8 +763,9 @@ And you can use any results return from the javascript in the default `it` varia
 ## <a name="async"></a>[Async Transparency](#async)
 
 A feature that sets hyperscript apart from other languages is that it is *async transparent*: the runtime largely hides
-the distinction between asynchronous code and synchronous code from the script writer.  You can write a hyperscript 
-function that looks like this:
+the distinction between asynchronous code and synchronous code from the script writer.  
+
+You can write a hyperscript function that looks like this:
 
 ```html
 <script type="text/hyperscript">
@@ -782,7 +783,9 @@ And then invoke it from an event handler like so:
 </button>
 ```
 
-So far, so synchronous.  However, if you updated the function to this:
+So far, so synchronous.  
+
+However, if you updated the function to include a `wait` command:
 
 ```html
 <script type="text/hyperscript">
@@ -799,7 +802,7 @@ Under the covers, that `wait` command turns into a `setTimeout()` and,
 if you invoke the method from javascript (which is perfectly acceptable) you would see that the result was a `Promise`
 rather than a number!
 
-Now, here's the trick: the event handler that we defined earlier:
+And now, here's the trick: the event handler that we defined earlier:
 
 ```html
 <button _="on click put theAnswer() into my.innerHTML">
@@ -807,12 +810,14 @@ Now, here's the trick: the event handler that we defined earlier:
 </button>
 ```
 
-Still works *exactly* the same with no modification.  
+This still works *exactly* the same, without modification.  
 
 You don't need to deal with the promise that was returned by `theAnswer()`.  Instead, the hyperscript runtime takes 
 care of it for you and, when the Promise from `theAnswer()` resolves, hyperscript will continue executing.
 
-No `async`/`await`, no callbacks, no `.then()` invocations.  It just keeps working.
+No `async`/`await`, no callbacks, no `.then()` invocations.  
+
+It just keeps working.
 
 Now, that might seem like a parlor trick, but what's the real world value?
 
@@ -834,7 +839,7 @@ from the server, the hyperscript runtime will take care of resuming execution of
 
 Now how much would you pay? :)
 
-### <a name="async-keywork'></a>[The `async` keyword](#async-keyword)
+### <a name="async-keyword"></a>[The `async` keyword](#async-keyword)
 
 That's all well and good (and it *is* well and good) but what if you *want* an operation to be asynchronous?  Sometimes
 that comes up.
@@ -843,7 +848,7 @@ Hyperscript provides an `async` keyword that will tell the runtime *not* to sync
 to invoke `theAnswer()` but not wait on it to return, you could update the event handler to look like this:
 
 ```html
-<button _="on click call async theAnswer(), put 'I called it...' into my.innerHTML">
+<button _="on click call async theAnswer() put 'I called it...' into my.innerHTML">
   Get The Answer...
 </button>
 ```
@@ -901,9 +906,9 @@ Here is a demo of this code:
   Click me to Pulse...
 </div>
 
-<button class="btn primary" _="on click send stop to #pulsar">
+<div class="btn primary" style="display: inline-block"  _="on click send stop to #pulsar">
   Stop it from Pulsing
-</button>
+</div>
 </div>
 
 What's particularly interesting here is that the CSS transition is allowed to finish smoothly, rather than abruptly,
