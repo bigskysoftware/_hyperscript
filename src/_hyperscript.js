@@ -865,7 +865,7 @@
                                     triggerEvent(target || elt, 'load');
                                 }, 1);
                             } catch(e) {
-                                console.error("hyperscript errors were found on the following element:", elt, "\n\n", e.message);
+                                console.error("hyperscript errors were found on the following element:", elt, "\n\n", e.message, e.stack);
                             }
                         }
                     }
@@ -1481,19 +1481,20 @@
 
                 _parser.addGrammarElement("comparisonOperator", function (parser, tokens) {
                     var expr = parser.parseElement("mathExpression", tokens);
-                    var comparisonOp = tokens.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==")
-                    if (comparisonOp == null && tokens.matchToken("is")) {
+                    var comparisonToken = tokens.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==")
+                    var comparisonStr = comparisonToken ? comparisonToken.value : null;
+                    if (comparisonStr == null && tokens.matchToken("is")) {
                         if (tokens.matchToken("not")) {
-                            comparisonOp = "!=";
+                            comparisonStr = "!=";
                         } else {
-                            comparisonOp = "==";
+                            comparisonStr = "==";
                         }
                     }
-                    if (comparisonOp) { // Do not allow chained comparisons, which is dumb
+                    if (comparisonStr) { // Do not allow chained comparisons, which is dumb
                         var rhs = parser.parseElement("mathExpression", tokens);
                         expr = {
                             type: "comparisonOperator",
-                            operator: comparisonOp.value,
+                            operator: comparisonStr,
                             lhs: expr,
                             rhs: rhs,
                             args: [expr, rhs],
