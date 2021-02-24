@@ -877,13 +877,21 @@ Here is a demo of this code:
 <div style="text-align: center">
 <style>
 #pulsar {
+    padding: 1em;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    background: white;
+    border: solid;
+    cursor:pointer;
+    border-radius: 8px;
+    display: inline-block;
   transition: all 1s ease-in;
 }
-.pulse {
+#pulsar.pulse {
   background-color: indianred;
 }
 </style>
-<button class="btn" id="pulsar"
+<div id="pulsar"
         _="on click repeat until event stop
                       add .pulse
                       wait for transitionend
@@ -891,7 +899,7 @@ Here is a demo of this code:
                       wait for transitionend
                     end">
   Click me to Pulse...
-</button>
+</div>
 
 <button class="btn primary" _="on click send stop to #pulsar">
   Stop it from Pulsing
