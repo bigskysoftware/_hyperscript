@@ -472,9 +472,10 @@
                     throw error
                 }
 
-                function requireElement(message, type, tokens, root) {
+                function requireElement(type, tokens, message, root) {
                     var result = parseElement(type, tokens, root);
-                    return result || raiseParseError(tokens, message);
+
+                    return result || raiseParseError(tokens, message || "Expected " + type.autocapitalize);
                 }
 
                 function parseElement(type, tokens, root) {
@@ -1252,7 +1253,7 @@
                 });
 
                 _parser.addGrammarElement("timeExpression", function(parser, tokens){
-                    var time = parser.requireElement("Expected a time expression", "expression", tokens);
+                    var time = parser.requireElement("expression", tokens);
                     var factor = 1;
                     if (tokens.matchToken("s") || tokens.matchToken("seconds")) {
                         factor = 1000;
@@ -1686,7 +1687,7 @@
                         if (tokens.matchToken("every")) {
                             every = true;
                         }
-                        var on = parser.requireElement("Expected event name", "dotOrColonPath", tokens);
+                        var on = parser.requireElement("dotOrColonPath", tokens, "Expected event name");
 
                         var args = [];
                         if (tokens.matchOpToken("(")) {
@@ -1720,7 +1721,7 @@
                             elsewhere = true;
                         }                        
 
-                        var start = parser.requireElement("Expected a command list", "commandList", tokens);
+                        var start = parser.requireElement("commandList", tokens);
 
                         var end = start;
                         while (end.next) {
@@ -2282,9 +2283,9 @@
                         }
 
                         if (tokens.matchToken("for")) {
-                            var time = parser.requireElement("Expected a time element", "timeExpression", tokens);
+                            var time = parser.requireElement("timeExpression", tokens);
                         } else if (tokens.matchToken("until")) {
-                            var evt = parser.requireElement("Expected event name", "dotOrColonPath", tokens);
+                            var evt = parser.requireElement("dotOrColonPath", tokens, "Expected event name");
                             if (tokens.matchToken("from")) {
                                 var from = parser.parseElement("expression", tokens);
                             }
@@ -2351,7 +2352,7 @@
                         // wait on event
                         if (tokens.matchToken("for")) {
                             tokens.matchToken("a"); // optional "a"
-                            var evt = _parser.requireElement("Expected event name", "dotOrColonPath", tokens);
+                            var evt = _parser.requireElement("dotOrColonPath", tokens, "Expected event name");
                             if (tokens.matchToken("from")) {
                                 var on = parser.parseElement("expression", tokens);
                             }
@@ -2375,7 +2376,7 @@
                                 }
                             };
                         } else {
-                            var time = _parser.requireElement("A time expression is required", "timeExpression", tokens);
+                            var time = _parser.requireElement("timeExpression", tokens);
                             var waitCmd = {
                                 type: "waitCmd",
                                 time: time,
@@ -2775,21 +2776,21 @@
                             var identifierToken = tokens.requireTokenType('IDENTIFIER');
                             var identifier = identifierToken.value
                             tokens.requireToken("in");
-                            var expression = parser.requireElement("Expected an expression", "expression", tokens);
+                            var expression = parser.requireElement("expression", tokens);
                         } else if (tokens.matchToken("in")) {
                             var identifier = "it";
-                            var expression = parser.requireElement("Expected an expression", "expression", tokens);
+                            var expression = parser.requireElement( "expression", tokens);
                         } else if (tokens.matchToken("while")) {
-                            var whileExpr = parser.requireElement("Expected an expression", "expression", tokens);
+                            var whileExpr = parser.requireElement( "expression", tokens);
                         } else if (tokens.matchToken("until")) {
                             var isUntil = true;
                             if (tokens.matchToken("event")) {
-                                var evt = _parser.requireElement("Expected event name", "dotOrColonPath", tokens);
+                                var evt = _parser.requireElement( "dotOrColonPath", tokens, "Expected event name");
                                 if (tokens.matchToken("from")) {
                                     var on = parser.parseElement("expression", tokens);
                                 }
                             } else {
-                                var whileExpr = parser.requireElement("Expected an expression", "expression", tokens);
+                                var whileExpr = parser.requireElement( "expression", tokens);
                             }
                         } else if (tokens.matchTokenType('NUMBER')) {
                             var times = parseFloat(innerStartToken.value)
