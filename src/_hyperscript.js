@@ -548,10 +548,14 @@
                     return eventResult;
                 }
 
+                function isArrayLike(value) {
+                    return Array.isArray(value) || value instanceof NodeList;
+                }
+
                 function forEach(value, func) {
                     if (value == null) {
                         // do nothing
-                    } else if (Array.isArray(value) || value instanceof NodeList) {
+                    } else if (isArrayLike(value)) {
                         for (var i = 0; i < value.length; i++) {
                             func(value[i]);
                         }
@@ -898,6 +902,35 @@
                     }
                 }
 
+                function resolveProperty(root, property) {
+                    if (root != null) {
+                        if (root.hasOwnProperty(property)) {
+                            return root[property];
+                        } else {
+                            if (isArrayLike(root)) {
+                                if (property === "first") {
+                                    return root[0];
+                                } else if (property === "last") {
+                                    return root[root.length - 1];
+                                } else if (property === "random") {
+                                    return root[Math.floor(root.length * Math.random())]
+                                } else {
+                                    // flat map
+                                    var result = [];
+                                    for (var i = 0; i < root.length; i++) {
+                                        var component = root[i];
+                                        var componentValue = component[property];
+                                        if (componentValue) {
+                                            result.push(componentValue);
+                                        }
+                                    }
+                                    return result;
+                                }
+                            }
+                        }
+                    }
+                }
+
                 return {
                     typeCheck: typeCheck,
                     forEach: forEach,
@@ -913,6 +946,7 @@
                     findNext: findNext,
                     unifiedEval: unifiedEval,
                     unifiedExec: unifiedExec,
+                    resolveProperty: resolveProperty,
                     HALT: HALT
                 }
             }();
@@ -1247,7 +1281,7 @@
                             prop: prop,
                             args: [root],
                             op:function(context, rootVal){
-                                return rootVal == null ? null : rootVal[prop.value];
+                                return _runtime.resolveProperty(rootVal, prop.value);
                             },
                             evaluate: function (context) {
                                 return _runtime.unifiedEval(this, context);
