@@ -449,10 +449,34 @@
             var _parser = function () {
 
                 var GRAMMAR = {}
+                var COMMANDS = {}
 
                 function addGrammarElement(name, definition) {
                     GRAMMAR[name] = definition;
                 }
+
+                function addCommand(keyword, definition) {
+                    GRAMMAR[name + "Command"] = definition;
+                    COMMANDS[keyword] = definition;
+                }
+
+                /* core grammar elements */
+                addGrammarElement("command", function (parser, tokens) {
+                    var command = COMMANDS[tokens.currentToken().value];
+                    if (command) {
+                        tokens.consumeToken();
+                        return command(parser, tokens);
+                    }
+                })
+
+                addGrammarElement("commandList", function (parser, tokens) {
+                    var cmd = parser.parseElement("command", tokens);
+                    if (cmd) {
+                        tokens.matchToken("then");
+                        cmd.next = parser.parseElement("commandList", tokens);
+                        return cmd;
+                    }
+                })
 
                 function createParserContext(tokens) {
                     var currentToken = tokens.currentToken();
@@ -513,6 +537,7 @@
                     parseHyperScript: parseHyperScript,
                     raiseParseError: raiseParseError,
                     addGrammarElement: addGrammarElement,
+                    addCommand: addCommand,
                 }
             }();
 
@@ -1599,20 +1624,6 @@
                     return expr;
                 });
 
-                _parser.addGrammarElement("command", function (parser, tokens) {
-                    return parser.parseAnyOf(["addCmd", "removeCmd", "toggleCmd", "waitCmd", "returnCmd", "sendCmd", "triggerCmd",
-                        "takeCmd", "logCmd", "callCmd", "putCmd", "setCmd", "ifCmd", "repeatCmd", "fetchCmd", "throwCmd", "jsCmd"], tokens);
-                })
-
-                _parser.addGrammarElement("commandList", function (parser, tokens) {
-                    var cmd = parser.parseElement("command", tokens);
-                    if (cmd) {
-                        tokens.matchToken("then");
-                        cmd.next = parser.parseElement("commandList", tokens);
-                        return cmd;
-                    }
-                })
-
                 _parser.addGrammarElement("hyperscript", function (parser, tokens) {
                     var onFeatures = []
                     var functionFeatures = []
@@ -2052,331 +2063,319 @@
                     }
                 })
 
-                _parser.addGrammarElement("jsCmd", function (parser, tokens) {
-                    if (tokens.matchToken('js')) {
-
-                        // Parse inputs
-                        var inputs = [];
-                        if (tokens.matchOpToken("(")) {
-                            if (tokens.matchOpToken(")")) {
-                                // empty input list
-                            } else {
-                                do {
-                                    var inp = tokens.requireTokenType('IDENTIFIER');
-                                    inputs.push(inp.value);
-                                } while (tokens.matchOpToken(","));
-                                tokens.requireOpToken(')');
-                            }
+                _parser.addCommand("js", function (parser, tokens) {
+                    // Parse inputs
+                    var inputs = [];
+                    if (tokens.matchOpToken("(")) {
+                        if (tokens.matchOpToken(")")) {
+                            // empty input list
+                        } else {
+                            do {
+                                var inp = tokens.requireTokenType('IDENTIFIER');
+                                inputs.push(inp.value);
+                            } while (tokens.matchOpToken(","));
+                            tokens.requireOpToken(')');
                         }
-
-                        // eat tokens until `end`
-
-                        var jsSourceStart = tokens.currentToken().start;
-                        var jsLastToken = null;
-
-                        while (tokens.hasMore()) {
-                            jsLastToken = tokens.consumeToken()
-                            if (jsLastToken.type === "IDENTIFIER"
-                                && jsLastToken.value === "end") {
-                                // we wrongly eat the end token, we deal with this
-                                // in the "hyperscript" production
-                                // TODO: fix, needs lookahead?
-                                break;
-                            }
-                        }
-
-                        var jsSourceEnd = jsLastToken.start;
-
-                        var jsSource = tokens.source.substring(jsSourceStart, jsSourceEnd);
-
-                        var func = varargConstructor(Function, inputs.concat([jsSource]));
-
-                        var callCmd;
-                        return callCmd = {
-                            type: "jsCmd",
-                            jsSource: "jsSource",
-                            function: func,
-                            inputs: inputs,
-                            op:function(context){
-                                var args = [];
-                                inputs.forEach(function (input) {
-                                    args.push(_runtime.resolveSymbol(input, context))
-                                });
-                                var result = func.apply(globalScope, args)
-                                if (result && typeof result.then === 'function') {
-                                    return Promise(function(resolve){
-                                        result.then(function(actualResult) {
-                                            context.it = actualResult
-                                            resolve(_runtime.findNext(this));
-                                        })
-                                    })
-                                } else {
-                                    context.it = result
-                                    return _runtime.findNext(this);
-                                }
-                            },
-                            execute: function(context) {
-                                return _runtime.unifiedExec(this, context);
-                            }
-                        };
                     }
+
+                    // eat tokens until `end`
+
+                    var jsSourceStart = tokens.currentToken().start;
+                    var jsLastToken = null;
+
+                    while (tokens.hasMore()) {
+                        jsLastToken = tokens.consumeToken()
+                        if (jsLastToken.type === "IDENTIFIER"
+                            && jsLastToken.value === "end") {
+                            // we wrongly eat the end token, we deal with this
+                            // in the "hyperscript" production
+                            // TODO: fix, needs lookahead?
+                            break;
+                        }
+                    }
+
+                    var jsSourceEnd = jsLastToken.start;
+
+                    var jsSource = tokens.source.substring(jsSourceStart, jsSourceEnd);
+
+                    var func = varargConstructor(Function, inputs.concat([jsSource]));
+
+                    var callCmd;
+                    return callCmd = {
+                        type: "jsCmd",
+                        jsSource: "jsSource",
+                        function: func,
+                        inputs: inputs,
+                        op: function (context) {
+                            var args = [];
+                            inputs.forEach(function (input) {
+                                args.push(_runtime.resolveSymbol(input, context))
+                            });
+                            var result = func.apply(globalScope, args)
+                            if (result && typeof result.then === 'function') {
+                                return Promise(function (resolve) {
+                                    result.then(function (actualResult) {
+                                        context.it = actualResult
+                                        resolve(_runtime.findNext(this));
+                                    })
+                                })
+                            } else {
+                                context.it = result
+                                return _runtime.findNext(this);
+                            }
+                        },
+                        execute: function (context) {
+                            return _runtime.unifiedExec(this, context);
+                        }
+                    };
                 })
 
-                _parser.addGrammarElement("addCmd", function (parser, tokens) {
-                    if (tokens.matchToken("add")) {
-                        var classRef = parser.parseElement("classRef", tokens);
-                        var attributeRef = null;
-                        if (classRef == null) {
-                            attributeRef = parser.parseElement("attributeRef", tokens);
-                            if (attributeRef == null) {
-                                parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
-                            }
+                _parser.addCommand("add", function (parser, tokens) {
+                    var classRef = parser.parseElement("classRef", tokens);
+                    var attributeRef = null;
+                    if (classRef == null) {
+                        attributeRef = parser.parseElement("attributeRef", tokens);
+                        if (attributeRef == null) {
+                            parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
                         }
-
-                        if (tokens.matchToken("to")) {
-                            var to = parser.requireElement("target", tokens);
-                        } else {
-                            var to = parser.parseElement("implicitMeTarget");
-                        }
-
-                        if (classRef) {
-                            var addCmd = {
-                                type: "addCmd",
-                                classRef: classRef,
-                                attributeRef: attributeRef,
-                                to: to,
-                                args: [to],
-                                op: function (context, to) {
-                                    _runtime.forEach(to, function (target) {
-                                        target.classList.add(classRef.className());
-                                    })
-                                    return _runtime.findNext(this);
-                                },
-                                execute: function (context) {
-                                    return _runtime.unifiedExec(this, context);
-                                }
-                            }
-                        } else {
-                            var addCmd = {
-                                type: "addCmd",
-                                classRef: classRef,
-                                attributeRef: attributeRef,
-                                to: to,
-                                args: [to, attributeRef],
-                                op: function (context, to, attrRef) {
-                                    _runtime.forEach(to, function (target) {
-                                        target.setAttribute(attrRef.name, attrRef.value);
-                                    })
-                                    return _runtime.findNext(addCmd, context);
-                                },
-                                execute: function (ctx) {
-                                    return _runtime.unifiedExec(this, ctx);
-                                }
-                            };
-                        }
-
-                        return addCmd
                     }
-                });
 
-                _parser.addGrammarElement("removeCmd", function (parser, tokens) {
-                    if (tokens.matchToken("remove")) {
-                        var classRef = parser.parseElement("classRef", tokens);
-                        var attributeRef = null;
-                        var elementExpr = null;
-                        if (classRef == null) {
-                            attributeRef = parser.parseElement("attributeRef", tokens);
-                            if (attributeRef == null) {
-                                elementExpr = parser.parseElement("expression", tokens)
-                                if (elementExpr == null) {
-                                    parser.raiseParseError(tokens, "Expected either a class reference, attribute expression or value expression");
-                                }
-                            }
-                        }
-                        if (tokens.matchToken("from")) {
-                            var from = parser.requireElement("target", tokens);
-                        } else {
-                            var from = parser.requireElement("implicitMeTarget");
-                        }
-
-                        if (elementExpr) {
-                            var removeCmd = {
-                                type: "removeCmd",
-                                classRef: classRef,
-                                attributeRef: attributeRef,
-                                elementExpr: elementExpr,
-                                from: from,
-                                args: [elementExpr],
-                                op: function (context, element) {
-                                    _runtime.forEach(element, function (target) {
-                                        target.parentElement.removeChild(target);
-                                    })
-                                    return _runtime.findNext(this);
-                                },
-                                execute: function (context) {
-                                    return _runtime.unifiedExec(this, context);
-                                }
-                            };
-                        } else {
-                            var removeCmd = {
-                                type: "removeCmd",
-                                classRef: classRef,
-                                attributeRef: attributeRef,
-                                elementExpr: elementExpr,
-                                from: from,
-                                args: [from],
-                                op: function (context, from) {
-                                    if (this.classRef) {
-                                        _runtime.forEach(from, function(target){
-                                            target.classList.remove(classRef.className());
-                                        })
-                                    } else {
-                                        _runtime.forEach(from, function (target) {
-                                            target.removeAttribute(attributeRef.name);
-                                        })
-                                    }
-                                    return _runtime.findNext(this);
-                                },
-                                execute: function (context) {
-                                    return _runtime.unifiedExec(this, context);
-                                }
-                            };
-
-                        }
-                        return removeCmd
+                    if (tokens.matchToken("to")) {
+                        var to = parser.requireElement("target", tokens);
+                    } else {
+                        var to = parser.parseElement("implicitMeTarget");
                     }
-                });
 
-                _parser.addGrammarElement("toggleCmd", function (parser, tokens) {
-                    if (tokens.matchToken("toggle")) {
-                        var classRef = parser.parseElement("classRef", tokens);
-                        var attributeRef = null;
-                        if (classRef == null) {
-                            attributeRef = parser.parseElement("attributeRef", tokens);
-                            if (attributeRef == null) {
-                                parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
-                            }
-                        }
-
-                        if (tokens.matchToken("on")) {
-                            var on = parser.requireElement("target", tokens);
-                        } else {
-                            var on = parser.requireElement("implicitMeTarget");
-                        }
-
-                        if (tokens.matchToken("for")) {
-                            var time = parser.requireElement("timeExpression", tokens);
-                        } else if (tokens.matchToken("until")) {
-                            var evt = parser.requireElement("dotOrColonPath", tokens, "Expected event name");
-                            if (tokens.matchToken("from")) {
-                                var from = parser.requireElement("expression", tokens);
-                            }
-                        }
-
-                        var toggleCmd = {
-                            type: "toggleCmd",
+                    if (classRef) {
+                        var addCmd = {
+                            type: "addCmd",
                             classRef: classRef,
                             attributeRef: attributeRef,
-                            on: on,
-                            time: time,
-                            evt: evt,
-                            from: from,
-                            toggle: function(on, value) {
-                                if (this.classRef) {
-                                    _runtime.forEach(on, function (target) {
-                                        target.classList.toggle(classRef.className())
-                                    });
-                                } else {
-                                    _runtime.forEach(on, function (target) {
-                                        if (target.hasAttribute(attributeRef.name)) {
-                                            target.removeAttribute(attributeRef.name);
-                                        } else {
-                                            target.setAttribute(attributeRef.name, value)
-                                        }
-                                    });
-                                }
+                            to: to,
+                            args: [to],
+                            op: function (context, to) {
+                                _runtime.forEach(to, function (target) {
+                                    target.classList.add(classRef.className());
+                                })
+                                return _runtime.findNext(this);
                             },
-                            args: [on, attributeRef ? attributeRef.value : null, time, evt, from],
-                            op: function(context, on, value, time, evt, from) {
-                                if (time) {
-                                    return new Promise(function(resolve){
-                                        toggleCmd.toggle(on, value);
-                                        setTimeout(function () {
-                                            toggleCmd.toggle(on, value);
-                                            resolve(_runtime.findNext(toggleCmd));
-                                        }, time);
-                                    });
-                                } else if (evt) {
-                                    return new Promise(function (resolve) {
-                                        var target = from || context.me;
-                                        target.addEventListener(evt, function(){
-                                            toggleCmd.toggle(on, value);
-                                            resolve(_runtime.findNext(toggleCmd));
-                                        }, { once:true })
-                                        toggleCmd.toggle(on, value);
-                                    });
-                                } else {
-                                    this.toggle(on, value);
-                                    return _runtime.findNext(toggleCmd);
-                                }
+                            execute: function (context) {
+                                return _runtime.unifiedExec(this, context);
+                            }
+                        }
+                    } else {
+                        var addCmd = {
+                            type: "addCmd",
+                            classRef: classRef,
+                            attributeRef: attributeRef,
+                            to: to,
+                            args: [to, attributeRef],
+                            op: function (context, to, attrRef) {
+                                _runtime.forEach(to, function (target) {
+                                    target.setAttribute(attrRef.name, attrRef.value);
+                                })
+                                return _runtime.findNext(addCmd, context);
                             },
                             execute: function (ctx) {
                                 return _runtime.unifiedExec(this, ctx);
                             }
                         };
-                        return toggleCmd
                     }
+
+                    return addCmd
+                });
+
+                _parser.addCommand("remove", function (parser, tokens) {
+                    var classRef = parser.parseElement("classRef", tokens);
+                    var attributeRef = null;
+                    var elementExpr = null;
+                    if (classRef == null) {
+                        attributeRef = parser.parseElement("attributeRef", tokens);
+                        if (attributeRef == null) {
+                            elementExpr = parser.parseElement("expression", tokens)
+                            if (elementExpr == null) {
+                                parser.raiseParseError(tokens, "Expected either a class reference, attribute expression or value expression");
+                            }
+                        }
+                    }
+                    if (tokens.matchToken("from")) {
+                        var from = parser.requireElement("target", tokens);
+                    } else {
+                        var from = parser.requireElement("implicitMeTarget");
+                    }
+
+                    if (elementExpr) {
+                        var removeCmd = {
+                            type: "removeCmd",
+                            classRef: classRef,
+                            attributeRef: attributeRef,
+                            elementExpr: elementExpr,
+                            from: from,
+                            args: [elementExpr],
+                            op: function (context, element) {
+                                _runtime.forEach(element, function (target) {
+                                    target.parentElement.removeChild(target);
+                                })
+                                return _runtime.findNext(this);
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedExec(this, context);
+                            }
+                        };
+                    } else {
+                        var removeCmd = {
+                            type: "removeCmd",
+                            classRef: classRef,
+                            attributeRef: attributeRef,
+                            elementExpr: elementExpr,
+                            from: from,
+                            args: [from],
+                            op: function (context, from) {
+                                if (this.classRef) {
+                                    _runtime.forEach(from, function (target) {
+                                        target.classList.remove(classRef.className());
+                                    })
+                                } else {
+                                    _runtime.forEach(from, function (target) {
+                                        target.removeAttribute(attributeRef.name);
+                                    })
+                                }
+                                return _runtime.findNext(this);
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedExec(this, context);
+                            }
+                        };
+
+                    }
+                    return removeCmd
+                });
+
+                _parser.addCommand("toggle", function (parser, tokens) {
+                    var classRef = parser.parseElement("classRef", tokens);
+                    var attributeRef = null;
+                    if (classRef == null) {
+                        attributeRef = parser.parseElement("attributeRef", tokens);
+                        if (attributeRef == null) {
+                            parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
+                        }
+                    }
+
+                    if (tokens.matchToken("on")) {
+                        var on = parser.requireElement("target", tokens);
+                    } else {
+                        var on = parser.requireElement("implicitMeTarget");
+                    }
+
+                    if (tokens.matchToken("for")) {
+                        var time = parser.requireElement("timeExpression", tokens);
+                    } else if (tokens.matchToken("until")) {
+                        var evt = parser.requireElement("dotOrColonPath", tokens, "Expected event name");
+                        if (tokens.matchToken("from")) {
+                            var from = parser.requireElement("expression", tokens);
+                        }
+                    }
+
+                    var toggleCmd = {
+                        type: "toggleCmd",
+                        classRef: classRef,
+                        attributeRef: attributeRef,
+                        on: on,
+                        time: time,
+                        evt: evt,
+                        from: from,
+                        toggle: function (on, value) {
+                            if (this.classRef) {
+                                _runtime.forEach(on, function (target) {
+                                    target.classList.toggle(classRef.className())
+                                });
+                            } else {
+                                _runtime.forEach(on, function (target) {
+                                    if (target.hasAttribute(attributeRef.name)) {
+                                        target.removeAttribute(attributeRef.name);
+                                    } else {
+                                        target.setAttribute(attributeRef.name, value)
+                                    }
+                                });
+                            }
+                        },
+                        args: [on, attributeRef ? attributeRef.value : null, time, evt, from],
+                        op: function (context, on, value, time, evt, from) {
+                            if (time) {
+                                return new Promise(function (resolve) {
+                                    toggleCmd.toggle(on, value);
+                                    setTimeout(function () {
+                                        toggleCmd.toggle(on, value);
+                                        resolve(_runtime.findNext(toggleCmd));
+                                    }, time);
+                                });
+                            } else if (evt) {
+                                return new Promise(function (resolve) {
+                                    var target = from || context.me;
+                                    target.addEventListener(evt, function () {
+                                        toggleCmd.toggle(on, value);
+                                        resolve(_runtime.findNext(toggleCmd));
+                                    }, {once: true})
+                                    toggleCmd.toggle(on, value);
+                                });
+                            } else {
+                                this.toggle(on, value);
+                                return _runtime.findNext(toggleCmd);
+                            }
+                        },
+                        execute: function (ctx) {
+                            return _runtime.unifiedExec(this, ctx);
+                        }
+                    };
+                    return toggleCmd
                 })
 
-                _parser.addGrammarElement("waitCmd", function (parser, tokens) {
-                    if (tokens.matchToken("wait")) {
-
-                        // wait on event
-                        if (tokens.matchToken("for")) {
-                            tokens.matchToken("a"); // optional "a"
-                            var evt = _parser.requireElement("dotOrColonPath", tokens, "Expected event name");
-                            if (tokens.matchToken("from")) {
-                                var on = parser.requireElement("expression", tokens);
-                            }
-                            // wait on event
-                            var waitCmd = {
-                                type: "waitCmd",
-                                event: evt,
-                                on: on,
-                                args:[evt, on],
-                                op: function(context, eventName, on) {
-                                    var target = on ? on : context.me;
-                                    return new Promise(function (resolve) {
-                                        var listener = function(){
-                                            resolve(_runtime.findNext(waitCmd));
-                                        };
-                                        target.addEventListener(eventName, listener, {once:true});
-                                    });
-                                },
-                                execute: function(context) {
-                                    return _runtime.unifiedExec(this, context);
-                                }
-                            };
-                        } else {
-                            var time = _parser.requireElement("timeExpression", tokens);
-                            var waitCmd = {
-                                type: "waitCmd",
-                                time: time,
-                                args: [time],
-                                op: function(context, timeValue){
-                                    return new Promise(function (resolve) {
-                                        setTimeout(function () {
-                                            resolve(_runtime.findNext(waitCmd));
-                                        }, timeValue);
-                                    });
-                                },
-                                execute: function (context) {
-                                    return _runtime.unifiedExec(this, context);
-                                }
-                            };
+                _parser.addCommand("wait", function (parser, tokens) {
+                    // wait on event
+                    if (tokens.matchToken("for")) {
+                        tokens.matchToken("a"); // optional "a"
+                        var evt = _parser.requireElement("dotOrColonPath", tokens, "Expected event name");
+                        if (tokens.matchToken("from")) {
+                            var on = parser.requireElement("expression", tokens);
                         }
-                        return waitCmd
+                        // wait on event
+                        var waitCmd = {
+                            type: "waitCmd",
+                            event: evt,
+                            on: on,
+                            args: [evt, on],
+                            op: function (context, eventName, on) {
+                                var target = on ? on : context.me;
+                                return new Promise(function (resolve) {
+                                    var listener = function () {
+                                        resolve(_runtime.findNext(waitCmd));
+                                    };
+                                    target.addEventListener(eventName, listener, {once: true});
+                                });
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedExec(this, context);
+                            }
+                        };
+                    } else {
+                        var time = _parser.requireElement("timeExpression", tokens);
+                        var waitCmd = {
+                            type: "waitCmd",
+                            time: time,
+                            args: [time],
+                            op: function (context, timeValue) {
+                                return new Promise(function (resolve) {
+                                    setTimeout(function () {
+                                        resolve(_runtime.findNext(waitCmd));
+                                    }, timeValue);
+                                });
+                            },
+                            execute: function (context) {
+                                return _runtime.unifiedExec(this, context);
+                            }
+                        };
                     }
+                    return waitCmd
                 })
 
                 // TODO  - colon path needs to eventually become part of ruby-style symbols
@@ -2402,505 +2401,490 @@
                     }
                 });
 
-                _parser.addGrammarElement("sendCmd", function (parser, tokens) {
-                    if (tokens.matchToken("send")) {
+                _parser.addCommand("send", function (parser, tokens) {
+                    var eventName = parser.requireElement("dotOrColonPath", tokens);
 
-                        var eventName = parser.requireElement("dotOrColonPath", tokens);
-
-                        var details = parser.parseElement("namedArgumentList", tokens);
-                        if (tokens.matchToken("to")) {
-                            var to = parser.requireElement("target", tokens);
-                        } else {
-                            var to = parser.requireElement("implicitMeTarget");
-                        }
-
-
-                        var sendCmd = {
-                            type: "sendCmd",
-                            eventName: eventName,
-                            details: details,
-                            to: to,
-                            args: [to, eventName, details],
-                            op: function(context, to, eventName, details){
-                                _runtime.forEach(to, function (target) {
-                                    _runtime.triggerEvent(target, eventName, details ? details : {});
-                                });
-                                return _runtime.findNext(sendCmd);
-                            },
-                            execute: function (context) {
-                                return _runtime.unifiedExec(this, context);
-                            }
-                        };
-                        return sendCmd
+                    var details = parser.parseElement("namedArgumentList", tokens);
+                    if (tokens.matchToken("to")) {
+                        var to = parser.requireElement("target", tokens);
+                    } else {
+                        var to = parser.requireElement("implicitMeTarget");
                     }
+
+
+                    var sendCmd = {
+                        type: "sendCmd",
+                        eventName: eventName,
+                        details: details,
+                        to: to,
+                        args: [to, eventName, details],
+                        op: function (context, to, eventName, details) {
+                            _runtime.forEach(to, function (target) {
+                                _runtime.triggerEvent(target, eventName, details ? details : {});
+                            });
+                            return _runtime.findNext(sendCmd);
+                        },
+                        execute: function (context) {
+                            return _runtime.unifiedExec(this, context);
+                        }
+                    };
+                    return sendCmd
                 })
 
-                _parser.addGrammarElement("returnCmd", function (parser, tokens) {
-                    if (tokens.matchToken("return")) {
+                _parser.addCommand("return", function (parser, tokens) {
+                    var value = parser.requireElement("expression", tokens);
 
-                        var value = parser.requireElement("expression", tokens);
-
-                        var returnCmd = {
-                            type: "returnCmd",
-                            value: value,
-                            args: [value],
-                            op: function (context, value) {
-                                var resolve = context.meta.resolve;
-                                context.meta.returned = true;
-                                if (resolve) {
-                                    if (value) {
-                                        resolve(value);
-                                    } else {
-                                        resolve()
-                                    }
+                    var returnCmd = {
+                        type: "returnCmd",
+                        value: value,
+                        args: [value],
+                        op: function (context, value) {
+                            var resolve = context.meta.resolve;
+                            context.meta.returned = true;
+                            if (resolve) {
+                                if (value) {
+                                    resolve(value);
                                 } else {
-                                    context.meta.returned = true;
-                                    context.meta.returnValue = value;
-                                }
-                                return _runtime.HALT;
-                            },
-                            execute: function (context) {
-                                return _runtime.unifiedExec(this, context);
-                            }
-                        };
-                        return returnCmd
-                    }
-                })
-
-                _parser.addGrammarElement("triggerCmd", function (parser, tokens) {
-                    if (tokens.matchToken("trigger")) {
-
-                        var eventName = parser.requireElement("dotOrColonPath", tokens);
-                        var details = parser.parseElement("namedArgumentList", tokens);
-
-                        var triggerCmd = {
-                            type: "triggerCmd",
-                            eventName: eventName,
-                            details: details,
-                            args: [eventName, details],
-                            op:function (context, eventNameStr, details) {
-                                _runtime.triggerEvent(context.me, eventNameStr ,details ? details : {});
-                                return _runtime.findNext(triggerCmd);
-                            },
-                            execute: function (context) {
-                                return _runtime.unifiedExec(this, context);
-                            }
-                        };
-                        return triggerCmd
-                    }
-                })
-
-                _parser.addGrammarElement("takeCmd", function (parser, tokens) {
-                    if (tokens.matchToken("take")) {
-                        var classRef = tokens.requireTokenType(tokens, "CLASS_REF");
-
-                        if (tokens.matchToken("from")) {
-                            var from = parser.requireElement("target", tokens);
-                        } else {
-                            var from = parser.requireElement("implicitAllTarget")
-                        }
-
-                        if (tokens.matchToken("for")) {
-                            var forElt = parser.requireElement("target", tokens);
-                        } else {
-                            var forElt = parser.requireElement("implicitMeTarget")
-                        }
-
-                        var takeCmd = {
-                            type: "takeCmd",
-                            classRef: classRef,
-                            from: from,
-                            forElt: forElt,
-                            args: [from, forElt],
-                            op: function(context, from, forElt){
-                                var clazz = this.classRef.value.substr(1)
-                                _runtime.forEach(from, function(target){
-                                    target.classList.remove(clazz);
-                                })
-                                _runtime.forEach(forElt, function(target){
-                                    target.classList.add(clazz);
-                                });
-                                return _runtime.findNext(this);
-                            },
-                            execute: function (context) {
-                                return _runtime.unifiedExec(this, context);
-                            }
-                        };
-                        return takeCmd
-                    }
-                })
-
-                _parser.addGrammarElement("logCmd", function (parser, tokens) {
-                    if (tokens.matchToken("log")) {
-                        var exprs = [parser.parseElement("expression", tokens)]; // HERE ---
-                        while (tokens.matchOpToken(",")) {
-                            exprs.push(parser.requireElement("expression", tokens));
-                        }
-                        if (tokens.matchToken("with")) {
-                            var withExpr = parser.requireElement("expression", tokens);
-                        }
-                        var logCmd = {
-                            type: "logCmd",
-                            exprs: exprs,
-                            withExpr: withExpr,
-                            args: [withExpr, exprs],
-                            op: function (ctx, withExpr, values) {
-                                if (withExpr) {
-                                    withExpr.apply(null, values);
-                                } else {
-                                    console.log.apply(null, values);
-                                }
-                                return _runtime.findNext(this);
-                            },
-                            execute: function (context) {
-                                return _runtime.unifiedExec(this, context);
-                            }
-                        };
-                        return logCmd;
-                    }
-                })
-
-                _parser.addGrammarElement("throwCmd", function (parser, tokens) {
-                    if (tokens.matchToken("throw")) {
-                        var expr = parser.requireElement("expression", tokens);
-                        var throwCmd = {
-                            type: "throwCmd",
-                            expr: expr,
-                            args: [expr],
-                            op: function(ctx, expr) {
-                                var reject = ctx.meta && ctx.meta.reject;
-                                if (reject) {
-                                    reject(expr);
-                                    return _runtime.HALT;
-                                } else {
-                                    throw expr;
-                                }
-                            },
-                            execute: function (context) {
-                                return _runtime.unifiedExec(this, context);
-                            }
-                        };
-                        return throwCmd;
-                    }
-                })
-
-                _parser.addGrammarElement("callCmd", function (parser, tokens) {
-                    if (tokens.matchToken("call") || tokens.matchToken("get")) {
-                        var expr = parser.requireElement("expression", tokens);
-                        var callCmd = {
-                            type: "callCmd",
-                            expr: expr,
-                            args: [expr],
-                            op: function(context, it) {
-                                context.it = it;
-                                return _runtime.findNext(callCmd);
-                            },
-                            execute: function (context) {
-                                return _runtime.unifiedExec(this, context);
-                            }
-                        };
-                        return callCmd
-                    }
-                })
-
-                _parser.addGrammarElement("putCmd", function (parser, tokens) {
-                    if (tokens.matchToken("put")) {
-
-                        var value = parser.requireElement("expression", tokens);
-
-                        var operationToken = tokens.matchToken("into") ||
-                            tokens.matchToken("before") ||
-                            tokens.matchToken("after");
-
-                        if (operationToken == null && tokens.matchToken("at")) {
-                            operationToken = tokens.matchToken("start") ||
-                                tokens.matchToken("end");
-                            tokens.requireToken("of");
-                        }
-
-                        if (operationToken == null) {
-                            parser.raiseParseError(tokens, "Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
-                        }
-                        var target = parser.requireElement("target", tokens);
-
-                        var operation = operationToken.value;
-                        var symbolWrite = target.type === "symbol" && operation === "into";
-                        if (target.type !== "symbol" && operation === "into" && target.root == null) {
-                            parser.raiseParseError(tokens, "Can only put directly into symbols, not references")
-                        }
-
-                        var root = null;
-                        var prop = null;
-                        if (symbolWrite) {
-                            // root is null
-                        } else if (operation === "into") {
-                            prop = target.prop.value;
-                            root = target.root;
-                        } else {
-                            root = target;
-                        }
-
-                        var putCmd = {
-                            type: "putCmd",
-                            target: target,
-                            operation: operation,
-                            symbolWrite: symbolWrite,
-                            value: value,
-                            args: [root, value],
-                            op: function(context, root, valueToPut){
-                                if (symbolWrite) {
-                                    context[target.name] = valueToPut;
-                                } else {
-                                    if (operation === "into") {
-                                        _runtime.forEach(root, function(elt){
-                                            elt[prop] = valueToPut;
-                                        })
-                                    } else if (operation === "before") {
-                                        _runtime.forEach(root, function(elt){
-                                            elt.insertAdjacentHTML('beforebegin', valueToPut);
-                                        })
-                                    } else if (operation === "start") {
-                                        _runtime.forEach(root, function(elt){
-                                            elt.insertAdjacentHTML('afterbegin', valueToPut);
-                                        })
-                                    } else if (operation === "end") {
-                                        _runtime.forEach(root, function(elt){
-                                            elt.insertAdjacentHTML('beforeend', valueToPut);
-                                        })
-                                    } else if (operation === "after") {
-                                        _runtime.forEach(root, function(elt){
-                                            elt.insertAdjacentHTML('afterend', valueToPut);
-                                        })
-                                    }
-                                }
-                                return _runtime.findNext(this);
-                            },
-                            execute: function (context) {
-                                return _runtime.unifiedExec(this, context)
-                            }
-                        };
-                        return putCmd
-                    }
-                })
-
-                _parser.addGrammarElement("setCmd", function (parser, tokens) {
-                    if (tokens.matchToken("set")) {
-
-                        var target = parser.requireElement("target", tokens);
-
-                        tokens.requireToken("to");
-
-                        var value = parser.requireElement("expression", tokens);
-
-                        var symbolWrite = target.type === "symbol";
-                        if (target.type !== "symbol" && target.root == null) {
-                            parser.raiseParseError(tokens, "Can only put directly into symbols, not references")
-                        }
-
-                        var root = null;
-                        var prop = null;
-                        if (symbolWrite) {
-                            // root is null
-                        } else {
-                            prop = target.prop.value;
-                            root = target.root;
-                        }
-
-                        var setCmd = {
-                            type: "setCmd",
-                            target: target,
-                            symbolWrite: symbolWrite,
-                            value: value,
-                            args: [root, value],
-                            op: function(context, root, valueToSet) {
-                                if (symbolWrite) {
-                                    context[target.name] = valueToSet;
-                                } else {
-                                    _runtime.forEach(root, function(elt){
-                                        elt[prop] = valueToSet;
-                                    })
-                                }
-                                return _runtime.findNext(this);
-                            },
-                            execute: function (context) {
-                                return _runtime.unifiedExec(this, context);
-                            }
-                        };
-                        return setCmd
-                    }
-                })
-
-                _parser.addGrammarElement("ifCmd", function (parser, tokens) {
-                    if (tokens.matchToken("if")) {
-                        var expr = parser.requireElement("expression", tokens);
-                        tokens.matchToken("then"); // optional 'then'
-                        var trueBranch = parser.parseElement("commandList", tokens);
-                        if (tokens.matchToken("else")) {
-                            var falseBranch = parser.parseElement("commandList", tokens);
-                        }
-                        if (tokens.hasMore()) {
-                            tokens.requireToken("end");
-                        }
-                        var ifCmd = {
-                            type: "ifCmd",
-                            expr: expr,
-                            trueBranch: trueBranch,
-                            falseBranch: falseBranch,
-                            args: [expr],
-                            op:function (context, expr) {
-                                if(expr) {
-                                    return trueBranch;
-                                } else if(falseBranch) {
-                                    return falseBranch;
-                                } else {
-                                    return _runtime.findNext(this);
-                                }
-                            },
-                            execute: function (context) {
-                                return _runtime.unifiedExec(this, context);
-                            }
-                        };
-                        parser.setParent(trueBranch, ifCmd);
-                        parser.setParent(falseBranch, ifCmd);
-                        return ifCmd
-                    }
-                })
-
-                _parser.addGrammarElement("repeatCmd", function (parser, tokens) {
-                    var outerStartToken = tokens.currentToken();
-                    if (tokens.matchToken("repeat") || outerStartToken.value === "for") {
-                        var innerStartToken = tokens.currentToken();
-                        if (tokens.matchToken("for")) {
-                            var identifierToken = tokens.requireTokenType('IDENTIFIER');
-                            var identifier = identifierToken.value
-                            tokens.requireToken("in");
-                            var expression = parser.requireElement("expression", tokens);
-                        } else if (tokens.matchToken("in")) {
-                            var identifier = "it";
-                            var expression = parser.requireElement( "expression", tokens);
-                        } else if (tokens.matchToken("while")) {
-                            var whileExpr = parser.requireElement( "expression", tokens);
-                        } else if (tokens.matchToken("until")) {
-                            var isUntil = true;
-                            if (tokens.matchToken("event")) {
-                                var evt = _parser.requireElement( "dotOrColonPath", tokens, "Expected event name");
-                                if (tokens.matchToken("from")) {
-                                    var on = parser.requireElement("expression", tokens);
+                                    resolve()
                                 }
                             } else {
-                                var whileExpr = parser.requireElement( "expression", tokens);
+                                context.meta.returned = true;
+                                context.meta.returnValue = value;
                             }
-                        } else if (tokens.matchTokenType('NUMBER')) {
-                            var times = parseFloat(innerStartToken.value)
-                            tokens.requireToken('times');
-                        } else {
-                            tokens.matchToken("forever"); // consume optional forever
-                            var forever = true;
+                            return _runtime.HALT;
+                        },
+                        execute: function (context) {
+                            return _runtime.unifiedExec(this, context);
                         }
-
-                        if (tokens.matchToken("index")) {
-                            var identifierToken = tokens.requireTokenType('IDENTIFIER');
-                            var indexIdentifier = identifierToken.value
-                        }
-
-                        var loop = parser.parseElement("commandList", tokens);
-                        if (tokens.hasMore()) {
-                            tokens.requireToken("end");
-                        }
-
-                        if (identifier == null) {
-                            identifier = "_implicit_repeat_" + outerStartToken.start;
-                            var slot = identifier;
-                        } else {
-                            var slot = identifier + "_" + outerStartToken.start;
-                        }
-
-                        var repeatCmd = {
-                            type: "repeatCmd",
-                            identifier: identifier,
-                            indexIdentifier: indexIdentifier,
-                            slot: slot,
-                            expression: expression,
-                            forever: forever,
-                            times: times,
-                            until: isUntil,
-                            event: evt,
-                            on: on,
-                            whileExpr: whileExpr,
-                            resolveNext: function() {
-                                return this;
-                            },
-                            loop: loop,
-                            args: [whileExpr],
-                            op:function (context, whileValue) {
-                                var iterator = context.meta.iterators[slot];
-                                var keepLooping = false;
-                                if (this.forever) {
-                                    keepLooping = true;
-                                } else if (this.until) {
-                                    if (evt) {
-                                        keepLooping = context.meta.iterators[slot].eventFired == false;
-                                    } else {
-                                        keepLooping = whileValue != true;
-                                    }
-                                } else if (whileValue) {
-                                    keepLooping = true;
-                                } else if (times) {
-                                    keepLooping = iterator.index < this.times;
-                                } else {
-                                    keepLooping = iterator.value !== null && iterator.index < iterator.value.length
-                                }
-
-                                if (keepLooping) {
-                                    if (iterator.value) {
-                                        context[identifier] = iterator.value[iterator.index];
-                                        context.it = iterator.value[iterator.index];
-                                    } else {
-                                        context.it = iterator.index;
-                                    }
-                                    if (indexIdentifier) {
-                                        context[indexIdentifier] = iterator.index;
-                                    }
-                                    iterator.index++;
-                                    return loop;
-                                } else {
-                                    context.meta.iterators[slot] = null;
-                                    return _runtime.findNext(this.parent);
-                                }
-                            },
-                            execute: function (context) {
-                                return _runtime.unifiedExec(this, context);
-                            }
-                        };
-                        parser.setParent(loop, repeatCmd);
-                        var repeatInit = {
-                            name:"repeatInit",
-                            args: [expression, evt, on],
-                            op:function(context, value, event, on){
-                                context.meta.iterators[slot] = {
-                                    index: 0,
-                                    value: value,
-                                    eventFired: false
-                                };
-                                if (evt) {
-                                    var target = on || context.me;
-                                    target.addEventListener(event, function (e) {
-                                        context.meta.iterators[slot].eventFired = true;
-                                    }, {once: true});
-                                }
-                                return repeatCmd; // continue to loop
-                            },
-                            execute: function (context) {
-                                return _runtime.unifiedExec(this, context);
-                            }
-                        }
-                        parser.setParent(repeatCmd, repeatInit);
-                        return repeatInit
-                    }
+                    };
+                    return returnCmd
                 })
 
-                _parser.addGrammarElement("fetchCmd", function (parser, tokens) {
-                    if (tokens.matchToken("fetch")) {
+                _parser.addCommand("trigger", function (parser, tokens) {
+                    var eventName = parser.requireElement("dotOrColonPath", tokens);
+                    var details = parser.parseElement("namedArgumentList", tokens);
+
+                    var triggerCmd = {
+                        type: "triggerCmd",
+                        eventName: eventName,
+                        details: details,
+                        args: [eventName, details],
+                        op: function (context, eventNameStr, details) {
+                            _runtime.triggerEvent(context.me, eventNameStr, details ? details : {});
+                            return _runtime.findNext(triggerCmd);
+                        },
+                        execute: function (context) {
+                            return _runtime.unifiedExec(this, context);
+                        }
+                    };
+                    return triggerCmd
+                })
+
+                _parser.addCommand("take", function (parser, tokens) {
+                    var classRef = tokens.requireTokenType(tokens, "CLASS_REF");
+
+                    if (tokens.matchToken("from")) {
+                        var from = parser.requireElement("target", tokens);
+                    } else {
+                        var from = parser.requireElement("implicitAllTarget")
+                    }
+
+                    if (tokens.matchToken("for")) {
+                        var forElt = parser.requireElement("target", tokens);
+                    } else {
+                        var forElt = parser.requireElement("implicitMeTarget")
+                    }
+
+                    var takeCmd = {
+                        type: "takeCmd",
+                        classRef: classRef,
+                        from: from,
+                        forElt: forElt,
+                        args: [from, forElt],
+                        op: function (context, from, forElt) {
+                            var clazz = this.classRef.value.substr(1)
+                            _runtime.forEach(from, function (target) {
+                                target.classList.remove(clazz);
+                            })
+                            _runtime.forEach(forElt, function (target) {
+                                target.classList.add(clazz);
+                            });
+                            return _runtime.findNext(this);
+                        },
+                        execute: function (context) {
+                            return _runtime.unifiedExec(this, context);
+                        }
+                    };
+                    return takeCmd
+                })
+
+                _parser.addCommand("log", function (parser, tokens) {
+                    var exprs = [parser.parseElement("expression", tokens)];
+                    while (tokens.matchOpToken(",")) {
+                        exprs.push(parser.requireElement("expression", tokens));
+                    }
+                    if (tokens.matchToken("with")) {
+                        var withExpr = parser.requireElement("expression", tokens);
+                    }
+                    var logCmd = {
+                        type: "logCmd",
+                        exprs: exprs,
+                        withExpr: withExpr,
+                        args: [withExpr, exprs],
+                        op: function (ctx, withExpr, values) {
+                            if (withExpr) {
+                                withExpr.apply(null, values);
+                            } else {
+                                console.log.apply(null, values);
+                            }
+                            return _runtime.findNext(this);
+                        },
+                        execute: function (context) {
+                            return _runtime.unifiedExec(this, context);
+                        }
+                    };
+                    return logCmd;
+                })
+
+                _parser.addCommand("throw", function (parser, tokens) {
+                    var expr = parser.requireElement("expression", tokens);
+                    var throwCmd = {
+                        type: "throwCmd",
+                        expr: expr,
+                        args: [expr],
+                        op: function (ctx, expr) {
+                            var reject = ctx.meta && ctx.meta.reject;
+                            if (reject) {
+                                reject(expr);
+                                return _runtime.HALT;
+                            } else {
+                                throw expr;
+                            }
+                        },
+                        execute: function (context) {
+                            return _runtime.unifiedExec(this, context);
+                        }
+                    };
+                    return throwCmd;
+                })
+
+                var parseCallOrGet = function(parser, tokens) {
+                    var expr = parser.requireElement("expression", tokens);
+                    var callCmd = {
+                        type: "callCmd",
+                        expr: expr,
+                        args: [expr],
+                        op: function (context, it) {
+                            context.it = it;
+                            return _runtime.findNext(callCmd);
+                        },
+                        execute: function (context) {
+                            return _runtime.unifiedExec(this, context);
+                        }
+                    };
+                    return callCmd
+                }
+                _parser.addCommand("call", function (parser, tokens) {
+                    return parseCallOrGet(parser, tokens);
+                })
+                _parser.addCommand("get", function (parser, tokens) {
+                    return parseCallOrGet(parser, tokens);
+                })
+
+                _parser.addCommand("put", function (parser, tokens) {
+                    var value = parser.requireElement("expression", tokens);
+
+                    var operationToken = tokens.matchToken("into") ||
+                        tokens.matchToken("before") ||
+                        tokens.matchToken("after");
+
+                    if (operationToken == null && tokens.matchToken("at")) {
+                        operationToken = tokens.matchToken("start") ||
+                            tokens.matchToken("end");
+                        tokens.requireToken("of");
+                    }
+
+                    if (operationToken == null) {
+                        parser.raiseParseError(tokens, "Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
+                    }
+                    var target = parser.requireElement("target", tokens);
+
+                    var operation = operationToken.value;
+                    var symbolWrite = target.type === "symbol" && operation === "into";
+                    if (target.type !== "symbol" && operation === "into" && target.root == null) {
+                        parser.raiseParseError(tokens, "Can only put directly into symbols, not references")
+                    }
+
+                    var root = null;
+                    var prop = null;
+                    if (symbolWrite) {
+                        // root is null
+                    } else if (operation === "into") {
+                        prop = target.prop.value;
+                        root = target.root;
+                    } else {
+                        root = target;
+                    }
+
+                    var putCmd = {
+                        type: "putCmd",
+                        target: target,
+                        operation: operation,
+                        symbolWrite: symbolWrite,
+                        value: value,
+                        args: [root, value],
+                        op: function (context, root, valueToPut) {
+                            if (symbolWrite) {
+                                context[target.name] = valueToPut;
+                            } else {
+                                if (operation === "into") {
+                                    _runtime.forEach(root, function (elt) {
+                                        elt[prop] = valueToPut;
+                                    })
+                                } else if (operation === "before") {
+                                    _runtime.forEach(root, function (elt) {
+                                        elt.insertAdjacentHTML('beforebegin', valueToPut);
+                                    })
+                                } else if (operation === "start") {
+                                    _runtime.forEach(root, function (elt) {
+                                        elt.insertAdjacentHTML('afterbegin', valueToPut);
+                                    })
+                                } else if (operation === "end") {
+                                    _runtime.forEach(root, function (elt) {
+                                        elt.insertAdjacentHTML('beforeend', valueToPut);
+                                    })
+                                } else if (operation === "after") {
+                                    _runtime.forEach(root, function (elt) {
+                                        elt.insertAdjacentHTML('afterend', valueToPut);
+                                    })
+                                }
+                            }
+                            return _runtime.findNext(this);
+                        },
+                        execute: function (context) {
+                            return _runtime.unifiedExec(this, context)
+                        }
+                    };
+                    return putCmd
+                })
+
+                _parser.addCommand("set", function (parser, tokens) {
+                    var target = parser.requireElement("target", tokens);
+
+                    tokens.requireToken("to");
+
+                    var value = parser.requireElement("expression", tokens);
+
+                    var symbolWrite = target.type === "symbol";
+                    if (target.type !== "symbol" && target.root == null) {
+                        parser.raiseParseError(tokens, "Can only put directly into symbols, not references")
+                    }
+
+                    var root = null;
+                    var prop = null;
+                    if (symbolWrite) {
+                        // root is null
+                    } else {
+                        prop = target.prop.value;
+                        root = target.root;
+                    }
+
+                    var setCmd = {
+                        type: "setCmd",
+                        target: target,
+                        symbolWrite: symbolWrite,
+                        value: value,
+                        args: [root, value],
+                        op: function (context, root, valueToSet) {
+                            if (symbolWrite) {
+                                context[target.name] = valueToSet;
+                            } else {
+                                _runtime.forEach(root, function (elt) {
+                                    elt[prop] = valueToSet;
+                                })
+                            }
+                            return _runtime.findNext(this);
+                        },
+                        execute: function (context) {
+                            return _runtime.unifiedExec(this, context);
+                        }
+                    };
+                    return setCmd
+                })
+
+                _parser.addCommand("if", function (parser, tokens) {
+                    var expr = parser.requireElement("expression", tokens);
+                    tokens.matchToken("then"); // optional 'then'
+                    var trueBranch = parser.parseElement("commandList", tokens);
+                    if (tokens.matchToken("else")) {
+                        var falseBranch = parser.parseElement("commandList", tokens);
+                    }
+                    if (tokens.hasMore()) {
+                        tokens.requireToken("end");
+                    }
+                    var ifCmd = {
+                        type: "ifCmd",
+                        expr: expr,
+                        trueBranch: trueBranch,
+                        falseBranch: falseBranch,
+                        args: [expr],
+                        op: function (context, expr) {
+                            if (expr) {
+                                return trueBranch;
+                            } else if (falseBranch) {
+                                return falseBranch;
+                            } else {
+                                return _runtime.findNext(this);
+                            }
+                        },
+                        execute: function (context) {
+                            return _runtime.unifiedExec(this, context);
+                        }
+                    };
+                    parser.setParent(trueBranch, ifCmd);
+                    parser.setParent(falseBranch, ifCmd);
+                    return ifCmd
+                })
+
+                var parseRepeatExpression = function(parser, tokens, startedWithForToken) {
+                    var innerStartToken = tokens.currentToken();
+                    if (tokens.matchToken("for") || startedWithForToken) {
+                        var identifierToken = tokens.requireTokenType('IDENTIFIER');
+                        var identifier = identifierToken.value;
+                        tokens.requireToken("in");
+                        var expression = parser.requireElement("expression", tokens);
+                    } else if (tokens.matchToken("in")) {
+                        var identifier = "it";
+                        var expression = parser.requireElement("expression", tokens);
+                    } else if (tokens.matchToken("while")) {
+                        var whileExpr = parser.requireElement("expression", tokens);
+                    } else if (tokens.matchToken("until")) {
+                        var isUntil = true;
+                        if (tokens.matchToken("event")) {
+                            var evt = _parser.requireElement("dotOrColonPath", tokens, "Expected event name");
+                            if (tokens.matchToken("from")) {
+                                var on = parser.requireElement("expression", tokens);
+                            }
+                        } else {
+                            var whileExpr = parser.requireElement("expression", tokens);
+                        }
+                    } else if (tokens.matchTokenType('NUMBER')) {
+                        var times = parseFloat(innerStartToken.value);
+                        tokens.requireToken('times');
+                    } else {
+                        tokens.matchToken("forever"); // consume optional forever
+                        var forever = true;
+                    }
+
+                    if (tokens.matchToken("index")) {
+                        var identifierToken = tokens.requireTokenType('IDENTIFIER');
+                        var indexIdentifier = identifierToken.value
+                    }
+
+                    var loop = parser.parseElement("commandList", tokens);
+                    if (tokens.hasMore()) {
+                        tokens.requireToken("end");
+                    }
+
+                    if (identifier == null) {
+                        identifier = "_implicit_repeat_" + innerStartToken.start;
+                        var slot = identifier;
+                    } else {
+                        var slot = identifier + "_" + innerStartToken.start;
+                    }
+
+                    var repeatCmd = {
+                        type: "repeatCmd",
+                        identifier: identifier,
+                        indexIdentifier: indexIdentifier,
+                        slot: slot,
+                        expression: expression,
+                        forever: forever,
+                        times: times,
+                        until: isUntil,
+                        event: evt,
+                        on: on,
+                        whileExpr: whileExpr,
+                        resolveNext: function () {
+                            return this;
+                        },
+                        loop: loop,
+                        args: [whileExpr],
+                        op: function (context, whileValue) {
+                            var iterator = context.meta.iterators[slot];
+                            var keepLooping = false;
+                            if (this.forever) {
+                                keepLooping = true;
+                            } else if (this.until) {
+                                if (evt) {
+                                    keepLooping = context.meta.iterators[slot].eventFired == false;
+                                } else {
+                                    keepLooping = whileValue != true;
+                                }
+                            } else if (whileValue) {
+                                keepLooping = true;
+                            } else if (times) {
+                                keepLooping = iterator.index < this.times;
+                            } else {
+                                keepLooping = iterator.value !== null && iterator.index < iterator.value.length
+                            }
+
+                            if (keepLooping) {
+                                if (iterator.value) {
+                                    context[identifier] = iterator.value[iterator.index];
+                                    context.it = iterator.value[iterator.index];
+                                } else {
+                                    context.it = iterator.index;
+                                }
+                                if (indexIdentifier) {
+                                    context[indexIdentifier] = iterator.index;
+                                }
+                                iterator.index++;
+                                return loop;
+                            } else {
+                                context.meta.iterators[slot] = null;
+                                return _runtime.findNext(this.parent);
+                            }
+                        },
+                        execute: function (context) {
+                            return _runtime.unifiedExec(this, context);
+                        }
+                    };
+                    parser.setParent(loop, repeatCmd);
+                    var repeatInit = {
+                        name: "repeatInit",
+                        args: [expression, evt, on],
+                        op: function (context, value, event, on) {
+                            context.meta.iterators[slot] = {
+                                index: 0,
+                                value: value,
+                                eventFired: false
+                            };
+                            if (evt) {
+                                var target = on || context.me;
+                                target.addEventListener(event, function (e) {
+                                    context.meta.iterators[slot].eventFired = true;
+                                }, {once: true});
+                            }
+                            return repeatCmd; // continue to loop
+                        },
+                        execute: function (context) {
+                            return _runtime.unifiedExec(this, context);
+                        }
+                    }
+                    parser.setParent(repeatCmd, repeatInit);
+                    return repeatInit
+                }
+
+                _parser.addCommand("repeat", function (parser, tokens) {
+                    return parseRepeatExpression(parser, tokens, false);
+                })
+
+                _parser.addCommand("for", function (parser, tokens) {
+                    return parseRepeatExpression(parser, tokens, true);
+                })
+
+                _parser.addCommand("fetch", function (parser, tokens) {
                         var url = parser.parseElement("string", tokens);
                         if (url == null) {
                             var url = parser.parseElement("nakedString", tokens);
@@ -2960,7 +2944,6 @@
                             }
                         };
                         return fetchCmd;
-                    }
                 })
             }
 
