@@ -477,8 +477,17 @@
                 }
 
                 function addCommand(keyword, definition) {
-                    GRAMMAR[name + "Command"] = definition;
-                    COMMANDS[keyword] = definition;
+                    var commandGrammarType = keyword + "Command";
+                    var commandDefinitionWrapper = function (parser, runtime, tokens) {
+                        var commandElement = definition(parser, runtime, tokens);
+                        commandElement.type = commandGrammarType;
+                        commandElement.execute = function (context) {
+                            return runtime.unifiedExec(this, context);
+                        }
+                        return commandElement;
+                    };
+                    GRAMMAR[commandGrammarType] = commandDefinitionWrapper;
+                    COMMANDS[keyword] = commandDefinitionWrapper;
                 }
 
                 /* core grammar elements */
@@ -2100,9 +2109,7 @@
 
                     var func = varargConstructor(Function, inputs.concat([jsSource]));
 
-                    var callCmd;
-                    return callCmd = {
-                        type: "jsCmd",
+                    return {
                         jsSource: "jsSource",
                         function: func,
                         inputs: inputs,
@@ -2123,9 +2130,6 @@
                                 context.it = result
                                 return runtime.findNext(this);
                             }
-                        },
-                        execute: function (context) {
-                            return runtime.unifiedExec(this, context);
                         }
                     };
                 })
@@ -2148,7 +2152,6 @@
 
                     if (classRef) {
                         var addCmd = {
-                            type: "addCmd",
                             classRef: classRef,
                             attributeRef: attributeRef,
                             to: to,
@@ -2158,9 +2161,6 @@
                                     target.classList.add(classRef.className());
                                 })
                                 return runtime.findNext(this);
-                            },
-                            execute: function (context) {
-                                return runtime.unifiedExec(this, context);
                             }
                         }
                     } else {
@@ -2206,7 +2206,6 @@
 
                     if (elementExpr) {
                         var removeCmd = {
-                            type: "removeCmd",
                             classRef: classRef,
                             attributeRef: attributeRef,
                             elementExpr: elementExpr,
@@ -2217,14 +2216,10 @@
                                     target.parentElement.removeChild(target);
                                 })
                                 return runtime.findNext(this);
-                            },
-                            execute: function (context) {
-                                return runtime.unifiedExec(this, context);
                             }
                         };
                     } else {
                         var removeCmd = {
-                            type: "removeCmd",
                             classRef: classRef,
                             attributeRef: attributeRef,
                             elementExpr: elementExpr,
@@ -2241,9 +2236,6 @@
                                     })
                                 }
                                 return runtime.findNext(this);
-                            },
-                            execute: function (context) {
-                                return runtime.unifiedExec(this, context);
                             }
                         };
 
@@ -2277,7 +2269,6 @@
                     }
 
                     var toggleCmd = {
-                        type: "toggleCmd",
                         classRef: classRef,
                         attributeRef: attributeRef,
                         on: on,
@@ -2322,9 +2313,6 @@
                                 this.toggle(on, value);
                                 return runtime.findNext(toggleCmd);
                             }
-                        },
-                        execute: function (ctx) {
-                            return runtime.unifiedExec(this, ctx);
                         }
                     };
                     return toggleCmd
@@ -2340,7 +2328,6 @@
                         }
                         // wait on event
                         var waitCmd = {
-                            type: "waitCmd",
                             event: evt,
                             on: on,
                             args: [evt, on],
@@ -2352,9 +2339,6 @@
                                     };
                                     target.addEventListener(eventName, listener, {once: true});
                                 });
-                            },
-                            execute: function (context) {
-                                return runtime.unifiedExec(this, context);
                             }
                         };
                     } else {
@@ -2413,7 +2397,6 @@
 
 
                     var sendCmd = {
-                        type: "sendCmd",
                         eventName: eventName,
                         details: details,
                         to: to,
@@ -2423,9 +2406,6 @@
                                 runtime.triggerEvent(target, eventName, details ? details : {});
                             });
                             return runtime.findNext(sendCmd);
-                        },
-                        execute: function (context) {
-                            return runtime.unifiedExec(this, context);
                         }
                     };
                     return sendCmd
@@ -2435,7 +2415,6 @@
                     var value = parser.requireElement("expression", tokens);
 
                     var returnCmd = {
-                        type: "returnCmd",
                         value: value,
                         args: [value],
                         op: function (context, value) {
@@ -2452,9 +2431,6 @@
                                 context.meta.returnValue = value;
                             }
                             return runtime.HALT;
-                        },
-                        execute: function (context) {
-                            return runtime.unifiedExec(this, context);
                         }
                     };
                     return returnCmd
@@ -2465,16 +2441,12 @@
                     var details = parser.parseElement("namedArgumentList", tokens);
 
                     var triggerCmd = {
-                        type: "triggerCmd",
                         eventName: eventName,
                         details: details,
                         args: [eventName, details],
                         op: function (context, eventNameStr, details) {
                             runtime.triggerEvent(context.me, eventNameStr, details ? details : {});
                             return runtime.findNext(triggerCmd);
-                        },
-                        execute: function (context) {
-                            return runtime.unifiedExec(this, context);
                         }
                     };
                     return triggerCmd
@@ -2496,7 +2468,6 @@
                     }
 
                     var takeCmd = {
-                        type: "takeCmd",
                         classRef: classRef,
                         from: from,
                         forElt: forElt,
@@ -2510,9 +2481,6 @@
                                 target.classList.add(clazz);
                             });
                             return runtime.findNext(this);
-                        },
-                        execute: function (context) {
-                            return runtime.unifiedExec(this, context);
                         }
                     };
                     return takeCmd
@@ -2527,7 +2495,6 @@
                         var withExpr = parser.requireElement("expression", tokens);
                     }
                     var logCmd = {
-                        type: "logCmd",
                         exprs: exprs,
                         withExpr: withExpr,
                         args: [withExpr, exprs],
@@ -2538,9 +2505,6 @@
                                 console.log.apply(null, values);
                             }
                             return runtime.findNext(this);
-                        },
-                        execute: function (context) {
-                            return runtime.unifiedExec(this, context);
                         }
                     };
                     return logCmd;
@@ -2549,7 +2513,6 @@
                 _parser.addCommand("throw", function(parser, runtime, tokens) {
                     var expr = parser.requireElement("expression", tokens);
                     var throwCmd = {
-                        type: "throwCmd",
                         expr: expr,
                         args: [expr],
                         op: function (ctx, expr) {
@@ -2560,9 +2523,6 @@
                             } else {
                                 throw expr;
                             }
-                        },
-                        execute: function (context) {
-                            return runtime.unifiedExec(this, context);
                         }
                     };
                     return throwCmd;
@@ -2571,15 +2531,11 @@
                 var parseCallOrGet = function(parser, runtime, tokens) {
                     var expr = parser.requireElement("expression", tokens);
                     var callCmd = {
-                        type: "callCmd",
                         expr: expr,
                         args: [expr],
                         op: function (context, it) {
                             context.it = it;
                             return runtime.findNext(callCmd);
-                        },
-                        execute: function (context) {
-                            return runtime.unifiedExec(this, context);
                         }
                     };
                     return callCmd
@@ -2627,7 +2583,6 @@
                     }
 
                     var putCmd = {
-                        type: "putCmd",
                         target: target,
                         operation: operation,
                         symbolWrite: symbolWrite,
@@ -2660,9 +2615,6 @@
                                 }
                             }
                             return runtime.findNext(this);
-                        },
-                        execute: function (context) {
-                            return runtime.unifiedExec(this, context)
                         }
                     };
                     return putCmd
@@ -2690,7 +2642,6 @@
                     }
 
                     var setCmd = {
-                        type: "setCmd",
                         target: target,
                         symbolWrite: symbolWrite,
                         value: value,
@@ -2704,9 +2655,6 @@
                                 })
                             }
                             return runtime.findNext(this);
-                        },
-                        execute: function (context) {
-                            return runtime.unifiedExec(this, context);
                         }
                     };
                     return setCmd
@@ -2723,7 +2671,6 @@
                         tokens.requireToken("end");
                     }
                     var ifCmd = {
-                        type: "ifCmd",
                         expr: expr,
                         trueBranch: trueBranch,
                         falseBranch: falseBranch,
@@ -2736,9 +2683,6 @@
                             } else {
                                 return runtime.findNext(this);
                             }
-                        },
-                        execute: function (context) {
-                            return runtime.unifiedExec(this, context);
                         }
                     };
                     parser.setParent(trueBranch, ifCmd);
@@ -2794,7 +2738,6 @@
                     }
 
                     var repeatCmd = {
-                        type: "repeatCmd",
                         identifier: identifier,
                         indexIdentifier: indexIdentifier,
                         slot: slot,
@@ -2845,9 +2788,6 @@
                                 context.meta.iterators[slot] = null;
                                 return runtime.findNext(this.parent);
                             }
-                        },
-                        execute: function (context) {
-                            return runtime.unifiedExec(this, context);
                         }
                     };
                     parser.setParent(loop, repeatCmd);
@@ -2908,7 +2848,6 @@
                         }
 
                         var fetchCmd = {
-                            type: "fetchCmd",
                             url:url,
                             argExrepssions:args,
                             args: [url, args],
@@ -2938,9 +2877,6 @@
                                             reject(reason);
                                         })
                                 })
-                            },
-                            execute: function (context) {
-                                return runtime.unifiedExec(this, context)
                             }
                         };
                         return fetchCmd;
