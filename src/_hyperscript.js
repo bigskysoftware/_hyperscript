@@ -215,6 +215,15 @@
                         return match;
                     }
 
+                    // TODO - nextNonWhitespace?
+                    function peekToken() {
+                        var i = 0, match = currentToken()
+                        do {
+                            match = tokens[i++];
+                        } while (ignoreWhiteSpace && match.type === "WHITESPACE")
+                        return match;
+                    }
+
                     function consumeUntilWhitespace() {
                         var tokenList = [];
                         ignoreWhiteSpace = false;
@@ -248,6 +257,7 @@
                         requireTokenType: requireTokenType,
                         consumeToken: consumeToken,
                         matchToken: matchToken,
+                        peekToken: peekToken,
                         requireToken: requireToken,
                         list: tokens,
                         consumed: consumed,
@@ -1637,6 +1647,7 @@
                     var onFeatures = []
                     var functionFeatures = []
                     var workerFeatures = []
+
                     if (tokens.hasMore()) {
                         do {
                             var feature = parser.requireElement("feature", tokens);
@@ -1650,12 +1661,6 @@
                                 feature.execute();
                             } else if (feature.type === "jsFeature") {
                                 feature.execute();
-                                // because the jsFeature production eats the `end`
-                                // token, the loop condition will be false. we are
-                                // working around that.
-                                //
-                                // see: `_parser.addGrammarElement("jsFeature")`
-                                if (tokens.hasMore()) continue;
                             }
                             var chainedOn = feature.type === "onFeature" && tokens.currentToken() && tokens.currentToken().value === "on";
                         } while ((chainedOn || tokens.matchToken("end")) && tokens.hasMore())
@@ -1884,11 +1889,14 @@
                         case 'init':
                             importScripts(e.data._hyperscript);
                             importScripts.apply(self, e.data.extraScripts);
-                            var tokens = _hyperscript.lexer.makeTokensObject(e.data.tokens, [], '');
+                            var tokens = _hyperscript.lexer.makeTokensObject(e.data.tokens, [], e.data.source);
                             
                             // this is so hacky
                             self.window = {};
                             var parsed = _hyperscript.parser.parseElement('hyperscript', tokens);
+                            Object.keys(self.window).forEach(function (key) {
+                                self[key] = self.window[key]
+                            })
                             self.functions = self.window;
                             delete self.window;
 
@@ -1951,10 +1959,14 @@
                         var bodyStartIndex = tokens.consumed.length;
                         var bodyEndIndex = tokens.consumed.length;
                         do {
-                            var functionFeature = parser.parseElement('functionFeature', tokens);
-                            if (functionFeature) {
-                                funcNames.push(functionFeature.name);
-                                bodyEndIndex = tokens.consumed.length;
+                            var feature = parser.parseAnyOf(['functionFeature', 'jsFeature'], tokens);
+                            if (feature) {
+                                if (feature.type === 'functionFeature') {
+                                    funcNames.push(feature.name);
+                                    bodyEndIndex = tokens.consumed.length;
+                                } else {
+                                    if (tokens.hasMore()) continue;
+                                }
                             } else break;
                         } while (tokens.matchToken("end") && tokens.hasMore()); // worker end
 
@@ -1975,7 +1987,8 @@
                             type: 'init',
                             _hyperscript: currentScriptSrc,
                             extraScripts: extraScripts,
-                            tokens: bodyTokens
+                            tokens: bodyTokens,
+                            source: tokens.source
                         });
 
                         var workerPromise = new Promise(function (resolve, reject) {
@@ -2021,50 +2034,61 @@
                     }
                 })
 
-                _parser.addGrammarElement("jsFeature", function(parser, runtime, tokens) {
+                _parser.addGrammarElement("jsBody", function(parser, tokens) {
+                    var jsSourceStart = tokens.currentToken().start;
+                    var jsLastToken = tokens.currentToken();
+
+                    var funcNames = [];
+                    var funcName = "";
+                    var expectFunctionDeclaration = false;
+                    while (tokens.hasMore()) {
+                        jsLastToken = tokens.consumeToken();
+                        var peek = tokens.peekToken();
+                        if (peek.type === "IDENTIFIER"
+                            && peek.value === "end") {
+                            break;
+                        }
+                        if (expectFunctionDeclaration) {
+                            if (jsLastToken.type === "IDENTIFIER"
+                                || jsLastToken.type === "NUMBER") {
+                                funcName += jsLastToken.value;
+                            } else {
+                                if (funcName !== "") funcNames.push(funcName);
+                                funcName = "";
+                                expectFunctionDeclaration = false;
+                            }
+                        } else if (jsLastToken.type === "IDENTIFIER"
+                            && jsLastToken.value === "function") {
+                            expectFunctionDeclaration = true;
+                        }
+                    }
+                    var jsSourceEnd = jsLastToken.end + 1;
+
+                    return {
+                        type: 'jsBody',
+                        exposedFunctionNames: funcNames,
+                        jsSource: tokens.source.substring(jsSourceStart, jsSourceEnd),
+                    }
+                })
+
+                _parser.addGrammarElement("jsFeature", function(parser, tokens) {
                     if (tokens.matchToken('js')) {
 
-                        // eat tokens until `end`
+                        var jsBody = parser.parseElement('jsBody', tokens);
 
-                        var jsSourceStart = tokens.currentToken().start;
-                        var jsLastToken = null;
-
-                        var funcNames = [];
-                        var funcName = "";
-                        var expectFunctionDeclaration = false;
-                        while (tokens.hasMore()) {
-                            jsLastToken = tokens.consumeToken()
-                            if (jsLastToken.type === "IDENTIFIER"
-                                && jsLastToken.value === "end") {
-                                break;
-                            } else if (expectFunctionDeclaration) {
-                                if (jsLastToken.type === "IDENTIFIER"
-                                    || jsLastToken.type === "NUMBER") {
-                                    funcName += jsLastToken.value;
-                                } else {
-                                    if (funcName !== "") funcNames.push(funcName);
-                                    funcName = "";
-                                    expectFunctionDeclaration = false;
-                                }
-                            } else if (jsLastToken.type === "IDENTIFIER"
-                                       && jsLastToken.value === "function") {
-                                expectFunctionDeclaration = true;
-                            }
-                        }
-
-                        var jsSourceEnd = jsLastToken.start;
-
-                        var jsSource = tokens.source.substring(jsSourceStart, jsSourceEnd) +
-                            "\nreturn { " + 
-                            funcNames.map(function (name) {return name+":"+name}).join(",") +
-                            " };";
+                        var jsSource = jsBody.jsSource +
+                            "\nreturn { " +
+                            jsBody.exposedFunctionNames.map(function (name) {
+                                return name+":"+name;
+                            }).join(",") +
+                            " } ";
                         var func = new Function(jsSource);
 
                         return {
                             type: 'jsFeature',
                             jsSource: jsSource,
                             function: func,
-                            exposedFunctionNames: funcNames,
+                            exposedFunctionNames: jsBody.exposedFunctionNames,
                             execute: function() {
                                 mergeObjects(globalScope, func())
                             }
@@ -2072,66 +2096,57 @@
                     }
                 })
 
-                _parser.addCommand("js", function(parser, runtime, tokens) {
-                    // Parse inputs
-                    var inputs = [];
-                    if (tokens.matchOpToken("(")) {
-                        if (tokens.matchOpToken(")")) {
-                            // empty input list
-                        } else {
-                            do {
-                                var inp = tokens.requireTokenType('IDENTIFIER');
-                                inputs.push(inp.value);
-                            } while (tokens.matchOpToken(","));
-                            tokens.requireOpToken(')');
-                        }
-                    }
+                _parser.addGrammarElement("jsCmd", function (parser, tokens) {
+                    if (tokens.matchToken('js')) {
 
-                    // eat tokens until `end`
-
-                    var jsSourceStart = tokens.currentToken().start;
-                    var jsLastToken = null;
-
-                    while (tokens.hasMore()) {
-                        jsLastToken = tokens.consumeToken()
-                        if (jsLastToken.type === "IDENTIFIER"
-                            && jsLastToken.value === "end") {
-                            // we wrongly eat the end token, we deal with this
-                            // in the "hyperscript" production
-                            // TODO: fix, needs lookahead?
-                            break;
-                        }
-                    }
-
-                    var jsSourceEnd = jsLastToken.start;
-
-                    var jsSource = tokens.source.substring(jsSourceStart, jsSourceEnd);
-
-                    var func = varargConstructor(Function, inputs.concat([jsSource]));
-
-                    return {
-                        jsSource: "jsSource",
-                        function: func,
-                        inputs: inputs,
-                        op: function (context) {
-                            var args = [];
-                            inputs.forEach(function (input) {
-                                args.push(runtime.resolveSymbol(input, context))
-                            });
-                            var result = func.apply(globalScope, args)
-                            if (result && typeof result.then === 'function') {
-                                return Promise(function (resolve) {
-                                    result.then(function (actualResult) {
-                                        context.it = actualResult
-                                        resolve(runtime.findNext(this));
-                                    })
-                                })
+                        // Parse inputs
+                        var inputs = [];
+                        if (tokens.matchOpToken("(")) {
+                            if (tokens.matchOpToken(")")) {
+                                // empty input list
                             } else {
-                                context.it = result
-                                return runtime.findNext(this);
+                                do {
+                                    var inp = tokens.requireTokenType('IDENTIFIER');
+                                    inputs.push(inp.value);
+                                } while (tokens.matchOpToken(","));
+                                tokens.requireOpToken(')');
                             }
                         }
-                    };
+
+                        var jsBody = parser.parseElement('jsBody', tokens);
+                        tokens.matchToken('end');
+
+                        var func = varargConstructor(Function, inputs.concat([jsBody.jsSource]));
+
+                        var callCmd;
+                        return callCmd = {
+                            type: "jsCmd",
+                            jsSource: jsBody.jsSource,
+                            function: func,
+                            inputs: inputs,
+                            op:function(context){
+                                var args = [];
+                                inputs.forEach(function (input) {
+                                    args.push(_runtime.resolveSymbol(input, context))
+                                });
+                                var result = func.apply(globalScope, args)
+                                if (result && typeof result.then === 'function') {
+                                    return Promise(function(resolve){
+                                        result.then(function(actualResult) {
+                                            context.it = actualResult
+                                            resolve(_runtime.findNext(this));
+                                        })
+                                    })
+                                } else {
+                                    context.it = result
+                                    return _runtime.findNext(this);
+                                }
+                            },
+                            execute: function(context) {
+                                return _runtime.unifiedExec(this, context);
+                            }
+                        };
+                    }
                 })
 
                 _parser.addCommand("add", function(parser, runtime, tokens) {

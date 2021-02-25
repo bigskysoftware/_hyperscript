@@ -42,8 +42,6 @@ js
 end
 ```
 
-<div hidden><!-- this is not implemented yet -->
-
 `js` blocks can also be placed in workers:
 
 ```hyperscript
@@ -57,8 +55,6 @@ worker MyWorker
     end
     def regexFind(re, group, str) return _regexFind(re, group, str) end
 ```
-
-</div>
 
 `this` inside a `js` block is the global scope (`window`, or `self` in workers).
 
