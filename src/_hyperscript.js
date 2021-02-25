@@ -215,15 +215,6 @@
                         return match;
                     }
 
-                    // TODO - nextNonWhitespace?
-                    function peekToken() {
-                        var i = 0, match = currentToken()
-                        do {
-                            match = tokens[i++];
-                        } while (ignoreWhiteSpace && match.type === "WHITESPACE")
-                        return match;
-                    }
-
                     function consumeUntilWhitespace() {
                         var tokenList = [];
                         ignoreWhiteSpace = false;
@@ -238,8 +229,16 @@
                         return tokens.length > 0;
                     }
 
-                    function currentToken() {
-                        var token = tokens[0];
+                    function currentToken(ignoreWhiteSpace) {
+                        var token;
+                        if (ignoreWhiteSpace) {
+                            var i = 0;
+                            do {
+                                token = tokens[i++]
+                            } while (token && token.type === "WHITESPACE");
+                        } else {
+                            token = tokens[0];
+                        }
                         if (token) {
                             return token;
                         } else {
@@ -257,7 +256,6 @@
                         requireTokenType: requireTokenType,
                         consumeToken: consumeToken,
                         matchToken: matchToken,
-                        peekToken: peekToken,
                         requireToken: requireToken,
                         list: tokens,
                         consumed: consumed,
@@ -2064,7 +2062,7 @@
                     var expectFunctionDeclaration = false;
                     while (tokens.hasMore()) {
                         jsLastToken = tokens.consumeToken();
-                        var peek = tokens.peekToken();
+                        var peek = tokens.currentToken(true);
                         if (peek.type === "IDENTIFIER"
                             && peek.value === "end") {
                             break;
