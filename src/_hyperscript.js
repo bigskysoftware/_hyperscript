@@ -442,6 +442,8 @@
                 var GRAMMAR = {}
                 var COMMANDS = {}
                 var FEATURES = {}
+                var LEAF_EXPRESSIONS = [];
+                var INDIRECT_EXPRESSIONS = [];
 
                 function parseElement(type, tokens, root) {
                     var elementDefinition = GRAMMAR[type];
@@ -497,7 +499,19 @@
                     FEATURES[keyword] = featureDefinitionWrapper;
                 }
 
-                /* core grammar elements */
+                function addLeafExpression(name, definition) {
+                    LEAF_EXPRESSIONS.push(name);
+                    addGrammarElement(name, definition);
+                }
+
+                function addIndirectExpression(name, definition) {
+                    INDIRECT_EXPRESSIONS.push(name);
+                    addGrammarElement(name, definition);
+                }
+
+                /* ============================================================================================ */
+                /* Core hyperscript Grammar Elements                                                            */
+                /* ============================================================================================ */
                 addGrammarElement("feature", function(parser, runtime, tokens) {
                     var featureDefinition = FEATURES[tokens.currentToken().value];
                     if (featureDefinition) {
@@ -520,6 +534,39 @@
                         return cmd;
                     }
                 })
+
+                addGrammarElement("leaf", function(parser, runtime, tokens) {
+                    var result = parseAnyOf(LEAF_EXPRESSIONS, tokens);
+                    // symbol is last so it doesn't consume any constants
+                    if (result == null) {
+                        return parseElement('symbol', tokens);
+                    } else {
+                        return result;
+                    }
+                })
+
+                addGrammarElement("indirectExpression", function(parser, runtime, tokens, root) {
+                    for (var i = 0; i < INDIRECT_EXPRESSIONS.length; i++) {
+                        var indirect = INDIRECT_EXPRESSIONS[i];
+                        var result = parser.parseElement(indirect, tokens, root);
+                        if(result){
+                            return result;
+                        }
+                    }
+                    return root;
+                });
+
+                addGrammarElement("primaryExpression", function(parser, runtime, tokens) {
+                    var leaf = parser.parseElement("leaf", tokens);
+                    if (leaf) {
+                        return parser.parseElement("indirectExpression", tokens, leaf);
+                    }
+                    parser.raiseParseError(tokens, "Unexpected value: " + tokens.currentToken().value);
+                });
+                /* ============================================================================================ */
+                /* END Core hyperscript Grammar Elements                                                        */
+                /* ============================================================================================ */
+
 
                 function createParserContext(tokens) {
                     var currentToken = tokens.currentToken();
@@ -561,6 +608,8 @@
                     addGrammarElement: addGrammarElement,
                     addCommand: addCommand,
                     addFeature: addFeature,
+                    addLeafExpression: addLeafExpression,
+                    addIndirectExpression: addIndirectExpression,
                 }
             }();
 
@@ -1023,7 +1072,7 @@
             // Grammar
             //====================================================================
             {
-                _parser.addGrammarElement("parenthesized", function(parser, runtime, tokens) {
+                _parser.addLeafExpression("parenthesized", function(parser, runtime, tokens) {
                     if (tokens.matchOpToken('(')) {
                         var expr = parser.requireElement("expression", tokens);
                         tokens.requireOpToken(")");
@@ -1037,7 +1086,7 @@
                     }
                 })
 
-                _parser.addGrammarElement("string", function(parser, runtime, tokens) {
+                _parser.addLeafExpression("string", function(parser, runtime, tokens) {
                     var stringToken = tokens.matchTokenType('STRING');
                     if (stringToken) {
                         return {
@@ -1064,7 +1113,7 @@
                     }
                 })
 
-                _parser.addGrammarElement("number", function(parser, runtime, tokens) {
+                _parser.addLeafExpression("number", function(parser, runtime, tokens) {
                     var number = tokens.matchTokenType('NUMBER');
                     if (number) {
                         var numberToken = number;
@@ -1080,7 +1129,7 @@
                     }
                 })
 
-                _parser.addGrammarElement("idRef", function(parser, runtime, tokens) {
+                _parser.addLeafExpression("idRef", function(parser, runtime, tokens) {
                     var elementId = tokens.matchTokenType('ID_REF');
                     if (elementId) {
                         return {
@@ -1093,7 +1142,7 @@
                     }
                 })
 
-                _parser.addGrammarElement("classRef", function(parser, runtime, tokens) {
+                _parser.addLeafExpression("classRef", function(parser, runtime, tokens) {
                     var classRef = tokens.matchTokenType('CLASS_REF');
                     if (classRef) {
                         return {
@@ -1136,7 +1185,7 @@
                     }
                 })
 
-                _parser.addGrammarElement("objectLiteral", function(parser, runtime, tokens) {
+                _parser.addLeafExpression("objectLiteral", function(parser, runtime, tokens) {
                     if (tokens.matchOpToken("{")) {
                         var fields = []
                         var valueExpressions = []
@@ -1235,7 +1284,7 @@
                     };
                 });
 
-                _parser.addGrammarElement("boolean", function(parser, runtime, tokens) {
+                _parser.addLeafExpression("boolean", function(parser, runtime, tokens) {
                     var booleanLiteral = tokens.matchToken("true") || tokens.matchToken("false");
                     if (booleanLiteral) {
                         return {
@@ -1247,7 +1296,7 @@
                     }
                 });
 
-                _parser.addGrammarElement("null", function(parser, runtime, tokens) {
+                _parser.addLeafExpression("null", function(parser, runtime, tokens) {
                     if (tokens.matchToken('null')) {
                         return {
                             type: "null",
@@ -1258,7 +1307,7 @@
                     }
                 });
 
-                _parser.addGrammarElement("arrayLiteral", function(parser, runtime, tokens) {
+                _parser.addLeafExpression("arrayLiteral", function(parser, runtime, tokens) {
                     if (tokens.matchOpToken('[')) {
                         var values = [];
                         if (!tokens.matchOpToken(']')) {
@@ -1282,7 +1331,7 @@
                     }
                 });
 
-                _parser.addGrammarElement("blockLiteral", function(parser, runtime, tokens) {
+                _parser.addLeafExpression("blockLiteral", function(parser, runtime, tokens) {
                     if (tokens.matchOpToken('\\')) {
                         var args = []
                         var arg1 = tokens.matchTokenType("IDENTIFIER");
@@ -1314,10 +1363,6 @@
                     }
                 });
 
-                _parser.addGrammarElement("leaf", function(parser, runtime, tokens) {
-                    return parser.parseAnyOf(["parenthesized", "boolean", "null", "string", "number", "idRef", "classRef", "symbol", "objectLiteral", "arrayLiteral", "blockLiteral"], tokens)
-                });
-
                 _parser.addGrammarElement("timeExpression", function(parser, runtime, tokens){
                     var time = parser.requireElement("expression", tokens);
                     var factor = 1;
@@ -1340,7 +1385,7 @@
                     }
                 })
 
-                _parser.addGrammarElement("propertyAccess", function(parser, runtime, tokens, root) {
+                _parser.addIndirectExpression("propertyAccess", function(parser, runtime, tokens, root) {
                     if (tokens.matchOpToken(".")) {
                         var prop = tokens.requireTokenType("IDENTIFIER");
                         var propertyAccess = {
@@ -1355,11 +1400,11 @@
                                 return runtime.unifiedEval(this, context);
                             }
                         };
-                        return _parser.parseElement("indirectExpression", tokens, propertyAccess);
+                        return parser.parseElement("indirectExpression", tokens, propertyAccess);
                     }
                 });
 
-                _parser.addGrammarElement("functionCall", function(parser, runtime, tokens, root) {
+                _parser.addIndirectExpression("functionCall", function(parser, runtime, tokens, root) {
                     if (tokens.matchOpToken("(")) {
                         var args = [];
                         if (!tokens.matchOpToken(')')) {
@@ -1398,32 +1443,10 @@
                                 }
                             }
                         }
-
-                        return _parser.parseElement("indirectExpression", tokens, functionCall);
+                        return parser.parseElement("indirectExpression", tokens, functionCall);
                     }
                 });
 
-                _parser.addGrammarElement("indirectExpression", function(parser, runtime, tokens, root) {
-                    var propAccess = parser.parseElement("propertyAccess", tokens, root);
-                    if (propAccess) {
-                        return propAccess;
-                    }
-
-                    var functionCall = parser.parseElement("functionCall", tokens, root);
-                    if (functionCall) {
-                        return functionCall;
-                    }
-
-                    return root;
-                });
-
-                _parser.addGrammarElement("primaryExpression", function(parser, runtime, tokens) {
-                    var leaf = parser.parseElement("leaf", tokens);
-                    if (leaf) {
-                        return parser.parseElement("indirectExpression", tokens, leaf);
-                    }
-                    parser.raiseParseError(tokens, "Unexpected value: " + tokens.currentToken().value);
-                });
 
                 _parser.addGrammarElement("postfixExpression", function(parser, runtime, tokens) {
                     var root = parser.parseElement("primaryExpression", tokens);
@@ -2854,6 +2877,12 @@
                 },
                 addCommand: function(keyword, definition) {
                     _parser.addCommand(keyword, definition)
+                },
+                addLeafExpression: function(keyword, definition) {
+                    _parser.addLeafExpression(definition)
+                },
+                addIndirectExpression: function(keyword, definition) {
+                    _parser.addIndirectExpression(definition)
                 },
                 evaluate: function (str) { //OK
                     return _runtime.evaluate(str); //OK
