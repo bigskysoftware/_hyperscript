@@ -1,5 +1,5 @@
 
-## Note on `end`
+### Note on `end`
 
 `end` cannot appear inside JS code as an identifier. However, it **can** appear in string literals (`"end", 'end'`, **not** `` `end` ``).
 
