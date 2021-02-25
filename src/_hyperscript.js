@@ -904,8 +904,9 @@
 
                 function resolveProperty(root, property) {
                     if (root != null) {
-                        if (root.hasOwnProperty(property)) {
-                            return root[property];
+                        var val = root[property];
+                        if (typeof val !== 'undefined') {
+                            return val;
                         } else {
                             if (isArrayLike(root)) {
                                 if (property === "first") {
