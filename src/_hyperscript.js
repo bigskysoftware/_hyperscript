@@ -1088,7 +1088,7 @@
                                 }
                             },
                             evaluate: function (context) {
-                                return _runtime.unifiedEval(this, context);
+                                return runtime.unifiedEval(this, context);
                             }
                         }
                     }
@@ -1121,7 +1121,7 @@
                                 return returnVal;
                             },
                             evaluate: function (context) {
-                                return _runtime.unifiedEval(this, context);
+                                return runtime.unifiedEval(this, context);
                             }
                         }
                     }
@@ -1154,7 +1154,7 @@
                                 return returnVal;
                             },
                             evaluate: function (context) {
-                                return _runtime.unifiedEval(this, context);
+                                return runtime.unifiedEval(this, context);
                             }
                         }
                     }
@@ -1169,7 +1169,7 @@
                             type: "symbol",
                             name: identifier.value,
                             evaluate: function (context) {
-                                return _runtime.resolveSymbol(identifier.value, context);
+                                return runtime.resolveSymbol(identifier.value, context);
                             }
                         };
                     }
@@ -1234,7 +1234,7 @@
                                 return values;
                             },
                             evaluate: function (context) {
-                                return _runtime.unifiedEval(this, context);
+                                return runtime.unifiedEval(this, context);
                             }
                         }
                     }
@@ -1293,7 +1293,7 @@
                             return val * this.factor
                         },
                         evaluate: function (context) {
-                            return _runtime.unifiedEval(this, context);
+                            return runtime.unifiedEval(this, context);
                         }
                     }
                 })
@@ -1307,10 +1307,10 @@
                             prop: prop,
                             args: [root],
                             op:function(context, rootVal){
-                                return _runtime.resolveProperty(rootVal, prop.value);
+                                return runtime.resolveProperty(rootVal, prop.value);
                             },
                             evaluate: function (context) {
-                                return _runtime.unifiedEval(this, context);
+                                return runtime.unifiedEval(this, context);
                             }
                         };
                         return _parser.parseElement("indirectExpression", tokens, propertyAccess);
@@ -1338,7 +1338,7 @@
                                     return func.apply(rootRoot, args);
                                 },
                                 evaluate: function (context) {
-                                    return _runtime.unifiedEval(this, context);
+                                    return runtime.unifiedEval(this, context);
                                 }
                             }
                         } else {
@@ -1352,7 +1352,7 @@
                                     return apply;
                                 },
                                 evaluate: function (context) {
-                                    return _runtime.unifiedEval(this, context);
+                                    return runtime.unifiedEval(this, context);
                                 }
                             }
                         }
@@ -1395,10 +1395,10 @@
                             nullOk: nullOk,
                             args: [root],
                             op: function (context, val) {
-                                return _runtime.typeCheck(val, this.typeName.value, this.nullOk);
+                                return runtime.typeCheck(val, this.typeName.value, this.nullOk);
                             },
                             evaluate: function (context) {
-                                return _runtime.unifiedEval(this, context);
+                                return runtime.unifiedEval(this, context);
                             }
                         }
                     } else {
@@ -1417,7 +1417,7 @@
                                 return !val;
                             },
                             evaluate: function (context) {
-                                return _runtime.unifiedEval(this, context);
+                                return runtime.unifiedEval(this, context);
                             }
                         };
                     }
@@ -1434,7 +1434,7 @@
                                 return val == null;
                             },
                             evaluate: function (context) {
-                                return _runtime.unifiedEval(this, context);
+                                return runtime.unifiedEval(this, context);
                             }
                         };
                     }
@@ -1451,7 +1451,7 @@
                                 return -1 * value;
                             },
                             evaluate: function (context) {
-                                return _runtime.unifiedEval(this, context);
+                                return runtime.unifiedEval(this, context);
                             }
                         };
                     }
@@ -1492,7 +1492,7 @@
                                 }
                             },
                             evaluate: function (context) {
-                                return _runtime.unifiedEval(this, context);
+                                return runtime.unifiedEval(this, context);
                             }
                         }
                         mathOp = tokens.matchAnyOpToken("+", "-", "*", "/", "%")
@@ -1543,7 +1543,7 @@
                                 }
                             },
                             evaluate: function (context) {
-                                return _runtime.unifiedEval(this, context);
+                                return runtime.unifiedEval(this, context);
                             }
                         };
                     }
@@ -1578,7 +1578,7 @@
                                 }
                             },
                             evaluate: function (context) {
-                                return _runtime.unifiedEval(this, context);
+                                return runtime.unifiedEval(this, context);
                             }
                         }
                         logicalOp = tokens.matchToken("and") || tokens.matchToken("or");
@@ -1725,7 +1725,7 @@
                             op:function(context){
                                 // automatically resolve at the end of an event handler if nothing else does
                                 context.meta.resolve();
-                                return _runtime.HALT;
+                                return runtime.HALT;
                             },
                             execute: function (ctx) {
                                 // do nothing
@@ -1749,7 +1749,7 @@
                                 }
                                 this.execCount++;
                                 this.executing = true;
-                                _runtime.forEach(args, function (arg) {
+                                runtime.forEach(args, function (arg) {
                                     ctx[arg.value] = ctx.event[arg.value] || (ctx.event.detail ? ctx.event.detail[arg.value] : null);
                                 });
                                 if(filter) {
@@ -1773,7 +1773,7 @@
                                 }
                                 ctx.meta.reject = function(err){
                                     console.error(err);
-                                    _runtime.triggerEvent(ctx.me, 'exception', {error:err})
+                                    runtime.triggerEvent(ctx.me, 'exception', {error:err})
                                     onFeature.executing = false;
                                 }
                                 start.execute(ctx);
@@ -1814,7 +1814,7 @@
                                     // null, worker
                                     var root = 'document' in globalScope ? document.body : null
                                     var elt = 'document' in globalScope ? document.body : globalScope
-                                    var ctx = _runtime.makeContext(root, elt, null);
+                                    var ctx = runtime.makeContext(root, elt, null);
                                     for (var i = 0; i < arguments.length; i++) {
                                         var argumentVal = arguments[i];
                                         var name = args[i];
@@ -1851,7 +1851,7 @@
                                 if(context.meta.resolve){
                                     context.meta.resolve();
                                 }
-                                return _runtime.HALT;
+                                return runtime.HALT;
                             },
                             execute: function (context) {
                                 // do nothing
@@ -2109,23 +2109,23 @@
                         op: function (context) {
                             var args = [];
                             inputs.forEach(function (input) {
-                                args.push(_runtime.resolveSymbol(input, context))
+                                args.push(runtime.resolveSymbol(input, context))
                             });
                             var result = func.apply(globalScope, args)
                             if (result && typeof result.then === 'function') {
                                 return Promise(function (resolve) {
                                     result.then(function (actualResult) {
                                         context.it = actualResult
-                                        resolve(_runtime.findNext(this));
+                                        resolve(runtime.findNext(this));
                                     })
                                 })
                             } else {
                                 context.it = result
-                                return _runtime.findNext(this);
+                                return runtime.findNext(this);
                             }
                         },
                         execute: function (context) {
-                            return _runtime.unifiedExec(this, context);
+                            return runtime.unifiedExec(this, context);
                         }
                     };
                 })
@@ -2154,13 +2154,13 @@
                             to: to,
                             args: [to],
                             op: function (context, to) {
-                                _runtime.forEach(to, function (target) {
+                                runtime.forEach(to, function (target) {
                                     target.classList.add(classRef.className());
                                 })
-                                return _runtime.findNext(this);
+                                return runtime.findNext(this);
                             },
                             execute: function (context) {
-                                return _runtime.unifiedExec(this, context);
+                                return runtime.unifiedExec(this, context);
                             }
                         }
                     } else {
@@ -2171,13 +2171,13 @@
                             to: to,
                             args: [to, attributeRef],
                             op: function (context, to, attrRef) {
-                                _runtime.forEach(to, function (target) {
+                                runtime.forEach(to, function (target) {
                                     target.setAttribute(attrRef.name, attrRef.value);
                                 })
-                                return _runtime.findNext(addCmd, context);
+                                return runtime.findNext(addCmd, context);
                             },
                             execute: function (ctx) {
-                                return _runtime.unifiedExec(this, ctx);
+                                return runtime.unifiedExec(this, ctx);
                             }
                         };
                     }
@@ -2213,13 +2213,13 @@
                             from: from,
                             args: [elementExpr],
                             op: function (context, element) {
-                                _runtime.forEach(element, function (target) {
+                                runtime.forEach(element, function (target) {
                                     target.parentElement.removeChild(target);
                                 })
-                                return _runtime.findNext(this);
+                                return runtime.findNext(this);
                             },
                             execute: function (context) {
-                                return _runtime.unifiedExec(this, context);
+                                return runtime.unifiedExec(this, context);
                             }
                         };
                     } else {
@@ -2232,18 +2232,18 @@
                             args: [from],
                             op: function (context, from) {
                                 if (this.classRef) {
-                                    _runtime.forEach(from, function (target) {
+                                    runtime.forEach(from, function (target) {
                                         target.classList.remove(classRef.className());
                                     })
                                 } else {
-                                    _runtime.forEach(from, function (target) {
+                                    runtime.forEach(from, function (target) {
                                         target.removeAttribute(attributeRef.name);
                                     })
                                 }
-                                return _runtime.findNext(this);
+                                return runtime.findNext(this);
                             },
                             execute: function (context) {
-                                return _runtime.unifiedExec(this, context);
+                                return runtime.unifiedExec(this, context);
                             }
                         };
 
@@ -2286,11 +2286,11 @@
                         from: from,
                         toggle: function (on, value) {
                             if (this.classRef) {
-                                _runtime.forEach(on, function (target) {
+                                runtime.forEach(on, function (target) {
                                     target.classList.toggle(classRef.className())
                                 });
                             } else {
-                                _runtime.forEach(on, function (target) {
+                                runtime.forEach(on, function (target) {
                                     if (target.hasAttribute(attributeRef.name)) {
                                         target.removeAttribute(attributeRef.name);
                                     } else {
@@ -2306,7 +2306,7 @@
                                     toggleCmd.toggle(on, value);
                                     setTimeout(function () {
                                         toggleCmd.toggle(on, value);
-                                        resolve(_runtime.findNext(toggleCmd));
+                                        resolve(runtime.findNext(toggleCmd));
                                     }, time);
                                 });
                             } else if (evt) {
@@ -2314,17 +2314,17 @@
                                     var target = from || context.me;
                                     target.addEventListener(evt, function () {
                                         toggleCmd.toggle(on, value);
-                                        resolve(_runtime.findNext(toggleCmd));
+                                        resolve(runtime.findNext(toggleCmd));
                                     }, {once: true})
                                     toggleCmd.toggle(on, value);
                                 });
                             } else {
                                 this.toggle(on, value);
-                                return _runtime.findNext(toggleCmd);
+                                return runtime.findNext(toggleCmd);
                             }
                         },
                         execute: function (ctx) {
-                            return _runtime.unifiedExec(this, ctx);
+                            return runtime.unifiedExec(this, ctx);
                         }
                     };
                     return toggleCmd
@@ -2348,13 +2348,13 @@
                                 var target = on ? on : context.me;
                                 return new Promise(function (resolve) {
                                     var listener = function () {
-                                        resolve(_runtime.findNext(waitCmd));
+                                        resolve(runtime.findNext(waitCmd));
                                     };
                                     target.addEventListener(eventName, listener, {once: true});
                                 });
                             },
                             execute: function (context) {
-                                return _runtime.unifiedExec(this, context);
+                                return runtime.unifiedExec(this, context);
                             }
                         };
                     } else {
@@ -2366,12 +2366,12 @@
                             op: function (context, timeValue) {
                                 return new Promise(function (resolve) {
                                     setTimeout(function () {
-                                        resolve(_runtime.findNext(waitCmd));
+                                        resolve(runtime.findNext(waitCmd));
                                     }, timeValue);
                                 });
                             },
                             execute: function (context) {
-                                return _runtime.unifiedExec(this, context);
+                                return runtime.unifiedExec(this, context);
                             }
                         };
                     }
@@ -2419,13 +2419,13 @@
                         to: to,
                         args: [to, eventName, details],
                         op: function (context, to, eventName, details) {
-                            _runtime.forEach(to, function (target) {
-                                _runtime.triggerEvent(target, eventName, details ? details : {});
+                            runtime.forEach(to, function (target) {
+                                runtime.triggerEvent(target, eventName, details ? details : {});
                             });
-                            return _runtime.findNext(sendCmd);
+                            return runtime.findNext(sendCmd);
                         },
                         execute: function (context) {
-                            return _runtime.unifiedExec(this, context);
+                            return runtime.unifiedExec(this, context);
                         }
                     };
                     return sendCmd
@@ -2451,10 +2451,10 @@
                                 context.meta.returned = true;
                                 context.meta.returnValue = value;
                             }
-                            return _runtime.HALT;
+                            return runtime.HALT;
                         },
                         execute: function (context) {
-                            return _runtime.unifiedExec(this, context);
+                            return runtime.unifiedExec(this, context);
                         }
                     };
                     return returnCmd
@@ -2470,11 +2470,11 @@
                         details: details,
                         args: [eventName, details],
                         op: function (context, eventNameStr, details) {
-                            _runtime.triggerEvent(context.me, eventNameStr, details ? details : {});
-                            return _runtime.findNext(triggerCmd);
+                            runtime.triggerEvent(context.me, eventNameStr, details ? details : {});
+                            return runtime.findNext(triggerCmd);
                         },
                         execute: function (context) {
-                            return _runtime.unifiedExec(this, context);
+                            return runtime.unifiedExec(this, context);
                         }
                     };
                     return triggerCmd
@@ -2503,16 +2503,16 @@
                         args: [from, forElt],
                         op: function (context, from, forElt) {
                             var clazz = this.classRef.value.substr(1)
-                            _runtime.forEach(from, function (target) {
+                            runtime.forEach(from, function (target) {
                                 target.classList.remove(clazz);
                             })
-                            _runtime.forEach(forElt, function (target) {
+                            runtime.forEach(forElt, function (target) {
                                 target.classList.add(clazz);
                             });
-                            return _runtime.findNext(this);
+                            return runtime.findNext(this);
                         },
                         execute: function (context) {
-                            return _runtime.unifiedExec(this, context);
+                            return runtime.unifiedExec(this, context);
                         }
                     };
                     return takeCmd
@@ -2537,10 +2537,10 @@
                             } else {
                                 console.log.apply(null, values);
                             }
-                            return _runtime.findNext(this);
+                            return runtime.findNext(this);
                         },
                         execute: function (context) {
-                            return _runtime.unifiedExec(this, context);
+                            return runtime.unifiedExec(this, context);
                         }
                     };
                     return logCmd;
@@ -2556,13 +2556,13 @@
                             var reject = ctx.meta && ctx.meta.reject;
                             if (reject) {
                                 reject(expr);
-                                return _runtime.HALT;
+                                return runtime.HALT;
                             } else {
                                 throw expr;
                             }
                         },
                         execute: function (context) {
-                            return _runtime.unifiedExec(this, context);
+                            return runtime.unifiedExec(this, context);
                         }
                     };
                     return throwCmd;
@@ -2576,10 +2576,10 @@
                         args: [expr],
                         op: function (context, it) {
                             context.it = it;
-                            return _runtime.findNext(callCmd);
+                            return runtime.findNext(callCmd);
                         },
                         execute: function (context) {
-                            return _runtime.unifiedExec(this, context);
+                            return runtime.unifiedExec(this, context);
                         }
                     };
                     return callCmd
@@ -2638,31 +2638,31 @@
                                 context[target.name] = valueToPut;
                             } else {
                                 if (operation === "into") {
-                                    _runtime.forEach(root, function (elt) {
+                                    runtime.forEach(root, function (elt) {
                                         elt[prop] = valueToPut;
                                     })
                                 } else if (operation === "before") {
-                                    _runtime.forEach(root, function (elt) {
+                                    runtime.forEach(root, function (elt) {
                                         elt.insertAdjacentHTML('beforebegin', valueToPut);
                                     })
                                 } else if (operation === "start") {
-                                    _runtime.forEach(root, function (elt) {
+                                    runtime.forEach(root, function (elt) {
                                         elt.insertAdjacentHTML('afterbegin', valueToPut);
                                     })
                                 } else if (operation === "end") {
-                                    _runtime.forEach(root, function (elt) {
+                                    runtime.forEach(root, function (elt) {
                                         elt.insertAdjacentHTML('beforeend', valueToPut);
                                     })
                                 } else if (operation === "after") {
-                                    _runtime.forEach(root, function (elt) {
+                                    runtime.forEach(root, function (elt) {
                                         elt.insertAdjacentHTML('afterend', valueToPut);
                                     })
                                 }
                             }
-                            return _runtime.findNext(this);
+                            return runtime.findNext(this);
                         },
                         execute: function (context) {
-                            return _runtime.unifiedExec(this, context)
+                            return runtime.unifiedExec(this, context)
                         }
                     };
                     return putCmd
@@ -2699,14 +2699,14 @@
                             if (symbolWrite) {
                                 context[target.name] = valueToSet;
                             } else {
-                                _runtime.forEach(root, function (elt) {
+                                runtime.forEach(root, function (elt) {
                                     elt[prop] = valueToSet;
                                 })
                             }
-                            return _runtime.findNext(this);
+                            return runtime.findNext(this);
                         },
                         execute: function (context) {
-                            return _runtime.unifiedExec(this, context);
+                            return runtime.unifiedExec(this, context);
                         }
                     };
                     return setCmd
@@ -2734,11 +2734,11 @@
                             } else if (falseBranch) {
                                 return falseBranch;
                             } else {
-                                return _runtime.findNext(this);
+                                return runtime.findNext(this);
                             }
                         },
                         execute: function (context) {
-                            return _runtime.unifiedExec(this, context);
+                            return runtime.unifiedExec(this, context);
                         }
                     };
                     parser.setParent(trueBranch, ifCmd);
@@ -2843,11 +2843,11 @@
                                 return loop;
                             } else {
                                 context.meta.iterators[slot] = null;
-                                return _runtime.findNext(this.parent);
+                                return runtime.findNext(this.parent);
                             }
                         },
                         execute: function (context) {
-                            return _runtime.unifiedExec(this, context);
+                            return runtime.unifiedExec(this, context);
                         }
                     };
                     parser.setParent(loop, repeatCmd);
@@ -2869,7 +2869,7 @@
                             return repeatCmd; // continue to loop
                         },
                         execute: function (context) {
-                            return _runtime.unifiedExec(this, context);
+                            return runtime.unifiedExec(this, context);
                         }
                     }
                     parser.setParent(repeatCmd, repeatInit);
@@ -2918,21 +2918,21 @@
                                         .then(function (value) {
                                             if (type === "response") {
                                                 context.it = value;
-                                                resolve(_runtime.findNext(fetchCmd));
+                                                resolve(runtime.findNext(fetchCmd));
                                             } else if (type === "json") {
                                                 value.json().then(function (result) {
                                                     context.it = result;
-                                                    resolve(_runtime.findNext(fetchCmd));
+                                                    resolve(runtime.findNext(fetchCmd));
                                                 })
                                             } else {
                                                 value.text().then(function (result) {
                                                     context.it = result;
-                                                    resolve(_runtime.findNext(fetchCmd));
+                                                    resolve(runtime.findNext(fetchCmd));
                                                 })
                                             }
                                         })
                                         .catch(function (reason) {
-                                            _runtime.triggerEvent(context.me, "fetch:error", {
+                                            runtime.triggerEvent(context.me, "fetch:error", {
                                                 reason: reason
                                             })
                                             reject(reason);
@@ -2940,7 +2940,7 @@
                                 })
                             },
                             execute: function (context) {
-                                return _runtime.unifiedExec(this, context)
+                                return runtime.unifiedExec(this, context)
                             }
                         };
                         return fetchCmd;
