@@ -14,32 +14,12 @@ title: ///_hyperscript
 * [install & quick start](#install)
 * [the language](#lang)
   * [features](#features)
-    * [on](#on)
-    * [def](#def)
-    * [worker](#worker)
-    * [js](#js)
   * [commands](#commands)
-    * [add](#add)
-    * [remove](#remove)
-    * [toggle](#toggle)
-    * [wait](#wait)
-    * [return](#return)
-    * [send](#send)
-    * [trigger](#trigger)
-    * [take](#take)
-    * [log](#log)
-    * [call](#call)
-    * [put](#put)
-    * [set](#set)
-    * [if](#if)
-    * [repeat](#repeat)
-    * [fetch](#fetch)
-    * [throw](#throw)
-    * [js](#js-command)
   * [expressions](#expressions)
 * [async transparency](#async)
   * [async keyword](#async-keyword)
   * [event driven control flow](#events)
+* [extending](#extending)
 * [history](#history)
 
 </div>
@@ -760,6 +740,10 @@ And you can use any results return from the javascript in the default `it` varia
 </button>
 ```
 
+## <a name="expressions"></a>[Expressions](#expressions)
+
+*TODO*
+
 ## <a name="async"></a>[Async Transparency](#async)
 
 A feature that sets hyperscript apart from other languages is that it is *async transparent*: the runtime largely hides
@@ -915,6 +899,10 @@ What's particularly interesting here is that the CSS transition is allowed to fi
 because the event listener that terminates the loop is only consulted once a complete loop is made.
 
 This I hope gives you a taste of the unique execution model of hyperscript, and what uses it might be put to.
+
+## <a name="extending"></a>[Extending](#extending)
+
+*TODO*
 
 ## <a name="history"></a>[History, or 'Yet Another Language?'](#history)
 
