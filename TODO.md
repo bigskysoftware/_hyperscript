@@ -3,8 +3,6 @@
 ## 0.0.4 features
 * @benpate Array improvements
     * support the [] operator
-    * add `first`, `last` and `random` pseudo-properties
-    * property references off of arrays (that are not `length`, `first`, `last` or `random`) are flatMaps
 * @1cg First pass at documentation
 * MAYBE @Deniz Akşimşek string expression templating
 ```
