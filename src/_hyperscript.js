@@ -2034,7 +2034,7 @@
                     }
                 })
 
-                _parser.addGrammarElement("jsBody", function(parser, tokens) {
+                _parser.addGrammarElement("jsBody", function(parser, runtime, tokens) {
                     var jsSourceStart = tokens.currentToken().start;
                     var jsLastToken = tokens.currentToken();
 
@@ -2071,7 +2071,7 @@
                     }
                 })
 
-                _parser.addGrammarElement("jsFeature", function(parser, tokens) {
+                _parser.addGrammarElement("jsFeature", function(parser, runtime, tokens) {
                     if (tokens.matchToken('js')) {
 
                         var jsBody = parser.parseElement('jsBody', tokens);
@@ -2096,57 +2096,49 @@
                     }
                 })
 
-                _parser.addGrammarElement("jsCmd", function (parser, tokens) {
-                    if (tokens.matchToken('js')) {
+                _parser.addCommand("js", function (parser, runtime, tokens) {
+                    // Parse inputs
+                    var inputs = [];
+                    if (tokens.matchOpToken("(")) {
+                        if (tokens.matchOpToken(")")) {
+                            // empty input list
+                        } else {
+                            do {
+                                var inp = tokens.requireTokenType('IDENTIFIER');
+                                inputs.push(inp.value);
+                            } while (tokens.matchOpToken(","));
+                            tokens.requireOpToken(')');
+                        }
+                    }
 
-                        // Parse inputs
-                        var inputs = [];
-                        if (tokens.matchOpToken("(")) {
-                            if (tokens.matchOpToken(")")) {
-                                // empty input list
+                    var jsBody = parser.parseElement('jsBody', tokens);
+                    tokens.matchToken('end');
+
+                    var func = varargConstructor(Function, inputs.concat([jsBody.jsSource]));
+
+                    return {
+                        jsSource: jsBody.jsSource,
+                        function: func,
+                        inputs: inputs,
+                        op: function (context) {
+                            var args = [];
+                            inputs.forEach(function (input) {
+                                args.push(runtime.resolveSymbol(input, context))
+                            });
+                            var result = func.apply(globalScope, args)
+                            if (result && typeof result.then === 'function') {
+                                return Promise(function (resolve) {
+                                    result.then(function (actualResult) {
+                                        context.it = actualResult
+                                        resolve(runtime.findNext(this));
+                                    })
+                                })
                             } else {
-                                do {
-                                    var inp = tokens.requireTokenType('IDENTIFIER');
-                                    inputs.push(inp.value);
-                                } while (tokens.matchOpToken(","));
-                                tokens.requireOpToken(')');
+                                context.it = result
+                                return runtime.findNext(this);
                             }
                         }
-
-                        var jsBody = parser.parseElement('jsBody', tokens);
-                        tokens.matchToken('end');
-
-                        var func = varargConstructor(Function, inputs.concat([jsBody.jsSource]));
-
-                        var callCmd;
-                        return callCmd = {
-                            type: "jsCmd",
-                            jsSource: jsBody.jsSource,
-                            function: func,
-                            inputs: inputs,
-                            op:function(context){
-                                var args = [];
-                                inputs.forEach(function (input) {
-                                    args.push(_runtime.resolveSymbol(input, context))
-                                });
-                                var result = func.apply(globalScope, args)
-                                if (result && typeof result.then === 'function') {
-                                    return Promise(function(resolve){
-                                        result.then(function(actualResult) {
-                                            context.it = actualResult
-                                            resolve(_runtime.findNext(this));
-                                        })
-                                    })
-                                } else {
-                                    context.it = result
-                                    return _runtime.findNext(this);
-                                }
-                            },
-                            execute: function(context) {
-                                return _runtime.unifiedExec(this, context);
-                            }
-                        };
-                    }
+                    };
                 })
 
                 _parser.addCommand("add", function(parser, runtime, tokens) {
