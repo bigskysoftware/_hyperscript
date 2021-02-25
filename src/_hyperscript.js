@@ -47,10 +47,9 @@
                 return new (Cls.bind.apply(Cls, [Cls].concat(args)));
             }
 
+            // This function is part of the public API
             function assignToNamespace(nameSpace, name, value) {
-                // we use window instead of globalScope here so that we can
-                // intercept this in workers
-                var root = window;
+                var root = globalScope;
                 while (nameSpace.length > 0) {
                     var propertyName = nameSpace.shift();
                     var newRoot = root[propertyName];
@@ -997,6 +996,8 @@
                     }
                 }
 
+                var hyperscriptUrl = 'document' in globalScope ? document.currentScript.src : null
+
                 return {
                     typeCheck: typeCheck,
                     forEach: forEach,
@@ -1013,6 +1014,7 @@
                     unifiedEval: unifiedEval,
                     unifiedExec: unifiedExec,
                     resolveProperty: resolveProperty,
+                    hyperscriptUrl: hyperscriptUrl,
                     HALT: HALT
                 }
             }();
@@ -1900,158 +1902,6 @@
                 // Stuff for workers
 
                 if ('document' in globalScope) var currentScriptSrc = document.currentScript.src;
-                var invocationIdCounter = 0
-
-                var workerFunc = function() {
-                    /* WORKER BOUNDARY */
-                    self.onmessage = function (e) {
-                        switch (e.data.type) {
-                        case 'init':
-                            importScripts(e.data._hyperscript);
-                            importScripts.apply(self, e.data.extraScripts);
-                            var tokens = _hyperscript.lexer.makeTokensObject(e.data.tokens, [], e.data.source);
-                            
-                            // this is so hacky
-                            self.window = {};
-                            var parsed = _hyperscript.parser.parseElement('hyperscript', tokens);
-                            Object.keys(self.window).forEach(function (key) {
-                                self[key] = self.window[key]
-                            })
-                            self.functions = self.window;
-                            delete self.window;
-
-                            postMessage({ type: 'didInit' });
-                            break;
-                        case 'call':
-                            try {
-                                var result = self.functions[e.data.function].apply(self, e.data.args)
-                                Promise.resolve(result).then(function (value) {
-                                    postMessage({
-                                        type: 'resolve',
-                                        id: e.data.id,
-                                        value: value
-                                    })
-                                }).catch(function(error){
-                                    postMessage({
-                                        type: 'reject',
-                                        id: e.data.id,
-                                        error: error.toString()
-                                    })
-                                })
-                            } catch (error) {
-                                postMessage({
-                                    type: 'reject',
-                                    id: e.data.id,
-                                    error: error.toString()
-                                })
-                            }
-                            break;
-                        }
-                    }
-                    /* WORKER BOUNDARY */
-                }
-
-                _parser.addFeature("worker", function(parser, runtime, tokens) {
-                    if (tokens.matchToken('worker')) {
-                        var name = parser.requireElement("dotOrColonPath", tokens);
-                        var qualifiedName = name.evaluate();
-                        var nameSpace = qualifiedName.split(".");
-                        var workerName = nameSpace.pop();
-
-                        // Parse extra scripts
-                        var extraScripts = [];
-                        if (tokens.matchOpToken("(")) {
-                            if (tokens.matchOpToken(")")) {
-                                // no external scripts
-                            } else {
-                                do {
-                                    var extraScript = tokens.requireTokenType('STRING').value;
-                                    var absoluteUrl = new URL(extraScript, location.href).href;
-                                    extraScripts.push(absoluteUrl);
-                                } while (tokens.matchOpToken(","));
-                                tokens.requireOpToken(')');
-                            }
-                        }
-
-                        // Consume worker methods
-
-                        var funcNames = [];
-                        var bodyStartIndex = tokens.consumed.length;
-                        var bodyEndIndex = tokens.consumed.length;
-                        do {
-                            var feature = parser.parseAnyOf(['defFeature', 'jsFeature'], tokens);
-                            if (feature) {
-                                if (feature.type === 'defFeature') {
-                                    funcNames.push(feature.name);
-                                    bodyEndIndex = tokens.consumed.length;
-                                } else {
-                                    if (tokens.hasMore()) continue;
-                                }
-                            } else break;
-                        } while (tokens.matchToken("end") && tokens.hasMore()); // worker end
-
-
-                        var bodyTokens = tokens.consumed.slice(bodyStartIndex, bodyEndIndex + 1);
-
-                        // Create worker
-
-                        // extract the body of the function, which was only defined so
-                        // that we can get syntax highlighting
-                        var workerCode = workerFunc.toString().split('/* WORKER BOUNDARY */')[1];
-                        var blob = new Blob([workerCode], {type: 'text/javascript'});
-                        var worker = new Worker(URL.createObjectURL(blob));
-
-                        // Send init message to worker
-
-                        worker.postMessage({
-                            type: 'init',
-                            _hyperscript: currentScriptSrc,
-                            extraScripts: extraScripts,
-                            tokens: bodyTokens,
-                            source: tokens.source
-                        });
-
-                        var workerPromise = new Promise(function (resolve, reject) {
-                            worker.addEventListener('message', function (e) {
-                                if (e.data.type === 'didInit') resolve();
-                            }, {once: true});
-                        });
-
-                        // Create function stubs
-                        var stubs = {};
-                        funcNames.forEach(function (funcName) {
-                            stubs[funcName] = function () {
-                                var args = arguments;
-                                return new Promise(function (resolve, reject) {
-                                    var id = invocationIdCounter++;
-                                    worker.addEventListener('message', function returnListener(e) {
-                                        if (e.data.id !== id) return;
-                                        worker.removeEventListener('message', returnListener);
-                                        if (e.data.type === 'resolve') resolve(e.data.value);
-                                        else reject(e.data.error);
-                                    });
-                                    workerPromise.then(function () {
-                                        // Worker has been initialized, send invocation.
-                                        worker.postMessage({
-                                            type: 'call',
-                                            function: funcName,
-                                            args: Array.from(args),
-                                            id: id
-                                        });
-                                    });
-                                });
-                            };
-                        });
-
-                        return {
-                            name: workerName,
-                            worker: worker,
-                            execute: function (ctx) {
-                                assignToNamespace(nameSpace, workerName, stubs)
-                            }
-                        };
-                    }
-                })
 
                 _parser.addGrammarElement("jsBody", function(parser, runtime, tokens) {
                     var jsSourceStart = tokens.currentToken().start;
@@ -3011,6 +2861,9 @@
                 toJS: compileToJS,
                 config: {
                     attributes : "_, script, data-script"
+                },
+                helpers: {
+                    assignToNamespace: assignToNamespace
                 }
             }
         }
