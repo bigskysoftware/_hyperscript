@@ -95,8 +95,6 @@
 
             // Send init message to worker
 
-            console.log('runtime.hyperscriptUrl: ', runtime.hyperscriptUrl)
-
             worker.postMessage({
                 type: 'init',
                 _hyperscript: runtime.hyperscriptUrl,
