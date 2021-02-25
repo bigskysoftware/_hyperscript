@@ -4,13 +4,7 @@
 * @benpate Array improvements
     * support the [] operator
 * @1cg First pass at documentation
-* MAYBE @Deniz Akşimşek string expression templating
-```
-   set str to "this $is a ${cool.feature}"
-```
-
-### Language Features
-* Support `hide`/`show` pattern
+* @Deniz Akşimşek - Support `hide`/`show` pattern
 ```html
 <script type="text/hyperscript">
   def myTransition(op, elt)
@@ -34,6 +28,12 @@
   show me with visibility
   show me with display
   show me with display inline -- allow a specific display argument as well
+```
+
+### Language Features
+* string expression templating
+```
+   set str to "this $is a ${cool.feature}"
 ```
 * Figure out an explicit transition API
   * https://v3.vuejs.org/guide/transitions-enterleave.html#transitioning-single-elements-components
