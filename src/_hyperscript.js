@@ -548,15 +548,15 @@
                     return eventResult;
                 }
 
-                function forEach(arr, func) {
-                    if (arr == null) {
+                function forEach(value, func) {
+                    if (value == null) {
                         // do nothing
-                    } else if (arr.length != null) {
-                        for (var i = 0; i < arr.length; i++) {
-                            func(arr[i]);
+                    } else if (Array.isArray(value) || value instanceof NodeList) {
+                        for (var i = 0; i < value.length; i++) {
+                            func(value[i]);
                         }
                     } else {
-                        func(arr);
+                        func(value);
                     }
                 }
 
@@ -717,35 +717,6 @@
                             }
                         }
                     }
-                }
-
-                function evalTarget(root, path) {
-                    if (root == null) {
-                        return null;
-                    }
-                    if (root.length) {
-                        var last = root;
-                    } else {
-                        var last = [root];
-                    }
-
-                    while (path.length > 0) {
-                        var prop = path.shift();
-                        var next = []
-                        // flat map
-                        for (var i = 0; i < last.length; i++) {
-                            var element = last[i];
-                            var nextVal = element[prop];
-                            if (nextVal && nextVal.length) {
-                                next = next.concat(nextVal);
-                            } else {
-                                next.push(nextVal);
-                            }
-                        }
-                        last = next;
-                    }
-
-                    return last;
                 }
 
                 var _scriptAttrs = null;
@@ -930,7 +901,6 @@
                 return {
                     typeCheck: typeCheck,
                     forEach: forEach,
-                    evalTarget: evalTarget,
                     triggerEvent: triggerEvent,
                     matchesSelector: matchesSelector,
                     getScript: getScript,
@@ -1590,28 +1560,14 @@
                 });
 
                 _parser.addGrammarElement("target", function (parser, tokens) {
-                    var root = parser.parseAnyOf(["symbol", "classRef", "idRef"], tokens);
-                    if (root == null) {
-                        parser.raiseParseError(tokens, "Expected a valid target expression");
+                    var expr = _parser.parseElement("expression", tokens);
+                    if (expr.type === "symbol" || expr.type === "idRef" ||
+                        expr.type === "classRef" || expr.type === "propertyAccess") {
+                        return expr;
+                    } else {
+                        _parser.raiseParseError(tokens, "A target expression must be writable");
                     }
-
-                    var propPath = []
-                    while (tokens.matchOpToken(".")) {
-                        propPath.push(tokens.requireTokenType("IDENTIFIER").value)
-                    }
-
-                    return {
-                        type: "target",
-                        propPath: propPath,
-                        root: root,
-                        args: [root],
-                        op:function(context, targetRoot) {
-                            return _runtime.evalTarget(targetRoot, propPath);
-                        },
-                        evaluate: function (ctx) {
-                            return _runtime.unifiedEval(this, ctx);
-                        }
-                    };
+                    return expr;
                 });
 
                 _parser.addGrammarElement("command", function (parser, tokens) {
@@ -2626,26 +2582,36 @@
 
                         var value = parser.parseElement("expression", tokens);
 
-                        var operation = tokens.matchToken("into") ||
+                        var operationToken = tokens.matchToken("into") ||
                             tokens.matchToken("before") ||
                             tokens.matchToken("after");
 
-                        if (operation == null && tokens.matchToken("at")) {
-                            operation = tokens.matchToken("start") ||
+                        if (operationToken == null && tokens.matchToken("at")) {
+                            operationToken = tokens.matchToken("start") ||
                                 tokens.matchToken("end");
                             tokens.requireToken("of");
                         }
 
-                        if (operation == null) {
+                        if (operationToken == null) {
                             parser.raiseParseError(tokens, "Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
                         }
                         var target = parser.parseElement("target", tokens);
 
-                        var operation = operation.value;
-                        var directWrite = target.propPath.length === 0 && operation === "into";
-                        var symbolWrite = directWrite && target.root.type === "symbol";
-                        if (directWrite && !symbolWrite) {
+                        var operation = operationToken.value;
+                        var symbolWrite = target.type === "symbol" && operation === "into";
+                        if (target.type !== "symbol" && operation === "into" && target.root == null) {
                             parser.raiseParseError(tokens, "Can only put directly into symbols, not references")
+                        }
+
+                        var root = null;
+                        var prop = null;
+                        if (symbolWrite) {
+                            // root is null
+                        } else if (operation === "into") {
+                            prop = target.prop.value;
+                            root = target.root;
+                        } else {
+                            root = target;
                         }
 
                         var putCmd = {
@@ -2654,31 +2620,30 @@
                             operation: operation,
                             symbolWrite: symbolWrite,
                             value: value,
-                            args: [target.root, value],
+                            args: [root, value],
                             op: function(context, root, valueToPut){
                                 if (symbolWrite) {
-                                    context[target.root.name] = valueToPut;
+                                    context[target.name] = valueToPut;
                                 } else {
                                     if (operation === "into") {
-                                        var lastProperty = target.propPath.slice(-1); // steal last property for assignment
-                                        _runtime.forEach(_runtime.evalTarget(root, target.propPath.slice(0, -1)), function(target){
-                                            target[lastProperty] = valueToPut;
+                                        _runtime.forEach(root, function(elt){
+                                            elt[prop] = valueToPut;
                                         })
                                     } else if (operation === "before") {
-                                        _runtime.forEach(_runtime.evalTarget(root, target.propPath), function(target){
-                                            target.insertAdjacentHTML('beforebegin', valueToPut);
+                                        _runtime.forEach(root, function(elt){
+                                            elt.insertAdjacentHTML('beforebegin', valueToPut);
                                         })
                                     } else if (operation === "start") {
-                                        _runtime.forEach(_runtime.evalTarget(root, target.propPath), function(target){
-                                            target.insertAdjacentHTML('afterbegin', valueToPut);
+                                        _runtime.forEach(root, function(elt){
+                                            elt.insertAdjacentHTML('afterbegin', valueToPut);
                                         })
                                     } else if (operation === "end") {
-                                        _runtime.forEach(_runtime.evalTarget(root, target.propPath), function(target){
-                                            target.insertAdjacentHTML('beforeend', valueToPut);
+                                        _runtime.forEach(root, function(elt){
+                                            elt.insertAdjacentHTML('beforeend', valueToPut);
                                         })
                                     } else if (operation === "after") {
-                                        _runtime.forEach(_runtime.evalTarget(root, target.propPath), function(target){
-                                            target.insertAdjacentHTML('afterend', valueToPut);
+                                        _runtime.forEach(root, function(elt){
+                                            elt.insertAdjacentHTML('afterend', valueToPut);
                                         })
                                     }
                                 }
@@ -2701,10 +2666,18 @@
 
                         var value = parser.parseElement("expression", tokens);
 
-                        var directWrite = target.propPath.length === 0;
-                        var symbolWrite = directWrite && target.root.type === "symbol";
-                        if (directWrite && !symbolWrite) {
+                        var symbolWrite = target.type === "symbol";
+                        if (target.type !== "symbol" && target.root == null) {
                             parser.raiseParseError(tokens, "Can only put directly into symbols, not references")
+                        }
+
+                        var root = null;
+                        var prop = null;
+                        if (symbolWrite) {
+                            // root is null
+                        } else {
+                            prop = target.prop.value;
+                            root = target.root;
                         }
 
                         var setCmd = {
@@ -2712,14 +2685,13 @@
                             target: target,
                             symbolWrite: symbolWrite,
                             value: value,
-                            args: [symbolWrite ? null : target.root, value],
+                            args: [root, value],
                             op: function(context, root, valueToSet) {
                                 if (symbolWrite) {
-                                    context[target.root.name] = valueToSet;
+                                    context[target.name] = valueToSet;
                                 } else {
-                                    var lastProperty = target.propPath.slice(-1); // steal last property for assignment
-                                    _runtime.forEach(_runtime.evalTarget(root, target.propPath.slice(0, -1)), function (target) {
-                                        target[lastProperty] = valueToSet;
+                                    _runtime.forEach(root, function(elt){
+                                        elt[prop] = valueToSet;
                                     })
                                 }
                                 return _runtime.findNext(this);
