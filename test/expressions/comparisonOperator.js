@@ -94,4 +94,27 @@ describe("the comparisonOperator expression", function () {
 
 
 
+    it("is works", function () {
+        var result = evalHyperScript("1 is 2")
+        result.should.equal(false);
+
+        var result = evalHyperScript("2 is 1")
+        result.should.equal(false);
+
+        var result = evalHyperScript("2 is 2")
+        result.should.equal(true);
+    });
+
+    it("is not works", function () {
+        var result = evalHyperScript("1 is not 2")
+        result.should.equal(true);
+
+        var result = evalHyperScript("2 is not 1")
+        result.should.equal(true);
+
+        var result = evalHyperScript("2 is not 2")
+        result.should.equal(false);
+    });
+
+
 });

@@ -7,7 +7,9 @@ title: ///_hyperscript
 
 ### Syntax
 
-`add <class-ref or attribute-ref> [to <target-expression>]`
+```ebnf
+add <class-ref or attribute-ref> [to <target-expression>]
+```
 
 ### Description
 

@@ -1,7 +1,8 @@
 $midBlue: #3465a4;
-$lightBlue: lighten($midBlue, 30%);
+$lightBlue: #3d72d7;
 
 body {
+    overflow-x:hidden;
     margin: 0px;
     line-height: 1.4em;
     font-size: 18px;
@@ -14,52 +15,47 @@ table {
     font-size: 18px;
 }
 
+.info-table table tbody tr td:first-of-type {
+    white-space: nowrap;
+}
+
+.full-width {
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+}
+
+.logo {
+    font-size: 28px;
+    font-weight: bold;
+    &:hover{
+        cursor: pointer;
+    }
+}
+
+.light {
+}
+
+.content{
+}
+
+.top-nav {
+    line-height: 30px;
+    border-bottom: 1px solid #d0d0d0;
+    margin: 0px;
+    box-shadow: 0px 4px 15px 0px rgb(239, 239, 239);
+    margin-bottom:1em;
+}
+
+.hide {
+    display:none;
+}
+
 .active a {
     font-weight: bold;
 }
 
 code {
     font-weight: bold;
-}
-
-.hero {
-    background: url(/img/topo.svg), linear-gradient(#1f1f1f, #2d2d2d) ;
-    vertical-align: center;
-    color: whitesmoke;
-    margin-top: -1em;
-    font-size: 1em;
-    line-height: 0em;
-    .s1 {
-        color: $midBlue;
-    }
-    .s2 {
-        color: lighten($midBlue, 10%);
-    }
-    .s3 {
-        color: lighten($midBlue, 20%);
-    }
-    .s4 {
-        color: lighten($midBlue, 30%);
-    }
-    &.light {
-        background: none;
-        color: #1f1f1f;
-    }
-    @media(max-width:45em) {
-        margin-top: -1em;
-        font-size: 1em;
-    }
-}
-
-.nav {
-    font-size: 1.2em;
-    border-bottom: solid 1px lightgray;
-    padding: 12px;
-    a {
-        margin: 8px;
-        font-weight: bold;
-    }
-    margin: 0px;
 }
 
 p {
@@ -70,13 +66,12 @@ pre[class*="language-"] {
     font-size: 16px;
     margin-top: 24px !important;
     margin-bottom: 24px !important;
-    margin-left: 48px !important;
-    margin-right: 48px !important;
-    @media(max-width:45em) {
-        margin-left: calc(50% - 50vw) !important;
-        margin-right: calc(50% - 50vw) !important;
-        overflow-x: scroll !important;
-        border-radius: 0 !important;
+}
+
+@media(min-width:45rem) {
+    pre[class*="language-"] {
+        margin-left: 48px !important;
+        margin-right: 48px !important;
     }
 }
 
@@ -86,15 +81,20 @@ blockquote {
     margin-right: 32px;
 }
 
+li {
+    margin-bottom: 6px;
+}
+
 table {
     margin: 16px;
     width: 90%;
-    @media(max-width:45em) {
-        margin-left: calc(50% - 50vw) !important;
-        margin-right: calc(50% - 50vw) !important;
-        overflow-x: scroll !important;
-        border-radius: 0 !important;
-    }
+}
+
+.hero {
+    text-align: center;
+    font-size: 5em;
+    margin: 0;
+    line-height: 1em;
 }
 
 a {
@@ -106,31 +106,70 @@ a {
     text-align: center;
 }
 
+.nav {
+    ul {
+        list-style: none;
+        padding-left: 12px;
+    }
+}
+
+.hamburger {
+    display: none;
+}
+
 h2:not(:first-child) {
     margin-top: 42px;
 }
-
 h3 {
     margin-top: 32px;
 }
-
 h4 {
     margin-top: 16px;
 }
 
-/* customized version of lit.css */
-.full-width {
-    margin-left: calc(50% - 50vw);
-    margin-right: calc(50% - 50vw);
-}
-
-.hide {
-    display:none;
-}
-
-* + *{
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
     box-sizing: border-box;
-    margin: .5em 0;
+}
+
+
+@media(max-width:45em) {
+    #nav {
+        height: 0px;
+        overflow: hidden;
+        text-align: center;
+        font-size: 22px;
+        &.show {
+            height: initial;
+        }
+    }
+    .hero {
+        font-size: 2.5em;
+    }
+    pre[class*="language-"]  {
+        // margin-left: calc(50% - 50vw) !important;
+        // margin-right: calc(50% - 50vw) !important;
+        overflow-x: scroll !important;
+        border-radius: 0 !important;
+    }
+    .info-table  {
+        margin-left: calc(50% - 50vw) !important;
+        margin-right: calc(50% - 50vw) !important;
+        overflow-x: scroll !important;
+    }
+    .no-mobile {
+        display: none !important;
+    }
+    .hamburger {
+        display: inline-block;
+        float: right;
+    }
+    .nav {
+        text-align: center;
+        font-size: 1.2em;
+        line-height: 1.3em;
+    }
 }
 
 @media(min-width:45em) {
@@ -152,9 +191,14 @@ h4 {
     .\32 {
         width: 15%;
     }
+    .content .row .nav,
+    .logo-wrapper{
+        width:12rem;
+    }
     .row {
         display: table;
-        border-spacing: 1em 0;
+        table-layout: fixed;
+        // border-spacing: 1em 0;
     }
 }
 
@@ -182,8 +226,8 @@ a[href]:hover, .btn:hover {
 }
 
 .c {
+    width: calc(100% - 2em);
     max-width: 55em;
-    padding: 1em;
     margin: auto;
 }
 
@@ -212,6 +256,7 @@ th {
     background: white;
     border: solid;
     cursor:pointer;
+    border-radius: 8px;
 }
 
 pre {
@@ -222,3 +267,95 @@ table.delete-row-example .kutty-swapping {
     opacity: 0;
     transition: visibility 0s 1s, opacity 1s linear;
 }
+
+// MENU
+
+.menu{
+    padding:1em 0;
+}
+
+.github-stars iframe{
+    max-width:95px
+}
+
+// Content
+
+.content {
+    padding-top:1em;
+}
+
+h1,h2,h3,h4{
+    margin-bottom: .65em;
+}
+
+// UL in content
+:not(.nav) ul{
+    padding-left: 2em;
+}
+
+.nav ul{
+    padding-left: 0;
+    li ul {
+        padding-left:12px;
+    }
+}
+
+
+@media(min-width:45em) {
+
+    // Menu
+    .menu,
+    .navigation > div{
+        display:flex;
+        align-items:center;
+    }
+    .navigation{
+        flex:1;
+        display:flex;
+        justify-content: space-between;
+        padding-left: calc(1em + 1.5vw);
+    }
+    .navigation-items > *:not(:last-child){
+        margin-right: calc(.5em + .7vw);
+    }
+    .github-stars{
+        display:flex;
+        align-items:center;
+        a{
+            margin:0 calc(.5em + .7vw);
+        }
+
+    }
+
+    // Content
+    .content .col:not(.nav) {
+        padding-left: calc(1em + 1.5vw);
+    }
+    .content .nav > p,
+    .content .nav #contents{
+        position: sticky;
+
+    }
+
+    .content .nav #contents{
+        top: 3.5em;
+    }
+    .content .nav > p
+    {
+        position: sticky;
+        top: 2vh;
+    }
+
+}
+
+@media(max-width:calc(45rem - .1rem)) {
+    .github-stars{
+        text-align:center;
+        margin-top:1em;
+        a{
+            display:block;
+        }
+    }
+}
+
+

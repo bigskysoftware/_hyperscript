@@ -12,7 +12,7 @@ title: ///_hyperscript
 * `event-name` can be a symbol, a dot-separated symbol or a string that names the event to respond to
 * `param-list` is a comma separated list of parameter names
 * `command-list` is a list of [commands](/docs#commands), optionally separated by the `then` keyword
-* `end` is optional unless needed to separate multiple commands
+* `end` is optional if you are chaining `on` features together, required otherwise
 
 ### Description
 

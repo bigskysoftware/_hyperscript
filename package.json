@@ -5,7 +5,7 @@
     "scripting",
     "HTML"
   ],
-  "version": "0.0.3",
+  "version": "0.0.4",
   "homepage": "https://hyperscript.org/",
   "bugs": {
     "url": "https://github.com/bigskysoftware/_hyperscript/issues"
@@ -36,6 +36,8 @@
     "mocha": "^7.1.1",
     "mocha-chrome": "^2.2.0",
     "sinon": "^9.0.2",
-    "uglify-js": "^3.9.1"
+    "uglify-js": "^3.9.1",
+    "node-sass": "^5.0.0",
+    "sass": "^1.32.8"
   }
 }

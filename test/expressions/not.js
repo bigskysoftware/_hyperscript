@@ -1,4 +1,4 @@
-describe("the boolean literal expression", function () {
+describe("the not expression", function () {
 
     it("not inverts true", function () {
         var result = evalHyperScript("not true")
