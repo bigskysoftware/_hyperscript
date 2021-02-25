@@ -10,8 +10,8 @@
             case 'init':
                 importScripts(e.data._hyperscript);
                 importScripts.apply(self, e.data.extraScripts);
-                var tokens = _hyperscript.lexer.makeTokensObject(e.data.tokens, [], e.data.source);
-                var parsed = _hyperscript.parser.parseElement('hyperscript', tokens);
+                var tokens = _hyperscript.internals.lexer.makeTokensObject(e.data.tokens, [], e.data.source);
+                var parsed = _hyperscript.internals.parser.parseElement('hyperscript', tokens);
                 postMessage({ type: 'didInit' });
                 break;
             case 'call':
@@ -43,7 +43,7 @@
         /* WORKER BOUNDARY */
     }
 
-    _hyperscript.parser.addFeature("worker", function(parser, runtime, tokens) {
+    _hyperscript.addFeature("worker", function(parser, runtime, tokens) {
         if (tokens.matchToken('worker')) {
             var name = parser.requireElement("dotOrColonPath", tokens);
             var qualifiedName = name.evaluate();
@@ -139,7 +139,7 @@
                 name: workerName,
                 worker: worker,
                 execute: function (ctx) {
-                    _hyperscript.helpers.assignToNamespace(nameSpace, workerName, stubs)
+                    runtime.assignToNamespace(nameSpace, workerName, stubs)
                 }
             };
         }

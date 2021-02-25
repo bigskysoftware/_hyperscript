@@ -47,22 +47,6 @@
                 return new (Cls.bind.apply(Cls, [Cls].concat(args)));
             }
 
-            // This function is part of the public API
-            function assignToNamespace(nameSpace, name, value) {
-                var root = globalScope;
-                while (nameSpace.length > 0) {
-                    var propertyName = nameSpace.shift();
-                    var newRoot = root[propertyName];
-                    if (newRoot == null) {
-                        newRoot = {};
-                        root[propertyName] = newRoot;
-                    }
-                    root = newRoot;
-                }
-
-                root[name] = value;
-            }
-
             var globalScope = typeof self !== 'undefined' ? self : this;
 
             //====================================================================
@@ -996,6 +980,21 @@
                     }
                 }
 
+                function assignToNamespace(nameSpace, name, value) {
+                    var root = globalScope;
+                    while (nameSpace.length > 0) {
+                        var propertyName = nameSpace.shift();
+                        var newRoot = root[propertyName];
+                        if (newRoot == null) {
+                            newRoot = {};
+                            root[propertyName] = newRoot;
+                        }
+                        root = newRoot;
+                    }
+
+                    root[name] = value;
+                }
+
                 var hyperscriptUrl = 'document' in globalScope ? document.currentScript.src : null
 
                 return {
@@ -1014,6 +1013,7 @@
                     unifiedEval: unifiedEval,
                     unifiedExec: unifiedExec,
                     resolveProperty: resolveProperty,
+                    assignToNamespace: assignToNamespace,
                     hyperscriptUrl: hyperscriptUrl,
                     HALT: HALT
                 }
@@ -1840,7 +1840,7 @@
                             args: args,
                             start: start,
                             execute: function (ctx) {
-                                assignToNamespace(nameSpace, funcName, function () {
+                                runtime.assignToNamespace(nameSpace, funcName, function () {
                                     // null, worker
                                     var root = 'document' in globalScope ? document.body : null
                                     var elt = 'document' in globalScope ? document.body : globalScope
@@ -2805,14 +2805,6 @@
             // API
             //====================================================================
 
-            function processNode(elt) {
-                _runtime.processNode(elt);
-            }
-
-            function evaluate(str) { //OK
-                return _runtime.evaluate(str); //OK
-            }
-
             //====================================================================
             // Initialization
             //====================================================================
@@ -2840,36 +2832,38 @@
                 }
             }
 
-            function compileToJS(str) {
-                var tokens = _lexer.tokenize(str);
-                var hyperScript = _parser.parseHyperScript(tokens);
-                return _parser.transpile(hyperScript);
-            }
-
             if ('document' in globalScope) {
                 ready(function () {
                     mergeMetaConfig();
-                    processNode(document.body);
+                    _runtime.processNode(document.body);
                     document.addEventListener("htmx:load", function(evt){
-                        processNode(evt.detail.elt);
+                        _runtime.processNode(evt.detail.elt);
                     })
                 })
             }
 
             /* Public API */
             return {
-                lexer: _lexer,
-                parser: _parser,
-                runtime: _runtime,
-                evaluate: evaluate,
-                processNode: processNode,
-                toJS: compileToJS,
+                internals:{
+                    lexer: _lexer,
+                    parser: _parser,
+                    runtime: _runtime,
+                },
+                addFeature: function(keyword, definition) {
+                    _parser.addFeature(keyword, definition)
+                },
+                addCommand: function(keyword, definition) {
+                    _parser.addCommand(keyword, definition)
+                },
+                evaluate: function (str) { //OK
+                    return _runtime.evaluate(str); //OK
+                },
+                processNode: function (elt) {
+                    _runtime.processNode(elt);
+                },
                 config: {
                     attributes : "_, script, data-script"
                 },
-                helpers: {
-                    assignToNamespace: assignToNamespace
-                }
             }
         }
     )()

@@ -1,7 +1,7 @@
 describe("the _hyperscript tokenizer", function() {
 
     it("handles basic token types", function () {
-        var lexer = _hyperscript.lexer;
+        var lexer = _hyperscript.internals.lexer;
 
         var token = lexer.tokenize("foo").consumeToken();
         token.type.should.equal("IDENTIFIER");
@@ -25,7 +25,7 @@ describe("the _hyperscript tokenizer", function() {
     });
 
     it('handles whitespace properly', function(){
-        var lexer = _hyperscript.lexer;
+        var lexer = _hyperscript.internals.lexer;
         lexer.tokenize('   ').list.length.should.equal(0);
         lexer.tokenize('  asdf').list.length.should.equal(1);
         lexer.tokenize('  asdf  ').list.length.should.equal(2);
@@ -45,7 +45,7 @@ describe("the _hyperscript tokenizer", function() {
     })
 
     it('handles comments properly', function(){
-        var lexer = _hyperscript.lexer;
+        var lexer = _hyperscript.internals.lexer;
         lexer.tokenize('--').list.length.should.equal(0);
         lexer.tokenize('asdf--').list.length.should.equal(1);
         lexer.tokenize('--asdf').list.length.should.equal(0);
@@ -54,7 +54,7 @@ describe("the _hyperscript tokenizer", function() {
     })
 
     it('handles class identifiers properly', function(){
-        var lexer = _hyperscript.lexer;
+        var lexer = _hyperscript.internals.lexer;
 
         var token = lexer.tokenize('.a').consumeToken();
         token.type.should.equal("CLASS_REF");
@@ -96,7 +96,7 @@ describe("the _hyperscript tokenizer", function() {
     })
 
     it('handles id references properly', function(){
-        var lexer = _hyperscript.lexer;
+        var lexer = _hyperscript.internals.lexer;
 
         var token = lexer.tokenize('#a').consumeToken();
         token.type.should.equal("ID_REF");
@@ -138,7 +138,7 @@ describe("the _hyperscript tokenizer", function() {
     })
 
     it("handles identifiers properly", function () {
-        var lexer = _hyperscript.lexer;
+        var lexer = _hyperscript.internals.lexer;
 
         var token = lexer.tokenize("foo").consumeToken();
         token.type.should.equal("IDENTIFIER");
@@ -169,7 +169,7 @@ describe("the _hyperscript tokenizer", function() {
 
 
     it("handles numbers properly", function () {
-        var lexer = _hyperscript.lexer;
+        var lexer = _hyperscript.internals.lexer;
 
         var token = lexer.tokenize("1").consumeToken();
         token.type.should.equal("NUMBER");
@@ -191,32 +191,32 @@ describe("the _hyperscript tokenizer", function() {
     })
 
     it("handles strings properly", function () {
-        var lexer = _hyperscript.lexer;
+        var lexer = _hyperscript.internals.lexer;
         var token = lexer.tokenize('"foo"').consumeToken();
         token.type.should.equal("STRING");
         token.value.should.equal("foo");
 
-        var lexer = _hyperscript.lexer;
+        var lexer = _hyperscript.internals.lexer;
         var token = lexer.tokenize('"fo\'o"').consumeToken();
         token.type.should.equal("STRING");
         token.value.should.equal("fo'o");
 
-        var lexer = _hyperscript.lexer;
+        var lexer = _hyperscript.internals.lexer;
         var token = lexer.tokenize('"fo\\"o"').consumeToken();
         token.type.should.equal("STRING");
         token.value.should.equal('fo"o');
 
-        var lexer = _hyperscript.lexer;
+        var lexer = _hyperscript.internals.lexer;
         var token = lexer.tokenize("'foo'").consumeToken();
         token.type.should.equal("STRING");
         token.value.should.equal("foo");
 
-        var lexer = _hyperscript.lexer;
+        var lexer = _hyperscript.internals.lexer;
         var token = lexer.tokenize("'fo\"o'").consumeToken();
         token.type.should.equal("STRING");
         token.value.should.equal('fo"o');
 
-        var lexer = _hyperscript.lexer;
+        var lexer = _hyperscript.internals.lexer;
         var token = lexer.tokenize("'fo\\'o'").consumeToken();
         token.type.should.equal("STRING");
         token.value.should.equal("fo'o");
@@ -235,7 +235,7 @@ describe("the _hyperscript tokenizer", function() {
     })
 
     it("handles operators properly", function () {
-        var lexer = _hyperscript.lexer;
+        var lexer = _hyperscript.internals.lexer;
 
         var optable = {'+': 'PLUS', '-': 'MINUS', '*': 'MULTIPLY', '.': 'PERIOD', '\\': 'BACKSLASH', ':': 'COLON',
             '%': 'PERCENT', '|': 'PIPE', '!': 'EXCLAMATION', '?': 'QUESTION', '#': 'POUND', '&': 'AMPERSAND',
