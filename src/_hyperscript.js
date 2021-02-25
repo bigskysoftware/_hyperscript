@@ -1899,9 +1899,15 @@
                     }
                 });
 
-                // Stuff for workers
-
-                if ('document' in globalScope) var currentScriptSrc = document.currentScript.src;
+                _parser.addFeature("worker", function (parser, runtime, tokens) {
+                    if (tokens.matchToken("worker")) {
+                        parser.raiseParseError(tokens, 
+                            "In order to use the 'worker' feature, include " +
+                            "the _hyperscript worker plugin. See " +
+                            "https://hyperscript.org/features/worker/ for " +
+                            "more info.")
+                    }
+                })
 
                 _parser.addGrammarElement("jsBody", function(parser, runtime, tokens) {
                     var jsSourceStart = tokens.currentToken().start;
