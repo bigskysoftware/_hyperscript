@@ -1669,7 +1669,6 @@
                 _parser.addGrammarElement("hyperscript", function(parser, runtime, tokens) {
                     var onFeatures = []
                     var functionFeatures = []
-                    var workerFeatures = []
 
                     if (tokens.hasMore()) {
                         do {
@@ -1679,11 +1678,12 @@
                             } else if(feature.type === "defFeature") {
                                 feature.execute();
                                 functionFeatures.push(feature);
-                            } else if (feature.type === "workerFeature") {
-                                workerFeatures.push(feature);
-                                feature.execute();
                             } else if (feature.type === "jsFeature") {
                                 feature.execute();
+                            } else { // this is a plugin feature
+                                if ('execute' in feature) {
+                                    feature.execute();
+                                }
                             }
                             var chainedOn = feature.type === "onFeature" && tokens.currentToken() && tokens.currentToken().value === "on";
                         } while ((chainedOn || tokens.matchToken("end")) && tokens.hasMore())
@@ -1695,7 +1695,6 @@
                         type: "hyperscript",
                         onFeatures: onFeatures,
                         functions: functionFeatures,
-                        workers: workerFeatures,
                         execute: function () {
                             // no op
                         }
