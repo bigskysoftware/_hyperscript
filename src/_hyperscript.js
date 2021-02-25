@@ -1447,6 +1447,27 @@
                     }
                 });
 
+                _parser.addIndirectExpression("arrayIndex", function (parser, runtime, tokens, root) {
+                    if (tokens.matchOpToken("[")) {
+                        var index = parser.requireElement("expression", tokens);
+                        tokens.requireOpToken("]")
+
+                        var arrayIndex = {
+                            type: "arrayIndex",
+                            root: root,
+                            index: index,
+                            args: [root, index],
+                            op: function(ctx, root, index) {
+                                    return root[index]
+                            },
+                            evaluate: function(context){
+                                return _runtime.unifiedEval(this, context);
+                            }
+                        };
+
+                        return _parser.parseElement("indirectExpression", tokens, arrayIndex);
+                    }
+                });
 
                 _parser.addGrammarElement("postfixExpression", function(parser, runtime, tokens) {
                     var root = parser.parseElement("primaryExpression", tokens);

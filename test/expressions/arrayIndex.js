@@ -1,4 +1,4 @@
-describe("array operator", function() {
+describe("array index operator", function() {
 
     beforeEach(function () {
         clearWorkArea();
