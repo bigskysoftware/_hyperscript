@@ -3,7 +3,15 @@ layout: layout.njk
 title: ///_hyperscript
 ---
 
-# The `js` Feature (top-level)
+## The `js` Feature (top-level)
+
+### Syntax
+
+`js <js-body> end`
+
+* `js-body` is some JavaScript code.
+
+### Description
 
 **Note:** This page is about the top-level JS feature. \_hyperscript also supports [inline JS as a command](/commands/js/), say, inside an event listener or function.
 
@@ -47,11 +55,9 @@ end
 ```hyperscript
 worker MyWorker
     js
-        return {
-            _regexFind(re, group, str) {
-                return new RegExp(re).exec(str)[group];
-            }
-        };
+        function _regexFind(re, group, str) {
+            return new RegExp(re).exec(str)[group];
+        }
     end
     def regexFind(re, group, str) return _regexFind(re, group, str) end
 ```
