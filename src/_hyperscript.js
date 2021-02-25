@@ -923,7 +923,7 @@
             {
                 _parser.addGrammarElement("parenthesized", function (parser, tokens) {
                     if (tokens.matchOpToken('(')) {
-                        var expr = parser.parseElement("expression", tokens);
+                        var expr = parser.requireElement("expression", tokens);
                         tokens.requireOpToken(")");
                         return {
                             type: "parenthesized",
@@ -1012,7 +1012,7 @@
                         var name = tokens.matchTokenType("IDENTIFIER");
                         var value = null;
                         if (tokens.matchOpToken("=")) {
-                            value = parser.parseElement("expression", tokens);
+                            value = parser.requireElement("expression", tokens);
                         }
                         tokens.requireOpToken("]");
                         return {
@@ -1042,7 +1042,7 @@
                             do {
                                 var name = tokens.requireTokenType("IDENTIFIER");
                                 tokens.requireOpToken(":");
-                                var value = parser.parseElement("expression", tokens);
+                                var value = parser.requireElement("expression", tokens);
                                 valueExpressions.push(value);
                                 fields.push({name: name, value: value});
                             } while (tokens.matchOpToken(","))
@@ -1075,7 +1075,7 @@
                             do {
                                 var name = tokens.requireTokenType("IDENTIFIER");
                                 tokens.requireOpToken(":");
-                                var value = parser.parseElement("expression", tokens);
+                                var value = parser.requireElement("expression", tokens);
                                 valueExpressions.push(value);
                                 fields.push({name: name, value: value});
                             } while (tokens.matchOpToken(","))
@@ -1161,10 +1161,7 @@
                         var values = [];
                         if (!tokens.matchOpToken(']')) {
                             do {
-                                var expr = parser.parseElement("expression", tokens);
-                                if (expr == null) {
-                                    parser.raiseParseError(tokens, "Expected an expression");
-                                }
+                                var expr = parser.requireElement("expression", tokens);
                                 values.push(expr);
                             } while (tokens.matchOpToken(","))
                             tokens.requireOpToken("]");
@@ -1196,10 +1193,7 @@
                         // TODO compound op token
                         tokens.requireOpToken("-");
                         tokens.requireOpToken(">");
-                        var expr = parser.parseElement("expression", tokens);
-                        if (expr == null) {
-                            parser.raiseParseError(tokens, "Expected an expression");
-                        }
+                        var expr = parser.requireElement("expression", tokens);
                         return {
                             type: "blockLiteral",
                             args: args,
@@ -1268,7 +1262,7 @@
                         var args = [];
                         if (!tokens.matchOpToken(')')) {
                             do {
-                                args.push(parser.parseElement("expression", tokens));
+                                args.push(parser.requireElement("expression", tokens));
                             } while (tokens.matchOpToken(","))
                             tokens.requireOpToken(")");
                         }
@@ -1354,7 +1348,7 @@
 
                 _parser.addGrammarElement("logicalNot", function (parser, tokens) {
                     if (tokens.matchToken("not")) {
-                        var root = parser.parseElement("unaryExpression", tokens);
+                        var root = parser.requireElement("unaryExpression", tokens);
                         return {
                             type: "logicalNot",
                             root: root,
@@ -1371,7 +1365,7 @@
 
                 _parser.addGrammarElement("noExpression", function (parser, tokens) {
                     if (tokens.matchToken("no")) {
-                        var root = parser.parseElement("unaryExpression", tokens);
+                        var root = parser.requireElement("unaryExpression", tokens);
                         return {
                             type: "noExpression",
                             root: root,
@@ -1388,7 +1382,7 @@
 
                 _parser.addGrammarElement("negativeNumber", function (parser, tokens) {
                     if (tokens.matchOpToken("-")) {
-                        var root = parser.parseElement("unaryExpression", tokens);
+                        var root = parser.requireElement("unaryExpression", tokens);
                         return {
                             type: "negativeNumber",
                             root: root,
@@ -1462,7 +1456,7 @@
                         }
                     }
                     if (comparisonStr) { // Do not allow chained comparisons, which is dumb
-                        var rhs = parser.parseElement("mathExpression", tokens);
+                        var rhs = parser.requireElement("mathExpression", tokens);
                         expr = {
                             type: "comparisonOperator",
                             operator: comparisonStr,
@@ -1509,7 +1503,7 @@
                         if (initialLogicalOp.value !== logicalOp.value) {
                             parser.raiseParseError(tokens, "You must parenthesize logical operations with different operators")
                         }
-                        var rhs = parser.parseElement("comparisonExpression", tokens);
+                        var rhs = parser.requireElement("comparisonExpression", tokens);
                         expr = {
                             type: "logicalOperator",
                             operator: logicalOp.value,
@@ -1538,7 +1532,7 @@
 
                 _parser.addGrammarElement("asyncExpression", function (parser, tokens) {
                     if (tokens.matchToken('async')) {
-                        var value = parser.parseElement("logicalExpression", tokens);
+                        var value = parser.requireElement("logicalExpression", tokens);
                         var expr = {
                             type: "asyncExpression",
                             value: value,
@@ -1590,10 +1584,7 @@
                     var workerFeatures = []
                     if (tokens.hasMore()) {
                         do {
-                            var feature = parser.parseElement("feature", tokens);
-                            if (feature == null) {
-                                parser.raiseParseError("Unexpected feature type : " + tokens.currentToken());
-                            }
+                            var feature = parser.requireElement("feature", tokens);
                             if (feature.type === "onFeature") {
                                 onFeatures.push(feature);
                             } else if(feature.type === "functionFeature") {
@@ -1655,7 +1646,7 @@
 
                         var filter = null;
                         if (tokens.matchOpToken('[')) {
-                            filter = parser.parseElement("expression", tokens);
+                            filter = parser.requireElement("expression", tokens);
                             tokens.requireOpToken(']');
                         }
 
@@ -1749,7 +1740,7 @@
 
                 _parser.addGrammarElement("functionFeature", function (parser, tokens) {
                     if (tokens.matchToken('def')) {
-                        var functionName = parser.parseElement("dotOrColonPath", tokens);
+                        var functionName = parser.requireElement("dotOrColonPath", tokens);
                         var nameVal = functionName.evaluate(); // OK
                         var nameSpace = nameVal.split(".");
                         var funcName = nameSpace.pop();
@@ -1879,7 +1870,7 @@
 
                 _parser.addGrammarElement("workerFeature", function(parser, tokens) {
                     if (tokens.matchToken('worker')) {
-                        var name = parser.parseElement("dotOrColonPath", tokens);
+                        var name = parser.requireElement("dotOrColonPath", tokens);
                         var qualifiedName = name.evaluate();
                         var nameSpace = qualifiedName.split(".");
                         var workerName = nameSpace.pop();
@@ -2108,7 +2099,7 @@
                         }
 
                         if (tokens.matchToken("to")) {
-                            var to = parser.parseElement("target", tokens);
+                            var to = parser.requireElement("target", tokens);
                         } else {
                             var to = parser.parseElement("implicitMeTarget");
                         }
@@ -2168,9 +2159,9 @@
                             }
                         }
                         if (tokens.matchToken("from")) {
-                            var from = parser.parseElement("target", tokens);
+                            var from = parser.requireElement("target", tokens);
                         } else {
-                            var from = parser.parseElement("implicitMeTarget");
+                            var from = parser.requireElement("implicitMeTarget");
                         }
 
                         if (elementExpr) {
@@ -2233,9 +2224,9 @@
                         }
 
                         if (tokens.matchToken("on")) {
-                            var on = parser.parseElement("target", tokens);
+                            var on = parser.requireElement("target", tokens);
                         } else {
-                            var on = parser.parseElement("implicitMeTarget");
+                            var on = parser.requireElement("implicitMeTarget");
                         }
 
                         if (tokens.matchToken("for")) {
@@ -2243,7 +2234,7 @@
                         } else if (tokens.matchToken("until")) {
                             var evt = parser.requireElement("dotOrColonPath", tokens, "Expected event name");
                             if (tokens.matchToken("from")) {
-                                var from = parser.parseElement("expression", tokens);
+                                var from = parser.requireElement("expression", tokens);
                             }
                         }
 
@@ -2310,7 +2301,7 @@
                             tokens.matchToken("a"); // optional "a"
                             var evt = _parser.requireElement("dotOrColonPath", tokens, "Expected event name");
                             if (tokens.matchToken("from")) {
-                                var on = parser.parseElement("expression", tokens);
+                                var on = parser.requireElement("expression", tokens);
                             }
                             // wait on event
                             var waitCmd = {
@@ -2379,13 +2370,13 @@
                 _parser.addGrammarElement("sendCmd", function (parser, tokens) {
                     if (tokens.matchToken("send")) {
 
-                        var eventName = parser.parseElement("dotOrColonPath", tokens);
+                        var eventName = parser.requireElement("dotOrColonPath", tokens);
 
                         var details = parser.parseElement("namedArgumentList", tokens);
                         if (tokens.matchToken("to")) {
-                            var to = parser.parseElement("target", tokens);
+                            var to = parser.requireElement("target", tokens);
                         } else {
-                            var to = parser.parseElement("implicitMeTarget");
+                            var to = parser.requireElement("implicitMeTarget");
                         }
 
 
@@ -2412,7 +2403,7 @@
                 _parser.addGrammarElement("returnCmd", function (parser, tokens) {
                     if (tokens.matchToken("return")) {
 
-                        var value = parser.parseElement("expression", tokens);
+                        var value = parser.requireElement("expression", tokens);
 
                         var returnCmd = {
                             type: "returnCmd",
@@ -2444,7 +2435,7 @@
                 _parser.addGrammarElement("triggerCmd", function (parser, tokens) {
                     if (tokens.matchToken("trigger")) {
 
-                        var eventName = parser.parseElement("dotOrColonPath", tokens);
+                        var eventName = parser.requireElement("dotOrColonPath", tokens);
                         var details = parser.parseElement("namedArgumentList", tokens);
 
                         var triggerCmd = {
@@ -2469,15 +2460,15 @@
                         var classRef = tokens.requireTokenType(tokens, "CLASS_REF");
 
                         if (tokens.matchToken("from")) {
-                            var from = parser.parseElement("target", tokens);
+                            var from = parser.requireElement("target", tokens);
                         } else {
-                            var from = parser.parseElement("implicitAllTarget")
+                            var from = parser.requireElement("implicitAllTarget")
                         }
 
                         if (tokens.matchToken("for")) {
-                            var forElt = parser.parseElement("target", tokens);
+                            var forElt = parser.requireElement("target", tokens);
                         } else {
-                            var forElt = parser.parseElement("implicitMeTarget")
+                            var forElt = parser.requireElement("implicitMeTarget")
                         }
 
                         var takeCmd = {
@@ -2506,12 +2497,12 @@
 
                 _parser.addGrammarElement("logCmd", function (parser, tokens) {
                     if (tokens.matchToken("log")) {
-                        var exprs = [parser.parseElement("expression", tokens)];
+                        var exprs = [parser.parseElement("expression", tokens)]; // HERE ---
                         while (tokens.matchOpToken(",")) {
-                            exprs.push(parser.parseElement("expression", tokens));
+                            exprs.push(parser.requireElement("expression", tokens));
                         }
                         if (tokens.matchToken("with")) {
-                            var withExpr = parser.parseElement("expression", tokens);
+                            var withExpr = parser.requireElement("expression", tokens);
                         }
                         var logCmd = {
                             type: "logCmd",
@@ -2536,7 +2527,7 @@
 
                 _parser.addGrammarElement("throwCmd", function (parser, tokens) {
                     if (tokens.matchToken("throw")) {
-                        var expr = parser.parseElement("expression", tokens);
+                        var expr = parser.requireElement("expression", tokens);
                         var throwCmd = {
                             type: "throwCmd",
                             expr: expr,
@@ -2560,7 +2551,7 @@
 
                 _parser.addGrammarElement("callCmd", function (parser, tokens) {
                     if (tokens.matchToken("call") || tokens.matchToken("get")) {
-                        var expr = parser.parseElement("expression", tokens);
+                        var expr = parser.requireElement("expression", tokens);
                         var callCmd = {
                             type: "callCmd",
                             expr: expr,
@@ -2580,7 +2571,7 @@
                 _parser.addGrammarElement("putCmd", function (parser, tokens) {
                     if (tokens.matchToken("put")) {
 
-                        var value = parser.parseElement("expression", tokens);
+                        var value = parser.requireElement("expression", tokens);
 
                         var operationToken = tokens.matchToken("into") ||
                             tokens.matchToken("before") ||
@@ -2595,7 +2586,7 @@
                         if (operationToken == null) {
                             parser.raiseParseError(tokens, "Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
                         }
-                        var target = parser.parseElement("target", tokens);
+                        var target = parser.requireElement("target", tokens);
 
                         var operation = operationToken.value;
                         var symbolWrite = target.type === "symbol" && operation === "into";
@@ -2660,11 +2651,11 @@
                 _parser.addGrammarElement("setCmd", function (parser, tokens) {
                     if (tokens.matchToken("set")) {
 
-                        var target = parser.parseElement("target", tokens);
+                        var target = parser.requireElement("target", tokens);
 
                         tokens.requireToken("to");
 
-                        var value = parser.parseElement("expression", tokens);
+                        var value = parser.requireElement("expression", tokens);
 
                         var symbolWrite = target.type === "symbol";
                         if (target.type !== "symbol" && target.root == null) {
@@ -2706,7 +2697,7 @@
 
                 _parser.addGrammarElement("ifCmd", function (parser, tokens) {
                     if (tokens.matchToken("if")) {
-                        var expr = parser.parseElement("expression", tokens);
+                        var expr = parser.requireElement("expression", tokens);
                         tokens.matchToken("then"); // optional 'then'
                         var trueBranch = parser.parseElement("commandList", tokens);
                         if (tokens.matchToken("else")) {
@@ -2759,7 +2750,7 @@
                             if (tokens.matchToken("event")) {
                                 var evt = _parser.requireElement( "dotOrColonPath", tokens, "Expected event name");
                                 if (tokens.matchToken("from")) {
-                                    var on = parser.parseElement("expression", tokens);
+                                    var on = parser.requireElement("expression", tokens);
                                 }
                             } else {
                                 var whileExpr = parser.requireElement( "expression", tokens);
