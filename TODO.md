@@ -114,5 +114,4 @@ end
 ### Parser Infrastructure
 * Recovering parser (we are single error right now)
 * Pull hyperscript core out?
-* Make parser pluggable with new syntactic elements (commands, features and primary/top-level expressions at least)
 * Make tokenizer pluggable with new tokenization elements
