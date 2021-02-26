@@ -33,6 +33,7 @@
 ### Language Features
 * Web Worker API but for Web Sockets... o_O)))
   * two way - server can invoke functions on client, client can invoke functions on server
+  * normal listening for messages also works of course
 * string expression templating
 ```
    set str to "this $is a ${cool.feature}"
