@@ -20,9 +20,21 @@
   "unpkg": "dist/_hyperscript.min.js",
   "scripts": {
     "test": "mocha-chrome test/index.html",
-    "dist": "cp -r src/* dist/ && npm run-script uglify && gzip -k -f dist/_hyperscript.min.js > dist/_hyperscript.min.js.gz && exit",
     "www": "node scripts/www.js",
-    "uglify": "uglifyjs -m eval -o dist/_hyperscript.min.js dist/_hyperscript.js"
+    "dist": "npm run clear && npm run copy && npm run concat && npm run uglify && npm run gzip",
+    "clear": "rm -f dist/*",
+    "copy": "cp -r src/* dist/",
+    "concat": "concat src/_hyperscript.js src/worker.js -o dist/_hyperscript_w9y.js",
+
+    "uglify": "npm run uglify:hyperscript && npm run uglify:worker && npm run uglify:w9y",
+    "uglify:hyperscript": "uglifyjs -m eval -o dist/_hyperscript.min.js dist/_hyperscript.js",
+    "uglify:worker": "uglifyjs -m eval -o dist/worker.min.js dist/worker.js",
+    "uglify:w9y": "uglifyjs -m eval -o dist/_hyperscript_w9y.min.js dist/_hyperscript_w9y.js",
+
+    "gzip": "npm run gzip:hyperscript && npm run gzip:worker && npm run gzip:w9y",
+    "gzip:hyperscript": "gzip -k -f dist/_hyperscript.min.js",
+    "gzip:worker": "gzip -k -f dist/worker.min.js",
+    "gzip:w9y": "gzip -k -f dist/_hyperscript_w9y.min.js"
   },
   "repository": {
     "type": "git",
@@ -31,13 +43,14 @@
   "devDependencies": {
     "@11ty/eleventy": "^0.10.0",
     "chai": "^4.2.0",
+    "concat": "^1.0.3",
     "eleventy-plugin-sass": "^1.0.0",
     "fs-extra": "^9.0.0",
     "mocha": "^7.1.1",
     "mocha-chrome": "^2.2.0",
-    "sinon": "^9.0.2",
-    "uglify-js": "^3.9.1",
     "node-sass": "^5.0.0",
-    "sass": "^1.32.8"
+    "sass": "^1.32.8",
+    "sinon": "^9.0.2",
+    "uglify-js": "^3.9.1"
   }
 }
