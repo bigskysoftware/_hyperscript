@@ -46,5 +46,13 @@ describe("the remove command", function() {
         assert.isNull(div2.parentElement);
     })
 
+    it("can remove parent element", function(){
+        var div = make("<div id='p1'><button  id='b1' _=\"on click remove my.parentElement\"></button></div> ");
+        var btn = byId('b1');
+        assert.isNotNull(div.parentElement);
+        btn.click();
+        assert.isNull(div.parentElement);
+    })
+
 });
 

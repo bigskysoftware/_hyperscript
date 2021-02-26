@@ -25,12 +25,10 @@
     "clear": "rm -f dist/*",
     "copy": "cp -r src/* dist/",
     "concat": "concat src/_hyperscript.js src/worker.js -o dist/_hyperscript_w9y.js",
-
     "uglify": "npm run uglify:hyperscript && npm run uglify:worker && npm run uglify:w9y",
     "uglify:hyperscript": "uglifyjs -m eval -o dist/_hyperscript.min.js dist/_hyperscript.js",
     "uglify:worker": "uglifyjs -m eval -o dist/worker.min.js dist/worker.js",
     "uglify:w9y": "uglifyjs -m eval -o dist/_hyperscript_w9y.min.js dist/_hyperscript_w9y.js",
-
     "gzip": "npm run gzip:hyperscript && npm run gzip:worker && npm run gzip:w9y",
     "gzip:hyperscript": "gzip -k -f dist/_hyperscript.min.js",
     "gzip:worker": "gzip -k -f dist/worker.min.js",

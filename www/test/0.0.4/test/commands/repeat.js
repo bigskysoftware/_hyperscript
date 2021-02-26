@@ -214,6 +214,14 @@ describe("the repeat command", function() {
         delete window.sprayInto;
     })
 
+    it("basic times loop works", function(){
+        var d1 = make("<div _='on click repeat 3 times" +
+            "                                    put \"a\" at end of me" +
+            "                                  end'></div>");
+        d1.click();
+        d1.innerHTML.should.equal("aaa");
+    })
+
 
 
 });

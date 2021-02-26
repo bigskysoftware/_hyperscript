@@ -11,6 +11,7 @@ fs.copySync("node_modules/sinon/pkg/sinon.js", currentReleaseRoot + "/node_modul
 fs.copySync("test/", currentReleaseRoot + "/test");
 fs.copySync("src/", currentReleaseRoot + "/src");
 fs.copySync("src/_hyperscript.js", "www/js/_hyperscript.js");
+fs.copySync("src/worker.js", "www/js/worker.js");
 
 var testHTML = "<html><body style='font-family: sans-serif'><h1>HTMX TESTS</h1><ul>\n"
 fs.readdirSync(testRoot).reverse().forEach(function(file){
