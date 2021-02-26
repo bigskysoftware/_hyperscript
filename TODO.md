@@ -31,6 +31,9 @@
 ```
 
 ### Language Features
+* Web Worker API but for Web Sockets... o_O)))
+  * two way - server can invoke functions on client, client can invoke functions on server
+  * normal listening for messages also works of course
 * string expression templating
 ```
    set str to "this $is a ${cool.feature}"
@@ -97,7 +100,24 @@ end
     log ||x -- a global variable stored in memory
     log |||x -- a persistent variable stored in local storage
   ```
-  the hyperplane has infrastructure for catching mutations and updating references, as well as fully developed event model, and hyperplane expressions can be embedded in HTML
+  the hyperplane has infrastructure for catching mutations and updating references, as well as fully developed event model
+    * support a `bind` feature that will bind anything to an expression
+      ```
+        bind my.innerHTML to "x is " + |x 
+      ```
+      for this to work, the first time bind evaluates this it would just take whatever was returned and then loop
+      and put the hyperplane into a mutation-listening mode (for this context only) where instead of evaluating to the
+      value of |x, it would return a promise and resolve with a new value when |x is mutated
+      
+      this would leverage the async-transparency runtime and make lazy binding easy!
+      
+      it would also allow you to bind to anything asynchronous, such as a web socket
+
+      ```
+        bind my.innerHTML to socket.getLatest() 
+      ```
+      
+      in the absence of a promise, `bind` should poll every 500ms or something like that
 
   ```html
   <div>#|||somePersistentVar</div>
