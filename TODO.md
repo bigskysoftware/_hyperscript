@@ -31,6 +31,7 @@
 ```
 
 ### Language Features
+* Web Worker API but for Web Sockets... o_O)))
 * string expression templating
 ```
    set str to "this $is a ${cool.feature}"
