@@ -28,6 +28,13 @@ describe("the show command", function() {
         getComputedStyle(div).display.should.equal('flex');
     })
 
+    it("can show element with inline-block display value", function () {
+        var div = make("<div style=display:none _='on click show me with display: inline-block'></div>");
+        getComputedStyle(div).display.should.equal('none');
+        div.click();
+        getComputedStyle(div).display.should.equal('inline-block');
+    })
+
     it("can show element with opacity:1", function () {
         var div = make("<div style=opacity:0 _='on click show me with opacity'></div>");
         getComputedStyle(div).opacity.should.equal('0');
