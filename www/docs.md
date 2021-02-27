@@ -14,6 +14,8 @@ title: ///_hyperscript
 * [install & quick start](#install)
 * [the language](#lang)
   * [features](#features)
+    * [on](#on)
+    * [worker](#worker)
   * [commands](#commands)
   * [expressions](#expressions)
 * [async transparency](#async)
@@ -284,7 +286,10 @@ namespace, rather than polluting the global namespace:
 
 ### <a name="workers"></a>[The Worker Feature](#workers)
 
-The [worker feature](/features/worker) allows you define a [WebWorker](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers) in hyperscript
+The [worker feature](/features/worker) allows you define a [WebWorker](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers) in hyperscript.
+
+The worker does not share a namespace with other code, it is in it's own isolated sandbox.  However, you may interact
+with the worker via function calls, passing data back and forth in the normal manner.
 
 ```html
 <script type="text/hyperscript">
@@ -294,9 +299,14 @@ The [worker feature](/features/worker) allows you define a [WebWorker](https://d
     end
   end
 </script>
+<button _="on click call Incrementer.increment(41) then put 'The answer is: ' + it into my.innerHTML">
+  Call a Worker...
+</button>
 ```
 
-TODO....
+This makes it much easier to define and work with web workers.
+
+Note that you can use the js feature below if you want to use javascript in your worker for performance reasons.
 
 ### <a name="js"></a>[The JS Feature](#js)
 
@@ -742,7 +752,83 @@ And you can use any results return from the javascript in the default `it` varia
 
 ## <a name="expressions"></a>[Expressions](#expressions)
 
-*TODO*
+Expressions in hyperscript are mostly familiar from javascript, with a few exceptions and a few extensions.
+
+### Things Similar to Javascript
+
+Strings, numbers, `true`, `false` and `null` all work as you'd expect.
+
+Mathematical operators work normally *except*  that you cannot mix different mathematical operators without
+parenthesizing them to clarify binding.
+
+```
+  set x to 1 * (2 + 3)
+```
+
+Logical operators use the english terms `and`, `or` and `not` and must also be fully disambiguated.
+
+```
+  if foo and bar
+    log "Foo & Bar!"
+  end
+```
+
+Comparison operators are the normal '==', '<=', etc.  You can is `is` and `is not` in place of `==` and `!==` respectively.
+
+```
+  if foo is bar
+    log "Foo is Bar!"
+  end
+```
+
+Hyperscript also supports a `no` operator to test for `== null`
+
+```
+  if no foo
+    log "foo was null-ish"
+  end
+```
+
+Array and object literals work the same as in javascript:
+
+```
+  set x to {arr:[1, 2, 3]}
+```
+
+### Things Different from Javascript
+
+Hyperscript closures have a different syntax, starting with a backslash and followed by an arrow
+
+Hyperscript closures may only have an expression body.  They cannot have return statements, etc. in them.  Because
+hyperscript is async-transparent, the need for complex callbacks is minimized, and by only allowing expressions
+in closure bodies, hyperscript eliminates ambiguity around things like `return`, `throw` etc.
+
+```
+    set arr to ["a", "ab", "abc"]
+    set lengths to arr.map( \ str -> str.length )
+```
+
+Hyperscript supports literal values for CSS-style id's and classes:
+
+```
+  add .disabled to #myDiv
+  for tab in .tabs
+    add .highlight to tab
+  end
+```
+
+#### The Hyperscript Zoo
+
+Hyperscript supports a few default symbols that have specific meanings
+
+|  name    | description 
+|----------|-------------
+| `it`     | the result of the last command (e.g. a `call` or `fetch`)
+| `me`     | the element that the current event handler is running on
+| `my`     | alias for `me`
+| `event`  | the event that triggered the event current handler, if any
+| `body`   | the body of the current document, if any
+| `detail` | the detail of the event that triggered the current handler, if any
 
 ## <a name="async"></a>[Async Transparency](#async)
 
