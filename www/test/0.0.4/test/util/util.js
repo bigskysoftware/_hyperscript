@@ -58,7 +58,7 @@ function clearWorkArea() {
 }
 
 function evalHyperScript(typeOrSrc, srcOrCtx, ctx) {
-    return _hyperscript.runtime.evaluate(typeOrSrc, srcOrCtx, ctx);
+    return _hyperscript.internals.runtime.evaluate(typeOrSrc, srcOrCtx, ctx);
 }
 
 function getParseErrorFor(srcOrType, src) {
