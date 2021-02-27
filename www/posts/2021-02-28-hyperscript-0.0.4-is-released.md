@@ -45,6 +45,8 @@ In addition to the big runtime change, a slew of new features were added:
 * The [`js`](/commands/js) command has been added to allow for inline use of javascript within a hyperscript function or event handler
 * The [`wait`](/commands/wait) and [`repeat`](/commands/repeat) commands can now wait for events to occur, allowing for
   [event driven control flow](/docs#events)
+* The ['hide'](/commands/hide) and ['show'](/commands/show) commands can be used to hide and show elements using various
+  strategies, and allow for plugging in additional strategies
 
 ##### Expressions
 
