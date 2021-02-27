@@ -16,7 +16,7 @@ release out the door by providing code, discussion and moral support.  Thank you
 
 This release involved a massive refactor of the hyperscript runtime to fully support [async transparancy](/docs#async).  
 The runtime was moved back to being interpreted from being transpiled into javascript, which allows for this
- innovative language feature and that has set the stage for a .
+ innovative language feature and that has set the stage for a number of interesting features in the future.
 
 Most commands from the `0.0.3` release are still available, except for the `ajax` command, which has been replaced with 
 the (much different) [`fectch`](/commands/fetch) command.  
