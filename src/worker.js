@@ -4,7 +4,6 @@
     var invocationIdCounter = 0
 
     var workerFunc = function() {
-        /* WORKER BOUNDARY */
         self.onmessage = function (e) {
             switch (e.data.type) {
             case 'init':
@@ -40,8 +39,13 @@
                 break;
             }
         }
-        /* WORKER BOUNDARY */
     }
+
+    // extract the body of the function, which was only defined so
+    // that we can get syntax highlighting
+    var workerCode = "(" + workerFunc.toString() + ")()";
+    var blob = new Blob([workerCode], {type: 'text/javascript'});
+    var workerUri = URL.createObjectURL(blob);
 
     _hyperscript.addFeature("worker", function(parser, runtime, tokens) {
         if (tokens.matchToken('worker')) {
@@ -87,11 +91,7 @@
 
             // Create worker
 
-            // extract the body of the function, which was only defined so
-            // that we can get syntax highlighting
-            var workerCode = workerFunc.toString().split('/* WORKER BOUNDARY */')[1];
-            var blob = new Blob([workerCode], {type: 'text/javascript'});
-            var worker = new Worker(URL.createObjectURL(blob));
+            var worker = new Worker(workerUri);
 
             // Send init message to worker
 
