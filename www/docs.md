@@ -988,7 +988,49 @@ This I hope gives you a taste of the unique execution model of hyperscript, and 
 
 ## <a name="extending"></a>[Extending](#extending)
 
-*TODO*
+Hyperscript has a pluggable grammar that allows you to define new features, commands and certain types of expressions.
+
+Here is an example that adds a new command, `foo`, that logs `"A Wild Foo Was Found!" if the value of its expression
+was "foo":
+
+```javascript
+    _hyperscript.addCommand('foo', function(parser, runtime, tokens) { // register for the command keyword "foo"
+
+        if(tokens.match('foo')){                                       // consume the keyword "foo"
+
+            var expr = parser.requireElement('expression', tokens);    // parse an expression for the value
+
+            var fooCmd = {
+                expr: expr,    // store the expression on the element
+
+                args: [expr],  // return all necessary expressions for
+                               // the command to execute for evaluation by
+                               // the runtime
+
+                op: function (context, value) {                 // implement the logic of the command
+                    if(value == "foo"){                         // taking the runtime context and the value
+                        console.log("A Wild Foo Was Found!")    // of the result of evaluating the expr expression
+                    }
+
+                    return runtime.findNext(this)               // return the next command to execute 
+                                                                // (you may also return a promise)
+                }
+            }
+            return fooCmd; // return the new command object
+        }
+    })
+```
+
+With this command defined you can now write the following hyperscript:
+
+```text
+  def testFoo()
+    set str to "foo" 
+    foo str
+  end
+```
+
+And "A Wild Foo Was Found!" would be printed to the console.
 
 ## <a name="history"></a>[History, or 'Yet Another Language?'](#history)
 
