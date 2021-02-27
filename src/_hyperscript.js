@@ -201,7 +201,9 @@
                     function consumeUntilWhitespace() {
                         var tokenList = [];
                         ignoreWhiteSpace = false;
-                        while (currentToken() && currentToken().type !== "WHITESPACE") {
+                        while (currentToken() &&
+                               currentToken().type !== "WHITESPACE"  &&
+                               currentToken().type !== "EOF") {
                             tokenList.push(consumeToken());
                         }
                         ignoreWhiteSpace = true;
@@ -2256,7 +2258,7 @@
                     }
                 })
 
-                var SHOW_HIDE_STRATEGIES = {
+                var HIDE_SHOW_STRATEGIES = {
                     "display": function (op, element, arg) {
                         if(arg){
                             element.style.display = arg;
@@ -2298,10 +2300,10 @@
                 }
 
                 var resolveStrategy = function (parser, tokens, name) {
-                    var configDefault = _hyperscript.config.defaultHideStrategy;
-                    var strategies = SHOW_HIDE_STRATEGIES;
-                    if (_hyperscript.config.showHideStrategies) {
-                        strategies = mergeObjects(strategies, _hyperscript.config.showHideStrategies); // merge in user provided strategies
+                    var configDefault = _hyperscript.config.defaultHideShowStrategy;
+                    var strategies = HIDE_SHOW_STRATEGIES;
+                    if (_hyperscript.config.hideShowStrategies) {
+                        strategies = mergeObjects(strategies, _hyperscript.config.hideShowStrategies); // merge in user provided strategies
                     }
                     name = name || configDefault || "display";
                     var value = strategies[name];
@@ -2344,7 +2346,11 @@
                         }
                         var arg = null;
                         if (tokens.matchOpToken(":")) {
-                            arg = tokens.requireTokenType("IDENTIFIER").value;
+                            var tokenArr = tokens.consumeUntilWhitespace();
+                            tokens.matchTokenType("WHITESPACE");
+                            arg = tokenArr.map(function (t) {
+                                return t.value
+                            }).join("");
                         }
                         var hideShowStrategy = resolveStrategy(parser, tokens, name);
 

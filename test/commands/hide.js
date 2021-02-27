@@ -77,7 +77,7 @@ describe("the hide command", function() {
     })
 
     it("can hide with custom strategy", function () {
-        _hyperscript.config.showHideStrategies = {
+        _hyperscript.config.hideShowStrategies = {
             'myHide': function(op, element, arg) {
                 if (op == "hide") {
                     element.classList.add("foo");
@@ -90,11 +90,11 @@ describe("the hide command", function() {
         div.classList.contains("foo").should.equal(false);
         div.click();
         div.classList.contains("foo").should.equal(true);
-        _hyperscript.config.showHideStrategies = null;
+        _hyperscript.config.hideShowStrategies = null;
     })
 
     it("can set default to custom strategy", function () {
-        _hyperscript.config.showHideStrategies = {
+        _hyperscript.config.hideShowStrategies = {
             'myHide': function(op, element, arg) {
                 if (op == "hide") {
                     element.classList.add("foo");
@@ -103,13 +103,13 @@ describe("the hide command", function() {
                 }
             }
         }
-        _hyperscript.config.defaultHideStrategy = 'myHide';
+        _hyperscript.config.defaultHideShowStrategy = 'myHide';
         var div = make("<div _='on click hide'></div>");
         div.classList.contains("foo").should.equal(false);
         div.click();
         div.classList.contains("foo").should.equal(true);
-        _hyperscript.config.showHideStrategies = null;
-        _hyperscript.config.defaultHideStrategy = null;
+        _hyperscript.config.hideShowStrategies = null;
+        _hyperscript.config.defaultHideShowStrategy = null;
     })
 });
 
