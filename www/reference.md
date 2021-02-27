@@ -10,6 +10,7 @@ title: ///_hyperscript
 | [on](/features/on) | Creates an event listener | `on click log "clicked!"`
 | [def](/features/def) | Defines a function | [see details...](/features/def)
 | [js](/features/js) | Embed JavaScript code at the top level | [see details...](/features/js)
+| [worker](/features/worker) | Create a Web Worker for asynchrnous work
 
 ## <a name='commands'></a>[Commands](#commands)
 
@@ -29,6 +30,8 @@ title: ///_hyperscript
 | [trigger](/commands/trigger) | triggers an event on the current element | `trigger customEvent`
 | [wait](/commands/wait) | Waits for an event or a given amount of time before resuming the command list | `wait 2s then remove me`
 | [js](/commands/js) | Embed JavaScript code inline | `js(a) return compute(a); end`
+| [hide](/commands/hide) | Hide an element in the DOM | `hide me`
+| [show](/commands/show) | Show an element in the DOM | `show #anotherDiv`
 
 ## <a href='expressions'></a>[Expressions](#expressions)
 
