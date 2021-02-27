@@ -107,6 +107,12 @@ After you've done this, you can begin adding hyperscript to elements:
 </div>
 ```
 
+Hyperscript has an open, pluggable grammar & some features do not ship by default (e.g. [workers](#workers)).  To use a feature like workers you can either:
+
+* install the extension directly by including `/dist/workers.js` after you include hyperscript
+* use the "Whole 9 Yards" version of hyperscript, which includes everything by default and can be
+  found at `/dist/hyperscript_w9y.js`
+
 ## <a name="lang"></a>[The Language](#lang)
 
 Hyperscript is a modern reinterpretation of [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf) for the web and thus has a distinctive, english-like syntax.  

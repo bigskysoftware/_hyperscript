@@ -5,6 +5,10 @@ title: ///_hyperscript #_
 
 ## The `worker` feature
 
+### Installing
+
+Note: if you want the worker feature, you must either use the "Whole 9 Yards" release of hyperscript, or include the `/dist/workers.js` file.
+
 ### Syntax
 
 `worker <worker-name>[(<external-scripts>)] <worker-body> end`
