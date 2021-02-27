@@ -597,11 +597,18 @@
                     }
                 }
 
+                function commandBoundary(token) {
+                    if (token.value == "end" || token.value == "then" || COMMANDS[token.value] || FEATURES[token.value] || token.type == "EOF") {
+                        return true;
+                    }
+                }
+
                 return {
                     // parser API
                     setParent: setParent,
                     requireElement: requireElement,
                     parseElement: parseElement,
+                    commandBoundary: commandBoundary,
                     parseAnyOf: parseAnyOf,
                     parseHyperScript: parseHyperScript,
                     raiseParseError: raiseParseError,
@@ -2249,90 +2256,106 @@
                     }
                 })
 
-                var parseShowHideTarget = function(parser, runtime, tokens) {
-                    var target;
-                    var tok = tokens.currentToken(true);
-                    if (!(tok.value === "with" && tok.type === 'IDENTIFIER')) { // avoid consuming "with" when there is no explicit target
-                        target = parser.parseElement("target", tokens);
+                var SHOW_HIDE_STRATEGIES = {
+                    "display": function (op, element, arg) {
+                        if(arg){
+                            element.style.display = arg;
+                        } else if (op === 'hide') {
+                            element.style.display = 'none';
+                        } else {
+                            element.style.display = 'block';
+                        }
+                    },
+                    "visibility": function (op, element, arg) {
+                        if(arg){
+                            element.style.visibility = arg;
+                        } else if (op === 'hide') {
+                            element.style.visibility = 'hidden';
+                        } else {
+                            element.style.visibility = 'visible';
+                        }
+                    },
+                    "opacity": function (op, element, arg) {
+                        if(arg){
+                            element.style.opacity = arg;
+                        } else if (op === 'hide') {
+                            element.style.opacity = '0';
+                        } else {
+                            element.style.opacity = '1';
+                        }
                     }
-                    if (!target) {
+                }
+
+                var parseShowHideTarget = function (parser, runtime, tokens) {
+                    var target;
+                    var currentTokenValue = tokens.currentToken();
+                    if (currentTokenValue.value === "with" || parser.commandBoundary(currentTokenValue)) {
                         target = parser.parseElement("implicitMeTarget", tokens);
+                    } else {
+                        target = parser.parseElement("target", tokens);
                     }
                     return target;
                 }
 
-                _parser.addCommand("hide", function(parser, runtime, tokens) {
+                var resolveStrategy = function (parser, tokens, name) {
+                    var configDefault = _hyperscript.config.defaultHideStrategy;
+                    var strategies = SHOW_HIDE_STRATEGIES;
+                    if (_hyperscript.config.showHideStrategies) {
+                        strategies = mergeObjects(strategies, _hyperscript.config.showHideStrategies); // merge in user provided strategies
+                    }
+                    name = name || configDefault || "display";
+                    var value = strategies[name];
+                    if (value == null) {
+                        parser.raiseParseError(tokens, 'Unknown show/hide strategy : ' + name);
+                    }
+                    return value;
+                }
+
+                _parser.addCommand("hide", function (parser, runtime, tokens) {
                     if (tokens.matchToken("hide")) {
                         var target = parseShowHideTarget(parser, runtime, tokens);
 
-                        var hideStrategy = function(el) {
-                            el.style.display = 'none';
-                        };
+                        var name = null;
                         if (tokens.matchToken("with")) {
-                            if (tokens.matchToken("display")) {
-                                // Default strategy
-                            } else if (tokens.matchToken("visibility")) {
-                                hideStrategy = function(el) {
-                                    el.style.visibility = 'hidden';
-                                };
-                            } else if (tokens.matchToken("opacity")) {
-                                hideStrategy = function(el) {
-                                    el.style.opacity = '0';
-                                }
-                            } else {
-                                parser.raiseParseError(tokens, 'Expected "display", "visibility" or "opacity".');
-                            }
+                            name = tokens.requireTokenType("IDENTIFIER").value;
                         }
+                        var hideShowStrategy = resolveStrategy(parser, tokens, name);
 
-                        var hideCmd;
-                        return hideCmd = {
+                        return {
                             target: target,
-                            hideStrategy: hideStrategy,
                             args: [target],
                             op: function (ctx, target) {
-                                runtime.forEach(target, hideStrategy);
-                                return runtime.findNext(hideCmd);
+                                runtime.forEach(target, function (elt) {
+                                    hideShowStrategy('hide', elt);
+                                });
+                                return runtime.findNext(this);
                             }
                         }
                     }
                 });
 
-                _parser.addCommand("show", function(parser, runtime, tokens) {
+                _parser.addCommand("show", function (parser, runtime, tokens) {
                     if (tokens.matchToken("show")) {
                         var target = parseShowHideTarget(parser, runtime, tokens);
 
-                        var showStrategy = function(el) {
-                            el.style.display = 'block';
-                        };
+                        var name = null;
                         if (tokens.matchToken("with")) {
-                            if (tokens.matchToken("display")) {
-                                if (tokens.matchOpToken(":")) {
-                                    var displayValue = tokens.requireTokenType("IDENTIFIER").value
-                                    showStrategy = function(el) {
-                                        el.style.display = displayValue
-                                    }
-                                }
-                            } else if (tokens.matchToken("visibility")) {
-                                showStrategy = function(el) {
-                                    el.style.visibility = 'visible';
-                                };
-                            } else if (tokens.matchToken("opacity")) {
-                                showStrategy = function(el) {
-                                    el.style.opacity = '1';
-                                }
-                            } else {
-                                parser.raiseParseError(tokens, 'Expected "display", "visibility" or "opacity".');
-                            }
+                            name = tokens.requireTokenType("IDENTIFIER").value;
                         }
-                        
-                        var showCmd;
-                        return showCmd = {
+                        var arg = null;
+                        if (tokens.matchOpToken(":")) {
+                            arg = tokens.requireTokenType("IDENTIFIER").value;
+                        }
+                        var hideShowStrategy = resolveStrategy(parser, tokens, name);
+
+                        return {
                             target: target,
-                            showStrategy: showStrategy,
                             args: [target],
                             op: function (ctx, target) {
-                                runtime.forEach(target, showStrategy);
-                                return runtime.findNext(showCmd);
+                                runtime.forEach(target, function (elt) {
+                                    hideShowStrategy('show', elt, arg);
+                                });
+                                return runtime.findNext(this);
                             }
                         }
                     }
