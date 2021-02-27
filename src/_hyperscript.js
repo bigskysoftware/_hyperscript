@@ -2249,16 +2249,21 @@
                     }
                 })
 
+                function parseShowHideTarget(parser, runtime, tokens) {
+                    var target;
+                    var tok = tokens.currentToken(true);
+                    if (!(tok.value === "with" && tok.type === 'IDENTIFIER')) { // avoid consuming "with" when there is no explicit target
+                        target = parser.parseElement("target", tokens);
+                    }
+                    if (!target) {
+                        target = parser.parseElement("implicitMeTarget", tokens);
+                    }
+                    return target;
+                }
+
                 _parser.addCommand("hide", function(parser, runtime, tokens) {
                     if (tokens.matchToken("hide")) {
-                        var target;
-                        var tok = tokens.currentToken(true);
-                        if (!(tok.value === "with" || tok.type === 'IDENTIFIER')) { // avoid consuming "with" when there is no explicit target
-                            target = parser.parseElement("target");
-                        }
-                        if (!target) {
-                            target = parser.parseElement("implicitMeTarget");
-                        }
+                        var target = parseShowHideTarget(parser, runtime, tokens);
 
                         var hideStrategy = function(el) {
                             el.style.display = 'none';
@@ -2294,14 +2299,7 @@
 
                 _parser.addCommand("show", function(parser, runtime, tokens) {
                     if (tokens.matchToken("show")) {
-                        var target;
-                        var tok = tokens.currentToken(true);
-                        if (!(tok.value === "with" || tok.type === 'IDENTIFIER')) { // avoid consuming "with" when there is no explicit target
-                            target = parser.parseElement("target");
-                        }
-                        if (!target) {
-                            target = parser.parseElement("implicitMeTarget");
-                        }
+                        var target = parseShowHideTarget(parser, runtime, tokens);
 
                         var showStrategy = function(el) {
                             el.style.display = 'block';
@@ -2309,7 +2307,7 @@
                         if (tokens.matchToken("with")) {
                             if (tokens.matchToken("display")) {
                                 if (tokens.matchOpToken(":")) {
-                                    var displayValue = tokens.requireElement("IDENTIFIER").value
+                                    var displayValue = tokens.requireTokenType("IDENTIFIER").value
                                     showStrategy = function(el) {
                                         el.style.display = displayValue
                                     }
