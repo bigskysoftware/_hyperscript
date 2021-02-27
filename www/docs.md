@@ -436,6 +436,69 @@ As with the [add](#add) and [remove](#remove) commands, you can target other ele
   Click Me
 </button>
 ```
+### <a name="hide"></a>[Hide](#hide)
+
+The [hide command](/commands/hide) allows you to hide an element in the DOM using various strategies.
+
+Here are some examples:
+
+```html
+<!-- Hide the button -->
+<button _="on click hide">
+  Hide Me...
+</button>
+```
+
+```html
+<!-- Hide the button with opacity set to 0-->
+<button _="on click hide with opacity">
+  Hide Me...
+</button>
+```
+
+```html
+<!-- hide another element on click -->
+<button _="on click hide #anotherDiv">
+ Hide A Div
+</button>
+```
+You can also plug in custom hide show strategies.  See the command details for more information.
+
+### <a name="show"></a>[Show](#show)
+
+The [show command](/commands/show) allows you to show an element in the DOM using various strategies.
+
+Here are some examples:
+
+```html
+<!-- show the element after 2 seconds by setting display to block -->
+<div _="on load wait 2s then show">
+  I will show up in 2 seconds...
+</div>
+```
+
+```html
+<!-- show the element after 2 seconds by setting opacity to 1 -->
+<div _="on load wait 2s then show with opacity">
+  I will show up in 2 seconds...
+</div>
+```
+
+```html
+<!-- show the element after 2 seconds by setting display to inline-block -->
+<div _="on load wait 2s then show with display:inline-block">
+  I will show up in 2 seconds as inline-block...
+</div>
+```
+
+```html
+<!-- show another element on click -->
+<div _="on click show #anotherDiv">
+Show Another Div
+</div>
+```
+
+You can also plug in custom hide show strategies.  See the command details for more information.
 
 ### <a name="wait"></a>[Wait](#wait)
 
