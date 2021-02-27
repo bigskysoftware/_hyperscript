@@ -47,7 +47,7 @@
                 return new (Cls.bind.apply(Cls, [Cls].concat(args)));
             }
 
-            var globalScope = typeof self !== 'undefined' ? self : this;
+            var globalScope = typeof self !== 'undefined' ? self : typeof global !== 'undefined' ? global : this;
 
             //====================================================================
             // Lexer
@@ -2249,6 +2249,95 @@
                     }
                 })
 
+                var parseShowHideTarget = function(parser, runtime, tokens) {
+                    var target;
+                    var tok = tokens.currentToken(true);
+                    if (!(tok.value === "with" && tok.type === 'IDENTIFIER')) { // avoid consuming "with" when there is no explicit target
+                        target = parser.parseElement("target", tokens);
+                    }
+                    if (!target) {
+                        target = parser.parseElement("implicitMeTarget", tokens);
+                    }
+                    return target;
+                }
+
+                _parser.addCommand("hide", function(parser, runtime, tokens) {
+                    if (tokens.matchToken("hide")) {
+                        var target = parseShowHideTarget(parser, runtime, tokens);
+
+                        var hideStrategy = function(el) {
+                            el.style.display = 'none';
+                        };
+                        if (tokens.matchToken("with")) {
+                            if (tokens.matchToken("display")) {
+                                // Default strategy
+                            } else if (tokens.matchToken("visibility")) {
+                                hideStrategy = function(el) {
+                                    el.style.visibility = 'hidden';
+                                };
+                            } else if (tokens.matchToken("opacity")) {
+                                hideStrategy = function(el) {
+                                    el.style.opacity = '0';
+                                }
+                            } else {
+                                parser.raiseParseError(tokens, 'Expected "display", "visibility" or "opacity".');
+                            }
+                        }
+
+                        var hideCmd;
+                        return hideCmd = {
+                            target: target,
+                            hideStrategy: hideStrategy,
+                            args: [target],
+                            op: function (ctx, target) {
+                                runtime.forEach(target, hideStrategy);
+                                return runtime.findNext(hideCmd);
+                            }
+                        }
+                    }
+                });
+
+                _parser.addCommand("show", function(parser, runtime, tokens) {
+                    if (tokens.matchToken("show")) {
+                        var target = parseShowHideTarget(parser, runtime, tokens);
+
+                        var showStrategy = function(el) {
+                            el.style.display = 'block';
+                        };
+                        if (tokens.matchToken("with")) {
+                            if (tokens.matchToken("display")) {
+                                if (tokens.matchOpToken(":")) {
+                                    var displayValue = tokens.requireTokenType("IDENTIFIER").value
+                                    showStrategy = function(el) {
+                                        el.style.display = displayValue
+                                    }
+                                }
+                            } else if (tokens.matchToken("visibility")) {
+                                showStrategy = function(el) {
+                                    el.style.visibility = 'visible';
+                                };
+                            } else if (tokens.matchToken("opacity")) {
+                                showStrategy = function(el) {
+                                    el.style.opacity = '1';
+                                }
+                            } else {
+                                parser.raiseParseError(tokens, 'Expected "display", "visibility" or "opacity".');
+                            }
+                        }
+                        
+                        var showCmd;
+                        return showCmd = {
+                            target: target,
+                            showStrategy: showStrategy,
+                            args: [target],
+                            op: function (ctx, target) {
+                                runtime.forEach(target, showStrategy);
+                                return runtime.findNext(showCmd);
+                            }
+                        }
+                    }
+                });
+
                 _parser.addCommand("wait", function(parser, runtime, tokens) {
                     if (tokens.matchToken("wait")) {
                         // wait on event
@@ -2924,7 +3013,6 @@
     var invocationIdCounter = 0
 
     var workerFunc = function() {
-        /* WORKER BOUNDARY */
         self.onmessage = function (e) {
             switch (e.data.type) {
             case 'init':
@@ -2960,8 +3048,13 @@
                 break;
             }
         }
-        /* WORKER BOUNDARY */
     }
+
+    // extract the body of the function, which was only defined so
+    // that we can get syntax highlighting
+    var workerCode = "(" + workerFunc.toString() + ")()";
+    var blob = new Blob([workerCode], {type: 'text/javascript'});
+    var workerUri = URL.createObjectURL(blob);
 
     _hyperscript.addFeature("worker", function(parser, runtime, tokens) {
         if (tokens.matchToken('worker')) {
@@ -3007,11 +3100,7 @@
 
             // Create worker
 
-            // extract the body of the function, which was only defined so
-            // that we can get syntax highlighting
-            var workerCode = workerFunc.toString().split('/* WORKER BOUNDARY */')[1];
-            var blob = new Blob([workerCode], {type: 'text/javascript'});
-            var worker = new Worker(URL.createObjectURL(blob));
+            var worker = new Worker(workerUri);
 
             // Send init message to worker
 

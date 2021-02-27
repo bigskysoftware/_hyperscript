@@ -2249,7 +2249,7 @@
                     }
                 })
 
-                function parseShowHideTarget(parser, runtime, tokens) {
+                var parseShowHideTarget = function(parser, runtime, tokens) {
                     var target;
                     var tok = tokens.currentToken(true);
                     if (!(tok.value === "with" && tok.type === 'IDENTIFIER')) { // avoid consuming "with" when there is no explicit target
