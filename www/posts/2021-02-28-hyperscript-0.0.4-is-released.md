@@ -19,7 +19,7 @@ The runtime was moved back to being interpreted from being transpiled into javas
  innovative language feature and that has set the stage for a number of interesting features in the future.
 
 Most commands from the `0.0.3` release are still available, except for the `ajax` command, which has been replaced with 
-the (much different) [`fectch`](/commands/fetch) command.  
+the (much different) [`fetch`](/commands/fetch) command.  
 
 The `ajax` command may return as an add-on in a future release.
 
