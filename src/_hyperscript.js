@@ -47,7 +47,7 @@
                 return new (Cls.bind.apply(Cls, [Cls].concat(args)));
             }
 
-            var globalScope = typeof self !== 'undefined' ? self : this;
+            var globalScope = typeof self !== 'undefined' ? self : typeof global !== 'undefined' ? global : this;
 
             //====================================================================
             // Lexer
@@ -2204,6 +2204,97 @@
                         return toggleCmd
                     }
                 })
+
+                _parser.addCommand("hide", function(parser, runtime, tokens) {
+                    if (tokens.matchToken("hide")) {
+                        var target;
+                        var tok = tokens.currentToken(true);
+                        if (!(tok.value === "with" || tok.type === 'IDENTIFIER')) { // avoid consuming "with" when there is no explicit target
+                            target = parser.parseElement("target");
+                        }
+                        if (!target) {
+                            target = parser.parseElement("implicitMeTarget");
+                        }
+
+                        var hideStrategy = function(el) {
+                            el.style.display = 'none';
+                        };
+                        if (tokens.matchToken("with")) {
+                            if (tokens.matchToken("display")) {
+                                // Default strategy
+                            } else if (tokens.matchToken("visibility")) {
+                                hideStrategy = function(el) {
+                                    el.style.visibility = 'hidden';
+                                };
+                            } else if (tokens.matchToken("opacity")) {
+                                hideStrategy = function(el) {
+                                    el.style.opacity = '0';
+                                }
+                            } else {
+                                parser.raiseParseError(tokens, 'Expected "display", "visibility" or "opacity".');
+                            }
+                        }
+
+                        var hideCmd;
+                        return hideCmd = {
+                            target: target,
+                            hideStrategy: hideStrategy,
+                            args: [target],
+                            op: function (ctx, target) {
+                                runtime.forEach(target, hideStrategy);
+                                return runtime.findNext(hideCmd);
+                            }
+                        }
+                    }
+                });
+
+                _parser.addCommand("show", function(parser, runtime, tokens) {
+                    if (tokens.matchToken("show")) {
+                        var target;
+                        var tok = tokens.currentToken(true);
+                        if (!(tok.value === "with" || tok.type === 'IDENTIFIER')) { // avoid consuming "with" when there is no explicit target
+                            target = parser.parseElement("target");
+                        }
+                        if (!target) {
+                            target = parser.parseElement("implicitMeTarget");
+                        }
+
+                        var showStrategy = function(el) {
+                            el.style.display = 'block';
+                        };
+                        if (tokens.matchToken("with")) {
+                            if (tokens.matchToken("display")) {
+                                if (tokens.matchOpToken(":")) {
+                                    var displayValue = tokens.requireElement("IDENTIFIER").value
+                                    showStrategy = function(el) {
+                                        el.style.display = displayValue
+                                    }
+                                }
+                            } else if (tokens.matchToken("visibility")) {
+                                showStrategy = function(el) {
+                                    el.style.visibility = 'visible';
+                                };
+                            } else if (tokens.matchToken("opacity")) {
+                                showStrategy = function(el) {
+                                    el.style.opacity = '1';
+                                }
+                            } else {
+                                parser.raiseParseError(tokens, 'Expected "display", "visibility" or "opacity".');
+                            }
+                        }
+                        
+                        var showCmd;
+                        return showCmd = {
+                            target: target,
+                            showStrategy: showStrategy,
+                            args: [target],
+                            op: function (ctx, target) {
+                                runtime.forEach(target, showStrategy);
+                                return runtime.findNext(showCmd);
+                            }
+                        }
+                    }
+                });
 
                 _parser.addCommand("wait", function(parser, runtime, tokens) {
                     if (tokens.matchToken("wait")) {
