@@ -728,7 +728,22 @@
                 var HALT = {halt_flag:true};
                 function unifiedExec(command,  ctx) {
                     while(true) {
-                        var next = unifiedEval(command, ctx);
+                        try {
+                            var next = unifiedEval(command, ctx);
+                        } catch(e) {
+                            var error = e;
+                            if (!(e instanceof Error)) {
+                                error = new Error(e);
+                            }
+                            if (error.hypertrace == null) {
+                                error.hypertrace = _runtime.getHyperTrace(ctx);
+                            }
+                            if (ctx.meta && ctx.meta.reject) {
+                                ctx.meta.reject(error);
+                            } else {
+                                throw error;
+                            }
+                        }
                         if (next == null) {
                             console.error(command, " did not return a next element to execute! context: " , ctx)
                             return;
@@ -1053,6 +1068,25 @@
                     root[name] = value;
                 }
 
+                function getHyperTrace(ctx) {
+                    var trace = [];
+                    while(ctx != null) {
+                        trace.push(ctx);
+                        ctx = ctx.meta.caller;
+                    }
+                    return {
+                        trace: trace,
+                        print : function(logger) {
+                            logger = logger || console.error;
+                            logger("hypertrace /// ")
+                            for (var i = 0; i < trace.length; i++) {
+                                var traceElt = trace[i];
+                                logger("  ->", traceElt.meta.feature.displayName, traceElt.me)
+                            }
+                        }
+                    }
+                }
+
                 var hyperscriptUrl = 'document' in globalScope ? document.currentScript.src : null
 
                 return {
@@ -1072,6 +1106,7 @@
                     unifiedExec: unifiedExec,
                     resolveProperty: resolveProperty,
                     assignToNamespace: assignToNamespace,
+                    getHyperTrace: getHyperTrace,
                     hyperscriptUrl: hyperscriptUrl,
                     HALT: HALT
                 }
@@ -1824,6 +1859,7 @@
                         }
 
                         var onFeature = {
+                            displayName: "on " + on.evaluate(null),
                             args: args,
                             on: on,
                             every: every,
@@ -1862,7 +1898,10 @@
                                     onFeature.executing = false;
                                 }
                                 ctx.meta.reject = function (err) {
-                                    console.error(err);
+                                    console.error(err.message);
+                                    if(err.hypertrace){
+                                        err.hypertrace.print();
+                                    }
                                     runtime.triggerEvent(ctx.me, 'exception', {error: err})
                                     onFeature.executing = false;
                                 }
@@ -1895,6 +1934,7 @@
 
                         var start = parser.parseElement("commandList", tokens);
                         var functionFeature = {
+                            displayName: funcName + "(" + args.map(function(arg){ return arg.value }).join(", ") + ")",
                             name: funcName,
                             args: args,
                             start: start,
@@ -2586,12 +2626,14 @@
                             expr: expr,
                             args: [expr],
                             op: function (ctx, expr) {
+                                var error = new Error(expr);
+                                error.hypertrace = runtime.getHyperTrace(ctx);
                                 var reject = ctx.meta && ctx.meta.reject;
                                 if (reject) {
-                                    reject(expr);
+                                    reject(error);
                                     return runtime.HALT;
                                 } else {
-                                    throw expr;
+                                    throw error;
                                 }
                             }
                         };

@@ -142,38 +142,6 @@ describe("the def feature", function() {
         })
     })
 
-    it("has proper stack", function(){
-        var script = make(
-            "<script type='text/hyperscript'>" +
-            "def foo() " +
-            "  return bar() " +
-            "end " +
-            "def bar() " +
-            "  return meta.caller " +
-            "end " +
-            " " +
-            "</script>");
-        var result = foo();
-        result.meta.feature.name.should.equal('foo');
-        delete window.foo;
-        delete window.bar;
-    })
-
-    it("has proper stack from event handler", function(){
-        var script = make(
-            "<script type='text/hyperscript'>" +
-            "def bar() " +
-            "  log meta.caller " +
-            "  return meta.caller " +
-            "end " +
-            " " +
-            "</script>");
-        var div = make("<div _='on click put bar().meta.feature.type into my.innerHTML'></div>")
-        div.click();
-        div.innerHTML.should.equal("onFeature");
-        delete window.bar;
-    })
-
 
 });
 
