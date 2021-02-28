@@ -850,13 +850,13 @@
                     return null;
                 }
 
-                function makeContext(root, elt, event) {
+                function makeContext(feature, elt, event) {
                     var ctx = {
                         meta: {
                             parser: _parser,
                             lexer: _lexer,
                             runtime: _runtime,
-                            root: root,
+                            feature: feature,
                             iterators: {}
                         },
                         me: elt,
@@ -1431,6 +1431,9 @@
                                 args: [root.root, args],
                                 op: function (context, rootRoot, args) {
                                     var func = rootRoot[root.prop.value];
+                                    if (func.hyperfunc) {
+                                        args.push(context);
+                                    }
                                     return func.apply(rootRoot, args);
                                 },
                                 evaluate: function (context) {
@@ -1444,6 +1447,9 @@
                                 argExressions: args,
                                 args: [root, args],
                                 op: function(context, func, argVals){
+                                    if (func.hyperfunc) {
+                                        argVals.push(context);
+                                    }
                                     var apply = func.apply(null, argVals);
                                     return apply;
                                 },
@@ -1893,18 +1899,18 @@
                             args: args,
                             start: start,
                             execute: function (ctx) {
-                                runtime.assignToNamespace(nameSpace, funcName, function () {
+                                var func = function () {
                                     // null, worker
-                                    var root = 'document' in globalScope ? document.body : null
                                     var elt = 'document' in globalScope ? document.body : globalScope
-                                    var ctx = runtime.makeContext(root, elt, null);
-                                    for (var i = 0; i < arguments.length; i++) {
-                                        var argumentVal = arguments[i];
+                                    var ctx = runtime.makeContext(functionFeature, elt, null);
+                                    for (var i = 0; i < args.length; i++) {
                                         var name = args[i];
+                                        var argumentVal = arguments[i];
                                         if (name) {
                                             ctx[name.value] = argumentVal;
                                         }
                                     }
+                                    ctx.meta.caller = arguments[args.length];
                                     var resolve, reject = null;
                                     var promise = new Promise(function (theResolve, theReject) {
                                         resolve = theResolve;
@@ -1918,7 +1924,9 @@
                                         ctx.meta.reject = reject;
                                         return promise
                                     }
-                                });
+                                };
+                                func.hyperfunc = true;
+                                runtime.assignToNamespace(nameSpace, funcName, func);
                             }
                         };
 
