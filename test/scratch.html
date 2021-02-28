@@ -11,6 +11,12 @@
 <em>Work Area</em>
 <hr/>
 
+<h3>Fun w/ transitions</h3>
+<div _="on mouseenter transition opacity from 1 to .5
+        on mouseleave transition opacity from .5 to 1 ">
+  <b>Mouse Over Me...</b>
+</div>
+
 <h3>Fun w/ toggles</h3>
 
 <style>
@@ -61,7 +67,7 @@
     }
 </style>
 <div id="pulsar"
-     _="on load repeat forever
+     _="on load repeat 5 times
                toggle .red3 until transitionend
                then wait for transitionend
              end">

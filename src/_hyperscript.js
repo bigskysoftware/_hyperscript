@@ -228,7 +228,8 @@
                             return token;
                         } else {
                             return {
-                                type:"EOF"
+                                type:"EOF",
+                                value:"<<<EOF>>>"
                             }
                         }
                     }
@@ -247,7 +248,7 @@
                         source: source,
                         hasMore: hasMore,
                         currentToken: currentToken,
-                        consumeUntilWhitespace: consumeUntilWhitespace
+                        consumeUntilWhitespace: consumeUntilWhitespace,
                     }
                 }
 
@@ -454,7 +455,7 @@
 
                 function requireElement(type, tokens, message, root) {
                     var result = parseElement(type, tokens, root);
-                    return result || raiseParseError(tokens, message || "Expected " + type.autocapitalize);
+                    return result || raiseParseError(tokens, message || "Expected " + type);
                 }
 
                 function parseAnyOf(types, tokens) {
@@ -1069,7 +1070,7 @@
                         ctx = ctx.meta.caller;
                     }
                     if (root.meta.traceMap == null) {
-                        root.meta.traceMap = new Map();
+                        root.meta.traceMap = new Map(); // TODO - WeakMap?
                     }
                     if (!root.meta.traceMap.get(thrown)) {
                         var traceEntry = {
@@ -2963,17 +2964,77 @@
                     }
                 })
 
+                _parser.addCommand("transition", function(parser, runtime, tokens) {
+                    if (tokens.matchToken("transition")) {
+                        if (tokens.matchToken('element') || tokens.matchToken('elements')) {
+                            var targets = parser.parseElement("expression", tokens);
+                        } else {
+                            var targets = parser.parseElement("implicitMeTarget"); // TODO support multiple targets (general 'with' command?)
+                        }
+                        var properties = [];
+                        var from = [];
+                        var to = [];
+                        while (tokens.hasMore() &&
+                               !parser.commandBoundary(tokens.currentToken()) &&
+                               tokens.currentToken().value !== "using") {
+                            properties.push(tokens.requireTokenType("IDENTIFIER").value);
+                            tokens.requireToken("from");
+                            from.push(parser.requireElement("stringLike", tokens));
+                            tokens.requireToken("to");
+                            to.push(parser.requireElement("stringLike" , tokens));
+                        }
+                        if (tokens.matchToken("using")) {
+                            var using = parser.requireElement("expression", tokens);
+                        }
+
+                        var transition = {
+                            to: to,
+                            args: [targets, from, to, using],
+                            op: function (context, targets, from, to, using) {
+                                var promises = [];
+                                runtime.forEach(targets, function(target){
+                                    var promise = new Promise(function (resolve, reject) {
+                                        var initialTransition = target.style.transition;
+                                        target.style.transition = using || _hyperscript.config.defaultTransition; // TODO make pluggable
+                                        for (var i = 0; i < properties.length; i++) {
+                                            var property = properties[i];
+                                            var fromVal = from[i];
+                                            target.style[property] = fromVal;
+                                        }
+                                        setTimeout(function () {
+                                            console.log(target.style);
+                                            for (var i = 0; i < properties.length; i++) {
+                                                var property = properties[i];
+                                                var toVal = to[i];
+                                                target.style[property] = toVal;
+                                            }
+                                            target.addEventListener('transitionend', function () {
+                                                target.style.transition = initialTransition;
+                                                resolve();
+                                            })
+                                        }, 10);
+                                    });
+                                    promises.push(promise);
+                                })
+                                return Promise.all(promises).then(function(){
+                                    return runtime.findNext(transition);
+                                })
+                            }
+                        };
+                        return transition
+                    }
+                });
+
+
+                _parser.addGrammarElement("stringLike", function(parser, runtime, tokens) {
+                    return _parser.parseAnyOf(["string", "nakedString"], tokens);
+                });
+
                 _parser.addCommand("fetch", function(parser, runtime, tokens) {
                     if (tokens.matchToken('fetch')) {
 
-                        var url = parser.parseElement("string", tokens);
-                        if (url == null) {
-                            var url = parser.parseElement("nakedString", tokens);
-                        }
-                        if (url == null) {
-                            parser.raiseParseError(tokens, "Expected a URL");
-                        }
 
+                        var url = parser.requireElement("stringLike", tokens);
                         var args = parser.parseElement("objectLiteral", tokens);
 
                         var type = "text";
@@ -3092,8 +3153,9 @@
                     _runtime.processNode(elt);
                 },
                 config: {
-                    attributes : "_, script, data-script"
-                },
+                    attributes : "_, script, data-script",
+                    defaultTransition: "all 500ms ease-in"
+                }
             }
         }
     )()
