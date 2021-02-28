@@ -1068,25 +1068,27 @@
                         root = ctx;
                         ctx = ctx.meta.caller;
                     }
-                    var traceEntry = {
-                        trace: trace,
-                        print : function(logger) {
-                            logger = logger || console.error;
-                            logger("hypertrace /// ")
-                            var maxLen = 0;
-                            for (var i = 0; i < trace.length; i++) {
-                                maxLen = Math.max(maxLen, trace[i].meta.feature.displayName.length);
-                            }
-                            for (var i = 0; i < trace.length; i++) {
-                                var traceElt = trace[i];
-                                logger("  ->", traceElt.meta.feature.displayName.padEnd(maxLen + 2), "-", traceElt.meta.owner)
-                            }
-                        }
-                    };
                     if (root.meta.traceMap == null) {
                         root.meta.traceMap = new Map();
                     }
-                    root.meta.traceMap.set(thrown, traceEntry);
+                    if (!root.meta.traceMap.get(thrown)) {
+                        var traceEntry = {
+                            trace: trace,
+                            print : function(logger) {
+                                logger = logger || console.error;
+                                logger("hypertrace /// ")
+                                var maxLen = 0;
+                                for (var i = 0; i < trace.length; i++) {
+                                    maxLen = Math.max(maxLen, trace[i].meta.feature.displayName.length);
+                                }
+                                for (var i = 0; i < trace.length; i++) {
+                                    var traceElt = trace[i];
+                                    logger("  ->", traceElt.meta.feature.displayName.padEnd(maxLen + 2), "-", traceElt.meta.owner)
+                                }
+                            }
+                        };
+                        root.meta.traceMap.set(thrown, traceEntry);
+                    }
                 }
 
                 var hyperscriptUrl = 'document' in globalScope ? document.currentScript.src : null
