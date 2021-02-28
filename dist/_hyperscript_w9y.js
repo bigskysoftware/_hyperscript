@@ -198,16 +198,20 @@
                         return match;
                     }
 
-                    function consumeUntilWhitespace() {
+                    function consumeUntil(value, type) {
                         var tokenList = [];
                         ignoreWhiteSpace = false;
-                        while (currentToken() &&
-                               currentToken().type !== "WHITESPACE"  &&
-                               currentToken().type !== "EOF") {
+                        while ((type == null || currentToken().type !== type) &&
+                               (value == null || currentToken().value !== value) &&
+                                currentToken().type !== "EOF") {
                             tokenList.push(consumeToken());
                         }
                         ignoreWhiteSpace = true;
                         return tokenList;
+                    }
+
+                    function consumeUntilWhitespace() {
+                        return consumeUntil(null, "WHITESPACE");
                     }
 
                     function hasMore() {
@@ -228,7 +232,8 @@
                             return token;
                         } else {
                             return {
-                                type:"EOF"
+                                type:"EOF",
+                                value:"<<<EOF>>>"
                             }
                         }
                     }
@@ -247,7 +252,8 @@
                         source: source,
                         hasMore: hasMore,
                         currentToken: currentToken,
-                        consumeUntilWhitespace: consumeUntilWhitespace
+                        consumeUntil: consumeUntil,
+                        consumeUntilWhitespace: consumeUntilWhitespace,
                     }
                 }
 
@@ -454,7 +460,7 @@
 
                 function requireElement(type, tokens, message, root) {
                     var result = parseElement(type, tokens, root);
-                    return result || raiseParseError(tokens, message || "Expected " + type.autocapitalize);
+                    return result || raiseParseError(tokens, message || "Expected " + type);
                 }
 
                 function parseAnyOf(types, tokens) {
@@ -728,7 +734,16 @@
                 var HALT = {halt_flag:true};
                 function unifiedExec(command,  ctx) {
                     while(true) {
-                        var next = unifiedEval(command, ctx);
+                        try {
+                            var next = unifiedEval(command, ctx);
+                        } catch(e) {
+                            _runtime.registerHyperTrace(ctx, e);
+                            if (ctx.meta && ctx.meta.reject) {
+                                ctx.meta.reject(e);
+                            } else {
+                                throw e;
+                            }
+                        }
                         if (next == null) {
                             console.error(command, " did not return a next element to execute! context: " , ctx)
                             return;
@@ -736,6 +751,7 @@
                             next.then(function (resolvedNext) {
                                 unifiedExec(resolvedNext, ctx);
                             }).catch(function(reason){
+                                 _runtime.registerHyperTrace(ctx, reason);
                                 if (ctx.meta && ctx.meta.reject) {
                                     ctx.meta.reject(reason);
                                 } else {
@@ -850,37 +866,23 @@
                     return null;
                 }
 
-                function makeContext(root, elt, event) {
+                function makeContext(owner, feature, target, event) {
                     var ctx = {
                         meta: {
                             parser: _parser,
                             lexer: _lexer,
                             runtime: _runtime,
-                            root: root,
-                            iterators: root
+                            owner: owner,
+                            feature: feature,
+                            iterators: {}
                         },
-                        me: elt,
+                        me: target,
                         event: event,
                         detail: event ? event.detail : null,
                         body: 'document' in globalScope ? document.body : null
                     }
                     ctx.meta.ctx = ctx;
                     return ctx;
-                }
-
-                function applyEventListeners(hypeScript, elt) {
-                    forEach(hypeScript.onFeatures, function (onFeature) {
-                        forEach(
-                            onFeature.elsewhere ? [document]
-                                : onFeature.from ? onFeature.from.evaluate({})
-                                : [elt], function(target){ // OK NO PROMISE
-                            target.addEventListener(onFeature.on.evaluate(), function(evt){ // OK NO PROMISE
-                                if (onFeature.elsewhere && elt.contains(evt.target)) return
-                                var ctx = makeContext(onFeature, elt, evt);
-                                onFeature.execute(ctx)
-                            });
-                        })
-                    });
                 }
 
                 function getScriptSelector() {
@@ -942,7 +944,7 @@
                                 internalData.script = src;
                                 var tokens = _lexer.tokenize(src);
                                 var hyperScript = _parser.parseHyperScript(tokens);
-                                _runtime.applyEventListeners(hyperScript, target || elt);
+                                hyperScript.apply(target || elt, elt);
                                 setTimeout(function () {
                                     triggerEvent(target || elt, 'load');
                                 }, 1);
@@ -1053,6 +1055,48 @@
                     root[name] = value;
                 }
 
+                function getHyperTrace(ctx, thrown) {
+                    var trace = [];
+                    var root = ctx;
+                    while(root.meta.caller) {
+                        root = root.meta.caller;
+                    }
+                    if (root.meta.traceMap) {
+                        return root.meta.traceMap.get(thrown, trace);
+                    }
+                }
+
+                function registerHyperTrace(ctx, thrown) {
+                    var trace = [];
+                    var root = null;
+                    while(ctx != null) {
+                        trace.push(ctx);
+                        root = ctx;
+                        ctx = ctx.meta.caller;
+                    }
+                    if (root.meta.traceMap == null) {
+                        root.meta.traceMap = new Map(); // TODO - WeakMap?
+                    }
+                    if (!root.meta.traceMap.get(thrown)) {
+                        var traceEntry = {
+                            trace: trace,
+                            print : function(logger) {
+                                logger = logger || console.error;
+                                logger("hypertrace /// ")
+                                var maxLen = 0;
+                                for (var i = 0; i < trace.length; i++) {
+                                    maxLen = Math.max(maxLen, trace[i].meta.feature.displayName.length);
+                                }
+                                for (var i = 0; i < trace.length; i++) {
+                                    var traceElt = trace[i];
+                                    logger("  ->", traceElt.meta.feature.displayName.padEnd(maxLen + 2), "-", traceElt.meta.owner)
+                                }
+                            }
+                        };
+                        root.meta.traceMap.set(thrown, traceEntry);
+                    }
+                }
+
                 var hyperscriptUrl = 'document' in globalScope ? document.currentScript.src : null
 
                 return {
@@ -1061,7 +1105,6 @@
                     triggerEvent: triggerEvent,
                     matchesSelector: matchesSelector,
                     getScript: getScript,
-                    applyEventListeners: applyEventListeners,
                     processNode: processNode,
                     evaluate: evaluate,
                     getScriptSelector: getScriptSelector,
@@ -1072,6 +1115,8 @@
                     unifiedExec: unifiedExec,
                     resolveProperty: resolveProperty,
                     assignToNamespace: assignToNamespace,
+                    registerHyperTrace: registerHyperTrace,
+                    getHyperTrace: getHyperTrace,
                     hyperscriptUrl: hyperscriptUrl,
                     HALT: HALT
                 }
@@ -1162,6 +1207,22 @@
                             },
                             evaluate: function () {
                                 return document.querySelectorAll(this.value);
+                            }
+                        };
+                    }
+                })
+
+                _parser.addLeafExpression("queryRef", function(parser, runtime, tokens) {
+                    var queryStart = tokens.matchOpToken('<');
+                    if (queryStart) {
+                        var queryTokens = tokens.consumeUntil("/");
+                        tokens.requireOpToken("/");
+                        tokens.requireOpToken(">");
+                        return {
+                            type: "queryRef",
+                            query: queryTokens.map(function(t){return t.value}).join(""),
+                            evaluate: function () {
+                                return document.querySelectorAll(this.query);
                             }
                         };
                     }
@@ -1431,6 +1492,9 @@
                                 args: [root.root, args],
                                 op: function (context, rootRoot, args) {
                                     var func = rootRoot[root.prop.value];
+                                    if (func.hyperfunc) {
+                                        args.push(context);
+                                    }
                                     return func.apply(rootRoot, args);
                                 },
                                 evaluate: function (context) {
@@ -1444,6 +1508,9 @@
                                 argExressions: args,
                                 args: [root, args],
                                 op: function(context, func, argVals){
+                                    if (func.hyperfunc) {
+                                        argVals.push(context);
+                                    }
                                     var apply = func.apply(null, argVals);
                                     return apply;
                                 },
@@ -1711,7 +1778,8 @@
                 _parser.addGrammarElement("target", function(parser, runtime, tokens) {
                     var expr = _parser.parseElement("expression", tokens);
                     if (expr.type === "symbol" || expr.type === "idRef" ||
-                        expr.type === "classRef" || expr.type === "propertyAccess") {
+                        expr.type === "queryRef" || expr.type === "classRef" ||
+                        expr.type === "propertyAccess") {
                         return expr;
                     } else {
                         _parser.raiseParseError(tokens, "A target expression must be writable");
@@ -1720,24 +1788,13 @@
                 });
 
                 _parser.addGrammarElement("hyperscript", function(parser, runtime, tokens) {
-                    var onFeatures = []
-                    var functionFeatures = []
+
+                    var features = [];
 
                     if (tokens.hasMore()) {
                         do {
                             var feature = parser.requireElement("feature", tokens);
-                            if (feature.type === "onFeature") {
-                                onFeatures.push(feature);
-                            } else if(feature.type === "defFeature") {
-                                feature.execute();
-                                functionFeatures.push(feature);
-                            } else if (feature.type === "jsFeature") {
-                                feature.execute();
-                            } else { // this is a plugin feature
-                                if ('execute' in feature) {
-                                    feature.execute();
-                                }
-                            }
+                            features.push(feature);
                             var chainedOn = feature.type === "onFeature" && tokens.currentToken() && tokens.currentToken().value === "on";
                         } while ((chainedOn || tokens.matchToken("end")) && tokens.hasMore())
                         if (tokens.hasMore()) {
@@ -1746,10 +1803,12 @@
                     }
                     return {
                         type: "hyperscript",
-                        onFeatures: onFeatures,
-                        functions: functionFeatures,
-                        execute: function () {
+                        features: features,
+                        apply: function (target, source) {
                             // no op
+                            _runtime.forEach(features, function(feature){
+                                feature.install(target, source);
+                            })
                         }
                     };
                 })
@@ -1818,6 +1877,7 @@
                         }
 
                         var onFeature = {
+                            displayName: "on " + on.evaluate(null),
                             args: args,
                             on: on,
                             every: every,
@@ -1856,11 +1916,32 @@
                                     onFeature.executing = false;
                                 }
                                 ctx.meta.reject = function (err) {
-                                    console.error(err);
+                                    console.error(err.message ? err.message : err);
+                                    var hypertrace = runtime.getHyperTrace(ctx, err);
+                                    if(hypertrace){
+                                        hypertrace.print();
+                                    }
                                     runtime.triggerEvent(ctx.me, 'exception', {error: err})
                                     onFeature.executing = false;
                                 }
                                 start.execute(ctx);
+                            },
+                            install : function(elt, source) {
+                                var targets;
+                                if (onFeature.elsewhere) {
+                                    targets = [document];
+                                } else if (onFeature.from) {
+                                    targets = onFeature.from.evaluate({});
+                                } else {
+                                    targets = [elt];
+                                }
+                                runtime.forEach(targets, function (target) { // OK NO PROMISE
+                                    target.addEventListener(onFeature.on.evaluate(), function (evt) { // OK NO PROMISE
+                                        if (onFeature.elsewhere && elt.contains(evt.target)) return
+                                        var ctx = runtime.makeContext(elt, onFeature, elt, evt);
+                                        onFeature.execute(ctx)
+                                    });
+                                })
                             }
                         };
                         parser.setParent(start, onFeature);
@@ -1889,22 +1970,23 @@
 
                         var start = parser.parseElement("commandList", tokens);
                         var functionFeature = {
+                            displayName: funcName + "(" + args.map(function(arg){ return arg.value }).join(", ") + ")",
                             name: funcName,
                             args: args,
                             start: start,
-                            execute: function (ctx) {
-                                runtime.assignToNamespace(nameSpace, funcName, function () {
+                            install: function (target, source) {
+                                var func = function () {
                                     // null, worker
-                                    var root = 'document' in globalScope ? document.body : null
                                     var elt = 'document' in globalScope ? document.body : globalScope
-                                    var ctx = runtime.makeContext(root, elt, null);
-                                    for (var i = 0; i < arguments.length; i++) {
-                                        var argumentVal = arguments[i];
+                                    var ctx = runtime.makeContext(source, functionFeature, elt, null);
+                                    for (var i = 0; i < args.length; i++) {
                                         var name = args[i];
+                                        var argumentVal = arguments[i];
                                         if (name) {
                                             ctx[name.value] = argumentVal;
                                         }
                                     }
+                                    ctx.meta.caller = arguments[args.length];
                                     var resolve, reject = null;
                                     var promise = new Promise(function (theResolve, theReject) {
                                         resolve = theResolve;
@@ -1918,7 +2000,9 @@
                                         ctx.meta.reject = reject;
                                         return promise
                                     }
-                                });
+                                };
+                                func.hyperfunc = true;
+                                runtime.assignToNamespace(nameSpace, funcName, func);
                             }
                         };
 
@@ -2015,7 +2099,7 @@
                             jsSource: jsSource,
                             function: func,
                             exposedFunctionNames: jsBody.exposedFunctionNames,
-                            execute: function() {
+                            install: function() {
                                 mergeObjects(globalScope, func())
                             }
                         }
@@ -2578,6 +2662,7 @@
                             expr: expr,
                             args: [expr],
                             op: function (ctx, expr) {
+                                runtime.registerHyperTrace(ctx, expr);
                                 var reject = ctx.meta && ctx.meta.reject;
                                 if (reject) {
                                     reject(expr);
@@ -2901,17 +2986,77 @@
                     }
                 })
 
+                _parser.addCommand("transition", function(parser, runtime, tokens) {
+                    if (tokens.matchToken("transition")) {
+                        if (tokens.matchToken('element') || tokens.matchToken('elements')) {
+                            var targets = parser.parseElement("expression", tokens);
+                        } else {
+                            var targets = parser.parseElement("implicitMeTarget"); // TODO support multiple targets (general 'with' command?)
+                        }
+                        var properties = [];
+                        var from = [];
+                        var to = [];
+                        while (tokens.hasMore() &&
+                               !parser.commandBoundary(tokens.currentToken()) &&
+                               tokens.currentToken().value !== "using") {
+                            properties.push(tokens.requireTokenType("IDENTIFIER").value);
+                            tokens.requireToken("from");
+                            from.push(parser.requireElement("stringLike", tokens));
+                            tokens.requireToken("to");
+                            to.push(parser.requireElement("stringLike" , tokens));
+                        }
+                        if (tokens.matchToken("using")) {
+                            var using = parser.requireElement("expression", tokens);
+                        }
+
+                        var transition = {
+                            to: to,
+                            args: [targets, from, to, using],
+                            op: function (context, targets, from, to, using) {
+                                var promises = [];
+                                runtime.forEach(targets, function(target){
+                                    var promise = new Promise(function (resolve, reject) {
+                                        var initialTransition = target.style.transition;
+                                        target.style.transition = using || _hyperscript.config.defaultTransition; // TODO make pluggable
+                                        for (var i = 0; i < properties.length; i++) {
+                                            var property = properties[i];
+                                            var fromVal = from[i];
+                                            target.style[property] = fromVal;
+                                        }
+                                        setTimeout(function () {
+                                            console.log(target.style);
+                                            for (var i = 0; i < properties.length; i++) {
+                                                var property = properties[i];
+                                                var toVal = to[i];
+                                                target.style[property] = toVal;
+                                            }
+                                            target.addEventListener('transitionend', function () {
+                                                target.style.transition = initialTransition;
+                                                resolve();
+                                            })
+                                        }, 10);
+                                    });
+                                    promises.push(promise);
+                                })
+                                return Promise.all(promises).then(function(){
+                                    return runtime.findNext(transition);
+                                })
+                            }
+                        };
+                        return transition
+                    }
+                });
+
+
+                _parser.addGrammarElement("stringLike", function(parser, runtime, tokens) {
+                    return _parser.parseAnyOf(["string", "nakedString"], tokens);
+                });
+
                 _parser.addCommand("fetch", function(parser, runtime, tokens) {
                     if (tokens.matchToken('fetch')) {
 
-                        var url = parser.parseElement("string", tokens);
-                        if (url == null) {
-                            var url = parser.parseElement("nakedString", tokens);
-                        }
-                        if (url == null) {
-                            parser.raiseParseError(tokens, "Expected a URL");
-                        }
 
+                        var url = parser.requireElement("stringLike", tokens);
                         var args = parser.parseElement("objectLiteral", tokens);
 
                         var type = "text";
@@ -3030,8 +3175,9 @@
                     _runtime.processNode(elt);
                 },
                 config: {
-                    attributes : "_, script, data-script"
-                },
+                    attributes : "_, script, data-script",
+                    defaultTransition: "all 500ms ease-in"
+                }
             }
         }
     )()
@@ -3048,7 +3194,8 @@
                 importScripts(e.data._hyperscript);
                 importScripts.apply(self, e.data.extraScripts);
                 var tokens = _hyperscript.internals.lexer.makeTokensObject(e.data.tokens, [], e.data.source);
-                var parsed = _hyperscript.internals.parser.parseElement('hyperscript', tokens);
+                var hyperscript = _hyperscript.internals.parser.parseElement('hyperscript', tokens);
+                hyperscript.apply(self);
                 postMessage({ type: 'didInit' });
                 break;
             case 'call':
@@ -3176,7 +3323,7 @@
             return {
                 name: workerName,
                 worker: worker,
-                execute: function (ctx) {
+                install: function () {
                     runtime.assignToNamespace(nameSpace, workerName, stubs)
                 }
             };

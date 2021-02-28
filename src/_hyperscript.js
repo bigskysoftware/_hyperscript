@@ -2153,6 +2153,26 @@
                     }
                 })
 
+                _parser.addCommand("async", function (parser, runtime, tokens) {
+                    if (tokens.matchToken("async")) {
+                        if (tokens.matchToken("do")) {
+                            var body = parser.requireElement('commandList', tokens)
+                            tokens.requireToken("end")
+                        } else {
+                            var body = parser.requireElement('command', tokens)
+                        }
+                        return {
+                            body: body,
+                            op: function (context) {
+                                setTimeout(function(){
+                                    body.execute(context);
+                                })
+                                return runtime.findNext(this);
+                            }
+                        };
+                    }
+                })
+
                 _parser.addCommand("add", function(parser, runtime, tokens) {
                     if (tokens.matchToken("add")) {
                         var classRef = parser.parseElement("classRef", tokens);
