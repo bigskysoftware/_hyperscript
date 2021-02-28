@@ -860,16 +860,17 @@
                     return null;
                 }
 
-                function makeContext(feature, elt, event) {
+                function makeContext(owner, feature, target, event) {
                     var ctx = {
                         meta: {
                             parser: _parser,
                             lexer: _lexer,
                             runtime: _runtime,
+                            owner: owner,
                             feature: feature,
                             iterators: {}
                         },
-                        me: elt,
+                        me: target,
                         event: event,
                         detail: event ? event.detail : null,
                         body: 'document' in globalScope ? document.body : null
@@ -1072,9 +1073,13 @@
                         print : function(logger) {
                             logger = logger || console.error;
                             logger("hypertrace /// ")
+                            var maxLen = 0;
+                            for (var i = 0; i < trace.length; i++) {
+                                maxLen = Math.max(maxLen, trace[i].meta.feature.displayName.length);
+                            }
                             for (var i = 0; i < trace.length; i++) {
                                 var traceElt = trace[i];
-                                logger("  ->", traceElt.meta.feature.displayName, traceElt.me)
+                                logger("  ->", traceElt.meta.feature.displayName.padEnd(maxLen + 2), "-", traceElt.meta.owner)
                             }
                         }
                     };
@@ -1908,7 +1913,7 @@
                                 runtime.forEach(targets, function (target) { // OK NO PROMISE
                                     target.addEventListener(onFeature.on.evaluate(), function (evt) { // OK NO PROMISE
                                         if (onFeature.elsewhere && elt.contains(evt.target)) return
-                                        var ctx = runtime.makeContext(onFeature, elt, evt);
+                                        var ctx = runtime.makeContext(elt, onFeature, elt, evt);
                                         onFeature.execute(ctx)
                                     });
                                 })
@@ -1948,7 +1953,7 @@
                                 var func = function () {
                                     // null, worker
                                     var elt = 'document' in globalScope ? document.body : globalScope
-                                    var ctx = runtime.makeContext(functionFeature, elt, null);
+                                    var ctx = runtime.makeContext(source, functionFeature, elt, null);
                                     for (var i = 0; i < args.length; i++) {
                                         var name = args[i];
                                         var argumentVal = arguments[i];
