@@ -1778,7 +1778,8 @@
                 _parser.addGrammarElement("target", function(parser, runtime, tokens) {
                     var expr = _parser.parseElement("expression", tokens);
                     if (expr.type === "symbol" || expr.type === "idRef" ||
-                        expr.type === "classRef" || expr.type === "propertyAccess") {
+                        expr.type === "queryRef" || expr.type === "classRef" ||
+                        expr.type === "propertyAccess") {
                         return expr;
                     } else {
                         _parser.raiseParseError(tokens, "A target expression must be writable");

@@ -1,35 +1,5 @@
 ## TODOs
 
-## 0.0.4 features
-* @benpate Array improvements
-    * support the [] operator
-* @1cg First pass at documentation
-* @Deniz Akşimşek - Support `hide`/`show` pattern
-```html
-<script type="text/hyperscript">
-  def myTransition(op, elt)
-    if op is "hide"
-      -- logic to hide the element
-    else
-      -- logic to show the element
-    end
-  end
-</script>
-
-  hide me # configured default, potentially "myTransition"
-  hide me with opacity
-  hide me with myTransition
-  hide me with visibility
-  hide me with display
-
-  show me
-  show me with opacity
-  show me with myTransition
-  show me with visibility
-  show me with display
-  show me with display inline -- allow a specific display argument as well
-```
-
 ### Language Features
 * Web Worker API but for Web Sockets... o_O)))
   * two way - server can invoke functions on client, client can invoke functions on server
