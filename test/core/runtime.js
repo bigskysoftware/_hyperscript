@@ -63,6 +63,8 @@ describe("the _hyperscript runtime", function() {
             "</script>");
         var div = make("<div _='on click call bar()'></div>")
         div.click();
+        delete window.bar
+        delete window.baz
     })
 
     it("async hypertrace is reasonable", function(done){

@@ -731,17 +731,11 @@
                         try {
                             var next = unifiedEval(command, ctx);
                         } catch(e) {
-                            var error = e;
-                            if (!(e instanceof Error)) {
-                                error = new Error(e);
-                            }
-                            if (error.hypertrace == null) {
-                                error.hypertrace = _runtime.getHyperTrace(ctx);
-                            }
+                            _runtime.registerHyperTrace(ctx, e);
                             if (ctx.meta && ctx.meta.reject) {
-                                ctx.meta.reject(error);
+                                ctx.meta.reject(e);
                             } else {
-                                throw error;
+                                throw e;
                             }
                         }
                         if (next == null) {
@@ -751,6 +745,7 @@
                             next.then(function (resolvedNext) {
                                 unifiedExec(resolvedNext, ctx);
                             }).catch(function(reason){
+                                 _runtime.registerHyperTrace(ctx, reason);
                                 if (ctx.meta && ctx.meta.reject) {
                                     ctx.meta.reject(reason);
                                 } else {
@@ -883,21 +878,6 @@
                     return ctx;
                 }
 
-                function applyEventListeners(hypeScript, elt) {
-                    forEach(hypeScript.onFeatures, function (onFeature) {
-                        forEach(
-                            onFeature.elsewhere ? [document]
-                                : onFeature.from ? onFeature.from.evaluate({})
-                                : [elt], function(target){ // OK NO PROMISE
-                            target.addEventListener(onFeature.on.evaluate(), function(evt){ // OK NO PROMISE
-                                if (onFeature.elsewhere && elt.contains(evt.target)) return
-                                var ctx = makeContext(onFeature, elt, evt);
-                                onFeature.execute(ctx)
-                            });
-                        })
-                    });
-                }
-
                 function getScriptSelector() {
                     return getScriptAttributes().map(function (attribute) {
                         return "[" + attribute + "]";
@@ -957,7 +937,7 @@
                                 internalData.script = src;
                                 var tokens = _lexer.tokenize(src);
                                 var hyperScript = _parser.parseHyperScript(tokens);
-                                _runtime.applyEventListeners(hyperScript, target || elt);
+                                hyperScript.apply(target || elt, elt);
                                 setTimeout(function () {
                                     triggerEvent(target || elt, 'load');
                                 }, 1);
@@ -1068,13 +1048,26 @@
                     root[name] = value;
                 }
 
-                function getHyperTrace(ctx) {
+                function getHyperTrace(ctx, thrown) {
                     var trace = [];
+                    var root = ctx;
+                    while(root.meta.caller) {
+                        root = root.meta.caller;
+                    }
+                    if (root.meta.traceMap) {
+                        return root.meta.traceMap.get(thrown, trace);
+                    }
+                }
+
+                function registerHyperTrace(ctx, thrown) {
+                    var trace = [];
+                    var root = null;
                     while(ctx != null) {
                         trace.push(ctx);
+                        root = ctx;
                         ctx = ctx.meta.caller;
                     }
-                    return {
+                    var traceEntry = {
                         trace: trace,
                         print : function(logger) {
                             logger = logger || console.error;
@@ -1084,7 +1077,11 @@
                                 logger("  ->", traceElt.meta.feature.displayName, traceElt.me)
                             }
                         }
+                    };
+                    if (root.meta.traceMap == null) {
+                        root.meta.traceMap = new Map();
                     }
+                    root.meta.traceMap.set(thrown, traceEntry);
                 }
 
                 var hyperscriptUrl = 'document' in globalScope ? document.currentScript.src : null
@@ -1095,7 +1092,6 @@
                     triggerEvent: triggerEvent,
                     matchesSelector: matchesSelector,
                     getScript: getScript,
-                    applyEventListeners: applyEventListeners,
                     processNode: processNode,
                     evaluate: evaluate,
                     getScriptSelector: getScriptSelector,
@@ -1106,6 +1102,7 @@
                     unifiedExec: unifiedExec,
                     resolveProperty: resolveProperty,
                     assignToNamespace: assignToNamespace,
+                    registerHyperTrace: registerHyperTrace,
                     getHyperTrace: getHyperTrace,
                     hyperscriptUrl: hyperscriptUrl,
                     HALT: HALT
@@ -1761,24 +1758,13 @@
                 });
 
                 _parser.addGrammarElement("hyperscript", function(parser, runtime, tokens) {
-                    var onFeatures = []
-                    var functionFeatures = []
+
+                    var features = [];
 
                     if (tokens.hasMore()) {
                         do {
                             var feature = parser.requireElement("feature", tokens);
-                            if (feature.type === "onFeature") {
-                                onFeatures.push(feature);
-                            } else if(feature.type === "defFeature") {
-                                feature.execute();
-                                functionFeatures.push(feature);
-                            } else if (feature.type === "jsFeature") {
-                                feature.execute();
-                            } else { // this is a plugin feature
-                                if ('execute' in feature) {
-                                    feature.execute();
-                                }
-                            }
+                            features.push(feature);
                             var chainedOn = feature.type === "onFeature" && tokens.currentToken() && tokens.currentToken().value === "on";
                         } while ((chainedOn || tokens.matchToken("end")) && tokens.hasMore())
                         if (tokens.hasMore()) {
@@ -1787,10 +1773,12 @@
                     }
                     return {
                         type: "hyperscript",
-                        onFeatures: onFeatures,
-                        functions: functionFeatures,
-                        execute: function () {
+                        features: features,
+                        apply: function (target, source) {
                             // no op
+                            _runtime.forEach(features, function(feature){
+                                feature.install(target, source);
+                            })
                         }
                     };
                 })
@@ -1898,14 +1886,32 @@
                                     onFeature.executing = false;
                                 }
                                 ctx.meta.reject = function (err) {
-                                    console.error(err.message);
-                                    if(err.hypertrace){
-                                        err.hypertrace.print();
+                                    console.error(err.message ? err.message : err);
+                                    var hypertrace = runtime.getHyperTrace(ctx, err);
+                                    if(hypertrace){
+                                        hypertrace.print();
                                     }
                                     runtime.triggerEvent(ctx.me, 'exception', {error: err})
                                     onFeature.executing = false;
                                 }
                                 start.execute(ctx);
+                            },
+                            install : function(elt, source) {
+                                var targets;
+                                if (onFeature.elsewhere) {
+                                    targets = [document];
+                                } else if (onFeature.from) {
+                                    targets = onFeature.from.evaluate({});
+                                } else {
+                                    targets = [elt];
+                                }
+                                runtime.forEach(targets, function (target) { // OK NO PROMISE
+                                    target.addEventListener(onFeature.on.evaluate(), function (evt) { // OK NO PROMISE
+                                        if (onFeature.elsewhere && elt.contains(evt.target)) return
+                                        var ctx = runtime.makeContext(onFeature, elt, evt);
+                                        onFeature.execute(ctx)
+                                    });
+                                })
                             }
                         };
                         parser.setParent(start, onFeature);
@@ -1938,7 +1944,7 @@
                             name: funcName,
                             args: args,
                             start: start,
-                            execute: function (ctx) {
+                            install: function (target, source) {
                                 var func = function () {
                                     // null, worker
                                     var elt = 'document' in globalScope ? document.body : globalScope
@@ -2063,7 +2069,7 @@
                             jsSource: jsSource,
                             function: func,
                             exposedFunctionNames: jsBody.exposedFunctionNames,
-                            execute: function() {
+                            install: function() {
                                 mergeObjects(globalScope, func())
                             }
                         }
@@ -2626,14 +2632,13 @@
                             expr: expr,
                             args: [expr],
                             op: function (ctx, expr) {
-                                var error = new Error(expr);
-                                error.hypertrace = runtime.getHyperTrace(ctx);
+                                runtime.registerHyperTrace(ctx, expr);
                                 var reject = ctx.meta && ctx.meta.reject;
                                 if (reject) {
-                                    reject(error);
+                                    reject(expr);
                                     return runtime.HALT;
                                 } else {
-                                    throw error;
+                                    throw expr;
                                 }
                             }
                         };
