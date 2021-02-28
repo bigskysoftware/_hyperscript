@@ -1,5 +1,11 @@
 ## TODOs
 
+### 0.0.5 release
+* catch/error mechanism
+* support `async` command
+  * `async log me`
+  * `async do wait 2s then log me end`
+
 ### Language Features
 * Web Worker API but for Web Sockets... o_O)))
   * two way - server can invoke functions on client, client can invoke functions on server
@@ -8,9 +14,6 @@
 ```
    set str to "this $is a ${cool.feature}"
 ```
-* support `async` command
-  * `async log me`
-  * `async do wait 2s then log me end`
 * repeat command improvements
 ```
 // By default, counter uses "it" convention
@@ -23,7 +26,6 @@ repeat for x in IterableVariable
     call JsFn(x)
 end
 ```
-
 * Support a `timeout` modifier for async commands like `fetch`, `call`, `wait for` etc.
 * the `on` feature needs to support a count filter (and numeric ranges)
 ```on click 1 log "first click"
@@ -77,9 +79,6 @@ end
 ```
   while hover add .foo
 ```
-
-### Language Infrastructure
-* catch blocks for functions?
 
 ### Parser Infrastructure
 * Recovering parser (we are single error right now)
