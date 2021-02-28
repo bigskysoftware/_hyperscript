@@ -96,7 +96,7 @@ This gives you a flavor of the language, and I hope perks your interest.  Now le
 Hyperscript is a dependency-free javascript library that can be included in a web page without any build steps:
 
 ```html
-<script src="https://unpkg.com/hyperscript.org@0.0.3"></script>
+<script src="https://unpkg.com/hyperscript.org@0.0.4"></script>
 ```
 
 After you've done this, you can begin adding hyperscript to elements:

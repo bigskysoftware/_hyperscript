@@ -34,7 +34,7 @@ hyperscript is a companion project of [htmx](https://htmx.org)
 ## examples
 
 ```html
-<script src="https://unpkg.com/hyperscript.org@0.0.3"></script>
+<script src="https://unpkg.com/hyperscript.org@0.0.4"></script>
 
 <button _="on click toggle .big-text">
   Toggle the "big-text" class on me on click
