@@ -857,7 +857,7 @@
                             lexer: _lexer,
                             runtime: _runtime,
                             root: root,
-                            iterators: root
+                            iterators: {}
                         },
                         me: elt,
                         event: event,
