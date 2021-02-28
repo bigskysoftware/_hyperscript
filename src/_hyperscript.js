@@ -198,16 +198,20 @@
                         return match;
                     }
 
-                    function consumeUntilWhitespace() {
+                    function consumeUntil(value, type) {
                         var tokenList = [];
                         ignoreWhiteSpace = false;
-                        while (currentToken() &&
-                               currentToken().type !== "WHITESPACE"  &&
-                               currentToken().type !== "EOF") {
+                        while ((type == null || currentToken().type !== type) &&
+                               (value == null || currentToken().value !== value) &&
+                                currentToken().type !== "EOF") {
                             tokenList.push(consumeToken());
                         }
                         ignoreWhiteSpace = true;
                         return tokenList;
+                    }
+
+                    function consumeUntilWhitespace() {
+                        return consumeUntil(null, "WHITESPACE");
                     }
 
                     function hasMore() {
@@ -248,6 +252,7 @@
                         source: source,
                         hasMore: hasMore,
                         currentToken: currentToken,
+                        consumeUntil: consumeUntil,
                         consumeUntilWhitespace: consumeUntilWhitespace,
                     }
                 }
@@ -1202,6 +1207,22 @@
                             },
                             evaluate: function () {
                                 return document.querySelectorAll(this.value);
+                            }
+                        };
+                    }
+                })
+
+                _parser.addLeafExpression("queryRef", function(parser, runtime, tokens) {
+                    var queryStart = tokens.matchOpToken('<');
+                    if (queryStart) {
+                        var queryTokens = tokens.consumeUntil("/");
+                        tokens.requireOpToken("/");
+                        tokens.requireOpToken(">");
+                        return {
+                            type: "queryRef",
+                            query: queryTokens.map(function(t){return t.value}).join(""),
+                            evaluate: function () {
+                                return document.querySelectorAll(this.query);
                             }
                         };
                     }

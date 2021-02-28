@@ -38,18 +38,6 @@
 ```
    set str to "this $is a ${cool.feature}"
 ```
-* Figure out an explicit transition API
-  * https://v3.vuejs.org/guide/transitions-enterleave.html#transitioning-single-elements-components
-  * https://github.com/alpinejs/alpine/#x-transition
-  * https://www.educba.com/css-scale/
-  * strawman:
-  ```html
-  transition
-    opacity from 0 to 100
-    transform.scale from 90 to 100
-    add .class1, .class2
-  with ease-out 300ms
-  ```
 * support `async` command
   * `async log me`
   * `async do wait 2s then log me end`
@@ -80,14 +68,6 @@ end
   on click queue all log "throttled click"
 ```
 * functions should be able to be marked `sync` to make only one execution at a time occur, in serial fashion
-* support a `select` expression or statement that allows for general querying against the DOM
-```
-  select .foo
-  select .foo .bar
-  select .foo in bar
-  select one div.foo in section.bar
-  select one div.foo in section.bar where children.count > 2
-```
 
 #### Speculative Language Features
 * A two-way binding system (maybe a global two way-bound namespace? hyperplane?
