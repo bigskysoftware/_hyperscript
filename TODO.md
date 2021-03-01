@@ -1,9 +1,15 @@
 ## TODOs
 
 ### 0.0.5 release
-* catch/error mechanism
+* catch/error mechanism testing
+* docs
 
 ### Language Features
+* Event model
+* Debugging
+* range operator
+* `matches` expression: `target matches <div.foo/>`
+*  array helpers 'first', 'last', 'in', 'random'
 * Web Worker API but for Web Sockets... o_O)))
   * two way - server can invoke functions on client, client can invoke functions on server
   * normal listening for messages also works of course
