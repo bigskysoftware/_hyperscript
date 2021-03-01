@@ -1874,6 +1874,23 @@
                         }
                         var on = parser.requireElement("dotOrColonPath", tokens, "Expected event name");
 
+                        var queue = [];
+                        var queueLast = true;
+                        if (!every) {
+                            if (tokens.matchToken("queue")) {
+                                if (tokens.matchToken("all")) {
+                                    var queueAll = true;
+                                    var queueLast = false;
+                                } else if(tokens.matchToken("first")) {
+                                    var queueFirst = true;
+                                } else if(tokens.matchToken("none")) {
+                                    var queueNone = true;
+                                } else {
+                                    tokens.requireToken("last");
+                                }
+                            }
+                        }
+
                         var args = [];
                         if (tokens.matchOpToken("(")) {
                             do {
@@ -1940,46 +1957,49 @@
                             start: start,
                             executing: false,
                             execCount: 0,
+                            queue: queue,
                             execute: function (ctx) {
                                 if (this.executing && this.every === false) {
+                                    if (queueNone || (queueFirst && queue.length > 0)) {
+                                        return;
+                                    }
+                                    if (queueLast) {
+                                        onFeature.queue.length = 0;
+                                    }
+                                    onFeature.queue.push(ctx);
                                     return;
                                 }
                                 this.execCount++;
                                 this.executing = true;
-                                runtime.forEach(args, function (arg) {
-                                    ctx[arg.value] = ctx.event[arg.value] || (ctx.event.detail ? ctx.event.detail[arg.value] : null);
-                                });
-                                if (filter) {
-                                    var initialCtx = ctx.meta.context;
-                                    ctx.meta.context = ctx.event;
-                                    try {
-                                        var value = filter.evaluate(ctx); //OK NO PROMISE
-                                        if (value) {
-                                            // match the javascript semantics for if statements
-                                        } else {
-                                            this.executing = false;
-                                            return;
-                                        }
-                                    } finally {
-                                        ctx.meta.context = initialCtx;
-                                    }
-                                }
-
                                 ctx.meta.resolve = function () {
                                     onFeature.executing = false;
+                                    console.log(onFeature.queue);
+                                    var queued = onFeature.queue.shift();
+                                    if (queued) {
+                                        setTimeout(function () {
+                                            console.log(queued);
+                                            onFeature.execute(queued);
+                                        }, 1);
+                                    }
                                 }
                                 ctx.meta.reject = function (err) {
                                     console.error(err.message ? err.message : err);
                                     var hypertrace = runtime.getHyperTrace(ctx, err);
-                                    if(hypertrace){
+                                    if (hypertrace) {
                                         hypertrace.print();
                                     }
                                     runtime.triggerEvent(ctx.me, 'exception', {error: err})
                                     onFeature.executing = false;
+                                    var queued = onFeature.queue.shift();
+                                    if (queued) {
+                                    setTimeout(function () {
+                                        onFeature.execute(queued);
+                                        }, 1);
+                                    }
                                 }
                                 start.execute(ctx);
                             },
-                            install : function(elt, source) {
+                            install: function (elt, source) {
                                 var targets;
                                 if (onFeature.elsewhere) {
                                     targets = [document];
@@ -1990,8 +2010,33 @@
                                 }
                                 runtime.forEach(targets, function (target) { // OK NO PROMISE
                                     target.addEventListener(onFeature.on.evaluate(), function (evt) { // OK NO PROMISE
-                                        if (onFeature.elsewhere && elt.contains(evt.target)) return
                                         var ctx = runtime.makeContext(elt, onFeature, elt, evt);
+                                        if (onFeature.elsewhere && elt.contains(evt.target)) {
+                                            return
+                                        }
+
+                                        // establish context
+                                        runtime.forEach(args, function (arg) {
+                                            ctx[arg.value] = ctx.event[arg.value] || (ctx.event.detail ? ctx.event.detail[arg.value] : null);
+                                        });
+
+                                        // apply filter
+                                        if (filter) {
+                                            var initialCtx = ctx.meta.context;
+                                            ctx.meta.context = ctx.event;
+                                            try {
+                                                var value = filter.evaluate(ctx); //OK NO PROMISE
+                                                if (value) {
+                                                    // match the javascript semantics for if statements
+                                                } else {
+                                                    return;
+                                                }
+                                            } finally {
+                                                ctx.meta.context = initialCtx;
+                                            }
+                                        }
+
+                                        // apply execute
                                         onFeature.execute(ctx)
                                     });
                                 })
