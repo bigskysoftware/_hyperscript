@@ -157,6 +157,37 @@ describe("the def feature", function() {
         delete window.foo;
     })
 
+    it("can rethrow in catch blocks", function(){
+        var script = make(
+            "<script type='text/hyperscript'>" +
+            "def foo() " +
+            "  throw \"bar\"" +
+            "catch e " +
+            "   throw e " +
+            "end" +
+            "</script>");
+        try {
+            foo();
+            true.should.equal(false);
+        } catch (e) {
+            e.should.equal("bar");
+        }
+        delete window.foo;
+    })
+
+    it("can return in catch blocks", function(){
+        var script = make(
+            "<script type='text/hyperscript'>" +
+            "def foo() " +
+            "  throw \"bar\"" +
+            "catch e " +
+            "   return 42 " +
+            "end" +
+            "</script>");
+        foo().should.equal(42);
+        delete window.foo;
+    })
+
     it("can catch nested async exceptions", function(done){
         var script = make(
             "<script type='text/hyperscript'>" +
