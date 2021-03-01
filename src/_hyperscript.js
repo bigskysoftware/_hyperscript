@@ -116,7 +116,7 @@
                         (c >= 'A' && c <= 'Z');
                 }
 
-                function isIdentifierChar(dollarIsOp, c) {
+                function isIdentifierChar(c, dollarIsOp) {
                     return (c === "_" || (!dollarIsOp && c === "$"));
                 }
 
@@ -762,8 +762,14 @@
                             var next = unifiedEval(command, ctx);
                         } catch(e) {
                             _runtime.registerHyperTrace(ctx, e);
-                            if (ctx.meta && ctx.meta.reject) {
+                            if (ctx.meta.errorHandler && !ctx.meta.handlingError) {
+                                ctx.meta.handlingError = true;
+                                ctx[ctx.meta.errorSymmbol] = e;
+                                command = ctx.meta.errorHandler;
+                                continue;
+                            } else if (ctx.meta.reject) {
                                 ctx.meta.reject(e);
+                                next = HALT;
                             } else {
                                 throw e;
                             }
@@ -776,10 +782,14 @@
                                 unifiedExec(resolvedNext, ctx);
                             }).catch(function(reason){
                                  _runtime.registerHyperTrace(ctx, reason);
-                                if (ctx.meta && ctx.meta.reject) {
+                                if (ctx.meta.errorHandler && !ctx.meta.handlingError) {
+                                    ctx.meta.handlingError = true;
+                                    ctx[ctx.meta.errorSymmbol] = reason;
+                                    unifiedExec(ctx.meta.errorHandler, ctx);
+                                } else if(ctx.meta.reject) {
                                     ctx.meta.reject(reason);
                                 } else {
-                                    // TODO: no meta context to reject with, trigger event?
+                                    throw reason;
                                 }
                             });
                             return;
@@ -846,7 +856,11 @@
                                     reject(e);
                                 }
                             }).catch(function(reason){
-                                if (ctx.meta && ctx.meta.reject) {
+                                if (ctx.meta.errorHandler && !ctx.meta.handlingError) {
+                                    ctx.meta.handlingError = true;
+                                    ctx[ctx.meta.errorSymmbol] = reason;
+                                    unifiedExec(ctx.meta.errorHandler, ctx);
+                                } else if(ctx.meta.reject) {
                                     ctx.meta.reject(reason);
                                 } else {
                                     // TODO: no meta context to reject with, trigger event?
@@ -857,15 +871,7 @@
                         if (wrappedAsyncs) {
                             unwrapAsyncs(args);
                         }
-                        try {
-                            return parseElement.op.apply(parseElement, args);
-                        } catch (e) {
-                            if (ctx.meta && ctx.meta.reject) {
-                                ctx.meta.reject(e);
-                            } else {
-                                throw e;
-                            }
-                        }
+                        return parseElement.op.apply(parseElement, args);
                     }
                 }
 
@@ -2015,16 +2021,27 @@
                         }
 
                         var start = parser.parseElement("commandList", tokens);
+                        if (tokens.matchToken('catch')) {
+                            var errorSymbol = tokens.requireTokenType('IDENTIFIER').value;
+                            var errorHandler = parser.parseElement("commandList", tokens);
+                        }
                         var functionFeature = {
                             displayName: funcName + "(" + args.map(function(arg){ return arg.value }).join(", ") + ")",
                             name: funcName,
                             args: args,
                             start: start,
+                            errorHandler: errorHandler,
+                            errorSymbol: errorSymbol,
                             install: function (target, source) {
                                 var func = function () {
                                     // null, worker
                                     var elt = 'document' in globalScope ? document.body : globalScope
                                     var ctx = runtime.makeContext(source, functionFeature, elt, null);
+
+                                    // install error handler if any
+                                    ctx.meta.errorHandler = errorHandler;
+                                    ctx.meta.errorSymmbol = errorSymbol;
+
                                     for (var i = 0; i < args.length; i++) {
                                         var name = args[i];
                                         var argumentVal = arguments[i];
@@ -2066,6 +2083,7 @@
                                 // do nothing
                             }
                         }
+                        // terminate body
                         if (start) {
                             var end = start;
                             while (end.next) {
@@ -2074,6 +2092,15 @@
                             end.next = implicitReturn
                         } else {
                             functionFeature.start = implicitReturn
+                        }
+
+                        // terminate error handler
+                        if (errorHandler) {
+                            var end = errorHandler;
+                            while (end.next) {
+                                end = end.next;
+                            }
+                            end.next = implicitReturn
                         }
 
                         parser.setParent(start, functionFeature);
@@ -3090,7 +3117,6 @@
                                             target.style[property] = fromVal;
                                         }
                                         setTimeout(function () {
-                                            console.log(target.style);
                                             for (var i = 0; i < properties.length; i++) {
                                                 var property = properties[i];
                                                 var toVal = to[i];
