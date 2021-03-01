@@ -1147,6 +1147,7 @@
                     assignToNamespace: assignToNamespace,
                     registerHyperTrace: registerHyperTrace,
                     getHyperTrace: getHyperTrace,
+                    getInternalData: getInternalData,
                     hyperscriptUrl: hyperscriptUrl,
                     HALT: HALT
                 }
@@ -3110,17 +3111,39 @@
                                 runtime.forEach(targets, function(target){
                                     var promise = new Promise(function (resolve, reject) {
                                         var initialTransition = target.style.transition;
-                                        target.style.transition = using || _hyperscript.config.defaultTransition; // TODO make pluggable
+                                        target.style.transition = using || _hyperscript.config.defaultTransition;
+                                        var internalData = runtime.getInternalData(target);
+                                        var computedStyles = getComputedStyle(target);
+
+                                        // store intitial values
+                                        if (!internalData.initalStyles) {
+                                            internalData.initalStyles = {};
+                                            for (var i = 0; i < computedStyles.length; i++) {
+                                                var name = computedStyles[i];
+                                                var initialValue = computedStyles[name];
+                                                internalData.initalStyles[name] = initialValue;
+                                            }
+                                        }
+
                                         for (var i = 0; i < properties.length; i++) {
                                             var property = properties[i];
                                             var fromVal = from[i];
-                                            target.style[property] = fromVal;
+                                            if (fromVal == 'computed') {
+                                                target.style[property] = computedStyles.getPropertyValue(property);
+                                            } else {
+                                                target.style[property] = fromVal;
+                                            }
                                         }
                                         setTimeout(function () {
                                             for (var i = 0; i < properties.length; i++) {
                                                 var property = properties[i];
                                                 var toVal = to[i];
-                                                target.style[property] = toVal;
+                                                if (toVal == 'initial') {
+                                                    var propertyValue = internalData.initalStyles[property];
+                                                    target.style[property] = propertyValue;
+                                                } else {
+                                                    target.style[property] = toVal;
+                                                }
                                             }
                                             target.addEventListener('transitionend', function () {
                                                 target.style.transition = initialTransition;
