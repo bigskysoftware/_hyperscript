@@ -67,6 +67,7 @@
                     '?': 'QUESTION',
                     '#': 'POUND',
                     '&': 'AMPERSAND',
+                    '$': 'DOLLAR',
                     ';': 'SEMI',
                     ',': 'COMMA',
                     '(': 'L_PAREN',
@@ -115,8 +116,8 @@
                         (c >= 'A' && c <= 'Z');
                 }
 
-                function isIdentifierChar(c) {
-                    return (c === "_" || c === "$");
+                function isIdentifierChar(dollarIsOp, c) {
+                    return (c === "_" || (!dollarIsOp && c === "$"));
                 }
 
                 function isReservedChar(c) {
@@ -257,7 +258,7 @@
                     }
                 }
 
-                function tokenize(string) {
+                function tokenize(string, noDollarStart) {
                     var source = string;
                     var tokens = [];
                     var position = 0;
@@ -275,7 +276,7 @@
                                 tokens.push(consumeClassReference());
                             } else if (!possiblePrecedingSymbol() && currentChar() === "#" && isAlpha(nextChar())) {
                                 tokens.push(consumeIdReference());
-                            } else if (isAlpha(currentChar()) || isIdentifierChar(currentChar())) {
+                            } else if (isAlpha(currentChar()) || isIdentifierChar(currentChar(), noDollarStart)) {
                                 tokens.push(consumeIdentifier());
                             } else if (isNumeric(currentChar())) {
                                 tokens.push(consumeNumber());
@@ -611,6 +612,28 @@
                     }
                 }
 
+                function parseStringTemplate(tokens) {
+                    var returnArr = [""];
+                    do {
+                        if (tokens.currentToken().value === "$") {
+                            tokens.consumeToken();
+                            var startingBrace = tokens.matchOpToken('{');
+                            returnArr.push(requireElement("expression", tokens));
+                            if(startingBrace){
+                                tokens.requireOpToken("}");
+                            }
+                            returnArr.push("");
+                        } else if (tokens.currentToken().value === "\\") {
+                            tokens.consumeToken(); // skip next
+                            tokens.consumeToken()
+                        } else {
+                            var token = tokens.consumeToken();
+                            returnArr[returnArr.length - 1] += token.value;
+                        }
+                    } while (tokens.hasMore())
+                    return returnArr;
+                }
+
                 return {
                     // parser API
                     setParent: setParent,
@@ -625,6 +648,7 @@
                     addFeature: addFeature,
                     addLeafExpression: addLeafExpression,
                     addIndirectExpression: addIndirectExpression,
+                    parseStringTemplate: parseStringTemplate,
                 }
             }();
 
@@ -1143,13 +1167,35 @@
                 _parser.addLeafExpression("string", function(parser, runtime, tokens) {
                     var stringToken = tokens.matchTokenType('STRING');
                     if (stringToken) {
+                        var rawValue = stringToken.value;
+                        if (rawValue.indexOf("$") >= 0) {
+                            var innerTokens = _lexer.tokenize(rawValue, true);
+                            var args = parser.parseStringTemplate(innerTokens);
+                        } else {
+                            var args = [];
+                        }
                         return {
                             type: "string",
                             token: stringToken,
+                            args: args,
+                            op: function (context) {
+                                var returnStr = "";
+                                for (var i = 1; i < arguments.length; i++) {
+                                    var val = arguments[i];
+                                    if (val) {
+                                        returnStr += val;
+                                    }
+                                }
+                                return returnStr;
+                            },
                             evaluate: function (context) {
-                                return stringToken.value;
+                                if (args.length === 0) {
+                                    return rawValue;
+                                } else {
+                                    return runtime.unifiedEval(this, context);
+                                }
                             }
-                        }
+                        };
                     }
                 })
 
