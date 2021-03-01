@@ -41,7 +41,7 @@ If you wish to disable a button during an [htmx](https://htmx.org) request, you 
 <button
       class="button is-primary"
       hx-get="/example"
-      _="on click toggle [disabled='true'] until htmx:afterOnLoad then remove #empty-state">
+      _="on click toggle [disabled='true'] until htmx:afterOnLoad">
       Do It
     </button>
 ```
