@@ -326,6 +326,19 @@ describe("the on feature", function() {
         }, 20)
     })
 
+    it("can invoke on multiple events", function(){
+        var i = 0;
+        window.increment = function(){
+            return i++;
+        }
+
+        var div = make("<div _='on click or foo call increment()'></div>");
+        div.click()
+        i.should.equal(1);
+        div.dispatchEvent(new CustomEvent("foo"));
+        i.should.equal(2);
+        delete window.increment;
+    })
 
 });
 

@@ -1872,7 +1872,59 @@
                         if (tokens.matchToken("every")) {
                             every = true;
                         }
-                        var on = parser.requireElement("dotOrColonPath", tokens, "Expected event name");
+                        var events = [];
+                        var displayName = null;
+                        do {
+
+                            var on = parser.requireElement("dotOrColonPath", tokens, "Expected event name");
+                            var eventName = on.evaluate(); // OK No Promise
+                            if (displayName) {
+                                displayName = displayName + " or " + eventName;
+                            } else {
+                                displayName = "on " + eventName;
+                            }
+                            var args = [];
+                            if (tokens.matchOpToken("(")) {
+                                do {
+                                    args.push(tokens.requireTokenType('IDENTIFIER'));
+                                } while (tokens.matchOpToken(","))
+                                tokens.requireOpToken(')')
+                            }
+
+                            var filter = null;
+                            if (tokens.matchOpToken('[')) {
+                                filter = parser.requireElement("expression", tokens);
+                                tokens.requireOpToken(']');
+                            }
+
+                            var from = null;
+                            var elsewhere = false;
+                            if (tokens.matchToken("from")) {
+                                if (tokens.matchToken('elsewhere')) {
+                                    elsewhere = true;
+                                } else {
+                                    from = parser.parseElement("target", tokens)
+                                    if (!from) {
+                                        parser.raiseParseError('Expected either target value or "elsewhere".', tokens);
+                                    }
+                                }
+                            }
+
+                            // support both "elsewhere" and "from elsewhere"
+                            if (from === null && elsewhere === false && tokens.matchToken("elsewhere")) {
+                                elsewhere = true;
+                            }
+
+                            events.push({
+                                every: every,
+                                on: eventName,
+                                args: args,
+                                filter: filter,
+                                from:from,
+                                elsewhere:elsewhere,
+                            })
+                        } while (tokens.matchToken("or"))
+
 
                         var queue = [];
                         var queueLast = true;
@@ -1889,38 +1941,6 @@
                                     tokens.requireToken("last");
                                 }
                             }
-                        }
-
-                        var args = [];
-                        if (tokens.matchOpToken("(")) {
-                            do {
-                                args.push(tokens.requireTokenType('IDENTIFIER'));
-                            } while (tokens.matchOpToken(","))
-                            tokens.requireOpToken(')')
-                        }
-
-                        var filter = null;
-                        if (tokens.matchOpToken('[')) {
-                            filter = parser.requireElement("expression", tokens);
-                            tokens.requireOpToken(']');
-                        }
-
-                        var from = null;
-                        var elsewhere = false;
-                        if (tokens.matchToken("from")) {
-                            if (tokens.matchToken('elsewhere')) {
-                                elsewhere = true;
-                            } else {
-                                from = parser.parseElement("target", tokens)
-                                if (!from) {
-                                    parser.raiseParseError('Expected either target value or "elsewhere".', tokens);
-                                }
-                            }
-                        }
-
-                        // support both "elsewhere" and "from elsewhere"
-                        if (from === null && elsewhere === false && tokens.matchToken("elsewhere")) {
-                            elsewhere = true;
                         }
 
                         var start = parser.requireElement("commandList", tokens);
@@ -1947,14 +1967,10 @@
                         }
 
                         var onFeature = {
-                            displayName: "on " + on.evaluate(null),
-                            args: args,
-                            on: on,
-                            every: every,
-                            from: from,
-                            elsewhere: elsewhere,
-                            filter: filter,
+                            displayName: displayName,
+                            events:events,
                             start: start,
+                            every: every,
                             executing: false,
                             execCount: 0,
                             queue: queue,
@@ -1973,7 +1989,6 @@
                                 this.executing = true;
                                 ctx.meta.resolve = function () {
                                     onFeature.executing = false;
-                                    console.log(onFeature.queue);
                                     var queued = onFeature.queue.shift();
                                     if (queued) {
                                         setTimeout(function () {
@@ -2000,46 +2015,48 @@
                                 start.execute(ctx);
                             },
                             install: function (elt, source) {
-                                var targets;
-                                if (onFeature.elsewhere) {
-                                    targets = [document];
-                                } else if (onFeature.from) {
-                                    targets = onFeature.from.evaluate({});
-                                } else {
-                                    targets = [elt];
-                                }
-                                runtime.forEach(targets, function (target) { // OK NO PROMISE
-                                    target.addEventListener(onFeature.on.evaluate(), function (evt) { // OK NO PROMISE
-                                        var ctx = runtime.makeContext(elt, onFeature, elt, evt);
-                                        if (onFeature.elsewhere && elt.contains(evt.target)) {
-                                            return
-                                        }
-
-                                        // establish context
-                                        runtime.forEach(args, function (arg) {
-                                            ctx[arg.value] = ctx.event[arg.value] || (ctx.event.detail ? ctx.event.detail[arg.value] : null);
-                                        });
-
-                                        // apply filter
-                                        if (filter) {
-                                            var initialCtx = ctx.meta.context;
-                                            ctx.meta.context = ctx.event;
-                                            try {
-                                                var value = filter.evaluate(ctx); //OK NO PROMISE
-                                                if (value) {
-                                                    // match the javascript semantics for if statements
-                                                } else {
-                                                    return;
-                                                }
-                                            } finally {
-                                                ctx.meta.context = initialCtx;
+                                runtime.forEach(onFeature.events, function(eventSpec) {
+                                    var targets;
+                                    if (eventSpec.elsewhere) {
+                                        targets = [document];
+                                    } else if (eventSpec.from) {
+                                        targets = eventSpec.from.evaluate({});
+                                    } else {
+                                        targets = [elt];
+                                    }
+                                    runtime.forEach(targets, function (target) { // OK NO PROMISE
+                                        target.addEventListener(eventSpec.on, function (evt) { // OK NO PROMISE
+                                            var ctx = runtime.makeContext(elt, onFeature, elt, evt);
+                                            if (eventSpec.elsewhere && elt.contains(evt.target)) {
+                                                return
                                             }
-                                        }
 
-                                        // apply execute
-                                        onFeature.execute(ctx)
-                                    });
-                                })
+                                            // establish context
+                                            runtime.forEach(eventSpec.args, function (arg) {
+                                                ctx[arg.value] = ctx.event[arg.value] || (ctx.event.detail ? ctx.event.detail[arg.value] : null);
+                                            });
+
+                                            // apply filter
+                                            if (eventSpec.filter) {
+                                                var initialCtx = ctx.meta.context;
+                                                ctx.meta.context = ctx.event;
+                                                try {
+                                                    var value = eventSpec.filter.evaluate(ctx); //OK NO PROMISE
+                                                    if (value) {
+                                                        // match the javascript semantics for if statements
+                                                    } else {
+                                                        return;
+                                                    }
+                                                } finally {
+                                                    ctx.meta.context = initialCtx;
+                                                }
+                                            }
+
+                                            // apply execute
+                                            onFeature.execute(ctx)
+                                        });
+                                    })
+                                });
                             }
                         };
                         parser.setParent(start, onFeature);
