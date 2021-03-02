@@ -815,7 +815,7 @@
                                 var arr = [];
                                 for (var j = 0; j < argument.length; j++) {
                                     var element = argument[j];
-                                    var value = element.evaluate(ctx); // OK
+                                    var value = element ? element.evaluate(ctx) : null; // OK
                                     if (value) {
                                         if (value.then) {
                                             async = true;
@@ -3156,8 +3156,11 @@
                                !parser.commandBoundary(tokens.currentToken()) &&
                                tokens.currentToken().value !== "using") {
                             properties.push(tokens.requireTokenType("IDENTIFIER").value);
-                            tokens.requireToken("from");
-                            from.push(parser.requireElement("stringLike", tokens));
+                            if (tokens.matchToken("from")) {
+                                from.push(parser.requireElement("stringLike", tokens));
+                            } else {
+                                from.push(null);
+                            }
                             tokens.requireToken("to");
                             to.push(parser.requireElement("stringLike" , tokens));
                         }
@@ -3177,26 +3180,29 @@
                                         var internalData = runtime.getInternalData(target);
                                         var computedStyles = getComputedStyle(target);
 
+                                        var initialStyles = {};
+                                        for (var i = 0; i < computedStyles.length; i++) {
+                                            var name = computedStyles[i];
+                                            var initialValue = computedStyles[name];
+                                            initialStyles[name] = initialValue;
+                                        }
+
                                         // store intitial values
                                         if (!internalData.initalStyles) {
-                                            internalData.initalStyles = {};
-                                            for (var i = 0; i < computedStyles.length; i++) {
-                                                var name = computedStyles[i];
-                                                var initialValue = computedStyles[name];
-                                                internalData.initalStyles[name] = initialValue;
-                                            }
+                                            internalData.initalStyles = initialStyles;
                                         }
 
                                         for (var i = 0; i < properties.length; i++) {
                                             var property = properties[i];
                                             var fromVal = from[i];
-                                            if (fromVal == 'computed') {
-                                                target.style[property] = computedStyles.getPropertyValue(property);
+                                            if (fromVal == 'computed' || fromVal == null) {
+                                                target.style[property] = initialStyles[property];
                                             } else {
                                                 target.style[property] = fromVal;
                                             }
                                         }
                                         setTimeout(function () {
+                                            var autoProps = [];
                                             for (var i = 0; i < properties.length; i++) {
                                                 var property = properties[i];
                                                 var toVal = to[i];
@@ -3210,8 +3216,8 @@
                                             target.addEventListener('transitionend', function () {
                                                 target.style.transition = initialTransition;
                                                 resolve();
-                                            })
-                                        }, 10);
+                                            }, {once:true})
+                                        }, 5);
                                     });
                                     promises.push(promise);
                                 })
