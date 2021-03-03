@@ -1954,6 +1954,10 @@
                                 }
                             }
 
+                            if (tokens.matchToken('in')) {
+                                var inExpr = parser.parseAnyOf(["idRef", "queryRef", "classRef"], tokens);
+                            }
+
                             // support both "elsewhere" and "from elsewhere"
                             if (from === null && elsewhere === false && tokens.matchToken("elsewhere")) {
                                 elsewhere = true;
@@ -1965,6 +1969,7 @@
                                 args: args,
                                 filter: filter,
                                 from:from,
+                                inExpr:inExpr,
                                 elsewhere:elsewhere,
                             })
                         } while (tokens.matchToken("or"))
@@ -2095,8 +2100,23 @@
                                                 }
                                             }
 
+                                            if (eventSpec.inExpr) {
+                                                var inElement = evt.target;
+                                                while(true) {
+                                                    if (inElement.matches && inElement.matches(eventSpec.inExpr.css)) {
+                                                        ctx.it = inElement;
+                                                        break;
+                                                    } else {
+                                                        inElement = inElement.parentElement;
+                                                        if (inElement == null) {
+                                                            return; // no match found
+                                                        }
+                                                    }
+                                                }
+                                            }
+
                                             // apply execute
-                                            onFeature.execute(ctx)
+                                            onFeature.execute(ctx);
                                         });
                                     })
                                 });

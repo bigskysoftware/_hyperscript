@@ -340,5 +340,17 @@ describe("the on feature", function() {
         delete window.increment;
     })
 
+    it("can listen for events in another element (lazy)", function(){
+
+        var div = make("<div _='on click in #d1 put it into window.tmp'>" +
+            "                    <div id='d1'></div>" +
+            "                    <div id='d2'></div>" +
+            "               </div>");
+        var div1 = byId("d1");
+        div1.click()
+        div1.should.equal(window.tmp);
+        delete window.tmp;
+    })
+
 });
 
