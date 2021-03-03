@@ -1241,6 +1241,7 @@
                     if (elementId) {
                         return {
                             type: "idRef",
+                            css: elementId.value,
                             value: elementId.value.substr(1),
                             evaluate: function (context) {
                                 return document.getElementById(this.value);
@@ -1254,12 +1255,12 @@
                     if (classRef) {
                         return {
                             type: "classRef",
-                            value: classRef.value,
+                            css: classRef.value,
                             className: function () {
-                                return this.value.substr(1);
+                                return this.css.substr(1);
                             },
                             evaluate: function () {
-                                return document.querySelectorAll(this.value);
+                                return document.querySelectorAll(this.css);
                             }
                         };
                     }
@@ -1271,11 +1272,12 @@
                         var queryTokens = tokens.consumeUntil("/");
                         tokens.requireOpToken("/");
                         tokens.requireOpToken(">");
+                        var queryValue = queryTokens.map(function(t){return t.value}).join("");
                         return {
                             type: "queryRef",
-                            query: queryTokens.map(function(t){return t.value}).join(""),
+                            css: queryValue,
                             evaluate: function () {
-                                return document.querySelectorAll(this.query);
+                                return document.querySelectorAll(this.css);
                             }
                         };
                     }
@@ -1518,6 +1520,48 @@
                             args: [root],
                             op:function(context, rootVal){
                                 return runtime.resolveProperty(rootVal, prop.value);
+                            },
+                            evaluate: function (context) {
+                                return runtime.unifiedEval(this, context);
+                            }
+                        };
+                        return parser.parseElement("indirectExpression", tokens, propertyAccess);
+                    }
+                });
+
+                _parser.addIndirectExpression("inExpression", function(parser, runtime, tokens, root) {
+                    if (tokens.matchToken("in")) {
+                        if (root.type !== "idRef" && root.type === "queryRef" || root.type === "classRef") {
+                            var query = true;
+                        }
+                        var target = parser.requireElement("expression", tokens);
+                        var propertyAccess = {
+                            type: "inExpression",
+                            root: root,
+                            args: [query ? null : root, target],
+                            op:function(context, rootVal, target){
+                                var returnArr = [];
+                                if(query){
+                                    runtime.forEach(target, function (targetElt) {
+                                        var results = targetElt.querySelectorAll(root.css);
+                                        for (var i = 0; i < results.length; i++) {
+                                            returnArr.push(results[i]);
+                                        }
+                                    })
+                                } else {
+                                    runtime.forEach(rootVal, function(rootElt){
+                                        runtime.forEach(target, function(targetElt){
+                                            if (rootElt === targetElt) {
+                                                returnArr.push(rootElt);
+                                            }
+                                        })
+                                    })
+                                }
+                                if (returnArr.length > 0) {
+                                    return returnArr;
+                                } else {
+                                    return null;
+                                }
                             },
                             evaluate: function (context) {
                                 return runtime.unifiedEval(this, context);
@@ -1992,7 +2036,6 @@
                                     var queued = onFeature.queue.shift();
                                     if (queued) {
                                         setTimeout(function () {
-                                            console.log(queued);
                                             onFeature.execute(queued);
                                         }, 1);
                                     }
