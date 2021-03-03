@@ -30,13 +30,10 @@ end
 ```on click 1 log "first click"
    on click 2 and more log "this ain't my first click"
 ```
-* the `on` feature needs to support multiple events
 * implement the throttle, delay/debounce and maybe enqueued functionality from htmx
 ```
   on click delay 100ms before log "delayed click"
   on click throttle 100ms before log "throttled click"
-  on click queue one log "queued click"
-  on click queue all log "throttled click"
 ```
 * functions should be able to be marked `sync` to make only one execution at a time occur, in serial fashion
 
