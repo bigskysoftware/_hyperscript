@@ -1,5 +1,12 @@
 describe("the comparisonOperator expression", function () {
 
+    beforeEach(function () {
+        clearWorkArea();
+    });
+    afterEach(function () {
+        clearWorkArea();
+    });
+
     it("less than works", function () {
         var result = evalHyperScript("1 < 2")
         result.should.equal(true);
@@ -143,5 +150,108 @@ describe("the comparisonOperator expression", function () {
         var result = evalHyperScript("3 is not in null")
         result.should.equal(true);
     });
+
+    it("I am in works", function () {
+        var result = evalHyperScript("I am in [1, 2]", {me:1})
+        result.should.equal(true);
+
+        var result = evalHyperScript("I am in [1, 2]", {me:2})
+        result.should.equal(true);
+
+        var result = evalHyperScript("I am in [1, 2]", {me:3})
+        result.should.equal(false);
+
+        var result = evalHyperScript("I am in null", {me:null})
+        result.should.equal(false);
+    });
+
+    it("I am not in works", function () {
+        var result = evalHyperScript("I am not in [1, 2]", {me:1})
+        result.should.equal(false);
+
+        var result = evalHyperScript("I am not in [1, 2]", {me:2})
+        result.should.equal(false);
+
+        var result = evalHyperScript("I am not in [1, 2]", {me:3})
+        result.should.equal(true);
+
+        var result = evalHyperScript("I am not in null", {me:null})
+        result.should.equal(true);
+    });
+
+    it("match works", function () {
+        var div = make("<div class='foo'></div>");
+        var result = evalHyperScript("I match .foo", {me:div})
+        result.should.equal(true);
+
+        var div = make("<div class='foo'></div>");
+        var result = evalHyperScript("x matches .foo", {x:div})
+        result.should.equal(true);
+
+        var div = make("<div class='foo'></div>");
+        var result = evalHyperScript("I match .bar", {me:div})
+        result.should.equal(false);
+
+        var div = make("<div class='foo'></div>");
+        var result = evalHyperScript("x matches .bar", {x:div})
+        result.should.equal(false);
+
+    });
+
+    it("does not match works", function () {
+        var div = make("<div class='foo'></div>");
+        var result = evalHyperScript("I do not match .foo", {me:div})
+        result.should.equal(false);
+
+        var div = make("<div class='foo'></div>");
+        var result = evalHyperScript("x does not match .foo", {x:div})
+        result.should.equal(false);
+
+        var div = make("<div class='foo'></div>");
+        var result = evalHyperScript("I do not match .bar", {me:div})
+        result.should.equal(true);
+
+        var div = make("<div class='foo'></div>");
+        var result = evalHyperScript("x does not match .bar", {x:div})
+        result.should.equal(true);
+
+    });
+
+    it("contains works", function () {
+        var outer = make("<div><div id='d2'></div></div>");
+        var inner = byId('d2');
+
+        var result = evalHyperScript("I contain that", {me:outer, that:inner})
+        result.should.equal(true);
+
+        var result = evalHyperScript("I contain that", {me:inner, that:outer})
+        result.should.equal(false);
+
+        var result = evalHyperScript("that contains me", {me:outer, that:inner})
+        result.should.equal(false);
+
+        var result = evalHyperScript("that contains me", {me:inner, that:outer})
+        result.should.equal(true);
+
+    });
+
+    it("does not contain works", function () {
+        var outer = make("<div><div id='d2'></div></div>");
+        var inner = byId('d2');
+
+        var result = evalHyperScript("I do not contain that", {me:outer, that:inner})
+        result.should.equal(false);
+
+        var result = evalHyperScript("I do not contain that", {me:inner, that:outer})
+        result.should.equal(true);
+
+        var result = evalHyperScript("that does not contains me", {me:outer, that:inner})
+        result.should.equal(true);
+
+        var result = evalHyperScript("that does not contains me", {me:inner, that:outer})
+        result.should.equal(false);
+
+    });
+
 
 });

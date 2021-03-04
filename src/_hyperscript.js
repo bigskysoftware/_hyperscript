@@ -615,7 +615,12 @@
                 }
 
                 function commandBoundary(token) {
-                    if (token.value == "end" || token.value == "then" || COMMANDS[token.value] || FEATURES[token.value] || token.type == "EOF") {
+                    if (token.value == "end" ||
+                        token.value == "then" ||
+                        token.value == "else" ||
+                        COMMANDS[token.value] ||
+                        FEATURES[token.value] ||
+                        token.type == "EOF") {
                         return true;
                     }
                 }
@@ -1017,7 +1022,7 @@
                 }
 
                 function resolveSymbol(str, context) {
-                    if (str === "me" || str === "my") {
+                    if (str === "me" || str === "my" || str === "I") {
                         return context["me"];
                     } if (str === "it" || str === "its") {
                         return context["it"];
@@ -1776,24 +1781,42 @@
                     var expr = parser.parseElement("mathExpression", tokens);
                     var comparisonToken = tokens.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==")
                     var comparisonStr = comparisonToken ? comparisonToken.value : null;
-                    if (comparisonStr == null &&
-                        (tokens.matchToken("is"))) {
-                        if (tokens.matchToken("not")) {
-                            if (tokens.matchToken("in")) {
-                                comparisonStr = "not in";
+                    if (comparisonStr == null) {
+                        if (tokens.matchToken("is") || tokens.matchToken("am")) {
+                            if (tokens.matchToken("not")) {
+                                if (tokens.matchToken("in")) {
+                                    comparisonStr = "not in";
+                                } else {
+                                    comparisonStr = "!=";
+                                }
                             } else {
-                                comparisonStr = "!=";
+                                if (tokens.matchToken("in")) {
+                                    comparisonStr = "in";
+                                } else {
+                                    comparisonStr = "==";
+                                }
                             }
-                        } else {
-                            if (tokens.matchToken("in")) {
-                                comparisonStr = "in";
+                        } else if (tokens.matchToken("matches") || tokens.matchToken("match")) {
+                            comparisonStr = "match";
+                        } else if (tokens.matchToken("contains") || tokens.matchToken("contain")) {
+                            comparisonStr = "contain";
+                        } else if (tokens.matchToken("do") || tokens.matchToken("does")) {
+                            tokens.requireToken('not');
+                            if (tokens.matchToken("matches") || tokens.matchToken("match")) {
+                                comparisonStr = "not match";
+                            } else if (tokens.matchToken("contains") || tokens.matchToken("contain")) {
+                                comparisonStr = "not contain";
                             } else {
-                                comparisonStr = "==";
+                                parser.raiseParseError(tokens, "Expected matches or contains");
                             }
                         }
                     }
+
                     if (comparisonStr) { // Do not allow chained comparisons, which is dumb
                         var rhs = parser.requireElement("mathExpression", tokens);
+                        if (comparisonStr === "match" || comparisonStr === "not match") {
+                            rhs = rhs.css ? rhs.css : rhs;
+                        }
                         expr = {
                             type: "comparisonOperator",
                             operator: comparisonStr,
@@ -1809,6 +1832,14 @@
                                     return (rhsVal != null) && Array.from(rhsVal).indexOf(lhsVal) >= 0;
                                 } if (this.operator === "not in") {
                                     return (rhsVal == null) || Array.from(rhsVal).indexOf(lhsVal) < 0;
+                                } if (this.operator === "match") {
+                                    return (lhsVal != null) && lhsVal.matches(rhsVal);
+                                } if (this.operator === "not match") {
+                                    return (lhsVal == null) || !lhsVal.matches(rhsVal);
+                                } if (this.operator === "contain") {
+                                    return (lhsVal != null) && lhsVal.contains(rhsVal);
+                                } if (this.operator === "not contain") {
+                                    return (lhsVal == null) || !lhsVal.contains(rhsVal);
                                 } if (this.operator === "===") {
                                     return lhsVal === rhsVal;
                                 } else if (this.operator === "!==") {
@@ -2936,7 +2967,7 @@
                                 } else {
                                     console.log.apply(null, values);
                                 }
-                                return runtime.findNext(this, context);
+                                return runtime.findNext(this, ctx);
                             }
                         };
                         return logCmd;
