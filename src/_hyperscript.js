@@ -896,7 +896,7 @@
                     return null;
                 }
 
-                function makeContext(owner, feature, target, event) {
+                function makeContext(owner, feature, hyperscriptTarget, event) {
                     var ctx = {
                         meta: {
                             parser: _parser,
@@ -906,8 +906,9 @@
                             feature: feature,
                             iterators: {}
                         },
-                        me: target,
+                        me: hyperscriptTarget,
                         event: event,
+                        target: event ? event.target : null,
                         detail: event ? event.detail : null,
                         body: 'document' in globalScope ? document.body : null
                     }
@@ -1028,14 +1029,14 @@
                     }
                 }
 
-                function findNext(command) {
+                function findNext(command, context) {
                     if (command) {
                         if (command.resolveNext) {
-                            return command.resolveNext();
+                            return command.resolveNext(context);
                         } else if (command.next) {
                             return command.next;
                         } else {
-                            return findNext(command.parent)
+                            return findNext(command.parent, context)
                         }
                     }
                 }
@@ -2340,12 +2341,12 @@
                                     return Promise(function (resolve) {
                                         result.then(function (actualResult) {
                                             context.it = actualResult
-                                            resolve(runtime.findNext(this));
+                                            resolve(runtime.findNext(this, context));
                                         })
                                     })
                                 } else {
                                     context.it = result
-                                    return runtime.findNext(this);
+                                    return runtime.findNext(this, context);
                                 }
                             }
                         };
@@ -2366,9 +2367,56 @@
                                 setTimeout(function(){
                                     body.execute(context);
                                 })
-                                return runtime.findNext(this);
+                                return runtime.findNext(this, context);
                             }
                         };
+                    }
+                })
+
+                _parser.addCommand("with", function (parser, runtime, tokens) {
+                    var startToken = tokens.currentToken();
+                    if (tokens.matchToken("with")) {
+                        var value = parser.requireElement("expression", tokens);
+                        var body = parser.requireElement('commandList', tokens)
+                        if (tokens.hasMore()) {
+                            tokens.requireToken("end");
+                        }
+                        var slot = "with_" + startToken.start;
+                        var withCmd = {
+                            value: value,
+                            body: body,
+                            args: [value],
+                            resolveNext: function (context) {
+                                var iterator = context.meta.iterators[slot];
+                                if (iterator.index < iterator.value.length) {
+                                    context.me = iterator.value[iterator.index++];
+                                    return body;
+                                } else {
+                                    // restore original me
+                                    context.me = iterator.originalMe;
+                                    if (this.next) {
+                                        return this.next;
+                                    } else {
+                                        return runtime.findNext(this.parent, context);
+                                    }
+                                }
+                            },
+                            op: function (context, value) {
+                                if (value == null) {
+                                    value = [];
+                                } else if (!(Array.isArray(value) || value instanceof NodeList)) {
+                                    value = [value];
+                                }
+                                context.meta.iterators[slot] = {
+                                    originalMe: context.me,
+                                    index: 0,
+                                    value: value
+                                };
+                                return this.resolveNext(context);
+                            }
+                        };
+                        parser.setParent(body, withCmd);
+                        return withCmd;
                     }
                 })
 
@@ -2399,7 +2447,7 @@
                                     runtime.forEach(to, function (target) {
                                         target.classList.add(classRef.className());
                                     })
-                                    return runtime.findNext(this);
+                                    return runtime.findNext(this, context);
                                 }
                             }
                         } else {
@@ -2455,7 +2503,7 @@
                                     runtime.forEach(element, function (target) {
                                         target.parentElement.removeChild(target);
                                     })
-                                    return runtime.findNext(this);
+                                    return runtime.findNext(this, context);
                                 }
                             };
                         } else {
@@ -2475,7 +2523,7 @@
                                             target.removeAttribute(attributeRef.name);
                                         })
                                     }
-                                    return runtime.findNext(this);
+                                    return runtime.findNext(this, context);
                                 }
                             };
 
@@ -2539,7 +2587,7 @@
                                         toggleCmd.toggle(on, value);
                                         setTimeout(function () {
                                             toggleCmd.toggle(on, value);
-                                            resolve(runtime.findNext(toggleCmd));
+                                            resolve(runtime.findNext(toggleCmd, context));
                                         }, time);
                                     });
                                 } else if (evt) {
@@ -2547,13 +2595,13 @@
                                         var target = from || context.me;
                                         target.addEventListener(evt, function () {
                                             toggleCmd.toggle(on, value);
-                                            resolve(runtime.findNext(toggleCmd));
+                                            resolve(runtime.findNext(toggleCmd, context));
                                         }, {once: true})
                                         toggleCmd.toggle(on, value);
                                     });
                                 } else {
                                     this.toggle(on, value);
-                                    return runtime.findNext(toggleCmd);
+                                    return runtime.findNext(toggleCmd, context);
                                 }
                             }
                         };
@@ -2633,7 +2681,7 @@
                                 runtime.forEach(target, function (elt) {
                                     hideShowStrategy('hide', elt);
                                 });
-                                return runtime.findNext(this);
+                                return runtime.findNext(this, ctx);
                             }
                         }
                     }
@@ -2664,7 +2712,7 @@
                                 runtime.forEach(target, function (elt) {
                                     hideShowStrategy('show', elt, arg);
                                 });
-                                return runtime.findNext(this);
+                                return runtime.findNext(this, ctx);
                             }
                         }
                     }
@@ -2688,7 +2736,7 @@
                                     var target = on ? on : context.me;
                                     return new Promise(function (resolve) {
                                         var listener = function () {
-                                            resolve(runtime.findNext(waitCmd));
+                                            resolve(runtime.findNext(waitCmd, context));
                                         };
                                         target.addEventListener(eventName, listener, {once: true});
                                     });
@@ -2703,7 +2751,7 @@
                                 op: function (context, timeValue) {
                                     return new Promise(function (resolve) {
                                         setTimeout(function () {
-                                            resolve(runtime.findNext(waitCmd));
+                                            resolve(runtime.findNext(waitCmd, context));
                                         }, timeValue);
                                     });
                                 },
@@ -2760,7 +2808,7 @@
                                 runtime.forEach(to, function (target) {
                                     runtime.triggerEvent(target, eventName, details ? details : {});
                                 });
-                                return runtime.findNext(sendCmd);
+                                return runtime.findNext(sendCmd, context);
                             }
                         };
                         return sendCmd
@@ -2805,7 +2853,7 @@
                             args: [eventName, details],
                             op: function (context, eventNameStr, details) {
                                 runtime.triggerEvent(context.me, eventNameStr, details ? details : {});
-                                return runtime.findNext(triggerCmd);
+                                return runtime.findNext(triggerCmd, context);
                             }
                         };
                         return triggerCmd
@@ -2841,7 +2889,7 @@
                                 runtime.forEach(forElt, function (target) {
                                     target.classList.add(clazz);
                                 });
-                                return runtime.findNext(this);
+                                return runtime.findNext(this, context);
                             }
                         };
                         return takeCmd
@@ -2867,7 +2915,7 @@
                                 } else {
                                     console.log.apply(null, values);
                                 }
-                                return runtime.findNext(this);
+                                return runtime.findNext(this, context);
                             }
                         };
                         return logCmd;
@@ -2902,7 +2950,7 @@
                         args: [expr],
                         op: function (context, it) {
                             context.it = it;
-                            return runtime.findNext(callCmd);
+                            return runtime.findNext(callCmd, context);
                         }
                     };
                     return callCmd
@@ -2986,7 +3034,7 @@
                                         })
                                     }
                                 }
-                                return runtime.findNext(this);
+                                return runtime.findNext(this, context);
                             }
                         };
                         return putCmd
@@ -3028,7 +3076,7 @@
                                         elt[prop] = valueToSet;
                                     })
                                 }
-                                return runtime.findNext(this);
+                                return runtime.findNext(this, context);
                             }
                         };
                         return setCmd
@@ -3057,7 +3105,7 @@
                                 } else if (falseBranch) {
                                     return falseBranch;
                                 } else {
-                                    return runtime.findNext(this);
+                                    return runtime.findNext(this, context);
                                 }
                             }
                         };
@@ -3137,9 +3185,9 @@
                                 keepLooping = true;
                             } else if (this.until) {
                                 if (evt) {
-                                    keepLooping = context.meta.iterators[slot].eventFired == false;
+                                    keepLooping = context.meta.iterators[slot].eventFired === false;
                                 } else {
-                                    keepLooping = whileValue != true;
+                                    keepLooping = whileValue !== true;
                                 }
                             } else if (whileValue) {
                                 keepLooping = true;
@@ -3163,7 +3211,7 @@
                                 return loop;
                             } else {
                                 context.meta.iterators[slot] = null;
-                                return runtime.findNext(this.parent);
+                                return runtime.findNext(this.parent, context);
                             }
                         }
                     };
@@ -3210,7 +3258,7 @@
                         if (tokens.matchToken('element') || tokens.matchToken('elements')) {
                             var targets = parser.parseElement("expression", tokens);
                         } else {
-                            var targets = parser.parseElement("implicitMeTarget"); // TODO support multiple targets (general 'with' command?)
+                            var targets = parser.parseElement("implicitMeTarget");
                         }
                         var properties = [];
                         var from = [];
@@ -3285,7 +3333,7 @@
                                     promises.push(promise);
                                 })
                                 return Promise.all(promises).then(function(){
-                                    return runtime.findNext(transition);
+                                    return runtime.findNext(transition, context);
                                 })
                             }
                         };
@@ -3327,16 +3375,16 @@
                                         .then(function (value) {
                                             if (type === "response") {
                                                 context.it = value;
-                                                resolve(runtime.findNext(fetchCmd));
+                                                resolve(runtime.findNext(fetchCmd, context));
                                             } else if (type === "json") {
                                                 value.json().then(function (result) {
                                                     context.it = result;
-                                                    resolve(runtime.findNext(fetchCmd));
+                                                    resolve(runtime.findNext(fetchCmd, context));
                                                 })
                                             } else {
                                                 value.text().then(function (result) {
                                                     context.it = result;
-                                                    resolve(runtime.findNext(fetchCmd));
+                                                    resolve(runtime.findNext(fetchCmd, context));
                                                 })
                                             }
                                         })
