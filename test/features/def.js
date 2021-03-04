@@ -188,6 +188,30 @@ describe("the def feature", function() {
         delete window.foo;
     })
 
+    it("can catch async exceptions", function(done){
+        var script = make(
+            "<script type='text/hyperscript'>" +
+            "def doh() " +
+            "  wait 10ms" +
+            "  throw \"bar\"" +
+            "end " +
+            " " +
+            "def foo() " +
+            "  call doh()" +
+            "catch e " +
+            "   set window.bar to e " +
+            "end" +
+            "</script>");
+        foo();
+        setTimeout(function () {
+            window.bar.should.equal('bar');
+            delete window.bar;
+            delete window.foo;
+            delete window.doh;
+            done();
+        }, 20);
+    })
+
     it("can catch nested async exceptions", function(done){
         var script = make(
             "<script type='text/hyperscript'>" +
@@ -211,6 +235,41 @@ describe("the def feature", function() {
             done();
         }, 20);
     })
+
+    it("can rethrow in async catch blocks", function(done) {
+        var script = make(
+            "<script type='text/hyperscript'>" +
+            "def foo() " +
+            "  throw \"bar\"" +
+            "catch e " +
+            "   wait 10ms " +
+            "   throw e " +
+            "end" +
+            "</script>");
+        foo().catch(function (reason) {
+            reason.should.equal("bar");
+            delete window.foo;
+            done();
+        })
+    })
+
+    it("can return in async catch blocks", function(done){
+        var script = make(
+            "<script type='text/hyperscript'>" +
+            "def foo() " +
+            "  throw \"bar\"" +
+            "catch e " +
+            "   wait 10ms " +
+            "   return 42 " +
+            "end" +
+            "</script>");
+        foo().then(function(val){
+            val.should.equal(42);
+            delete window.foo;
+            done();
+        });
+    })
+
 
 
 });
