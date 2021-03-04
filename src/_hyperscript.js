@@ -668,6 +668,28 @@
             //====================================================================
             // Runtime
             //====================================================================
+            var CONVERSIONS = {
+                dynamicResolvers : [],
+                "String" : function(val){
+                    if(val.toString){
+                        return val.toString();
+                    } else {
+                        return "" + val;
+                    }
+                },
+                "Int" : function(val){
+                    return parseInt(val);
+                },
+                "Float" : function(val){
+                    return parseFloat(val);
+                },
+                "Number" : function(val){
+                    return Number(val);
+                },
+                "Date" : function(val){
+                    return Date(val);
+                }
+            }
             var _runtime = function () {
 
                 function matchesSelector(elt, selector) {
@@ -935,6 +957,29 @@
                     }).join(", ");
                 }
 
+                function convertValue(value,  type) {
+
+                    var dynamicResolvers = CONVERSIONS.dynamicResolvers;
+                    for (var i = 0; i < dynamicResolvers.length; i++) {
+                        var dynamicResolver = dynamicResolvers[i];
+                        var converted = dynamicResolver(type, value);
+                        if (converted !== undefined) {
+                            return converted;
+                        }
+                    }
+
+                    if (value == null) {
+                        return null;
+                    }
+                    var converter = CONVERSIONS[type];
+                    if (converter) {
+                        return converter(value);
+                    }
+
+                    throw "Unknown conversion : " + type;
+                }
+
+
                 function isType(o, type) {
                     return Object.prototype.toString.call(o) === "[object " + type + "]";
                 }
@@ -1156,6 +1201,7 @@
                     makeContext: makeContext,
                     findNext: findNext,
                     unifiedEval: unifiedEval,
+                    convertValue: convertValue,
                     unifiedExec: unifiedExec,
                     resolveProperty: resolveProperty,
                     assignToNamespace: assignToNamespace,
@@ -1576,6 +1622,24 @@
                                 } else {
                                     return null;
                                 }
+                            },
+                            evaluate: function (context) {
+                                return runtime.unifiedEval(this, context);
+                            }
+                        };
+                        return parser.parseElement("indirectExpression", tokens, propertyAccess);
+                    }
+                });
+
+                _parser.addIndirectExpression("asExpression", function(parser, runtime, tokens, root) {
+                    if (tokens.matchToken("as")) {
+                        var conversion = parser.requireElement('dotOrColonPath', tokens).evaluate(); // OK No promise
+                        var propertyAccess = {
+                            type: "asExpression",
+                            root: root,
+                            args: [root],
+                            op:function(context, rootVal){
+                                return runtime.convertValue(rootVal, conversion);
                             },
                             evaluate: function (context) {
                                 return runtime.unifiedEval(this, context);
@@ -3522,7 +3586,8 @@
                 },
                 config: {
                     attributes : "_, script, data-script",
-                    defaultTransition: "all 500ms ease-in"
+                    defaultTransition: "all 500ms ease-in",
+                    conversions: CONVERSIONS
                 }
             }
         }
