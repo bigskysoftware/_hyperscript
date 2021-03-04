@@ -103,28 +103,6 @@ describe("the on feature", function() {
 
     })
 
-    it("one event at a time is allowed to execute by default", function(done){
-
-        var i = 1;
-        window.increment = function(){
-            return i++;
-        }
-
-        var div = make("<div _='on click put increment() into my.innerHTML then wait for a customEvent'></div>");
-        div.click()
-        div.innerText.should.equal("1");
-        div.click()
-        div.innerText.should.equal("1");
-        div.dispatchEvent(new CustomEvent("customEvent"));
-        setTimeout(function(){
-            div.innerText.should.equal("1");
-            div.click()
-            div.innerText.should.equal("2");
-            delete window.increment;
-            done();
-        }, 20)
-    })
-
     it("multiple event handlers at a time are allowed to execute with the every keyword", function(){
 
         var i = 1;
@@ -178,7 +156,201 @@ describe("the on feature", function() {
         delete window.increment;
     })
 
+    it("can queue events", function(done){
 
+        var i = 0;
+        window.increment = function(){
+            return i++;
+        }
+
+        // start first event
+        var div = make("<div _='on foo wait for bar then call increment()'></div>");
+        div.dispatchEvent(new CustomEvent("foo"));
+        i.should.equal(0);
+
+        // queue next event
+        div.dispatchEvent(new CustomEvent("foo"));
+        i.should.equal(0);
+
+        // queue next event
+        div.dispatchEvent(new CustomEvent("foo"));
+        i.should.equal(0);
+
+        // ungate first event handler
+        div.dispatchEvent(new CustomEvent("bar"));
+        setTimeout(function () {
+            i.should.equal(1);
+            div.dispatchEvent(new CustomEvent("bar"));
+            setTimeout(function () {
+                i.should.equal(2);
+                div.dispatchEvent(new CustomEvent("bar"));
+                setTimeout(function () {
+                    i.should.equal(2);
+                    delete window.increment;
+                    done();
+                }, 20);
+            }, 20);
+        }, 20);
+    })
+
+    it("can queue first event", function(done){
+
+        var i = 0;
+        window.increment = function(){
+            return i++;
+        }
+
+        // start first event
+        var div = make("<div _='on foo queue first wait for bar then call increment()'></div>");
+        div.dispatchEvent(new CustomEvent("foo"));
+        i.should.equal(0);
+
+        // queue next event
+        div.dispatchEvent(new CustomEvent("foo"));
+        i.should.equal(0);
+
+        // queue next event
+        div.dispatchEvent(new CustomEvent("foo"));
+        i.should.equal(0);
+
+        // ungate first event handler
+        div.dispatchEvent(new CustomEvent("bar"));
+        setTimeout(function () {
+            i.should.equal(1);
+            div.dispatchEvent(new CustomEvent("bar"));
+            setTimeout(function () {
+                i.should.equal(2);
+                div.dispatchEvent(new CustomEvent("bar"));
+                setTimeout(function () {
+                    i.should.equal(2);
+                    delete window.increment;
+                    done();
+                }, 20);
+            }, 20);
+        }, 20);
+    })
+
+    it("can queue last event", function(done){
+
+        var i = 0;
+        window.increment = function(){
+            return i++;
+        }
+
+        // start first event
+        var div = make("<div _='on foo queue last wait for bar then call increment()'></div>");
+        div.dispatchEvent(new CustomEvent("foo"));
+        i.should.equal(0);
+
+        // queue next event
+        div.dispatchEvent(new CustomEvent("foo"));
+        i.should.equal(0);
+
+        // queue next event
+        div.dispatchEvent(new CustomEvent("foo"));
+        i.should.equal(0);
+
+        // ungate first event handler
+        div.dispatchEvent(new CustomEvent("bar"));
+        setTimeout(function () {
+            i.should.equal(1);
+            div.dispatchEvent(new CustomEvent("bar"));
+            setTimeout(function () {
+                i.should.equal(2);
+                div.dispatchEvent(new CustomEvent("bar"));
+                setTimeout(function () {
+                    i.should.equal(2);
+                    delete window.increment;
+                    done();
+                }, 20);
+            }, 20);
+        }, 20);
+    })
+
+    it("can queue all events", function(done){
+
+        var i = 0;
+        window.increment = function(){
+            return i++;
+        }
+
+        // start first event
+        var div = make("<div _='on foo queue all wait for bar then call increment()'></div>");
+        div.dispatchEvent(new CustomEvent("foo"));
+        i.should.equal(0);
+
+        // queue next event
+        div.dispatchEvent(new CustomEvent("foo"));
+        i.should.equal(0);
+
+        // queue next event
+        div.dispatchEvent(new CustomEvent("foo"));
+        i.should.equal(0);
+
+        // ungate first event handler
+        div.dispatchEvent(new CustomEvent("bar"));
+        setTimeout(function () {
+            i.should.equal(1);
+            div.dispatchEvent(new CustomEvent("bar"));
+            setTimeout(function () {
+                i.should.equal(2);
+                div.dispatchEvent(new CustomEvent("bar"));
+                setTimeout(function () {
+                    i.should.equal(3);
+                    delete window.increment;
+                    done();
+                }, 20);
+            }, 20);
+        }, 20);
+    })
+
+    it("queue none does not allow future queued events", function(done){
+
+        var i = 1;
+        window.increment = function(){
+            return i++;
+        }
+
+        var div = make("<div _='on click queue none put increment() into my.innerHTML then wait for a customEvent'></div>");
+        div.click()
+        div.innerText.should.equal("1");
+        div.click()
+        div.innerText.should.equal("1");
+        div.dispatchEvent(new CustomEvent("customEvent"));
+        setTimeout(function(){
+            div.innerText.should.equal("1");
+            div.click()
+            div.innerText.should.equal("2");
+            delete window.increment;
+            done();
+        }, 20)
+    })
+
+    it("can invoke on multiple events", function(){
+        var i = 0;
+        window.increment = function(){
+            return i++;
+        }
+
+        var div = make("<div _='on click or foo call increment()'></div>");
+        div.click()
+        i.should.equal(1);
+        div.dispatchEvent(new CustomEvent("foo"));
+        i.should.equal(2);
+        delete window.increment;
+    })
+
+    it("can listen for events in another element (lazy)", function(){
+
+        var div = make("<div _='on click in #d1 put it into window.tmp'>" +
+            "                    <div id='d1'></div>" +
+            "                    <div id='d2'></div>" +
+            "               </div>");
+        var div1 = byId("d1");
+        div1.click()
+        div1.should.equal(window.tmp);
+        delete window.tmp;
+    })
 
 });
 

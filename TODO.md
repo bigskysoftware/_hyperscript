@@ -1,14 +1,13 @@
 ## TODOs
 
 ### 0.0.5 release
-* catch/error mechanism testing
 * docs
 
 ### Language Features
+* animate command ? I don't see a lot of value add (unlike transition)
 * Event model
 * Debugging
 * range operator
-* `matches` expression: `target matches <div.foo/>`
 *  array helpers 'first', 'last', 'in', 'random'
 * Web Worker API but for Web Sockets... o_O)))
   * two way - server can invoke functions on client, client can invoke functions on server
@@ -28,7 +27,8 @@ end
 * Support a `timeout` modifier for async commands like `fetch`, `call`, `wait for` etc.
 * the `on` feature needs to support a count filter (and numeric ranges)
 ```on click 1 log "first click"
-   on click 2 and more log "this ain't my first click"
+   on click 2 and on log "this ain't my first click"
+   on click 2 to 3 log "this ain't my first click"
 ```
 * implement the throttle, delay/debounce and maybe enqueued functionality from htmx
 ```

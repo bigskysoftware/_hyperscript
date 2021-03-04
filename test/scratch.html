@@ -11,6 +11,60 @@
 <em>Work Area</em>
 <hr/>
 
+### <a name="toggle-details"></a>[Toggle Details](#toggle-details)
+
+
+```html
+<body _="on every htmx:beforeSend in <button/>
+           with it
+             toggle [disabled='true'] until htmx:afterOnLoad">
+
+</body>
+```
+
+<details _="on click call event.preventDefault()
+                     if I match .expanded
+                       remove .expanded
+                       transition height to initial
+                     else
+                       add .expanded
+                       transition height to 300px">
+    <summary>Click to expand this details with a WAAPI sliding effect</summary>
+    <div class="content">
+        <p>
+            Lorem, ipsum dolor sit amet consectetur adipisicing elit. Modi unde, ex rem voluptates autem aliquid veniam quis temporibus repudiandae illo, nostrum, pariatur quae! At animi modi dignissimos corrupti placeat voluptatum!
+        </p>
+        <img src="https://placebear.com/400/200" alt="">
+        <p>
+            Facilis ducimus iure officia quos possimus quaerat iusto, quas, laboriosam sapiente autem ab assumenda eligendi voluptatum nisi eius cumque, tempore reprehenderit optio placeat praesentium non sint repellendus consequuntur? Nihil, soluta.
+        </p>
+    </div>
+</details>
+<details>
+    <summary>Click to expand this details with a WAAPI sliding effect</summary>
+    <div class="content">
+        <p>
+            Lorem, ipsum dolor sit amet consectetur adipisicing elit. Modi unde, ex rem voluptates autem aliquid veniam quis temporibus repudiandae illo, nostrum, pariatur quae! At animi modi dignissimos corrupti placeat voluptatum!
+        </p>
+        <img src="https://placebear.com/400/200" alt="">
+        <p>
+            Facilis ducimus iure officia quos possimus quaerat iusto, quas, laboriosam sapiente autem ab assumenda eligendi voluptatum nisi eius cumque, tempore reprehenderit optio placeat praesentium non sint repellendus consequuntur? Nihil, soluta.
+        </p>
+    </div>
+</details>
+<details>
+    <summary>Click to expand this details with a WAAPI sliding effect</summary>
+    <div class="content">
+        <p>
+            Lorem, ipsum dolor sit amet consectetur adipisicing elit. Modi unde, ex rem voluptates autem aliquid veniam quis temporibus repudiandae illo, nostrum, pariatur quae! At animi modi dignissimos corrupti placeat voluptatum!
+        </p>
+        <img src="https://placebear.com/400/200" alt="">
+        <p>
+            Facilis ducimus iure officia quos possimus quaerat iusto, quas, laboriosam sapiente autem ab assumenda eligendi voluptatum nisi eius cumque, tempore reprehenderit optio placeat praesentium non sint repellendus consequuntur? Nihil, soluta.
+        </p>
+    </div>
+</details>
+
 <h3>Fun w/ transitions</h3>
 <div style="border: 1px solid black; overflow: hidden"
      _="on mouseenter transition height to 700px
