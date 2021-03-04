@@ -116,5 +116,32 @@ describe("the comparisonOperator expression", function () {
         result.should.equal(false);
     });
 
+    it("is in works", function () {
+        var result = evalHyperScript("1 is in [1, 2]")
+        result.should.equal(true);
+
+        var result = evalHyperScript("2 is in [1, 2]")
+        result.should.equal(true);
+
+        var result = evalHyperScript("3 is in [1, 2]")
+        result.should.equal(false);
+
+        var result = evalHyperScript("3 is in null")
+        result.should.equal(false);
+    });
+
+    it("is not in works", function () {
+        var result = evalHyperScript("1 is not in [1, 2]")
+        result.should.equal(false);
+
+        var result = evalHyperScript("2 is not in [1, 2]")
+        result.should.equal(false);
+
+        var result = evalHyperScript("3 is not in [1, 2]")
+        result.should.equal(true);
+
+        var result = evalHyperScript("3 is not in null")
+        result.should.equal(true);
+    });
 
 });

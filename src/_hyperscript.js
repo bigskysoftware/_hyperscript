@@ -219,15 +219,18 @@
                         return tokens.length > 0;
                     }
 
-                    function currentToken(ignoreWhiteSpace) {
+                    function token(n, ignoreWhiteSpace) {
                         var token;
-                        if (ignoreWhiteSpace) {
-                            var i = 0;
-                            do {
-                                token = tokens[i++]
-                            } while (token && token.type === "WHITESPACE");
-                        } else {
-                            token = tokens[0];
+                        var i = 0;
+                        while (n >= 0) {
+                            if (ignoreWhiteSpace) {
+                                do {
+                                    token = tokens[i++]
+                                } while (token && token.type === "WHITESPACE");
+                            } else {
+                                token = tokens[i];
+                            }
+                            n--;
                         }
                         if (token) {
                             return token;
@@ -237,6 +240,10 @@
                                 value:"<<<EOF>>>"
                             }
                         }
+                    }
+
+                    function currentToken(ignoreWhiteSpace) {
+                        return token(0, ignoreWhiteSpace);
                     }
 
                     return {
@@ -253,6 +260,7 @@
                         source: source,
                         hasMore: hasMore,
                         currentToken: currentToken,
+                        token: token,
                         consumeUntil: consumeUntil,
                         consumeUntilWhitespace: consumeUntilWhitespace,
                     }
@@ -1768,11 +1776,20 @@
                     var expr = parser.parseElement("mathExpression", tokens);
                     var comparisonToken = tokens.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==")
                     var comparisonStr = comparisonToken ? comparisonToken.value : null;
-                    if (comparisonStr == null && tokens.matchToken("is")) {
+                    if (comparisonStr == null &&
+                        (tokens.matchToken("is"))) {
                         if (tokens.matchToken("not")) {
-                            comparisonStr = "!=";
+                            if (tokens.matchToken("in")) {
+                                comparisonStr = "not in";
+                            } else {
+                                comparisonStr = "!=";
+                            }
                         } else {
-                            comparisonStr = "==";
+                            if (tokens.matchToken("in")) {
+                                comparisonStr = "in";
+                            } else {
+                                comparisonStr = "==";
+                            }
                         }
                     }
                     if (comparisonStr) { // Do not allow chained comparisons, which is dumb
@@ -1784,7 +1801,19 @@
                             rhs: rhs,
                             args: [expr, rhs],
                             op:function (context, lhsVal, rhsVal) {
-                                if (this.operator === "<") {
+                                if (this.operator === "==") {
+                                    return lhsVal == rhsVal;
+                                } else if (this.operator === "!=") {
+                                    return lhsVal != rhsVal;
+                                } if (this.operator === "in") {
+                                    return (rhsVal != null) && Array.from(rhsVal).indexOf(lhsVal) >= 0;
+                                } if (this.operator === "not in") {
+                                    return (rhsVal == null) || Array.from(rhsVal).indexOf(lhsVal) < 0;
+                                } if (this.operator === "===") {
+                                    return lhsVal === rhsVal;
+                                } else if (this.operator === "!==") {
+                                    return lhsVal !== rhsVal;
+                                } else if (this.operator === "<") {
                                     return lhsVal < rhsVal;
                                 } else if (this.operator === ">") {
                                     return lhsVal > rhsVal;
@@ -1792,14 +1821,6 @@
                                     return lhsVal <= rhsVal;
                                 } else if (this.operator === ">=") {
                                     return lhsVal >= rhsVal;
-                                } else if (this.operator === "==") {
-                                    return lhsVal == rhsVal;
-                                } else if (this.operator === "===") {
-                                    return lhsVal === rhsVal;
-                                } else if (this.operator === "!=") {
-                                    return lhsVal != rhsVal;
-                                } else if (this.operator === "!==") {
-                                    return lhsVal !== rhsVal;
                                 }
                             },
                             evaluate: function (context) {
