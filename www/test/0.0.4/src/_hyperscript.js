@@ -614,12 +614,20 @@
                     }
                 }
 
+                function commandStart(token){
+                    return COMMANDS[token.value];
+                }
+
+                function featureStart(token){
+                    return FEATURES[token.value];
+                }
+
                 function commandBoundary(token) {
                     if (token.value == "end" ||
                         token.value == "then" ||
                         token.value == "else" ||
-                        COMMANDS[token.value] ||
-                        FEATURES[token.value] ||
+                        commandStart(token) ||
+                        featureStart(token) ||
                         token.type == "EOF") {
                         return true;
                     }
@@ -652,6 +660,8 @@
                     setParent: setParent,
                     requireElement: requireElement,
                     parseElement: parseElement,
+                    featureStart: featureStart,
+                    commandStart: commandStart,
                     commandBoundary: commandBoundary,
                     parseAnyOf: parseAnyOf,
                     parseHyperScript: parseHyperScript,
@@ -984,23 +994,29 @@
                     return Object.prototype.toString.call(o) === "[object " + type + "]";
                 }
 
-                function evaluate(typeOrSrc, srcOrCtx, ctxArg) {
-                    if (isType(srcOrCtx, "Object")) {
-                        var src = typeOrSrc;
-                        var ctx = srcOrCtx;
-                        var type = "expression"
-                    } else if (isType(srcOrCtx, "String")) {
-                        var src = srcOrCtx;
-                        var type = typeOrSrc
-                        var ctx = ctxArg;
-                    } else {
-                        var src = typeOrSrc;
-                        var ctx = {};
-                        var type = "expression";
-                    }
+                function evaluate(src, ctx) {
                     ctx = ctx || {};
-                    var compiled = _parser.parseElement(type, _lexer.tokenize(src) );
-                    return compiled.evaluate ? compiled.evaluate(ctx) : compiled.execute(ctx); // OK
+                    var tokens = _lexer.tokenize(src);
+                    if (_parser.commandStart(tokens.currentToken())) {
+                        var commandList = _parser.parseElement("commandList", tokens);
+                        var last = commandList;
+                        while (last.next) {
+                            last = last.next;
+                        }
+                        last.next = {
+                            op : function() {
+                                return HALT;
+                            }
+                        }
+                        commandList.execute(ctx);
+                    } else if (_parser.featureStart(tokens.currentToken())) {
+                        var hyperscript = _parser.parseElement("hyperscript", tokens);
+                        hyperscript.apply(document.body, null);
+                        return null;
+                    } else {
+                        var expression = _parser.parseElement("expression", tokens);
+                        return expression.evaluate(ctx);
+                    }
                 }
 
                 function processNode(elt) {
@@ -2038,6 +2054,7 @@
                         do {
 
                             var on = parser.requireElement("dotOrColonPath", tokens, "Expected event name");
+
                             var eventName = on.evaluate(); // OK No Promise
                             if (displayName) {
                                 displayName = displayName + " or " + eventName;
@@ -3428,6 +3445,7 @@
                                                 target.style[property] = fromVal;
                                             }
                                         }
+                                        console.log("transition started", transition);
                                         setTimeout(function () {
                                             var autoProps = [];
                                             for (var i = 0; i < properties.length; i++) {
@@ -3439,8 +3457,10 @@
                                                 } else {
                                                     target.style[property] = toVal;
                                                 }
+                                                console.log("set", property, "to", target.style[property], "on", target, "value passed in : ", toVal);
                                             }
                                             target.addEventListener('transitionend', function () {
+                                                console.log("transition ended", transition);
                                                 target.style.transition = initialTransition;
                                                 resolve();
                                             }, {once:true})
@@ -3560,36 +3580,39 @@
             }
 
             /* Public API */
-            return {
-                internals:{
-                    lexer: _lexer,
-                    parser: _parser,
-                    runtime: _runtime,
-                },
-                addFeature: function(keyword, definition) {
-                    _parser.addFeature(keyword, definition)
-                },
-                addCommand: function(keyword, definition) {
-                    _parser.addCommand(keyword, definition)
-                },
-                addLeafExpression: function(keyword, definition) {
-                    _parser.addLeafExpression(definition)
-                },
-                addIndirectExpression: function(keyword, definition) {
-                    _parser.addIndirectExpression(definition)
-                },
-                evaluate: function (str) { //OK
-                    return _runtime.evaluate(str); //OK
-                },
-                processNode: function (elt) {
-                    _runtime.processNode(elt);
-                },
-                config: {
-                    attributes : "_, script, data-script",
-                    defaultTransition: "all 500ms ease-in",
-                    conversions: CONVERSIONS
+            return mergeObjects(function (str, ctx) {
+                    return _runtime.evaluate(str, ctx); //OK
+                }, {
+                    internals: {
+                        lexer: _lexer,
+                        parser: _parser,
+                        runtime: _runtime,
+                    },
+                    addFeature: function (keyword, definition) {
+                        _parser.addFeature(keyword, definition)
+                    },
+                    addCommand: function (keyword, definition) {
+                        _parser.addCommand(keyword, definition)
+                    },
+                    addLeafExpression: function (keyword, definition) {
+                        _parser.addLeafExpression(definition)
+                    },
+                    addIndirectExpression: function (keyword, definition) {
+                        _parser.addIndirectExpression(definition)
+                    },
+                    evaluate: function (str, ctx) { //OK
+                        return _runtime.evaluate(str, ctx); //OK
+                    },
+                    processNode: function (elt) {
+                        _runtime.processNode(elt);
+                    },
+                    config: {
+                        attributes: "_, script, data-script",
+                        defaultTransition: "all 500ms ease-in",
+                        conversions: CONVERSIONS
+                    }
                 }
-            }
-        }
+            )
+    }
     )()
 }));

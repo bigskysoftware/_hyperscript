@@ -3445,6 +3445,7 @@
                                                 target.style[property] = fromVal;
                                             }
                                         }
+                                        // console.log("transition started", transition);
                                         setTimeout(function () {
                                             var autoProps = [];
                                             for (var i = 0; i < properties.length; i++) {
@@ -3456,8 +3457,10 @@
                                                 } else {
                                                     target.style[property] = toVal;
                                                 }
+                                                // console.log("set", property, "to", target.style[property], "on", target, "value passed in : ", toVal);
                                             }
                                             target.addEventListener('transitionend', function () {
+                                                // console.log("transition ended", transition);
                                                 target.style.transition = initialTransition;
                                                 resolve();
                                             }, {once:true})
