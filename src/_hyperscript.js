@@ -698,6 +698,9 @@
                 },
                 "Date" : function(val){
                     return Date(val);
+                },
+                "Array" : function(val){
+                    return Array.from(val);
                 }
             }
             var _runtime = function () {
