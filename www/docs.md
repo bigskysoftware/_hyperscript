@@ -821,7 +821,8 @@ And you can use any results return from the javascript in the default `it` varia
 
 ## <a name="expressions"></a>[Expressions](#expressions)
 
-Expressions in hyperscript are mostly familiar from javascript, with a few exceptions and a few extensions.
+Expressions in hyperscript are mostly familiar from javascript, with a few exceptions and a few extensions.  You can
+see [the expressions page](/expressions) for more detail.
 
 ### Things Similar to Javascript
 
@@ -895,6 +896,7 @@ Hyperscript supports a few default symbols that have specific meanings
 | `it`     | the result of the last command (e.g. a `call` or `fetch`)
 | `me`     | the element that the current event handler is running on
 | `my`     | alias for `me`
+| `I`      | alias for `me`
 | `event`  | the event that triggered the event current handler, if any
 | `body`   | the body of the current document, if any
 | `detail` | the detail of the event that triggered the current handler, if any
