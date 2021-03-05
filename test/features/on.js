@@ -23,6 +23,15 @@ describe("the on feature", function() {
         div.classList.contains("called").should.equal(true);
     })
 
+    // TODO enable strings in event names
+    // it("can respond to events with minus in names", function(){
+    //     var bar = make("<div _='on click send \"a-b\" to #d1'></div>");
+    //     var div = make("<div id='d1' _='on \"a-b\" add .called'></div>");
+    //     div.classList.contains("called").should.equal(false);
+    //     bar.click();
+    //     div.classList.contains("called").should.equal(true);
+    // })
+
     it("can respond to events on other elements", function(){
         var bar = make("<div id='bar'></div>");
         var div = make("<div _='on click from #bar add .clicked'></div>");

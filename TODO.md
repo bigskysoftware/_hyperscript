@@ -36,6 +36,8 @@ end
   on click throttle 100ms before log "throttled click"
 ```
 * functions should be able to be marked `sync` to make only one execution at a time occur, in serial fashion
+* unify properly literals and array literals with lookahead
+* unify all css() like literals to a general dynamic evaluation (eval is context sensitive)
 
 #### Speculative Language Features
 * A two-way binding system (maybe a global two way-bound namespace? hyperplane?
