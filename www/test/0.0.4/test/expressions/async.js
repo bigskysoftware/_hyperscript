@@ -1,7 +1,7 @@
 describe("the async expression works", function () {
 
     it("simple async expression works", function () {
-        var result = evalHyperScript("async 1")
+        var result = evalHyperScript("(async 1)")
         result.value.should.deep.equal(1);
     });
 

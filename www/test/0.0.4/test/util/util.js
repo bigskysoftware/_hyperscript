@@ -57,16 +57,17 @@ function clearWorkArea() {
     getWorkArea().innerHTML = "";
 }
 
-function evalHyperScript(typeOrSrc, srcOrCtx, ctx) {
-    return _hyperscript.internals.runtime.evaluate(typeOrSrc, srcOrCtx, ctx);
+function evalHyperScript(src, ctx) {
+    return _hyperscript(src, ctx);
 }
 
-function getParseErrorFor(srcOrType, src) {
+function getParseErrorFor(src) {
     try {
-        evalHyperScript(srcOrType, src);
+        evalHyperScript(src);
     } catch(e) {
         return e.message;
     }
+    return "";
 }
 
 function startsWith(str, expected) {
