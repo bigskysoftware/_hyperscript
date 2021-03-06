@@ -7,7 +7,9 @@ title: ///_hyperscript
 
 ### Syntax
 
-`send <event-name>[(<named-arg-list)] [to <target-expr>] `
+```ebnf
+ send <event-name>[(<named arguments)] [to <expression>]
+```
 
 ### Description
 
@@ -17,6 +19,10 @@ and will be passed in the `event.detail` object.
 ### Examples
 
 ```html
-<div _="on click send doIt(answer:42) to #div1">Click Me!</div>
-<div id="div1" _="on doIt(answer) log 'The answer is ' + answer">Check the console for the answer...</div>
+<div _="on click send doIt(answer:42) to #div1">
+  Send an event
+</div>
+<div id="div1" _="on doIt(answer) put 'The answer is $answer' into my.innerHTML">
+  Check the console for the answer...
+</div>
 ```

@@ -7,7 +7,9 @@ title: ///_hyperscript
 
 ### Syntax
 
-`log expr [, expr]* [with expr]`
+```ebnf
+ log <expression> {, <expression>} [with <expression>]
+```
 
 ### Description
 

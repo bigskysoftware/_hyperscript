@@ -7,11 +7,9 @@ title: ///_hyperscript
 
 ### Syntax
 
-`fetch url`
-`fetch url {args}`
-`fetch url {args} as json`
-
-* `url` can be either a string or a naked url
+```ebnf
+fetch <stringLike> [<object literal>] [ as ( json | text | request ) ]
+```
 
 ### Description
 
@@ -23,16 +21,18 @@ by adding the `as json` or `as request` modifiers.
 
 This command saves the result into the `it` variable.
 
-This command is asynchronous.  All commands that follow it will be delayed until the fetch request completes.
+This command is asynchronous.  
 
 ### Examples
 
 ```html
-<div _='on click fetch /example then put it into my.innerHTML'>
+<div _='on click fetch /example
+                 put it into my.innerHTML'>
   Get from /example!
 </div>
 
-<div _='on click fetch /test {method:"POST"} as json then call JSON.stringify(it) then put it into my.innerHTML'>
+<div _='on click fetch /test {method:"POST"} as json 
+                 put "$it.result" into my.innerHTML'>
   Post to /example!
 </div>
 ```  

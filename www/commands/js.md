@@ -5,7 +5,7 @@ title: ///_hyperscript
 
 ## The `js` Command (inline)
 
-**Note:** This page is about the inline JS command. \_hyperscript also supports [JS blocks at the top level](/features/js/), say, for declaring helper functions.
+**Note:** This page is about the inline JS command. _hyperscript also supports [JS blocks at the top level](/features/js/).
 
 ### Syntax
 

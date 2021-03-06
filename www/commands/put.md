@@ -7,11 +7,9 @@ title: ///_hyperscript
 
 ### Syntax
 
-`put <expression> into <target-expression>`
-`put <expression> before <target-expression>`
-`put <expression> at start of <target-expression>`
-`put <expression> at end of <target-expression>`
-`put <expression> after <target-expression>`
+```ebnf
+put <expression> (into | before | at start of | at end of | after)  <expression>`
+```
 
 ### Description
 
