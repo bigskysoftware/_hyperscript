@@ -7,12 +7,13 @@ title: ///_hyperscript
 
 ### Syntax
 
-`take <class-ref> [from <target-expression>] [for <target-expression>]`
+```ebnf
+ take <class-ref> [from <expression>] [for <expression>]
+```
 
 ### Description
 
-The `take` command allows you to take a class from a set of elements (or all elements) and add it to the
-current element (or the targeted element).
+The `take` command allows you to take a class from a set of elements (or all elements) and add it to the current element (or the targeted element).
 
 ### Examples
 

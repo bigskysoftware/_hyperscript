@@ -7,9 +7,9 @@ title: ///_hyperscript
 
 ### Syntax
 
-`wait for <event> [from <source>]`
-
-`wait <time-expr>`
+```ebnf
+wait (<time expression> | for <event> [from <source>] )
+```
 
 ### Description
 
@@ -30,7 +30,7 @@ This command is asynchronous.  All commands that follow it will be delayed until
 ### Examples
 
 ```html
-<div _='on click add .example then wait for '>
+<div _='on click add .example then wait for transitionend'>
   Add the class, then wait for the transition to complete 
 </div>
 

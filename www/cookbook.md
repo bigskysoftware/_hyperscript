@@ -43,5 +43,22 @@ If you wish to disable a button during an [htmx](https://htmx.org) request, you 
       hx-get="/example"
       _="on click toggle [disabled='true'] until htmx:afterOnLoad">
       Do It
-    </button>
+</button>
 ```
+
+### <a name="disable-btn-during-request-all"></a>[Disable all Buttons During an htmx Request](#disable-btn-during-request-all)
+
+If you wish to disable every button during an [htmx](https://htmx.org) request, you can use this snippet:
+
+```html
+<body _="on every htmx:beforeSend in <button:not(.no-disable)/> 
+           with it toggle [disabled='true'] until htmx:afterOnLoad">
+      
+</body>
+```
+
+Here we use the `every` keyword to avoid queuing events, and then the `in` modifier to filter only clicks that occur
+within buttons that do not have the `.no-disable` class on them.  When the body gets an event that matches this requirement, 
+it will toggle the `disabled` property to `true` on the button, until it receives an `htmx:afterLoad` event from the button.  
+
+We use the `with` command to make `it` (the button) the default target (`me`) for the toggle command

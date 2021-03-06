@@ -11,6 +11,9 @@ title: ///_hyperscript
 <div id="contents">
 
 * [introduction](#introduction)
+  * [event handling](#events)
+  * [no more promises](#promises)
+  * [the syntax](#syntax)
 * [install & quick start](#install)
 * [the language](#lang)
   * [features](#features)
@@ -32,10 +35,11 @@ title: ///_hyperscript
 
 ## <a name="introduction"></a>[Introduction](#introduction)
 
-Hyperscript is a scripting language for the web, inspired by the 
-[HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf) programming language, giving it a distinct, english-like syntax & first class event-handling.
+Hyperscript is a fun little scripting language for doing front end web development.
 
-One of the core features of hyperscript is the ability to embed event handlers directly on HTML elements:
+### <a name='events'></a>[Event Handling](#events)
+
+The core feature of hyperscript is the ability to embed event handlers directly on HTML elements:
 
 ```html
 <button _="on click put 'I was clicked!' into my.innerHTML">
@@ -48,55 +52,131 @@ One of the core features of hyperscript is the ability to embed event handlers d
   Click Me!
 </button>
 
-Embedding event handling logic directly on elements in this manner makes it much easier to understand what a given element does & hyperscript's syntax allows you to respond to *any event*, even custom events that you create or that are triggered by [other libraries](https://htmx.org/reference/#events).
+Embedding event handling logic directly on elements in this manner makes it easier to understand what a given element,
+and is in the same vein as many technologies that de-emphasize [Separation of Concerns](https://en.wikipedia.org/wiki/Separation_of_concerns)
+in favor of [Locality of Behavior](https://htmx.org/essays/locality-of-behaviour/), such as [tailwinds](https://tailwindcss.com/),
+[AlpineJS](https://github.com/alpinejs/alpine/) and [htmx](https://htmx.org).
 
-Hyperscript reads easily and is expressive enough that many common web patterns can be comfortably written directly inline.  (Of course, if you need to, you can factor logic out to [functions](#functions) as 
-well.)
+Unlike the typical `on` attributes on elements such as `onClick`, hyperscript's event handling syntax allows you to 
+respond to *any event*, even custom events that you create or that are triggered by [other libraries](https://htmx.org/reference/#events),
+and it gives you flexible control over how events are queued and filtered with a simple, clean syntax.
 
-One of the most interesting aspects of hyperscript is that it is *[async-transparent](#async)*.  That is, you can write code
-that is asynchronous in a linear style.  Consider the following hyperscript function:
+Hyperscript is expressive enough that many common web patterns can be comfortably written directly inline
+in event handlers.  But, if you need to, you can factor logic out to [functions](#functions) as well, and you
+can invoke javascript functions directly from hyperscript (and vice-versa.)
 
-```javascript
-def getString()
-  fetch /aString
-  return it
-end
+### <a name='promises'></a>[No More Promises](#promises)
+
+While powerful event handling is the most practical feature of hyperscript, the most interesting technical aspect 
+of the language is that it is *[async transparent](#async)*.  
+
+That is, you can write code that is asynchronous, but in a *linear* style.  
+
+You may have noticed that the button above reset its text after a few seconds.  
+
+Here is what the hyperscript actually looks like on that button:
+
+```html
+<button class='btn primary' _="on click put 'I was clicked!' into my.innerHTML 
+                                        wait 2s
+                                        put 'Click Me' into my.innerHTML">
+  Click Me!
+</button>
 ```
-This is an asynchronous hyperscript function, issuing a `GET` to `/aString` on the server and waiting for a response.  Despite this, you do not need to explicitly annotate the function being asynchronous.
 
-If we create an event handler that invokes this function:
+Note the `wait 2s` command in this hyperscript.  This tells hyperscript to, well, wait for
+2 seconds before continuing.
+
+In javascript, this would be equivalent to the following `onClick` attribute:
+
+```js
+this.innerHTML = "I was clicked!"
+setTimeout(function(){
+  this.innerHTML = "Click Me"
+}, 2000)
+```
+
+In javascript you would either need to write the code in this asynchronous manner or, if you were getting fancy, use promises and `then` or the  `async`/`await` keywords.  
+ 
+In contrast, using hyperscript you can simply write this code linearly and the hyperscript runtime will resolve all promises before continuing.  
+
+This means you can mix and match synchronous and asynchronous code freely, without needing to 
+change coding styles.  
+
+This may seem a little silly for just making `setTimeout()` a little better looking, but async transparency allows you, for example, to move the message that is put into the button into an ajax call:
 
 ```html
-<button _="on click put getString() into my.innerHTML">
+<button class='btn primary' _="on click fetch /clickedMessage 
+                                        put it into my.innerHTML 
+                                        wait 2s
+                                        put 'Click Me!' into my.innerHTML">
   Click Me!
 </button>
-``` 
+```
 
-The `put` command will wait for `getString()` to complete before it
-puts the results into the buttons innerHTML.  The hyperscript runtime dynamically detects if something is asynchronous and adjusts the execution accordingly.  
+Try it, and check out the console:
 
-This lets you do some pretty neat stuff:
+<button class='btn primary' _="on click fetch /clickedMessage 
+                                        then put it into my.innerHTML 
+                                        then wait 2s
+                                        then put 'Click Me!' into my.innerHTML">
+  Click Me!
+</button>
+
+Pretty neat, eh?  
+
+Let's jazz this example up a bit by adding some fade transitions
 
 ```html
-<button _="on click add .waiting
-                    put getString() into my.innerHTML
-                    remove .waiting">
+<button class='btn primary' _="on click fetch /clickedMessage then transition opacity to 0
+                                        put it into my.innerHTML then transition opacity to 1
+                                        wait 2s then transition opacity to 0
+                                        put 'Click Me!' into my.innerHTML then transition opacity to 1">
   Click Me!
 </button>
-``` 
+```
+<button class='btn primary' _="on click fetch /clickedMessage then transition opacity to 0
+                                        put it into my.innerHTML then transition opacity to 1
+                                        wait 2s then transition opacity to 0
+                                        put 'Click Me!' into my.innerHTML then transition opacity to 1">
+  Click Me!
+</button>
 
-Here we've added a `.waiting` class to the button, invoked an AJAX call and allowed it to respond, and then removed the `.waiting` class from the button, all in proper order.  
+Here we are using the `then` keyword to separate commands that are on the same line, grouping
+them logically and making the code read really nicely.  We use the `transition` command to
+transition smoothly between opacities.  
 
-This is all done without callbacks, explicit Promises or any `async`/`await` annotations.
+Note that the `transition` command is asynchronous: it doesn't complete until the transition i
+s done, but the hyperscript runtime recognizes this and allows you to write standard, 
+linear-style code with it.
 
-This gives you a flavor of the language, and I hope perks your interest.  Now let's get down to brass tacks...
+Now, this example is a little gratuitous, admittedly, but you can imagine what the equivalent javascript would look like: a mess of confusing callbacks.  The point isn't that you should use this UX pattern, but rather to show how async transparency can be used practically.
+
+
+### <a name='syntax'></a>[The Syntax](#syntax)
+
+The syntax of hyperscript will be a stumbling block for some people.  That's understandable: it's a very different
+syntax than most programming languages used today.  It is based on an older and somewhat obscure group of programming languages, 
+[HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf) and [AppleScript](https://en.wikipedia.org/wiki/AppleScript),
+while obviously being influenced by javascript, ruby, and so forth.
+
+This unusual syntax has some advantages, if you can get past the initial hump:
+
+* It is distinctive, making it obvious when hyperscript is being used
+* It includes a native event handling syntax
+* It reads very easily, even if it can be harder to write at first
+
+Hyperscript favors read time over write time when it comes to code.  Yes, it can be a bit tricky to get the syntax
+right (not so bad once you get used to it), but it reads very clearly once the code is written.
+
+OK, let's get on with it...
 
 ## <a name="install"></a>[Install & Quick Start](#install)
 
 Hyperscript is a dependency-free javascript library that can be included in a web page without any build steps:
 
 ```html
-<script src="https://unpkg.com/hyperscript.org@0.0.4"></script>
+<script src="https://unpkg.com/hyperscript.org@0.0.5"></script>
 ```
 
 After you've done this, you can begin adding hyperscript to elements:
@@ -821,7 +901,8 @@ And you can use any results return from the javascript in the default `it` varia
 
 ## <a name="expressions"></a>[Expressions](#expressions)
 
-Expressions in hyperscript are mostly familiar from javascript, with a few exceptions and a few extensions.
+Expressions in hyperscript are mostly familiar from javascript, with a few exceptions and a few extensions.  You can
+see [the expressions page](/expressions) for more detail.
 
 ### Things Similar to Javascript
 
@@ -895,6 +976,7 @@ Hyperscript supports a few default symbols that have specific meanings
 | `it`     | the result of the last command (e.g. a `call` or `fetch`)
 | `me`     | the element that the current event handler is running on
 | `my`     | alias for `me`
+| `I`      | alias for `me`
 | `event`  | the event that triggered the event current handler, if any
 | `body`   | the body of the current document, if any
 | `detail` | the detail of the event that triggered the current handler, if any

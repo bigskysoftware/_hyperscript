@@ -67,6 +67,7 @@
                     '?': 'QUESTION',
                     '#': 'POUND',
                     '&': 'AMPERSAND',
+                    '$': 'DOLLAR',
                     ';': 'SEMI',
                     ',': 'COMMA',
                     '(': 'L_PAREN',
@@ -115,8 +116,8 @@
                         (c >= 'A' && c <= 'Z');
                 }
 
-                function isIdentifierChar(c) {
-                    return (c === "_" || c === "$");
+                function isIdentifierChar(c, dollarIsOp) {
+                    return (c === "_" || (!dollarIsOp && c === "$"));
                 }
 
                 function isReservedChar(c) {
@@ -198,39 +199,51 @@
                         return match;
                     }
 
-                    function consumeUntilWhitespace() {
+                    function consumeUntil(value, type) {
                         var tokenList = [];
                         ignoreWhiteSpace = false;
-                        while (currentToken() &&
-                               currentToken().type !== "WHITESPACE"  &&
-                               currentToken().type !== "EOF") {
+                        while ((type == null || currentToken().type !== type) &&
+                               (value == null || currentToken().value !== value) &&
+                                currentToken().type !== "EOF") {
                             tokenList.push(consumeToken());
                         }
                         ignoreWhiteSpace = true;
                         return tokenList;
                     }
 
+                    function consumeUntilWhitespace() {
+                        return consumeUntil(null, "WHITESPACE");
+                    }
+
                     function hasMore() {
                         return tokens.length > 0;
                     }
 
-                    function currentToken(ignoreWhiteSpace) {
+                    function token(n, ignoreWhiteSpace) {
                         var token;
-                        if (ignoreWhiteSpace) {
-                            var i = 0;
-                            do {
-                                token = tokens[i++]
-                            } while (token && token.type === "WHITESPACE");
-                        } else {
-                            token = tokens[0];
+                        var i = 0;
+                        while (n >= 0) {
+                            if (ignoreWhiteSpace) {
+                                do {
+                                    token = tokens[i++]
+                                } while (token && token.type === "WHITESPACE");
+                            } else {
+                                token = tokens[i];
+                            }
+                            n--;
                         }
                         if (token) {
                             return token;
                         } else {
                             return {
-                                type:"EOF"
+                                type:"EOF",
+                                value:"<<<EOF>>>"
                             }
                         }
+                    }
+
+                    function currentToken(ignoreWhiteSpace) {
+                        return token(0, ignoreWhiteSpace);
                     }
 
                     return {
@@ -247,11 +260,13 @@
                         source: source,
                         hasMore: hasMore,
                         currentToken: currentToken,
-                        consumeUntilWhitespace: consumeUntilWhitespace
+                        token: token,
+                        consumeUntil: consumeUntil,
+                        consumeUntilWhitespace: consumeUntilWhitespace,
                     }
                 }
 
-                function tokenize(string) {
+                function tokenize(string, noDollarStart) {
                     var source = string;
                     var tokens = [];
                     var position = 0;
@@ -269,7 +284,7 @@
                                 tokens.push(consumeClassReference());
                             } else if (!possiblePrecedingSymbol() && currentChar() === "#" && isAlpha(nextChar())) {
                                 tokens.push(consumeIdReference());
-                            } else if (isAlpha(currentChar()) || isIdentifierChar(currentChar())) {
+                            } else if (isAlpha(currentChar()) || isIdentifierChar(currentChar(), noDollarStart)) {
                                 tokens.push(consumeIdentifier());
                             } else if (isNumeric(currentChar())) {
                                 tokens.push(consumeNumber());
@@ -454,7 +469,7 @@
 
                 function requireElement(type, tokens, message, root) {
                     var result = parseElement(type, tokens, root);
-                    return result || raiseParseError(tokens, message || "Expected " + type.autocapitalize);
+                    return result || raiseParseError(tokens, message || "Expected " + type);
                 }
 
                 function parseAnyOf(types, tokens) {
@@ -599,10 +614,45 @@
                     }
                 }
 
+                function commandStart(token){
+                    return COMMANDS[token.value];
+                }
+
+                function featureStart(token){
+                    return FEATURES[token.value];
+                }
+
                 function commandBoundary(token) {
-                    if (token.value == "end" || token.value == "then" || COMMANDS[token.value] || FEATURES[token.value] || token.type == "EOF") {
+                    if (token.value == "end" ||
+                        token.value == "then" ||
+                        token.value == "else" ||
+                        commandStart(token) ||
+                        featureStart(token) ||
+                        token.type == "EOF") {
                         return true;
                     }
+                }
+
+                function parseStringTemplate(tokens) {
+                    var returnArr = [""];
+                    do {
+                        if (tokens.currentToken().value === "$") {
+                            tokens.consumeToken();
+                            var startingBrace = tokens.matchOpToken('{');
+                            returnArr.push(requireElement("expression", tokens));
+                            if(startingBrace){
+                                tokens.requireOpToken("}");
+                            }
+                            returnArr.push("");
+                        } else if (tokens.currentToken().value === "\\") {
+                            tokens.consumeToken(); // skip next
+                            tokens.consumeToken()
+                        } else {
+                            var token = tokens.consumeToken();
+                            returnArr[returnArr.length - 1] += token.value;
+                        }
+                    } while (tokens.hasMore())
+                    return returnArr;
                 }
 
                 return {
@@ -610,6 +660,8 @@
                     setParent: setParent,
                     requireElement: requireElement,
                     parseElement: parseElement,
+                    featureStart: featureStart,
+                    commandStart: commandStart,
                     commandBoundary: commandBoundary,
                     parseAnyOf: parseAnyOf,
                     parseHyperScript: parseHyperScript,
@@ -619,12 +671,38 @@
                     addFeature: addFeature,
                     addLeafExpression: addLeafExpression,
                     addIndirectExpression: addIndirectExpression,
+                    parseStringTemplate: parseStringTemplate,
                 }
             }();
 
             //====================================================================
             // Runtime
             //====================================================================
+            var CONVERSIONS = {
+                dynamicResolvers : [],
+                "String" : function(val){
+                    if(val.toString){
+                        return val.toString();
+                    } else {
+                        return "" + val;
+                    }
+                },
+                "Int" : function(val){
+                    return parseInt(val);
+                },
+                "Float" : function(val){
+                    return parseFloat(val);
+                },
+                "Number" : function(val){
+                    return Number(val);
+                },
+                "Date" : function(val){
+                    return Date(val);
+                },
+                "Array" : function(val){
+                    return Array.from(val);
+                }
+            }
             var _runtime = function () {
 
                 function matchesSelector(elt, selector) {
@@ -728,7 +806,22 @@
                 var HALT = {halt_flag:true};
                 function unifiedExec(command,  ctx) {
                     while(true) {
-                        var next = unifiedEval(command, ctx);
+                        try {
+                            var next = unifiedEval(command, ctx);
+                        } catch(e) {
+                            _runtime.registerHyperTrace(ctx, e);
+                            if (ctx.meta.errorHandler && !ctx.meta.handlingError) {
+                                ctx.meta.handlingError = true;
+                                ctx[ctx.meta.errorSymmbol] = e;
+                                command = ctx.meta.errorHandler;
+                                continue;
+                            } else if (ctx.meta.reject) {
+                                ctx.meta.reject(e);
+                                next = HALT;
+                            } else {
+                                throw e;
+                            }
+                        }
                         if (next == null) {
                             console.error(command, " did not return a next element to execute! context: " , ctx)
                             return;
@@ -736,10 +829,15 @@
                             next.then(function (resolvedNext) {
                                 unifiedExec(resolvedNext, ctx);
                             }).catch(function(reason){
-                                if (ctx.meta && ctx.meta.reject) {
+                                 _runtime.registerHyperTrace(ctx, reason);
+                                if (ctx.meta.errorHandler && !ctx.meta.handlingError) {
+                                    ctx.meta.handlingError = true;
+                                    ctx[ctx.meta.errorSymmbol] = reason;
+                                    unifiedExec(ctx.meta.errorHandler, ctx);
+                                } else if(ctx.meta.reject) {
                                     ctx.meta.reject(reason);
                                 } else {
-                                    // TODO: no meta context to reject with, trigger event?
+                                    throw reason;
                                 }
                             });
                             return;
@@ -765,7 +863,7 @@
                                 var arr = [];
                                 for (var j = 0; j < argument.length; j++) {
                                     var element = argument[j];
-                                    var value = element.evaluate(ctx); // OK
+                                    var value = element ? element.evaluate(ctx) : null; // OK
                                     if (value) {
                                         if (value.then) {
                                             async = true;
@@ -806,7 +904,11 @@
                                     reject(e);
                                 }
                             }).catch(function(reason){
-                                if (ctx.meta && ctx.meta.reject) {
+                                if (ctx.meta.errorHandler && !ctx.meta.handlingError) {
+                                    ctx.meta.handlingError = true;
+                                    ctx[ctx.meta.errorSymmbol] = reason;
+                                    unifiedExec(ctx.meta.errorHandler, ctx);
+                                } else if(ctx.meta.reject) {
                                     ctx.meta.reject(reason);
                                 } else {
                                     // TODO: no meta context to reject with, trigger event?
@@ -817,15 +919,7 @@
                         if (wrappedAsyncs) {
                             unwrapAsyncs(args);
                         }
-                        try {
-                            return parseElement.op.apply(parseElement, args);
-                        } catch (e) {
-                            if (ctx.meta && ctx.meta.reject) {
-                                ctx.meta.reject(e);
-                            } else {
-                                throw e;
-                            }
-                        }
+                        return parseElement.op.apply(parseElement, args);
                     }
                 }
 
@@ -850,37 +944,24 @@
                     return null;
                 }
 
-                function makeContext(root, elt, event) {
+                function makeContext(owner, feature, hyperscriptTarget, event) {
                     var ctx = {
                         meta: {
                             parser: _parser,
                             lexer: _lexer,
                             runtime: _runtime,
-                            root: root,
-                            iterators: root
+                            owner: owner,
+                            feature: feature,
+                            iterators: {}
                         },
-                        me: elt,
+                        me: hyperscriptTarget,
                         event: event,
+                        target: event ? event.target : null,
                         detail: event ? event.detail : null,
                         body: 'document' in globalScope ? document.body : null
                     }
                     ctx.meta.ctx = ctx;
                     return ctx;
-                }
-
-                function applyEventListeners(hypeScript, elt) {
-                    forEach(hypeScript.onFeatures, function (onFeature) {
-                        forEach(
-                            onFeature.elsewhere ? [document]
-                                : onFeature.from ? onFeature.from.evaluate({})
-                                : [elt], function(target){ // OK NO PROMISE
-                            target.addEventListener(onFeature.on.evaluate(), function(evt){ // OK NO PROMISE
-                                if (onFeature.elsewhere && elt.contains(evt.target)) return
-                                var ctx = makeContext(onFeature, elt, evt);
-                                onFeature.execute(ctx)
-                            });
-                        })
-                    });
                 }
 
                 function getScriptSelector() {
@@ -889,27 +970,56 @@
                     }).join(", ");
                 }
 
+                function convertValue(value,  type) {
+
+                    var dynamicResolvers = CONVERSIONS.dynamicResolvers;
+                    for (var i = 0; i < dynamicResolvers.length; i++) {
+                        var dynamicResolver = dynamicResolvers[i];
+                        var converted = dynamicResolver(type, value);
+                        if (converted !== undefined) {
+                            return converted;
+                        }
+                    }
+
+                    if (value == null) {
+                        return null;
+                    }
+                    var converter = CONVERSIONS[type];
+                    if (converter) {
+                        return converter(value);
+                    }
+
+                    throw "Unknown conversion : " + type;
+                }
+
+
                 function isType(o, type) {
                     return Object.prototype.toString.call(o) === "[object " + type + "]";
                 }
 
-                function evaluate(typeOrSrc, srcOrCtx, ctxArg) {
-                    if (isType(srcOrCtx, "Object")) {
-                        var src = typeOrSrc;
-                        var ctx = srcOrCtx;
-                        var type = "expression"
-                    } else if (isType(srcOrCtx, "String")) {
-                        var src = srcOrCtx;
-                        var type = typeOrSrc
-                        var ctx = ctxArg;
-                    } else {
-                        var src = typeOrSrc;
-                        var ctx = {};
-                        var type = "expression";
-                    }
+                function evaluate(src, ctx) {
                     ctx = ctx || {};
-                    var compiled = _parser.parseElement(type, _lexer.tokenize(src) );
-                    return compiled.evaluate ? compiled.evaluate(ctx) : compiled.execute(ctx); // OK
+                    var tokens = _lexer.tokenize(src);
+                    if (_parser.commandStart(tokens.currentToken())) {
+                        var commandList = _parser.parseElement("commandList", tokens);
+                        var last = commandList;
+                        while (last.next) {
+                            last = last.next;
+                        }
+                        last.next = {
+                            op : function() {
+                                return HALT;
+                            }
+                        }
+                        commandList.execute(ctx);
+                    } else if (_parser.featureStart(tokens.currentToken())) {
+                        var hyperscript = _parser.parseElement("hyperscript", tokens);
+                        hyperscript.apply(document.body, null);
+                        return null;
+                    } else {
+                        var expression = _parser.parseElement("expression", tokens);
+                        return expression.evaluate(ctx);
+                    }
                 }
 
                 function processNode(elt) {
@@ -942,7 +1052,7 @@
                                 internalData.script = src;
                                 var tokens = _lexer.tokenize(src);
                                 var hyperScript = _parser.parseHyperScript(tokens);
-                                _runtime.applyEventListeners(hyperScript, target || elt);
+                                hyperScript.apply(target || elt, elt);
                                 setTimeout(function () {
                                     triggerEvent(target || elt, 'load');
                                 }, 1);
@@ -976,7 +1086,7 @@
                 }
 
                 function resolveSymbol(str, context) {
-                    if (str === "me" || str === "my") {
+                    if (str === "me" || str === "my" || str === "I") {
                         return context["me"];
                     } if (str === "it" || str === "its") {
                         return context["it"];
@@ -996,14 +1106,14 @@
                     }
                 }
 
-                function findNext(command) {
+                function findNext(command, context) {
                     if (command) {
                         if (command.resolveNext) {
-                            return command.resolveNext();
+                            return command.resolveNext(context);
                         } else if (command.next) {
                             return command.next;
                         } else {
-                            return findNext(command.parent)
+                            return findNext(command.parent, context)
                         }
                     }
                 }
@@ -1053,6 +1163,48 @@
                     root[name] = value;
                 }
 
+                function getHyperTrace(ctx, thrown) {
+                    var trace = [];
+                    var root = ctx;
+                    while(root.meta.caller) {
+                        root = root.meta.caller;
+                    }
+                    if (root.meta.traceMap) {
+                        return root.meta.traceMap.get(thrown, trace);
+                    }
+                }
+
+                function registerHyperTrace(ctx, thrown) {
+                    var trace = [];
+                    var root = null;
+                    while(ctx != null) {
+                        trace.push(ctx);
+                        root = ctx;
+                        ctx = ctx.meta.caller;
+                    }
+                    if (root.meta.traceMap == null) {
+                        root.meta.traceMap = new Map(); // TODO - WeakMap?
+                    }
+                    if (!root.meta.traceMap.get(thrown)) {
+                        var traceEntry = {
+                            trace: trace,
+                            print : function(logger) {
+                                logger = logger || console.error;
+                                logger("hypertrace /// ")
+                                var maxLen = 0;
+                                for (var i = 0; i < trace.length; i++) {
+                                    maxLen = Math.max(maxLen, trace[i].meta.feature.displayName.length);
+                                }
+                                for (var i = 0; i < trace.length; i++) {
+                                    var traceElt = trace[i];
+                                    logger("  ->", traceElt.meta.feature.displayName.padEnd(maxLen + 2), "-", traceElt.meta.owner)
+                                }
+                            }
+                        };
+                        root.meta.traceMap.set(thrown, traceEntry);
+                    }
+                }
+
                 var hyperscriptUrl = 'document' in globalScope ? document.currentScript.src : null
 
                 return {
@@ -1061,7 +1213,6 @@
                     triggerEvent: triggerEvent,
                     matchesSelector: matchesSelector,
                     getScript: getScript,
-                    applyEventListeners: applyEventListeners,
                     processNode: processNode,
                     evaluate: evaluate,
                     getScriptSelector: getScriptSelector,
@@ -1069,9 +1220,13 @@
                     makeContext: makeContext,
                     findNext: findNext,
                     unifiedEval: unifiedEval,
+                    convertValue: convertValue,
                     unifiedExec: unifiedExec,
                     resolveProperty: resolveProperty,
                     assignToNamespace: assignToNamespace,
+                    registerHyperTrace: registerHyperTrace,
+                    getHyperTrace: getHyperTrace,
+                    getInternalData: getInternalData,
                     hyperscriptUrl: hyperscriptUrl,
                     HALT: HALT
                 }
@@ -1098,13 +1253,35 @@
                 _parser.addLeafExpression("string", function(parser, runtime, tokens) {
                     var stringToken = tokens.matchTokenType('STRING');
                     if (stringToken) {
+                        var rawValue = stringToken.value;
+                        if (rawValue.indexOf("$") >= 0) {
+                            var innerTokens = _lexer.tokenize(rawValue, true);
+                            var args = parser.parseStringTemplate(innerTokens);
+                        } else {
+                            var args = [];
+                        }
                         return {
                             type: "string",
                             token: stringToken,
+                            args: args,
+                            op: function (context) {
+                                var returnStr = "";
+                                for (var i = 1; i < arguments.length; i++) {
+                                    var val = arguments[i];
+                                    if (val) {
+                                        returnStr += val;
+                                    }
+                                }
+                                return returnStr;
+                            },
                             evaluate: function (context) {
-                                return stringToken.value;
+                                if (args.length === 0) {
+                                    return rawValue;
+                                } else {
+                                    return runtime.unifiedEval(this, context);
+                                }
                             }
-                        }
+                        };
                     }
                 })
 
@@ -1143,6 +1320,7 @@
                     if (elementId) {
                         return {
                             type: "idRef",
+                            css: elementId.value,
                             value: elementId.value.substr(1),
                             evaluate: function (context) {
                                 return document.getElementById(this.value);
@@ -1156,12 +1334,29 @@
                     if (classRef) {
                         return {
                             type: "classRef",
-                            value: classRef.value,
+                            css: classRef.value,
                             className: function () {
-                                return this.value.substr(1);
+                                return this.css.substr(1);
                             },
                             evaluate: function () {
-                                return document.querySelectorAll(this.value);
+                                return document.querySelectorAll(this.css);
+                            }
+                        };
+                    }
+                })
+
+                _parser.addLeafExpression("queryRef", function(parser, runtime, tokens) {
+                    var queryStart = tokens.matchOpToken('<');
+                    if (queryStart) {
+                        var queryTokens = tokens.consumeUntil("/");
+                        tokens.requireOpToken("/");
+                        tokens.requireOpToken(">");
+                        var queryValue = queryTokens.map(function(t){return t.value}).join("");
+                        return {
+                            type: "queryRef",
+                            css: queryValue,
+                            evaluate: function () {
+                                return document.querySelectorAll(this.css);
                             }
                         };
                     }
@@ -1413,6 +1608,66 @@
                     }
                 });
 
+                _parser.addIndirectExpression("inExpression", function(parser, runtime, tokens, root) {
+                    if (tokens.matchToken("in")) {
+                        if (root.type !== "idRef" && root.type === "queryRef" || root.type === "classRef") {
+                            var query = true;
+                        }
+                        var target = parser.requireElement("expression", tokens);
+                        var propertyAccess = {
+                            type: "inExpression",
+                            root: root,
+                            args: [query ? null : root, target],
+                            op:function(context, rootVal, target){
+                                var returnArr = [];
+                                if(query){
+                                    runtime.forEach(target, function (targetElt) {
+                                        var results = targetElt.querySelectorAll(root.css);
+                                        for (var i = 0; i < results.length; i++) {
+                                            returnArr.push(results[i]);
+                                        }
+                                    })
+                                } else {
+                                    runtime.forEach(rootVal, function(rootElt){
+                                        runtime.forEach(target, function(targetElt){
+                                            if (rootElt === targetElt) {
+                                                returnArr.push(rootElt);
+                                            }
+                                        })
+                                    })
+                                }
+                                if (returnArr.length > 0) {
+                                    return returnArr;
+                                } else {
+                                    return null;
+                                }
+                            },
+                            evaluate: function (context) {
+                                return runtime.unifiedEval(this, context);
+                            }
+                        };
+                        return parser.parseElement("indirectExpression", tokens, propertyAccess);
+                    }
+                });
+
+                _parser.addIndirectExpression("asExpression", function(parser, runtime, tokens, root) {
+                    if (tokens.matchToken("as")) {
+                        var conversion = parser.requireElement('dotOrColonPath', tokens).evaluate(); // OK No promise
+                        var propertyAccess = {
+                            type: "asExpression",
+                            root: root,
+                            args: [root],
+                            op:function(context, rootVal){
+                                return runtime.convertValue(rootVal, conversion);
+                            },
+                            evaluate: function (context) {
+                                return runtime.unifiedEval(this, context);
+                            }
+                        };
+                        return parser.parseElement("indirectExpression", tokens, propertyAccess);
+                    }
+                });
+
                 _parser.addIndirectExpression("functionCall", function(parser, runtime, tokens, root) {
                     if (tokens.matchOpToken("(")) {
                         var args = [];
@@ -1431,6 +1686,9 @@
                                 args: [root.root, args],
                                 op: function (context, rootRoot, args) {
                                     var func = rootRoot[root.prop.value];
+                                    if (func.hyperfunc) {
+                                        args.push(context);
+                                    }
                                     return func.apply(rootRoot, args);
                                 },
                                 evaluate: function (context) {
@@ -1444,6 +1702,9 @@
                                 argExressions: args,
                                 args: [root, args],
                                 op: function(context, func, argVals){
+                                    if (func.hyperfunc) {
+                                        argVals.push(context);
+                                    }
                                     var apply = func.apply(null, argVals);
                                     return apply;
                                 },
@@ -1526,7 +1787,7 @@
                             root: root,
                             args: [root],
                             op: function (context, val) {
-                                return val == null;
+                                return val == null || val.length === 0;
                             },
                             evaluate: function (context) {
                                 return runtime.unifiedEval(this, context);
@@ -1603,15 +1864,42 @@
                     var expr = parser.parseElement("mathExpression", tokens);
                     var comparisonToken = tokens.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==")
                     var comparisonStr = comparisonToken ? comparisonToken.value : null;
-                    if (comparisonStr == null && tokens.matchToken("is")) {
-                        if (tokens.matchToken("not")) {
-                            comparisonStr = "!=";
-                        } else {
-                            comparisonStr = "==";
+                    if (comparisonStr == null) {
+                        if (tokens.matchToken("is") || tokens.matchToken("am")) {
+                            if (tokens.matchToken("not")) {
+                                if (tokens.matchToken("in")) {
+                                    comparisonStr = "not in";
+                                } else {
+                                    comparisonStr = "!=";
+                                }
+                            } else {
+                                if (tokens.matchToken("in")) {
+                                    comparisonStr = "in";
+                                } else {
+                                    comparisonStr = "==";
+                                }
+                            }
+                        } else if (tokens.matchToken("matches") || tokens.matchToken("match")) {
+                            comparisonStr = "match";
+                        } else if (tokens.matchToken("contains") || tokens.matchToken("contain")) {
+                            comparisonStr = "contain";
+                        } else if (tokens.matchToken("do") || tokens.matchToken("does")) {
+                            tokens.requireToken('not');
+                            if (tokens.matchToken("matches") || tokens.matchToken("match")) {
+                                comparisonStr = "not match";
+                            } else if (tokens.matchToken("contains") || tokens.matchToken("contain")) {
+                                comparisonStr = "not contain";
+                            } else {
+                                parser.raiseParseError(tokens, "Expected matches or contains");
+                            }
                         }
                     }
+
                     if (comparisonStr) { // Do not allow chained comparisons, which is dumb
                         var rhs = parser.requireElement("mathExpression", tokens);
+                        if (comparisonStr === "match" || comparisonStr === "not match") {
+                            rhs = rhs.css ? rhs.css : rhs;
+                        }
                         expr = {
                             type: "comparisonOperator",
                             operator: comparisonStr,
@@ -1619,7 +1907,27 @@
                             rhs: rhs,
                             args: [expr, rhs],
                             op:function (context, lhsVal, rhsVal) {
-                                if (this.operator === "<") {
+                                if (this.operator === "==") {
+                                    return lhsVal == rhsVal;
+                                } else if (this.operator === "!=") {
+                                    return lhsVal != rhsVal;
+                                } if (this.operator === "in") {
+                                    return (rhsVal != null) && Array.from(rhsVal).indexOf(lhsVal) >= 0;
+                                } if (this.operator === "not in") {
+                                    return (rhsVal == null) || Array.from(rhsVal).indexOf(lhsVal) < 0;
+                                } if (this.operator === "match") {
+                                    return (lhsVal != null) && lhsVal.matches(rhsVal);
+                                } if (this.operator === "not match") {
+                                    return (lhsVal == null) || !lhsVal.matches(rhsVal);
+                                } if (this.operator === "contain") {
+                                    return (lhsVal != null) && lhsVal.contains(rhsVal);
+                                } if (this.operator === "not contain") {
+                                    return (lhsVal == null) || !lhsVal.contains(rhsVal);
+                                } if (this.operator === "===") {
+                                    return lhsVal === rhsVal;
+                                } else if (this.operator === "!==") {
+                                    return lhsVal !== rhsVal;
+                                } else if (this.operator === "<") {
                                     return lhsVal < rhsVal;
                                 } else if (this.operator === ">") {
                                     return lhsVal > rhsVal;
@@ -1627,14 +1935,6 @@
                                     return lhsVal <= rhsVal;
                                 } else if (this.operator === ">=") {
                                     return lhsVal >= rhsVal;
-                                } else if (this.operator === "==") {
-                                    return lhsVal == rhsVal;
-                                } else if (this.operator === "===") {
-                                    return lhsVal === rhsVal;
-                                } else if (this.operator === "!=") {
-                                    return lhsVal != rhsVal;
-                                } else if (this.operator === "!==") {
-                                    return lhsVal !== rhsVal;
                                 }
                             },
                             evaluate: function (context) {
@@ -1711,7 +2011,8 @@
                 _parser.addGrammarElement("target", function(parser, runtime, tokens) {
                     var expr = _parser.parseElement("expression", tokens);
                     if (expr.type === "symbol" || expr.type === "idRef" ||
-                        expr.type === "classRef" || expr.type === "propertyAccess") {
+                        expr.type === "queryRef" || expr.type === "classRef" ||
+                        expr.type === "propertyAccess") {
                         return expr;
                     } else {
                         _parser.raiseParseError(tokens, "A target expression must be writable");
@@ -1720,24 +2021,13 @@
                 });
 
                 _parser.addGrammarElement("hyperscript", function(parser, runtime, tokens) {
-                    var onFeatures = []
-                    var functionFeatures = []
+
+                    var features = [];
 
                     if (tokens.hasMore()) {
                         do {
                             var feature = parser.requireElement("feature", tokens);
-                            if (feature.type === "onFeature") {
-                                onFeatures.push(feature);
-                            } else if(feature.type === "defFeature") {
-                                feature.execute();
-                                functionFeatures.push(feature);
-                            } else if (feature.type === "jsFeature") {
-                                feature.execute();
-                            } else { // this is a plugin feature
-                                if ('execute' in feature) {
-                                    feature.execute();
-                                }
-                            }
+                            features.push(feature);
                             var chainedOn = feature.type === "onFeature" && tokens.currentToken() && tokens.currentToken().value === "on";
                         } while ((chainedOn || tokens.matchToken("end")) && tokens.hasMore())
                         if (tokens.hasMore()) {
@@ -1746,10 +2036,12 @@
                     }
                     return {
                         type: "hyperscript",
-                        onFeatures: onFeatures,
-                        functions: functionFeatures,
-                        execute: function () {
+                        features: features,
+                        apply: function (target, source) {
                             // no op
+                            _runtime.forEach(features, function(feature){
+                                feature.install(target, source);
+                            })
                         }
                     };
                 })
@@ -1760,38 +2052,81 @@
                         if (tokens.matchToken("every")) {
                             every = true;
                         }
-                        var on = parser.requireElement("dotOrColonPath", tokens, "Expected event name");
+                        var events = [];
+                        var displayName = null;
+                        do {
 
-                        var args = [];
-                        if (tokens.matchOpToken("(")) {
-                            do {
-                                args.push(tokens.requireTokenType('IDENTIFIER'));
-                            } while (tokens.matchOpToken(","))
-                            tokens.requireOpToken(')')
-                        }
+                            var on = parser.requireElement("dotOrColonPath", tokens, "Expected event name");
 
-                        var filter = null;
-                        if (tokens.matchOpToken('[')) {
-                            filter = parser.requireElement("expression", tokens);
-                            tokens.requireOpToken(']');
-                        }
-
-                        var from = null;
-                        var elsewhere = false;
-                        if (tokens.matchToken("from")) {
-                            if (tokens.matchToken('elsewhere')) {
-                                elsewhere = true;
+                            var eventName = on.evaluate(); // OK No Promise
+                            if (displayName) {
+                                displayName = displayName + " or " + eventName;
                             } else {
-                                from = parser.parseElement("target", tokens)
-                                if (!from) {
-                                    parser.raiseParseError('Expected either target value or "elsewhere".', tokens);
+                                displayName = "on " + eventName;
+                            }
+                            var args = [];
+                            if (tokens.matchOpToken("(")) {
+                                do {
+                                    args.push(tokens.requireTokenType('IDENTIFIER'));
+                                } while (tokens.matchOpToken(","))
+                                tokens.requireOpToken(')')
+                            }
+
+                            var filter = null;
+                            if (tokens.matchOpToken('[')) {
+                                filter = parser.requireElement("expression", tokens);
+                                tokens.requireOpToken(']');
+                            }
+
+                            var from = null;
+                            var elsewhere = false;
+                            if (tokens.matchToken("from")) {
+                                if (tokens.matchToken('elsewhere')) {
+                                    elsewhere = true;
+                                } else {
+                                    from = parser.parseElement("target", tokens)
+                                    if (!from) {
+                                        parser.raiseParseError('Expected either target value or "elsewhere".', tokens);
+                                    }
                                 }
                             }
-                        }
 
-                        // support both "elsewhere" and "from elsewhere"
-                        if (from === null && elsewhere === false && tokens.matchToken("elsewhere")) {
-                            elsewhere = true;
+                            if (tokens.matchToken('in')) {
+                                var inExpr = parser.parseAnyOf(["idRef", "queryRef", "classRef"], tokens);
+                            }
+
+                            // support both "elsewhere" and "from elsewhere"
+                            if (from === null && elsewhere === false && tokens.matchToken("elsewhere")) {
+                                elsewhere = true;
+                            }
+
+                            events.push({
+                                every: every,
+                                on: eventName,
+                                args: args,
+                                filter: filter,
+                                from:from,
+                                inExpr:inExpr,
+                                elsewhere:elsewhere,
+                            })
+                        } while (tokens.matchToken("or"))
+
+
+                        var queue = [];
+                        var queueLast = true;
+                        if (!every) {
+                            if (tokens.matchToken("queue")) {
+                                if (tokens.matchToken("all")) {
+                                    var queueAll = true;
+                                    var queueLast = false;
+                                } else if(tokens.matchToken("first")) {
+                                    var queueFirst = true;
+                                } else if(tokens.matchToken("none")) {
+                                    var queueNone = true;
+                                } else {
+                                    tokens.requireToken("last");
+                                }
+                            }
                         }
 
                         var start = parser.requireElement("commandList", tokens);
@@ -1818,49 +2153,110 @@
                         }
 
                         var onFeature = {
-                            args: args,
-                            on: on,
-                            every: every,
-                            from: from,
-                            elsewhere: elsewhere,
-                            filter: filter,
+                            displayName: displayName,
+                            events:events,
                             start: start,
+                            every: every,
                             executing: false,
                             execCount: 0,
+                            queue: queue,
                             execute: function (ctx) {
                                 if (this.executing && this.every === false) {
+                                    if (queueNone || (queueFirst && queue.length > 0)) {
+                                        return;
+                                    }
+                                    if (queueLast) {
+                                        onFeature.queue.length = 0;
+                                    }
+                                    onFeature.queue.push(ctx);
                                     return;
                                 }
                                 this.execCount++;
                                 this.executing = true;
-                                runtime.forEach(args, function (arg) {
-                                    ctx[arg.value] = ctx.event[arg.value] || (ctx.event.detail ? ctx.event.detail[arg.value] : null);
-                                });
-                                if (filter) {
-                                    var initialCtx = ctx.meta.context;
-                                    ctx.meta.context = ctx.event;
-                                    try {
-                                        var value = filter.evaluate(ctx); //OK NO PROMISE
-                                        if (value) {
-                                            // match the javascript semantics for if statements
-                                        } else {
-                                            this.executing = false;
-                                            return;
-                                        }
-                                    } finally {
-                                        ctx.meta.context = initialCtx;
-                                    }
-                                }
-
                                 ctx.meta.resolve = function () {
                                     onFeature.executing = false;
+                                    var queued = onFeature.queue.shift();
+                                    if (queued) {
+                                        setTimeout(function () {
+                                            onFeature.execute(queued);
+                                        }, 1);
+                                    }
                                 }
                                 ctx.meta.reject = function (err) {
-                                    console.error(err);
+                                    console.error(err.message ? err.message : err);
+                                    var hypertrace = runtime.getHyperTrace(ctx, err);
+                                    if (hypertrace) {
+                                        hypertrace.print();
+                                    }
                                     runtime.triggerEvent(ctx.me, 'exception', {error: err})
                                     onFeature.executing = false;
+                                    var queued = onFeature.queue.shift();
+                                    if (queued) {
+                                    setTimeout(function () {
+                                        onFeature.execute(queued);
+                                        }, 1);
+                                    }
                                 }
                                 start.execute(ctx);
+                            },
+                            install: function (elt, source) {
+                                runtime.forEach(onFeature.events, function(eventSpec) {
+                                    var targets;
+                                    if (eventSpec.elsewhere) {
+                                        targets = [document];
+                                    } else if (eventSpec.from) {
+                                        targets = eventSpec.from.evaluate({});
+                                    } else {
+                                        targets = [elt];
+                                    }
+                                    runtime.forEach(targets, function (target) { // OK NO PROMISE
+                                        target.addEventListener(eventSpec.on, function (evt) { // OK NO PROMISE
+                                            var ctx = runtime.makeContext(elt, onFeature, elt, evt);
+                                            if (eventSpec.elsewhere && elt.contains(evt.target)) {
+                                                return
+                                            }
+
+                                            // establish context
+                                            runtime.forEach(eventSpec.args, function (arg) {
+                                                ctx[arg.value] = ctx.event[arg.value] || (ctx.event.detail ? ctx.event.detail[arg.value] : null);
+                                            });
+
+                                            // apply filter
+                                            if (eventSpec.filter) {
+                                                var initialCtx = ctx.meta.context;
+                                                ctx.meta.context = ctx.event;
+                                                try {
+                                                    var value = eventSpec.filter.evaluate(ctx); //OK NO PROMISE
+                                                    if (value) {
+                                                        // match the javascript semantics for if statements
+                                                    } else {
+                                                        return;
+                                                    }
+                                                } finally {
+                                                    ctx.meta.context = initialCtx;
+                                                }
+                                            }
+
+                                            if (eventSpec.inExpr) {
+                                                var inElement = evt.target;
+                                                while(true) {
+                                                    if (inElement.matches && inElement.matches(eventSpec.inExpr.css)) {
+                                                        ctx.it = inElement;
+                                                        break;
+                                                    } else {
+                                                        inElement = inElement.parentElement;
+                                                        if (inElement == null) {
+                                                            return; // no match found
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            // apply execute
+                                            onFeature.execute(ctx);
+                                        });
+                                    })
+                                });
                             }
                         };
                         parser.setParent(start, onFeature);
@@ -1888,23 +2284,35 @@
                         }
 
                         var start = parser.parseElement("commandList", tokens);
+                        if (tokens.matchToken('catch')) {
+                            var errorSymbol = tokens.requireTokenType('IDENTIFIER').value;
+                            var errorHandler = parser.parseElement("commandList", tokens);
+                        }
                         var functionFeature = {
+                            displayName: funcName + "(" + args.map(function(arg){ return arg.value }).join(", ") + ")",
                             name: funcName,
                             args: args,
                             start: start,
-                            execute: function (ctx) {
-                                runtime.assignToNamespace(nameSpace, funcName, function () {
+                            errorHandler: errorHandler,
+                            errorSymbol: errorSymbol,
+                            install: function (target, source) {
+                                var func = function () {
                                     // null, worker
-                                    var root = 'document' in globalScope ? document.body : null
                                     var elt = 'document' in globalScope ? document.body : globalScope
-                                    var ctx = runtime.makeContext(root, elt, null);
-                                    for (var i = 0; i < arguments.length; i++) {
-                                        var argumentVal = arguments[i];
+                                    var ctx = runtime.makeContext(source, functionFeature, elt, null);
+
+                                    // install error handler if any
+                                    ctx.meta.errorHandler = errorHandler;
+                                    ctx.meta.errorSymmbol = errorSymbol;
+
+                                    for (var i = 0; i < args.length; i++) {
                                         var name = args[i];
+                                        var argumentVal = arguments[i];
                                         if (name) {
                                             ctx[name.value] = argumentVal;
                                         }
                                     }
+                                    ctx.meta.caller = arguments[args.length];
                                     var resolve, reject = null;
                                     var promise = new Promise(function (theResolve, theReject) {
                                         resolve = theResolve;
@@ -1918,7 +2326,9 @@
                                         ctx.meta.reject = reject;
                                         return promise
                                     }
-                                });
+                                };
+                                func.hyperfunc = true;
+                                runtime.assignToNamespace(nameSpace, funcName, func);
                             }
                         };
 
@@ -1936,6 +2346,7 @@
                                 // do nothing
                             }
                         }
+                        // terminate body
                         if (start) {
                             var end = start;
                             while (end.next) {
@@ -1944,6 +2355,15 @@
                             end.next = implicitReturn
                         } else {
                             functionFeature.start = implicitReturn
+                        }
+
+                        // terminate error handler
+                        if (errorHandler) {
+                            var end = errorHandler;
+                            while (end.next) {
+                                end = end.next;
+                            }
+                            end.next = implicitReturn
                         }
 
                         parser.setParent(start, functionFeature);
@@ -2015,7 +2435,7 @@
                             jsSource: jsSource,
                             function: func,
                             exposedFunctionNames: jsBody.exposedFunctionNames,
-                            execute: function() {
+                            install: function() {
                                 mergeObjects(globalScope, func())
                             }
                         }
@@ -2057,15 +2477,82 @@
                                     return Promise(function (resolve) {
                                         result.then(function (actualResult) {
                                             context.it = actualResult
-                                            resolve(runtime.findNext(this));
+                                            resolve(runtime.findNext(this, context));
                                         })
                                     })
                                 } else {
                                     context.it = result
-                                    return runtime.findNext(this);
+                                    return runtime.findNext(this, context);
                                 }
                             }
                         };
+                    }
+                })
+
+                _parser.addCommand("async", function (parser, runtime, tokens) {
+                    if (tokens.matchToken("async")) {
+                        if (tokens.matchToken("do")) {
+                            var body = parser.requireElement('commandList', tokens)
+                            tokens.requireToken("end")
+                        } else {
+                            var body = parser.requireElement('command', tokens)
+                        }
+                        return {
+                            body: body,
+                            op: function (context) {
+                                setTimeout(function(){
+                                    body.execute(context);
+                                })
+                                return runtime.findNext(this, context);
+                            }
+                        };
+                    }
+                })
+
+                _parser.addCommand("with", function (parser, runtime, tokens) {
+                    var startToken = tokens.currentToken();
+                    if (tokens.matchToken("with")) {
+                        var value = parser.requireElement("expression", tokens);
+                        var body = parser.requireElement('commandList', tokens)
+                        if (tokens.hasMore()) {
+                            tokens.requireToken("end");
+                        }
+                        var slot = "with_" + startToken.start;
+                        var withCmd = {
+                            value: value,
+                            body: body,
+                            args: [value],
+                            resolveNext: function (context) {
+                                var iterator = context.meta.iterators[slot];
+                                if (iterator.index < iterator.value.length) {
+                                    context.me = iterator.value[iterator.index++];
+                                    return body;
+                                } else {
+                                    // restore original me
+                                    context.me = iterator.originalMe;
+                                    if (this.next) {
+                                        return this.next;
+                                    } else {
+                                        return runtime.findNext(this.parent, context);
+                                    }
+                                }
+                            },
+                            op: function (context, value) {
+                                if (value == null) {
+                                    value = [];
+                                } else if (!(Array.isArray(value) || value instanceof NodeList)) {
+                                    value = [value];
+                                }
+                                context.meta.iterators[slot] = {
+                                    originalMe: context.me,
+                                    index: 0,
+                                    value: value
+                                };
+                                return this.resolveNext(context);
+                            }
+                        };
+                        parser.setParent(body, withCmd);
+                        return withCmd;
                     }
                 })
 
@@ -2096,7 +2583,7 @@
                                     runtime.forEach(to, function (target) {
                                         target.classList.add(classRef.className());
                                     })
-                                    return runtime.findNext(this);
+                                    return runtime.findNext(this, context);
                                 }
                             }
                         } else {
@@ -2152,7 +2639,7 @@
                                     runtime.forEach(element, function (target) {
                                         target.parentElement.removeChild(target);
                                     })
-                                    return runtime.findNext(this);
+                                    return runtime.findNext(this, context);
                                 }
                             };
                         } else {
@@ -2172,7 +2659,7 @@
                                             target.removeAttribute(attributeRef.name);
                                         })
                                     }
-                                    return runtime.findNext(this);
+                                    return runtime.findNext(this, context);
                                 }
                             };
 
@@ -2236,7 +2723,7 @@
                                         toggleCmd.toggle(on, value);
                                         setTimeout(function () {
                                             toggleCmd.toggle(on, value);
-                                            resolve(runtime.findNext(toggleCmd));
+                                            resolve(runtime.findNext(toggleCmd, context));
                                         }, time);
                                     });
                                 } else if (evt) {
@@ -2244,13 +2731,13 @@
                                         var target = from || context.me;
                                         target.addEventListener(evt, function () {
                                             toggleCmd.toggle(on, value);
-                                            resolve(runtime.findNext(toggleCmd));
+                                            resolve(runtime.findNext(toggleCmd, context));
                                         }, {once: true})
                                         toggleCmd.toggle(on, value);
                                     });
                                 } else {
                                     this.toggle(on, value);
-                                    return runtime.findNext(toggleCmd);
+                                    return runtime.findNext(toggleCmd, context);
                                 }
                             }
                         };
@@ -2330,7 +2817,7 @@
                                 runtime.forEach(target, function (elt) {
                                     hideShowStrategy('hide', elt);
                                 });
-                                return runtime.findNext(this);
+                                return runtime.findNext(this, ctx);
                             }
                         }
                     }
@@ -2361,7 +2848,7 @@
                                 runtime.forEach(target, function (elt) {
                                     hideShowStrategy('show', elt, arg);
                                 });
-                                return runtime.findNext(this);
+                                return runtime.findNext(this, ctx);
                             }
                         }
                     }
@@ -2385,7 +2872,7 @@
                                     var target = on ? on : context.me;
                                     return new Promise(function (resolve) {
                                         var listener = function () {
-                                            resolve(runtime.findNext(waitCmd));
+                                            resolve(runtime.findNext(waitCmd, context));
                                         };
                                         target.addEventListener(eventName, listener, {once: true});
                                     });
@@ -2400,7 +2887,7 @@
                                 op: function (context, timeValue) {
                                     return new Promise(function (resolve) {
                                         setTimeout(function () {
-                                            resolve(runtime.findNext(waitCmd));
+                                            resolve(runtime.findNext(waitCmd, context));
                                         }, timeValue);
                                     });
                                 },
@@ -2410,6 +2897,56 @@
                             };
                         }
                         return waitCmd
+                    }
+                })
+
+                _parser.addCommand("settle", function(parser, runtime, tokens) {
+                    if (tokens.matchToken("settle")) {
+
+                        if (!parser.commandBoundary(tokens.currentToken())) {
+                            var on = parser.requireElement("expression", tokens);
+                        } else {
+                            var on = parser.requireElement("implicitMeTarget");
+                        }
+
+                        var settleCommand = {
+                            type: "settleCmd",
+                            args: [on],
+                            op: function (context, on) {
+                                var resolve = null;
+                                var resolved = false;
+                                var transitionStarted = false;
+
+                                var promise = new Promise(function (r) {
+                                    resolve = r;
+                                });
+
+                                // listen for a transition begin
+                                on.addEventListener('transitionstart', function () {
+                                    transitionStarted = true;
+                                }, {once: true});
+
+                                // if no transition begins in 500ms, cancel
+                                setTimeout(function () {
+                                    if (!transitionStarted && !resolved) {
+                                        resolve(runtime.findNext(settleCommand, context));
+                                    }
+                                }, 500);
+
+                                // continue on a transition emd
+                                on.addEventListener('transitionend', function () {
+                                    if (!resolved) {
+                                        resolve(runtime.findNext(settleCommand, context));
+                                    }
+                                }, {once: true});
+                                return promise;
+
+                            },
+                            execute: function (context) {
+                                return runtime.unifiedExec(this, context);
+                            }
+                        };
+                    return settleCommand
                     }
                 })
 
@@ -2457,7 +2994,7 @@
                                 runtime.forEach(to, function (target) {
                                     runtime.triggerEvent(target, eventName, details ? details : {});
                                 });
-                                return runtime.findNext(sendCmd);
+                                return runtime.findNext(sendCmd, context);
                             }
                         };
                         return sendCmd
@@ -2502,7 +3039,7 @@
                             args: [eventName, details],
                             op: function (context, eventNameStr, details) {
                                 runtime.triggerEvent(context.me, eventNameStr, details ? details : {});
-                                return runtime.findNext(triggerCmd);
+                                return runtime.findNext(triggerCmd, context);
                             }
                         };
                         return triggerCmd
@@ -2538,7 +3075,7 @@
                                 runtime.forEach(forElt, function (target) {
                                     target.classList.add(clazz);
                                 });
-                                return runtime.findNext(this);
+                                return runtime.findNext(this, context);
                             }
                         };
                         return takeCmd
@@ -2564,7 +3101,7 @@
                                 } else {
                                     console.log.apply(null, values);
                                 }
-                                return runtime.findNext(this);
+                                return runtime.findNext(this, ctx);
                             }
                         };
                         return logCmd;
@@ -2578,6 +3115,7 @@
                             expr: expr,
                             args: [expr],
                             op: function (ctx, expr) {
+                                runtime.registerHyperTrace(ctx, expr);
                                 var reject = ctx.meta && ctx.meta.reject;
                                 if (reject) {
                                     reject(expr);
@@ -2598,7 +3136,7 @@
                         args: [expr],
                         op: function (context, it) {
                             context.it = it;
-                            return runtime.findNext(callCmd);
+                            return runtime.findNext(callCmd, context);
                         }
                     };
                     return callCmd
@@ -2682,7 +3220,7 @@
                                         })
                                     }
                                 }
-                                return runtime.findNext(this);
+                                return runtime.findNext(this, context);
                             }
                         };
                         return putCmd
@@ -2724,7 +3262,7 @@
                                         elt[prop] = valueToSet;
                                     })
                                 }
-                                return runtime.findNext(this);
+                                return runtime.findNext(this, context);
                             }
                         };
                         return setCmd
@@ -2753,7 +3291,7 @@
                                 } else if (falseBranch) {
                                     return falseBranch;
                                 } else {
-                                    return runtime.findNext(this);
+                                    return runtime.findNext(this, context);
                                 }
                             }
                         };
@@ -2833,9 +3371,9 @@
                                 keepLooping = true;
                             } else if (this.until) {
                                 if (evt) {
-                                    keepLooping = context.meta.iterators[slot].eventFired == false;
+                                    keepLooping = context.meta.iterators[slot].eventFired === false;
                                 } else {
-                                    keepLooping = whileValue != true;
+                                    keepLooping = whileValue !== true;
                                 }
                             } else if (whileValue) {
                                 keepLooping = true;
@@ -2859,7 +3397,7 @@
                                 return loop;
                             } else {
                                 context.meta.iterators[slot] = null;
-                                return runtime.findNext(this.parent);
+                                return runtime.findNext(this.parent, context);
                             }
                         }
                     };
@@ -2901,17 +3439,107 @@
                     }
                 })
 
+                _parser.addCommand("transition", function(parser, runtime, tokens) {
+                    if (tokens.matchToken("transition")) {
+                        if (tokens.matchToken('element') || tokens.matchToken('elements')) {
+                            var targets = parser.parseElement("expression", tokens);
+                        } else {
+                            var targets = parser.parseElement("implicitMeTarget");
+                        }
+                        var properties = [];
+                        var from = [];
+                        var to = [];
+                        while (tokens.hasMore() &&
+                               !parser.commandBoundary(tokens.currentToken()) &&
+                               tokens.currentToken().value !== "using") {
+                            properties.push(tokens.requireTokenType("IDENTIFIER").value);
+                            if (tokens.matchToken("from")) {
+                                from.push(parser.requireElement("stringLike", tokens));
+                            } else {
+                                from.push(null);
+                            }
+                            tokens.requireToken("to");
+                            to.push(parser.requireElement("stringLike" , tokens));
+                        }
+                        if (tokens.matchToken("using")) {
+                            var using = parser.requireElement("expression", tokens);
+                        }
+
+                        var transition = {
+                            to: to,
+                            args: [targets, from, to, using],
+                            op: function (context, targets, from, to, using) {
+                                var promises = [];
+                                runtime.forEach(targets, function(target){
+                                    var promise = new Promise(function (resolve, reject) {
+                                        var initialTransition = target.style.transition;
+                                        target.style.transition = using || _hyperscript.config.defaultTransition;
+                                        var internalData = runtime.getInternalData(target);
+                                        var computedStyles = getComputedStyle(target);
+
+                                        var initialStyles = {};
+                                        for (var i = 0; i < computedStyles.length; i++) {
+                                            var name = computedStyles[i];
+                                            var initialValue = computedStyles[name];
+                                            initialStyles[name] = initialValue;
+                                        }
+
+                                        // store intitial values
+                                        if (!internalData.initalStyles) {
+                                            internalData.initalStyles = initialStyles;
+                                        }
+
+                                        for (var i = 0; i < properties.length; i++) {
+                                            var property = properties[i];
+                                            var fromVal = from[i];
+                                            if (fromVal == 'computed' || fromVal == null) {
+                                                target.style[property] = initialStyles[property];
+                                            } else {
+                                                target.style[property] = fromVal;
+                                            }
+                                        }
+                                        // console.log("transition started", transition);
+                                        setTimeout(function () {
+                                            var autoProps = [];
+                                            for (var i = 0; i < properties.length; i++) {
+                                                var property = properties[i];
+                                                var toVal = to[i];
+                                                if (toVal == 'initial') {
+                                                    var propertyValue = internalData.initalStyles[property];
+                                                    target.style[property] = propertyValue;
+                                                } else {
+                                                    target.style[property] = toVal;
+                                                }
+                                                // console.log("set", property, "to", target.style[property], "on", target, "value passed in : ", toVal);
+                                            }
+                                            target.addEventListener('transitionend', function () {
+                                                // console.log("transition ended", transition);
+                                                target.style.transition = initialTransition;
+                                                resolve();
+                                            }, {once:true})
+                                        }, 5);
+                                    });
+                                    promises.push(promise);
+                                })
+                                return Promise.all(promises).then(function(){
+                                    return runtime.findNext(transition, context);
+                                })
+                            }
+                        };
+                        return transition
+                    }
+                });
+
+
+                _parser.addGrammarElement("stringLike", function(parser, runtime, tokens) {
+                    return _parser.parseAnyOf(["string", "nakedString"], tokens);
+                });
+
                 _parser.addCommand("fetch", function(parser, runtime, tokens) {
                     if (tokens.matchToken('fetch')) {
 
-                        var url = parser.parseElement("string", tokens);
-                        if (url == null) {
-                            var url = parser.parseElement("nakedString", tokens);
-                        }
-                        if (url == null) {
-                            parser.raiseParseError(tokens, "Expected a URL");
-                        }
 
+                        var url = parser.requireElement("stringLike", tokens);
                         var args = parser.parseElement("objectLiteral", tokens);
 
                         var type = "text";
@@ -2936,16 +3564,16 @@
                                         .then(function (value) {
                                             if (type === "response") {
                                                 context.it = value;
-                                                resolve(runtime.findNext(fetchCmd));
+                                                resolve(runtime.findNext(fetchCmd, context));
                                             } else if (type === "json") {
                                                 value.json().then(function (result) {
                                                     context.it = result;
-                                                    resolve(runtime.findNext(fetchCmd));
+                                                    resolve(runtime.findNext(fetchCmd, context));
                                                 })
                                             } else {
                                                 value.text().then(function (result) {
                                                     context.it = result;
-                                                    resolve(runtime.findNext(fetchCmd));
+                                                    resolve(runtime.findNext(fetchCmd, context));
                                                 })
                                             }
                                         })
@@ -3005,34 +3633,39 @@
             }
 
             /* Public API */
-            return {
-                internals:{
-                    lexer: _lexer,
-                    parser: _parser,
-                    runtime: _runtime,
-                },
-                addFeature: function(keyword, definition) {
-                    _parser.addFeature(keyword, definition)
-                },
-                addCommand: function(keyword, definition) {
-                    _parser.addCommand(keyword, definition)
-                },
-                addLeafExpression: function(keyword, definition) {
-                    _parser.addLeafExpression(definition)
-                },
-                addIndirectExpression: function(keyword, definition) {
-                    _parser.addIndirectExpression(definition)
-                },
-                evaluate: function (str) { //OK
-                    return _runtime.evaluate(str); //OK
-                },
-                processNode: function (elt) {
-                    _runtime.processNode(elt);
-                },
-                config: {
-                    attributes : "_, script, data-script"
-                },
-            }
-        }
+            return mergeObjects(function (str, ctx) {
+                    return _runtime.evaluate(str, ctx); //OK
+                }, {
+                    internals: {
+                        lexer: _lexer,
+                        parser: _parser,
+                        runtime: _runtime,
+                    },
+                    addFeature: function (keyword, definition) {
+                        _parser.addFeature(keyword, definition)
+                    },
+                    addCommand: function (keyword, definition) {
+                        _parser.addCommand(keyword, definition)
+                    },
+                    addLeafExpression: function (keyword, definition) {
+                        _parser.addLeafExpression(definition)
+                    },
+                    addIndirectExpression: function (keyword, definition) {
+                        _parser.addIndirectExpression(definition)
+                    },
+                    evaluate: function (str, ctx) { //OK
+                        return _runtime.evaluate(str, ctx); //OK
+                    },
+                    processNode: function (elt) {
+                        _runtime.processNode(elt);
+                    },
+                    config: {
+                        attributes: "_, script, data-script",
+                        defaultTransition: "all 500ms ease-in",
+                        conversions: CONVERSIONS
+                    }
+                }
+            )
+    }
     )()
 }));

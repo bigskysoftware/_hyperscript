@@ -7,16 +7,19 @@ title: ///_hyperscript
 
 ### Syntax
 
-`#elementId`
-
+```ebnf
+#<id value>
+```
 
 ### Description
 
-The id reference expression uses a syntax similar to CSS selectors to reference elements by Id.  It evaluates to a single 
-node in the DOM.
+An id reference expression uses a syntax from to CSS selectors to reference elements by directly by the `id` property.  It evaluates to a single 
+node in the DOM with the given identifier
 
 ### Examples
 
 ```html
-<div _="on click add .clicked to #another-div">Add the .clicked class to another div!</div>
+<div _="on click add .clicked to #another-div">
+  Add the .clicked class to another div!
+</div>
 ```

@@ -7,18 +7,22 @@ title: ///_hyperscript
 
 ### Syntax
 
-`.className`
-
+`.<class name>`
 
 ### Description
 
-The class reference expression uses a syntax similar to CSS selectors to reference the class name.  It typically
-evaluates to a NodeList of all matching classes, unless it is used as the value of an assignment.
+The class reference expression uses a syntax from CSS selectors to reference all elements with a given class.  It typically
+evaluates to a NodeList of all matching classes, unless it is used as the 
+right hand side of an assignment.
 
 ### Examples
 
 ```html
-<div _="on click add .clicked">Add the .clicked class to me!</div>
+<div _="on click add .clicked">
+  Add the .clicked class to me!
+</div>
 
-<div _="on click log .button">Log all buttons in the DOM</div>
+<div _="on click log .clicked">
+  Log all elements with the clicked class on it in the DOM
+</div>
 ```

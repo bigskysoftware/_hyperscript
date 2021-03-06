@@ -10,7 +10,8 @@
                 importScripts(e.data._hyperscript);
                 importScripts.apply(self, e.data.extraScripts);
                 var tokens = _hyperscript.internals.lexer.makeTokensObject(e.data.tokens, [], e.data.source);
-                var parsed = _hyperscript.internals.parser.parseElement('hyperscript', tokens);
+                var hyperscript = _hyperscript.internals.parser.parseElement('hyperscript', tokens);
+                hyperscript.apply(self);
                 postMessage({ type: 'didInit' });
                 break;
             case 'call':
@@ -138,7 +139,7 @@
             return {
                 name: workerName,
                 worker: worker,
-                execute: function (ctx) {
+                install: function () {
                     runtime.assignToNamespace(nameSpace, workerName, stubs)
                 }
             };

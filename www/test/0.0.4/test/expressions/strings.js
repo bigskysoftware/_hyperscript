@@ -14,4 +14,28 @@ describe("the string expression", function () {
 
     });
 
+    it("string templates work properly", function () {
+        var result = evalHyperScript('"$1"');
+        result.should.equal("1");
+    });
+
+    it("string templates work w/ props", function () {
+        window.foo = 'foo';
+        var result = evalHyperScript('"$window.foo"');
+        result.should.equal("foo");
+        delete window.foo;
+    });
+
+    it("string templates work w/ props w/ braces", function () {
+        window.foo = 'foo';
+        var result = evalHyperScript('"${window.foo}"');
+        result.should.equal("foo");
+        delete window.foo;
+    });
+
+    it("string templates work properly w braces", function () {
+        var result = evalHyperScript('"${1 + 2}"');
+        result.should.equal("3");
+    });
+
 });

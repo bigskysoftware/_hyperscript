@@ -7,7 +7,9 @@ title: ///_hyperscript
 
 ### Syntax
 
-`if <conditional> [then] <command-list> [else <command-list] end`
+```ebnf
+  if <conditional> [then] <command-list> [else <command-list>] end`
+```
 
 ### Description
 
@@ -16,5 +18,8 @@ The `if` command provides the standard if-statement control flow.
 ### Examples
 
 ```html
-<div _="on click if not me.disabled then add .clicked end">Click Me!</div>
+<div _="on click if I do not match .disabled 
+                   add .clicked">
+  Click Me!
+</div>
 ```
