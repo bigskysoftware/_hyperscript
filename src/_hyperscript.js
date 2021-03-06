@@ -2900,6 +2900,56 @@
                     }
                 })
 
+                _parser.addCommand("settle", function(parser, runtime, tokens) {
+                    if (tokens.matchToken("settle")) {
+
+                        if (!parser.commandBoundary(tokens.currentToken())) {
+                            var on = parser.requireElement("expression", tokens);
+                        } else {
+                            var on = parser.requireElement("implicitMeTarget");
+                        }
+
+                        var settleCommand = {
+                            type: "settleCmd",
+                            args: [on],
+                            op: function (context, on) {
+                                var resolve = null;
+                                var resolved = false;
+                                var transitionStarted = false;
+
+                                var promise = new Promise(function (r) {
+                                    resolve = r;
+                                });
+
+                                // listen for a transition begin
+                                on.addEventListener('transitionstart', function () {
+                                    transitionStarted = true;
+                                }, {once: true});
+
+                                // if no transition begins in 500ms, cancel
+                                setTimeout(function () {
+                                    if (!transitionStarted && !resolved) {
+                                        resolve(runtime.findNext(settleCommand, context));
+                                    }
+                                }, 500);
+
+                                // continue on a transition emd
+                                on.addEventListener('transitionend', function () {
+                                    if (!resolved) {
+                                        resolve(runtime.findNext(settleCommand, context));
+                                    }
+                                }, {once: true});
+                                return promise;
+
+                            },
+                            execute: function (context) {
+                                return runtime.unifiedExec(this, context);
+                            }
+                        };
+                    return settleCommand
+                    }
+                })
+
                 // TODO  - colon path needs to eventually become part of ruby-style symbols
                 _parser.addGrammarElement("dotOrColonPath", function(parser, runtime, tokens) {
                     var root = tokens.matchTokenType("IDENTIFIER");

@@ -30,6 +30,7 @@ title: ///_hyperscript
 | [return](/commands/return) | Returns a value | `return 42`
 | [send](/commands/send) | Sends an event | `send customEvent to #a-div`
 | [set](/commands/set) | Sets a variable or property to a given value | `set x to 0`
+| [settle](/commands/setttle) | Waits for a transition to end on an element, if any | `set x to 0`
 | [show](/commands/show) | Show an element in the DOM | `show #anotherDiv`
 | [take](/commands/take) | Takes a class from a set of elements | `take .active from .tabs`
 | [throw](/commands/throw) | Throws an exception | `throw "Bad Value"`
