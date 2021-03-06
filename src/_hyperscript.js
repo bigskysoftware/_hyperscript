@@ -1787,7 +1787,7 @@
                             root: root,
                             args: [root],
                             op: function (context, val) {
-                                return val == null;
+                                return val == null || val.length === 0;
                             },
                             evaluate: function (context) {
                                 return runtime.unifiedEval(this, context);

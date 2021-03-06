@@ -35,18 +35,24 @@ title: ///_hyperscript
 
 ## <a href='expressions'></a>[Expressions](#expressions)
 
+See [expressions](/expressions) for an overview.
+
 |  name | description | example
 |-------|-------------|---------
-| [array literal](/expressions/array-literal) | An array literal, as in JavaScript | `[1, 2, 3]`
+| [async expressions](/expressions/async) | Evaluate an expression asynchronously | `set x to async getPromise()`
 | [attribute reference](/expressions/attribute-ref) | An attribute reference | `[selected=true]`
-| [block literal](/expressions/block-literal) | An anonymous function with an expression body | `\ x -> x * x`
-| [boolean](/expressions/boolean) | Boolean literals | `true`<br/>`false`
+| [block literal](/expressions/block-literal) | Anonymous functions with an expression body | `\ x -> x * x`
 | [class reference](/expressions/class-reference) | A class reference | `.active`
-| [comparison operator](/expressions/comparison-operator) | Comparison operators | `x < y`<br/>`z === "foo"`
+| [comparison operator](/expressions/comparison-operator) | Comparison operators | `x == "foo" I match <:active/>`
 | [id reference](/expressions/id-reference) | An id reference | `#main-div`
 | [logical operator](/expressions/logical-operator) | Logical operators | `x and y`<br/>`z or false`
-| [math operator](/expressions/math-operator) | A mathematical operator | `1 + 2`
-| [number](/expressions/number) | A number | `3.14`
-| [object literal](/expressions/object-literal) | A javascript-style object literal | `{foo:"bar"}`
+| [no operator](/expressions/no) | No operator | `no element.children`
+| [query reference](/expressions/query-reference) | A query reference | `<button/> <:focused/>`
 | [string](/expressions/string) | A string | `"a string", 'another string'`
-| [target](/expressions/target) | A target for update | `.buttons.parent`
+| [time expression](/expressions/time) | A time expression | `200ms`
+| array literal | Javascript-style array literals | `[1, 2, 3]`
+| boolean literal | Javascript-style booleans | `true false`
+| math operator | Javascript-style mathematical operators | `1 + 2`
+| null literal | Javascript-style null | `null`
+| number | Javascript-style numbers | `1  3.14`
+| object literal | Javascript-style object literals | `{foo:"bar", doh:42}`
