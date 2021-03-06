@@ -127,4 +127,21 @@ to the language.
     </button>
   ```  
 
+* Hyperscript now supports a `settle` command that allows you synchronized on the transitions caused by a previous
+  command
+  ```html
+    <style>
+        #pulsar {
+            transition: all 800ms ease-in-out;
+        }
+        .red {
+            background: red;
+        }
+    </style>
+    <div id="pulsar"
+         _="on load repeat 6 times toggle .red then settle">
+        You thought the blink tag was dead?
+    </div>z
+  ```  
+
 Enjoy!
