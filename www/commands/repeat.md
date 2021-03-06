@@ -25,7 +25,7 @@ The `repeat` command provides iteration in the hyperscript language.  It is very
 In every form you may assign a named value to the current iteration index by appending a `index i` to the 
 loop specification.
 
-The forms of repeat are:
+Here are examples of all the above forms:
 
 ```text
   -- the basic for loop
