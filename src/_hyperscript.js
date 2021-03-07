@@ -2078,6 +2078,18 @@
                                 tokens.requireOpToken(']');
                             }
 
+                            if (tokens.currentToken().type === "NUMBER") {
+                                var startCountToken = tokens.consumeToken();
+                                var startCount = parseInt(startCountToken.value);
+                                if (tokens.matchToken("to")) {
+                                    var endCountToken = tokens.consumeToken();
+                                    var endCount = parseInt(endCountToken.value);
+                                } else if (tokens.matchToken("and")) {
+                                    var unbounded = true;
+                                    tokens.requireToken("on");
+                                }
+                            }
+
                             var from = null;
                             var elsewhere = false;
                             if (tokens.matchToken("from")) {
@@ -2101,6 +2113,7 @@
                             }
 
                             events.push({
+                                execCount: 0,
                                 every: every,
                                 on: eventName,
                                 args: args,
@@ -2108,6 +2121,9 @@
                                 from:from,
                                 inExpr:inExpr,
                                 elsewhere:elsewhere,
+                                startCount : startCount,
+                                endCount : endCount,
+                                unbounded : unbounded,
                             })
                         } while (tokens.matchToken("or"))
 
@@ -2249,6 +2265,23 @@
                                                             return; // no match found
                                                         }
                                                     }
+                                                }
+                                            }
+
+                                            // verify counts
+                                            eventSpec.execCount++;
+                                            if (eventSpec.startCount) {
+                                                if (eventSpec.endCount) {
+                                                    if (eventSpec.execCount < eventSpec.startCount ||
+                                                        eventSpec.execCount > eventSpec.endCount) {
+                                                        return;
+                                                    }
+                                                } else if (eventSpec.unbounded) {
+                                                    if (eventSpec.execCount < eventSpec.startCount) {
+                                                        return;
+                                                    }
+                                                } else if (eventSpec.execCount !== eventSpec.startCount) {
+                                                    return;
                                                 }
                                             }
 

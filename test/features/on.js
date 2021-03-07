@@ -361,5 +361,50 @@ describe("the on feature", function() {
         delete window.tmp;
     })
 
+    it("can filter events based on count", function () {
+        var div = make("<div _='on click 1 put 1 + my.innerHTML as Int into my.innerHTML'>0</div>");
+        div.click()
+        div.innerHTML.should.equal("1");
+        div.click()
+        div.innerHTML.should.equal("1");
+        div.click()
+        div.innerHTML.should.equal("1");
+    });
+
+    it("can filter events based on count range", function () {
+        var div = make("<div _='on click 1 to 2 put 1 + my.innerHTML as Int into my.innerHTML'>0</div>");
+        div.click()
+        div.innerHTML.should.equal("1");
+        div.click()
+        div.innerHTML.should.equal("2");
+        div.click()
+        div.innerHTML.should.equal("2");
+    });
+
+    it("can filter events based on unbounded count range", function () {
+        var div = make("<div _='on click 2 and on put 1 + my.innerHTML as Int into my.innerHTML'>0</div>");
+        div.click()
+        div.innerHTML.should.equal("0");
+        div.click()
+        div.innerHTML.should.equal("1");
+        div.click()
+        div.innerHTML.should.equal("2");
+    });
+
+    it("can mix ranges", function () {
+        var div = make("<div _='on click 1 put \"one\" into my.innerHTML " +
+            "                          on click 3 put \"three\" into my.innerHTML " +
+            "                          on click 2 put \"two\" into my.innerHTML '>0</div>");
+        div.click()
+        div.innerHTML.should.equal("one");
+        div.click()
+        div.innerHTML.should.equal("two");
+        div.click()
+        div.innerHTML.should.equal("three");
+        div.click()
+        div.innerHTML.should.equal("three");
+    });
+
+
 });
 
