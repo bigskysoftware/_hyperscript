@@ -15,4 +15,9 @@ describe("the objectLiteral expression", function () {
         result.should.deep.equal({foo:true, bar:false});
     });
 
+    it("strings work in object literal field names", function () {
+        var result = evalHyperScript("{\"foo\":true, \"bar\":false}")
+        result.should.deep.equal({foo:true, bar:false});
+    });
+
 });
