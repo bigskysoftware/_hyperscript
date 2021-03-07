@@ -1,0 +1,24 @@
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+
+</head>
+<body style="padding:20px;font-family: sans-serif">
+<script src="../../src/lib/core.js"></script>
+<script src="../../src/lib/web.js"></script>
+<script src="../../src/lib/socket.js"></script>
+
+<em>Work Area</em>
+<hr/>
+
+<script type="text/hyperscript">
+    socket MySocket ws://localhost:5150
+</script>
+<button _="on click put MySocket.callEcho('foo') into my.innerHTML">
+    Invoke Socket...
+</button>
+
+
+
+</body>
+</html>
