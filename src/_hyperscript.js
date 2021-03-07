@@ -2010,7 +2010,7 @@
 
                 _parser.addGrammarElement("target", function(parser, runtime, tokens) {
                     var expr = _parser.parseElement("expression", tokens);
-                    if (expr.type === "symbol" || expr.type === "idRef" ||
+                    if (expr.type === "symbol" || expr.type === "idRef" || expr.type === "inExpression" ||
                         expr.type === "queryRef" || expr.type === "classRef" ||
                         expr.type === "propertyAccess") {
                         return expr;
