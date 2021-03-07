@@ -1,3 +1,6 @@
+///=========================================================================
+/// This module provides the core runtime and grammar for hyperscript
+///=========================================================================
 //AMD insanity
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
@@ -614,12 +617,20 @@
                     }
                 }
 
+                function commandStart(token){
+                    return COMMANDS[token.value];
+                }
+
+                function featureStart(token){
+                    return FEATURES[token.value];
+                }
+
                 function commandBoundary(token) {
                     if (token.value == "end" ||
                         token.value == "then" ||
                         token.value == "else" ||
-                        COMMANDS[token.value] ||
-                        FEATURES[token.value] ||
+                        commandStart(token) ||
+                        featureStart(token) ||
                         token.type == "EOF") {
                         return true;
                     }
@@ -652,6 +663,8 @@
                     setParent: setParent,
                     requireElement: requireElement,
                     parseElement: parseElement,
+                    featureStart: featureStart,
+                    commandStart: commandStart,
                     commandBoundary: commandBoundary,
                     parseAnyOf: parseAnyOf,
                     parseHyperScript: parseHyperScript,
@@ -688,6 +701,9 @@
                 },
                 "Date" : function(val){
                     return Date(val);
+                },
+                "Array" : function(val){
+                    return Array.from(val);
                 }
             }
             var _runtime = function () {
@@ -984,23 +1000,29 @@
                     return Object.prototype.toString.call(o) === "[object " + type + "]";
                 }
 
-                function evaluate(typeOrSrc, srcOrCtx, ctxArg) {
-                    if (isType(srcOrCtx, "Object")) {
-                        var src = typeOrSrc;
-                        var ctx = srcOrCtx;
-                        var type = "expression"
-                    } else if (isType(srcOrCtx, "String")) {
-                        var src = srcOrCtx;
-                        var type = typeOrSrc
-                        var ctx = ctxArg;
-                    } else {
-                        var src = typeOrSrc;
-                        var ctx = {};
-                        var type = "expression";
-                    }
+                function evaluate(src, ctx) {
                     ctx = ctx || {};
-                    var compiled = _parser.parseElement(type, _lexer.tokenize(src) );
-                    return compiled.evaluate ? compiled.evaluate(ctx) : compiled.execute(ctx); // OK
+                    var tokens = _lexer.tokenize(src);
+                    if (_parser.commandStart(tokens.currentToken())) {
+                        var commandList = _parser.parseElement("commandList", tokens);
+                        var last = commandList;
+                        while (last.next) {
+                            last = last.next;
+                        }
+                        last.next = {
+                            op : function() {
+                                return HALT;
+                            }
+                        }
+                        commandList.execute(ctx);
+                    } else if (_parser.featureStart(tokens.currentToken())) {
+                        var hyperscript = _parser.parseElement("hyperscript", tokens);
+                        hyperscript.apply(document.body, null);
+                        return null;
+                    } else {
+                        var expression = _parser.parseElement("expression", tokens);
+                        return expression.evaluate(ctx);
+                    }
                 }
 
                 function processNode(elt) {
@@ -1376,7 +1398,7 @@
                         var valueExpressions = []
                         if (!tokens.matchOpToken("}")) {
                             do {
-                                var name = tokens.requireTokenType("IDENTIFIER");
+                                var name = tokens.requireTokenType("IDENTIFIER", "STRING");
                                 tokens.requireOpToken(":");
                                 var value = parser.requireElement("expression", tokens);
                                 valueExpressions.push(value);
@@ -1768,7 +1790,7 @@
                             root: root,
                             args: [root],
                             op: function (context, val) {
-                                return val == null;
+                                return val == null || val.length === 0;
                             },
                             evaluate: function (context) {
                                 return runtime.unifiedEval(this, context);
@@ -1991,7 +2013,7 @@
 
                 _parser.addGrammarElement("target", function(parser, runtime, tokens) {
                     var expr = _parser.parseElement("expression", tokens);
-                    if (expr.type === "symbol" || expr.type === "idRef" ||
+                    if (expr.type === "symbol" || expr.type === "idRef" || expr.type === "inExpression" ||
                         expr.type === "queryRef" || expr.type === "classRef" ||
                         expr.type === "propertyAccess") {
                         return expr;
@@ -2038,6 +2060,7 @@
                         do {
 
                             var on = parser.requireElement("dotOrColonPath", tokens, "Expected event name");
+
                             var eventName = on.evaluate(); // OK No Promise
                             if (displayName) {
                                 displayName = displayName + " or " + eventName;
@@ -2058,6 +2081,18 @@
                                 tokens.requireOpToken(']');
                             }
 
+                            if (tokens.currentToken().type === "NUMBER") {
+                                var startCountToken = tokens.consumeToken();
+                                var startCount = parseInt(startCountToken.value);
+                                if (tokens.matchToken("to")) {
+                                    var endCountToken = tokens.consumeToken();
+                                    var endCount = parseInt(endCountToken.value);
+                                } else if (tokens.matchToken("and")) {
+                                    var unbounded = true;
+                                    tokens.requireToken("on");
+                                }
+                            }
+
                             var from = null;
                             var elsewhere = false;
                             if (tokens.matchToken("from")) {
@@ -2070,17 +2105,27 @@
                                     }
                                 }
                             }
-
-                            if (tokens.matchToken('in')) {
-                                var inExpr = parser.parseAnyOf(["idRef", "queryRef", "classRef"], tokens);
-                            }
-
                             // support both "elsewhere" and "from elsewhere"
                             if (from === null && elsewhere === false && tokens.matchToken("elsewhere")) {
                                 elsewhere = true;
                             }
 
+                            if (tokens.matchToken('in')) {
+                                var inExpr = parser.parseAnyOf(["idRef", "queryRef", "classRef"], tokens);
+                            }
+
+                            if (tokens.matchToken('debounced')) {
+                                tokens.requireToken("at");
+                                var timeExpr = parser.requireElement("timeExpression", tokens);
+                                var debounceTime = timeExpr.evaluate({}); // OK No promise TODO make a literal time expr
+                            } else if (tokens.matchToken('throttled')) {
+                                tokens.requireToken("at");
+                                var timeExpr = parser.requireElement("timeExpression", tokens);
+                                var throttleTime = timeExpr.evaluate({}); // OK No promise TODO make a literal time expr
+                            }
+
                             events.push({
+                                execCount: 0,
                                 every: every,
                                 on: eventName,
                                 args: args,
@@ -2088,6 +2133,11 @@
                                 from:from,
                                 inExpr:inExpr,
                                 elsewhere:elsewhere,
+                                startCount : startCount,
+                                endCount : endCount,
+                                unbounded : unbounded,
+                                debounceTime : debounceTime,
+                                throttleTime : throttleTime,
                             })
                         } while (tokens.matchToken("or"))
 
@@ -2229,6 +2279,43 @@
                                                             return; // no match found
                                                         }
                                                     }
+                                                }
+                                            }
+
+                                            // verify counts
+                                            eventSpec.execCount++;
+                                            if (eventSpec.startCount) {
+                                                if (eventSpec.endCount) {
+                                                    if (eventSpec.execCount < eventSpec.startCount ||
+                                                        eventSpec.execCount > eventSpec.endCount) {
+                                                        return;
+                                                    }
+                                                } else if (eventSpec.unbounded) {
+                                                    if (eventSpec.execCount < eventSpec.startCount) {
+                                                        return;
+                                                    }
+                                                } else if (eventSpec.execCount !== eventSpec.startCount) {
+                                                    return;
+                                                }
+                                            }
+
+                                            //debounce
+                                            if (eventSpec.debounceTime) {
+                                                if (eventSpec.debounced) {
+                                                    clearTimeout(eventSpec.debounced);
+                                                }
+                                                eventSpec.debounced = setTimeout(function () {
+                                                    onFeature.execute(ctx);
+                                                }, eventSpec.debounceTime);
+                                                return;
+                                            }
+
+                                            // throttle
+                                            if (eventSpec.throttleTime) {
+                                                if (eventSpec.lastExec && Date.now() < eventSpec.lastExec + eventSpec.throttleTime) {
+                                                    return;
+                                                } else {
+                                                    eventSpec.lastExec = Date.now();
                                                 }
                                             }
 
@@ -2536,304 +2623,6 @@
                     }
                 })
 
-                _parser.addCommand("add", function(parser, runtime, tokens) {
-                    if (tokens.matchToken("add")) {
-                        var classRef = parser.parseElement("classRef", tokens);
-                        var attributeRef = null;
-                        if (classRef == null) {
-                            attributeRef = parser.parseElement("attributeRef", tokens);
-                            if (attributeRef == null) {
-                                parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
-                            }
-                        }
-
-                        if (tokens.matchToken("to")) {
-                            var to = parser.requireElement("target", tokens);
-                        } else {
-                            var to = parser.parseElement("implicitMeTarget");
-                        }
-
-                        if (classRef) {
-                            var addCmd = {
-                                classRef: classRef,
-                                attributeRef: attributeRef,
-                                to: to,
-                                args: [to],
-                                op: function (context, to) {
-                                    runtime.forEach(to, function (target) {
-                                        target.classList.add(classRef.className());
-                                    })
-                                    return runtime.findNext(this, context);
-                                }
-                            }
-                        } else {
-                            var addCmd = {
-                                type: "addCmd",
-                                classRef: classRef,
-                                attributeRef: attributeRef,
-                                to: to,
-                                args: [to, attributeRef],
-                                op: function (context, to, attrRef) {
-                                    runtime.forEach(to, function (target) {
-                                        target.setAttribute(attrRef.name, attrRef.value);
-                                    })
-                                    return runtime.findNext(addCmd, context);
-                                },
-                                execute: function (ctx) {
-                                    return runtime.unifiedExec(this, ctx);
-                                }
-                            };
-                        }
-                        return addCmd
-                    }
-                });
-
-                _parser.addCommand("remove", function(parser, runtime, tokens) {
-                    if (tokens.matchToken('remove')) {
-                        var classRef = parser.parseElement("classRef", tokens);
-                        var attributeRef = null;
-                        var elementExpr = null;
-                        if (classRef == null) {
-                            attributeRef = parser.parseElement("attributeRef", tokens);
-                            if (attributeRef == null) {
-                                elementExpr = parser.parseElement("expression", tokens)
-                                if (elementExpr == null) {
-                                    parser.raiseParseError(tokens, "Expected either a class reference, attribute expression or value expression");
-                                }
-                            }
-                        }
-                        if (tokens.matchToken("from")) {
-                            var from = parser.requireElement("target", tokens);
-                        } else {
-                            var from = parser.requireElement("implicitMeTarget");
-                        }
-
-                        if (elementExpr) {
-                            var removeCmd = {
-                                classRef: classRef,
-                                attributeRef: attributeRef,
-                                elementExpr: elementExpr,
-                                from: from,
-                                args: [elementExpr],
-                                op: function (context, element) {
-                                    runtime.forEach(element, function (target) {
-                                        target.parentElement.removeChild(target);
-                                    })
-                                    return runtime.findNext(this, context);
-                                }
-                            };
-                        } else {
-                            var removeCmd = {
-                                classRef: classRef,
-                                attributeRef: attributeRef,
-                                elementExpr: elementExpr,
-                                from: from,
-                                args: [from],
-                                op: function (context, from) {
-                                    if (this.classRef) {
-                                        runtime.forEach(from, function (target) {
-                                            target.classList.remove(classRef.className());
-                                        })
-                                    } else {
-                                        runtime.forEach(from, function (target) {
-                                            target.removeAttribute(attributeRef.name);
-                                        })
-                                    }
-                                    return runtime.findNext(this, context);
-                                }
-                            };
-
-                        }
-                        return removeCmd
-                    }
-                });
-
-                _parser.addCommand("toggle", function(parser, runtime, tokens) {
-                    if (tokens.matchToken('toggle')) {
-                        var classRef = parser.parseElement("classRef", tokens);
-                        var attributeRef = null;
-                        if (classRef == null) {
-                            attributeRef = parser.parseElement("attributeRef", tokens);
-                            if (attributeRef == null) {
-                                parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
-                            }
-                        }
-
-                        if (tokens.matchToken("on")) {
-                            var on = parser.requireElement("target", tokens);
-                        } else {
-                            var on = parser.requireElement("implicitMeTarget");
-                        }
-
-                        if (tokens.matchToken("for")) {
-                            var time = parser.requireElement("timeExpression", tokens);
-                        } else if (tokens.matchToken("until")) {
-                            var evt = parser.requireElement("dotOrColonPath", tokens, "Expected event name");
-                            if (tokens.matchToken("from")) {
-                                var from = parser.requireElement("expression", tokens);
-                            }
-                        }
-
-                        var toggleCmd = {
-                            classRef: classRef,
-                            attributeRef: attributeRef,
-                            on: on,
-                            time: time,
-                            evt: evt,
-                            from: from,
-                            toggle: function (on, value) {
-                                if (this.classRef) {
-                                    runtime.forEach(on, function (target) {
-                                        target.classList.toggle(classRef.className())
-                                    });
-                                } else {
-                                    runtime.forEach(on, function (target) {
-                                        if (target.hasAttribute(attributeRef.name)) {
-                                            target.removeAttribute(attributeRef.name);
-                                        } else {
-                                            target.setAttribute(attributeRef.name, value)
-                                        }
-                                    });
-                                }
-                            },
-                            args: [on, attributeRef ? attributeRef.value : null, time, evt, from],
-                            op: function (context, on, value, time, evt, from) {
-                                if (time) {
-                                    return new Promise(function (resolve) {
-                                        toggleCmd.toggle(on, value);
-                                        setTimeout(function () {
-                                            toggleCmd.toggle(on, value);
-                                            resolve(runtime.findNext(toggleCmd, context));
-                                        }, time);
-                                    });
-                                } else if (evt) {
-                                    return new Promise(function (resolve) {
-                                        var target = from || context.me;
-                                        target.addEventListener(evt, function () {
-                                            toggleCmd.toggle(on, value);
-                                            resolve(runtime.findNext(toggleCmd, context));
-                                        }, {once: true})
-                                        toggleCmd.toggle(on, value);
-                                    });
-                                } else {
-                                    this.toggle(on, value);
-                                    return runtime.findNext(toggleCmd, context);
-                                }
-                            }
-                        };
-                        return toggleCmd
-                    }
-                })
-
-                var HIDE_SHOW_STRATEGIES = {
-                    "display": function (op, element, arg) {
-                        if(arg){
-                            element.style.display = arg;
-                        } else if (op === 'hide') {
-                            element.style.display = 'none';
-                        } else {
-                            element.style.display = 'block';
-                        }
-                    },
-                    "visibility": function (op, element, arg) {
-                        if(arg){
-                            element.style.visibility = arg;
-                        } else if (op === 'hide') {
-                            element.style.visibility = 'hidden';
-                        } else {
-                            element.style.visibility = 'visible';
-                        }
-                    },
-                    "opacity": function (op, element, arg) {
-                        if(arg){
-                            element.style.opacity = arg;
-                        } else if (op === 'hide') {
-                            element.style.opacity = '0';
-                        } else {
-                            element.style.opacity = '1';
-                        }
-                    }
-                }
-
-                var parseShowHideTarget = function (parser, runtime, tokens) {
-                    var target;
-                    var currentTokenValue = tokens.currentToken();
-                    if (currentTokenValue.value === "with" || parser.commandBoundary(currentTokenValue)) {
-                        target = parser.parseElement("implicitMeTarget", tokens);
-                    } else {
-                        target = parser.parseElement("target", tokens);
-                    }
-                    return target;
-                }
-
-                var resolveStrategy = function (parser, tokens, name) {
-                    var configDefault = _hyperscript.config.defaultHideShowStrategy;
-                    var strategies = HIDE_SHOW_STRATEGIES;
-                    if (_hyperscript.config.hideShowStrategies) {
-                        strategies = mergeObjects(strategies, _hyperscript.config.hideShowStrategies); // merge in user provided strategies
-                    }
-                    name = name || configDefault || "display";
-                    var value = strategies[name];
-                    if (value == null) {
-                        parser.raiseParseError(tokens, 'Unknown show/hide strategy : ' + name);
-                    }
-                    return value;
-                }
-
-                _parser.addCommand("hide", function (parser, runtime, tokens) {
-                    if (tokens.matchToken("hide")) {
-                        var target = parseShowHideTarget(parser, runtime, tokens);
-
-                        var name = null;
-                        if (tokens.matchToken("with")) {
-                            name = tokens.requireTokenType("IDENTIFIER").value;
-                        }
-                        var hideShowStrategy = resolveStrategy(parser, tokens, name);
-
-                        return {
-                            target: target,
-                            args: [target],
-                            op: function (ctx, target) {
-                                runtime.forEach(target, function (elt) {
-                                    hideShowStrategy('hide', elt);
-                                });
-                                return runtime.findNext(this, ctx);
-                            }
-                        }
-                    }
-                });
-
-                _parser.addCommand("show", function (parser, runtime, tokens) {
-                    if (tokens.matchToken("show")) {
-                        var target = parseShowHideTarget(parser, runtime, tokens);
-
-                        var name = null;
-                        if (tokens.matchToken("with")) {
-                            name = tokens.requireTokenType("IDENTIFIER").value;
-                        }
-                        var arg = null;
-                        if (tokens.matchOpToken(":")) {
-                            var tokenArr = tokens.consumeUntilWhitespace();
-                            tokens.matchTokenType("WHITESPACE");
-                            arg = tokenArr.map(function (t) {
-                                return t.value
-                            }).join("");
-                        }
-                        var hideShowStrategy = resolveStrategy(parser, tokens, name);
-
-                        return {
-                            target: target,
-                            args: [target],
-                            op: function (ctx, target) {
-                                runtime.forEach(target, function (elt) {
-                                    hideShowStrategy('show', elt, arg);
-                                });
-                                return runtime.findNext(this, ctx);
-                            }
-                        }
-                    }
-                });
-
                 _parser.addCommand("wait", function(parser, runtime, tokens) {
                     if (tokens.matchToken("wait")) {
                         // wait on event
@@ -2958,60 +2747,6 @@
                     }
                 })
 
-                _parser.addCommand("trigger", function(parser, runtime, tokens) {
-                    if (tokens.matchToken('trigger')) {
-                        var eventName = parser.requireElement("dotOrColonPath", tokens);
-                        var details = parser.parseElement("namedArgumentList", tokens);
-
-                        var triggerCmd = {
-                            eventName: eventName,
-                            details: details,
-                            args: [eventName, details],
-                            op: function (context, eventNameStr, details) {
-                                runtime.triggerEvent(context.me, eventNameStr, details ? details : {});
-                                return runtime.findNext(triggerCmd, context);
-                            }
-                        };
-                        return triggerCmd
-                    }
-                })
-
-                _parser.addCommand("take", function(parser, runtime, tokens) {
-                    if (tokens.matchToken('take')) {
-                        var classRef = tokens.requireTokenType(tokens, "CLASS_REF");
-
-                        if (tokens.matchToken("from")) {
-                            var from = parser.requireElement("target", tokens);
-                        } else {
-                            var from = parser.requireElement("implicitAllTarget")
-                        }
-
-                        if (tokens.matchToken("for")) {
-                            var forElt = parser.requireElement("target", tokens);
-                        } else {
-                            var forElt = parser.requireElement("implicitMeTarget")
-                        }
-
-                        var takeCmd = {
-                            classRef: classRef,
-                            from: from,
-                            forElt: forElt,
-                            args: [from, forElt],
-                            op: function (context, from, forElt) {
-                                var clazz = this.classRef.value.substr(1)
-                                runtime.forEach(from, function (target) {
-                                    target.classList.remove(clazz);
-                                })
-                                runtime.forEach(forElt, function (target) {
-                                    target.classList.add(clazz);
-                                });
-                                return runtime.findNext(this, context);
-                            }
-                        };
-                        return takeCmd
-                    }
-                })
-
                 _parser.addCommand("log", function(parser, runtime, tokens) {
                     if (tokens.matchToken('log')) {
                         var exprs = [parser.parseElement("expression", tokens)];
@@ -3079,81 +2814,6 @@
                 _parser.addCommand("get", function(parser, runtime, tokens) {
                     if (tokens.matchToken('get')) {
                         return parseCallOrGet(parser, runtime, tokens);
-                    }
-                })
-
-                _parser.addCommand("put", function(parser, runtime, tokens) {
-                    if (tokens.matchToken('put')) {
-                        var value = parser.requireElement("expression", tokens);
-
-                        var operationToken = tokens.matchToken("into") ||
-                            tokens.matchToken("before") ||
-                            tokens.matchToken("after");
-
-                        if (operationToken == null && tokens.matchToken("at")) {
-                            operationToken = tokens.matchToken("start") ||
-                                tokens.matchToken("end");
-                            tokens.requireToken("of");
-                        }
-
-                        if (operationToken == null) {
-                            parser.raiseParseError(tokens, "Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
-                        }
-                        var target = parser.requireElement("target", tokens);
-
-                        var operation = operationToken.value;
-                        var symbolWrite = target.type === "symbol" && operation === "into";
-                        if (target.type !== "symbol" && operation === "into" && target.root == null) {
-                            parser.raiseParseError(tokens, "Can only put directly into symbols, not references")
-                        }
-
-                        var root = null;
-                        var prop = null;
-                        if (symbolWrite) {
-                            // root is null
-                        } else if (operation === "into") {
-                            prop = target.prop.value;
-                            root = target.root;
-                        } else {
-                            root = target;
-                        }
-
-                        var putCmd = {
-                            target: target,
-                            operation: operation,
-                            symbolWrite: symbolWrite,
-                            value: value,
-                            args: [root, value],
-                            op: function (context, root, valueToPut) {
-                                if (symbolWrite) {
-                                    context[target.name] = valueToPut;
-                                } else {
-                                    if (operation === "into") {
-                                        runtime.forEach(root, function (elt) {
-                                            elt[prop] = valueToPut;
-                                        })
-                                    } else if (operation === "before") {
-                                        runtime.forEach(root, function (elt) {
-                                            elt.insertAdjacentHTML('beforebegin', valueToPut);
-                                        })
-                                    } else if (operation === "start") {
-                                        runtime.forEach(root, function (elt) {
-                                            elt.insertAdjacentHTML('afterbegin', valueToPut);
-                                        })
-                                    } else if (operation === "end") {
-                                        runtime.forEach(root, function (elt) {
-                                            elt.insertAdjacentHTML('beforeend', valueToPut);
-                                        })
-                                    } else if (operation === "after") {
-                                        runtime.forEach(root, function (elt) {
-                                            elt.insertAdjacentHTML('afterend', valueToPut);
-                                        })
-                                    }
-                                }
-                                return runtime.findNext(this, context);
-                            }
-                        };
-                        return putCmd
                     }
                 })
 
@@ -3369,94 +3029,6 @@
                     }
                 })
 
-                _parser.addCommand("transition", function(parser, runtime, tokens) {
-                    if (tokens.matchToken("transition")) {
-                        if (tokens.matchToken('element') || tokens.matchToken('elements')) {
-                            var targets = parser.parseElement("expression", tokens);
-                        } else {
-                            var targets = parser.parseElement("implicitMeTarget");
-                        }
-                        var properties = [];
-                        var from = [];
-                        var to = [];
-                        while (tokens.hasMore() &&
-                               !parser.commandBoundary(tokens.currentToken()) &&
-                               tokens.currentToken().value !== "using") {
-                            properties.push(tokens.requireTokenType("IDENTIFIER").value);
-                            if (tokens.matchToken("from")) {
-                                from.push(parser.requireElement("stringLike", tokens));
-                            } else {
-                                from.push(null);
-                            }
-                            tokens.requireToken("to");
-                            to.push(parser.requireElement("stringLike" , tokens));
-                        }
-                        if (tokens.matchToken("using")) {
-                            var using = parser.requireElement("expression", tokens);
-                        }
-
-                        var transition = {
-                            to: to,
-                            args: [targets, from, to, using],
-                            op: function (context, targets, from, to, using) {
-                                var promises = [];
-                                runtime.forEach(targets, function(target){
-                                    var promise = new Promise(function (resolve, reject) {
-                                        var initialTransition = target.style.transition;
-                                        target.style.transition = using || _hyperscript.config.defaultTransition;
-                                        var internalData = runtime.getInternalData(target);
-                                        var computedStyles = getComputedStyle(target);
-
-                                        var initialStyles = {};
-                                        for (var i = 0; i < computedStyles.length; i++) {
-                                            var name = computedStyles[i];
-                                            var initialValue = computedStyles[name];
-                                            initialStyles[name] = initialValue;
-                                        }
-
-                                        // store intitial values
-                                        if (!internalData.initalStyles) {
-                                            internalData.initalStyles = initialStyles;
-                                        }
-
-                                        for (var i = 0; i < properties.length; i++) {
-                                            var property = properties[i];
-                                            var fromVal = from[i];
-                                            if (fromVal == 'computed' || fromVal == null) {
-                                                target.style[property] = initialStyles[property];
-                                            } else {
-                                                target.style[property] = fromVal;
-                                            }
-                                        }
-                                        setTimeout(function () {
-                                            var autoProps = [];
-                                            for (var i = 0; i < properties.length; i++) {
-                                                var property = properties[i];
-                                                var toVal = to[i];
-                                                if (toVal == 'initial') {
-                                                    var propertyValue = internalData.initalStyles[property];
-                                                    target.style[property] = propertyValue;
-                                                } else {
-                                                    target.style[property] = toVal;
-                                                }
-                                            }
-                                            target.addEventListener('transitionend', function () {
-                                                target.style.transition = initialTransition;
-                                                resolve();
-                                            }, {once:true})
-                                        }, 5);
-                                    });
-                                    promises.push(promise);
-                                })
-                                return Promise.all(promises).then(function(){
-                                    return runtime.findNext(transition, context);
-                                })
-                            }
-                        };
-                        return transition
-                    }
-                });
-
 
                 _parser.addGrammarElement("stringLike", function(parser, runtime, tokens) {
                     return _parser.parseAnyOf(["string", "nakedString"], tokens);
@@ -3519,10 +3091,6 @@
             }
 
             //====================================================================
-            // API
-            //====================================================================
-
-            //====================================================================
             // Initialization
             //====================================================================
             function ready(fn) {
@@ -3559,41 +3127,631 @@
                 })
             }
 
-            /* Public API */
+            //====================================================================
+            // API
+            //====================================================================
+            return mergeObjects(function (str, ctx) {
+                    return _runtime.evaluate(str, ctx); //OK
+                }, {
+                    internals: {
+                        lexer: _lexer,
+                        parser: _parser,
+                        runtime: _runtime,
+                    },
+                    addFeature: function (keyword, definition) {
+                        _parser.addFeature(keyword, definition)
+                    },
+                    addCommand: function (keyword, definition) {
+                        _parser.addCommand(keyword, definition)
+                    },
+                    addLeafExpression: function (keyword, definition) {
+                        _parser.addLeafExpression(definition)
+                    },
+                    addIndirectExpression: function (keyword, definition) {
+                        _parser.addIndirectExpression(definition)
+                    },
+                    evaluate: function (str, ctx) { //OK
+                        return _runtime.evaluate(str, ctx); //OK
+                    },
+                    processNode: function (elt) {
+                        _runtime.processNode(elt);
+                    },
+                    config: {
+                        attributes: "_, script, data-script",
+                        defaultTransition: "all 500ms ease-in",
+                        conversions: CONVERSIONS
+                    }
+                }
+            )
+    }
+    )()
+}));
+///=========================================================================
+/// This module provides the core web functionality for hyperscript
+///=========================================================================
+(function(){
+
+    function mergeObjects(obj1, obj2) {
+        for (var key in obj2) {
+            if (obj2.hasOwnProperty(key)) {
+                obj1[key] = obj2[key];
+            }
+        }
+        return obj1;
+    }
+
+    _hyperscript.addCommand("settle", function(parser, runtime, tokens) {
+        if (tokens.matchToken("settle")) {
+
+            if (!parser.commandBoundary(tokens.currentToken())) {
+                var on = parser.requireElement("expression", tokens);
+            } else {
+                var on = parser.requireElement("implicitMeTarget");
+            }
+
+            var settleCommand = {
+                type: "settleCmd",
+                args: [on],
+                op: function (context, on) {
+                    var resolve = null;
+                    var resolved = false;
+                    var transitionStarted = false;
+
+                    var promise = new Promise(function (r) {
+                        resolve = r;
+                    });
+
+                    // listen for a transition begin
+                    on.addEventListener('transitionstart', function () {
+                        transitionStarted = true;
+                    }, {once: true});
+
+                    // if no transition begins in 500ms, cancel
+                    setTimeout(function () {
+                        if (!transitionStarted && !resolved) {
+                            resolve(runtime.findNext(settleCommand, context));
+                        }
+                    }, 500);
+
+                    // continue on a transition emd
+                    on.addEventListener('transitionend', function () {
+                        if (!resolved) {
+                            resolve(runtime.findNext(settleCommand, context));
+                        }
+                    }, {once: true});
+                    return promise;
+
+                },
+                execute: function (context) {
+                    return runtime.unifiedExec(this, context);
+                }
+            };
+            return settleCommand
+        }
+    })
+
+    _hyperscript.addCommand("add", function(parser, runtime, tokens) {
+        if (tokens.matchToken("add")) {
+            var classRef = parser.parseElement("classRef", tokens);
+            var attributeRef = null;
+            if (classRef == null) {
+                attributeRef = parser.parseElement("attributeRef", tokens);
+                if (attributeRef == null) {
+                    parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
+                }
+            }
+
+            if (tokens.matchToken("to")) {
+                var to = parser.requireElement("target", tokens);
+            } else {
+                var to = parser.parseElement("implicitMeTarget");
+            }
+
+            if (classRef) {
+                var addCmd = {
+                    classRef: classRef,
+                    attributeRef: attributeRef,
+                    to: to,
+                    args: [to],
+                    op: function (context, to) {
+                        runtime.forEach(to, function (target) {
+                            target.classList.add(classRef.className());
+                        })
+                        return runtime.findNext(this, context);
+                    }
+                }
+            } else {
+                var addCmd = {
+                    type: "addCmd",
+                    classRef: classRef,
+                    attributeRef: attributeRef,
+                    to: to,
+                    args: [to, attributeRef],
+                    op: function (context, to, attrRef) {
+                        runtime.forEach(to, function (target) {
+                            target.setAttribute(attrRef.name, attrRef.value);
+                        })
+                        return runtime.findNext(addCmd, context);
+                    },
+                    execute: function (ctx) {
+                        return runtime.unifiedExec(this, ctx);
+                    }
+                };
+            }
+            return addCmd
+        }
+    });
+
+    _hyperscript.addCommand("remove", function(parser, runtime, tokens) {
+        if (tokens.matchToken('remove')) {
+            var classRef = parser.parseElement("classRef", tokens);
+            var attributeRef = null;
+            var elementExpr = null;
+            if (classRef == null) {
+                attributeRef = parser.parseElement("attributeRef", tokens);
+                if (attributeRef == null) {
+                    elementExpr = parser.parseElement("expression", tokens)
+                    if (elementExpr == null) {
+                        parser.raiseParseError(tokens, "Expected either a class reference, attribute expression or value expression");
+                    }
+                }
+            }
+            if (tokens.matchToken("from")) {
+                var from = parser.requireElement("target", tokens);
+            } else {
+                var from = parser.requireElement("implicitMeTarget");
+            }
+
+            if (elementExpr) {
+                var removeCmd = {
+                    classRef: classRef,
+                    attributeRef: attributeRef,
+                    elementExpr: elementExpr,
+                    from: from,
+                    args: [elementExpr],
+                    op: function (context, element) {
+                        runtime.forEach(element, function (target) {
+                            target.parentElement.removeChild(target);
+                        })
+                        return runtime.findNext(this, context);
+                    }
+                };
+            } else {
+                var removeCmd = {
+                    classRef: classRef,
+                    attributeRef: attributeRef,
+                    elementExpr: elementExpr,
+                    from: from,
+                    args: [from],
+                    op: function (context, from) {
+                        if (this.classRef) {
+                            runtime.forEach(from, function (target) {
+                                target.classList.remove(classRef.className());
+                            })
+                        } else {
+                            runtime.forEach(from, function (target) {
+                                target.removeAttribute(attributeRef.name);
+                            })
+                        }
+                        return runtime.findNext(this, context);
+                    }
+                };
+
+            }
+            return removeCmd
+        }
+    });
+
+    _hyperscript.addCommand("toggle", function(parser, runtime, tokens) {
+        if (tokens.matchToken('toggle')) {
+            var classRef = parser.parseElement("classRef", tokens);
+            var attributeRef = null;
+            if (classRef == null) {
+                attributeRef = parser.parseElement("attributeRef", tokens);
+                if (attributeRef == null) {
+                    parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
+                }
+            }
+
+            if (tokens.matchToken("on")) {
+                var on = parser.requireElement("target", tokens);
+            } else {
+                var on = parser.requireElement("implicitMeTarget");
+            }
+
+            if (tokens.matchToken("for")) {
+                var time = parser.requireElement("timeExpression", tokens);
+            } else if (tokens.matchToken("until")) {
+                var evt = parser.requireElement("dotOrColonPath", tokens, "Expected event name");
+                if (tokens.matchToken("from")) {
+                    var from = parser.requireElement("expression", tokens);
+                }
+            }
+
+            var toggleCmd = {
+                classRef: classRef,
+                attributeRef: attributeRef,
+                on: on,
+                time: time,
+                evt: evt,
+                from: from,
+                toggle: function (on, value) {
+                    if (this.classRef) {
+                        runtime.forEach(on, function (target) {
+                            target.classList.toggle(classRef.className())
+                        });
+                    } else {
+                        runtime.forEach(on, function (target) {
+                            if (target.hasAttribute(attributeRef.name)) {
+                                target.removeAttribute(attributeRef.name);
+                            } else {
+                                target.setAttribute(attributeRef.name, value)
+                            }
+                        });
+                    }
+                },
+                args: [on, attributeRef ? attributeRef.value : null, time, evt, from],
+                op: function (context, on, value, time, evt, from) {
+                    if (time) {
+                        return new Promise(function (resolve) {
+                            toggleCmd.toggle(on, value);
+                            setTimeout(function () {
+                                toggleCmd.toggle(on, value);
+                                resolve(runtime.findNext(toggleCmd, context));
+                            }, time);
+                        });
+                    } else if (evt) {
+                        return new Promise(function (resolve) {
+                            var target = from || context.me;
+                            target.addEventListener(evt, function () {
+                                toggleCmd.toggle(on, value);
+                                resolve(runtime.findNext(toggleCmd, context));
+                            }, {once: true})
+                            toggleCmd.toggle(on, value);
+                        });
+                    } else {
+                        this.toggle(on, value);
+                        return runtime.findNext(toggleCmd, context);
+                    }
+                }
+            };
+            return toggleCmd
+        }
+    })
+
+    var HIDE_SHOW_STRATEGIES = {
+        "display": function (op, element, arg) {
+            if(arg){
+                element.style.display = arg;
+            } else if (op === 'hide') {
+                element.style.display = 'none';
+            } else {
+                element.style.display = 'block';
+            }
+        },
+        "visibility": function (op, element, arg) {
+            if(arg){
+                element.style.visibility = arg;
+            } else if (op === 'hide') {
+                element.style.visibility = 'hidden';
+            } else {
+                element.style.visibility = 'visible';
+            }
+        },
+        "opacity": function (op, element, arg) {
+            if(arg){
+                element.style.opacity = arg;
+            } else if (op === 'hide') {
+                element.style.opacity = '0';
+            } else {
+                element.style.opacity = '1';
+            }
+        }
+    }
+
+    var parseShowHideTarget = function (parser, runtime, tokens) {
+        var target;
+        var currentTokenValue = tokens.currentToken();
+        if (currentTokenValue.value === "with" || parser.commandBoundary(currentTokenValue)) {
+            target = parser.parseElement("implicitMeTarget", tokens);
+        } else {
+            target = parser.parseElement("target", tokens);
+        }
+        return target;
+    }
+
+    var resolveStrategy = function (parser, tokens, name) {
+        var configDefault = _hyperscript.config.defaultHideShowStrategy;
+        var strategies = HIDE_SHOW_STRATEGIES;
+        if (_hyperscript.config.hideShowStrategies) {
+            strategies = mergeObjects(strategies, _hyperscript.config.hideShowStrategies); // merge in user provided strategies
+        }
+        name = name || configDefault || "display";
+        var value = strategies[name];
+        if (value == null) {
+            parser.raiseParseError(tokens, 'Unknown show/hide strategy : ' + name);
+        }
+        return value;
+    }
+
+    _hyperscript.addCommand("hide", function (parser, runtime, tokens) {
+        if (tokens.matchToken("hide")) {
+            var target = parseShowHideTarget(parser, runtime, tokens);
+
+            var name = null;
+            if (tokens.matchToken("with")) {
+                name = tokens.requireTokenType("IDENTIFIER").value;
+            }
+            var hideShowStrategy = resolveStrategy(parser, tokens, name);
+
             return {
-                internals:{
-                    lexer: _lexer,
-                    parser: _parser,
-                    runtime: _runtime,
-                },
-                addFeature: function(keyword, definition) {
-                    _parser.addFeature(keyword, definition)
-                },
-                addCommand: function(keyword, definition) {
-                    _parser.addCommand(keyword, definition)
-                },
-                addLeafExpression: function(keyword, definition) {
-                    _parser.addLeafExpression(definition)
-                },
-                addIndirectExpression: function(keyword, definition) {
-                    _parser.addIndirectExpression(definition)
-                },
-                evaluate: function (str) { //OK
-                    return _runtime.evaluate(str); //OK
-                },
-                processNode: function (elt) {
-                    _runtime.processNode(elt);
-                },
-                config: {
-                    attributes : "_, script, data-script",
-                    defaultTransition: "all 500ms ease-in",
-                    conversions: CONVERSIONS
+                target: target,
+                args: [target],
+                op: function (ctx, target) {
+                    runtime.forEach(target, function (elt) {
+                        hideShowStrategy('hide', elt);
+                    });
+                    return runtime.findNext(this, ctx);
                 }
             }
         }
-    )()
-}));
+    });
 
+    _hyperscript.addCommand("show", function (parser, runtime, tokens) {
+        if (tokens.matchToken("show")) {
+            var target = parseShowHideTarget(parser, runtime, tokens);
+
+            var name = null;
+            if (tokens.matchToken("with")) {
+                name = tokens.requireTokenType("IDENTIFIER").value;
+            }
+            var arg = null;
+            if (tokens.matchOpToken(":")) {
+                var tokenArr = tokens.consumeUntilWhitespace();
+                tokens.matchTokenType("WHITESPACE");
+                arg = tokenArr.map(function (t) {
+                    return t.value
+                }).join("");
+            }
+            var hideShowStrategy = resolveStrategy(parser, tokens, name);
+
+            return {
+                target: target,
+                args: [target],
+                op: function (ctx, target) {
+                    runtime.forEach(target, function (elt) {
+                        hideShowStrategy('show', elt, arg);
+                    });
+                    return runtime.findNext(this, ctx);
+                }
+            }
+        }
+    });
+
+    _hyperscript.addCommand("trigger", function(parser, runtime, tokens) {
+        if (tokens.matchToken('trigger')) {
+            var eventName = parser.requireElement("dotOrColonPath", tokens);
+            var details = parser.parseElement("namedArgumentList", tokens);
+
+            var triggerCmd = {
+                eventName: eventName,
+                details: details,
+                args: [eventName, details],
+                op: function (context, eventNameStr, details) {
+                    runtime.triggerEvent(context.me, eventNameStr, details ? details : {});
+                    return runtime.findNext(triggerCmd, context);
+                }
+            };
+            return triggerCmd
+        }
+    })
+
+    _hyperscript.addCommand("take", function(parser, runtime, tokens) {
+        if (tokens.matchToken('take')) {
+            var classRef = tokens.requireTokenType(tokens, "CLASS_REF");
+
+            if (tokens.matchToken("from")) {
+                var from = parser.requireElement("target", tokens);
+            } else {
+                var from = parser.requireElement("implicitAllTarget")
+            }
+
+            if (tokens.matchToken("for")) {
+                var forElt = parser.requireElement("target", tokens);
+            } else {
+                var forElt = parser.requireElement("implicitMeTarget")
+            }
+
+            var takeCmd = {
+                classRef: classRef,
+                from: from,
+                forElt: forElt,
+                args: [from, forElt],
+                op: function (context, from, forElt) {
+                    var clazz = this.classRef.value.substr(1)
+                    runtime.forEach(from, function (target) {
+                        target.classList.remove(clazz);
+                    })
+                    runtime.forEach(forElt, function (target) {
+                        target.classList.add(clazz);
+                    });
+                    return runtime.findNext(this, context);
+                }
+            };
+            return takeCmd
+        }
+    })
+
+    _hyperscript.addCommand("put", function(parser, runtime, tokens) {
+        if (tokens.matchToken('put')) {
+            var value = parser.requireElement("expression", tokens);
+
+            var operationToken = tokens.matchToken("into") ||
+                tokens.matchToken("before") ||
+                tokens.matchToken("after");
+
+            if (operationToken == null && tokens.matchToken("at")) {
+                operationToken = tokens.matchToken("start") ||
+                    tokens.matchToken("end");
+                tokens.requireToken("of");
+            }
+
+            if (operationToken == null) {
+                parser.raiseParseError(tokens, "Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
+            }
+            var target = parser.requireElement("target", tokens);
+
+            var operation = operationToken.value;
+            var symbolWrite = target.type === "symbol" && operation === "into";
+            if (target.type !== "symbol" && operation === "into" && target.root == null) {
+                parser.raiseParseError(tokens, "Can only put directly into symbols, not references")
+            }
+
+            var root = null;
+            var prop = null;
+            if (symbolWrite) {
+                // root is null
+            } else if (operation === "into") {
+                prop = target.prop.value;
+                root = target.root;
+            } else {
+                root = target;
+            }
+
+            var putCmd = {
+                target: target,
+                operation: operation,
+                symbolWrite: symbolWrite,
+                value: value,
+                args: [root, value],
+                op: function (context, root, valueToPut) {
+                    if (symbolWrite) {
+                        context[target.name] = valueToPut;
+                    } else {
+                        if (operation === "into") {
+                            runtime.forEach(root, function (elt) {
+                                elt[prop] = valueToPut;
+                            })
+                        } else if (operation === "before") {
+                            runtime.forEach(root, function (elt) {
+                                elt.insertAdjacentHTML('beforebegin', valueToPut);
+                            })
+                        } else if (operation === "start") {
+                            runtime.forEach(root, function (elt) {
+                                elt.insertAdjacentHTML('afterbegin', valueToPut);
+                            })
+                        } else if (operation === "end") {
+                            runtime.forEach(root, function (elt) {
+                                elt.insertAdjacentHTML('beforeend', valueToPut);
+                            })
+                        } else if (operation === "after") {
+                            runtime.forEach(root, function (elt) {
+                                elt.insertAdjacentHTML('afterend', valueToPut);
+                            })
+                        }
+                    }
+                    return runtime.findNext(this, context);
+                }
+            };
+            return putCmd
+        }
+    })
+
+    _hyperscript.addCommand("transition", function(parser, runtime, tokens) {
+        if (tokens.matchToken("transition")) {
+            if (tokens.matchToken('element') || tokens.matchToken('elements')) {
+                var targets = parser.parseElement("expression", tokens);
+            } else {
+                var targets = parser.parseElement("implicitMeTarget");
+            }
+            var properties = [];
+            var from = [];
+            var to = [];
+            while (tokens.hasMore() &&
+            !parser.commandBoundary(tokens.currentToken()) &&
+            tokens.currentToken().value !== "using") {
+                properties.push(tokens.requireTokenType("IDENTIFIER").value);
+                if (tokens.matchToken("from")) {
+                    from.push(parser.requireElement("stringLike", tokens));
+                } else {
+                    from.push(null);
+                }
+                tokens.requireToken("to");
+                to.push(parser.requireElement("stringLike" , tokens));
+            }
+            if (tokens.matchToken("using")) {
+                var using = parser.requireElement("expression", tokens);
+            }
+
+            var transition = {
+                to: to,
+                args: [targets, from, to, using],
+                op: function (context, targets, from, to, using) {
+                    var promises = [];
+                    runtime.forEach(targets, function(target){
+                        var promise = new Promise(function (resolve, reject) {
+                            var initialTransition = target.style.transition;
+                            target.style.transition = using || _hyperscript.config.defaultTransition;
+                            var internalData = runtime.getInternalData(target);
+                            var computedStyles = getComputedStyle(target);
+
+                            var initialStyles = {};
+                            for (var i = 0; i < computedStyles.length; i++) {
+                                var name = computedStyles[i];
+                                var initialValue = computedStyles[name];
+                                initialStyles[name] = initialValue;
+                            }
+
+                            // store intitial values
+                            if (!internalData.initalStyles) {
+                                internalData.initalStyles = initialStyles;
+                            }
+
+                            for (var i = 0; i < properties.length; i++) {
+                                var property = properties[i];
+                                var fromVal = from[i];
+                                if (fromVal == 'computed' || fromVal == null) {
+                                    target.style[property] = initialStyles[property];
+                                } else {
+                                    target.style[property] = fromVal;
+                                }
+                            }
+                            // console.log("transition started", transition);
+                            setTimeout(function () {
+                                var autoProps = [];
+                                for (var i = 0; i < properties.length; i++) {
+                                    var property = properties[i];
+                                    var toVal = to[i];
+                                    if (toVal == 'initial') {
+                                        var propertyValue = internalData.initalStyles[property];
+                                        target.style[property] = propertyValue;
+                                    } else {
+                                        target.style[property] = toVal;
+                                    }
+                                    // console.log("set", property, "to", target.style[property], "on", target, "value passed in : ", toVal);
+                                }
+                                target.addEventListener('transitionend', function () {
+                                    // console.log("transition ended", transition);
+                                    target.style.transition = initialTransition;
+                                    resolve();
+                                }, {once:true})
+                            }, 5);
+                        });
+                        promises.push(promise);
+                    })
+                    return Promise.all(promises).then(function(){
+                        return runtime.findNext(transition, context);
+                    })
+                }
+            };
+            return transition
+        }
+    });
+
+})()
+///=========================================================================
+/// This module provides the worker feature for hyperscript
+///=========================================================================
 (function () {
 
     var invocationIdCounter = 0
