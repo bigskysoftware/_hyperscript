@@ -25,16 +25,6 @@ repeat for x in IterableVariable
 end
 ```
 * Support a `timeout` modifier for async commands like `fetch`, `call`, `wait for` etc.
-* the `on` feature needs to support a count filter (and numeric ranges)
-```on click 1 log "first click"
-   on click 2 and on log "this ain't my first click"
-   on click 2 to 3 log "this ain't my first click"
-```
-* implement the throttle, delay/debounce and maybe enqueued functionality from htmx
-```
-  on click delay 100ms before log "delayed click"
-  on click throttle 100ms before log "throttled click"
-```
 * functions should be able to be marked `sync` to make only one execution at a time occur, in serial fashion
 * unify properly literals and array literals with lookahead
 * unify all css() like literals to a general dynamic evaluation (eval is context sensitive)
