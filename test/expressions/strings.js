@@ -38,4 +38,15 @@ describe("the string expression", function () {
         result.should.equal("3");
     });
 
+    it("string templates preserve white space", function () {
+        var result = evalHyperScript('" ${1 + 2} ${1 + 2} "');
+        result.should.equal(" 3 3 ");
+        var result = evalHyperScript('"${1 + 2} ${1 + 2} "');
+        result.should.equal("3 3 ");
+        var result = evalHyperScript('"${1 + 2}${1 + 2} "');
+        result.should.equal("33 ");
+        var result = evalHyperScript('"${1 + 2} ${1 + 2}"');
+        result.should.equal("3 3");
+    });
+
 });

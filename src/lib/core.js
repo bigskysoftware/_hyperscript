@@ -214,6 +214,14 @@
                         return tokenList;
                     }
 
+                    function lastWhitespace() {
+                        if (consumed[consumed.length - 1] && consumed[consumed.length - 1].type === "WHITESPACE") {
+                            return consumed[consumed.length - 1].value;
+                        } else {
+                            return "";
+                        }
+                    }
+
                     function consumeUntilWhitespace() {
                         return consumeUntil(null, "WHITESPACE");
                     }
@@ -266,6 +274,7 @@
                         token: token,
                         consumeUntil: consumeUntil,
                         consumeUntilWhitespace: consumeUntilWhitespace,
+                        lastWhitespace: lastWhitespace
                     }
                 }
 
@@ -639,6 +648,7 @@
                 function parseStringTemplate(tokens) {
                     var returnArr = [""];
                     do {
+                        returnArr.push(tokens.lastWhitespace());
                         if (tokens.currentToken().value === "$") {
                             tokens.consumeToken();
                             var startingBrace = tokens.matchOpToken('{');
@@ -655,6 +665,7 @@
                             returnArr[returnArr.length - 1] += token.value;
                         }
                     } while (tokens.hasMore())
+                    returnArr.push(tokens.lastWhitespace());
                     return returnArr;
                 }
 

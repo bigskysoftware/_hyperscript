@@ -14,37 +14,25 @@
         return new WebSocket(url.evaluate());
     }
 
+    var BLACKLIST = ['then', 'catch', 'length', 'asyncWrapper'];
+
     _hyperscript.addFeature("socket", function(parser, runtime, tokens) {
-        if (tokens.matchToken('socket')) {
-            var name = parser.requireElement("dotOrColonPath", tokens);
-            var qualifiedName = name.evaluate();
-            var nameSpace = qualifiedName.split(".");
-            var socketName = nameSpace.pop();
 
-
-            var promises = {};
-            var url = parser.requireElement("stringLike", tokens);
-
-            var socket = createSocket(url);
-            socket.onmessage = function (evt) {
-                var data = evt.data;
-                var dataAsJson = JSON.parse(data);
-                if (dataAsJson.iid) {
-                    promises[dataAsJson.iid].resolve(dataAsJson.response);
-                    delete promises[dataAsJson.iid];
-                }
-            };
-
-            // clear socket on close to be recreated
-            socket.addEventListener('close', function(){
-                socket = null;
-            });
-
-            var proxy = new Proxy({}, {
-                get : function(obj, property){
-                    if (property === "raw") {
+        function getProxy(timeout) {
+            return new Proxy({}, {
+                get: function (obj, property) {
+                    console.log("Proxying " + property);
+                    if (BLACKLIST.indexOf(property) >= 0) {
+                        return null;
+                    } else if (property === "raw") {
                         return socket;
-                    } else if (property.indexOf("call") == 0) {
+                    } else if (property === "noTimeout") {
+                        return getProxy(-1);
+                    } else if (property === "timeout") {
+                        return function(i){
+                            return getProxy(parseInt(i));
+                        }
+                    } else {
                         return function () {
                             var uuid = genUUID();
                             var args = [];
@@ -53,7 +41,7 @@
                             }
                             var rpcInfo = {
                                 iid: uuid,
-                                function: property.substring(4),
+                                function: property,
                                 args: args
                             };
                             socket = socket ? socket : createSocket(url); //recreate socket if needed
@@ -66,18 +54,51 @@
                                 }
                             })
 
-                            setTimeout(function () {
-                                if (promises[uuid]) {
-                                    promises[uuid].reject("Timed out");
-                                }
-                                delete promises[uuid];
-                            }, 10000); // TODO configurable?
-
+                            if (timeout >= 0) {
+                                setTimeout(function () {
+                                    if (promises[uuid]) {
+                                        promises[uuid].reject("Timed out");
+                                    }
+                                    delete promises[uuid];
+                                }, timeout); // TODO configurable?
+                            }
                             return promise
                         };
                     }
                 }
-            })
+            });
+        }
+
+        if (tokens.matchToken('socket')) {
+
+            var name = parser.requireElement("dotOrColonPath", tokens);
+            var qualifiedName = name.evaluate();
+            var nameSpace = qualifiedName.split(".");
+            var socketName = nameSpace.pop();
+
+            var promises = {};
+            var url = parser.requireElement("stringLike", tokens);
+
+            var socket = createSocket(url);
+            socket.onmessage = function (evt) {
+                var data = evt.data;
+                var dataAsJson = JSON.parse(data);
+                if (dataAsJson.iid) {
+                    if (dataAsJson.throw) {
+                        promises[dataAsJson.iid].reject(dataAsJson.throw);
+                    } else {
+                        promises[dataAsJson.iid].resolve(dataAsJson.return);
+                    }
+                    delete promises[dataAsJson.iid];
+                }
+            };
+
+            // clear socket on close to be recreated
+            socket.addEventListener('close', function(){
+                socket = null;
+            });
+
+            var proxy = getProxy(10000) // TODO make a default
 
             return {
                 name: socketName,

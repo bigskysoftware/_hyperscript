@@ -8,12 +8,25 @@ import json
 async def server(websocket, path):
     # Get received data from websocket
     data = await websocket.recv()
+    print ("Received: " + data)
     json_data = json.loads(data)
-    print("Calleed " + json_data['function'])
-    #echo back the first argument
-    json_data['response'] = json_data['args'][0]
+    if json_data['function'] == 'echo':
+      #echo back the first argument
+      json_data['return'] = json_data['args'][0]
+    elif json_data['function'] == 'ask':
+      #echo back the first argument
+      json_data['return'] = input(json_data['args'][0])
+    elif json_data['function'] == 'throw':
+      #throw the first argument
+      json_data['throw'] = json_data['args'][0]
+    else:
+      #echo back the first argument
+      json_data['throw'] = 'Unknown function : ' + json_data['function']
+
     # Send response back to client to acknowledge receiving message
-    await websocket.send(json.dumps(json_data))
+    response = json.dumps(json_data)
+    print ("Responding: " + response)
+    await websocket.send(response)
 
 # Create websocket server
 start_server = websockets.serve(server, "localhost", 5150)

@@ -10,15 +10,60 @@
 
 <em>Work Area</em>
 <hr/>
-
+<style>
+    button {
+        padding: 12px;
+        margin: 12px
+    }
+</style>
 <script type="text/hyperscript">
     socket MySocket ws://localhost:5150
 </script>
-<button _="on click put MySocket.callEcho('foo') into my.innerHTML">
-    Invoke Socket...
-</button>
 
+<div>
+    <button _="on click put MySocket.echo('foo') into my.innerHTML">
+        Echo Socket...
+    </button>
 
+    <button _="on click set name to MySocket.ask('What is your name?')
+                    put 'Nice to meet you, $name' into my.innerText">
+        What's your name?
+    </button>
+
+    <button _="on click put MySocket.throw('Nice...') into my.innerHTML">
+        Throw Error
+    </button>
+</div>
+
+<div>
+    <button _="on click put MySocket.noTimeout.echo('foo') into my.innerHTML">
+        Echo Socket...
+    </button>
+
+    <button _="on click set name to MySocket.noTimeout.ask('What is your name?')
+                    put 'Nice to meet you, $name' into my.innerText">
+        What's your name?
+    </button>
+
+    <button _="on click put MySocket.throw('Nice...') into my.innerHTML">
+        Throw Error
+    </button>
+</div>
+
+<div>
+    <button _="on click put MySocket.timeout(10).echo('foo') into my.innerHTML">
+        Echo Socket...
+    </button>
+
+    <button _="on click set name to MySocket.timeout(10).ask('What is your name?')
+                    put 'Nice to meet you, $name' into my.innerText">
+        What's your name?
+    </button>
+
+    <button _="on click put MySocket.timeout(10).throw('Nice...') into my.innerHTML">
+        Throw Error
+    </button>
+</div>
 
 </body>
 </html>
