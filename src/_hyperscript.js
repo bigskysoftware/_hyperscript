@@ -2102,14 +2102,23 @@
                                     }
                                 }
                             }
+                            // support both "elsewhere" and "from elsewhere"
+                            if (from === null && elsewhere === false && tokens.matchToken("elsewhere")) {
+                                elsewhere = true;
+                            }
 
                             if (tokens.matchToken('in')) {
                                 var inExpr = parser.parseAnyOf(["idRef", "queryRef", "classRef"], tokens);
                             }
 
-                            // support both "elsewhere" and "from elsewhere"
-                            if (from === null && elsewhere === false && tokens.matchToken("elsewhere")) {
-                                elsewhere = true;
+                            if (tokens.matchToken('debounced')) {
+                                tokens.requireToken("at");
+                                var timeExpr = parser.requireElement("timeExpression", tokens);
+                                var debounceTime = timeExpr.evaluate({}); // OK No promise TODO make a literal time expr
+                            } else if (tokens.matchToken('throttled')) {
+                                tokens.requireToken("at");
+                                var timeExpr = parser.requireElement("timeExpression", tokens);
+                                var throttleTime = timeExpr.evaluate({}); // OK No promise TODO make a literal time expr
                             }
 
                             events.push({
@@ -2124,6 +2133,8 @@
                                 startCount : startCount,
                                 endCount : endCount,
                                 unbounded : unbounded,
+                                debounceTime : debounceTime,
+                                throttleTime : throttleTime,
                             })
                         } while (tokens.matchToken("or"))
 
@@ -2282,6 +2293,26 @@
                                                     }
                                                 } else if (eventSpec.execCount !== eventSpec.startCount) {
                                                     return;
+                                                }
+                                            }
+
+                                            //debounce
+                                            if (eventSpec.debounceTime) {
+                                                if (eventSpec.debounced) {
+                                                    clearTimeout(eventSpec.debounced);
+                                                }
+                                                eventSpec.debounced = setTimeout(function () {
+                                                    onFeature.execute(ctx);
+                                                }, eventSpec.debounceTime);
+                                                return;
+                                            }
+
+                                            // throttle
+                                            if (eventSpec.throttleTime) {
+                                                if (eventSpec.lastExec && Date.now() < eventSpec.lastExec + eventSpec.throttleTime) {
+                                                    return;
+                                                } else {
+                                                    eventSpec.lastExec = Date.now();
                                                 }
                                             }
 
