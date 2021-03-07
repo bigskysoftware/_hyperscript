@@ -1395,7 +1395,7 @@
                         var valueExpressions = []
                         if (!tokens.matchOpToken("}")) {
                             do {
-                                var name = tokens.requireTokenType("IDENTIFIER");
+                                var name = tokens.requireTokenType("IDENTIFIER", "STRING");
                                 tokens.requireOpToken(":");
                                 var value = parser.requireElement("expression", tokens);
                                 valueExpressions.push(value);
