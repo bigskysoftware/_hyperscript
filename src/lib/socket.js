@@ -93,8 +93,10 @@
                 }
             };
 
+
             // clear socket on close to be recreated
-            socket.addEventListener('close', function(){
+            socket.addEventListener('close', function(e){
+                console.log(e);
                 socket = null;
             });
 
