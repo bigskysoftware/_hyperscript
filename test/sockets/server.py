@@ -6,6 +6,7 @@ import websockets
 import json
 
 async def server(websocket, path):
+  while True:
     # Get received data from websocket
     data = await websocket.recv()
     print ("Received: " + data)
