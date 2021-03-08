@@ -735,6 +735,16 @@
                 },
                 "Array" : function(val){
                     return Array.from(val);
+                },
+                "JSON" : function(val){
+                    return JSON.stringify(val);
+                },
+                "Object" : function(val){
+                    if (typeof val === 'string' || val instanceof String) {
+                        return JSON.parse(val);
+                    } else {
+                        return mergeObjects({}, val);
+                    }
                 }
             }
             var _runtime = function () {
