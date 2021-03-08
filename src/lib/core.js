@@ -306,7 +306,7 @@
                                 tokens.push(consumeIdentifier());
                             } else if (isNumeric(currentChar())) {
                                 tokens.push(consumeNumber());
-                            } else if (currentChar() === '"' || currentChar() === "'") {
+                            } else if (currentChar() === '"' || currentChar() === "'" || currentChar() === "`") {
                                 tokens.push(consumeString());
                             } else if (OP_TABLE[currentChar()]) {
                                 tokens.push(consumeOp());
@@ -425,6 +425,7 @@
                         }
                         string.value = value;
                         string.end = position;
+                        string.template = startChar === "`";
                         return string;
                     }
 
@@ -1287,7 +1288,7 @@
                     var stringToken = tokens.matchTokenType('STRING');
                     if (stringToken) {
                         var rawValue = stringToken.value;
-                        if (rawValue.indexOf("$") >= 0) {
+                        if (stringToken.template) {
                             var innerTokens = _lexer.tokenize(rawValue, true);
                             var args = parser.parseStringTemplate(innerTokens);
                         } else {
