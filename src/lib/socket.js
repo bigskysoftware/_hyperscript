@@ -3,6 +3,15 @@
 ///=========================================================================
 (function () {
 
+    function mergeObjects(obj1, obj2) {
+        for (var key in obj2) {
+            if (obj2.hasOwnProperty(key)) {
+                obj1[key] = obj2[key];
+            }
+        }
+        return obj1;
+    }
+
     function genUUID() {
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
             var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
@@ -14,18 +23,15 @@
         return new WebSocket(url.evaluate());
     }
 
-    var BLACKLIST = ['then', 'catch', 'length', 'asyncWrapper'];
+    var PROXY_BLACKLIST = ['then', 'catch', 'length', 'asyncWrapper', 'toJSON'];
 
     _hyperscript.addFeature("socket", function(parser, runtime, tokens) {
 
         function getProxy(timeout) {
             return new Proxy({}, {
                 get: function (obj, property) {
-                    console.log("Proxying " + property);
-                    if (BLACKLIST.indexOf(property) >= 0) {
+                    if (PROXY_BLACKLIST.indexOf(property) >= 0) {
                         return null;
-                    } else if (property === "raw") {
-                        return socket;
                     } else if (property === "noTimeout") {
                         return getProxy(-1);
                     } else if (property === "timeout") {
@@ -100,13 +106,24 @@
                 socket = null;
             });
 
-            var proxy = getProxy(10000) // TODO make a default
+            var rpcProxy = getProxy(10000) // TODO make a default
 
             return {
                 name: socketName,
                 worker: socket,
                 install: function () {
-                    runtime.assignToNamespace(nameSpace, socketName, proxy)
+                    runtime.assignToNamespace(nameSpace, socketName, {
+                        raw:socket,
+                        dispatchEvent:function(evt){
+                            console.log(evt);
+                            var details = evt.detail;
+                            // remove hyperscript internals
+                            delete details.sentBy;
+                            delete details._namedArgList_;
+                            socket.send(JSON.stringify(mergeObjects({type: evt.type}, details)));
+                        },
+                        rpc:rpcProxy
+                    })
                 }
             };
         }

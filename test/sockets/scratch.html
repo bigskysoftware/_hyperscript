@@ -21,49 +21,29 @@
 </script>
 
 <div>
-    <button _="on click put MySocket.echo('foo') into my.innerHTML">
+    <button _="on click put MySocket.rpc.echo('foo') into my.innerHTML">
         Echo Socket...
     </button>
 
-    <button _="on click set name to MySocket.ask('What is your name? ')
+    <button _="on click set name to MySocket.rpc.ask('What is your name? ')
                     put 'Nice to meet you, $name' into my.innerText">
         What's your name?
     </button>
 
-    <button _="on click put MySocket.throw('Nice...') into my.innerHTML">
+    <button _="on click put MySocket.rpc.throw('Nice...') into my.innerHTML">
         Throw Error
     </button>
 </div>
 
 <div>
-    <button _="on click put MySocket.noTimeout.echo('foo') into my.innerHTML">
+    <button _="on click send foo(bar:'doh', rey:42) to MySocket">
         Echo Socket...
     </button>
 
-    <button _="on click set name to MySocket.noTimeout.ask('What is your name? ')
-                    put 'Nice to meet you, $name' into my.innerText">
-        What's your name?
-    </button>
 
-    <button _="on click put MySocket.throw('Nice...') into my.innerHTML">
-        Throw Error
-    </button>
 </div>
 
-<div>
-    <button _="on click put MySocket.timeout(10).echo('foo') into my.innerHTML">
-        Echo Socket...
-    </button>
 
-    <button _="on click set name to MySocket.timeout(10).ask('What is your name? ')
-                    put 'Nice to meet you, $name' into my.innerText">
-        What's your name?
-    </button>
-
-    <button _="on click put MySocket.timeout(10).throw('Nice...') into my.innerHTML">
-        Throw Error
-    </button>
-</div>
 
 </body>
 </html>
