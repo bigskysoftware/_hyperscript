@@ -4,14 +4,12 @@
 * docs
 
 ### Language Features
+* functions on elements (store in hyperplane if available)
 * animate command ? I don't see a lot of value add (unlike transition)
 * Event model
 * Debugging
 * range operator
 *  array helpers 'first', 'last', 'in', 'random'
-* Web Worker API but for Web Sockets... o_O)))
-  * two way - server can invoke functions on client, client can invoke functions on server
-  * normal listening for messages also works of course
 * repeat command improvements
 ```
 // By default, counter uses "it" convention
@@ -37,7 +35,7 @@ end
   ```
     log |x -- a variable associated with the current 'me'
     log #foo|x -- a variable associated with the element #foo
-    log ||x -- a global variable stored in memory
+    log ||x -- a variable stored in a parent hierarchy
     log |||x -- a persistent variable stored in local storage
   ```
   the hyperplane has infrastructure for catching mutations and updating references, as well as fully developed event model

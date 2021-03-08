@@ -2449,6 +2449,42 @@
                     }
                 });
 
+                _parser.addFeature("init", function(parser, runtime, tokens) {
+                    if (tokens.matchToken('init')) {
+                        var start = parser.parseElement("commandList", tokens);
+                        var initFeature = {
+                            start: start,
+                            install: function (target, source) {
+                                setTimeout(function () {
+                                    start.execute(runtime.makeContext(target, this, target));
+                                }, 0);
+                            }
+                        };
+
+                        var implicitReturn = {
+                            type: "implicitReturn",
+                            op: function (context) {
+                                return runtime.HALT;
+                            },
+                            execute: function (context) {
+                                // do nothing
+                            }
+                        }
+                        // terminate body
+                        if (start) {
+                            var end = start;
+                            while (end.next) {
+                                end = end.next;
+                            }
+                            end.next = implicitReturn
+                        } else {
+                            initFeature.start = implicitReturn
+                        }
+                        parser.setParent(start, initFeature);
+                        return initFeature;
+                    }
+                });
+
                 _parser.addFeature("worker", function (parser, runtime, tokens) {
                     if (tokens.matchToken("worker")) {
                         parser.raiseParseError(tokens,
