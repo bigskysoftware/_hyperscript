@@ -85,17 +85,90 @@
             var promises = {};
             var url = parser.requireElement("stringLike", tokens);
 
+            var defaultTimeout = 10000;
+            if (tokens.matchToken("with")) {
+                tokens.requireToken("timeout");
+                defaultTimeout = parser.requireElement("timeExpression", tokens).evaluate();
+            }
+
+            if (tokens.matchToken("on")) {
+                tokens.requireToken("message");
+                if (tokens.matchToken("as")) {
+                    tokens.requireToken("json");
+                    var jsonMessages = true;
+                }
+                var messageHandler = parser.requireElement("commandList", tokens);
+                var implicitReturn = {
+                    type: "implicitReturn",
+                    op: function (context) {
+                        return runtime.HALT;
+                    },
+                    execute: function (context) {
+                        // do nothing
+                    }
+                }
+                var end = messageHandler;
+                while (end.next) {
+                    end = end.next;
+                }
+                end.next = implicitReturn
+                // TODO set parent?
+                // parser.setParent(implicitReturn, initFeature);
+            }
+
             var socket = createSocket(url);
+            var rpcProxy = getProxy(defaultTimeout)
+
+            var socketObject = {
+                raw:socket,
+                dispatchEvent:function(evt){
+                    var details = evt.detail;
+                    // remove hyperscript internals
+                    delete details.sentBy;
+                    delete details._namedArgList_;
+                    socket.send(JSON.stringify(mergeObjects({type: evt.type}, details)));
+                },
+                rpc:rpcProxy
+            };
+
+            var socketFeature = {
+                name: socketName,
+                socket: socketObject,
+                install: function () {
+                    runtime.assignToNamespace(nameSpace, socketName, socketObject)
+                }
+            };
+
             socket.onmessage = function (evt) {
                 var data = evt.data;
-                var dataAsJson = JSON.parse(data);
-                if (dataAsJson.iid) {
+                try {
+                    var dataAsJson = JSON.parse(data);
+                } catch(e){
+                    // not JSON
+                }
+
+                // RPC reply
+                if (dataAsJson && dataAsJson.iid) {
                     if (dataAsJson.throw) {
                         promises[dataAsJson.iid].reject(dataAsJson.throw);
                     } else {
                         promises[dataAsJson.iid].resolve(dataAsJson.return);
                     }
                     delete promises[dataAsJson.iid];
+                } else if (jsonMessages) {
+                    if (dataAsJson) {
+                        var context = runtime.makeContext(socketObject, socketFeature, socketObject);
+                        context.message = dataAsJson;
+                        context.it = dataAsJson;
+                        messageHandler.execute(context);
+                    } else {
+                        throw "Received non-JSON message from socket: " + data;
+                    }
+                } else {
+                    var context = runtime.makeContext(socketObject, socketFeature, socketObject);
+                    context.message = data;
+                    context.it = data;
+                    messageHandler.execute(context);
                 }
             };
 
@@ -106,26 +179,7 @@
                 socket = null;
             });
 
-            var rpcProxy = getProxy(10000) // TODO make a default
-
-            return {
-                name: socketName,
-                worker: socket,
-                install: function () {
-                    runtime.assignToNamespace(nameSpace, socketName, {
-                        raw:socket,
-                        dispatchEvent:function(evt){
-                            console.log(evt);
-                            var details = evt.detail;
-                            // remove hyperscript internals
-                            delete details.sentBy;
-                            delete details._namedArgList_;
-                            socket.send(JSON.stringify(mergeObjects({type: evt.type}, details)));
-                        },
-                        rpc:rpcProxy
-                    })
-                }
-            };
+            return socketFeature;
         }
     })
 })()

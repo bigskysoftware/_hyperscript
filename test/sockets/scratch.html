@@ -18,6 +18,9 @@
 </style>
 <script type="text/hyperscript">
     socket MySocket ws://localhost:5150
+      on message as json
+        log message
+    end
 </script>
 
 <div>
