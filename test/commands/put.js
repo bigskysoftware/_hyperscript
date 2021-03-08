@@ -13,6 +13,18 @@ describe("the put command", function() {
         d1.innerHTML.should.equal("foo");
     })
 
+    it("can put directly into nodes", function(){
+        var d1 = make("<div id='d1' _='on click put \"foo\" into #d1'></div>");
+        d1.click();
+        d1.innerHTML.should.equal("foo");
+    })
+
+    it("can put directly into symbols", function(){
+        var d1 = make("<div _='on click put \"foo\" into me'></div>");
+        d1.click();
+        d1.innerHTML.should.equal("foo");
+    })
+
     it("can set styles", function(){
         var d1 = make("<div _='on click put \"red\" into my.style.color'>lolwat</div>");
         d1.click();
