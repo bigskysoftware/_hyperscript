@@ -499,9 +499,8 @@
             var properties = [];
             var from = [];
             var to = [];
-            while (tokens.hasMore() &&
-            !parser.commandBoundary(tokens.currentToken()) &&
-            tokens.currentToken().value !== "using") {
+            var currentToken = tokens.currentToken();
+            while (!parser.commandBoundary(currentToken) && currentToken.value !== "using") {
                 properties.push(tokens.requireTokenType("IDENTIFIER").value);
                 if (tokens.matchToken("from")) {
                     from.push(parser.requireElement("stringLike", tokens));
@@ -509,7 +508,8 @@
                     from.push(null);
                 }
                 tokens.requireToken("to");
-                to.push(parser.requireElement("stringLike" , tokens));
+                to.push(parser.requireElement("stringLike", tokens));
+                currentToken = tokens.currentToken();
             }
             if (tokens.matchToken("using")) {
                 var using = parser.requireElement("expression", tokens);

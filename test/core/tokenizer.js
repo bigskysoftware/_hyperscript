@@ -252,5 +252,16 @@ describe("the _hyperscript tokenizer", function() {
 
     })
 
+    if ("handles look ahead property") {
+        var lexer = _hyperscript.internals.lexer;
+
+        var tokenize = lexer.tokenize("a 1 + 1");
+        tokenize.token(0).value.should.equal("a");
+        tokenize.token(1).value.should.equal("a");
+        tokenize.token(2).value.should.equal("a");
+        tokenize.token(3).value.should.equal("a");
+        tokenize.token(4).value.should.equal("<<<EOF>>>");
+    }
+
 
 });
