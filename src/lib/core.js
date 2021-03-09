@@ -130,8 +130,13 @@
 
                 function makeTokensObject(tokens, consumed, source) {
 
-                    var ignoreWhiteSpace = true;
-                    matchTokenType("WHITESPACE"); // consume any initial whitespace
+                    consumeWhitespace(); // consume initial whitespace
+
+                    function consumeWhitespace(){
+                        while(token(0, true).type === "WHITESPACE") {
+                            consumed.push(tokens.shift());
+                        }
+                    }
 
                     function raiseError(tokens, error) {
                         _parser.raiseParseError(tokens, error);
@@ -196,21 +201,22 @@
                     function consumeToken() {
                         var match = tokens.shift();
                         consumed.push(match);
-                        if(ignoreWhiteSpace) {
-                            matchTokenType("WHITESPACE"); // consume any whitespace until the next token
-                        }
+                        consumeWhitespace(); // consume any whitespace
                         return match;
                     }
 
                     function consumeUntil(value, type) {
                         var tokenList = [];
-                        ignoreWhiteSpace = false;
-                        while ((type == null || currentToken().type !== type) &&
-                               (value == null || currentToken().value !== value) &&
-                                currentToken().type !== "EOF") {
-                            tokenList.push(consumeToken());
+                        var currentToken = token(0, true);
+                        while ((type == null || currentToken.type !== type) &&
+                               (value == null || currentToken.value !== value) &&
+                                currentToken.type !== "EOF") {
+                            var match = tokens.shift();
+                            consumed.push(match);
+                            tokenList.push(currentToken);
+                            currentToken = token(0, true);
                         }
-                        ignoreWhiteSpace = true;
+                        consumeWhitespace(); // consume any whitespace
                         return tokenList;
                     }
 
@@ -230,19 +236,19 @@
                         return tokens.length > 0;
                     }
 
-                    function token(n, ignoreWhiteSpace) {
+                    function token(n, dontIgnoreWhitespace) {
                         var token;
                         var i = 0;
-                        while (n >= 0) {
-                            if (ignoreWhiteSpace) {
-                                do {
-                                    token = tokens[i++]
-                                } while (token && token.type === "WHITESPACE");
-                            } else {
-                                token = tokens[i];
+                        do {
+                            if (!dontIgnoreWhitespace) {
+                                while (tokens[i] && tokens[i].type === "WHITESPACE") {
+                                    i++;
+                                }
                             }
+                            token = tokens[i];
                             n--;
-                        }
+                            i++;
+                        } while (n > -1)
                         if (token) {
                             return token;
                         } else {
@@ -253,8 +259,8 @@
                         }
                     }
 
-                    function currentToken(ignoreWhiteSpace) {
-                        return token(0, ignoreWhiteSpace);
+                    function currentToken() {
+                        return token(0);
                     }
 
                     return {
@@ -300,7 +306,7 @@
                                 tokens.push(consumeIdentifier());
                             } else if (isNumeric(currentChar())) {
                                 tokens.push(consumeNumber());
-                            } else if (currentChar() === '"' || currentChar() === "'") {
+                            } else if (currentChar() === '"' || currentChar() === "'" || currentChar() === "`") {
                                 tokens.push(consumeString());
                             } else if (OP_TABLE[currentChar()]) {
                                 tokens.push(consumeOp());
@@ -419,6 +425,7 @@
                         }
                         string.value = value;
                         string.end = position;
+                        string.template = startChar === "`";
                         return string;
                     }
 
@@ -542,16 +549,28 @@
                 /* Core hyperscript Grammar Elements                                                            */
                 /* ============================================================================================ */
                 addGrammarElement("feature", function(parser, runtime, tokens) {
-                    var featureDefinition = FEATURES[tokens.currentToken().value];
-                    if (featureDefinition) {
-                        return featureDefinition(parser, runtime, tokens);
+                    if (tokens.matchOpToken("(")) {
+                        var featureDefinition = parser.requireElement("feature", tokens);
+                        tokens.requireOpToken(")");
+                        return featureDefinition;
+                    } else {
+                        var featureDefinition = FEATURES[tokens.currentToken().value];
+                        if (featureDefinition) {
+                            return featureDefinition(parser, runtime, tokens);
+                        }
                     }
                 })
 
                 addGrammarElement("command", function(parser, runtime, tokens) {
-                    var commandDefinition = COMMANDS[tokens.currentToken().value];
-                    if (commandDefinition) {
-                        return commandDefinition(parser, runtime, tokens);
+                    if (tokens.matchOpToken("(")) {
+                        var commandDefinition = parser.requireElement("command", tokens);
+                        tokens.requireOpToken(")");
+                        return commandDefinition;
+                    } else {
+                        var commandDefinition = COMMANDS[tokens.currentToken().value];
+                        if (commandDefinition) {
+                            return commandDefinition(parser, runtime, tokens);
+                        }
                     }
                 })
 
@@ -638,6 +657,7 @@
                     if (token.value == "end" ||
                         token.value == "then" ||
                         token.value == "else" ||
+                        token.value == ")" ||
                         commandStart(token) ||
                         featureStart(token) ||
                         token.type == "EOF") {
@@ -715,6 +735,16 @@
                 },
                 "Array" : function(val){
                     return Array.from(val);
+                },
+                "JSON" : function(val){
+                    return JSON.stringify(val);
+                },
+                "Object" : function(val){
+                    if (typeof val === 'string' || val instanceof String) {
+                        return JSON.parse(val);
+                    } else {
+                        return mergeObjects({}, val);
+                    }
                 }
             }
             var _runtime = function () {
@@ -1268,7 +1298,7 @@
                     var stringToken = tokens.matchTokenType('STRING');
                     if (stringToken) {
                         var rawValue = stringToken.value;
-                        if (rawValue.indexOf("$") >= 0) {
+                        if (stringToken.template) {
                             var innerTokens = _lexer.tokenize(rawValue, true);
                             var args = parser.parseStringTemplate(innerTokens);
                         } else {
@@ -2042,8 +2072,8 @@
                         do {
                             var feature = parser.requireElement("feature", tokens);
                             features.push(feature);
-                            var chainedOn = feature.type === "onFeature" && tokens.currentToken() && tokens.currentToken().value === "on";
-                        } while ((chainedOn || tokens.matchToken("end")) && tokens.hasMore())
+                            tokens.matchToken("end"); // optional end
+                        } while (parser.featureStart(tokens.currentToken()) || tokens.currentToken().value === "(")
                         if (tokens.hasMore()) {
                             parser.raiseParseError(tokens);
                         }
@@ -2079,7 +2109,12 @@
                                 displayName = "on " + eventName;
                             }
                             var args = [];
-                            if (tokens.matchOpToken("(")) {
+                            // handle argument list (look ahead 3)
+                            if (tokens.token(0).value === "(" &&
+                                (tokens.token(1).value === ")" ||
+                                    tokens.token(2).value === "," ||
+                                    tokens.token(2).value === ")")) {
+                                tokens.matchOpToken("(");
                                 do {
                                     args.push(tokens.requireTokenType('IDENTIFIER'));
                                 } while (tokens.matchOpToken(","))

@@ -414,6 +414,23 @@
         }
     })
 
+    function putInto(context, prop, valueToPut){
+        if (prop) {
+            var value = context[prop];
+        } else {
+            var value = context;
+        }
+        if (value instanceof Element || value instanceof HTMLDocument) {
+            value.innerHTML = valueToPut;
+        } else {
+            if (prop) {
+                context[prop] = valueToPut;
+            } else {
+                throw "Don't know how to put a value into " + typeof context;
+            }
+        }
+    }
+
     _hyperscript.addCommand("put", function(parser, runtime, tokens) {
         if (tokens.matchToken('put')) {
             var value = parser.requireElement("expression", tokens);
@@ -434,18 +451,16 @@
             var target = parser.requireElement("target", tokens);
 
             var operation = operationToken.value;
-            var symbolWrite = target.type === "symbol" && operation === "into";
-            if (target.type !== "symbol" && operation === "into" && target.root == null) {
-                parser.raiseParseError(tokens, "Can only put directly into symbols, not references")
-            }
 
+            var symbolWrite = false;
             var root = null;
             var prop = null;
-            if (symbolWrite) {
-                // root is null
-            } else if (operation === "into") {
+            if (target.type === "propertyAccess" && operation === "into") {
                 prop = target.prop.value;
                 root = target.root;
+            } else if(target.type === "symbol" && operation === "into") {
+                symbolWrite = true;
+                prop = target.name;
             } else {
                 root = target;
             }
@@ -458,11 +473,12 @@
                 args: [root, value],
                 op: function (context, root, valueToPut) {
                     if (symbolWrite) {
+                        putInto(context, prop, valueToPut);
                         context[target.name] = valueToPut;
                     } else {
                         if (operation === "into") {
                             runtime.forEach(root, function (elt) {
-                                elt[prop] = valueToPut;
+                                putInto(elt, prop, valueToPut);
                             })
                         } else if (operation === "before") {
                             runtime.forEach(root, function (elt) {
@@ -499,9 +515,8 @@
             var properties = [];
             var from = [];
             var to = [];
-            while (tokens.hasMore() &&
-            !parser.commandBoundary(tokens.currentToken()) &&
-            tokens.currentToken().value !== "using") {
+            var currentToken = tokens.currentToken();
+            while (!parser.commandBoundary(currentToken) && currentToken.value !== "using") {
                 properties.push(tokens.requireTokenType("IDENTIFIER").value);
                 if (tokens.matchToken("from")) {
                     from.push(parser.requireElement("stringLike", tokens));
@@ -509,7 +524,8 @@
                     from.push(null);
                 }
                 tokens.requireToken("to");
-                to.push(parser.requireElement("stringLike" , tokens));
+                to.push(parser.requireElement("stringLike", tokens));
+                currentToken = tokens.currentToken();
             }
             if (tokens.matchToken("using")) {
                 var using = parser.requireElement("expression", tokens);

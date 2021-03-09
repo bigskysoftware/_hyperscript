@@ -1,5 +1,12 @@
 describe("the _hyperscript parser", function() {
 
+    beforeEach(function () {
+        clearWorkArea();
+    });
+    afterEach(function () {
+        clearWorkArea();
+    });
+
     it("basic parse error messages work", function () {
         var msg = getParseErrorFor('add - to');
         startsWith(msg, "Expected either a class reference or attribute expression")
@@ -29,6 +36,13 @@ describe("the _hyperscript parser", function() {
 
     it("can have comments in attributes", function(){
         var div = make("<div _='on click put \"clicked\" into my.innerHTML -- put some content into the div...'></div>")
+        div.click();
+        div.innerText.should.equal("clicked");
+    })
+
+    it("can support parenthesized commands and features", function(){
+        var div = make( "<div _='(on click (log me) (trigger foo))" +
+            "                (on foo (put \"clicked\" into my.innerHTML))'></div>")
         div.click();
         div.innerText.should.equal("clicked");
     })

@@ -41,6 +41,21 @@ describe("as operator", function() {
         result.should.equal(Date(1));
     })
 
+    it("converts value as JSON", function () {
+        var result = evalHyperScript("{foo:'bar'} as JSON")
+        result.should.equal('{"foo":"bar"}');
+    })
+
+    it("converts string as Object", function () {
+        var result = evalHyperScript("'{\"foo\":\"bar\"}' as Object")
+        result['foo'].should.equal('bar');
+    })
+
+    it("converts value as Object", function () {
+        var result = evalHyperScript("x as Object", {x:{foo:"bar"}})
+        result["foo"].should.equal('bar');
+    })
+
     it("can accept custom comversions", function () {
         _hyperscript.config.conversions["Foo"] = function(val){
             return "foo" + val;
