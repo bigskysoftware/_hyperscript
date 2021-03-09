@@ -1,158 +1,212 @@
 ///=========================================================================
-/// This module provides the worker feature for hyperscript
+/// This module provides the EventSource (SSE) feature for hyperscript
 ///=========================================================================
+
+// QUESTION: Is it OK to pack additional data into the "Feature" struct that's returned?
+// TODO: Add methods for EventSourceFeature.connect() and EventSourceFeature.close()
+
+/**
+ * @typedef {{name: string, eventSource: EventSource, install: () => void }} Feature
+ * @typedef {{meta: object, me: Element, event:Event, target: Element, detail: any, body: Document}} Context
+ * @typedef {{name: string, eventSource: EventSource, listeners: Object.<string, EventHandlerNonNull>, retryCount: number, install: () => void, connect: () => void }} EventSourceFeature
+ */
+
 (function () {
 
-    // Decodes/Unmarshals a string based on the selected encoding.  If the 
-    // encoding is not recognized, attempts to auto-detect based on its content
-    function decode(data, encoding) {
+	/**
+	 * eventSource defines the `eventsource` feature (SSE) for hyperscript
+	 * 
+	 * @param {*} parser 
+	 * @param {*} runtime 
+	 * @param {*} tokens 
+	 * @returns {Feature}
+	 */
+	function eventSource(parser, runtime, tokens) {
 
-        // Force string encoding
-        if (encoding == "string") {
-            return data
-        }
+		if (tokens.matchToken('eventsource')) {
 
-        // Force JSON encoding
-        if (encoding == "json") {
-            return JSON.parse(data)
-        }
+			/**
+			 * Get the name we'll assign to this EventSource in the hyperscript context
+			 * @type {string}
+			 */
+			var name = parser.requireElement("dotOrColonPath", tokens).evaluate();
+			var nameSpace = name.split(".");
+			var eventSourceName = nameSpace.pop();
 
-        // Otherwise, try to autodetect encoding
-        try {
-            return JSON.parse(data)
-        } catch (e) {
-            return data
-        }
-    }
+			// Get the URL of the EventSource
+			var url = parser.requireElement("stringLike", tokens);
 
-    _hyperscript.addFeature("eventsource", function(parser, runtime, tokens) {
+			// Get option to connect with/without credentials
+			var withCredentials = false;
 
-        if (tokens.matchToken('eventsource')) {
+			if (tokens.matchToken("with")) {
+				if (tokens.matchToken("credentials")) {
+					withCredentials = true;
+				}
+			}
 
-            // Adds a "HALT" command to the commandList.
-            // TODO: This seems like something that could be optimized:
-            // maybe the parser could do automatically,
-            // or could be a public function in the parser available to everyone,
-            // or the command-executer-thingy could just handle nulls implicitly.
-            function addImplicitReturnToCommandList(commandList) {
+			/**
+			 * Create the "feature" that will be returned by this function.
+			 * @type {EventSourceFeature} 
+			*/
+			var feature = {
+				name: eventSourceName,
+				eventSource: null,
+				listeners: {},
+				retryCount: 0,
+				install: function () {
+					runtime.assignToNamespace(nameSpace, eventSourceName, eventSource)
+				}, 
+				connect: function () {
 
-                if (commandList.next) {
-                    return addImplicitReturnToCommandList(commandList.next)
-                }
+					// Guard ensures that =EventSource is empty, or already closed.
+					if (feature.eventSource != null) {
+						if (feature.eventSource.readyState != EventSource.CLOSED) {
+							return 
+						}
+					}
+	
+					// Open the EventSource and get ready to populate event handlers
+					feature.eventSource = new EventSource(url.evaluate(), {withCredentials:withCredentials});
+	
+					// On successful connection.  Reset retry count.
+					feature.eventSource.onopen = function(event) {
+						feature.retryCount = 0;
+					}
+	
+					// On connection error, use exponential backoff to retry (random values from 1 second to 2^7 (128) seconds
+					feature.eventSource.onerror = function(event) {
 
-                commandList.next = {
-                    type: "implicitReturn",
-                    op: function (context) {
-                        return runtime.HALT;
-                    },
-                    execute: function (context) {
-                        // do nothing
-                    }
-                }
-            }
+						// If the EventSource is closed, then try to reopen
+						if (feature.eventSource.readyState == EventSource.CLOSED) {
+							feature.retryCount = Math.min(7, feature.retryCount + 1);
+							var timeout = Math.random() * (2 ^ feature.retryCount) * 500;
+							window.setTimeout(feature.connect, timeout);
+						}
+					}
+	
+					// Add event listeners
+					for (var key in feature.listeners) {
+						feature.eventSource.addEventListener(key, feature.listeners[key]);
+					}
+				}
+			};
 
-            // Makes an eventListener funtion that can execute the correct hyperscript commands
-            // This is outside of the main loop so that closures don't cause us to run the wrong commands.
-            function makeListener(eventSource, eventSourceFeature, eventName, encoding, commandList) {
-                return function(evt) {
-                    var data = decode(evt.data, encoding);
-                    var context = runtime.makeContext(eventSource, eventSourceFeature, eventSource);
-                    context.event = evt;
-                    context.it = data;
+			// Parse each event listener and add it into the list
+			while (tokens.matchToken("on")) {
+				
+				// get event name
+				var eventName = parser.requireElement("dotOrColonPath", tokens, "Expected event name").evaluate();  // OK to evaluate this in real-time?
 
-                    commandList.execute(context);    
-                }
-            }
+				// default encoding is "" (autodetect)
+				var encoding = ""
 
-            // Get the name we'll assign to this EventSource in the hyperscript context
-            var name = parser.requireElement("dotOrColonPath", tokens);
-            var qualifiedName = name.evaluate();
-            var nameSpace = qualifiedName.split(".");
-            var eventSourceName = nameSpace.pop();
+				// look for alternate encoding
+				if (tokens.matchToken("as")) {
+					encoding = parser.requireElement("stringLike", tokens, "Expected encoding type").evaluate() // Ok to evaluate this in real time?
+				}
 
-            // Get the URL of the EventSource
-            var url = parser.requireElement("stringLike", tokens);
+				// get command list for this event handler
+				var commandList = parser.requireElement("commandList", tokens);
+				addImplicitReturnToCommandList(commandList)
+				tokens.requireToken("end")
 
-            // Get option to connect with/without credentials
-            var withCredentials = false;
+				// Save the event listener into the feature.  This lets us
+				// connect listeners to new EventSources if we have to reconnect.
+				feature.listeners[eventName] = makeListener(encoding, commandList)
+			}
 
-            if (tokens.matchToken("with")) {
+			tokens.requireToken("end")
 
-                if (tokens.matchToken("credentials")) {
-                    withCredentials = true;
-                }
-            }
+			// Connect to the remote server
+			feature.connect()
 
-            // Open the EventSource and get ready to populate event handlers
-            var eventSource = new EventSource(url.evaluate(), {withCredentials:withCredentials});
+			// Success!
+			return feature;
 
-            var eventSourceFeature = {
-                name: eventSourceName,
-                eventSource: eventSource,
-                install: function () {
-                    runtime.assignToNamespace(nameSpace, eventSourceName, eventSource)
-                }
-            };
 
-            // Connect event listeners
-            while (tokens.matchToken("on")) {
-                
-                // get event name
-                var eventName = parser.requireElement("dotOrColonPath", tokens, "Expected event name").evaluate();  // OK to evaluate this in real-time?
+			////////////////////////////////////////////
+			// ADDITIONAL HELPER FUNCTIONS HERE...
+			////////////////////////////////////////////
 
-                // default encoding is "" (autodetect)
-                var encoding = ""
+			/**
+			 * Makes an eventListener funtion that can execute the correct hyperscript commands
+			 * This is outside of the main loop so that closures don't cause us to run the wrong commands.
+			 * 
+			 * @param {string} encoding 
+			 * @param {*} commandList 
+			 * @returns {EventHandlerNonNull}
+			 */
+			function makeListener(encoding, commandList) {
+				return function(evt) {
+					var data = decode(evt['data'], encoding);
+					var context = runtime.makeContext(feature.eventSource, feature, feature.eventSource);
+					context.event = evt;
+					context.it = data;
+					commandList.execute(context);    
+				}
+			}
 
-                // get alternate encoding
-                if (tokens.matchToken("as")) {
-                    encoding = parser.requireElement("stringLike", tokens, "Expected encoding type").evaluate() // Ok to evaluate this in real time?
-                }
+			/**
+			 * Decodes/Unmarshals a string based on the selected encoding.  If the 
+			 * encoding is not recognized, attempts to auto-detect based on its content
+			 * 
+			 * @param {string} data - The original data to be decoded
+			 * @param {string} encoding - The method that the data is currently encoded ("string", "json", or unknown)
+			 * @returns {string} - The decoded data
+			 */
+			function decode(data, encoding) {
 
-                // get command list for this event handler
-                var commandList = parser.requireElement("commandList", tokens);
-                addImplicitReturnToCommandList(commandList)
+				if (data == undefined) {
+					data = ""
+				}
 
-                tokens.requireToken("end")
+				// Force string encoding
+				if (encoding == "string") {
+					return data
+				}
 
-                // calling a function to create an event listener so that the closure is not overwritten by the "while" loop above.
-                var eventListener = makeListener(eventSource, eventSourceFeature, eventName, encoding, commandList)
+				// Force JSON encoding
+				if (encoding == "json") {
+					return JSON.parse(data)
+				}
 
-                // register the event listener
-                eventSource.addEventListener(eventName, eventListener)
-            }
+				// Otherwise, try to autodetect encoding
+				try {
+					return JSON.parse(data)
+				} catch (e) {
+					return data
+				}
+			}
 
-            tokens.requireToken("end")
+			/**
+			 * Adds a "HALT" command to the commandList.
+			 * TODO: This seems like something that could be optimized:
+			 * maybe the parser could do automatically,
+			 * or could be a public function in the parser available to everyone,
+			 * or the command-executer-thingy could just handle nulls implicitly.
+			 * 
+			 * @param {*} commandList 
+			 * @returns void
+			 */
+			function addImplicitReturnToCommandList(commandList) {
 
-            // TODO: eventSource.onopen()
-            // TODO: eventSource.onerror()
-            // TODO: eventSource.close()
+				if (commandList.next) {
+					return addImplicitReturnToCommandList(commandList.next)
+				}
 
-            /* clear eventSource on close to be recreated
-            eventSource.addEventListener('close', function(e){
-                console.log(e);
-                eventSource = null;
-            });
-            */
-
-            // This is experimental..  may be needed if browsers don't reconnect automatically...
-            eventSource.onerror = function(event) {
-                var txt;
-                switch( event.target.readyState ){
-                    case EventSource.CONNECTING:
-                        txt = 'Connecting...';
-                        break;
-                    case EventSource.CLOSED:
-                        txt = 'Closed...';
-                        // evtSource = new EventSource("../sse.php");
-                        //evtSource.onerror = evtSourceErrorHandler;
-                        break;
-                }
-                console.log(txt);
-            }
-
-            // TODO: How to remove the EventSource from the context.  Is there a `runtime.removeFromNamespace()` function?
-
-            return eventSourceFeature;
-        }
-    })
+				commandList.next = {
+					type: "implicitReturn",
+					op: function (_context) {
+						return runtime.HALT;
+					},
+					execute: function (_context) {
+						// do nothing
+					}
+				}
+			}				
+		}
+	}
+	
+	_hyperscript.addFeature("eventsource", eventSource)
 })()

@@ -1,0 +1,9 @@
+{
+    "compilerOptions": {
+        "strict": false,
+        "checkJs": true,
+        "outDir": "dist/lib",
+    },
+    "include": ["src/lib/*"],
+    "exclude": ["node_modules"],
+}
