@@ -3,6 +3,7 @@
         "strict": false,
         "checkJs": true,
         "outDir": "dist/lib",
+        "target":"ES2015"
     },
     "include": ["src/lib/*"],
     "exclude": ["node_modules"],

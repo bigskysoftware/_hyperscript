@@ -8,20 +8,13 @@
 /**
  * @typedef {{name: string, eventSource: EventSource, install: () => void }} Feature
  * @typedef {{meta: object, me: Element, event:Event, target: Element, detail: any, body: Document}} Context
- * @typedef {{name: string, eventSource: EventSource, listeners: Object.<string, EventHandlerNonNull>, retryCount: number, install: () => void, connect: () => void }} EventSourceFeature
+ * @typedef {{eventSource: EventSource, listeners: Object.<string, EventHandlerNonNull>, retryCount: number, connect: () => void, close: () => void }} EventSourceObject
+ * @typedef {{name: string, object: EventSourceObject, install: () => void}} EventSourceFeature
  */
 
 (function () {
 
-	/**
-	 * eventSource defines the `eventsource` feature (SSE) for hyperscript
-	 * 
-	 * @param {*} parser 
-	 * @param {*} runtime 
-	 * @param {*} tokens 
-	 * @returns {Feature}
-	 */
-	function eventSource(parser, runtime, tokens) {
+	 _hyperscript.addFeature("eventsource", function(parser, runtime, tokens) {
 
 		if (tokens.matchToken('eventsource')) {
 
@@ -45,50 +38,59 @@
 				}
 			}
 
+			/** @type EventSourceObject */
+			var stub = {
+				eventSource: null,
+				listeners: {},
+				retryCount: 0,
+				connect: function () {
+
+					// Guard ensures that =EventSource is empty, or already closed.
+					if (stub.eventSource != null) {
+						if (stub.eventSource.readyState != EventSource.CLOSED) {
+							return 
+						}
+					}
+	
+					// Open the EventSource and get ready to populate event handlers
+					stub.eventSource = new EventSource(url.evaluate(), {withCredentials:withCredentials});
+	
+					// On successful connection.  Reset retry count.
+					stub.eventSource.onopen = function(event) {
+						stub.retryCount = 0;
+					}
+	
+					// On connection error, use exponential backoff to retry (random values from 1 second to 2^7 (128) seconds
+					stub.eventSource.onerror = function(event) {
+
+						// If the EventSource is closed, then try to reopen
+						if (stub.eventSource.readyState == EventSource.CLOSED) {
+							stub.retryCount = Math.min(7, stub.retryCount + 1);
+							var timeout = Math.random() * (2 ^ stub.retryCount) * 500;
+							window.setTimeout(stub.connect, timeout);
+						}
+					}
+	
+					// Add event listeners
+					for (var key in stub.listeners) {
+						stub.eventSource.addEventListener(key, stub.listeners[key]);
+					}
+				},
+				close: function() {
+					stub.eventSource.close()
+					stub.retryCount = 0
+				}
+			}
+
 			/**
 			 * Create the "feature" that will be returned by this function.
 			 * @type {EventSourceFeature} 
 			*/
 			var feature = {
 				name: eventSourceName,
-				eventSource: null,
-				listeners: {},
-				retryCount: 0,
+				object: stub,
 				install: function () {
-					runtime.assignToNamespace(nameSpace, eventSourceName, eventSource)
-				}, 
-				connect: function () {
-
-					// Guard ensures that =EventSource is empty, or already closed.
-					if (feature.eventSource != null) {
-						if (feature.eventSource.readyState != EventSource.CLOSED) {
-							return 
-						}
-					}
-	
-					// Open the EventSource and get ready to populate event handlers
-					feature.eventSource = new EventSource(url.evaluate(), {withCredentials:withCredentials});
-	
-					// On successful connection.  Reset retry count.
-					feature.eventSource.onopen = function(event) {
-						feature.retryCount = 0;
-					}
-	
-					// On connection error, use exponential backoff to retry (random values from 1 second to 2^7 (128) seconds
-					feature.eventSource.onerror = function(event) {
-
-						// If the EventSource is closed, then try to reopen
-						if (feature.eventSource.readyState == EventSource.CLOSED) {
-							feature.retryCount = Math.min(7, feature.retryCount + 1);
-							var timeout = Math.random() * (2 ^ feature.retryCount) * 500;
-							window.setTimeout(feature.connect, timeout);
-						}
-					}
-	
-					// Add event listeners
-					for (var key in feature.listeners) {
-						feature.eventSource.addEventListener(key, feature.listeners[key]);
-					}
+					runtime.assignToNamespace(nameSpace, eventSourceName, stub)
 				}
 			};
 
@@ -113,13 +115,13 @@
 
 				// Save the event listener into the feature.  This lets us
 				// connect listeners to new EventSources if we have to reconnect.
-				feature.listeners[eventName] = makeListener(encoding, commandList)
+				stub.listeners[eventName] = makeListener(encoding, commandList)
 			}
 
 			tokens.requireToken("end")
 
 			// Connect to the remote server
-			feature.connect()
+			stub.connect()
 
 			// Success!
 			return feature;
@@ -140,7 +142,7 @@
 			function makeListener(encoding, commandList) {
 				return function(evt) {
 					var data = decode(evt['data'], encoding);
-					var context = runtime.makeContext(feature.eventSource, feature, feature.eventSource);
+					var context = runtime.makeContext(stub, feature, stub);
 					context.event = evt;
 					context.it = data;
 					commandList.execute(context);    
@@ -206,7 +208,5 @@
 				}
 			}				
 		}
-	}
-	
-	_hyperscript.addFeature("eventsource", eventSource)
+	})
 })()
