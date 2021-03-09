@@ -19,23 +19,42 @@
 </style>
 <script type="text/hyperscript">
 
-    eventsource MyEventSource http://localhost/posts.html?types=forme,other
+    eventsource MyEventSource http://localhost/posts.json?types=First,Second,Third,AsObject
 
-        on other as string
-            put it into #otherDiv.innerHTML
+        on First as string
+            put it into #FirstDiv.innerHTML
         end
 
-        on forme
-            put it into #divForMe.innerHTML
+        on Second as string
+            put it into #SecondDiv.innerHTML
         end
 
+        on Third as string
+            put it into #ThirdDiv.innerHTML
+        end
+
+        on AsObject as json
+            log it
+        end
+
+        -- on open, on close, on error...
     end
 
 </script>
 
-<div id="otherDiv"></div>
+<div>
+    <button script="on click call MyEventSource.connect() then log 'connected'">Connect</button>
+    <button script="on click call MyEventSource.close() then log 'closed'">Close</button>
+</div>
 
-<div id="divForMe"></div>
+<h3>First</h3>
+<div id="FirstDiv">Waiting...</div>
+
+<h3>Second</h3>
+<div id="SecondDiv">Waiting...</div>
+
+<h3>Third</h3>
+<div id="ThirdDiv">Waiting...</div>
 
 </body>
 </html>
