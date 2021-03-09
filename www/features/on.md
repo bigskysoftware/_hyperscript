@@ -3,7 +3,7 @@ layout: layout.njk
 title: ///_hyperscript
 ---
 
-## The `event hanlder` Feature
+## The `event handler` Feature
 
 ### Syntax
 
