@@ -1,0 +1,41 @@
+<!html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+
+</head>
+<body style="padding:20px;font-family: sans-serif">
+<script src="../../src/lib/core.js"></script>
+<script src="../../src/lib/web.js"></script>
+<script src="../../src/lib/eventsource.js"></script>
+
+<em>Server Sent Events Playground</em>
+<hr/>
+<style>
+    button {
+        padding: 12px;
+        margin: 12px
+    }
+</style>
+<script type="text/hyperscript">
+
+    eventsource MyEventSource http://localhost/posts.html?types=forme,other
+
+        on other as string
+            put it into #otherDiv.innerHTML
+        end
+
+        on forme
+            put it into #divForMe.innerHTML
+        end
+
+    end
+
+</script>
+
+<div id="otherDiv"></div>
+
+<div id="divForMe"></div>
+
+</body>
+</html>
