@@ -11,30 +11,27 @@
 
 <em>Server Sent Events Playground</em>
 <hr/>
-<style>
-    button {
-        padding: 12px;
-        margin: 12px
-    }
-</style>
 <script type="text/hyperscript">
 
-    eventsource MyEventSource http://localhost/posts.json?types=First,Second,Third,AsObject
+    eventsource MyEventSource http://localhost/users.json?types=First,Second,Third,AsObject
 
         on First as string
-            put it into #FirstDiv.innerHTML
+            put it into #FirstDiv
         end
 
         on Second as string
-            put it into #SecondDiv.innerHTML
+            put it into #SecondDiv
         end
 
         on Third as string
-            put it into #ThirdDiv.innerHTML
+            put it into #ThirdDiv
         end
 
         on AsObject as json
-            log it
+            put it.name into #name
+            put it.username into #username
+            put it.email into #email
+            log me
         end
 
         -- on open, on close, on error...
@@ -47,14 +44,19 @@
     <button script="on click call MyEventSource.close() then log 'closed'">Close</button>
 </div>
 
-<h3>First</h3>
+<h3>First Channel</h3>
 <div id="FirstDiv">Waiting...</div>
 
-<h3>Second</h3>
+<h3>Second Channel</h3>
 <div id="SecondDiv">Waiting...</div>
 
-<h3>Third</h3>
+<h3>Third Channel</h3>
 <div id="ThirdDiv">Waiting...</div>
+
+<h3>As JSON</h3>
+<div>Name: <span id="name">...</span></div>
+<div>Username: <span id="username">...</span></div>
+<div>Email: <span id="email"></span></div>
 
 </body>
 </html>
