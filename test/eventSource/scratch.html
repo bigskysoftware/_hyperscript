@@ -1,0 +1,62 @@
+<!html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+
+</head>
+<body style="padding:20px;font-family: sans-serif">
+<script src="../../src/lib/core.js"></script>
+<script src="../../src/lib/web.js"></script>
+<script src="../../src/lib/eventsource.js"></script>
+
+<em>Server Sent Events Playground</em>
+<hr/>
+<script type="text/hyperscript">
+
+    eventsource MyEventSource http://localhost/users.json?types=First,Second,Third,AsObject
+
+        on First as string
+            put it into #FirstDiv
+        end
+
+        on Second as string
+            put it into #SecondDiv
+        end
+
+        on Third as string
+            put it into #ThirdDiv
+        end
+
+        on AsObject as json
+            put it.name into #name
+            put it.username into #username
+            put it.email into #email
+            log me
+        end
+
+        -- on open, on close, on error...
+    end
+
+</script>
+
+<div>
+    <button script="on click call MyEventSource.connect() then log 'connected'">Connect</button>
+    <button script="on click call MyEventSource.close() then log 'closed'">Close</button>
+</div>
+
+<h3>First Channel</h3>
+<div id="FirstDiv">Waiting...</div>
+
+<h3>Second Channel</h3>
+<div id="SecondDiv">Waiting...</div>
+
+<h3>Third Channel</h3>
+<div id="ThirdDiv">Waiting...</div>
+
+<h3>As JSON</h3>
+<div>Name: <span id="name">...</span></div>
+<div>Username: <span id="username">...</span></div>
+<div>Email: <span id="email"></span></div>
+
+</body>
+</html>
