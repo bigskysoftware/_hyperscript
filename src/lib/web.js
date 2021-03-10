@@ -176,12 +176,39 @@
 
     _hyperscript.addCommand("toggle", function(parser, runtime, tokens) {
         if (tokens.matchToken('toggle')) {
-            var classRef = parser.parseElement("classRef", tokens);
+
+
+            var classRef = null
+            var classRefAlt = null;
             var attributeRef = null;
-            if (classRef == null) {
-                attributeRef = parser.parseElement("attributeRef", tokens);
-                if (attributeRef == null) {
-                    parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
+            var attributeRefAlt = null;
+
+            if (tokens.matchToken("between")) {
+
+                classRef = parser.parseElement("classRef", tokens);
+
+                if (classRef != null) {
+                    tokens.matchToken("and")
+                    classRefAlt = parser.requireElement("classRef", tokens)
+                } else {
+                    attributeRef = parser.parseElement("attributeRef", tokens);
+                    if (attributeRef == null) {
+                        parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
+                    }
+                    tokens.requireToken("and")
+                    attributeRefAlt = parser.requireElement("attributeRef", tokens);
+                }
+
+            } else {
+         
+                classRef = parser.parseElement("classRef", tokens)
+                
+                if (classRef == null) {
+
+                    attributeRef = parser.parseElement("attributeRef", tokens);
+                    if (attributeRef == null) {
+                        parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
+                    }
                 }
             }
 
@@ -202,33 +229,53 @@
 
             var toggleCmd = {
                 classRef: classRef,
+                classRefAlt: classRefAlt,
                 attributeRef: attributeRef,
+                attributeRefAlt: attributeRefAlt,
                 on: on,
                 time: time,
                 evt: evt,
                 from: from,
-                toggle: function (on, value) {
+                toggle: function (on, value, valueAlt) {
                     if (this.classRef) {
                         runtime.forEach(on, function (target) {
-                            target.classList.toggle(classRef.className())
+                            var className = classRef.className();
+
+                            if (target.classList.contains(className)) {
+                                target.classList.remove(className)
+                                if (classRefAlt != null) {
+                                    target.classList.add(classRefAlt.className())
+                                }
+                            } else {
+                                target.classList.add(className)
+                                if (classRefAlt != null) {
+                                    target.classList.remove(classRefAlt.className())
+                                }
+                            }
                         });
                     } else {
                         runtime.forEach(on, function (target) {
                             if (target.hasAttribute(attributeRef.name)) {
                                 target.removeAttribute(attributeRef.name);
+                                if (attributeRefAlt != null) {
+                                    target.setAttribute(attributeRefAlt.name, valueAlt)
+                                }
                             } else {
+                                if (attributeRefAlt != null) {
+                                    target.removeAttribute(attributeRefAlt.name)
+                                }
                                 target.setAttribute(attributeRef.name, value)
                             }
                         });
                     }
                 },
-                args: [on, attributeRef ? attributeRef.value : null, time, evt, from],
-                op: function (context, on, value, time, evt, from) {
+                args: [on, attributeRef ? attributeRef.value : null, attributeRefAlt ? attributeRefAlt.value : null, time, evt, from],
+                op: function (context, on, value, valueAlt, time, evt, from) {
                     if (time) {
                         return new Promise(function (resolve) {
-                            toggleCmd.toggle(on, value);
+                            toggleCmd.toggle(on, value, valueAlt);
                             setTimeout(function () {
-                                toggleCmd.toggle(on, value);
+                                toggleCmd.toggle(on, value, valueAlt);
                                 resolve(runtime.findNext(toggleCmd, context));
                             }, time);
                         });
@@ -236,13 +283,13 @@
                         return new Promise(function (resolve) {
                             var target = from || context.me;
                             target.addEventListener(evt, function () {
-                                toggleCmd.toggle(on, value);
+                                toggleCmd.toggle(on, value, valueAlt);
                                 resolve(runtime.findNext(toggleCmd, context));
                             }, {once: true})
-                            toggleCmd.toggle(on, value);
+                            toggleCmd.toggle(on, value, valueAlt);
                         });
                     } else {
-                        this.toggle(on, value);
+                        this.toggle(on, value, valueAlt);
                         return runtime.findNext(toggleCmd, context);
                     }
                 }
