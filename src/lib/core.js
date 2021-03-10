@@ -1642,13 +1642,52 @@
                             prop: prop,
                             args: [root],
                             op:function(context, rootVal){
-                                return runtime.resolveProperty(rootVal, prop.value);
+                                var value = runtime.resolveProperty(rootVal, prop.value);
+                                return value;
                             },
                             evaluate: function (context) {
                                 return runtime.unifiedEval(this, context);
                             }
                         };
                         return parser.parseElement("indirectExpression", tokens, propertyAccess);
+                    }
+                });
+
+                _parser.addIndirectExpression("of", function(parser, runtime, tokens, root) {
+                    if (tokens.matchToken("of")) {
+                        var newRoot = parser.requireElement('expression', tokens);
+                        // find the urroot
+                        var childOfUrRoot = null;
+                        var urRoot = root;
+                        while (urRoot.root) {
+                            childOfUrRoot = urRoot;
+                            urRoot = urRoot.root;
+                        }
+                        if (urRoot.type !== 'symbol') {
+                            parser.raiseParseError(tokens, "Cannot take a property of a non-symbol");
+                        }
+                        var prop = urRoot.name;
+                        var propertyAccess = {
+                            type: "ofExpression",
+                            root: newRoot,
+                            expression: root,
+                            args: [newRoot],
+                            op:function(context, rootVal){
+                                return runtime.resolveProperty(rootVal, prop);
+                            },
+                            evaluate: function (context) {
+                                return runtime.unifiedEval(this, context);
+                            }
+                        };
+
+                        if (childOfUrRoot) {
+                            childOfUrRoot.root = propertyAccess;
+                            childOfUrRoot.args = [propertyAccess];
+                        } else {
+                            root = propertyAccess;
+                        }
+
+                        return parser.parseElement("indirectExpression", tokens, root);
                     }
                 });
 
