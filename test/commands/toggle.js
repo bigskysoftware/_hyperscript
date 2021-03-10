@@ -33,7 +33,6 @@ describe("the toggle command", function() {
         var div = make("<div _='on click toggle [foo=\"bar\"]'></div>");
         div.hasAttribute("foo").should.equal(false);
         div.click();
-        console.log(div, div.getAttribute)
         div.getAttribute("foo").should.equal("bar");
         div.click();
         div.hasAttribute("foo").should.equal(false);
