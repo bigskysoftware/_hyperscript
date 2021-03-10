@@ -1,0 +1,101 @@
+---
+layout: layout.njk
+title: ///_hyperscript #_
+---
+
+## The `eventsource` feature
+
+### Installing
+
+Note: if you want the event source feature, you must either use the "Whole 9 Yards" release of hyperscript, or include the `/dist/eventsource.js` file.
+
+### Syntax
+
+`eventsource <source-name> <source-url>[on <event-name> (as <encoding>) <commands> end] end`
+
+* `source-name` is a name for the event source. This is available in the current hypertext scope and exposes additional data about the browser [EventSource](https://developer.mozilla.org/en-US/docs/Web/API/EventSource) object.
+* `source-url` is the server address that generates the SSE data stream.
+* `event-name` is the name of the event as designated by the server.  If the server does not include an event name, then use "message" instead.
+* `encoding` is an optional parameter that can contain either "json" or "string".  If the encoding is left blank (or is unrecognized) then _hyperscript attempts to auto-detect the encoding based on its contents.
+* `command` is one or more commands to execute on the data every time an SSE message is received.
+
+### Description
+
+[Server Sent Events](https://en.wikipedia.org/wiki/Server-sent_events) are a simple way for your web server to push information directly to your clients that is [supported by all modern browsers](https://caniuse.com/eventsource).  They provide real-time, uni-directional communication from your server to a browser.  Server Sent Events cannot sent information back to your server.  If you need two-way communication, consider implementing[WebSockets](/features/socket/) instead.
+
+SSE connections can require substantial lot of work to set up and maintain.  For example, browsers are supposed to reconnect to a failed SSE stream automatically, but their behavior differs.  Hyperscript manages everything for you, and reconnects connections that have failed, so your code only has handle incoming messages.
+
+```hyperscript
+eventsource ChatUpdates http://myserver.com/chat-updates
+
+  on newMessage as json
+    log it
+  end
+
+  on updateMessage as json
+    log it
+  end
+
+end
+```
+
+#### About Event Names
+
+The SSE specification requires that every event listener must declare a specific event name that it will listen to.  There is no ability to designate a "catch all" handler for any unnamed events.  This means that you will need to know exactly what event names are being sent, and will need to write specific event handlers for each one.
+
+However, servers can also send SSE messages with *no name* attached to them.  In this case use an `on message` handler to catch unnamed events.
+
+#### Decoding Messages
+
+You can specify two different ways to decode the message contents.  If you include `as string` in the message handler declaration, then the contents of the message will be populated in the handler exactly as they were sent, as a string.
+
+Instead, if you specify `as json`, then hyperscript will parse the message as a JSON formatted string.  If the data is not valid JSON, then it will throw an error
+
+Last, if you do not specify any encoding, then hyperscript will attempt to detect the message format.  If it is valid JSON, then it is parsed and populated in this form.  Otherwise, it will be populated as a string.
+
+#### The EventSource Variable
+
+When you define an event source, it places a stub variable inside the current scope.  This variable stores the raw EventSource object provided by the browser, tracks connection retries, and publishes two useful methods that you can use within hyperscript. (see below for an example)
+
+* `start` connects to the configured server address.  If the connection has already been established, then no further action is taken.
+* `stop` disconnects from the configured server address.  If the connection has already been closed, then no further action is taken.
+
+#### Other Values Available To SSE Event Handlers
+
+The following variables are populated within the event handler's scope when it is executed.
+
+* `me` is a reference to the EventSource object.  Additional data and methods are also available.  Outside of the event handler, this object is also available under the \<source-name\> provided.
+* `it` is the contents of the SSE message that was received.
+* `event` contains the raw event data
+
+
+
+### Example
+
+#### Updating Records In Real-Time
+
+```html
+
+<script type="text/hyperscript">
+eventsource RecordUpdatee http://server-name/record-updater
+
+    on message as json
+        put it.name into #name
+        put it.username into #username
+        put it.email into #email
+        log me
+    end
+
+end
+</script>
+
+<div>
+    <button script="on click call RecordUpdater.start()">Connect</button>
+    <button script="on click call RecordUpdater.stop()">Close</button>
+</div>
+
+<h3>Real-Time Record</h3>
+<div>Name: <span id="name">...</span></div>
+<div>Username: <span id="username">...</span></div>
+<div>Email: <span id="email"></span></div>
+```

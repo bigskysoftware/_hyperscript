@@ -8,7 +8,7 @@
 /**
  * @typedef {{name: string, eventSource: EventSource, install: () => void }} Feature
  * @typedef {{meta: object, me: Element, event:Event, target: Element, detail: any, body: Document}} Context
- * @typedef {{eventSource: EventSource, listeners: Object.<string, EventHandlerNonNull>, retryCount: number, connect: () => void, close: () => void }} EventSourceObject
+ * @typedef {{eventSource: EventSource, listeners: Object.<string, EventHandlerNonNull>, retryCount: number, start: () => void, stop: () => void }} EventSourceObject
  * @typedef {{name: string, object: EventSourceObject, install: () => void}} EventSourceFeature
  */
 
@@ -43,7 +43,7 @@
 				eventSource: null,
 				listeners: {},
 				retryCount: 0,
-				connect: function () {
+				start: function () {
 
 					// Guard ensures that =EventSource is empty, or already closed.
 					if (stub.eventSource != null) {
@@ -76,7 +76,7 @@
 						stub.eventSource.addEventListener(key, stub.listeners[key]);
 					}
 				},
-				close: function() {
+				stop: function() {
 					stub.eventSource.close()
 					stub.retryCount = 0
 				}
@@ -121,7 +121,7 @@
 			tokens.requireToken("end")
 
 			// Connect to the remote server
-			stub.connect()
+			stub.start()
 
 			// Success!
 			return feature;
