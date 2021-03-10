@@ -2929,7 +2929,11 @@
                 }
                 _parser.addCommand("call", function(parser, runtime, tokens) {
                     if (tokens.matchToken('call')) {
-                        return parseCallOrGet(parser, runtime, tokens);
+                        var call = parseCallOrGet(parser, runtime, tokens);
+                        if (call.expr && call.expr.type !== "functionCall") {
+                            parser.raiseParseError(tokens, "Must be a function invocation");
+                        }
+                        return call;
                     }
                 })
                 _parser.addCommand("get", function(parser, runtime, tokens) {
