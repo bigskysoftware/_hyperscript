@@ -68,8 +68,6 @@ The following variables are populated within the event handler's scope when it i
 * `it` is the contents of the SSE message that was received.
 * `event` contains the raw event data
 
-
-
 ### Example
 
 #### Updating Records In Real-Time
