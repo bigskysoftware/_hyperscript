@@ -176,12 +176,20 @@
 
     _hyperscript.addCommand("toggle", function(parser, runtime, tokens) {
         if (tokens.matchToken('toggle')) {
-            var classRef = parser.parseElement("classRef", tokens);
-            var attributeRef = null;
-            if (classRef == null) {
-                attributeRef = parser.parseElement("attributeRef", tokens);
-                if (attributeRef == null) {
-                    parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
+
+            if (tokens.matchToken('between')) {
+                var between = true;
+                var classRef = parser.parseElement("classRef", tokens);
+                tokens.requireToken("and");
+                var classRef2 = parser.requireElement("classRef", tokens);
+            } else {
+                var classRef = parser.parseElement("classRef", tokens);
+                var attributeRef = null;
+                if (classRef == null) {
+                    attributeRef = parser.parseElement("attributeRef", tokens);
+                    if (attributeRef == null) {
+                        parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
+                    }
                 }
             }
 
@@ -202,6 +210,7 @@
 
             var toggleCmd = {
                 classRef: classRef,
+                classRef2: classRef2,
                 attributeRef: attributeRef,
                 on: on,
                 time: time,
@@ -209,9 +218,21 @@
                 from: from,
                 toggle: function (on, value) {
                     if (this.classRef) {
-                        runtime.forEach(on, function (target) {
-                            target.classList.toggle(classRef.className())
-                        });
+                        if (between) {
+                            runtime.forEach(on, function (target) {
+                                if (target.classList.contains(classRef.className())) {
+                                    target.classList.remove(classRef.className());
+                                    target.classList.add(classRef2.className());
+                                } else {
+                                    target.classList.add(classRef.className());
+                                    target.classList.remove(classRef2.className());
+                                }
+                            });
+                        } else {
+                            runtime.forEach(on, function (target) {
+                                target.classList.toggle(classRef.className())
+                            });
+                        }
                     } else {
                         runtime.forEach(on, function (target) {
                             if (target.hasAttribute(attributeRef.name)) {

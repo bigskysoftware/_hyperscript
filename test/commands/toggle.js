@@ -62,6 +62,19 @@ describe("the toggle command", function() {
         }, 1);
     })
 
+    it("can toggle between two classes", function () {
+        var div = make("<div class='foo' _='on click toggle between .foo and .bar'></div>");
+        div.classList.contains("foo").should.equal(true);
+        div.classList.contains("bar").should.equal(false);
+        div.click();
+        div.classList.contains("foo").should.equal(false);
+        div.classList.contains("bar").should.equal(true);
+        div.click();
+        div.classList.contains("foo").should.equal(true);
+        div.classList.contains("bar").should.equal(false);
+    })
+
+
 
 });
 
