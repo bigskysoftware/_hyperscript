@@ -15,6 +15,18 @@
 
     eventsource MyEventSource http://localhost/users.json?types=First,Second,Third,AsObject
 
+        on open 
+            log "connected"
+        end
+
+        on close
+            log "disconnect"
+        end
+
+        on error
+            log "error"
+        end
+
         on First as string
             put it into #FirstDiv
         end
@@ -31,17 +43,15 @@
             put it.name into #name
             put it.username into #username
             put it.email into #email
-            log me
         end
 
-        -- on open, on close, on error...
     end
 
 </script>
 
 <div>
-    <button script="on click call MyEventSource.start() then log 'connected'">Connect</button>
-    <button script="on click call MyEventSource.stop() then log 'closed'">Close</button>
+    <button script="on click call MyEventSource.open() then log 'connected'">Connect</button>
+    <button script="on click call MyEventSource.close() then log 'closed'">Close</button>
 </div>
 
 <h3>First Channel</h3>
