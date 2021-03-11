@@ -95,5 +95,12 @@ describe("the set command", function() {
         }
     })
 
+	it("can set many properties at once with object literal", function() {
+		window.obj = {foo: 1};
+		make("<div _='on click set {bar: 2, baz: 3} on obj'></div>").click();
+		obj.should.deep.equal({foo: 1, bar: 2, baz: 3});
+		delete window.obj;
+	})
+
 });
 
