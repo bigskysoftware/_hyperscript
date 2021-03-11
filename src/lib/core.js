@@ -1506,6 +1506,7 @@
                     if (identifier) {
                         return {
                             type: "symbol",
+                            token: identifier,
                             name: identifier.value,
                             evaluate: function (context) {
                                 return runtime.resolveSymbol(identifier.value, context);
@@ -1669,6 +1670,7 @@
                         var prop = urRoot.name;
                         var propertyAccess = {
                             type: "ofExpression",
+                            prop: urRoot.token,
                             root: newRoot,
                             expression: root,
                             args: [newRoot],
@@ -2088,13 +2090,14 @@
                 });
 
                 _parser.addGrammarElement("expression", function(parser, runtime, tokens) {
+                    tokens.matchToken("the"); // optional the
                     return parser.parseElement("asyncExpression", tokens);
                 });
 
                 _parser.addGrammarElement("target", function(parser, runtime, tokens) {
                     var expr = _parser.parseElement("expression", tokens);
                     if (expr.type === "symbol" || expr.type === "idRef" || expr.type === "inExpression" ||
-                        expr.type === "queryRef" || expr.type === "classRef" ||
+                        expr.type === "queryRef" || expr.type === "classRef" || expr.type === "ofExpression" ||
                         expr.type === "propertyAccess") {
                         return expr;
                     } else {

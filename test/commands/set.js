@@ -13,6 +13,30 @@ describe("the set command", function() {
         d1.innerHTML.should.equal("foo");
     })
 
+    it("can set indirect properties", function(){
+        var d1 = make("<div id='d1' _='on click set innerHTML of #d1 to \"foo\"'></div>");
+        d1.click();
+        d1.innerHTML.should.equal("foo");
+    })
+
+    it("can set complex indirect properties lhs", function(){
+        var d1 = make("<div _='on click set parentNode.innerHTML of #d1 to \"foo\"'><div id='d1'></div></div>");
+        d1.click();
+        d1.innerHTML.should.equal("foo");
+    })
+
+    it("can set complex indirect properties rhs", function(){
+        var d1 = make("<div _='on click set innerHTML of #d1.parentNode to \"foo\"'><div id='d1'></div></div>");
+        d1.click();
+        d1.innerHTML.should.equal("foo");
+    })
+
+    it("can set chained indirect properties", function(){
+        var d1 = make("<div _='on click set the innerHTML of the parentNode of #d1 to \"foo\"'><div id='d1'></div></div>");
+        d1.click();
+        d1.innerHTML.should.equal("foo");
+    })
+
     it("can set styles", function(){
         var d1 = make("<div _='on click set my.style.color to \"red\"'>lolwat</div>");
         d1.click();
