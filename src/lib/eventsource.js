@@ -112,7 +112,7 @@
 			while (tokens.matchToken("on")) {
 				
 				// get event name
-				var eventName = parser.requireElement("dotOrColonPath", tokens, "Expected event name").evaluate();  // OK to evaluate this in real-time?
+				var eventName = parser.requireElement("stringLike", tokens, "Expected event name").evaluate();  // OK to evaluate this in real-time?
 
 				// default encoding is "" (autodetect)
 				var encoding = "";
