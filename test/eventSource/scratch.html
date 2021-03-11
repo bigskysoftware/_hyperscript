@@ -13,34 +13,55 @@
 <hr/>
 <script type="text/hyperscript">
 
-    eventsource MyEventSource http://localhost/users.json?types=First,Second,Third,AsObject
+    eventsource MyEventSource http://localhost/users.json?types=First,WithNumber1,WithColon:2,WithDash-3,InQuotes,AsObject
+
+        on open 
+            log "connected"
+        end
+
+        on close
+            log "disconnect"
+        end
+
+        on error
+            log "error"
+        end
 
         on First as string
             put it into #FirstDiv
         end
 
-        on Second as string
+        on WithNumber1 as string
             put it into #SecondDiv
         end
 
-        on Third as string
+        on WithColon:2 as string
             put it into #ThirdDiv
         end
+
+        on WithDash-3 as string
+            put it into #FourthDiv
+        end
+
+        on "InQuotes" as string
+            put it into #FifthDiv
+        end
+
 
         on AsObject as json
             put it.name into #name
             put it.username into #username
             put it.email into #email
-            log me
         end
 
-        -- on open, on close, on error...
     end
+
+    on First from MyEventSource log "Received event in external script"
 
 </script>
 
 <div>
-    <button script="on click call MyEventSource.connect() then log 'connected'">Connect</button>
+    <button script="on click call MyEventSource.open() then log 'connected'">Connect</button>
     <button script="on click call MyEventSource.close() then log 'closed'">Close</button>
 </div>
 
@@ -52,6 +73,12 @@
 
 <h3>Third Channel</h3>
 <div id="ThirdDiv">Waiting...</div>
+
+<h3>Fourth Channel</h3>
+<div id="FourthDiv">Waiting...</div>
+
+<h3>Fifth Channel</h3>
+<div id="FifthDiv">Waiting...</div>
 
 <h3>As JSON</h3>
 <div>Name: <span id="name">...</span></div>
