@@ -311,7 +311,7 @@
                             } else if (OP_TABLE[currentChar()]) {
                                 tokens.push(consumeOp());
                             } else if (isReservedChar(currentChar())) {
-                                tokens.push(makeToken('RESERVED', currentChar))
+                                tokens.push(makeToken('RESERVED', currentChar()))
                             } else {
                                 if (position < source.length) {
                                     throw Error("Unknown token: " + currentChar() + " ");
