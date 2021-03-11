@@ -20,4 +20,18 @@ describe("the objectLiteral expression", function () {
         result.should.deep.equal({foo:true, bar:false});
     });
 
+    it("hyphens work in object literal field names", function () {
+        var result = evalHyperScript("{-foo:true, bar-baz:false}")
+        result.should.deep.equal({"-foo":true, "bar-baz":false});
+    });
+
+    it("expressions work in object literal field names", function () {
+    	window.foo = "bar";
+    	window.bar = function () { return "foo" };
+        var result = evalHyperScript("{[foo]:true, [bar()]:false}");
+        result.should.deep.equal({bar:true, foo:false});
+        delete window.foo;
+        delete window.bar;
+    });
+
 });

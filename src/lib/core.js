@@ -1447,7 +1447,8 @@
                 			evaluate: function() { return this.key }
                 		};
                 	} else if (tokens.matchOpToken("[")) {
-                		var expr = parser.parseElement("expression");
+                		var expr = parser.parseElement("expression", tokens);
+                		tokens.requireOpToken("]");
                 		return {
                 			type: "objectKey",
                 			expr: expr,
@@ -1460,9 +1461,11 @@
                 	} else {
                 		var key = "";
                 		do {
-                			token = tokens.matchTokenType("IDENTIFIER", "MINUS");
+                			token = tokens.matchTokenType("IDENTIFIER") || tokens.matchOpToken("-");
+                			if (token) console.debug("tok: ", token);
 							if (token) key += token.value;
                 		} while (token)
+                		console.debug("key: ", key)
                 		return {
 	               			type: "objectKey",
 	               			key: key,
