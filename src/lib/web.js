@@ -66,10 +66,14 @@
         if (tokens.matchToken("add")) {
             var classRef = parser.parseElement("classRef", tokens);
             var attributeRef = null;
+			var cssDeclaration = null;
             if (classRef == null) {
                 attributeRef = parser.parseElement("attributeRef", tokens);
                 if (attributeRef == null) {
-                    parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
+					cssDeclaration = parser.parseElement("objectLiteral", tokens);
+                    if (cssDeclaration == null) {
+                    	parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
+                    }
                 }
             }
 
@@ -83,6 +87,7 @@
                 var addCmd = {
                     classRef: classRef,
                     attributeRef: attributeRef,
+					cssDeclaration: cssDeclaration,
                     to: to,
                     args: [to],
                     op: function (context, to) {
@@ -92,11 +97,12 @@
                         return runtime.findNext(this, context);
                     }
                 }
-            } else {
+            } else if (attributeRef) {
                 var addCmd = {
                     type: "addCmd",
                     classRef: classRef,
                     attributeRef: attributeRef,
+					cssDeclaration: cssDeclaration,
                     to: to,
                     args: [to, attributeRef],
                     op: function (context, to, attrRef) {
@@ -109,7 +115,29 @@
                         return runtime.unifiedExec(this, ctx);
                     }
                 };
-            }
+            } else {
+	            var addCmd = {
+	                type: "addCmd",
+	                classRef: classRef,
+	                attributeRef: attributeRef,
+					cssDeclaration: cssDeclaration,
+	                to: to,
+	                args: [to, cssDeclaration],
+	                op: function (context, to, css) {
+	                    runtime.forEach(to, function (target) {
+	                        for (var key in css) {
+	                        	if (css.hasOwnProperty(key)) {
+	                        		target.style.setProperty(key, css[key]);
+	                        	}
+	                        }
+	                    })
+	                    return runtime.findNext(addCmd, context);
+	                },
+	                execute: function (ctx) {
+	                    return runtime.unifiedExec(this, ctx);
+	                }
+	            };
+	        }
             return addCmd
         }
     });
