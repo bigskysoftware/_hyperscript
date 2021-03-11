@@ -211,7 +211,7 @@
 
                     /**
                      * @param {string} value 
-                     * @returns Token | undefined
+                     * @returns (Token | undefined)
                      */
                     function requireOpToken(value) {
                         var token = matchOpToken(value);
@@ -222,6 +222,12 @@
                         }
                     }
 
+                    /**
+                     * @param {string} op1 
+                     * @param {string} op2 
+                     * @param {string} op3 
+                     * @returns (Token | undefined)
+                     */
                     function matchAnyOpToken(op1, op2, op3) {
                         for (var i = 0; i < arguments.length; i++) {
                             var opToken = arguments[i];
@@ -233,8 +239,8 @@
                     }
 
                     /**
-                         * @param {string} value 
-                     * @returns Token | undefined
+                     * @param {string} value 
+                     * @returns (Token | undefined)
                      */
                     function matchOpToken(value) {
                         if (currentToken() && currentToken().op && currentToken().value === value) {
@@ -242,6 +248,13 @@
                         }
                     }
 
+                    /**
+                     * @param {string} type1 
+                     * @param {string} type2 
+                     * @param {string} type3 
+                     * @param {string} type4 
+                     * @returns Token
+                     */
                     function requireTokenType(type1, type2, type3, type4) {
                         var token = matchTokenType(type1, type2, type3, type4);
                         if (token) {
@@ -251,12 +264,24 @@
                         }
                     }
 
+                    /**
+                     * @param {string} type1 
+                     * @param {string} type2 
+                     * @param {string} type3 
+                     * @param {string} type4 
+                     * @returns (Token | undefined)
+                     */
                     function matchTokenType(type1, type2, type3, type4) {
                         if (currentToken() && currentToken().type && [type1, type2, type3, type4].indexOf(currentToken().type) >= 0) {
                             return consumeToken();
                         }
                     }
 
+                    /**
+                     * @param {string} value 
+                     * @param {string} type 
+                     * @returns Token
+                     */
                     function requireToken(value, type) {
                         var token = matchToken(value, type);
                         if (token) {
@@ -266,6 +291,11 @@
                         }
                     }
 
+                    /**
+                     * @param {string} value 
+                     * @param {string} type 
+                     * @returns (Token | undefined)
+                     */
                     function matchToken(value, type) {
                         var type = type || "IDENTIFIER";
                         if (currentToken() && currentToken().value === value && currentToken().type === type) {
@@ -273,6 +303,9 @@
                         }
                     }
 
+                    /**
+                     * @returns Token
+                     */
                     function consumeToken() {
                         var match = tokens.shift();
                         consumed.push(match);
@@ -301,7 +334,7 @@
                     }
 
                     /**
-                         * @returns string
+                     * @returns string
                      */
                     function lastWhitespace() {
                         if (consumed[consumed.length - 1] && consumed[consumed.length - 1].type === "WHITESPACE") {
