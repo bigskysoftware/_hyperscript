@@ -3019,6 +3019,21 @@
 
                 _parser.addCommand("set", function(parser, runtime, tokens) {
                     if (tokens.matchToken('set')) {
+						if (tokens.currentToken().type === "L_BRACE") {
+							var obj = parser.requireElement("objectLiteral", tokens);
+							tokens.requireToken("on");
+							var target = parser.requireElement("expression", tokens);
+
+							return {
+								objectLiteral: obj,
+								target: target,
+								args: [obj, target],
+								op: function (ctx, obj, target) {
+									mergeObjects(target, obj);
+								}
+							}
+						}
+
                         var target = parser.requireElement("target", tokens);
 
                         tokens.requireToken("to");
