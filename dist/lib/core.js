@@ -2982,6 +2982,7 @@
                         }
                     };
 
+                    return pseudoCommand;
                 })
 
                 _parser.addCommand("set", function(parser, runtime, tokens) {

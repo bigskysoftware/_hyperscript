@@ -35,6 +35,16 @@ describe("pseudoCommands", function() {
         d1.bar.should.equal("foo");
     })
 
+    it("Basic instance function with implicit target followed by then", function(){
+        var d1 = make("<div id='d1' _='on click foo() then" +
+            "                                          put result into my.bar'></div>");
+        d1.foo = function(){
+            return "foo";
+        };
+        d1.click();
+        d1.bar.should.equal("foo");
+    })
+
 
 });
 
