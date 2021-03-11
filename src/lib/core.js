@@ -570,6 +570,8 @@
                         var commandDefinition = COMMANDS[tokens.currentToken().value];
                         if (commandDefinition) {
                             return commandDefinition(parser, runtime, tokens);
+                        } else if (tokens.currentToken().type === "IDENTIFIER" && tokens.token(1).value === "(") {
+                            return parser.requireElement("pseudoCommand", tokens);
                         }
                     }
                 })
@@ -2946,6 +2948,40 @@
                     if (tokens.matchToken('get')) {
                         return parseCallOrGet(parser, runtime, tokens);
                     }
+                })
+
+                _parser.addGrammarElement("pseudoCommand", function(parser, runtime, tokens) {
+                    var expr = parser.requireElement("primaryExpression", tokens);
+                    if (expr.type !== 'functionCall' && expr.root.type !== "symbol") {
+                        parser.raiseParseError("Implicit function calls must start with a simple function", tokens);
+                    }
+                    // optional "with"
+                    if (!tokens.matchToken("with") && parser.commandBoundary(tokens.currentToken())) {
+                        var target = parser.requireElement("implicitMeTarget", tokens);
+                    } else {
+                        var target = parser.requireElement("expression", tokens);
+                    }
+                    var functionName = expr.root.name;
+                    var functionArgs = expr.argExressions;
+
+                    var pseudoCommand = {
+                        type: "pseudoCommand",
+                        expr: expr,
+                        args: [target, functionArgs],
+                        op: function (context, target, args) {
+                            var func = target[functionName];
+                            if (func.hyperfunc) {
+                                args.push(context);
+                            }
+                            var result = func.apply(target, args);
+                            context.result = result;
+                            return runtime.findNext(pseudoCommand, context);
+                        },
+                        execute : function (context) {
+                            return runtime.unifiedExec(this, context);
+                        }
+                    };
+
                 })
 
                 _parser.addCommand("set", function(parser, runtime, tokens) {
