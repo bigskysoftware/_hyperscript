@@ -1561,15 +1561,6 @@
                     };
                 });
 
-                _parser.addGrammarElement("implicitAllTarget", function(parser, runtime, tokens) {
-                    return {
-                        type: "implicitAllTarget",
-                        evaluate: function (context) {
-                            return document.querySelectorAll("*");
-                        }
-                    };
-                });
-
                 _parser.addLeafExpression("boolean", function(parser, runtime, tokens) {
                     var booleanLiteral = tokens.matchToken("true") || tokens.matchToken("false");
                     if (booleanLiteral) {
@@ -2988,7 +2979,7 @@
                         parser.raiseParseError("Implicit function calls must start with a simple function", tokens);
                     }
                     // optional "with"
-                    if (!tokens.matchToken("with") && parser.commandBoundary(tokens.currentToken())) {
+                    if (!tokens.matchToken("on") && !tokens.matchToken("with") && parser.commandBoundary(tokens.currentToken())) {
                         var target = parser.requireElement("implicitMeTarget", tokens);
                     } else {
                         var target = parser.requireElement("expression", tokens);
@@ -3359,8 +3350,8 @@
                     addCommand: function (keyword, definition) {
                         _parser.addCommand(keyword, definition)
                     },
-                    addLeafExpression: function (keyword, definition) {
-                        _parser.addLeafExpression(definition)
+                    addLeafExpression: function (name, definition) {
+                        _parser.addLeafExpression(name, definition)
                     },
                     addIndirectExpression: function (keyword, definition) {
                         _parser.addIndirectExpression(definition)

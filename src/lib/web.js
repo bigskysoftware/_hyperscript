@@ -434,7 +434,7 @@
             if (tokens.matchToken("from")) {
                 var from = parser.requireElement("target", tokens);
             } else {
-                var from = parser.requireElement("implicitAllTarget")
+                var from = classRef;
             }
 
             if (tokens.matchToken("for")) {
@@ -642,6 +642,31 @@
                 }
             };
             return transition
+        }
+    });
+
+    _hyperscript.addLeafExpression('closestExpr', function (parser, runtime, tokens) {
+        if (tokens.matchToken('closest')) {
+            var expr = parser.parseElement("target", tokens);
+            if (expr.css == null) {
+                parser.raiseParseError(tokens, "Expected a CSS expression");
+            }
+            if (tokens.matchToken('to')) {
+                var to = parser.parseElement("target", tokens);
+            } else {
+                var to = parser.parseElement("implicitMeTarget", tokens);
+            }
+            return {
+                expr: expr,
+                to: to,
+                args: [to],
+                op: function (ctx, to) {
+                    return to == null ? null : to.closest(expr.css);
+                },
+                evaluate: function (context) {
+                    return runtime.unifiedEval(this, context);
+                }
+            }
         }
     });
 
