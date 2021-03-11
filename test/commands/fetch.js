@@ -40,7 +40,7 @@ describe("the fetch command", function() {
             status: 200,
             headers: {'Content-type': 'application/json'}
         })));
-        var div = make("<div _='on click fetch /test as json then call JSON.stringify(it) then put it into my.innerHTML'></div>");
+        var div = make("<div _='on click fetch /test as json then get result as JSON then put it into my.innerHTML'></div>");
         div.click();
         setTimeout(function () {
             div.innerHTML.should.equal("{\"foo\":1}");

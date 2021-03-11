@@ -1133,7 +1133,7 @@
                     if (str === "me" || str === "my" || str === "I") {
                         return context["me"];
                     } if (str === "it" || str === "its") {
-                        return context["it"];
+                        return context["result"];
                     } else {
                         if (context.meta && context.meta.context) {
                             var fromMetaContext = context.meta.context[str];
@@ -2362,7 +2362,7 @@
                                                 var inElement = evt.target;
                                                 while(true) {
                                                     if (inElement.matches && inElement.matches(eventSpec.inExpr.css)) {
-                                                        ctx.it = inElement;
+                                                        ctx.result = inElement;
                                                         break;
                                                     } else {
                                                         inElement = inElement.parentElement;
@@ -2670,12 +2670,12 @@
                                 if (result && typeof result.then === 'function') {
                                     return Promise(function (resolve) {
                                         result.then(function (actualResult) {
-                                            context.it = actualResult
+                                            context.result = actualResult
                                             resolve(runtime.findNext(this, context));
                                         })
                                     })
                                 } else {
-                                    context.it = result
+                                    context.result = result
                                     return runtime.findNext(this, context);
                                 }
                             }
@@ -2926,8 +2926,8 @@
                     var callCmd = {
                         expr: expr,
                         args: [expr],
-                        op: function (context, it) {
-                            context.it = it;
+                        op: function (context, result) {
+                            context.result = result;
                             return runtime.findNext(callCmd, context);
                         }
                     };
@@ -3107,9 +3107,9 @@
                             if (keepLooping) {
                                 if (iterator.value) {
                                     context[identifier] = iterator.value[iterator.index];
-                                    context.it = iterator.value[iterator.index];
+                                    context.result = iterator.value[iterator.index];
                                 } else {
-                                    context.it = iterator.index;
+                                    context.result = iterator.index;
                                 }
                                 if (indexIdentifier) {
                                     context[indexIdentifier] = iterator.index;
@@ -3193,16 +3193,16 @@
                                     fetch(url, args)
                                         .then(function (value) {
                                             if (type === "response") {
-                                                context.it = value;
+                                                context.result = value;
                                                 resolve(runtime.findNext(fetchCmd, context));
                                             } else if (type === "json") {
                                                 value.json().then(function (result) {
-                                                    context.it = result;
+                                                    context.result = result;
                                                     resolve(runtime.findNext(fetchCmd, context));
                                                 })
                                             } else {
                                                 value.text().then(function (result) {
-                                                    context.it = result;
+                                                    context.result = result;
                                                     resolve(runtime.findNext(fetchCmd, context));
                                                 })
                                             }

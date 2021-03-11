@@ -159,7 +159,7 @@
                     if (dataAsJson) {
                         var context = runtime.makeContext(socketObject, socketFeature, socketObject);
                         context.message = dataAsJson;
-                        context.result = dataAsJson;
+                        context.it = dataAsJson;
                         messageHandler.execute(context);
                     } else {
                         throw "Received non-JSON message from socket: " + data;
@@ -167,7 +167,7 @@
                 } else {
                     var context = runtime.makeContext(socketObject, socketFeature, socketObject);
                     context.message = data;
-                    context.result = data;
+                    context.it = data;
                     messageHandler.execute(context);
                 }
             };
