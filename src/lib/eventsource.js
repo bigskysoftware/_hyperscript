@@ -6,8 +6,6 @@
 // TODO: Add methods for EventSourceFeature.connect() and EventSourceFeature.close()
 
 /**
- * @typedef {{name: string, eventSource: EventSource, install: () => void }} Feature
- * @typedef {{meta: object, me: Element, event:Event, target: Element, detail: any, body: Document}} Context
  * @typedef {{eventSource: EventSource, listeners: Object.<string, EventHandlerNonNull>, retryCount: number, connect: () => void, close: () => void }} EventSourceObject
  * @typedef {{name: string, object: EventSourceObject, install: () => void}} EventSourceFeature
  */
