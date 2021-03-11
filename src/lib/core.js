@@ -1408,15 +1408,18 @@
 
                 _parser.addGrammarElement("attributeRef", function(parser, runtime, tokens) {
                     if (tokens.matchOpToken("[")) {
-                        var name = tokens.matchTokenType("IDENTIFIER");
-                        var value = null;
-                        if (tokens.matchOpToken("=")) {
-                            value = parser.requireElement("expression", tokens);
-                        }
+                        var content = tokens.consumeUntil("]");
+                        var contentStr = content.map(function (t) {
+                            return t.value
+                        }).join("");
+                        var values = contentStr.split("=");
+                        var name = values[0];
+                        var value = values[1];
                         tokens.requireOpToken("]");
+
                         return {
                             type: "attribute_expression",
-                            name: name.value,
+                            name: name,
                             value: value,
                             args: [value],
                             op:function(context, value){
