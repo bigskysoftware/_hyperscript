@@ -1462,10 +1462,8 @@
                 		var key = "";
                 		do {
                 			token = tokens.matchTokenType("IDENTIFIER") || tokens.matchOpToken("-");
-                			if (token) console.debug("tok: ", token);
 							if (token) key += token.value;
                 		} while (token)
-                		console.debug("key: ", key)
                 		return {
 	               			type: "objectKey",
 	               			key: key,
