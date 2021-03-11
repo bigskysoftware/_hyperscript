@@ -158,7 +158,7 @@
 					var data = decode(evt['data'], encoding);
 					var context = runtime.makeContext(stub, feature, stub);
 					context.event = evt;
-					context.it = data;
+					context.result = data;
 					commandList.execute(context);    
 				}
 			}
