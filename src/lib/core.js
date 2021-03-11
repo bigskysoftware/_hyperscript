@@ -14,11 +14,17 @@
     return (function () {
             'use strict';
 
-
             //====================================================================
             // Utilities
             //====================================================================
 
+            /**
+             * mergeObjects combines the keys from obj2 into obj2, then returns obj1
+             * 
+             * @param {object} obj1 
+             * @param {object} obj2 
+             * @returns object
+             */
             function mergeObjects(obj1, obj2) {
                 for (var key in obj2) {
                     if (obj2.hasOwnProperty(key)) {
@@ -28,6 +34,13 @@
                 return obj1;
             }
 
+            /**
+             * parseJSON parses a JSON string into a corresponding value.  If the 
+             * value passed in is not valid JSON, then it logs an error and returns `null`.
+             * 
+             * @param {string} jString 
+             * @returns any
+             */
             function parseJSON(jString) {
                 try {
                     return JSON.parse(jString);
@@ -37,6 +50,11 @@
                 }
             }
 
+            /**
+             * logError writes an error message to the Javascript console.  It can take any 
+             * value, but msg should commonly be a simple string.
+             * @param {*} msg 
+             */
             function logError(msg) {
                 if(console.error) {
                     console.error(msg);
@@ -45,12 +63,12 @@
                 }
             }
 
-            // https://stackoverflow.com/a/8843181
+            // TODO: JSDoc description of what's happening here
             function varargConstructor(Cls, args) {
                 return new (Cls.bind.apply(Cls, [Cls].concat(args)));
             }
 
-            var globalScope = typeof self !== 'undefined' ? self : typeof global !== 'undefined' ? global : this;
+            var globalScope = (typeof self !== 'undefined') ? self : ((typeof global !== 'undefined') ? global : this);
 
             //====================================================================
             // Lexer
@@ -90,44 +108,93 @@
                     '=': 'EQUALS'
                 };
 
+                /**
+                 * isValidCSSClassChar returns `true` if the provided character is valid in a CSS class.
+                 * @param {string} c 
+                 * @returns boolean
+                 */
                 function isValidCSSClassChar(c) {
                     return isAlpha(c) || isNumeric(c) || c === "-" || c === "_";
                 }
 
+                /**
+                 * isValidCSSIDChar returns `true` if the provided character is valid in a CSS ID
+                 * @param {string} c 
+                 * @returns boolean
+                 */
                 function isValidCSSIDChar(c) {
                     return isAlpha(c) || isNumeric(c) || c === "-" || c === "_" || c === ":";
                 }
 
+                /**
+                 * isWhitespace returns `true` if the provided character is whitespace.
+                 * @param {string} c 
+                 * @returns boolean
+                 */
                 function isWhitespace(c) {
                     return c === " " || c === "\t" || isNewline(c);
                 }
 
+                /**
+                 * positionString returns a string representation of a Token's line and column details.
+                 * @param {Token} token 
+                 * @returns string
+                 */
                 function positionString(token) {
                     return "[Line: " + token.line + ", Column: " + token.col + "]"
                 }
 
+                /**
+                 * isNewline returns `true` if the provided character is a carrage return or newline
+                 * @param {string} c 
+                 * @returns boolean
+                 */
                 function isNewline(c) {
                     return c === '\r' || c === '\n';
                 }
 
+                /**
+                 * isNumeric returns `true` if the provided character is a number (0-9)
+                 * @param {string} c 
+                 * @returns boolean
+                 */
                 function isNumeric(c) {
                     return c >= '0' && c <= '9';
                 }
 
+                /**
+                 * isAlpha returns `true` if the provided character is a letter in the alphabet
+                 * @param {string} c 
+                 * @returns boolean
+                 */
                 function isAlpha(c) {
                     return (c >= 'a' && c <= 'z') ||
                         (c >= 'A' && c <= 'Z');
                 }
 
+                /**
+                 * @param {string} c
+                 * @param {boolean | undefined} dollarIsOp 
+                 * @returns boolean
+                 */
                 function isIdentifierChar(c, dollarIsOp) {
                     return (c === "_" || (!dollarIsOp && c === "$"));
                 }
 
+                /**
+                 * @param {string} c 
+                 * @returns boolean
+                 */
                 function isReservedChar(c) {
                     return (c === "`" || c === "^");
                 }
 
-
+                /**
+                 * @param {Token[]} tokens 
+                 * @param {*} consumed 
+                 * @param {*} source 
+                 * @returns 
+                 */
                 function makeTokensObject(tokens, consumed, source) {
 
                     consumeWhitespace(); // consume initial whitespace
@@ -142,6 +209,10 @@
                         _parser.raiseParseError(tokens, error);
                     }
 
+                    /**
+                     * @param {string} value 
+                     * @returns Token | undefined
+                     */
                     function requireOpToken(value) {
                         var token = matchOpToken(value);
                         if (token) {
@@ -161,6 +232,10 @@
                         }
                     }
 
+                    /**
+                         * @param {string} value 
+                     * @returns Token | undefined
+                     */
                     function matchOpToken(value) {
                         if (currentToken() && currentToken().op && currentToken().value === value) {
                             return consumeToken();
@@ -205,6 +280,11 @@
                         return match;
                     }
 
+                    /**
+                     * @param {*} value 
+                     * @param {*} type 
+                     * @returns Token[]
+                     */
                     function consumeUntil(value, type) {
                         var tokenList = [];
                         var currentToken = token(0, true);
@@ -220,6 +300,9 @@
                         return tokenList;
                     }
 
+                    /**
+                         * @returns string
+                     */
                     function lastWhitespace() {
                         if (consumed[consumed.length - 1] && consumed[consumed.length - 1].type === "WHITESPACE") {
                             return consumed[consumed.length - 1].value;
@@ -232,11 +315,21 @@
                         return consumeUntil(null, "WHITESPACE");
                     }
 
+                    /**
+                     * @returns boolean
+                     */
                     function hasMore() {
                         return tokens.length > 0;
                     }
 
+                    /**
+                     * @param {number} n 
+                     * @param {boolean} [dontIgnoreWhitespace]
+                     * @returns Token
+                     */
                     function token(n, dontIgnoreWhitespace) {
+
+                        /** @type {Token} */
                         var token;
                         var i = 0;
                         do {
@@ -259,6 +352,9 @@
                         }
                     }
 
+                    /**
+                     * @returns Token
+                     */
                     function currentToken() {
                         return token(0);
                     }
@@ -284,6 +380,11 @@
                     }
                 }
 
+                /**
+                 * @param {string} string 
+                 * @param {boolean} noDollarStart 
+                 * @returns 
+                 */
                 function tokenize(string, noDollarStart) {
                     var source = string;
                     var tokens = [];
@@ -322,12 +423,22 @@
 
                     return makeTokensObject(tokens, [], source);
 
+                    /**
+                     * @param {string} type 
+                     * @param {string} [value]
+                     * @returns Token
+                     */
                     function makeOpToken(type, value) {
                         var token = makeToken(type, value);
                         token.op = true;
                         return token;
                     }
 
+                    /**
+                     * @param {string} type 
+                     * @param {string} [value]
+                     * @returns Token
+                     */
                     function makeToken(type, value) {
                         return {
                             type: type,
