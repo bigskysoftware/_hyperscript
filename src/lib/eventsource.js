@@ -6,10 +6,22 @@
 // TODO: Add methods for EventSourceFeature.connect() and EventSourceFeature.close()
 
 /**
+ * @typedef {object} EventSourceFeature
+ * @property {string} name
+ * @property {EventSourceStub} object
+ * @property {() => void} install
+ * 
+ * @typedef {object} EventSourceStub
+ * @property {EventSource} eventSource
+ * @property {Object.<string, EventHandlerNonNull>} listeners
+ * @property {number} retryCount
+ * @property {() => void} open
+ * @property {() => void} close
+ * @property {(type: keyof HTMLElementEventMap, listener:(event: Event) => any, options?: boolean | AddEventListenerOptions) => void} addEventListener
+ * 
+ * // TODO: move these into _hyperscript/core eventually.
  * @typedef {{name: string, eventSource: EventSource, install: () => void }} Feature
  * @typedef {{meta: object, me: Element, event:Event, target: Element, detail: any, body: Document}} Context
- * @typedef {{eventSource: EventSource, listeners: Object.<string, EventHandlerNonNull>, retryCount: number, open: () => void, close: () => void }} EventSourceObject
- * @typedef {{name: string, object: EventSourceObject, install: () => void}} EventSourceFeature
  */
 
 (function () {
@@ -18,11 +30,11 @@
 
 		if (tokens.matchToken('eventsource')) {
 
-			/**
-			 * Get the name we'll assign to this EventSource in the hyperscript context
-			 * @type {string}
-			 */
+			// Get the name we'll assign to this EventSource in the hyperscript context
+
+			/** @type {string} */ 
 			var name = parser.requireElement("dotOrColonPath", tokens).evaluate();
+
 			var nameSpace = name.split(".");
 			var eventSourceName = nameSpace.pop();
 
@@ -38,14 +50,14 @@
 				}
 			}
 
-			/** @type EventSourceObject */
+			/** @type EventSourceStub */
 			var stub = {
 				eventSource: null,
 				listeners: {},
 				retryCount: 0,
 				open: function () {
 
-					// Guard ensures that =EventSource is empty, or already closed.
+					// Guard ensures that EventSource is empty, or already closed.
 					if (stub.eventSource != null) {
 						if (stub.eventSource.readyState != EventSource.CLOSED) {
 							return;
@@ -79,13 +91,15 @@
 				close: function() {
 					stub.eventSource.close();
 					stub.retryCount = 0;
+				},
+				addEventListener: function(type, listener, options) {
+					return stub.eventSource.addEventListener(type, listener, options);
 				}
 			}
 
-			/**
-			 * Create the "feature" that will be returned by this function.
-			 * @type {EventSourceFeature} 
-			*/
+			// Create the "feature" that will be returned by this function.
+
+			/** @type {EventSourceFeature} */
 			var feature = {
 				name: eventSourceName,
 				object: stub,

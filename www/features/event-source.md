@@ -86,6 +86,24 @@ When you define an event source, it places a stub variable inside the current sc
 * `open` connects to the configured server address.  If the connection has already been opened, then no further action is taken.
 * `close` disconnects from the configured server address.  If the connection has already been closed, then no further action is taken.
 
+You can also listen to events from this variable in other parts of your hyperscript code.  
+
+```hyperscript
+
+-- define the SSE EventSource
+eventsource UpdateServer http://server/updates
+    on message
+        log it
+    end
+end
+
+-- elsewhere in your code, listen for the "cancelGoAway" message, then disconnect
+on cancelGoAway from UpdateServer 
+    log "received cancel message from server" 
+    call UpdateServer.close()
+end
+```
+
 #### Other Values Available To SSE Event Handlers
 
 The following variables are populated within the event handler's scope when it is executed.
