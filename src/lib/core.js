@@ -1438,29 +1438,61 @@
                     }
                 })
 
+                _parser.addGrammarElement("objectKey", function(parser, runtime, tokens) {
+                	var token;
+                	if (token = tokens.matchTokenType("STRING")) {
+                		return {
+                			type: "objectKey",
+                			key: token.value,
+                			evaluate: function() { return this.key }
+                		};
+                	} else if (tokens.matchOpToken("[")) {
+                		var expr = parser.parseElement("expression", tokens);
+                		tokens.requireOpToken("]");
+                		return {
+                			type: "objectKey",
+                			expr: expr,
+                			args: [expr],
+                			op: function (ctx, expr) { return expr },
+                			evaluate: function (context) {
+                                return runtime.unifiedEval(this, context);
+                            }
+                		}
+                	} else {
+                		var key = "";
+                		do {
+                			token = tokens.matchTokenType("IDENTIFIER") || tokens.matchOpToken("-");
+							if (token) key += token.value;
+                		} while (token)
+                		return {
+	               			type: "objectKey",
+	               			key: key,
+	               			evaluate: function() { return this.key }
+	               		};
+                	}
+                })
+
                 _parser.addLeafExpression("objectLiteral", function(parser, runtime, tokens) {
                     if (tokens.matchOpToken("{")) {
-                        var fields = []
+                        var keyExpressions = []
                         var valueExpressions = []
                         if (!tokens.matchOpToken("}")) {
                             do {
-                                var name = tokens.requireTokenType("IDENTIFIER", "STRING");
+                                var name = parser.requireElement("objectKey", tokens);
                                 tokens.requireOpToken(":");
                                 var value = parser.requireElement("expression", tokens);
                                 valueExpressions.push(value);
-                                fields.push({name: name, value: value});
+                                keyExpressions.push(name);
                             } while (tokens.matchOpToken(","))
                             tokens.requireOpToken("}");
                         }
                         return {
                             type: "objectLiteral",
-                            fields: fields,
-                            args: [valueExpressions],
-                            op:function(context, values){
+                            args: [keyExpressions, valueExpressions],
+                            op:function(context, keys, values){
                                 var returnVal = {};
-                                for (var i = 0; i < values.length; i++) {
-                                    var field = fields[i];
-                                    returnVal[field.name.value] = values[i];
+                                for (var i = 0; i < keys.length; i++) {
+                                    returnVal[keys[i]] = values[i];
                                 }
                                 return returnVal;
                             },
