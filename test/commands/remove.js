@@ -54,5 +54,17 @@ describe("the remove command", function() {
         assert.isNull(div.parentElement);
     })
 
+    it("can remove multiple class refs", function () {
+        var div = make("<div class='foo bar doh' _='on click remove .foo .bar'></div>");
+        div.classList.contains("foo").should.equal(true);
+        div.classList.contains("bar").should.equal(true);
+        div.classList.contains("doh").should.equal(true);
+        div.click();
+        div.classList.contains("foo").should.equal(false);
+        div.classList.contains("bar").should.equal(false);
+        div.classList.contains("doh").should.equal(true);
+    })
+
+
 });
 
