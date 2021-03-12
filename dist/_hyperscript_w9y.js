@@ -130,8 +130,13 @@
 
                 function makeTokensObject(tokens, consumed, source) {
 
-                    var ignoreWhiteSpace = true;
-                    matchTokenType("WHITESPACE"); // consume any initial whitespace
+                    consumeWhitespace(); // consume initial whitespace
+
+                    function consumeWhitespace(){
+                        while(token(0, true).type === "WHITESPACE") {
+                            consumed.push(tokens.shift());
+                        }
+                    }
 
                     function raiseError(tokens, error) {
                         _parser.raiseParseError(tokens, error);
@@ -196,22 +201,31 @@
                     function consumeToken() {
                         var match = tokens.shift();
                         consumed.push(match);
-                        if(ignoreWhiteSpace) {
-                            matchTokenType("WHITESPACE"); // consume any whitespace until the next token
-                        }
+                        consumeWhitespace(); // consume any whitespace
                         return match;
                     }
 
                     function consumeUntil(value, type) {
                         var tokenList = [];
-                        ignoreWhiteSpace = false;
-                        while ((type == null || currentToken().type !== type) &&
-                               (value == null || currentToken().value !== value) &&
-                                currentToken().type !== "EOF") {
-                            tokenList.push(consumeToken());
+                        var currentToken = token(0, true);
+                        while ((type == null || currentToken.type !== type) &&
+                               (value == null || currentToken.value !== value) &&
+                                currentToken.type !== "EOF") {
+                            var match = tokens.shift();
+                            consumed.push(match);
+                            tokenList.push(currentToken);
+                            currentToken = token(0, true);
                         }
-                        ignoreWhiteSpace = true;
+                        consumeWhitespace(); // consume any whitespace
                         return tokenList;
+                    }
+
+                    function lastWhitespace() {
+                        if (consumed[consumed.length - 1] && consumed[consumed.length - 1].type === "WHITESPACE") {
+                            return consumed[consumed.length - 1].value;
+                        } else {
+                            return "";
+                        }
                     }
 
                     function consumeUntilWhitespace() {
@@ -222,19 +236,19 @@
                         return tokens.length > 0;
                     }
 
-                    function token(n, ignoreWhiteSpace) {
+                    function token(n, dontIgnoreWhitespace) {
                         var token;
                         var i = 0;
-                        while (n >= 0) {
-                            if (ignoreWhiteSpace) {
-                                do {
-                                    token = tokens[i++]
-                                } while (token && token.type === "WHITESPACE");
-                            } else {
-                                token = tokens[i];
+                        do {
+                            if (!dontIgnoreWhitespace) {
+                                while (tokens[i] && tokens[i].type === "WHITESPACE") {
+                                    i++;
+                                }
                             }
+                            token = tokens[i];
                             n--;
-                        }
+                            i++;
+                        } while (n > -1)
                         if (token) {
                             return token;
                         } else {
@@ -245,8 +259,8 @@
                         }
                     }
 
-                    function currentToken(ignoreWhiteSpace) {
-                        return token(0, ignoreWhiteSpace);
+                    function currentToken() {
+                        return token(0);
                     }
 
                     return {
@@ -266,6 +280,7 @@
                         token: token,
                         consumeUntil: consumeUntil,
                         consumeUntilWhitespace: consumeUntilWhitespace,
+                        lastWhitespace: lastWhitespace
                     }
                 }
 
@@ -291,12 +306,12 @@
                                 tokens.push(consumeIdentifier());
                             } else if (isNumeric(currentChar())) {
                                 tokens.push(consumeNumber());
-                            } else if (currentChar() === '"' || currentChar() === "'") {
+                            } else if (currentChar() === '"' || currentChar() === "'" || currentChar() === "`") {
                                 tokens.push(consumeString());
                             } else if (OP_TABLE[currentChar()]) {
                                 tokens.push(consumeOp());
                             } else if (isReservedChar(currentChar())) {
-                                tokens.push(makeToken('RESERVED', currentChar))
+                                tokens.push(makeToken('RESERVED', currentChar()))
                             } else {
                                 if (position < source.length) {
                                     throw Error("Unknown token: " + currentChar() + " ");
@@ -410,6 +425,7 @@
                         }
                         string.value = value;
                         string.end = position;
+                        string.template = startChar === "`";
                         return string;
                     }
 
@@ -533,16 +549,30 @@
                 /* Core hyperscript Grammar Elements                                                            */
                 /* ============================================================================================ */
                 addGrammarElement("feature", function(parser, runtime, tokens) {
-                    var featureDefinition = FEATURES[tokens.currentToken().value];
-                    if (featureDefinition) {
-                        return featureDefinition(parser, runtime, tokens);
+                    if (tokens.matchOpToken("(")) {
+                        var featureDefinition = parser.requireElement("feature", tokens);
+                        tokens.requireOpToken(")");
+                        return featureDefinition;
+                    } else {
+                        var featureDefinition = FEATURES[tokens.currentToken().value];
+                        if (featureDefinition) {
+                            return featureDefinition(parser, runtime, tokens);
+                        }
                     }
                 })
 
                 addGrammarElement("command", function(parser, runtime, tokens) {
-                    var commandDefinition = COMMANDS[tokens.currentToken().value];
-                    if (commandDefinition) {
-                        return commandDefinition(parser, runtime, tokens);
+                    if (tokens.matchOpToken("(")) {
+                        var commandDefinition = parser.requireElement("command", tokens);
+                        tokens.requireOpToken(")");
+                        return commandDefinition;
+                    } else {
+                        var commandDefinition = COMMANDS[tokens.currentToken().value];
+                        if (commandDefinition) {
+                            return commandDefinition(parser, runtime, tokens);
+                        } else if (tokens.currentToken().type === "IDENTIFIER" && tokens.token(1).value === "(") {
+                            return parser.requireElement("pseudoCommand", tokens);
+                        }
                     }
                 })
 
@@ -629,6 +659,7 @@
                     if (token.value == "end" ||
                         token.value == "then" ||
                         token.value == "else" ||
+                        token.value == ")" ||
                         commandStart(token) ||
                         featureStart(token) ||
                         token.type == "EOF") {
@@ -639,6 +670,7 @@
                 function parseStringTemplate(tokens) {
                     var returnArr = [""];
                     do {
+                        returnArr.push(tokens.lastWhitespace());
                         if (tokens.currentToken().value === "$") {
                             tokens.consumeToken();
                             var startingBrace = tokens.matchOpToken('{');
@@ -655,6 +687,7 @@
                             returnArr[returnArr.length - 1] += token.value;
                         }
                     } while (tokens.hasMore())
+                    returnArr.push(tokens.lastWhitespace());
                     return returnArr;
                 }
 
@@ -704,6 +737,16 @@
                 },
                 "Array" : function(val){
                     return Array.from(val);
+                },
+                "JSON" : function(val){
+                    return JSON.stringify(val);
+                },
+                "Object" : function(val){
+                    if (typeof val === 'string' || val instanceof String) {
+                        return JSON.parse(val);
+                    } else {
+                        return mergeObjects({}, val);
+                    }
                 }
             }
             var _runtime = function () {
@@ -1092,7 +1135,7 @@
                     if (str === "me" || str === "my" || str === "I") {
                         return context["me"];
                     } if (str === "it" || str === "its") {
-                        return context["it"];
+                        return context["result"];
                     } else {
                         if (context.meta && context.meta.context) {
                             var fromMetaContext = context.meta.context[str];
@@ -1257,7 +1300,7 @@
                     var stringToken = tokens.matchTokenType('STRING');
                     if (stringToken) {
                         var rawValue = stringToken.value;
-                        if (rawValue.indexOf("$") >= 0) {
+                        if (stringToken.template) {
                             var innerTokens = _lexer.tokenize(rawValue, true);
                             var args = parser.parseStringTemplate(innerTokens);
                         } else {
@@ -1367,15 +1410,18 @@
 
                 _parser.addGrammarElement("attributeRef", function(parser, runtime, tokens) {
                     if (tokens.matchOpToken("[")) {
-                        var name = tokens.matchTokenType("IDENTIFIER");
-                        var value = null;
-                        if (tokens.matchOpToken("=")) {
-                            value = parser.requireElement("expression", tokens);
-                        }
+                        var content = tokens.consumeUntil("]");
+                        var contentStr = content.map(function (t) {
+                            return t.value
+                        }).join("");
+                        var values = contentStr.split("=");
+                        var name = values[0];
+                        var value = values[1];
                         tokens.requireOpToken("]");
+
                         return {
                             type: "attribute_expression",
-                            name: name.value,
+                            name: name,
                             value: value,
                             args: [value],
                             op:function(context, value){
@@ -1465,6 +1511,7 @@
                     if (identifier) {
                         return {
                             type: "symbol",
+                            token: identifier,
                             name: identifier.value,
                             evaluate: function (context) {
                                 return runtime.resolveSymbol(identifier.value, context);
@@ -1601,13 +1648,53 @@
                             prop: prop,
                             args: [root],
                             op:function(context, rootVal){
-                                return runtime.resolveProperty(rootVal, prop.value);
+                                var value = runtime.resolveProperty(rootVal, prop.value);
+                                return value;
                             },
                             evaluate: function (context) {
                                 return runtime.unifiedEval(this, context);
                             }
                         };
                         return parser.parseElement("indirectExpression", tokens, propertyAccess);
+                    }
+                });
+
+                _parser.addIndirectExpression("of", function(parser, runtime, tokens, root) {
+                    if (tokens.matchToken("of")) {
+                        var newRoot = parser.requireElement('expression', tokens);
+                        // find the urroot
+                        var childOfUrRoot = null;
+                        var urRoot = root;
+                        while (urRoot.root) {
+                            childOfUrRoot = urRoot;
+                            urRoot = urRoot.root;
+                        }
+                        if (urRoot.type !== 'symbol') {
+                            parser.raiseParseError(tokens, "Cannot take a property of a non-symbol");
+                        }
+                        var prop = urRoot.name;
+                        var propertyAccess = {
+                            type: "ofExpression",
+                            prop: urRoot.token,
+                            root: newRoot,
+                            expression: root,
+                            args: [newRoot],
+                            op:function(context, rootVal){
+                                return runtime.resolveProperty(rootVal, prop);
+                            },
+                            evaluate: function (context) {
+                                return runtime.unifiedEval(this, context);
+                            }
+                        };
+
+                        if (childOfUrRoot) {
+                            childOfUrRoot.root = propertyAccess;
+                            childOfUrRoot.args = [propertyAccess];
+                        } else {
+                            root = propertyAccess;
+                        }
+
+                        return parser.parseElement("indirectExpression", tokens, root);
                     }
                 });
 
@@ -2008,13 +2095,14 @@
                 });
 
                 _parser.addGrammarElement("expression", function(parser, runtime, tokens) {
+                    tokens.matchToken("the"); // optional the
                     return parser.parseElement("asyncExpression", tokens);
                 });
 
                 _parser.addGrammarElement("target", function(parser, runtime, tokens) {
                     var expr = _parser.parseElement("expression", tokens);
                     if (expr.type === "symbol" || expr.type === "idRef" || expr.type === "inExpression" ||
-                        expr.type === "queryRef" || expr.type === "classRef" ||
+                        expr.type === "queryRef" || expr.type === "classRef" || expr.type === "ofExpression" ||
                         expr.type === "propertyAccess") {
                         return expr;
                     } else {
@@ -2031,8 +2119,8 @@
                         do {
                             var feature = parser.requireElement("feature", tokens);
                             features.push(feature);
-                            var chainedOn = feature.type === "onFeature" && tokens.currentToken() && tokens.currentToken().value === "on";
-                        } while ((chainedOn || tokens.matchToken("end")) && tokens.hasMore())
+                            tokens.matchToken("end"); // optional end
+                        } while (parser.featureStart(tokens.currentToken()) || tokens.currentToken().value === "(")
                         if (tokens.hasMore()) {
                             parser.raiseParseError(tokens);
                         }
@@ -2068,7 +2156,12 @@
                                 displayName = "on " + eventName;
                             }
                             var args = [];
-                            if (tokens.matchOpToken("(")) {
+                            // handle argument list (look ahead 3)
+                            if (tokens.token(0).value === "(" &&
+                                (tokens.token(1).value === ")" ||
+                                    tokens.token(2).value === "," ||
+                                    tokens.token(2).value === ")")) {
+                                tokens.matchOpToken("(");
                                 do {
                                     args.push(tokens.requireTokenType('IDENTIFIER'));
                                 } while (tokens.matchOpToken(","))
@@ -2271,7 +2364,7 @@
                                                 var inElement = evt.target;
                                                 while(true) {
                                                     if (inElement.matches && inElement.matches(eventSpec.inExpr.css)) {
-                                                        ctx.it = inElement;
+                                                        ctx.result = inElement;
                                                         break;
                                                     } else {
                                                         inElement = inElement.parentElement;
@@ -2438,6 +2531,42 @@
                     }
                 });
 
+                _parser.addFeature("init", function(parser, runtime, tokens) {
+                    if (tokens.matchToken('init')) {
+                        var start = parser.parseElement("commandList", tokens);
+                        var initFeature = {
+                            start: start,
+                            install: function (target, source) {
+                                setTimeout(function () {
+                                    start.execute(runtime.makeContext(target, this, target));
+                                }, 0);
+                            }
+                        };
+
+                        var implicitReturn = {
+                            type: "implicitReturn",
+                            op: function (context) {
+                                return runtime.HALT;
+                            },
+                            execute: function (context) {
+                                // do nothing
+                            }
+                        }
+                        // terminate body
+                        if (start) {
+                            var end = start;
+                            while (end.next) {
+                                end = end.next;
+                            }
+                            end.next = implicitReturn
+                        } else {
+                            initFeature.start = implicitReturn
+                        }
+                        parser.setParent(start, initFeature);
+                        return initFeature;
+                    }
+                });
+
                 _parser.addFeature("worker", function (parser, runtime, tokens) {
                     if (tokens.matchToken("worker")) {
                         parser.raiseParseError(tokens,
@@ -2543,12 +2672,12 @@
                                 if (result && typeof result.then === 'function') {
                                     return Promise(function (resolve) {
                                         result.then(function (actualResult) {
-                                            context.it = actualResult
+                                            context.result = actualResult
                                             resolve(runtime.findNext(this, context));
                                         })
                                     })
                                 } else {
-                                    context.it = result
+                                    context.result = result
                                     return runtime.findNext(this, context);
                                 }
                             }
@@ -2799,8 +2928,8 @@
                     var callCmd = {
                         expr: expr,
                         args: [expr],
-                        op: function (context, it) {
-                            context.it = it;
+                        op: function (context, result) {
+                            context.result = result;
                             return runtime.findNext(callCmd, context);
                         }
                     };
@@ -2808,13 +2937,52 @@
                 }
                 _parser.addCommand("call", function(parser, runtime, tokens) {
                     if (tokens.matchToken('call')) {
-                        return parseCallOrGet(parser, runtime, tokens);
+                        var call = parseCallOrGet(parser, runtime, tokens);
+                        if (call.expr && call.expr.type !== "functionCall") {
+                            parser.raiseParseError(tokens, "Must be a function invocation");
+                        }
+                        return call;
                     }
                 })
                 _parser.addCommand("get", function(parser, runtime, tokens) {
                     if (tokens.matchToken('get')) {
                         return parseCallOrGet(parser, runtime, tokens);
                     }
+                })
+
+                _parser.addGrammarElement("pseudoCommand", function(parser, runtime, tokens) {
+                    var expr = parser.requireElement("primaryExpression", tokens);
+                    if (expr.type !== 'functionCall' && expr.root.type !== "symbol") {
+                        parser.raiseParseError("Implicit function calls must start with a simple function", tokens);
+                    }
+                    // optional "with"
+                    if (!tokens.matchToken("with") && parser.commandBoundary(tokens.currentToken())) {
+                        var target = parser.requireElement("implicitMeTarget", tokens);
+                    } else {
+                        var target = parser.requireElement("expression", tokens);
+                    }
+                    var functionName = expr.root.name;
+                    var functionArgs = expr.argExressions;
+
+                    var pseudoCommand = {
+                        type: "pseudoCommand",
+                        expr: expr,
+                        args: [target, functionArgs],
+                        op: function (context, target, args) {
+                            var func = target[functionName];
+                            if (func.hyperfunc) {
+                                args.push(context);
+                            }
+                            var result = func.apply(target, args);
+                            context.result = result;
+                            return runtime.findNext(pseudoCommand, context);
+                        },
+                        execute : function (context) {
+                            return runtime.unifiedExec(this, context);
+                        }
+                    };
+
+                    return pseudoCommand;
                 })
 
                 _parser.addCommand("set", function(parser, runtime, tokens) {
@@ -2976,9 +3144,9 @@
                             if (keepLooping) {
                                 if (iterator.value) {
                                     context[identifier] = iterator.value[iterator.index];
-                                    context.it = iterator.value[iterator.index];
+                                    context.result = iterator.value[iterator.index];
                                 } else {
-                                    context.it = iterator.index;
+                                    context.result = iterator.index;
                                 }
                                 if (indexIdentifier) {
                                     context[indexIdentifier] = iterator.index;
@@ -3062,16 +3230,16 @@
                                     fetch(url, args)
                                         .then(function (value) {
                                             if (type === "response") {
-                                                context.it = value;
+                                                context.result = value;
                                                 resolve(runtime.findNext(fetchCmd, context));
                                             } else if (type === "json") {
                                                 value.json().then(function (result) {
-                                                    context.it = result;
+                                                    context.result = result;
                                                     resolve(runtime.findNext(fetchCmd, context));
                                                 })
                                             } else {
                                                 value.text().then(function (result) {
-                                                    context.it = result;
+                                                    context.result = result;
                                                     resolve(runtime.findNext(fetchCmd, context));
                                                 })
                                             }
@@ -3344,12 +3512,20 @@
 
     _hyperscript.addCommand("toggle", function(parser, runtime, tokens) {
         if (tokens.matchToken('toggle')) {
-            var classRef = parser.parseElement("classRef", tokens);
-            var attributeRef = null;
-            if (classRef == null) {
-                attributeRef = parser.parseElement("attributeRef", tokens);
-                if (attributeRef == null) {
-                    parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
+
+            if (tokens.matchToken('between')) {
+                var between = true;
+                var classRef = parser.parseElement("classRef", tokens);
+                tokens.requireToken("and");
+                var classRef2 = parser.requireElement("classRef", tokens);
+            } else {
+                var classRef = parser.parseElement("classRef", tokens);
+                var attributeRef = null;
+                if (classRef == null) {
+                    attributeRef = parser.parseElement("attributeRef", tokens);
+                    if (attributeRef == null) {
+                        parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
+                    }
                 }
             }
 
@@ -3370,6 +3546,7 @@
 
             var toggleCmd = {
                 classRef: classRef,
+                classRef2: classRef2,
                 attributeRef: attributeRef,
                 on: on,
                 time: time,
@@ -3377,9 +3554,21 @@
                 from: from,
                 toggle: function (on, value) {
                     if (this.classRef) {
-                        runtime.forEach(on, function (target) {
-                            target.classList.toggle(classRef.className())
-                        });
+                        if (between) {
+                            runtime.forEach(on, function (target) {
+                                if (target.classList.contains(classRef.className())) {
+                                    target.classList.remove(classRef.className());
+                                    target.classList.add(classRef2.className());
+                                } else {
+                                    target.classList.add(classRef.className());
+                                    target.classList.remove(classRef2.className());
+                                }
+                            });
+                        } else {
+                            runtime.forEach(on, function (target) {
+                                target.classList.toggle(classRef.className())
+                            });
+                        }
                     } else {
                         runtime.forEach(on, function (target) {
                             if (target.hasAttribute(attributeRef.name)) {
@@ -3582,6 +3771,23 @@
         }
     })
 
+    function putInto(context, prop, valueToPut){
+        if (prop) {
+            var value = context[prop];
+        } else {
+            var value = context;
+        }
+        if (value instanceof Element || value instanceof HTMLDocument) {
+            value.innerHTML = valueToPut;
+        } else {
+            if (prop) {
+                context[prop] = valueToPut;
+            } else {
+                throw "Don't know how to put a value into " + typeof context;
+            }
+        }
+    }
+
     _hyperscript.addCommand("put", function(parser, runtime, tokens) {
         if (tokens.matchToken('put')) {
             var value = parser.requireElement("expression", tokens);
@@ -3602,18 +3808,16 @@
             var target = parser.requireElement("target", tokens);
 
             var operation = operationToken.value;
-            var symbolWrite = target.type === "symbol" && operation === "into";
-            if (target.type !== "symbol" && operation === "into" && target.root == null) {
-                parser.raiseParseError(tokens, "Can only put directly into symbols, not references")
-            }
 
+            var symbolWrite = false;
             var root = null;
             var prop = null;
-            if (symbolWrite) {
-                // root is null
-            } else if (operation === "into") {
+            if (target.type === "propertyAccess" && operation === "into") {
                 prop = target.prop.value;
                 root = target.root;
+            } else if(target.type === "symbol" && operation === "into") {
+                symbolWrite = true;
+                prop = target.name;
             } else {
                 root = target;
             }
@@ -3626,11 +3830,12 @@
                 args: [root, value],
                 op: function (context, root, valueToPut) {
                     if (symbolWrite) {
+                        putInto(context, prop, valueToPut);
                         context[target.name] = valueToPut;
                     } else {
                         if (operation === "into") {
                             runtime.forEach(root, function (elt) {
-                                elt[prop] = valueToPut;
+                                putInto(elt, prop, valueToPut);
                             })
                         } else if (operation === "before") {
                             runtime.forEach(root, function (elt) {
@@ -3667,9 +3872,8 @@
             var properties = [];
             var from = [];
             var to = [];
-            while (tokens.hasMore() &&
-            !parser.commandBoundary(tokens.currentToken()) &&
-            tokens.currentToken().value !== "using") {
+            var currentToken = tokens.currentToken();
+            while (!parser.commandBoundary(currentToken) && currentToken.value !== "using") {
                 properties.push(tokens.requireTokenType("IDENTIFIER").value);
                 if (tokens.matchToken("from")) {
                     from.push(parser.requireElement("stringLike", tokens));
@@ -3677,7 +3881,8 @@
                     from.push(null);
                 }
                 tokens.requireToken("to");
-                to.push(parser.requireElement("stringLike" , tokens));
+                to.push(parser.requireElement("stringLike", tokens));
+                currentToken = tokens.currentToken();
             }
             if (tokens.matchToken("using")) {
                 var using = parser.requireElement("expression", tokens);

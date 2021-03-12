@@ -43,5 +43,30 @@ describe("the add command", function() {
         div.getAttribute("foo").should.equal("bar");
     })
 
+    it("can add css properties", function(){
+        var div = make("<div style='color: blue' " +
+                       "    _='on click add {color: \"red\", \"font-family\": \"monospace\"}'></div>");
+        div.style.color.should.equal("blue");
+        div.click();
+        div.style.color.should.equal("red");
+        div.style.fontFamily.should.equal("monospace");
+    })
+
+    it("can add multiple class refs", function () {
+        var div = make("<div _='on click add .foo .bar'></div>");
+        div.classList.contains("foo").should.equal(false);
+        div.classList.contains("bar").should.equal(false);
+        div.click();
+        div.classList.contains("foo").should.equal(true);
+        div.classList.contains("bar").should.equal(true);
+    })
+
+    it("can add class refs w/ colons and dashes", function () {
+        var div = make("<div _='on click add .foo:bar-doh'></div>");
+        div.classList.contains("foo:bar-doh").should.equal(false);
+        div.click();
+        div.classList.contains("foo:bar-doh").should.equal(true);
+    })
+
 });
 

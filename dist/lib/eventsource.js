@@ -19,6 +19,9 @@
  * @property {() => void} close
  * @property {(type: keyof HTMLElementEventMap, listener:(event: Event) => any, options?: boolean | AddEventListenerOptions) => void} addEventListener
  * 
+ * // TODO: move these into _hyperscript/core eventually.
+ * @typedef {{name: string, eventSource: EventSource, install: () => void }} Feature
+ * @typedef {{meta: object, me: Element, event:Event, target: Element, detail: any, body: Document}} Context
  */
 
 (function () {
