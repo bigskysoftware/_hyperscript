@@ -442,7 +442,7 @@
 
     _hyperscript.addCommand("take", function(parser, runtime, tokens) {
         if (tokens.matchToken('take')) {
-            var classRef = tokens.requireTokenType(tokens, "CLASS_REF");
+            var classRef = parser.parseElement("classRef", tokens);
 
             if (tokens.matchToken("from")) {
                 var from = parser.requireElement("targetExpression", tokens);
@@ -462,7 +462,7 @@
                 forElt: forElt,
                 args: [from, forElt],
                 op: function (context, from, forElt) {
-                    var clazz = this.classRef.value.substr(1)
+                    var clazz = this.classRef.css.substr(1)
                     runtime.forEach(from, function (target) {
                         target.classList.remove(clazz);
                     })
