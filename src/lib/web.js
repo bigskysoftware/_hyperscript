@@ -78,7 +78,7 @@
             }
 
             if (tokens.matchToken("to")) {
-                var to = parser.requireElement("target", tokens);
+                var to = parser.requireElement("targetExpression", tokens);
             } else {
                 var to = parser.parseElement("implicitMeTarget");
             }
@@ -157,7 +157,7 @@
                 }
             }
             if (tokens.matchToken("from")) {
-                var from = parser.requireElement("target", tokens);
+                var from = parser.requireElement("targetExpression", tokens);
             } else {
                 var from = parser.requireElement("implicitMeTarget");
             }
@@ -222,7 +222,7 @@
             }
 
             if (tokens.matchToken("on")) {
-                var on = parser.requireElement("target", tokens);
+                var on = parser.requireElement("targetExpression", tokens);
             } else {
                 var on = parser.requireElement("implicitMeTarget");
             }
@@ -336,7 +336,7 @@
         if (currentTokenValue.value === "with" || parser.commandBoundary(currentTokenValue)) {
             target = parser.parseElement("implicitMeTarget", tokens);
         } else {
-            target = parser.parseElement("target", tokens);
+            target = parser.parseElement("targetExpression", tokens);
         }
         return target;
     }
@@ -432,13 +432,13 @@
             var classRef = tokens.requireTokenType(tokens, "CLASS_REF");
 
             if (tokens.matchToken("from")) {
-                var from = parser.requireElement("target", tokens);
+                var from = parser.requireElement("targetExpression", tokens);
             } else {
                 var from = classRef;
             }
 
             if (tokens.matchToken("for")) {
-                var forElt = parser.requireElement("target", tokens);
+                var forElt = parser.requireElement("targetExpression", tokens);
             } else {
                 var forElt = parser.requireElement("implicitMeTarget")
             }
@@ -497,7 +497,7 @@
             if (operationToken == null) {
                 parser.raiseParseError(tokens, "Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
             }
-            var target = parser.requireElement("target", tokens);
+            var target = parser.requireElement("targetExpression", tokens);
 
             var operation = operationToken.value;
 
@@ -647,12 +647,12 @@
 
     _hyperscript.addLeafExpression('closestExpr', function (parser, runtime, tokens) {
         if (tokens.matchToken('closest')) {
-            var expr = parser.parseElement("target", tokens);
+            var expr = parser.parseElement("targetExpression", tokens);
             if (expr.css == null) {
                 parser.raiseParseError(tokens, "Expected a CSS expression");
             }
             if (tokens.matchToken('to')) {
-                var to = parser.parseElement("target", tokens);
+                var to = parser.parseElement("targetExpression", tokens);
             } else {
                 var to = parser.parseElement("implicitMeTarget", tokens);
             }

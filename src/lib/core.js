@@ -2122,8 +2122,10 @@
                     return parser.parseElement("asyncExpression", tokens);
                 });
 
-                _parser.addGrammarElement("target", function(parser, runtime, tokens) {
-                    var expr = _parser.parseElement("expression", tokens);
+                _parser.addGrammarElement("targetExpression", function(parser, runtime, tokens) {
+                    tokens.matchToken("the"); // optional the
+                    // TODO put parser into mode where [ is interpreted as a property ref
+                    var expr = parser.parseElement("primaryExpression", tokens);
                     if (expr.type === "symbol" || expr.type === "idRef" || expr.type === "inExpression" ||
                         expr.type === "queryRef" || expr.type === "classRef" || expr.type === "ofExpression" ||
                         expr.type === "propertyAccess") {
@@ -2215,7 +2217,7 @@
                                 if (tokens.matchToken('elsewhere')) {
                                     elsewhere = true;
                                 } else {
-                                    from = parser.parseElement("target", tokens)
+                                    from = parser.parseElement("targetExpression", tokens)
                                     if (!from) {
                                         parser.raiseParseError('Expected either target value or "elsewhere".', tokens);
                                     }
@@ -2850,7 +2852,7 @@
 
                         var details = parser.parseElement("namedArgumentList", tokens);
                         if (tokens.matchToken("to")) {
-                            var to = parser.requireElement("target", tokens);
+                            var to = parser.requireElement("targetExpression", tokens);
                         } else {
                             var to = parser.requireElement("implicitMeTarget");
                         }
@@ -3025,7 +3027,7 @@
 							}
 						}
 
-                        var target = parser.requireElement("target", tokens);
+                        var target = parser.requireElement("targetExpression", tokens);
 
                         tokens.requireToken("to");
 
