@@ -91,7 +91,7 @@
                 };
 
                 function isValidCSSClassChar(c) {
-                    return isAlpha(c) || isNumeric(c) || c === "-" || c === "_";
+                    return isAlpha(c) || isNumeric(c) || c === "-" || c === "_" || c === ":";
                 }
 
                 function isValidCSSIDChar(c) {
@@ -1251,6 +1251,12 @@
                     }
                 }
 
+                function escapeSelector(str) {
+                    return str.replace(/:/g, function(str){
+                        return "\\" + str;
+                    });
+                }
+
                 var hyperscriptUrl = 'document' in globalScope ? document.currentScript.src : null
 
                 return {
@@ -1273,6 +1279,7 @@
                     registerHyperTrace: registerHyperTrace,
                     getHyperTrace: getHyperTrace,
                     getInternalData: getInternalData,
+                    escapeSelector: escapeSelector,
                     hyperscriptUrl: hyperscriptUrl,
                     HALT: HALT
                 }
@@ -1377,10 +1384,11 @@
 
                 _parser.addLeafExpression("classRef", function(parser, runtime, tokens) {
                     var classRef = tokens.matchTokenType('CLASS_REF');
+
                     if (classRef) {
                         return {
                             type: "classRef",
-                            css: classRef.value,
+                            css: runtime.escapeSelector(classRef.value),
                             className: function () {
                                 return this.css.substr(1);
                             },
