@@ -1388,12 +1388,12 @@
                     if (classRef) {
                         return {
                             type: "classRef",
-                            css: runtime.escapeSelector(classRef.value),
+                            css: classRef.value,
                             className: function () {
                                 return this.css.substr(1);
                             },
                             evaluate: function () {
-                                return document.querySelectorAll(this.css);
+                                return document.querySelectorAll(runtime.escapeSelector(this.css));
                             }
                         };
                     }

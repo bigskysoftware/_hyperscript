@@ -61,5 +61,12 @@ describe("the add command", function() {
         div.classList.contains("bar").should.equal(true);
     })
 
+    it("can add class refs w/ colons and dashes", function () {
+        var div = make("<div _='on click add .foo:bar-doh'></div>");
+        div.classList.contains("foo:bar-doh").should.equal(false);
+        div.click();
+        div.classList.contains("foo:bar-doh").should.equal(true);
+    })
+
 });
 
