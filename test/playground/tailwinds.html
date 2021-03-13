@@ -16,14 +16,14 @@
     def focusNextIn(elt, parent)
       set focusRing to (<a, button, input:not([type=hidden]), textarea, select, details/> in parent) as Array
       set nextIndex to focusRing.indexOf(elt) + 1
-      set next to focusRing[nextIndex] or focusRing[0]
+      set next to focusRing[nextIndex] or first of focusRing
       call next.focus()
     end
 
     def focusPreviousIn(elt, parent)
       set focusRing to (<a, button, input:not([type=hidden]), textarea, select, details/> in parent) as Array
       set previousIndex to focusRing.indexOf(elt) - 1
-      set previous to focusRing[previousIndex] or focusRing[focusRing.length - 1]
+      set previous to focusRing[previousIndex] or last of focusRing
       call previous.focus()
     end
 </script>
@@ -35,7 +35,7 @@
 <div id="modal" class="hidden" _="
         on open
             remove .hidden add .overflow-hidden to <body/>
-            wait 0.2s call (<input/> in me)[0].focus()
+            wait 0.2s then focus() first <input/> in me
         end
         on close or keyup[key is 'Escape'] from <body/>
             remove .overflow-hidden from <body/>
