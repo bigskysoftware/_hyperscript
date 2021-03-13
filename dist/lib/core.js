@@ -161,6 +161,16 @@
                         }
                     }
 
+                    function matchAnyToken(op1, op2, op3) {
+                        for (var i = 0; i < arguments.length; i++) {
+                            var opToken = arguments[i];
+                            var match = matchToken(opToken);
+                            if (match) {
+                                return match;
+                            }
+                        }
+                    }
+
                     function matchOpToken(value) {
                         if (currentToken() && currentToken().op && currentToken().value === value) {
                             return consumeToken();
@@ -264,6 +274,7 @@
                     }
 
                     return {
+                        matchAnyToken: matchAnyToken,
                         matchAnyOpToken: matchAnyOpToken,
                         matchOpToken: matchOpToken,
                         requireOpToken: requireOpToken,
@@ -1941,7 +1952,40 @@
                 });
 
                 _parser.addGrammarElement("unaryExpression", function(parser, runtime, tokens) {
-                    return parser.parseAnyOf(["logicalNot", "noExpression", "negativeNumber", "postfixExpression"], tokens);
+                    return parser.parseAnyOf(["logicalNot", "positionalExpression", "noExpression", "negativeNumber", "postfixExpression"], tokens);
+                });
+
+                _parser.addGrammarElement("positionalExpression", function(parser, runtime, tokens) {
+                    var op = tokens.matchAnyToken('first', 'last', 'random')
+                    if (op) {
+                        tokens.matchAnyToken("in", "from", "of");
+                        var rhs = parser.requireElement('unaryExpression', tokens);
+                        return {
+                            type: "positionalExpression",
+                            rhs: rhs,
+                            operator: op.value,
+                            args: [rhs],
+                            op:function (context, rhsVal) {
+                                if (!Array.isArray(rhsVal)) {
+                                    if (rhsVal.children) {
+                                        rhsVal = rhsVal.children
+                                    } else {
+                                        rhsVal = Array.from(rhsVal);
+                                    }
+                                }
+                                if (this.operator === "first") {
+                                    return rhsVal[0];
+                                } else if (this.operator === "last") {
+                                    return rhsVal[rhsVal.length - 1];
+                                } else if (this.operator === "random") {
+                                    return rhsVal[Math.floor(Math.random() * rhsVal.length)];
+                                }
+                            },
+                            evaluate: function (context) {
+                                return runtime.unifiedEval(this, context);
+                            }
+                        }
+                    }
                 });
 
                 _parser.addGrammarElement("mathOperator", function(parser, runtime, tokens) {
