@@ -91,7 +91,7 @@
                 };
 
                 function isValidCSSClassChar(c) {
-                    return isAlpha(c) || isNumeric(c) || c === "-" || c === "_";
+                    return isAlpha(c) || isNumeric(c) || c === "-" || c === "_" || c === ":";
                 }
 
                 function isValidCSSIDChar(c) {
@@ -1251,6 +1251,12 @@
                     }
                 }
 
+                function escapeSelector(str) {
+                    return str.replace(/:/g, function(str){
+                        return "\\" + str;
+                    });
+                }
+
                 var hyperscriptUrl = 'document' in globalScope ? document.currentScript.src : null
 
                 return {
@@ -1273,6 +1279,7 @@
                     registerHyperTrace: registerHyperTrace,
                     getHyperTrace: getHyperTrace,
                     getInternalData: getInternalData,
+                    escapeSelector: escapeSelector,
                     hyperscriptUrl: hyperscriptUrl,
                     HALT: HALT
                 }
@@ -1377,6 +1384,7 @@
 
                 _parser.addLeafExpression("classRef", function(parser, runtime, tokens) {
                     var classRef = tokens.matchTokenType('CLASS_REF');
+
                     if (classRef) {
                         return {
                             type: "classRef",
@@ -1385,7 +1393,7 @@
                                 return this.css.substr(1);
                             },
                             evaluate: function () {
-                                return document.querySelectorAll(this.css);
+                                return document.querySelectorAll(runtime.escapeSelector(this.css));
                             }
                         };
                     }
@@ -1397,7 +1405,13 @@
                         var queryTokens = tokens.consumeUntil("/");
                         tokens.requireOpToken("/");
                         tokens.requireOpToken(">");
-                        var queryValue = queryTokens.map(function(t){return t.value}).join("");
+                        var queryValue = queryTokens.map(function(t){
+                            if (t.type === "STRING") {
+                                return '"' + t.value + '"';
+                            } else {
+                                return t.value;
+                            }
+                        }).join("");
                         return {
                             type: "queryRef",
                             css: queryValue,
@@ -1438,29 +1452,61 @@
                     }
                 })
 
+                _parser.addGrammarElement("objectKey", function(parser, runtime, tokens) {
+                	var token;
+                	if (token = tokens.matchTokenType("STRING")) {
+                		return {
+                			type: "objectKey",
+                			key: token.value,
+                			evaluate: function() { return this.key }
+                		};
+                	} else if (tokens.matchOpToken("[")) {
+                		var expr = parser.parseElement("expression", tokens);
+                		tokens.requireOpToken("]");
+                		return {
+                			type: "objectKey",
+                			expr: expr,
+                			args: [expr],
+                			op: function (ctx, expr) { return expr },
+                			evaluate: function (context) {
+                                return runtime.unifiedEval(this, context);
+                            }
+                		}
+                	} else {
+                		var key = "";
+                		do {
+                			token = tokens.matchTokenType("IDENTIFIER") || tokens.matchOpToken("-");
+							if (token) key += token.value;
+                		} while (token)
+                		return {
+	               			type: "objectKey",
+	               			key: key,
+	               			evaluate: function() { return this.key }
+	               		};
+                	}
+                })
+
                 _parser.addLeafExpression("objectLiteral", function(parser, runtime, tokens) {
                     if (tokens.matchOpToken("{")) {
-                        var fields = []
+                        var keyExpressions = []
                         var valueExpressions = []
                         if (!tokens.matchOpToken("}")) {
                             do {
-                                var name = tokens.requireTokenType("IDENTIFIER", "STRING");
+                                var name = parser.requireElement("objectKey", tokens);
                                 tokens.requireOpToken(":");
                                 var value = parser.requireElement("expression", tokens);
                                 valueExpressions.push(value);
-                                fields.push({name: name, value: value});
+                                keyExpressions.push(name);
                             } while (tokens.matchOpToken(","))
                             tokens.requireOpToken("}");
                         }
                         return {
                             type: "objectLiteral",
-                            fields: fields,
-                            args: [valueExpressions],
-                            op:function(context, values){
+                            args: [keyExpressions, valueExpressions],
+                            op:function(context, keys, values){
                                 var returnVal = {};
-                                for (var i = 0; i < values.length; i++) {
-                                    var field = fields[i];
-                                    returnVal[field.name.value] = values[i];
+                                for (var i = 0; i < keys.length; i++) {
+                                    returnVal[keys[i]] = values[i];
                                 }
                                 return returnVal;
                             },
@@ -1525,15 +1571,6 @@
                         type: "implicitMeTarget",
                         evaluate: function (context) {
                             return context.me
-                        }
-                    };
-                });
-
-                _parser.addGrammarElement("implicitAllTarget", function(parser, runtime, tokens) {
-                    return {
-                        type: "implicitAllTarget",
-                        evaluate: function (context) {
-                            return document.querySelectorAll("*");
                         }
                     };
                 });
@@ -2099,8 +2136,10 @@
                     return parser.parseElement("asyncExpression", tokens);
                 });
 
-                _parser.addGrammarElement("target", function(parser, runtime, tokens) {
-                    var expr = _parser.parseElement("expression", tokens);
+                _parser.addGrammarElement("targetExpression", function(parser, runtime, tokens) {
+                    tokens.matchToken("the"); // optional the
+                    // TODO put parser into mode where [ is interpreted as a property ref
+                    var expr = parser.parseElement("primaryExpression", tokens);
                     if (expr.type === "symbol" || expr.type === "idRef" || expr.type === "inExpression" ||
                         expr.type === "queryRef" || expr.type === "classRef" || expr.type === "ofExpression" ||
                         expr.type === "propertyAccess") {
@@ -2192,7 +2231,7 @@
                                 if (tokens.matchToken('elsewhere')) {
                                     elsewhere = true;
                                 } else {
-                                    from = parser.parseElement("target", tokens)
+                                    from = parser.parseElement("targetExpression", tokens)
                                     if (!from) {
                                         parser.raiseParseError('Expected either target value or "elsewhere".', tokens);
                                     }
@@ -2777,7 +2816,13 @@
                                 }
                             };
                         } else {
-                            var time = _parser.requireElement("timeExpression", tokens);
+                            if(tokens.matchToken("a")){
+                                tokens.requireToken('tick');
+                                time = 0;
+                            } else {
+                                var time = _parser.requireElement("timeExpression", tokens);
+                            }
+
                             var waitCmd = {
                                 type: "waitCmd",
                                 time: time,
@@ -2827,7 +2872,7 @@
 
                         var details = parser.parseElement("namedArgumentList", tokens);
                         if (tokens.matchToken("to")) {
-                            var to = parser.requireElement("target", tokens);
+                            var to = parser.requireElement("targetExpression", tokens);
                         } else {
                             var to = parser.requireElement("implicitMeTarget");
                         }
@@ -2955,8 +3000,8 @@
                     if (expr.type !== 'functionCall' && expr.root.type !== "symbol") {
                         parser.raiseParseError("Implicit function calls must start with a simple function", tokens);
                     }
-                    // optional "with"
-                    if (!tokens.matchToken("with") && parser.commandBoundary(tokens.currentToken())) {
+                    // optional "on", "with", or "to"
+                    if (!tokens.matchToken("to") && !tokens.matchToken("on") && !tokens.matchToken("with") && parser.commandBoundary(tokens.currentToken())) {
                         var target = parser.requireElement("implicitMeTarget", tokens);
                     } else {
                         var target = parser.requireElement("expression", tokens);
@@ -2987,7 +3032,22 @@
 
                 _parser.addCommand("set", function(parser, runtime, tokens) {
                     if (tokens.matchToken('set')) {
-                        var target = parser.requireElement("target", tokens);
+						if (tokens.currentToken().type === "L_BRACE") {
+							var obj = parser.requireElement("objectLiteral", tokens);
+							tokens.requireToken("on");
+							var target = parser.requireElement("expression", tokens);
+
+							return {
+								objectLiteral: obj,
+								target: target,
+								args: [obj, target],
+								op: function (ctx, obj, target) {
+									mergeObjects(target, obj);
+								}
+							}
+						}
+
+                        var target = parser.requireElement("targetExpression", tokens);
 
                         tokens.requireToken("to");
 
@@ -3043,8 +3103,8 @@
                             trueBranch: trueBranch,
                             falseBranch: falseBranch,
                             args: [expr],
-                            op: function (context, expr) {
-                                if (expr) {
+                            op: function (context, exprValue) {
+                                if (exprValue) {
                                     return trueBranch;
                                 } else if (falseBranch) {
                                     return falseBranch;
@@ -3312,8 +3372,8 @@
                     addCommand: function (keyword, definition) {
                         _parser.addCommand(keyword, definition)
                     },
-                    addLeafExpression: function (keyword, definition) {
-                        _parser.addLeafExpression(definition)
+                    addLeafExpression: function (name, definition) {
+                        _parser.addLeafExpression(name, definition)
                     },
                     addIndirectExpression: function (keyword, definition) {
                         _parser.addIndirectExpression(definition)

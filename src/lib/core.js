@@ -1405,7 +1405,13 @@
                         var queryTokens = tokens.consumeUntil("/");
                         tokens.requireOpToken("/");
                         tokens.requireOpToken(">");
-                        var queryValue = queryTokens.map(function(t){return t.value}).join("");
+                        var queryValue = queryTokens.map(function(t){
+                            if (t.type === "STRING") {
+                                return '"' + t.value + '"';
+                            } else {
+                                return t.value;
+                            }
+                        }).join("");
                         return {
                             type: "queryRef",
                             css: queryValue,
@@ -2810,7 +2816,13 @@
                                 }
                             };
                         } else {
-                            var time = _parser.requireElement("timeExpression", tokens);
+                            if(tokens.matchToken("a")){
+                                tokens.requireToken('tick');
+                                time = 0;
+                            } else {
+                                var time = _parser.requireElement("timeExpression", tokens);
+                            }
+
                             var waitCmd = {
                                 type: "waitCmd",
                                 time: time,
@@ -3091,8 +3103,8 @@
                             trueBranch: trueBranch,
                             falseBranch: falseBranch,
                             args: [expr],
-                            op: function (context, expr) {
-                                if (expr) {
+                            op: function (context, exprValue) {
+                                if (exprValue) {
                                     return trueBranch;
                                 } else if (falseBranch) {
                                     return falseBranch;
