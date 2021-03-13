@@ -763,7 +763,7 @@
                     }
                 }
 
-                if ((node.type == "select-one") || (node.type == "select-multiple")){
+                if (node.type == "select-multiple") {
 
                     /** @type {NodeListOf<HTMLSelectElement>} */
                     var selected = node.querySelectorAll("option[selected]");
