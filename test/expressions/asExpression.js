@@ -56,6 +56,76 @@ describe("as operator", function() {
         result["foo"].should.equal('bar');
     })
 
+    it("converts an input element into a Value", function() {
+        var node = document.createElement("input")
+        node.name = "test-name"
+        node.value = "test-value"
+
+        var result = evalHyperScript("x as Values", {x:node})
+        result.should.equal("test-value")
+    })
+
+    it("converts an form element into a Value", function() {
+        var node = document.createElement("form")
+        node.innerHTML = `
+            <input name="firstName" value="John"><br>
+            <input name="lastName" value="Connor"><br>
+            <div>
+                <input name="areaCode" value="213">
+                <input name="phone" value="555-1212">
+            </div>`
+
+        var result = evalHyperScript("x as Values", {x:node})
+        result.firstName.should.equal("John")
+        result.lastName.should.equal("Connor")
+        result.areaCode.should.equal("213")
+        result.phone.should.equal("555-1212")
+    })
+
+    it("converts radio buttons into a Value correctly", function() {
+        var node = document.createElement("form")
+        node.innerHTML = `
+            <div>
+                <input type="radio" name="gender" value="Male" checked>
+                <input type="radio" name="gender" value="Female" >
+                <input type="radio" name="gender" value="Other">
+            </div>`
+
+        var result = evalHyperScript("x as Values", {x:node})
+        result.gender.should.equal("Male")
+    })
+
+    it("converts checkboxes into a Value correctly", function() {
+        var node = document.createElement("form")
+        node.innerHTML = `
+            <div>
+                <input type="checkbox" name="gender" value="Male" checked>
+                <input type="checkbox" name="gender" value="Female" checked>
+                <input type="checkbox" name="gender" value="Other" checked>
+            </div>`
+
+        var result = evalHyperScript("x as Values", {x:node})
+        result.gender[0].should.equal("Male")
+        result.gender[1].should.equal("Female")
+        result.gender[2].should.equal("Other")
+    })
+
+    it("converts multiple selects into a Value correctly", function() {
+        var node = document.createElement("form")
+        node.innerHTML = `
+            <select name="animal" multiple>
+                <option value="dog" selected>Doggo</option>
+                <option value="cat">Kitteh</option>
+                <option value="raccoon" selected>Trash Panda</option>
+                <option value="possum">Sleepy Boi</option>
+            </div>`
+
+        var result = evalHyperScript("x as Values", {x:node})
+        result.animal[0].should.equal("dog")
+        result.animal[1].should.equal("raccoon")
+    })
+
+
     it("can accept custom comversions", function () {
         _hyperscript.config.conversions["Foo"] = function(val){
             return "foo" + val;
