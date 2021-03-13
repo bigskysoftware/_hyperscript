@@ -66,36 +66,45 @@
         if (tokens.matchToken("add")) {
             var classRef = parser.parseElement("classRef", tokens);
             var attributeRef = null;
+			var cssDeclaration = null;
             if (classRef == null) {
                 attributeRef = parser.parseElement("attributeRef", tokens);
                 if (attributeRef == null) {
-                    parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
+					cssDeclaration = parser.parseElement("objectLiteral", tokens);
+                    if (cssDeclaration == null) {
+                    	parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
+                    }
+                }
+            } else {
+                var classRefs = [classRef];
+                while (classRef = parser.parseElement("classRef", tokens)) {
+                    classRefs.push(classRef);
                 }
             }
 
             if (tokens.matchToken("to")) {
-                var to = parser.requireElement("target", tokens);
+                var to = parser.requireElement("targetExpression", tokens);
             } else {
                 var to = parser.parseElement("implicitMeTarget");
             }
 
-            if (classRef) {
+            if (classRefs) {
                 var addCmd = {
-                    classRef: classRef,
-                    attributeRef: attributeRef,
+                    classRefs: classRefs,
                     to: to,
                     args: [to],
                     op: function (context, to) {
-                        runtime.forEach(to, function (target) {
-                            target.classList.add(classRef.className());
-                        })
+                        runtime.forEach(classRefs, function (classRef) {
+                            runtime.forEach(to, function (target) {
+                                target.classList.add(classRef.className());
+                            })
+                        });
                         return runtime.findNext(this, context);
                     }
                 }
-            } else {
+            } else if (attributeRef) {
                 var addCmd = {
                     type: "addCmd",
-                    classRef: classRef,
                     attributeRef: attributeRef,
                     to: to,
                     args: [to, attributeRef],
@@ -109,7 +118,27 @@
                         return runtime.unifiedExec(this, ctx);
                     }
                 };
-            }
+            } else {
+	            var addCmd = {
+	                type: "addCmd",
+					cssDeclaration: cssDeclaration,
+	                to: to,
+	                args: [to, cssDeclaration],
+	                op: function (context, to, css) {
+	                    runtime.forEach(to, function (target) {
+	                        for (var key in css) {
+	                        	if (css.hasOwnProperty(key)) {
+	                        		target.style.setProperty(key, css[key]);
+	                        	}
+	                        }
+	                    })
+	                    return runtime.findNext(addCmd, context);
+	                },
+	                execute: function (ctx) {
+	                    return runtime.unifiedExec(this, ctx);
+	                }
+	            };
+	        }
             return addCmd
         }
     });
@@ -127,17 +156,21 @@
                         parser.raiseParseError(tokens, "Expected either a class reference, attribute expression or value expression");
                     }
                 }
+            } else {
+                var classRefs = [classRef];
+                while (classRef = parser.parseElement("classRef", tokens)) {
+                    classRefs.push(classRef);
+                }
             }
+
             if (tokens.matchToken("from")) {
-                var from = parser.requireElement("target", tokens);
+                var from = parser.requireElement("targetExpression", tokens);
             } else {
                 var from = parser.requireElement("implicitMeTarget");
             }
 
             if (elementExpr) {
                 var removeCmd = {
-                    classRef: classRef,
-                    attributeRef: attributeRef,
                     elementExpr: elementExpr,
                     from: from,
                     args: [elementExpr],
@@ -150,16 +183,18 @@
                 };
             } else {
                 var removeCmd = {
-                    classRef: classRef,
+                    classRefs: classRefs,
                     attributeRef: attributeRef,
                     elementExpr: elementExpr,
                     from: from,
                     args: [from],
                     op: function (context, from) {
-                        if (this.classRef) {
-                            runtime.forEach(from, function (target) {
-                                target.classList.remove(classRef.className());
-                            })
+                        if (this.classRefs) {
+                            runtime.forEach(classRefs, function (classRef) {
+                                runtime.forEach(from, function (target) {
+                                    target.classList.remove(classRef.className());
+                                })
+                            });
                         } else {
                             runtime.forEach(from, function (target) {
                                 target.removeAttribute(attributeRef.name);
@@ -190,11 +225,16 @@
                     if (attributeRef == null) {
                         parser.raiseParseError(tokens, "Expected either a class reference or attribute expression")
                     }
+                } else {
+                    var classRefs = [classRef];
+                    while (classRef = parser.parseElement("classRef", tokens)) {
+                        classRefs.push(classRef);
+                    }
                 }
             }
 
             if (tokens.matchToken("on")) {
-                var on = parser.requireElement("target", tokens);
+                var on = parser.requireElement("targetExpression", tokens);
             } else {
                 var on = parser.requireElement("implicitMeTarget");
             }
@@ -211,28 +251,29 @@
             var toggleCmd = {
                 classRef: classRef,
                 classRef2: classRef2,
+                classRefs: classRefs,
                 attributeRef: attributeRef,
                 on: on,
                 time: time,
                 evt: evt,
                 from: from,
                 toggle: function (on, value) {
-                    if (this.classRef) {
-                        if (between) {
-                            runtime.forEach(on, function (target) {
-                                if (target.classList.contains(classRef.className())) {
-                                    target.classList.remove(classRef.className());
-                                    target.classList.add(classRef2.className());
-                                } else {
-                                    target.classList.add(classRef.className());
-                                    target.classList.remove(classRef2.className());
-                                }
-                            });
-                        } else {
+                    if (between) {
+                        runtime.forEach(on, function (target) {
+                            if (target.classList.contains(classRef.className())) {
+                                target.classList.remove(classRef.className());
+                                target.classList.add(classRef2.className());
+                            } else {
+                                target.classList.add(classRef.className());
+                                target.classList.remove(classRef2.className());
+                            }
+                        })
+                    } else if (this.classRefs) {
+                        runtime.forEach(this.classRefs, function (classRef) {
                             runtime.forEach(on, function (target) {
                                 target.classList.toggle(classRef.className())
                             });
-                        }
+                        })
                     } else {
                         runtime.forEach(on, function (target) {
                             if (target.hasAttribute(attributeRef.name)) {
@@ -308,7 +349,7 @@
         if (currentTokenValue.value === "with" || parser.commandBoundary(currentTokenValue)) {
             target = parser.parseElement("implicitMeTarget", tokens);
         } else {
-            target = parser.parseElement("target", tokens);
+            target = parser.parseElement("targetExpression", tokens);
         }
         return target;
     }
@@ -401,16 +442,16 @@
 
     _hyperscript.addCommand("take", function(parser, runtime, tokens) {
         if (tokens.matchToken('take')) {
-            var classRef = tokens.requireTokenType(tokens, "CLASS_REF");
+            var classRef = parser.parseElement("classRef", tokens);
 
             if (tokens.matchToken("from")) {
-                var from = parser.requireElement("target", tokens);
+                var from = parser.requireElement("targetExpression", tokens);
             } else {
-                var from = parser.requireElement("implicitAllTarget")
+                var from = classRef;
             }
 
             if (tokens.matchToken("for")) {
-                var forElt = parser.requireElement("target", tokens);
+                var forElt = parser.requireElement("targetExpression", tokens);
             } else {
                 var forElt = parser.requireElement("implicitMeTarget")
             }
@@ -421,7 +462,7 @@
                 forElt: forElt,
                 args: [from, forElt],
                 op: function (context, from, forElt) {
-                    var clazz = this.classRef.value.substr(1)
+                    var clazz = this.classRef.css.substr(1)
                     runtime.forEach(from, function (target) {
                         target.classList.remove(clazz);
                     })
@@ -469,7 +510,7 @@
             if (operationToken == null) {
                 parser.raiseParseError(tokens, "Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
             }
-            var target = parser.requireElement("target", tokens);
+            var target = parser.requireElement("targetExpression", tokens);
 
             var operation = operationToken.value;
 
@@ -614,6 +655,31 @@
                 }
             };
             return transition
+        }
+    });
+
+    _hyperscript.addLeafExpression('closestExpr', function (parser, runtime, tokens) {
+        if (tokens.matchToken('closest')) {
+            var expr = parser.parseElement("targetExpression", tokens);
+            if (expr.css == null) {
+                parser.raiseParseError(tokens, "Expected a CSS expression");
+            }
+            if (tokens.matchToken('to')) {
+                var to = parser.parseElement("targetExpression", tokens);
+            } else {
+                var to = parser.parseElement("implicitMeTarget", tokens);
+            }
+            return {
+                expr: expr,
+                to: to,
+                args: [to],
+                op: function (ctx, to) {
+                    return to == null ? null : to.closest(expr.css);
+                },
+                evaluate: function (context) {
+                    return runtime.unifiedEval(this, context);
+                }
+            }
         }
     });
 
