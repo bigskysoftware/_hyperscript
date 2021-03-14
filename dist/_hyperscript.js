@@ -14,11 +14,17 @@
     return (function () {
             'use strict';
 
-
             //====================================================================
             // Utilities
             //====================================================================
 
+            /**
+             * mergeObjects combines the keys from obj2 into obj2, then returns obj1
+             * 
+             * @param {object} obj1 
+             * @param {object} obj2 
+             * @returns object
+             */
             function mergeObjects(obj1, obj2) {
                 for (var key in obj2) {
                     if (obj2.hasOwnProperty(key)) {
@@ -28,6 +34,13 @@
                 return obj1;
             }
 
+            /**
+             * parseJSON parses a JSON string into a corresponding value.  If the 
+             * value passed in is not valid JSON, then it logs an error and returns `null`.
+             * 
+             * @param {string} jString 
+             * @returns any
+             */
             function parseJSON(jString) {
                 try {
                     return JSON.parse(jString);
@@ -37,6 +50,11 @@
                 }
             }
 
+            /**
+             * logError writes an error message to the Javascript console.  It can take any 
+             * value, but msg should commonly be a simple string.
+             * @param {*} msg 
+             */
             function logError(msg) {
                 if(console.error) {
                     console.error(msg);
@@ -45,12 +63,12 @@
                 }
             }
 
-            // https://stackoverflow.com/a/8843181
+            // TODO: JSDoc description of what's happening here
             function varargConstructor(Cls, args) {
                 return new (Cls.bind.apply(Cls, [Cls].concat(args)));
             }
 
-            var globalScope = typeof self !== 'undefined' ? self : typeof global !== 'undefined' ? global : this;
+            var globalScope = (typeof self !== 'undefined') ? self : ((typeof global !== 'undefined') ? global : this);
 
             //====================================================================
             // Lexer
@@ -90,47 +108,97 @@
                     '=': 'EQUALS'
                 };
 
+                /**
+                 * isValidCSSClassChar returns `true` if the provided character is valid in a CSS class.
+                 * @param {string} c 
+                 * @returns boolean
+                 */
                 function isValidCSSClassChar(c) {
                     return isAlpha(c) || isNumeric(c) || c === "-" || c === "_" || c === ":";
                 }
 
+                /**
+                 * isValidCSSIDChar returns `true` if the provided character is valid in a CSS ID
+                 * @param {string} c 
+                 * @returns boolean
+                 */
                 function isValidCSSIDChar(c) {
                     return isAlpha(c) || isNumeric(c) || c === "-" || c === "_" || c === ":";
                 }
 
+                /**
+                 * isWhitespace returns `true` if the provided character is whitespace.
+                 * @param {string} c 
+                 * @returns boolean
+                 */
                 function isWhitespace(c) {
                     return c === " " || c === "\t" || isNewline(c);
                 }
 
+                /**
+                 * positionString returns a string representation of a Token's line and column details.
+                 * @param {Token} token 
+                 * @returns string
+                 */
                 function positionString(token) {
                     return "[Line: " + token.line + ", Column: " + token.col + "]"
                 }
 
+                /**
+                 * isNewline returns `true` if the provided character is a carrage return or newline
+                 * @param {string} c 
+                 * @returns boolean
+                 */
                 function isNewline(c) {
                     return c === '\r' || c === '\n';
                 }
 
+                /**
+                 * isNumeric returns `true` if the provided character is a number (0-9)
+                 * @param {string} c 
+                 * @returns boolean
+                 */
                 function isNumeric(c) {
                     return c >= '0' && c <= '9';
                 }
 
+                /**
+                 * isAlpha returns `true` if the provided character is a letter in the alphabet
+                 * @param {string} c 
+                 * @returns boolean
+                 */
                 function isAlpha(c) {
                     return (c >= 'a' && c <= 'z') ||
                         (c >= 'A' && c <= 'Z');
                 }
 
+                /**
+                 * @param {string} c
+                 * @param {boolean} [dollarIsOp]
+                 * @returns boolean
+                 */
                 function isIdentifierChar(c, dollarIsOp) {
                     return (c === "_" || (!dollarIsOp && c === "$"));
                 }
 
+                /**
+                 * @param {string} c 
+                 * @returns boolean
+                 */
                 function isReservedChar(c) {
                     return (c === "`" || c === "^");
                 }
 
-
+                /**
+                 * @param {Token[]} tokens 
+                 * @param {Token[]} consumed 
+                 * @param {*} source 
+                 * @returns 
+                 */
                 function makeTokensObject(tokens, consumed, source) {
 
                     consumeWhitespace(); // consume initial whitespace
+                    var _lastConsumed = null;
 
                     function consumeWhitespace(){
                         while(token(0, true).type === "WHITESPACE") {
@@ -138,10 +206,18 @@
                         }
                     }
 
+                    /**
+                         * @param {Token[]} tokens 
+                     * @param {*} error 
+                     */
                     function raiseError(tokens, error) {
                         _parser.raiseParseError(tokens, error);
                     }
 
+                    /**
+                     * @param {string} value 
+                     * @returns [Token]
+                     */
                     function requireOpToken(value) {
                         var token = matchOpToken(value);
                         if (token) {
@@ -151,6 +227,12 @@
                         }
                     }
 
+                    /**
+                     * @param {string} op1 
+                     * @param {string} op2 
+                     * @param {string} op3 
+                     * @returns [Token]
+                     */
                     function matchAnyOpToken(op1, op2, op3) {
                         for (var i = 0; i < arguments.length; i++) {
                             var opToken = arguments[i];
@@ -161,6 +243,10 @@
                         }
                     }
 
+                    /**
+                     * @param {string} value 
+                     * @returns [Token]
+                     */
                     function matchAnyToken(op1, op2, op3) {
                         for (var i = 0; i < arguments.length; i++) {
                             var opToken = arguments[i];
@@ -171,12 +257,23 @@
                         }
                     }
 
-                    function matchOpToken(value) {
+                    /**
+                     * @param {string} value 
+                     * @returns [Token]
+                     */
+                  function matchOpToken(value) {
                         if (currentToken() && currentToken().op && currentToken().value === value) {
                             return consumeToken();
                         }
                     }
 
+                    /**
+                     * @param {string} type1 
+                     * @param {string} type2 
+                     * @param {string} type3 
+                     * @param {string} type4 
+                     * @returns Token
+                     */
                     function requireTokenType(type1, type2, type3, type4) {
                         var token = matchTokenType(type1, type2, type3, type4);
                         if (token) {
@@ -186,12 +283,24 @@
                         }
                     }
 
+                    /**
+                     * @param {string} type1 
+                     * @param {string} type2 
+                     * @param {string} type3 
+                     * @param {string} type4 
+                     * @returns [Token]
+                     */
                     function matchTokenType(type1, type2, type3, type4) {
                         if (currentToken() && currentToken().type && [type1, type2, type3, type4].indexOf(currentToken().type) >= 0) {
                             return consumeToken();
                         }
                     }
 
+                    /**
+                     * @param {string} value 
+                     * @param {string} type 
+                     * @returns Token
+                     */
                     function requireToken(value, type) {
                         var token = matchToken(value, type);
                         if (token) {
@@ -201,6 +310,11 @@
                         }
                     }
 
+                    /**
+                     * @param {string} value 
+                     * @param {string} type 
+                     * @returns [Token]
+                     */
                     function matchToken(value, type) {
                         var type = type || "IDENTIFIER";
                         if (currentToken() && currentToken().value === value && currentToken().type === type) {
@@ -208,16 +322,28 @@
                         }
                     }
 
+                    /**
+                     * @returns Token
+                     */
                     function consumeToken() {
                         var match = tokens.shift();
                         consumed.push(match);
+                        _lastConsumed = match;
                         consumeWhitespace(); // consume any whitespace
                         return match;
                     }
 
+                    /**
+                     * @param {string} value 
+                     * @param {string} type 
+                     * @returns Token[]
+                     */
                     function consumeUntil(value, type) {
+
+                        /** @type Token[] */
                         var tokenList = [];
                         var currentToken = token(0, true);
+
                         while ((type == null || currentToken.type !== type) &&
                                (value == null || currentToken.value !== value) &&
                                 currentToken.type !== "EOF") {
@@ -230,6 +356,9 @@
                         return tokenList;
                     }
 
+                    /**
+                     * @returns string
+                     */
                     function lastWhitespace() {
                         if (consumed[consumed.length - 1] && consumed[consumed.length - 1].type === "WHITESPACE") {
                             return consumed[consumed.length - 1].value;
@@ -242,11 +371,21 @@
                         return consumeUntil(null, "WHITESPACE");
                     }
 
+                    /**
+                     * @returns boolean
+                     */
                     function hasMore() {
                         return tokens.length > 0;
                     }
 
+                    /**
+                     * @param {number} n 
+                     * @param {boolean} [dontIgnoreWhitespace]
+                     * @returns Token
+                     */
                     function token(n, dontIgnoreWhitespace) {
+
+                        /** @type {Token} */
                         var token;
                         var i = 0;
                         do {
@@ -269,8 +408,24 @@
                         }
                     }
 
+                    /**
+                     * @returns Token
+                     */
                     function currentToken() {
                         return token(0);
+                    }
+
+                    function lastMatch() {
+                        return _lastConsumed;
+                    }
+
+                    function sourceFor() {
+                        return source.substring(this.startToken.start, this.endToken.end);
+                    }
+
+                    function lineFor() {
+                        return source
+                            .split("\n")[this.startToken.line - 1];
                     }
 
                     return {
@@ -288,16 +443,25 @@
                         source: source,
                         hasMore: hasMore,
                         currentToken: currentToken,
+                        lastMatch: lastMatch,
                         token: token,
                         consumeUntil: consumeUntil,
                         consumeUntilWhitespace: consumeUntilWhitespace,
-                        lastWhitespace: lastWhitespace
+                        lastWhitespace: lastWhitespace,
+                        sourceFor: sourceFor,
+                        lineFor: lineFor
                     }
                 }
 
+                /**
+                 * @param {string} string 
+                 * @param {boolean} [noDollarStart]
+                 * @returns TokensObject
+                 */
                 function tokenize(string, noDollarStart) {
-                    var source = string;
+                    /** @type Token[]*/ 
                     var tokens = [];
+                    var source = string;
                     var position = 0;
                     var column = 0;
                     var line = 1;
@@ -333,12 +497,22 @@
 
                     return makeTokensObject(tokens, [], source);
 
+                    /**
+                     * @param {string} type 
+                     * @param {string} [value]
+                     * @returns Token
+                     */
                     function makeOpToken(type, value) {
                         var token = makeToken(type, value);
                         token.op = true;
                         return token;
                     }
 
+                    /**
+                     * @param {string} type 
+                     * @param {string} [value]
+                     * @returns Token
+                     */
                     function makeToken(type, value) {
                         return {
                             type: type,
@@ -357,6 +531,9 @@
                         consumeChar();
                     }
 
+                    /**
+                     * @returns Token
+                     */
                     function consumeClassReference() {
                         var classRef = makeToken("CLASS_REF");
                         var value = consumeChar();
@@ -368,8 +545,10 @@
                         return classRef;
                     }
 
-
-                    function consumeIdReference() {
+                    /**
+                     * @returns Token
+                     */
+                     function consumeIdReference() {
                         var idRef = makeToken("ID_REF");
                         var value = consumeChar();
                         while (isValidCSSIDChar(currentChar())) {
@@ -380,7 +559,10 @@
                         return idRef;
                     }
 
-                    function consumeIdentifier() {
+                    /**
+                     * @returns Token
+                     */
+                     function consumeIdentifier() {
                         var identifier = makeToken("IDENTIFIER");
                         var value = consumeChar();
                         while (isAlpha(currentChar()) || isIdentifierChar(currentChar())) {
@@ -391,7 +573,10 @@
                         return identifier;
                     }
 
-                    function consumeNumber() {
+                    /**
+                     * @returns Token
+                     */
+                     function consumeNumber() {
                         var number = makeToken("NUMBER");
                         var value = consumeChar();
                         while (isNumeric(currentChar())) {
@@ -408,18 +593,25 @@
                         return number;
                     }
 
+                    /**
+                     * @returns Token
+                     */
                     function consumeOp() {
+                        var op = makeOpToken();
                         var value = consumeChar(); // consume leading char
                         while (currentChar() && OP_TABLE[value + currentChar()]) {
                             value += consumeChar();
                         }
-                        var op = makeOpToken(OP_TABLE[value], value);
+                        op.type = OP_TABLE[value];
                         op.value = value;
                         op.end = position;
                         return op;
                     }
 
-                    function consumeString() {
+                    /**
+                     * @returns Token
+                     */
+                     function consumeString() {
                         var string = makeToken("STRING");
                         var startChar = consumeChar(); // consume leading quote
                         var value = "";
@@ -440,26 +632,41 @@
                         return string;
                     }
 
-                    function currentChar() {
+                    /**
+                     * @returns string
+                     */
+                     function currentChar() {
                         return source.charAt(position);
                     }
 
-                    function nextChar() {
+                    /**
+                     * @returns string
+                     */
+                     function nextChar() {
                         return source.charAt(position + 1);
                     }
 
-                    function consumeChar() {
+                    /**
+                     * @returns string
+                     */
+                     function consumeChar() {
                         lastToken = currentChar();
                         position++;
                         column++;
                         return lastToken;
                     }
 
-                    function possiblePrecedingSymbol() {
+                    /**
+                     * @returns boolean
+                     */
+                     function possiblePrecedingSymbol() {
                         return isAlpha(lastToken) || isNumeric(lastToken) || lastToken === ")" || lastToken === "}" || lastToken === "]"
                     }
 
-                    function consumeWhitespace() {
+                    /**
+                     * @returns Token
+                     */
+                     function consumeWhitespace() {
                         var whitespace = makeToken("WHITESPACE");
                         var value = "";
                         while (currentChar() && isWhitespace(currentChar())) {
@@ -492,16 +699,55 @@
                 var LEAF_EXPRESSIONS = [];
                 var INDIRECT_EXPRESSIONS = [];
 
-                function parseElement(type, tokens, root) {
-                    var elementDefinition = GRAMMAR[type];
-                    if (elementDefinition) return elementDefinition(_parser, _runtime, tokens, root);
+                /**
+                 * @param {string} type 
+                 * @param {TokensObject} tokens 
+                 * @param {*} root 
+                 * @returns 
+                 */
+                function initElt(parseElement, start, tokens) {
+                    parseElement.startToken = start;
+                    parseElement.sourceFor = tokens.sourceFor;
+                    parseElement.lineFor = tokens.lineFor;
+                    parseElement.programSource = tokens.source;
                 }
 
+
+                function parseElement(type, tokens, root) {
+                    var elementDefinition = GRAMMAR[type];
+                    if (elementDefinition) {
+                        var start = tokens.currentToken();
+                        var parseElement = elementDefinition(_parser, _runtime, tokens, root);
+                        if (parseElement) {
+                            initElt(parseElement, start, tokens);
+                            parseElement.endToken = parseElement.endToken || tokens.lastMatch()
+                            var root = parseElement.root;
+                            while (root != null) {
+                                initElt(root, start, tokens);
+                                root = root.root;
+                            }
+                        }
+                        return parseElement;
+                    }
+                }
+
+                /**
+                 * @param {string} type 
+                 * @param {TokensObject} tokens 
+                 * @param {string} [message]
+                 * @param {*} [root]
+                 * @returns 
+                 */
                 function requireElement(type, tokens, message, root) {
                     var result = parseElement(type, tokens, root);
                     return result || raiseParseError(tokens, message || "Expected " + type);
                 }
 
+                /**
+                 * @param {string[]} types 
+                 * @param {TokensObject} tokens 
+                 * @returns 
+                 */
                 function parseAnyOf(types, tokens) {
                     for (var i = 0; i < types.length; i++) {
                         var type = types[i];
@@ -512,10 +758,18 @@
                     }
                 }
 
+                /**
+                 * @param {string} name 
+                 * @param {GrammarDefinition} definition 
+                 */
                 function addGrammarElement(name, definition) {
                     GRAMMAR[name] = definition;
                 }
 
+                /**
+                 * @param {string} keyword 
+                 * @param {CommandDefinition} definition 
+                 */
                 function addCommand(keyword, definition) {
                     var commandGrammarType = keyword + "Command";
                     var commandDefinitionWrapper = function (parser, runtime, tokens) {
@@ -532,8 +786,14 @@
                     COMMANDS[keyword] = commandDefinitionWrapper;
                 }
 
+                /**
+                 * @param {string} keyword 
+                 * @param {FeatureDefinition} definition 
+                 */
                 function addFeature(keyword, definition) {
                     var featureGrammarType = keyword + "Feature";
+
+                    /** @type FeatureDefinition*/ 
                     var featureDefinitionWrapper = function (parser, runtime, tokens) {
                         var featureElement = definition(parser, runtime, tokens);
                         if (featureElement) {
@@ -546,11 +806,19 @@
                     FEATURES[keyword] = featureDefinitionWrapper;
                 }
 
+                /**
+                 * @param {string} name 
+                 * @param {ExpressionDefinition} definition 
+                 */
                 function addLeafExpression(name, definition) {
                     LEAF_EXPRESSIONS.push(name);
                     addGrammarElement(name, definition);
                 }
 
+                /**
+                 * @param {string} name 
+                 * @param {ExpressionDefinition} definition 
+                 */
                 function addIndirectExpression(name, definition) {
                     INDIRECT_EXPRESSIONS.push(name);
                     addGrammarElement(name, definition);
@@ -609,6 +877,7 @@
                 addGrammarElement("indirectExpression", function(parser, runtime, tokens, root) {
                     for (var i = 0; i < INDIRECT_EXPRESSIONS.length; i++) {
                         var indirect = INDIRECT_EXPRESSIONS[i];
+                        root.endToken = tokens.lastMatch();
                         var result = parser.parseElement(indirect, tokens, root);
                         if(result){
                             return result;
@@ -639,18 +908,30 @@
                     return contextLine + "\n" + " ".repeat(offset) + "^^\n\n";
                 }
 
+                /**
+                 * @param {*} tokens 
+                 * @param {string} message 
+                 */
                 function raiseParseError(tokens, message) {
                     message = (message || "Unexpected Token : " + tokens.currentToken().value) + "\n\n" +
                         createParserContext(tokens);
                     var error = new Error(message);
-                    error.tokens = tokens;
+                    error['tokens'] = tokens;
                     throw error
                 }
 
+                /**
+                 * @param {TokensObject} tokens 
+                 * @returns 
+                 */
                 function parseHyperScript(tokens) {
                     return parseElement("hyperscript", tokens)
                 }
 
+                /**
+                 * @param {*} elt 
+                 * @param {*} parent 
+                 */
                 function setParent(elt, parent) {
                     if (elt) {
                         elt.parent = parent;
@@ -658,14 +939,29 @@
                     }
                 }
 
+                /**
+                 * 
+                 * @param {Token} token 
+                 * @returns 
+                 */
                 function commandStart(token){
                     return COMMANDS[token.value];
                 }
 
+                /**
+                 * 
+                 * @param {Token} token 
+                 * @returns 
+                 */
                 function featureStart(token){
                     return FEATURES[token.value];
                 }
 
+                /**
+                 * 
+                 * @param {Token} token 
+                 * @returns 
+                 */
                 function commandBoundary(token) {
                     if (token.value == "end" ||
                         token.value == "then" ||
@@ -678,6 +974,11 @@
                     }
                 }
 
+                /**
+                 * 
+                 * @param {TokensObject} tokens 
+                 * @returns 
+                 */
                 function parseStringTemplate(tokens) {
                     var returnArr = [""];
                     do {
@@ -753,7 +1054,10 @@
                     return JSON.stringify(val);
                 },
                 "Object" : function(val){
-                    if (typeof val === 'string' || val instanceof String) {
+                    if (val instanceof String) {
+                        val = val.toString()
+                    }
+                    if (typeof val === 'string') {
                         return JSON.parse(val);
                     } else {
                         return mergeObjects({}, val);
@@ -762,6 +1066,11 @@
             }
             var _runtime = function () {
 
+                /**
+                 * @param {HTMLElement} elt 
+                 * @param {string} selector 
+                 * @returns boolean
+                 */
                 function matchesSelector(elt, selector) {
                     // noinspection JSUnresolvedVariable
                     var matchesFunction = elt.matches ||
@@ -770,6 +1079,11 @@
                     return matchesFunction && matchesFunction.call(elt, selector);
                 }
 
+                /**
+                 * @param {string} eventName 
+                 * @param {{}} detail 
+                 * @returns 
+                 */
                 function makeEvent(eventName, detail) {
                     var evt;
                     if (window.CustomEvent && typeof window.CustomEvent === 'function') {
@@ -781,6 +1095,12 @@
                     return evt;
                 }
 
+                /**
+                 * @param {HTMLElement} elt 
+                 * @param {string} eventName 
+                 * @param {{}} detail 
+                 * @returns 
+                 */
                 function triggerEvent(elt, eventName, detail) {
                     var detail = detail || {};
                     detail["sentBy"] = elt;
@@ -789,10 +1109,18 @@
                     return eventResult;
                 }
 
+                /**
+                 * @param {any} value 
+                 * @returns boolean
+                 */
                 function isArrayLike(value) {
                     return Array.isArray(value) || value instanceof NodeList;
                 }
 
+                /**
+                 * @param {any} value 
+                 * @param {function} func 
+                 */
                 function forEach(value, func) {
                     if (value == null) {
                         // do nothing
@@ -840,7 +1168,6 @@
                         }
                     }
                     return arr;
-
                 }
 
                 function unwrapAsyncs(values) {
@@ -1054,8 +1381,7 @@
                     return Object.prototype.toString.call(o) === "[object " + type + "]";
                 }
 
-                function evaluate(src, ctx) {
-                    ctx = ctx || {};
+                function parse(src) {
                     var tokens = _lexer.tokenize(src);
                     if (_parser.commandStart(tokens.currentToken())) {
                         var commandList = _parser.parseElement("commandList", tokens);
@@ -1068,14 +1394,25 @@
                                 return HALT;
                             }
                         }
-                        commandList.execute(ctx);
+                        return commandList
                     } else if (_parser.featureStart(tokens.currentToken())) {
                         var hyperscript = _parser.parseElement("hyperscript", tokens);
-                        hyperscript.apply(document.body, null);
-                        return null;
+                        return hyperscript;
                     } else {
                         var expression = _parser.parseElement("expression", tokens);
-                        return expression.evaluate(ctx);
+                        return expression;
+                    }
+                }
+
+                function evaluate(src, ctx) {
+                    ctx = ctx || {};
+                    var element = parse(src);
+                    if (element.execute) {
+                        element.execute(ctx);
+                    } else if (element.apply) {
+                        element.apply(document.body, null);
+                    } else {
+                        return element.evaluate(ctx);
                     }
                 }
 
@@ -1268,6 +1605,12 @@
                     });
                 }
 
+                function nullCheck(value, elt) {
+                    if (value == null) {
+                        throw new Error(elt.sourceFor() + " is null");
+                    }
+                }
+
                 var hyperscriptUrl = 'document' in globalScope ? document.currentScript.src : null
 
                 return {
@@ -1278,6 +1621,7 @@
                     getScript: getScript,
                     processNode: processNode,
                     evaluate: evaluate,
+                    parse: parse,
                     getScriptSelector: getScriptSelector,
                     resolveSymbol: resolveSymbol,
                     makeContext: makeContext,
@@ -1291,6 +1635,7 @@
                     getHyperTrace: getHyperTrace,
                     getInternalData: getInternalData,
                     escapeSelector: escapeSelector,
+                    nullCheck: nullCheck,
                     hyperscriptUrl: hyperscriptUrl,
                     HALT: HALT
                 }
@@ -1823,7 +2168,9 @@
                                 argExressions: args,
                                 args: [root.root, args],
                                 op: function (context, rootRoot, args) {
+                                    runtime.nullCheck(rootRoot, root.root);
                                     var func = rootRoot[root.prop.value];
+                                    runtime.nullCheck(func, root);
                                     if (func.hyperfunc) {
                                         args.push(context);
                                     }
@@ -1840,6 +2187,7 @@
                                 argExressions: args,
                                 args: [root, args],
                                 op: function(context, func, argVals){
+                                    runtime.nullCheck(func, root);
                                     if (func.hyperfunc) {
                                         argVals.push(context);
                                     }
@@ -2366,7 +2714,7 @@
                             executing: false,
                             execCount: 0,
                             queue: queue,
-                            execute: function (ctx) {
+                            execute: function (/** @type {Context} */ctx) {
                                 if (this.executing && this.every === false) {
                                     if (queueNone || (queueFirst && queue.length > 0)) {
                                         return;
@@ -2918,7 +3266,7 @@
                         if (tokens.matchToken("to")) {
                             var to = parser.requireElement("targetExpression", tokens);
                         } else {
-                            var to = parser.requireElement("implicitMeTarget");
+                            var to = parser.requireElement("implicitMeTarget", tokens);
                         }
 
 
@@ -3045,7 +3393,7 @@
                         parser.raiseParseError("Implicit function calls must start with a simple function", tokens);
                     }
                     // optional "on", "with", or "to"
-                    if (!tokens.matchToken("to") && !tokens.matchToken("on") && !tokens.matchToken("with") && parser.commandBoundary(tokens.currentToken())) {
+                    if (!tokens.matchAnyToken("to","on","with") && parser.commandBoundary(tokens.currentToken())) {
                         var target = parser.requireElement("implicitMeTarget", tokens);
                     } else {
                         var target = parser.requireElement("expression", tokens);
@@ -3425,6 +3773,9 @@
                     evaluate: function (str, ctx) { //OK
                         return _runtime.evaluate(str, ctx); //OK
                     },
+                    parse: function (str) { //OK
+                        return _runtime.parse(str); //OK
+                    },
                     processNode: function (elt) {
                         _runtime.processNode(elt);
                     },
@@ -3459,7 +3810,7 @@
             if (!parser.commandBoundary(tokens.currentToken())) {
                 var on = parser.requireElement("expression", tokens);
             } else {
-                var on = parser.requireElement("implicitMeTarget");
+                var on = parser.requireElement("implicitMeTarget", tokens);
             }
 
             var settleCommand = {
@@ -3526,7 +3877,7 @@
             if (tokens.matchToken("to")) {
                 var to = parser.requireElement("targetExpression", tokens);
             } else {
-                var to = parser.parseElement("implicitMeTarget");
+                var to = parser.parseElement("implicitMeTarget", tokens);
             }
 
             if (classRefs) {
@@ -3607,7 +3958,7 @@
             if (tokens.matchToken("from")) {
                 var from = parser.requireElement("targetExpression", tokens);
             } else {
-                var from = parser.requireElement("implicitMeTarget");
+                var from = parser.requireElement("implicitMeTarget", tokens);
             }
 
             if (elementExpr) {
@@ -3677,7 +4028,7 @@
             if (tokens.matchToken("on")) {
                 var on = parser.requireElement("targetExpression", tokens);
             } else {
-                var on = parser.requireElement("implicitMeTarget");
+                var on = parser.requireElement("implicitMeTarget", tokens);
             }
 
             if (tokens.matchToken("for")) {
@@ -3894,7 +4245,7 @@
             if (tokens.matchToken("for")) {
                 var forElt = parser.requireElement("targetExpression", tokens);
             } else {
-                var forElt = parser.requireElement("implicitMeTarget")
+                var forElt = parser.requireElement("implicitMeTarget", tokens)
             }
 
             var takeCmd = {
@@ -3938,13 +4289,10 @@
         if (tokens.matchToken('put')) {
             var value = parser.requireElement("expression", tokens);
 
-            var operationToken = tokens.matchToken("into") ||
-                tokens.matchToken("before") ||
-                tokens.matchToken("after");
+            var operationToken = tokens.matchAnyToken("into", "before", "after");
 
             if (operationToken == null && tokens.matchToken("at")) {
-                operationToken = tokens.matchToken("start") ||
-                    tokens.matchToken("end");
+                operationToken = tokens.matchAnyToken("start", "end");
                 tokens.requireToken("of");
             }
 
@@ -4013,7 +4361,7 @@
             if (tokens.matchToken('element') || tokens.matchToken('elements')) {
                 var targets = parser.parseElement("expression", tokens);
             } else {
-                var targets = parser.parseElement("implicitMeTarget");
+                var targets = parser.parseElement("implicitMeTarget", tokens);
             }
             var properties = [];
             var from = [];
@@ -4123,5 +4471,104 @@
             }
         }
     });
+
+    _hyperscript.config.conversions["Values"] = function(node) {
+
+        // Try to get a value directly from this node
+        var input = getInputInfo(node);
+
+        if (input !== undefined) {
+            return input.value;
+        }
+
+        // Otherwise, try to query all child elements of this node that *should* contain values.
+        if (node.querySelectorAll != undefined) {
+
+            /** @type Object<string,string> */
+            var result = {};
+
+            var children = node.querySelectorAll("input,select,textarea");
+
+            for (var i = 0; i < children.length; i++) {
+                var child = children[i];
+                appendValue(result, child);
+            }
+
+            return result;
+        }
+
+        // Otherwise, there is no value to return.
+        return null;
+
+        /**
+         * @param {Object<string,(string|string[])>} result
+         * @param {HTMLInputElement} node 
+         */
+        function appendValue(result, node) {
+
+            var info = getInputInfo(node);
+
+            if (info == undefined) {
+                return;
+            }
+
+            // If there is no value already stored in this space.
+            if (result[info.name] == undefined) {
+                result[info.name] = info.value;
+                return;
+            }
+
+            if (Array.isArray(result[info.name]) && Array.isArray(info.value)) {
+                result[info.name] = [].concat(result[info.name], info.value);
+                return;
+            }
+        }
+
+        /**
+         * @param {HTMLInputElement} node 
+         * @returns {{name:string, value:string | string[]} | undefined}
+         */
+        function getInputInfo(node) {
+            try {
+
+                /** @type {{name: string, value: string | string[]}}*/
+                var result = {
+                    name: node.name,
+                    value: node.value
+                };
+
+                if ((result.name == undefined) || (result.value == undefined)) {
+                    return undefined;
+                }
+
+                if ((node.type == "radio") && (node.checked == false)) {
+                   return undefined;
+                }
+
+                if (node.type == "checkbox") {
+                    if (node.checked == false) {
+                        result.value = undefined;
+                    } else if (typeof result.value === "string") {
+                        result.value = [result.value];
+                    }
+                }
+
+                if (node.type == "select-multiple") {
+
+                    /** @type {NodeListOf<HTMLSelectElement>} */
+                    var selected = node.querySelectorAll("option[selected]");
+                    
+                    result.value = []
+                    for (var index = 0 ; index < selected.length ; index++) {
+                        result.value.push(selected[index].value)
+                    }
+                }
+                return result;
+
+            } catch (e) {
+                return undefined;
+            }
+        }
+    }
 
 })()

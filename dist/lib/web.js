@@ -18,7 +18,7 @@
             if (!parser.commandBoundary(tokens.currentToken())) {
                 var on = parser.requireElement("expression", tokens);
             } else {
-                var on = parser.requireElement("implicitMeTarget");
+                var on = parser.requireElement("implicitMeTarget", tokens);
             }
 
             var settleCommand = {
@@ -85,7 +85,7 @@
             if (tokens.matchToken("to")) {
                 var to = parser.requireElement("targetExpression", tokens);
             } else {
-                var to = parser.parseElement("implicitMeTarget");
+                var to = parser.parseElement("implicitMeTarget", tokens);
             }
 
             if (classRefs) {
@@ -166,7 +166,7 @@
             if (tokens.matchToken("from")) {
                 var from = parser.requireElement("targetExpression", tokens);
             } else {
-                var from = parser.requireElement("implicitMeTarget");
+                var from = parser.requireElement("implicitMeTarget", tokens);
             }
 
             if (elementExpr) {
@@ -236,7 +236,7 @@
             if (tokens.matchToken("on")) {
                 var on = parser.requireElement("targetExpression", tokens);
             } else {
-                var on = parser.requireElement("implicitMeTarget");
+                var on = parser.requireElement("implicitMeTarget", tokens);
             }
 
             if (tokens.matchToken("for")) {
@@ -453,7 +453,7 @@
             if (tokens.matchToken("for")) {
                 var forElt = parser.requireElement("targetExpression", tokens);
             } else {
-                var forElt = parser.requireElement("implicitMeTarget")
+                var forElt = parser.requireElement("implicitMeTarget", tokens)
             }
 
             var takeCmd = {
@@ -497,13 +497,10 @@
         if (tokens.matchToken('put')) {
             var value = parser.requireElement("expression", tokens);
 
-            var operationToken = tokens.matchToken("into") ||
-                tokens.matchToken("before") ||
-                tokens.matchToken("after");
+            var operationToken = tokens.matchAnyToken("into", "before", "after");
 
             if (operationToken == null && tokens.matchToken("at")) {
-                operationToken = tokens.matchToken("start") ||
-                    tokens.matchToken("end");
+                operationToken = tokens.matchAnyToken("start", "end");
                 tokens.requireToken("of");
             }
 
@@ -572,7 +569,7 @@
             if (tokens.matchToken('element') || tokens.matchToken('elements')) {
                 var targets = parser.parseElement("expression", tokens);
             } else {
-                var targets = parser.parseElement("implicitMeTarget");
+                var targets = parser.parseElement("implicitMeTarget", tokens);
             }
             var properties = [];
             var from = [];
@@ -682,5 +679,104 @@
             }
         }
     });
+
+    _hyperscript.config.conversions["Values"] = function(node) {
+
+        // Try to get a value directly from this node
+        var input = getInputInfo(node);
+
+        if (input !== undefined) {
+            return input.value;
+        }
+
+        // Otherwise, try to query all child elements of this node that *should* contain values.
+        if (node.querySelectorAll != undefined) {
+
+            /** @type Object<string,string> */
+            var result = {};
+
+            var children = node.querySelectorAll("input,select,textarea");
+
+            for (var i = 0; i < children.length; i++) {
+                var child = children[i];
+                appendValue(result, child);
+            }
+
+            return result;
+        }
+
+        // Otherwise, there is no value to return.
+        return null;
+
+        /**
+         * @param {Object<string,(string|string[])>} result
+         * @param {HTMLInputElement} node 
+         */
+        function appendValue(result, node) {
+
+            var info = getInputInfo(node);
+
+            if (info == undefined) {
+                return;
+            }
+
+            // If there is no value already stored in this space.
+            if (result[info.name] == undefined) {
+                result[info.name] = info.value;
+                return;
+            }
+
+            if (Array.isArray(result[info.name]) && Array.isArray(info.value)) {
+                result[info.name] = [].concat(result[info.name], info.value);
+                return;
+            }
+        }
+
+        /**
+         * @param {HTMLInputElement} node 
+         * @returns {{name:string, value:string | string[]} | undefined}
+         */
+        function getInputInfo(node) {
+            try {
+
+                /** @type {{name: string, value: string | string[]}}*/
+                var result = {
+                    name: node.name,
+                    value: node.value
+                };
+
+                if ((result.name == undefined) || (result.value == undefined)) {
+                    return undefined;
+                }
+
+                if ((node.type == "radio") && (node.checked == false)) {
+                   return undefined;
+                }
+
+                if (node.type == "checkbox") {
+                    if (node.checked == false) {
+                        result.value = undefined;
+                    } else if (typeof result.value === "string") {
+                        result.value = [result.value];
+                    }
+                }
+
+                if (node.type == "select-multiple") {
+
+                    /** @type {NodeListOf<HTMLSelectElement>} */
+                    var selected = node.querySelectorAll("option[selected]");
+                    
+                    result.value = []
+                    for (var index = 0 ; index < selected.length ; index++) {
+                        result.value.push(selected[index].value)
+                    }
+                }
+                return result;
+
+            } catch (e) {
+                return undefined;
+            }
+        }
+    }
 
 })()
