@@ -9,7 +9,6 @@
 * Event model
 * Debugging
 * range operator
-*  array helpers 'first', 'last', 'in', 'random'
 * repeat command improvements
 ```
 // By default, counter uses "it" convention
@@ -24,8 +23,13 @@ end
 ```
 * Support a `timeout` modifier for async commands like `fetch`, `call`, `wait for` etc.
 * functions should be able to be marked `sync` to make only one execution at a time occur, in serial fashion
-* unify properly literals and array literals with lookahead
+* unify attribute literals and array literals with lookahead
 * unify all css() like literals to a general dynamic evaluation (eval is context sensitive)
+* `default <identifier> to <expression> ` - default a value if it does not exist
+* `increment/decrement` commands
+* Better DOM manipulation tools
+* `merge/merge into` - Merge objects with one another
+* Make `first, last, random` work as identifiers (backtracking parser)
 
 #### Speculative Language Features
 * A two-way binding system (maybe a global two way-bound namespace? hyperplane?

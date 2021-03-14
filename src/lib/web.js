@@ -497,13 +497,10 @@
         if (tokens.matchToken('put')) {
             var value = parser.requireElement("expression", tokens);
 
-            var operationToken = tokens.matchToken("into") ||
-                tokens.matchToken("before") ||
-                tokens.matchToken("after");
+            var operationToken = tokens.matchAnyToken("into", "before", "after");
 
             if (operationToken == null && tokens.matchToken("at")) {
-                operationToken = tokens.matchToken("start") ||
-                    tokens.matchToken("end");
+                operationToken = tokens.matchAnyToken("start", "end");
                 tokens.requireToken("of");
             }
 
