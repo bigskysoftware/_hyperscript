@@ -131,6 +131,7 @@
                 function makeTokensObject(tokens, consumed, source) {
 
                     consumeWhitespace(); // consume initial whitespace
+                    var _lastConsumed = null;
 
                     function consumeWhitespace(){
                         while(token(0, true).type === "WHITESPACE") {
@@ -211,6 +212,7 @@
                     function consumeToken() {
                         var match = tokens.shift();
                         consumed.push(match);
+                        _lastConsumed = match;
                         consumeWhitespace(); // consume any whitespace
                         return match;
                     }
@@ -273,6 +275,19 @@
                         return token(0);
                     }
 
+                    function lastMatch() {
+                        return _lastConsumed;
+                    }
+
+                    function sourceFor() {
+                        return source.substring(this.startToken.start, this.endToken.end);
+                    }
+
+                    function lineFor() {
+                        return source
+                            .split("\n")[this.startToken.line - 1];
+                    }
+
                     return {
                         matchAnyToken: matchAnyToken,
                         matchAnyOpToken: matchAnyOpToken,
@@ -288,10 +303,13 @@
                         source: source,
                         hasMore: hasMore,
                         currentToken: currentToken,
+                        lastMatch: lastMatch,
                         token: token,
                         consumeUntil: consumeUntil,
                         consumeUntilWhitespace: consumeUntilWhitespace,
-                        lastWhitespace: lastWhitespace
+                        lastWhitespace: lastWhitespace,
+                        sourceFor: sourceFor,
+                        lineFor: lineFor
                     }
                 }
 
@@ -409,11 +427,12 @@
                     }
 
                     function consumeOp() {
+                        var op = makeOpToken();
                         var value = consumeChar(); // consume leading char
                         while (currentChar() && OP_TABLE[value + currentChar()]) {
                             value += consumeChar();
                         }
-                        var op = makeOpToken(OP_TABLE[value], value);
+                        op.type = OP_TABLE[value];
                         op.value = value;
                         op.end = position;
                         return op;
@@ -492,9 +511,29 @@
                 var LEAF_EXPRESSIONS = [];
                 var INDIRECT_EXPRESSIONS = [];
 
+                function initElt(parseElement, start, tokens) {
+                    parseElement.startToken = start;
+                    parseElement.sourceFor = tokens.sourceFor;
+                    parseElement.lineFor = tokens.lineFor;
+                    parseElement.programSource = tokens.source;
+                }
+
                 function parseElement(type, tokens, root) {
                     var elementDefinition = GRAMMAR[type];
-                    if (elementDefinition) return elementDefinition(_parser, _runtime, tokens, root);
+                    if (elementDefinition) {
+                        var start = tokens.currentToken();
+                        var parseElement = elementDefinition(_parser, _runtime, tokens, root);
+                        if (parseElement) {
+                            initElt(parseElement, start, tokens);
+                            parseElement.endToken = parseElement.endToken || tokens.lastMatch()
+                            var root = parseElement.root;
+                            while (root != null) {
+                                initElt(root, start, tokens);
+                                root = root.root;
+                            }
+                        }
+                        return parseElement;
+                    }
                 }
 
                 function requireElement(type, tokens, message, root) {
@@ -609,6 +648,7 @@
                 addGrammarElement("indirectExpression", function(parser, runtime, tokens, root) {
                     for (var i = 0; i < INDIRECT_EXPRESSIONS.length; i++) {
                         var indirect = INDIRECT_EXPRESSIONS[i];
+                        root.endToken = tokens.lastMatch();
                         var result = parser.parseElement(indirect, tokens, root);
                         if(result){
                             return result;
@@ -1054,8 +1094,7 @@
                     return Object.prototype.toString.call(o) === "[object " + type + "]";
                 }
 
-                function evaluate(src, ctx) {
-                    ctx = ctx || {};
+                function parse(src) {
                     var tokens = _lexer.tokenize(src);
                     if (_parser.commandStart(tokens.currentToken())) {
                         var commandList = _parser.parseElement("commandList", tokens);
@@ -1068,14 +1107,25 @@
                                 return HALT;
                             }
                         }
-                        commandList.execute(ctx);
+                        return commandList
                     } else if (_parser.featureStart(tokens.currentToken())) {
                         var hyperscript = _parser.parseElement("hyperscript", tokens);
-                        hyperscript.apply(document.body, null);
-                        return null;
+                        return hyperscript;
                     } else {
                         var expression = _parser.parseElement("expression", tokens);
-                        return expression.evaluate(ctx);
+                        return expression;
+                    }
+                }
+
+                function evaluate(src, ctx) {
+                    ctx = ctx || {};
+                    var element = parse(src);
+                    if (element.execute) {
+                        element.execute(ctx);
+                    } else if (element.apply) {
+                        element.apply(document.body, null);
+                    } else {
+                        return element.evaluate(ctx);
                     }
                 }
 
@@ -1278,6 +1328,7 @@
                     getScript: getScript,
                     processNode: processNode,
                     evaluate: evaluate,
+                    parse: parse,
                     getScriptSelector: getScriptSelector,
                     resolveSymbol: resolveSymbol,
                     makeContext: makeContext,
@@ -2918,7 +2969,7 @@
                         if (tokens.matchToken("to")) {
                             var to = parser.requireElement("targetExpression", tokens);
                         } else {
-                            var to = parser.requireElement("implicitMeTarget");
+                            var to = parser.requireElement("implicitMeTarget", tokens);
                         }
 
 
@@ -3424,6 +3475,9 @@
                     },
                     evaluate: function (str, ctx) { //OK
                         return _runtime.evaluate(str, ctx); //OK
+                    },
+                    parse: function (str) { //OK
+                        return _runtime.parse(str); //OK
                     },
                     processNode: function (elt) {
                         _runtime.processNode(elt);

@@ -18,7 +18,7 @@
             if (!parser.commandBoundary(tokens.currentToken())) {
                 var on = parser.requireElement("expression", tokens);
             } else {
-                var on = parser.requireElement("implicitMeTarget");
+                var on = parser.requireElement("implicitMeTarget", tokens);
             }
 
             var settleCommand = {
@@ -85,7 +85,7 @@
             if (tokens.matchToken("to")) {
                 var to = parser.requireElement("targetExpression", tokens);
             } else {
-                var to = parser.parseElement("implicitMeTarget");
+                var to = parser.parseElement("implicitMeTarget", tokens);
             }
 
             if (classRefs) {
@@ -166,7 +166,7 @@
             if (tokens.matchToken("from")) {
                 var from = parser.requireElement("targetExpression", tokens);
             } else {
-                var from = parser.requireElement("implicitMeTarget");
+                var from = parser.requireElement("implicitMeTarget", tokens);
             }
 
             if (elementExpr) {
@@ -236,7 +236,7 @@
             if (tokens.matchToken("on")) {
                 var on = parser.requireElement("targetExpression", tokens);
             } else {
-                var on = parser.requireElement("implicitMeTarget");
+                var on = parser.requireElement("implicitMeTarget", tokens);
             }
 
             if (tokens.matchToken("for")) {
@@ -453,7 +453,7 @@
             if (tokens.matchToken("for")) {
                 var forElt = parser.requireElement("targetExpression", tokens);
             } else {
-                var forElt = parser.requireElement("implicitMeTarget")
+                var forElt = parser.requireElement("implicitMeTarget", tokens)
             }
 
             var takeCmd = {
@@ -569,7 +569,7 @@
             if (tokens.matchToken('element') || tokens.matchToken('elements')) {
                 var targets = parser.parseElement("expression", tokens);
             } else {
-                var targets = parser.parseElement("implicitMeTarget");
+                var targets = parser.parseElement("implicitMeTarget", tokens);
             }
             var properties = [];
             var from = [];
