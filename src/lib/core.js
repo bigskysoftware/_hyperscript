@@ -793,7 +793,10 @@
                     return JSON.stringify(val);
                 },
                 "Object" : function(val){
-                    if (typeof val === 'string' || val instanceof String) {
+                    if (val instanceof String) {
+                        val = val.toString()
+                    }
+                    if (typeof val === 'string') {
                         return JSON.parse(val);
                     } else {
                         return mergeObjects({}, val);
