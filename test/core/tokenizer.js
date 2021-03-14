@@ -1,4 +1,4 @@
-describe("the _hyperscript tokenizer", function() {
+describe("the _hyperscript tokenizer", function () {
 
     it("handles basic token types", function () {
         var lexer = _hyperscript.internals.lexer;
@@ -24,7 +24,7 @@ describe("the _hyperscript tokenizer", function() {
         token.type.should.equal("STRING");
     });
 
-    it('handles whitespace properly', function(){
+    it('handles whitespace properly', function () {
         var lexer = _hyperscript.internals.lexer;
         lexer.tokenize('   ').list.length.should.equal(0);
         lexer.tokenize('  asdf').list.length.should.equal(1);
@@ -44,7 +44,7 @@ describe("the _hyperscript tokenizer", function() {
         lexer.tokenize('asdf\t').list.length.should.equal(2);
     })
 
-    it('handles comments properly', function(){
+    it('handles comments properly', function () {
         var lexer = _hyperscript.internals.lexer;
         lexer.tokenize('--').list.length.should.equal(0);
         lexer.tokenize('asdf--').list.length.should.equal(1);
@@ -53,7 +53,7 @@ describe("the _hyperscript tokenizer", function() {
         lexer.tokenize('--\nasdf--').list.length.should.equal(1);
     })
 
-    it('handles class identifiers properly', function(){
+    it('handles class identifiers properly', function () {
         var lexer = _hyperscript.internals.lexer;
 
         var token = lexer.tokenize('.a').consumeToken();
@@ -95,7 +95,7 @@ describe("the _hyperscript tokenizer", function() {
         token.value.should.equal(".a");
     })
 
-    it('handles id references properly', function(){
+    it('handles id references properly', function () {
         var lexer = _hyperscript.internals.lexer;
 
         var token = lexer.tokenize('#a').consumeToken();
@@ -223,13 +223,13 @@ describe("the _hyperscript tokenizer", function() {
 
         try {
             lexer.tokenize("'").consumeToken();
-        } catch(e) {
+        } catch (e) {
             e.message.indexOf("Unterminated string").should.equal(0)
         }
 
         try {
             lexer.tokenize('"').consumeToken();
-        } catch(e) {
+        } catch (e) {
             e.message.indexOf("Unterminated string").should.equal(0)
         }
     })
@@ -237,14 +237,15 @@ describe("the _hyperscript tokenizer", function() {
     it("handles operators properly", function () {
         var lexer = _hyperscript.internals.lexer;
 
-        var optable = {'+': 'PLUS', '-': 'MINUS', '*': 'MULTIPLY', '.': 'PERIOD', '\\': 'BACKSLASH', ':': 'COLON',
+        var optable = {
+            '+': 'PLUS', '-': 'MINUS', '*': 'MULTIPLY', '.': 'PERIOD', '\\': 'BACKSLASH', ':': 'COLON',
             '%': 'PERCENT', '|': 'PIPE', '!': 'EXCLAMATION', '?': 'QUESTION', '#': 'POUND', '&': 'AMPERSAND',
             ';': 'SEMI', ',': 'COMMA', '(': 'L_PAREN', ')': 'R_PAREN', '<': 'L_ANG', '>': 'R_ANG', '{': 'L_BRACE',
             '}': 'R_BRACE', '[': 'L_BRACKET', ']': 'R_BRACKET', '=': 'EQUALS', '<=': 'LTE_ANG', '>=': 'GTE_ANG',
             '==': 'EQ', '===': 'EQQ'
         };
 
-        Object.keys(optable).forEach(function(key){
+        Object.keys(optable).forEach(function (key) {
             var consumeToken = lexer.tokenize(key).consumeToken();
             consumeToken.op.should.equal(true);
             consumeToken.value.should.equal(key);
@@ -252,16 +253,15 @@ describe("the _hyperscript tokenizer", function() {
 
     })
 
-    if ("handles look ahead property") {
+    it ("handles look ahead property", function() {
         var lexer = _hyperscript.internals.lexer;
-
         var tokenize = lexer.tokenize("a 1 + 1");
         tokenize.token(0).value.should.equal("a");
-        tokenize.token(1).value.should.equal("a");
-        tokenize.token(2).value.should.equal("a");
-        tokenize.token(3).value.should.equal("a");
+        tokenize.token(1).value.should.equal("1");
+        tokenize.token(2).value.should.equal("+");
+        tokenize.token(3).value.should.equal("1");
         tokenize.token(4).value.should.equal("<<<EOF>>>");
-    }
+    });
 
 
 });

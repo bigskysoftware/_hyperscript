@@ -50,6 +50,14 @@ describe("the queryRef expression", function() {
         value.length.should.equal(0);
     })
 
+    it("basic queryRef works w properties w/ strings", function () {
+        var div = make("<div class='c1'></div>" +
+            "                  <div foo='bar' class='c2'></div>" +
+            "                  <div class='c3'></div>");
+        var value = evalHyperScript("<[foo='bar']/>");
+        value.length.should.equal(1);
+    })
+
 
 });
 

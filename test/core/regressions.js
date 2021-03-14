@@ -37,4 +37,11 @@ describe("_hyperscript regressions", function() {
         form.classList.contains('hideme').should.equal(false);
     })
 
+    it("can remove by clicks elsewhere", function(){
+        var div = make("<div _='on click elsewhere remove me'></div>");
+        var div2 = make("<div></div>");
+        div2.click();
+        should.equal(div.parentNode, null);
+    })
+
 });
