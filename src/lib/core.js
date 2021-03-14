@@ -73,6 +73,8 @@
             //====================================================================
             // Lexer
             //====================================================================
+
+            /** @type LexerObject */
             var _lexer = function () {
                 var OP_TABLE = {
                     '+': 'PLUS',
@@ -192,8 +194,8 @@
                 /**
                  * @param {Token[]} tokens 
                  * @param {Token[]} consumed 
-                 * @param {*} source 
-                 * @returns 
+                 * @param {string} source 
+                 * @returns TokensObject
                  */
                 function makeTokensObject(tokens, consumed, source) {
 
@@ -207,7 +209,7 @@
                     }
 
                     /**
-                         * @param {Token[]} tokens 
+                     * @param {Token[]} tokens 
                      * @param {*} error 
                      */
                     function raiseError(tokens, error) {
@@ -229,8 +231,8 @@
 
                     /**
                      * @param {string} op1 
-                     * @param {string} op2 
-                     * @param {string} op3 
+                     * @param {string} [op2]
+                     * @param {string} [op3]
                      * @returns [Token]
                      */
                     function matchAnyOpToken(op1, op2, op3) {
@@ -244,10 +246,12 @@
                     }
 
                     /**
-                     * @param {string} value 
+                     * @param {string} op1
+                     * @param {string} [op2]
+                     * @param {string} [op3]
                      * @returns [Token]
                      */
-                    function matchAnyToken(op1, op2, op3) {
+                     function matchAnyToken(op1, op2, op3) {
                         for (var i = 0; i < arguments.length; i++) {
                             var opToken = arguments[i];
                             var match = matchToken(opToken);
@@ -261,7 +265,7 @@
                      * @param {string} value 
                      * @returns [Token]
                      */
-                  function matchOpToken(value) {
+                    function matchOpToken(value) {
                         if (currentToken() && currentToken().op && currentToken().value === value) {
                             return consumeToken();
                         }
@@ -298,7 +302,7 @@
 
                     /**
                      * @param {string} value 
-                     * @param {string} type 
+                     * @param {string} [type]
                      * @returns Token
                      */
                     function requireToken(value, type) {
@@ -312,7 +316,7 @@
 
                     /**
                      * @param {string} value 
-                     * @param {string} type 
+                     * @param {string} [type]
                      * @returns [Token]
                      */
                     function matchToken(value, type) {
@@ -335,7 +339,7 @@
 
                     /**
                      * @param {string} value 
-                     * @param {string} type 
+                     * @param {string} [type]
                      * @returns Token[]
                      */
                     function consumeUntil(value, type) {
@@ -498,7 +502,7 @@
                     return makeTokensObject(tokens, [], source);
 
                     /**
-                     * @param {string} type 
+                     * @param {string} [type] 
                      * @param {string} [value]
                      * @returns Token
                      */
@@ -509,7 +513,7 @@
                     }
 
                     /**
-                     * @param {string} type 
+                     * @param {string} [type]
                      * @param {string} [value]
                      * @returns Token
                      */
@@ -691,6 +695,8 @@
             //====================================================================
             // Parser
             //====================================================================
+
+            /** @type ParserObject */
             var _parser = function () {
 
                 var GRAMMAR = {}
@@ -700,10 +706,9 @@
                 var INDIRECT_EXPRESSIONS = [];
 
                 /**
-                 * @param {string} type 
+                 * @param {*} parseElement 
+                 * @param {*} start 
                  * @param {TokensObject} tokens 
-                 * @param {*} root 
-                 * @returns 
                  */
                 function initElt(parseElement, start, tokens) {
                     parseElement.startToken = start;
@@ -712,8 +717,13 @@
                     parseElement.programSource = tokens.source;
                 }
 
-
-                function parseElement(type, tokens, root) {
+                /**
+                 * @param {string} type 
+                 * @param {TokensObject} tokens 
+                 * @param {*} root 
+                 * @returns 
+                 */
+                 function parseElement(type, tokens, root) {
                     var elementDefinition = GRAMMAR[type];
                     if (elementDefinition) {
                         var start = tokens.currentToken();
@@ -1134,6 +1144,7 @@
                 }
 
                 var ARRAY_SENTINEL = {array_sentinel:true}
+
                 function linearize(args) {
                     var arr = [];
                     for (var i = 0; i < args.length; i++) {
@@ -1188,6 +1199,12 @@
                 }
 
                 var HALT = {halt_flag:true};
+
+                /**
+                 * 
+                 * @param {CommandDefinition} command 
+                 * @param {Context} ctx 
+                 */
                 function unifiedExec(command,  ctx) {
                     while(true) {
                         try {
@@ -1234,10 +1251,19 @@
                     }
                 }
 
+                /**
+                 * 
+                 * @param {*} parseElement 
+                 * @param {Context} ctx 
+                 * @returns 
+                 */
                 function unifiedEval(parseElement,  ctx) {
+                    
+                    /** @type any[] */ 
+                    var args = [ctx];
                     var async = false;
                     var wrappedAsyncs = false;
-                    var args = [ctx];
+                    
                     if (parseElement.args) {
                         for (var i = 0; i < parseElement.args.length; i++) {
                             var argument = parseElement.args[i];
@@ -1308,6 +1334,14 @@
                 }
 
                 var _scriptAttrs = null;
+
+                /**
+                 * getAttributes returns the attribute name(s) to use when 
+                 * locating hyperscript scripts in a DOM element.  If no value
+                 * has been configured, it defaults to _hyperscript.config.attributes
+                 * 
+                 * @returns string[]
+                 */
                 function getScriptAttributes() {
                     if (_scriptAttrs == null) {
                         _scriptAttrs = _hyperscript.config.attributes.replace(/ /g,'').split(",")
@@ -1315,6 +1349,11 @@
                     return _scriptAttrs;
                 }
 
+                /**
+                 * 
+                 * @param {HTMLElement} elt 
+                 * @returns string
+                 */
                 function getScript(elt) {
                     for (var i = 0; i < getScriptAttributes().length; i++) {
                         var scriptAttribute = getScriptAttributes()[i];
@@ -1322,12 +1361,20 @@
                             return elt.getAttribute(scriptAttribute)
                         }
                     }
-                    if (elt.type === "text/hyperscript") {
+                    if (elt['type'] === "text/hyperscript") {
                         return elt.innerText;
                     }
                     return null;
                 }
 
+                /**
+                 * 
+                 * @param {*} owner 
+                 * @param {*} feature 
+                 * @param {*} hyperscriptTarget 
+                 * @param {*} event 
+                 * @returns Context
+                 */
                 function makeContext(owner, feature, hyperscriptTarget, event) {
                     var ctx = {
                         meta: {
