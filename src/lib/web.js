@@ -682,8 +682,6 @@
 
     _hyperscript.config.conversions["Values"] = function(/** @type {Node | NodeList} */ node) {
 
-        console.log(node)
-
         /** @type Object<string,string | string[]> */
         var result = {};
 
