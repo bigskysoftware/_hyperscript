@@ -3759,13 +3759,13 @@
                         runtime: _runtime,
                     },
                     addFeature: function (keyword, definition) {
-                        _parser.addFeature(keyword, definition)
+                        _parser.addFeature(keyword, definition);
                     },
                     addCommand: function (keyword, definition) {
-                        _parser.addCommand(keyword, definition)
+                        _parser.addCommand(keyword, definition);
                     },
                     addLeafExpression: function (name, definition) {
-                        _parser.addLeafExpression(name, definition)
+                        _parser.addLeafExpression(name, definition);
                     },
                     addIndirectExpression: function (keyword, definition) {
                         _parser.addIndirectExpression(keyword, definition);
