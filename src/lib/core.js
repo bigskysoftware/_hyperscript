@@ -794,7 +794,10 @@
                     return JSON.stringify(val);
                 },
                 "Object" : function(val){
-                    if (typeof val === 'string' || val instanceof String) {
+                    if (val instanceof String) {
+                        val = val.toString()
+                    }
+                    if (typeof val === 'string') {
                         return JSON.parse(val);
                     } else {
                         return mergeObjects({}, val);
@@ -1319,6 +1322,12 @@
                     });
                 }
 
+                function nullCheck(value, elt) {
+                    if (value == null) {
+                        throw new Error(elt.sourceFor() + " is null");
+                    }
+                }
+
                 var hyperscriptUrl = 'document' in globalScope ? document.currentScript.src : null
 
                 return {
@@ -1343,6 +1352,7 @@
                     getHyperTrace: getHyperTrace,
                     getInternalData: getInternalData,
                     escapeSelector: escapeSelector,
+                    nullCheck: nullCheck,
                     hyperscriptUrl: hyperscriptUrl,
                     HALT: HALT
                 }
@@ -1875,7 +1885,9 @@
                                 argExressions: args,
                                 args: [root.root, args],
                                 op: function (context, rootRoot, args) {
+                                    runtime.nullCheck(rootRoot, root.root);
                                     var func = rootRoot[root.prop.value];
+                                    runtime.nullCheck(func, root);
                                     if (func.hyperfunc) {
                                         args.push(context);
                                     }
@@ -1892,6 +1904,7 @@
                                 argExressions: args,
                                 args: [root, args],
                                 op: function(context, func, argVals){
+                                    runtime.nullCheck(func, root);
                                     if (func.hyperfunc) {
                                         argVals.push(context);
                                     }
