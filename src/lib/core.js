@@ -893,11 +893,16 @@
                     }
                     parser.raiseParseError(tokens, "Unexpected value: " + tokens.currentToken().value);
                 });
+
                 /* ============================================================================================ */
                 /* END Core hyperscript Grammar Elements                                                        */
                 /* ============================================================================================ */
 
-
+                /**
+                 * 
+                 * @param {TokensObject} tokens 
+                 * @returns string
+                 */
                 function createParserContext(tokens) {
                     var currentToken = tokens.currentToken();
                     var source = tokens.source;
@@ -1110,16 +1115,25 @@
                 }
 
                 /**
+                 * isArrayLike returns `true` if the provided value is an array or
+                 * a NodeList (which is close enough to being an array for our purposes).
+                 * 
                  * @param {any} value 
-                 * @returns boolean
+                 * @returns {value is Array | NodeList}
                  */
                 function isArrayLike(value) {
                     return Array.isArray(value) || value instanceof NodeList;
                 }
 
                 /**
-                 * @param {any} value 
-                 * @param {function} func 
+                 * forEach executes the provided `func` on every item in the `value` array.
+                 * if `value` is a single item (and not an array) then `func` is simply called
+                 * once.  If `value` is null, then no further actions are taken.
+                 * 
+                 * @function
+                 * @template T
+                 * @param {T | T[]} value 
+                 * @param {(item:T) => void} func 
                  */
                 function forEach(value, func) {
                     if (value == null) {
@@ -3759,16 +3773,19 @@
                         runtime: _runtime,
                     },
                     addFeature: function (keyword, definition) {
-                        _parser.addFeature(keyword, definition)
+                        _parser.addFeature(keyword, definition);
                     },
                     addCommand: function (keyword, definition) {
-                        _parser.addCommand(keyword, definition)
+                        _parser.addCommand(keyword, definition);
                     },
                     addLeafExpression: function (name, definition) {
-                        _parser.addLeafExpression(name, definition)
+                        _parser.addLeafExpression(name, definition);
                     },
                     addIndirectExpression: function (keyword, definition) {
-                        _parser.addIndirectExpression(definition)
+                        _parser.addIndirectExpression(definition);
+                    },
+                    forEach: function(value, func) {
+                        _runtime.forEach(value, func);
                     },
                     evaluate: function (str, ctx) { //OK
                         return _runtime.evaluate(str, ctx); //OK
