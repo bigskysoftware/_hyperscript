@@ -35,8 +35,8 @@
  * 
  * TOKENS *************************
  * 
- * @typedef {{}} LexerObject
- * @property {(string:string, noDollarStart?:bool) => TokensObject} tokenize
+ * @typedef LexerObject
+ * @property {(string:string, noDollarStart?:boolean) => TokensObject} tokenize
  * @property {(tokens:Token[], consumed:Token[], source:string) => TokensObject} makeTokensObject
  * 
  * @typedef TokensObject
@@ -117,6 +117,9 @@
  * @property {(context:Context) => any} execute
  * @property {EventSource} eventSource
  * @property {() => void} install
+ * @property {Command} [parent]
+ * @property {Command} [next]
+ * @property {(context:Context) => Command} [resolveNext]
  * 
  * @typedef Expression
  * @property {string} type

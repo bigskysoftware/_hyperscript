@@ -950,7 +950,6 @@
                 }
 
                 /**
-                 * 
                  * @param {Token} token 
                  * @returns 
                  */
@@ -959,7 +958,6 @@
                 }
 
                 /**
-                 * 
                  * @param {Token} token 
                  * @returns 
                  */
@@ -968,7 +966,6 @@
                 }
 
                 /**
-                 * 
                  * @param {Token} token 
                  * @returns 
                  */
@@ -985,7 +982,6 @@
                 }
 
                 /**
-                 * 
                  * @param {TokensObject} tokens 
                  * @returns 
                  */
@@ -1201,7 +1197,6 @@
                 var HALT = {halt_flag:true};
 
                 /**
-                 * 
                  * @param {CommandDefinition} command 
                  * @param {Context} ctx 
                  */
@@ -1252,7 +1247,6 @@
                 }
 
                 /**
-                 * 
                  * @param {*} parseElement 
                  * @param {Context} ctx 
                  * @returns 
@@ -1339,7 +1333,6 @@
                  * getAttributes returns the attribute name(s) to use when 
                  * locating hyperscript scripts in a DOM element.  If no value
                  * has been configured, it defaults to _hyperscript.config.attributes
-                 * 
                  * @returns string[]
                  */
                 function getScriptAttributes() {
@@ -1350,7 +1343,6 @@
                 }
 
                 /**
-                 * 
                  * @param {HTMLElement} elt 
                  * @returns string
                  */
@@ -1368,7 +1360,6 @@
                 }
 
                 /**
-                 * 
                  * @param {*} owner 
                  * @param {*} feature 
                  * @param {*} hyperscriptTarget 
@@ -1395,12 +1386,20 @@
                     return ctx;
                 }
 
+                /**
+                 * @returns string
+                 */
                 function getScriptSelector() {
                     return getScriptAttributes().map(function (attribute) {
                         return "[" + attribute + "]";
                     }).join(", ");
                 }
 
+                /**
+                 * @param {*} value 
+                 * @param {string} type 
+                 * @returns any
+                 */
                 function convertValue(value,  type) {
 
                     var dynamicResolvers = CONVERSIONS.dynamicResolvers;
@@ -1423,11 +1422,16 @@
                     throw "Unknown conversion : " + type;
                 }
 
-
+                // TODO: There do not seem to be any references to this function.  
+                // Is it still in use, or can it be removed?
                 function isType(o, type) {
                     return Object.prototype.toString.call(o) === "[object " + type + "]";
                 }
 
+                /**
+                 * @param {string} src 
+                 * @returns 
+                 */
                 function parse(src) {
                     var tokens = _lexer.tokenize(src);
                     if (_parser.commandStart(tokens.currentToken())) {
@@ -1451,6 +1455,11 @@
                     }
                 }
 
+                /**
+                 * @param {string} src 
+                 * @param {*} ctx 
+                 * @returns 
+                 */
                 function evaluate(src, ctx) {
                     ctx = ctx || {};
                     var element = parse(src);
@@ -1463,6 +1472,9 @@
                     }
                 }
 
+                /**
+                 * @param {HTMLElement} elt 
+                 */
                 function processNode(elt) {
                     var selector = _runtime.getScriptSelector();
                     if (matchesSelector(elt, selector)) {
@@ -1473,7 +1485,7 @@
                             initElement(elt);
                         });
                     }
-                    if (elt.type === "text/hyperscript") {
+                    if (elt['type'] === "text/hyperscript") {
                         initElement(elt, document.body);
                     }
                     if (elt.querySelectorAll) {
@@ -1483,6 +1495,10 @@
                     }
                 }
 
+                /**
+                 * @param {HTMLElement} elt 
+                 * @param {HTMLElement} target 
+                 */
                 function initElement(elt, target) {
                     var internalData = getInternalData(elt);
                     if (!internalData.initialized) {
@@ -1504,6 +1520,10 @@
                     }
                 }
 
+                /**
+                 * @param {HTMLElement} elt 
+                 * @returns Object<string,any>
+                 */
                 function getInternalData(elt) {
                     var dataProp = 'hyperscript-internal-data';
                     var data = elt[dataProp];
@@ -1513,6 +1533,12 @@
                     return data;
                 }
 
+                /**
+                 * @param {any} value 
+                 * @param {string} typeString 
+                 * @param {boolean} [nullOk]
+                 * @returns 
+                 */
                 function typeCheck(value, typeString, nullOk) {
                     if (value == null && nullOk) {
                         return value;
@@ -1526,6 +1552,11 @@
                     }
                 }
 
+                /**
+                 * @param {string} str 
+                 * @param {Context} context 
+                 * @returns 
+                 */
                 function resolveSymbol(str, context) {
                     if (str === "me" || str === "my" || str === "I") {
                         return context["me"];
@@ -1547,6 +1578,11 @@
                     }
                 }
 
+                /**
+                 * @param {Command} command 
+                 * @param {Context} context 
+                 * @returns 
+                 */
                 function findNext(command, context) {
                     if (command) {
                         if (command.resolveNext) {
@@ -1559,6 +1595,11 @@
                     }
                 }
 
+                /**
+                 * @param {Object<string,any>} root 
+                 * @param {string} property 
+                 * @returns any
+                 */
                 function resolveProperty(root, property) {
                     if (root != null) {
                         var val = root[property];
@@ -1589,6 +1630,11 @@
                     }
                 }
 
+                /**
+                 * @param {string} nameSpace 
+                 * @param {string} name 
+                 * @param {any} value 
+                 */
                 function assignToNamespace(nameSpace, name, value) {
                     var root = globalScope;
                     while (nameSpace.length > 0) {
