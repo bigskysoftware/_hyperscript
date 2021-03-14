@@ -31,7 +31,7 @@ title: ///_hyperscript
 Expressions in hyperscript are a mix of familiar and new.  Many of the expected operations from javascript are there:
 
 * Common literals: `1 true "this is a string" null`
-* List and object literals: `[1, 2, 3], {foo:"bar"}`
+* List and object literals: `[1, 2, 3], {foo:"bar", [computeKey()]: computeValue()}`
 
 Most of the common comparison and mathematical operators are there as well:
 
@@ -41,6 +41,12 @@ Most of the common comparison and mathematical operators are there as well:
   lst.length < 5
   a + b < 42
 ```
+
+There are some minor improvements to them:
+
+*	Property names in object literals can contain hyphens. This is convenient for representing CSS:
+
+	`add { font-weight: bold } to the #element in me`
 
 However, once you get past the basics, hyperscript starts to get a little wild.
 
