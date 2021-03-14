@@ -23,6 +23,9 @@ By default, hyperscript provides the following conversions:
 * `String` - convert to String
 * `Array` - convert to Array
 * `Date` - convert to Date
+* `JSON` - convert to a JSON String
+* `Object` - convert from a JSON String
+* `Values` - convert a DOM element to its input values
 
 You can add new conversions by adding them to the `_hyperscript.config.conversions` object:
 
