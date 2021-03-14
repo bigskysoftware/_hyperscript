@@ -146,8 +146,8 @@ Here we are using the `then` keyword to separate commands that are on the same l
 them logically and making the code read really nicely.  We use the `transition` command to
 transition smoothly between opacities.  
 
-Note that the `transition` command is asynchronous: it doesn't complete until the transition i
-s done, but the hyperscript runtime recognizes this and allows you to write standard, 
+Note that the `transition` command is asynchronous: it doesn't complete until the transition is
+done, but the hyperscript runtime recognizes this and allows you to write standard, 
 linear-style code with it.
 
 Now, this example is a little gratuitous, admittedly, but you can imagine what the equivalent javascript would look like: a mess of confusing callbacks.  The point isn't that you should use this UX pattern, but rather to show how async transparency can be used practically.
