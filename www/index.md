@@ -12,10 +12,13 @@ title: ///_hyperscript
   </p> 
 </div>
 
-## intro
+<div class="hero" style="margin: 0; font-size: 1.6em; color: #16f;
+	line-height: 1.4; margin-bottom: 2em;">
 
 hyperscript is an experimental scripting language designed for the web, inspired by 
  [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf)
+
+</div>
 
 hyperscript features include:
 
