@@ -155,19 +155,21 @@
                         promises[dataAsJson.iid].resolve(dataAsJson.return);
                     }
                     delete promises[dataAsJson.iid];
-                } else if (jsonMessages) {
-                    if (dataAsJson) {
-                        var context = runtime.makeContext(socketObject, socketFeature, socketObject);
-                        context.message = dataAsJson;
-                        context.result = dataAsJson;
-                        messageHandler.execute(context);
-                    } else {
-                        throw "Received non-JSON message from socket: " + data;
-                    }
-                } else {
+                }
+
+                if (messageHandler) {
                     var context = runtime.makeContext(socketObject, socketFeature, socketObject);
-                    context.message = data;
-                    context.result = data;
+                    if (jsonMessages) {
+                        if (dataAsJson) {
+                            context.message = dataAsJson;
+                            context.result = dataAsJson;
+                        } else {
+                            throw "Received non-JSON message from socket: " + data;
+                        }
+                    } else {
+                        context.message = data;
+                        context.result = data;
+                    }
                     messageHandler.execute(context);
                 }
             };
@@ -175,7 +177,6 @@
 
             // clear socket on close to be recreated
             socket.addEventListener('close', function(e){
-                console.log(e);
                 socket = null;
             });
 
