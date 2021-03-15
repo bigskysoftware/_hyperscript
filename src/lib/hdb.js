@@ -293,6 +293,7 @@
 		background: #eda;
 		box-shadow: 0 .1em .3em #650 inset;
 		margin: .4em;
+		display: grid;
 	}
 
 	.hdb__code {
