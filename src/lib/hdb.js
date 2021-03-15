@@ -39,7 +39,7 @@
 		return new Promise(function (resolve, reject) {
 			self.bus.addEventListener("continue", function () {
 				for (var attr in ctx) {
-					if (ctx.hasOwnProperty(attr)) delete ctx[attr];
+					delete ctx[attr];
 				}
 				Object.assign(ctx, self.ctx);
 				delete window.hdb;
@@ -98,57 +98,108 @@
 			markerStyle,        logTypeStyle,           hasSource ? sourceStyle : infoStyle);
 	}
 
-	var ui = "\n\
-<div class=\"hdb\" style=\"border:1px solid black;padding:1em;position:fixed;top:0;right:0;width:50%;height:90%;overflow:scroll\" _=\"\n\
-	on load or step from hdb.bus trigger update\n\
-	on continue from hdb.bus remove me\">\n\
-\n\
-	<script type=\"text/hyperscript\">\n\
-	def highlightDebugCode\n\
-		set start to hdb.cmd.startToken.start\n\
-		set end to hdb.cmd.endToken.end\n\
-		set src to hdb.cmd.programSource\n\
-		set beforeCmd to escapeHTML(src.substring(0, start))\n\
-		set cmd to escapeHTML(src.substring(start, end))\n\
-		set afterCmd to escapeHTML(src.substring(end))\n\
-		return beforeCmd+\"<u class=current>\"+cmd+\"</u>\"+afterCmd\n\
-	end\n\
-\n\
-	def escapeHTML(unsafe)\n\
-		js(unsafe) return unsafe\n\
-			.replace(/&/g, \"&amp;\")\n\
-			.replace(/</g, \"&lt;\")\n\
-			.replace(/>/g, \"&gt;\")\n\
-			.replace(/\\x22/g, \"&quot;\")\n\
-			.replace(/\\x27/g, \"&#039;\") end\n\
-		return it\n\
-	end\n\
-	</script>\n\
-\n\
-	<h2>HDB///_hyperscript/debugger</h2>\n\
-	<ul role=\"toolbar\" class=\"hdb__toolbar\">\n\
-	<li> <button _=\"on click call hdb.continueExec()\">Continue</button>\n\
-	<li> <button _=\"on click call hdb.stepOver()\">Step Over</button>\n\
-	</ul>\n\
-\n\
-	<h3>Debugging</h3>\n\
-\n\
-	<pre class=\"hdb__code\" _=\"on update from .hdb\n\
-		                      put highlightDebugCode() into me\"></pre>\n\
-\n\
-	<h3>Context</h3>\n\
-\n\
-	<table class=\"hdb__context\" _=\"\n\
-		on update from .hdb\n\
-		set my.innerHTML to ''\n\
-		repeat for var in hdb.ctx\n\
-			get '<tr><th>$var<td>${hdb.ctx[var]}'\n\
-			put it at end of me\n\
-		end\"></table>\n\
-</div>\n\
-"
+	var ui = `
+<div class="hdb" _="
+	on load or step from hdb.bus send update to me
+	on continue from hdb.bus remove me">
+
+	<script type="text/hyperscript">
+	def highlightDebugCode
+		set start to hdb.cmd.startToken.start
+		set end to hdb.cmd.endToken.end
+		set src to hdb.cmd.programSource
+		set beforeCmd to escapeHTML(src.substring(0, start))
+		set cmd to escapeHTML(src.substring(start, end))
+		set afterCmd to escapeHTML(src.substring(end))
+		return beforeCmd+"<u class='hdb__current'>"+cmd+"</u>"+afterCmd
+	end
+
+	def escapeHTML(unsafe)
+		js(unsafe) return unsafe
+			.replace(/&/g, "&amp;")
+			.replace(/</g, "&lt;")
+			.replace(/>/g, "&gt;")
+			.replace(/\\x22/g, "&quot;")
+			.replace(/\\x27/g, "&#039;") end
+		return it
+	end
+	</script>
+
+	<header>
+		<h2>HDB///_hyperscript/debugger</h2>
+		<ul role="toolbar" class="hdb__toolbar">
+		<li> <button _="on click call hdb.continueExec()">Continue</button>
+		<li> <button _="on click call hdb.stepOver()">Step Over</button>
+		</ul>
+	</header>
+
+	<section class="hdb__sec-code">
+		<h3 _="on update from .hdb
+			put 'Debugging <code>'+hdb.cmd.parent.displayName+'</code>' into me"></h3>
+
+		<pre class="hdb__code" _="on update from .hdb
+			                      put highlightDebugCode() into my.innerHTML then
+			                      call .hdb__current[0].scrollIntoView()"></pre>
+	</section>
+
+	<section class="hdb__sec-ctx">
+
+		<h3>Context</h3>
+
+		<table class="hdb__context" _="
+			on update from .hdb
+			set my.innerHTML to ''
+			repeat for var in Object.keys(hdb.ctx) if var != 'meta'
+				get '<tr><th>'+var+'<td>'+(hdb.ctx[var])
+				put it at end of me
+			end end"></table>
+
+	</section>
+
+	<style>
+	.hdb {
+		border: 1px solid black;
+		padding: 1em;
+		border-radius: .5em;
+		box-shadow: 0 .2em .3em #0008;
+		position: fixed;
+		top: .5em; right: .5em;
+		width: 50%; height: 90%;
+
+		display: grid;
+		grid-template-rows: auto 1fr 1fr;
+	}
+
+	.hdb__toolbar {
+		list-style: none;
+		padding-left: 0;
+	}
+
+	.hdb__toolbar li {
+		display: inline;
+	}
+
+	.hdb__toolbar a, .hdb__toolbar button {
+		display: inline-block;
+		border: none;
+		background: #006aff;
+		border: none;
+		font: inherit;
+		padding: .5em;
+		margin: .2em;
+		border-radius: .2em;
+		color: white;
+	}
+
+	.hdb section {
+		overflow: auto;
+	}
+	</style>
+</div>
+`
 	HDB.prototype.ui = function () {
 		document.body.insertAdjacentHTML('beforeend', ui);
 		_hyperscript.processNode(document.querySelector('.hdb'));
 	}
 })()
+
