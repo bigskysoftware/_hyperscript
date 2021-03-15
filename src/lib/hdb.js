@@ -19,7 +19,7 @@
 			op: function (ctx) {
 				var hdb = new HDB(ctx, runtime, this);
 				window.hdb = hdb;
-				return hdb.break(ctx);
+				try{return hdb.break(ctx);}catch(e){console.error(e, e.stack)}
 			}
 		};
 
@@ -38,10 +38,14 @@
 		self.ui();
 		return new Promise(function (resolve, reject) {
 			self.bus.addEventListener("continue", function () {
-				for (var attr in ctx) {
-					delete ctx[attr];
+				if (self.ctx !== ctx) {
+					// Context switch
+					for (var attr in ctx) {
+						delete ctx[attr];
+						ctx[attr] = self.ctx[attr];
+						console.debug(ctx);
+					}
 				}
-				Object.assign(ctx, self.ctx);
 				delete window.hdb;
 				resolve(self.runtime.findNext(self.cmd, self.ctx));
 			}, { once: true });
