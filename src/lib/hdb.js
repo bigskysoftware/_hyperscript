@@ -42,9 +42,8 @@
 					// Context switch
 					for (var attr in ctx) {
 						delete ctx[attr];
-						ctx[attr] = self.ctx[attr];
-						console.debug(ctx);
 					}
+					Object.assign(ctx, self.ctx);
 				}
 				delete window.hdb;
 				resolve(self.runtime.findNext(self.cmd, self.ctx));
