@@ -3784,9 +3784,6 @@
                     addIndirectExpression: function (keyword, definition) {
                         _parser.addIndirectExpression(definition);
                     },
-                    forEach: function(value, func) {
-                        _runtime.forEach(value, func);
-                    },
                     evaluate: function (str, ctx) { //OK
                         return _runtime.evaluate(str, ctx); //OK
                     },

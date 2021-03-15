@@ -685,7 +685,9 @@
         /** @type Object<string,string | string[]> */
         var result = {};
 
-        _hyperscript.forEach(node, function(/** @type HTMLInputElement */ node) {
+        var forEach = _hyperscript.internals.runtime.forEach;
+
+        forEach(node, function(/** @type HTMLInputElement */ node) {
 
             // Try to get a value directly from this node
             var input = getInputInfo(node);
@@ -698,7 +700,7 @@
             // Otherwise, try to query all child elements of this node that *should* contain values.
             if (node.querySelectorAll != undefined) {
                 var children = node.querySelectorAll("input,select,textarea");
-                _hyperscript.forEach(children, appendValue);
+                forEach(children, appendValue);
             }
         })
 
