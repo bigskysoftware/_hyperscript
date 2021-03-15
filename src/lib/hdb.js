@@ -158,6 +158,8 @@
 
 	<style>
 	.hdb {
+		background-color: white;
+		opacity: .9;
 		border: 1px solid black;
 		padding: 1em;
 		border-radius: .5em;
@@ -165,7 +167,7 @@
 		position: fixed;
 		top: .5em; right: .5em;
 		width: 50%; height: 90%;
-
+		z-index: 2147483647;
 		display: grid;
 		grid-template-rows: auto 1fr 1fr;
 	}
