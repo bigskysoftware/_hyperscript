@@ -152,12 +152,12 @@
 
 	<section class="hdb__sec-eval">
 		<h3>Evaluate Expression</h3>
-		<form class="hdb__eval-form">
+		<form class="hdb__eval-form"  _="
+			on submit call event.preventDefault()
+			then call _hyperscript(#hdb-eval-expr.value, hdb.ctx)
+			then put prettyPrint(it) into #hdb-eval-output">
 			<input type="text" id="hdb-eval-expr" placeholder="e.g. target.innerText">
-			<button type=button _="
-				on click call _hyperscript(#hdb-eval-expr.value, hdb.ctx)
-				then put prettyPrint(it) into #hdb-eval-output
-			">Go</button>
+			<button type="submit">Go</button>
 			<output id="hdb-eval-output"><em>The value will show up here</em></output>
 	</section>
 
