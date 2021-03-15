@@ -697,7 +697,8 @@
 
             var children = node.querySelectorAll("input,select,textarea");
 
-            for (var child of children) {
+            for (var i = 0; i < children.length; i++) {
+                var child = children[i];
                 appendValue(result, child);
             }
 

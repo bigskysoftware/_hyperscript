@@ -3,13 +3,13 @@ layout: layout.njk
 title: ///_hyperscript
 ---
 
-## The `event hanlder` Feature
+## The `event handler` Feature
 
 ### Syntax
 
 ```ebnf
-on [every] <event-name>[(<param-list>)][\[<filter>\]]
-   { or [every] <event-name>[(<param-list>)][\[<filter>\]] }
+on [every] <event-name>[(<param-list>)][\[<filter>\]] <count> [<debounce> | <throttle>]
+   { or [every] <event-name>[(<param-list>)][\[<filter>\]] <count> }
     [queue (all | first | last | none)]
     {<command>} 
 [end]
@@ -25,7 +25,22 @@ on the event or in the `details` property.
 The optional `filter` is a boolean expression that will filter the event.  Symbols in the expression will be resolved
 against the event first, then against the global scope.
 
-The event name, param list, filter tripples can be repeated separated by an `or` to assign one handler to multiple events:
+The optional `count` is a count filter with a value of either a specific number, a range or an unbounded start:
+
+```
+  on click 1
+  on click 2 to 10
+  on click 11 and on
+```
+
+Finally an event can specify a `debounced at` or `throttled at` value to debounce or throttle the events.
+
+```
+  on keyup debounced at 500ms ... -- will wait until 500ms have passed without a keyup to trigger
+  on mousemove throttled at 500ms ...  -- will fire every 500ms regardless of the number of events
+```
+
+Events can be repeated separated by an `or` to assign one handler to multiple events:
 
 ```html
 <div _="on click or touchbegin fetch /example then put it into my.innerHTML">
@@ -33,7 +48,7 @@ The event name, param list, filter tripples can be repeated separated by an `or`
 </div>
 ```
 
-The `queue` keyword allows you to specify an event queue strategy (see [queueing](#queueing) below.)
+The `queue` keyword allows you to specify an event queue strategy across all events for the handler (see [queueing](#queueing) below.)
 
 The body is a list of [commands](/docs#commands), optionally separated by the `then` keyword
 

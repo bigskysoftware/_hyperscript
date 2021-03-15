@@ -20,6 +20,7 @@ title: ///_hyperscript
     * [on](#on)
     * [worker](#worker)
   * [commands](#commands)
+    * [pseudo-commands](#pseudo-commands)
   * [expressions](#expressions)
 * [async transparency](#async)
   * [async keyword](#async-keyword)
@@ -899,6 +900,20 @@ And you can use any results return from the javascript in the default `it` varia
 </button>
 ```
 
+### <a name="pseudo-commands"></a>[Pseudo-Commands](#pseudo-commands)
+
+Pseudo-commands allow you to treat a method on an object as a top level command.  The method name must be followed by
+an argument list, then optional prepositional syntax to clarify the code, then an expression.  The method will be
+looked up on the value returned by the expression and executed.
+
+Consider the `refresh()` method found on `window.location`.  In hyperscript, you can use it as a pseudo-command like so:
+
+```html
+  <button _="on click refresh() the location of the window">
+    Refresh the Location
+  </button>
+```
+
 ## <a name="expressions"></a>[Expressions](#expressions)
 
 Expressions in hyperscript are mostly familiar from javascript, with a few exceptions and a few extensions.  You can
@@ -973,13 +988,24 @@ Hyperscript supports a few default symbols that have specific meanings
 
 |  name    | description 
 |----------|-------------
-| `it`     | the result of the last command (e.g. a `call` or `fetch`)
+| `result` | the result of the last command (e.g. a `call` or `fetch`)
+| `it`     | alias for `result`
+| `its`     | alias for `result`
 | `me`     | the element that the current event handler is running on
 | `my`     | alias for `me`
 | `I`      | alias for `me`
 | `event`  | the event that triggered the event current handler, if any
 | `body`   | the body of the current document, if any
 | `detail` | the detail of the event that triggered the current handler, if any
+
+Additionally, you can place the definite article `the` in front of expressions to clarify language:
+
+```html
+  <button _="on click refresh() the location of the window">
+    Refresh the Location
+  </button>
+```
+
 
 ## <a name="async"></a>[Async Transparency](#async)
 
