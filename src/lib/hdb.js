@@ -35,6 +35,7 @@
 	HDB.prototype.break = function(ctx) {
 		var self = this;
 		console.log("%c=== HDB///_hyperscript/debugger ===", headingStyle);
+		self.ui();
 		return new Promise(function (resolve, reject) {
 			self.bus.addEventListener("continue", function () {
 				for (var attr in ctx) {
@@ -61,12 +62,12 @@
 		if (result && result.then instanceof Function) {
 			return result.then(function (next) {
 				self.cmd = next;
-				self.bus.dispatchEvent(new Event("stepOver"));
+				self.bus.dispatchEvent(new Event("step"));
 				this.logCommand();
 			})
 		} else {
 			self.cmd = result;
-			self.bus.dispatchEvent(new Event("stepOver"));
+			self.bus.dispatchEvent(new Event("step"));
 			this.logCommand();
 		}
 	}
@@ -86,6 +87,7 @@
 		self.cmd = self.runtime.findNext(callingCmd, self.ctx);
 		self.cmd = self.runtime.findNext(self.cmd, self.ctx);
 		self.logCommand();
+		self.bus.dispatchEvent(new Event('step'))
 	}
 
 	HDB.prototype.logCommand = function() {
@@ -94,5 +96,59 @@
 		console.log(
 			"%c[hdb] " +        "%ccurrent command: " + "%c"+cmdSource,
 			markerStyle,        logTypeStyle,           hasSource ? sourceStyle : infoStyle);
+	}
+
+	var ui = "\n\
+<div class=\"hdb\" style=\"border:1px solid black;padding:1em;position:fixed;top:0;right:0;width:50%;height:90%;overflow:scroll\" _=\"\n\
+	on load or step from hdb.bus trigger update\n\
+	on continue from hdb.bus remove me\">\n\
+\n\
+	<script type=\"text/hyperscript\">\n\
+	def highlightDebugCode\n\
+		set start to hdb.cmd.startToken.start\n\
+		set end to hdb.cmd.endToken.end\n\
+		set src to hdb.cmd.programSource\n\
+		set beforeCmd to escapeHTML(src.substring(0, start))\n\
+		set cmd to escapeHTML(src.substring(start, end))\n\
+		set afterCmd to escapeHTML(src.substring(end))\n\
+		return beforeCmd+\"<u class=current>\"+cmd+\"</u>\"+afterCmd\n\
+	end\n\
+\n\
+	def escapeHTML(unsafe)\n\
+		js(unsafe) return unsafe\n\
+			.replace(/&/g, \"&amp;\")\n\
+			.replace(/</g, \"&lt;\")\n\
+			.replace(/>/g, \"&gt;\")\n\
+			.replace(/\\x22/g, \"&quot;\")\n\
+			.replace(/\\x27/g, \"&#039;\") end\n\
+		return it\n\
+	end\n\
+	</script>\n\
+\n\
+	<h2>HDB///_hyperscript/debugger</h2>\n\
+	<ul role=\"toolbar\" class=\"hdb__toolbar\">\n\
+	<li> <button _=\"on click call hdb.continueExec()\">Continue</button>\n\
+	<li> <button _=\"on click call hdb.stepOver()\">Step Over</button>\n\
+	</ul>\n\
+\n\
+	<h3>Debugging</h3>\n\
+\n\
+	<pre class=\"hdb__code\" _=\"on update from .hdb\n\
+		                      put highlightDebugCode() into me\"></pre>\n\
+\n\
+	<h3>Context</h3>\n\
+\n\
+	<table class=\"hdb__context\" _=\"\n\
+		on update from .hdb\n\
+		set my.innerHTML to ''\n\
+		repeat for var in hdb.ctx\n\
+			get '<tr><th>$var<td>${hdb.ctx[var]}'\n\
+			put it at end of me\n\
+		end\"></table>\n\
+</div>\n\
+"
+	HDB.prototype.ui = function () {
+		document.body.insertAdjacentHTML('beforeend', ui);
+		_hyperscript.processNode(document.querySelector('.hdb'));
 	}
 })()
