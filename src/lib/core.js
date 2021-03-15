@@ -721,7 +721,7 @@
                  * @param {string} type 
                  * @param {TokensObject} tokens 
                  * @param {*} root 
-                 * @returns 
+                 * @returns GrammarElement
                  */
                  function parseElement(type, tokens, root) {
                     var elementDefinition = GRAMMAR[type];
@@ -746,7 +746,7 @@
                  * @param {TokensObject} tokens 
                  * @param {string} [message]
                  * @param {*} [root]
-                 * @returns 
+                 * @returns GrammarElement
                  */
                 function requireElement(type, tokens, message, root) {
                     var result = parseElement(type, tokens, root);
@@ -756,7 +756,7 @@
                 /**
                  * @param {string[]} types 
                  * @param {TokensObject} tokens 
-                 * @returns 
+                 * @returns GrammarElement
                  */
                 function parseAnyOf(types, tokens) {
                     for (var i = 0; i < types.length; i++) {
@@ -1009,8 +1009,8 @@
                     return returnArr;
                 }
 
-                return {
-                    // parser API
+                // parser API
+                return /** @type ParserObject */ {
                     setParent: setParent,
                     requireElement: requireElement,
                     parseElement: parseElement,
@@ -1104,7 +1104,7 @@
                 /**
                  * @param {HTMLElement} elt 
                  * @param {string} eventName 
-                 * @param {{}} detail 
+                 * @param {{}} [detail]
                  * @returns 
                  */
                 function triggerEvent(elt, eventName, detail) {
@@ -1430,7 +1430,7 @@
 
                 /**
                  * @param {string} src 
-                 * @returns 
+                 * @returns GrammarElement
                  */
                 function parse(src) {
                     var tokens = _lexer.tokenize(src);
@@ -1497,7 +1497,7 @@
 
                 /**
                  * @param {HTMLElement} elt 
-                 * @param {HTMLElement} target 
+                 * @param {HTMLElement} [target]
                  */
                 function initElement(elt, target) {
                     var internalData = getInternalData(elt);
@@ -1631,7 +1631,7 @@
                 }
 
                 /**
-                 * @param {string} nameSpace 
+                 * @param {string[]} nameSpace 
                  * @param {string} name 
                  * @param {any} value 
                  */
@@ -1738,7 +1738,7 @@
             // Grammar
             //====================================================================
             {
-                _parser.addLeafExpression("parenthesized", function(parser, runtime, tokens) {
+                _parser.addLeafExpression("parenthesized", function(parser, _runtime, tokens) {
                     if (tokens.matchOpToken('(')) {
                         var expr = parser.requireElement("expression", tokens);
                         tokens.requireOpToken(")");

@@ -76,19 +76,19 @@
  * 
  * @typedef ParserObject
  * @property {*} setParent
- * @property {*} requireElement
+ * @property {(type:string, tokens:TokensObject, message?:string, root?:any) => GrammarElement} requireElement
  * @property {*} parseElement
  * @property {*} featureStart
  * @property {*} commandStart
  * @property {*} commandBoundary
- * @property {*} parseAnyOf
+ * @property {(types:string[], tokens:TokensObject) => GrammarElement} parseAnyOf
  * @property {*} parseHyperScript
  * @property {*} raiseParseError
- * @property {*} addGrammarElement
- * @property {*} addCommand
- * @property {*} addFeature
- * @property {*} addLeafExpression
- * @property {*} addIndirectExpression
+ * @property {(name:string, definition:GrammarDefinition) => void} addGrammarElement
+ * @property {(name:string, definition:CommandDefinition) => void} addCommand
+ * @property {(name:string, definition:FeatureDefinition) => void} addFeature
+ * @property {(name:string, definition:ExpressionDefinition) => void} addLeafExpression
+ * @property {(name:string, definition:ExpressionDefinition) => void} addIndirectExpression
  * @property {*} parseStringTemplate
  * 
  * @typedef {(parser:ParserObject, runtime:RuntimeObject, tokens:TokensObject) => Feature} GrammarDefinition
@@ -96,37 +96,22 @@
  * @typedef {(parser:ParserObject, runtime:RuntimeObject, tokens:TokensObject) => Command} CommandDefinition
  * @typedef {(parser:ParserObject, runtime:RuntimeObject, tokens:TokensObject) => Expression} ExpressionDefinition
  *
- * @typedef GrammarElement
+ * @typedef {Object} GrammarElement
  * @property {string} type
  * @property {string} keyword
  * @property {string} name
  * @property {EventSource} eventSource
  * @property {() => void} install
- * 
- * @typedef Feature
- * @property {string} type
- * @property {string} keyword
- * @property {string} name
- * @property {EventSource} eventSource
- * @property {() => void} install
- * 
- * @typedef Command
- * @property {string} type
- * @property {string} keyword
- * @property {string} name
- * @property {(context:Context) => any} execute
- * @property {EventSource} eventSource
- * @property {() => void} install
+ * @property {(context:Context) => any} evaluate
  * @property {Command} [parent]
  * @property {Command} [next]
  * @property {(context:Context) => Command} [resolveNext]
  * 
- * @typedef Expression
- * @property {string} type
- * @property {string} keyword
- * @property {string} name
- * @property {EventSource} eventSource
- * @property {() => void} install
+ * @typedef {GrammarElement} Feature 
+ * 
+ * @typedef {GrammarElement} Command
+ * 
+ * @typedef {GrammarElement} Expression
  * 
  * RUNTIME **********************
  * 
