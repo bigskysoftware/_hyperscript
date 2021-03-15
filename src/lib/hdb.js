@@ -19,7 +19,7 @@
 			op: function (ctx) {
 				var hdb = new HDB(ctx, runtime, this);
 				window.hdb = hdb;
-				return hdb.break(ctx);
+				try{return hdb.break(ctx);}catch(e){console.error(e, e.stack)}
 			}
 		};
 
@@ -38,10 +38,13 @@
 		self.ui();
 		return new Promise(function (resolve, reject) {
 			self.bus.addEventListener("continue", function () {
-				for (var attr in ctx) {
-					delete ctx[attr];
+				if (self.ctx !== ctx) {
+					// Context switch
+					for (var attr in ctx) {
+						delete ctx[attr];
+					}
+					Object.assign(ctx, self.ctx);
 				}
-				Object.assign(ctx, self.ctx);
 				delete window.hdb;
 				resolve(self.runtime.findNext(self.cmd, self.ctx));
 			}, { once: true });
@@ -123,58 +126,107 @@
 			.replace(/\\x27/g, "&#039;") end
 		return it
 	end
+
+	def prettyPrint(obj)
+		js(obj)
+			if (obj instanceof HTMLElement) {
+				return obj.outerHTML.split('>')[0] + '>';
+			} else if (obj instanceof Function) {
+				if (obj.hyperfunc) {
+					return "def " + obj.hypername
+				} else {
+					return "function "+obj.name+"() {...}"
+				}
+			} else {
+				return JSON.stringify(obj)
+			}
+		end
+		return escapeHTML(it.trim())
+	end
 	</script>
 
 	<header>
-		<h2>HDB///_hyperscript/debugger</h2>
+		<h2 class="hdb__titlebar">HDB///_hyperscript/debugger</h2>
 		<ul role="toolbar" class="hdb__toolbar">
-		<li> <button _="on click call hdb.continueExec()">Continue</button>
-		<li> <button _="on click call hdb.stepOver()">Step Over</button>
+		<li><button _="on click call hdb.continueExec()">Continue</button></li
+		><li><button _="on click call hdb.stepOver()">Step Over</button></li>
 		</ul>
 	</header>
+
+	<section class="hdb__sec-eval">
+		<h3>Evaluate Expression</h3>
+		<form class="hdb__eval-form"  _="
+			on submit call event.preventDefault()
+			then call _hyperscript(#hdb-eval-expr.value, hdb.ctx)
+			then put prettyPrint(it) into #hdb-eval-output">
+			<input type="text" id="hdb-eval-expr" placeholder="e.g. target.innerText">
+			<button type="submit">Go</button>
+			<output id="hdb-eval-output"><em>The value will show up here</em></output>
+	</section>
 
 	<section class="hdb__sec-code">
 		<h3 _="on update from .hdb
 			put 'Debugging <code>'+hdb.cmd.parent.displayName+'</code>' into me"></h3>
 
-		<pre class="hdb__code" _="on update from .hdb
-			                      put highlightDebugCode() into my.innerHTML then
-			                      call .hdb__current[0].scrollIntoView()"></pre>
+		<div class="hdb__code-container">
+			<pre class="hdb__code" _="on update from .hdb
+				                      put highlightDebugCode() into my.innerHTML then
+				                      call .hdb__current[0].scrollIntoView()"></pre>
+		</div>
 	</section>
 
 	<section class="hdb__sec-ctx">
 
 		<h3>Context</h3>
 
-		<table class="hdb__context" _="
+		<dl class="hdb__context" _="
 			on update from .hdb
 			set my.innerHTML to ''
 			repeat for var in Object.keys(hdb.ctx) if var != 'meta'
-				get '<tr><th>'+var+'<td>'+(hdb.ctx[var])
+				get '<dt>'+var+'<dd>'+prettyPrint(hdb.ctx[var])
 				put it at end of me
-			end end"></table>
+			end end
+
+			on click
+				get closest <dt/> to target
+				log hdb.ctx[its.innerText]"></dl>
 
 	</section>
 
 	<style>
 	.hdb {
-		background-color: white;
-		opacity: .9;
-		border: 1px solid black;
-		padding: 1em;
-		border-radius: .5em;
+		border: 1px solid #888;
+		border-radius: .3em;
 		box-shadow: 0 .2em .3em #0008;
 		position: fixed;
 		top: .5em; right: .5em;
-		width: 50%; height: 90%;
+		width: 40ch; height: 90%;
+		background-color: white;
+		opacity: .9;
 		z-index: 2147483647;
+		color: black;
 		display: grid;
-		grid-template-rows: auto 1fr 1fr;
+	}
+
+	.hdb, .hdb * {
+		box-sizing: border-box;
+	}
+
+	.hdb__titlebar {
+		margin: 0;
+		font-size: 1em;
+		padding: .5em;
+		background: linear-gradient(to bottom, #eee, #ccc);
+		border-bottom: 1px solid #888;
+		border-radius: .3em .3em 0 0;
 	}
 
 	.hdb__toolbar {
 		list-style: none;
 		padding-left: 0;
+		margin: 0;
+		background: linear-gradient(to bottom, #666, #999);
+		border-bottom: 1px solid #444;
 	}
 
 	.hdb__toolbar li {
@@ -184,17 +236,102 @@
 	.hdb__toolbar a, .hdb__toolbar button {
 		display: inline-block;
 		border: none;
-		background: #006aff;
+		background: linear-gradient(to bottom, #ccc, #aaa);
 		border: none;
+		border-right: 1px solid #444;
 		font: inherit;
-		padding: .5em;
-		margin: .2em;
-		border-radius: .2em;
-		color: white;
+		padding: .3em;
 	}
 
-	.hdb section {
+	.hdb__eval-form {
+		display: grid;
+		grid-template-columns: 1fr auto;
+		grid-template-areas: 'input go' 'output output';
+		padding: .4em;
+	}
+
+	#hdb-eval-expr {
+		grid-area: input;
+		border-radius: .2em 0 0 0;
+		font: inherit;
+		font-family: Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", Monaco, "Courier New", Courier, monospace;
+		box-shadow: 0 .05em .2em #0008 inset;
+		border: 1px solid #0008;
+		border-right: none;
+		padding: .4em;
+	}
+
+	#hdb-eval-output {
+		grid-area: output;
+		border-radius: 0 0 .2em .2em;
+		background: #111;
+		font-family: Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", Monaco, "Courier New", Courier, monospace;
+		color: greenyellow;
+		text-shadow: 0 0 .2em greenyellow;
+		padding: .4em;
+	}
+
+	.hdb__eval-form button {
+		grid-area: 'go';
+		border-radius: 0 .2em 0 0;
+		background: linear-gradient(to bottom, #ccc, #aaa);
+		border: 1px solid #444;
+	}
+
+	.hdb__sec-code {
+	
+	}
+
+	.hdb h3 {
+		margin: 0;
+		font-size: 1em;
+		padding: .2em .4em 0 .4em;
+	}
+
+	.hdb__code-container {
+		line-height: 1.2em;
+		height: calc(12 * 1.2em);
+		padding: .1em;
+		border-radius: .2em;
+		background: #eda;
+		box-shadow: 0 .1em .3em #650 inset;
+		margin: .4em;
+		display: grid;
+	}
+
+	.hdb__code {
+		font-family: Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", Monaco, "Courier New", Courier, monospace;
+		height: 100%;
+		overflow-y: scroll;
+		scrollbar-width: thin;
+		scrollbar-color: #650 transparent;
+		margin: 0;
+		padding-left: 1ch;
+	}
+
+	.hdb__current {
+		font-weight: bold;
+		background: #abf;
+	}
+
+	.hdb__sec-ctx {
+		display: contents;
+	}
+
+	.hdb__sec-ctx dl {
+		font-family: Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", Monaco, "Courier New", Courier, monospace;
+		line-height: 1.2em;
+		max-height: calc(12 * 1.2em);
+		padding: .1em;
+		margin: .4em;
+		border-radius: .2em;
+
 		overflow: auto;
+		scrollbar-width: thin;
+	}
+
+	.hdb__sec-ctx dt {
+		color: #02a;
 	}
 	</style>
 </div>

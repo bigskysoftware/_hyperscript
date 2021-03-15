@@ -2935,6 +2935,7 @@
                                     }
                                 };
                                 func.hyperfunc = true;
+                                func.hypername = nameVal;
                                 runtime.assignToNamespace(nameSpace, funcName, func);
                             }
                         };
