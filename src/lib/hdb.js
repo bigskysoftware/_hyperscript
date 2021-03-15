@@ -130,7 +130,7 @@
 				return obj.outerHTML.split('>')[0] + '>';
 			} else if (obj instanceof Function) {
 				if (obj.hyperfunc) {
-					return "def " + obj.name
+					return "def " + obj.hypername
 				} else {
 					return "function "+obj.name+"() {...}"
 				}
