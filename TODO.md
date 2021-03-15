@@ -27,6 +27,8 @@ end
 * unify all css() like literals to a general dynamic evaluation (eval is context sensitive)
 * `default <identifier> to <expression> ` - default a value if it does not exist
 * `increment/decrement` commands
+* regular expressions
+* range operators for strings and arrays `str[..10] str[10..] str[2..10]`
 * Better DOM manipulation tools
 * `merge/merge into` - Merge objects with one another
 * Make `first, last, random` work as identifiers (backtracking parser)

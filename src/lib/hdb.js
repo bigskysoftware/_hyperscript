@@ -198,6 +198,10 @@
 		position: fixed;
 		top: .5em; right: .5em;
 		width: 40ch; height: 90%;
+		background-color: white;
+		opacity: .9;
+		z-index: 2147483647;
+		color: black;
 		display: grid;
 	}
 

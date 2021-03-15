@@ -6,6 +6,7 @@
     <title>Hyperscript Modal</title>
     <script src="../../src/lib/core.js"></script>
     <script src="../../src/lib/web.js"></script>
+    <script src="../../src/lib/hdb.js"></script>
     <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
     <meta name=viewport content=width=device-width,initial-scale=1.0>
 </head>
@@ -34,6 +35,7 @@
 
 <div id="modal" class="hidden" _="
         on open
+            breakpoint
             remove .hidden add .overflow-hidden to <body/>
             wait a tick then focus() first <input/> in me
         end
