@@ -777,6 +777,7 @@
                         if (commandElement) {
                             commandElement.type = commandGrammarType;
                             commandElement.execute = function (context) {
+                            	context.meta.command = commandElement;
                                 return runtime.unifiedExec(this, context);
                             }
                             return commandElement;
@@ -2904,6 +2905,7 @@
                                         }
                                     }
                                     ctx.meta.caller = arguments[args.length];
+                                    ctx.meta.callingCommand = ctx.meta.caller.meta.command;
                                     var resolve, reject = null;
                                     var promise = new Promise(function (theResolve, theReject) {
                                         resolve = theResolve;
