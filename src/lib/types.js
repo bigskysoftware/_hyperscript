@@ -91,15 +91,13 @@
  * @property {(name:string, definition:ExpressionDefinition) => void} addIndirectExpression
  * @property {*} parseStringTemplate
  * 
- * @typedef {(parser:ParserObject, runtime:RuntimeObject, tokens:TokensObject) => Feature} GrammarDefinition
- * @typedef {(parser:ParserObject, runtime:RuntimeObject, tokens:TokensObject) => Feature} FeatureDefinition
- * @typedef {(parser:ParserObject, runtime:RuntimeObject, tokens:TokensObject) => Command} CommandDefinition
- * @typedef {(parser:ParserObject, runtime:RuntimeObject, tokens:TokensObject) => Expression} ExpressionDefinition
+ * @typedef {(parser:ParserObject, runtime:RuntimeObject, tokens:TokensObject, root:any) => Feature} GrammarDefinition
+ * @typedef {(parser:ParserObject, runtime:RuntimeObject, tokens:TokensObject, root:any) => Feature} FeatureDefinition
+ * @typedef {(parser:ParserObject, runtime:RuntimeObject, tokens:TokensObject, root:any) => Command} CommandDefinition
+ * @typedef {(parser:ParserObject, runtime:RuntimeObject, tokens:TokensObject, root:any) => Expression} ExpressionDefinition
  *
- * @typedef {Object} GrammarElement
+ * @typedef {Object<string,any>} GrammarElement
  * @property {string} type
- * @property {string} keyword
- * @property {string} name
  * @property {EventSource} eventSource
  * @property {() => void} install
  * @property {(context:Context) => any} evaluate

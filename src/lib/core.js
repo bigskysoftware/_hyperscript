@@ -699,9 +699,15 @@
             /** @type ParserObject */
             var _parser = function () {
 
+                /** @type {Object<string,GrammarDefinition>} */ 
                 var GRAMMAR = {}
+
+                /** @type {Object<string,CommandDefinition>} */
                 var COMMANDS = {}
+
+                /** @type {Object<string,FeatureDefinition>} */
                 var FEATURES = {}
+                
                 var LEAF_EXPRESSIONS = [];
                 var INDIRECT_EXPRESSIONS = [];
 
