@@ -113,7 +113,31 @@
  * 
  * RUNTIME **********************
  * 
- * @typedef {{}} RuntimeObject
+ * @typedef RuntimeObject
+ * @property {() => void } typeCheck
+ * @property {() => void } forEach
+ * @property {(elt:HTMLElement, eventName:string, detail:{}) => boolean } triggerEvent
+ * @property {(elt:HTMLElement, selector:string) => boolean } matchesSelector
+ * @property {() => void } getScript
+ * @property {() => void } processNode
+ * @property {() => void } evaluate
+ * @property {() => void } parse
+ * @property {() => void } getScriptSelector
+ * @property {(str:string, ctx:Context) => any } resolveSymbol
+ * @property {(owner:*, feature:*, hyperscriptTarget:*, event:*) => Context } makeContext
+ * @property {() => void } findNext
+ * @property {() => void } unifiedEval
+ * @property {() => void } convertValue
+ * @property {(command: CommandDefinition, ctx:Context) => void } unifiedExec
+ * @property {(root:Object<string,any>, property:string) => any } resolveProperty
+ * @property {(namespace:string[], name:string, value:any) => void } assignToNamespace
+ * @property {() => void } registerHyperTrace
+ * @property {() => void } getHyperTrace
+ * @property {() => void } getInternalData
+ * @property {() => void } escapeSelector
+ * @property {() => void } nullCheck
+ * @property {() => void } hyperscriptUrl
+ * @property {() => void } HALT
  * 
  * @typedef {{meta: object, me: Element, event:Event, target: Element, detail: any, body: Document}} Context
  * @property {ContextMetaData} meta

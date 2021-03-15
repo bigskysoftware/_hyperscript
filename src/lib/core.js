@@ -2,6 +2,9 @@
 /// This module provides the core runtime and grammar for hyperscript
 ///=========================================================================
 //AMD insanity
+
+/** @var {HyperscriptObject} _hyperscript */
+
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
@@ -1111,7 +1114,7 @@
                  * @param {HTMLElement} elt 
                  * @param {string} eventName 
                  * @param {{}} [detail]
-                 * @returns 
+                 * @returns boolean
                  */
                 function triggerEvent(elt, eventName, detail) {
                     var detail = detail || {};
@@ -1561,7 +1564,7 @@
                 /**
                  * @param {string} str 
                  * @param {Context} context 
-                 * @returns 
+                 * @returns any
                  */
                 function resolveSymbol(str, context) {
                     if (str === "me" || str === "my" || str === "I") {
