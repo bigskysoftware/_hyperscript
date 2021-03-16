@@ -12,6 +12,7 @@ title: ///_hyperscript
 | [js](/features/js) | Embed JavaScript code at the top level | [see details...](/features/js)
 | [worker](/features/worker) | Create a Web Worker for asynchrnous work
 | [eventsource](/features/event-source) | Subscribe to Server Sent Events (SSE)
+| [socket](/features/socket) | Create a Web Socket
 | [init](/features/init) | Initialization logic to be run when the code is first loaded
 
 ## <a name='commands'></a>[Commands](#commands)
