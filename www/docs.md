@@ -983,7 +983,7 @@ Hyperscript supports literal values for CSS-style id's and classes:
   end
 ```
 
-#### The Hyperscript Zoo
+#### <a name='zoo'></a>[The Hyperscript Zoo](#zoo)
 
 Hyperscript supports a few default symbols that have specific meanings
 
