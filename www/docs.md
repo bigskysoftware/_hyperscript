@@ -1178,7 +1178,7 @@ to trigger the debugger.
              breakpoint
              transition element #debug-demo 'background-color' to red
              wait 500ms
-             transition element #debug-demo 'background-color' to red
+             transition element #debug-demo 'background-color' to green
              wait 500ms
              transition element #debug-demo 'background-color' to blue
              wait 500ms
