@@ -27,6 +27,7 @@ hyperscript features include:
 * first class [web workers](/docs#workers)
 * [async-transparancy](/docs#async)
 * A pluggable, extendable parser & grammar
+* A [debugger](/hdb/) to step through code
 
 </div>
 
