@@ -247,7 +247,7 @@ Pattern: toggle a class on another element when clicked
 <div id="toggle-target-1"></div>
 ```
 <button onclick="document.getElementById('toggle-target-1')
-                         .classList.toggle('red-border)">
+                         .classList.toggle('red-border')">
   Toggle Class
 </button>
 <div id="toggle-target-1">
