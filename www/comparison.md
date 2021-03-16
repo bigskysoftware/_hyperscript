@@ -21,7 +21,8 @@ Pattern: fade and remove an element after it is clicked
 ```html
 <div onclick="var self = this;
               self.style.transition = 'all 500ms ease-out';
-              self.style.opacity = '1'; setTimeout(function(){
+              self.style.opacity = '1'; 
+              setTimeout(function(){
                 self.style.opacity = '0';
                 self.addEventListener('transitionend', function(){
                     self.parentNode.removeChild(self);
