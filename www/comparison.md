@@ -154,6 +154,75 @@ $(function(){
 </button>
 <div id="fetch-target-3"></div>
 
+## <a name='debounced-input'>[Debounced Input](#debounced-input)
+
+Pattern: debounce event handling to avoid triggering logic in response to multiple, shortly
+spaced events
+
+#### VanillaJS
+
+```html
+<input onkeyup="self = this;
+                clearTimeout(self.debounce);
+                self.debounce = setTimeout(function(){
+                  document.getElementById('debounce-target-1').innerHTML = self.value;
+                }, 300) "/>
+<div id="debounce-target-1"></div>
+```
+<input placeholder="Enter Some Data..."
+       onkeyup="self = this;
+                clearTimeout(self.debounce);
+                self.debounce = setTimeout(function(){
+                  document.getElementById('debounce-target-1').innerHTML = self.value;
+                }, 300) "/>
+<div id="debounce-target-1"></div>
+
+#### jQuery
+```html
+<script>
+$(function(){
+  var debounce = null;
+  $("#debouncedInput").keyup(function(){
+     clearTimeout(debounce);
+     var self = $(this);
+     debounce = setTimeout(function(){
+       $('#debounce-target-2').html(self.val());
+     }, 300);
+  });
+});
+</script>
+<input placeholder="Enter Some Data..."
+       id="debouncedInput"/>
+<div id="debounce-target-2"></div>
+```
+
+<script>
+$(function(){
+  var debounce = null;
+  $("#debouncedInput").keyup(function(){
+     clearTimeout(debounce);
+     var self = $(this);
+     debounce = setTimeout(function(){
+       $('#debounce-target-2').html(self.val());
+     }, 300);
+  });
+});
+</script>
+<input placeholder="Enter Some Data..."
+       id="debouncedInput"/>
+<div id="debounce-target-2"></div>
+
+#### hyperscript
+
+```html
+<input _="on keyup debounced at 300ms put my.value into #debounce-target-3"/>
+<div id="debounce-target-3"></div>
+```
+<input placeholder="Enter Some Data..."
+       _="on keyup debounced at 300ms put my.value into #debounce-target-3"/>
+<div id="debounce-target-3"></div>
+
+
 <div style="height: 400px">
 </div>
 
