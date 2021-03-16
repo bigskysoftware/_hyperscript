@@ -1463,7 +1463,7 @@
                                 var hyperScript = _parser.parseHyperScript(tokens);
                                 hyperScript.apply(target || elt, elt);
                                 setTimeout(function () {
-                                    triggerEvent(target || elt, 'load');
+                                    triggerEvent(target || elt, 'load', {'hyperscript':true});
                                 }, 1);
                             } catch(e) {
                                 console.error("hyperscript errors were found on the following element:", elt, "\n\n", e.message, e.stack);

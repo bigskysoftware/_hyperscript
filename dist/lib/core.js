@@ -1463,7 +1463,7 @@
                                 var hyperScript = _parser.parseHyperScript(tokens);
                                 hyperScript.apply(target || elt, elt);
                                 setTimeout(function () {
-                                    triggerEvent(target || elt, 'load');
+                                    triggerEvent(target || elt, 'load', {'hyperscript':true});
                                 }, 1);
                             } catch(e) {
                                 console.error("hyperscript errors were found on the following element:", elt, "\n\n", e.message, e.stack);
@@ -2919,7 +2919,9 @@
                                         }
                                     }
                                     ctx.meta.caller = arguments[args.length];
-                                    ctx.meta.callingCommand = ctx.meta.caller.meta.command;
+                                    if (ctx.meta.caller) {
+                                        ctx.meta.callingCommand = ctx.meta.caller.meta.command;
+                                    }
                                     var resolve, reject = null;
                                     var promise = new Promise(function (theResolve, theReject) {
                                         resolve = theResolve;

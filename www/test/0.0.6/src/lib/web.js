@@ -576,7 +576,9 @@
             var to = [];
             var currentToken = tokens.currentToken();
             while (!parser.commandBoundary(currentToken) && currentToken.value !== "using") {
-                properties.push(tokens.requireTokenType("IDENTIFIER").value);
+
+                properties.push(parser.requireElement("stringLike", tokens));
+
                 if (tokens.matchToken("from")) {
                     from.push(parser.requireElement("stringLike", tokens));
                 } else {
@@ -592,8 +594,8 @@
 
             var transition = {
                 to: to,
-                args: [targets, from, to, using],
-                op: function (context, targets, from, to, using) {
+                args: [targets, properties, from, to, using],
+                op: function (context, targets, properties, from, to, using) {
                     var promises = [];
                     runtime.forEach(targets, function(target){
                         var promise = new Promise(function (resolve, reject) {

@@ -66,8 +66,10 @@
 			return result.then(function (next) {
 				self.cmd = next;
 				self.bus.dispatchEvent(new Event("step"));
-				this.logCommand();
+				self.logCommand();
 			})
+		} else if (result.halt_flag) {
+			this.bus.dispatchEvent(new Event("continue"));
 		} else {
 			self.cmd = result;
 			self.bus.dispatchEvent(new Event("step"));
@@ -171,8 +173,9 @@
 
 		<div class="hdb__code-container">
 			<pre class="hdb__code" _="on update from .hdb
-				                      put highlightDebugCode() into my.innerHTML then
-				                      call .hdb__current[0].scrollIntoView()"></pre>
+			                          if hdb.cmd.programSource
+				                        put highlightDebugCode() into my.innerHTML then
+				                        call .hdb__current[0].scrollIntoView()"></pre>
 		</div>
 	</section>
 

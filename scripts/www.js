@@ -13,6 +13,7 @@ fs.copySync("src/", currentReleaseRoot + "/src");
 fs.copySync("src/lib/core.js", "www/js/lib/core.js");
 fs.copySync("src/lib/web.js", "www/js/lib/web.js");
 fs.copySync("src/lib/worker.js", "www/js/lib/worker.js");
+fs.copySync("src/lib/hdb.js", "www/js/lib/hdb.js");
 
 var testHTML = "<html><body style='font-family: sans-serif'><h1>HTMX TESTS</h1><ul>\n"
 fs.readdirSync(testRoot).reverse().forEach(function(file){

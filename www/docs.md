@@ -25,6 +25,7 @@ title: ///_hyperscript
 * [async transparency](#async)
   * [async keyword](#async-keyword)
   * [event driven control flow](#events)
+* [debugging](#debugging)
 * [extending](#extending)
 * [history](#history)
 
@@ -36,7 +37,7 @@ title: ///_hyperscript
 
 ## <a name="introduction"></a>[Introduction](#introduction)
 
-Hyperscript is a fun little scripting language for doing front end web development.
+Hyperscript is an experimental scripting language for doing front end web development.
 
 ### <a name='events'></a>[Event Handling](#events)
 
@@ -1162,6 +1163,44 @@ What's particularly interesting here is that the CSS transition is allowed to fi
 because the event listener that terminates the loop is only consulted once a complete loop is made.
 
 This I hope gives you a taste of the unique execution model of hyperscript, and what uses it might be put to.
+
+## <a name="debugging"></a>[Debugging (Alpha)](#debugging)
+
+**Note: The hyperscript debugger is in alpha and, like the rest of the language, is undergoing active development**
+
+Hyperscript includes a debugger, hdb, that allows you to debug by inserting `breakpoint` commands in your hyperscript.
+
+To use it you need to include the `lib/hdb.js` file.  You can then add `breakpoint` commands in your hyperscript
+to trigger the debugger.  
+
+```html
+<button _="on click 
+             breakpoint
+             transition element #debug-demo 'background-color' to red
+             wait 500ms
+             transition element #debug-demo 'background-color' to red
+             wait 500ms
+             transition element #debug-demo 'background-color' to blue
+             wait 500ms
+             transition element #debug-demo 'background-color' to initial
+           ">Colorize...</button>
+
+<div id="debug-demo">TechnoColor Dream Debugging...</div>
+```
+
+<button class='btn primary' 
+        _="on click 
+             breakpoint
+             transition element #debug-demo 'background-color' to red
+             wait 500ms
+             transition element #debug-demo 'background-color' to green
+             wait 500ms
+             transition element #debug-demo 'background-color' to blue
+             wait 500ms
+             transition element #debug-demo 'background-color' to initial
+           ">Colorize...</button>
+
+<div id="debug-demo">TechnoColor Dream Debugging...</div>
 
 ## <a name="extending"></a>[Extending](#extending)
 
