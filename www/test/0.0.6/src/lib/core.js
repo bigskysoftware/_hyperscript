@@ -2919,7 +2919,9 @@
                                         }
                                     }
                                     ctx.meta.caller = arguments[args.length];
-                                    ctx.meta.callingCommand = ctx.meta.caller.meta.command;
+                                    if (ctx.meta.caller) {
+                                        ctx.meta.callingCommand = ctx.meta.caller.meta.command;
+                                    }
                                     var resolve, reject = null;
                                     var promise = new Promise(function (theResolve, theReject) {
                                         resolve = theResolve;
