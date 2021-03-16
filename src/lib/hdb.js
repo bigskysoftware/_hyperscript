@@ -116,7 +116,7 @@
 		set beforeCmd to escapeHTML(src.substring(0, start))
 		set cmd to escapeHTML(src.substring(start, end))
 		set afterCmd to escapeHTML(src.substring(end))
-		return beforeCmd+"<u class='hdb__current'>"+cmd+"</u>"+afterCmd
+		return beforeCmd+"<u class='current'>"+cmd+"</u>"+afterCmd
 	end
 
 	def escapeHTML(unsafe)
@@ -148,42 +148,42 @@
 	</script>
 
 	<header>
-		<h2 class="hdb__titlebar">HDB///_hyperscript/debugger</h2>
-		<ul role="toolbar" class="hdb__toolbar">
+		<h2 class="titlebar">HDB///_hyperscript/debugger</h2>
+		<ul role="toolbar" class="toolbar">
 		<li><button _="on click call hdb.continueExec()">Continue</button></li
 		><li><button _="on click call hdb.stepOver()">Step Over</button></li>
 		</ul>
 	</header>
 
-	<section class="hdb__sec-eval">
+	<section class="sec-eval">
 		<h3>Evaluate Expression</h3>
-		<form class="hdb__eval-form"  _="
+		<form class="eval-form"  _="
 			on submit call event.preventDefault()
 			then call _hyperscript(#hdb-eval-expr.value, hdb.ctx)
 			then log it
 			then put prettyPrint(it) into #hdb-eval-output">
-			<input type="text" id="hdb-eval-expr" placeholder="e.g. target.innerText">
+			<input type="text" id="eval-expr" placeholder="e.g. target.innerText">
 			<button type="submit">Go</button>
-			<output id="hdb-eval-output"><em>The value will show up here</em></output>
+			<output id="eval-output"><em>The value will show up here</em></output>
 	</section>
 
-	<section class="hdb__sec-code">
+	<section class="sec-code">
 		<h3 _="on update from .hdb
 			put 'Debugging <code>'+hdb.cmd.parent.displayName+'</code>' into me"></h3>
 
-		<div class="hdb__code-container">
-			<pre class="hdb__code" _="on update from .hdb
+		<div class="code-container">
+			<pre class="code" _="on update from .hdb
 			                          if hdb.cmd.programSource
 				                        put highlightDebugCode() into my.innerHTML then
-				                        call .hdb__current[0].scrollIntoView()"></pre>
+				                        call .current[0].scrollIntoView()"></pre>
 		</div>
 	</section>
 
-	<section class="hdb__sec-ctx">
+	<section class="sec-ctx">
 
 		<h3>Context</h3>
 
-		<dl class="hdb__context" _="
+		<dl class="context" _="
 			on update from .hdb
 			set my.innerHTML to ''
 			repeat for var in Object.keys(hdb.ctx) if var != 'meta'
@@ -204,7 +204,7 @@
 		box-shadow: 0 .2em .3em #0008;
 		position: fixed;
 		top: .5em; right: .5em;
-		width: 40ch; height: 90%;
+		width: 40ch; height: calc(100% - 1em);
 		background-color: white;
 		opacity: .9;
 		z-index: 2147483647;
@@ -212,11 +212,11 @@
 		display: grid;
 	}
 
-	.hdb, .hdb * {
+	* {
 		box-sizing: border-box;
 	}
 
-	.hdb__titlebar {
+	.titlebar {
 		margin: 0;
 		font-size: 1em;
 		padding: .5em;
@@ -225,7 +225,7 @@
 		border-radius: .3em .3em 0 0;
 	}
 
-	.hdb__toolbar {
+	.toolbar {
 		list-style: none;
 		padding-left: 0;
 		margin: 0;
@@ -233,28 +233,35 @@
 		border-bottom: 1px solid #444;
 	}
 
-	.hdb__toolbar li {
+	.toolbar li {
 		display: inline;
 	}
 
-	.hdb__toolbar a, .hdb__toolbar button {
+	.toolbar a, .toolbar button {
 		display: inline-block;
 		border: none;
 		background: linear-gradient(to bottom, #ccc, #aaa);
-		border: none;
 		border-right: 1px solid #444;
 		font: inherit;
 		padding: .3em;
 	}
 
-	.hdb__eval-form {
+	.toolbar a:hover .toolbar a:focus, .toolbar button:hover, .toolbar button:focus {
+		background: linear-gradient(to bottom, #eee, #bbb);
+	}
+
+	.toolbar a:active, .toolbar button:active {
+		background: linear-gradient(to bottom, #777, #999);
+	}
+
+	.eval-form {
 		display: grid;
 		grid-template-columns: 1fr auto;
 		grid-template-areas: 'input go' 'output output';
 		padding: .4em;
 	}
 
-	#hdb-eval-expr {
+	#eval-expr {
 		grid-area: input;
 		border-radius: .2em 0 0 0;
 		font: inherit;
@@ -265,7 +272,7 @@
 		padding: .4em;
 	}
 
-	#hdb-eval-output {
+	#eval-output {
 		grid-area: output;
 		border-radius: 0 0 .2em .2em;
 		background: #111;
@@ -275,14 +282,14 @@
 		padding: .4em;
 	}
 
-	.hdb__eval-form button {
+	.eval-form button {
 		grid-area: 'go';
 		border-radius: 0 .2em 0 0;
 		background: linear-gradient(to bottom, #ccc, #aaa);
 		border: 1px solid #444;
 	}
 
-	.hdb__sec-code {
+	.sec-code {
 	
 	}
 
@@ -292,7 +299,7 @@
 		padding: .2em .4em 0 .4em;
 	}
 
-	.hdb__code-container {
+	.code-container {
 		line-height: 1.2em;
 		height: calc(12 * 1.2em);
 		padding: .1em;
@@ -303,7 +310,7 @@
 		display: grid;
 	}
 
-	.hdb__code {
+	.code {
 		font-family: Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", Monaco, "Courier New", Courier, monospace;
 		height: 100%;
 		overflow-y: scroll;
@@ -313,16 +320,16 @@
 		padding-left: 1ch;
 	}
 
-	.hdb__current {
+	.current {
 		font-weight: bold;
 		background: #abf;
 	}
 
-	.hdb__sec-ctx {
+	.sec-ctx {
 		display: contents;
 	}
 
-	.hdb__sec-ctx dl {
+	.sec-ctx dl {
 		font-family: Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", Monaco, "Courier New", Courier, monospace;
 		line-height: 1.2em;
 		max-height: calc(12 * 1.2em);
@@ -334,7 +341,7 @@
 		scrollbar-width: thin;
 	}
 
-	.hdb__sec-ctx dt {
+	.sec-ctx dt {
 		color: #02a;
 	}
 	</style>
