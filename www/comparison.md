@@ -258,7 +258,7 @@ Pattern: toggle a class on another element when clicked
 ```html
 <script>
 $(function(){
-  $("#toggleBtn").keyup(function(){
+  $("#toggleBtn").click(function(){
     $("#toggle-target-2").toggleClass("toggle-class");
   });
 });
