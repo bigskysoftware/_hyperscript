@@ -3888,8 +3888,8 @@
                     addLeafExpression: function (name, definition) {
                         _parser.addLeafExpression(name, definition);
                     },
-                    addIndirectExpression: function (keyword, definition) {
-                        _parser.addIndirectExpression(definition);
+                    addIndirectExpression: function (name, definition) {
+                        _parser.addIndirectExpression(name, definition);
                     },
                     evaluate: function (str, ctx) { //OK
                         return _runtime.evaluate(str, ctx); //OK
