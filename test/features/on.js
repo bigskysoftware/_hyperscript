@@ -74,6 +74,19 @@ describe("the on feature", function() {
         }, 1);
     })
 
+    it("can filter the load event", function(done){
+        var i = 0;
+        window.increment = function() {
+            i++;
+        }
+        var image = make("<img width='1px' _='on load[not detail.hyperscript] log event call window.increment()' src='https://hyperscript.org/img/light_logo.png'/>");
+        setTimeout(function () {
+            i.should.equal(1);
+            delete window.increment;
+            done();
+        }, 200);
+    })
+
     it("can be in a top level script tag", function(done){
         var div = make("<script type='text/hyperscript'>on load put \"Loaded\" into #loadedDemo.innerHTML</script><div id='loadedDemo'></div>");
         setTimeout(function () {
