@@ -24,7 +24,7 @@ title: ///_hyperscript
   * [expressions](#expressions)
 * [async transparency](#async)
   * [async keyword](#async-keyword)
-  * [event driven control flow](#events)
+  * [event driven control flow](#event-control-flow)
 * [debugging](#debugging)
 * [extending](#extending)
 * [history](#history)
@@ -1101,7 +1101,7 @@ to invoke `theAnswer()` but not wait on it to return, you could update the event
 </button>
 ```
 
-### <a name="events"></a>[Event Driven Control Flow](#events)
+### <a name="event-control-flow"></a>[Event Driven Control Flow](#event-control-flow)
 
 One of the extremely interesting abilities that this async-transparent runtime gives hyperscript is the ability to have
 event driven control flow:
