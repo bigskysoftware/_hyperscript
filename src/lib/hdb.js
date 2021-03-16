@@ -204,7 +204,7 @@
 		box-shadow: 0 .2em .3em #0008;
 		position: fixed;
 		top: .5em; right: .5em;
-		width: 40ch; height: calc(100% - 1em);
+		width: min(40ch, calc(100% - 1em)); height: calc(100% - 1em);
 		background-color: white;
 		opacity: .9;
 		z-index: 2147483647;
