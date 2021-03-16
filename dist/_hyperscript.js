@@ -777,6 +777,7 @@
                         if (commandElement) {
                             commandElement.type = commandGrammarType;
                             commandElement.execute = function (context) {
+                            	context.meta.command = commandElement;
                                 return runtime.unifiedExec(this, context);
                             }
                             return commandElement;
@@ -893,11 +894,16 @@
                     }
                     parser.raiseParseError(tokens, "Unexpected value: " + tokens.currentToken().value);
                 });
+
                 /* ============================================================================================ */
                 /* END Core hyperscript Grammar Elements                                                        */
                 /* ============================================================================================ */
 
-
+                /**
+                 * 
+                 * @param {TokensObject} tokens 
+                 * @returns string
+                 */
                 function createParserContext(tokens) {
                     var currentToken = tokens.currentToken();
                     var source = tokens.source;
@@ -1110,16 +1116,25 @@
                 }
 
                 /**
+                 * isArrayLike returns `true` if the provided value is an array or
+                 * a NodeList (which is close enough to being an array for our purposes).
+                 * 
                  * @param {any} value 
-                 * @returns boolean
+                 * @returns {value is Array | NodeList}
                  */
                 function isArrayLike(value) {
                     return Array.isArray(value) || value instanceof NodeList;
                 }
 
                 /**
-                 * @param {any} value 
-                 * @param {function} func 
+                 * forEach executes the provided `func` on every item in the `value` array.
+                 * if `value` is a single item (and not an array) then `func` is simply called
+                 * once.  If `value` is null, then no further actions are taken.
+                 * 
+                 * @function
+                 * @template T
+                 * @param {T | T[]} value 
+                 * @param {(item:T) => void} func 
                  */
                 function forEach(value, func) {
                     if (value == null) {
@@ -2904,6 +2919,7 @@
                                         }
                                     }
                                     ctx.meta.caller = arguments[args.length];
+                                    ctx.meta.callingCommand = ctx.meta.caller.meta.command;
                                     var resolve, reject = null;
                                     var promise = new Promise(function (theResolve, theReject) {
                                         resolve = theResolve;
@@ -2919,6 +2935,7 @@
                                     }
                                 };
                                 func.hyperfunc = true;
+                                func.hypername = nameVal;
                                 runtime.assignToNamespace(nameSpace, funcName, func);
                             }
                         };
@@ -3759,16 +3776,16 @@
                         runtime: _runtime,
                     },
                     addFeature: function (keyword, definition) {
-                        _parser.addFeature(keyword, definition)
+                        _parser.addFeature(keyword, definition);
                     },
                     addCommand: function (keyword, definition) {
-                        _parser.addCommand(keyword, definition)
+                        _parser.addCommand(keyword, definition);
                     },
                     addLeafExpression: function (name, definition) {
-                        _parser.addLeafExpression(name, definition)
+                        _parser.addLeafExpression(name, definition);
                     },
                     addIndirectExpression: function (keyword, definition) {
-                        _parser.addIndirectExpression(definition)
+                        _parser.addIndirectExpression(definition);
                     },
                     evaluate: function (str, ctx) { //OK
                         return _runtime.evaluate(str, ctx); //OK
@@ -4472,39 +4489,36 @@
         }
     });
 
-    _hyperscript.config.conversions["Values"] = function(node) {
+    _hyperscript.config.conversions["Values"] = function(/** @type {Node | NodeList} */ node) {
 
-        // Try to get a value directly from this node
-        var input = getInputInfo(node);
+        /** @type Object<string,string | string[]> */
+        var result = {};
 
-        if (input !== undefined) {
-            return input.value;
-        }
+        var forEach = _hyperscript.internals.runtime.forEach;
 
-        // Otherwise, try to query all child elements of this node that *should* contain values.
-        if (node.querySelectorAll != undefined) {
+        forEach(node, function(/** @type HTMLInputElement */ node) {
 
-            /** @type Object<string,string> */
-            var result = {};
+            // Try to get a value directly from this node
+            var input = getInputInfo(node);
 
-            var children = node.querySelectorAll("input,select,textarea");
-
-            for (var i = 0; i < children.length; i++) {
-                var child = children[i];
-                appendValue(result, child);
+            if (input !== undefined) {
+                result[input.name] = input.value;
+                return;
             }
 
-            return result;
-        }
+            // Otherwise, try to query all child elements of this node that *should* contain values.
+            if (node.querySelectorAll != undefined) {
+                var children = node.querySelectorAll("input,select,textarea");
+                forEach(children, appendValue);
+            }
+        })
 
-        // Otherwise, there is no value to return.
-        return null;
+        return result;
 
         /**
-         * @param {Object<string,(string|string[])>} result
          * @param {HTMLInputElement} node 
          */
-        function appendValue(result, node) {
+        function appendValue(node) {
 
             var info = getInputInfo(node);
 

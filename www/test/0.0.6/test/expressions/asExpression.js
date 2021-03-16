@@ -56,16 +56,16 @@ describe("as operator", function() {
         result["foo"].should.equal('bar');
     })
 
-    it("converts an input element into a Value", function() {
+    it("converts an input element into Values", function() {
         var node = document.createElement("input")
         node.name = "test-name"
         node.value = "test-value"
 
         var result = evalHyperScript("x as Values", {x:node})
-        result.should.equal("test-value")
+        result['test-name'].should.equal("test-value")
     })
 
-    it("converts a form element into a Value", function() {
+    it("converts a form element into Values", function() {
         var node = document.createElement("form");
         node.innerHTML = `
             <input name="firstName" value="John"><br>
@@ -80,6 +80,24 @@ describe("as operator", function() {
         result.lastName.should.equal("Connor");
         result.areaCode.should.equal("213");
         result.phone.should.equal("555-1212");
+    });
+
+    it("converts a query selector into Values", function() {
+        var d1 = make(`<div _="on click put <input.include/> as Values into my.customData"></div>`)
+
+        d1.innerHTML = `
+            <input class="include" name="firstName" value="John"><br>
+            <input class="include" name="lastName" value="Connor"><br>
+            <input class="include" name="areaCode" value="213">
+            <input class="dont-include" name="phone" value="555-1212">
+        `;
+
+        d1.click();
+
+        d1.customData.firstName.should.equal("John");
+        d1.customData.lastName.should.equal("Connor");
+        d1.customData.areaCode.should.equal("213");
+        should.not.exist(d1.customData.phone);
     });
 
     it("converts radio buttons into a Value correctly", function() {
