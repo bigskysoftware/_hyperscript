@@ -168,14 +168,14 @@
 	</section>
 
 	<section class="sec-code">
-		<h3 _="on update from .hdb
+		<h3 _="on update from hdbUI
 			put 'Debugging <code>'+hdb.cmd.parent.displayName+'</code>' into me"></h3>
 
 		<div class="code-container">
-			<pre class="code" _="on update from .hdb
+			<pre class="code" _="on update from hdbUI
 			                          if hdb.cmd.programSource
-				                        put highlightDebugCode() into my.innerHTML then
-				                        call .current[0].scrollIntoView()"></pre>
+				                        put highlightDebugCode() into my.innerHTML
+				                        scrollIntoView() the first .current in me"></pre>
 		</div>
 	</section>
 
@@ -184,7 +184,7 @@
 		<h3>Context</h3>
 
 		<dl class="context" _="
-			on update from .hdb
+			on update from hdbUI
 			set my.innerHTML to ''
 			repeat for var in Object.keys(hdb.ctx) if var != 'meta'
 				get '<dt>'+var+'<dd>'+prettyPrint(hdb.ctx[var])
@@ -353,6 +353,7 @@
 		node.style = 'all: initial';
 		shadow.innerHTML = ui;
 		document.body.appendChild(node);
+		window.hdbUI = shadow.querySelector('.hdb');
 		_hyperscript.processNode(shadow);
 	}
 })()
