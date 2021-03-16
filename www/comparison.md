@@ -17,6 +17,7 @@ Below are some comparisons of how to implement various common UI patterns in van
 * [Fetch And Insert](#fetch-and-insert)
 * [Debounced Input](#debounced-input)
 * [Toggle A Class](#toggle-class)
+* [Trigger An Event](#trigger-an-event)
 
 ## <a name='fade-and-remove'>[Fade And Remove](#fade-and-remove)
 
@@ -303,6 +304,101 @@ $(function(){
 </button>
 <div id="toggle-target-3">
   Toggle Target
+</div>
+
+## <a name='trigger-an-event'>[Trigger An Event](#trigger-an-event)
+
+Pattern: trigger a custom event on another 
+
+#### VanillaJS
+
+
+```html
+<button onclick="document.getElementById('event-target-1')
+                         .dispatchEvent(new Event('doIt'))">
+  Trigger Event
+</button>
+<div id="event-target-1">
+  Event Target
+</div>
+<script>
+  document.getElementById('event-target-1').addEventListener("doIt", function(){
+    var elt = document.getElementById('event-target-1');
+    elt.parentNode.removeChild(elt)
+  });
+</script>
+```
+<button onclick="document.getElementById('event-target-1')
+                         .dispatchEvent(new Event('doIt'))">
+  Trigger Event
+</button>
+<div id="event-target-1">
+  Event Target
+</div>
+<script>
+  document.getElementById('event-target-1').addEventListener("doIt", function(){
+    var elt = document.getElementById('event-target-1');
+    elt.parentNode.removeChild(elt)
+  });
+</script>
+
+#### jQuery
+```html
+<script>
+$(function(){
+  $("#triggerBtn").click(function(){
+    $("#event-target-2").trigger("doIt");
+  });
+  $("#event-target-2").on('doIt', function(){
+    $(this).remove();
+  });
+});
+</script>
+<button id="triggerBtn">
+  Trigger Event
+</button>
+<div id="event-target-2">
+  Event Target
+</div>
+```
+
+<script>
+$(function(){
+  $("#triggerBtn").click(function(){
+    $("#event-target-2").trigger("doIt");
+  });
+  $("#event-target-2").on('doIt', function(){
+    $(this).remove();
+  });
+});
+</script>
+
+<button id="triggerBtn">
+  Trigger Event
+</button>
+
+<div id="event-target-2">
+  Event Target
+</div>
+
+#### hyperscript
+
+```html
+<button _="on click send doIt to #event-target-3">
+  Trigger Event
+</button>
+<div id="event-target-3"
+     _="on doIt remove me">
+  Event Target
+</div>
+```
+
+<button _="on click send doIt to #event-target-3">
+  Trigger Event
+</button>
+<div id="event-target-3"
+     _="on doIt remove me">
+  Event Target
 </div>
 
 
