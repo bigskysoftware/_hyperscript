@@ -159,9 +159,9 @@
 		<h3>Evaluate Expression</h3>
 		<form class="eval-form"  _="
 			on submit call event.preventDefault()
-			then call _hyperscript(#hdb-eval-expr.value, hdb.ctx)
-			then log it
-			then put prettyPrint(it) into #hdb-eval-output">
+			then call _hyperscript(#eval-expr.value, hdb.ctx)
+			then prettyPrint(it)
+			then put it into #eval-output">
 			<input type="text" id="eval-expr" placeholder="e.g. target.innerText">
 			<button type="submit">Go</button>
 			<output id="eval-output"><em>The value will show up here</em></output>
