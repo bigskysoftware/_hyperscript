@@ -143,9 +143,9 @@ $(function(){
 #### hyperscript
 
 ```html
-<div _="on click fetch /clickedMessage/ then put the result into #fetch-target-3">
+<button _="on click fetch /clickedMessage/ then put the result into #fetch-target-3">
  Fetch It
-</div>
+</button>
 <div id="fetch-target-3"></div>
 ```
 
