@@ -308,7 +308,7 @@ $(function(){
 
 ## <a name='trigger-an-event'>[Trigger An Event](#trigger-an-event)
 
-Pattern: trigger a custom event on another 
+Pattern: trigger a custom event on another element in the DOM
 
 #### VanillaJS
 
