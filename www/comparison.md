@@ -12,7 +12,7 @@ title: ///_hyperscript
 Below are some comparisons of how to implement various common UI patterns in vanilla javascript, jQuery and hyperscript
 
 
-## Fade And Remove
+## <a name='fade-and-remove'>[Fade And Remove](#fade-and-remove)
 
 Pattern: fade and remove an element after it is clicked
 
@@ -84,7 +84,7 @@ $(function(){
               Remove Me
 </div>
 
-## Fetch Data And Insert
+## <a name='fetch-and-insert'>[Fetch And Insert](#fetch-and-insert)
 
 Pattern: fetch some data and insert it into an element
 
