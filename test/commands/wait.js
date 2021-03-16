@@ -43,8 +43,8 @@ describe("the wait command", function() {
     })
 
     it("waiting on an event sets 'it' to the event", function(done){
-        var div = make("<div _='on click wait for foo
-                                then put its.detail into me'></div>");
+        var div = make("<div _='on click wait for foo " +
+                       "        then put its.detail into me'></div>");
         div.click();
 		div.innerHTML.should.equal('');
         div.dispatchEvent(new CustomEvent("foo", { detail: 'hyperscript is hyper cool' }));
