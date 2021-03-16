@@ -11,9 +11,12 @@ Note: if you want the socket feature, you must either use the "Whole 9 Yards" re
 
 ### Syntax
 
-```socket <socket-name> <socket-url> [with timeout <time expr>]
-  [on message [as json] <command-list>]
 ```
+  socket <socket-name> <socket-url> [with timeout <time expr>]
+    [on message [as json] <command-list>]
+```
+
+<br/>
 
 * `socket-name` is a name for the socket. This is available in the current hypertext scope and exposes additional data about the browser [WebSocket](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API) object.
 * `socket-url` is the address that the socket is connected to.
