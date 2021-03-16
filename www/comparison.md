@@ -235,19 +235,19 @@ Pattern: toggle a class on another element when clicked
 #### VanillaJS
 
 <style>
-.toggle-class {
+.red-border {
   border: 5px solid red;
 }
 </style>
 ```html
 <button onclick="document.getElementById('toggle-target-1')
-                         .classList.toggle('toggle-class')">
+                         .classList.toggle('red-border')">
   Toggle Class
 </button>
 <div id="toggle-target-1"></div>
 ```
 <button onclick="document.getElementById('toggle-target-1')
-                         .classList.toggle('toggle-class')">
+                         .classList.toggle('red-border)">
   Toggle Class
 </button>
 <div id="toggle-target-1">
@@ -259,7 +259,7 @@ Pattern: toggle a class on another element when clicked
 <script>
 $(function(){
   $("#toggleBtn").click(function(){
-    $("#toggle-target-2").toggleClass("toggle-class");
+    $("#toggle-target-2").toggleClass("red-border");
   });
 });
 </script>
@@ -274,7 +274,7 @@ $(function(){
 <script>
 $(function(){
   $("#toggleBtn").click(function(){
-    $("#toggle-target-2").toggleClass("toggle-class");
+    $("#toggle-target-2").toggleClass("red-border");
   });
 });
 </script>
@@ -290,7 +290,7 @@ $(function(){
 #### hyperscript
 
 ```html
-<button _="on click toggle .toggle-class on #toggle-target-3">
+<button _="on click toggle .red-border on #toggle-target-3">
   Toggle Class
 </button>
 <div id="toggle-target-3">
@@ -298,7 +298,7 @@ $(function(){
 </div>
 ```
 
-<button _="on click toggle .toggle-class on #toggle-target-3">
+<button _="on click toggle .red-border on #toggle-target-3">
   Toggle Class
 </button>
 <div id="toggle-target-3">
