@@ -175,7 +175,8 @@
 			<pre class="code" _="on update from hdbUI
 			                          if hdb.cmd.programSource
 				                        put highlightDebugCode() into my.innerHTML
-				                        scrollIntoView() the first .current in me"></pre>
+				                        scrollIntoView({ block: 'nearest' }) the
+				                        	first .current in me"></pre>
 		</div>
 	</section>
 
