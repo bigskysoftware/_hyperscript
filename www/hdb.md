@@ -24,7 +24,7 @@ This will cause the code execution to stop and the HDB panel to appear.
 
 ## HDB UI
 
-![The HDB UI appears as a floating window.](img/hdb.png)
+![The HDB UI appears as a floating window.](/img/hdb.png)
 
 The UI surfaces three features:
 
@@ -36,13 +36,13 @@ The UI surfaces three features:
 
 You can enter any _hyperscript expression, click "Go" (or press Enter) and its value will be displayed below.
 
-![When we write me.tagName in the eval panel, the output is "BODY".](img/hdb-eval.png)
+![When we write me.tagName in the eval panel, the output is "BODY".](/img/hdb-eval.png)
 
 ### Code view
 
 This section shows the code that's currently executing. The command that's currrently being executed is highlighted (when you first open the panel, this will be the `breakpoint` command). By clicking the <kbd>Step Over</kbd> button in the top toolbar, you can execute this command and move on to the next. When you're finished with debugging, or want to move on to the next breakpoint, press <kbd>Continue</kbd> to continue executing the remaining code normally.
 
-!["Debugging f_c()" -- we see the code for f_c, with f_b and f_a below](img/hdb-code.png)
+!["Debugging f_c()" -- we see the code for f_c, with f_b and f_a below](/img/hdb-code.png)
 
 ### Context view
 
