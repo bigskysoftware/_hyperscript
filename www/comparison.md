@@ -11,6 +11,12 @@ title: ///_hyperscript
 
 Below are some comparisons of how to implement various common UI patterns in vanilla javascript, jQuery and hyperscript
 
+## Contents
+
+* [Fade And Remove](#fade-and-remove)
+* [Fetch And Insert](#fetch-and-insert)
+* [Debounced Input](#debounced-input)
+* [Toggle A Class](#toggle-class)
 
 ## <a name='fade-and-remove'>[Fade And Remove](#fade-and-remove)
 
@@ -222,7 +228,83 @@ $(function(){
        _="on keyup debounced at 300ms put my.value into #debounce-target-3"/>
 <div id="debounce-target-3"></div>
 
+## <a name='toggle-class'>[Toggle A Class](#toggle-class)
+
+Pattern: toggle a class on another element when clicked
+
+#### VanillaJS
+
+<style>
+.toggle-class {
+  border: 5px solid red;
+}
+</style>
+```html
+<button onclick="document.getElementById('toggle-target-1')
+                         .classList.toggle('toggle-class')">
+  Toggle Class
+</button>
+<div id="toggle-target-1"></div>
+```
+<button onclick="document.getElementById('toggle-target-1')
+                         .classList.toggle('toggle-class')">
+  Toggle Class
+</button>
+<div id="toggle-target-1">
+  Toggle Target
+</div>
+
+#### jQuery
+```html
+<script>
+$(function(){
+  $("#toggleBtn").keyup(function(){
+    $("#toggle-target-2").toggleClass("toggle-class");
+  });
+});
+</script>
+<button id="toggleBtn">
+  Toggle Class
+</button>
+<div id="toggle-target-2">
+  Toggle Target
+</div>
+```
+
+<script>
+$(function(){
+  $("#toggleBtn").click(function(){
+    $("#toggle-target-2").toggleClass("toggle-class");
+  });
+});
+</script>
+
+<button id="toggleBtn">
+  Toggle Class
+</button>
+
+<div id="toggle-target-2">
+  Toggle Target
+</div>
+
+#### hyperscript
+
+```html
+<button _="on click toggle .toggle-class on #toggle-target-3">
+  Toggle Class
+</button>
+<div id="toggle-target-3">
+  Toggle Target
+</div>
+```
+
+<button _="on click toggle .toggle-class on #toggle-target-3">
+  Toggle Class
+</button>
+<div id="toggle-target-3">
+  Toggle Target
+</div>
+
 
 <div style="height: 400px">
 </div>
-
