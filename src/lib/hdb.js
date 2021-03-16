@@ -106,7 +106,7 @@
 	var ui = `
 <div class="hdb" _="
 	on load or step from hdb.bus send update to me
-	on continue from hdb.bus remove me">
+	on continue from hdb.bus remove #hyperscript-hdb-ui-wrapper-">
 
 	<script type="text/hyperscript">
 	def highlightDebugCode
@@ -352,6 +352,7 @@
 		var node = document.createElement('div');
 		var shadow = node.attachShadow({ mode: 'open' });
 		node.style = 'all: initial';
+		node.id = 'hyperscript-hdb-ui-wrapper-';
 		shadow.innerHTML = ui;
 		document.body.appendChild(node);
 		window.hdbUI = shadow.querySelector('.hdb');
