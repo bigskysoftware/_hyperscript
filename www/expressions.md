@@ -31,7 +31,7 @@ title: ///_hyperscript
 Expressions in hyperscript are a mix of familiar and new.  Many of the expected operations from javascript are there:
 
 * Common literals: `1 true "this is a string" null`
-* List and object literals: `[1, 2, 3], {foo:"bar"}`
+* List and object literals: `[1, 2, 3], {foo:"bar", [computeKey()]: computeValue()}`
 
 Most of the common comparison and mathematical operators are there as well:
 
@@ -41,6 +41,12 @@ Most of the common comparison and mathematical operators are there as well:
   lst.length < 5
   a + b < 42
 ```
+
+There are some minor improvements to them:
+
+*	Property names in object literals can contain hyphens. This is convenient for representing CSS:
+
+	`add { font-weight: bold } to the #element in me`
 
 However, once you get past the basics, hyperscript starts to get a little wild.
 
@@ -265,5 +271,46 @@ You can use the following formats for time expressions:
 
 Note that a space between the number and modifier are not necessary, and that the `ms` modifier is just for clarity
 since milliseconds is the normal interpretation for things like `setTimeout()`, which the wait command is based on.
+
+## <a name="time"></a>[Of Expressions](#of)
+
+The [`of`](/expressions/of) expression allows you to reverse the normal object oriented syntax and write logic in more natural english
+
+```html
+  <button _="on click call window.location.refresh()">
+    Refresh the Location
+  </button>
+```
+
+Can be rewritten like this:
+
+```html
+  <button _="on click refresh() the location of the window">
+    Refresh the Location
+  </button>
+```
+
+## <a name="closest"></a>[Closest Expressions](#closest)
+
+The [`closest`](/expressions/closest) expression allows you to find the closest match of a CSS selector
+
+```html
+<%!-- logs the closest section ot the div -->
+<div _="on click log the closest <section/>">
+  ...
+</div>
+```
+
+## <a name="positional"></a>[Positional Expressions](#positional)
+
+The [positional exprssions](/expressions/positiona), `first`, `last` and `random`  allows you to get the
+first, last or a random element from an array-like object
+
+```html
+<%!-- logs the first section in the document -->
+<div _="on click log the first <section/>">
+  ...
+</div>
+```
 
 </div>

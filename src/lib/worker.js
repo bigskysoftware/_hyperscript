@@ -1,4 +1,6 @@
-
+///=========================================================================
+/// This module provides the worker feature for hyperscript
+///=========================================================================
 (function () {
 
     var invocationIdCounter = 0

@@ -11,6 +11,8 @@ title: ///_hyperscript
 | [def](/features/def) | Defines a function | [see details...](/features/def)
 | [js](/features/js) | Embed JavaScript code at the top level | [see details...](/features/js)
 | [worker](/features/worker) | Create a Web Worker for asynchrnous work
+| [eventsource](/features/event-source) | Subscribe to Server Sent Events (SSE)
+| [init](/features/init) | Initialization logic to be run when the code is first loaded
 
 ## <a name='commands'></a>[Commands](#commands)
 
@@ -58,6 +60,9 @@ See [expressions](/expressions) for an overview.
 | [query reference](/expressions/query-reference) | A query reference | `<button/> <:focused/>`
 | [string](/expressions/string) | A string | `"a string", 'another string'`
 | [time expression](/expressions/time) | A time expression | `200ms`
+| [closest expression](/expressions/closest) | Find closest element | `closest <div/>`
+| [of expression](/expressions/of) | Get a property of an object | `the location of window`
+| [positional expressions](/expressions/positional) | Get a positional value out of an array-like object | `first from <div/>`
 | array literal | Javascript-style array literals | `[1, 2, 3]`
 | boolean literal | Javascript-style booleans | `true false`
 | math operator | Javascript-style mathematical operators | `1 + 2`

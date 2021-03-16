@@ -20,10 +20,12 @@ title: ///_hyperscript
     * [on](#on)
     * [worker](#worker)
   * [commands](#commands)
+    * [pseudo-commands](#pseudo-commands)
   * [expressions](#expressions)
 * [async transparency](#async)
   * [async keyword](#async-keyword)
-  * [event driven control flow](#events)
+  * [event driven control flow](#event-control-flow)
+* [debugging](#debugging)
 * [extending](#extending)
 * [history](#history)
 
@@ -35,7 +37,7 @@ title: ///_hyperscript
 
 ## <a name="introduction"></a>[Introduction](#introduction)
 
-Hyperscript is a fun little scripting language for doing front end web development.
+Hyperscript is an experimental scripting language for doing front end web development.
 
 ### <a name='events'></a>[Event Handling](#events)
 
@@ -899,6 +901,20 @@ And you can use any results return from the javascript in the default `it` varia
 </button>
 ```
 
+### <a name="pseudo-commands"></a>[Pseudo-Commands](#pseudo-commands)
+
+Pseudo-commands allow you to treat a method on an object as a top level command.  The method name must be followed by
+an argument list, then optional prepositional syntax to clarify the code, then an expression.  The method will be
+looked up on the value returned by the expression and executed.
+
+Consider the `refresh()` method found on `window.location`.  In hyperscript, you can use it as a pseudo-command like so:
+
+```html
+  <button _="on click refresh() the location of the window">
+    Refresh the Location
+  </button>
+```
+
 ## <a name="expressions"></a>[Expressions](#expressions)
 
 Expressions in hyperscript are mostly familiar from javascript, with a few exceptions and a few extensions.  You can
@@ -973,13 +989,24 @@ Hyperscript supports a few default symbols that have specific meanings
 
 |  name    | description 
 |----------|-------------
-| `it`     | the result of the last command (e.g. a `call` or `fetch`)
+| `result` | the result of the last command (e.g. a `call` or `fetch`)
+| `it`     | alias for `result`
+| `its`     | alias for `result`
 | `me`     | the element that the current event handler is running on
 | `my`     | alias for `me`
 | `I`      | alias for `me`
 | `event`  | the event that triggered the event current handler, if any
 | `body`   | the body of the current document, if any
 | `detail` | the detail of the event that triggered the current handler, if any
+
+Additionally, you can place the definite article `the` in front of expressions to clarify language:
+
+```html
+  <button _="on click refresh() the location of the window">
+    Refresh the Location
+  </button>
+```
+
 
 ## <a name="async"></a>[Async Transparency](#async)
 
@@ -1074,7 +1101,7 @@ to invoke `theAnswer()` but not wait on it to return, you could update the event
 </button>
 ```
 
-### <a name="events"></a>[Event Driven Control Flow](#events)
+### <a name="event-control-flow"></a>[Event Driven Control Flow](#event-control-flow)
 
 One of the extremely interesting abilities that this async-transparent runtime gives hyperscript is the ability to have
 event driven control flow:
@@ -1136,6 +1163,44 @@ What's particularly interesting here is that the CSS transition is allowed to fi
 because the event listener that terminates the loop is only consulted once a complete loop is made.
 
 This I hope gives you a taste of the unique execution model of hyperscript, and what uses it might be put to.
+
+## <a name="debugging"></a>[Debugging (Alpha)](#debugging)
+
+**Note: The hyperscript debugger is in alpha and, like the rest of the language, is undergoing active development**
+
+Hyperscript includes a debugger, hdb, that allows you to debug by inserting `breakpoint` commands in your hyperscript.
+
+To use it you need to include the `lib/hdb.js` file.  You can then add `breakpoint` commands in your hyperscript
+to trigger the debugger.  
+
+```html
+<button _="on click 
+             breakpoint
+             transition element #debug-demo 'background-color' to red
+             wait 500ms
+             transition element #debug-demo 'background-color' to red
+             wait 500ms
+             transition element #debug-demo 'background-color' to blue
+             wait 500ms
+             transition element #debug-demo 'background-color' to initial
+           ">Colorize...</button>
+
+<div id="debug-demo">TechnoColor Dream Debugging...</div>
+```
+
+<button class='btn primary' 
+        _="on click 
+             breakpoint
+             transition element #debug-demo 'background-color' to red
+             wait 500ms
+             transition element #debug-demo 'background-color' to green
+             wait 500ms
+             transition element #debug-demo 'background-color' to blue
+             wait 500ms
+             transition element #debug-demo 'background-color' to initial
+           ">Colorize...</button>
+
+<div id="debug-demo">TechnoColor Dream Debugging...</div>
 
 ## <a name="extending"></a>[Extending](#extending)
 

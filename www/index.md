@@ -14,7 +14,7 @@ title: ///_hyperscript
 
 ## intro
 
-hyperscript is a scripting language designed for the web, inspired by 
+hyperscript is an experimental scripting language designed for the web, inspired by 
  [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf)
 
 hyperscript features include:
@@ -26,10 +26,12 @@ hyperscript features include:
 * a DOM-oriented syntax, such as element id and class literals
 * first class [web workers](/docs#workers)
 * [async-transparancy](/docs#async)
+* A pluggable, extendable parser & grammar
 
 </div>
 
-hyperscript is a companion project of [htmx](https://htmx.org)
+hyperscript is a companion project of [htmx](https://htmx.org).  Because Promises are not available in IE, unlike htmx, 
+hyperscript does not strive for IE11 compatibility.
 
 ## examples
 
