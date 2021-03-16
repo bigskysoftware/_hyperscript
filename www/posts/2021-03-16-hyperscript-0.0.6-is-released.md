@@ -2,7 +2,7 @@
 layout: layout.njk
 tags: post
 title: hyperscript 0.0.6 has been released!
-date: 2021-03-19
+date: 2021-03-16
 ---
 
 ## hyperscript 0.0.6 Release
@@ -102,5 +102,7 @@ I'm pleased to announce the [0.0.6 release](https://unpkg.com/browse/hyperscript
 
 * Positional expressions [first](/expression/first), [last](/expression/first) and [random](/expression/random) were 
   added
+
+* HDB, the [Hyperscript Debugger](/docs#debugging) was added!
 
 Enjoy!
