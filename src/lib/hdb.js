@@ -130,20 +130,18 @@
 	end
 
 	def prettyPrint(obj)
-		js(obj)
-			if (obj instanceof HTMLElement) {
-				return obj.outerHTML.split('>')[0] + '>';
-			} else if (obj instanceof Function) {
-				if (obj.hyperfunc) {
-					return "def " + obj.hypername
-				} else {
-					return "function "+obj.name+"() {...}"
-				}
-			} else {
-				return JSON.stringify(obj)
-			}
+		if obj.outerHTML
+			get obj.outerHTML.split('>')[0] + '>'
+		else if obj.call
+			if obj.hyperfunc
+				get "def " + obj.hypername
+			else
+				get "function "+obj.name+"() {...}"
+			end
+		else if obj
+			call obj.toString()
 		end
-		return escapeHTML(it.trim())
+		return escapeHTML((it or 'undefined').trim())
 	end
 	</script>
 
@@ -159,9 +157,10 @@
 		<h3>Evaluate Expression</h3>
 		<form class="eval-form"  _="
 			on submit call event.preventDefault()
-			then call _hyperscript(#eval-expr.value, hdb.ctx)
-			then prettyPrint(it)
-			then put it into #eval-output">
+			get the first <input/> in me
+			then call _hyperscript(its.value, hdb.ctx)
+			then call prettyPrint(it)
+			then put it into the <output/> in me">
 			<input type="text" id="eval-expr" placeholder="e.g. target.innerText">
 			<button type="submit">Go</button>
 			<output id="eval-output"><em>The value will show up here</em></output>
@@ -356,7 +355,7 @@
 		shadow.innerHTML = ui;
 		document.body.appendChild(node);
 		window.hdbUI = shadow.querySelector('.hdb');
-		_hyperscript.processNode(shadow);
+		_hyperscript.processNode(hdbUI);
 	}
 })()
 
