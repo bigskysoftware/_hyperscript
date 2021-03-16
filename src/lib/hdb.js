@@ -348,8 +348,12 @@
 </div>
 `
 	HDB.prototype.ui = function () {
-		document.body.insertAdjacentHTML('beforeend', ui);
-		_hyperscript.processNode(document.querySelector('.hdb'));
+		var node = document.createElement('div');
+		var shadow = node.attachShadow({ mode: 'open' });
+		node.style = 'all: initial';
+		shadow.innerHTML = ui;
+		document.body.appendChild(node);
+		_hyperscript.processNode(shadow);
 	}
 })()
 
