@@ -75,12 +75,12 @@ $(function(){
 #### hyperscript
 
 ```html
-<div _="on click transition opacity to 0 then remove">
+<div _="on click transition opacity to 0 then remove me">
               Remove Me
 </div>
 ```
 
-<div _="on click transition opacity to 0 then remove">
+<div _="on click transition opacity to 0 then remove me">
               Remove Me
 </div>
 
