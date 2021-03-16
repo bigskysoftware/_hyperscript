@@ -84,4 +84,76 @@ $(function(){
               Remove Me
 </div>
 
-<hr style="margin-bottom: 300px; margin-top: 16px"/>
+## Fetch Data And Insert
+
+Pattern: fetch some data and insert it into an element
+
+#### VanillaJS
+
+```html
+<button onclick="fetch('/clickedMessage/')
+                  .then(response => response.text())
+                  .then(function(data) {
+                      document.getElementById('fetch-target-1').innerHTML = data
+                  })">
+ Fetch It
+</button>
+<div id="fetch-target-1"></div>
+```
+<button onclick="fetch('/clickedMessage/')
+                  .then(response => response.text())
+                  .then(function(data) {
+                     document.getElementById('fetch-target-1').innerHTML = data
+                  })">
+ Fetch It
+</button>
+<div id="fetch-target-1"></div>
+
+#### jQuery
+```html
+<script>
+$(function(){
+  $("#fetchBtn").click(function(){
+    $.get('/clickedMessage/', function(data){
+        $("#fetch-target-2").html(data);
+     })
+  });
+});
+</script>
+<button id="fetchBtn">
+ Fetch It
+</button>
+<div id="fetch-target-2"></div>
+```
+
+<script>
+$(function(){
+  $("#fetchBtn").click(function(){
+    $.get('/clickedMessage/', function(data){
+        $("#fetch-target-2").html(data);
+     })
+  });
+});
+</script>
+<button id="fetchBtn">
+ Fetch It
+</button>
+<div id="fetch-target-2"></div>
+
+#### hyperscript
+
+```html
+<div _="on click fetch /clickedMessage/ then put the result into #fetch-target-3">
+ Fetch It
+</div>
+<div id="fetch-target-3"></div>
+```
+
+<button _="on click fetch /clickedMessage/ then put the result into #fetch-target-3">
+ Fetch It
+</button>
+<div id="fetch-target-3"></div>
+
+<div style="height: 400px">
+</div>
+
