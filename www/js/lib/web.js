@@ -533,7 +533,6 @@
                 op: function (context, root, valueToPut) {
                     if (symbolWrite) {
                         putInto(context, prop, valueToPut);
-                        context[target.name] = valueToPut;
                     } else {
                         if (operation === "into") {
                             runtime.forEach(root, function (elt) {

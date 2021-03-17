@@ -2,6 +2,9 @@
 /// This module provides the core runtime and grammar for hyperscript
 ///=========================================================================
 //AMD insanity
+
+/** @var {HyperscriptObject} _hyperscript */
+
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
@@ -73,6 +76,8 @@
             //====================================================================
             // Lexer
             //====================================================================
+
+            /** @type LexerObject */
             var _lexer = function () {
                 var OP_TABLE = {
                     '+': 'PLUS',
@@ -192,8 +197,8 @@
                 /**
                  * @param {Token[]} tokens 
                  * @param {Token[]} consumed 
-                 * @param {*} source 
-                 * @returns 
+                 * @param {string} source 
+                 * @returns TokensObject
                  */
                 function makeTokensObject(tokens, consumed, source) {
 
@@ -207,7 +212,7 @@
                     }
 
                     /**
-                         * @param {Token[]} tokens 
+                     * @param {Token[]} tokens 
                      * @param {*} error 
                      */
                     function raiseError(tokens, error) {
@@ -229,8 +234,8 @@
 
                     /**
                      * @param {string} op1 
-                     * @param {string} op2 
-                     * @param {string} op3 
+                     * @param {string} [op2]
+                     * @param {string} [op3]
                      * @returns [Token]
                      */
                     function matchAnyOpToken(op1, op2, op3) {
@@ -244,10 +249,12 @@
                     }
 
                     /**
-                     * @param {string} value 
+                     * @param {string} op1
+                     * @param {string} [op2]
+                     * @param {string} [op3]
                      * @returns [Token]
                      */
-                    function matchAnyToken(op1, op2, op3) {
+                     function matchAnyToken(op1, op2, op3) {
                         for (var i = 0; i < arguments.length; i++) {
                             var opToken = arguments[i];
                             var match = matchToken(opToken);
@@ -261,7 +268,7 @@
                      * @param {string} value 
                      * @returns [Token]
                      */
-                  function matchOpToken(value) {
+                    function matchOpToken(value) {
                         if (currentToken() && currentToken().op && currentToken().value === value) {
                             return consumeToken();
                         }
@@ -298,7 +305,7 @@
 
                     /**
                      * @param {string} value 
-                     * @param {string} type 
+                     * @param {string} [type]
                      * @returns Token
                      */
                     function requireToken(value, type) {
@@ -312,7 +319,7 @@
 
                     /**
                      * @param {string} value 
-                     * @param {string} type 
+                     * @param {string} [type]
                      * @returns [Token]
                      */
                     function matchToken(value, type) {
@@ -335,7 +342,7 @@
 
                     /**
                      * @param {string} value 
-                     * @param {string} type 
+                     * @param {string} [type]
                      * @returns Token[]
                      */
                     function consumeUntil(value, type) {
@@ -498,7 +505,7 @@
                     return makeTokensObject(tokens, [], source);
 
                     /**
-                     * @param {string} type 
+                     * @param {string} [type] 
                      * @param {string} [value]
                      * @returns Token
                      */
@@ -509,7 +516,7 @@
                     }
 
                     /**
-                     * @param {string} type 
+                     * @param {string} [type]
                      * @param {string} [value]
                      * @returns Token
                      */
@@ -691,19 +698,26 @@
             //====================================================================
             // Parser
             //====================================================================
+
+            /** @type ParserObject */
             var _parser = function () {
 
+                /** @type {Object<string,GrammarDefinition>} */ 
                 var GRAMMAR = {}
+
+                /** @type {Object<string,CommandDefinition>} */
                 var COMMANDS = {}
+
+                /** @type {Object<string,FeatureDefinition>} */
                 var FEATURES = {}
+                
                 var LEAF_EXPRESSIONS = [];
                 var INDIRECT_EXPRESSIONS = [];
 
                 /**
-                 * @param {string} type 
+                 * @param {*} parseElement 
+                 * @param {*} start 
                  * @param {TokensObject} tokens 
-                 * @param {*} root 
-                 * @returns 
                  */
                 function initElt(parseElement, start, tokens) {
                     parseElement.startToken = start;
@@ -712,8 +726,13 @@
                     parseElement.programSource = tokens.source;
                 }
 
-
-                function parseElement(type, tokens, root) {
+                /**
+                 * @param {string} type 
+                 * @param {TokensObject} tokens 
+                 * @param {*} root 
+                 * @returns GrammarElement
+                 */
+                 function parseElement(type, tokens, root) {
                     var elementDefinition = GRAMMAR[type];
                     if (elementDefinition) {
                         var start = tokens.currentToken();
@@ -736,7 +755,7 @@
                  * @param {TokensObject} tokens 
                  * @param {string} [message]
                  * @param {*} [root]
-                 * @returns 
+                 * @returns GrammarElement
                  */
                 function requireElement(type, tokens, message, root) {
                     var result = parseElement(type, tokens, root);
@@ -746,7 +765,7 @@
                 /**
                  * @param {string[]} types 
                  * @param {TokensObject} tokens 
-                 * @returns 
+                 * @returns GrammarElement
                  */
                 function parseAnyOf(types, tokens) {
                     for (var i = 0; i < types.length; i++) {
@@ -946,7 +965,6 @@
                 }
 
                 /**
-                 * 
                  * @param {Token} token 
                  * @returns 
                  */
@@ -955,7 +973,6 @@
                 }
 
                 /**
-                 * 
                  * @param {Token} token 
                  * @returns 
                  */
@@ -964,7 +981,6 @@
                 }
 
                 /**
-                 * 
                  * @param {Token} token 
                  * @returns 
                  */
@@ -981,7 +997,6 @@
                 }
 
                 /**
-                 * 
                  * @param {TokensObject} tokens 
                  * @returns 
                  */
@@ -1009,8 +1024,8 @@
                     return returnArr;
                 }
 
-                return {
-                    // parser API
+                // parser API
+                return /** @type ParserObject */ {
                     setParent: setParent,
                     requireElement: requireElement,
                     parseElement: parseElement,
@@ -1104,8 +1119,8 @@
                 /**
                  * @param {HTMLElement} elt 
                  * @param {string} eventName 
-                 * @param {{}} detail 
-                 * @returns 
+                 * @param {{}} [detail]
+                 * @returns boolean
                  */
                 function triggerEvent(elt, eventName, detail) {
                     var detail = detail || {};
@@ -1149,6 +1164,7 @@
                 }
 
                 var ARRAY_SENTINEL = {array_sentinel:true}
+
                 function linearize(args) {
                     var arr = [];
                     for (var i = 0; i < args.length; i++) {
@@ -1203,6 +1219,11 @@
                 }
 
                 var HALT = {halt_flag:true};
+
+                /**
+                 * @param {CommandDefinition} command 
+                 * @param {Context} ctx 
+                 */
                 function unifiedExec(command,  ctx) {
                     while(true) {
                         try {
@@ -1249,10 +1270,18 @@
                     }
                 }
 
+                /**
+                 * @param {*} parseElement 
+                 * @param {Context} ctx 
+                 * @returns 
+                 */
                 function unifiedEval(parseElement,  ctx) {
+                    
+                    /** @type any[] */ 
+                    var args = [ctx];
                     var async = false;
                     var wrappedAsyncs = false;
-                    var args = [ctx];
+                    
                     if (parseElement.args) {
                         for (var i = 0; i < parseElement.args.length; i++) {
                             var argument = parseElement.args[i];
@@ -1323,6 +1352,13 @@
                 }
 
                 var _scriptAttrs = null;
+
+                /**
+                 * getAttributes returns the attribute name(s) to use when 
+                 * locating hyperscript scripts in a DOM element.  If no value
+                 * has been configured, it defaults to _hyperscript.config.attributes
+                 * @returns string[]
+                 */
                 function getScriptAttributes() {
                     if (_scriptAttrs == null) {
                         _scriptAttrs = _hyperscript.config.attributes.replace(/ /g,'').split(",")
@@ -1330,6 +1366,10 @@
                     return _scriptAttrs;
                 }
 
+                /**
+                 * @param {HTMLElement} elt 
+                 * @returns string
+                 */
                 function getScript(elt) {
                     for (var i = 0; i < getScriptAttributes().length; i++) {
                         var scriptAttribute = getScriptAttributes()[i];
@@ -1337,12 +1377,19 @@
                             return elt.getAttribute(scriptAttribute)
                         }
                     }
-                    if (elt.type === "text/hyperscript") {
+                    if (elt['type'] === "text/hyperscript") {
                         return elt.innerText;
                     }
                     return null;
                 }
 
+                /**
+                 * @param {*} owner 
+                 * @param {*} feature 
+                 * @param {*} hyperscriptTarget 
+                 * @param {*} event 
+                 * @returns Context
+                 */
                 function makeContext(owner, feature, hyperscriptTarget, event) {
                     var ctx = {
                         meta: {
@@ -1363,12 +1410,20 @@
                     return ctx;
                 }
 
+                /**
+                 * @returns string
+                 */
                 function getScriptSelector() {
                     return getScriptAttributes().map(function (attribute) {
                         return "[" + attribute + "]";
                     }).join(", ");
                 }
 
+                /**
+                 * @param {*} value 
+                 * @param {string} type 
+                 * @returns any
+                 */
                 function convertValue(value,  type) {
 
                     var dynamicResolvers = CONVERSIONS.dynamicResolvers;
@@ -1391,11 +1446,16 @@
                     throw "Unknown conversion : " + type;
                 }
 
-
+                // TODO: There do not seem to be any references to this function.  
+                // Is it still in use, or can it be removed?
                 function isType(o, type) {
                     return Object.prototype.toString.call(o) === "[object " + type + "]";
                 }
 
+                /**
+                 * @param {string} src 
+                 * @returns GrammarElement
+                 */
                 function parse(src) {
                     var tokens = _lexer.tokenize(src);
                     if (_parser.commandStart(tokens.currentToken())) {
@@ -1419,6 +1479,11 @@
                     }
                 }
 
+                /**
+                 * @param {string} src 
+                 * @param {*} ctx 
+                 * @returns 
+                 */
                 function evaluate(src, ctx) {
                     ctx = ctx || {};
                     var element = parse(src);
@@ -1431,6 +1496,9 @@
                     }
                 }
 
+                /**
+                 * @param {HTMLElement} elt 
+                 */
                 function processNode(elt) {
                     var selector = _runtime.getScriptSelector();
                     if (matchesSelector(elt, selector)) {
@@ -1441,7 +1509,7 @@
                             initElement(elt);
                         });
                     }
-                    if (elt.type === "text/hyperscript") {
+                    if (elt['type'] === "text/hyperscript") {
                         initElement(elt, document.body);
                     }
                     if (elt.querySelectorAll) {
@@ -1451,6 +1519,10 @@
                     }
                 }
 
+                /**
+                 * @param {HTMLElement} elt 
+                 * @param {HTMLElement} [target]
+                 */
                 function initElement(elt, target) {
                     var internalData = getInternalData(elt);
                     if (!internalData.initialized) {
@@ -1472,6 +1544,10 @@
                     }
                 }
 
+                /**
+                 * @param {HTMLElement} elt 
+                 * @returns Object<string,any>
+                 */
                 function getInternalData(elt) {
                     var dataProp = 'hyperscript-internal-data';
                     var data = elt[dataProp];
@@ -1481,6 +1557,12 @@
                     return data;
                 }
 
+                /**
+                 * @param {any} value 
+                 * @param {string} typeString 
+                 * @param {boolean} [nullOk]
+                 * @returns 
+                 */
                 function typeCheck(value, typeString, nullOk) {
                     if (value == null && nullOk) {
                         return value;
@@ -1494,6 +1576,11 @@
                     }
                 }
 
+                /**
+                 * @param {string} str 
+                 * @param {Context} context 
+                 * @returns any
+                 */
                 function resolveSymbol(str, context) {
                     if (str === "me" || str === "my" || str === "I") {
                         return context["me"];
@@ -1515,6 +1602,11 @@
                     }
                 }
 
+                /**
+                 * @param {Command} command 
+                 * @param {Context} context 
+                 * @returns 
+                 */
                 function findNext(command, context) {
                     if (command) {
                         if (command.resolveNext) {
@@ -1527,6 +1619,11 @@
                     }
                 }
 
+                /**
+                 * @param {Object<string,any>} root 
+                 * @param {string} property 
+                 * @returns any
+                 */
                 function resolveProperty(root, property) {
                     if (root != null) {
                         var val = root[property];
@@ -1557,6 +1654,11 @@
                     }
                 }
 
+                /**
+                 * @param {string[]} nameSpace 
+                 * @param {string} name 
+                 * @param {any} value 
+                 */
                 function assignToNamespace(nameSpace, name, value) {
                     var root = globalScope;
                     while (nameSpace.length > 0) {
@@ -1660,7 +1762,7 @@
             // Grammar
             //====================================================================
             {
-                _parser.addLeafExpression("parenthesized", function(parser, runtime, tokens) {
+                _parser.addLeafExpression("parenthesized", function(parser, _runtime, tokens) {
                     if (tokens.matchOpToken('(')) {
                         var expr = parser.requireElement("expression", tokens);
                         tokens.requireOpToken(")");
@@ -3219,7 +3321,8 @@
                                 op: function (context, eventName, on) {
                                     var target = on ? on : context.me;
                                     return new Promise(function (resolve) {
-                                        var listener = function () {
+                                        var listener = function (event) {
+                                        	context.result = event
                                             resolve(runtime.findNext(waitCmd, context));
                                         };
                                         target.addEventListener(eventName, listener, {once: true});
@@ -3786,8 +3889,8 @@
                     addLeafExpression: function (name, definition) {
                         _parser.addLeafExpression(name, definition);
                     },
-                    addIndirectExpression: function (keyword, definition) {
-                        _parser.addIndirectExpression(definition);
+                    addIndirectExpression: function (name, definition) {
+                        _parser.addIndirectExpression(name, definition);
                     },
                     evaluate: function (str, ctx) { //OK
                         return _runtime.evaluate(str, ctx); //OK
@@ -4344,7 +4447,6 @@
                 op: function (context, root, valueToPut) {
                     if (symbolWrite) {
                         putInto(context, prop, valueToPut);
-                        context[target.name] = valueToPut;
                     } else {
                         if (operation === "into") {
                             runtime.forEach(root, function (elt) {
