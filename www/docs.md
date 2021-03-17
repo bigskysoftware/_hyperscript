@@ -44,11 +44,12 @@ Hyperscript is an experimental scripting language for doing front end web develo
 The core feature of hyperscript is the ability to embed event handlers directly on HTML elements:
 
 ```html
-<button _="on click put 'I was clicked!' into my.innerHTML">
+<button _="on click put 'I was clicked!' into me">
   Click Me!
 </button>
 ``` 
-<button class='btn primary' _="on click put 'I was clicked!' into my.innerHTML 
+<button class='btn primary' 
+                  _="on click put 'I was clicked!' into me
                     then wait 2s
                     then put 'Click Me' into my.innerHTML">
   Click Me!
@@ -79,9 +80,9 @@ You may have noticed that the button above reset its text after a few seconds.
 Here is what the hyperscript actually looks like on that button:
 
 ```html
-<button class='btn primary' _="on click put 'I was clicked!' into my.innerHTML 
+<button class='btn primary' _="on click put 'I was clicked!' into me 
                                         wait 2s
-                                        put 'Click Me' into my.innerHTML">
+                                        put 'Click Me' into me">
   Click Me!
 </button>
 ```
@@ -109,9 +110,9 @@ This may seem a little silly for just making `setTimeout()` a little better look
 
 ```html
 <button class='btn primary' _="on click fetch /clickedMessage 
-                                        put it into my.innerHTML 
+                                        put the result into me 
                                         wait 2s
-                                        put 'Click Me!' into my.innerHTML">
+                                        put 'Click Me!' into me">
   Click Me!
 </button>
 ```
@@ -119,9 +120,9 @@ This may seem a little silly for just making `setTimeout()` a little better look
 Try it, and check out the console:
 
 <button class='btn primary' _="on click fetch /clickedMessage 
-                                        then put it into my.innerHTML 
+                                        then put the result into me 
                                         then wait 2s
-                                        then put 'Click Me!' into my.innerHTML">
+                                        then put 'Click Me!' into me">
   Click Me!
 </button>
 
@@ -131,16 +132,16 @@ Let's jazz this example up a bit by adding some fade transitions
 
 ```html
 <button class='btn primary' _="on click fetch /clickedMessage then transition opacity to 0
-                                        put it into my.innerHTML then transition opacity to 1
+                                        put the result into me then transition opacity to 1
                                         wait 2s then transition opacity to 0
-                                        put 'Click Me!' into my.innerHTML then transition opacity to 1">
+                                        put 'Click Me!' into me then transition opacity to 1">
   Click Me!
 </button>
 ```
 <button class='btn primary' _="on click fetch /clickedMessage then transition opacity to 0
-                                        put it into my.innerHTML then transition opacity to 1
+                                        put the result into me then transition opacity to 1
                                         wait 2s then transition opacity to 0
-                                        put 'Click Me!' into my.innerHTML then transition opacity to 1">
+                                        put 'Click Me!' into me then transition opacity to 1">
   Click Me!
 </button>
 
