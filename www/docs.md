@@ -92,9 +92,10 @@ Note the `wait 2s` command in this hyperscript.  This tells hyperscript to, well
 In javascript, this would be equivalent to the following `onClick` attribute:
 
 ```js
-this.innerHTML = "I was clicked!"
+var self = this;
+self.innerHTML = "I was clicked!"
 setTimeout(function(){
-  this.innerHTML = "Click Me"
+  self.innerHTML = "Click Me"
 }, 2000)
 ```
 
