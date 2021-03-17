@@ -38,7 +38,7 @@ Note that because Promises are not available in IE hyperscript does not strive f
 ## examples
 
 ```html
-<script src="https://unpkg.com/hyperscript.org@0.0.6"></script>
+<script src="https://unpkg.com/hyperscript.org@0.0.7"></script>
 
 <button _="on click toggle .big-text">
   Toggle the "big-text" class on me on click

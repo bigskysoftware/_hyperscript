@@ -1,8 +1,5 @@
 ## TODOs
 
-### 0.0.5 release
-* docs
-
 ### Language Features
 * functions on elements (store in hyperplane if available)
 * animate command ? I don't see a lot of value add (unlike transition)
