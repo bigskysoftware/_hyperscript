@@ -9,7 +9,8 @@ title: ///_hyperscript
 
 # Comparisons
 
-Below are some comparisons of how to implement various common UI patterns in vanilla javascript, jQuery and hyperscript
+Below are some comparisons of how to implement various common UI patterns in vanilla javascript, jQuery and hyperscript.  In general, the VanillaJS version will be the most awkward.  The jQuery version will be better, but will separate the logic from the
+element in question.  This is considered good practice by some people, in the name of [separation of concerns](https://en.wikipedia.org/wiki/Separation_of_concerns), but it violates [locality of behavior](https://htmx.org/essays/locality-of-behaviour/), which we feel is usually more important for system maintainability.  (If you've ever had to hunt for an event handler in jQuery, you know what we mean.)  Both the VanillaJS and JQuery verisons will often require callbacks, making for awkward expression of logic that is straight-forward and linear in hyperscript.
 
 ## Contents
 
