@@ -21,18 +21,19 @@ hyperscript features include:
 
 <div style="padding: 16px">
 
-* inline embedding on HTML elements
-* tools for working with DOM events, including event-driven control flow
-* a DOM-oriented syntax, such as element id and class literals
+* clean, inline embedding on HTML elements
+* Events as first class citizens, with tools for  responding to and sending events, including event-driven control flow
+* DOM-oriented syntax, such as CSS id, CSS class and  CSS query literals
 * first class [web workers](/docs#workers)
-* [async-transparancy](/docs#async)
-* A pluggable, extendable parser & grammar
-* A [debugger](/hdb/) to step through code
+* An [async-transparent](/docs#async) runtime, which removes the distinction between synchronous and asynchronous code
+* A pluggable & extendable parser & grammar
+* A [debugger](/hdb/) to step through hyperscript code
 
 </div>
 
-hyperscript is a companion project of [htmx](https://htmx.org).  Because Promises are not available in IE, unlike htmx, 
-hyperscript does not strive for IE11 compatibility.
+hyperscript is a companion project of [htmx](https://htmx.org).  
+
+Note that because Promises are not available in IE hyperscript does not strive for IE11 compatibility like htmx does.
 
 ## examples
 
