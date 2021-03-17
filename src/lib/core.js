@@ -3321,7 +3321,8 @@
                                 op: function (context, eventName, on) {
                                     var target = on ? on : context.me;
                                     return new Promise(function (resolve) {
-                                        var listener = function () {
+                                        var listener = function (event) {
+                                        	context.result = event
                                             resolve(runtime.findNext(waitCmd, context));
                                         };
                                         target.addEventListener(eventName, listener, {once: true});
