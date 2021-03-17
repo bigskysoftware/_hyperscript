@@ -18,6 +18,7 @@ Below are some comparisons of how to implement various common UI patterns in van
 * [Debounced Input](#debounced-input)
 * [Toggle A Class](#toggle-class)
 * [Trigger An Event](#trigger-an-event)
+* [Show An Element](#show-element)
 
 ## <a name='fade-and-remove'>[Fade And Remove](#fade-and-remove)
 
@@ -399,6 +400,77 @@ $(function(){
 <div id="event-target-3"
      _="on doIt remove me">
   Event Target
+</div>
+
+## <a name='show-element'>[Show An Element](#show-element)
+
+Make an element visible by setting the `display` style to `block`
+
+#### VanillaJS
+
+
+```html
+<button onclick="document.getElementById('show-target-1').style.display = 'block'">
+  Show Element
+</button>
+<div style="display: none" id="show-target-1">
+  Hidden Element
+</div>
+```
+<button onclick="document.getElementById('show-target-1').style.display = 'block'">
+  Show Element
+</button>
+<div style="display: none" id="show-target-1">
+  Hidden Element
+</div>
+
+#### jQuery
+```html
+<script>
+$(function(){
+  $("#showBtn").click(function(){
+    $("#show-target-2").show();
+  });
+});
+</script>
+<button id="showBtn">
+  Show Element
+</button>
+<div style="display: none" id="show-target-2">
+  Hidden Element
+</div>
+```
+
+<script>
+$(function(){
+  $("#showBtn").click(function(){
+    $("#show-target-2").show();
+  });
+});
+</script>
+<button id="showBtn">
+  Show Element
+</button>
+<div style="display: none" id="show-target-2">
+  Hidden Element
+</div>
+
+#### hyperscript
+
+```html
+<button _="on click show #show-target-3">
+  Show Element
+</button>
+<div style="display: none" id="show-target-3">
+  Hidden Element
+</div>
+```
+
+<button _="on click show #show-target-3">
+  Show Element
+</button>
+<div style="display: none" id="show-target-3">
+  Hidden Element
 </div>
 
 
