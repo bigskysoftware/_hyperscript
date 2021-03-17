@@ -25,6 +25,12 @@ describe("the put command", function() {
         d1.innerHTML.should.equal("foo");
     })
 
+    it("me symbol doesn't get stomped on direct write", function(){
+        var d1 = make("<div _='on click put \"foo\" into me then put \"bar\" into me'></div>");
+        d1.click();
+        d1.innerHTML.should.equal("bar");
+    })
+
     it("can set styles", function(){
         var d1 = make("<div _='on click put \"red\" into my.style.color'>lolwat</div>");
         d1.click();
