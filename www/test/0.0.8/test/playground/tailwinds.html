@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset=utf-8>
+    <title>Hyperscript Modal</title>
+    <script src="../../src/lib/core.js"></script>
+    <script src="../../src/lib/web.js"></script>
+    <script src="../../src/lib/hdb.js"></script>
+    <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
+    <meta name=viewport content=width=device-width,initial-scale=1.0>
+</head>
+
+<body class="h-screen">
+
+<script type="text/hyperscript">
+    def focusNextIn(elt, parent)
+      set focusRing to (<a, button, input:not([type=hidden]), textarea, select, details/> in parent) as Array
+      set nextIndex to focusRing.indexOf(elt) + 1
+      set next to focusRing[nextIndex] or first of focusRing
+      call next.focus()
+    end
+
+    def focusPreviousIn(elt, parent)
+      set focusRing to (<a, button, input:not([type=hidden]), textarea, select, details/> in parent) as Array
+      set previousIndex to focusRing.indexOf(elt) - 1
+      set previous to focusRing[previousIndex] or last of focusRing
+      call previous.focus()
+    end
+</script>
+
+<div class="m-20">
+    <button _="on click send open to #modal" class="bg-blue-800 text-white px-3 py-2">Open Modal</button>
+</div>
+
+<div id="modal" class="hidden" _="
+        on open
+            breakpoint
+            remove .hidden add .overflow-hidden to <body/>
+            wait a tick then focus() first <input/> in me
+        end
+        on close or keyup[key is 'Escape'] from <body/>
+            remove .overflow-hidden from <body/>
+            trigger hide
+            wait a tick then add .hidden
+        end
+        on keydown[key is 'Tab' and not shiftKey]
+            call event.preventDefault()
+            call focusNextIn(activeElement of document, me)
+        end
+        on keydown[key is 'Tab' and shiftKey]
+            call event.preventDefault()
+            call focusPreviousIn(activeElement of document, me)
+        end
+        ">
+    <div class="fixed z-50 inset-0 overflow-y-auto">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div data-backdrop aria-hidden="true" class="fixed inset-0 transition-opacity opacity-0"
+                 _="
+                    on open from #modal
+                        add .ease-out .opacity-0 .duration-300
+                        wait 0s remove .opacity-0 add .opacity-100
+                        wait 0.3s remove .ease-out .duration-300
+                    end
+                    on hide from #modal
+                        add .ease-in .duration-200 .opacity-0
+                        wait 0s remove .opacity-100
+                        wait 0.2s remove .ease-in .duration-200 .opacity-0
+                    end
+                    ">
+                <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <div data-content class="w-full inline-block align-bottom bg-white text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full"
+                 role="dialog" aria-modal="true" aria-labelledby="modal-headline"
+                 _="
+                    on open from #modal
+                        js(me) me.classList.add('ease-out','opacity-0','duration-1000','translate-y-4','sm:translate-y-0','sm:scale-95') end
+                        wait 0s js(me) me.classList.remove('opacity-0','translate-y-4','sm:translate-y-0','sm:scale-95') end
+                        js(me) me.classList.add('opacity-100','translate-y-0','sm:scale-100') end
+                        then js(me) me.classList.remove('ease-out','duration-1000')
+                    end
+                    on hide from #modal
+                        js(me) me.classList.add('ease-in','duration-200','translate-y-4','sm:translate-y-0') end
+                        wait 0s js(me) me.classList.remove('opacity-100','translate-y-0','sm:scale-100') end
+                        then js(me) me.classList.remove('ease-in','duration-200','translate-y-4','sm:translate-y-0')
+                    end
+                    ">
+                <div class="z-10 sm:block absolute top-0 right-0 pt-4 pr-4">
+                    <button type="button" _="on click trigger close"
+                            class="bg-white rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <span class="sr-only">Close</span>
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                             stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="p-4">
+                    <input autofocus type="text" name="first" class="mt-6 px-3 py-2 w-full border border-solid border-gray-100 rounded-sm" placeholder="First Name">
+                    <input type="text" name="last" class="mt-6 px-3 py-2 w-full border border-solid border-gray-100 rounded-sm" placeholder="Last Name">
+                    <a class="mt-6 px-3 py-2 w-full block focus:text-blue-600 focus:text-underline" href="#">some link</a>
+                    <p class="mt-3">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed bibendum a tellus et hendrerit. Nam lacinia ex non iaculis blandit. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec et lorem a velit semper ornare. Nullam vehicula erat a mauris vestibulum, et tempor est vehicula. Sed non porttitor lectus. Nam sit amet tempus orci, ut pharetra metus. Donec in arcu rutrum, suscipit urna ac, egestas erat. Nunc elit enim, egestas eget luctus quis, suscipit id sapien. Curabitur bibendum, urna ac efficitur dictum, enim magna porta enim, quis cursus nulla orci eu velit. Integer eu luctus nisl. In vel turpis sem.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+
+</html>

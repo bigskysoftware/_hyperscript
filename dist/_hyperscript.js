@@ -460,6 +460,19 @@
                     }
                 }
 
+                function isValidSingleQuoteStringStart(tokens) {
+                    if (tokens.length > 0) {
+                        var previousToken = tokens[tokens.length - 1];
+                        if (previousToken.type === "IDENTIFIER" || previousToken.type === "CLASS_REF" || previousToken.type === "ID_REF") {
+                            return false;
+                        }
+                        if(previousToken.op && (previousToken.value === '>' || previousToken.value === ')')){
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+
                 /**
                  * @param {string} string 
                  * @param {boolean} [noDollarStart]
@@ -488,8 +501,14 @@
                                 tokens.push(consumeIdentifier());
                             } else if (isNumeric(currentChar())) {
                                 tokens.push(consumeNumber());
-                            } else if (currentChar() === '"' || currentChar() === "'" || currentChar() === "`") {
+                            } else if (currentChar() === '"' || currentChar() === "`") {
                                 tokens.push(consumeString());
+                            } else if (currentChar() === "'") {
+                                if (isValidSingleQuoteStringStart(tokens)) {
+                                    tokens.push(consumeString());
+                                } else {
+                                    tokens.push(consumeOp());
+                                }
                             } else if (OP_TABLE[currentChar()]) {
                                 tokens.push(consumeOp());
                             } else if (isReservedChar(currentChar())) {
@@ -1716,6 +1735,11 @@
                     }
                 }
 
+                /**
+                 * 
+                 * @param {string} str 
+                 * @returns string
+                 */
                 function escapeSelector(str) {
                     return str.replace(/:/g, function(str){
                         return "\\" + str;
@@ -1726,6 +1750,14 @@
                     if (value == null) {
                         throw new Error(elt.sourceFor() + " is null");
                     }
+                }
+
+                /**
+                 * @param {any} value 
+                 * @returns boolean
+                 */
+                function isEmpty(value) {
+                    return (value == undefined) || (value.length === 0);
                 }
 
                 var hyperscriptUrl = 'document' in globalScope ? document.currentScript.src : null
@@ -1753,6 +1785,7 @@
                     getInternalData: getInternalData,
                     escapeSelector: escapeSelector,
                     nullCheck: nullCheck,
+                    isEmpty: isEmpty,
                     hyperscriptUrl: hyperscriptUrl,
                     HALT: HALT
                 }
@@ -2208,6 +2241,34 @@
                     }
                 });
 
+                _parser.addIndirectExpression("possessive", function(parser, runtime, tokens, root) {
+                    if (parser.possessivesDisabled) {
+                        return;
+                    }
+                    var apostrophe = tokens.matchOpToken("'");
+                    if (apostrophe ||
+                        (root.type === "symbol" && (root.name === "my" || root.name === "its") && tokens.currentToken().type === "IDENTIFIER")) {
+                        if (apostrophe) {
+                            tokens.requireToken("s");
+                        }
+                        var prop = tokens.requireTokenType("IDENTIFIER");
+                        var propertyAccess = {
+                            type: "possessive",
+                            root: root,
+                            prop: prop,
+                            args: [root],
+                            op:function(context, rootVal){
+                                var value = runtime.resolveProperty(rootVal, prop.value);
+                                return value;
+                            },
+                            evaluate: function (context) {
+                                return runtime.unifiedEval(this, context);
+                            }
+                        };
+                        return parser.parseElement("indirectExpression", tokens, propertyAccess);
+                    }
+                });
+
                 _parser.addIndirectExpression("inExpression", function(parser, runtime, tokens, root) {
                     if (tokens.matchToken("in")) {
                         if (root.type !== "idRef" && root.type === "queryRef" || root.type === "classRef") {
@@ -2389,8 +2450,8 @@
                             type: "noExpression",
                             root: root,
                             args: [root],
-                            op: function (context, val) {
-                                return val == null || val.length === 0;
+                            op: function (_context, val) {
+                                return runtime.isEmpty(val);
                             },
                             evaluate: function (context) {
                                 return runtime.unifiedEval(this, context);
@@ -2500,20 +2561,26 @@
                     var expr = parser.parseElement("mathExpression", tokens);
                     var comparisonToken = tokens.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==")
                     var comparisonStr = comparisonToken ? comparisonToken.value : null;
+                    var hasRightValue = true; // By default, most comparisons require two values, but there are some exceptions.
+
                     if (comparisonStr == null) {
                         if (tokens.matchToken("is") || tokens.matchToken("am")) {
                             if (tokens.matchToken("not")) {
                                 if (tokens.matchToken("in")) {
                                     comparisonStr = "not in";
+                                } else if (tokens.matchToken("empty")) {
+                                    comparisonStr = "not empty";
+                                    hasRightValue = false;
                                 } else {
                                     comparisonStr = "!=";
                                 }
+                            } else if (tokens.matchToken("in")) {
+                                comparisonStr = "in";
+                            } else if (tokens.matchToken("empty")) {
+                                comparisonStr = "empty";
+                                hasRightValue = false;
                             } else {
-                                if (tokens.matchToken("in")) {
-                                    comparisonStr = "in";
-                                } else {
-                                    comparisonStr = "==";
-                                }
+                                comparisonStr = "==";
                             }
                         } else if (tokens.matchToken("matches") || tokens.matchToken("match")) {
                             comparisonStr = "match";
@@ -2532,9 +2599,11 @@
                     }
 
                     if (comparisonStr) { // Do not allow chained comparisons, which is dumb
-                        var rhs = parser.requireElement("mathExpression", tokens);
-                        if (comparisonStr === "match" || comparisonStr === "not match") {
-                            rhs = rhs.css ? rhs.css : rhs;
+                        if (hasRightValue) {
+                            var rhs = parser.requireElement("mathExpression", tokens);
+                            if (comparisonStr === "match" || comparisonStr === "not match") {
+                                rhs = rhs.css ? rhs.css : rhs;
+                            }
                         }
                         expr = {
                             type: "comparisonOperator",
@@ -2571,6 +2640,10 @@
                                     return lhsVal <= rhsVal;
                                 } else if (this.operator === ">=") {
                                     return lhsVal >= rhsVal;
+                                } else if (this.operator == "empty") {
+                                    return runtime.isEmpty(lhsVal);
+                                } else if (this.operator == "not empty") {
+                                    return (runtime.isEmpty(lhsVal) == false);
                                 }
                             },
                             evaluate: function (context) {
@@ -4479,11 +4552,37 @@
 
     _hyperscript.addCommand("transition", function(parser, runtime, tokens) {
         if (tokens.matchToken("transition")) {
-            if (tokens.matchToken('element') || tokens.matchToken('elements')) {
-                var targets = parser.parseElement("expression", tokens);
+            if (tokens.matchToken('the') ||
+                tokens.matchToken('element') ||
+                tokens.matchToken('elements') ||
+                tokens.currentToken().type === "CLASS_REF" ||
+                tokens.currentToken().type === "ID_REF" ||
+                (tokens.currentToken().op && tokens.currentToken().value === "<")) {
+                parser.possessivesDisabled = true;
+                try {
+                    var targets = parser.parseElement("expression", tokens);
+                } finally {
+                    delete parser.possessivesDisabled;
+                }
+                // optional possessive
+                if (tokens.matchOpToken("'")) {
+                    tokens.requireToken("s");
+                }
+            } else if (tokens.currentToken().type === "IDENTIFIER" && tokens.currentToken().value === 'its') {
+                var identifier = tokens.matchToken('its');
+                var targets =  {
+                    type: "transitionIts",
+                    token: identifier,
+                    name: identifier.value,
+                    evaluate: function (context) {
+                        return runtime.resolveSymbol("it", context);
+                    }
+                };
             } else {
+                tokens.matchToken('my'); // consume optional 'my'
                 var targets = parser.parseElement("implicitMeTarget", tokens);
             }
+
             var properties = [];
             var from = [];
             var to = [];
