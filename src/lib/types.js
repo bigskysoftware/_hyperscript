@@ -136,6 +136,7 @@
  * @property {() => void } getInternalData
  * @property {() => void } escapeSelector
  * @property {() => void } nullCheck
+ * @property {(value:any) => boolean} isEmpty
  * @property {() => void } hyperscriptUrl
  * @property {() => void } HALT
  * 
