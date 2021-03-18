@@ -1,7 +1,8 @@
 ## TODOs
 
 ### In Progress
-* Carson - functions on elements
+* Carson: Support a `timeout` modifier for commands like `fetch`, `call`, `wait for` etc.
+* Carson: Support an `unless` modifier for commands to conditionally execute.
 
 ### Language Features
 * range operators for strings and arrays `str[..10] str[10..] str[2..10]`
@@ -9,7 +10,6 @@
 * `is a <type>` type check (see and clean up `postfixExpression`)
 * `delete` command
 * Better DOM manipulation tools? (research)
-* Support a `timeout` modifier for async commands like `fetch`, `call`, `wait for` etc.
 * `set x to y when <expr>` conditional assignment
 * regular expressions `regexp /foo/` (so it doesn't conflict w/ the hyperplane)
   * full `sed` command?
