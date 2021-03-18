@@ -630,7 +630,7 @@
                         var promise = new Promise(function (resolve, reject) {
                             var initialTransition = target.style.transition;
                             if (over) {
-                                target.style.trasition = 'all ' + over + 'ms ease-in';
+                                target.style.transition = 'all ' + over + 'ms ease-in';
                             } else if (using) {
                                 target.style.transition = using;
                             } else {

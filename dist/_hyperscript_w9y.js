@@ -4587,7 +4587,9 @@
             var from = [];
             var to = [];
             var currentToken = tokens.currentToken();
-            while (!parser.commandBoundary(currentToken) && currentToken.value !== "using") {
+            while (!parser.commandBoundary(currentToken) &&
+                     currentToken.value !== "over" &&
+                     currentToken.value !== "using") {
 
                 properties.push(parser.requireElement("stringLike", tokens));
 
@@ -4600,19 +4602,27 @@
                 to.push(parser.requireElement("stringLike", tokens));
                 currentToken = tokens.currentToken();
             }
-            if (tokens.matchToken("using")) {
+            if (tokens.matchToken("over")) {
+                var over = parser.requireElement("timeExpression", tokens);
+            } else if (tokens.matchToken("using")) {
                 var using = parser.requireElement("expression", tokens);
             }
 
             var transition = {
                 to: to,
-                args: [targets, properties, from, to, using],
-                op: function (context, targets, properties, from, to, using) {
+                args: [targets, properties, from, to, using, over],
+                op: function (context, targets, properties, from, to, using, over) {
                     var promises = [];
                     runtime.forEach(targets, function(target){
                         var promise = new Promise(function (resolve, reject) {
                             var initialTransition = target.style.transition;
-                            target.style.transition = using || _hyperscript.config.defaultTransition;
+                            if (over) {
+                                target.style.transition = 'all ' + over + 'ms ease-in';
+                            } else if (using) {
+                                target.style.transition = using;
+                            } else {
+                                target.style.transition = _hyperscript.config.defaultTransition;
+                            }
                             var internalData = runtime.getInternalData(target);
                             var computedStyles = getComputedStyle(target);
 

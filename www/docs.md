@@ -1183,10 +1183,11 @@ Debug: <input id="debug-on" type='checkbox' checked="checked">
              if #debug-on matches <:checked/> 
                breakpoint
              end
-             transition element #debug-demo 'background-color' to red
-             transition element #debug-demo 'background-color' to green
-             transition element #debug-demo 'background-color' to blue
-             transition element #debug-demo 'background-color' to initial
+             with #debug-demo
+               transition 'background-color' to red
+               transition 'background-color' to green
+               transition 'background-color' to blue
+               transition 'background-color' to initial
            ">Colorize...</button>
 
 <div id="debug-demo">TechnoColor Dream Debugging...</div>
@@ -1197,16 +1198,17 @@ Debug: <input id="debug-on" type='checkbox' checked="checked">
 </div>
 <button class='btn primary' 
         _="on click 
-             if #debug-on matches <:checked/> 
-               breakpoint
-             end
-             transition element #debug-demo 'background-color' to red
-             transition element #debug-demo 'background-color' to green
-             transition element #debug-demo 'background-color' to blue
-             transition element #debug-demo 'background-color' to initial
+            if #debug-on matches <:checked/> 
+              breakpoint
+            end
+            with #debug-demo
+              transition 'background-color' to red
+              transition 'background-color' to green
+              transition 'background-color' to blue
+              transition 'background-color' to initial
            ">Colorize...</button>
 
-<div id="debug-demo">TechnoColor Dream Debugging...</div>
+<div id="debug-demo">TechniColor Dream Debugging...</div>
 
 ## <a name="extending"></a>[Extending](#extending)
 

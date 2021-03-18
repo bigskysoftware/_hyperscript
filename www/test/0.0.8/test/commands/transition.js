@@ -104,6 +104,19 @@ describe("the transition command", function() {
     })
 
 
+    it("can transition with a custom transition time via the over syntax", function (done) {
+        var div = make("<div _='on click transition element #foo width from 0px to 100px over 2s'></div>");
+        var div2 = make("<div id='foo'></div>");
+        div2.style.width.should.equal("");
+        div.click();
+        div2.style.width.should.equal("0px");
+        setTimeout(function () {
+            div2.style.width.should.equal("100px");
+            done();
+        }, 20);
+    })
+
+
 
 });
 
