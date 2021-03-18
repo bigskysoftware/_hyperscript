@@ -1,15 +1,9 @@
 ## TODOs
 
 ### In Progress
-* Carson - functions on elements (store in hyperplane if available?)
+* Carson - functions on elements
 
 ### Language Features
-* `measure` command to measure offsets 
-   ```
-     measure my left, top, width -- creates the left, top and width symbols
-     measure me -- sets measurements objet into result
-     measure div's width -- measure the divs width (pseudopossessive)
-   ```
 * range operators for strings and arrays `str[..10] str[10..] str[2..10]`
 * `merge/merge into` - Merge objects with one another
 * `is a <type>` type check (see and clean up `postfixExpression`)
@@ -20,10 +14,11 @@
 * regular expressions `regexp /foo/` (so it doesn't conflict w/ the hyperplane)
   * full `sed` command?
 * `merge/merge into` - Merge objects with one another
-* `exit` command to exit current function/
+* `exit` command to exit current function/event handler with no returned value
 * `reply` & `wait for response` in event handlers
 * `tell` to replace `with`?  (More orthodox HyperTalk)
 * `go` to go to a URL or element in the dom (`scrollToVisible`?)
+* Support parenthesizes expressions in pseudopossessives: `transition (the div's parent's parent)'s opacity to 1`
 * Event model
 * functions should be able to be marked `sync` to make only one execution at a time occur, in serial fashion
 * unify attribute literals and array literals with lookahead

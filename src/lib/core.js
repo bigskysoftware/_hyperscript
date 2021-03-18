@@ -1402,6 +1402,15 @@
                     return null;
                 }
 
+                function addFeatures(owner, ctx) {
+                    if(owner) {
+                        if (owner.hyperscriptFeatures) {
+                            mergeObjects(ctx, owner.hyperscriptFeatures);
+                        }
+                        addFeatures(owner.parentElement, ctx);
+                    }
+                }
+
                 /**
                  * @param {*} owner 
                  * @param {*} feature 
@@ -1426,6 +1435,7 @@
                         body: 'document' in globalScope ? document.body : null
                     }
                     ctx.meta.ctx = ctx;
+                    addFeatures(owner, ctx);
                     return ctx;
                 }
 
@@ -1521,11 +1531,11 @@
                 function processNode(elt) {
                     var selector = _runtime.getScriptSelector();
                     if (matchesSelector(elt, selector)) {
-                        initElement(elt);
+                        initElement(elt, elt);
                     }
                     if (elt.querySelectorAll) {
                         forEach(elt.querySelectorAll(selector), function (elt) {
-                            initElement(elt);
+                            initElement(elt, elt);
                         });
                     }
                     if (elt['type'] === "text/hyperscript") {
@@ -1674,12 +1684,21 @@
                 }
 
                 /**
-                 * @param {string[]} nameSpace 
-                 * @param {string} name 
+                 * @param {Element} elt
+                 * @param {string[]} nameSpace
+                 * @param {string} name
                  * @param {any} value 
                  */
-                function assignToNamespace(nameSpace, name, value) {
-                    var root = globalScope;
+                function assignToNamespace(elt, nameSpace, name, value) {
+                    if (typeof document === 'undefined' || elt === document.body) {
+                        var root = globalScope;
+                    } else {
+                        var root = elt['hyperscriptFeatures'];
+                        if (root == null) {
+                            root = {}
+                            elt['hyperscriptFeatures'] = root;
+                        }
+                    }
                     while (nameSpace.length > 0) {
                         var propertyName = nameSpace.shift();
                         var newRoot = root[propertyName];
@@ -3085,8 +3104,7 @@
                             install: function (target, source) {
                                 var func = function () {
                                     // null, worker
-                                    var elt = 'document' in globalScope ? document.body : globalScope
-                                    var ctx = runtime.makeContext(source, functionFeature, elt, null);
+                                    var ctx = runtime.makeContext(source, functionFeature, target, null);
 
                                     // install error handler if any
                                     ctx.meta.errorHandler = errorHandler;
@@ -3119,7 +3137,7 @@
                                 };
                                 func.hyperfunc = true;
                                 func.hypername = nameVal;
-                                runtime.assignToNamespace(nameSpace, funcName, func);
+                                runtime.assignToNamespace(target, nameSpace, funcName, func);
                             }
                         };
 
