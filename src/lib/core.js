@@ -2251,7 +2251,7 @@
                         if (apostrophe) {
                             tokens.requireToken("s");
                         }
-                        var prop = tokens.requireElement("IDENTIFIER");
+                        var prop = tokens.requireTokenType("IDENTIFIER");
                         var propertyAccess = {
                             type: "possessive",
                             root: root,
