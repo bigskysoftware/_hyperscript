@@ -488,8 +488,14 @@
                                 tokens.push(consumeIdentifier());
                             } else if (isNumeric(currentChar())) {
                                 tokens.push(consumeNumber());
-                            } else if (currentChar() === '"' || currentChar() === "'" || currentChar() === "`") {
+                            } else if (currentChar() === '"' || currentChar() === "`") {
                                 tokens.push(consumeString());
+                            } else if (currentChar() === "'") {
+                                if (tokens.length == 0 || tokens[tokens.length - 1].type !== "IDENTIFIER") {
+                                    tokens.push(consumeString());
+                                } else {
+                                    tokens.push(consumeOp());
+                                }
                             } else if (OP_TABLE[currentChar()]) {
                                 tokens.push(consumeOp());
                             } else if (isReservedChar(currentChar())) {
@@ -2205,6 +2211,31 @@
                         }
 
                         return parser.parseElement("indirectExpression", tokens, root);
+                    }
+                });
+
+                _parser.addIndirectExpression("possessive", function(parser, runtime, tokens, root) {
+                    var apostrophe = tokens.matchOpToken("'");
+                    if (apostrophe ||
+                        (root.type === "symbol" && (root.name === "my" || root.name === "its") && tokens.currentToken().type === "IDENTIFIER")) {
+                        if (apostrophe) {
+                            tokens.requireToken("s");
+                        }
+                        var prop = tokens.requireTokenType("IDENTIFIER");
+                        var propertyAccess = {
+                            type: "possessive",
+                            root: root,
+                            prop: prop,
+                            args: [root],
+                            op:function(context, rootVal){
+                                var value = runtime.resolveProperty(rootVal, prop.value);
+                                return value;
+                            },
+                            evaluate: function (context) {
+                                return runtime.unifiedEval(this, context);
+                            }
+                        };
+                        return parser.parseElement("indirectExpression", tokens, propertyAccess);
                     }
                 });
 

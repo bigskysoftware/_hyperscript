@@ -234,6 +234,13 @@ describe("the _hyperscript tokenizer", function () {
         }
     })
 
+    it("handles strings properly 2", function () {
+        var lexer = _hyperscript.internals.lexer;
+        var token = lexer.tokenize("'foo'").consumeToken();
+        token.type.should.equal("STRING");
+        token.value.should.equal("foo");
+    })
+
     it("handles operators properly", function () {
         var lexer = _hyperscript.internals.lexer;
 
