@@ -1176,29 +1176,33 @@ To use it you need to include the `lib/hdb.js` file.  You can then add `breakpoi
 to trigger the debugger.  
 
 ```html
+<div>
+Debug: <input id="debug-on" type='checkbox' checked="checked">
+</div>
 <button _="on click 
-             breakpoint
+             if #debug-on matches <:checked/> 
+               breakpoint
+             end
              transition element #debug-demo 'background-color' to red
-             wait 500ms
              transition element #debug-demo 'background-color' to green
-             wait 500ms
              transition element #debug-demo 'background-color' to blue
-             wait 500ms
              transition element #debug-demo 'background-color' to initial
            ">Colorize...</button>
 
 <div id="debug-demo">TechnoColor Dream Debugging...</div>
 ```
 
+<div>
+Debug: <input id="debug-on" type='checkbox' checked="checked">
+</div>
 <button class='btn primary' 
         _="on click 
-             breakpoint
+             if #debug-on matches <:checked/> 
+               breakpoint
+             end
              transition element #debug-demo 'background-color' to red
-             wait 500ms
              transition element #debug-demo 'background-color' to green
-             wait 500ms
              transition element #debug-demo 'background-color' to blue
-             wait 500ms
              transition element #debug-demo 'background-color' to initial
            ">Colorize...</button>
 

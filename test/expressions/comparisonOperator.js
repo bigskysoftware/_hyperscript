@@ -253,5 +253,44 @@ describe("the comparisonOperator expression", function () {
 
     });
 
+    it("is empty works", function () {
+        var result = evalHyperScript("undefined is empty")
+        result.should.equal(true);
 
+        var result = evalHyperScript("'' is empty")
+        result.should.equal(true);
+
+        var result = evalHyperScript("[] is empty")
+        result.should.equal(true);
+
+        var result = evalHyperScript("'not empty' is empty")
+        result.should.equal(false);
+
+        var result = evalHyperScript("1000 is empty")
+        result.should.equal(false);
+
+        var result = evalHyperScript("[1,2,3] is empty")
+        result.should.equal(false);
+    });
+
+
+    it("is not empty works", function () {
+        var result = evalHyperScript("undefined is not empty")
+        result.should.equal(false);
+
+        var result = evalHyperScript("'' is not empty")
+        result.should.equal(false);
+
+        var result = evalHyperScript("[] is not empty")
+        result.should.equal(false);
+
+        var result = evalHyperScript("'not empty' is not empty")
+        result.should.equal(true);
+
+        var result = evalHyperScript("1000 is not empty")
+        result.should.equal(true);
+
+        var result = evalHyperScript("[1,2,3] is not empty")
+        result.should.equal(true);
+    });
 });

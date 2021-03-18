@@ -1716,6 +1716,11 @@
                     }
                 }
 
+                /**
+                 * 
+                 * @param {string} str 
+                 * @returns string
+                 */
                 function escapeSelector(str) {
                     return str.replace(/:/g, function(str){
                         return "\\" + str;
@@ -1726,6 +1731,14 @@
                     if (value == null) {
                         throw new Error(elt.sourceFor() + " is null");
                     }
+                }
+
+                /**
+                 * @param {any} value 
+                 * @returns boolean
+                 */
+                function isEmpty(value) {
+                    return (value == undefined) || (value.length === 0);
                 }
 
                 var hyperscriptUrl = 'document' in globalScope ? document.currentScript.src : null
@@ -1753,6 +1766,7 @@
                     getInternalData: getInternalData,
                     escapeSelector: escapeSelector,
                     nullCheck: nullCheck,
+                    isEmpty: isEmpty,
                     hyperscriptUrl: hyperscriptUrl,
                     HALT: HALT
                 }
@@ -2389,8 +2403,8 @@
                             type: "noExpression",
                             root: root,
                             args: [root],
-                            op: function (context, val) {
-                                return val == null || val.length === 0;
+                            op: function (_context, val) {
+                                return runtime.isEmpty(val);
                             },
                             evaluate: function (context) {
                                 return runtime.unifiedEval(this, context);
@@ -2500,20 +2514,26 @@
                     var expr = parser.parseElement("mathExpression", tokens);
                     var comparisonToken = tokens.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==")
                     var comparisonStr = comparisonToken ? comparisonToken.value : null;
+                    var hasRightValue = true; // By default, most comparisons require two values, but there are some exceptions.
+
                     if (comparisonStr == null) {
                         if (tokens.matchToken("is") || tokens.matchToken("am")) {
                             if (tokens.matchToken("not")) {
                                 if (tokens.matchToken("in")) {
                                     comparisonStr = "not in";
+                                } else if (tokens.matchToken("empty")) {
+                                    comparisonStr = "not empty";
+                                    hasRightValue = false;
                                 } else {
                                     comparisonStr = "!=";
                                 }
+                            } else if (tokens.matchToken("in")) {
+                                comparisonStr = "in";
+                            } else if (tokens.matchToken("empty")) {
+                                comparisonStr = "empty";
+                                hasRightValue = false;
                             } else {
-                                if (tokens.matchToken("in")) {
-                                    comparisonStr = "in";
-                                } else {
-                                    comparisonStr = "==";
-                                }
+                                comparisonStr = "==";
                             }
                         } else if (tokens.matchToken("matches") || tokens.matchToken("match")) {
                             comparisonStr = "match";
@@ -2532,9 +2552,11 @@
                     }
 
                     if (comparisonStr) { // Do not allow chained comparisons, which is dumb
-                        var rhs = parser.requireElement("mathExpression", tokens);
-                        if (comparisonStr === "match" || comparisonStr === "not match") {
-                            rhs = rhs.css ? rhs.css : rhs;
+                        if (hasRightValue) {
+                            var rhs = parser.requireElement("mathExpression", tokens);
+                            if (comparisonStr === "match" || comparisonStr === "not match") {
+                                rhs = rhs.css ? rhs.css : rhs;
+                            }
                         }
                         expr = {
                             type: "comparisonOperator",
@@ -2571,6 +2593,10 @@
                                     return lhsVal <= rhsVal;
                                 } else if (this.operator === ">=") {
                                     return lhsVal >= rhsVal;
+                                } else if (this.operator == "empty") {
+                                    return runtime.isEmpty(lhsVal);
+                                } else if (this.operator == "not empty") {
+                                    return (runtime.isEmpty(lhsVal) == false);
                                 }
                             },
                             evaluate: function (context) {
