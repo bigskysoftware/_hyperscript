@@ -565,11 +565,37 @@
 
     _hyperscript.addCommand("transition", function(parser, runtime, tokens) {
         if (tokens.matchToken("transition")) {
-            if (tokens.matchToken('element') || tokens.matchToken('elements')) {
-                var targets = parser.parseElement("expression", tokens);
+            if (tokens.matchToken('the') ||
+                tokens.matchToken('element') ||
+                tokens.matchToken('elements') ||
+                tokens.currentToken().type === "CLASS_REF" ||
+                tokens.currentToken().type === "ID_REF" ||
+                (tokens.currentToken().op && tokens.currentToken().value === "<")) {
+                parser.possessivesDisabled = true;
+                try {
+                    var targets = parser.parseElement("expression", tokens);
+                } finally {
+                    delete parser.possessivesDisabled;
+                }
+                // optional possessive
+                if (tokens.matchOpToken("'")) {
+                    tokens.requireToken("s");
+                }
+            } else if (tokens.currentToken().type === "IDENTIFIER" && tokens.currentToken().value === 'its') {
+                var identifier = tokens.matchToken('its');
+                var targets =  {
+                    type: "transitionIts",
+                    token: identifier,
+                    name: identifier.value,
+                    evaluate: function (context) {
+                        return runtime.resolveSymbol("it", context);
+                    }
+                };
             } else {
+                tokens.matchToken('my'); // consume optional 'my'
                 var targets = parser.parseElement("implicitMeTarget", tokens);
             }
+
             var properties = [];
             var from = [];
             var to = [];

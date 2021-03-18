@@ -460,6 +460,19 @@
                     }
                 }
 
+                function isValidSingleQuoteStringStart(tokens) {
+                    if (tokens.length > 0) {
+                        var previousToken = tokens[tokens.length - 1];
+                        if (previousToken.type === "IDENTIFIER" || previousToken.type === "CLASS_REF" || previousToken.type === "ID_REF") {
+                            return false;
+                        }
+                        if(previousToken.op && (previousToken.value === '>' || previousToken.value === ')')){
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+
                 /**
                  * @param {string} string 
                  * @param {boolean} [noDollarStart]
@@ -491,7 +504,7 @@
                             } else if (currentChar() === '"' || currentChar() === "`") {
                                 tokens.push(consumeString());
                             } else if (currentChar() === "'") {
-                                if (tokens.length == 0 || tokens[tokens.length - 1].type !== "IDENTIFIER") {
+                                if (isValidSingleQuoteStringStart(tokens)) {
                                     tokens.push(consumeString());
                                 } else {
                                     tokens.push(consumeOp());
@@ -2229,13 +2242,16 @@
                 });
 
                 _parser.addIndirectExpression("possessive", function(parser, runtime, tokens, root) {
+                    if (parser.possessivesDisabled) {
+                        return;
+                    }
                     var apostrophe = tokens.matchOpToken("'");
                     if (apostrophe ||
                         (root.type === "symbol" && (root.name === "my" || root.name === "its") && tokens.currentToken().type === "IDENTIFIER")) {
                         if (apostrophe) {
                             tokens.requireToken("s");
                         }
-                        var prop = tokens.requireTokenType("IDENTIFIER");
+                        var prop = tokens.requireElement("IDENTIFIER");
                         var propertyAccess = {
                             type: "possessive",
                             root: root,

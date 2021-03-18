@@ -18,6 +18,17 @@ describe("the transition command", function() {
         }, 20);
     })
 
+    it("can transition a single property on current element with the my prefix", function (done) {
+        var div = make("<div _='on click transition my width from 0px to 100px'></div>");
+        div.style.width.should.equal("");
+        div.click();
+        div.style.width.should.equal("0px");
+        setTimeout(function () {
+            div.style.width.should.equal("100px");
+            done();
+        }, 20);
+    })
+
     it("can transition two properties on current element", function (done) {
         var div = make("<div _='on click transition width from 0px to 100px height from 0px to 100px'></div>");
         div.style.width.should.equal("");
@@ -34,6 +45,42 @@ describe("the transition command", function() {
 
     it("can transition on another element", function (done) {
         var div = make("<div _='on click transition element #foo width from 0px to 100px'></div>");
+        var div2 = make("<div id='foo'></div>");
+        div2.style.width.should.equal("");
+        div.click();
+        div2.style.width.should.equal("0px");
+        setTimeout(function () {
+            div2.style.width.should.equal("100px");
+            done();
+        }, 20);
+    })
+
+    it("can transition on another element no element prefix", function (done) {
+        var div = make("<div _='on click transition #foo width from 0px to 100px'></div>");
+        var div2 = make("<div id='foo'></div>");
+        div2.style.width.should.equal("");
+        div.click();
+        div2.style.width.should.equal("0px");
+        setTimeout(function () {
+            div2.style.width.should.equal("100px");
+            done();
+        }, 20);
+    })
+
+    it("can transition on another element no element prefix + possessive", function (done) {
+        var div = make('<div _="on click transition #foo\'s width from 0px to 100px"></div>');
+        var div2 = make("<div id='foo'></div>");
+        div2.style.width.should.equal("");
+        div.click();
+        div2.style.width.should.equal("0px");
+        setTimeout(function () {
+            div2.style.width.should.equal("100px");
+            done();
+        }, 20);
+    })
+
+    it("can transition on another element no element prefix with it", function (done) {
+        var div = make("<div _='on click get  #foo then transition its width from 0px to 100px'></div>");
         var div2 = make("<div id='foo'></div>");
         div2.style.width.should.equal("");
         div.click();
