@@ -3630,6 +3630,7 @@
 								args: [obj, target],
 								op: function (ctx, obj, target) {
 									mergeObjects(target, obj);
+									return runtime.findNext(this, ctx);
 								}
 							}
 						}

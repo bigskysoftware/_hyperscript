@@ -1,37 +1,50 @@
 ## TODOs
 
-### Language Features
-* functions on elements (store in hyperplane if available)
-* animate command ? I don't see a lot of value add (unlike transition)
-* Event model
-* Debugging
-* range operator
-* repeat command improvements
-```
-// By default, counter uses "it" convention
-repeat from 1 to 10 
-    put it in myVar
-end
+### In Progress
+* Carson - functions on elements (store in hyperplane if available?)
 
-// This would also work if IterableVariable is an Array or Object
-repeat for x in IterableVariable
-    call JsFn(x)
-end
-```
+### Language Features
+* `measure` command to measure offsets 
+   ```
+     measure my left, top, width -- creates the left, top and width symbols
+     measure me -- sets measurements objet into result
+     measure div's width -- measure the divs width (pseudopossessive)
+   ```
+* range operators for strings and arrays `str[..10] str[10..] str[2..10]`
+* `merge/merge into` - Merge objects with one another
+* `is a <type>` type check (see and clean up `postfixExpression`)
+* `delete` command
+* Better DOM manipulation tools? (research)
 * Support a `timeout` modifier for async commands like `fetch`, `call`, `wait for` etc.
+* `set x to y when <expr>` conditional assignment
+* regular expressions `regexp /foo/` (so it doesn't conflict w/ the hyperplane)
+  * full `sed` command?
+* `merge/merge into` - Merge objects with one another
+* `exit` command to exit current function/
+* `reply` & `wait for response` in event handlers
+* `tell` to replace `with`?  (More orthodox HyperTalk)
+* `go` to go to a URL or element in the dom (`scrollToVisible`?)
+* Event model
 * functions should be able to be marked `sync` to make only one execution at a time occur, in serial fashion
 * unify attribute literals and array literals with lookahead
 * unify all css() like literals to a general dynamic evaluation (eval is context sensitive)
-* `default <identifier> to <expression> ` - default a value if it does not exist
 * `increment/decrement` commands
-* regular expressions
-* range operators for strings and arrays `str[..10] str[10..] str[2..10]`
-* Better DOM manipulation tools
-* `merge/merge into` - Merge objects with one another
 * Make `first, last, random` work as identifiers (backtracking parser)
+* repeat command improvements
+    ```
+    // By default, counter uses "it" convention
+    repeat from 1 to 10 
+        put it in myVar
+    end
+    
+    // This would also work if IterableVariable is an Array or Object
+    repeat for x in IterableVariable
+        call JsFn(x)
+    end
+    ```
 
-#### Speculative Language Features
-* /// The Hyperplane
+#### /// The Hyperplane
+* A mechanism for storing values in the DOM that respects HATEOAS
   
   ```
     log /x -- a variable associated with the current 'me'
@@ -66,12 +79,5 @@ end
   <div>///somePersistentVar</div>
   ```
 
-* A reversable syntax for state-based transformations of DOM elements
-```
-  while hover add .foo
-```
-
 ### Parser Infrastructure
 * Recovering parser (we are single error right now)
-* Pull hyperscript core out?
-* Make tokenizer pluggable with new tokenization elements
