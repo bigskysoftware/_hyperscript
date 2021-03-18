@@ -2758,7 +2758,24 @@
                     };
                 })
 
+                var parseEventArgs = function (tokens) {
+                    var args = [];
+                    // handle argument list (look ahead 3)
+                    if (tokens.token(0).value === "(" &&
+                        (tokens.token(1).value === ")" ||
+                            tokens.token(2).value === "," ||
+                            tokens.token(2).value === ")")) {
+                        tokens.matchOpToken("(");
+                        do {
+                            args.push(tokens.requireTokenType('IDENTIFIER'));
+                        } while (tokens.matchOpToken(","))
+                        tokens.requireOpToken(')')
+                    }
+                    return args;
+                }
+
                 _parser.addFeature("on", function(parser, runtime, tokens) {
+
                     if (tokens.matchToken('on')) {
                         var every = false;
                         if (tokens.matchToken("every")) {
@@ -2776,18 +2793,7 @@
                             } else {
                                 displayName = "on " + eventName;
                             }
-                            var args = [];
-                            // handle argument list (look ahead 3)
-                            if (tokens.token(0).value === "(" &&
-                                (tokens.token(1).value === ")" ||
-                                    tokens.token(2).value === "," ||
-                                    tokens.token(2).value === ")")) {
-                                tokens.matchOpToken("(");
-                                do {
-                                    args.push(tokens.requireTokenType('IDENTIFIER'));
-                                } while (tokens.matchOpToken(","))
-                                tokens.requireOpToken(')')
-                            }
+                            var args = parseEventArgs(tokens);
 
                             var filter = null;
                             if (tokens.matchOpToken('[')) {
@@ -3383,6 +3389,8 @@
                         if (tokens.matchToken("for")) {
                             tokens.matchToken("a"); // optional "a"
                             var evt = _parser.requireElement("dotOrColonPath", tokens, "Expected event name");
+                            var args = parseEventArgs(tokens);
+
                             if (tokens.matchToken("from")) {
                                 var on = parser.requireElement("expression", tokens);
                             }
@@ -3396,6 +3404,9 @@
                                     return new Promise(function (resolve) {
                                         var listener = function (event) {
                                         	context.result = event
+                                            runtime.forEach(args, function (arg) {
+                                                context[arg.value] = event[arg.value] || (event.detail ? event.detail[arg.value] : null);
+                                            });
                                             resolve(runtime.findNext(waitCmd, context));
                                         };
                                         target.addEventListener(eventName, listener, {once: true});
