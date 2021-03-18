@@ -1,5 +1,8 @@
 ## TODOs
 
+### In Progress
+* Carson - functions on elements (store in hyperplane if available?)
+
 ### Language Features
 * `measure` command to measure offsets 
    ```
@@ -8,7 +11,6 @@
      measure div's width -- measure the divs width (pseudopossessive)
    ```
 * range operators for strings and arrays `str[..10] str[10..] str[2..10]`
-* functions on elements (store in hyperplane if available?)
 * `merge/merge into` - Merge objects with one another
 * `is a <type>` type check (see and clean up `postfixExpression`)
 * `delete` command
