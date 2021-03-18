@@ -935,7 +935,7 @@
                     var lines = source.split("\n");
                     var line = currentToken ? currentToken.line - 1 : lines.length - 1;
                     var contextLine = lines[line];
-                    var offset = currentToken ? currentToken.column : contextLine.length - 1;
+                    var offset = currentToken ? currentToken.col : contextLine.length - 1;
                     return contextLine + "\n" + " ".repeat(offset) + "^^\n\n";
                 }
 
