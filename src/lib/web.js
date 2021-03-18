@@ -563,39 +563,45 @@
         }
     })
 
+    function parsePseudopossessiveTarget(parser, runtime, tokens) {
+    	if (tokens.matchToken('the') ||
+            tokens.matchToken('element') ||
+            tokens.matchToken('elements') ||
+            tokens.currentToken().type === "CLASS_REF" ||
+            tokens.currentToken().type === "ID_REF" ||
+            (tokens.currentToken().op && tokens.currentToken().value === "<")) {
+
+            parser.possessivesDisabled = true;
+            try {
+                var targets = parser.parseElement("expression", tokens);
+            } finally {
+                delete parser.possessivesDisabled;
+            }
+            // optional possessive
+            if (tokens.matchOpToken("'")) {
+                tokens.requireToken("s");
+            }
+        } else if (tokens.currentToken().type === "IDENTIFIER" && tokens.currentToken().value === 'its') {
+            var identifier = tokens.matchToken('its');
+            var targets =  {
+                type: "pseudopossessiveIts",
+                token: identifier,
+                name: identifier.value,
+                evaluate: function (context) {
+                    return runtime.resolveSymbol("it", context);
+                }
+            };
+        } else {
+            tokens.matchToken('my') || tokens.matchToken('me'); // consume optional 'my'
+            var targets = parser.parseElement("implicitMeTarget", tokens);
+        }
+		return targets;
+    }
+
     _hyperscript.addCommand("transition", function(parser, runtime, tokens) {
         if (tokens.matchToken("transition")) {
-            if (tokens.matchToken('the') ||
-                tokens.matchToken('element') ||
-                tokens.matchToken('elements') ||
-                tokens.currentToken().type === "CLASS_REF" ||
-                tokens.currentToken().type === "ID_REF" ||
-                (tokens.currentToken().op && tokens.currentToken().value === "<")) {
-                parser.possessivesDisabled = true;
-                try {
-                    var targets = parser.parseElement("expression", tokens);
-                } finally {
-                    delete parser.possessivesDisabled;
-                }
-                // optional possessive
-                if (tokens.matchOpToken("'")) {
-                    tokens.requireToken("s");
-                }
-            } else if (tokens.currentToken().type === "IDENTIFIER" && tokens.currentToken().value === 'its') {
-                var identifier = tokens.matchToken('its');
-                var targets =  {
-                    type: "transitionIts",
-                    token: identifier,
-                    name: identifier.value,
-                    evaluate: function (context) {
-                        return runtime.resolveSymbol("it", context);
-                    }
-                };
-            } else {
-                tokens.matchToken('my'); // consume optional 'my'
-                var targets = parser.parseElement("implicitMeTarget", tokens);
-            }
-
+        	var targets = parsePseudopossessiveTarget(parser, runtime, tokens);
+            
             var properties = [];
             var from = [];
             var to = [];
@@ -691,6 +697,51 @@
             return transition
         }
     });
+
+	_hyperscript.addCommand('measure', function (parser, runtime, tokens) {
+		if (!tokens.matchToken('measure')) return;
+
+        var target = parsePseudopossessiveTarget(parser, runtime, tokens);
+
+		var propsToMeasure = [];
+		if (!parser.commandBoundary(tokens.currentToken())) do {
+			propsToMeasure.push(tokens.matchTokenType('IDENTIFIER').value);
+		} while (tokens.matchOpToken(','));
+
+		return {
+			properties: propsToMeasure,
+			args: [target],
+			op: function (ctx, target) {
+				if (0 in target) target = target[0]; // not measuring multiple elts
+				var rect = target.getBoundingClientRect();
+				var scroll = {
+					top: target.scrollTop, left: target.scrollLeft,
+					topMax: target.scrollTopMax, leftMax: target.scrollLeftMax,
+					height: target.scrollHeight, width: target.scrollWidth,
+				};
+				
+				ctx.result = {
+					x: rect.x, y: rect.y,
+					left: rect.left, top: rect.top,
+					right: rect.right, bottom: rect.bottom,
+					width: rect.width, height: rect.height,
+					bounds: rect,
+					
+					scrollLeft: scroll.left, scrollTop: scroll.top,
+					scrollLeftMax: scroll.leftMax, scrollTopMax: scroll.topMax,
+					scrollWidth: scroll.width, scrollHeight: scroll.height,
+					scroll: scroll
+				};
+
+				runtime.forEach(propsToMeasure, function(prop) {
+					if (prop in ctx.result) ctx[prop] = ctx.result[prop];
+					else throw "No such measurement as " + prop
+				})
+
+				return runtime.findNext(this, ctx);
+			}
+		}
+	})
 
     _hyperscript.addLeafExpression('closestExpr', function (parser, runtime, tokens) {
         if (tokens.matchToken('closest')) {
