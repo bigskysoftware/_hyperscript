@@ -864,13 +864,12 @@
         }
     }
 
-	_hyperscript.config.conversions["HTML"] = function(/** @type {any} */ value) {
+	_hyperscript.config.conversions["HTML"] = function(value) {
 
-		var toHTML = function(value) {
+		var toHTML = /** @returns {string}*/ function(/** @type any*/ value) {
 
 			if (value instanceof Array) {
-				value = value.map((item) => toHTML(item))
-				return value.join("")
+				return value.map((item) => toHTML(item)).join("")
 			}
 
 			if (value instanceof HTMLElement) {
@@ -892,8 +891,8 @@
 			}
 	
 			return ""
-			}
+		};
 
-		return toHTML(value)
+		return toHTML(value);
 	}
 })()
