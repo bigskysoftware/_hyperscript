@@ -26,6 +26,7 @@ By default, hyperscript provides the following conversions:
 * `JSON` - convert to a JSON String
 * `Object` - convert from a JSON String
 * `Values` - convert a DOM element to its input values
+* `HTML` - converts NodeLists and arrays to an HTML string
 
 You can add new conversions by adding them to the `_hyperscript.config.conversions` object:
 
