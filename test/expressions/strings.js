@@ -49,4 +49,10 @@ describe("the string expression", function () {
         result.should.equal("3 3");
     });
 
+    it("should handle strings with tags and quotes", function () {
+        var record = {name:"John Connor", age:21, favouriteColour:"bleaux"};
+        var result = evalHyperScript('`<div age="{$record.age}" style="color:${record.age};">${record.name}</div>`', {record:record});
+        result.should.equal(`<div age="21" style="color:bleaux;">John Connor</div>`)
+    });
+
 });
