@@ -1,13 +1,13 @@
 ## TODOs
 
 ### In Progress for 0.0.8
-* Carson: change array literals to `Array(1, 2, 3)`
+* Carson - attribute expression
+
+### Language Features
+* change array literals to `Array(1, 2, 3)`
   * support ` Set(1, 2, 3)` and other data types?
   * pluggable?
   * regular expressions `RegEx('/foo/')`
-
-
-### Language Features
 * range operators for strings and arrays `str[..10] str[10..] str[2..10]`
 *  Support a `timeout` modifier for commands like `fetch`, `call`, `wait for` etc.
   * deep project involving dealing w/ async commands not executing if they time out during execution
