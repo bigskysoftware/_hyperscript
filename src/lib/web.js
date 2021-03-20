@@ -781,6 +781,87 @@
         }
     });
 
+    _hyperscript.addCommand('go', function (parser, runtime, tokens) {
+        if (tokens.matchToken('go')) {
+            if (tokens.matchToken('back')) {
+                var back = true;
+            } else {
+                tokens.matchToken('to');
+                if (tokens.matchToken('url')) {
+                    var target = parser.requireElement("stringLike", tokens);
+                    var url = true;
+                } else {
+                    var verticalPosition = tokens.matchAnyToken('top', 'bottom', 'middle');
+                    var horizontalPosition = tokens.matchAnyToken('left', 'center', 'right');
+                    if (verticalPosition || horizontalPosition) {
+                        tokens.requireToken("of");
+                    }
+                    var target = parser.requireElement("expression", tokens);
+                    var smoothness = tokens.matchAnyToken('smoothly', 'instantly');
+
+                    var scrollOptions = {}
+                    if (verticalPosition) {
+                        if (verticalPosition.value === "top") {
+                            scrollOptions.block = "start";
+                        } else if (verticalPosition.value === "bottom") {
+                            scrollOptions.block = "end";
+                        } else if (verticalPosition.value === "middle") {
+                            scrollOptions.block = "center";
+                        }
+                    }
+
+                    if (horizontalPosition) {
+                        if (horizontalPosition.value === "left") {
+                            scrollOptions.inline = "start";
+                        } else if (horizontalPosition.value === "center") {
+                            scrollOptions.inline = "center";
+                        } else if (horizontalPosition.value === "right") {
+                            scrollOptions.inline = "end";
+                        }
+                    }
+
+                    if (smoothness) {
+                        if (smoothness.value === "smoothly") {
+                            scrollOptions.behavior = "smooth";
+                        } else if (smoothness.value === "instantly") {
+                            scrollOptions.behavior = "instant";
+                        }
+                    }
+
+                }
+                if (tokens.matchToken('with')) {
+                    tokens.requireToken('new');
+                    tokens.requireToken('window');
+                    var newWindow = true;
+                }
+            }
+
+            var goCmd = {
+                target: target,
+                args: [target],
+                op: function (ctx, to) {
+                    if(back){
+                        window.history.back();
+                    } else if (url) {
+                        if (to) {
+                            if (to.indexOf("#") === 0 && !newWindow) {
+                                window.location.href = to;
+                            } else {
+                                window.open(to, newWindow ? "_blank" : null);
+                            }
+                        }
+                    } else {
+                        runtime.forEach(to, function (target) {
+                            target.scrollIntoView(scrollOptions);
+                        });
+                    }
+                    return runtime.findNext(goCmd)
+                }
+            };
+            return goCmd;
+        }
+    });
+
     _hyperscript.config.conversions["Values"] = function(/** @type {Node | NodeList} */ node) {
 
         /** @type Object<string,string | string[]> */

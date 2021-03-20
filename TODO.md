@@ -1,7 +1,6 @@
 ## TODOs
 
 ### In Progress for 0.0.8
-* Carson - `go` to go to a URL or element in the dom (`scrollToVisible`?)
 * Deniz - template tag support
 * Ben - range operators for strings and arrays `str[..10] str[10..] str[2..10]`
 
@@ -14,6 +13,7 @@
   * deep project involving dealing w/ async commands not executing if they time out during execution
 * `merge/merge into` - Merge objects with one another
 * `delete` command
+* `play` command
 * Better DOM manipulation tools? (research)
 * Full `sed` command for string manipulation?
 * `merge/merge into` - Merge objects with one another
