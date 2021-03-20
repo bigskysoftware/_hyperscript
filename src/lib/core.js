@@ -3500,28 +3500,40 @@
                         // wait on event
                         if (tokens.matchToken("for")) {
                             tokens.matchToken("a"); // optional "a"
-                            var evt = _parser.requireElement("dotOrColonPath", tokens, "Expected event name");
-                            var args = parseEventArgs(tokens);
+                            var events = [];
+                            do {
+                                events.push({
+                                    name: _parser.requireElement("dotOrColonPath", tokens, "Expected event name").evaluate(),
+                                    args: parseEventArgs(tokens),
+                                });
+                            } while (tokens.matchToken("or"))
 
                             if (tokens.matchToken("from")) {
                                 var on = parser.requireElement("expression", tokens);
                             }
+
                             // wait on event
                             var waitCmd = {
-                                event: evt,
+                                event: events,
                                 on: on,
-                                args: [evt, on],
+                                args: [on],
                                 op: function (context, eventName, on) {
                                     var target = on ? on : context.me;
                                     return new Promise(function (resolve) {
-                                        var listener = function (event) {
-                                        	context.result = event
-                                            runtime.forEach(args, function (arg) {
-                                                context[arg.value] = event[arg.value] || (event.detail ? event.detail[arg.value] : null);
-                                            });
-                                            resolve(runtime.findNext(waitCmd, context));
-                                        };
-                                        target.addEventListener(eventName, listener, {once: true});
+                                        var resolved = false;
+                                        runtime.forEach(events, function (eventInfo) {
+                                            var listener = function (event) {
+                                                context.result = event
+                                                runtime.forEach(eventInfo.args, function (arg) {
+                                                    context[arg.value] = event[arg.value] || (event.detail ? event.detail[arg.value] : null);
+                                                });
+                                                if (!resolved) {
+                                                    resolved = true;
+                                                    resolve(runtime.findNext(waitCmd, context));
+                                                }
+                                            };
+                                            target.addEventListener(eventInfo.name, listener, {once: true});
+                                        });
                                     });
                                 }
                             };
@@ -3883,6 +3895,25 @@
                     }
 
                     var loop = parser.parseElement("commandList", tokens);
+                    if (loop && evt) {
+                        // if this is an event based loop, wait a tick at the end of the loop so that
+                        // events have a chance to trigger in the loop condition o_O)))
+                        var last = loop;
+                        while (last.next) {
+                            last = last.next;
+                        }
+                        var waitATick = {
+                            type: 'waitATick',
+                            op : function() {
+                                return new Promise(function (resolve) {
+                                    setTimeout(function () {
+                                        resolve(runtime.findNext(waitATick));
+                                    }, 0);
+                                });
+                            }
+                        };
+                        last.next = waitATick
+                    }
                     if (tokens.hasMore()) {
                         tokens.requireToken("end");
                     }

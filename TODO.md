@@ -2,7 +2,6 @@
 
 ### In Progress for 0.0.8
 * Deniz - template tag support
-* Ben - range operators for strings and arrays `str[..10] str[10..] str[2..10]`
 
 ### Language Features
 * change array literals to `Array(1, 2, 3)`

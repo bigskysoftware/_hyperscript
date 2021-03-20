@@ -152,7 +152,7 @@
 			set xoff to event.clientX - rect.x
 			set yoff to event.clientY - rect.y
 			repeat until event mouseup from document
-				wait for mousemove from document
+				wait for mousemove or mouseup from document
 				add {
 					left: (its.clientX - xoff) + 'px',
 					top:  (its.clientY - yoff) + 'px'
