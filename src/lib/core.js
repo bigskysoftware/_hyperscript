@@ -2452,7 +2452,10 @@
 
                             if (tokens.matchOpToken("..")) {
                                 andAfter = true
-                                secondIndex = parser.parseElement("expression", tokens)
+                                var current = tokens.currentToken()
+                                if ((current.op != true) || (current.value != "]")) {
+                                    secondIndex = parser.parseElement("expression", tokens)
+                                }
                             }
                         }
                         tokens.requireOpToken("]")
@@ -2464,9 +2467,6 @@
                             secondIndex: secondIndex,
                             args: [root, firstIndex, secondIndex],
                             op: function(_ctx, root, firstIndex, secondIndex) {
-
-                                console.log(firstIndex, secondIndex, andBefore, andAfter)
-
                                 if (andBefore) {
                                     return root.slice(0, firstIndex + 1) // returns all items from beginning to firstIndex (inclusive)
                                 } else if (andAfter) {
