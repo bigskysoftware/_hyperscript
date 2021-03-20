@@ -182,8 +182,8 @@
                  * @param {boolean} [dollarIsOp]
                  * @returns boolean
                  */
-                function isIdentifierChar(c, dollarIsOp) {
-                    return (c === "_" || (!dollarIsOp && c === "$"));
+                function isIdentifierChar(c) {
+                    return (c === "_" || c === "$");
                 }
 
                 /**
@@ -475,17 +475,22 @@
 
                 /**
                  * @param {string} string 
-                 * @param {boolean} [noDollarStart]
+                 * @param {boolean} [template]
                  * @returns TokensObject
                  */
-                function tokenize(string, noDollarStart) {
-                    /** @type Token[]*/ 
+                function tokenize(string, template) {
+                    /** @type Token[]*/
                     var tokens = [];
                     var source = string;
                     var position = 0;
                     var column = 0;
                     var line = 1;
                     var lastToken = "<START>";
+                    var templateBraceCount = 0;
+
+                    function inTemplate() {
+                        return template && templateBraceCount === 0;
+                    }
 
                     while (position < source.length) {
                         if (currentChar() === "-" && nextChar() === "-") {
@@ -497,22 +502,28 @@
                                 tokens.push(consumeClassReference());
                             } else if (!possiblePrecedingSymbol() && currentChar() === "#" && isAlpha(nextChar())) {
                                 tokens.push(consumeIdReference());
-                            } else if (isAlpha(currentChar()) || isIdentifierChar(currentChar(), noDollarStart)) {
+                            } else if (isAlpha(currentChar()) || (!inTemplate() && isIdentifierChar(currentChar()))) {
                                 tokens.push(consumeIdentifier());
                             } else if (isNumeric(currentChar())) {
                                 tokens.push(consumeNumber());
-                            } else if (currentChar() === '"' || currentChar() === "`") {
+                            } else if (!inTemplate() && (currentChar() === '"' || currentChar() === "`")) {
                                 tokens.push(consumeString());
-                            } else if (currentChar() === "'") {
+                            } else if (!inTemplate() && currentChar() === "'") {
                                 if (isValidSingleQuoteStringStart(tokens)) {
                                     tokens.push(consumeString());
                                 } else {
                                     tokens.push(consumeOp());
                                 }
                             } else if (OP_TABLE[currentChar()]) {
+                                if (lastToken === '$' && currentChar() === '{') {
+                                    templateBraceCount++;
+                                }
+                                if (currentChar() === '}') {
+                                    templateBraceCount--;
+                                }
                                 tokens.push(consumeOp());
-                            } else if (isReservedChar(currentChar())) {
-                                tokens.push(makeToken('RESERVED', currentChar()))
+                            } else if (inTemplate() || isReservedChar(currentChar())) {
+                                tokens.push(makeToken('RESERVED', consumeChar()))
                             } else {
                                 if (position < source.length) {
                                     throw Error("Unknown token: " + currentChar() + " ");
@@ -1542,8 +1553,8 @@
                  * @returns 
                  */
                 function evaluate(src, ctx) {
-                    ctx = mergeObjects(ctx || {}, makeContext(document.body, null,
-                        document.body, null));
+                    ctx = mergeObjects(makeContext(document.body, null,
+                        document.body, null), ctx || {});
                     var element = parse(src);
                     if (element.execute) {
                         return element.execute(ctx);
