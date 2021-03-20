@@ -887,10 +887,14 @@
                     } else {
                         var commandDefinition = COMMANDS[tokens.currentToken().value];
                         if (commandDefinition) {
-                            return commandDefinition(parser, runtime, tokens);
+                            var commandDef = commandDefinition(parser, runtime, tokens);
                         } else if (tokens.currentToken().type === "IDENTIFIER" && tokens.token(1).value === "(") {
-                            return parser.requireElement("pseudoCommand", tokens);
+                            var commandDef = parser.requireElement("pseudoCommand", tokens);
                         }
+                        if (commandDef) {
+                            return parser.parseElement("indirectStatement", tokens, commandDef);
+                        }
+                        return commandDef;
                     }
                 })
 
@@ -921,6 +925,30 @@
                         if(result){
                             return result;
                         }
+                    }
+                    return root;
+                });
+
+                addGrammarElement("indirectStatement", function(parser, runtime, tokens, root) {
+                    if (tokens.matchToken('unless')) {
+                        root.endToken = tokens.lastMatch();
+                        var conditional = parser.requireElement('expression', tokens);
+                        var unless = {
+                            type: 'unlessStatementModifier',
+                            args: [conditional],
+                            op: function (context, conditional) {
+                                if (conditional) {
+                                    return this.next;
+                                } else {
+                                    return root;
+                                }
+                            },
+                            execute: function(context) {
+                                return runtime.unifiedExec(this, context);
+                            }
+                        };
+                        root.parent = unless;
+                        return unless
                     }
                     return root;
                 });
@@ -1514,10 +1542,11 @@
                  * @returns 
                  */
                 function evaluate(src, ctx) {
-                    ctx = ctx || {};
+                    ctx = mergeObjects(ctx || {}, makeContext(document.body, null,
+                        document.body, null));
                     var element = parse(src);
                     if (element.execute) {
-                        element.execute(ctx);
+                        return element.execute(ctx);
                     } else if (element.apply) {
                         element.apply(document.body, null);
                     } else {
