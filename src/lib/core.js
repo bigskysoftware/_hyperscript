@@ -2130,7 +2130,7 @@
                     return {
                         type: "implicitMeTarget",
                         evaluate: function (context) {
-                            return context.me
+                            return context.beingTold || context.me;
                         }
                     };
                 });
@@ -3411,27 +3411,27 @@
                     }
                 })
 
-                _parser.addCommand("with", function (parser, runtime, tokens) {
+                _parser.addCommand("tell", function (parser, runtime, tokens) {
                     var startToken = tokens.currentToken();
-                    if (tokens.matchToken("with")) {
+                    if (tokens.matchToken("tell")) {
                         var value = parser.requireElement("expression", tokens);
                         var body = parser.requireElement('commandList', tokens)
                         if (tokens.hasMore()) {
                             tokens.requireToken("end");
                         }
-                        var slot = "with_" + startToken.start;
-                        var withCmd = {
+                        var slot = "tell_" + startToken.start;
+                        var tellCmd = {
                             value: value,
                             body: body,
                             args: [value],
                             resolveNext: function (context) {
                                 var iterator = context.meta.iterators[slot];
                                 if (iterator.index < iterator.value.length) {
-                                    context.me = iterator.value[iterator.index++];
+                                    context.beingTold = iterator.value[iterator.index++];
                                     return body;
                                 } else {
                                     // restore original me
-                                    context.me = iterator.originalMe;
+                                    context.beingTold = iterator.originalBeingTold;
                                     if (this.next) {
                                         return this.next;
                                     } else {
@@ -3446,15 +3446,15 @@
                                     value = [value];
                                 }
                                 context.meta.iterators[slot] = {
-                                    originalMe: context.me,
+                                    originalBeingTold: context.beingTold,
                                     index: 0,
                                     value: value
                                 };
                                 return this.resolveNext(context);
                             }
                         };
-                        parser.setParent(body, withCmd);
-                        return withCmd;
+                        parser.setParent(body, tellCmd);
+                        return tellCmd;
                     }
                 })
 

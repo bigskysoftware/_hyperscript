@@ -3,24 +3,22 @@ layout: layout.njk
 title: ///_hyperscript
 ---
 
-## The `with` Command
+## The `tell` Command
 
 ### Syntax
 
 ```ebnf
-with expression
+tell <expression>
 ```
 
 ### Description
 
-The `with` command can be used to temporarily create a new value
-for `me`, and, therefore a new default for commands like
-`add`
+The `tell` command can be used to temporarily change the default target for commands like `add`
 
 ### Examples
 
 ```html
-<div _='on click with <p/> in me 
+<div _='on click tell <p/> in me 
                    add .highlight -- adds the highlight class to each p
                                   -- found in this element...
                  end '>
