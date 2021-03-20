@@ -1,7 +1,6 @@
 ## TODOs
 
 ### In Progress for 0.0.8
-* Carson: `exit` command to exit current function/event handler with no returned value
 * Carson: `is a <type>` type check (see and clean up `postfixExpression`)
 * Carson: `tell` command to replace `with` (different semantics, it becomes the default `me` but not the actual me)
 

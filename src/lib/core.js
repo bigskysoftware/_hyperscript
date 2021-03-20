@@ -1634,15 +1634,10 @@
                  */
                 function typeCheck(value, typeString, nullOk) {
                     if (value == null && nullOk) {
-                        return value;
+                        return true;
                     }
                     var typeName = Object.prototype.toString.call(value).slice(8, -1);
-                    var typeCheckValue = value && typeName === typeString;
-                    if (typeCheckValue) {
-                        return value;
-                    } else {
-                        throw new Error("Typecheck failed!  Expected: " + typeString + ", Found: " + typeName);
-                    }
+                    return typeName === typeString;
                 }
 
                 /**
@@ -2474,8 +2469,12 @@
                             nullOk: nullOk,
                             args: [root],
                             op: function (context, val) {
-                                return runtime.typeCheck(val, this.typeName.value, this.nullOk);
-                            },
+                                var passed = runtime.typeCheck(val, this.typeName.value, this.nullOk);
+                                if(passed) {
+                                    return val;
+                                } else {
+                                    throw new Error("Typecheck failed!  Expected: " + this.typeName.value);
+                                }                            },
                             evaluate: function (context) {
                                 return runtime.unifiedEval(this, context);
                             }
@@ -2621,12 +2620,16 @@
                     var comparisonToken = tokens.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==")
                     var comparisonStr = comparisonToken ? comparisonToken.value : null;
                     var hasRightValue = true; // By default, most comparisons require two values, but there are some exceptions.
+                    var typeCheck = false;
 
                     if (comparisonStr == null) {
                         if (tokens.matchToken("is") || tokens.matchToken("am")) {
                             if (tokens.matchToken("not")) {
                                 if (tokens.matchToken("in")) {
                                     comparisonStr = "not in";
+                                } else if (tokens.matchToken("a")) {
+                                    comparisonStr = "not a";
+                                    typeCheck = true;
                                 } else if (tokens.matchToken("empty")) {
                                     comparisonStr = "not empty";
                                     hasRightValue = false;
@@ -2635,6 +2638,9 @@
                                 }
                             } else if (tokens.matchToken("in")) {
                                 comparisonStr = "in";
+                            } else if (tokens.matchToken("a")) {
+                                comparisonStr = "a";
+                                typeCheck = true;
                             } else if (tokens.matchToken("empty")) {
                                 comparisonStr = "empty";
                                 hasRightValue = false;
@@ -2658,7 +2664,10 @@
                     }
 
                     if (comparisonStr) { // Do not allow chained comparisons, which is dumb
-                        if (hasRightValue) {
+                        if (typeCheck) {
+                            var typeName = tokens.requireTokenType("IDENTIFIER");
+                            var nullOk = !tokens.matchOpToken("!");
+                        } else if (hasRightValue) {
                             var rhs = parser.requireElement("mathExpression", tokens);
                             if (comparisonStr === "match" || comparisonStr === "not match") {
                                 rhs = rhs.css ? rhs.css : rhs;
@@ -2667,6 +2676,8 @@
                         expr = {
                             type: "comparisonOperator",
                             operator: comparisonStr,
+                            typeName: typeName,
+                            nullOk: nullOk,
                             lhs: expr,
                             rhs: rhs,
                             args: [expr, rhs],
@@ -2699,10 +2710,16 @@
                                     return lhsVal <= rhsVal;
                                 } else if (this.operator === ">=") {
                                     return lhsVal >= rhsVal;
-                                } else if (this.operator == "empty") {
+                                } else if (this.operator === "empty") {
                                     return runtime.isEmpty(lhsVal);
-                                } else if (this.operator == "not empty") {
-                                    return (runtime.isEmpty(lhsVal) == false);
+                                } else if (this.operator === "not empty") {
+                                    return !runtime.isEmpty(lhsVal);
+                                } else if (this.operator === "a") {
+                                    return runtime.typeCheck(lhsVal, this.typeName.value, this.nullOk);
+                                } else if (this.operator === "not a") {
+                                    return !runtime.typeCheck(lhsVal, this.typeName.value, this.nullOk);
+                                } else {
+                                    throw "Unknown comparison : " + this.operator;
                                 }
                             },
                             evaluate: function (context) {
