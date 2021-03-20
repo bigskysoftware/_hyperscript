@@ -85,7 +85,7 @@
                     '*': 'MULTIPLY',
                     '/': 'DIVIDE',
                     '.': 'PERIOD',
-                    '..': 'ELIPSIS',
+                    '..': 'ELLIPSIS',
                     '\\': 'BACKSLASH',
                     ':': 'COLON',
                     '%': 'PERCENT',
