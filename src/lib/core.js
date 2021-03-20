@@ -85,6 +85,7 @@
                     '*': 'MULTIPLY',
                     '/': 'DIVIDE',
                     '.': 'PERIOD',
+                    '..': 'ELLIPSIS',
                     '\\': 'BACKSLASH',
                     ':': 'COLON',
                     '%': 'PERCENT',
@@ -619,7 +620,7 @@
                         while (isNumeric(currentChar())) {
                             value += consumeChar();
                         }
-                        if (currentChar() === ".") {
+                        if ((currentChar() === ".") && isNumeric(nextChar())) {
                             value += consumeChar();
                         }
                         while (isNumeric(currentChar())) {
@@ -2438,19 +2439,49 @@
 
                 _parser.addIndirectExpression("arrayIndex", function (parser, runtime, tokens, root) {
                     if (tokens.matchOpToken("[")) {
-                        var index = parser.requireElement("expression", tokens);
+
+                        var andBefore = false
+                        var andAfter = false
+                        var firstIndex = null
+                        var secondIndex = null
+
+                        if (tokens.matchOpToken("..")) {
+                            andBefore = true
+                            firstIndex = parser.requireElement("expression", tokens);
+                        } else {
+                            firstIndex = parser.requireElement("expression", tokens);
+
+                            if (tokens.matchOpToken("..")) {
+                                andAfter = true
+                                var current = tokens.currentToken()
+                                if (current.type !== "R_BRACKET") {
+                                    secondIndex = parser.parseElement("expression", tokens)
+                                }
+                            }
+                        }
                         tokens.requireOpToken("]")
 
                         var arrayIndex = {
                             type: "arrayIndex",
                             root: root,
-                            index: index,
-                            args: [root, index],
-                            op: function(ctx, root, index) {
-                                    return root[index]
+                            firstIndex: firstIndex,
+                            secondIndex: secondIndex,
+                            args: [root, firstIndex, secondIndex],
+                            op: function(_ctx, root, firstIndex, secondIndex) {
+                                if (andBefore) {
+                                    return root.slice(0, firstIndex + 1) // returns all items from beginning to firstIndex (inclusive)
+                                } else if (andAfter) {
+                                    if (secondIndex != null) {
+                                        return root.slice(firstIndex, secondIndex + 1) // returns all items from firstIndex to secondIndex (inclusive)
+                                    } else {
+                                        return root.slice(firstIndex); // returns from firstIndex to end of array
+                                    }
+                                } else {
+                                    return root[firstIndex]
+                                }
                             },
                             evaluate: function(context){
-                                return _runtime.unifiedEval(this, context);
+                                return _runtime.unifiedEval(this, context, firstIndex, secondIndex);
                             }
                         };
 
