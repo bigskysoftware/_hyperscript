@@ -146,7 +146,19 @@
 	</script>
 
 	<header>
-		<h2 class="titlebar">HDB///_hyperscript/debugger</h2>
+		<h2 class="titlebar" _="
+		on mousedown
+			set rect to me.getBoundingClientRect()
+			set xoff to event.clientX - rect.x
+			set yoff to event.clientY - rect.y
+			repeat until event mouseup from document
+				wait for mousemove or mouseup from document
+				add {
+					left: (its.clientX - xoff) + 'px',
+					top:  (its.clientY - yoff) + 'px'
+				} to hdbUI
+			end
+		">HDB///_hyperscript/debugger</h2>
 		<ul role="toolbar" class="toolbar">
 		<li><button _="on click call hdb.continueExec()">Continue</button></li
 		><li><button _="on click call hdb.stepOver()">Step Over</button></li>

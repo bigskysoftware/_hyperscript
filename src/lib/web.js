@@ -963,7 +963,7 @@
 		var toHTML = /** @returns {string}*/ function(/** @type any*/ value) {
 
 			if (value instanceof Array) {
-				return value.map((item) => toHTML(item)).join("")
+				return value.map(function(item){return toHTML(item)}).join("")
 			}
 
 			if (value instanceof HTMLElement) {
@@ -972,11 +972,12 @@
 
 			if (value instanceof NodeList) {
 				var result = ""
-				for (var node of value) {
-					if (node instanceof HTMLElement) {
-						result += node.outerHTML;
-					}
-				}
+                for (var i = 0; i < value.length; i++) {
+                    var node = value[i];
+                    if (node instanceof HTMLElement) {
+                        result += node.outerHTML;
+                    }
+                }
 				return result
 			}
 

@@ -85,6 +85,7 @@
                     '*': 'MULTIPLY',
                     '/': 'DIVIDE',
                     '.': 'PERIOD',
+                    '..': 'ELLIPSIS',
                     '\\': 'BACKSLASH',
                     ':': 'COLON',
                     '%': 'PERCENT',
@@ -182,8 +183,8 @@
                  * @param {boolean} [dollarIsOp]
                  * @returns boolean
                  */
-                function isIdentifierChar(c, dollarIsOp) {
-                    return (c === "_" || (!dollarIsOp && c === "$"));
+                function isIdentifierChar(c) {
+                    return (c === "_" || c === "$");
                 }
 
                 /**
@@ -475,17 +476,22 @@
 
                 /**
                  * @param {string} string 
-                 * @param {boolean} [noDollarStart]
+                 * @param {boolean} [template]
                  * @returns TokensObject
                  */
-                function tokenize(string, noDollarStart) {
-                    /** @type Token[]*/ 
+                function tokenize(string, template) {
+                    /** @type Token[]*/
                     var tokens = [];
                     var source = string;
                     var position = 0;
                     var column = 0;
                     var line = 1;
                     var lastToken = "<START>";
+                    var templateBraceCount = 0;
+
+                    function inTemplate() {
+                        return template && templateBraceCount === 0;
+                    }
 
                     while (position < source.length) {
                         if (currentChar() === "-" && nextChar() === "-") {
@@ -497,22 +503,28 @@
                                 tokens.push(consumeClassReference());
                             } else if (!possiblePrecedingSymbol() && currentChar() === "#" && isAlpha(nextChar())) {
                                 tokens.push(consumeIdReference());
-                            } else if (isAlpha(currentChar()) || isIdentifierChar(currentChar(), noDollarStart)) {
+                            } else if (isAlpha(currentChar()) || (!inTemplate() && isIdentifierChar(currentChar()))) {
                                 tokens.push(consumeIdentifier());
                             } else if (isNumeric(currentChar())) {
                                 tokens.push(consumeNumber());
-                            } else if (currentChar() === '"' || currentChar() === "`") {
+                            } else if (!inTemplate() && (currentChar() === '"' || currentChar() === "`")) {
                                 tokens.push(consumeString());
-                            } else if (currentChar() === "'") {
+                            } else if (!inTemplate() && currentChar() === "'") {
                                 if (isValidSingleQuoteStringStart(tokens)) {
                                     tokens.push(consumeString());
                                 } else {
                                     tokens.push(consumeOp());
                                 }
                             } else if (OP_TABLE[currentChar()]) {
+                                if (lastToken === '$' && currentChar() === '{') {
+                                    templateBraceCount++;
+                                }
+                                if (currentChar() === '}') {
+                                    templateBraceCount--;
+                                }
                                 tokens.push(consumeOp());
-                            } else if (isReservedChar(currentChar())) {
-                                tokens.push(makeToken('RESERVED', currentChar()))
+                            } else if (inTemplate() || isReservedChar(currentChar())) {
+                                tokens.push(makeToken('RESERVED', consumeChar()))
                             } else {
                                 if (position < source.length) {
                                     throw Error("Unknown token: " + currentChar() + " ");
@@ -608,7 +620,7 @@
                         while (isNumeric(currentChar())) {
                             value += consumeChar();
                         }
-                        if (currentChar() === ".") {
+                        if ((currentChar() === ".") && isNumeric(nextChar())) {
                             value += consumeChar();
                         }
                         while (isNumeric(currentChar())) {
@@ -887,10 +899,14 @@
                     } else {
                         var commandDefinition = COMMANDS[tokens.currentToken().value];
                         if (commandDefinition) {
-                            return commandDefinition(parser, runtime, tokens);
+                            var commandDef = commandDefinition(parser, runtime, tokens);
                         } else if (tokens.currentToken().type === "IDENTIFIER" && tokens.token(1).value === "(") {
-                            return parser.requireElement("pseudoCommand", tokens);
+                            var commandDef = parser.requireElement("pseudoCommand", tokens);
                         }
+                        if (commandDef) {
+                            return parser.parseElement("indirectStatement", tokens, commandDef);
+                        }
+                        return commandDef;
                     }
                 })
 
@@ -921,6 +937,30 @@
                         if(result){
                             return result;
                         }
+                    }
+                    return root;
+                });
+
+                addGrammarElement("indirectStatement", function(parser, runtime, tokens, root) {
+                    if (tokens.matchToken('unless')) {
+                        root.endToken = tokens.lastMatch();
+                        var conditional = parser.requireElement('expression', tokens);
+                        var unless = {
+                            type: 'unlessStatementModifier',
+                            args: [conditional],
+                            op: function (context, conditional) {
+                                if (conditional) {
+                                    return this.next;
+                                } else {
+                                    return root;
+                                }
+                            },
+                            execute: function(context) {
+                                return runtime.unifiedExec(this, context);
+                            }
+                        };
+                        root.parent = unless;
+                        return unless
                     }
                     return root;
                 });
@@ -1402,6 +1442,15 @@
                     return null;
                 }
 
+                function addFeatures(owner, ctx) {
+                    if(owner) {
+                        if (owner.hyperscriptFeatures) {
+                            mergeObjects(ctx, owner.hyperscriptFeatures);
+                        }
+                        addFeatures(owner.parentElement, ctx);
+                    }
+                }
+
                 /**
                  * @param {*} owner 
                  * @param {*} feature 
@@ -1426,6 +1475,7 @@
                         body: 'document' in globalScope ? document.body : null
                     }
                     ctx.meta.ctx = ctx;
+                    addFeatures(owner, ctx);
                     return ctx;
                 }
 
@@ -1504,10 +1554,11 @@
                  * @returns 
                  */
                 function evaluate(src, ctx) {
-                    ctx = ctx || {};
+                    ctx = mergeObjects(makeContext(document.body, null,
+                        document.body, null), ctx || {});
                     var element = parse(src);
                     if (element.execute) {
-                        element.execute(ctx);
+                        return element.execute(ctx);
                     } else if (element.apply) {
                         element.apply(document.body, null);
                     } else {
@@ -1521,11 +1572,11 @@
                 function processNode(elt) {
                     var selector = _runtime.getScriptSelector();
                     if (matchesSelector(elt, selector)) {
-                        initElement(elt);
+                        initElement(elt, elt);
                     }
                     if (elt.querySelectorAll) {
                         forEach(elt.querySelectorAll(selector), function (elt) {
-                            initElement(elt);
+                            initElement(elt, elt);
                         });
                     }
                     if (elt['type'] === "text/hyperscript") {
@@ -1584,15 +1635,10 @@
                  */
                 function typeCheck(value, typeString, nullOk) {
                     if (value == null && nullOk) {
-                        return value;
+                        return true;
                     }
                     var typeName = Object.prototype.toString.call(value).slice(8, -1);
-                    var typeCheckValue = value && typeName === typeString;
-                    if (typeCheckValue) {
-                        return value;
-                    } else {
-                        throw new Error("Typecheck failed!  Expected: " + typeString + ", Found: " + typeName);
-                    }
+                    return typeName === typeString;
                 }
 
                 /**
@@ -1643,43 +1689,44 @@
                  * @param {string} property 
                  * @returns any
                  */
-                function resolveProperty(root, property) {
+                function resolveProperty(root, property, attribute) {
                     if (root != null) {
-                        var val = root[property];
+                        var val = attribute && root.getAttribute ? root.getAttribute(property) : root[property];
                         if (typeof val !== 'undefined') {
                             return val;
                         } else {
                             if (isArrayLike(root)) {
-                                if (property === "first") {
-                                    return root[0];
-                                } else if (property === "last") {
-                                    return root[root.length - 1];
-                                } else if (property === "random") {
-                                    return root[Math.floor(root.length * Math.random())]
-                                } else {
-                                    // flat map
-                                    var result = [];
-                                    for (var i = 0; i < root.length; i++) {
-                                        var component = root[i];
-                                        var componentValue = component[property];
-                                        if (componentValue) {
-                                            result.push(componentValue);
-                                        }
+                                // flat map
+                                var result = [];
+                                for (var i = 0; i < root.length; i++) {
+                                    var component = root[i];
+                                    var componentValue = attribute ? component.getAttribute(property) : component[property];
+                                    if (componentValue) {
+                                        result.push(componentValue);
                                     }
-                                    return result;
                                 }
+                                return result;
                             }
                         }
                     }
                 }
 
                 /**
-                 * @param {string[]} nameSpace 
-                 * @param {string} name 
+                 * @param {Element} elt
+                 * @param {string[]} nameSpace
+                 * @param {string} name
                  * @param {any} value 
                  */
-                function assignToNamespace(nameSpace, name, value) {
-                    var root = globalScope;
+                function assignToNamespace(elt, nameSpace, name, value) {
+                    if (typeof document === 'undefined' || elt === document.body) {
+                        var root = globalScope;
+                    } else {
+                        var root = elt['hyperscriptFeatures'];
+                        if (root == null) {
+                            root = {}
+                            elt['hyperscriptFeatures'] = root;
+                        }
+                    }
                     while (nameSpace.length > 0) {
                         var propertyName = nameSpace.shift();
                         var newRoot = root[propertyName];
@@ -2076,7 +2123,7 @@
                     return {
                         type: "implicitMeTarget",
                         evaluate: function (context) {
-                            return context.me
+                            return context.beingTold || context.me;
                         }
                     };
                 });
@@ -2251,14 +2298,23 @@
                         if (apostrophe) {
                             tokens.requireToken("s");
                         }
-                        var prop = tokens.requireTokenType("IDENTIFIER");
+                        if (tokens.matchToken("attribute")) {
+                            var attribute = parser.requireElement('stringLike', tokens);
+                        } else {
+                            var prop = tokens.requireTokenType("IDENTIFIER");
+                        }
                         var propertyAccess = {
                             type: "possessive",
                             root: root,
+                            attribute: attribute,
                             prop: prop,
-                            args: [root],
-                            op:function(context, rootVal){
-                                var value = runtime.resolveProperty(rootVal, prop.value);
+                            args: [root, attribute],
+                            op:function(context, rootVal, attribute){
+                                if(attribute){
+                                    var value = runtime.resolveProperty(rootVal, attribute, true);
+                                } else {
+                                    var value = runtime.resolveProperty(rootVal, prop.value, false);
+                                }
                                 return value;
                             },
                             evaluate: function (context) {
@@ -2383,19 +2439,49 @@
 
                 _parser.addIndirectExpression("arrayIndex", function (parser, runtime, tokens, root) {
                     if (tokens.matchOpToken("[")) {
-                        var index = parser.requireElement("expression", tokens);
+
+                        var andBefore = false
+                        var andAfter = false
+                        var firstIndex = null
+                        var secondIndex = null
+
+                        if (tokens.matchOpToken("..")) {
+                            andBefore = true
+                            firstIndex = parser.requireElement("expression", tokens);
+                        } else {
+                            firstIndex = parser.requireElement("expression", tokens);
+
+                            if (tokens.matchOpToken("..")) {
+                                andAfter = true
+                                var current = tokens.currentToken()
+                                if (current.type !== "R_BRACKET") {
+                                    secondIndex = parser.parseElement("expression", tokens)
+                                }
+                            }
+                        }
                         tokens.requireOpToken("]")
 
                         var arrayIndex = {
                             type: "arrayIndex",
                             root: root,
-                            index: index,
-                            args: [root, index],
-                            op: function(ctx, root, index) {
-                                    return root[index]
+                            firstIndex: firstIndex,
+                            secondIndex: secondIndex,
+                            args: [root, firstIndex, secondIndex],
+                            op: function(_ctx, root, firstIndex, secondIndex) {
+                                if (andBefore) {
+                                    return root.slice(0, firstIndex + 1) // returns all items from beginning to firstIndex (inclusive)
+                                } else if (andAfter) {
+                                    if (secondIndex != null) {
+                                        return root.slice(firstIndex, secondIndex + 1) // returns all items from firstIndex to secondIndex (inclusive)
+                                    } else {
+                                        return root.slice(firstIndex); // returns from firstIndex to end of array
+                                    }
+                                } else {
+                                    return root[firstIndex]
+                                }
                             },
                             evaluate: function(context){
-                                return _runtime.unifiedEval(this, context);
+                                return _runtime.unifiedEval(this, context, firstIndex, secondIndex);
                             }
                         };
 
@@ -2415,8 +2501,12 @@
                             nullOk: nullOk,
                             args: [root],
                             op: function (context, val) {
-                                return runtime.typeCheck(val, this.typeName.value, this.nullOk);
-                            },
+                                var passed = runtime.typeCheck(val, this.typeName.value, this.nullOk);
+                                if(passed) {
+                                    return val;
+                                } else {
+                                    throw new Error("Typecheck failed!  Expected: " + this.typeName.value);
+                                }                            },
                             evaluate: function (context) {
                                 return runtime.unifiedEval(this, context);
                             }
@@ -2562,12 +2652,16 @@
                     var comparisonToken = tokens.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==")
                     var comparisonStr = comparisonToken ? comparisonToken.value : null;
                     var hasRightValue = true; // By default, most comparisons require two values, but there are some exceptions.
+                    var typeCheck = false;
 
                     if (comparisonStr == null) {
                         if (tokens.matchToken("is") || tokens.matchToken("am")) {
                             if (tokens.matchToken("not")) {
                                 if (tokens.matchToken("in")) {
                                     comparisonStr = "not in";
+                                } else if (tokens.matchToken("a")) {
+                                    comparisonStr = "not a";
+                                    typeCheck = true;
                                 } else if (tokens.matchToken("empty")) {
                                     comparisonStr = "not empty";
                                     hasRightValue = false;
@@ -2576,6 +2670,9 @@
                                 }
                             } else if (tokens.matchToken("in")) {
                                 comparisonStr = "in";
+                            } else if (tokens.matchToken("a")) {
+                                comparisonStr = "a";
+                                typeCheck = true;
                             } else if (tokens.matchToken("empty")) {
                                 comparisonStr = "empty";
                                 hasRightValue = false;
@@ -2599,7 +2696,10 @@
                     }
 
                     if (comparisonStr) { // Do not allow chained comparisons, which is dumb
-                        if (hasRightValue) {
+                        if (typeCheck) {
+                            var typeName = tokens.requireTokenType("IDENTIFIER");
+                            var nullOk = !tokens.matchOpToken("!");
+                        } else if (hasRightValue) {
                             var rhs = parser.requireElement("mathExpression", tokens);
                             if (comparisonStr === "match" || comparisonStr === "not match") {
                                 rhs = rhs.css ? rhs.css : rhs;
@@ -2608,6 +2708,8 @@
                         expr = {
                             type: "comparisonOperator",
                             operator: comparisonStr,
+                            typeName: typeName,
+                            nullOk: nullOk,
                             lhs: expr,
                             rhs: rhs,
                             args: [expr, rhs],
@@ -2640,10 +2742,16 @@
                                     return lhsVal <= rhsVal;
                                 } else if (this.operator === ">=") {
                                     return lhsVal >= rhsVal;
-                                } else if (this.operator == "empty") {
+                                } else if (this.operator === "empty") {
                                     return runtime.isEmpty(lhsVal);
-                                } else if (this.operator == "not empty") {
-                                    return (runtime.isEmpty(lhsVal) == false);
+                                } else if (this.operator === "not empty") {
+                                    return !runtime.isEmpty(lhsVal);
+                                } else if (this.operator === "a") {
+                                    return runtime.typeCheck(lhsVal, this.typeName.value, this.nullOk);
+                                } else if (this.operator === "not a") {
+                                    return !runtime.typeCheck(lhsVal, this.typeName.value, this.nullOk);
+                                } else {
+                                    throw "Unknown comparison : " + this.operator;
                                 }
                             },
                             evaluate: function (context) {
@@ -2720,11 +2828,13 @@
 
                 _parser.addGrammarElement("targetExpression", function(parser, runtime, tokens) {
                     tokens.matchToken("the"); // optional the
-                    // TODO put parser into mode where [ is interpreted as a property ref
+
+                    // TODO obviously we need to generalize this as a left hand side / targetable concept
                     var expr = parser.parseElement("primaryExpression", tokens);
                     if (expr.type === "symbol" || expr.type === "idRef" || expr.type === "inExpression" ||
                         expr.type === "queryRef" || expr.type === "classRef" || expr.type === "ofExpression" ||
-                        expr.type === "propertyAccess") {
+                        expr.type === "propertyAccess" || expr.type === "closestExpr" ||
+                        expr.type === "possessive") {
                         return expr;
                     } else {
                         _parser.raiseParseError(tokens, "A target expression must be writable");
@@ -2758,7 +2868,24 @@
                     };
                 })
 
+                var parseEventArgs = function (tokens) {
+                    var args = [];
+                    // handle argument list (look ahead 3)
+                    if (tokens.token(0).value === "(" &&
+                        (tokens.token(1).value === ")" ||
+                            tokens.token(2).value === "," ||
+                            tokens.token(2).value === ")")) {
+                        tokens.matchOpToken("(");
+                        do {
+                            args.push(tokens.requireTokenType('IDENTIFIER'));
+                        } while (tokens.matchOpToken(","))
+                        tokens.requireOpToken(')')
+                    }
+                    return args;
+                }
+
                 _parser.addFeature("on", function(parser, runtime, tokens) {
+
                     if (tokens.matchToken('on')) {
                         var every = false;
                         if (tokens.matchToken("every")) {
@@ -2776,18 +2903,7 @@
                             } else {
                                 displayName = "on " + eventName;
                             }
-                            var args = [];
-                            // handle argument list (look ahead 3)
-                            if (tokens.token(0).value === "(" &&
-                                (tokens.token(1).value === ")" ||
-                                    tokens.token(2).value === "," ||
-                                    tokens.token(2).value === ")")) {
-                                tokens.matchOpToken("(");
-                                do {
-                                    args.push(tokens.requireTokenType('IDENTIFIER'));
-                                } while (tokens.matchOpToken(","))
-                                tokens.requireOpToken(')')
-                            }
+                            var args = parseEventArgs(tokens);
 
                             var filter = null;
                             if (tokens.matchOpToken('[')) {
@@ -2949,7 +3065,7 @@
                                     if (eventSpec.elsewhere) {
                                         targets = [document];
                                     } else if (eventSpec.from) {
-                                        targets = eventSpec.from.evaluate({});
+                                        targets = eventSpec.from.evaluate({me: elt});
                                     } else {
                                         targets = [elt];
                                     }
@@ -2958,6 +3074,9 @@
                                             var ctx = runtime.makeContext(elt, onFeature, elt, evt);
                                             if (eventSpec.elsewhere && elt.contains(evt.target)) {
                                                 return
+                                            }
+                                            if (eventSpec.from) {
+                                                ctx.result = target;
                                             }
 
                                             // establish context
@@ -3079,8 +3198,7 @@
                             install: function (target, source) {
                                 var func = function () {
                                     // null, worker
-                                    var elt = 'document' in globalScope ? document.body : globalScope
-                                    var ctx = runtime.makeContext(source, functionFeature, elt, null);
+                                    var ctx = runtime.makeContext(source, functionFeature, target, null);
 
                                     // install error handler if any
                                     ctx.meta.errorHandler = errorHandler;
@@ -3113,7 +3231,7 @@
                                 };
                                 func.hyperfunc = true;
                                 func.hypername = nameVal;
-                                runtime.assignToNamespace(nameSpace, funcName, func);
+                                runtime.assignToNamespace(target, nameSpace, funcName, func);
                             }
                         };
 
@@ -3330,27 +3448,27 @@
                     }
                 })
 
-                _parser.addCommand("with", function (parser, runtime, tokens) {
+                _parser.addCommand("tell", function (parser, runtime, tokens) {
                     var startToken = tokens.currentToken();
-                    if (tokens.matchToken("with")) {
+                    if (tokens.matchToken("tell")) {
                         var value = parser.requireElement("expression", tokens);
                         var body = parser.requireElement('commandList', tokens)
                         if (tokens.hasMore()) {
                             tokens.requireToken("end");
                         }
-                        var slot = "with_" + startToken.start;
-                        var withCmd = {
+                        var slot = "tell_" + startToken.start;
+                        var tellCmd = {
                             value: value,
                             body: body,
                             args: [value],
                             resolveNext: function (context) {
                                 var iterator = context.meta.iterators[slot];
                                 if (iterator.index < iterator.value.length) {
-                                    context.me = iterator.value[iterator.index++];
+                                    context.beingTold = iterator.value[iterator.index++];
                                     return body;
                                 } else {
                                     // restore original me
-                                    context.me = iterator.originalMe;
+                                    context.beingTold = iterator.originalBeingTold;
                                     if (this.next) {
                                         return this.next;
                                     } else {
@@ -3365,15 +3483,15 @@
                                     value = [value];
                                 }
                                 context.meta.iterators[slot] = {
-                                    originalMe: context.me,
+                                    originalBeingTold: context.beingTold,
                                     index: 0,
                                     value: value
                                 };
                                 return this.resolveNext(context);
                             }
                         };
-                        parser.setParent(body, withCmd);
-                        return withCmd;
+                        parser.setParent(body, tellCmd);
+                        return tellCmd;
                     }
                 })
 
@@ -3382,23 +3500,40 @@
                         // wait on event
                         if (tokens.matchToken("for")) {
                             tokens.matchToken("a"); // optional "a"
-                            var evt = _parser.requireElement("dotOrColonPath", tokens, "Expected event name");
+                            var events = [];
+                            do {
+                                events.push({
+                                    name: _parser.requireElement("dotOrColonPath", tokens, "Expected event name").evaluate(),
+                                    args: parseEventArgs(tokens),
+                                });
+                            } while (tokens.matchToken("or"))
+
                             if (tokens.matchToken("from")) {
                                 var on = parser.requireElement("expression", tokens);
                             }
+
                             // wait on event
                             var waitCmd = {
-                                event: evt,
+                                event: events,
                                 on: on,
-                                args: [evt, on],
+                                args: [on],
                                 op: function (context, eventName, on) {
                                     var target = on ? on : context.me;
                                     return new Promise(function (resolve) {
-                                        var listener = function (event) {
-                                        	context.result = event
-                                            resolve(runtime.findNext(waitCmd, context));
-                                        };
-                                        target.addEventListener(eventName, listener, {once: true});
+                                        var resolved = false;
+                                        runtime.forEach(events, function (eventInfo) {
+                                            var listener = function (event) {
+                                                context.result = event
+                                                runtime.forEach(eventInfo.args, function (arg) {
+                                                    context[arg.value] = event[arg.value] || (event.detail ? event.detail[arg.value] : null);
+                                                });
+                                                if (!resolved) {
+                                                    resolved = true;
+                                                    resolve(runtime.findNext(waitCmd, context));
+                                                }
+                                            };
+                                            target.addEventListener(eventInfo.name, listener, {once: true});
+                                        });
                                     });
                                 }
                             };
@@ -3481,30 +3616,42 @@
                     }
                 })
 
+                var parseReturnFunction = function(parser, runtime, tokens, returnAValue) {
+                    if (returnAValue) {
+                        var value = parser.requireElement("expression", tokens);
+                    }
+
+                    var returnCmd = {
+                        value: value,
+                        args: [value],
+                        op: function (context, value) {
+                            var resolve = context.meta.resolve;
+                            context.meta.returned = true;
+                            if (resolve) {
+                                if (value) {
+                                    resolve(value);
+                                } else {
+                                    resolve()
+                                }
+                            } else {
+                                context.meta.returned = true;
+                                context.meta.returnValue = value;
+                            }
+                            return runtime.HALT;
+                        }
+                    };
+                    return returnCmd
+                }
+
                 _parser.addCommand("return", function(parser, runtime, tokens) {
                     if (tokens.matchToken('return')) {
-                        var value = parser.requireElement("expression", tokens);
+                        return parseReturnFunction(parser, runtime, tokens, true);
+                    }
+                })
 
-                        var returnCmd = {
-                            value: value,
-                            args: [value],
-                            op: function (context, value) {
-                                var resolve = context.meta.resolve;
-                                context.meta.returned = true;
-                                if (resolve) {
-                                    if (value) {
-                                        resolve(value);
-                                    } else {
-                                        resolve()
-                                    }
-                                } else {
-                                    context.meta.returned = true;
-                                    context.meta.returnValue = value;
-                                }
-                                return runtime.HALT;
-                            }
-                        };
-                        return returnCmd
+                _parser.addCommand("exit", function(parser, runtime, tokens) {
+                    if (tokens.matchToken('exit')) {
+                        return parseReturnFunction(parser, runtime, tokens, false);
                     }
                 })
 
@@ -3630,6 +3777,7 @@
 								args: [obj, target],
 								op: function (ctx, obj, target) {
 									mergeObjects(target, obj);
+									return runtime.findNext(this, ctx);
 								}
 							}
 						}
@@ -3650,7 +3798,8 @@
                         if (symbolWrite) {
                             // root is null
                         } else {
-                            prop = target.prop.value;
+                            prop = target.prop ? target.prop.value : null;
+                            var attribute = target.attribute;
                             root = target.root;
                         }
 
@@ -3658,13 +3807,17 @@
                             target: target,
                             symbolWrite: symbolWrite,
                             value: value,
-                            args: [root, value],
-                            op: function (context, root, valueToSet) {
+                            args: [root, value, attribute],
+                            op: function (context, root, valueToSet, attribute) {
                                 if (symbolWrite) {
                                     context[target.name] = valueToSet;
                                 } else {
                                     runtime.forEach(root, function (elt) {
-                                        elt[prop] = valueToSet;
+                                        if (attribute) {
+                                            elt.setAttribute(attribute, valueToSet);
+                                        } else {
+                                            elt[prop] = valueToSet;
+                                        }
                                     })
                                 }
                                 return runtime.findNext(this, context);
@@ -3742,6 +3895,25 @@
                     }
 
                     var loop = parser.parseElement("commandList", tokens);
+                    if (loop && evt) {
+                        // if this is an event based loop, wait a tick at the end of the loop so that
+                        // events have a chance to trigger in the loop condition o_O)))
+                        var last = loop;
+                        while (last.next) {
+                            last = last.next;
+                        }
+                        var waitATick = {
+                            type: 'waitATick',
+                            op : function() {
+                                return new Promise(function (resolve) {
+                                    setTimeout(function () {
+                                        resolve(runtime.findNext(waitATick));
+                                    }, 0);
+                                });
+                            }
+                        };
+                        last.next = waitATick
+                    }
                     if (tokens.hasMore()) {
                         tokens.requireToken("end");
                     }
@@ -4550,39 +4722,45 @@
         }
     })
 
+    function parsePseudopossessiveTarget(parser, runtime, tokens) {
+    	if (tokens.matchToken('the') ||
+            tokens.matchToken('element') ||
+            tokens.matchToken('elements') ||
+            tokens.currentToken().type === "CLASS_REF" ||
+            tokens.currentToken().type === "ID_REF" ||
+            (tokens.currentToken().op && tokens.currentToken().value === "<")) {
+
+            parser.possessivesDisabled = true;
+            try {
+                var targets = parser.parseElement("expression", tokens);
+            } finally {
+                delete parser.possessivesDisabled;
+            }
+            // optional possessive
+            if (tokens.matchOpToken("'")) {
+                tokens.requireToken("s");
+            }
+        } else if (tokens.currentToken().type === "IDENTIFIER" && tokens.currentToken().value === 'its') {
+            var identifier = tokens.matchToken('its');
+            var targets =  {
+                type: "pseudopossessiveIts",
+                token: identifier,
+                name: identifier.value,
+                evaluate: function (context) {
+                    return runtime.resolveSymbol("it", context);
+                }
+            };
+        } else {
+            tokens.matchToken('my') || tokens.matchToken('me'); // consume optional 'my'
+            var targets = parser.parseElement("implicitMeTarget", tokens);
+        }
+		return targets;
+    }
+
     _hyperscript.addCommand("transition", function(parser, runtime, tokens) {
         if (tokens.matchToken("transition")) {
-            if (tokens.matchToken('the') ||
-                tokens.matchToken('element') ||
-                tokens.matchToken('elements') ||
-                tokens.currentToken().type === "CLASS_REF" ||
-                tokens.currentToken().type === "ID_REF" ||
-                (tokens.currentToken().op && tokens.currentToken().value === "<")) {
-                parser.possessivesDisabled = true;
-                try {
-                    var targets = parser.parseElement("expression", tokens);
-                } finally {
-                    delete parser.possessivesDisabled;
-                }
-                // optional possessive
-                if (tokens.matchOpToken("'")) {
-                    tokens.requireToken("s");
-                }
-            } else if (tokens.currentToken().type === "IDENTIFIER" && tokens.currentToken().value === 'its') {
-                var identifier = tokens.matchToken('its');
-                var targets =  {
-                    type: "transitionIts",
-                    token: identifier,
-                    name: identifier.value,
-                    evaluate: function (context) {
-                        return runtime.resolveSymbol("it", context);
-                    }
-                };
-            } else {
-                tokens.matchToken('my'); // consume optional 'my'
-                var targets = parser.parseElement("implicitMeTarget", tokens);
-            }
-
+        	var targets = parsePseudopossessiveTarget(parser, runtime, tokens);
+            
             var properties = [];
             var from = [];
             var to = [];
@@ -4679,8 +4857,56 @@
         }
     });
 
+	_hyperscript.addCommand('measure', function (parser, runtime, tokens) {
+		if (!tokens.matchToken('measure')) return;
+
+        var target = parsePseudopossessiveTarget(parser, runtime, tokens);
+
+		var propsToMeasure = [];
+		if (!parser.commandBoundary(tokens.currentToken())) do {
+			propsToMeasure.push(tokens.matchTokenType('IDENTIFIER').value);
+		} while (tokens.matchOpToken(','));
+
+		return {
+			properties: propsToMeasure,
+			args: [target],
+			op: function (ctx, target) {
+				if (0 in target) target = target[0]; // not measuring multiple elts
+				var rect = target.getBoundingClientRect();
+				var scroll = {
+					top: target.scrollTop, left: target.scrollLeft,
+					topMax: target.scrollTopMax, leftMax: target.scrollLeftMax,
+					height: target.scrollHeight, width: target.scrollWidth,
+				};
+				
+				ctx.result = {
+					x: rect.x, y: rect.y,
+					left: rect.left, top: rect.top,
+					right: rect.right, bottom: rect.bottom,
+					width: rect.width, height: rect.height,
+					bounds: rect,
+					
+					scrollLeft: scroll.left, scrollTop: scroll.top,
+					scrollLeftMax: scroll.leftMax, scrollTopMax: scroll.topMax,
+					scrollWidth: scroll.width, scrollHeight: scroll.height,
+					scroll: scroll
+				};
+
+				runtime.forEach(propsToMeasure, function(prop) {
+					if (prop in ctx.result) ctx[prop] = ctx.result[prop];
+					else throw "No such measurement as " + prop
+				})
+
+				return runtime.findNext(this, ctx);
+			}
+		}
+	})
+
     _hyperscript.addLeafExpression('closestExpr', function (parser, runtime, tokens) {
         if (tokens.matchToken('closest')) {
+            if (tokens.matchToken('parent')) {
+                var parentSearch = true;
+            }
             var expr = parser.parseElement("targetExpression", tokens);
             if (expr.css == null) {
                 parser.raiseParseError(tokens, "Expected a CSS expression");
@@ -4691,16 +4917,107 @@
                 var to = parser.parseElement("implicitMeTarget", tokens);
             }
             return {
+                type: 'closestExpr',
+                parentSearch: parentSearch,
                 expr: expr,
                 to: to,
                 args: [to],
                 op: function (ctx, to) {
-                    return to == null ? null : to.closest(expr.css);
+                    if (to == null) {
+                        return null;
+                    } else {
+                        if (parentSearch) {
+                            return to.parentElement ? to.parentElement.closest(expr.css) : null;
+                        } else {
+                            return to.closest(expr.css);
+                        }
+                    }
                 },
                 evaluate: function (context) {
                     return runtime.unifiedEval(this, context);
                 }
             }
+        }
+    });
+
+    _hyperscript.addCommand('go', function (parser, runtime, tokens) {
+        if (tokens.matchToken('go')) {
+            if (tokens.matchToken('back')) {
+                var back = true;
+            } else {
+                tokens.matchToken('to');
+                if (tokens.matchToken('url')) {
+                    var target = parser.requireElement("stringLike", tokens);
+                    var url = true;
+                } else {
+                    var verticalPosition = tokens.matchAnyToken('top', 'bottom', 'middle');
+                    var horizontalPosition = tokens.matchAnyToken('left', 'center', 'right');
+                    if (verticalPosition || horizontalPosition) {
+                        tokens.requireToken("of");
+                    }
+                    var target = parser.requireElement("expression", tokens);
+                    var smoothness = tokens.matchAnyToken('smoothly', 'instantly');
+
+                    var scrollOptions = {}
+                    if (verticalPosition) {
+                        if (verticalPosition.value === "top") {
+                            scrollOptions.block = "start";
+                        } else if (verticalPosition.value === "bottom") {
+                            scrollOptions.block = "end";
+                        } else if (verticalPosition.value === "middle") {
+                            scrollOptions.block = "center";
+                        }
+                    }
+
+                    if (horizontalPosition) {
+                        if (horizontalPosition.value === "left") {
+                            scrollOptions.inline = "start";
+                        } else if (horizontalPosition.value === "center") {
+                            scrollOptions.inline = "center";
+                        } else if (horizontalPosition.value === "right") {
+                            scrollOptions.inline = "end";
+                        }
+                    }
+
+                    if (smoothness) {
+                        if (smoothness.value === "smoothly") {
+                            scrollOptions.behavior = "smooth";
+                        } else if (smoothness.value === "instantly") {
+                            scrollOptions.behavior = "instant";
+                        }
+                    }
+
+                }
+                if (tokens.matchToken('with')) {
+                    tokens.requireToken('new');
+                    tokens.requireToken('window');
+                    var newWindow = true;
+                }
+            }
+
+            var goCmd = {
+                target: target,
+                args: [target],
+                op: function (ctx, to) {
+                    if(back){
+                        window.history.back();
+                    } else if (url) {
+                        if (to) {
+                            if (to.indexOf("#") === 0 && !newWindow) {
+                                window.location.href = to;
+                            } else {
+                                window.open(to, newWindow ? "_blank" : null);
+                            }
+                        }
+                    } else {
+                        runtime.forEach(to, function (target) {
+                            target.scrollIntoView(scrollOptions);
+                        });
+                    }
+                    return runtime.findNext(goCmd)
+                }
+            };
+            return goCmd;
         }
     });
 
@@ -4800,6 +5117,38 @@
         }
     }
 
+	_hyperscript.config.conversions["HTML"] = function(value) {
+
+		var toHTML = /** @returns {string}*/ function(/** @type any*/ value) {
+
+			if (value instanceof Array) {
+				return value.map(function(item){return toHTML(item)}).join("")
+			}
+
+			if (value instanceof HTMLElement) {
+				return value.outerHTML
+			}
+
+			if (value instanceof NodeList) {
+				var result = ""
+                for (var i = 0; i < value.length; i++) {
+                    var node = value[i];
+                    if (node instanceof HTMLElement) {
+                        result += node.outerHTML;
+                    }
+                }
+				return result
+			}
+
+			if (value.toString) {
+				return value.toString()
+			}
+	
+			return ""
+		};
+
+		return toHTML(value);
+	}
 })()
 
 ///=========================================================================
@@ -4945,8 +5294,8 @@
             return {
                 name: workerName,
                 worker: worker,
-                install: function () {
-                    runtime.assignToNamespace(nameSpace, workerName, stubs)
+                install: function (target) {
+                    runtime.assignToNamespace(target, nameSpace, workerName, stubs)
                 }
             };
         }

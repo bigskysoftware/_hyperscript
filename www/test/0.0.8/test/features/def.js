@@ -96,6 +96,17 @@ describe("the def feature", function() {
         delete window.foo;
     })
 
+    it("can exit", function(){
+        make(
+            "<script type='text/hyperscript'>" +
+            "def foo() " +
+            "  exit " +
+            "end" +
+            "</script>");
+        should.equal(foo(), null);
+        delete window.foo;
+    })
+
     it("can return a value asynchronously", function(done){
         var script = make(
             "<script type='text/hyperscript'>" +
@@ -268,6 +279,32 @@ describe("the def feature", function() {
             delete window.foo;
             done();
         });
+    })
+
+    it("can install a function on an element and use in children w/ no leak", function(){
+        var div = make(
+            "<div _='def func() put 42 into #d3'>" +
+            "<div id='d1' _='on click call func()'></div><div id='d2'></div><div id='d3'></div> </div>");
+
+        byId('d1').click();
+        byId("d3").innerText.should.equal("42")
+    })
+
+    it("can install a function on an element and use in children w/ return value", function(){
+        var div = make(
+            "<div _='def func() return 42'>" +
+            "<div id='d1' _='on click put func() into me'></div><div id='d2'></div><div id='d3'></div> </div>");
+
+        byId('d1').click();
+        byId("d1").innerText.should.equal("42")
+    })
+
+    it("can install a function on an element and use me symbol correctly", function(){
+        var div = make(
+            "<div _='def func() put 42 into me'>" +
+            "<div id='d1' _='on click call func()'></div><div id='d2'></div><div id='d3'></div> </div>");
+        byId('d1').click();
+        div.innerText.should.equal("42")
     })
 
 

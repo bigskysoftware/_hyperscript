@@ -141,8 +141,8 @@
             return {
                 name: workerName,
                 worker: worker,
-                install: function () {
-                    runtime.assignToNamespace(nameSpace, workerName, stubs)
+                install: function (target) {
+                    runtime.assignToNamespace(target, nameSpace, workerName, stubs)
                 }
             };
         }
