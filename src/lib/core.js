@@ -620,7 +620,7 @@
                         while (isNumeric(currentChar())) {
                             value += consumeChar();
                         }
-                        if (currentChar() === ".") {
+                        if ((currentChar() === ".") && isNumeric(nextChar())) {
                             value += consumeChar();
                         }
                         while (isNumeric(currentChar())) {
@@ -2453,7 +2453,7 @@
                             if (tokens.matchOpToken("..")) {
                                 andAfter = true
                                 var current = tokens.currentToken()
-                                if ((current.op != true) || (current.value != "]")) {
+                                if (current.type !== "R_BRACKET") {
                                     secondIndex = parser.parseElement("expression", tokens)
                                 }
                             }
