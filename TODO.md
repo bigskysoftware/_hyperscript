@@ -1,14 +1,15 @@
 ## TODOs
 
 ### In Progress for 0.0.8
-* Carson - attribute expression
+* Carson - `go` to go to a URL or element in the dom (`scrollToVisible`?)
+* Deniz - template tag support
+* Ben - range operators for strings and arrays `str[..10] str[10..] str[2..10]`
 
 ### Language Features
 * change array literals to `Array(1, 2, 3)`
   * support ` Set(1, 2, 3)` and other data types?
   * pluggable?
   * regular expressions `RegEx('/foo/')`
-* range operators for strings and arrays `str[..10] str[10..] str[2..10]`
 *  Support a `timeout` modifier for commands like `fetch`, `call`, `wait for` etc.
   * deep project involving dealing w/ async commands not executing if they time out during execution
 * `merge/merge into` - Merge objects with one another
@@ -17,8 +18,6 @@
 * Full `sed` command for string manipulation?
 * `merge/merge into` - Merge objects with one another
 * `reply` & `wait for response` in event handlers
-* `tell` to replace `with`?  (More orthodox HyperTalk)
-* `go` to go to a URL or element in the dom (`scrollToVisible`?)
 * Support parenthesizes expressions in pseudopossessives: `transition (the div's parent's parent)'s opacity to 1`
 * Event model
 * functions should be able to be marked `sync` to make only one execution at a time occur, in serial fashion
