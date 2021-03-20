@@ -3517,7 +3517,7 @@
                                 event: events,
                                 on: on,
                                 args: [on],
-                                op: function (context, eventName, on) {
+                                op: function (context, on) {
                                     var target = on ? on : context.me;
                                     return new Promise(function (resolve) {
                                         var resolved = false;

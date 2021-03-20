@@ -67,11 +67,11 @@ describe("the wait command", function() {
     })
 
     it("can wait on event on another element", function(done){
+        var div2 = make("<div id='d2'></div>");
         var div = make("<div _='on click " +
             "                             add .foo then " +
             "                             wait for foo from #d2 then " +
             "                             add .bar'></div>");
-        var div2 = make("<div id='d2'></div>");
 
         div.classList.contains("foo").should.equal(false);
         div.classList.contains("bar").should.equal(false);
