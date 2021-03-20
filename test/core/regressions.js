@@ -44,4 +44,14 @@ describe("_hyperscript regressions", function() {
         should.equal(div.parentNode, null);
     })
 
+    it("me and it is properly set when responding to events", function(){
+        var div2 = make("<div id='name'></div>");
+        var div = make("<div _='on click from #name set window.me to me set window.it to it'></div>");
+        div2.click();
+        window.me.should.equal(div);
+        window.it.should.equal(div2);
+        delete window.me;
+        delete window.it;
+    })
+
 });

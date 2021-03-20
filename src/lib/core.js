@@ -3041,6 +3041,9 @@
                                             if (eventSpec.elsewhere && elt.contains(evt.target)) {
                                                 return
                                             }
+                                            if (eventSpec.from) {
+                                                ctx.result = target;
+                                            }
 
                                             // establish context
                                             runtime.forEach(eventSpec.args, function (arg) {
