@@ -1,20 +1,20 @@
 ## TODOs
 
 ### In Progress for 0.0.8
-* Carson: `tell` command to replace `with` (different semantics, it becomes the default `me` but not the actual me)
+* Carson: change array literals to `Array(1, 2, 3)`
+  * support ` Set(1, 2, 3)` and other data types?
+  * pluggable?
+  * regular expressions `RegEx('/foo/')`
+
 
 ### Language Features
 * range operators for strings and arrays `str[..10] str[10..] str[2..10]`
-* change array literals to `Array(1, 2, 3)`
-  * support ` Set(1, 2, 3)` and other data types?
-  * pluggable?
 *  Support a `timeout` modifier for commands like `fetch`, `call`, `wait for` etc.
   * deep project involving dealing w/ async commands not executing if they time out during execution
 * `merge/merge into` - Merge objects with one another
 * `delete` command
 * Better DOM manipulation tools? (research)
-* regular expressions `regexp /foo/` (so it doesn't conflict w/ the hyperplane)
-  * full `sed` command?
+* Full `sed` command for string manipulation?
 * `merge/merge into` - Merge objects with one another
 * `reply` & `wait for response` in event handlers
 * `tell` to replace `with`?  (More orthodox HyperTalk)
