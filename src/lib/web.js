@@ -958,4 +958,35 @@
         }
     }
 
+	_hyperscript.config.conversions["HTML"] = function(value) {
+
+		var toHTML = /** @returns {string}*/ function(/** @type any*/ value) {
+
+			if (value instanceof Array) {
+				return value.map((item) => toHTML(item)).join("")
+			}
+
+			if (value instanceof HTMLElement) {
+				return value.outerHTML
+			}
+
+			if (value instanceof NodeList) {
+				var result = ""
+				for (var node of value) {
+					if (node instanceof HTMLElement) {
+						result += node.outerHTML;
+					}
+				}
+				return result
+			}
+
+			if (value.toString) {
+				return value.toString()
+			}
+	
+			return ""
+		};
+
+		return toHTML(value);
+	}
 })()

@@ -196,6 +196,55 @@ describe("as operator", function() {
         result.gender[2].should.equal("Other");
     });
 
+    it("converts an element into HTML", function () {
+        var d1 = document.createElement("div");
+        d1.id = "myDiv";
+        d1.innerText = "With Text";
+
+        var result = evalHyperScript("d as HTML", {d: d1});
+        result.should.equal(`<div id="myDiv">With Text</div>`);
+    })
+
+    it("converts a NodeList into HTML", function () {
+        var fragment = document.createDocumentFragment()
+
+        {
+            var d = document.createElement("div");
+            d.id = "first";
+            d.innerText = "With Text";
+            fragment.appendChild(d)
+        }
+
+        {
+            var d = document.createElement("span");
+            d.id = "second";
+            fragment.appendChild(d)
+        }
+
+        {
+            var d = document.createElement("i");
+            d.id = "third";
+            fragment.appendChild(d)
+        }
+
+        var result = evalHyperScript("nodeList as HTML", {nodeList: fragment.childNodes});
+        result.should.equal(`<div id="first">With Text</div><span id="second"></span><i id="third"></i>`);
+    })
+
+    it("converts an array into HTML", function () {
+        var d1 = ["this-", "is-", "html"]
+
+        var result = evalHyperScript("d as HTML", {d: d1});
+        result.should.equal(`this-is-html`);
+    })
+
+    it("converts numbers things 'HTML'", function () {
+        var value = 123
+
+        var result = evalHyperScript("value as HTML", {value: value});
+        result.should.equal("123");
+    })
+
     it("can accept custom comversions", function () {
         _hyperscript.config.conversions["Foo"] = function(val){
             return "foo" + val;
