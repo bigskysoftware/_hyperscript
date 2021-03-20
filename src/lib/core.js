@@ -2796,11 +2796,12 @@
 
                 _parser.addGrammarElement("targetExpression", function(parser, runtime, tokens) {
                     tokens.matchToken("the"); // optional the
-                    // TODO put parser into mode where [ is interpreted as a property ref
+
+                    // TODO obviously we need to generalize this as a left hand side / targetable concept
                     var expr = parser.parseElement("primaryExpression", tokens);
                     if (expr.type === "symbol" || expr.type === "idRef" || expr.type === "inExpression" ||
                         expr.type === "queryRef" || expr.type === "classRef" || expr.type === "ofExpression" ||
-                        expr.type === "propertyAccess") {
+                        expr.type === "propertyAccess"|| expr.type === "closestExpr") {
                         return expr;
                     } else {
                         _parser.raiseParseError(tokens, "A target expression must be writable");
@@ -3031,7 +3032,7 @@
                                     if (eventSpec.elsewhere) {
                                         targets = [document];
                                     } else if (eventSpec.from) {
-                                        targets = eventSpec.from.evaluate({});
+                                        targets = eventSpec.from.evaluate({me: elt});
                                     } else {
                                         targets = [elt];
                                     }

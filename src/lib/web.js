@@ -745,6 +745,9 @@
 
     _hyperscript.addLeafExpression('closestExpr', function (parser, runtime, tokens) {
         if (tokens.matchToken('closest')) {
+            if (tokens.matchToken('parent')) {
+                var parentSearch = true;
+            }
             var expr = parser.parseElement("targetExpression", tokens);
             if (expr.css == null) {
                 parser.raiseParseError(tokens, "Expected a CSS expression");
@@ -755,11 +758,21 @@
                 var to = parser.parseElement("implicitMeTarget", tokens);
             }
             return {
+                type: 'closestExpr',
+                parentSearch: parentSearch,
                 expr: expr,
                 to: to,
                 args: [to],
                 op: function (ctx, to) {
-                    return to == null ? null : to.closest(expr.css);
+                    if (to == null) {
+                        return null;
+                    } else {
+                        if (parentSearch) {
+                            return to.parentElement ? to.parentElement.closest(expr.css) : null;
+                        } else {
+                            return to.closest(expr.css);
+                        }
+                    }
                 },
                 evaluate: function (context) {
                     return runtime.unifiedEval(this, context);

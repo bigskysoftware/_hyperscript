@@ -54,4 +54,13 @@ describe("_hyperscript regressions", function() {
         delete window.it;
     })
 
+    it("me symbol works in from expressions", function(){
+        var div = make("<div>" +
+            "<div id='d1' _='on click from closest parent <div/> put \"Foo\" into me'></div>" +
+            "</div>");
+        d1.innerHTML.should.equal("");
+        div.click();
+        d1.innerHTML.should.equal("Foo");
+    })
+
 });
