@@ -147,15 +147,15 @@
 
 	<header>
 		<h2 class="titlebar" _="
-		on mousedown
-			set rect to me.getBoundingClientRect()
-			set xoff to event.clientX - rect.x
-			set yoff to event.clientY - rect.y
+		on mousedown(clientX, clientY)
+			measure my x, y
+			set xoff to clientX - x
+			set yoff to clientY - y
 			repeat until event mouseup from document
-				wait for mousemove from document
+				wait for mousemove(clientX, clientY) from document
 				add {
-					left: (its.clientX - xoff) + 'px',
-					top:  (its.clientY - yoff) + 'px'
+					left: \`\${clientX - xoff}px\`,
+					top:  \`\${clientY - yoff}px\`
 				} to hdbUI
 			end
 		">HDB///_hyperscript/debugger</h2>
