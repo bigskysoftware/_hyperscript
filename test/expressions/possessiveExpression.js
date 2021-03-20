@@ -73,5 +73,27 @@ describe("possessiveExpression", function () {
         result.should.deep.equal(["inline"]);
     });
 
+    it("can access basic attribute", function () {
+        var div = make("<div data-foo='bar'></div>");
+        var result = evalHyperScript("foo's attribute data-foo", {foo:div});
+        result.should.equal("bar");
+    });
+
+    it("can access multiple basic attributes", function () {
+        make("<div class='c1' data-foo='bar'></div><div class='c1' data-foo='bar'></div>");
+        var result = evalHyperScript(".c1's attribute data-foo");
+        result.should.deep.equal(["bar", "bar"]);
+    });
+
+    it("can set basic attributes", function () {
+        var div = make("<div data-foo='bar'></div>");
+        var result = evalHyperScript("set foo's attribute data-foo to 'blah'", {foo:div});
+        div.getAttribute("data-foo").should.equal('blah');
+    });
+
+    it("can set multiple basic attributes", function () {
+        make("<div class='c1' data-foo='bar'></div><div class='c1' data-foo='bar'></div>");
+        var result = evalHyperScript("set .c1's attribute data-foo to 'blah'");
+    });
 
 });

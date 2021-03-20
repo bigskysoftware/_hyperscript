@@ -1688,31 +1688,23 @@
                  * @param {string} property 
                  * @returns any
                  */
-                function resolveProperty(root, property) {
+                function resolveProperty(root, property, attribute) {
                     if (root != null) {
-                        var val = root[property];
+                        var val = attribute && root.getAttribute ? root.getAttribute(property) : root[property];
                         if (typeof val !== 'undefined') {
                             return val;
                         } else {
                             if (isArrayLike(root)) {
-                                if (property === "first") {
-                                    return root[0];
-                                } else if (property === "last") {
-                                    return root[root.length - 1];
-                                } else if (property === "random") {
-                                    return root[Math.floor(root.length * Math.random())]
-                                } else {
-                                    // flat map
-                                    var result = [];
-                                    for (var i = 0; i < root.length; i++) {
-                                        var component = root[i];
-                                        var componentValue = component[property];
-                                        if (componentValue) {
-                                            result.push(componentValue);
-                                        }
+                                // flat map
+                                var result = [];
+                                for (var i = 0; i < root.length; i++) {
+                                    var component = root[i];
+                                    var componentValue = attribute ? component.getAttribute(property) : component[property];
+                                    if (componentValue) {
+                                        result.push(componentValue);
                                     }
-                                    return result;
                                 }
+                                return result;
                             }
                         }
                     }
@@ -2305,14 +2297,23 @@
                         if (apostrophe) {
                             tokens.requireToken("s");
                         }
-                        var prop = tokens.requireTokenType("IDENTIFIER");
+                        if (tokens.matchToken("attribute")) {
+                            var attribute = parser.requireElement('stringLike', tokens);
+                        } else {
+                            var prop = tokens.requireTokenType("IDENTIFIER");
+                        }
                         var propertyAccess = {
                             type: "possessive",
                             root: root,
+                            attribute: attribute,
                             prop: prop,
-                            args: [root],
-                            op:function(context, rootVal){
-                                var value = runtime.resolveProperty(rootVal, prop.value);
+                            args: [root, attribute],
+                            op:function(context, rootVal, attribute){
+                                if(attribute){
+                                    var value = runtime.resolveProperty(rootVal, attribute, true);
+                                } else {
+                                    var value = runtime.resolveProperty(rootVal, prop.value, false);
+                                }
                                 return value;
                             },
                             evaluate: function (context) {
@@ -2801,7 +2802,8 @@
                     var expr = parser.parseElement("primaryExpression", tokens);
                     if (expr.type === "symbol" || expr.type === "idRef" || expr.type === "inExpression" ||
                         expr.type === "queryRef" || expr.type === "classRef" || expr.type === "ofExpression" ||
-                        expr.type === "propertyAccess"|| expr.type === "closestExpr") {
+                        expr.type === "propertyAccess" || expr.type === "closestExpr" ||
+                        expr.type === "possessive") {
                         return expr;
                     } else {
                         _parser.raiseParseError(tokens, "A target expression must be writable");
@@ -3753,7 +3755,8 @@
                         if (symbolWrite) {
                             // root is null
                         } else {
-                            prop = target.prop.value;
+                            prop = target.prop ? target.prop.value : null;
+                            var attribute = target.attribute;
                             root = target.root;
                         }
 
@@ -3761,13 +3764,17 @@
                             target: target,
                             symbolWrite: symbolWrite,
                             value: value,
-                            args: [root, value],
-                            op: function (context, root, valueToSet) {
+                            args: [root, value, attribute],
+                            op: function (context, root, valueToSet, attribute) {
                                 if (symbolWrite) {
                                     context[target.name] = valueToSet;
                                 } else {
                                     runtime.forEach(root, function (elt) {
-                                        elt[prop] = valueToSet;
+                                        if (attribute) {
+                                            elt.setAttribute(attribute, valueToSet);
+                                        } else {
+                                            elt[prop] = valueToSet;
+                                        }
                                     })
                                 }
                                 return runtime.findNext(this, context);
