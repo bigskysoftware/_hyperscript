@@ -3550,30 +3550,42 @@
                     }
                 })
 
+                var parseReturnFunction = function(parser, runtime, tokens, returnAValue) {
+                    if (returnAValue) {
+                        var value = parser.requireElement("expression", tokens);
+                    }
+
+                    var returnCmd = {
+                        value: value,
+                        args: [value],
+                        op: function (context, value) {
+                            var resolve = context.meta.resolve;
+                            context.meta.returned = true;
+                            if (resolve) {
+                                if (value) {
+                                    resolve(value);
+                                } else {
+                                    resolve()
+                                }
+                            } else {
+                                context.meta.returned = true;
+                                context.meta.returnValue = value;
+                            }
+                            return runtime.HALT;
+                        }
+                    };
+                    return returnCmd
+                }
+
                 _parser.addCommand("return", function(parser, runtime, tokens) {
                     if (tokens.matchToken('return')) {
-                        var value = parser.requireElement("expression", tokens);
+                        return parseReturnFunction(parser, runtime, tokens, true);
+                    }
+                })
 
-                        var returnCmd = {
-                            value: value,
-                            args: [value],
-                            op: function (context, value) {
-                                var resolve = context.meta.resolve;
-                                context.meta.returned = true;
-                                if (resolve) {
-                                    if (value) {
-                                        resolve(value);
-                                    } else {
-                                        resolve()
-                                    }
-                                } else {
-                                    context.meta.returned = true;
-                                    context.meta.returnValue = value;
-                                }
-                                return runtime.HALT;
-                            }
-                        };
-                        return returnCmd
+                _parser.addCommand("exit", function(parser, runtime, tokens) {
+                    if (tokens.matchToken('exit')) {
+                        return parseReturnFunction(parser, runtime, tokens, false);
                     }
                 })
 

@@ -96,6 +96,17 @@ describe("the def feature", function() {
         delete window.foo;
     })
 
+    it("can exit", function(){
+        make(
+            "<script type='text/hyperscript'>" +
+            "def foo() " +
+            "  exit " +
+            "end" +
+            "</script>");
+        should.equal(foo(), null);
+        delete window.foo;
+    })
+
     it("can return a value asynchronously", function(done){
         var script = make(
             "<script type='text/hyperscript'>" +
