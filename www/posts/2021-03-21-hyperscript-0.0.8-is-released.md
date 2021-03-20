@@ -1,13 +1,13 @@
 ---
 layout: layout.njk
 tags: post
-title: hyperscript 0.0.6 has been released!
-date: 2021-03-16
+title: hyperscript 0.0.8 has been released!
+date: 2021-03-21
 ---
 
-## hyperscript 0.0.6 Release
+## hyperscript 0.0.8 Release
 
-I'm pleased to announce the [0.0.6 release](https://unpkg.com/browse/hyperscript.org@0.0.6/) of hyperscript.
+I'm pleased to announce the [0.0.8 release](https://unpkg.com/browse/hyperscript.org@0.0.8/) of hyperscript.
 
 #### Changes
 
