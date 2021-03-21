@@ -27,7 +27,7 @@ hyperscript features include:
 * First class [web workers](/docs#workers)
 * An [async-transparent](/docs#async) runtime, which removes the distinction between synchronous and asynchronous code
 * A [pluggable & extendable](/docs/#extending) parser & grammar
-* A [debugger](/hdb/) to step through hyperscript code
+* A [debugger](/docs#debugging) to step through hyperscript code
 
 </div>
 
