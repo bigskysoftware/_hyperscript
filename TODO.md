@@ -1,27 +1,22 @@
 ## TODOs
 
 ### In Progress for 0.0.8
-* Carson: fix string templates
-* Carson: `tell` command to replace `with` (different semantics, it becomes the default `me` but not the actual me)
-* Carson: `is a <type>` type check (see and clean up `postfixExpression`)
-* Carson: `exit` command to exit current function/event handler with no returned value
+* Deniz - template tag support
 
 ### Language Features
-* range operators for strings and arrays `str[..10] str[10..] str[2..10]`
 * change array literals to `Array(1, 2, 3)`
   * support ` Set(1, 2, 3)` and other data types?
   * pluggable?
+  * regular expressions `RegEx('/foo/')`
 *  Support a `timeout` modifier for commands like `fetch`, `call`, `wait for` etc.
   * deep project involving dealing w/ async commands not executing if they time out during execution
 * `merge/merge into` - Merge objects with one another
 * `delete` command
+* `play` command
 * Better DOM manipulation tools? (research)
-* regular expressions `regexp /foo/` (so it doesn't conflict w/ the hyperplane)
-  * full `sed` command?
+* Full `sed` command for string manipulation?
 * `merge/merge into` - Merge objects with one another
 * `reply` & `wait for response` in event handlers
-* `tell` to replace `with`?  (More orthodox HyperTalk)
-* `go` to go to a URL or element in the dom (`scrollToVisible`?)
 * Support parenthesizes expressions in pseudopossessives: `transition (the div's parent's parent)'s opacity to 1`
 * Event model
 * functions should be able to be marked `sync` to make only one execution at a time occur, in serial fashion

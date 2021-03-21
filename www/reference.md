@@ -41,7 +41,7 @@ title: ///_hyperscript
 | [transition](/commands/transition) | Transitions properties on an element | `transition opacity to 0`
 | [trigger](/commands/trigger) | triggers an event on the current element | `trigger customEvent`
 | [wait](/commands/wait) | Waits for an event or a given amount of time before resuming the command list | `wait 2s then remove me`
-| [with](/commands/with) | Temporarily sets a new `me` value | `with <p/> add .highlight`
+| [tell](/commands/tell) | Temporarily sets a new implicit target value | `with <p/> add .highlight`
 
 ## <a href='expressions'></a>[Expressions](#expressions)
 

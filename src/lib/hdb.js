@@ -152,10 +152,10 @@
 			set xoff to clientX - x
 			set yoff to clientY - y
 			repeat until event mouseup from document
-				wait for mousemove(clientX, clientY) from document
+				wait for mousemove or mouseup from document
 				add {
-					left: \`\${clientX - xoff}px\`,
-					top:  \`\${clientY - yoff}px\`
+					left: \`\${its clientX - xoff}px\`,
+					top:  \`\${its clientY - yoff}px\`
 				} to hdbUI
 			end
 		">HDB///_hyperscript/debugger</h2>

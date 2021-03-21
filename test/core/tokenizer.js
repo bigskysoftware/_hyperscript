@@ -271,4 +271,42 @@ describe("the _hyperscript tokenizer", function () {
     });
 
 
+    it ("handles template boostrap properly", function() {
+        var lexer = _hyperscript.internals.lexer;
+        var tokenize = lexer.tokenize("\"", true);
+        tokenize.token(0).value.should.equal("\"");
+
+        var tokenize = lexer.tokenize("\"$", true);
+        tokenize.token(0).value.should.equal("\"");
+        tokenize.token(1).value.should.equal("$");
+
+        var tokenize = lexer.tokenize("\"${", true);
+        tokenize.token(0).value.should.equal("\"");
+        tokenize.token(1).value.should.equal("$");
+        tokenize.token(2).value.should.equal("{");
+
+        var tokenize = lexer.tokenize("\"${\"asdf\"", true);
+        tokenize.token(0).value.should.equal("\"");
+        tokenize.token(1).value.should.equal("$");
+        tokenize.token(2).value.should.equal("{");
+        tokenize.token(3).value.should.equal("asdf");
+
+        var tokenize = lexer.tokenize("\"${\"asdf\"}\"", true);
+        tokenize.token(0).value.should.equal("\"");
+        tokenize.token(1).value.should.equal("$");
+        tokenize.token(2).value.should.equal("{");
+        tokenize.token(3).value.should.equal("asdf");
+        tokenize.token(4).value.should.equal("}");
+        tokenize.token(5).value.should.equal("\"");
+    });
+
+
+    it ("handles $ in template properly", function() {
+        var lexer = _hyperscript.internals.lexer;
+        var tokenize = lexer.tokenize("\"", true);
+        tokenize.token(0).value.should.equal("\"");
+    });
+
+
+
 });

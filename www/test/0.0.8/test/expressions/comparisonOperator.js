@@ -293,4 +293,26 @@ describe("the comparisonOperator expression", function () {
         var result = evalHyperScript("[1,2,3] is not empty")
         result.should.equal(true);
     });
+
+    it("is a works", function () {
+        var result = evalHyperScript("null is a String")
+        result.should.equal(true);
+
+        var result = evalHyperScript("null is a String!")
+        result.should.equal(false);
+
+        var result = evalHyperScript("'' is a String!")
+        result.should.equal(true);
+    });
+
+    it("is not a works", function () {
+        var result = evalHyperScript("null is not a String")
+        result.should.equal(false);
+
+        var result = evalHyperScript("null is not a String!")
+        result.should.equal(true);
+
+        var result = evalHyperScript("'' is not a String!")
+        result.should.equal(false);
+    });
 });

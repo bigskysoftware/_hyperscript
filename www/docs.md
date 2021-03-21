@@ -1183,7 +1183,7 @@ Debug: <input id="debug-on" type='checkbox' checked="checked">
              if #debug-on matches <:checked/> 
                breakpoint
              end
-             with #debug-demo
+             tell #debug-demo
                transition 'background-color' to red
                transition 'background-color' to green
                transition 'background-color' to blue
@@ -1201,7 +1201,7 @@ Debug: <input id="debug-on" type='checkbox' checked="checked">
             if #debug-on matches <:checked/> 
               breakpoint
             end
-            with #debug-demo
+            tell #debug-demo
               transition 'background-color' to red
               transition 'background-color' to green
               transition 'background-color' to blue

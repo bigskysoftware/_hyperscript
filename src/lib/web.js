@@ -745,6 +745,9 @@
 
     _hyperscript.addLeafExpression('closestExpr', function (parser, runtime, tokens) {
         if (tokens.matchToken('closest')) {
+            if (tokens.matchToken('parent')) {
+                var parentSearch = true;
+            }
             var expr = parser.parseElement("targetExpression", tokens);
             if (expr.css == null) {
                 parser.raiseParseError(tokens, "Expected a CSS expression");
@@ -755,16 +758,107 @@
                 var to = parser.parseElement("implicitMeTarget", tokens);
             }
             return {
+                type: 'closestExpr',
+                parentSearch: parentSearch,
                 expr: expr,
                 to: to,
                 args: [to],
                 op: function (ctx, to) {
-                    return to == null ? null : to.closest(expr.css);
+                    if (to == null) {
+                        return null;
+                    } else {
+                        if (parentSearch) {
+                            return to.parentElement ? to.parentElement.closest(expr.css) : null;
+                        } else {
+                            return to.closest(expr.css);
+                        }
+                    }
                 },
                 evaluate: function (context) {
                     return runtime.unifiedEval(this, context);
                 }
             }
+        }
+    });
+
+    _hyperscript.addCommand('go', function (parser, runtime, tokens) {
+        if (tokens.matchToken('go')) {
+            if (tokens.matchToken('back')) {
+                var back = true;
+            } else {
+                tokens.matchToken('to');
+                if (tokens.matchToken('url')) {
+                    var target = parser.requireElement("stringLike", tokens);
+                    var url = true;
+                } else {
+                    var verticalPosition = tokens.matchAnyToken('top', 'bottom', 'middle');
+                    var horizontalPosition = tokens.matchAnyToken('left', 'center', 'right');
+                    if (verticalPosition || horizontalPosition) {
+                        tokens.requireToken("of");
+                    }
+                    var target = parser.requireElement("expression", tokens);
+                    var smoothness = tokens.matchAnyToken('smoothly', 'instantly');
+
+                    var scrollOptions = {}
+                    if (verticalPosition) {
+                        if (verticalPosition.value === "top") {
+                            scrollOptions.block = "start";
+                        } else if (verticalPosition.value === "bottom") {
+                            scrollOptions.block = "end";
+                        } else if (verticalPosition.value === "middle") {
+                            scrollOptions.block = "center";
+                        }
+                    }
+
+                    if (horizontalPosition) {
+                        if (horizontalPosition.value === "left") {
+                            scrollOptions.inline = "start";
+                        } else if (horizontalPosition.value === "center") {
+                            scrollOptions.inline = "center";
+                        } else if (horizontalPosition.value === "right") {
+                            scrollOptions.inline = "end";
+                        }
+                    }
+
+                    if (smoothness) {
+                        if (smoothness.value === "smoothly") {
+                            scrollOptions.behavior = "smooth";
+                        } else if (smoothness.value === "instantly") {
+                            scrollOptions.behavior = "instant";
+                        }
+                    }
+
+                }
+                if (tokens.matchToken('with')) {
+                    tokens.requireToken('new');
+                    tokens.requireToken('window');
+                    var newWindow = true;
+                }
+            }
+
+            var goCmd = {
+                target: target,
+                args: [target],
+                op: function (ctx, to) {
+                    if(back){
+                        window.history.back();
+                    } else if (url) {
+                        if (to) {
+                            if (to.indexOf("#") === 0 && !newWindow) {
+                                window.location.href = to;
+                            } else {
+                                window.open(to, newWindow ? "_blank" : null);
+                            }
+                        }
+                    } else {
+                        runtime.forEach(to, function (target) {
+                            target.scrollIntoView(scrollOptions);
+                        });
+                    }
+                    return runtime.findNext(goCmd)
+                }
+            };
+            return goCmd;
         }
     });
 
@@ -864,4 +958,36 @@
         }
     }
 
+	_hyperscript.config.conversions["HTML"] = function(value) {
+
+		var toHTML = /** @returns {string}*/ function(/** @type any*/ value) {
+
+			if (value instanceof Array) {
+				return value.map(function(item){return toHTML(item)}).join("")
+			}
+
+			if (value instanceof HTMLElement) {
+				return value.outerHTML
+			}
+
+			if (value instanceof NodeList) {
+				var result = ""
+                for (var i = 0; i < value.length; i++) {
+                    var node = value[i];
+                    if (node instanceof HTMLElement) {
+                        result += node.outerHTML;
+                    }
+                }
+				return result
+			}
+
+			if (value.toString) {
+				return value.toString()
+			}
+	
+			return ""
+		};
+
+		return toHTML(value);
+	}
 })()

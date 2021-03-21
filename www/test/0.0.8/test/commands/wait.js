@@ -54,12 +54,24 @@ describe("the wait command", function() {
         }, 10);
     })
 
+    it("can destructure properties in a wait", function(done){
+        var div = make("<div _='on click wait for foo(bar) " +
+                       "        then put bar into me'></div>");
+        div.click();
+		div.innerHTML.should.equal('');
+        div.dispatchEvent(new CustomEvent("foo", { detail: {bar:'bar'} }));
+        setTimeout(function () {
+            div.innerHTML.should.equal('bar');
+            done();
+        }, 10);
+    })
+
     it("can wait on event on another element", function(done){
+        var div2 = make("<div id='d2'></div>");
         var div = make("<div _='on click " +
             "                             add .foo then " +
             "                             wait for foo from #d2 then " +
             "                             add .bar'></div>");
-        var div2 = make("<div id='d2'></div>");
 
         div.classList.contains("foo").should.equal(false);
         div.classList.contains("bar").should.equal(false);

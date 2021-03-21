@@ -40,7 +40,8 @@ If you wish to disable every button during an [htmx](https://htmx.org) request, 
 
 ```html
 <body _="on every htmx:beforeSend in <button:not(.no-disable)/> 
-           with it toggle [disabled='true'] until htmx:afterOnLoad">
+           tell it 
+               toggle [disabled='true'] until htmx:afterOnLoad">
       
 </body>
 ```

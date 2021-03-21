@@ -134,8 +134,8 @@
             var socketFeature = {
                 name: socketName,
                 socket: socketObject,
-                install: function () {
-                    runtime.assignToNamespace(nameSpace, socketName, socketObject)
+                install: function (target) {
+                    runtime.assignToNamespace(target, nameSpace, socketName, socketObject)
                 }
             };
 

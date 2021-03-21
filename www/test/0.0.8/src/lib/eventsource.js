@@ -100,8 +100,8 @@
 			var feature = {
 				name: eventSourceName,
 				object: stub,
-				install: function () {
-					runtime.assignToNamespace(nameSpace, eventSourceName, stub);
+				install: function (target) {
+					runtime.assignToNamespace(target, nameSpace, eventSourceName, stub);
 				}
 			};
 
