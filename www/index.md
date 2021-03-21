@@ -21,7 +21,8 @@ hyperscript features include:
 
 <div style="padding: 16px">
 
-* Events are first class citizens in the language with clean syntax for responding to and sending events, as well as event-driven control flow
+* Events are first class citizens in the language with clean syntax for [responding to](/commands/on) and 
+  [sending](/commands/send) events, as well as [event-driven control flow](docs/#event-control-flow)
 * DOM-oriented syntax, such as CSS id, CSS class and  CSS query literals
 * First class [web workers](/docs#workers)
 * An [async-transparent](/docs#async) runtime, which removes the distinction between synchronous and asynchronous code

@@ -257,7 +257,7 @@ You may also want to simply head over to the [cookbook](/cookbook) for existing 
 ## <a name="features"></a>[Features](#features)
 
 Top level constructs in hyperscript are called "features".  They provide entry points into the hyperscript runtime 
-through functions, event handlers and so forth.  Features defined in a <script> tag will be applied to the 
+through functions, event handlers and so forth.  Features defined in a `script` tag will be applied to the 
 document body and the global namespace.
 
 Features defined on an element will be applied to that element and, in the cases of functions, etc. available to all
