@@ -75,27 +75,27 @@
  * PARSER *************************
  * 
  * @typedef ParserObject
- * @property {*} setParent
+ * @property {(elt:GrammarElement, parent:GrammarElement) => void} setParent
  * @property {(type:string, tokens:TokensObject, message?:string, root?:any) => GrammarElement} requireElement
- * @property {*} parseElement
- * @property {*} featureStart
- * @property {*} commandStart
- * @property {*} commandBoundary
+ * @property {(type:string, tokens:TokensObject, root?:any) => GrammarElement | void} parseElement
+ * @property {(token:Token) => GrammarDefinition} featureStart
+ * @property {(token:Token) => GrammarDefinition} commandStart
+ * @property {(token:Token) => boolean} commandBoundary
  * @property {(types:string[], tokens:TokensObject) => GrammarElement} parseAnyOf
- * @property {*} parseHyperScript
- * @property {*} raiseParseError
+ * @property {(tokens:TokensObject) => GrammarElement | void} parseHyperScript
+ * @property {(tokens:TokensObject, message:string) => void} raiseParseError
  * @property {(name:string, definition:GrammarDefinition) => void} addGrammarElement
  * @property {(name:string, definition:GrammarDefinition) => void} addCommand
  * @property {(name:string, definition:GrammarDefinition) => void} addFeature
  * @property {(name:string, definition:GrammarDefinition) => void} addLeafExpression
  * @property {(name:string, definition:GrammarDefinition) => void} addIndirectExpression
  * @property {(tokens:TokensObject) => (string | Token)[] } parseStringTemplate
- * 
- * @typedef {(parser:ParserObject, runtime:RuntimeObject, tokens:TokensObject, root:any) => GrammarElement} GrammarDefinition
  *
- * @typedef {Object} GrammarElement
- * @property {string} type
- * @property {(context:Context) => any} evaluate
+ * @typedef GrammarElement
+ * @property {string} [type]
+ * @property {any[]} [args]
+ * @property {(ctx:Context, root:*, ...args:any) => GrammarElement} [op]
+ * @property {(context:Context) => any} [evaluate]
  * @property {GrammarElement} [parent]
  * @property {GrammarElement} [next]
  * @property {(context:Context) => GrammarElement} [resolveNext]
@@ -103,6 +103,12 @@
  * @property {() => void} [install]
  * @property {(context:Context) => void} [execute]
  * 
+ * @callback GrammarDefinition
+ * @param {ParserObject} parser
+ * @param {RuntimeObject} runtime
+ * @param {TokensObject} tokens 
+ * @param {*} root
+ * @returns {GrammarElement | void}
  * 
  * RUNTIME **********************
  * 

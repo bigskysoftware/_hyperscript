@@ -1008,7 +1008,7 @@
                 }
 
                 /**
-                 * @param {*} tokens 
+                 * @param {TokensObject} tokens 
                  * @param {string} message 
                  */
                 function raiseParseError(tokens, message) {
@@ -1021,7 +1021,7 @@
 
                 /**
                  * @param {TokensObject} tokens 
-                 * @returns 
+                 * @returns {GrammarElement}
                  */
                 function parseHyperScript(tokens) {
                     return parseElement("hyperscript", tokens)
@@ -3778,6 +3778,7 @@
                     var functionName = expr.root.name;
                     var functionArgs = expr.argExressions;
 
+                    /** @type {GrammarElement} */
                     var pseudoCommand = {
                         type: "pseudoCommand",
                         expr: expr,
@@ -3838,6 +3839,7 @@
                             root = target.root;
                         }
 
+                        /** @type {GrammarElement} */
                         var setCmd = {
                             target: target,
                             symbolWrite: symbolWrite,
@@ -3873,6 +3875,8 @@
                         if (tokens.hasMore()) {
                             tokens.requireToken("end");
                         }
+
+                        /** @type {GrammarElement} */
                         var ifCmd = {
                             expr: expr,
                             trueBranch: trueBranch,
