@@ -1700,6 +1700,7 @@
                 /**
                  * @param {Object<string,any>} root 
                  * @param {string} property 
+                 * @param {boolean} attribute
                  * @returns {any}
                  */
                 function resolveProperty(root, property, attribute) {
@@ -1707,19 +1708,19 @@
                         var val = attribute && root.getAttribute ? root.getAttribute(property) : root[property];
                         if (typeof val !== 'undefined') {
                             return val;
-                        } else {
-                            if (isArrayLike(root)) {
-                                // flat map
-                                var result = [];
-                                for (var i = 0; i < root.length; i++) {
-                                    var component = root[i];
-                                    var componentValue = attribute ? component.getAttribute(property) : component[property];
-                                    if (componentValue) {
-                                        result.push(componentValue);
-                                    }
+                        } 
+
+                        if (isArrayLike(root)) {
+                            // flat map
+                            var result = [];
+                            for (var i = 0; i < root.length; i++) {
+                                var component = root[i];
+                                var componentValue = attribute ? component.getAttribute(property) : component[property];
+                                if (componentValue) {
+                                    result.push(componentValue);
                                 }
-                                return result;
                             }
+                            return result;
                         }
                     }
                 }
