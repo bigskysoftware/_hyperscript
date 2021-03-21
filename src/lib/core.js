@@ -733,13 +733,13 @@
             /** @type ParserObject */
             var _parser = function () {
 
-                /** @type {Object<string,GrammarDefinition>} */ 
+                /** @type {Object<string,{GrammarDefinition}>} */ 
                 var GRAMMAR = {}
 
-                /** @type {Object<string,CommandDefinition>} */
+                /** @type {Object<string,{GrammarDefinition}>} */
                 var COMMANDS = {}
 
-                /** @type {Object<string,FeatureDefinition>} */
+                /** @type {Object<string,{GrammarDefinition}>} */
                 var FEATURES = {}
                 
                 var LEAF_EXPRESSIONS = [];
@@ -786,7 +786,7 @@
                  * @param {TokensObject} tokens 
                  * @param {string} [message]
                  * @param {*} [root]
-                 * @returns GrammarElement
+                 * @returns {GrammarElement}
                  */
                 function requireElement(type, tokens, message, root) {
                     var result = parseElement(type, tokens, root);
@@ -796,7 +796,7 @@
                 /**
                  * @param {string[]} types 
                  * @param {TokensObject} tokens 
-                 * @returns GrammarElement
+                 * @returns {GrammarElement}
                  */
                 function parseAnyOf(types, tokens) {
                     for (var i = 0; i < types.length; i++) {
@@ -818,7 +818,7 @@
 
                 /**
                  * @param {string} keyword 
-                 * @param {CommandDefinition} definition 
+                 * @param {GrammarDefinition} definition 
                  */
                 function addCommand(keyword, definition) {
                     var commandGrammarType = keyword + "Command";
@@ -839,12 +839,12 @@
 
                 /**
                  * @param {string} keyword 
-                 * @param {FeatureDefinition} definition 
+                 * @param {GrammarDefinition} definition 
                  */
                 function addFeature(keyword, definition) {
                     var featureGrammarType = keyword + "Feature";
 
-                    /** @type FeatureDefinition*/ 
+                    /** @type {GrammarDefinition} */ 
                     var featureDefinitionWrapper = function (parser, runtime, tokens) {
                         var featureElement = definition(parser, runtime, tokens);
                         if (featureElement) {
@@ -954,7 +954,7 @@
                                 } else {
                                     return root;
                                 }
-                            },
+                            }, 
                             execute: function(context) {
                                 return runtime.unifiedExec(this, context);
                             }
@@ -1057,9 +1057,10 @@
 
                 /**
                  * @param {TokensObject} tokens 
-                 * @returns 
+                 * @returns {(string | Token)[]}
                  */
                 function parseStringTemplate(tokens) {
+                    /** @type (string | Token)[] */
                     var returnArr = [""];
                     do {
                         returnArr.push(tokens.lastWhitespace());
@@ -1144,6 +1145,12 @@
                     }
                 }
             }
+
+            /********************************************
+             * RUNTIME OBJECT
+             ********************************************/
+
+            /** @type {RuntimeObject} */
             var _runtime = function () {
 
                 /**
@@ -1280,7 +1287,7 @@
                 var HALT = {halt_flag:true};
 
                 /**
-                 * @param {CommandDefinition} command 
+                 * @param {GrammarDefinition} command 
                  * @param {Context} ctx 
                  */
                 function unifiedExec(command,  ctx) {
@@ -1332,7 +1339,7 @@
                 /**
                  * @param {*} parseElement 
                  * @param {Context} ctx 
-                 * @returns 
+                 * @returns {*}
                  */
                 function unifiedEval(parseElement,  ctx) {
                     
@@ -1427,7 +1434,7 @@
 
                 /**
                  * @param {HTMLElement} elt 
-                 * @returns string
+                 * @returns {string | null}
                  */
                 function getScript(elt) {
                     for (var i = 0; i < getScriptAttributes().length; i++) {
@@ -1442,6 +1449,10 @@
                     return null;
                 }
 
+                /**
+                 * @param {Object} owner 
+                 * @param {Context} ctx 
+                 */
                 function addFeatures(owner, ctx) {
                     if(owner) {
                         if (owner.hyperscriptFeatures) {
@@ -1456,9 +1467,11 @@
                  * @param {*} feature 
                  * @param {*} hyperscriptTarget 
                  * @param {*} event 
-                 * @returns Context
+                 * @returns {Context}
                  */
                 function makeContext(owner, feature, hyperscriptTarget, event) {
+
+                    /** @type {Context} */
                     var ctx = {
                         meta: {
                             parser: _parser,
@@ -1489,9 +1502,9 @@
                 }
 
                 /**
-                 * @param {*} value 
+                 * @param {any} value 
                  * @param {string} type 
-                 * @returns any
+                 * @returns {any}
                  */
                 function convertValue(value,  type) {
 
@@ -1523,7 +1536,7 @@
 
                 /**
                  * @param {string} src 
-                 * @returns GrammarElement
+                 * @returns {GrammarElement}
                  */
                 function parse(src) {
                     var tokens = _lexer.tokenize(src);
@@ -1550,8 +1563,8 @@
 
                 /**
                  * @param {string} src 
-                 * @param {*} ctx 
-                 * @returns 
+                 * @param {Context} ctx 
+                 * @returns {any}
                  */
                 function evaluate(src, ctx) {
                     ctx = mergeObjects(makeContext(document.body, null,
@@ -1616,7 +1629,7 @@
 
                 /**
                  * @param {HTMLElement} elt 
-                 * @returns Object<string,any>
+                 * @returns {Object}
                  */
                 function getInternalData(elt) {
                     var dataProp = 'hyperscript-internal-data';
@@ -1631,7 +1644,7 @@
                  * @param {any} value 
                  * @param {string} typeString 
                  * @param {boolean} [nullOk]
-                 * @returns 
+                 * @returns {boolean}
                  */
                 function typeCheck(value, typeString, nullOk) {
                     if (value == null && nullOk) {
@@ -1644,7 +1657,7 @@
                 /**
                  * @param {string} str 
                  * @param {Context} context 
-                 * @returns any
+                 * @returns {any}
                  */
                 function resolveSymbol(str, context) {
                     if (str === "me" || str === "my" || str === "I") {
@@ -1668,9 +1681,9 @@
                 }
 
                 /**
-                 * @param {Command} command 
+                 * @param {GrammarElement} command 
                  * @param {Context} context 
-                 * @returns 
+                 * @returns {undefined | GrammarElement}
                  */
                 function findNext(command, context) {
                     if (command) {
@@ -1687,7 +1700,7 @@
                 /**
                  * @param {Object<string,any>} root 
                  * @param {string} property 
-                 * @returns any
+                 * @returns {any}
                  */
                 function resolveProperty(root, property, attribute) {
                     if (root != null) {
@@ -1783,9 +1796,8 @@
                 }
 
                 /**
-                 * 
                  * @param {string} str 
-                 * @returns string
+                 * @returns {string}
                  */
                 function escapeSelector(str) {
                     return str.replace(/:/g, function(str){
@@ -1793,6 +1805,10 @@
                     });
                 }
 
+                /**
+                 * @param {any} value 
+                 * @param {*} elt 
+                 */
                 function nullCheck(value, elt) {
                     if (value == null) {
                         throw new Error(elt.sourceFor() + " is null");
@@ -1801,14 +1817,16 @@
 
                 /**
                  * @param {any} value 
-                 * @returns boolean
+                 * @returns {boolean}
                  */
                 function isEmpty(value) {
                     return (value == undefined) || (value.length === 0);
                 }
 
-                var hyperscriptUrl = 'document' in globalScope ? document.currentScript.src : null
+                /** @type string | null */
+                var hyperscriptUrl = ('document' in globalScope) ? document.currentScript.src : null
 
+                /** @type {RuntimeObject} */
                 return {
                     typeCheck: typeCheck,
                     forEach: forEach,
