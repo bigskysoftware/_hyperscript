@@ -199,11 +199,13 @@
                  * @param {Token[]} tokens 
                  * @param {Token[]} consumed 
                  * @param {string} source 
-                 * @returns TokensObject
+                 * @returns {TokensObject}
                  */
                 function makeTokensObject(tokens, consumed, source) {
 
                     consumeWhitespace(); // consume initial whitespace
+
+                    /** @type Token | null */
                     var _lastConsumed = null;
 
                     function consumeWhitespace(){
@@ -222,7 +224,7 @@
 
                     /**
                      * @param {string} value 
-                     * @returns [Token]
+                     * @returns {Token}
                      */
                     function requireOpToken(value) {
                         var token = matchOpToken(value);
@@ -237,7 +239,7 @@
                      * @param {string} op1 
                      * @param {string} [op2]
                      * @param {string} [op3]
-                     * @returns [Token]
+                     * @returns {Token | void}
                      */
                     function matchAnyOpToken(op1, op2, op3) {
                         for (var i = 0; i < arguments.length; i++) {
@@ -253,7 +255,7 @@
                      * @param {string} op1
                      * @param {string} [op2]
                      * @param {string} [op3]
-                     * @returns [Token]
+                     * @returns {Token | void}
                      */
                      function matchAnyToken(op1, op2, op3) {
                         for (var i = 0; i < arguments.length; i++) {
@@ -267,7 +269,7 @@
 
                     /**
                      * @param {string} value 
-                     * @returns [Token]
+                     * @returns {Token | void}
                      */
                     function matchOpToken(value) {
                         if (currentToken() && currentToken().op && currentToken().value === value) {
@@ -277,10 +279,10 @@
 
                     /**
                      * @param {string} type1 
-                     * @param {string} type2 
-                     * @param {string} type3 
-                     * @param {string} type4 
-                     * @returns Token
+                     * @param {string} [type2] 
+                     * @param {string} [type3]
+                     * @param {string} [type4]
+                     * @returns {Token | void}
                      */
                     function requireTokenType(type1, type2, type3, type4) {
                         var token = matchTokenType(type1, type2, type3, type4);
@@ -293,10 +295,10 @@
 
                     /**
                      * @param {string} type1 
-                     * @param {string} type2 
-                     * @param {string} type3 
-                     * @param {string} type4 
-                     * @returns [Token]
+                     * @param {string} [type2]
+                     * @param {string} [type3]
+                     * @param {string} [type4]
+                     * @returns {Token | void}
                      */
                     function matchTokenType(type1, type2, type3, type4) {
                         if (currentToken() && currentToken().type && [type1, type2, type3, type4].indexOf(currentToken().type) >= 0) {
@@ -307,7 +309,7 @@
                     /**
                      * @param {string} value 
                      * @param {string} [type]
-                     * @returns Token
+                     * @returns {Token}
                      */
                     function requireToken(value, type) {
                         var token = matchToken(value, type);
@@ -321,7 +323,7 @@
                     /**
                      * @param {string} value 
                      * @param {string} [type]
-                     * @returns [Token]
+                     * @returns {Token | void}
                      */
                     function matchToken(value, type) {
                         var type = type || "IDENTIFIER";
@@ -331,7 +333,7 @@
                     }
 
                     /**
-                     * @returns Token
+                     * @returns {Token}
                      */
                     function consumeToken() {
                         var match = tokens.shift();
@@ -344,7 +346,7 @@
                     /**
                      * @param {string} value 
                      * @param {string} [type]
-                     * @returns Token[]
+                     * @returns {Token[]}
                      */
                     function consumeUntil(value, type) {
 
@@ -365,7 +367,7 @@
                     }
 
                     /**
-                     * @returns string
+                     * @returns {string}
                      */
                     function lastWhitespace() {
                         if (consumed[consumed.length - 1] && consumed[consumed.length - 1].type === "WHITESPACE") {
@@ -380,7 +382,7 @@
                     }
 
                     /**
-                     * @returns boolean
+                     * @returns {boolean}
                      */
                     function hasMore() {
                         return tokens.length > 0;
@@ -389,12 +391,10 @@
                     /**
                      * @param {number} n 
                      * @param {boolean} [dontIgnoreWhitespace]
-                     * @returns Token
+                     * @returns {Token}
                      */
                     function token(n, dontIgnoreWhitespace) {
-
-                        /** @type {Token} */
-                        var token;
+                        var /**@type {Token}*/ token;
                         var i = 0;
                         do {
                             if (!dontIgnoreWhitespace) {
@@ -417,25 +417,35 @@
                     }
 
                     /**
-                     * @returns Token
+                     * @returns {Token}
                      */
                     function currentToken() {
                         return token(0);
                     }
 
+                    /**
+                     * @returns {Token | null}
+                     */
                     function lastMatch() {
                         return _lastConsumed;
                     }
 
+                    /**
+                     * @returns {string}
+                     */
                     function sourceFor() {
                         return source.substring(this.startToken.start, this.endToken.end);
                     }
 
-                    function lineFor() {
+                    /**
+                     * @returns {string}
+                     */
+                     function lineFor() {
                         return source
                             .split("\n")[this.startToken.line - 1];
                     }
 
+                    /** @type {TokensObject} */
                     return {
                         matchAnyToken: matchAnyToken,
                         matchAnyOpToken: matchAnyOpToken,
@@ -461,6 +471,11 @@
                     }
                 }
 
+
+                /**
+                 * @param {Token[]} tokens 
+                 * @returns {boolean}
+                 */
                 function isValidSingleQuoteStringStart(tokens) {
                     if (tokens.length > 0) {
                         var previousToken = tokens[tokens.length - 1];
@@ -477,11 +492,10 @@
                 /**
                  * @param {string} string 
                  * @param {boolean} [template]
-                 * @returns TokensObject
+                 * @returns {TokensObject}
                  */
                 function tokenize(string, template) {
-                    /** @type Token[]*/
-                    var tokens = [];
+                    var tokens = /** @type {Token[]}*/ [];
                     var source = string;
                     var position = 0;
                     var column = 0;
@@ -538,7 +552,7 @@
                     /**
                      * @param {string} [type] 
                      * @param {string} [value]
-                     * @returns Token
+                     * @returns {Token}
                      */
                     function makeOpToken(type, value) {
                         var token = makeToken(type, value);
@@ -549,7 +563,7 @@
                     /**
                      * @param {string} [type]
                      * @param {string} [value]
-                     * @returns Token
+                     * @returns {Token}
                      */
                     function makeToken(type, value) {
                         return {
@@ -1107,8 +1121,10 @@
             //====================================================================
             // Runtime
             //====================================================================
+
+            /** @type ConversionMap */
             var CONVERSIONS = {
-                dynamicResolvers : [],
+                dynamicResolvers : /** @type DynamicConversionFunction[] */ [],
                 "String" : function(val){
                     if(val.toString){
                         return val.toString();
@@ -2010,7 +2026,7 @@
                             name: name,
                             value: value,
                             args: [value],
-                            op:function(context, value){
+                            op:function(_context, value){
                                 if (this.value) {
                                     return {name:this.name, value:value}
                                 } else {
@@ -2239,7 +2255,7 @@
                         time: time,
                         factor: factor,
                         args: [time],
-                        op: function (context, val) {
+                        op: function (_context, val) {
                             return val * this.factor
                         },
                         evaluate: function (context) {
@@ -2256,7 +2272,7 @@
                             root: root,
                             prop: prop,
                             args: [root],
-                            op:function(context, rootVal){
+                            op:function(_context, rootVal){
                                 var value = runtime.resolveProperty(rootVal, prop.value);
                                 return value;
                             },
