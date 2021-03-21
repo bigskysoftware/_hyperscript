@@ -146,7 +146,7 @@
                  * @returns string
                  */
                 function positionString(token) {
-                    return "[Line: " + token.line + ", Column: " + token.col + "]"
+                    return "[Line: " + token.line + ", Column: " + token.column + "]"
                 }
 
                 /**

@@ -68,7 +68,7 @@
  * @property {boolean} [op] // `true` if this token represents an operator
  * @property {number} [start]
  * @property {number} [end]
- * @property {number} [col]
+ * @property {number} [column]
  * @property {number} [line]
  * 
  * 
