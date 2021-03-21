@@ -1180,7 +1180,7 @@ This I hope gives you a taste of the unique execution model of hyperscript, and 
 
 **Note: The hyperscript debugger is in alpha and, like the rest of the language, is undergoing active development**
 
-Hyperscript includes a debugger, hdb, that allows you to debug by inserting `breakpoint` commands in your hyperscript.
+Hyperscript includes a debugger, [hdb](/hdb), that allows you to debug by inserting `breakpoint` commands in your hyperscript.
 
 To use it you need to include the `lib/hdb.js` file.  You can then add `breakpoint` commands in your hyperscript
 to trigger the debugger.  
