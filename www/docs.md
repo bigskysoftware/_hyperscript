@@ -256,7 +256,12 @@ You may also want to simply head over to the [cookbook](/cookbook) for existing 
 
 ## <a name="features"></a>[Features](#features)
 
-Top level constructs in hyperscript are called "features".  They provide entry points into the hyperscript runtime through functions, event handlers and so forth.  
+Top level constructs in hyperscript are called "features".  They provide entry points into the hyperscript runtime 
+through functions, event handlers and so forth.  Features defined in a <script> tag will be applied to the 
+document body and the global namespace.
+
+Features defined on an element will be applied to that element and, in the cases of functions, etc. available to all
+child elements.
 
 Below are the core features of hyperscript.
 
@@ -422,9 +427,12 @@ within a hyperscript function, for local optimizations.
 
 ## <a name="commands"></a>[Commands](#commands)
 
-Commands are the statements of the hyperscript langauge, and make up the body of functions, event handlers and so on.  In hyperscript, all commands start with a term, such as `add`, `remove` or `fetch`. 
+Commands are the statements of the hyperscript langauge, and make up the body of functions, event handlers and so on.  In 
+hyperscript, all commands start with a term, such as `add`, `remove` or `fetch`. 
 
 Commands may be separated with a `then` keyword.  This is recommended in one-liner event handlers but is not required.
+
+All commands may be followed by an `unless <expr>` that makes the command conditionally executed.
 
 ### <a name="add"></a>[Add](#add)
 
@@ -641,6 +649,8 @@ Here are some examples:
   Click Me
 </button>
 ```
+
+You may use the `exit` form to exit without a value.
 
 ### <a name="send"></a>[Send](#send)
 

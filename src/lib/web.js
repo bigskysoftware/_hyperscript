@@ -790,7 +790,13 @@
                 if (tokens.matchToken('url')) {
                     var target = parser.requireElement("stringLike", tokens);
                     var url = true;
+                    if (tokens.matchToken('in')) {
+                        tokens.requireToken('new');
+                        tokens.requireToken('window');
+                        var newWindow = true;
+                    }
                 } else {
+                    tokens.matchToken('the'); // optional the
                     var verticalPosition = tokens.matchAnyToken('top', 'bottom', 'middle');
                     var horizontalPosition = tokens.matchAnyToken('left', 'center', 'right');
                     if (verticalPosition || horizontalPosition) {
@@ -828,11 +834,6 @@
                         }
                     }
 
-                }
-                if (tokens.matchToken('with')) {
-                    tokens.requireToken('new');
-                    tokens.requireToken('window');
-                    var newWindow = true;
                 }
             }
 
