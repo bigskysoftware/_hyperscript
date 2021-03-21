@@ -23,10 +23,10 @@ hyperscript features include:
 
 * Events are first class citizens in the language with clean syntax for [responding to](/commands/on) and 
   [sending](/commands/send) events, as well as [event-driven control flow](docs/#event-control-flow)
-* DOM-oriented syntax, such as CSS id, CSS class and  CSS query literals
+* DOM-oriented syntax, such as [CSS id, CSS class and  CSS query literals](https://hyperscript.org/expressions/#css)
 * First class [web workers](/docs#workers)
 * An [async-transparent](/docs#async) runtime, which removes the distinction between synchronous and asynchronous code
-* A pluggable & extendable parser & grammar
+* A [pluggable & extendable](/docs/#extending) parser & grammar
 * A [debugger](/hdb/) to step through hyperscript code
 
 </div>
