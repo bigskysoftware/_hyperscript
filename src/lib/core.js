@@ -747,13 +747,13 @@
             /** @type ParserObject */
             var _parser = function () {
 
-                /** @type {Object<string,{GrammarDefinition}>} */ 
+                /** @type {Object<string,GrammarDefinition>} */ 
                 var GRAMMAR = {}
 
-                /** @type {Object<string,{GrammarDefinition}>} */
+                /** @type {Object<string,GrammarDefinition>} */
                 var COMMANDS = {}
 
-                /** @type {Object<string,{GrammarDefinition}>} */
+                /** @type {Object<string,GrammarDefinition>} */
                 var FEATURES = {}
                 
                 var LEAF_EXPRESSIONS = [];
@@ -873,7 +873,7 @@
 
                 /**
                  * @param {string} name 
-                 * @param {ExpressionDefinition} definition 
+                 * @param {GrammarDefinition} definition 
                  */
                 function addLeafExpression(name, definition) {
                     LEAF_EXPRESSIONS.push(name);
@@ -882,7 +882,7 @@
 
                 /**
                  * @param {string} name 
-                 * @param {ExpressionDefinition} definition 
+                 * @param {GrammarDefinition} definition 
                  */
                 function addIndirectExpression(name, definition) {
                     INDIRECT_EXPRESSIONS.push(name);
@@ -894,34 +894,35 @@
                 /* ============================================================================================ */
                 addGrammarElement("feature", function(parser, runtime, tokens) {
                     if (tokens.matchOpToken("(")) {
-                        var featureDefinition = parser.requireElement("feature", tokens);
+                        var featureElement = parser.requireElement("feature", tokens);
                         tokens.requireOpToken(")");
-                        return featureDefinition;
-                    } else {
-                        var featureDefinition = FEATURES[tokens.currentToken().value];
-                        if (featureDefinition) {
-                            return featureDefinition(parser, runtime, tokens);
-                        }
+                        return featureElement;
+                    }
+
+                    var featureDefinition = FEATURES[tokens.currentToken().value];
+                    if (featureDefinition) {
+                        return featureDefinition(parser, runtime, tokens);
                     }
                 })
 
                 addGrammarElement("command", function(parser, runtime, tokens) {
                     if (tokens.matchOpToken("(")) {
-                        var commandDefinition = parser.requireElement("command", tokens);
+                        var commandElement = parser.requireElement("command", tokens);
                         tokens.requireOpToken(")");
-                        return commandDefinition;
-                    } else {
-                        var commandDefinition = COMMANDS[tokens.currentToken().value];
-                        if (commandDefinition) {
-                            var commandDef = commandDefinition(parser, runtime, tokens);
-                        } else if (tokens.currentToken().type === "IDENTIFIER" && tokens.token(1).value === "(") {
-                            var commandDef = parser.requireElement("pseudoCommand", tokens);
-                        }
-                        if (commandDef) {
-                            return parser.parseElement("indirectStatement", tokens, commandDef);
-                        }
-                        return commandDef;
+                        return commandElement;
                     }
+                
+                    var commandDefinition = COMMANDS[tokens.currentToken().value];
+                    if (commandDefinition) {
+                        var commandElement = commandDefinition(parser, runtime, tokens);
+                    } else if (tokens.currentToken().type === "IDENTIFIER" && tokens.token(1).value === "(") {
+                        var commandElement = parser.requireElement("pseudoCommand", tokens);
+                    }
+                    if (commandElement) {
+                        return parser.parseElement("indirectStatement", tokens, commandElement);
+                    }
+
+                    return commandElement;
                 })
 
                 addGrammarElement("commandList", function(parser, runtime, tokens) {
@@ -938,9 +939,9 @@
                     // symbol is last so it doesn't consume any constants
                     if (result == null) {
                         return parseElement('symbol', tokens);
-                    } else {
-                        return result;
                     }
+                    
+                    return result;
                 })
 
                 addGrammarElement("indirectExpression", function(parser, runtime, tokens, root) {
@@ -1027,8 +1028,8 @@
                 }
 
                 /**
-                 * @param {*} elt 
-                 * @param {*} parent 
+                 * @param {GrammarElement} elt 
+                 * @param {GrammarElement} parent 
                  */
                 function setParent(elt, parent) {
                     if (elt) {
@@ -1039,7 +1040,7 @@
 
                 /**
                  * @param {Token} token 
-                 * @returns 
+                 * @returns {GrammarDefinition}
                  */
                 function commandStart(token){
                     return COMMANDS[token.value];
@@ -1047,7 +1048,7 @@
 
                 /**
                  * @param {Token} token 
-                 * @returns 
+                 * @returns {GrammarDefinition}
                  */
                 function featureStart(token){
                     return FEATURES[token.value];
@@ -1055,7 +1056,7 @@
 
                 /**
                  * @param {Token} token 
-                 * @returns 
+                 * @returns {true | void}
                  */
                 function commandBoundary(token) {
                     if (token.value == "end" ||
@@ -1099,7 +1100,7 @@
                 }
 
                 // parser API
-                return /** @type ParserObject */ {
+                return {
                     setParent: setParent,
                     requireElement: requireElement,
                     parseElement: parseElement,
@@ -1184,8 +1185,8 @@
 
                 /**
                  * @param {string} eventName 
-                 * @param {{}} detail 
-                 * @returns 
+                 * @param {Object} [detail] 
+                 * @returns {Event}
                  */
                 function makeEvent(eventName, detail) {
                     var evt;
@@ -1201,11 +1202,11 @@
                 /**
                  * @param {HTMLElement} elt 
                  * @param {string} eventName 
-                 * @param {{}} [detail]
-                 * @returns boolean
+                 * @param {Object} [detail]
+                 * @returns {boolean}
                  */
                 function triggerEvent(elt, eventName, detail) {
-                    var detail = detail || {};
+                    detail = detail || {};
                     detail["sentBy"] = elt;
                     var event = makeEvent(eventName, detail);
                     var eventResult = elt.dispatchEvent(event);
@@ -1228,10 +1229,9 @@
                  * if `value` is a single item (and not an array) then `func` is simply called
                  * once.  If `value` is null, then no further actions are taken.
                  * 
-                 * @function
                  * @template T
-                 * @param {T | T[]} value 
-                 * @param {(item:T) => void} func 
+                 * @param {NodeList | T | T[]} value 
+                 * @param {(item:Node | T) => void} func 
                  */
                 function forEach(value, func) {
                     if (value == null) {
