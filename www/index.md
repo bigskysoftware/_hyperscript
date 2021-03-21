@@ -21,7 +21,7 @@ hyperscript features include:
 
 <div style="padding: 16px">
 
-* Events are first class citizens in the language with clean syntax for [responding to](/commands/on) and 
+* Events are first class citizens in the language with clean syntax for [responding to](/features/on) and 
   [sending](/commands/send) events, as well as [event-driven control flow](docs/#event-control-flow)
 * DOM-oriented syntax, such as [CSS id, CSS class and  CSS query literals](https://hyperscript.org/expressions/#css)
 * First class [web workers](/docs#workers)
