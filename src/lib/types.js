@@ -10,17 +10,17 @@
  * PUBLIC API
  * @typedef HyperscriptObject
  * @property {HyperscriptInternalsObject} internals
- * @property {(keyword:string, definition:FeatureDefinition) => any } addFeature
- * @property {(keyword:string, definition:CommandDefinition) => any } addCommand
- * @property {(keyword:string, definition:ExpressionDefinition) => any } addLeafExpression
- * @property {(keyword:string, definition:ExpressionDefinition) => any } addIndirectExpression
+ * @property {(keyword:string, definition:GrammarDefinition) => void | GrammarElement } addFeature
+ * @property {(keyword:string, definition:GrammarDefinition) => void | GrammarElement } addCommand
+ * @property {(keyword:string, definition:GrammarDefinition) => void | GrammarElement } addLeafExpression
+ * @property {(keyword:string, definition:GrammarDefinition) => void | GrammarElement } addIndirectExpression
  * @property {(str:string, ctx:Context) => *} evaluate
  * @property {(str:string) => *} parse
  * @property {(elt:HTMLElement) => void} processNode
  * @property {HyperscriptConfigObject} config
  * 
  * @typedef HyperscriptInternalsObject
- * @property {*} lexer
+ * @property {LexerObject} lexer
  * @property {ParserObject} parser
  * @property {RuntimeObject} runtime
  * 
@@ -40,21 +40,21 @@
  * @property {(tokens:Token[], consumed:Token[], source:string) => TokensObject} makeTokensObject
  * 
  * @typedef TokensObject
- * @property {(token:string) => [Token]} matchAnyToken
- * @property {(token:string) => [Token]} matchAnyOpToken
- * @property {(token:string) => [Token]} matchOpToken
+ * @property {(type1:string, type2?:string, type3?:string, type4?:string) => Token | void} matchTokenType
+ * @property {(token:string) => Token | void} matchToken
+ * @property {(token:string) => Token | void} matchAnyToken
+ * @property {(token:string) => Token | void} matchAnyOpToken
+ * @property {(token:string) => Token | void} matchOpToken
+ * @property {(type1:string, type2?:string, type3?:string, type4?:string) => Token} requireTokenType
  * @property {(token:string) => Token} requireOpToken
- * @property {(token:string) => [Token]} matchTokenType
- * @property {(token:string) => Token} requireTokenType
- * @property {() => Token} consumeToken
- * @property {(token:string) => [Token]} matchToken
  * @property {(token:string) => Token} requireToken
- * @property {*} list
- * @property {*} consumed
- * @property {*} source
- * @property {*} hasMore
+ * @property {() => Token} consumeToken
+ * @property {Token[]} list
+ * @property {Token[]} consumed
+ * @property {string} source
+ * @property {() => boolean} hasMore
  * @property {() => Token} currentToken
- * @property {*} lastMatch
+ * @property {() => Token | null} lastMatch
  * @property {(n:number, dontIgnoreWhitespace?:boolean) => Token} token
  * @property {(value:string, type?:string) => Token[]} consumeUntil
  * @property {() => Token[]} consumeUntilWhitespace
@@ -65,80 +65,79 @@
  * @typedef {object} Token 
  * @property {string} [type]
  * @property {string} [value]
- * @property {boolean} [op] // `true` if this token represents an operator
  * @property {number} [start]
  * @property {number} [end]
- * @property {number} [col]
+ * @property {number} [column]
  * @property {number} [line]
+ * @property {boolean} [op] // `true` if this token represents an operator
  * 
  * 
  * PARSER *************************
  * 
  * @typedef ParserObject
- * @property {*} setParent
+ * @property {(elt:GrammarElement, parent:GrammarElement) => void} setParent
  * @property {(type:string, tokens:TokensObject, message?:string, root?:any) => GrammarElement} requireElement
- * @property {*} parseElement
- * @property {*} featureStart
- * @property {*} commandStart
- * @property {*} commandBoundary
+ * @property {(type:string, tokens:TokensObject, root?:any) => GrammarElement | void} parseElement
+ * @property {(token:Token) => GrammarDefinition} featureStart
+ * @property {(token:Token) => GrammarDefinition} commandStart
+ * @property {(token:Token) => boolean} commandBoundary
  * @property {(types:string[], tokens:TokensObject) => GrammarElement} parseAnyOf
- * @property {*} parseHyperScript
- * @property {*} raiseParseError
+ * @property {(tokens:TokensObject) => GrammarElement | void} parseHyperScript
+ * @property {(tokens:TokensObject, message:string) => void} raiseParseError
  * @property {(name:string, definition:GrammarDefinition) => void} addGrammarElement
- * @property {(name:string, definition:CommandDefinition) => void} addCommand
- * @property {(name:string, definition:FeatureDefinition) => void} addFeature
- * @property {(name:string, definition:ExpressionDefinition) => void} addLeafExpression
- * @property {(name:string, definition:ExpressionDefinition) => void} addIndirectExpression
- * @property {*} parseStringTemplate
- * 
- * @typedef {(parser:ParserObject, runtime:RuntimeObject, tokens:TokensObject, root:any) => Feature} GrammarDefinition
- * @typedef {(parser:ParserObject, runtime:RuntimeObject, tokens:TokensObject, root:any) => Feature} FeatureDefinition
- * @typedef {(parser:ParserObject, runtime:RuntimeObject, tokens:TokensObject, root:any) => Command} CommandDefinition
- * @typedef {(parser:ParserObject, runtime:RuntimeObject, tokens:TokensObject, root:any) => Expression} ExpressionDefinition
+ * @property {(name:string, definition:GrammarDefinition) => void} addCommand
+ * @property {(name:string, definition:GrammarDefinition) => void} addFeature
+ * @property {(name:string, definition:GrammarDefinition) => void} addLeafExpression
+ * @property {(name:string, definition:GrammarDefinition) => void} addIndirectExpression
+ * @property {(tokens:TokensObject) => (string | Token)[] } parseStringTemplate
  *
- * @typedef {Object<string,any>} GrammarElement
- * @property {string} type
- * @property {EventSource} eventSource
- * @property {() => void} install
- * @property {(context:Context) => any} evaluate
- * @property {Command} [parent]
- * @property {Command} [next]
- * @property {(context:Context) => Command} [resolveNext]
+ * @typedef GrammarElement
+ * @property {string} [type]
+ * @property {any[]} [args]
+ * @property {(ctx:Context, root:*, ...args:any) => GrammarElement} [op]
+ * @property {(context:Context) => any} [evaluate]
+ * @property {GrammarElement} [parent]
+ * @property {GrammarElement} [next]
+ * @property {(context:Context) => GrammarElement} [resolveNext]
+ * @property {EventSource} [eventSource]
+ * @property {() => void} [install]
+ * @property {(context:Context) => void} [execute]
  * 
- * @typedef {GrammarElement} Feature 
- * 
- * @typedef {GrammarElement} Command
- * 
- * @typedef {GrammarElement} Expression
+ * @callback GrammarDefinition
+ * @param {ParserObject} parser
+ * @param {RuntimeObject} runtime
+ * @param {TokensObject} tokens 
+ * @param {*} root
+ * @returns {GrammarElement | void}
  * 
  * RUNTIME **********************
  * 
  * @typedef RuntimeObject
- * @property {() => void } typeCheck
- * @property {() => void } forEach
+ * @property {(value:any, typeString:string, nullOk?:boolean) => boolean } typeCheck
+ * @property {(value:any, func:(item:any) => void) => void } forEach
  * @property {(elt:HTMLElement, eventName:string, detail:{}) => boolean } triggerEvent
  * @property {(elt:HTMLElement, selector:string) => boolean } matchesSelector
- * @property {() => void } getScript
- * @property {() => void } processNode
- * @property {() => void } evaluate
- * @property {() => void } parse
- * @property {() => void } getScriptSelector
+ * @property {(elt:HTMLElement) => string | null } getScript
+ * @property {(elt:HTMLElement) => void } processNode
+ * @property {(src:string, ctx:Context) => any } evaluate
+ * @property {(src:string) => GrammarElement } parse
+ * @property {() => string } getScriptSelector
  * @property {(str:string, ctx:Context) => any } resolveSymbol
  * @property {(owner:*, feature:*, hyperscriptTarget:*, event:*) => Context } makeContext
- * @property {() => void } findNext
- * @property {() => void } unifiedEval
- * @property {() => void } convertValue
- * @property {(command: CommandDefinition, ctx:Context) => void } unifiedExec
- * @property {(root:Object<string,any>, property:string) => any } resolveProperty
- * @property {(namespace:string[], name:string, value:any) => void } assignToNamespace
+ * @property {(command:GrammarElement, ctx:Context) => GrammarElement | undefined } findNext
+ * @property {(parseElement:*, ctx:Context) => * } unifiedEval
+ * @property {(value:any, type:string) => any } convertValue
+ * @property {(command: GrammarDefinition, ctx:Context) => void } unifiedExec
+ * @property {(root:Object<string,any>, property:string, attribute:boolean) => any } resolveProperty
+ * @property {(elt:Element, namespace:string[], name:string, value:any) => void } assignToNamespace
  * @property {() => void } registerHyperTrace
  * @property {() => void } getHyperTrace
- * @property {() => void } getInternalData
- * @property {() => void } escapeSelector
- * @property {() => void } nullCheck
+ * @property {(elt:HTMLElement) => Object } getInternalData
+ * @property {(str:string) => string } escapeSelector
+ * @property {(value:any, elt:*) => void } nullCheck
  * @property {(value:any) => boolean} isEmpty
- * @property {() => void } hyperscriptUrl
- * @property {() => void } HALT
+ * @property {string | null} hyperscriptUrl
+ * @property {Object} HALT
  * 
  * @typedef {{meta: object, me: Element, event:Event, target: Element, detail: any, body: Document}} Context
  * @property {ContextMetaData} meta
@@ -156,4 +155,12 @@
  * @property {*} feature
  * @property {*} iterators
  * @property {ContextMetaData} ctx
+ * 
+ * 
+ * @typedef {Object<string,ConversionFunction>} ConversionMap
+ * @property {DynamicConversionFunction[]} dynamicResolvers
+ * 
+ * @typedef {(value:any) => any} ConversionFunction
+ * @typedef {(conversionName:string, value:any) => any} DynamicConversionFunction
+ * 
  */

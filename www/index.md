@@ -30,9 +30,10 @@ hyperscript features include:
 
 </div>
 
-hyperscript is a companion project of [htmx](https://htmx.org).  
+You can see a comparison of hyperscript, vanillaJS and jQuery [here](/comparison).
 
-Note that because Promises are not available in IE hyperscript does not strive for IE11 compatibility like htmx does.
+hyperscript is a companion project of [htmx](https://htmx.org) but note that because 
+[promises are not available in IE](https://caniuse.com/?search=Promise) hyperscript does *not* strive for IE11 compatibility.
 
 ## examples
 

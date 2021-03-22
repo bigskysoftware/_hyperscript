@@ -12,7 +12,7 @@ I'm pleased to announce the [0.0.8 release](https://unpkg.com/browse/hyperscript
 #### Changes
 
 * **BREAKING CHANGE**: The `with` command has been removed in favor of the [`tell` command](/commands/tell).  The `tell`
-  command is similar, but does not override the `me` symbol, which remains bound to the element the event handler is
+  command is similar to `with`, but does not override the `me` symbol, which remains bound to the element the event handler is
   defined on.
   ```
     tell #anotherDiv
@@ -21,7 +21,13 @@ I'm pleased to announce the [0.0.8 release](https://unpkg.com/browse/hyperscript
   ```
   ```
 
-* New comparisons: `is empty`, `is not empty`, `is a <type>`, `is not a <type>`
+* New comparison expressions: `is empty`, `is not empty`, `is a <type>`, `is not a <type>`
+  ```
+    array is empty
+    array is not empty
+    x is a String
+    x is not a String
+  ```
 
 * The `hdb` window is now draggable using some pretty sweet hyperscript...
 
@@ -73,7 +79,7 @@ I'm pleased to announce the [0.0.8 release](https://unpkg.com/browse/hyperscript
 
 * The new `exit` command allows you to exit a function or event handler without returning a value
 
-* The new [`go` command](/commands/go) allows you nagigate with the browser or within a page
+* The new [`go` command](/commands/go) allows you navigate with the browser or within a page
 
 
 Enjoy!

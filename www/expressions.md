@@ -14,6 +14,7 @@ title: ///_hyperscript
 * [CSS Literals](#css)
 * [Comparisons](#css)
 * [Strings](#strings)
+* [Possessive Expressions](#possessives)
 * [Null Safety](#null-safety)
 * [Array Expansion](#array-expansion)
 * [Blocks](#blocks)
@@ -160,7 +161,7 @@ because interpolation works with normal strings.
 </div>
 ```
 
-In a few places, Hyperscript allowes "naked" strings, strings without a leading quote or double quote.  An example is
+In a few places, hyperscript allows "naked" strings, strings without a leading quote or double quote.  An example is
 the [fetch command](/commands/fetch), which can take a URL as a naked string:
 
 ```html
@@ -170,6 +171,34 @@ the [fetch command](/commands/fetch), which can take a URL as a naked string:
 ```
 
 Here the `/example` element is an example of a naked string.  Naked strings are ended by whitespace.
+
+## <a name="possessives"></a>[Possessive Expressions](#possessives)
+
+The possessive expression is an expression that starts with `my` or `its` or a symbol followed by a `'s' and that is
+roughly the equivalent of a property acesss
+
+```html
+<div _="on click put the window's location into me">
+  Click Me
+</div>
+```
+
+This is equivalent to:
+
+```html
+<div _="on click put window.location into me">
+  Click Me
+</div>
+```
+
+You may also access and set DOM attributes using the possessive with the modifier `attribute`:
+
+<div _="on click from body in <a/> 
+          put its attribute href location into me
+          call event.preventDefault()">
+  Click Me
+</div>
+
 
 ## <a name="conversions"></a>[Conversions](#conversions)
 

@@ -9,11 +9,14 @@ title: ///_hyperscript
 
 ```ebnf
 return <expression>
+exit
 ```
 
 ### Description
 
-The `return` command returns a value from a function in hyperscript
+The `return` command returns a value from a function in hyperscript.
+
+You may use the `exit` form to return no value.
 
 ### Examples
 

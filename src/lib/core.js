@@ -199,11 +199,13 @@
                  * @param {Token[]} tokens 
                  * @param {Token[]} consumed 
                  * @param {string} source 
-                 * @returns TokensObject
+                 * @returns {TokensObject}
                  */
                 function makeTokensObject(tokens, consumed, source) {
 
                     consumeWhitespace(); // consume initial whitespace
+
+                    /** @type Token | null */
                     var _lastConsumed = null;
 
                     function consumeWhitespace(){
@@ -222,7 +224,7 @@
 
                     /**
                      * @param {string} value 
-                     * @returns [Token]
+                     * @returns {Token}
                      */
                     function requireOpToken(value) {
                         var token = matchOpToken(value);
@@ -237,7 +239,7 @@
                      * @param {string} op1 
                      * @param {string} [op2]
                      * @param {string} [op3]
-                     * @returns [Token]
+                     * @returns {Token | void}
                      */
                     function matchAnyOpToken(op1, op2, op3) {
                         for (var i = 0; i < arguments.length; i++) {
@@ -253,7 +255,7 @@
                      * @param {string} op1
                      * @param {string} [op2]
                      * @param {string} [op3]
-                     * @returns [Token]
+                     * @returns {Token | void}
                      */
                      function matchAnyToken(op1, op2, op3) {
                         for (var i = 0; i < arguments.length; i++) {
@@ -267,7 +269,7 @@
 
                     /**
                      * @param {string} value 
-                     * @returns [Token]
+                     * @returns {Token | void}
                      */
                     function matchOpToken(value) {
                         if (currentToken() && currentToken().op && currentToken().value === value) {
@@ -277,10 +279,10 @@
 
                     /**
                      * @param {string} type1 
-                     * @param {string} type2 
-                     * @param {string} type3 
-                     * @param {string} type4 
-                     * @returns Token
+                     * @param {string} [type2] 
+                     * @param {string} [type3]
+                     * @param {string} [type4]
+                     * @returns {Token | void}
                      */
                     function requireTokenType(type1, type2, type3, type4) {
                         var token = matchTokenType(type1, type2, type3, type4);
@@ -293,10 +295,10 @@
 
                     /**
                      * @param {string} type1 
-                     * @param {string} type2 
-                     * @param {string} type3 
-                     * @param {string} type4 
-                     * @returns [Token]
+                     * @param {string} [type2]
+                     * @param {string} [type3]
+                     * @param {string} [type4]
+                     * @returns {Token | void}
                      */
                     function matchTokenType(type1, type2, type3, type4) {
                         if (currentToken() && currentToken().type && [type1, type2, type3, type4].indexOf(currentToken().type) >= 0) {
@@ -307,7 +309,7 @@
                     /**
                      * @param {string} value 
                      * @param {string} [type]
-                     * @returns Token
+                     * @returns {Token}
                      */
                     function requireToken(value, type) {
                         var token = matchToken(value, type);
@@ -321,7 +323,7 @@
                     /**
                      * @param {string} value 
                      * @param {string} [type]
-                     * @returns [Token]
+                     * @returns {Token | void}
                      */
                     function matchToken(value, type) {
                         var type = type || "IDENTIFIER";
@@ -331,7 +333,7 @@
                     }
 
                     /**
-                     * @returns Token
+                     * @returns {Token}
                      */
                     function consumeToken() {
                         var match = tokens.shift();
@@ -344,7 +346,7 @@
                     /**
                      * @param {string} value 
                      * @param {string} [type]
-                     * @returns Token[]
+                     * @returns {Token[]}
                      */
                     function consumeUntil(value, type) {
 
@@ -365,7 +367,7 @@
                     }
 
                     /**
-                     * @returns string
+                     * @returns {string}
                      */
                     function lastWhitespace() {
                         if (consumed[consumed.length - 1] && consumed[consumed.length - 1].type === "WHITESPACE") {
@@ -380,7 +382,7 @@
                     }
 
                     /**
-                     * @returns boolean
+                     * @returns {boolean}
                      */
                     function hasMore() {
                         return tokens.length > 0;
@@ -389,12 +391,10 @@
                     /**
                      * @param {number} n 
                      * @param {boolean} [dontIgnoreWhitespace]
-                     * @returns Token
+                     * @returns {Token}
                      */
                     function token(n, dontIgnoreWhitespace) {
-
-                        /** @type {Token} */
-                        var token;
+                        var /**@type {Token}*/ token;
                         var i = 0;
                         do {
                             if (!dontIgnoreWhitespace) {
@@ -417,25 +417,35 @@
                     }
 
                     /**
-                     * @returns Token
+                     * @returns {Token}
                      */
                     function currentToken() {
                         return token(0);
                     }
 
+                    /**
+                     * @returns {Token | null}
+                     */
                     function lastMatch() {
                         return _lastConsumed;
                     }
 
+                    /**
+                     * @returns {string}
+                     */
                     function sourceFor() {
                         return source.substring(this.startToken.start, this.endToken.end);
                     }
 
-                    function lineFor() {
+                    /**
+                     * @returns {string}
+                     */
+                     function lineFor() {
                         return source
                             .split("\n")[this.startToken.line - 1];
                     }
 
+                    /** @type {TokensObject} */
                     return {
                         matchAnyToken: matchAnyToken,
                         matchAnyOpToken: matchAnyOpToken,
@@ -461,6 +471,11 @@
                     }
                 }
 
+
+                /**
+                 * @param {Token[]} tokens 
+                 * @returns {boolean}
+                 */
                 function isValidSingleQuoteStringStart(tokens) {
                     if (tokens.length > 0) {
                         var previousToken = tokens[tokens.length - 1];
@@ -477,11 +492,10 @@
                 /**
                  * @param {string} string 
                  * @param {boolean} [template]
-                 * @returns TokensObject
+                 * @returns {TokensObject}
                  */
                 function tokenize(string, template) {
-                    /** @type Token[]*/
-                    var tokens = [];
+                    var tokens = /** @type {Token[]}*/ [];
                     var source = string;
                     var position = 0;
                     var column = 0;
@@ -538,7 +552,7 @@
                     /**
                      * @param {string} [type] 
                      * @param {string} [value]
-                     * @returns Token
+                     * @returns {Token}
                      */
                     function makeOpToken(type, value) {
                         var token = makeToken(type, value);
@@ -549,7 +563,7 @@
                     /**
                      * @param {string} [type]
                      * @param {string} [value]
-                     * @returns Token
+                     * @returns {Token}
                      */
                     function makeToken(type, value) {
                         return {
@@ -736,10 +750,10 @@
                 /** @type {Object<string,GrammarDefinition>} */ 
                 var GRAMMAR = {}
 
-                /** @type {Object<string,CommandDefinition>} */
+                /** @type {Object<string,GrammarDefinition>} */
                 var COMMANDS = {}
 
-                /** @type {Object<string,FeatureDefinition>} */
+                /** @type {Object<string,GrammarDefinition>} */
                 var FEATURES = {}
                 
                 var LEAF_EXPRESSIONS = [];
@@ -786,7 +800,7 @@
                  * @param {TokensObject} tokens 
                  * @param {string} [message]
                  * @param {*} [root]
-                 * @returns GrammarElement
+                 * @returns {GrammarElement}
                  */
                 function requireElement(type, tokens, message, root) {
                     var result = parseElement(type, tokens, root);
@@ -796,7 +810,7 @@
                 /**
                  * @param {string[]} types 
                  * @param {TokensObject} tokens 
-                 * @returns GrammarElement
+                 * @returns {GrammarElement}
                  */
                 function parseAnyOf(types, tokens) {
                     for (var i = 0; i < types.length; i++) {
@@ -818,7 +832,7 @@
 
                 /**
                  * @param {string} keyword 
-                 * @param {CommandDefinition} definition 
+                 * @param {GrammarDefinition} definition 
                  */
                 function addCommand(keyword, definition) {
                     var commandGrammarType = keyword + "Command";
@@ -839,12 +853,12 @@
 
                 /**
                  * @param {string} keyword 
-                 * @param {FeatureDefinition} definition 
+                 * @param {GrammarDefinition} definition 
                  */
                 function addFeature(keyword, definition) {
                     var featureGrammarType = keyword + "Feature";
 
-                    /** @type FeatureDefinition*/ 
+                    /** @type {GrammarDefinition} */ 
                     var featureDefinitionWrapper = function (parser, runtime, tokens) {
                         var featureElement = definition(parser, runtime, tokens);
                         if (featureElement) {
@@ -859,7 +873,7 @@
 
                 /**
                  * @param {string} name 
-                 * @param {ExpressionDefinition} definition 
+                 * @param {GrammarDefinition} definition 
                  */
                 function addLeafExpression(name, definition) {
                     LEAF_EXPRESSIONS.push(name);
@@ -868,7 +882,7 @@
 
                 /**
                  * @param {string} name 
-                 * @param {ExpressionDefinition} definition 
+                 * @param {GrammarDefinition} definition 
                  */
                 function addIndirectExpression(name, definition) {
                     INDIRECT_EXPRESSIONS.push(name);
@@ -880,34 +894,35 @@
                 /* ============================================================================================ */
                 addGrammarElement("feature", function(parser, runtime, tokens) {
                     if (tokens.matchOpToken("(")) {
-                        var featureDefinition = parser.requireElement("feature", tokens);
+                        var featureElement = parser.requireElement("feature", tokens);
                         tokens.requireOpToken(")");
-                        return featureDefinition;
-                    } else {
-                        var featureDefinition = FEATURES[tokens.currentToken().value];
-                        if (featureDefinition) {
-                            return featureDefinition(parser, runtime, tokens);
-                        }
+                        return featureElement;
+                    }
+
+                    var featureDefinition = FEATURES[tokens.currentToken().value];
+                    if (featureDefinition) {
+                        return featureDefinition(parser, runtime, tokens);
                     }
                 })
 
                 addGrammarElement("command", function(parser, runtime, tokens) {
                     if (tokens.matchOpToken("(")) {
-                        var commandDefinition = parser.requireElement("command", tokens);
+                        var commandElement = parser.requireElement("command", tokens);
                         tokens.requireOpToken(")");
-                        return commandDefinition;
-                    } else {
-                        var commandDefinition = COMMANDS[tokens.currentToken().value];
-                        if (commandDefinition) {
-                            var commandDef = commandDefinition(parser, runtime, tokens);
-                        } else if (tokens.currentToken().type === "IDENTIFIER" && tokens.token(1).value === "(") {
-                            var commandDef = parser.requireElement("pseudoCommand", tokens);
-                        }
-                        if (commandDef) {
-                            return parser.parseElement("indirectStatement", tokens, commandDef);
-                        }
-                        return commandDef;
+                        return commandElement;
                     }
+                
+                    var commandDefinition = COMMANDS[tokens.currentToken().value];
+                    if (commandDefinition) {
+                        var commandElement = commandDefinition(parser, runtime, tokens);
+                    } else if (tokens.currentToken().type === "IDENTIFIER" && tokens.token(1).value === "(") {
+                        var commandElement = parser.requireElement("pseudoCommand", tokens);
+                    }
+                    if (commandElement) {
+                        return parser.parseElement("indirectStatement", tokens, commandElement);
+                    }
+
+                    return commandElement;
                 })
 
                 addGrammarElement("commandList", function(parser, runtime, tokens) {
@@ -924,9 +939,9 @@
                     // symbol is last so it doesn't consume any constants
                     if (result == null) {
                         return parseElement('symbol', tokens);
-                    } else {
-                        return result;
                     }
+                    
+                    return result;
                 })
 
                 addGrammarElement("indirectExpression", function(parser, runtime, tokens, root) {
@@ -954,7 +969,7 @@
                                 } else {
                                     return root;
                                 }
-                            },
+                            }, 
                             execute: function(context) {
                                 return runtime.unifiedExec(this, context);
                             }
@@ -993,7 +1008,7 @@
                 }
 
                 /**
-                 * @param {*} tokens 
+                 * @param {TokensObject} tokens 
                  * @param {string} message 
                  */
                 function raiseParseError(tokens, message) {
@@ -1006,15 +1021,15 @@
 
                 /**
                  * @param {TokensObject} tokens 
-                 * @returns 
+                 * @returns {GrammarElement}
                  */
                 function parseHyperScript(tokens) {
                     return parseElement("hyperscript", tokens)
                 }
 
                 /**
-                 * @param {*} elt 
-                 * @param {*} parent 
+                 * @param {GrammarElement} elt 
+                 * @param {GrammarElement} parent 
                  */
                 function setParent(elt, parent) {
                     if (elt) {
@@ -1025,7 +1040,7 @@
 
                 /**
                  * @param {Token} token 
-                 * @returns 
+                 * @returns {GrammarDefinition}
                  */
                 function commandStart(token){
                     return COMMANDS[token.value];
@@ -1033,7 +1048,7 @@
 
                 /**
                  * @param {Token} token 
-                 * @returns 
+                 * @returns {GrammarDefinition}
                  */
                 function featureStart(token){
                     return FEATURES[token.value];
@@ -1041,7 +1056,7 @@
 
                 /**
                  * @param {Token} token 
-                 * @returns 
+                 * @returns {true | void}
                  */
                 function commandBoundary(token) {
                     if (token.value == "end" ||
@@ -1057,9 +1072,10 @@
 
                 /**
                  * @param {TokensObject} tokens 
-                 * @returns 
+                 * @returns {(string | Token)[]}
                  */
                 function parseStringTemplate(tokens) {
+                    /** @type (string | Token)[] */
                     var returnArr = [""];
                     do {
                         returnArr.push(tokens.lastWhitespace());
@@ -1084,7 +1100,7 @@
                 }
 
                 // parser API
-                return /** @type ParserObject */ {
+                return {
                     setParent: setParent,
                     requireElement: requireElement,
                     parseElement: parseElement,
@@ -1106,8 +1122,10 @@
             //====================================================================
             // Runtime
             //====================================================================
+
+            /** @type ConversionMap */
             var CONVERSIONS = {
-                dynamicResolvers : [],
+                dynamicResolvers : /** @type DynamicConversionFunction[] */ [],
                 "String" : function(val){
                     if(val.toString){
                         return val.toString();
@@ -1144,6 +1162,12 @@
                     }
                 }
             }
+
+            /********************************************
+             * RUNTIME OBJECT
+             ********************************************/
+
+            /** @type {RuntimeObject} */
             var _runtime = function () {
 
                 /**
@@ -1161,8 +1185,8 @@
 
                 /**
                  * @param {string} eventName 
-                 * @param {{}} detail 
-                 * @returns 
+                 * @param {Object} [detail] 
+                 * @returns {Event}
                  */
                 function makeEvent(eventName, detail) {
                     var evt;
@@ -1178,11 +1202,11 @@
                 /**
                  * @param {HTMLElement} elt 
                  * @param {string} eventName 
-                 * @param {{}} [detail]
-                 * @returns boolean
+                 * @param {Object} [detail]
+                 * @returns {boolean}
                  */
                 function triggerEvent(elt, eventName, detail) {
-                    var detail = detail || {};
+                    detail = detail || {};
                     detail["sentBy"] = elt;
                     var event = makeEvent(eventName, detail);
                     var eventResult = elt.dispatchEvent(event);
@@ -1205,10 +1229,9 @@
                  * if `value` is a single item (and not an array) then `func` is simply called
                  * once.  If `value` is null, then no further actions are taken.
                  * 
-                 * @function
                  * @template T
-                 * @param {T | T[]} value 
-                 * @param {(item:T) => void} func 
+                 * @param {NodeList | T | T[]} value 
+                 * @param {(item:Node | T) => void} func 
                  */
                 function forEach(value, func) {
                     if (value == null) {
@@ -1280,7 +1303,7 @@
                 var HALT = {halt_flag:true};
 
                 /**
-                 * @param {CommandDefinition} command 
+                 * @param {GrammarDefinition} command 
                  * @param {Context} ctx 
                  */
                 function unifiedExec(command,  ctx) {
@@ -1332,7 +1355,7 @@
                 /**
                  * @param {*} parseElement 
                  * @param {Context} ctx 
-                 * @returns 
+                 * @returns {*}
                  */
                 function unifiedEval(parseElement,  ctx) {
                     
@@ -1427,7 +1450,7 @@
 
                 /**
                  * @param {HTMLElement} elt 
-                 * @returns string
+                 * @returns {string | null}
                  */
                 function getScript(elt) {
                     for (var i = 0; i < getScriptAttributes().length; i++) {
@@ -1442,6 +1465,10 @@
                     return null;
                 }
 
+                /**
+                 * @param {Object} owner 
+                 * @param {Context} ctx 
+                 */
                 function addFeatures(owner, ctx) {
                     if(owner) {
                         if (owner.hyperscriptFeatures) {
@@ -1456,9 +1483,11 @@
                  * @param {*} feature 
                  * @param {*} hyperscriptTarget 
                  * @param {*} event 
-                 * @returns Context
+                 * @returns {Context}
                  */
                 function makeContext(owner, feature, hyperscriptTarget, event) {
+
+                    /** @type {Context} */
                     var ctx = {
                         meta: {
                             parser: _parser,
@@ -1489,9 +1518,9 @@
                 }
 
                 /**
-                 * @param {*} value 
+                 * @param {any} value 
                  * @param {string} type 
-                 * @returns any
+                 * @returns {any}
                  */
                 function convertValue(value,  type) {
 
@@ -1523,7 +1552,7 @@
 
                 /**
                  * @param {string} src 
-                 * @returns GrammarElement
+                 * @returns {GrammarElement}
                  */
                 function parse(src) {
                     var tokens = _lexer.tokenize(src);
@@ -1550,8 +1579,8 @@
 
                 /**
                  * @param {string} src 
-                 * @param {*} ctx 
-                 * @returns 
+                 * @param {Context} ctx 
+                 * @returns {any}
                  */
                 function evaluate(src, ctx) {
                     ctx = mergeObjects(makeContext(document.body, null,
@@ -1616,7 +1645,7 @@
 
                 /**
                  * @param {HTMLElement} elt 
-                 * @returns Object<string,any>
+                 * @returns {Object}
                  */
                 function getInternalData(elt) {
                     var dataProp = 'hyperscript-internal-data';
@@ -1631,7 +1660,7 @@
                  * @param {any} value 
                  * @param {string} typeString 
                  * @param {boolean} [nullOk]
-                 * @returns 
+                 * @returns {boolean}
                  */
                 function typeCheck(value, typeString, nullOk) {
                     if (value == null && nullOk) {
@@ -1644,7 +1673,7 @@
                 /**
                  * @param {string} str 
                  * @param {Context} context 
-                 * @returns any
+                 * @returns {any}
                  */
                 function resolveSymbol(str, context) {
                     if (str === "me" || str === "my" || str === "I") {
@@ -1668,9 +1697,9 @@
                 }
 
                 /**
-                 * @param {Command} command 
+                 * @param {GrammarElement} command 
                  * @param {Context} context 
-                 * @returns 
+                 * @returns {undefined | GrammarElement}
                  */
                 function findNext(command, context) {
                     if (command) {
@@ -1687,26 +1716,27 @@
                 /**
                  * @param {Object<string,any>} root 
                  * @param {string} property 
-                 * @returns any
+                 * @param {boolean} attribute
+                 * @returns {any}
                  */
                 function resolveProperty(root, property, attribute) {
                     if (root != null) {
                         var val = attribute && root.getAttribute ? root.getAttribute(property) : root[property];
                         if (typeof val !== 'undefined') {
                             return val;
-                        } else {
-                            if (isArrayLike(root)) {
-                                // flat map
-                                var result = [];
-                                for (var i = 0; i < root.length; i++) {
-                                    var component = root[i];
-                                    var componentValue = attribute ? component.getAttribute(property) : component[property];
-                                    if (componentValue) {
-                                        result.push(componentValue);
-                                    }
+                        } 
+
+                        if (isArrayLike(root)) {
+                            // flat map
+                            var result = [];
+                            for (var i = 0; i < root.length; i++) {
+                                var component = root[i];
+                                var componentValue = attribute ? component.getAttribute(property) : component[property];
+                                if (componentValue) {
+                                    result.push(componentValue);
                                 }
-                                return result;
                             }
+                            return result;
                         }
                     }
                 }
@@ -1783,9 +1813,8 @@
                 }
 
                 /**
-                 * 
                  * @param {string} str 
-                 * @returns string
+                 * @returns {string}
                  */
                 function escapeSelector(str) {
                     return str.replace(/:/g, function(str){
@@ -1793,6 +1822,10 @@
                     });
                 }
 
+                /**
+                 * @param {any} value 
+                 * @param {*} elt 
+                 */
                 function nullCheck(value, elt) {
                     if (value == null) {
                         throw new Error(elt.sourceFor() + " is null");
@@ -1801,14 +1834,16 @@
 
                 /**
                  * @param {any} value 
-                 * @returns boolean
+                 * @returns {boolean}
                  */
                 function isEmpty(value) {
                     return (value == undefined) || (value.length === 0);
                 }
 
-                var hyperscriptUrl = 'document' in globalScope ? document.currentScript.src : null
+                /** @type string | null */
+                var hyperscriptUrl = ('document' in globalScope) ? document.currentScript.src : null
 
+                /** @type {RuntimeObject} */
                 return {
                     typeCheck: typeCheck,
                     forEach: forEach,
@@ -1991,7 +2026,7 @@
                             name: name,
                             value: value,
                             args: [value],
-                            op:function(context, value){
+                            op:function(_context, value){
                                 if (this.value) {
                                     return {name:this.name, value:value}
                                 } else {
@@ -2220,7 +2255,7 @@
                         time: time,
                         factor: factor,
                         args: [time],
-                        op: function (context, val) {
+                        op: function (_context, val) {
                             return val * this.factor
                         },
                         evaluate: function (context) {
@@ -2237,7 +2272,7 @@
                             root: root,
                             prop: prop,
                             args: [root],
-                            op:function(context, rootVal){
+                            op:function(_context, rootVal){
                                 var value = runtime.resolveProperty(rootVal, prop.value);
                                 return value;
                             },
@@ -3743,6 +3778,7 @@
                     var functionName = expr.root.name;
                     var functionArgs = expr.argExressions;
 
+                    /** @type {GrammarElement} */
                     var pseudoCommand = {
                         type: "pseudoCommand",
                         expr: expr,
@@ -3803,6 +3839,7 @@
                             root = target.root;
                         }
 
+                        /** @type {GrammarElement} */
                         var setCmd = {
                             target: target,
                             symbolWrite: symbolWrite,
@@ -3838,6 +3875,8 @@
                         if (tokens.hasMore()) {
                             tokens.requireToken("end");
                         }
+
+                        /** @type {GrammarElement} */
                         var ifCmd = {
                             expr: expr,
                             trueBranch: trueBranch,

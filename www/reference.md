@@ -42,6 +42,7 @@ title: ///_hyperscript
 | [trigger](/commands/trigger) | triggers an event on the current element | `trigger customEvent`
 | [wait](/commands/wait) | Waits for an event or a given amount of time before resuming the command list | `wait 2s then remove me`
 | [tell](/commands/tell) | Temporarily sets a new implicit target value | `with <p/> add .highlight`
+| [go](/commands/go) | Navigate to a new page or within a page | `go to the top of the body smoothly`
 
 ## <a href='expressions'></a>[Expressions](#expressions)
 
@@ -64,6 +65,7 @@ See [expressions](/expressions) for an overview.
 | [closest expression](/expressions/closest) | Find closest element | `closest <div/>`
 | [of expression](/expressions/of) | Get a property of an object | `the location of window`
 | [positional expressions](/expressions/positional) | Get a positional value out of an array-like object | `first from <div/>`
+| [possessive expressions](/expressions/possessive) | Get a property or attribute from an element | `the window's location`
 | array literal | Javascript-style array literals | `[1, 2, 3]`
 | boolean literal | Javascript-style booleans | `true false`
 | math operator | Javascript-style mathematical operators | `1 + 2`
