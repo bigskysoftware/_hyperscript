@@ -1,6 +1,7 @@
 <div style="position: absolute; padding: 50px; text-align: center; vertical-align: middle; border: 1px solid black; background-color: white"
      _="-- this little maneuver is called The Akşimşek Gambit...
         on mousedown(clientX, clientY)
+          event.preventDefault()
           measure my x, y
           set xoff to clientX - x
           set yoff to clientY - y
