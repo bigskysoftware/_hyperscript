@@ -2066,7 +2066,7 @@
                             }
                         }
                         return {
-                            type: "attribute_expression",
+                            type: "attributeRef",
                             name: name,
                             css: css,
                             value: value,
@@ -2334,8 +2334,8 @@
                             childOfUrRoot = urRoot;
                             urRoot = urRoot.root;
                         }
-                        if (urRoot.type !== 'symbol') {
-                            parser.raiseParseError(tokens, "Cannot take a property of a non-symbol");
+                        if (urRoot.type !== 'symbol' && urRoot.type !== 'attributeRef') {
+                            parser.raiseParseError(tokens, "Cannot take a property of a non-symbol: " + urRoot.type);
                         }
                         var prop = urRoot.name;
                         var propertyAccess = {
@@ -2352,6 +2352,9 @@
                             }
                         };
 
+                        if (urRoot.type === "attributeRef") {
+                            propertyAccess.attribute = urRoot;
+                        }
                         if (childOfUrRoot) {
                             childOfUrRoot.root = propertyAccess;
                             childOfUrRoot.args = [propertyAccess];
@@ -2373,9 +2376,8 @@
                         if (apostrophe) {
                             tokens.requireToken("s");
                         }
-                        if (tokens.matchToken("attribute")) {
-                            var attribute = parser.requireElement('stringLike', tokens);
-                        } else {
+                        var attribute = parser.parseElement('attributeRef', tokens);
+                        if (attribute == null) {
                             var prop = tokens.requireTokenType("IDENTIFIER");
                         }
                         var propertyAccess = {
@@ -2383,10 +2385,10 @@
                             root: root,
                             attribute: attribute,
                             prop: prop,
-                            args: [root, attribute],
-                            op:function(context, rootVal, attribute){
+                            args: [root],
+                            op:function(context, rootVal){
                                 if(attribute){
-                                    var value = runtime.resolveProperty(rootVal, attribute, true);
+                                    var value = runtime.resolveProperty(rootVal, attribute.name, true);
                                 } else {
                                     var value = runtime.resolveProperty(rootVal, prop.value, false);
                                 }
@@ -2509,6 +2511,26 @@
                             }
                         }
                         return parser.parseElement("indirectExpression", tokens, functionCall);
+                    }
+                });
+
+                _parser.addIndirectExpression("attributeRefAccess", function (parser, runtime, tokens, root) {
+                    var attribute = parser.parseElement('attributeRef', tokens);
+                    if (attribute) {
+                        var attributeAccess = {
+                            type: "attributeRefAccess",
+                            root: root,
+                            attribute: attribute,
+                            args: [root],
+                            op: function(_ctx, rootVal) {
+                                var value = runtime.resolveProperty(rootVal, attribute.value, true);
+                                return value;
+                            },
+                            evaluate: function(context){
+                                return _runtime.unifiedEval(this, root);
+                            }
+                        };
+                        return attributeAccess;
                     }
                 });
 
@@ -2908,7 +2930,7 @@
                     var expr = parser.parseElement("primaryExpression", tokens);
                     if (expr.type === "symbol" || expr.type === "idRef" || expr.type === "inExpression" ||
                         expr.type === "queryRef" || expr.type === "classRef" || expr.type === "ofExpression" ||
-                        expr.type === "propertyAccess" || expr.type === "closestExpr" ||
+                        expr.type === "propertyAccess" || expr.type === "closestExpr" || expr.type === "attributeRefAccess" ||
                         expr.type === "possessive") {
                         return expr;
                     } else {
@@ -3884,14 +3906,14 @@
                             target: target,
                             symbolWrite: symbolWrite,
                             value: value,
-                            args: [root, value, attribute],
-                            op: function (context, root, valueToSet, attribute) {
+                            args: [root, value],
+                            op: function (context, root, valueToSet) {
                                 if (symbolWrite) {
                                     context[target.name] = valueToSet;
                                 } else {
                                     runtime.forEach(root, function (elt) {
                                         if (attribute) {
-                                            elt.setAttribute(attribute, valueToSet);
+                                            elt.setAttribute(attribute.name, valueToSet);
                                         } else {
                                             elt[prop] = valueToSet;
                                         }
