@@ -22,10 +22,10 @@ title: ///_hyperscript
                         _="on change
                          if my value is not 'Clear'
                            fetch `/playground/${my value}`
-                           put it into #code
+                           put it into #code.value
                            send loadCode to #code
                          else
-                           put '' into #code
+                           put '' into #code.value
                            put '' into #contents">
                     <option>Clear</option>
                     <option value="hide_remove">Hide Then Remove</option>
