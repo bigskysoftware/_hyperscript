@@ -18,7 +18,7 @@ title: ///_hyperscript
 * [the language](#lang)
   * [features](#features)
     * [on](#on)
-    * [worker](#worker)
+    * [worker](#workers)
   * [commands](#commands)
     * [pseudo-commands](#pseudo-commands)
   * [expressions](#expressions)
@@ -405,7 +405,7 @@ Note that you can use the js feature below if you want to use javascript in your
 
 ### <a name="js"></a>[The JS Feature](#js)
 
-The [js feature](/features/worker) allows you define javascript within hyperscript script tags.  You might do this for performance reasons, since the hyperscript runtime is more focused on flexibility, rather than performance.  This feature is most useful in [workers](#workers), when you want to pass javascript across to the worker's implementation:
+The [js feature](/features/js) allows you define javascript within hyperscript script tags.  You might do this for performance reasons, since the hyperscript runtime is more focused on flexibility, rather than performance.  This feature is most useful in [workers](#workers), when you want to pass javascript across to the worker's implementation:
 
 ```html
 <script type="text/hyperscript">
@@ -422,7 +422,7 @@ The [js feature](/features/worker) allows you define javascript within hyperscri
 </script>
 ```
 
-Note that there is also a way to include [inline javascript](#inline_js)
+Note that there is also a way to include [inline javascript](#inline-js)
 within a hyperscript function, for local optimizations.
 
 ## <a name="commands"></a>[Commands](#commands)
@@ -876,7 +876,7 @@ Here are some examples:
 </button>
 ```
 
-### <a name="js-command"></a>[Inline Javascript](#js-command)
+### <a name="js-command"></a>[Inline Javascript](#inline-js)
 
 Performance is an, ahem, *secondary* consideration in hyperscript and, while it is fast enough
 in most cases, there are times when you may want to kick out to javascript.  You may of course
