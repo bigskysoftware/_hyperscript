@@ -520,6 +520,14 @@
             } else if(target.type === "symbol" && operation === "into") {
                 symbolWrite = true;
                 prop = target.name;
+            } else if(target.type === "attributeRef" && operation === "into") {
+                var attributeWrite = true;
+                prop = target.name;
+                root = parser.requireElement('implicitMeTarget', tokens);
+            } else if(target.type === "attributeRefAccess" && operation === "into") {
+                var attributeWrite = true;
+                prop = target.attribute.name;
+                root = target.root;
             } else {
                 root = target;
             }
@@ -535,9 +543,15 @@
                         putInto(context, prop, valueToPut);
                     } else {
                         if (operation === "into") {
-                            runtime.forEach(root, function (elt) {
-                                putInto(elt, prop, valueToPut);
-                            })
+                            if (attributeWrite) {
+                                runtime.forEach(root, function (elt) {
+                                    elt.setAttribute(prop, valueToPut);
+                                });
+                            } else {
+                                runtime.forEach(root, function (elt) {
+                                    putInto(elt, prop, valueToPut);
+                                });
+                            }
                         } else if (operation === "before") {
                             runtime.forEach(root, function (elt) {
                                 elt.insertAdjacentHTML('beforebegin', valueToPut);

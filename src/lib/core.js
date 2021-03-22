@@ -2070,8 +2070,10 @@
                             name: name,
                             css: css,
                             value: value,
-                            op:function(){
-                                return document.querySelectorAll(this.css);
+                            op:function(context){
+                                if (context.me) {
+                                    return context.me.getAttribute(name);
+                                };
                             },
                             evaluate: function (context) {
                                 return runtime.unifiedEval(this, context);
@@ -2931,10 +2933,10 @@
                     if (expr.type === "symbol" || expr.type === "idRef" || expr.type === "inExpression" ||
                         expr.type === "queryRef" || expr.type === "classRef" || expr.type === "ofExpression" ||
                         expr.type === "propertyAccess" || expr.type === "closestExpr" || expr.type === "attributeRefAccess" ||
-                        expr.type === "possessive") {
+                        expr.type === "attributeRef" || expr.type === "possessive") {
                         return expr;
                     } else {
-                        _parser.raiseParseError(tokens, "A target expression must be writable");
+                        _parser.raiseParseError(tokens, "A target expression must be writable : " + expr.type);
                     }
                     return expr;
                 });
@@ -3887,7 +3889,8 @@
                         var value = parser.requireElement("expression", tokens);
 
                         var symbolWrite = target.type === "symbol";
-                        if (target.type !== "symbol" && target.root == null) {
+                        var attributeWrite = target.type === "attributeRef";
+                        if (!attributeWrite && !symbolWrite && target.root == null) {
                             parser.raiseParseError(tokens, "Can only put directly into symbols, not references")
                         }
 
@@ -3895,6 +3898,9 @@
                         var prop = null;
                         if (symbolWrite) {
                             // root is null
+                        } else if (attributeWrite) {
+                            root = parser.requireElement('implicitMeTarget', tokens);
+                            var attribute = target;
                         } else {
                             prop = target.prop ? target.prop.value : null;
                             var attribute = target.attribute;
