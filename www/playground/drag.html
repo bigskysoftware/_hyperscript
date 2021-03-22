@@ -4,13 +4,33 @@
           measure my x, y
           set xoff to clientX - x
           set yoff to clientY - y
-          put ':)' into me
+          transition
+              margin-top to '-10px'
+              box-shadow to '8px 8px 2px 1px rgba(0, 0, 0, .2)'
+            over 50ms
           repeat until event mouseup from document
             wait for mousemove(pageX, pageY) or
                      mouseup(pageX, pageY) from document
             add { left: `${pageX - xoff}`, top: `${pageY - yoff}` }
           end
-          put 'Drag me...' into me
+          transition margin-top to 0
+              box-shadow to '0 0 0 0'
+            over 50ms
+">
+   Drag me...
+</div>
+<div style="position: absolute; padding: 50px; text-align: center; vertical-align: middle; border: 1px solid black; background-color: white"
+     _="-- this little maneuver is called The Akşimşek Gambit...
+        on mousedown(clientX, clientY)
+          call event.preventDefault()
+          measure my x, y
+          set xoff to clientX - x
+          set yoff to clientY - y
+          repeat until event mouseup from document
+            wait for mousemove(pageX, pageY) or
+                     mouseup(pageX, pageY) from document
+            add { left: `${pageX - xoff}`, top: `${pageY - yoff}` }
+          end
 ">
    Drag me...
 </div>
