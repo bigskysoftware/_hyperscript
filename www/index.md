@@ -21,12 +21,13 @@ hyperscript features include:
 
 <div style="padding: 16px">
 
-* Events are first class citizens in the language with clean syntax for responding to and sending events, as well as event-driven control flow
-* DOM-oriented syntax, such as CSS id, CSS class and  CSS query literals
+* Events are first class citizens in the language with clean syntax for [responding to](/features/on) and 
+  [sending](/commands/send) events, as well as [event-driven control flow](docs/#event-control-flow)
+* DOM-oriented syntax, such as [CSS id, CSS class and  CSS query literals](https://hyperscript.org/expressions/#css)
 * First class [web workers](/docs#workers)
 * An [async-transparent](/docs#async) runtime, which removes the distinction between synchronous and asynchronous code
-* A pluggable & extendable parser & grammar
-* A [debugger](/hdb/) to step through hyperscript code
+* A [pluggable & extendable](/docs/#extending) parser & grammar
+* A [debugger](/docs#debugging) to step through hyperscript code
 
 </div>
 
@@ -38,7 +39,7 @@ hyperscript is a companion project of [htmx](https://htmx.org) but note that bec
 ## examples
 
 ```html
-<script src="https://unpkg.com/hyperscript.org@0.0.7"></script>
+<script src="https://unpkg.com/hyperscript.org@0.0.8"></script>
 
 <button _="on click toggle .big-text">
   Toggle the "big-text" class on me on click

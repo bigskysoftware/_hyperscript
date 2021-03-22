@@ -5,6 +5,9 @@ title: ///_hyperscript
 
 ## The `event handler` Feature
 
+Event handlers are used to handle events with hyperscript.  They are typically embedded directly on the element that
+is responding to the event.
+
 ### Syntax
 
 ```ebnf
@@ -35,9 +38,11 @@ The optional `count` is a count filter with a value of either a specific number,
 
 Finally an event can specify a `debounced at` or `throttled at` value to debounce or throttle the events.
 
-```
-  on keyup debounced at 500ms ... -- will wait until 500ms have passed without a keyup to trigger
-  on mousemove throttled at 500ms ...  -- will fire every 500ms regardless of the number of events
+```text
+  -- will wait until 500ms have passed without a keyup to trigger
+  on keyup debounced at 500ms ... 
+  -- will fire every 500ms regardless of the number of events
+  on mousemove throttled at 500ms ...  
 ```
 
 Events can be repeated separated by an `or` to assign one handler to multiple events:

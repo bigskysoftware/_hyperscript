@@ -18,7 +18,7 @@ title: ///_hyperscript
 * [the language](#lang)
   * [features](#features)
     * [on](#on)
-    * [worker](#worker)
+    * [worker](#workers)
   * [commands](#commands)
     * [pseudo-commands](#pseudo-commands)
   * [expressions](#expressions)
@@ -180,7 +180,7 @@ OK, let's get on with it...
 Hyperscript is a dependency-free javascript library that can be included in a web page without any build steps:
 
 ```html
-<script src="https://unpkg.com/hyperscript.org@0.0.7"></script>
+<script src="https://unpkg.com/hyperscript.org@0.0.8"></script>
 ```
 
 After you've done this, you can begin adding hyperscript to elements:
@@ -257,7 +257,7 @@ You may also want to simply head over to the [cookbook](/cookbook) for existing 
 ## <a name="features"></a>[Features](#features)
 
 Top level constructs in hyperscript are called "features".  They provide entry points into the hyperscript runtime 
-through functions, event handlers and so forth.  Features defined in a <script> tag will be applied to the 
+through functions, event handlers and so forth.  Features defined in a `script` tag will be applied to the 
 document body and the global namespace.
 
 Features defined on an element will be applied to that element and, in the cases of functions, etc. available to all
@@ -405,7 +405,7 @@ Note that you can use the js feature below if you want to use javascript in your
 
 ### <a name="js"></a>[The JS Feature](#js)
 
-The [js feature](/features/worker) allows you define javascript within hyperscript script tags.  You might do this for performance reasons, since the hyperscript runtime is more focused on flexibility, rather than performance.  This feature is most useful in [workers](#workers), when you want to pass javascript across to the worker's implementation:
+The [js feature](/features/js) allows you define javascript within hyperscript script tags.  You might do this for performance reasons, since the hyperscript runtime is more focused on flexibility, rather than performance.  This feature is most useful in [workers](#workers), when you want to pass javascript across to the worker's implementation:
 
 ```html
 <script type="text/hyperscript">
@@ -422,7 +422,7 @@ The [js feature](/features/worker) allows you define javascript within hyperscri
 </script>
 ```
 
-Note that there is also a way to include [inline javascript](#inline_js)
+Note that there is also a way to include [inline javascript](#inline-js)
 within a hyperscript function, for local optimizations.
 
 ## <a name="commands"></a>[Commands](#commands)
@@ -876,7 +876,7 @@ Here are some examples:
 </button>
 ```
 
-### <a name="js-command"></a>[Inline Javascript](#js-command)
+### <a name="js-command"></a>[Inline Javascript](#inline-js)
 
 Performance is an, ahem, *secondary* consideration in hyperscript and, while it is fast enough
 in most cases, there are times when you may want to kick out to javascript.  You may of course
@@ -1180,7 +1180,7 @@ This I hope gives you a taste of the unique execution model of hyperscript, and 
 
 **Note: The hyperscript debugger is in alpha and, like the rest of the language, is undergoing active development**
 
-Hyperscript includes a debugger, hdb, that allows you to debug by inserting `breakpoint` commands in your hyperscript.
+Hyperscript includes a debugger, [hdb](/hdb), that allows you to debug by inserting `breakpoint` commands in your hyperscript.
 
 To use it you need to include the `lib/hdb.js` file.  You can then add `breakpoint` commands in your hyperscript
 to trigger the debugger.  

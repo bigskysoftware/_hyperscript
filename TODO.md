@@ -1,28 +1,46 @@
 ## TODOs
 
-### In Progress for 0.0.8
+### In Progress
 * Deniz - template tag support
 
 ### Language Features
+* `reply` & `wait for response` in event handlers
+* garbage collect event listeners added to external elements periodically (?)
+* improve `fetch` command w/ more obvious syntax for body, headers, etc.
+  ```text
+    fetch /foo using POST 
+    fetch /foo using POST with body {foo:"bar"}
+    fetch /foo using POST with body {foo:"bar"} and headers {blah:'blah'}
+  ```
+  * make defaults pluggable 
+  * resurrect `ajax` command?  (had more functionality in some ways)
 * change array literals to `Array(1, 2, 3)`
   * support ` Set(1, 2, 3)` and other data types?
   * pluggable?
   * regular expressions `RegEx('/foo/')`
+  * OR unify attribute literals and array literals with lookahead
 *  Support a `timeout` modifier for commands like `fetch`, `call`, `wait for` etc.
   * deep project involving dealing w/ async commands not executing if they time out during execution
 * `merge/merge into` - Merge objects with one another
 * `delete` command
-* `play` command
-* Better DOM manipulation tools? (research)
+* `increment/decrement` commands
+* `default` command
+  ```text
+    default x to 10
+  ```
+* runtime type checked parameters and return types
+  ```text
+    def(foo:String!) : String!
+    end
+  ```
+* Better DOM manipulation tools? (needs research)
 * Full `sed` command for string manipulation?
+* `play` command using [Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
 * `merge/merge into` - Merge objects with one another
-* `reply` & `wait for response` in event handlers
 * Support parenthesizes expressions in pseudopossessives: `transition (the div's parent's parent)'s opacity to 1`
 * Event model
 * functions should be able to be marked `sync` to make only one execution at a time occur, in serial fashion
-* unify attribute literals and array literals with lookahead
 * unify all css() like literals to a general dynamic evaluation (eval is context sensitive)
-* `increment/decrement` commands
 * Make `first, last, random` work as identifiers (backtracking parser)
 * repeat command improvements
     ```
