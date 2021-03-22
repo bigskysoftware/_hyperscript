@@ -9,7 +9,7 @@ title: ///_hyperscript
    or hit ctrl-enter in the editor, and the code will be loaded into the content.  You can also look at the source
    for this page, which is written entirely in hyperscript.  :)</p>
 
-<div class="row"
+<div class="row" style="margin-top: 16px"
      _="on exception log event
            put the message of the event's detail's error into #eval-contents">
     <div class="8 col" style="margin-bottom: 8px">
@@ -29,6 +29,7 @@ title: ///_hyperscript
                            put '' into #contents">
                     <option>Clear</option>
                     <option value="hide_remove">Hide Then Remove</option>
+                    <option value="drag">Drag</option>
                 </select>
             </div>
         </div>
