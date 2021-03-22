@@ -46,7 +46,14 @@
 
             <span style="display: inline-block; vertical-align: middle; height: 100vh;">&#8203;</span>
 
-            <div style="text-align: left; width: 100%; display: inline-block; vertical-align: middle; background: #fff; overflow: hidden; max-width: 28rem; margin: 4rem 0; transform: scale(1)">
+            <div style="text-align: left; width: 100%; display: inline-block; vertical-align: middle; background: #fff; overflow: hidden; max-width: 28rem; margin: 4rem 0; transform: scale(1)" _="
+                on open from #modal 
+                    transition opacity from 0 to 1 over 0.3s
+                end
+                on hide from #modal 
+                    transition opacity from 1 to 0 over 0.2s
+                end
+                ">
                 <div style="position: absolute; top: 0; right: 0; padding: 1rem 1rem 0 0">
                     <button type="button" _="on click trigger close"
                         style="cursor: pointer; border: 0; background: #fff; border-radius: 95%; color: #6b7280;">
