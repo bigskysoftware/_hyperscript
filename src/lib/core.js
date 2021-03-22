@@ -2019,11 +2019,32 @@
                                 return t.value;
                             }
                         }).join("");
+
+                        if (queryValue.indexOf('$') >= 0) {
+                            var template = true;
+                            var innerTokens = _lexer.tokenize(queryValue, true);
+                            var args = parser.parseStringTemplate(innerTokens);
+                        }
+
                         return {
                             type: "queryRef",
                             css: queryValue,
-                            evaluate: function () {
-                                return document.querySelectorAll(this.css);
+                            args: args,
+                            op: function (context, args) {
+                                var query = queryValue;
+                                if (template) {
+                                    query = '';
+                                    for (var i = 1; i < arguments.length; i++) {
+                                        var val = arguments[i];
+                                        if (val) {
+                                            query += val;
+                                        }
+                                    }
+                                }
+                                return document.querySelectorAll(query);
+                            },
+                            evaluate: function(context) {
+                                return runtime.unifiedEval(this, context);
                             }
                         };
                     }
@@ -2049,8 +2070,7 @@
                             name: name,
                             css: css,
                             value: value,
-                            args: [value],
-                            op:function(context, value){
+                            op:function(){
                                 return document.querySelectorAll(this.css);
                             },
                             evaluate: function (context) {
