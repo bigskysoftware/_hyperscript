@@ -5,6 +5,7 @@
 
 ### Language Features
 * `reply` & `wait for response` in event handlers
+* garbage collect event listeners added to external elements periodically (?)
 * improve `fetch` command w/ more obvious syntax for body, headers, etc.
   ```text
     fetch /foo using POST 

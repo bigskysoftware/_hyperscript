@@ -1,0 +1,72 @@
+---
+layout: layout.njk
+title: ///_hyperscript
+---
+
+<h1>Playground</h1>
+
+<p>Below is the hyperscript playground.  You can enter some HTML with hyperscript in it and click the load button
+   or hit ctrl-enter in the editor, and the code will be loaded into the content.  You can also look at the source
+   for this page, which is written entirely in hyperscript.  :)</p>
+
+<div class="row"
+     _="on exception log event
+           put the message of the event's detail's error into #eval-contents">
+    <div class="8 col" style="margin-bottom: 8px">
+
+        <div style="margin-bottom: .65em;">
+            <span style="font-size: 1.5em; font-weight: bold">HTML (ctrl-enter to load)</span>
+            <div style="float:right">
+                Load Example:
+                <select style="font-size: 22px; padding:4px; margin-top: -12px; width: 4em"
+                        _="on change
+                         if my value is not 'Clear'
+                           fetch `/playground/${my value}`
+                           put it into #code
+                           send loadCode to #code
+                         else
+                           put '' into #code
+                           put '' into #contents">
+                    <option>Clear</option>
+                    <option value="hide_remove">Hide Then Remove</option>
+                </select>
+            </div>
+        </div>
+        <textarea id="code"
+                  style="width: 100%; height:300px; margin-bottom: 12px; font-size: 16px; padding: 4px; background-color: whitesmoke"
+                  _="on keyup[ctrlKey and key is 'Enter'] or loadCode
+                              transition #contents opacity to 0 over 10ms
+                              put my value into #contents
+                              transition #contents opacity to 1
+                              call _hyperscript.processNode(#contents)
+                              "></textarea>
+        <div>
+            <button class="btn primary" _="on click send loadCode to #code">
+                Load HTML Into Content
+            </button>
+        </div>
+    </div>
+    <div class="4 col">
+        <h2>Eval</h2>
+        <input placeholder="Enter an expression..." type="text" style="width: 100%; font-size: 18px; padding: 8px"
+               _="on keyup[key is 'Enter']
+                     if my value is not empty
+                       put JSON.stringify(_hyperscript(my value), null, 2) into #eval-contents
+                     else
+                       put '' into #eval-contents
+                     end
+                     select() me"/>
+        <h2>Output</h2>
+        <div id="eval-contents" style="width: 100%; height:100%;font-family:'Courier New', monospace; overflow: auto; max-height: 230px">
+
+        </div>
+    </div>
+</div>
+
+<div class="row" style="margin-top: 16px;padding: 24px">
+    <div class="12 col" style="background-color: whitesmoke; padding-top: 12px; padding-bottom: 100px; border-radius: 8px">
+        <h2>Content</h2>
+        <div id="contents">
+        </div>
+    </div>
+</div>
