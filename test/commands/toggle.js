@@ -30,7 +30,7 @@ describe("the toggle command", function() {
     })
 
     it("can toggle non-class attributes", function(){
-        var div = make("<div _='on click toggle [foo=\"bar\"]'></div>");
+        var div = make("<div _='on click toggle [@foo=\"bar\"]'></div>");
         div.hasAttribute("foo").should.equal(false);
         div.click();
         div.getAttribute("foo").should.equal("bar");

@@ -107,10 +107,10 @@
                     type: "addCmd",
                     attributeRef: attributeRef,
                     to: to,
-                    args: [to, attributeRef],
+                    args: [to],
                     op: function (context, to, attrRef) {
                         runtime.forEach(to, function (target) {
-                            target.setAttribute(attrRef.name, attrRef.value);
+                            target.setAttribute(attributeRef.name, attributeRef.value);
                         })
                         return runtime.findNext(addCmd, context);
                     },
@@ -257,7 +257,7 @@
                 time: time,
                 evt: evt,
                 from: from,
-                toggle: function (on, value) {
+                toggle: function (on) {
                     if (between) {
                         runtime.forEach(on, function (target) {
                             if (target.classList.contains(classRef.className())) {
@@ -279,18 +279,18 @@
                             if (target.hasAttribute(attributeRef.name)) {
                                 target.removeAttribute(attributeRef.name);
                             } else {
-                                target.setAttribute(attributeRef.name, value)
+                                target.setAttribute(attributeRef.name, attributeRef.value)
                             }
                         });
                     }
                 },
-                args: [on, attributeRef ? attributeRef.value : null, time, evt, from],
-                op: function (context, on, value, time, evt, from) {
+                args: [on, time, evt, from],
+                op: function (context, on, time, evt, from) {
                     if (time) {
                         return new Promise(function (resolve) {
-                            toggleCmd.toggle(on, value);
+                            toggleCmd.toggle(on);
                             setTimeout(function () {
-                                toggleCmd.toggle(on, value);
+                                toggleCmd.toggle(on);
                                 resolve(runtime.findNext(toggleCmd, context));
                             }, time);
                         });
@@ -298,13 +298,13 @@
                         return new Promise(function (resolve) {
                             var target = from || context.me;
                             target.addEventListener(evt, function () {
-                                toggleCmd.toggle(on, value);
+                                toggleCmd.toggle(on);
                                 resolve(runtime.findNext(toggleCmd, context));
                             }, {once: true})
-                            toggleCmd.toggle(on, value);
+                            toggleCmd.toggle(on);
                         });
                     } else {
-                        this.toggle(on, value);
+                        this.toggle(on);
                         return runtime.findNext(toggleCmd, context);
                     }
                 }

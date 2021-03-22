@@ -503,6 +503,8 @@
                                 tokens.push(consumeClassReference());
                             } else if (!possiblePrecedingSymbol() && currentChar() === "#" && isAlpha(nextChar())) {
                                 tokens.push(consumeIdReference());
+                            } else if (currentChar() === "[" && nextChar() === "@") {
+                                tokens.push(consumeAttributeReference());
                             } else if (isAlpha(currentChar()) || (!inTemplate() && isIdentifierChar(currentChar()))) {
                                 tokens.push(consumeIdentifier());
                             } else if (isNumeric(currentChar())) {
@@ -581,6 +583,23 @@
                         classRef.value = value;
                         classRef.end = position;
                         return classRef;
+                    }
+
+                    /**
+                     * @returns Token
+                     */
+                    function consumeAttributeReference() {
+                        var attributeRef = makeToken("ATTRIBUTE_REF");
+                        var value = consumeChar();
+                        while (position < source.length && currentChar() !== ']') {
+                            value += consumeChar();
+                        }
+                        if (currentChar() === ']') {
+                            value += consumeChar();
+                        }
+                        attributeRef.value = value;
+                        attributeRef.end = position;
+                        return attributeRef;
                     }
 
                     /**
@@ -1975,33 +1994,34 @@
                     }
                 })
 
-                _parser.addGrammarElement("attributeRef", function(parser, runtime, tokens) {
-                    if (tokens.matchOpToken("[")) {
-                        var content = tokens.consumeUntil("]");
-                        var contentStr = content.map(function (t) {
-                            return t.value
-                        }).join("");
-                        var values = contentStr.split("=");
-                        var name = values[0];
-                        var value = values[1];
-                        tokens.requireOpToken("]");
-
+                _parser.addLeafExpression("attributeRef", function(parser, runtime, tokens) {
+                    var attributeRef = tokens.matchTokenType("ATTRIBUTE_REF");
+                    if (attributeRef) {
+                        var outerVal = attributeRef.value;
+                        var innerValue = outerVal.substring(2, outerVal.length - 1);
+                        var css = "[" + innerValue + "]";
+                        var split = innerValue.split('=');
+                        var name = split[0];
+                        var value = split[1];
+                        if (value) {
+                            // strip quotes
+                            if (value.indexOf('"') === 0) {
+                                value = value.substring(1, value.length - 1);
+                            }
+                        }
                         return {
                             type: "attribute_expression",
                             name: name,
+                            css: css,
                             value: value,
                             args: [value],
                             op:function(context, value){
-                                if (this.value) {
-                                    return {name:this.name, value:value}
-                                } else {
-                                    return {name:this.name};
-                                }
+                                return document.querySelectorAll(this.css);
                             },
                             evaluate: function (context) {
                                 return runtime.unifiedEval(this, context);
                             }
-                        }
+                        };
                     }
                 })
 

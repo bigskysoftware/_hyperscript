@@ -25,7 +25,7 @@ describe("the remove command", function() {
     })
 
     it("can remove non-class attributes", function(){
-        var div = make("<div foo='bar' _='on click remove [foo]'></div>");
+        var div = make("<div foo='bar' _='on click remove [@foo]'></div>");
         div.getAttribute("foo").should.equal("bar");
         div.click();
         div.hasAttribute("foo").should.equal(false);
