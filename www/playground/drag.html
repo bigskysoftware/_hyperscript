@@ -6,9 +6,9 @@
           set yoff to clientY - y
           put ':)' into me
           repeat until event mouseup from document
-            wait for mousemove(clientX, clientY) or
-                     mouseup(clientX, clientY) from document
-            add { left: `${clientX - xoff}`, top: `${clientY - yoff}` }
+            wait for mousemove(pageX, pageY) or
+                     mouseup(pageX, pageY) from document
+            add { left: `${pageX - xoff}`, top: `${pageY - yoff}` }
           end
           put 'Drag me...' into me
 ">
