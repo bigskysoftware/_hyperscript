@@ -14,11 +14,6 @@
   ```
   * make defaults pluggable 
   * resurrect `ajax` command?  (had more functionality in some ways)
-* change array literals to `Array(1, 2, 3)`
-  * support ` Set(1, 2, 3)` and other data types?
-  * pluggable?
-  * regular expressions `RegEx('/foo/')`
-  * OR unify attribute literals and array literals with lookahead
 *  Support a `timeout` modifier for commands like `fetch`, `call`, `wait for` etc.
   * deep project involving dealing w/ async commands not executing if they time out during execution
 * `merge/merge into` - Merge objects with one another
