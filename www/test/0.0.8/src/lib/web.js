@@ -107,10 +107,10 @@
                     type: "addCmd",
                     attributeRef: attributeRef,
                     to: to,
-                    args: [to, attributeRef],
+                    args: [to],
                     op: function (context, to, attrRef) {
                         runtime.forEach(to, function (target) {
-                            target.setAttribute(attrRef.name, attrRef.value);
+                            target.setAttribute(attributeRef.name, attributeRef.value);
                         })
                         return runtime.findNext(addCmd, context);
                     },
@@ -257,7 +257,7 @@
                 time: time,
                 evt: evt,
                 from: from,
-                toggle: function (on, value) {
+                toggle: function (on) {
                     if (between) {
                         runtime.forEach(on, function (target) {
                             if (target.classList.contains(classRef.className())) {
@@ -279,18 +279,18 @@
                             if (target.hasAttribute(attributeRef.name)) {
                                 target.removeAttribute(attributeRef.name);
                             } else {
-                                target.setAttribute(attributeRef.name, value)
+                                target.setAttribute(attributeRef.name, attributeRef.value)
                             }
                         });
                     }
                 },
-                args: [on, attributeRef ? attributeRef.value : null, time, evt, from],
-                op: function (context, on, value, time, evt, from) {
+                args: [on, time, evt, from],
+                op: function (context, on, time, evt, from) {
                     if (time) {
                         return new Promise(function (resolve) {
-                            toggleCmd.toggle(on, value);
+                            toggleCmd.toggle(on);
                             setTimeout(function () {
-                                toggleCmd.toggle(on, value);
+                                toggleCmd.toggle(on);
                                 resolve(runtime.findNext(toggleCmd, context));
                             }, time);
                         });
@@ -298,13 +298,13 @@
                         return new Promise(function (resolve) {
                             var target = from || context.me;
                             target.addEventListener(evt, function () {
-                                toggleCmd.toggle(on, value);
+                                toggleCmd.toggle(on);
                                 resolve(runtime.findNext(toggleCmd, context));
                             }, {once: true})
-                            toggleCmd.toggle(on, value);
+                            toggleCmd.toggle(on);
                         });
                     } else {
-                        this.toggle(on, value);
+                        this.toggle(on);
                         return runtime.findNext(toggleCmd, context);
                     }
                 }
@@ -520,6 +520,14 @@
             } else if(target.type === "symbol" && operation === "into") {
                 symbolWrite = true;
                 prop = target.name;
+            } else if(target.type === "attributeRef" && operation === "into") {
+                var attributeWrite = true;
+                prop = target.name;
+                root = parser.requireElement('implicitMeTarget', tokens);
+            } else if(target.type === "attributeRefAccess" && operation === "into") {
+                var attributeWrite = true;
+                prop = target.attribute.name;
+                root = target.root;
             } else {
                 root = target;
             }
@@ -535,9 +543,15 @@
                         putInto(context, prop, valueToPut);
                     } else {
                         if (operation === "into") {
-                            runtime.forEach(root, function (elt) {
-                                putInto(elt, prop, valueToPut);
-                            })
+                            if (attributeWrite) {
+                                runtime.forEach(root, function (elt) {
+                                    elt.setAttribute(prop, valueToPut);
+                                });
+                            } else {
+                                runtime.forEach(root, function (elt) {
+                                    putInto(elt, prop, valueToPut);
+                                });
+                            }
                         } else if (operation === "before") {
                             runtime.forEach(root, function (elt) {
                                 elt.insertAdjacentHTML('beforebegin', valueToPut);
@@ -790,7 +804,13 @@
                 if (tokens.matchToken('url')) {
                     var target = parser.requireElement("stringLike", tokens);
                     var url = true;
+                    if (tokens.matchToken('in')) {
+                        tokens.requireToken('new');
+                        tokens.requireToken('window');
+                        var newWindow = true;
+                    }
                 } else {
+                    tokens.matchToken('the'); // optional the
                     var verticalPosition = tokens.matchAnyToken('top', 'bottom', 'middle');
                     var horizontalPosition = tokens.matchAnyToken('left', 'center', 'right');
                     if (verticalPosition || horizontalPosition) {
@@ -828,11 +848,6 @@
                         }
                     }
 
-                }
-                if (tokens.matchToken('with')) {
-                    tokens.requireToken('new');
-                    tokens.requireToken('window');
-                    var newWindow = true;
                 }
             }
 

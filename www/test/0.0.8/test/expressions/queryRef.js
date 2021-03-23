@@ -58,6 +58,14 @@ describe("the queryRef expression", function() {
         value.length.should.equal(1);
     })
 
+    it("queryRef w/ $ works ", function () {
+        var div = make("<div class='c1'></div>" +
+            "                  <div foo='bar' class='c2'></div>" +
+            "                  <div class='c3'></div>");
+        var value = evalHyperScript("<[foo='${x}']/>", {x:"bar"});
+        value.length.should.equal(1);
+    })
+
 
 });
 

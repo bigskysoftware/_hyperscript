@@ -147,15 +147,15 @@
 
 	<header>
 		<h2 class="titlebar" _="
-		on mousedown
-			set rect to me.getBoundingClientRect()
-			set xoff to event.clientX - rect.x
-			set yoff to event.clientY - rect.y
-			repeat until event mouseup from document
-				wait for mousemove or mouseup from document
+		on pointerdown(clientX, clientY)
+			measure my x, y
+			set xoff to clientX - x
+			set yoff to clientY - y
+			repeat until event pointerup from document
+				wait for pointermove or pointerup from document
 				add {
-					left: (its.clientX - xoff) + 'px',
-					top:  (its.clientY - yoff) + 'px'
+					left: \`\${its clientX - xoff}px\`,
+					top:  \`\${its clientY - yoff}px\`
 				} to hdbUI
 			end
 		">HDB///_hyperscript/debugger</h2>
@@ -235,6 +235,7 @@
 		background: linear-gradient(to bottom, #eee, #ccc);
 		border-bottom: 1px solid #888;
 		border-radius: .3em .3em 0 0;
+		touch-action: none;
 	}
 
 	.toolbar {

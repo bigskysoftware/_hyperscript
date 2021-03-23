@@ -199,11 +199,13 @@
                  * @param {Token[]} tokens 
                  * @param {Token[]} consumed 
                  * @param {string} source 
-                 * @returns TokensObject
+                 * @returns {TokensObject}
                  */
                 function makeTokensObject(tokens, consumed, source) {
 
                     consumeWhitespace(); // consume initial whitespace
+
+                    /** @type Token | null */
                     var _lastConsumed = null;
 
                     function consumeWhitespace(){
@@ -222,7 +224,7 @@
 
                     /**
                      * @param {string} value 
-                     * @returns [Token]
+                     * @returns {Token}
                      */
                     function requireOpToken(value) {
                         var token = matchOpToken(value);
@@ -237,7 +239,7 @@
                      * @param {string} op1 
                      * @param {string} [op2]
                      * @param {string} [op3]
-                     * @returns [Token]
+                     * @returns {Token | void}
                      */
                     function matchAnyOpToken(op1, op2, op3) {
                         for (var i = 0; i < arguments.length; i++) {
@@ -253,7 +255,7 @@
                      * @param {string} op1
                      * @param {string} [op2]
                      * @param {string} [op3]
-                     * @returns [Token]
+                     * @returns {Token | void}
                      */
                      function matchAnyToken(op1, op2, op3) {
                         for (var i = 0; i < arguments.length; i++) {
@@ -267,7 +269,7 @@
 
                     /**
                      * @param {string} value 
-                     * @returns [Token]
+                     * @returns {Token | void}
                      */
                     function matchOpToken(value) {
                         if (currentToken() && currentToken().op && currentToken().value === value) {
@@ -277,10 +279,10 @@
 
                     /**
                      * @param {string} type1 
-                     * @param {string} type2 
-                     * @param {string} type3 
-                     * @param {string} type4 
-                     * @returns Token
+                     * @param {string} [type2]
+                     * @param {string} [type3]
+                     * @param {string} [type4]
+                     * @returns {Token | void}
                      */
                     function requireTokenType(type1, type2, type3, type4) {
                         var token = matchTokenType(type1, type2, type3, type4);
@@ -293,10 +295,10 @@
 
                     /**
                      * @param {string} type1 
-                     * @param {string} type2 
-                     * @param {string} type3 
-                     * @param {string} type4 
-                     * @returns [Token]
+                     * @param {string} [type2]
+                     * @param {string} [type3]
+                     * @param {string} [type4]
+                     * @returns {Token | void}
                      */
                     function matchTokenType(type1, type2, type3, type4) {
                         if (currentToken() && currentToken().type && [type1, type2, type3, type4].indexOf(currentToken().type) >= 0) {
@@ -307,7 +309,7 @@
                     /**
                      * @param {string} value 
                      * @param {string} [type]
-                     * @returns Token
+                     * @returns {Token}
                      */
                     function requireToken(value, type) {
                         var token = matchToken(value, type);
@@ -321,7 +323,7 @@
                     /**
                      * @param {string} value 
                      * @param {string} [type]
-                     * @returns [Token]
+                     * @returns {Token | void}
                      */
                     function matchToken(value, type) {
                         var type = type || "IDENTIFIER";
@@ -331,7 +333,7 @@
                     }
 
                     /**
-                     * @returns Token
+                     * @returns {Token}
                      */
                     function consumeToken() {
                         var match = tokens.shift();
@@ -344,7 +346,7 @@
                     /**
                      * @param {string} value 
                      * @param {string} [type]
-                     * @returns Token[]
+                     * @returns {Token[]}
                      */
                     function consumeUntil(value, type) {
 
@@ -365,7 +367,7 @@
                     }
 
                     /**
-                     * @returns string
+                     * @returns {string}
                      */
                     function lastWhitespace() {
                         if (consumed[consumed.length - 1] && consumed[consumed.length - 1].type === "WHITESPACE") {
@@ -380,7 +382,7 @@
                     }
 
                     /**
-                     * @returns boolean
+                     * @returns {boolean}
                      */
                     function hasMore() {
                         return tokens.length > 0;
@@ -389,12 +391,10 @@
                     /**
                      * @param {number} n 
                      * @param {boolean} [dontIgnoreWhitespace]
-                     * @returns Token
+                     * @returns {Token}
                      */
                     function token(n, dontIgnoreWhitespace) {
-
-                        /** @type {Token} */
-                        var token;
+                        var /**@type {Token}*/ token;
                         var i = 0;
                         do {
                             if (!dontIgnoreWhitespace) {
@@ -417,25 +417,35 @@
                     }
 
                     /**
-                     * @returns Token
+                     * @returns {Token}
                      */
                     function currentToken() {
                         return token(0);
                     }
 
+                    /**
+                     * @returns {Token | null}
+                     */
                     function lastMatch() {
                         return _lastConsumed;
                     }
 
+                    /**
+                     * @returns {string}
+                     */
                     function sourceFor() {
                         return source.substring(this.startToken.start, this.endToken.end);
                     }
 
-                    function lineFor() {
+                    /**
+                     * @returns {string}
+                     */
+                     function lineFor() {
                         return source
                             .split("\n")[this.startToken.line - 1];
                     }
 
+                    /** @type {TokensObject} */
                     return {
                         matchAnyToken: matchAnyToken,
                         matchAnyOpToken: matchAnyOpToken,
@@ -461,6 +471,11 @@
                     }
                 }
 
+
+                /**
+                 * @param {Token[]} tokens
+                 * @returns {boolean}
+                 */
                 function isValidSingleQuoteStringStart(tokens) {
                     if (tokens.length > 0) {
                         var previousToken = tokens[tokens.length - 1];
@@ -477,11 +492,10 @@
                 /**
                  * @param {string} string 
                  * @param {boolean} [template]
-                 * @returns TokensObject
+                 * @returns {TokensObject}
                  */
                 function tokenize(string, template) {
-                    /** @type Token[]*/
-                    var tokens = [];
+                    var tokens = /** @type {Token[]}*/ [];
                     var source = string;
                     var position = 0;
                     var column = 0;
@@ -503,6 +517,8 @@
                                 tokens.push(consumeClassReference());
                             } else if (!possiblePrecedingSymbol() && currentChar() === "#" && isAlpha(nextChar())) {
                                 tokens.push(consumeIdReference());
+                            } else if (currentChar() === "[" && nextChar() === "@") {
+                                tokens.push(consumeAttributeReference());
                             } else if (isAlpha(currentChar()) || (!inTemplate() && isIdentifierChar(currentChar()))) {
                                 tokens.push(consumeIdentifier());
                             } else if (isNumeric(currentChar())) {
@@ -538,7 +554,7 @@
                     /**
                      * @param {string} [type] 
                      * @param {string} [value]
-                     * @returns Token
+                     * @returns {Token}
                      */
                     function makeOpToken(type, value) {
                         var token = makeToken(type, value);
@@ -549,7 +565,7 @@
                     /**
                      * @param {string} [type]
                      * @param {string} [value]
-                     * @returns Token
+                     * @returns {Token}
                      */
                     function makeToken(type, value) {
                         return {
@@ -581,6 +597,23 @@
                         classRef.value = value;
                         classRef.end = position;
                         return classRef;
+                    }
+
+                    /**
+                     * @returns Token
+                     */
+                    function consumeAttributeReference() {
+                        var attributeRef = makeToken("ATTRIBUTE_REF");
+                        var value = consumeChar();
+                        while (position < source.length && currentChar() !== ']') {
+                            value += consumeChar();
+                        }
+                        if (currentChar() === ']') {
+                            value += consumeChar();
+                        }
+                        attributeRef.value = value;
+                        attributeRef.end = position;
+                        return attributeRef;
                     }
 
                     /**
@@ -736,10 +769,10 @@
                 /** @type {Object<string,GrammarDefinition>} */ 
                 var GRAMMAR = {}
 
-                /** @type {Object<string,CommandDefinition>} */
+                /** @type {Object<string,GrammarDefinition>} */
                 var COMMANDS = {}
 
-                /** @type {Object<string,FeatureDefinition>} */
+                /** @type {Object<string,GrammarDefinition>} */
                 var FEATURES = {}
                 
                 var LEAF_EXPRESSIONS = [];
@@ -786,7 +819,7 @@
                  * @param {TokensObject} tokens 
                  * @param {string} [message]
                  * @param {*} [root]
-                 * @returns GrammarElement
+                 * @returns {GrammarElement}
                  */
                 function requireElement(type, tokens, message, root) {
                     var result = parseElement(type, tokens, root);
@@ -796,7 +829,7 @@
                 /**
                  * @param {string[]} types 
                  * @param {TokensObject} tokens 
-                 * @returns GrammarElement
+                 * @returns {GrammarElement}
                  */
                 function parseAnyOf(types, tokens) {
                     for (var i = 0; i < types.length; i++) {
@@ -818,7 +851,7 @@
 
                 /**
                  * @param {string} keyword 
-                 * @param {CommandDefinition} definition 
+                 * @param {GrammarDefinition} definition
                  */
                 function addCommand(keyword, definition) {
                     var commandGrammarType = keyword + "Command";
@@ -839,12 +872,12 @@
 
                 /**
                  * @param {string} keyword 
-                 * @param {FeatureDefinition} definition 
+                 * @param {GrammarDefinition} definition
                  */
                 function addFeature(keyword, definition) {
                     var featureGrammarType = keyword + "Feature";
 
-                    /** @type FeatureDefinition*/ 
+                    /** @type {GrammarDefinition} */
                     var featureDefinitionWrapper = function (parser, runtime, tokens) {
                         var featureElement = definition(parser, runtime, tokens);
                         if (featureElement) {
@@ -859,7 +892,7 @@
 
                 /**
                  * @param {string} name 
-                 * @param {ExpressionDefinition} definition 
+                 * @param {GrammarDefinition} definition
                  */
                 function addLeafExpression(name, definition) {
                     LEAF_EXPRESSIONS.push(name);
@@ -868,7 +901,7 @@
 
                 /**
                  * @param {string} name 
-                 * @param {ExpressionDefinition} definition 
+                 * @param {GrammarDefinition} definition
                  */
                 function addIndirectExpression(name, definition) {
                     INDIRECT_EXPRESSIONS.push(name);
@@ -880,34 +913,35 @@
                 /* ============================================================================================ */
                 addGrammarElement("feature", function(parser, runtime, tokens) {
                     if (tokens.matchOpToken("(")) {
-                        var featureDefinition = parser.requireElement("feature", tokens);
+                        var featureElement = parser.requireElement("feature", tokens);
                         tokens.requireOpToken(")");
-                        return featureDefinition;
-                    } else {
-                        var featureDefinition = FEATURES[tokens.currentToken().value];
-                        if (featureDefinition) {
-                            return featureDefinition(parser, runtime, tokens);
-                        }
+                        return featureElement;
+                    }
+
+                    var featureDefinition = FEATURES[tokens.currentToken().value];
+                    if (featureDefinition) {
+                        return featureDefinition(parser, runtime, tokens);
                     }
                 })
 
                 addGrammarElement("command", function(parser, runtime, tokens) {
                     if (tokens.matchOpToken("(")) {
-                        var commandDefinition = parser.requireElement("command", tokens);
+                        var commandElement = parser.requireElement("command", tokens);
                         tokens.requireOpToken(")");
-                        return commandDefinition;
-                    } else {
-                        var commandDefinition = COMMANDS[tokens.currentToken().value];
-                        if (commandDefinition) {
-                            var commandDef = commandDefinition(parser, runtime, tokens);
-                        } else if (tokens.currentToken().type === "IDENTIFIER" && tokens.token(1).value === "(") {
-                            var commandDef = parser.requireElement("pseudoCommand", tokens);
-                        }
-                        if (commandDef) {
-                            return parser.parseElement("indirectStatement", tokens, commandDef);
-                        }
-                        return commandDef;
+                        return commandElement;
                     }
+
+                    var commandDefinition = COMMANDS[tokens.currentToken().value];
+                    if (commandDefinition) {
+                        var commandElement = commandDefinition(parser, runtime, tokens);
+                    } else if (tokens.currentToken().type === "IDENTIFIER" && tokens.token(1).value === "(") {
+                        var commandElement = parser.requireElement("pseudoCommand", tokens);
+                    }
+                    if (commandElement) {
+                        return parser.parseElement("indirectStatement", tokens, commandElement);
+                    }
+
+                    return commandElement;
                 })
 
                 addGrammarElement("commandList", function(parser, runtime, tokens) {
@@ -924,9 +958,9 @@
                     // symbol is last so it doesn't consume any constants
                     if (result == null) {
                         return parseElement('symbol', tokens);
-                    } else {
-                        return result;
                     }
+
+                    return result;
                 })
 
                 addGrammarElement("indirectExpression", function(parser, runtime, tokens, root) {
@@ -993,7 +1027,7 @@
                 }
 
                 /**
-                 * @param {*} tokens 
+                 * @param {TokensObject} tokens
                  * @param {string} message 
                  */
                 function raiseParseError(tokens, message) {
@@ -1006,15 +1040,15 @@
 
                 /**
                  * @param {TokensObject} tokens 
-                 * @returns 
+                 * @returns {GrammarElement}
                  */
                 function parseHyperScript(tokens) {
                     return parseElement("hyperscript", tokens)
                 }
 
                 /**
-                 * @param {*} elt 
-                 * @param {*} parent 
+                 * @param {GrammarElement} elt
+                 * @param {GrammarElement} parent
                  */
                 function setParent(elt, parent) {
                     if (elt) {
@@ -1025,7 +1059,7 @@
 
                 /**
                  * @param {Token} token 
-                 * @returns 
+                 * @returns {GrammarDefinition}
                  */
                 function commandStart(token){
                     return COMMANDS[token.value];
@@ -1033,7 +1067,7 @@
 
                 /**
                  * @param {Token} token 
-                 * @returns 
+                 * @returns {GrammarDefinition}
                  */
                 function featureStart(token){
                     return FEATURES[token.value];
@@ -1041,7 +1075,7 @@
 
                 /**
                  * @param {Token} token 
-                 * @returns 
+                 * @returns {true | void}
                  */
                 function commandBoundary(token) {
                     if (token.value == "end" ||
@@ -1057,9 +1091,10 @@
 
                 /**
                  * @param {TokensObject} tokens 
-                 * @returns 
+                 * @returns {(string | Token)[]}
                  */
                 function parseStringTemplate(tokens) {
+                    /** @type (string | Token)[] */
                     var returnArr = [""];
                     do {
                         returnArr.push(tokens.lastWhitespace());
@@ -1084,7 +1119,7 @@
                 }
 
                 // parser API
-                return /** @type ParserObject */ {
+                return {
                     setParent: setParent,
                     requireElement: requireElement,
                     parseElement: parseElement,
@@ -1106,8 +1141,10 @@
             //====================================================================
             // Runtime
             //====================================================================
+
+            /** @type ConversionMap */
             var CONVERSIONS = {
-                dynamicResolvers : [],
+                dynamicResolvers : /** @type DynamicConversionFunction[] */ [],
                 "String" : function(val){
                     if(val.toString){
                         return val.toString();
@@ -1144,6 +1181,12 @@
                     }
                 }
             }
+
+            /********************************************
+             * RUNTIME OBJECT
+             ********************************************/
+
+            /** @type {RuntimeObject} */
             var _runtime = function () {
 
                 /**
@@ -1161,8 +1204,8 @@
 
                 /**
                  * @param {string} eventName 
-                 * @param {{}} detail 
-                 * @returns 
+                 * @param {Object} [detail]
+                 * @returns {Event}
                  */
                 function makeEvent(eventName, detail) {
                     var evt;
@@ -1178,11 +1221,11 @@
                 /**
                  * @param {HTMLElement} elt 
                  * @param {string} eventName 
-                 * @param {{}} [detail]
-                 * @returns boolean
+                 * @param {Object} [detail]
+                 * @returns {boolean}
                  */
                 function triggerEvent(elt, eventName, detail) {
-                    var detail = detail || {};
+                    detail = detail || {};
                     detail["sentBy"] = elt;
                     var event = makeEvent(eventName, detail);
                     var eventResult = elt.dispatchEvent(event);
@@ -1204,11 +1247,10 @@
                  * forEach executes the provided `func` on every item in the `value` array.
                  * if `value` is a single item (and not an array) then `func` is simply called
                  * once.  If `value` is null, then no further actions are taken.
-                 * 
-                 * @function
+                 *
                  * @template T
-                 * @param {T | T[]} value 
-                 * @param {(item:T) => void} func 
+                 * @param {NodeList | T | T[]} value
+                 * @param {(item:Node | T) => void} func
                  */
                 function forEach(value, func) {
                     if (value == null) {
@@ -1280,7 +1322,7 @@
                 var HALT = {halt_flag:true};
 
                 /**
-                 * @param {CommandDefinition} command 
+                 * @param {GrammarDefinition} command
                  * @param {Context} ctx 
                  */
                 function unifiedExec(command,  ctx) {
@@ -1332,7 +1374,7 @@
                 /**
                  * @param {*} parseElement 
                  * @param {Context} ctx 
-                 * @returns 
+                 * @returns {*}
                  */
                 function unifiedEval(parseElement,  ctx) {
                     
@@ -1427,7 +1469,7 @@
 
                 /**
                  * @param {HTMLElement} elt 
-                 * @returns string
+                 * @returns {string | null}
                  */
                 function getScript(elt) {
                     for (var i = 0; i < getScriptAttributes().length; i++) {
@@ -1442,6 +1484,10 @@
                     return null;
                 }
 
+                /**
+                 * @param {Object} owner
+                 * @param {Context} ctx
+                 */
                 function addFeatures(owner, ctx) {
                     if(owner) {
                         if (owner.hyperscriptFeatures) {
@@ -1456,9 +1502,11 @@
                  * @param {*} feature 
                  * @param {*} hyperscriptTarget 
                  * @param {*} event 
-                 * @returns Context
+                 * @returns {Context}
                  */
                 function makeContext(owner, feature, hyperscriptTarget, event) {
+
+                    /** @type {Context} */
                     var ctx = {
                         meta: {
                             parser: _parser,
@@ -1489,9 +1537,9 @@
                 }
 
                 /**
-                 * @param {*} value 
+                 * @param {any} value
                  * @param {string} type 
-                 * @returns any
+                 * @returns {any}
                  */
                 function convertValue(value,  type) {
 
@@ -1523,7 +1571,7 @@
 
                 /**
                  * @param {string} src 
-                 * @returns GrammarElement
+                 * @returns {GrammarElement}
                  */
                 function parse(src) {
                     var tokens = _lexer.tokenize(src);
@@ -1550,8 +1598,8 @@
 
                 /**
                  * @param {string} src 
-                 * @param {*} ctx 
-                 * @returns 
+                 * @param {Context} ctx
+                 * @returns {any}
                  */
                 function evaluate(src, ctx) {
                     ctx = mergeObjects(makeContext(document.body, null,
@@ -1616,7 +1664,7 @@
 
                 /**
                  * @param {HTMLElement} elt 
-                 * @returns Object<string,any>
+                 * @returns {Object}
                  */
                 function getInternalData(elt) {
                     var dataProp = 'hyperscript-internal-data';
@@ -1631,7 +1679,7 @@
                  * @param {any} value 
                  * @param {string} typeString 
                  * @param {boolean} [nullOk]
-                 * @returns 
+                 * @returns {boolean}
                  */
                 function typeCheck(value, typeString, nullOk) {
                     if (value == null && nullOk) {
@@ -1644,7 +1692,7 @@
                 /**
                  * @param {string} str 
                  * @param {Context} context 
-                 * @returns any
+                 * @returns {any}
                  */
                 function resolveSymbol(str, context) {
                     if (str === "me" || str === "my" || str === "I") {
@@ -1668,9 +1716,9 @@
                 }
 
                 /**
-                 * @param {Command} command 
+                 * @param {GrammarElement} command
                  * @param {Context} context 
-                 * @returns 
+                 * @returns {undefined | GrammarElement}
                  */
                 function findNext(command, context) {
                     if (command) {
@@ -1687,26 +1735,27 @@
                 /**
                  * @param {Object<string,any>} root 
                  * @param {string} property 
-                 * @returns any
+                 * @param {boolean} attribute
+                 * @returns {any}
                  */
                 function resolveProperty(root, property, attribute) {
                     if (root != null) {
                         var val = attribute && root.getAttribute ? root.getAttribute(property) : root[property];
                         if (typeof val !== 'undefined') {
                             return val;
-                        } else {
-                            if (isArrayLike(root)) {
-                                // flat map
-                                var result = [];
-                                for (var i = 0; i < root.length; i++) {
-                                    var component = root[i];
-                                    var componentValue = attribute ? component.getAttribute(property) : component[property];
-                                    if (componentValue) {
-                                        result.push(componentValue);
-                                    }
+                        }
+
+                        if (isArrayLike(root)) {
+                            // flat map
+                            var result = [];
+                            for (var i = 0; i < root.length; i++) {
+                                var component = root[i];
+                                var componentValue = attribute ? component.getAttribute(property) : component[property];
+                                if (componentValue) {
+                                    result.push(componentValue);
                                 }
-                                return result;
                             }
+                            return result;
                         }
                     }
                 }
@@ -1783,9 +1832,8 @@
                 }
 
                 /**
-                 * 
                  * @param {string} str 
-                 * @returns string
+                 * @returns {string}
                  */
                 function escapeSelector(str) {
                     return str.replace(/:/g, function(str){
@@ -1793,6 +1841,10 @@
                     });
                 }
 
+                /**
+                 * @param {any} value
+                 * @param {*} elt
+                 */
                 function nullCheck(value, elt) {
                     if (value == null) {
                         throw new Error(elt.sourceFor() + " is null");
@@ -1801,14 +1853,16 @@
 
                 /**
                  * @param {any} value 
-                 * @returns boolean
+                 * @returns {boolean}
                  */
                 function isEmpty(value) {
                     return (value == undefined) || (value.length === 0);
                 }
 
-                var hyperscriptUrl = 'document' in globalScope ? document.currentScript.src : null
+                /** @type string | null */
+                var hyperscriptUrl = ('document' in globalScope) ? document.currentScript.src : null
 
+                /** @type {RuntimeObject} */
                 return {
                     typeCheck: typeCheck,
                     forEach: forEach,
@@ -1965,43 +2019,66 @@
                                 return t.value;
                             }
                         }).join("");
+
+                        if (queryValue.indexOf('$') >= 0) {
+                            var template = true;
+                            var innerTokens = _lexer.tokenize(queryValue, true);
+                            var args = parser.parseStringTemplate(innerTokens);
+                        }
+
                         return {
                             type: "queryRef",
                             css: queryValue,
-                            evaluate: function () {
-                                return document.querySelectorAll(this.css);
+                            args: args,
+                            op: function (context, args) {
+                                var query = queryValue;
+                                if (template) {
+                                    query = '';
+                                    for (var i = 1; i < arguments.length; i++) {
+                                        var val = arguments[i];
+                                        if (val) {
+                                            query += val;
+                                        }
+                                    }
+                                }
+                                return document.querySelectorAll(query);
+                            },
+                            evaluate: function(context) {
+                                return runtime.unifiedEval(this, context);
                             }
                         };
                     }
                 })
 
-                _parser.addGrammarElement("attributeRef", function(parser, runtime, tokens) {
-                    if (tokens.matchOpToken("[")) {
-                        var content = tokens.consumeUntil("]");
-                        var contentStr = content.map(function (t) {
-                            return t.value
-                        }).join("");
-                        var values = contentStr.split("=");
-                        var name = values[0];
-                        var value = values[1];
-                        tokens.requireOpToken("]");
-
+                _parser.addLeafExpression("attributeRef", function(parser, runtime, tokens) {
+                    var attributeRef = tokens.matchTokenType("ATTRIBUTE_REF");
+                    if (attributeRef) {
+                        var outerVal = attributeRef.value;
+                        var innerValue = outerVal.substring(2, outerVal.length - 1);
+                        var css = "[" + innerValue + "]";
+                        var split = innerValue.split('=');
+                        var name = split[0];
+                        var value = split[1];
+                        if (value) {
+                            // strip quotes
+                            if (value.indexOf('"') === 0) {
+                                value = value.substring(1, value.length - 1);
+                            }
+                        }
                         return {
-                            type: "attribute_expression",
+                            type: "attributeRef",
                             name: name,
+                            css: css,
                             value: value,
-                            args: [value],
-                            op:function(context, value){
-                                if (this.value) {
-                                    return {name:this.name, value:value}
-                                } else {
-                                    return {name:this.name};
-                                }
+                            op:function(context){
+                                if (context.me) {
+                                    return context.me.getAttribute(name);
+                                };
                             },
                             evaluate: function (context) {
                                 return runtime.unifiedEval(this, context);
                             }
-                        }
+                        };
                     }
                 })
 
@@ -2220,7 +2297,7 @@
                         time: time,
                         factor: factor,
                         args: [time],
-                        op: function (context, val) {
+                        op: function (_context, val) {
                             return val * this.factor
                         },
                         evaluate: function (context) {
@@ -2237,7 +2314,7 @@
                             root: root,
                             prop: prop,
                             args: [root],
-                            op:function(context, rootVal){
+                            op:function(_context, rootVal){
                                 var value = runtime.resolveProperty(rootVal, prop.value);
                                 return value;
                             },
@@ -2259,8 +2336,8 @@
                             childOfUrRoot = urRoot;
                             urRoot = urRoot.root;
                         }
-                        if (urRoot.type !== 'symbol') {
-                            parser.raiseParseError(tokens, "Cannot take a property of a non-symbol");
+                        if (urRoot.type !== 'symbol' && urRoot.type !== 'attributeRef') {
+                            parser.raiseParseError(tokens, "Cannot take a property of a non-symbol: " + urRoot.type);
                         }
                         var prop = urRoot.name;
                         var propertyAccess = {
@@ -2277,6 +2354,9 @@
                             }
                         };
 
+                        if (urRoot.type === "attributeRef") {
+                            propertyAccess.attribute = urRoot;
+                        }
                         if (childOfUrRoot) {
                             childOfUrRoot.root = propertyAccess;
                             childOfUrRoot.args = [propertyAccess];
@@ -2298,9 +2378,8 @@
                         if (apostrophe) {
                             tokens.requireToken("s");
                         }
-                        if (tokens.matchToken("attribute")) {
-                            var attribute = parser.requireElement('stringLike', tokens);
-                        } else {
+                        var attribute = parser.parseElement('attributeRef', tokens);
+                        if (attribute == null) {
                             var prop = tokens.requireTokenType("IDENTIFIER");
                         }
                         var propertyAccess = {
@@ -2308,10 +2387,10 @@
                             root: root,
                             attribute: attribute,
                             prop: prop,
-                            args: [root, attribute],
-                            op:function(context, rootVal, attribute){
+                            args: [root],
+                            op:function(context, rootVal){
                                 if(attribute){
-                                    var value = runtime.resolveProperty(rootVal, attribute, true);
+                                    var value = runtime.resolveProperty(rootVal, attribute.name, true);
                                 } else {
                                     var value = runtime.resolveProperty(rootVal, prop.value, false);
                                 }
@@ -2434,6 +2513,26 @@
                             }
                         }
                         return parser.parseElement("indirectExpression", tokens, functionCall);
+                    }
+                });
+
+                _parser.addIndirectExpression("attributeRefAccess", function (parser, runtime, tokens, root) {
+                    var attribute = parser.parseElement('attributeRef', tokens);
+                    if (attribute) {
+                        var attributeAccess = {
+                            type: "attributeRefAccess",
+                            root: root,
+                            attribute: attribute,
+                            args: [root],
+                            op: function(_ctx, rootVal) {
+                                var value = runtime.resolveProperty(rootVal, attribute.value, true);
+                                return value;
+                            },
+                            evaluate: function(context){
+                                return _runtime.unifiedEval(this, root);
+                            }
+                        };
+                        return attributeAccess;
                     }
                 });
 
@@ -2833,11 +2932,11 @@
                     var expr = parser.parseElement("primaryExpression", tokens);
                     if (expr.type === "symbol" || expr.type === "idRef" || expr.type === "inExpression" ||
                         expr.type === "queryRef" || expr.type === "classRef" || expr.type === "ofExpression" ||
-                        expr.type === "propertyAccess" || expr.type === "closestExpr" ||
-                        expr.type === "possessive") {
+                        expr.type === "propertyAccess" || expr.type === "closestExpr" || expr.type === "attributeRefAccess" ||
+                        expr.type === "attributeRef" || expr.type === "possessive") {
                         return expr;
                     } else {
-                        _parser.raiseParseError(tokens, "A target expression must be writable");
+                        _parser.raiseParseError(tokens, "A target expression must be writable : " + expr.type);
                     }
                     return expr;
                 });
@@ -3743,6 +3842,7 @@
                     var functionName = expr.root.name;
                     var functionArgs = expr.argExressions;
 
+                    /** @type {GrammarElement} */
                     var pseudoCommand = {
                         type: "pseudoCommand",
                         expr: expr,
@@ -3789,7 +3889,8 @@
                         var value = parser.requireElement("expression", tokens);
 
                         var symbolWrite = target.type === "symbol";
-                        if (target.type !== "symbol" && target.root == null) {
+                        var attributeWrite = target.type === "attributeRef";
+                        if (!attributeWrite && !symbolWrite && target.root == null) {
                             parser.raiseParseError(tokens, "Can only put directly into symbols, not references")
                         }
 
@@ -3797,24 +3898,28 @@
                         var prop = null;
                         if (symbolWrite) {
                             // root is null
+                        } else if (attributeWrite) {
+                            root = parser.requireElement('implicitMeTarget', tokens);
+                            var attribute = target;
                         } else {
                             prop = target.prop ? target.prop.value : null;
                             var attribute = target.attribute;
                             root = target.root;
                         }
 
+                        /** @type {GrammarElement} */
                         var setCmd = {
                             target: target,
                             symbolWrite: symbolWrite,
                             value: value,
-                            args: [root, value, attribute],
-                            op: function (context, root, valueToSet, attribute) {
+                            args: [root, value],
+                            op: function (context, root, valueToSet) {
                                 if (symbolWrite) {
                                     context[target.name] = valueToSet;
                                 } else {
                                     runtime.forEach(root, function (elt) {
                                         if (attribute) {
-                                            elt.setAttribute(attribute, valueToSet);
+                                            elt.setAttribute(attribute.name, valueToSet);
                                         } else {
                                             elt[prop] = valueToSet;
                                         }
@@ -3838,6 +3943,8 @@
                         if (tokens.hasMore()) {
                             tokens.requireToken("end");
                         }
+
+                        /** @type {GrammarElement} */
                         var ifCmd = {
                             expr: expr,
                             trueBranch: trueBranch,
@@ -4266,10 +4373,10 @@
                     type: "addCmd",
                     attributeRef: attributeRef,
                     to: to,
-                    args: [to, attributeRef],
+                    args: [to],
                     op: function (context, to, attrRef) {
                         runtime.forEach(to, function (target) {
-                            target.setAttribute(attrRef.name, attrRef.value);
+                            target.setAttribute(attributeRef.name, attributeRef.value);
                         })
                         return runtime.findNext(addCmd, context);
                     },
@@ -4416,7 +4523,7 @@
                 time: time,
                 evt: evt,
                 from: from,
-                toggle: function (on, value) {
+                toggle: function (on) {
                     if (between) {
                         runtime.forEach(on, function (target) {
                             if (target.classList.contains(classRef.className())) {
@@ -4438,18 +4545,18 @@
                             if (target.hasAttribute(attributeRef.name)) {
                                 target.removeAttribute(attributeRef.name);
                             } else {
-                                target.setAttribute(attributeRef.name, value)
+                                target.setAttribute(attributeRef.name, attributeRef.value)
                             }
                         });
                     }
                 },
-                args: [on, attributeRef ? attributeRef.value : null, time, evt, from],
-                op: function (context, on, value, time, evt, from) {
+                args: [on, time, evt, from],
+                op: function (context, on, time, evt, from) {
                     if (time) {
                         return new Promise(function (resolve) {
-                            toggleCmd.toggle(on, value);
+                            toggleCmd.toggle(on);
                             setTimeout(function () {
-                                toggleCmd.toggle(on, value);
+                                toggleCmd.toggle(on);
                                 resolve(runtime.findNext(toggleCmd, context));
                             }, time);
                         });
@@ -4457,13 +4564,13 @@
                         return new Promise(function (resolve) {
                             var target = from || context.me;
                             target.addEventListener(evt, function () {
-                                toggleCmd.toggle(on, value);
+                                toggleCmd.toggle(on);
                                 resolve(runtime.findNext(toggleCmd, context));
                             }, {once: true})
-                            toggleCmd.toggle(on, value);
+                            toggleCmd.toggle(on);
                         });
                     } else {
-                        this.toggle(on, value);
+                        this.toggle(on);
                         return runtime.findNext(toggleCmd, context);
                     }
                 }
@@ -4679,6 +4786,14 @@
             } else if(target.type === "symbol" && operation === "into") {
                 symbolWrite = true;
                 prop = target.name;
+            } else if(target.type === "attributeRef" && operation === "into") {
+                var attributeWrite = true;
+                prop = target.name;
+                root = parser.requireElement('implicitMeTarget', tokens);
+            } else if(target.type === "attributeRefAccess" && operation === "into") {
+                var attributeWrite = true;
+                prop = target.attribute.name;
+                root = target.root;
             } else {
                 root = target;
             }
@@ -4694,9 +4809,15 @@
                         putInto(context, prop, valueToPut);
                     } else {
                         if (operation === "into") {
-                            runtime.forEach(root, function (elt) {
-                                putInto(elt, prop, valueToPut);
-                            })
+                            if (attributeWrite) {
+                                runtime.forEach(root, function (elt) {
+                                    elt.setAttribute(prop, valueToPut);
+                                });
+                            } else {
+                                runtime.forEach(root, function (elt) {
+                                    putInto(elt, prop, valueToPut);
+                                });
+                            }
                         } else if (operation === "before") {
                             runtime.forEach(root, function (elt) {
                                 elt.insertAdjacentHTML('beforebegin', valueToPut);
@@ -4949,7 +5070,13 @@
                 if (tokens.matchToken('url')) {
                     var target = parser.requireElement("stringLike", tokens);
                     var url = true;
+                    if (tokens.matchToken('in')) {
+                        tokens.requireToken('new');
+                        tokens.requireToken('window');
+                        var newWindow = true;
+                    }
                 } else {
+                    tokens.matchToken('the'); // optional the
                     var verticalPosition = tokens.matchAnyToken('top', 'bottom', 'middle');
                     var horizontalPosition = tokens.matchAnyToken('left', 'center', 'right');
                     if (verticalPosition || horizontalPosition) {
@@ -4987,11 +5114,6 @@
                         }
                     }
 
-                }
-                if (tokens.matchToken('with')) {
-                    tokens.requireToken('new');
-                    tokens.requireToken('window');
-                    var newWindow = true;
                 }
             }
 
