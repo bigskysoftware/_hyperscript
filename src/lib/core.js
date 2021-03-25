@@ -1656,6 +1656,7 @@
                                     triggerEvent(target || elt, 'load', {'hyperscript':true});
                                 }, 1);
                             } catch(e) {
+                                _runtime.triggerEvent(elt, 'exception', {error: e})
                                 console.error("hyperscript errors were found on the following element:", elt, "\n\n", e.message, e.stack);
                             }
                         }
