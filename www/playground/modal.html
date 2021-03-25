@@ -12,22 +12,22 @@
     end
     on keydown[key is 'Tab' and not shiftKey]
         call event.preventDefault()
-        call focusNextIn(activeElement of document, me)
+        call focusNext(activeElement of the document)
     end
     on keydown[key is 'Tab' and shiftKey]
         call event.preventDefault()
-        call focusPreviousIn(activeElement of document, me)
+        call focusPrevious(activeElement of the document)
     end
-    def focusNextIn(elt, parent)
-        set focusRing to (<a, button, input:not([type=hidden]), textarea, select, details/> in parent) as Array
+    def focusNext(elt)
+        set focusRing to (<a, button, input:not([type=hidden]), textarea, select, details/> in me) as Array
         set nextIndex to focusRing.indexOf(elt) + 1
-        set next to focusRing[nextIndex] or focusRing[0]
+        set next to focusRing[nextIndex] or first in focusRing
         call next.focus()
     end
-    def focusPreviousIn(elt, parent)
-        set focusRing to (<a, button, input:not([type=hidden]), textarea, select, details/> in parent) as Array
+    def focusPrevious(elt)
+        set focusRing to (<a, button, input:not([type=hidden]), textarea, select, details/> in me) as Array
         set previousIndex to focusRing.indexOf(elt) - 1
-        set previous to focusRing[previousIndex] or focusRing[focusRing.length - 1]
+        set previous to focusRing[previousIndex] or last in focusRing
         call previous.focus()
     end		
     ">
