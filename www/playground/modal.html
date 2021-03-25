@@ -1,0 +1,81 @@
+<button _="on click send open to #modal" class="btn">Open Modal</button>
+
+<div id="modal" class="hide" _="
+    on open
+        remove .hide add .overflow-hidden to <body/>
+        settle call (<input/> in me)[0].focus()
+    end
+    on close or keyup[key is 'Escape'] from <body/>
+        remove .overflow-hidden from <body/>
+        trigger hide
+        wait 0.2s then add .hide
+    end
+    on keydown[key is 'Tab' and not shiftKey]
+        call event.preventDefault()
+        call focusNextIn(activeElement of document, me)
+    end
+    on keydown[key is 'Tab' and shiftKey]
+        call event.preventDefault()
+        call focusPreviousIn(activeElement of document, me)
+    end
+    def focusNextIn(elt, parent)
+        set focusRing to (<a, button, input:not([type=hidden]), textarea, select, details/> in parent) as Array
+        set nextIndex to focusRing.indexOf(elt) + 1
+        set next to focusRing[nextIndex] or focusRing[0]
+        call next.focus()
+    end
+    def focusPreviousIn(elt, parent)
+        set focusRing to (<a, button, input:not([type=hidden]), textarea, select, details/> in parent) as Array
+        set previousIndex to focusRing.indexOf(elt) - 1
+        set previous to focusRing[previousIndex] or focusRing[focusRing.length - 1]
+        call previous.focus()
+    end		
+    ">
+    <div style="position: fixed; z-index: 50; top: 0; right: 0; left: 0; bottom: 0; overflow-y: auto;">
+        <div style="display: block; min-height: 100vh; padding: 1rem 1rem 5rem; text-align: center;">
+            <div style="display: fixed; top: 0; right: 0; left: 0; bottom: 0; opacity: 0" _="
+                on open from #modal 
+                    transition opacity from 0 to 1 over 0.3s
+                end
+                on hide from #modal 
+                    transition opacity from 1 to 0 over 0.2s
+                end
+                ">
+                <div style="position: absolute; top: 0; right: 0; left: 0; bottom: 0; background: #6b7280; opacity: 0.75"></div>
+            </div>
+
+            <span style="display: inline-block; vertical-align: middle; height: 100vh;">&#8203;</span>
+
+            <div style="text-align: left; width: 100%; display: inline-block; vertical-align: middle; background: #fff; overflow: hidden; max-width: 28rem; margin: 4rem 0; transform: scale(1)" _="
+                on open from #modal 
+                    transition opacity from 0 to 1 over 0.3s
+                end
+                on hide from #modal 
+                    transition opacity from 1 to 0 over 0.2s
+                end
+                ">
+                <div style="position: absolute; top: 0; right: 0; padding: 1rem 1rem 0 0">
+                    <button type="button" _="on click trigger close"
+                        style="cursor: pointer; border: 0; background: #fff; border-radius: 95%; color: #6b7280;">
+                        <svg style="width: 1.5rem; height: 1.5rem;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div style="margin-top: 1rem; padding: 1rem;">
+                    <input autofocus type="text" name="first"
+                        style="margin-top: 1.5rem; width: 100%; font-size: 18px; padding: 8px;"
+                        placeholder="First Name">
+                    <input type="text" name="last"
+                        style="margin-top: 1.5rem; width: 100%; font-size: 18px; padding: 8px;"
+                        placeholder="Last Name">
+                    <a style="display: block; width: 100%; margin-top: 1.5rem;" href="#">some link</a>
+                    <p style="margin-top: 1.5rem; ">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed bibendum a tellus et hendrerit. Nam lacinia ex non iaculis blandit. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec et lorem a velit semper ornare. Nullam vehicula erat a mauris vestibulum, et tempor est vehicula. Sed non porttitor lectus. Nam sit amet tempus orci, ut pharetra metus. Donec in arcu rutrum, suscipit urna ac, egestas erat. </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
