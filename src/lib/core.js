@@ -1043,7 +1043,9 @@
                  * @returns {GrammarElement}
                  */
                 function parseHyperScript(tokens) {
-                    return parseElement("hyperscript", tokens)
+                    var result = parseElement("hyperscript", tokens);
+                    if (tokens.hasMore()) raiseParseError(tokens);
+                    return result;
                 }
 
                 /**
@@ -2946,14 +2948,11 @@
                     var features = [];
 
                     if (tokens.hasMore()) {
-                        do {
+                        while (parser.featureStart(tokens.currentToken()) || tokens.currentToken().value === "(") {
                             var feature = parser.requireElement("feature", tokens);
                             features.push(feature);
                             tokens.matchToken("end"); // optional end
-                        } while (parser.featureStart(tokens.currentToken()) || tokens.currentToken().value === "(")
-                        if (tokens.hasMore()) {
-                            parser.raiseParseError(tokens);
-                        }
+                        } 
                     }
                     return {
                         type: "hyperscript",
@@ -3424,7 +3423,8 @@
                 	var path = parser.parseElement("dotOrColonPath", tokens).evaluate();
                 	var nameSpace = path.split(".");
                 	var name = nameSpace.pop();
-                	var hs = parser.parseHyperScript(tokens);
+                	var hs = parser.parseElement("hyperscript", tokens);
+                	console.debug(tokens.list, tokens.consumed.map(e=>e.value));
 
                 	return {
                 		install: function (target, source) {
