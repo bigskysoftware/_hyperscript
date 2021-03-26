@@ -3419,6 +3419,45 @@
                     }
                 })
 
+                _parser.addFeature("behavior", function (parser, runtime, tokens) {
+                	if (!tokens.matchToken("behavior")) return;
+                	var path = parser.parseElement("dotOrColonPath", tokens).evaluate();
+                	var nameSpace = path.split(".");
+                	var name = nameSpace.pop();
+                	var hs = parser.parseHyperScript(tokens);
+
+                	return {
+                		install: function (target, source) {
+                			runtime.assignToNamespace(
+                				globalScope.document && globalScope.document.body, 
+                				nameSpace, name, hs.apply.bind(hs))
+                		}
+                	}
+                })
+
+                _parser.addFeature("install", function (parser, runtime, tokens) {
+                	if (!tokens.matchToken("install")) return;
+                	var behaviorPath = parser.requireElement("dotOrColonPath", tokens).evaluate()
+                	var behaviorNamespace = behaviorPath.split(".");
+                	return {
+                		install: function (target, source) {
+                			var behavior = globalScope;
+                			for (var i = 0; i < behaviorNamespace.length; i++) {
+                				behavior = behavior[behaviorNamespace[i]];
+                				if (typeof behavior !== "object" && typeof behavior !== "function") throw new Error(
+                					"No such behavior defined as " + behaviorPath
+                				);
+                			}
+
+                			if (!(behavior instanceof Function)) throw new Error(
+                				behaviorPath + " is not a behavior"
+                			);
+
+                			behavior(target, source);
+                		}
+                	}
+                })
+
                 _parser.addGrammarElement("jsBody", function(parser, runtime, tokens) {
                     var jsSourceStart = tokens.currentToken().start;
                     var jsLastToken = tokens.currentToken();
