@@ -939,13 +939,13 @@ Strings, numbers, `true`, `false` and `null` all work as you'd expect.
 Mathematical operators work normally *except*  that you cannot mix different mathematical operators without
 parenthesizing them to clarify binding.
 
-```
+```hyperscript
   set x to 1 * (2 + 3)
 ```
 
 Logical operators use the english terms `and`, `or` and `not` and must also be fully disambiguated.
 
-```
+```hyperscript
   if foo and bar
     log "Foo & Bar!"
   end
@@ -953,7 +953,7 @@ Logical operators use the english terms `and`, `or` and `not` and must also be f
 
 Comparison operators are the normal '==', '<=', etc.  You can is `is` and `is not` in place of `==` and `!==` respectively.
 
-```
+```hyperscript
   if foo is bar
     log "Foo is Bar!"
   end
@@ -961,7 +961,7 @@ Comparison operators are the normal '==', '<=', etc.  You can is `is` and `is no
 
 Hyperscript also supports a `no` operator to test for `== null`
 
-```
+```hyperscript
   if no foo
     log "foo was null-ish"
   end
@@ -969,7 +969,7 @@ Hyperscript also supports a `no` operator to test for `== null`
 
 Array and object literals work the same as in javascript:
 
-```
+```hyperscript
   set x to {arr:[1, 2, 3]}
 ```
 
@@ -981,14 +981,14 @@ Hyperscript closures may only have an expression body.  They cannot have return 
 hyperscript is async-transparent, the need for complex callbacks is minimized, and by only allowing expressions
 in closure bodies, hyperscript eliminates ambiguity around things like `return`, `throw` etc.
 
-```
+```hyperscript
     set arr to ["a", "ab", "abc"]
     set lengths to arr.map( \ str -> str.length )
 ```
 
 Hyperscript supports literal values for CSS-style id's and classes:
 
-```
+```hyperscript
   add .disabled to #myDiv
   for tab in .tabs
     add .highlight to tab
@@ -1257,7 +1257,7 @@ was "foo":
 
 With this command defined you can now write the following hyperscript:
 
-```text
+```hyperscript
   def testFoo()
     set str to "foo" 
     foo str
@@ -1290,3 +1290,4 @@ The more I looked at it, the more I thought that there was a need for a small, d
 than an explosion in attributes and inline javascript, or a hacky custom syntax as with `ic-action`.
 
 </div>
+
