@@ -8,9 +8,9 @@
 * garbage collect event listeners added to external elements periodically (?)
 * improve `fetch` command w/ more obvious syntax for body, headers, etc.
   ```text
-    fetch /foo using POST 
-    fetch /foo using POST with body {foo:"bar"}
-    fetch /foo using POST with body {foo:"bar"} and headers {blah:'blah'}
+    fetch /foo with a POST 
+    fetch /foo with a POST and body {foo:"bar"}
+    fetch /foo with a POST and body {foo:"bar"} and headers {blah:'blah'}
   ```
   * make defaults pluggable 
   * resurrect `ajax` command?  (had more functionality in some ways)
@@ -31,7 +31,6 @@
 * Better DOM manipulation tools? (needs research)
 * Full `sed` command for string manipulation?
 * `play` command using [Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
-* `merge/merge into` - Merge objects with one another
 * Support parenthesizes expressions in pseudopossessives: `transition (the div's parent's parent)'s opacity to 1`
 * Event model
 * functions should be able to be marked `sync` to make only one execution at a time occur, in serial fashion
