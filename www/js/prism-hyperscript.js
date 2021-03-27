@@ -4,9 +4,9 @@
 		'comment': /\-\-.*/,
 		'punctuation': /[(){}[\],:]/,
 		'keyword': {
-			pattern: /\b(?:on|def|js|worker|eventsource|socket|init|add|async|call|get|fetch|hide|measure|if|js|log|put|remove|repeat forever|repeat for|repeat in|repeat while|repeat until event|repeat until|repeat|return|send|settle|set|show|take|throw|toggle|transition|trigger|wait for|wait|tell|go|then|while|until|for|in|from|to|with|over)\b/g,
+			pattern: /\b(?:on|def|js|worker|eventsource|socket|init|add|async|call|get|fetch|hide|measure|if|js|log|put|remove|repeat forever|repeat for|repeat in|repeat while|repeat until event|repeat until|repeat|return|send|settle|set|show|take|throw|toggle|transition|trigger|wait for|wait|tell|go|then|end|while|until|for|in|from|to|with|over)\b/g,
 			inside: {
-				'bold': /\b(?:on|def|js|worker|eventsource|socket|init|add|async|call|get|fetch|hide|measure|if|js|log|put|remove|repeat forever|repeat for|repeat in|repeat while|repeat until event|repeat until|repeat|return|send|set|settle|show|take|throw|toggle|transition|trigger|wait for|wait|tell|go)\b/g
+				'bold': /\b(?:on|def|js|worker|eventsource|socket|init|add|async|call|get|fetch|hide|measure|if|js|log|put|remove|repeat forever|repeat for|repeat in|repeat while|repeat until event|repeat until|repeat|return|send|set|settle|show|take|throw|toggle|transition|trigger|wait for|wait|tell|go|end)\b/g
 			}
 		},
 		'operator': /\+|-|\/|\*|<\b|>|<=|>=|\b(?:is|am|as|and|or|no|closest|the|of|first|last|on|is\sa|is\san)\b/,
