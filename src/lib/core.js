@@ -519,6 +519,8 @@
                                 tokens.push(consumeIdReference());
                             } else if (currentChar() === "[" && nextChar() === "@") {
                                 tokens.push(consumeAttributeReference());
+                            } else if (currentChar() === "@") {
+                                tokens.push(consumeShortAttributeReference());
                             } else if (isAlpha(currentChar()) || (!inTemplate() && isIdentifierChar(currentChar()))) {
                                 tokens.push(consumeIdentifier());
                             } else if (isNumeric(currentChar())) {
@@ -609,6 +611,17 @@
                             value += consumeChar();
                         }
                         if (currentChar() === ']') {
+                            value += consumeChar();
+                        }
+                        attributeRef.value = value;
+                        attributeRef.end = position;
+                        return attributeRef;
+                    }
+
+                    function consumeShortAttributeReference() {
+                        var attributeRef = makeToken("ATTRIBUTE_REF");
+                        var value = consumeChar();
+                        while (isValidCSSIDChar(currentChar())) {
                             value += consumeChar();
                         }
                         attributeRef.value = value;
@@ -2057,7 +2070,11 @@
                     var attributeRef = tokens.matchTokenType("ATTRIBUTE_REF");
                     if (attributeRef) {
                         var outerVal = attributeRef.value;
-                        var innerValue = outerVal.substring(2, outerVal.length - 1);
+                        if (outerVal.indexOf('[') === 0) {
+                            var innerValue = outerVal.substring(2, outerVal.length - 1);
+                        } else {
+                            var innerValue = outerVal.substring(1);
+                        }
                         var css = "[" + innerValue + "]";
                         var split = innerValue.split('=');
                         var name = split[0];
