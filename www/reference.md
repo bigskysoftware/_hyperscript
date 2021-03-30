@@ -20,6 +20,7 @@ title: ///_hyperscript
 |  name | description | example
 |-------|-------------|---------
 | [add](/commands/add) | Adds content to a given target | `add .myClass to me`
+| [append](/commands/append) | Appends a value to a string, array or HTML Element | `append "value" to myString`
 | [async](/commands/async) | Runs commands asynchronously | `async fetch /example`
 | [call/get](/commands/call) | Evaluates an expression (e.g. a Javascript Function) | `call alert('yep, you can call javascript!)` <br/><br/> `get prompt('Enter your name')`
 | [fetch](/commands/fetch) | Send a fetch request | `fetch /demo then put it into my.innerHTML`
