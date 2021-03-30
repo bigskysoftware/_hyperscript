@@ -1,10 +1,14 @@
 ## TODOs
 
-### In Progress
+### 0.0.9 Release In Progress
 * Deniz - template tag support
+* Carson - `delete` command
+* Ben - `increment/decrement` commands
+* ? - `append` command (String and Array)
+* ? - observer syntax
 
 ### Language Features
-* `reply` & `wait for response` in event handlers
+* `reply` & `wait for response` in event handlers?
 * garbage collect event listeners added to external elements periodically (?)
 * improve `fetch` command w/ more obvious syntax for body, headers, etc.
   ```text
@@ -17,8 +21,6 @@
 *  Support a `timeout` modifier for commands like `fetch`, `call`, `wait for` etc.
   * deep project involving dealing w/ async commands not executing if they time out during execution
 * `merge/merge into` - Merge objects with one another
-* `delete` command
-* `increment/decrement` commands
 * `default` command
   ```text
     default x to 10
