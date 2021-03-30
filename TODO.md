@@ -4,8 +4,28 @@
 * Deniz - template tag support
 * Carson - `delete` command
 * Ben - `increment/decrement` commands
+  * should work w/ strings and attributes e.g. `incremenet @count`
+  * should treat empty string (and null? and undefined?) as 0
+  * should support a `by` modifier e.g. `increment @count by 2`
+  * should update `result`
+    ```
+      increment x
+      put it into me
+    ```
 * ? - `append` command (String and Array)
+    ```
+      append "foo" to aString
+      append "foo" to anArray
+    ```  
 * ? - observer syntax
+    ```
+      on mutation of #foo's attributes
+        
+      end 
+      on mutation of @count
+        
+      end 
+    ```
 
 ### Language Features
 * `reply` & `wait for response` in event handlers?
