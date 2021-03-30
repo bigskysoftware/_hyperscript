@@ -1126,7 +1126,7 @@
                             tokens.consumeToken()
                         } else {
                             var token = tokens.consumeToken();
-                            returnArr[returnArr.length - 1] += token.value;
+                            returnArr[returnArr.length - 1] += token ? token.value : '';
                         }
                     } while (tokens.hasMore())
                     returnArr.push(tokens.lastWhitespace());
@@ -1944,7 +1944,7 @@
                                 var returnStr = "";
                                 for (var i = 1; i < arguments.length; i++) {
                                     var val = arguments[i];
-                                    if (val) {
+                                    if (val !== undefined) {
                                         returnStr += val;
                                     }
                                 }
