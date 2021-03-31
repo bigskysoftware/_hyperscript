@@ -1126,7 +1126,7 @@
                             tokens.consumeToken()
                         } else {
                             var token = tokens.consumeToken();
-                            returnArr[returnArr.length - 1] += token.value;
+                            returnArr[returnArr.length - 1] += token ? token.value : '';
                         }
                     } while (tokens.hasMore())
                     returnArr.push(tokens.lastWhitespace());
@@ -1944,7 +1944,7 @@
                                 var returnStr = "";
                                 for (var i = 1; i < arguments.length; i++) {
                                     var val = arguments[i];
-                                    if (val) {
+                                    if (val !== undefined) {
                                         returnStr += val;
                                     }
                                 }
@@ -4211,6 +4211,56 @@
                 _parser.addGrammarElement("stringLike", function(parser, runtime, tokens) {
                     return _parser.parseAnyOf(["string", "nakedString"], tokens);
                 });
+
+                _parser.addCommand("append", function(parser, runtime, tokens) {
+                    if (tokens.matchToken("append")) {
+
+                        var target = null
+                        var prop = null;
+
+                        var value = parser.requireElement("expression", tokens);
+
+                        if (tokens.matchToken("to")) {
+                            target = parser.requireElement("targetExpression", tokens);
+                        }
+                        
+                        if (target == null) {
+                            prop = "result";
+                        } else if (target.type === "symbol") {
+                            prop = target.name;
+                        } else if (target.type === "propertyAccess") {
+                            prop = target.prop.value;
+                        } else {
+                            throw("Unable to append to " + target.type)
+                        }
+
+                        return {
+                            value: value,
+                            target: target,
+                            args: [value],
+                            op: function (context, value) {
+
+                                if (Array.isArray(context[prop])) {
+                                    context[prop].push(value);
+                                } else if (context[prop] instanceof Element) {
+
+                                    if (typeof value == "string") {
+                                        context[prop].innerHTML += value;
+                                    } else {
+                                        throw("Don't know how to append non-strings to an HTML Element yet.");
+                                    }
+                                } else {
+                                    context[prop] += value;
+                                }
+
+                                return runtime.findNext(this, context);
+                            },
+                            execute: function (context) {
+                                return runtime.unifiedExec(this, context, value, target);
+                            }
+                        };
+                    }
+                })
 
                 _parser.addCommand("fetch", function(parser, runtime, tokens) {
                     if (tokens.matchToken('fetch')) {
