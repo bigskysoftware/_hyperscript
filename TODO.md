@@ -2,7 +2,6 @@
 
 ### 0.0.9 Release In Progress
 * Deniz - template tag support
-* Carson - `delete` command
 * Ben - `increment/decrement` commands
   * should work w/ strings and attributes e.g. `incremenet @count`
   * should treat empty string (and null? and undefined?) as 0
@@ -12,11 +11,6 @@
       increment x
       put it into me
     ```
-* ? - `append` command (String and Array)
-    ```
-      append "foo" to aString
-      append "foo" to anArray
-    ```  
 * ? - observer syntax
     ```
       on mutation of #foo's attributes
@@ -28,6 +22,10 @@
     ```
 
 ### Language Features
+* Determine how to handle mutations to the DOM with respect to listeners 
+   * lazily remove listeners when owner has been removed from DOM
+   * when a node is replaced in the DOM, what about the listeners put on it by other elements?
+* `delete` command
 * `reply` & `wait for response` in event handlers?
 * garbage collect event listeners added to external elements periodically (?)
 * improve `fetch` command w/ more obvious syntax for body, headers, etc.
@@ -41,10 +39,6 @@
 *  Support a `timeout` modifier for commands like `fetch`, `call`, `wait for` etc.
   * deep project involving dealing w/ async commands not executing if they time out during execution
 * `merge/merge into` - Merge objects with one another
-* `default` command
-  ```text
-    default x to 10
-  ```
 * runtime type checked parameters and return types
   ```text
     def(foo:String!) : String!

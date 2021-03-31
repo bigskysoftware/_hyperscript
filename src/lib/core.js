@@ -3921,7 +3921,77 @@
                     return pseudoCommand;
                 })
 
+                var makeSetter = function(parser, runtime, tokens, target, value) {
+                    var symbolWrite = target.type === "symbol";
+                    var attributeWrite = target.type === "attributeRef";
+                    if (!attributeWrite && !symbolWrite && target.root == null) {
+                        parser.raiseParseError(tokens, "Can only put directly into symbols, not references")
+                    }
+
+                    var root = null;
+                    var prop = null;
+                    if (symbolWrite) {
+                        // root is null
+                    } else if (attributeWrite) {
+                        root = parser.requireElement('implicitMeTarget', tokens);
+                        var attribute = target;
+                    } else {
+                        prop = target.prop ? target.prop.value : null;
+                        var attribute = target.attribute;
+                        root = target.root;
+                    }
+
+                    /** @type {GrammarElement} */
+                    var setCmd = {
+                        target: target,
+                        symbolWrite: symbolWrite,
+                        value: value,
+                        args: [root, value],
+                        op: function (context, root, valueToSet) {
+                            if (symbolWrite) {
+                                context[target.name] = valueToSet;
+                            } else {
+                                runtime.forEach(root, function (elt) {
+                                    if (attribute) {
+                                        elt.setAttribute(attribute.name, valueToSet);
+                                    } else {
+                                        elt[prop] = valueToSet;
+                                    }
+                                })
+                            }
+                            return runtime.findNext(this, context);
+                        }
+                    };
+                    return setCmd
+                }
+
+                _parser.addCommand("default", function(parser, runtime, tokens) {
+                    if (tokens.matchToken('default')) {
+                        var target = parser.requireElement("targetExpression", tokens);
+                        tokens.requireToken("to");
+                        var value = parser.requireElement("expression", tokens);
+                        /** @type {GrammarElement} */
+                        var setter = makeSetter(parser, runtime, tokens, target, value);
+                        var defaultCmd = {
+                            target: target,
+                            value: value,
+                            setter: setter,
+                            args: [target],
+                            op: function (context, target) {
+                                if (target) {
+                                    return runtime.findNext(this, context);
+                                } else {
+                                    return setter;
+                                }
+                            }
+                        };
+                        setter.parent = defaultCmd;
+                        return defaultCmd;
+                    }
+                })
+
                 _parser.addCommand("set", function(parser, runtime, tokens) {
+
                     if (tokens.matchToken('set')) {
 						if (tokens.currentToken().type === "L_BRACE") {
 							var obj = parser.requireElement("objectLiteral", tokens);
@@ -3940,52 +4010,9 @@
 						}
 
                         var target = parser.requireElement("targetExpression", tokens);
-
                         tokens.requireToken("to");
-
                         var value = parser.requireElement("expression", tokens);
-
-                        var symbolWrite = target.type === "symbol";
-                        var attributeWrite = target.type === "attributeRef";
-                        if (!attributeWrite && !symbolWrite && target.root == null) {
-                            parser.raiseParseError(tokens, "Can only put directly into symbols, not references")
-                        }
-
-                        var root = null;
-                        var prop = null;
-                        if (symbolWrite) {
-                            // root is null
-                        } else if (attributeWrite) {
-                            root = parser.requireElement('implicitMeTarget', tokens);
-                            var attribute = target;
-                        } else {
-                            prop = target.prop ? target.prop.value : null;
-                            var attribute = target.attribute;
-                            root = target.root;
-                        }
-
-                        /** @type {GrammarElement} */
-                        var setCmd = {
-                            target: target,
-                            symbolWrite: symbolWrite,
-                            value: value,
-                            args: [root, value],
-                            op: function (context, root, valueToSet) {
-                                if (symbolWrite) {
-                                    context[target.name] = valueToSet;
-                                } else {
-                                    runtime.forEach(root, function (elt) {
-                                        if (attribute) {
-                                            elt.setAttribute(attribute.name, valueToSet);
-                                        } else {
-                                            elt[prop] = valueToSet;
-                                        }
-                                    })
-                                }
-                                return runtime.findNext(this, context);
-                            }
-                        };
-                        return setCmd
+                        return makeSetter(parser, runtime, tokens, target, value);
                     }
                 })
 
