@@ -4426,6 +4426,7 @@
                                 amount = amount ? parseFloat(amount) : 1;
                                 var newValue = targetValue + amount;
                                 var setter = makeSetter(parser, runtime, tokens, target, newValue);
+                                context.result = newValue;
                                 setter.parent = this;
                                 return setter;
                             },
@@ -4457,6 +4458,7 @@
                                 amount = amount ? parseFloat(amount) : 1;
                                 var newValue = targetValue - amount;
                                 var setter = makeSetter(parser, runtime, tokens, target, newValue);
+                                context.result = newValue;
                                 setter.parent = this;
                                 return setter;
                             },

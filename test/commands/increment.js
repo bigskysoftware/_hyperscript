@@ -19,6 +19,12 @@ describe("the increment command", function() {
         div.innerHTML.should.equal("22")
     });
 
+    it("can increment refer to result", function () {
+        var div = make(`<div _="on click increment value by 2 then put it into me"></div>`);
+        div.click()
+        div.innerHTML.should.equal("2")
+    });
+
     it("can increment an attribute", function () {
         var div = make(`<div value="5" _="on click increment @value then put @value into me"></div>`);
         div.click()
