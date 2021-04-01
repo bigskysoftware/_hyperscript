@@ -4052,6 +4052,14 @@
                     return pseudoCommand;
                 })
 
+                /**
+                 * @param {ParserObject} parser 
+                 * @param {RuntimeObject} runtime 
+                 * @param {TokensObject} tokens 
+                 * @param {*} target 
+                 * @param {*} value 
+                 * @returns 
+                 */
                 var makeSetter = function(parser, runtime, tokens, target, value) {
                     var symbolWrite = target.type === "symbol";
                     var attributeWrite = target.type === "attributeRef";
@@ -4097,10 +4105,14 @@
                 }
 
                 _parser.addCommand("default", function(parser, runtime, tokens) {
+
                     if (tokens.matchToken('default')) {
+
                         var target = parser.requireElement("targetExpression", tokens);
                         tokens.requireToken("to");
+
                         var value = parser.requireElement("expression", tokens);
+
                         /** @type {GrammarElement} */
                         var setter = makeSetter(parser, runtime, tokens, target, value);
                         var defaultCmd = {
@@ -4393,9 +4405,70 @@
                     }
                 })
 
+                _parser.addCommand("increment", function(parser, runtime, tokens) {
+
+                    if (tokens.matchToken("increment")) {
+                        var amount;
+
+                        // This is optional.  Defaults to "result"
+                        var target = parser.parseElement("targetExpression", tokens);
+
+                        // This is optional. Defaults to 1.
+                        if (tokens.matchToken("by")) {
+                            amount = parser.requireElement("expression", tokens);
+                        }
+
+                        return {
+                            target: target,
+                            args: [target, amount],
+                            op: function (context, targetValue, amount) {
+                                targetValue = targetValue ? parseFloat(targetValue) : 0;
+                                amount = amount ? parseFloat(amount) : 1;
+                                var newValue = targetValue + amount;
+                                var setter = makeSetter(parser, runtime, tokens, target, newValue);
+                                setter.parent = this;
+                                return setter;
+                            },
+                            execute: function (context) {
+                                return runtime.unifiedExec(this, context, target, amount);
+                            }
+                        };
+                    }
+                })
+
+                _parser.addCommand("decrement", function(parser, runtime, tokens) {
+
+                    if (tokens.matchToken("decrement")) {
+                        var amount;
+
+                        // This is optional.  Defaults to "result"
+                        var target = parser.parseElement("targetExpression", tokens);
+
+                        // This is optional. Defaults to 1.
+                        if (tokens.matchToken("by")) {
+                            amount = parser.requireElement("expression", tokens);
+                        }
+
+                        return {
+                            target: target,
+                            args: [target, amount],
+                            op: function (context, targetValue, amount) {
+                                targetValue = targetValue ? parseFloat(targetValue) : 0;
+                                amount = amount ? parseFloat(amount) : 1;
+                                var newValue = targetValue - amount;
+                                var setter = makeSetter(parser, runtime, tokens, target, newValue);
+                                setter.parent = this;
+                                return setter;
+                            },
+                            execute: function (context) {
+                                return runtime.unifiedExec(this, context, target, amount);
+                            }
+                        };
+                    }
+                })
+
                 _parser.addCommand("fetch", function(parser, runtime, tokens) {
                     if (tokens.matchToken('fetch')) {
-
 
                         var url = parser.requireElement("stringLike", tokens);
                         var args = parser.parseElement("objectLiteral", tokens);
@@ -4412,6 +4485,7 @@
                             }
                         }
 
+                        /** @type {GrammarElement} */
                         var fetchCmd = {
                             url:url,
                             argExrepssions:args,
