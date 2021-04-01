@@ -66,6 +66,13 @@ describe("the queryRef expression", function() {
         value.length.should.equal(1);
     })
 
+    it("queryRef w/ $ no curlies works", function () {
+        var div = make("<div id='t1'></div>" +
+            "                  <div id='t2'></div>" +
+            "                  <div id='t3'></div>");
+        var value = evalHyperScript("<#$id/>", {id:"t2"});
+        value[0].should.equal(byId("t2"));
+    })
 
 });
 
