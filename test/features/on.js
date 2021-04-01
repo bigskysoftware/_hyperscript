@@ -405,94 +405,96 @@ describe("the on feature", function() {
         div.innerHTML.should.equal("three");
     });
 
-    it("can listen for general mutations", function () {
+    it("can listen for general mutations", function (done) {
         // pretty subtle: mutation events are async, so we need to ensure that we wait for the mutation event
         // so that we don't end up in an infinite mutation loop
         var div = make("<div _='on mutation put \"Mutated\" into me then wait for hyperscript:mutation'></div>");
         div.setAttribute("foo", "bar");
         setTimeout(function () {
             div.innerHTML.should.equal("Mutated");
+            done();
         }, 50);
     });
 
-    it("can listen for attribute mutations", function () {
+    it("can listen for attribute mutations", function (done) {
         var div = make("<div _='on mutation of attributes put \"Mutated\" into me'></div>");
         div.setAttribute("foo", "bar");
         setTimeout(function () {
             div.innerHTML.should.equal("Mutated");
+            done();
         }, 50);
     });
 
-    it("can listen for specific attribute mutations", function () {
+    it("can listen for specific attribute mutations", function (done) {
         var div = make("<div _='on mutation of @foo put \"Mutated\" into me'></div>");
         div.setAttribute("foo", "bar");
         setTimeout(function () {
             div.innerHTML.should.equal("Mutated");
+            done();
         }, 50);
     });
 
-    it("can listen for specific attribute mutations and filter out other attribute mutations", function () {
+    it("can listen for specific attribute mutations and filter out other attribute mutations", function (done) {
         var div = make("<div _='on mutation of @bar put \"Mutated\" into me'></div>");
         div.setAttribute("foo", "bar");
         setTimeout(function () {
             div.innerHTML.should.equal("");
+            done();
         }, 50);
     });
 
-    it("can listen for childList mutations", function () {
+    it("can listen for childList mutations", function (done) {
         var div = make("<div _='on mutation of childList put \"Mutated\" into me then wait for hyperscript:mutation'></div>");
         div.appendChild(document.createElement("P"))
         setTimeout(function () {
             div.innerHTML.should.equal("Mutated");
+            done();
         }, 50);
     });
 
-    it("can listen for childList mutation filter out other mutations", function () {
+    it("can listen for childList mutation filter out other mutations", function (done) {
         var div = make("<div _='on mutation of childList put \"Mutated\" into me'></div>");
         div.setAttribute("foo", "bar");
         setTimeout(function () {
             div.innerHTML.should.equal("");
+            done();
         }, 50);
     });
 
-    it("can listen for characterData mutations", function () {
-        var div = make("<div _='on mutation of characterData put \"Mutated\" into me then wait for hyperscript:mutation'></div>");
-        div.innerText = "foo";
-        setTimeout(function () {
-            div.innerHTML.should.equal("Mutated");
-        }, 50);
-    });
-
-    it("can listen for characterData mutation filter out other mutations", function () {
+    it("can listen for characterData mutation filter out other mutations", function (done) {
         var div = make("<div _='on mutation of characterData put \"Mutated\" into me'></div>");
         div.setAttribute("foo", "bar");
         setTimeout(function () {
             div.innerHTML.should.equal("");
+            done();
         }, 50);
     });
 
-    it("can listen for multiple mutations", function () {
+    it("can listen for multiple mutations", function (done) {
         var div = make("<div _='on mutation of @foo or @bar put \"Mutated\" into me'></div>");
         div.setAttribute("foo", "bar");
         setTimeout(function () {
             div.innerHTML.should.equal("Mutated");
+            done();
         }, 50);
     });
 
-    it("can listen for multiple mutations 2", function () {
+    it("can listen for multiple mutations 2", function (done) {
         var div = make("<div _='on mutation of @foo or @bar put \"Mutated\" into me'></div>");
         div.setAttribute("bar", "bar");
         setTimeout(function () {
             div.innerHTML.should.equal("Mutated");
+            done();
         }, 50);
     });
 
-    it("can listen for attribute mutations on other elements", function () {
+    it("can listen for attribute mutations on other elements", function (done) {
         var div1 = make("<div id='d1'></div>");
         var div2 = make("<div _='on mutation of attributes from #d1 put \"Mutated\" into me'></div>");
         div1.setAttribute("foo", "bar");
         setTimeout(function () {
             div2.innerHTML.should.equal("Mutated");
+            done();
         }, 50);
     });
 

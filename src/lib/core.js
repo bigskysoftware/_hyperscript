@@ -3252,6 +3252,7 @@
                                         if (eventSpec.mutationSpec) {
                                             eventName = 'hyperscript:mutation';
                                             var observer = new MutationObserver(function(mutationList, observer){
+                                                console.log(target, mutationList);
                                                 if (!onFeature.executing) {
                                                     _runtime.triggerEvent(target, eventName, {
                                                         mutationList: mutationList, observer: observer
