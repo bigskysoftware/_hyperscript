@@ -3015,6 +3015,33 @@
 
                             var eventName = on.evaluate(); // OK No Promise
 
+
+
+                            if (displayName) {
+                                displayName = displayName + " or " + eventName;
+                            } else {
+                                displayName = "on " + eventName;
+                            }
+                            var args = parseEventArgs(tokens);
+
+                            var filter = null;
+                            if (tokens.matchOpToken('[')) {
+                                filter = parser.requireElement("expression", tokens);
+                                tokens.requireOpToken(']');
+                            }
+
+                            if (tokens.currentToken().type === "NUMBER") {
+                                var startCountToken = tokens.consumeToken();
+                                var startCount = parseInt(startCountToken.value);
+                                if (tokens.matchToken("to")) {
+                                    var endCountToken = tokens.consumeToken();
+                                    var endCount = parseInt(endCountToken.value);
+                                } else if (tokens.matchToken("and")) {
+                                    var unbounded = true;
+                                    tokens.requireToken("on");
+                                }
+                            }
+
                             if (eventName === "intersection") {
                                 var intersectionSpec = {};
                                 if (tokens.matchToken("with")) {
@@ -3068,31 +3095,6 @@
                                     mutationSpec['attributes'] = true;
                                     mutationSpec['characterData'] = true;
                                     mutationSpec['childList'] = true;
-                                }
-                            }
-
-                            if (displayName) {
-                                displayName = displayName + " or " + eventName;
-                            } else {
-                                displayName = "on " + eventName;
-                            }
-                            var args = parseEventArgs(tokens);
-
-                            var filter = null;
-                            if (tokens.matchOpToken('[')) {
-                                filter = parser.requireElement("expression", tokens);
-                                tokens.requireOpToken(']');
-                            }
-
-                            if (tokens.currentToken().type === "NUMBER") {
-                                var startCountToken = tokens.consumeToken();
-                                var startCount = parseInt(startCountToken.value);
-                                if (tokens.matchToken("to")) {
-                                    var endCountToken = tokens.consumeToken();
-                                    var endCount = parseInt(endCountToken.value);
-                                } else if (tokens.matchToken("and")) {
-                                    var unbounded = true;
-                                    tokens.requireToken("on");
                                 }
                             }
 
@@ -3896,6 +3898,47 @@
                 _parser.addCommand("exit", function(parser, runtime, tokens) {
                     if (tokens.matchToken('exit')) {
                         return parseReturnFunction(parser, runtime, tokens, false);
+                    }
+                })
+
+                _parser.addCommand("halt", function(parser, runtime, tokens) {
+                    if (tokens.matchToken('halt')) {
+                        if (tokens.matchToken("the")) {
+                            tokens.requireToken('event');
+                            // optional possessive
+                            if (tokens.matchOpToken("'")) {
+                                tokens.requireToken("s");
+                            }
+                            var keepExecuting = true;
+                        }
+                        if (tokens.matchToken("bubbling")) {
+                            var bubbling = true;
+                        } else if (tokens.matchToken("default")) {
+                            var haltDefault = true;
+                        }
+                        var haltCmd = {
+                            keepExecuting:true,
+                            bubbling:bubbling,
+                            haltDefault:haltDefault,
+                            op: function (ctx) {
+                                if (ctx.event) {
+                                    if (bubbling) {
+                                        ctx.event.stopPropagation();
+                                    } else if (haltDefault) {
+                                        ctx.event.preventDefault();
+                                    } else {
+                                        ctx.event.stopPropagation();
+                                        ctx.event.preventDefault();
+                                    }
+                                    if(keepExecuting) {
+                                        return runtime.findNext(this, ctx);
+                                    } else {
+                                        return runtime.HALT;
+                                    }
+                                }
+                            }
+                        };
+                        return haltCmd;
                     }
                 })
 

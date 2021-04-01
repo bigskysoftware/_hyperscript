@@ -1,7 +1,7 @@
 <div style="position: absolute; touch-action: none; padding: 50px; text-align: center; vertical-align: middle; border: 1px solid black; background-color: white; cursor: move;"
      _="-- this little maneuver is called The Akşimşek Gambit...
         on pointerdown(clientX, clientY)
-          call event.preventDefault()
+          halt the event
           measure my x, y
           set xoff to clientX - x
           set yoff to clientY - y

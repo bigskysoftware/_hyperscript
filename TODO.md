@@ -94,4 +94,3 @@
 
 ### Infrastructure
 * Recovering parser (we are single error right now)
-* Handle multiple returns/throws in an async context (timeout, async, etc.)

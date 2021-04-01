@@ -191,12 +191,12 @@ This is equivalent to:
 </div>
 ```
 
-You may also access and set DOM attributes using the possessive with the modifier `attribute`:
+You may also access and set DOM attributes using the possessive with attribute literals:
 
 <div _="on click from body in <a/> 
-          put its attribute href location into me
-          call event.preventDefault()">
-  Click Me
+          put its @href into me
+          halt -- prevent the default">
+  Click on Links To See The URL
 </div>
 
 

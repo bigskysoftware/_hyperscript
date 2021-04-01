@@ -45,12 +45,10 @@
             wait a tick then add .hidden
         end
         on keydown[key is 'Tab' and not shiftKey]
-            call event.preventDefault()
-            call focusNextIn(activeElement of document, me)
+            call focusNextIn(activeElement of document, me) then halt
         end
         on keydown[key is 'Tab' and shiftKey]
-            call event.preventDefault()
-            call focusPreviousIn(activeElement of document, me)
+            call focusPreviousIn(activeElement of document, me) then halt
         end
         ">
     <div class="fixed z-50 inset-0 overflow-y-auto">
