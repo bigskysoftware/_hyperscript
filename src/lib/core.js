@@ -3014,7 +3014,24 @@
                             var on = parser.requireElement("dotOrColonPath", tokens, "Expected event name");
 
                             var eventName = on.evaluate(); // OK No Promise
-                            if (eventName === "mutation") {
+
+                            if (eventName === "intersection") {
+                                var intersectionSpec = {};
+                                if (tokens.matchToken("with")) {
+                                    intersectionSpec['with'] = parser.parseElement("targetExpression", tokens).evaluate();
+                                }
+                                if (tokens.matchToken("having")) {
+                                    do {
+                                        if (tokens.matchToken('margin')) {
+                                            intersectionSpec['rootMargin'] = parser.parseElement("stringLike", tokens).evaluate();
+                                        } else if (tokens.matchToken('threshold')) {
+                                            intersectionSpec['threshold'] = parser.parseElement("expression", tokens).evaluate();
+                                        } else {
+                                            parser.raiseParseError(tokens, "Unknown intersection config specification");
+                                        }
+                                    } while(tokens.matchToken("and"))
+                                }
+                            } else if (eventName === "mutation") {
                                 var mutationSpec = {};
                                 if (tokens.matchToken("of")) {
                                     do {
@@ -3125,6 +3142,7 @@
                                 debounceTime : debounceTime,
                                 throttleTime : throttleTime,
                                 mutationSpec : mutationSpec,
+                                intersectionSpec : intersectionSpec,
                             })
                         } while (tokens.matchToken("or"))
 
@@ -3233,14 +3251,27 @@
                                             eventName = 'hyperscript:mutation';
                                             var observer = new MutationObserver(function(mutationList, observer){
                                                 if (!onFeature.executing) {
-                                                    if (count < 10) {
-                                                        _runtime.triggerEvent(target, eventName, {
-                                                            mutationList: mutationList, observer: observer
-                                                        });
-                                                    }
+                                                    _runtime.triggerEvent(target, eventName, {
+                                                        mutationList: mutationList, observer: observer
+                                                    });
                                                 }
                                             });
                                             observer.observe(target, eventSpec.mutationSpec);
+                                        }
+
+                                        if (eventSpec.intersectionSpec) {
+                                            eventName = 'hyperscript:insersection';
+                                            var observer = new IntersectionObserver(function (entries) {
+                                                _runtime.forEach(entries, function (entry) {
+                                                    var detail = {
+                                                        observer: observer
+                                                    };
+                                                    detail = mergeObjects(detail, entry);
+                                                    detail['intersecting'] = entry.isIntersecting;
+                                                    _runtime.triggerEvent(target, eventName, detail);
+                                                })
+                                            }, eventSpec.intersectionSpec);
+                                            observer.observe(target);
                                         }
 
                                         target.addEventListener(eventName, function (evt) { // OK NO PROMISE
