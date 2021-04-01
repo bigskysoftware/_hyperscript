@@ -11,15 +11,6 @@
       increment x
       put it into me
     ```
-* ? - observer syntax
-    ```
-      on mutation of #foo's attributes
-        
-      end 
-      on mutation of @count
-        
-      end 
-    ```
 
 ### Language Features
 * Determine how to handle mutations to the DOM with respect to listeners 
