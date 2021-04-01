@@ -3014,6 +3014,46 @@
                             var on = parser.requireElement("dotOrColonPath", tokens, "Expected event name");
 
                             var eventName = on.evaluate(); // OK No Promise
+                            if (eventName === "mutation") {
+                                var mutationSpec = {};
+                                if (tokens.matchToken("of")) {
+                                    do {
+                                        if (tokens.matchToken('anything')) {
+                                            mutationSpec['attributes'] = true;
+                                            mutationSpec['subtree'] = true;
+                                            mutationSpec['characterData'] = true;
+                                            mutationSpec['childList'] = true;
+                                        } else if (tokens.matchToken('childList')) {
+                                            mutationSpec['childList'] = true;
+                                        } else if (tokens.matchToken('attributes')) {
+                                            mutationSpec['attributes'] = true;
+                                            mutationSpec['attributeOldValue'] = true;
+                                        } else if(tokens.matchToken('subtree')) {
+                                            mutationSpec['subtree'] = true;
+                                        } else if(tokens.matchToken('characterData')) {
+                                            mutationSpec['characterData'] = true;
+                                            mutationSpec['characterDataOldValue'] = true;
+                                        } else if (tokens.currentToken().type === "ATTRIBUTE_REF") {
+                                            var attribute = tokens.consumeToken();
+                                            if (mutationSpec['attributeFilter'] == null) {
+                                                mutationSpec['attributeFilter'] = [];
+                                            }
+                                            if (attribute.value.indexOf('@') == 0) {
+                                                mutationSpec['attributeFilter'].push(attribute.value.substring(1));
+                                            } else {
+                                                parser.raiseParseError(tokens, "Only shorthand attribute references are allowed here");
+                                            }
+                                        } else {
+                                            parser.raiseParseError(tokens, "Unknown mutation config specification");
+                                        }
+                                    } while(tokens.matchToken("or"))
+                                } else {
+                                    mutationSpec['attributes'] = true;
+                                    mutationSpec['characterData'] = true;
+                                    mutationSpec['childList'] = true;
+                                }
+                            }
+
                             if (displayName) {
                                 displayName = displayName + " or " + eventName;
                             } else {
@@ -3084,6 +3124,7 @@
                                 unbounded : unbounded,
                                 debounceTime : debounceTime,
                                 throttleTime : throttleTime,
+                                mutationSpec : mutationSpec,
                             })
                         } while (tokens.matchToken("or"))
 
@@ -3186,7 +3227,23 @@
                                         targets = [elt];
                                     }
                                     runtime.forEach(targets, function (target) { // OK NO PROMISE
-                                        target.addEventListener(eventSpec.on, function (evt) { // OK NO PROMISE
+
+                                        var eventName = eventSpec.on;
+                                        if (eventSpec.mutationSpec) {
+                                            eventName = 'hyperscript:mutation';
+                                            var observer = new MutationObserver(function(mutationList, observer){
+                                                if (!onFeature.executing) {
+                                                    if (count < 10) {
+                                                        _runtime.triggerEvent(target, eventName, {
+                                                            mutationList: mutationList, observer: observer
+                                                        });
+                                                    }
+                                                }
+                                            });
+                                            observer.observe(target, eventSpec.mutationSpec);
+                                        }
+
+                                        target.addEventListener(eventName, function (evt) { // OK NO PROMISE
                                             var ctx = runtime.makeContext(elt, onFeature, elt, evt);
                                             if (eventSpec.elsewhere && elt.contains(evt.target)) {
                                                 return
