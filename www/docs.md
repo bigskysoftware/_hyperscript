@@ -1529,18 +1529,16 @@ more coherent.
 One concern with this approach, however, is security.  This is especially the case if you are injecting user-created
 content into your site without any sort of HTML escaping discipline.  
 
-You should, of course, escape all 3rd party
-untrusted content that is injected into your site, particularly to prevent [XSS attacks](https://en.wikipedia.org/wiki/Cross-site_scripting).
-The `_`, `script` and `data-script` attributes, as well as inline `<script>` tags should be disallowed.
+You should, of course, escape all 3rd party untrusted content that is injected into your site to prevent, among other 
+issues, [XSS attacks](https://en.wikipedia.org/wiki/Cross-site_scripting). The `_`, `script` and `data-script` attributes, 
+as well as inline `<script>` tags should all be filtered.
 
-It is important to understand that hyperscript is *interpreted* and, thus, does not use eval (except for the inline js
-features).  
-
-You (or your security team) for example may use a [CSP](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP) 
-to disallow inline scripting.  This will have no effect on hyperscript functionality, and this is almost certainly not 
+Note that it is important to understand that hyperscript is *interpreted* and, thus, does not use eval (except for the inline js
+features). You (or your security team) may use a [CSP](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP) 
+that disallows inline scripting.  This will have *no effect* on hyperscript functionality, and is almost certainly not 
 what you (or your security team) intends.
 
-If you don't want a particular part of the DOM to allow for hyperscript interpretation, you may place a
+To address this, if you don't want a particular part of the DOM to allow for hyperscript interpretation, you may place a
 `disable-scripting` or `data-disable-scripting` attribute on the enclosing element of that area.  
 
 This will prevent hyperscript from executing within that area in the DOM:
@@ -1552,7 +1550,7 @@ This will prevent hyperscript from executing within that area in the DOM:
 ```
 
 This approach allows you enjoy the benefits of [Locality of Behavior](https://htmx.org/essays/locality-of-behaviour/) 
-while still providing additional safety if your HTML escaping discipline fails. 
+while still providing additional safety if your HTML-escaping discipline fails. 
 
 ## <a name="history"></a>[History, or 'Yet Another Language?'](#history)
 
