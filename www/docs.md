@@ -476,7 +476,7 @@ hyperscript functions can take parameters and return values in the expected way:
 </script>
 ```
 
-#### <a name="def_namespacing"></a>[Namespacing](#def_namespacing)
+#### <a name="function_namespacing"></a>[Namespacing](#function_namespacing)
 
 You can namespace a function by prefixing it with dot separated identifiers.  This allows you to place functions into a specific
 namespace, rather than polluting the global namespace:
@@ -492,9 +492,23 @@ namespace, rather than polluting the global namespace:
 </script>
 ```
 
-### <a name="workers"></a>[The Worker Feature](#workers)
+#### <a name="exceptions"></a>[Exceptions](#exceptions)
 
-The [worker feature](/features/worker) allows you define a [WebWorker](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers) in hyperscript.
+A function may have one and only one catch block associated with it, in which to handle exceptions that occur
+during the execution of the body:
+
+<script type="text/hyperscript">
+  def example
+    call mightThrowAnException()
+  catch e
+    log e
+  end
+</script>
+
+### <a name="workers"></a>[Web Workers](#workers)
+
+[WebWorkers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers) can be defined 
+inline in hyperscript by using the [`worker` keyworld](/features/worker).
 
 The worker does not share a namespace with other code, it is in it's own isolated sandbox.  However, you may interact
 with the worker via function calls, passing data back and forth in the normal manner.
@@ -512,13 +526,18 @@ with the worker via function calls, passing data back and forth in the normal ma
 </button>
 ```
 
-This makes it much easier to define and work with web workers.
+This makes it very easy to define and work with web workers.
 
-Note that you can use the js feature below if you want to use javascript in your worker for performance reasons.
+Note that you can use the inline js feature discussed next if you want to use javascript in your worker.  You might
+want to do this if you need better performance on caculations than hyperscript provides, for example.
 
-### <a name="js"></a>[The JS Feature](#js)
+### <a name="js"></a>[Inline JS](#js)
 
-The [js feature](/features/js) allows you define javascript within hyperscript script tags.  You might do this for performance reasons, since the hyperscript runtime is more focused on flexibility, rather than performance.  This feature is most useful in [workers](#workers), when you want to pass javascript across to the worker's implementation:
+Inline javascript may be defined using the  [`js` keyword](/features/js).  You might do this for performance reasons, 
+since the hyperscript runtime is more focused on flexibility, rather than performance.  
+
+This feature is useful in [workers](#workers), when you want to pass javascript across to the worker's
+ implementation:
 
 ```html
 <script type="text/hyperscript">
@@ -535,17 +554,24 @@ The [js feature](/features/js) allows you define javascript within hyperscript s
 </script>
 ```
 
-Note that there is also a way to include [inline javascript](#inline-js)
-within a hyperscript function, for local optimizations.
+Note that there is also a way to include [inline javascript](/commands/js)
+directly within a hyperscript body, for local optimizations.
 
 ## <a name="commands"></a>[Commands](#commands)
 
-Commands are the statements of the hyperscript langauge, and make up the body of functions, event handlers and so on.  In 
-hyperscript, all commands start with a term, such as `add`, `remove` or `fetch`. 
+Commands are the statements of the hyperscript langauge, and make up the bodies of functions, event handlers and so on.  
+
+In hyperscript, (almost) all commands start with a term, such as `add`, `remove` or `fetch`. 
 
 Commands may be separated with a `then` keyword.  This is recommended in one-liner event handlers but is not required.
 
-All commands may be followed by an `unless <expr>` that makes the command conditionally executed.
+Note that all commands may be followed by an `unless <expr>` that makes the command conditionally executed.
+
+### <a name="all-commands"></a>[All Commands](#all-commands)
+
+Below is a table of all commands available by default in the hyperscript language:
+
+{% include commands_table.md %}
 
 ### <a name="add"></a>[Add](#add)
 
