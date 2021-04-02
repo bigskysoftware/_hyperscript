@@ -3533,7 +3533,6 @@
                 	var nameSpace = path.split(".");
                 	var name = nameSpace.pop();
                 	var hs = parser.parseElement("hyperscript", tokens);
-                	console.debug(tokens.list, tokens.consumed.map(e=>e.value));
 
                 	return {
                 		install: function (target, source) {
