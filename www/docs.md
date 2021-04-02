@@ -17,16 +17,20 @@ title: ///_hyperscript
 * [install & quick start](#install)
 * [the language](#lang)
   * [features](#features)
-    * [on](#on)
-    * [worker](#workers)
+    * [event handlers](#event_handlers)
+    * [init](#init)
+    * [functions](#functions)
+    * [workers](#workers)
+    * [sockets](#sockets)
+    * [event source](#event_source)
   * [commands](#commands)
-    * [pseudo-commands](#pseudo-commands)
   * [expressions](#expressions)
 * [async transparency](#async)
   * [async keyword](#async-keyword)
   * [event driven control flow](#event-control-flow)
 * [debugging](#debugging)
 * [extending](#extending)
+* [security](#security)
 * [history](#history)
 
 </div>
@@ -231,7 +235,9 @@ that the `aClass` class should be added to something.
 That something is specified with the `to` clause of the `add` command.  In this case, we are adding the class to an
 ID literal, `#anotherDiv` which will look the element with the id `anotherDiv` up.
 
-So, what does this all mean?  Well, when the button is clicked hyperscript will add the `.aClass` to `#anotherDiv`.
+So, what does this all mean?  
+
+> When the button is clicked hyperscript will add the `.aClass` to `#anotherDiv`.
 
 Which is almost exactly what the handler says it does!
 
@@ -240,7 +246,7 @@ various events and elements or components on the page.
 
 #### The Basics
 
-With that basic introduction, let's look at the broader language.
+With that introduction, let's look at the broader language.
 
 A `hyperscript` consists of one or more [features](/reference#features).  
 
@@ -416,6 +422,18 @@ Here is a demo:
          else transition opacity to 0 "
      src="https://placebear.com/200/300"/>
 
+### <a name="init"></a>[Init Blocks](init)
+
+If you have logic that you wish to run at the point of loading, you may use an `init` block:
+
+```html
+  <div _="init transition opacity to 1 over 3 seconds">
+    Fade Me In
+  </div>
+```
+
+The `init` keyword should be followed by a set of commands to execute when the element is loaded.
+
 ### <a name="functions"></a>[Functions](#functions)
 
 Functions in hyperscript are defined by using the [`def` keyword](/features/def).
@@ -531,6 +549,60 @@ This makes it very easy to define and work with web workers.
 Note that you can use the inline js feature discussed next if you want to use javascript in your worker.  You might
 want to do this if you need better performance on caculations than hyperscript provides, for example.
 
+### <a name="sockets"></a>[Web Sockets](#sockets)
+
+[Web Sockets](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API) allow for two-way communication with
+a web server, and are becoming increasingly popular for building web applications. Hyperscript provides a simple way to 
+create them, as well as a simple [Remote Procedure Call (RPC)](https://en.wikipedia.org/wiki/Remote_procedure_call) mechanism 
+layered on top of them, by using the [`socket` keyword](/features/sockets).
+
+Here is a simple web socket declaration in hyperscript:
+
+```hyperscript
+socket MySocket ws://myserver.com/example
+  on message as json
+    log message
+end
+```
+
+This socket will log all messages that it receives as a parsed JSON object.  
+
+You can send messages to the socket by using the normal [`send`](/commands/send) command:
+
+```hyperscript
+    send myMessage(foo: "bar", doh: 42) to MySocket
+```
+
+You can read more about the RPC mechanism on the [`socket` page](/features/socket#rpc).
+
+### <a name="event_source"></a>[Event Source](#event_source)
+
+[Server Sent Events](https://en.wikipedia.org/wiki/Server-sent_events) are a simple way for your web server to push 
+information directly to your clients that is [supported by all modern browsers](https://caniuse.com/eventsource).  
+
+They provide real-time, uni-directional communication from your server to a browser.  Server Sent Events cannot sent 
+information back to your server.  If you need two-way communication, consider using [sockets](/features/socket/) instead.
+
+You can declare an SSE connection by using the [`eventsource` keyword](/features/event-source).
+
+Here is an example event source in hyperscript:
+
+```hyperscript
+eventsource ChatUpdates http://myserver.com/chat-updates
+
+    on message as string
+        put it into #div
+    end
+    
+    on open
+        log "connection opened."
+    end
+
+end
+```
+
+This event source will put all `message` events in to the `#div` and will log when an `open` event occurs.
+
 ### <a name="js"></a>[Inline JS](#js)
 
 Inline javascript may be defined using the  [`js` keyword](/features/js).  You might do this for performance reasons, 
@@ -567,11 +639,13 @@ Commands may be separated with a `then` keyword.  This is recommended in one-lin
 
 Note that all commands may be followed by an `unless <expr>` that makes the command conditionally executed.
 
-### <a name="all-commands"></a>[All Commands](#all-commands)
+### <a name="default-commands"></a>[Default Commands](#default-commands)
 
 Below is a table of all commands available by default in the hyperscript language:
 
 {% include commands_table.md %}
+
+Below we will discuss some of the more commonly used commands
 
 ### <a name="add"></a>[Add](#add)
 
@@ -673,33 +747,6 @@ As with the [add](#add) and [remove](#remove) commands, you can target other ele
   Click Me
 </button>
 ```
-### <a name="hide"></a>[Hide](#hide)
-
-The [hide command](/commands/hide) allows you to hide an element in the DOM using various strategies.
-
-Here are some examples:
-
-```html
-<!-- Hide the button -->
-<button _="on click hide">
-  Hide Me...
-</button>
-```
-
-```html
-<!-- Hide the button with opacity set to 0-->
-<button _="on click hide with opacity">
-  Hide Me...
-</button>
-```
-
-```html
-<!-- hide another element on click -->
-<button _="on click hide #anotherDiv">
- Hide A Div
-</button>
-```
-You can also plug in custom hide show strategies.  See the command details for more information.
 
 ### <a name="show"></a>[Show](#show)
 
@@ -737,6 +784,34 @@ Show Another Div
 
 You can also plug in custom hide show strategies.  See the command details for more information.
 
+### <a name="hide"></a>[Hide](#hide)
+
+The [hide command](/commands/hide) allows you to hide an element in the DOM using various strategies.
+
+Here are some examples:
+
+```html
+<!-- Hide the button -->
+<button _="on click hide">
+  Hide Me...
+</button>
+```
+
+```html
+<!-- Hide the button with opacity set to 0-->
+<button _="on click hide with opacity">
+  Hide Me...
+</button>
+```
+
+```html
+<!-- hide another element on click -->
+<button _="on click hide #anotherDiv">
+ Hide A Div
+</button>
+```
+You can also plug in custom hide show strategies.  See the command details for more information.
+
 ### <a name="wait"></a>[Wait](#wait)
 
 The [wait command](/commands/wait) allows you to wait a fixed amount of time or to wait for an event.  Execution will
@@ -758,38 +833,37 @@ Here are some examples:
 </button>
 ```
 
-### <a name="return"></a>[Return](#return)
+### <a name="transition"></a>[Transition](#transition)
 
-The [return command](/commands/return) returns a value for the currently executing function.
+The [transition command](/commands/transition) allows you to transition a style attribute from one value to another.
 
 Here are some examples:
 
+```hyperscript
+  transition my opacity to 0
+  transition the div's opacity to 0
+  transition #anotherDiv's opacity to 0 over 2 seconds
+  transition .aClass's opacity to 0
+``` 
+
+Note that this command will not complete until the transition is done.  This is in contrast with transitions
+kicked off by the `add` command adding a class to an element.
+
+### <a name="settle"></a>[Settle](#settle)
+
+The [settle command](/commands/settle) allows transitions that are kicked off by an `add` command to complete
+before progressing.
+
 ```html
-<script type="text/hyperscript">
-  def theAnswer()
-    return 42
-  end
-</script>
-<!-- puts 42 into the button-->
-<button _="on click put theAnswer() into my.innerHTML">
-  Click Me
+<button _="on click 
+                repeat 6 times 
+                  toggle .red then settle">
+    You thought the blink tag was dead?
 </button>
 ```
 
-```html
-<script type="text/hyperscript">
-  def theAnswer()
-    wait 2s
-    return 42
-  end
-</script>
-<!-- puts 42 into the button after a 2 second delay -->
-<button _="on click put theAnswer() into my.innerHTML">
-  Click Me
-</button>
-```
-
-You may use the `exit` form to exit without a value.
+In this code, the `.red` class transitions the button to being red.  The `settle` command detects that a transition
+has begun and then waits for it to complete, before another run through the loop.
 
 ### <a name="send"></a>[Send](#send)
 
@@ -847,7 +921,7 @@ The [log command](/commands/log) logs a value to the console.
 
 ### <a name="call"></a>[Call](#call)
 
-The [call command](/commands/call) calls a function or evaluates an expression and puts the result into the `it`
+The [call command](/commands/call) calls a function or evaluates an expression and puts the result into the `result`
 variable.
 
 ```html
@@ -908,6 +982,8 @@ Here is an example function setting a few variables
   end
 </script>
 ```
+
+Set should be favored for setting local variables, where put should be favored for DOM manipulation.
 
 ### <a name="if"></a>[If](#if)
 
@@ -996,26 +1072,7 @@ Here are some example usages:
 </button>
 ```
 
-### <a name="throw"></a>[Throw](#throw)
-
-The [throw command](/commands/throw) throws an execption, interrupting the currently executing function.
-
-Here are some examples:
-
-```html
-<script type="text/hyperscript">
-  def throws()
-    wait 2s
-    throw
-  end
-</script>
-<!-- will not put anything into the button-->
-<button _="on click put throws() into my.innerHTML">
-  Click Me
-</button>
-```
-
-### <a name="js-command"></a>[Inline Javascript](#inline-js)
+### <a name="js-command"></a>[Inline Javascript](#js-command)
 
 Performance is an, ahem, *secondary* consideration in hyperscript and, while it is fast enough
 in most cases, there are times when you may want to kick out to javascript.  You may of course
@@ -1054,7 +1111,9 @@ And you can use any results return from the javascript in the default `it` varia
 
 ### <a name="pseudo-commands"></a>[Pseudo-Commands](#pseudo-commands)
 
-Pseudo-commands allow you to treat a method on an object as a top level command.  The method name must be followed by
+While almost all commands have a specific start symbol, there is one other type of command: pseudo-commands.
+
+Pseudo-commands allow you to treat a method on an object as a command.  The method name must be followed by
 an argument list, then optional prepositional syntax to clarify the code, then an expression.  The method will be
 looked up on the value returned by the expression and executed.
 
@@ -1068,8 +1127,9 @@ Consider the `refresh()` method found on `window.location`.  In hyperscript, you
 
 ## <a name="expressions"></a>[Expressions](#expressions)
 
-Expressions in hyperscript are mostly familiar from javascript, with a few exceptions and a few extensions.  You can
-see [the expressions page](/expressions) for more detail.
+Expressions in hyperscript are a mix of familiar ideas from javascript and friends, and then some more exotic expressions.
+
+You can see [the expressions page](/expressions) for more detail.
 
 ### Things Similar to Javascript
 
@@ -1114,33 +1174,101 @@ Array and object literals work the same as in javascript:
 
 ### Things Different from Javascript
 
-Hyperscript closures have a different syntax, starting with a backslash and followed by an arrow
+While some expressions work the same as javascript, many things are different.  Here are some of the bigger 
+differences:
 
-Hyperscript closures may only have an expression body.  They cannot have return statements, etc. in them.  Because
-hyperscript is async-transparent, the need for complex callbacks is minimized, and by only allowing expressions
-in closure bodies, hyperscript eliminates ambiguity around things like `return`, `throw` etc.
+#### Closures
+
+Closures in hyperscript have a different syntax, starting with a backslash and followed by an arrow:
 
 ```hyperscript
     set arr to ["a", "ab", "abc"]
     set lengths to arr.map( \ str -> str.length )
 ```
 
-Hyperscript supports literal values for CSS-style id's and classes:
+Hyperscript closures may only have an expression body.  They cannot have return statements, etc. in them.  Because
+hyperscript is async-transparent, the need for complex callbacks is minimized, and by only allowing expressions
+in closure bodies, hyperscript eliminates ambiguity around things like `return`, `throw` etc.
+
+#### CSS Literals
+
+Hyperscript supports many literal values for DOM access:
+
+* Class Literals - `.myClass`
+* ID Literals - `#someElement`
+* Query Literals - `<p.hidden/>`
+* Attribute Literals - `@href`
+
+Each of these can be used to refer to various elements in or attributes on those elements.
 
 ```hyperscript
   add .disabled to #myDiv
-  for tab in .tabs
+  for tab in <div.tabs/>
     add .highlight to tab
+    set @highligted of the tab to true
   end
 ```
 
+In the above code, `.disabled` refers to the class `disabled` and `#myDiv` evaluates to the element with the ID
+`myDiv`.
+
+In the loop we iterate over all `div` with the `tab` class using a CSS selector literal.
+
+We add the `highlight` class to them.
+
+And then we set the attribute `highlighted` to `true` using an attribute literal: `@highlighted`
+
+#### Possessive's, Of Expressions and "The"
+
+One of the more humorous aspects of hyperscript is the inclusion of alternative possessive expressions, which allows you to
+replace the normal dot notation of property chains with a few different syntaxes.
+
+The first form uses the english style `'s` or `my` symbol:
+
+```hyperscript
+  set my innerText to 'foo'
+  set #anotherDiv's innerText to 'bar'
+```
+
+These are the equivalent to the more conventional following dot notation:
+
+```hyperscript
+  set me.innerText to 'foo'
+  set #anotherDiv.innerText to 'bar'
+```
+
+Alternatively you can use the `of` expression:
+
+```hyperscript
+  set innerText of me to 'foo'
+  set innerText of #anotherDiv to 'bar'
+```
+
+Finally, as mentioned above, you can add a definite article `the` to the code to clarify the language:
+
+```hyperscript
+  set the innerText of me to 'foo'
+  set the innerText of #anotherDiv to 'bar'
+```
+
+`the` can appear as a start symbol for any expression, and should be used judiciously to clarify code for future
+readers.
+
+```html
+  <button _="on click refresh() the location of the window">
+    Refresh the Location
+  </button>
+```
+
+Here we use a pseudo-command to refresh the location of the window.
+
 #### <a name='zoo'></a>[The Hyperscript Zoo](#zoo)
 
-Hyperscript supports a few default symbols that have specific meanings
+Hyperscript supports a number of symbols that have specific meanings
 
 |  name    | description 
 |----------|-------------
-| `result` | the result of the last command (e.g. a `call` or `fetch`)
+| `result` | the result of the last command, if any (e.g. a `call` or `fetch`)
 | `it`     | alias for `result`
 | `its`     | alias for `result`
 | `me`     | the element that the current event handler is running on
@@ -1149,15 +1277,6 @@ Hyperscript supports a few default symbols that have specific meanings
 | `event`  | the event that triggered the event current handler, if any
 | `body`   | the body of the current document, if any
 | `detail` | the detail of the event that triggered the current handler, if any
-
-Additionally, you can place the definite article `the` in front of expressions to clarify language:
-
-```html
-  <button _="on click refresh() the location of the window">
-    Refresh the Location
-  </button>
-```
-
 
 ## <a name="async"></a>[Async Transparency](#async)
 
@@ -1177,7 +1296,7 @@ end
 And then invoke it from an event handler like so:
 
 ```html
-<button _="on click put theAnswer() into my.innerHTML">
+<button _="on click put theAnswer() into my innerHTML">
   Get The Answer...
 </button>
 ```
@@ -1204,7 +1323,7 @@ rather than a number!
 And now, here's the trick: the event handler that we defined earlier:
 
 ```html
-<button _="on click put theAnswer() into my.innerHTML">
+<button _="on click put theAnswer() into my innerHTML">
   Get The Answer...
 </button>
 ```
@@ -1260,10 +1379,8 @@ event driven control flow:
 ```html
 <button id="pulsar"
         _="on click repeat until event stop
-                      add .pulse
-                      wait for transitionend
-                      remove .pulse
-                      wait for transitionend
+                      add .pulse then settle
+                      remove .pulse then settle
                     end">
   Click me to Pulse...
 </button>
@@ -1297,10 +1414,8 @@ Here is a demo of this code:
 </style>
 <div id="pulsar"
         _="on click repeat until event stop
-                      add .pulse
-                      wait for transitionend
-                      remove .pulse
-                      wait for transitionend
+                      add .pulse then settle
+                      remove .pulse then settle
                     end">
   Click me to Pulse...
 </div>
@@ -1405,28 +1520,73 @@ With this command defined you can now write the following hyperscript:
 
 And "A Wild Foo Was Found!" would be printed to the console.
 
+## <a name="security"></a>[Security](#security)
+
+Hyperscript allows you to define logic directly in your DOM.  This has a number of advantages, the
+largest being [Locality of Behavior](https://htmx.org/essays/locality-of-behaviour/) making your system 
+more coherent.
+
+One concern with this approach, however, is security.  This is especially the case if you are injecting user-created
+content into your site without any sort of HTML escaping discipline.  
+
+You should, of course, escape all 3rd party
+untrusted content that is injected into your site, particularly to prevent [XSS attacks](https://en.wikipedia.org/wiki/Cross-site_scripting).
+The `_`, `script` and `data-script` attributes, as well as inline `<script>` tags should be disallowed.
+
+It is important to understand that hyperscript is *interpreted* and, thus, does not use eval (except for the inline js
+features).  
+
+You (or your security team) for example may use a [CSP](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP) 
+to disallow inline scripting.  This will have no effect on hyperscript functionality, and this is almost certainly not 
+what you (or your security team) intends.
+
+If you don't want a particular part of the DOM to allow for hyperscript interpretation, you may place a
+`disable-scripting` or `data-disable-scripting` attribute on the enclosing element of that area.  
+
+This will prevent hyperscript from executing within that area in the DOM:
+
+```html
+  <div data-disable-scripting>
+    <%= user_content %>
+  </div>
+```
+
+This approach allows you enjoy the benefits of [Locality of Behavior](https://htmx.org/essays/locality-of-behaviour/) 
+while still providing additional safety if your HTML escaping discipline fails. 
+
 ## <a name="history"></a>[History, or 'Yet Another Language?'](#history)
 
-I know.
+I get it.  
+
+Why on earth do we need yet another front end technology, let alone another scripting language.  
+
+Well, I'll tell you why:
 
 The initial motivation for the language was the [event model](https://htmx.org/reference/#events) in htmx.  I wanted
-to have a way to utilize these events naturally and directly within HTML.  Most HTML tags support `on*` attributes
-for handling standard DOM events (e.g. `onClick`) but that doesn't work for custom events.  
+to have a way to utilize these events naturally and directly within HTML.  HTML tags support `on*` attributes
+for handling standard DOM events (e.g. `onClick`) but that doesn't work for custom events like `htmx:load`.
 
-In [intercooler](https://intercoolerjs.org), I had
-handled this by adding a bunch of custom event attributes, but that always felt hacky and wasn't general enough
-to handle custom events triggered by response headers, etc.
+In [intercooler](https://intercoolerjs.org), I had handled this by adding a bunch of custom event attributes, but that 
+always felt hacky and wasn't general enough to handle custom events triggered by response headers, etc.
 
 Additionally, I wanted to have a way to address some useful features from intercooler.js, but without causing htmx
-to lose focus on the core request/response processing infrastructure:
+to bloat up and lose focus on the core request/response processing infrastructure:
 
 * [`ic-add-class`](http://intercoolerjs.org/attributes/ic-add-class.html) and [`ic-remove-class`](http://intercoolerjs.org/attributes/ic-remove-class.html)
 * [`ic-remove-after`](http://intercoolerjs.org/attributes/ic-remove-after.html)
 * [`ic-post-errors-to`](http://intercoolerjs.org/attributes/ic-post-errors-to.html)
 * [`ic-action`](http://intercoolerjs.org/attributes/ic-action.html) and all the associated attributes
 
-The more I looked at it, the more I thought that there was a need for a small, domain specific language for all this, rather 
-than an explosion in attributes and inline javascript, or a hacky custom syntax as with `ic-action`.
+Finally, after having spent many, many years chasing down event handlers defined in jQuery, often in obscure
+and, at times, insane places, I wanted to return to the simplicity of something like HyperCard, where the logic
+was right there, associated with the elements.
+
+The more I looked at it, the more I thought that there was a need for a small, domain specific language for all this, 
+rather than an explosion in attributes and inline javascript, or a hacky custom syntax as with `ic-action`.  `ic-action`
+had the prototype for  async tranparency idea in it, and I thought it would be interesting to see if we could solve
+the aync/sync problem with this language as well.
+
+And so here we are.  Yes, another programming language.
 
 </div>
 

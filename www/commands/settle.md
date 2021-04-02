@@ -31,8 +31,8 @@ transition will occur.
     }
 </style>
 <div id="pulsar"
-     _="on load repeat 6 times toggle .red then settle">
+     _="on load repeat 6 times 
+                toggle .red then settle">
     You thought the blink tag was dead?
-</div>z
-
+</div>
 ```

@@ -21,7 +21,7 @@ If you use the form `transition <transition target>` the transition will take pl
 it is done on the current `me`.
 
 The transition target can be a pseudo-possessive:
-```
+```hyperscript
   transition my opacity to 0
   transition the div's opacity to 0
   transition #anotherDiv's opacity to 0
