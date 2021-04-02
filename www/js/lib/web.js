@@ -176,7 +176,9 @@
                     args: [elementExpr],
                     op: function (context, element) {
                         runtime.forEach(element, function (target) {
-                            target.parentElement.removeChild(target);
+                            if(target.parentElement){
+                                target.parentElement.removeChild(target);
+                            }
                         })
                         return runtime.findNext(this, context);
                     }
