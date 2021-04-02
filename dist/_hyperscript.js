@@ -3916,10 +3916,13 @@
                         } else if (tokens.matchToken("default")) {
                             var haltDefault = true;
                         }
+                        var exit = parseReturnFunction(parser, runtime, tokens, false);
+
                         var haltCmd = {
                             keepExecuting:true,
                             bubbling:bubbling,
                             haltDefault:haltDefault,
+                            exit:exit,
                             op: function (ctx) {
                                 if (ctx.event) {
                                     if (bubbling) {
@@ -3933,7 +3936,7 @@
                                     if(keepExecuting) {
                                         return runtime.findNext(this, ctx);
                                     } else {
-                                        return runtime.HALT;
+                                        return exit;
                                     }
                                 }
                             }
