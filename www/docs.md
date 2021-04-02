@@ -1558,7 +1558,7 @@ while still providing additional safety if your HTML escaping discipline fails.
 
 I get it.  
 
-Why on earth do we need yet another front end technology, let alone another scripting language.  
+Why on earth do we need yet another front end technology, let alone another scripting language?
 
 Well, I'll tell you why:
 
