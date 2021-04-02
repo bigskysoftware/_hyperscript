@@ -64,9 +64,10 @@ The `end` is optional if you are chaining `on` features together
 The `on` feature is the primary way to hook hyperscript into the DOM event system.  It is typically placed on
 DOM elements directly, using the `_`, `script` or `data-script` attribute.
 
-The `on` handler can specify parameters.  The value of these parameters will be taken from the `event` or`event.detail` object of
-the triggering event and matched by name.  So if an event has the value `event.detail.foo = "bar"` then the `on` declaration
-could look like this:
+The `on` handler can specify parameters.  The value of these parameters destructured from properties on the `event` or`event.detail` 
+object of the triggering event and matched by name.  
+
+So if an event has the value `event.detail.foo = "bar"` then the `on` declaration could look like this:
 
 ```html
 <div _="on anEvent(foo) log foo">

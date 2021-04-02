@@ -37,11 +37,11 @@ title: ///_hyperscript
 
 ## <a name="introduction"></a>[Introduction](#introduction)
 
-Hyperscript is an experimental scripting language for doing front end web development.
+Hyperscript is a scripting language for doing front end web development.
 
 ### <a name='events'></a>[Event Handling](#events)
 
-The core feature of hyperscript is the ability to embed event handlers directly on HTML elements:
+A core feature of hyperscript is the ability to embed event handlers directly on HTML elements:
 
 ```html
 <button _="on click put 'I was clicked!' into me">
@@ -55,25 +55,25 @@ The core feature of hyperscript is the ability to embed event handlers directly 
   Click Me!
 </button>
 
-Embedding event handling logic directly on elements in this manner makes it easier to understand what a given element,
+Embedding event handling logic directly on elements in this manner makes it easier to understand what a given element does,
 and is in the same vein as many technologies that de-emphasize [Separation of Concerns](https://en.wikipedia.org/wiki/Separation_of_concerns)
 in favor of [Locality of Behavior](https://htmx.org/essays/locality-of-behaviour/), such as [tailwinds](https://tailwindcss.com/),
 [AlpineJS](https://github.com/alpinejs/alpine/) and [htmx](https://htmx.org).
 
-Unlike the typical `on` attributes on elements such as `onClick`, hyperscript's event handling syntax allows you to 
+Unlike the typical `on*` attributes, uch as `onClick`, hyperscript's event handling syntax allows you to 
 respond to *any event*, even custom events that you create or that are triggered by [other libraries](https://htmx.org/reference/#events),
 and it gives you flexible control over how events are queued and filtered with a simple, clean syntax.
 
-Hyperscript is expressive enough that many common web patterns can be comfortably written directly inline
-in event handlers.  But, if you need to, you can factor logic out to [functions](#functions) as well, and you
+Hyperscript is expressive enough that many common UI patterns can be comfortably written directly inline
+in event handlers.  If you need to, you can factor logic out to [functions](#functions) as well, and you
 can invoke javascript functions directly from hyperscript (and vice-versa.)
 
 ### <a name='promises'></a>[No More Promises](#promises)
 
-While powerful event handling is the most practical feature of hyperscript, the most interesting technical aspect 
-of the language is that it is *[async transparent](#async)*.  
+While powerful event handling is the most immediately practical feature of hyperscript, the most interesting 
+technical aspect of the language is that it is *[async transparent](#async)*.  
 
-That is, you can write code that is asynchronous, but in a *linear* style.  
+That is, you can write code that is asynchronous, but in the standard *linear* style.  
 
 You may have noticed that the button above reset its text after a few seconds.  
 
@@ -87,7 +87,7 @@ Here is what the hyperscript actually looks like on that button:
 </button>
 ```
 
-Note the `wait 2s` command in this hyperscript.  This tells hyperscript to, well, wait for
+Note the `wait 2s` command in this hyperscript.  This tells hyperscript to, well, to wait for
 2 seconds before continuing.
 
 In javascript, this would be equivalent to the following `onClick` attribute:
@@ -100,14 +100,19 @@ setTimeout(function(){
 }, 2000)
 ```
 
-In javascript you would either need to write the code in this asynchronous manner or, if you were getting fancy, use promises and `then` or the  `async`/`await` keywords.  
+In javascript you would either need to write the code in this asynchronous manner or, if you were getting fancy, use 
+promises and `then` or the  `async`/`await` keywords.  You need to change your coding style to deal with the asynchronous
+nature of the timeout.
  
-In contrast, using hyperscript you can simply write this code linearly and the hyperscript runtime will resolve all promises before continuing.  
+In contrast, using hyperscript you can simply write this code in the normal, linear fashion and the hyperscript runtime 
+works everything out for you.  
 
 This means you can mix and match synchronous and asynchronous code freely, without needing to 
-change coding styles.  
+change coding styles.  There is no distinction between [red functions and blue functions](https://journal.stuffwithstuff.com/2015/02/01/what-color-is-your-function/)
+in hyperscript.
 
-This may seem a little silly for just making `setTimeout()` a little better looking, but async transparency allows you, for example, to move the message that is put into the button into an ajax call:
+This may seem a little silly for just making `setTimeout()` a little better looking, but async transparency allows you, 
+for example, to move the message that is put into the button into an ajax call:
 
 ```html
 <button class='btn primary' _="on click fetch /clickedMessage 
@@ -118,7 +123,7 @@ This may seem a little silly for just making `setTimeout()` a little better look
 </button>
 ```
 
-Try it, and check out the console:
+Try it out, and check out the networking tab in your browsers development console:
 
 <button class='btn primary' _="on click fetch /clickedMessage 
                                         then put the result into me 
@@ -150,28 +155,30 @@ Here we are using the `then` keyword to separate commands that are on the same l
 them logically and making the code read really nicely.  We use the `transition` command to
 transition smoothly between opacities.  
 
-Note that the `transition` command is asynchronous: it doesn't complete until the transition is
-done, but the hyperscript runtime recognizes this and allows you to write standard, 
+Note that the `transition` command is synchronized with the transition: it doesn't complete until the transition is
+done.  The hyperscript runtime recognizes this and again allows you to write standard, 
 linear-style code with it.
 
-Now, this example is a little gratuitous, admittedly, but you can imagine what the equivalent javascript would look like: a mess of confusing callbacks.  The point isn't that you should use this UX pattern, but rather to show how async transparency can be used practically.
+Now, this example is a little gratuitous, admittedly, but you can imagine what the equivalent javascript would look like: 
+it would be a mess of confusing callbacks or would need to be transformed into a Promise-based style.  The point isn't 
+that you should use this particular UX pattern, but rather to show how async transparency can be used practically.
 
 
 ### <a name='syntax'></a>[The Syntax](#syntax)
 
-The syntax of hyperscript will be a stumbling block for some people.  That's understandable: it's a very different
-syntax than most programming languages used today.  It is based on an older and somewhat obscure group of programming languages, 
-[HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf) and [AppleScript](https://en.wikipedia.org/wiki/AppleScript),
-while obviously being influenced by javascript, ruby, and so forth.
+The syntax of hyperscript is very different syntax than most programming languages used today.  It is based on an older 
+and somewhat obscure (today) family of programming languages that originated in [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf)
+and that used a more natural language than the more familiar Algol-dervived languages we typically use today.
 
-This unusual syntax has some advantages, if you can get past the initial hump:
+This unusual syntax has advantages, once you get over the initial hump:
 
-* It is distinctive, making it obvious when hyperscript is being used
+* It is distinctive, making it obvious when hyperscript is being used in a web page
 * It includes a native event handling syntax
-* It reads very easily, even if it can be harder to write at first
+* It reads very easily, even if it can be hard to write at first
+* The commands in the language all have a strong start token, making parsing easier and the language easy to extend
 
-Hyperscript favors read time over write time when it comes to code.  Yes, it can be a bit tricky to get the syntax
-right (not so bad once you get used to it), but it reads very clearly once the code is written.
+Hyperscript favors read time over write time when it comes to code.  It can be a bit tricky to get the syntax
+right at first (not so bad once you get used to it), but it reads very clearly once the code is written.
 
 OK, let's get on with it...
 
@@ -180,7 +187,7 @@ OK, let's get on with it...
 Hyperscript is a dependency-free javascript library that can be included in a web page without any build steps:
 
 ```html
-<script src="https://unpkg.com/hyperscript.org@0.0.8"></script>
+<script src="https://unpkg.com/hyperscript.org@0.0.9"></script>
 ```
 
 After you've done this, you can begin adding hyperscript to elements:
@@ -191,7 +198,9 @@ After you've done this, you can begin adding hyperscript to elements:
 </div>
 ```
 
-Hyperscript has an open, pluggable grammar & some features do not ship by default (e.g. [workers](#workers)).  To use a feature like workers you can either:
+Hyperscript has an open, pluggable grammar & some features do not ship by default (e.g. [workers](#workers)).  
+
+To use a feature like workers you can either:
 
 * install the extension directly by including `/dist/workers.js` after you include hyperscript
 * use the "Whole 9 Yards" version of hyperscript, which includes everything by default and can be
@@ -199,15 +208,7 @@ Hyperscript has an open, pluggable grammar & some features do not ship by defaul
 
 ## <a name="lang"></a>[The Language](#lang)
 
-Hyperscript is a modern reinterpretation of [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf) for the web and thus has a distinctive, english-like syntax.  
-
-This may be off-putting at first, but it has advantages:
-
-* It is obvious when some code is hyperscript, since it looks so distinctive
-* Commands (statements) start with a keyword, making it easy to parse
-* It reads well once you are used to it
-
-The syntax, while alien at first, will grow on you.
+A language is usually best learned, initially, by looking at examples.
 
 Let's consider a simple event handler in hyperscript
 
@@ -217,17 +218,39 @@ Let's consider a simple event handler in hyperscript
 </button>
 ``` 
 
-This button, when clicked, will add the `aClass` CSS class to the div with the id `anotherDiv`.  You can see that hyperscript has native syntactic support for CSS class literals and ID references.  This makes it easy to express common DOM manipulations.
+Here we have a button.  The button as an underscore attribute, which is the default attribute that hyperscript will 
+look for, for scripts.  The script contains an [event handler](/features/on) the body of which will be executed
+when a `click` event is received.
 
-This is what hyperscript is designed for: reacting to events and updating DOM elements, acting as a glue language between various events and elements on the page.  Note that hyperscript event handlers can respond to any event, even custom events that you, or a library you are using, has defined, all with a nice, inline syntax that makes it obvious what is happening on inspection.
+The body of the event handler begins with an [`add command`](/commands/add), which adds a class or attribute to a
+DOM element.  
+
+The `add` command takes, among other options, a CSS class literal.  In this case the class literal is `.aClass` indicating
+that the `aClass` class should be added to something.
+
+That something is specified with the `to` clause of the `add` command.  In this case, we are adding the class to an
+ID literal, `#anotherDiv` which will look the element with the id `anotherDiv` up.
+
+So, what does this all mean?  Well, when the button is clicked hyperscript will add the `.aClass` to `#anotherDiv`.
+
+Which is almost exactly what the handler says it does!
+
+This is what hyperscript is designed for: reacting to events and updating DOM elements, acting as a glue language between 
+various events and elements or components on the page.
 
 #### The Basics
 
-Now that you've seen a basic introduction, let's look at the broader language.
+With that basic introduction, let's look at the broader language.
 
-A `hyperscript` consists of one or more [features](#features).  The primary entrypoint into hyperscript is  [`on`](/features/on) feature, which defines an event listener on a DOM element.
+A `hyperscript` consists of one or more [features](/reference#features).  
 
-A feature then contains a series of [commands](#commands) (aka "statements"), a term taken from HyperTalk.  A command consists of a starting keyword and then a series of keywords, [expressions](#expressions) and potentially child commands or command lists.
+The primary entrypoint into hyperscript is an [`event handler`](/features/on), which defines an event listener on a 
+DOM element.
+
+A feature then contains body which is a a series of [commands](#commands) (aka "statements"), a term taken from HyperTalk.  
+
+A command (usually) consists of a starting keyword and then a series of keywords, [expressions](#expressions) and 
+potentially child commands or command lists.
 
 A command list is a series of commands, optionally separated by the `then` keyword:
 
@@ -237,7 +260,8 @@ A command list is a series of commands, optionally separated by the `then` keywo
 </div>
 ```
 
-The `then` keyword is particularly recommended when commands are on the same line, for clarity.
+`then` acts roughly like a semi-colon in other langauges.  It is particularly recommended when multiple commands are on 
+the same line, for clarity.
 
 Expressions are the root syntactic element.  Some should be very familiar to developers:
 
@@ -247,12 +271,19 @@ Expressions are the root syntactic element.  Some should be very familiar to dev
 
 Others are a bit more exotic:
 
-* ID Ref = `#foo`
-* Class Ref = `.tabs`
+* ID Reference = `#foo`
+* Class Reference = `.tabs`
+* Query Reference = `<div/>`
+* Attribute Reference = `@count`
 
-Below you will find an overview of the various features, commands and expressions in hyperscript, as well as links to more detailed treatments of them.
+Below you will find an overview of the various features, commands and expressions in hyperscript, as well as links to 
+more detailed treatments of them.
 
-You may also want to simply head over to the [cookbook](/cookbook) for existing hyperscripts you can start using and modifying for your own needs.
+You may also want to simply head over to the [cookbook](/cookbook) for existing hyperscripts you can start using and 
+modifying for your own needs.
+
+Or, if you learn best by comparing code with things you already know, you can look at the 
+[VanillaJS/jQuery/hyperscript comparison](/comparison).
 
 ## <a name="features"></a>[Features](#features)
 
@@ -265,9 +296,9 @@ child elements.
 
 Below are the core features of hyperscript.
 
-### <a name="on"></a>[The On Feature](#on)
+### <a name="event_handlers"></a>[Event Handlers](#event_handlers)
 
-The [on feature](/features/on) allows you to embed *event handlers* directly in HTML and respond to events with hyperscript:
+[Event handlers](/features/on) allow you to embed hyperscript logic directly in HTML to respond to events:
 
 ```html
 <button _="on click add .clicked">
@@ -275,30 +306,69 @@ The [on feature](/features/on) allows you to embed *event handlers* directly in 
 </button>
 ```
 
-The underscore (`_`) attribute is where the hyperscript runtime looks for hyperscript on an element by default.  
-
-*Note: you may also use `script` or `data-script` attribute, or 
-configure a different attribute name if you don't like any of those.*
+While the underscore (`_`) attribute is where the hyperscript runtime looks for hyperscript on an element by default, 
+you may also use `script` or `data-script` attribute, or configure a different attribute name if you don't like any of 
+those.
 
 The script above says
 
 > On the 'click' event for this button, add the 'clicked' class to this button
 
-Hyperscript syntax reads a lot like the english does, often making it self-documenting.
+Note that, unlike the previous example, here there is no `to` clause, so the `add` command defaults to "the current element".
 
-#### <a name="on_every"></a>[On Every](#on_every)
+The current element can be referred to with the symbol `me` (and also `my`, more on that in a bit).
 
-By default, the event handler will be run synchronously, so if the event is triggered again before the event handler finished, it will ignore the new event.  You can modify this behavior with the `every` modifier:
+#### <a name="event_queueing"></a>[Event Queueing](#event_queueing)
+
+By default, the event handler will be run synchronously, so if the event is triggered again before the event handler 
+finished, the new event will be queued and handled only when the current event handler finishes.  
+
+You can modify this behavior in a few different ways.
+
+##### <a name="on_every"></a>[The Every Modifier](#on_every)
+
+The with the `every` modifier will execute the event handler for every event that is received even if the preceding
+handler execution has not finished (due to some asynchronous operation.)
 
 ```html
 <button _="on every click add .clicked">
   Add The "clicked" Class To Me
 </button>
 ```
-#### <a name="on_filters"></a>[On Filters](#on_filters)
 
-You can filter events by adding a bracketed expression after the event name.  The expression should return a boolean value `true` if the
-event handler should execute.  
+This is useful in cases where you want to make sure you get the handler logic for every event going immediately.
+
+##### <a name="queue"></a>[The Queue Modifier](#on_every)
+
+The `every` keyword is a prefix to the event name, but for other queuing options, you use postfix the event name 
+with the `queue` keyword.
+ 
+You may pick from one of four strategies:
+
+* `none` - Any events that arrive while the event handler is active will be dropped
+* `all` - All events that arrive will be added to a queue and handled in order
+* `first` - The first event that arrives will be queued, all others will be dropped
+* `last` - The last event that arrives will be queued, all others will be dropped
+
+`queued last` is the default behavior 
+
+#### <a name="event_destructuring"></a>[Event Destructuring](#event_destructuring)
+
+You may [destructure](https://hacks.mozilla.org/2015/05/es6-in-depth-destructuring/) event properties *and details*
+by appending a parenthesized list of names after the event name.  This can be used to assign properties of either 
+object to symbols that can be used in the body of the handler.
+
+```html
+<button _="on click(button) log button">
+  Log the event.button property
+</button>
+```
+
+#### <a name="event_filters"></a>[Event Filters](#event_filters)
+
+You can filter events by adding a bracketed expression after the event name and destructured properties (if any).
+ 
+The expression should return a boolean value `true` if the event handler should execute.  
 
 Note that symbols referenced in the expression will be resolved as properties of the event, then as symbols in the global scope.  
 
@@ -309,11 +379,51 @@ This lets you, for example, test for a middle click on the click event, by refer
   Middle-Click To Add The "clicked" Class To Me
 </button>
 ```
-### <a name="def"></a>[The Def Feature](#def)
 
-The [def feature](/features/def) allows you define new hyperscript functions.
+#### <a name="mutation"></a>[Mutation Events](#mutation)
 
-Rather than living on an element attributes, functions are typically embedded in a hyperscript `script` tag:
+Hyperscript includes a few synthetic events that make use of more complex APIs.  For example, you can listen for 
+mutations on an element with the `on mutation` form.  This will use the [Mutation Observer](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver)
+API, but will act more like a regular event handler.
+
+```html
+  <div _='on mutation of @foo put "Mutated" into me'></div>
+```
+
+This div will listen for mutations of the `foo` attribute on this div and, when one occurs, will put the value
+"Mutated" into the element.
+
+#### <a name="intersection"></a>[Intersection Events](#intersection)
+
+Another synthetic event is the `intersection` event that uses the  [Intersection Observer](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API)
+API.  Again, hyperscript makes this API feel more event-driven:
+
+```html
+<img _="on intersection(intersecting) having threshold 0.5
+         if intersecting transition opacity to 1
+         else transition opacity to 0 "
+     src="https://placebear.com/200/300"/>
+```
+
+This image will become visible when 50% or more of it has scrolled into view.  Note that the `intersecting` property
+is destructured into a local symbol, and the `having threshold` modifier is used to specify that 50% of the image
+must be showing.
+
+Here is a demo:
+
+<img _="on intersection(intersecting) having threshold 0.5
+         if intersecting transition opacity to 1
+         else transition opacity to 0 "
+     src="https://placebear.com/200/300"/>
+
+### <a name="functions"></a>[Functions](#functions)
+
+Functions in hyperscript are defined by using the [`def` keyword](/features/def).
+
+Functions defined on elements will be available to the element the function is defined on, as well as any 
+child elements.
+
+Functions can also be defined in a hyperscript `script` tag:
 
 ```html
 <script type="text/hyperscript">
@@ -325,7 +435,9 @@ Rather than living on an element attributes, functions are typically embedded in
 ```
 
 This will define a global function, `waitAndReturn()` that can be
-invoked from anywhere in hyperscript.  The function will also be available in javascript:
+invoked from anywhere in hyperscript.  
+
+Global hyperscript functions are available in javascript:
 
 ```js
   var str = waitAndReturn();
@@ -334,7 +446,8 @@ invoked from anywhere in hyperscript.  The function will also be available in ja
   })
 ```
 
-In javascript, you must explicitly deal with the `Promise` created by the `wait` command, but the hyperscript runtime [takes care of all that](#async) for you behind the scenes.
+In javascript, you must explicitly deal with the `Promise` created by the `wait` command.  In hyperscript runtime, the 
+runtime [takes care of that](#async) for you behind the scenes.
 
 Note that if you have a normal, synchronous function like this:
 
