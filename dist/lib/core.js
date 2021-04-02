@@ -1657,6 +1657,9 @@
                  * @param {HTMLElement} [target]
                  */
                 function initElement(elt, target) {
+                    if (elt.closest && elt.closest(_hyperscript.config.disableSelector)) {
+                        return;
+                    }
                     var internalData = getInternalData(elt);
                     if (!internalData.initialized) {
                         var src = getScript(elt);
@@ -4600,6 +4603,7 @@
                     config: {
                         attributes: "_, script, data-script",
                         defaultTransition: "all 500ms ease-in",
+                        disableSelector: "[disable-scripting], [data-disable-scripting]",
                         conversions: CONVERSIONS
                     }
                 }
