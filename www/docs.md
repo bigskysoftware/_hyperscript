@@ -1554,9 +1554,9 @@ while still providing additional safety if your HTML-escaping discipline fails.
 
 ## <a name="history"></a>[History, or 'Yet Another Language?'](#history)
 
-I get it.  
+I know, I know.  
 
-Why on earth do we need yet another front end technology, let alone another scripting language?
+Why on earth do we need yet another front end technology, let alone another *scripting language*?
 
 Well, I'll tell you why:
 
