@@ -2363,15 +2363,17 @@
                         if (urRoot.type !== 'symbol' && urRoot.type !== 'attributeRef') {
                             parser.raiseParseError(tokens, "Cannot take a property of a non-symbol: " + urRoot.type);
                         }
+                        var attribute = urRoot.type === 'attributeRef';
                         var prop = urRoot.name;
                         var propertyAccess = {
                             type: "ofExpression",
                             prop: urRoot.token,
                             root: newRoot,
+                            attribute: attribute,
                             expression: root,
                             args: [newRoot],
                             op:function(context, rootVal){
-                                return runtime.resolveProperty(rootVal, prop);
+                                return runtime.resolveProperty(rootVal, prop, attribute);
                             },
                             evaluate: function (context) {
                                 return runtime.unifiedEval(this, context);

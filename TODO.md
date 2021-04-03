@@ -1,18 +1,7 @@
 ## TODOs
 
-### 0.0.9 Release In Progress
-* Deniz - template tag support
-* Ben - `increment/decrement` commands
-  * should work w/ strings and attributes e.g. `incremenet @count`
-  * should treat empty string (and null? and undefined?) as 0
-  * should support a `by` modifier e.g. `increment @count by 2`
-  * should update `result`
-    ```
-      increment x
-      put it into me
-    ```
-
 ### Language Features
+* Proper scoping, including in behaviors
 * Determine how to handle mutations to the DOM with respect to listeners 
    * lazily remove listeners when owner has been removed from DOM
    * when a node is replaced in the DOM, what about the listeners put on it by other elements?

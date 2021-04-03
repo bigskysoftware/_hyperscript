@@ -11,7 +11,7 @@ I'm pleased to announce the [0.0.9 release](https://unpkg.com/browse/hyperscript
 
 #### Changes
 
-* **BREAKING CHANGE** [Attribute literals](/expressions#attributes) now use the syntax `[@attribute-name]` or `@attribute-name` rather than
+* **BREAKING CHANGE**: [Attribute literals](/expressions#attributes) now use the syntax `[@attribute-name]` or `@attribute-name` rather than
   `[attribute-name]`
 
 * The [append command](/commands/append) allows you to append values to strings, arrays and so forth
