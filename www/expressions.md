@@ -86,7 +86,7 @@ collections as well as single values, so it can put the given value into all the
 
 ### Query Literals
 
-Finally can refer to a group of elements by an arbitrary [CSS selector](https://www.w3schools.com/cssref/css_selectors.asp)
+You can refer to a group of elements by an arbitrary [CSS selector](https://www.w3schools.com/cssref/css_selectors.asp)
  by enclosing the selector in a `<` and `/>`:
 
 ```html
@@ -104,6 +104,41 @@ This example will put "Clicked" into every div on the page!
 ```
 
 This example will put "Clicked" into every div that does not have the `example` class on it.
+
+### Attribute Literals
+
+Finally, you can refer to an attribute with two syntaxes:
+
+```html
+<div foo="bar" _="on click put @foo into me">Click Me</div>
+<div _="on click toggle [@foo='bar'] into me">Click Me</div>
+```
+
+The short syntax, `@<attribute name>` can be used to get or set attribute values, and may be chained with
+possessives:
+
+```hyperscript
+for anchor in <a/>
+  log the anchor's @href
+end
+```
+
+or with non-possessive property chains:
+
+```hyperscript
+for anchor in <a/>
+  log anchor@href
+end
+```
+
+The longer syntax, surrounding the `@<attribute-name>` with square brackets, may be used for queries that require a 
+value, or for commands like `toggle` or `add` that require a value
+
+```hyperscript
+for anchor in [@href]
+  log anchor@href
+end
+```
 
 ### In Expressions
 
