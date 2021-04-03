@@ -20,6 +20,17 @@ describe("the behavior feature", function () {
 		delete window.Behave;
 	});
 
+	it("can pass arguments to behaviors", function () {
+		var behavior = make("<script type=text/hyperscript>" +
+			"behavior Behave(foo, bar) on click put foo + bar into me end end" +
+			"</script>");
+		var div = make("<div _='install Behave(foo: 1, bar: 1)'></div>");
+		div.textContent.should.equal('');
+		div.click();
+		div.textContent.should.equal('2');
+		delete window.Behave;
+	});
+
 	it("supports init blocks in behaviors", function (done) {
 		var behavior = make("<script type=text/hyperscript>" +
 			"behavior Behave init add .foo to me end" +

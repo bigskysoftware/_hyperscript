@@ -1506,7 +1506,7 @@
                  * @param {*} event 
                  * @returns {Context}
                  */
-                function makeContext(owner, feature, hyperscriptTarget, event) {
+                function makeContext(owner, feature, hyperscriptTarget, event, extras) {
 
                     /** @type {Context} */
                     var ctx = {
@@ -1526,6 +1526,7 @@
                     }
                     ctx.meta.ctx = ctx;
                     addFeatures(owner, ctx);
+                    if (typeof extras === 'object') mergeObjects(ctx, extras)
                     return ctx;
                 }
 
@@ -2957,10 +2958,10 @@
                     return {
                         type: "hyperscript",
                         features: features,
-                        apply: function (target, source) {
+                        apply: function (target, source, args) {
                             // no op
                             _runtime.forEach(features, function(feature){
-                                feature.install(target, source);
+                                feature.install(target, source, args);
                             })
                         }
                     };
@@ -3157,7 +3158,7 @@
                                 }
                                 start.execute(ctx);
                             },
-                            install: function (elt, source) {
+                            install: function (elt, source, args) {
                                 runtime.forEach(onFeature.events, function(eventSpec) {
                                     var targets;
                                     if (eventSpec.elsewhere) {
@@ -3169,7 +3170,7 @@
                                     }
                                     runtime.forEach(targets, function (target) { // OK NO PROMISE
                                         target.addEventListener(eventSpec.on, function (evt) { // OK NO PROMISE
-                                            var ctx = runtime.makeContext(elt, onFeature, elt, evt);
+                                            var ctx = runtime.makeContext(elt, onFeature, elt, evt, args);
                                             if (eventSpec.elsewhere && elt.contains(evt.target)) {
                                                 return
                                             }
@@ -3293,10 +3294,10 @@
                             start: start,
                             errorHandler: errorHandler,
                             errorSymbol: errorSymbol,
-                            install: function (target, source) {
+                            install: function (target, source, installArgs) {
                                 var func = function () {
                                     // null, worker
-                                    var ctx = runtime.makeContext(source, functionFeature, target, null);
+                                    var ctx = runtime.makeContext(source, functionFeature, target, null, installArgs);
 
                                     // install error handler if any
                                     ctx.meta.errorHandler = errorHandler;
@@ -3377,9 +3378,9 @@
                         var start = parser.parseElement("commandList", tokens);
                         var initFeature = {
                             start: start,
-                            install: function (target, source) {
+                            install: function (target, source, args) {
                                 setTimeout(function () {
-                                    start.execute(runtime.makeContext(target, this, target));
+                                    start.execute(runtime.makeContext(target, this, target, null, args));
                                 }, 0);
                             }
                         };
@@ -3423,14 +3424,29 @@
                 	var path = parser.parseElement("dotOrColonPath", tokens).evaluate();
                 	var nameSpace = path.split(".");
                 	var name = nameSpace.pop();
+
+					var formalParams = [];
+                	if (tokens.matchOpToken("(") && !tokens.matchOpToken(")")) {
+                        do {
+	                    	formalParams.push(tokens.requireTokenType('IDENTIFIER').value);
+	                    } while (tokens.matchOpToken(","))
+	                    tokens.requireOpToken(')')
+  	                }
                 	var hs = parser.parseElement("hyperscript", tokens);
-                	console.debug(tokens.list, tokens.consumed.map(e=>e.value));
+
+                	console.debug(formalParams);
 
                 	return {
-                		install: function (target, source) {
+                		install: function (target, source, outerArgs) {
                 			runtime.assignToNamespace(
                 				globalScope.document && globalScope.document.body, 
-                				nameSpace, name, hs.apply.bind(hs))
+                				nameSpace, name, function (target, source, innerArgs) {
+                					var args = mergeObjects({}, outerArgs);
+                					for (var i = 0; i < formalParams.length; i++) {
+                						args[formalParams[i]] = innerArgs[formalParams[i]]
+                					}
+                					hs.apply(target, source, args);
+                				})
                 		}
                 	}
                 })
@@ -3439,21 +3455,29 @@
                 	if (!tokens.matchToken("install")) return;
                 	var behaviorPath = parser.requireElement("dotOrColonPath", tokens).evaluate()
                 	var behaviorNamespace = behaviorPath.split(".");
-                	return {
+                	var args = parser.parseElement("namedArgumentList", tokens);
+
+                	var installFeature;
+                	return installFeature = {
                 		install: function (target, source) {
-                			var behavior = globalScope;
-                			for (var i = 0; i < behaviorNamespace.length; i++) {
-                				behavior = behavior[behaviorNamespace[i]];
-                				if (typeof behavior !== "object" && typeof behavior !== "function") throw new Error(
-                					"No such behavior defined as " + behaviorPath
-                				);
-                			}
+                			runtime.unifiedEval({
+								args: [args],
+                				op: function (ctx, args) {
+                					var behavior = globalScope;
+		                			for (var i = 0; i < behaviorNamespace.length; i++) {
+		                				behavior = behavior[behaviorNamespace[i]];
+		                				if (typeof behavior !== "object" && typeof behavior !== "function") throw new Error(
+		                					"No such behavior defined as " + behaviorPath
+		                				);
+		                			}
 
-                			if (!(behavior instanceof Function)) throw new Error(
-                				behaviorPath + " is not a behavior"
-                			);
+		                			if (!(behavior instanceof Function)) throw new Error(
+		                				behaviorPath + " is not a behavior"
+		                			);
 
-                			behavior(target, source);
+		                			behavior(target, source, args);
+		                		}
+		                	}, runtime.makeContext(target, installFeature, target))
                 		}
                 	}
                 })
