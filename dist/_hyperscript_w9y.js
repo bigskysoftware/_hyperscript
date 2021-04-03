@@ -519,6 +519,8 @@
                                 tokens.push(consumeIdReference());
                             } else if (currentChar() === "[" && nextChar() === "@") {
                                 tokens.push(consumeAttributeReference());
+                            } else if (currentChar() === "@") {
+                                tokens.push(consumeShortAttributeReference());
                             } else if (isAlpha(currentChar()) || (!inTemplate() && isIdentifierChar(currentChar()))) {
                                 tokens.push(consumeIdentifier());
                             } else if (isNumeric(currentChar())) {
@@ -609,6 +611,17 @@
                             value += consumeChar();
                         }
                         if (currentChar() === ']') {
+                            value += consumeChar();
+                        }
+                        attributeRef.value = value;
+                        attributeRef.end = position;
+                        return attributeRef;
+                    }
+
+                    function consumeShortAttributeReference() {
+                        var attributeRef = makeToken("ATTRIBUTE_REF");
+                        var value = consumeChar();
+                        while (isValidCSSIDChar(currentChar())) {
                             value += consumeChar();
                         }
                         attributeRef.value = value;
@@ -1043,7 +1056,9 @@
                  * @returns {GrammarElement}
                  */
                 function parseHyperScript(tokens) {
-                    return parseElement("hyperscript", tokens)
+                    var result = parseElement("hyperscript", tokens);
+                    if (tokens.hasMore()) raiseParseError(tokens);
+                    return result;
                 }
 
                 /**
@@ -1111,7 +1126,7 @@
                             tokens.consumeToken()
                         } else {
                             var token = tokens.consumeToken();
-                            returnArr[returnArr.length - 1] += token.value;
+                            returnArr[returnArr.length - 1] += token ? token.value : '';
                         }
                     } while (tokens.hasMore())
                     returnArr.push(tokens.lastWhitespace());
@@ -1642,6 +1657,9 @@
                  * @param {HTMLElement} [target]
                  */
                 function initElement(elt, target) {
+                    if (elt.closest && elt.closest(_hyperscript.config.disableSelector)) {
+                        return;
+                    }
                     var internalData = getInternalData(elt);
                     if (!internalData.initialized) {
                         var src = getScript(elt);
@@ -1656,6 +1674,7 @@
                                     triggerEvent(target || elt, 'load', {'hyperscript':true});
                                 }, 1);
                             } catch(e) {
+                                _runtime.triggerEvent(elt, 'exception', {error: e})
                                 console.error("hyperscript errors were found on the following element:", elt, "\n\n", e.message, e.stack);
                             }
                         }
@@ -1928,7 +1947,7 @@
                                 var returnStr = "";
                                 for (var i = 1; i < arguments.length; i++) {
                                     var val = arguments[i];
-                                    if (val) {
+                                    if (val !== undefined) {
                                         returnStr += val;
                                     }
                                 }
@@ -2054,7 +2073,11 @@
                     var attributeRef = tokens.matchTokenType("ATTRIBUTE_REF");
                     if (attributeRef) {
                         var outerVal = attributeRef.value;
-                        var innerValue = outerVal.substring(2, outerVal.length - 1);
+                        if (outerVal.indexOf('[') === 0) {
+                            var innerValue = outerVal.substring(2, outerVal.length - 1);
+                        } else {
+                            var innerValue = outerVal.substring(1);
+                        }
                         var css = "[" + innerValue + "]";
                         var split = innerValue.split('=');
                         var name = split[0];
@@ -2946,14 +2969,11 @@
                     var features = [];
 
                     if (tokens.hasMore()) {
-                        do {
+                        while (parser.featureStart(tokens.currentToken()) || tokens.currentToken().value === "(") {
                             var feature = parser.requireElement("feature", tokens);
                             features.push(feature);
                             tokens.matchToken("end"); // optional end
-                        } while (parser.featureStart(tokens.currentToken()) || tokens.currentToken().value === "(")
-                        if (tokens.hasMore()) {
-                            parser.raiseParseError(tokens);
-                        }
+                        } 
                     }
                     return {
                         type: "hyperscript",
@@ -2997,6 +3017,9 @@
                             var on = parser.requireElement("dotOrColonPath", tokens, "Expected event name");
 
                             var eventName = on.evaluate(); // OK No Promise
+
+
+
                             if (displayName) {
                                 displayName = displayName + " or " + eventName;
                             } else {
@@ -3019,6 +3042,62 @@
                                 } else if (tokens.matchToken("and")) {
                                     var unbounded = true;
                                     tokens.requireToken("on");
+                                }
+                            }
+
+                            if (eventName === "intersection") {
+                                var intersectionSpec = {};
+                                if (tokens.matchToken("with")) {
+                                    intersectionSpec['with'] = parser.parseElement("targetExpression", tokens).evaluate();
+                                }
+                                if (tokens.matchToken("having")) {
+                                    do {
+                                        if (tokens.matchToken('margin')) {
+                                            intersectionSpec['rootMargin'] = parser.parseElement("stringLike", tokens).evaluate();
+                                        } else if (tokens.matchToken('threshold')) {
+                                            intersectionSpec['threshold'] = parser.parseElement("expression", tokens).evaluate();
+                                        } else {
+                                            parser.raiseParseError(tokens, "Unknown intersection config specification");
+                                        }
+                                    } while(tokens.matchToken("and"))
+                                }
+                            } else if (eventName === "mutation") {
+                                var mutationSpec = {};
+                                if (tokens.matchToken("of")) {
+                                    do {
+                                        if (tokens.matchToken('anything')) {
+                                            mutationSpec['attributes'] = true;
+                                            mutationSpec['subtree'] = true;
+                                            mutationSpec['characterData'] = true;
+                                            mutationSpec['childList'] = true;
+                                        } else if (tokens.matchToken('childList')) {
+                                            mutationSpec['childList'] = true;
+                                        } else if (tokens.matchToken('attributes')) {
+                                            mutationSpec['attributes'] = true;
+                                            mutationSpec['attributeOldValue'] = true;
+                                        } else if(tokens.matchToken('subtree')) {
+                                            mutationSpec['subtree'] = true;
+                                        } else if(tokens.matchToken('characterData')) {
+                                            mutationSpec['characterData'] = true;
+                                            mutationSpec['characterDataOldValue'] = true;
+                                        } else if (tokens.currentToken().type === "ATTRIBUTE_REF") {
+                                            var attribute = tokens.consumeToken();
+                                            if (mutationSpec['attributeFilter'] == null) {
+                                                mutationSpec['attributeFilter'] = [];
+                                            }
+                                            if (attribute.value.indexOf('@') == 0) {
+                                                mutationSpec['attributeFilter'].push(attribute.value.substring(1));
+                                            } else {
+                                                parser.raiseParseError(tokens, "Only shorthand attribute references are allowed here");
+                                            }
+                                        } else {
+                                            parser.raiseParseError(tokens, "Unknown mutation config specification");
+                                        }
+                                    } while(tokens.matchToken("or"))
+                                } else {
+                                    mutationSpec['attributes'] = true;
+                                    mutationSpec['characterData'] = true;
+                                    mutationSpec['childList'] = true;
                                 }
                             }
 
@@ -3067,6 +3146,8 @@
                                 unbounded : unbounded,
                                 debounceTime : debounceTime,
                                 throttleTime : throttleTime,
+                                mutationSpec : mutationSpec,
+                                intersectionSpec : intersectionSpec,
                             })
                         } while (tokens.matchToken("or"))
 
@@ -3169,7 +3250,37 @@
                                         targets = [elt];
                                     }
                                     runtime.forEach(targets, function (target) { // OK NO PROMISE
-                                        target.addEventListener(eventSpec.on, function (evt) { // OK NO PROMISE
+
+                                        var eventName = eventSpec.on;
+                                        if (eventSpec.mutationSpec) {
+                                            eventName = 'hyperscript:mutation';
+                                            var observer = new MutationObserver(function(mutationList, observer){
+                                                console.log(target, mutationList);
+                                                if (!onFeature.executing) {
+                                                    _runtime.triggerEvent(target, eventName, {
+                                                        mutationList: mutationList, observer: observer
+                                                    });
+                                                }
+                                            });
+                                            observer.observe(target, eventSpec.mutationSpec);
+                                        }
+
+                                        if (eventSpec.intersectionSpec) {
+                                            eventName = 'hyperscript:insersection';
+                                            var observer = new IntersectionObserver(function (entries) {
+                                                _runtime.forEach(entries, function (entry) {
+                                                    var detail = {
+                                                        observer: observer
+                                                    };
+                                                    detail = mergeObjects(detail, entry);
+                                                    detail['intersecting'] = entry.isIntersecting;
+                                                    _runtime.triggerEvent(target, eventName, detail);
+                                                })
+                                            }, eventSpec.intersectionSpec);
+                                            observer.observe(target);
+                                        }
+
+                                        target.addEventListener(eventName, function (evt) { // OK NO PROMISE
                                             var ctx = runtime.makeContext(elt, onFeature, elt, evt);
                                             if (eventSpec.elsewhere && elt.contains(evt.target)) {
                                                 return
@@ -3417,6 +3528,45 @@
                             "https://hyperscript.org/features/worker/ for " +
                             "more info.")
                     }
+                })
+
+                _parser.addFeature("behavior", function (parser, runtime, tokens) {
+                	if (!tokens.matchToken("behavior")) return;
+                	var path = parser.parseElement("dotOrColonPath", tokens).evaluate();
+                	var nameSpace = path.split(".");
+                	var name = nameSpace.pop();
+                	var hs = parser.parseElement("hyperscript", tokens);
+
+                	return {
+                		install: function (target, source) {
+                			runtime.assignToNamespace(
+                				globalScope.document && globalScope.document.body, 
+                				nameSpace, name, hs.apply.bind(hs))
+                		}
+                	}
+                })
+
+                _parser.addFeature("install", function (parser, runtime, tokens) {
+                	if (!tokens.matchToken("install")) return;
+                	var behaviorPath = parser.requireElement("dotOrColonPath", tokens).evaluate()
+                	var behaviorNamespace = behaviorPath.split(".");
+                	return {
+                		install: function (target, source) {
+                			var behavior = globalScope;
+                			for (var i = 0; i < behaviorNamespace.length; i++) {
+                				behavior = behavior[behaviorNamespace[i]];
+                				if (typeof behavior !== "object" && typeof behavior !== "function") throw new Error(
+                					"No such behavior defined as " + behaviorPath
+                				);
+                			}
+
+                			if (!(behavior instanceof Function)) throw new Error(
+                				behaviorPath + " is not a behavior"
+                			);
+
+                			behavior(target, source);
+                		}
+                	}
                 })
 
                 _parser.addGrammarElement("jsBody", function(parser, runtime, tokens) {
@@ -3754,6 +3904,50 @@
                     }
                 })
 
+                _parser.addCommand("halt", function(parser, runtime, tokens) {
+                    if (tokens.matchToken('halt')) {
+                        if (tokens.matchToken("the")) {
+                            tokens.requireToken('event');
+                            // optional possessive
+                            if (tokens.matchOpToken("'")) {
+                                tokens.requireToken("s");
+                            }
+                            var keepExecuting = true;
+                        }
+                        if (tokens.matchToken("bubbling")) {
+                            var bubbling = true;
+                        } else if (tokens.matchToken("default")) {
+                            var haltDefault = true;
+                        }
+                        var exit = parseReturnFunction(parser, runtime, tokens, false);
+
+                        var haltCmd = {
+                            keepExecuting:true,
+                            bubbling:bubbling,
+                            haltDefault:haltDefault,
+                            exit:exit,
+                            op: function (ctx) {
+                                if (ctx.event) {
+                                    if (bubbling) {
+                                        ctx.event.stopPropagation();
+                                    } else if (haltDefault) {
+                                        ctx.event.preventDefault();
+                                    } else {
+                                        ctx.event.stopPropagation();
+                                        ctx.event.preventDefault();
+                                    }
+                                    if(keepExecuting) {
+                                        return runtime.findNext(this, ctx);
+                                    } else {
+                                        return exit;
+                                    }
+                                }
+                            }
+                        };
+                        return haltCmd;
+                    }
+                })
+
                 _parser.addCommand("log", function(parser, runtime, tokens) {
                     if (tokens.matchToken('log')) {
                         var exprs = [parser.parseElement("expression", tokens)];
@@ -3864,7 +4058,89 @@
                     return pseudoCommand;
                 })
 
+                /**
+                 * @param {ParserObject} parser 
+                 * @param {RuntimeObject} runtime 
+                 * @param {TokensObject} tokens 
+                 * @param {*} target 
+                 * @param {*} value 
+                 * @returns 
+                 */
+                var makeSetter = function(parser, runtime, tokens, target, value) {
+                    var symbolWrite = target.type === "symbol";
+                    var attributeWrite = target.type === "attributeRef";
+                    if (!attributeWrite && !symbolWrite && target.root == null) {
+                        parser.raiseParseError(tokens, "Can only put directly into symbols, not references")
+                    }
+
+                    var root = null;
+                    var prop = null;
+                    if (symbolWrite) {
+                        // root is null
+                    } else if (attributeWrite) {
+                        root = parser.requireElement('implicitMeTarget', tokens);
+                        var attribute = target;
+                    } else {
+                        prop = target.prop ? target.prop.value : null;
+                        var attribute = target.attribute;
+                        root = target.root;
+                    }
+
+                    /** @type {GrammarElement} */
+                    var setCmd = {
+                        target: target,
+                        symbolWrite: symbolWrite,
+                        value: value,
+                        args: [root, value],
+                        op: function (context, root, valueToSet) {
+                            if (symbolWrite) {
+                                context[target.name] = valueToSet;
+                            } else {
+                                runtime.forEach(root, function (elt) {
+                                    if (attribute) {
+                                        elt.setAttribute(attribute.name, valueToSet);
+                                    } else {
+                                        elt[prop] = valueToSet;
+                                    }
+                                })
+                            }
+                            return runtime.findNext(this, context);
+                        }
+                    };
+                    return setCmd
+                }
+
+                _parser.addCommand("default", function(parser, runtime, tokens) {
+
+                    if (tokens.matchToken('default')) {
+
+                        var target = parser.requireElement("targetExpression", tokens);
+                        tokens.requireToken("to");
+
+                        var value = parser.requireElement("expression", tokens);
+
+                        /** @type {GrammarElement} */
+                        var setter = makeSetter(parser, runtime, tokens, target, value);
+                        var defaultCmd = {
+                            target: target,
+                            value: value,
+                            setter: setter,
+                            args: [target],
+                            op: function (context, target) {
+                                if (target) {
+                                    return runtime.findNext(this, context);
+                                } else {
+                                    return setter;
+                                }
+                            }
+                        };
+                        setter.parent = defaultCmd;
+                        return defaultCmd;
+                    }
+                })
+
                 _parser.addCommand("set", function(parser, runtime, tokens) {
+
                     if (tokens.matchToken('set')) {
 						if (tokens.currentToken().type === "L_BRACE") {
 							var obj = parser.requireElement("objectLiteral", tokens);
@@ -3883,52 +4159,9 @@
 						}
 
                         var target = parser.requireElement("targetExpression", tokens);
-
                         tokens.requireToken("to");
-
                         var value = parser.requireElement("expression", tokens);
-
-                        var symbolWrite = target.type === "symbol";
-                        var attributeWrite = target.type === "attributeRef";
-                        if (!attributeWrite && !symbolWrite && target.root == null) {
-                            parser.raiseParseError(tokens, "Can only put directly into symbols, not references")
-                        }
-
-                        var root = null;
-                        var prop = null;
-                        if (symbolWrite) {
-                            // root is null
-                        } else if (attributeWrite) {
-                            root = parser.requireElement('implicitMeTarget', tokens);
-                            var attribute = target;
-                        } else {
-                            prop = target.prop ? target.prop.value : null;
-                            var attribute = target.attribute;
-                            root = target.root;
-                        }
-
-                        /** @type {GrammarElement} */
-                        var setCmd = {
-                            target: target,
-                            symbolWrite: symbolWrite,
-                            value: value,
-                            args: [root, value],
-                            op: function (context, root, valueToSet) {
-                                if (symbolWrite) {
-                                    context[target.name] = valueToSet;
-                                } else {
-                                    runtime.forEach(root, function (elt) {
-                                        if (attribute) {
-                                            elt.setAttribute(attribute.name, valueToSet);
-                                        } else {
-                                            elt[prop] = valueToSet;
-                                        }
-                                    })
-                                }
-                                return runtime.findNext(this, context);
-                            }
-                        };
-                        return setCmd
+                        return makeSetter(parser, runtime, tokens, target, value);
                     }
                 })
 
@@ -4128,9 +4361,122 @@
                     return _parser.parseAnyOf(["string", "nakedString"], tokens);
                 });
 
+                _parser.addCommand("append", function(parser, runtime, tokens) {
+                    if (tokens.matchToken("append")) {
+
+                        var target = null
+                        var prop = null;
+
+                        var value = parser.requireElement("expression", tokens);
+
+                        if (tokens.matchToken("to")) {
+                            target = parser.requireElement("targetExpression", tokens);
+                        }
+                        
+                        if (target == null) {
+                            prop = "result";
+                        } else if (target.type === "symbol") {
+                            prop = target.name;
+                        } else if (target.type === "propertyAccess") {
+                            prop = target.prop.value;
+                        } else {
+                            throw("Unable to append to " + target.type)
+                        }
+
+                        return {
+                            value: value,
+                            target: target,
+                            args: [value],
+                            op: function (context, value) {
+
+                                if (Array.isArray(context[prop])) {
+                                    context[prop].push(value);
+                                } else if (context[prop] instanceof Element) {
+
+                                    if (typeof value == "string") {
+                                        context[prop].innerHTML += value;
+                                    } else {
+                                        throw("Don't know how to append non-strings to an HTML Element yet.");
+                                    }
+                                } else {
+                                    context[prop] += value;
+                                }
+
+                                return runtime.findNext(this, context);
+                            },
+                            execute: function (context) {
+                                return runtime.unifiedExec(this, context, value, target);
+                            }
+                        };
+                    }
+                })
+
+                _parser.addCommand("increment", function(parser, runtime, tokens) {
+
+                    if (tokens.matchToken("increment")) {
+                        var amount;
+
+                        // This is optional.  Defaults to "result"
+                        var target = parser.parseElement("targetExpression", tokens);
+
+                        // This is optional. Defaults to 1.
+                        if (tokens.matchToken("by")) {
+                            amount = parser.requireElement("expression", tokens);
+                        }
+
+                        return {
+                            target: target,
+                            args: [target, amount],
+                            op: function (context, targetValue, amount) {
+                                targetValue = targetValue ? parseFloat(targetValue) : 0;
+                                amount = amount ? parseFloat(amount) : 1;
+                                var newValue = targetValue + amount;
+                                var setter = makeSetter(parser, runtime, tokens, target, newValue);
+                                context.result = newValue;
+                                setter.parent = this;
+                                return setter;
+                            },
+                            execute: function (context) {
+                                return runtime.unifiedExec(this, context, target, amount);
+                            }
+                        };
+                    }
+                })
+
+                _parser.addCommand("decrement", function(parser, runtime, tokens) {
+
+                    if (tokens.matchToken("decrement")) {
+                        var amount;
+
+                        // This is optional.  Defaults to "result"
+                        var target = parser.parseElement("targetExpression", tokens);
+
+                        // This is optional. Defaults to 1.
+                        if (tokens.matchToken("by")) {
+                            amount = parser.requireElement("expression", tokens);
+                        }
+
+                        return {
+                            target: target,
+                            args: [target, amount],
+                            op: function (context, targetValue, amount) {
+                                targetValue = targetValue ? parseFloat(targetValue) : 0;
+                                amount = amount ? parseFloat(amount) : 1;
+                                var newValue = targetValue - amount;
+                                var setter = makeSetter(parser, runtime, tokens, target, newValue);
+                                context.result = newValue;
+                                setter.parent = this;
+                                return setter;
+                            },
+                            execute: function (context) {
+                                return runtime.unifiedExec(this, context, target, amount);
+                            }
+                        };
+                    }
+                })
+
                 _parser.addCommand("fetch", function(parser, runtime, tokens) {
                     if (tokens.matchToken('fetch')) {
-
 
                         var url = parser.requireElement("stringLike", tokens);
                         var args = parser.parseElement("objectLiteral", tokens);
@@ -4147,6 +4493,7 @@
                             }
                         }
 
+                        /** @type {GrammarElement} */
                         var fetchCmd = {
                             url:url,
                             argExrepssions:args,
@@ -4256,6 +4603,7 @@
                     config: {
                         attributes: "_, script, data-script",
                         defaultTransition: "all 500ms ease-in",
+                        disableSelector: "[disable-scripting], [data-disable-scripting]",
                         conversions: CONVERSIONS
                     }
                 }
@@ -4442,7 +4790,9 @@
                     args: [elementExpr],
                     op: function (context, element) {
                         runtime.forEach(element, function (target) {
-                            target.parentElement.removeChild(target);
+                            if(target.parentElement){
+                                target.parentElement.removeChild(target);
+                            }
                         })
                         return runtime.findNext(this, context);
                     }
@@ -5422,4 +5772,434 @@
             };
         }
     })
+})()
+
+'use strict';
+
+(function (_hyperscript) {
+	function compileTemplate(template) {
+		return template.replace(
+			/(?:^|\n)([^@]*)@?/gm,
+			'\ncall __ht_template_result.push(`$1`)\n')
+	}
+
+	function renderTemplate(template, ctx) {
+		var buf = []
+		_hyperscript(template, 
+			Object.assign({ __ht_template_result: buf }, ctx))
+		return buf.join('')
+	}
+
+	_hyperscript.addCommand('render', function (parser, runtime, tokens) {
+		if (!tokens.matchToken('render')) return
+		var template = parser.requireElement('targetExpression', tokens)
+		var templateArgs = {}
+		if (tokens.matchToken('with')) {
+			templateArgs = parser.parseElement('namedArgumentList', tokens)
+		}
+		return {
+			args: [template, templateArgs],
+			op: function (ctx, template, templateArgs) {
+				ctx.result = renderTemplate(compileTemplate(template.innerHTML), templateArgs)
+				return runtime.findNext(this, ctx)
+			}
+		}
+	})
+})(_hyperscript)
+
+///=========================================================================
+/// This module provides the worker feature for hyperscript
+///=========================================================================
+(function () {
+
+    function mergeObjects(obj1, obj2) {
+        for (var key in obj2) {
+            if (obj2.hasOwnProperty(key)) {
+                obj1[key] = obj2[key];
+            }
+        }
+        return obj1;
+    }
+
+    function genUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
+    function createSocket(url) {
+        return new WebSocket(url.evaluate());
+    }
+
+    var PROXY_BLACKLIST = ['then', 'catch', 'length', 'asyncWrapper', 'toJSON'];
+
+    _hyperscript.addFeature("socket", function(parser, runtime, tokens) {
+
+        function getProxy(timeout) {
+            return new Proxy({}, {
+                get: function (obj, property) {
+                    if (PROXY_BLACKLIST.indexOf(property) >= 0) {
+                        return null;
+                    } else if (property === "noTimeout") {
+                        return getProxy(-1);
+                    } else if (property === "timeout") {
+                        return function(i){
+                            return getProxy(parseInt(i));
+                        }
+                    } else {
+                        return function () {
+                            var uuid = genUUID();
+                            var args = [];
+                            for (var i = 0; i < arguments.length; i++) {
+                                args.push(arguments[i]);
+                            }
+                            var rpcInfo = {
+                                iid: uuid,
+                                function: property,
+                                args: args
+                            };
+                            socket = socket ? socket : createSocket(url); //recreate socket if needed
+                            socket.send(JSON.stringify(rpcInfo));
+
+                            var promise = new Promise(function (resolve, reject) {
+                                promises[uuid] = {
+                                    resolve: resolve,
+                                    reject: reject
+                                }
+                            })
+
+                            if (timeout >= 0) {
+                                setTimeout(function () {
+                                    if (promises[uuid]) {
+                                        promises[uuid].reject("Timed out");
+                                    }
+                                    delete promises[uuid];
+                                }, timeout); // TODO configurable?
+                            }
+                            return promise
+                        };
+                    }
+                }
+            });
+        }
+
+        if (tokens.matchToken('socket')) {
+
+            var name = parser.requireElement("dotOrColonPath", tokens);
+            var qualifiedName = name.evaluate();
+            var nameSpace = qualifiedName.split(".");
+            var socketName = nameSpace.pop();
+
+            var promises = {};
+            var url = parser.requireElement("stringLike", tokens);
+
+            var defaultTimeout = 10000;
+            if (tokens.matchToken("with")) {
+                tokens.requireToken("timeout");
+                defaultTimeout = parser.requireElement("timeExpression", tokens).evaluate();
+            }
+
+            if (tokens.matchToken("on")) {
+                tokens.requireToken("message");
+                if (tokens.matchToken("as")) {
+                    tokens.requireToken("json");
+                    var jsonMessages = true;
+                }
+                var messageHandler = parser.requireElement("commandList", tokens);
+                var implicitReturn = {
+                    type: "implicitReturn",
+                    op: function (context) {
+                        return runtime.HALT;
+                    },
+                    execute: function (context) {
+                        // do nothing
+                    }
+                }
+                var end = messageHandler;
+                while (end.next) {
+                    end = end.next;
+                }
+                end.next = implicitReturn
+                // TODO set parent?
+                // parser.setParent(implicitReturn, initFeature);
+            }
+
+            var socket = createSocket(url);
+            var rpcProxy = getProxy(defaultTimeout)
+
+            var socketObject = {
+                raw:socket,
+                dispatchEvent:function(evt){
+                    var details = evt.detail;
+                    // remove hyperscript internals
+                    delete details.sentBy;
+                    delete details._namedArgList_;
+                    socket.send(JSON.stringify(mergeObjects({type: evt.type}, details)));
+                },
+                rpc:rpcProxy
+            };
+
+            var socketFeature = {
+                name: socketName,
+                socket: socketObject,
+                install: function (target) {
+                    runtime.assignToNamespace(target, nameSpace, socketName, socketObject)
+                }
+            };
+
+            socket.onmessage = function (evt) {
+                var data = evt.data;
+                try {
+                    var dataAsJson = JSON.parse(data);
+                } catch(e){
+                    // not JSON
+                }
+
+                // RPC reply
+                if (dataAsJson && dataAsJson.iid) {
+                    if (dataAsJson.throw) {
+                        promises[dataAsJson.iid].reject(dataAsJson.throw);
+                    } else {
+                        promises[dataAsJson.iid].resolve(dataAsJson.return);
+                    }
+                    delete promises[dataAsJson.iid];
+                }
+
+                if (messageHandler) {
+                    var context = runtime.makeContext(socketObject, socketFeature, socketObject);
+                    if (jsonMessages) {
+                        if (dataAsJson) {
+                            context.message = dataAsJson;
+                            context.result = dataAsJson;
+                        } else {
+                            throw "Received non-JSON message from socket: " + data;
+                        }
+                    } else {
+                        context.message = data;
+                        context.result = data;
+                    }
+                    messageHandler.execute(context);
+                }
+            };
+
+
+            // clear socket on close to be recreated
+            socket.addEventListener('close', function(e){
+                socket = null;
+            });
+
+            return socketFeature;
+        }
+    })
+})()
+///=========================================================================
+/// This module provides the EventSource (SSE) feature for hyperscript
+///=========================================================================
+
+// QUESTION: Is it OK to pack additional data into the "Feature" struct that's returned?
+// TODO: Add methods for EventSourceFeature.connect() and EventSourceFeature.close()
+
+/**
+ * @typedef {object} EventSourceFeature
+ * @property {string} name
+ * @property {EventSourceStub} object
+ * @property {() => void} install
+ * 
+ * @typedef {object} EventSourceStub
+ * @property {EventSource} eventSource
+ * @property {Object.<string, EventHandlerNonNull>} listeners
+ * @property {number} retryCount
+ * @property {() => void} open
+ * @property {() => void} close
+ * @property {(type: keyof HTMLElementEventMap, listener:(event: Event) => any, options?: boolean | AddEventListenerOptions) => void} addEventListener
+ * 
+ */
+
+(function () {
+
+	 _hyperscript.addFeature("eventsource", function(parser, runtime, tokens) {
+
+		if (tokens.matchToken('eventsource')) {
+
+			// Get the name we'll assign to this EventSource in the hyperscript context
+
+			/** @type {string} */ 
+			var name = parser.requireElement("dotOrColonPath", tokens).evaluate();
+
+			var nameSpace = name.split(".");
+			var eventSourceName = nameSpace.pop();
+
+			// Get the URL of the EventSource
+			var url = parser.requireElement("stringLike", tokens);
+
+			// Get option to connect with/without credentials
+			var withCredentials = false;
+
+			if (tokens.matchToken("with")) {
+				if (tokens.matchToken("credentials")) {
+					withCredentials = true;
+				}
+			}
+
+			/** @type EventSourceStub */
+			var stub = {
+				eventSource: null,
+				listeners: {},
+				retryCount: 0,
+				open: function () {
+
+					// Guard ensures that EventSource is empty, or already closed.
+					if (stub.eventSource != null) {
+						if (stub.eventSource.readyState != EventSource.CLOSED) {
+							return;
+						}
+					}
+	
+					// Open the EventSource and get ready to populate event handlers
+					stub.eventSource = new EventSource(url.evaluate(), {withCredentials:withCredentials});
+	
+					// On successful connection.  Reset retry count.
+					stub.eventSource.addEventListener("open", function(event) {
+						stub.retryCount = 0;
+					})
+	
+					// On connection error, use exponential backoff to retry (random values from 1 second to 2^7 (128) seconds
+					stub.eventSource.addEventListener("error", function(event) {
+
+						// If the EventSource is closed, then try to reopen
+						if (stub.eventSource.readyState == EventSource.CLOSED) {
+							stub.retryCount = Math.min(7, stub.retryCount + 1);
+							var timeout = Math.random() * (2 ^ stub.retryCount) * 500;
+							window.setTimeout(stub.open, timeout);
+						}
+					})
+	
+					// Add event listeners
+					for (var key in stub.listeners) {
+						stub.eventSource.addEventListener(key, stub.listeners[key]);
+					}
+				},
+				close: function() {
+					stub.eventSource.close();
+					stub.retryCount = 0;
+				},
+				addEventListener: function(type, listener, options) {
+					return stub.eventSource.addEventListener(type, listener, options);
+				}
+			}
+
+			// Create the "feature" that will be returned by this function.
+
+			/** @type {EventSourceFeature} */
+			var feature = {
+				name: eventSourceName,
+				object: stub,
+				install: function (target) {
+					runtime.assignToNamespace(target, nameSpace, eventSourceName, stub);
+				}
+			};
+
+			// Parse each event listener and add it into the list
+			while (tokens.matchToken("on")) {
+				
+				// get event name
+				var eventName = parser.requireElement("stringLike", tokens, "Expected event name").evaluate();  // OK to evaluate this in real-time?
+
+				// default encoding is "" (autodetect)
+				var encoding = "";
+
+				// look for alternate encoding
+				if (tokens.matchToken("as")) {
+					encoding = parser.requireElement("stringLike", tokens, "Expected encoding type").evaluate(); // Ok to evaluate this in real time?
+				}
+
+				// get command list for this event handler
+				var commandList = parser.requireElement("commandList", tokens);
+				addImplicitReturnToCommandList(commandList);
+				tokens.requireToken("end");
+
+				// Save the event listener into the feature.  This lets us
+				// connect listeners to new EventSources if we have to reconnect.
+				stub.listeners[eventName] = makeListener(encoding, commandList);
+			}
+
+			tokens.requireToken("end");
+
+			// Connect to the remote server
+			stub.open();
+
+			// Success!
+			return feature;
+
+
+			////////////////////////////////////////////
+			// ADDITIONAL HELPER FUNCTIONS HERE...
+			////////////////////////////////////////////
+
+			/**
+			 * Makes an eventListener funtion that can execute the correct hyperscript commands
+			 * This is outside of the main loop so that closures don't cause us to run the wrong commands.
+			 * 
+			 * @param {string} encoding 
+			 * @param {*} commandList 
+			 * @returns {EventHandlerNonNull}
+			 */
+			function makeListener(encoding, commandList) {
+				return function(evt) {
+					var data = decode(evt['data'], encoding);
+					var context = runtime.makeContext(stub, feature, stub);
+					context.event = evt;
+					context.result = data;
+					commandList.execute(context);    
+				}
+			}
+
+			/**
+			 * Decodes/Unmarshals a string based on the selected encoding.  If the 
+			 * encoding is not recognized, attempts to auto-detect based on its content
+			 * 
+			 * @param {string} data - The original data to be decoded
+			 * @param {string} encoding - The method that the data is currently encoded ("string", "json", or unknown)
+			 * @returns {string} - The decoded data
+			 */
+			function decode(data, encoding) {
+
+				// Force JSON encoding
+				if (encoding == "json") {
+					return JSON.parse(data);
+				}
+
+				// Otherwise, return the data without modification
+				return data
+			}
+
+			/**
+			 * Adds a "HALT" command to the commandList.
+			 * TODO: This seems like something that could be optimized:
+			 * maybe the parser could do automatically,
+			 * or could be a public function in the parser available to everyone,
+			 * or the command-executer-thingy could just handle nulls implicitly.
+			 * 
+			 * @param {*} commandList 
+			 * @returns void
+			 */
+			function addImplicitReturnToCommandList(commandList) {
+
+				if (commandList.next) {
+					return addImplicitReturnToCommandList(commandList.next);
+				}
+
+				commandList.next = {
+					type: "implicitReturn",
+					op: function (_context) {
+						return runtime.HALT;
+					},
+					execute: function (_context) {
+						// do nothing
+					}
+				}
+			}				
+		}
+	})
 })()

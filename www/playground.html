@@ -9,9 +9,7 @@ title: ///_hyperscript
    or hit ctrl-enter in the editor, and the code will be loaded into the content.  You can also look at the source
    for this page, which is written entirely in hyperscript.  :)</p>
 
-<div class="row" style="margin-top: 16px"
-     _="on exception log event
-           put the message of the event's detail's error into #eval-contents">
+<div class="row" style="margin-top: 16px">
     <div class="8 col" style="margin-bottom: 8px">
 
         <div style="margin-bottom: .65em;">
@@ -20,13 +18,13 @@ title: ///_hyperscript
                 Load Example:
                 <select style="font-size: 22px; padding:4px; margin-top: -12px; width: 4em"
                         _="on change
-                         if my value is not 'Clear'
-                           fetch `/playground/${my value}`
-                           put it into #code.value
-                           send loadCode to #code
-                         else
-                           put '' into #code.value
-                           put '' into #contents">
+                             if my value is not 'Clear'
+                               fetch `/playground/${my value}`
+                               put it into #code.value
+                               send loadCode to #code
+                             else
+                               put '' into #code.value
+                               put '' into #contents">
                     <option>Clear</option>
                     <option value="hide_remove">Hide Then Remove</option>
                     <option value="drag">Drag</option>
@@ -39,11 +37,13 @@ title: ///_hyperscript
         <textarea id="code"
                   style="width: 100%; height:300px; margin-bottom: 12px; font-size: 16px; padding: 4px; background-color: whitesmoke"
                   _="on keyup[ctrlKey and key is 'Enter'] or loadCode
-                              transition #contents opacity to 0 over 10ms
-                              put my value into #contents
-                              transition #contents opacity to 1
-                              call _hyperscript.processNode(#contents)
-                              "></textarea>
+                          transition #contents opacity to 0 over 10ms
+                          put my value into #contents
+                          transition #contents opacity to 1
+                          call _hyperscript.processNode(#contents)
+
+                     on exception from #contents
+                          send showError(error: the message of the event's detail's error) to #eval-contents"></textarea>
         <div>
             <button class="btn primary" _="on click send loadCode to #code">
                 Load HTML Into Content
@@ -51,19 +51,36 @@ title: ///_hyperscript
         </div>
     </div>
     <div class="4 col">
-        <h2>Eval</h2>
         <input placeholder="Enter an expression..." type="text" style="width: 100%; font-size: 18px; padding: 8px"
-               _="on keyup[key is 'Enter']
+               _="def evalHyperscript(src)
+                    send showResult(result: JSON.stringify(_hyperscript(src), null, 2)) to #eval-contents
+                  catch e
+                    send showError(error: e.message) to #eval-contents
+                  end
+
+                  on keyup[key is 'Enter']
                      if my value is not empty
-                       put JSON.stringify(_hyperscript(my value), null, 2) into #eval-contents
+                       call evalHyperscript(my value)
                      else
-                       put '' into #eval-contents
+                       send showResult(result: '') to #eval-contents
                      end
                      select() me"/>
+        <h2>Eval</h2>
         <h2>Output</h2>
-        <div id="eval-contents" style="width: 100%; height:100%;font-family:'Courier New', monospace; overflow: auto; max-height: 230px">
+        <div id="eval-contents" style="width: 100%; height:100%;font-family:'Courier New', monospace; overflow: auto; max-height: 230px"
+             _="on showResult(result)
+                   transition #eval-contents opacity to 0 over 50ms
+                   put result into me
+                   transition #eval-contents opacity to 1 over 50ms
+
+                on showError(error)
+                   log event
+                   trigger showResult(result: error)
+                   transition background-color to orangered over 100ms
+                   transition background-color to initial">
 
         </div>
+        <small><a href="#" _="on click send showResult(result: '') to #eval-contents">clear</a></small>
     </div>
 </div>
 

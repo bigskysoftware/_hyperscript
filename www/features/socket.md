@@ -42,6 +42,12 @@ end
 
 This socket will log all messages that it receives as a parsed JSON object.
 
+You can send messages to the socket by using the normal [`send`](/commands/send) command:
+
+```hyperscript
+    send myMessage(foo: "bar", doh: 42) to MySocket
+```
+
 ### <a name='rpc'></a>[RPC](#rpc)
 
 Hyperscript provides a simple RPC mechanism layered on top of websockets.  Given the socket definiton above, you can

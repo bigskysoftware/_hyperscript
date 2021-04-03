@@ -61,7 +61,7 @@ Last, if you do not specify any encoding, then hyperscript will pass the origina
 eventsource demo http://server/demo
 
     on message as string
-        put it int #div
+        put it into #div
     end
 
     on open

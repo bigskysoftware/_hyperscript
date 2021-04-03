@@ -168,11 +168,12 @@
 	<section class="sec-eval">
 		<h3>Evaluate Expression</h3>
 		<form class="eval-form"  _="
-			on submit call event.preventDefault()
-			get the first <input/> in me
-			then call _hyperscript(its.value, hdb.ctx)
-			then call prettyPrint(it)
-			then put it into the <output/> in me">
+		    on submit
+			  get the first <input/> in me
+			  then call _hyperscript(its.value, hdb.ctx)
+			  then call prettyPrint(it)
+			  then put it into the <output/> in me
+			  then halt">
 			<input type="text" id="eval-expr" placeholder="e.g. target.innerText">
 			<button type="submit">Go</button>
 			<output id="eval-output"><em>The value will show up here</em></output>

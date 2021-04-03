@@ -1,28 +1,35 @@
 ## TODOs
 
-### In Progress
+### 0.0.9 Release In Progress
 * Deniz - template tag support
+* Ben - `increment/decrement` commands
+  * should work w/ strings and attributes e.g. `incremenet @count`
+  * should treat empty string (and null? and undefined?) as 0
+  * should support a `by` modifier e.g. `increment @count by 2`
+  * should update `result`
+    ```
+      increment x
+      put it into me
+    ```
 
 ### Language Features
-* `reply` & `wait for response` in event handlers
+* Determine how to handle mutations to the DOM with respect to listeners 
+   * lazily remove listeners when owner has been removed from DOM
+   * when a node is replaced in the DOM, what about the listeners put on it by other elements?
+* `delete` command
+* `reply` & `wait for response` in event handlers?
 * garbage collect event listeners added to external elements periodically (?)
 * improve `fetch` command w/ more obvious syntax for body, headers, etc.
   ```text
-    fetch /foo using POST 
-    fetch /foo using POST with body {foo:"bar"}
-    fetch /foo using POST with body {foo:"bar"} and headers {blah:'blah'}
+    fetch /foo with a POST 
+    fetch /foo with a POST and body {foo:"bar"}
+    fetch /foo with a POST and body {foo:"bar"} and headers {blah:'blah'}
   ```
   * make defaults pluggable 
   * resurrect `ajax` command?  (had more functionality in some ways)
 *  Support a `timeout` modifier for commands like `fetch`, `call`, `wait for` etc.
   * deep project involving dealing w/ async commands not executing if they time out during execution
 * `merge/merge into` - Merge objects with one another
-* `delete` command
-* `increment/decrement` commands
-* `default` command
-  ```text
-    default x to 10
-  ```
 * runtime type checked parameters and return types
   ```text
     def(foo:String!) : String!
@@ -31,7 +38,6 @@
 * Better DOM manipulation tools? (needs research)
 * Full `sed` command for string manipulation?
 * `play` command using [Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
-* `merge/merge into` - Merge objects with one another
 * Support parenthesizes expressions in pseudopossessives: `transition (the div's parent's parent)'s opacity to 1`
 * Event model
 * functions should be able to be marked `sync` to make only one execution at a time occur, in serial fashion
@@ -88,4 +94,3 @@
 
 ### Infrastructure
 * Recovering parser (we are single error right now)
-* Handle multiple returns/throws in an async context (timeout, async, etc.)
