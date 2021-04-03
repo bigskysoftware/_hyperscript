@@ -374,7 +374,7 @@ object to symbols that can be used in the body of the handler.
 #### <a name="event_filters"></a>[Event Filters](#event_filters)
 
 You can filter events by adding a bracketed expression after the event name and destructured properties (if any).
- 
+
 The expression should return a boolean value `true` if the event handler should execute.  
 
 Note that symbols referenced in the expression will be resolved as properties of the event, then as symbols in the global scope.  
@@ -612,18 +612,19 @@ You can read more about the RPC mechanism on the [`socket` page](/features/socke
 
 ### <a name="event_source"></a>[Event Source](#event_source)
 
-[Server Sent Events](https://en.wikipedia.org/wiki/Server-sent_events) are a simple way for your web server to push 
+[Server Sent Events](https://en.wikipedia.org/wiki/Server-sent_events) are a simple way for your web server to push
 information directly to your clients that is [supported by all modern browsers](https://caniuse.com/eventsource).  
 
-They provide real-time, uni-directional communication from your server to a browser.  Server Sent Events cannot sent 
+They provide real-time, uni-directional communication from your server to a browser.  Server Sent Events cannot send
 information back to your server.  If you need two-way communication, consider using [sockets](/features/socket/) instead.
 
-You can declare an SSE connection by using the [`eventsource` keyword](/features/event-source).
+You can declare an SSE connection by using the [`eventsource` keyword](/features/event-source) and can dynamically change
+the connected URL at any time without having to reconnect event listeners.
 
 Here is an example event source in hyperscript:
 
 ```hyperscript
-eventsource ChatUpdates http://myserver.com/chat-updates
+eventsource ChatUpdates from http://myserver.com/chat-updates
 
     on message as string
         put it into #div
@@ -637,6 +638,7 @@ end
 ```
 
 This event source will put all `message` events in to the `#div` and will log when an `open` event occurs.
+This feature also publishes events, too, so you can listen for Server Sent Events from other parts of your code.
 
 ### <a name="js"></a>[Inline JS](#js)
 
