@@ -58,7 +58,7 @@ Let's start with CSS literals.
 Hyperscript gives you the ability to embed CSS literals directly in your code to select elements.  There are four
 main expression types:
 
-### ID Literals
+### <a name="id-literals">[ID Literals](#id-literals)
 
 You can refer to an element by ID directly in hyperscript as follows:
 
@@ -70,7 +70,7 @@ You can refer to an element by ID directly in hyperscript as follows:
 The `#example` is an ID literal and will evaluate to the element with the given id.  Here we put some text into its
 `innerHTML` when the top div is clicked.
 
-### Class Literals
+### <a name="class-literals">[Class Literals](#class-literals)
 
 You can refer to a group of elements by class directly in hyperscript as follows:
 
@@ -84,7 +84,7 @@ The `#example` is an ID literal and will evaluate all the elements with the clas
 text into their `innerHTML` when the top div is clicked.  Note that the [put command](/commands/put) can work with
 collections as well as single values, so it can put the given value into all the returned elements.
 
-### Query Literals
+### <a name="queries"/>[Query Literals](#queries)
 
 You can refer to a group of elements by an arbitrary [CSS selector](https://www.w3schools.com/cssref/css_selectors.asp)
  by enclosing the selector in a `<` and `/>`:
@@ -105,7 +105,7 @@ This example will put "Clicked" into every div on the page!
 
 This example will put "Clicked" into every div that does not have the `example` class on it.
 
-### Attribute Literals
+### <a name="attributes">[Attribute Literals](#attributes)
 
 Finally, you can refer to an attribute with two syntaxes:
 

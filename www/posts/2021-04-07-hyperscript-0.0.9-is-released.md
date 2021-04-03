@@ -11,7 +11,7 @@ I'm pleased to announce the [0.0.9 release](https://unpkg.com/browse/hyperscript
 
 #### Changes
 
-* **BREAKING CHANGE** Attribute literals now use the syntax `[@attribute-name]` or `@attribute-name` rather than
+* **BREAKING CHANGE** [Attribute literals](/expressions#attributes) now use the syntax `[@attribute-name]` or `@attribute-name` rather than
   `[attribute-name]`
 
 * The [append command](/commands/append) allows you to append values to strings, arrays and so forth
@@ -31,6 +31,6 @@ I'm pleased to announce the [0.0.9 release](https://unpkg.com/browse/hyperscript
 
 * The [event handler](/features/on#mutation) added support for the synthetic `mutation` event, based on `MutationObservers`
 
-* The [event handler](/commands/on#intersection) added support for the synthetic `instersection` event, based on `IntersectionObservers`
+* The [event handler](/features/on#intersection) added support for the synthetic `instersection` event, based on `IntersectionObservers`
 
 Enjoy!

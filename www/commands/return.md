@@ -14,7 +14,7 @@ exit
 
 ### Description
 
-The `return` command returns a value from a function in hyperscript.
+The `return` command returns a value from a function in hyperscript or stops an event handler from continuing.
 
 You may use the `exit` form to return no value.
 
