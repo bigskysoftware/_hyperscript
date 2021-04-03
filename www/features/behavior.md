@@ -78,7 +78,7 @@ end
 ...
 ```
 
-This works well, but now our original div is broken. We can use an [`init block`](/features/init/) to set a default value for the parameter:
+This works well, but now our original div is broken. We can use an [`init` block](/features/init/) to set a default value for the parameter:
 
 ```hyperscript
 behavior Removable(removeButton)
