@@ -32,6 +32,7 @@ For instance, consider this disappearing div:
 This revolutionary UI technology impresses the client, and they come to you with a list of other components that they would like to be Removable™. Do you copy this code to each of those elements? That would work, but is not ideal, since
 - This code is highly experimental, you'd like to be able to change it in just one place.
 - Your boss is considering licensing the Removable™ tech to other companies.
+
 To remedy this, you can define a _behavior_:
 
 <!-- I've never actually had a job, so I'm just imitating stories from tech
