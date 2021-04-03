@@ -40,4 +40,16 @@ describe("the closest expression", function () {
         result.should.equal(div3);
     });
 
+    it("attributes resolve as attributes", function () {
+        var div3 = make("<div foo='bar' id='d3'><div id='d1'></div><div id='d2'></div></div>")
+        var div1 = byId("d1");
+        var div2 = byId("d2");
+
+        var result = evalHyperScript("closest @foo", {me: div1})
+        result.should.equal('bar');
+
+        var result = evalHyperScript("closest @foo", {me: div1})
+        result.should.equal('bar');
+    });
+
 });

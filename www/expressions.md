@@ -359,8 +359,30 @@ Can be rewritten like this:
 The [`closest`](/expressions/closest) expression allows you to find the closest match of a CSS selector
 
 ```html
-<%!-- logs the closest section ot the div -->
+<%!-- logs the closest section to the div -->
 <div _="on click log the closest <section/>">
+  ...
+</div>
+```
+
+If you pass an attribute literal to the closest expression, it will evaluate to the value of that attribute on the
+closest element that has it:
+
+```html
+<%!-- logs the data-example attribute's value from the body tag -->
+<body data-example="An example attribute">
+    <div _="on click log the closest @data-example">
+      ...
+    </div>
+</body>
+```
+
+You can use the `parent` modifier in the closest expression to begin the search from the parent element of the current
+element:
+
+```html
+<%!-- logs the closest parent div to this div -->
+<div _="on click log the closest parent <div/>">
   ...
 </div>
 ```

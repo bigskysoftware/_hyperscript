@@ -773,10 +773,14 @@
             } else {
                 var to = parser.parseElement("implicitMeTarget", tokens);
             }
+            if (expr.type === "attributeRef") {
+                var attributeName = expr.name;
+            }
             return {
                 type: 'closestExpr',
                 parentSearch: parentSearch,
                 expr: expr,
+                attributeName: attributeName,
                 to: to,
                 args: [to],
                 op: function (ctx, to) {
@@ -784,16 +788,23 @@
                         return null;
                     } else {
                         if (parentSearch) {
-                            return to.parentElement ? to.parentElement.closest(expr.css) : null;
+                            var node = to.parentElement ? to.parentElement.closest(expr.css) : null;
                         } else {
-                            return to.closest(expr.css);
+                            var node = to.closest(expr.css);
+                        }
+                        if (attributeName) {
+                            if(node){
+                                return node.getAttribute(attributeName);
+                            }
+                        } else {
+                            return node;
                         }
                     }
                 },
                 evaluate: function (context) {
                     return runtime.unifiedEval(this, context);
                 }
-            }
+            };
         }
     });
 
