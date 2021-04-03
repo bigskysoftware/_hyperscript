@@ -16,7 +16,7 @@ I'm pleased to announce the [0.0.9 release](https://unpkg.com/browse/hyperscript
 
 * The [append command](/commands/append) allows you to append values to strings, arrays and so forth
 
-* The [behavior](/features/behavior) and [install](/features/install) features allow you to define generic
+* The [behavior](/features/behavior) and [install](/features/behavior) features allow you to define generic
   behaviors in hyperscript and install them on elements
   
 * The [render](/commands/render) supports client-side templates defined in hyperscript
@@ -29,8 +29,8 @@ I'm pleased to announce the [0.0.9 release](https://unpkg.com/browse/hyperscript
 
 * The [halt command](/commands/halt) allows you modify the current event's bubbling and default behaviors
 
-* The [event handler](/commands/on) added support for the synthetic `mutation` event, based on `MutationObservers`
+* The [event handler](/features/on#mutation) added support for the synthetic `mutation` event, based on `MutationObservers`
 
-* The [event handler](/commands/on) added support for the synthetic `instersection` event, based on `IntersectionObservers`
+* The [event handler](/commands/on#intersection) added support for the synthetic `instersection` event, based on `IntersectionObservers`
 
 Enjoy!
