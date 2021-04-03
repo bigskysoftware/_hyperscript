@@ -20,6 +20,7 @@ title: ///_hyperscript
     * [event handlers](#event_handlers)
     * [init](#init)
     * [functions](#functions)
+    * [behaviors](#behaviors)
     * [workers](#workers)
     * [sockets](#sockets)
     * [event source](#event_source)
@@ -526,7 +527,7 @@ during the execution of the body:
 ### <a name="behaviors"></a>[Behaviors](#behaviors)
 
 
-Behaviors allow you to bundle together some hyperscript code (that would normally go in the _ attribute of an element) so that it can be "installed" on any other.
+Behaviors allow you to bundle together some hyperscript code (that would normally go in the _ attribute of an element) so that it can be "installed" on any other. They are defined with [the `behavior` keyword](/features/behavior):
 
 ```hyperscript
 behavior Removable
