@@ -92,4 +92,4 @@ behavior Removable(removeButton)
 end
 ```
 
-Now our Removable™ innovation is reusable! For a more realistic example of a behavior, check out the Draggable behavior which creates a draggable window: [Draggable.hs](https://gist.github.com/dz4k/6505fb82ae7fdb0a03e6f3e360931aa9)
+Now our Removable™ innovation is reusable! For a more realistic example of a behavior, check out the Draggable behavior which creates a draggable window: [Draggable._hs](https://gist.github.com/dz4k/6505fb82ae7fdb0a03e6f3e360931aa9)
