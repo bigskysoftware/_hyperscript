@@ -13,12 +13,16 @@
  * 
  * @typedef {object} EventSourceStub
  * @property {EventSource} eventSource
- * @property {Object.<string, EventHandlerNonNull>} listeners
+ * @property {EventListenerEntry[]} listeners
  * @property {number} retryCount
- * @property {() => void} open
+ * @property {(url?:string) => void} open
  * @property {() => void} close
  * @property {(type: keyof HTMLElementEventMap, listener:(event: Event) => any, options?: boolean | AddEventListenerOptions) => void} addEventListener
- * 
+ *
+ * @typedef {object} EventListenerEntry
+ * @property {string} type
+ * @property {EventHandlerNonNull} handler
+ * @property {*=} options
  */
 
 (function () {
@@ -27,42 +31,57 @@
 
 		if (tokens.matchToken('eventsource')) {
 
-			// Get the name we'll assign to this EventSource in the hyperscript context
+			var urlElement;
+			var withCredentials = false;
 
+			// Get the name we'll assign to this EventSource in the hyperscript context
 			/** @type {string} */ 
 			var name = parser.requireElement("dotOrColonPath", tokens).evaluate();
-
 			var nameSpace = name.split(".");
 			var eventSourceName = nameSpace.pop();
 
 			// Get the URL of the EventSource
-			var url = parser.requireElement("stringLike", tokens);
+			if (tokens.matchToken("from")) {
+				urlElement = parser.requireElement("stringLike", tokens);
+			}
 
 			// Get option to connect with/without credentials
-			var withCredentials = false;
-
 			if (tokens.matchToken("with")) {
 				if (tokens.matchToken("credentials")) {
 					withCredentials = true;
 				}
 			}
 
-			/** @type EventSourceStub */
+			/** @type {EventSourceStub} */
 			var stub = {
 				eventSource: null,
-				listeners: {},
+				listeners: [],
 				retryCount: 0,
-				open: function () {
+				open: function (url) {
 
-					// Guard ensures that EventSource is empty, or already closed.
+					// calculate default values for URL argument.
+					if (url == undefined) {
+						if ((stub.eventSource != null) && (stub.eventSource.url != undefined)) {
+							url = stub.eventSource.url
+						} else {
+							throw("no url defined for EventSource.")
+						}
+					}
+
+					// Guard multiple opens on the same EventSource
 					if (stub.eventSource != null) {
-						if (stub.eventSource.readyState != EventSource.CLOSED) {
+
+						// If we're opening a new URL, then close the old one first.
+						if (url != stub.eventSource.url) {
+							stub.eventSource.close()
+						} else if (stub.eventSource.readyState != EventSource.CLOSED) {	
+							// Otherwise, we already have the right connection open, so there's nothing left to do.
 							return;
 						}
 					}
-	
+
 					// Open the EventSource and get ready to populate event handlers
-					stub.eventSource = new EventSource(url.evaluate(), {withCredentials:withCredentials});
+					stub.eventSource = new EventSource(url, {withCredentials:withCredentials});
 	
 					// On successful connection.  Reset retry count.
 					stub.eventSource.addEventListener("open", function(event) {
@@ -79,18 +98,25 @@
 							window.setTimeout(stub.open, timeout);
 						}
 					})
-	
+
 					// Add event listeners
-					for (var key in stub.listeners) {
-						stub.eventSource.addEventListener(key, stub.listeners[key]);
+					for (var index=0 ; index < stub.listeners.length ; index++) {
+						var item = stub.listeners[index]
+						stub.eventSource.addEventListener(item.type, item.handler, item.options)
 					}
 				},
 				close: function() {
-					stub.eventSource.close();
+					if (stub.eventSource != undefined) {
+						stub.eventSource.close();
+					}
 					stub.retryCount = 0;
 				},
-				addEventListener: function(type, listener, options) {
-					return stub.eventSource.addEventListener(type, listener, options);
+				addEventListener: function(type, handler, options) {
+					stub.listeners.push({type:type, handler:handler, options:options});
+
+					if (stub.eventSource != null) {
+						stub.eventSource.addEventListener(type, handler, options);
+					}
 				}
 			}
 
@@ -126,13 +152,16 @@
 
 				// Save the event listener into the feature.  This lets us
 				// connect listeners to new EventSources if we have to reconnect.
-				stub.listeners[eventName] = makeListener(encoding, commandList);
+				stub.listeners.push({type:eventName, handler: makeHandler(encoding, commandList)})
 			}
 
 			tokens.requireToken("end");
 
-			// Connect to the remote server
-			stub.open();
+			// If we have a URL element, then connect to the remote server now.
+			// Otherwise, we can connect later with a call to .open()
+			if (urlElement != undefined) {
+				stub.open(urlElement.evaluate());
+			}
 
 			// Success!
 			return feature;
@@ -143,14 +172,14 @@
 			////////////////////////////////////////////
 
 			/**
-			 * Makes an eventListener funtion that can execute the correct hyperscript commands
+			 * Makes an eventHandler function that can execute the correct hyperscript commands
 			 * This is outside of the main loop so that closures don't cause us to run the wrong commands.
 			 * 
 			 * @param {string} encoding 
 			 * @param {*} commandList 
 			 * @returns {EventHandlerNonNull}
 			 */
-			function makeListener(encoding, commandList) {
+			function makeHandler(encoding, commandList) {
 				return function(evt) {
 					var data = decode(evt['data'], encoding);
 					var context = runtime.makeContext(stub, feature, stub);
@@ -197,10 +226,10 @@
 
 				commandList.next = {
 					type: "implicitReturn",
-					op: function (_context) {
+					op: function (/** @type {Context} */ _context) {
 						return runtime.HALT;
 					},
-					execute: function (_context) {
+					execute: function (/** @type {Context} */ _context) {
 						// do nothing
 					}
 				}
