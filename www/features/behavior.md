@@ -47,7 +47,7 @@ end
 
 and install it in your elements:
 
-```
+```html
 <div _="
   on click remove me
 ">Click to get rid of me</div>
@@ -64,7 +64,7 @@ So far, so good! Until you come across this:
 
 How do we implement this? We could create a new behavior, but we'd have to duplicate our highly sophisticated logic. Thankfully, behaviors can accept arguments:
 
-```
+```hyperscript
 behavior Removable(removeButton)
   on click from removeButton
     remove me
@@ -73,13 +73,13 @@ end
 ```
 
 ```html
-<div class="banner" _install Removable(removeButton: #close-banner)">
+<div class="banner" _="install Removable(removeButton: #close-banner)">
 ...
 ```
 
 This works well, but now our original div is broken. We can use an [`init block`](/features/init/) to set a default value for the parameter:
 
-```
+```hyperscript
 behavior Removable(removeButton)
   init
     if no removeButton set the removeButton to me
@@ -91,4 +91,4 @@ behavior Removable(removeButton)
 end
 ```
 
-Now our Removable™ innovation is reusable! For a more realistic example of a behavior, check out the Draggable behavior which creates a draggable window: [Draggable](https://gist.github.com/dz4k/6505fb82ae7fdb0a03e6f3e360931aa9)
+Now our Removable™ innovation is reusable! For a more realistic example of a behavior, check out the Draggable behavior which creates a draggable window: [Draggable.hs](https://gist.github.com/dz4k/6505fb82ae7fdb0a03e6f3e360931aa9)

@@ -523,6 +523,40 @@ during the execution of the body:
   end
 </script>
 
+### <a name="behaviors"></a>[Behaviors](#behaviors)
+
+
+Behaviors allow you to bundle together some hyperscript code (that would normally go in the _ attribute of an element) so that it can be "installed" on any other.
+
+```hyperscript
+behavior Removable
+  on click
+    remove me
+  end
+end
+```
+
+They can accept arguments:
+
+
+```hyperscript
+behavior Removable(removeButton)
+  on click from removeButton
+    remove me
+  end
+end
+```
+
+They can be installed as shown:
+
+
+```html
+<div class="banner" _="install Removable(removeButton: #close-banner)">
+  ...
+```
+
+For a better example of a behavior, check out [Draggable._hs](https://gist.github.com/dz4k/6505fb82ae7fdb0a03e6f3e360931aa9).
+
 ### <a name="workers"></a>[Web Workers](#workers)
 
 [WebWorkers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers) can be defined 
