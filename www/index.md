@@ -59,6 +59,26 @@ hyperscript is a companion project of [htmx](https://htmx.org) but note that bec
 
 Here are the examples above in demo form:
 
+<table class="demos" _="init
+	for row in (<tr/> in me)
+		get the <code/> in the row
+		put `<td>$it</td>` before the <td/> in the row
+	end
+	call _hyperscript.processNode(me)">
+<tr><td>
+
+
+```html
+<div style="width: 100; height: 100" _="on pointermove(clientX, clientY) 
+	add {
+		background-color: `hsl(clientX, clientY, 1)`
+	} to me"></div>
+```
+
+<tr><td>
+
+</table>
+
 <div class="row">
     <div class="4 col">
         <style>
