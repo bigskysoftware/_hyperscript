@@ -1519,7 +1519,7 @@
                  * @param {*} event 
                  * @returns {Context}
                  */
-                function makeContext(owner, feature, hyperscriptTarget, event) {
+                function makeContext(owner, feature, hyperscriptTarget, event, extras) {
 
                     /** @type {Context} */
                     var ctx = {
@@ -1539,6 +1539,7 @@
                     }
                     ctx.meta.ctx = ctx;
                     addFeatures(owner, ctx);
+                    if (typeof extras === 'object') mergeObjects(ctx, extras)
                     return ctx;
                 }
 
@@ -2362,15 +2363,17 @@
                         if (urRoot.type !== 'symbol' && urRoot.type !== 'attributeRef') {
                             parser.raiseParseError(tokens, "Cannot take a property of a non-symbol: " + urRoot.type);
                         }
+                        var attribute = urRoot.type === 'attributeRef';
                         var prop = urRoot.name;
                         var propertyAccess = {
                             type: "ofExpression",
                             prop: urRoot.token,
                             root: newRoot,
+                            attribute: attribute,
                             expression: root,
                             args: [newRoot],
                             op:function(context, rootVal){
-                                return runtime.resolveProperty(rootVal, prop);
+                                return runtime.resolveProperty(rootVal, prop, attribute);
                             },
                             evaluate: function (context) {
                                 return runtime.unifiedEval(this, context);
@@ -2548,11 +2551,11 @@
                             attribute: attribute,
                             args: [root],
                             op: function(_ctx, rootVal) {
-                                var value = runtime.resolveProperty(rootVal, attribute.value, true);
+                                var value = runtime.resolveProperty(rootVal, attribute.name, true);
                                 return value;
                             },
                             evaluate: function(context){
-                                return _runtime.unifiedEval(this, root);
+                                return _runtime.unifiedEval(this, context);
                             }
                         };
                         return attributeAccess;
@@ -2603,7 +2606,7 @@
                                 }
                             },
                             evaluate: function(context){
-                                return _runtime.unifiedEval(this, context, firstIndex, secondIndex);
+                                return _runtime.unifiedEval(this, context);
                             }
                         };
 
@@ -2978,10 +2981,10 @@
                     return {
                         type: "hyperscript",
                         features: features,
-                        apply: function (target, source) {
+                        apply: function (target, source, args) {
                             // no op
                             _runtime.forEach(features, function(feature){
-                                feature.install(target, source);
+                                feature.install(target, source, args);
                             })
                         }
                     };
@@ -3239,7 +3242,7 @@
                                 }
                                 start.execute(ctx);
                             },
-                            install: function (elt, source) {
+                            install: function (elt, source, args) {
                                 runtime.forEach(onFeature.events, function(eventSpec) {
                                     var targets;
                                     if (eventSpec.elsewhere) {
@@ -3405,10 +3408,10 @@
                             start: start,
                             errorHandler: errorHandler,
                             errorSymbol: errorSymbol,
-                            install: function (target, source) {
+                            install: function (target, source, installArgs) {
                                 var func = function () {
                                     // null, worker
-                                    var ctx = runtime.makeContext(source, functionFeature, target, null);
+                                    var ctx = runtime.makeContext(source, functionFeature, target, null, installArgs);
 
                                     // install error handler if any
                                     ctx.meta.errorHandler = errorHandler;
@@ -3489,9 +3492,9 @@
                         var start = parser.parseElement("commandList", tokens);
                         var initFeature = {
                             start: start,
-                            install: function (target, source) {
+                            install: function (target, source, args) {
                                 setTimeout(function () {
-                                    start.execute(runtime.makeContext(target, this, target));
+                                    start.execute(runtime.makeContext(target, this, target, null, args));
                                 }, 0);
                             }
                         };
@@ -3535,13 +3538,27 @@
                 	var path = parser.parseElement("dotOrColonPath", tokens).evaluate();
                 	var nameSpace = path.split(".");
                 	var name = nameSpace.pop();
+
+					var formalParams = [];
+                	if (tokens.matchOpToken("(") && !tokens.matchOpToken(")")) {
+                        do {
+	                    	formalParams.push(tokens.requireTokenType('IDENTIFIER').value);
+	                    } while (tokens.matchOpToken(","))
+	                    tokens.requireOpToken(')')
+  	                }
                 	var hs = parser.parseElement("hyperscript", tokens);
 
                 	return {
-                		install: function (target, source) {
+                		install: function (target, source, outerArgs) {
                 			runtime.assignToNamespace(
                 				globalScope.document && globalScope.document.body, 
-                				nameSpace, name, hs.apply.bind(hs))
+                				nameSpace, name, function (target, source, innerArgs) {
+                					var args = mergeObjects({}, outerArgs);
+                					for (var i = 0; i < formalParams.length; i++) {
+                						args[formalParams[i]] = innerArgs[formalParams[i]]
+                					}
+                					hs.apply(target, source, args);
+                				})
                 		}
                 	}
                 })
@@ -3550,21 +3567,29 @@
                 	if (!tokens.matchToken("install")) return;
                 	var behaviorPath = parser.requireElement("dotOrColonPath", tokens).evaluate()
                 	var behaviorNamespace = behaviorPath.split(".");
-                	return {
+                	var args = parser.parseElement("namedArgumentList", tokens);
+
+                	var installFeature;
+                	return installFeature = {
                 		install: function (target, source) {
-                			var behavior = globalScope;
-                			for (var i = 0; i < behaviorNamespace.length; i++) {
-                				behavior = behavior[behaviorNamespace[i]];
-                				if (typeof behavior !== "object" && typeof behavior !== "function") throw new Error(
-                					"No such behavior defined as " + behaviorPath
-                				);
-                			}
+                			runtime.unifiedEval({
+								args: [args],
+                				op: function (ctx, args) {
+                					var behavior = globalScope;
+		                			for (var i = 0; i < behaviorNamespace.length; i++) {
+		                				behavior = behavior[behaviorNamespace[i]];
+		                				if (typeof behavior !== "object" && typeof behavior !== "function") throw new Error(
+		                					"No such behavior defined as " + behaviorPath
+		                				);
+		                			}
 
-                			if (!(behavior instanceof Function)) throw new Error(
-                				behaviorPath + " is not a behavior"
-                			);
+		                			if (!(behavior instanceof Function)) throw new Error(
+		                				behaviorPath + " is not a behavior"
+		                			);
 
-                			behavior(target, source);
+		                			behavior(target, source, args);
+		                		}
+		                	}, runtime.makeContext(target, installFeature, target))
                 		}
                 	}
                 })
@@ -5378,19 +5403,36 @@
             if (tokens.matchToken('parent')) {
                 var parentSearch = true;
             }
-            var expr = parser.parseElement("targetExpression", tokens);
-            if (expr.css == null) {
-                parser.raiseParseError(tokens, "Expected a CSS expression");
+
+            var css = null;
+            if (tokens.currentToken().type === "ATTRIBUTE_REF") {
+                var attrRef = tokens.currentToken().value;
+                if (attrRef.indexOf('@') === 0) {
+                    var attributeName = attrRef.substring(1);
+                    css = '[' + attributeName + ']';
+                }
             }
+
+            if(css == null){
+                var expr = parser.parseElement("targetExpression", tokens);
+                if (expr.css == null) {
+                    parser.raiseParseError(tokens, "Expected a CSS expression");
+                } else {
+                    css = expr.css
+                }
+            }
+
             if (tokens.matchToken('to')) {
                 var to = parser.parseElement("targetExpression", tokens);
             } else {
                 var to = parser.parseElement("implicitMeTarget", tokens);
             }
+
             return {
                 type: 'closestExpr',
                 parentSearch: parentSearch,
                 expr: expr,
+                css:css,
                 to: to,
                 args: [to],
                 op: function (ctx, to) {
@@ -5398,16 +5440,17 @@
                         return null;
                     } else {
                         if (parentSearch) {
-                            return to.parentElement ? to.parentElement.closest(expr.css) : null;
+                            var node = to.parentElement ? to.parentElement.closest(css) : null;
                         } else {
-                            return to.closest(expr.css);
+                            var node = to.closest(css);
                         }
+                        return node;
                     }
                 },
                 evaluate: function (context) {
                     return runtime.unifiedEval(this, context);
                 }
-            }
+            };
         }
     });
 
@@ -6008,12 +6051,16 @@
  * 
  * @typedef {object} EventSourceStub
  * @property {EventSource} eventSource
- * @property {Object.<string, EventHandlerNonNull>} listeners
+ * @property {EventListenerEntry[]} listeners
  * @property {number} retryCount
- * @property {() => void} open
+ * @property {(url?:string) => void} open
  * @property {() => void} close
  * @property {(type: keyof HTMLElementEventMap, listener:(event: Event) => any, options?: boolean | AddEventListenerOptions) => void} addEventListener
- * 
+ *
+ * @typedef {object} EventListenerEntry
+ * @property {string} type
+ * @property {EventHandlerNonNull} handler
+ * @property {*=} options
  */
 
 (function () {
@@ -6022,42 +6069,57 @@
 
 		if (tokens.matchToken('eventsource')) {
 
-			// Get the name we'll assign to this EventSource in the hyperscript context
+			var urlElement;
+			var withCredentials = false;
 
+			// Get the name we'll assign to this EventSource in the hyperscript context
 			/** @type {string} */ 
 			var name = parser.requireElement("dotOrColonPath", tokens).evaluate();
-
 			var nameSpace = name.split(".");
 			var eventSourceName = nameSpace.pop();
 
 			// Get the URL of the EventSource
-			var url = parser.requireElement("stringLike", tokens);
+			if (tokens.matchToken("from")) {
+				urlElement = parser.requireElement("stringLike", tokens);
+			}
 
 			// Get option to connect with/without credentials
-			var withCredentials = false;
-
 			if (tokens.matchToken("with")) {
 				if (tokens.matchToken("credentials")) {
 					withCredentials = true;
 				}
 			}
 
-			/** @type EventSourceStub */
+			/** @type {EventSourceStub} */
 			var stub = {
 				eventSource: null,
-				listeners: {},
+				listeners: [],
 				retryCount: 0,
-				open: function () {
+				open: function (url) {
 
-					// Guard ensures that EventSource is empty, or already closed.
+					// calculate default values for URL argument.
+					if (url == undefined) {
+						if ((stub.eventSource != null) && (stub.eventSource.url != undefined)) {
+							url = stub.eventSource.url
+						} else {
+							throw("no url defined for EventSource.")
+						}
+					}
+
+					// Guard multiple opens on the same EventSource
 					if (stub.eventSource != null) {
-						if (stub.eventSource.readyState != EventSource.CLOSED) {
+
+						// If we're opening a new URL, then close the old one first.
+						if (url != stub.eventSource.url) {
+							stub.eventSource.close()
+						} else if (stub.eventSource.readyState != EventSource.CLOSED) {	
+							// Otherwise, we already have the right connection open, so there's nothing left to do.
 							return;
 						}
 					}
-	
+
 					// Open the EventSource and get ready to populate event handlers
-					stub.eventSource = new EventSource(url.evaluate(), {withCredentials:withCredentials});
+					stub.eventSource = new EventSource(url, {withCredentials:withCredentials});
 	
 					// On successful connection.  Reset retry count.
 					stub.eventSource.addEventListener("open", function(event) {
@@ -6074,18 +6136,25 @@
 							window.setTimeout(stub.open, timeout);
 						}
 					})
-	
+
 					// Add event listeners
-					for (var key in stub.listeners) {
-						stub.eventSource.addEventListener(key, stub.listeners[key]);
+					for (var index=0 ; index < stub.listeners.length ; index++) {
+						var item = stub.listeners[index]
+						stub.eventSource.addEventListener(item.type, item.handler, item.options)
 					}
 				},
 				close: function() {
-					stub.eventSource.close();
+					if (stub.eventSource != undefined) {
+						stub.eventSource.close();
+					}
 					stub.retryCount = 0;
 				},
-				addEventListener: function(type, listener, options) {
-					return stub.eventSource.addEventListener(type, listener, options);
+				addEventListener: function(type, handler, options) {
+					stub.listeners.push({type:type, handler:handler, options:options});
+
+					if (stub.eventSource != null) {
+						stub.eventSource.addEventListener(type, handler, options);
+					}
 				}
 			}
 
@@ -6121,13 +6190,16 @@
 
 				// Save the event listener into the feature.  This lets us
 				// connect listeners to new EventSources if we have to reconnect.
-				stub.listeners[eventName] = makeListener(encoding, commandList);
+				stub.listeners.push({type:eventName, handler: makeHandler(encoding, commandList)})
 			}
 
 			tokens.requireToken("end");
 
-			// Connect to the remote server
-			stub.open();
+			// If we have a URL element, then connect to the remote server now.
+			// Otherwise, we can connect later with a call to .open()
+			if (urlElement != undefined) {
+				stub.open(urlElement.evaluate());
+			}
 
 			// Success!
 			return feature;
@@ -6138,14 +6210,14 @@
 			////////////////////////////////////////////
 
 			/**
-			 * Makes an eventListener funtion that can execute the correct hyperscript commands
+			 * Makes an eventHandler function that can execute the correct hyperscript commands
 			 * This is outside of the main loop so that closures don't cause us to run the wrong commands.
 			 * 
 			 * @param {string} encoding 
 			 * @param {*} commandList 
 			 * @returns {EventHandlerNonNull}
 			 */
-			function makeListener(encoding, commandList) {
+			function makeHandler(encoding, commandList) {
 				return function(evt) {
 					var data = decode(evt['data'], encoding);
 					var context = runtime.makeContext(stub, feature, stub);
@@ -6192,10 +6264,10 @@
 
 				commandList.next = {
 					type: "implicitReturn",
-					op: function (_context) {
+					op: function (/** @type {Context} */ _context) {
 						return runtime.HALT;
 					},
-					execute: function (_context) {
+					execute: function (/** @type {Context} */ _context) {
 						// do nothing
 					}
 				}
