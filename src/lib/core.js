@@ -326,6 +326,9 @@
                      * @returns {Token | void}
                      */
                     function matchToken(value, type) {
+                        if (follows.indexOf(value) !== -1) {
+                            return; // disallowed token here
+                        }
                         var type = type || "IDENTIFIER";
                         if (currentToken() && currentToken().value === value && currentToken().type === type) {
                             return consumeToken();
@@ -445,8 +448,32 @@
                             .split("\n")[this.startToken.line - 1];
                     }
 
+                    var follows = [];
+
+                     function pushFollow(str) {
+                         follows.push(str);
+                     }
+
+                     function popFollow() {
+                         follows.pop();
+                     }
+
+                     function clearFollows() {
+                         var tmp = follows;
+                         follows = [];
+                         return tmp;
+                     }
+
+                     function restoreFollows(f) {
+                         follows = f;
+                     }
+
                     /** @type {TokensObject} */
                     return {
+                        pushFollow: pushFollow,
+                        popFollow: popFollow,
+                        clearFollow: clearFollows,
+                        restoreFollow: restoreFollows,
                         matchAnyToken: matchAnyToken,
                         matchAnyOpToken: matchAnyOpToken,
                         matchOpToken: matchOpToken,
@@ -1033,9 +1060,9 @@
                     var currentToken = tokens.currentToken();
                     var source = tokens.source;
                     var lines = source.split("\n");
-                    var line = currentToken ? currentToken.line - 1 : lines.length - 1;
+                    var line = (currentToken && currentToken.line) ? currentToken.line - 1 : lines.length - 1;
                     var contextLine = lines[line];
-                    var offset = currentToken ? currentToken.column : contextLine.length - 1;
+                    var offset = (currentToken && currentToken.line) ? currentToken.column : contextLine.length - 1;
                     return contextLine + "\n" + " ".repeat(offset) + "^^\n\n";
                 }
 
@@ -1918,15 +1945,14 @@
             {
                 _parser.addLeafExpression("parenthesized", function(parser, _runtime, tokens) {
                     if (tokens.matchOpToken('(')) {
-                        var expr = parser.requireElement("expression", tokens);
-                        tokens.requireOpToken(")");
-                        return {
-                            type: "parenthesized",
-                            expr: expr,
-                            evaluate: function (context) {
-                                return expr.evaluate(context); //OK
-                            }
+                        var follows = tokens.clearFollow();
+                        try {
+                            var expr = parser.requireElement("expression", tokens);
+                        } finally {
+                            tokens.restoreFollow(follows);
                         }
+                        tokens.requireOpToken(")");
+                        return expr;
                     }
                 })
 
@@ -2962,7 +2988,7 @@
                         expr.type === "attributeRef" || expr.type === "possessive") {
                         return expr;
                     } else {
-                        _parser.raiseParseError(tokens, "A target expression must be writable : " + expr.type);
+                        _parser.raiseParseError(tokens, "A target expression must be writable.  The expression type '" + expr.type + "' is not.");
                     }
                     return expr;
                 });
@@ -4183,7 +4209,12 @@
 							}
 						}
 
-                        var target = parser.requireElement("targetExpression", tokens);
+                        try {
+                            tokens.pushFollow("to");
+                            var target = parser.requireElement("targetExpression", tokens);
+                        } finally {
+                            tokens.popFollow();
+                        }
                         tokens.requireToken("to");
                         var value = parser.requireElement("expression", tokens);
                         return makeSetter(parser, runtime, tokens, target, value);
