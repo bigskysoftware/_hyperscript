@@ -114,6 +114,42 @@ be handled as a normal event:
 </div>
 ```
 
+#### <a name="mutation"></a>[Mutation Events](#mutation)
+
+Hyperscript includes a few synthetic events that make use of more complex APIs.  For example, you can listen for 
+mutations on an element with the `on mutation` form.  This will use the [Mutation Observer](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver)
+API, but will act more like a regular event handler.
+
+```html
+  <div _='on mutation of @foo put "Mutated" into me'></div>
+```
+
+This div will listen for mutations of the `foo` attribute on this div and, when one occurs, will put the value
+"Mutated" into the element.
+
+#### <a name="intersection"></a>[Intersection Events](#intersection)
+
+Another synthetic event is the `intersection` event that uses the  [Intersection Observer](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API)
+API.  Again, hyperscript makes this API feel more event-driven:
+
+```html
+<img _="on intersection(intersecting) having threshold 0.5
+         if intersecting transition opacity to 1
+         else transition opacity to 0 "
+     src="https://placebear.com/200/300"/>
+```
+
+This image will become visible when 50% or more of it has scrolled into view.  Note that the `intersecting` property
+is destructured into a local symbol, and the `having threshold` modifier is used to specify that 50% of the image
+must be showing.
+
+Here is a demo:
+
+<img _="on intersection(intersecting) having threshold 0.5
+         if intersecting transition opacity to 1
+         else transition opacity to 0 "
+     src="https://placebear.com/200/300"/>
+
 ### Examples
 
 ```html

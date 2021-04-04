@@ -4,9 +4,11 @@
 | [append](/commands/append) | Appends a value to a string, array or HTML Element | `append "value" to myString`
 | [async](/commands/async) | Runs commands asynchronously | `async fetch /example`
 | [call/get](/commands/call) | Evaluates an expression (e.g. a Javascript Function) | `call alert('yep, you can call javascript!)` <br/><br/> `get prompt('Enter your name')`
+| [decrement](/commands/decrement) | Subtracts a value to a variable, property, or attribute | `decrement counter`
 | [fetch](/commands/fetch) | Send a fetch request | `fetch /demo then put it into my.innerHTML`
 | [hide](/commands/hide) | Hide an element in the DOM | `hide me`
 | [if](/commands/if) | A conditional control flow command | `if me.selected then call alert('I\'m selected!')`
+| [increment](/commands/increment) | Adds a value to a variable, property, or attribute | `increment counter`
 | [js](/commands/js) | Embeds javascript | `js alert('this is javascript'); end`
 | [log](/commands/log) | Logs a given expression to the console, if possible | `log me`
 | [put](/commands/put) | Puts a value into a given variable or property| `put "cool!" into me.innerHTML`

@@ -58,9 +58,30 @@ describe("_hyperscript regressions", function() {
         var div = make("<div>" +
             "<div id='d1' _='on click from closest parent <div/> put \"Foo\" into me'></div>" +
             "</div>");
+        var d1 = byId("d1");
         d1.innerHTML.should.equal("");
         div.click();
         d1.innerHTML.should.equal("Foo");
+    })
+
+    it("attributes can be looked up and referred to in same expression", function(){
+        var div = make("<div foo='bar'>" +
+            "<div id='d1' _='on click put closest @foo into me'></div>" +
+            "</div>");
+        var d1 = byId("d1");
+        d1.innerHTML.should.equal("");
+        d1.click();
+        d1.innerHTML.should.equal("bar");
+    })
+
+    it("attributes can be set via the closest expression", function(){
+        var div = make("<div foo='bar'>" +
+            "<div id='d1' _='on click set closest @foo to \"doh\"'></div>" +
+            "</div>");
+        var d1 = byId("d1");
+        div.getAttribute('foo').should.equal('bar')
+        d1.click();
+        div.getAttribute('foo').should.equal('doh')
     })
 
 });

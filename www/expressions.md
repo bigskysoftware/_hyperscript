@@ -58,7 +58,7 @@ Let's start with CSS literals.
 Hyperscript gives you the ability to embed CSS literals directly in your code to select elements.  There are four
 main expression types:
 
-### ID Literals
+### <a name="id-literals">[ID Literals](#id-literals)
 
 You can refer to an element by ID directly in hyperscript as follows:
 
@@ -70,7 +70,7 @@ You can refer to an element by ID directly in hyperscript as follows:
 The `#example` is an ID literal and will evaluate to the element with the given id.  Here we put some text into its
 `innerHTML` when the top div is clicked.
 
-### Class Literals
+### <a name="class-literals">[Class Literals](#class-literals)
 
 You can refer to a group of elements by class directly in hyperscript as follows:
 
@@ -84,9 +84,9 @@ The `#example` is an ID literal and will evaluate all the elements with the clas
 text into their `innerHTML` when the top div is clicked.  Note that the [put command](/commands/put) can work with
 collections as well as single values, so it can put the given value into all the returned elements.
 
-### Query Literals
+### <a name="queries"/>[Query Literals](#queries)
 
-Finally can refer to a group of elements by an arbitrary [CSS selector](https://www.w3schools.com/cssref/css_selectors.asp)
+You can refer to a group of elements by an arbitrary [CSS selector](https://www.w3schools.com/cssref/css_selectors.asp)
  by enclosing the selector in a `<` and `/>`:
 
 ```html
@@ -104,6 +104,41 @@ This example will put "Clicked" into every div on the page!
 ```
 
 This example will put "Clicked" into every div that does not have the `example` class on it.
+
+### <a name="attributes">[Attribute Literals](#attributes)
+
+Finally, you can refer to an attribute with two syntaxes:
+
+```html
+<div foo="bar" _="on click put @foo into me">Click Me</div>
+<div _="on click toggle [@foo='bar'] into me">Click Me</div>
+```
+
+The short syntax, `@<attribute name>` can be used to get or set attribute values, and may be chained with
+possessives:
+
+```hyperscript
+for anchor in <a/>
+  log the anchor's @href
+end
+```
+
+or with non-possessive property chains:
+
+```hyperscript
+for anchor in <a/>
+  log anchor@href
+end
+```
+
+The longer syntax, surrounding the `@<attribute-name>` with square brackets, may be used for queries that require a 
+value, or for commands like `toggle` or `add` that require a value
+
+```hyperscript
+for anchor in [@href]
+  log anchor@href
+end
+```
 
 ### In Expressions
 
@@ -324,8 +359,30 @@ Can be rewritten like this:
 The [`closest`](/expressions/closest) expression allows you to find the closest match of a CSS selector
 
 ```html
-<%!-- logs the closest section ot the div -->
+<%!-- logs the closest section to the div -->
 <div _="on click log the closest <section/>">
+  ...
+</div>
+```
+
+If you pass an attribute literal to the closest expression, it will evaluate to the value of that attribute on the
+closest element that has it:
+
+```html
+<%!-- logs the data-example attribute's value from the body tag -->
+<body data-example="An example attribute">
+    <div _="on click log the closest @data-example">
+      ...
+    </div>
+</body>
+```
+
+You can use the `parent` modifier in the closest expression to begin the search from the parent element of the current
+element:
+
+```html
+<%!-- logs the closest parent div to this div -->
+<div _="on click log the closest parent <div/>">
   ...
 </div>
 ```
