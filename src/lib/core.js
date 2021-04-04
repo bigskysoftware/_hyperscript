@@ -3284,7 +3284,7 @@
                                         }
 
                                         target.addEventListener(eventName, function (evt) { // OK NO PROMISE
-                                            var ctx = runtime.makeContext(elt, onFeature, elt, evt);
+                                            var ctx = runtime.makeContext(elt, onFeature, elt, evt, args);
                                             if (eventSpec.elsewhere && elt.contains(evt.target)) {
                                                 return
                                             }
