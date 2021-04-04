@@ -2555,7 +2555,7 @@
                                 return value;
                             },
                             evaluate: function(context){
-                                return _runtime.unifiedEval(this, root);
+                                return _runtime.unifiedEval(this, context);
                             }
                         };
                         return attributeAccess;
@@ -2606,7 +2606,7 @@
                                 }
                             },
                             evaluate: function(context){
-                                return _runtime.unifiedEval(this, context, firstIndex, secondIndex);
+                                return _runtime.unifiedEval(this, context);
                             }
                         };
 

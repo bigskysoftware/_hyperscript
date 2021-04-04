@@ -764,23 +764,36 @@
             if (tokens.matchToken('parent')) {
                 var parentSearch = true;
             }
-            var expr = parser.parseElement("targetExpression", tokens);
-            if (expr.css == null) {
-                parser.raiseParseError(tokens, "Expected a CSS expression");
+
+            var css = null;
+            if (tokens.currentToken().type === "ATTRIBUTE_REF") {
+                var attrRef = tokens.currentToken().value;
+                if (attrRef.indexOf('@') === 0) {
+                    var attributeName = attrRef.substring(1);
+                    css = '[' + attributeName + ']';
+                }
             }
+
+            if(css == null){
+                var expr = parser.parseElement("targetExpression", tokens);
+                if (expr.css == null) {
+                    parser.raiseParseError(tokens, "Expected a CSS expression");
+                } else {
+                    css = expr.css
+                }
+            }
+
             if (tokens.matchToken('to')) {
                 var to = parser.parseElement("targetExpression", tokens);
             } else {
                 var to = parser.parseElement("implicitMeTarget", tokens);
             }
-            if (expr.type === "attributeRef") {
-                var attributeName = expr.name;
-            }
+
             return {
                 type: 'closestExpr',
                 parentSearch: parentSearch,
                 expr: expr,
-                attributeName: attributeName,
+                css:css,
                 to: to,
                 args: [to],
                 op: function (ctx, to) {
@@ -788,17 +801,11 @@
                         return null;
                     } else {
                         if (parentSearch) {
-                            var node = to.parentElement ? to.parentElement.closest(expr.css) : null;
+                            var node = to.parentElement ? to.parentElement.closest(css) : null;
                         } else {
-                            var node = to.closest(expr.css);
+                            var node = to.closest(css);
                         }
-                        if (attributeName) {
-                            if(node){
-                                return node.getAttribute(attributeName);
-                            }
-                        } else {
-                            return node;
-                        }
+                        return node;
                     }
                 },
                 evaluate: function (context) {
