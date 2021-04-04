@@ -767,11 +767,8 @@
 
             var css = null;
             if (tokens.currentToken().type === "ATTRIBUTE_REF") {
-                var attrRef = tokens.currentToken().value;
-                if (attrRef.indexOf('@') === 0) {
-                    var attributeName = attrRef.substring(1);
-                    css = '[' + attributeName + ']';
-                }
+                var attributeRef = parser.parseElement("attributeRefAccess", tokens, null);
+                css = '[' + attributeRef.attribute.name + ']';
             }
 
             if(css == null){
@@ -789,7 +786,7 @@
                 var to = parser.parseElement("implicitMeTarget", tokens);
             }
 
-            return {
+            var closestExpr = {
                 type: 'closestExpr',
                 parentSearch: parentSearch,
                 expr: expr,
@@ -812,6 +809,14 @@
                     return runtime.unifiedEval(this, context);
                 }
             };
+
+            if(attributeRef) {
+                attributeRef.root = closestExpr;
+                attributeRef.args = [closestExpr];
+                return attributeRef;
+            } else {
+                return closestExpr;
+            }
         }
     });
 

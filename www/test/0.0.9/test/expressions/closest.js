@@ -52,4 +52,47 @@ describe("the closest expression", function () {
         result.should.equal('bar');
     });
 
+
+    it("attributes can be looked up and referred to in same expression", function(){
+        var div = make("<div foo='bar'>" +
+            "<div id='d1' _='on click put closest @foo into me'></div>" +
+            "</div>");
+        var d1 = byId("d1");
+        d1.innerHTML.should.equal("");
+        d1.click();
+        d1.innerHTML.should.equal("bar");
+    })
+
+    it("attributes can be set via the closest expression", function(){
+        var div = make("<div foo='bar'>" +
+            "<div id='d1' _='on click set closest @foo to \"doh\"'></div>" +
+            "</div>");
+        var d1 = byId("d1");
+        div.getAttribute('foo').should.equal('bar')
+        d1.click();
+        div.getAttribute('foo').should.equal('doh')
+    })
+
+    it("parenthesizing allows you to nest to modifiers properly", function(){
+        var div = make("<div foo='bar'>" +
+            "<div id='d1'></div>" +
+            "</div>");
+        var div2 = make("<div _='on click set (closest @foo to #d1) to \"doh\"'></div>")
+        div.getAttribute('foo').should.equal('bar')
+        div2.click();
+        div.getAttribute('foo').should.equal('doh')
+    })
+
+    it("attributes can be set via the closest expression", function(){
+        var div = make("<div foo='bar'>" +
+            "<div id='d1' _='on click set closest @foo to \"doh\"'></div>" +
+            "</div>");
+        var d1 = byId("d1");
+        div.getAttribute('foo').should.equal('bar')
+        d1.click();
+        div.getAttribute('foo').should.equal('doh')
+    })
+
+
+
 });
