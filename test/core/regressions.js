@@ -84,4 +84,14 @@ describe("_hyperscript regressions", function() {
         div.getAttribute('foo').should.equal('doh')
     })
 
+    it("attributes can be put via the closest expression", function(){
+        var div = make("<div foo='bar'>" +
+            "<div id='d1' _='on click put \"doh\" into closest @foo'></div>" +
+            "</div>");
+        var d1 = byId("d1");
+        div.getAttribute('foo').should.equal('bar')
+        d1.click();
+        div.getAttribute('foo').should.equal('doh')
+    })
+
 });
