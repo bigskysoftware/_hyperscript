@@ -561,7 +561,7 @@ For a better example of a behavior, check out [Draggable._hs](https://gist.githu
 ### <a name="workers"></a>[Web Workers](#workers)
 
 [WebWorkers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers) can be defined 
-inline in hyperscript by using the [`worker` keyworld](/features/worker).
+inline in hyperscript by using the [`worker` keyword](/features/worker).
 
 The worker does not share a namespace with other code, it is in it's own isolated sandbox.  However, you may interact
 with the worker via function calls, passing data back and forth in the normal manner.
@@ -582,7 +582,7 @@ with the worker via function calls, passing data back and forth in the normal ma
 This makes it very easy to define and work with web workers.
 
 Note that you can use the inline js feature discussed next if you want to use javascript in your worker.  You might
-want to do this if you need better performance on caculations than hyperscript provides, for example.
+want to do this if you need better performance on calculations than hyperscript provides, for example.
 
 ### <a name="sockets"></a>[Web Sockets](#sockets)
 
@@ -682,7 +682,7 @@ Below is a table of all commands available by default in the hyperscript languag
 
 {% include commands_table.md %}
 
-Below we will discuss some of the more commonly used commands
+Below, we will discuss some of the more commonly used commands.
 
 ### <a name="add"></a>[Add](#add)
 
@@ -706,7 +706,7 @@ You can add a class to multiple elements by using a class reference instead:
 </button>
 ```
 
-If you omit a target, the default will be the current element
+If you omit a target, the default will be the current element.
 
 ```html
 <!-- adds the .clicked class to the button -->
@@ -728,7 +728,7 @@ Here are some examples:
 </button>
 ```
 
-You can remove a class to multiple elements by using a class reference instead:
+You can remove a class from multiple elements by using a class reference instead:
 
 ```html
 <!-- removes the .blocked class from all elements with the .example class on them -->
@@ -737,7 +737,7 @@ You can remove a class to multiple elements by using a class reference instead:
 </button>
 ```
 
-If you omit a target, the default will be the current element
+If you omit a target, the default will be the current element.
 
 ```html
 <!-- removes the .blocked class from the button -->
@@ -934,10 +934,10 @@ Here is an examples that centralizes logic to remove an element:
 
 ### <a name="take"></a>[Take](#take)
 
-The [take command](/commands/trigger) takes a class from another set of elements.  This can be used to represent an 
+The [take command](/commands/take) takes a class from another set of elements.  This can be used to represent an 
 active element in a tabbed UI, for example.
 
-Here is an example on a parent element that takes the class `.active` and assigns it to the clicked anchor.
+Here is an example on a parent element that takes the class `.active` and assigns it to the clicked anchor:
 ```html
 <div _="on click take .active from .tab for event.target">
     <a class="tab active">Tab 1</a>
@@ -981,14 +981,14 @@ You can choose the one that reads more clearly for your use case.
 
 The [put command](/commands/put) puts a value somewhere, either into the DOM, or into a variable or into a property.
 
-Here is a basic example putting 'Clicked' into the divs innerHTML
+Here is a basic example putting 'Clicked' into the divs innerHTML:
 ```html
 <div _="on click put 'Clicked!' into my.innerHTML">
   Click Me
 </div>
 ```
 
-Here is an example putting 'Clicked' *after* the button.  Additional clicks will keep adding "Clicked"
+Here is an example putting 'Clicked' *after* the button: (Additional clicks will keep adding "Clicked")
 ```html
 <div _="on click put 'Clicked!' after me">
   Click Me
@@ -1033,7 +1033,7 @@ The [if command](/commands/if) allows for conditional execution and works in the
       return "The value is negative"
     else
       return "The value is non-negative"
-    ebd
+    end
   end
 </script>
 ```
@@ -1209,9 +1209,9 @@ Array and object literals work the same as in javascript:
   set x to {arr:[1, 2, 3]}
 ```
 
-### Things Different from Javascript
+### Things Different from JavaScript
 
-While some expressions work the same as javascript, many things are different.  Here are some of the bigger 
+While some expressions work the same as JavaScript, many things are different.  Here are some of the bigger 
 differences:
 
 #### Closures
