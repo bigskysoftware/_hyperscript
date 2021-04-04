@@ -2551,7 +2551,7 @@
                             attribute: attribute,
                             args: [root],
                             op: function(_ctx, rootVal) {
-                                var value = runtime.resolveProperty(rootVal, attribute.value, true);
+                                var value = runtime.resolveProperty(rootVal, attribute.name, true);
                                 return value;
                             },
                             evaluate: function(context){
