@@ -14,6 +14,8 @@ I'm pleased to announce the [0.0.9 release](https://unpkg.com/browse/hyperscript
 * **BREAKING CHANGE**: [Attribute literals](/expressions#attributes) now use the syntax `[@attribute-name]` or `@attribute-name` rather than
   `[attribute-name]`
 
+* **BREAKING CHANGE**: The [eventsource feature](/features/event-source) now uses the syntax `eventsource <name> [from <url>]` so that URLs can be optionally omitted from the EventSource definition.
+
 * The [append command](/commands/append) allows you to append values to strings, arrays and so forth
 
 * The [behavior](/features/behavior) and [install](/features/behavior) features allow you to define generic

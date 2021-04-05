@@ -49,9 +49,7 @@ end
 and install it in your elements:
 
 ```html
-<div _="
-  on click remove me
-">Click to get rid of me</div>
+<div _="install Removable">Click to get rid of me</div>
 ```
 
 So far, so good! Until you come across this:
