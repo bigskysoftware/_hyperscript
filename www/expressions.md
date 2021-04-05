@@ -186,9 +186,7 @@ following forms:
 
 ## <a name="strings"></a>[Strings](#strings)
 
-Strings are similar to javascript, and can start with `"` or `'`.  The big difference is that you can use `$` for 
-expression interpolation in regular strings.  Hyperscript does not support the backtic template syntax from javascript
-because interpolation works with normal strings.
+Strings are similar to javascript, and can start with `"` or `'`. 
 
 ```html
 <div _="on click set world to 'hyperscript' put 'Hello $world' into my.innerHTML">
@@ -206,6 +204,14 @@ the [fetch command](/commands/fetch), which can take a URL as a naked string:
 ```
 
 Here the `/example` element is an example of a naked string.  Naked strings are ended by whitespace.
+
+Javascript string templates are supported by using the same syntax, enclosing backtics:
+
+```html
+<button _="on click fetch /example then put `result: ${the result}` into my.innerHTML">
+    Fetch It!
+</button>
+```
 
 ## <a name="possessives"></a>[Possessive Expressions](#possessives)
 
