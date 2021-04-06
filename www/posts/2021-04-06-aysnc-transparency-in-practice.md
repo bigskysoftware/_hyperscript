@@ -25,7 +25,7 @@ The author creates three asynchronous functions:
   * one to get all countries that use a given currency
   * one to call both those functions and create a user-facing message 
 
-```ecmascript 6
+```javascript
 
 const getExchangeRate = async (fromCurrency, toCurrency) => {
   try {
@@ -56,7 +56,7 @@ const convert = async (fromCurrency, toCurrency, amount) => {
 
 The author then uses the `convert` function like so:
 
-```ecmascript 6
+```javascript
 convert('USD', 'HRK', 20)
   .then((message) => {
     console.log(message);
