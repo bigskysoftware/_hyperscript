@@ -8,13 +8,13 @@ date: 2021-04-06
 ## What is Async-Transparency?
 
 The most interesting aspect of hyperscript, technically, is that it is [async transparent](/docs#async). This means
-that asynchronous and synchronous code can be mixed together freely, and the hyperscript runtime, rather than you, the
+that asynchronous and synchronous code can be mixed together freely and the hyperscript runtime, rather than you, the
 developer, figures everything out.
 
-This can all be a little abstract, and so I wanted to take an example of some asynchronous code and show you what
+That can be a little abstract and so I wanted to take an example of some asynchronous code in javascript and show you what
 the equivalent hyperscript would be.
 
-To motivate the discussion, we are going to look at the code from [How To Master Async/Await With This Real World Example](https://medium.com/free-code-camp/how-to-master-async-await-with-this-real-world-example-19107e7558ad), an excellent pratical introduction to the `async` and `await` keywords built into
+To motivate this discussion, we are going to look at the code from [How To Master Async/Await With This Real World Example](https://medium.com/free-code-camp/how-to-master-async-await-with-this-real-world-example-19107e7558ad), an excellent practical introduction to the `async` and `await` keywords built into
 javascript.
 
 The author uses a few web APIs to design a small currency converter application in javascript, using 
@@ -65,7 +65,7 @@ convert('USD', 'HRK', 20)
   });
 ```
 
-This uses the callback API of Promises.
+This uses the `then` callback API of Promises.
 
 All in all, a great little example of how to do asynchronous programming in javascript.
 
@@ -85,18 +85,23 @@ def getExchangeRate(fromCurrency, toCurrency)
 ```
 
 So, the first things we do is switch from axios to the [`fetch` command](/commands/fetch) which will pull down the 
-given data for us.  Note that we do not need to say `await`, rather the hyperscript runtime takes care of that for us.
-Note also that we have an `as json` at the end, to indicate that we want the result parsed as JSON.
+given data for us.  We use a "naked string" without quotes here, because the fetch command supports that.
 
-The next line is a little clever, we set a variable, `rates` to the `result.data.rates` value, but we use hyperscripts
-`of` expression, as well as its `possessive` expression to make the line read more cleanly.  
+Note that we do not need to say `await`, rather the hyperscript runtime takes care of that for us.
+
+Finally, we have an `as json` at the end, to indicate that we want the result parsed as JSON.
+
+The next line is a little clever, we set a variable, `rates` to the `result.data.rates` value, but we use hyperscript's
+`of` expression, as well as its `possessive` expression to make the line read more cleanly.  We also take advantage of
+the fact that you can use the definite article, `the`, before an expression, to help readability.
 
 The next line we set a variable to the inverse of the euro rate for the given currency.
 
 The next line we `get` the rate multiplied by the euro rate for the target currency.
 
 Finally, we return that value we just calculated.  (I like returning a simple symbol like this for debugging, we could
-have returned the previous line)
+have returned the previous line.)  We refer to the implicit `it` symbol, which is an alias for `result`, which is
+the standard place where hyperscript stores "the last computed value".  We used `result` above after the `fetch`.
 
 In hyperscript, a function can have one and only one exception block (this is experimental, and may change) and it will
 work regardless if the body of the function is synchronous or asynchronous.
@@ -108,7 +113,8 @@ OK, so the code looks similar in some ways to the javascript above, but obviousl
 ```hyperscript
 def getCountries(currencyCode)
     fetch `https://restcountries.eu/rest/v2/currency/${currencyCode}` as json
-    return result.map(\ country -> country.name)
+    get result.map(\ country -> country.name)
+    return it
   catch (error)
     throw `Unable to get countries that use ${currencyCode}`
 ```
@@ -123,6 +129,9 @@ def convert(fromCurrency, toCurrency, amount)
     get (amount * rate).toFixed(2)
     return `${amount} ${fromCurrency} is worth ${result} ${toCurrency} in the following countries: ${countries}`
 ```
+
+Note that in the returned string literal, we are referring to the previous value calculated with the `result` symbol.
+Again, you may use either `it` or `result` depending on which reads more clearly.
 
 ## The Punchline
 
@@ -150,9 +159,9 @@ Here is the equivalent hyperscript:
 <p id="output"></p>
 ```
 
-Because the hyperscript runtime both resolves *and creates* any promises needed by the functions and event handler under
-the covers, you are able to write both the methods as well as the use of the methods in the straight forward, linear fashion
-you are used to.
+Because the hyperscript runtime both *resolves and creates* any promises needed by functions and event handlers under
+the covers, you are able to write *and use the methods* the methods in a straight forward, linear fashion
+you are used to, without annotations (which can cascade through your code base) or using ugly callbacks.
 
 No more (explicit) promises!
 
