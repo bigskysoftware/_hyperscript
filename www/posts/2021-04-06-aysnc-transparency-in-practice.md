@@ -74,7 +74,9 @@ All in all, a great little example of how to do asynchronous programming in java
 
 ## Converting To Hyperscript
 
-So, what does this code look like in hyperscript?  Let's port it over!  We'll start with `getExchangeRate`
+So, what does this code look like in hyperscript?  Let's port it over!  
+
+We'll start with `getExchangeRate`
 
 ```hyperscript
 def getExchangeRate(fromCurrency, toCurrency)
