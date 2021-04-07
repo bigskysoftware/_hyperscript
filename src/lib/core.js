@@ -3307,7 +3307,13 @@
                                             observer.observe(target);
                                         }
 
-                                        target.addEventListener(eventName, function (evt) { // OK NO PROMISE
+                                        target.addEventListener(eventName, function listener(evt) { // OK NO PROMISE
+                                            if ('document' in globalScope &&
+                                                !document.documentElement.contains(elt)) {
+                                                target.removeEventListener(eventName, listener);
+                                                return;
+                                            }
+                                            
                                             var ctx = runtime.makeContext(elt, onFeature, elt, evt, args);
                                             if (eventSpec.elsewhere && elt.contains(evt.target)) {
                                                 return
