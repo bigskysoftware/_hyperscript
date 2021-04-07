@@ -1665,17 +1665,12 @@
                     if (matchesSelector(elt, selector)) {
                         initElement(elt, elt);
                     }
-                    if (elt.querySelectorAll) {
-                        forEach(elt.querySelectorAll(selector), function (elt) {
-                            initElement(elt, elt);
-                        });
-                    }
                     if (elt['type'] === "text/hyperscript") {
                         initElement(elt, document.body);
                     }
                     if (elt.querySelectorAll) {
-                        forEach(elt.querySelectorAll("[type=\'text/hyperscript\']"), function (elt) {
-                            initElement(elt, document.body);
+                        forEach(elt.querySelectorAll(selector + ", [type=\'text/hyperscript\']"), function (elt) {
+                            initElement(elt, elt.type === 'text/hyperscript' ? document.body : elt);
                         });
                     }
                 }
@@ -4617,7 +4612,7 @@
             if ('document' in globalScope) {
                 ready(function () {
                     mergeMetaConfig();
-                    _runtime.processNode(document.body);
+                    _runtime.processNode(document.documentElement);
                     document.addEventListener("htmx:load", function(evt){
                         _runtime.processNode(evt.detail.elt);
                     })
