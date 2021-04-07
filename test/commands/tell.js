@@ -7,7 +7,7 @@ describe("the tell command", function() {
         clearWorkArea();
     });
 
-    it("establishes a proper beingTold symbol", function(){
+    it("establishes a proper beingTold symbol", function () {
         make("<div id='d1' _='on click " +
             "                          add .foo " +
             "                          tell #d2" +
@@ -30,7 +30,7 @@ describe("the tell command", function() {
 
     })
 
-    it("does not overwrite the me symobl", function(){
+    it("does not overwrite the me symobl", function () {
         make("<div id='d1' _='on click " +
             "                          add .foo " +
             "                          tell #d2" +
@@ -53,7 +53,7 @@ describe("the tell command", function() {
 
     })
 
-    it("works with an array", function(){
+    it("works with an array", function () {
         make("<div id='d1' _='on click " +
             "                          add .foo " +
             "                          tell <p/> in me" +
@@ -94,7 +94,7 @@ describe("the tell command", function() {
     })
 
 
-    it("restores a proper implicit me symbol", function(){
+    it("restores a proper implicit me symbol", function () {
         make("<div id='d1' _='on click " +
             "                          tell #d2" +
             "                            add .bar" +
@@ -119,7 +119,7 @@ describe("the tell command", function() {
 
     })
 
-    it("ignores null", function(){
+    it("ignores null", function () {
         make("<div id='d1' _='on click " +
             "                          tell null" +
             "                            add .bar" +
@@ -144,7 +144,59 @@ describe("the tell command", function() {
 
     })
 
+    it("you symbol represents the thing being told", function () {
+        make("<div id='d1' _='on click " +
+            "                          tell #d2" +
+            "                            add .bar to you'></div>" +
+            "<div id='d2'></div>");
 
+        var div1 = byId("d1");
+        var div2 = byId("d2");
+
+        div1.classList.contains("bar").should.equal(false);
+        div2.classList.contains("bar").should.equal(false);
+
+        div1.click();
+
+        div1.classList.contains("bar").should.equal(false);
+        div2.classList.contains("bar").should.equal(true);
+
+    });
+
+    it("your symbol represents the thing being told", function () {
+        make("<div id='d1' _='on click " +
+            "                          tell #d2" +
+            "                            put your innerText into me'></div>" +
+            "<div id='d2'>foo</div>");
+
+        var div1 = byId("d1");
+        var div2 = byId("d2");
+
+        div1.innerText.should.equal("");
+        div2.innerText.should.equal("foo");
+
+        div1.click();
+
+        div1.innerText.should.equal("foo");
+        div2.innerText.should.equal("foo");
+    });
+
+    it("attributes refer to the thing being told", function () {
+        make("<div id='d1' _='on click " +
+            "                          tell #d2" +
+            "                            put @foo into me'></div>" +
+            "<div foo='bar' id='d2'></div>");
+
+        var div1 = byId("d1");
+        var div2 = byId("d2");
+
+        div1.innerText.should.equal("");
+        div2.innerText.should.equal("");
+
+        div1.click();
+
+        div1.innerText.should.equal("bar");
+        div2.innerText.should.equal("");
+    });
 
 });
-

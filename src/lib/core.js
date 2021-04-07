@@ -1741,6 +1741,8 @@
                         return context["me"];
                     } if (str === "it" || str === "its") {
                         return context["result"];
+                    } if (str === "your" || str === "you") {
+                        return context["beingTold"];
                     } else {
                         if (context.meta && context.meta.context) {
                             var fromMetaContext = context.meta.context[str];
@@ -2116,8 +2118,9 @@
                             css: css,
                             value: value,
                             op:function(context){
-                                if (context.me) {
-                                    return context.me.getAttribute(name);
+                                var target = context.beingTold || context.me;
+                                if (target) {
+                                    return target.getAttribute(name);
                                 };
                             },
                             evaluate: function (context) {
@@ -2421,7 +2424,7 @@
                     }
                     var apostrophe = tokens.matchOpToken("'");
                     if (apostrophe ||
-                        (root.type === "symbol" && (root.name === "my" || root.name === "its") && tokens.currentToken().type === "IDENTIFIER")) {
+                        (root.type === "symbol" && (root.name === "my" || root.name === "its" || root.name === "your") && tokens.currentToken().type === "IDENTIFIER")) {
                         if (apostrophe) {
                             tokens.requireToken("s");
                         }
