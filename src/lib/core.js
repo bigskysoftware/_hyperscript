@@ -2026,7 +2026,8 @@
                             css: elementId.value,
                             value: elementId.value.substr(1),
                             evaluate: function (context) {
-                                return document.getElementById(this.value);
+                                return context.me.getRootNode().getElementById(this.value)
+                                	|| document.getElementById(this.value);
                             }
                         };
                     }
@@ -2042,8 +2043,8 @@
                             className: function () {
                                 return this.css.substr(1);
                             },
-                            evaluate: function () {
-                                return document.querySelectorAll(runtime.escapeSelector(this.css));
+                            evaluate: function (context) {
+                                return context.me.getRootNode().querySelectorAll(runtime.escapeSelector(this.css));
                             }
                         };
                     }
@@ -2084,7 +2085,7 @@
                                         }
                                     }
                                 }
-                                return document.querySelectorAll(query);
+                                return context.me.getRootNode().querySelectorAll(query);
                             },
                             evaluate: function(context) {
                                 return runtime.unifiedEval(this, context);
@@ -3308,8 +3309,8 @@
                                         }
 
                                         target.addEventListener(eventName, function listener(evt) { // OK NO PROMISE
-                                            if ('document' in globalScope &&
-                                                !document.documentElement.contains(elt)) {
+                                            if (elt instanceof Node &&
+                                                !elt.getRootNode()) {
                                                 target.removeEventListener(eventName, listener);
                                                 return;
                                             }

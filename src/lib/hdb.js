@@ -106,7 +106,7 @@
 	var ui = `
 <div class="hdb" _="
 	on load or step from hdb.bus send update to me
-	on continue from hdb.bus remove #hyperscript-hdb-ui-wrapper-">
+	on continue from hdb.bus log 'done' then remove me.getRootNode().host">
 
 	<script type="text/hyperscript">
 	def highlightDebugCode
@@ -180,11 +180,11 @@
 	</section>
 
 	<section class="sec-code">
-		<h3 _="on update from hdbUI
+		<h3 _="on update from .hdb
 			put 'Debugging <code>'+hdb.cmd.parent.displayName+'</code>' into me"></h3>
 
 		<div class="code-container">
-			<pre class="code" _="on update from hdbUI
+			<pre class="code" _="on update from .hdb
 			                          if hdb.cmd.programSource
 				                        put highlightDebugCode() into my.innerHTML
 				                        scrollIntoView({ block: 'nearest' }) the
@@ -197,7 +197,7 @@
 		<h3>Context</h3>
 
 		<dl class="context" _="
-			on update from hdbUI
+			on update from .hdb
 			set my.innerHTML to ''
 			repeat for var in Object.keys(hdb.ctx) if var != 'meta'
 				get '<dt>'+var+'<dd>'+prettyPrint(hdb.ctx[var])
@@ -365,11 +365,9 @@
 		var node = document.createElement('div');
 		var shadow = node.attachShadow({ mode: 'open' });
 		node.style = 'all: initial';
-		node.id = 'hyperscript-hdb-ui-wrapper-';
 		shadow.innerHTML = ui;
 		document.body.appendChild(node);
-		window.hdbUI = shadow.querySelector('.hdb');
-		_hyperscript.processNode(hdbUI);
+		_hyperscript.processNode(shadow.querySelector('.hdb'));
 	}
 })()
 
