@@ -1,11 +1,17 @@
 
-'use strict';
+;'use strict';
 
 (function (_hyperscript) {
 	function compileTemplate(template) {
 		return template.replace(
 			/(?:^|\n)([^@]*)@?/gm,
-			'\ncall __ht_template_result.push(`$1`)\n')
+			function (match, p1){
+				var templateStr = (' '+p1)
+					.replace(/([^\\])\$\{/g, '$1$${escape html ')
+					.substring(1)
+				return '\ncall __ht_template_result.push(`'+templateStr+'`)\n'
+			}
+		)
 	}
 
 	function renderTemplate(template, ctx) {
@@ -25,8 +31,45 @@
 		return {
 			args: [template, templateArgs],
 			op: function (ctx, template, templateArgs) {
+			console.log(compileTemplate(template.innerHTML))
 				ctx.result = renderTemplate(compileTemplate(template.innerHTML), templateArgs)
 				return runtime.findNext(this, ctx)
+			}
+		}
+	})
+
+	function escapeHTML(html) {
+		return String(html)
+			.replace(/&/g, "&amp;")
+			.replace(/</g, "&lt;")
+			.replace(/>/g, "&gt;")
+			.replace(/\x22/g, "&quot;")
+			.replace(/\x27/g, "&#039;")
+	}
+
+	_hyperscript.addLeafExpression('escape', function (parser, runtime, tokens) {
+		if (!tokens.matchToken('escape')) return
+		var escapeType = tokens.matchTokenType('IDENTIFIER').value
+
+		// hidden! for use in templates
+		var unescaped = tokens.matchToken('unescaped')
+		
+		var arg = parser.requireElement('expression', tokens)
+
+		return {
+			args: [arg],
+			op: function (ctx, arg) {
+				if (unescaped) return arg
+				if (arg === undefined) return ""
+				switch (escapeType) {
+				case 'html':
+					return escapeHTML(arg)
+				default:
+					throw new Error("Unknown escape: "+escapeType)
+				}
+			},
+			evaluate: function (ctx) {
+				return runtime.unifiedEval(this, ctx)
 			}
 		}
 	})

@@ -1,9 +1,16 @@
 
 describe("Templating", function () {
 	it("can render", function() {
-		var tmpl = make("<template>render $x</template>");
+		var tmpl = make("<template>render ${x}</template>");
 		_hyperscript("render tmpl with (x: x) then put it into window.res", { x: ':)', tmpl: tmpl })
 		window.res.should.equal('render :)')
+		delete window.res;
+	})
+
+	it("escapes html, with opt-out", function() {
+		var tmpl = make("<template>render ${x} ${unescaped x}</template>");
+		_hyperscript("render tmpl with (x: x) then put it into window.res", { x: '<br>', tmpl: tmpl })
+		window.res.should.equal('render &lt;br&gt; <br>')
 		delete window.res;
 	})
 

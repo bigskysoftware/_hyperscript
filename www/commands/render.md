@@ -17,7 +17,8 @@ where
 
 The `render` command implements a simple template language. This language has two rules:
 
-* You can use `${}` string interpolation, just like in [template literals]().
+* You can use `${}` string interpolation, just like in [template literals](). However, bare `` `$var` `` interpolation is not supported.
+* Interpolated expressions will be HTML-escaped, unless they are preceded by `unescaped`.
 * Any line starting with `@` is executed as a _hyperscript statement.
 
 The result of rendering the template will be stored in the `result` (or `it`) variable.
@@ -39,10 +40,10 @@ Our template might look like this:
     @repeat in colors
       @set bg to it
       @set fg to getContrastingColor(it)
-      <li style="background: ${bg}; color: ${fg}">${bg}</li>
+      <li style="background: ${bg}; color: ${unescaped fg}">${bg}</li>
     @end
   </ul>
 </template>
 ```
 
-**Warning:** Hyperscript templates currently perform **no** HTML escaping. Do not include untrusted (e.g. user-generated) data into your templates.
+
