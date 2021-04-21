@@ -34,27 +34,23 @@ Pattern: fade and remove an element after it is clicked
 #### VanillaJS
 
 ```html
-<div onclick="var self = this;
-              self.style.transition = 'all 500ms ease-out';
-              self.style.opacity = '1'; 
-              setTimeout(function(){
-                self.style.opacity = '0';
-                self.addEventListener('transitionend', function(){
-                    self.parentNode.removeChild(self);
+<div onclick="this.style.transition = 'all 500ms ease-out';
+              requestAnimationFrame(() => requestAnimationFrame(() => {
+                this.style.opacity = '0';
+                this.addEventListener('transitionend', () => {
+                    this.remove();
                 }, {once:true})
-              }, 1) ">
+              })) ">
               Remove Me
 </div>
 ```
 
-<div onclick="var self = this;
-              self.style.transition = 'all 500ms ease-out';
-              self.style.opacity = '1'; setTimeout(function(){
-                self.style.opacity = '0';
-                self.addEventListener('transitionend', function(){
-                    self.parentNode.removeChild(self);
+<div onclick="requestAnimationFrame(() => requestAnimationFrame(() => {
+                this.style.opacity = '0';
+                this.addEventListener('transitionend', () => {
+                    this.remove();
                 }, {once:true})
-              }, 1) ">
+              }))">
               Remove Me
 </div>
 
@@ -108,7 +104,7 @@ Pattern: fetch some data and insert it into an element
 ```html
 <button onclick="fetch('/clickedMessage/')
                   .then(response => response.text())
-                  .then(function(data) {
+                  .then(data => {
                       document.getElementById('fetch-target-1').innerHTML = data
                   })">
  Fetch It
@@ -117,7 +113,7 @@ Pattern: fetch some data and insert it into an element
 ```
 <button onclick="fetch('/clickedMessage/')
                   .then(response => response.text())
-                  .then(function(data) {
+                  .then(data => {
                      document.getElementById('fetch-target-1').innerHTML = data
                   })">
  Fetch It
@@ -177,18 +173,16 @@ spaced events
 #### VanillaJS
 
 ```html
-<input onkeyup="self = this;
-                clearTimeout(self.debounce);
-                self.debounce = setTimeout(function(){
-                  document.getElementById('debounce-target-1').innerHTML = self.value;
+<input onkeyup="clearTimeout(this.debounce);
+                this.debounce = setTimeout(() => {
+                  document.getElementById('debounce-target-1').innerHTML = this.value;
                 }, 300) "/>
 <div id="debounce-target-1"></div>
 ```
 <input placeholder="Enter Some Data..."
-       onkeyup="self = this;
-                clearTimeout(self.debounce);
-                self.debounce = setTimeout(function(){
-                  document.getElementById('debounce-target-1').innerHTML = self.value;
+       onkeyup="clearTimeout(this.debounce);
+                this.debounce = setTimeout(() => {
+                  document.getElementById('debounce-target-1').innerHTML = this.value;
                 }, 300) "/>
 <div id="debounce-target-1"></div>
 
@@ -330,9 +324,8 @@ Pattern: trigger a custom event on another element in the DOM
   Event Target
 </div>
 <script>
-  document.getElementById('event-target-1').addEventListener("doIt", function(){
-    var elt = document.getElementById('event-target-1');
-    elt.parentNode.removeChild(elt)
+  document.getElementById('event-target-1').addEventListener("doIt", () => {
+    document.getElementById('event-target-1').remove()
   });
 </script>
 ```
@@ -344,9 +337,8 @@ Pattern: trigger a custom event on another element in the DOM
   Event Target
 </div>
 <script>
-  document.getElementById('event-target-1').addEventListener("doIt", function(){
-    var elt = document.getElementById('event-target-1');
-    elt.parentNode.removeChild(elt)
+  document.getElementById('event-target-1').addEventListener("doIt", () => {
+    document.getElementById('event-target-1').remove()
   });
 </script>
 
