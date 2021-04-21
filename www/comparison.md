@@ -45,7 +45,8 @@ Pattern: fade and remove an element after it is clicked
 </div>
 ```
 
-<div onclick="requestAnimationFrame(() => requestAnimationFrame(() => {
+<div onclick="this.style.transition = 'all 500ms ease-out';
+              requestAnimationFrame(() => requestAnimationFrame(() => {
                 this.style.opacity = '0';
                 this.addEventListener('transitionend', () => {
                     this.remove();
