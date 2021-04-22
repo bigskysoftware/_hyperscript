@@ -4,22 +4,22 @@ _hyperscript.config.conversions["KeyboardEvent"] = function(/** @type KeyboardEv
 
     // Append modifier for control keys
     if (e.ctrlKey) {
-        result.push("Control");
+        result.push("ctrl");
     }
 
     // Append modifier for "meta" keys ("command" on Apple keyboards)
     if (e.metaKey) {
-        result.push("Meta")
+        result.push("meta")
     }
     
     // Append modifier for "Alt" keys
     if (e.altKey) {
-        result.push("Alt")
+        result.push("alt")
     }
 
     // Append modifier for "Shift" keys
     if (e.shiftKey) {
-        result.push("Shift")
+        result.push("shift")
     }
 
     // Handle special cases for keyboard events
@@ -35,6 +35,10 @@ _hyperscript.config.conversions["KeyboardEvent"] = function(/** @type KeyboardEv
         result.push(e.code.slice(5));
         break;
 
+        // Strip "Numpad" modifier
+        case "Num":
+        result.push(e.code.slice(6));
+
         // Prevent an additional "Meta", "Alt", and "Shift" "Control" in the results
         case "Met":
         case "Alt":
@@ -48,5 +52,5 @@ _hyperscript.config.conversions["KeyboardEvent"] = function(/** @type KeyboardEv
     }
 
     // turn the array into 
-    return result.join("+");
+    return result.join("+").toLowerCase();
 }
