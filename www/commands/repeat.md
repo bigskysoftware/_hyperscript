@@ -27,7 +27,7 @@ loop specification.
 
 Here are examples of all the above forms:
 
-```text
+```hyperscript
   -- the basic for loop
   repeat for p in <p/>
     add .example to p
