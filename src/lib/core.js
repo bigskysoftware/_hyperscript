@@ -4597,7 +4597,7 @@
             //====================================================================
             function ready(fn) {
                 if (document.readyState !== 'loading') {
-                    fn();
+                    setTimeout(fn);
                 } else {
                     document.addEventListener('DOMContentLoaded', fn);
                 }
