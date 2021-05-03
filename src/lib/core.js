@@ -4548,6 +4548,8 @@
                                 type = "json";
                             } else if (tokens.matchToken("response")) {
                                 type = "response";
+                            } else if (tokens.matchToken("html")) {
+                            	type = "html"
                             } else if (tokens.matchToken("text")) {
                             } else {
                                 parser.raiseParseError(tokens, "Unknown response type: " + tokens.currentToken());
@@ -4573,6 +4575,8 @@
                                                 })
                                             } else {
                                                 value.text().then(function (result) {
+                                                	if (type === "html") 
+                                                		result = runtime.convertValue(result, "Fragment");
                                                     context.result = result;
                                                     resolve(runtime.findNext(fetchCmd, context));
                                                 })
