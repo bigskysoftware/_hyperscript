@@ -1030,4 +1030,17 @@
 
 		return toHTML(value);
 	}
+
+	_hyperscript.config.conversions["Fragment"] = function (val) {
+		var frag = document.createDocumentFragment();
+		_hyperscript.internals.runtime.forEach(val, function (val) {
+			if (val instanceof Node) frag.append(val);
+			else {
+				var temp = document.createElement("template");
+				temp.innerHTML = val;
+				frag.append(temp.content);
+			}
+		})
+		return frag;
+	}
 })()
