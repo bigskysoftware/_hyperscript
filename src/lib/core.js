@@ -1201,6 +1201,7 @@
                     return parseFloat(val);
                 },
                 "Number" : function(val){
+                console.log(val)
                     return Number(val);
                 },
                 "Date" : function(val){
@@ -4543,6 +4544,7 @@
                         var args = parser.parseElement("objectLiteral", tokens);
 
                         var type = "text";
+                        var conversion;
                         if (tokens.matchToken("as")) {
                             if (tokens.matchToken("json")) {
                                 type = "json";
@@ -4550,14 +4552,14 @@
                                 type = "response";
                             } else if (tokens.matchToken("text")) {
                             } else {
-                                parser.raiseParseError(tokens, "Unknown response type: " + tokens.currentToken());
+                              conversion = parser.requireElement('dotOrColonPath', tokens).evaluate();
                             }
                         }
 
                         /** @type {GrammarElement} */
                         var fetchCmd = {
                             url:url,
-                            argExrepssions:args,
+                            argExpressions:args,
                             args: [url, args],
                             op: function (context, url, args) {
                                 return new Promise(function (resolve, reject) {
@@ -4573,6 +4575,7 @@
                                                 })
                                             } else {
                                                 value.text().then(function (result) {
+                                                    if (conversion) result = runtime.convertValue(result, conversion);
                                                     context.result = result;
                                                     resolve(runtime.findNext(fetchCmd, context));
                                                 })

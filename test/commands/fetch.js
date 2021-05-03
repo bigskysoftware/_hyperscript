@@ -61,6 +61,20 @@ describe("the fetch command", function() {
         }, 50);
     })
 
+    
+    it("can do a simple fetch w/ a custom conversion", function(done){
+        window.fetch.returns(Promise.resolve(new window.Response("1.2000", {
+            status: 200,
+            headers: {'Content-type': 'text/plain'}
+        })));
+        var div = make("<div _='on click fetch /test as Number then put it into my.innerHTML'></div>");
+        div.click();
+        setTimeout(function () {
+            div.innerHTML.should.equal("1.2");
+            done();
+        }, 50);
+    })
+
     it("can do a simple post", function(done){
         window.fetch.returns(Promise.resolve(new window.Response("yay", {
             status: 200,
