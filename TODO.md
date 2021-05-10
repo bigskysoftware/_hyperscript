@@ -47,3 +47,6 @@
         call JsFn(x)
     end
     ```
+* date/time library [See GitHub](https://github.com/bigskysoftware/_hyperscript/issues/123)
+* `global` keyword [See GitHub](https://github.com/bigskysoftware/_hyperscript/issues/122)
+* Expressions for `field`, `button`, `tag` and `nodeList` [See GitHub](https://github.com/bigskysoftware/_hyperscript/issues/121)
