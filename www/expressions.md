@@ -1,7 +1,3 @@
----
-layout: layout.njk
-title: ///_hyperscript
----
 
 <div class="row">
 <div class="2 col nav">

@@ -1,7 +1,3 @@
----
-layout: layout.njk
-title: ///_hyperscript
----
 
 # HDB: the _hyperscript debugger
 

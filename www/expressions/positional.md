@@ -1,7 +1,3 @@
----
-layout: layout.njk
-title: ///_hyperscript
----
 
 ## The `positional` Expressions
 
