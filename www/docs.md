@@ -512,6 +512,7 @@ namespace, rather than polluting the global namespace:
 A function may have one and only one catch block associated with it, in which to handle exceptions that occur
 during the execution of the body:
 
+```html
 <script type="text/hyperscript">
   def example
     call mightThrowAnException()
@@ -519,6 +520,7 @@ during the execution of the body:
     log e
   end
 </script>
+```
 
 ### <a name="behaviors"></a>[Behaviors](#behaviors)
 
