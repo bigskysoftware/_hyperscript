@@ -485,7 +485,10 @@
             var value = context;
         }
         if (value instanceof Element || value instanceof HTMLDocument) {
-            value.innerHTML = valueToPut;
+            if (valueToPut instanceof Node) {
+                while (value.firstChild) value.removeChild(element.firstChild);
+                value.append(valueToPut);
+            } else value.innerHTML = valueToPut;
         } else {
             if (prop) {
                 context[prop] = valueToPut;
@@ -544,6 +547,7 @@
                     if (symbolWrite) {
                         putInto(context, prop, valueToPut);
                     } else {
+                    	
                         if (operation === "into") {
                             if (attributeWrite) {
                                 runtime.forEach(root, function (elt) {
@@ -554,22 +558,17 @@
                                     putInto(elt, prop, valueToPut);
                                 });
                             }
-                        } else if (operation === "before") {
+                        } else {
+                            var op = 
+                                operation === "before" ? Element.prototype.before :
+                                operation === "after" ? Element.prototype.after :
+                                operation === "start" ? Element.prototype.prepend :
+                                operation === "end" ? Element.prototype.append : "unreachable";
+                                
                             runtime.forEach(root, function (elt) {
-                                elt.insertAdjacentHTML('beforebegin', valueToPut);
-                            })
-                        } else if (operation === "start") {
-                            runtime.forEach(root, function (elt) {
-                                elt.insertAdjacentHTML('afterbegin', valueToPut);
-                            })
-                        } else if (operation === "end") {
-                            runtime.forEach(root, function (elt) {
-                                elt.insertAdjacentHTML('beforeend', valueToPut);
-                            })
-                        } else if (operation === "after") {
-                            runtime.forEach(root, function (elt) {
-                                elt.insertAdjacentHTML('afterend', valueToPut);
-                            })
+                                op.call(elt, valueToPut instanceof Node ?
+                                	valueToPut.cloneNode(true) : valueToPut);
+                            });
                         }
                     }
                     return runtime.findNext(this, context);
