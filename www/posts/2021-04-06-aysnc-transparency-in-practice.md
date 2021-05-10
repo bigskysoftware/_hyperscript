@@ -1,5 +1,4 @@
 ---
-layout: layout.njk
 tags: post
 title: async transparency in practice
 date: 2021-04-06

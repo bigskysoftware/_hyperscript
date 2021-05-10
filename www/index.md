@@ -1,7 +1,3 @@
----
-layout: layout.njk
-title: ///_hyperscript
----
 
 <div style="background-color: lightgoldenrodyellow; margin: 16px; border-radius: 8px;
             color: darkgoldenrod; border: gold 1px solid; font-size: 20px">

@@ -1,7 +1,3 @@
----
-layout: layout.njk
-title: ///_hyperscript
----
 
 <div class="hero light full-width">
 <div class="c">
