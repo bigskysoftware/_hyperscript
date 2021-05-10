@@ -12,7 +12,10 @@
         return obj1;
     }
 
-    _hyperscript.addCommand("settle", function(parser, runtime, tokens) {
+    var addLeafExpression = _hyperscript.addLeafExpression,
+        addCommand = _hyperscript.addCommand;
+
+    addCommand("settle", function(parser, runtime, tokens) {
         if (tokens.matchToken("settle")) {
 
             if (!parser.commandBoundary(tokens.currentToken())) {
@@ -62,7 +65,7 @@
         }
     })
 
-    _hyperscript.addCommand("add", function(parser, runtime, tokens) {
+    addCommand("add", function(parser, runtime, tokens) {
         if (tokens.matchToken("add")) {
             var classRef = parser.parseElement("classRef", tokens);
             var attributeRef = null;
@@ -143,7 +146,7 @@
         }
     });
 
-    _hyperscript.addCommand("remove", function(parser, runtime, tokens) {
+    addCommand("remove", function(parser, runtime, tokens) {
         if (tokens.matchToken('remove')) {
             var classRef = parser.parseElement("classRef", tokens);
             var attributeRef = null;
@@ -211,7 +214,7 @@
         }
     });
 
-    _hyperscript.addCommand("toggle", function(parser, runtime, tokens) {
+    addCommand("toggle", function(parser, runtime, tokens) {
         if (tokens.matchToken('toggle')) {
 
             if (tokens.matchToken('between')) {
@@ -370,7 +373,7 @@
         return value;
     }
 
-    _hyperscript.addCommand("hide", function (parser, runtime, tokens) {
+    addCommand("hide", function (parser, runtime, tokens) {
         if (tokens.matchToken("hide")) {
             var target = parseShowHideTarget(parser, runtime, tokens);
 
@@ -393,7 +396,7 @@
         }
     });
 
-    _hyperscript.addCommand("show", function (parser, runtime, tokens) {
+    addCommand("show", function (parser, runtime, tokens) {
         if (tokens.matchToken("show")) {
             var target = parseShowHideTarget(parser, runtime, tokens);
 
@@ -424,7 +427,7 @@
         }
     });
 
-    _hyperscript.addCommand("trigger", function(parser, runtime, tokens) {
+    addCommand("trigger", function(parser, runtime, tokens) {
         if (tokens.matchToken('trigger')) {
             var eventName = parser.requireElement("dotOrColonPath", tokens);
             var details = parser.parseElement("namedArgumentList", tokens);
@@ -442,7 +445,7 @@
         }
     })
 
-    _hyperscript.addCommand("take", function(parser, runtime, tokens) {
+    addCommand("take", function(parser, runtime, tokens) {
         if (tokens.matchToken('take')) {
             var classRef = parser.parseElement("classRef", tokens);
 
@@ -495,7 +498,7 @@
         }
     }
 
-    _hyperscript.addCommand("put", function(parser, runtime, tokens) {
+    addCommand("put", function(parser, runtime, tokens) {
         if (tokens.matchToken('put')) {
             var value = parser.requireElement("expression", tokens);
 
@@ -614,7 +617,7 @@
 		return targets;
     }
 
-    _hyperscript.addCommand("transition", function(parser, runtime, tokens) {
+    addCommand("transition", function(parser, runtime, tokens) {
         if (tokens.matchToken("transition")) {
         	var targets = parsePseudopossessiveTarget(parser, runtime, tokens);
             
@@ -714,7 +717,7 @@
         }
     });
 
-	_hyperscript.addCommand('measure', function (parser, runtime, tokens) {
+	addCommand('measure', function (parser, runtime, tokens) {
 		if (!tokens.matchToken('measure')) return;
 
         var target = parsePseudopossessiveTarget(parser, runtime, tokens);
@@ -759,7 +762,7 @@
 		}
 	})
 
-    _hyperscript.addLeafExpression('closestExpr', function (parser, runtime, tokens) {
+    addLeafExpression('closestExpr', function (parser, runtime, tokens) {
         if (tokens.matchToken('closest')) {
             if (tokens.matchToken('parent')) {
                 var parentSearch = true;
@@ -820,7 +823,7 @@
         }
     });
 
-    _hyperscript.addCommand('go', function (parser, runtime, tokens) {
+    addCommand('go', function (parser, runtime, tokens) {
         if (tokens.matchToken('go')) {
             if (tokens.matchToken('back')) {
                 var back = true;
