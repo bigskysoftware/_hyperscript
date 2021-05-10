@@ -245,6 +245,31 @@ describe("as operator", function() {
         result.should.equal("123");
     })
 
+    it("converts strings into fragments", function () {
+        var value = "<p></p>"
+
+        var result = evalHyperScript("value as Fragment", {value: value});
+        result.childElementCount.should.equal(1);
+        result.firstChild.tagName.should.equal("P");
+    })
+
+    it("converts elements into fragments", function () {
+        var value = document.createElement("p")
+
+        var result = evalHyperScript("value as Fragment", {value: value});
+        result.childElementCount.should.equal(1);
+        result.firstChild.tagName.should.equal("P");
+    })
+
+    it("converts arrays into fragments", function () {
+        var value = [document.createElement("p"), "<p></p>"]
+
+        var result = evalHyperScript("value as Fragment", {value: value});
+        result.childElementCount.should.equal(2);
+        result.firstChild.tagName.should.equal("P");
+        result.lastChild.tagName.should.equal("P");
+    })
+
     it("can accept custom comversions", function () {
         _hyperscript.config.conversions["Foo"] = function(val){
             return "foo" + val;

@@ -4550,6 +4550,8 @@
                                 type = "json";
                             } else if (tokens.matchToken("response")) {
                                 type = "response";
+                            } else if (tokens.matchToken("html")) {
+                            	type = "html"
                             } else if (tokens.matchToken("text")) {
                             } else {
                               conversion = parser.requireElement('dotOrColonPath', tokens).evaluate();
@@ -4576,6 +4578,10 @@
                                             } else {
                                                 value.text().then(function (result) {
                                                     if (conversion) result = runtime.convertValue(result, conversion);
+
+                                                	  if (type === "html") 
+                                                		    result = runtime.convertValue(result, "Fragment");
+
                                                     context.result = result;
                                                     resolve(runtime.findNext(fetchCmd, context));
                                                 })

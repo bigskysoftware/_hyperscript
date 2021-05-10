@@ -35,6 +35,20 @@ describe("the fetch command", function() {
         }, 50);
     })
 
+    it("can do a simple fetch w/ html", function(done){
+        window.fetch.returns(Promise.resolve(new window.Response("<br>", {
+            status: 200,
+            headers: {'Content-type': 'text/html'}
+        })));
+        var div = make("<div _='on click fetch /test as html then log it then put it into my.innerHTML put its childElementCount into my @data-count'></div>");
+        div.click();
+        setTimeout(function () {
+            div.innerHTML.should.equal("[object DocumentFragment]");
+            div.dataset.count.should.equal("1");
+            done();
+        }, 50);
+    })
+
     it("can do a simple fetch w/ json", function(done){
         window.fetch.returns(Promise.resolve(new window.Response("{\"foo\":1}", {
             status: 200,
