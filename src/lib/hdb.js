@@ -114,18 +114,22 @@
 		set start to hdb.cmd.startToken.start
 		set end to hdb.cmd.endToken.end
 		set src to hdb.cmd.programSource
-		set beforeCmd to escapeHTML(src.substring(0, start))
+		set beforeCmd to '<code>'+escapeHTML(src.substring(0, start))+'</code>'
 		set cmd to escapeHTML(src.substring(start, end))
-		set afterCmd to escapeHTML(src.substring(end))
-		return beforeCmd+"<u class='current'>"+cmd+"</u>"+afterCmd
+		set afterCmd to '<code>'+escapeHTML(src.substring(end))+'</code>'
+		return beforeCmd+"<u class='current'><code>"+cmd+"</code></u>"+afterCmd
 	end
 
 	def prettyPrint(obj)
 		if obj is null      return 'null'      end
 		if Element.prototype.isPrototypeOf(obj)
-			set rv to '&lt;<span class="token tagname">' + obj.tagName.toLowerCase() + "</span>"
+			set rv to '&lt;<span class="token tagname">' +
+				obj.tagName.toLowerCase() + "</span>"
 			for attr in Array.from(obj.attributes) if attr.specified
-				set rv to rv + ' <span class="token attr">' + attr.nodeName + '</span>=<span class="token string">"' + attr.textContent + '"</span>'
+				set rv to rv +
+					' <span class="token attr">' + attr.nodeName +
+					'</span>=<span class="token string">"' + attr.textContent +
+					'"</span>'
 			end end
 			set rv to rv + '>'
 			return rv 
@@ -165,11 +169,14 @@
 			><li><button _="on click call hdb.stepOver()    ">Step Over</button></li
 		></ul>
 		<div class="code-container">
-			<pre class="code" _="
+			<pre class="code language-hyperscript" _="
 				on update from .hdb if hdb.cmd.programSource
-			    	put highlightDebugCode() into my.innerHTML
+			    	put highlightDebugCode() into me
+			    	if Prism
+			    		call Prism.highlightAllUnder(me)
+			    	end
 			        scrollIntoView({ block: 'nearest' }) the
-			        	first .current in me"></pre>
+			        	first .current in me"><code></code></pre>
 		</div>
 	</section>
 
@@ -185,7 +192,10 @@
 				set entry to my lastElementChild
 				scrollIntoView({ block: 'end' }) the entry
 				put escapeHTML(input) into .input in the entry
-				put prettyPrint(output or _hyperscript(input, hdb.ctx)) as Fragment into .output in the entry
+				if no output
+					set output to _hyperscript(input, hdb.ctx)
+				end 
+				put prettyPrint(output) as Fragment into .output in the entry
 			">
 			<template id="tmpl-console-entry">
 				<li class="console-entry">
@@ -297,6 +307,9 @@
 		width: 0;
 		margin: 0;
 		padding-left: 1ch;
+		tab-size: 2;
+		-moz-tab-size: 2;
+		-o-tab-size: 2;
 	}
 
 	.current {
@@ -337,8 +350,10 @@
 	}
 
 	.token.tagname { font-weight: bold; }
-	.token.attr { font-style: italic; }
+	.token.attr, .token.builtin, .token.italic { font-style: italic; }
 	.token.string { opacity: .8; }
+	.token.keyword { color: #3465a4; }
+	.token.bold, .token.punctuation, .token.operator { font-weight: bold; }
 	</style>
 </div>
 `
