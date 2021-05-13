@@ -3293,7 +3293,7 @@
                                         }
 
                                         if (eventSpec.intersectionSpec) {
-                                            eventName = 'hyperscript:insersection';
+                                            eventName = 'hyperscript:intersection';
                                             var observer = new IntersectionObserver(function (entries) {
                                                 _runtime.forEach(entries, function (entry) {
                                                     var detail = {
@@ -3307,7 +3307,17 @@
                                             observer.observe(target);
                                         }
 
-                                        target.addEventListener(eventName, function (evt) { // OK NO PROMISE
+                                        var eventListener = function (evt) {
+
+                                            // if the scripted element is no longer in the DOM and listening to another
+                                            // element on the dom, exit and remove the event listener
+                                            if (eventSpec.elsewhere || eventSpec.from) {
+                                                if (!document.contains(elt)) {
+                                                    target.removeEventListener(eventListener);
+                                                    return;
+                                                }
+                                            }
+
                                             var ctx = runtime.makeContext(elt, onFeature, elt, evt, args);
                                             if (eventSpec.elsewhere && elt.contains(evt.target)) {
                                                 return
@@ -3391,7 +3401,8 @@
 
                                             // apply execute
                                             onFeature.execute(ctx);
-                                        });
+                                        };
+                                        target.addEventListener(eventName, eventListener);
                                     })
                                 });
                             }
