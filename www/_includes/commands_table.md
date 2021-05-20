@@ -6,6 +6,7 @@
 | [call/get](/commands/call) | Evaluates an expression (e.g. a Javascript Function) | `call alert('yep, you can call javascript!)` <br/><br/> `get prompt('Enter your name')`
 | [decrement](/commands/decrement) | Subtracts a value to a variable, property, or attribute | `decrement counter`
 | [fetch](/commands/fetch) | Send a fetch request | `fetch /demo then put it into my.innerHTML`
+| [go](/commands/go) | Navigate to a new page or within a page | `go to the top of the body smoothly`
 | [hide](/commands/hide) | Hide an element in the DOM | `hide me`
 | [if](/commands/if) | A conditional control flow command | `if me.selected then call alert('I\'m selected!')`
 | [increment](/commands/increment) | Adds a value to a variable, property, or attribute | `increment counter`
@@ -20,10 +21,9 @@
 | [settle](/commands/setttle) | Waits for a transition to end on an element, if any | `set x to 0`
 | [show](/commands/show) | Show an element in the DOM | `show #anotherDiv`
 | [take](/commands/take) | Takes a class from a set of elements | `take .active from .tabs`
+| [tell](/commands/tell) | Temporarily sets a new implicit target value | `tell <p/> add .highlight`
 | [throw](/commands/throw) | Throws an exception | `throw "Bad Value"`
 | [toggle](/commands/toggle) | Toggles content on a target | `toggle .clicked on me`
 | [transition](/commands/transition) | Transitions properties on an element | `transition opacity to 0`
 | [trigger](/commands/trigger) | triggers an event on the current element | `trigger customEvent`
 | [wait](/commands/wait) | Waits for an event or a given amount of time before resuming the command list | `wait 2s then remove me`
-| [tell](/commands/tell) | Temporarily sets a new implicit target value | `with <p/> add .highlight`
-| [go](/commands/go) | Navigate to a new page or within a page | `go to the top of the body smoothly`
