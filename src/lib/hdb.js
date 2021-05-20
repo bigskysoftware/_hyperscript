@@ -187,6 +187,8 @@
 
 		<ul id="console" role="list" _="
 			on hdbUI:consoleEntry(input, output)
+				if no hdb.consoleHistory set hdb.consoleHistory to [] end
+				push(input) on hdb.consoleHistory
 				set node to #tmpl-console-entry.content.cloneNode(true)
 				put the node at end of me
 				set entry to my lastElementChild
@@ -205,11 +207,25 @@
 			</template>
 		</ul>
 		
-		<form id="console-form" _="on submit 
-			send hdbUI:consoleEntry(input: #console-input's value) to #console
-			set #console-input's value to ''
-			halt">
-			<input id="console-input" placeholder="Enter an expression&hellip;">
+		<form id="console-form" data-hist="0" _="on submit 
+				send hdbUI:consoleEntry(input: #console-input's value) to #console
+				set #console-input's value to ''
+				set @data-hist to 0
+				halt
+			on keydown[key is 'ArrowUp' or key is 'ArrowDown']
+				if no hdb.consoleHistory or exit end
+				log the event
+				if event.key is 'ArrowUp' and hdb.consoleHistory.length > -@data-hist 
+					decrement @data-hist
+				else if event.key is 'ArrowDown' and @data-hist < 0
+					increment @data-hist
+				end end
+				log @data-hist
+				set #console-input.value to hdb.consoleHistory[hdb.consoleHistory.length + @data-hist as Int]
+					or #console-input.value
+				halt default">
+			<input id="console-input" placeholder="Enter an expression&hellip;"
+				autocomplete="off">
 		</form>
 	</section>
 
