@@ -7,6 +7,45 @@ title: ///_hyperscript
 
 Below is a collection of hyperscript snippets for achieving various patterns in web development.
 
+## Hello World - concat two strings
+
+```html
+<p id="first">Hello</p>
+<p id="second">World</p>
+<button class="btn primary" _="on click set my.innerText to #first.innerText + ' ' + #second.innerText">
+  Concat
+</button>
+```
+<p id="first">Hello</p>
+<p id="second">World</p>
+<button class="btn primary" _="on click set my.innerText to #first.innerText + ' ' + #second.innerText">
+  Concat
+</button>
+
+This example illustrates how to use an event handler to fetch state from other elements, perform
+a simple operation, and then store that state in another location.
+
+## Set a checkbox to indeterminate state on load/reset
+
+```html
+<form>
+<input class="indeterminate" type="checkbox" _="on load set my.indeterminate to true">
+<input type="reset" _="on click set .indeterminate.indeterminate to true">
+</form>
+```
+<form>
+<input class="indeterminate" type="checkbox" _="on load set my.indeterminate to true">
+<input type="reset" _="on click set .indeterminate.indeterminate to true">
+</form>
+
+HTML checkboxes technically have three states - checked, unchecked and indeterminate. Oddly,
+the indeterminate state can only be set via the JavaScript runtime - there is no way to set the state
+via HTML or CSS alone.
+
+In this example, the checkbox sets the indeterminate state when the page is loaded. In addition,
+the "indeterminate" class is also set, allowing the handler on the reset button to use a CSS query to reset
+all matching elements back to the indeterminate state.
+
 ### <a name="fade-and-remove"></a>[Fade & Remove](#fade-and-remove)
 
 If you wish to fade an element out and remove it from the DOM, you can use something like this:
