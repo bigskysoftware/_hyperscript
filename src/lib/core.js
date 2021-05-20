@@ -1742,7 +1742,7 @@
                         return context["me"];
                     } if (str === "it" || str === "its") {
                         return context["result"];
-                    } if (str === "your" || str === "you") {
+                    } if (str === "you" || str === "your" || str == "yourself") {
                         return context["beingTold"];
                     } else {
                         if (context.meta && context.meta.context) {
