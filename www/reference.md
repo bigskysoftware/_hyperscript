@@ -20,7 +20,7 @@ title: ///_hyperscript
 
 {% include commands_table.md %}
 
-## <a href='expressions'></a>[Expressions](#expressions)
+## <a name='expressions'></a>[Expressions](#expressions)
 
 See [expressions](/expressions) for an overview.
 
@@ -42,7 +42,7 @@ See [expressions](/expressions) for an overview.
 | [positional expressions](/expressions/positional) | Get a positional value out of an array-like object | `first from <div/>`
 | [possessive expressions](/expressions/possessive) | Get a property or attribute from an element | `the window's location`
 
-## <a href='literals'></a> [Literal Values](#literals)
+## <a name='literals'></a> [Literal Values](#literals)
 
 Define other values just like you do in Javascript
 
