@@ -7,7 +7,7 @@ title: ///_hyperscript
 
 ### Syntax
 
-```
+```hyperscript
   set x to "foo" -- double quotes
   set y to 'bar' -- single quotes
   set foobar to `$foo$bar` -- template strings (back ticks) using "$"
