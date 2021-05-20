@@ -18,6 +18,7 @@ title: ///_hyperscript
 * [the language](#lang)
   * [features](#features)
     * [event handlers](#event_handlers)
+    * [variables and scope](#variables_and_scope)
     * [init blocks](#init)
     * [functions](#functions)
     * [behaviors](#behaviors)
@@ -251,7 +252,7 @@ With that introduction, let's look at the broader language.
 
 A `hyperscript` consists of one or more [features](/reference#features).  
 
-The primary entrypoint into hyperscript is an [`event handler`](/features/on), which defines an event listener on a 
+The primary entry point into hyperscript is an [`event handler`](/features/on), which defines an event listener on a 
 DOM element.
 
 A feature then contains body which is a a series of [commands](#commands) (aka "statements"), a term taken from HyperTalk.  
@@ -267,7 +268,7 @@ A command list is a series of commands, optionally separated by the `then` keywo
 </div>
 ```
 
-`then` acts roughly like a semi-colon in other langauges.  It is particularly recommended when multiple commands are on 
+`then` acts roughly like a semi-colon in other languages.  It is particularly recommended when multiple commands are on 
 the same line, for clarity.
 
 Expressions are the root syntactic element.  Some should be very familiar to developers:
@@ -324,6 +325,65 @@ The script above says
 Note that, unlike the previous example, here there is no `to` clause, so the `add` command defaults to "the current element".
 
 The current element can be referred to with the symbol `me` (and also `my`, more on that in a bit).
+
+### <a name="variables_and_scope"></a>[Variables and Scope](#variables_and_scope)
+
+Consider the following snippet, which declares and increments the variable foo when the button is clicked:
+
+```html
+<button _="on click increment foo then set my.innerText to foo">Bad Counter</button>
+```
+<button _="on click increment foo then set my.innerText to foo">Bad Counter</button>
+
+Clicking this button will set the button text to 1, no matter how many times you click. This is because the variable
+foo is declared and initialized when first used in the script, and then falls out of scope and disappears when the
+script finishes running. So, each time you click the button foo is initialized to zero, the button is set
+to 1, and then foo disappears.
+
+Alternatively, consider this snippet:
+
+```html
+<button _="on click increment my.foo then set my.innerText to my.foo">Variable Counter</button>
+```
+<button _="on click increment my.foo then set my.innerText to my.foo">Variable Counter</button>
+
+The version above works as you might expect - the variable foo is attached to the element (in this case the button).
+Because the button is part of the DOM, the attached variable now exists as long as the button exists. If you
+view the properties for the button in your browser debugger/inspector, you will see the variable foo as an ordinary
+variable.
+
+In the version below version, the variable foo is now declared as an attribute of the button (which is also as persistent). This makes the value trivial to debug as it will now appear as an attribute in the inspector source
+view.
+
+```html
+<button _="on click increment @foo then set my.innerText to @foo">Attribute Counter</button>
+```
+<button _="on click increment @foo then set my.innerText to @foo">Attribute Counter</button>
+
+To combine these with an id selector, you can trivially manage state across elements. Consider this example,
+with two buttons allowing you to increment and decrement an attribute on another element. 
+
+```html
+<p id="counter">0</p>
+<button _="on click increment #counter@foo then set #counter.innerText to #counter@foo">Add</button>
+<button _="on click decrement #counter@foo then set #counter.innerText to #counter@foo">Subtract</button>
+```
+<p id="counter">0</p>
+<button _="on click increment #counter@foo then set #counter.innerText to #counter@foo">Add</button>
+<button _="on click decrement #counter@foo then set #counter.innerText to #counter@foo">Subtract</button>
+
+Technically, in the examples above, instead of using the foo attribute on the counter element, it might
+be easier to just use the counter.innerText instead, as shown below. Where and how you decide to store state
+will vary depending on what you are trying to accomplish.
+
+```html
+<p id="counter">0</p>
+<button _="on click increment #counter.innerText">Add</button>
+<button _="on click decrement #counter.innerText">Subtract</button>
+``` 
+<p id="counter">0</p>
+<button _="on click increment #counter.innerText">Add</button>
+<button _="on click decrement #counter.innerText">Subtract</button>
 
 #### <a name="event_queueing"></a>[Event Queueing](#event_queueing)
 
