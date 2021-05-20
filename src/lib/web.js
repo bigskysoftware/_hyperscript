@@ -485,10 +485,8 @@
             var value = context;
         }
         if (value instanceof Element || value instanceof HTMLDocument) {
-            if (valueToPut instanceof Node) {
-                while (value.firstChild) value.removeChild(element.firstChild);
-                value.append(valueToPut);
-            } else value.innerHTML = valueToPut;
+            while (value.firstChild) value.removeChild(value.firstChild);
+            value.append(_hyperscript.internals.runtime.convertValue(valueToPut, "Fragment"));
         } else {
             if (prop) {
                 context[prop] = valueToPut;
@@ -566,8 +564,9 @@
                                 operation === "end" ? Element.prototype.append : "unreachable";
                                 
                             runtime.forEach(root, function (elt) {
-                                op.call(elt, valueToPut instanceof Node ?
-                                	valueToPut.cloneNode(true) : valueToPut);
+                                op.call(elt, valueToPut instanceof Node ? 
+                               		valueToPut : 
+                               		runtime.convertValue(valueToPut, "Fragment"));
                             });
                         }
                     }
