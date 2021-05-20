@@ -4629,13 +4629,23 @@
             }
 
             if ('document' in globalScope) {
-                ready(function () {
-                    mergeMetaConfig();
-                    _runtime.processNode(document.documentElement);
-                    document.addEventListener("htmx:load", function(evt){
-                        _runtime.processNode(evt.detail.elt);
-                    })
-                })
+				Promise.all(Array.from(
+					document.querySelectorAll("script[type='text/hyperscript'][src]")
+				).map(function(script) {
+					return fetch(script.src)
+						.then(function(res) { return res.text() })
+						.then(function(code) {
+							return _runtime.evaluate(code)
+						})
+				})).then(function() {
+	                ready(function () {
+	                    mergeMetaConfig();
+	                    _runtime.processNode(document.documentElement);
+	                    document.addEventListener("htmx:load", function(evt){
+	                        _runtime.processNode(evt.detail.elt);
+	                    })
+	                })
+				})
             }
 
             //====================================================================
