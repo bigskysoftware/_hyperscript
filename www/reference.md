@@ -42,7 +42,15 @@ See [expressions](/expressions) for an overview.
 | [positional expressions](/expressions/positional) | Get a positional value out of an array-like object | `first from <div/>`
 | [possessive expressions](/expressions/possessive) | Get a property or attribute from an element | `the window's location`
 
-## <a name='literals'></a> [Literal Values](#literals)
+## <a name='magic-values'></a> [Magic Values](#magic-values)
+
+|  name | description | example
+|-------|-------------|---------
+| [it](/expressions/it) | The result of a previous command | `fetch /people as JSON then put it into people`
+| [me](/expressions/me) | Reference to the current element | `put 'clicked' into me`
+| [you](/expressions/you) | Reference to a target element | `tell <p/> remove yourself`
+
+## <a name='literals'></a> [Literals](#literals)
 
 Define other values just like you do in Javascript
 
