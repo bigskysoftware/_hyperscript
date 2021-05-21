@@ -12,8 +12,7 @@ title: ///_hyperscript
 ### Description
 
 The class reference expression uses a syntax from CSS selectors to reference all elements with a given class.  It typically
-evaluates to a NodeList of all matching classes, unless it is used as the 
-right hand side of an assignment.
+evaluates to a NodeList of all matching classes, unless it is used as the right hand side of an assignment.
 
 ### Examples
 

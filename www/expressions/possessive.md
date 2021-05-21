@@ -7,19 +7,16 @@ title: ///_hyperscript
 
 ### Syntax
 
-```
+```ebnf
   ['my' | 'its' | <expressions>'s] <property>
   ['my' | 'its' | <expressions>'s] attribute <stringLike>
 ```
 
 ### Description
 
-The possessive expression can be used in places to more clearly express intent when compared with the more typical 
-`.` operator.
+The possessive expression can be used in places to more clearly express intent when compared with the more typical `.` operator.
 
 The possessive expression can also be used to get and set attributes of an element in the DOM
-
-
 
 ### Examples
 

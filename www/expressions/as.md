@@ -17,16 +17,17 @@ Hyperscript provides a pluggable conversion system with the `as` expression.  It
 
 By default, hyperscript provides the following conversions:
 
-* `Int` - convert to integer
-* `Float` - convert to float
-* `Number` - convert to number
-* `String` - convert to String
 * `Array` - convert to Array
 * `Date` - convert to Date
-* `JSON` - convert to a JSON String
-* `Object` - convert from a JSON String
-* `Values` - convert a DOM element to its input values
+* `Float` - convert to float
+* `Fragment` - converts a string into an HTML Fragment
 * `HTML` - converts NodeLists and arrays to an HTML string
+* `Int` - convert to integer
+* `JSON` - convert to a JSON String
+* `Number` - convert to number
+* `Object` - convert from a JSON String
+* `String` - convert to String
+* `Values` - converts a Form (or other element) into a struct containing its input names/values
 
 You can add new conversions by adding them to the `_hyperscript.config.conversions` object:
 
