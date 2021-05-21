@@ -19,7 +19,6 @@ You can also use `myself` if that is more readable in English.
 
 For [possessive expressions](/expressions/possessive), `my` will also work, as in `my property` instead of `me.property`.
 
-
 ### Examples
 
 This uses the [put command](/commands/put) to update the contents of the associated element.

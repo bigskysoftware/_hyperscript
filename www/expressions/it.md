@@ -17,7 +17,6 @@ Many hyperscript commands return a value which is stored in the local variable s
 
 For [possessive expressions](/expressions/possessive), `its` will also work, as in `its property` instead of `it.property`.
 
-
 ### Examples
 
 This uses the [fetch command](/commands/fetch) to load data from a server, an [as expression](/expressions/as) to parse JSON, then [puts](/commands/put) the result into a local variable called "people"

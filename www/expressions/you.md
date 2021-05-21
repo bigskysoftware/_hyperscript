@@ -21,7 +21,6 @@ If it makes the code more readable in English, `yourself` can be used as an alia
 
 For [possessive expressions](/expressions/possessive), `your` will also work, as in `my property` instead of `me.property`.
 
-
 ### Examples
 
 This uses the [append command](/commands/append) to update the contents of every `<p>` tag.
@@ -46,4 +45,3 @@ This uses a [possessive expression](/expressions/possessive) to [decrement](/com
 tell <.counter/>
     increment your value
 ```
-

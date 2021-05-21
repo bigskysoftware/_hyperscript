@@ -7,7 +7,7 @@ title: ///_hyperscript
 
 ### Syntax
 
-```
+```ebnf
   <number> ['ms', 'milliseconds', 's', 'seconds']
 ```
 
