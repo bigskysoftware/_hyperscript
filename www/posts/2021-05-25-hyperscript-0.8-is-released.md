@@ -18,9 +18,9 @@ when the first element gets removed, the listener will be removed.
 
 	```html
 	Count: <output _="
-	on click from #inc
-		log "Increment" 
-		increment my textContent
+		on click from #inc
+			log 'Increment' 
+			increment my textContent
 	init
 		remove me
 	">0</output>
