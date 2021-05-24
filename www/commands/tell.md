@@ -13,7 +13,9 @@ tell <expression>
 
 ### Description
 
-The `tell` command can be used to temporarily change the default target for commands like `add`
+The `tell` command can be used to temporarily change the default target for commands like `add`.
+
+You can refer to the target as `you`, `your` or `yourself`
 
 ### Examples
 
@@ -21,6 +23,7 @@ The `tell` command can be used to temporarily change the default target for comm
 <div _='on click tell <p/> in me 
                    add .highlight -- adds the highlight class to each p
                                   -- found in this element...
+                   log your textContent
                  end '>
   Click to highlight paragraphs
   <p>Hyperscript is cool!</p>

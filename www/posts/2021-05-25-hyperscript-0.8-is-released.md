@@ -13,6 +13,23 @@ of hyperscript.
 
 ### Changes
 
+*	**BREAKING:** If an element adds an event listener to another element, then 
+when the first element gets removed, the listener will be removed.
+
+	```html
+	Count: <output _="
+	on click from #inc
+		log "Increment" 
+		increment my textContent
+	init
+		remove me
+	">0</output>
+
+	<!--After the <output/> is removed, clicking this will not log anything to 
+		the console-->
+	<button id="inc">Increment</button>
+	```
+
 *	You can now load external hyperscript files!
 
 	```html
