@@ -1742,7 +1742,7 @@
                         return context["me"];
                     } if (str === "it" || str === "its") {
                         return context["result"];
-                    } if (str === "your" || str === "you") {
+                    } if (str === "you" || str === "your" || str == "yourself") {
                         return context["beingTold"];
                     } else {
                         if (context.meta && context.meta.context) {
@@ -4629,13 +4629,23 @@
             }
 
             if ('document' in globalScope) {
-                ready(function () {
-                    mergeMetaConfig();
-                    _runtime.processNode(document.documentElement);
-                    document.addEventListener("htmx:load", function(evt){
-                        _runtime.processNode(evt.detail.elt);
-                    })
-                })
+				Promise.all(Array.from(
+					document.querySelectorAll("script[type='text/hyperscript'][src]")
+				).map(function(script) {
+					return fetch(script.src)
+						.then(function(res) { return res.text() })
+						.then(function(code) {
+							return _runtime.evaluate(code)
+						})
+				})).then(function() {
+	                ready(function () {
+	                    mergeMetaConfig();
+	                    _runtime.processNode(document.documentElement);
+	                    document.addEventListener("htmx:load", function(evt){
+	                        _runtime.processNode(evt.detail.elt);
+	                    })
+	                })
+				})
             }
 
             //====================================================================
