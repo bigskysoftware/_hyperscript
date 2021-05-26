@@ -86,6 +86,23 @@ be written in the following more long-winded manner:
 </div>
 ```
 
+When the element is removed, the listener is removed too -- even if it's 
+listening to another element that's still in the document:
+
+```html
+Count: <output _="
+on click from #inc
+	log "Increment" 
+	increment my textContent
+init
+	remove me
+">0</output>
+
+<!--After the <output/> is removed, clicking this will not log anything to 
+	the console-->
+<button id="inc">Increment</button>
+```
+
 ### <a name="queueing"></a>[Event Queuing](#queueing)
 
 You can control the event queuing behavior of an event handler by using the `every` and `queue` keyword.
