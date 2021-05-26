@@ -456,6 +456,14 @@ Functions can also be defined in a hyperscript `script` tag:
 This will define a global function, `waitAndReturn()` that can be
 invoked from anywhere in hyperscript.  
 
+These scripts can also be loaded remotely, but in that case, they **must** 
+appear before loading hyperscript:
+
+```
+<script type="text/hyperscript" src="/functions._hs"></script>
+<script src="https://unpkg.com/hyperscript.org"></script>
+```
+
 Global hyperscript functions are available in javascript:
 
 ```js
