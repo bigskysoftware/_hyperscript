@@ -4079,6 +4079,53 @@
                     }
                 })
 
+                _parser.addCommand("make", function (parser, runtime, tokens) {
+                    if (!tokens.matchToken("make")) return;
+                    tokens.matchToken("a") || tokens.matchToken("an");
+
+                    var expr = parser.requireElement("expression", tokens);
+
+                    var args = [];
+                    if (expr.type !== "queryRef" && tokens.matchToken("from")) {
+                        do {
+                            args.push(parser.requireElement("expression", tokens));
+                        } while (tokens.matchOpToken(","))
+	                }
+
+	                if (tokens.matchToken("called")) {
+	                    var name = tokens.requireTokenType("IDENTIFIER").value
+	                }
+
+	                if (expr.type === "queryRef") return {
+	                    op: function(ctx) {
+	                        var match, tagname = 'div', id, classes = [];
+	                        var re = /(?:(^|#|\.)([^#\. ]+))/g;
+	                        while (match = re.exec(expr.css)) {
+	                        	if (match[1] === "") tagname = match[2].trim()
+	                        	else if (match[1] === "#") id = match[2].trim()
+	                        	else classes.push(match[2].trim())
+	                        }
+
+	                        var result = document.createElement(tagname);
+	                        if (id !== undefined) result.id = id;
+	                        for (var cls of classes) result.classList.add(cls);
+
+	                        ctx.result = result;
+	                        if (name) ctx[name] = result;
+
+	                        return runtime.findNext(this, ctx)
+	                    }
+	                }; else return {
+	                    args: [expr, args],
+	                    op: function (ctx, expr, args) {
+	                        ctx.result = varargConstructor(expr, args);
+	                        if (name) ctx[name] = ctx.result;
+
+	                        return runtime.findNext(this, ctx);
+	                    }
+	                }
+                })
+
                 _parser.addGrammarElement("pseudoCommand", function(parser, runtime, tokens) {
                     var expr = parser.requireElement("primaryExpression", tokens);
                     if (expr.type !== 'functionCall' && expr.root.type !== "symbol") {
