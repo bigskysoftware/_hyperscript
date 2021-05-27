@@ -23,10 +23,14 @@ The `put` command allows you to insert content into a variable, property or the 
 <!-- equivalent to the above -->
 <div _="on click put '<em>Clicked!</em>' into my.innerHTML">Click Me!</div>
 
-<div _="on click 
+<div
+  _="on click 
 	call document.createElement('em')
 	put 'Clicked!' in it
-	put it in me">Click Me!</div>
+	put it in me"
+>
+  Click Me!
+</div>
 ```
 
 ```hyperscript

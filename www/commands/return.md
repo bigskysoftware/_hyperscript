@@ -22,9 +22,9 @@ You may use the `exit` form to return no value.
 
 ```html
 <script type="text/hyperscript">
--- return the answer
-def theAnswer()
-  return 42
-end
+  -- return the answer
+  def theAnswer()
+    return 42
+  end
 </script>
 ```

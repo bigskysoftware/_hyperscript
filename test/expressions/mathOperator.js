@@ -1,51 +1,53 @@
 describe("the mathOperator expression", function () {
+	it("addition works", function () {
+		var result = evalHyperScript("1 + 1");
+		result.should.equal(1 + 1);
+	});
 
-    it("addition works", function () {
-        var result = evalHyperScript("1 + 1")
-        result.should.equal(1 + 1);
-    });
+	it("string concat works", function () {
+		var result = evalHyperScript("'a' + 'b'");
+		result.should.equal("ab");
+	});
 
-    it("string concat works", function () {
-        var result = evalHyperScript("'a' + 'b'")
-        result.should.equal("ab");
-    });
+	it("subtraction works", function () {
+		var result = evalHyperScript("1 - 1");
+		result.should.equal(1 - 1);
+	});
 
-    it("subtraction works", function () {
-        var result = evalHyperScript("1 - 1")
-        result.should.equal(1 - 1);
-    });
+	it("multiplication works", function () {
+		var result = evalHyperScript("1 * 2");
+		result.should.equal(1 * 2);
+	});
 
-    it("multiplication works", function () {
-        var result = evalHyperScript("1 * 2")
-        result.should.equal(1 * 2);
-    });
+	it("division works", function () {
+		var result = evalHyperScript("1 / 2");
+		result.should.equal(1 / 2);
+	});
 
-    it("division works", function () {
-        var result = evalHyperScript("1 / 2")
-        result.should.equal(1 / 2);
-    });
+	it("addition works w/ more than one value", function () {
+		var result = evalHyperScript("1 + 2 + 3");
+		result.should.equal(1 + 2 + 3);
+	});
 
-    it("addition works w/ more than one value", function () {
-        var result = evalHyperScript("1 + 2 + 3")
-        result.should.equal(1 + 2 + 3);
-    });
+	it("unparenthesized expressions with multiple operators cause an error", function () {
+		var result = getParseErrorFor("1 + 2 * 3");
+		result
+			.indexOf(
+				"You must parenthesize math operations with different operators"
+			)
+			.should.equal(0);
+	});
 
-    it("unparenthesized expressions with multiple operators cause an error", function () {
-        var result = getParseErrorFor("1 + 2 * 3")
-        result.indexOf("You must parenthesize math operations with different operators").should.equal(0);
-    });
+	it("parenthesized expressions with multiple operators work", function () {
+		var result = evalHyperScript("1 + (2 * 3)");
+		result.should.equal(1 + 2 * 3);
+	});
 
-    it("parenthesized expressions with multiple operators work", function () {
-        var result = evalHyperScript("1 + (2 * 3)")
-        result.should.equal(1 + (2 * 3));
-    });
-
-    it("can use mixed expressions", function(done) {
-        var result = evalHyperScript("1 + promiseAnIntIn(10)")
-        result.then(function(value){
-            value.should.equal(43);
-            done();
-        })
-    })
-
+	it("can use mixed expressions", function (done) {
+		var result = evalHyperScript("1 + promiseAnIntIn(10)");
+		result.then(function (value) {
+			value.should.equal(43);
+			done();
+		});
+	});
 });

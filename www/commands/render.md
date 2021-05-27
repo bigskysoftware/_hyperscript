@@ -11,23 +11,25 @@ title: ///_hyperscript
 
 where
 
-* `<template>` is an HTML element containing a template
+- `<template>` is an HTML element containing a template
 
 ### Description
 
 The `render` command implements a simple template language. This language has two rules:
 
-* You can use `${}` string interpolation, just like in [template literals](). However, bare `` `$var` `` interpolation is not supported.
-* Interpolated expressions will be HTML-escaped, unless they are preceded by `unescaped`.
-* Any line starting with `@` is executed as a _hyperscript statement.
+- You can use `${}` string interpolation, just like in [template literals](). However, bare `` `$var` `` interpolation is not supported.
+- Interpolated expressions will be HTML-escaped, unless they are preceded by `unescaped`.
+- Any line starting with `@` is executed as a \_hyperscript statement.
 
 The result of rendering the template will be stored in the `result` (or `it`) variable.
 
 For example, if we want to render a list of colors:
 
 ```html
-<button _="on click
-  render #color-template with (colors: getColors()) then put it into #colors">
+<button
+  _="on click
+  render #color-template with (colors: getColors()) then put it into #colors"
+>
   Get the colors
 </button>
 ```
@@ -37,13 +39,9 @@ Our template might look like this:
 ```html
 <template id="color-template">
   <ul>
-    @repeat in colors
-      @set bg to it
-      @set fg to getContrastingColor(it)
-      <li style="background: ${bg}; color: ${unescaped fg}">${bg}</li>
+    @repeat in colors @set bg to it @set fg to getContrastingColor(it)
+    <li style="background: ${bg}; color: ${unescaped fg}">${bg}</li>
     @end
   </ul>
 </template>
 ```
-
-

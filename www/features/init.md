@@ -8,8 +8,8 @@ title: ///_hyperscript
 ### Syntax
 
 ```ebnf
-init 
-  {<command>} 
+init
+  {<command>}
 end
 ```
 

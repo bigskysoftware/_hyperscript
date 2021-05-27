@@ -6,7 +6,7 @@
 
 /**
  * THIS IS A WORK IN PROGRESS.  THESE DEFINITIONS ARE NOT ACCURATE OR FINAL.
- * 
+ *
  * PUBLIC API
  * @typedef HyperscriptObject
  * @property {HyperscriptInternalsObject} internals
@@ -18,27 +18,27 @@
  * @property {(str:string) => *} parse
  * @property {(elt:HTMLElement) => void} processNode
  * @property {HyperscriptConfigObject} config
- * 
+ *
  * @typedef HyperscriptInternalsObject
  * @property {LexerObject} lexer
  * @property {ParserObject} parser
  * @property {RuntimeObject} runtime
- * 
+ *
  * @typedef HyperscriptConfigObject
  * @property {string} attributes
  * @property {string} defaultTransition
  * @property {HyperscriptConversionsObject} conversions
- * 
+ *
  * @typedef {Object<string,(val:any) => any>} HyperscriptConversionsObject
  * @property {any[(name:string, value:any) => any]} dynamicResolvers
- * 
- * 
+ *
+ *
  * TOKENS *************************
- * 
+ *
  * @typedef LexerObject
  * @property {(string:string, noDollarStart?:boolean) => TokensObject} tokenize
  * @property {(tokens:Token[], consumed:Token[], source:string) => TokensObject} makeTokensObject
- * 
+ *
  * @typedef TokensObject
  * @property {(type1:string, type2?:string, type3?:string, type4?:string) => Token | void} matchTokenType
  * @property {(token:string) => Token | void} matchToken
@@ -61,8 +61,8 @@
  * @property {() => string} lastWhitespace
  * @property {() => string} sourceFor
  * @property {() => string} lineFor
- * 
- * @typedef {object} Token 
+ *
+ * @typedef {object} Token
  * @property {string} [type]
  * @property {string} [value]
  * @property {number} [start]
@@ -70,10 +70,10 @@
  * @property {number} [column]
  * @property {number} [line]
  * @property {boolean} [op] // `true` if this token represents an operator
- * 
- * 
+ *
+ *
  * PARSER *************************
- * 
+ *
  * @typedef ParserObject
  * @property {(elt:GrammarElement, parent:GrammarElement) => void} setParent
  * @property {(type:string, tokens:TokensObject, message?:string, root?:any) => GrammarElement} requireElement
@@ -102,16 +102,16 @@
  * @property {EventSource} [eventSource]
  * @property {() => void} [install]
  * @property {(context:Context) => void} [execute]
- * 
+ *
  * @callback GrammarDefinition
  * @param {ParserObject} parser
  * @param {RuntimeObject} runtime
- * @param {TokensObject} tokens 
+ * @param {TokensObject} tokens
  * @param {*} root
  * @returns {GrammarElement | void}
- * 
+ *
  * RUNTIME **********************
- * 
+ *
  * @typedef RuntimeObject
  * @property {(value:any, typeString:string, nullOk?:boolean) => boolean } typeCheck
  * @property {(value:any, func:(item:any) => void) => void } forEach
@@ -138,7 +138,7 @@
  * @property {(value:any) => boolean} isEmpty
  * @property {string | null} hyperscriptUrl
  * @property {Object} HALT
- * 
+ *
  * @typedef {{meta: object, me: Element, event:Event, target: Element, detail: any, body: Document}} Context
  * @property {ContextMetaData} meta
  * @property {*} me
@@ -155,12 +155,12 @@
  * @property {*} feature
  * @property {*} iterators
  * @property {ContextMetaData} ctx
- * 
- * 
+ *
+ *
  * @typedef {Object<string,ConversionFunction>} ConversionMap
  * @property {DynamicConversionFunction[]} dynamicResolvers
- * 
+ *
  * @typedef {(value:any) => any} ConversionFunction
  * @typedef {(conversionName:string, value:any) => any} DynamicConversionFunction
- * 
+ *
  */

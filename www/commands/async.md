@@ -10,7 +10,7 @@ title: ///_hyperscript
 ```ebnf
 async <command>
 
-async do 
+async do
  {command}
 end
 ```
@@ -27,11 +27,13 @@ even if they return a promise)
   here we spin off the fetch and put asynchronously and immediately
   put a value into the button
 -->
-<button _="on click async do 
+<button
+  _="on click async do 
                       fetch /example
                       put it into my.innerHTML
                     end
-                    put 'Fetching It!' into my.innerHTML">
+                    put 'Fetching It!' into my.innerHTML"
+>
   Fetch it!
 </button>
 ```

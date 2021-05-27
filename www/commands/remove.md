@@ -23,9 +23,13 @@ a class or property from an element node.
 
 <div _="on click remove .not-clicked">Remove Class From Me!</div>
 
-<div _="on click remove .not-clacked from #another-div">Remove Class From Another Div!</div>
+<div _="on click remove .not-clacked from #another-div">
+  Remove Class From Another Div!
+</div>
 
-<div _="on click remove .foo .bar from #another-div">Remove Class From Another Div!</div>
+<div _="on click remove .foo .bar from #another-div">
+  Remove Class From Another Div!
+</div>
 
 <button _="on click remove [disabled]">Un-Disable Me!</button>
 ```

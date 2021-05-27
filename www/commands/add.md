@@ -27,5 +27,8 @@ The `add` command allows you to add a class (via a [class ref](/expressions/clas
 
 <button _="on click add [disabled='true']">Disable Me!</button>
 
-<input type=color _="on change add { '--accent-color': my.value } to document.body">
+<input
+  type="color"
+  _="on change add { '--accent-color': my.value } to document.body"
+/>
 ```
