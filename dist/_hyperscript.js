@@ -1665,17 +1665,12 @@
                     if (matchesSelector(elt, selector)) {
                         initElement(elt, elt);
                     }
-                    if (elt.querySelectorAll) {
-                        forEach(elt.querySelectorAll(selector), function (elt) {
-                            initElement(elt, elt);
-                        });
-                    }
                     if (elt['type'] === "text/hyperscript") {
                         initElement(elt, document.body);
                     }
                     if (elt.querySelectorAll) {
-                        forEach(elt.querySelectorAll("[type=\'text/hyperscript\']"), function (elt) {
-                            initElement(elt, document.body);
+                        forEach(elt.querySelectorAll(selector + ", [type=\'text/hyperscript\']"), function (elt) {
+                            initElement(elt, elt.type === 'text/hyperscript' ? document.body : elt);
                         });
                     }
                 }
@@ -1746,6 +1741,8 @@
                         return context["me"];
                     } if (str === "it" || str === "its") {
                         return context["result"];
+                    } if (str === "your" || str === "you") {
+                        return context["beingTold"];
                     } else {
                         if (context.meta && context.meta.context) {
                             var fromMetaContext = context.meta.context[str];
@@ -2121,8 +2118,9 @@
                             css: css,
                             value: value,
                             op:function(context){
-                                if (context.me) {
-                                    return context.me.getAttribute(name);
+                                var target = context.beingTold || context.me;
+                                if (target) {
+                                    return target.getAttribute(name);
                                 };
                             },
                             evaluate: function (context) {
@@ -2426,7 +2424,7 @@
                     }
                     var apostrophe = tokens.matchOpToken("'");
                     if (apostrophe ||
-                        (root.type === "symbol" && (root.name === "my" || root.name === "its") && tokens.currentToken().type === "IDENTIFIER")) {
+                        (root.type === "symbol" && (root.name === "my" || root.name === "its" || root.name === "your") && tokens.currentToken().type === "IDENTIFIER")) {
                         if (apostrophe) {
                             tokens.requireToken("s");
                         }
@@ -3295,7 +3293,7 @@
                                         }
 
                                         if (eventSpec.intersectionSpec) {
-                                            eventName = 'hyperscript:insersection';
+                                            eventName = 'hyperscript:intersection';
                                             var observer = new IntersectionObserver(function (entries) {
                                                 _runtime.forEach(entries, function (entry) {
                                                     var detail = {
@@ -3309,7 +3307,17 @@
                                             observer.observe(target);
                                         }
 
-                                        target.addEventListener(eventName, function (evt) { // OK NO PROMISE
+                                        var eventListener = function (evt) {
+
+                                            // if the scripted element is no longer in the DOM and listening to another
+                                            // element on the dom, exit and remove the event listener
+                                            if (eventSpec.elsewhere || eventSpec.from) {
+                                                if (!document.contains(elt)) {
+                                                    target.removeEventListener(eventListener);
+                                                    return;
+                                                }
+                                            }
+
                                             var ctx = runtime.makeContext(elt, onFeature, elt, evt, args);
                                             if (eventSpec.elsewhere && elt.contains(evt.target)) {
                                                 return
@@ -3393,7 +3401,8 @@
 
                                             // apply execute
                                             onFeature.execute(ctx);
-                                        });
+                                        };
+                                        target.addEventListener(eventName, eventListener);
                                     })
                                 });
                             }
@@ -4617,7 +4626,7 @@
             if ('document' in globalScope) {
                 ready(function () {
                     mergeMetaConfig();
-                    _runtime.processNode(document.body);
+                    _runtime.processNode(document.documentElement);
                     document.addEventListener("htmx:load", function(evt){
                         _runtime.processNode(evt.detail.elt);
                     })

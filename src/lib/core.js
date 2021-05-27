@@ -4092,7 +4092,7 @@
 
 										if (eventSpec.intersectionSpec) {
 											eventName =
-												"hyperscript:insersection";
+												"hyperscript:intersection";
 											var observer =
 												new IntersectionObserver(
 													function (entries) {
