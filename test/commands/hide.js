@@ -31,9 +31,7 @@ describe("the hide command", function () {
 	});
 
 	it("can hide element with no target with a with", function () {
-		var div = make(
-			"<div _='on click hide with display then add .foo'></div>"
-		);
+		var div = make("<div _='on click hide with display then add .foo'></div>");
 		getComputedStyle(div).display.should.equal("block");
 		div.classList.contains("foo").should.equal(false);
 		div.click();

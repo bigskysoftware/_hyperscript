@@ -7,33 +7,25 @@ describe("the set command", function () {
 	});
 
 	it("can set properties", function () {
-		var d1 = make(
-			"<div id='d1' _='on click set #d1.innerHTML to \"foo\"'></div>"
-		);
+		var d1 = make("<div id='d1' _='on click set #d1.innerHTML to \"foo\"'></div>");
 		d1.click();
 		d1.innerHTML.should.equal("foo");
 	});
 
 	it("can set indirect properties", function () {
-		var d1 = make(
-			"<div id='d1' _='on click set innerHTML of #d1 to \"foo\"'></div>"
-		);
+		var d1 = make("<div id='d1' _='on click set innerHTML of #d1 to \"foo\"'></div>");
 		d1.click();
 		d1.innerHTML.should.equal("foo");
 	});
 
 	it("can set complex indirect properties lhs", function () {
-		var d1 = make(
-			"<div _='on click set parentNode.innerHTML of #d1 to \"foo\"'><div id='d1'></div></div>"
-		);
+		var d1 = make("<div _='on click set parentNode.innerHTML of #d1 to \"foo\"'><div id='d1'></div></div>");
 		d1.click();
 		d1.innerHTML.should.equal("foo");
 	});
 
 	it("can set complex indirect properties rhs", function () {
-		var d1 = make(
-			"<div _='on click set innerHTML of #d1.parentNode to \"foo\"'><div id='d1'></div></div>"
-		);
+		var d1 = make("<div _='on click set innerHTML of #d1.parentNode to \"foo\"'><div id='d1'></div></div>");
 		d1.click();
 		d1.innerHTML.should.equal("foo");
 	});
@@ -47,18 +39,14 @@ describe("the set command", function () {
 	});
 
 	it("can set styles", function () {
-		var d1 = make(
-			"<div _='on click set my.style.color to \"red\"'>lolwat</div>"
-		);
+		var d1 = make("<div _='on click set my.style.color to \"red\"'>lolwat</div>");
 		d1.click();
 		d1.style.color.should.equal("red");
 	});
 
 	it("can set javascript globals", function () {
 		try {
-			var d1 = make(
-				"<div _='on click set window.temp to \"red\"'>lolwat</div>"
-			);
+			var d1 = make("<div _='on click set window.temp to \"red\"'>lolwat</div>");
 			d1.click();
 			window["temp"].should.equal("red");
 		} finally {
@@ -76,17 +64,13 @@ describe("the set command", function () {
 	});
 
 	it("can set into id ref", function () {
-		var d1 = make(
-			"<div id='d1' _='on click set #d1.innerHTML to \"foo\"'></div>"
-		);
+		var d1 = make("<div id='d1' _='on click set #d1.innerHTML to \"foo\"'></div>");
 		d1.click();
 		d1.innerHTML.should.equal("foo");
 	});
 
 	it("can set into class ref", function () {
-		var d1 = make(
-			"<div class='divs' _='on click set .divs.innerHTML to \"foo\"'></div>"
-		);
+		var d1 = make("<div class='divs' _='on click set .divs.innerHTML to \"foo\"'></div>");
 		var d2 = make("<div class='divs''></div>");
 		d1.click();
 		d1.innerHTML.should.equal("foo");
@@ -100,9 +84,7 @@ describe("the set command", function () {
 			});
 		};
 		try {
-			var d1 = make(
-				"<div id='d1' _='on click set #d1.innerHTML to promiseAString()'></div>"
-			);
+			var d1 = make("<div id='d1' _='on click set #d1.innerHTML to promiseAString()'></div>");
 			d1.click();
 			d1.innerHTML.should.equal("");
 			finish("foo");

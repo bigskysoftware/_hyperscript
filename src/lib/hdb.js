@@ -1,10 +1,5 @@
 (function () {
-	var globalScope =
-		typeof self !== "undefined"
-			? self
-			: typeof global !== "undefined"
-			? global
-			: this;
+	var globalScope = typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this;
 
 	function HDB(ctx, runtime, breakpoint) {
 		this.ctx = ctx;
@@ -97,19 +92,13 @@
 		var oldMe = self.ctx.me;
 		self.ctx = self.ctx.meta.caller;
 		console.log(
-			"%c[hdb] %cstepping out into %c" +
-				self.ctx.meta.feature.displayName,
+			"%c[hdb] %cstepping out into %c" + self.ctx.meta.feature.displayName,
 			markerStyle,
 			logTypeStyle,
 			symbolStyle
 		);
 		if (self.ctx.me instanceof Element && self.ctx.me !== oldMe) {
-			console.log(
-				"%c[hdb] %cme: ",
-				markerStyle,
-				logTypeStyle,
-				self.ctx.me
-			);
+			console.log("%c[hdb] %cme: ", markerStyle, logTypeStyle, self.ctx.me);
 		}
 		self.cmd = self.runtime.findNext(callingCmd, self.ctx);
 		self.cmd = self.runtime.findNext(self.cmd, self.ctx);
@@ -119,9 +108,7 @@
 
 	HDB.prototype.logCommand = function () {
 		var hasSource = this.cmd.sourceFor instanceof Function;
-		var cmdSource = hasSource
-			? this.cmd.sourceFor()
-			: "-- " + this.cmd.type;
+		var cmdSource = hasSource ? this.cmd.sourceFor() : "-- " + this.cmd.type;
 		console.log(
 			"%c[hdb] " + "%ccurrent command: " + "%c" + cmdSource,
 			markerStyle,

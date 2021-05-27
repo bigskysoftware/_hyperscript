@@ -17,9 +17,7 @@ describe("the fetch command", function () {
 				})
 			)
 		);
-		var div = make(
-			"<div _='on click fetch \"/test\" then put it into my.innerHTML'></div>"
-		);
+		var div = make("<div _='on click fetch \"/test\" then put it into my.innerHTML'></div>");
 		div.click();
 		setTimeout(function () {
 			div.innerHTML.should.equal("yay");
@@ -36,9 +34,7 @@ describe("the fetch command", function () {
 				})
 			)
 		);
-		var div = make(
-			"<div _='on click fetch /test then put it into my.innerHTML'></div>"
-		);
+		var div = make("<div _='on click fetch /test then put it into my.innerHTML'></div>");
 		div.click();
 		setTimeout(function () {
 			div.innerHTML.should.equal("yay");
@@ -94,9 +90,7 @@ describe("the fetch command", function () {
 				})
 			)
 		);
-		var div = make(
-			"<div _='on click fetch /test as response then if its.ok put \"yep\" into my.innerHTML'></div>"
-		);
+		var div = make("<div _='on click fetch /test as response then if its.ok put \"yep\" into my.innerHTML'></div>");
 		div.click();
 		setTimeout(function () {
 			div.innerHTML.should.equal("yep");
@@ -113,9 +107,7 @@ describe("the fetch command", function () {
 				})
 			)
 		);
-		var div = make(
-			"<div _='on click fetch /test as Number then put it into my.innerHTML'></div>"
-		);
+		var div = make("<div _='on click fetch /test as Number then put it into my.innerHTML'></div>");
 		div.click();
 		setTimeout(function () {
 			div.innerHTML.should.equal("1.2");
@@ -132,9 +124,7 @@ describe("the fetch command", function () {
 				})
 			)
 		);
-		var div = make(
-			"<div _='on click fetch /test {method:\"POST\"} then put it into my.innerHTML'></div>"
-		);
+		var div = make("<div _='on click fetch /test {method:\"POST\"} then put it into my.innerHTML'></div>");
 		div.click();
 		setTimeout(function () {
 			div.innerHTML.should.equal("yay");

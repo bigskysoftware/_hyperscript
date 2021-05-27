@@ -7,33 +7,25 @@ describe("the increment command", function () {
 	});
 
 	it("can increment an empty variable", function () {
-		var div = make(
-			`<div _="on click increment value then put value into me"></div>`
-		);
+		var div = make(`<div _="on click increment value then put value into me"></div>`);
 		div.click();
 		div.innerHTML.should.equal("1");
 	});
 
 	it("can increment a variable", function () {
-		var div = make(
-			`<div _="on click set value to 20 then increment value by 2 then put value into me"></div>`
-		);
+		var div = make(`<div _="on click set value to 20 then increment value by 2 then put value into me"></div>`);
 		div.click();
 		div.innerHTML.should.equal("22");
 	});
 
 	it("can increment refer to result", function () {
-		var div = make(
-			`<div _="on click increment value by 2 then put it into me"></div>`
-		);
+		var div = make(`<div _="on click increment value by 2 then put it into me"></div>`);
 		div.click();
 		div.innerHTML.should.equal("2");
 	});
 
 	it("can increment an attribute", function () {
-		var div = make(
-			`<div value="5" _="on click increment @value then put @value into me"></div>`
-		);
+		var div = make(`<div value="5" _="on click increment @value then put @value into me"></div>`);
 		div.click();
 		div.click();
 		div.click();
@@ -67,25 +59,19 @@ describe("the increment command", function () {
 	});
 
 	it("can decrement an empty variable", function () {
-		var div = make(
-			`<div _="on click decrement value then put value into me"></div>`
-		);
+		var div = make(`<div _="on click decrement value then put value into me"></div>`);
 		div.click();
 		div.innerHTML.should.equal("-1");
 	});
 
 	it("can decrement a variable", function () {
-		var div = make(
-			`<div _="on click set value to 20 then decrement value by 2 then put value into me"></div>`
-		);
+		var div = make(`<div _="on click set value to 20 then decrement value by 2 then put value into me"></div>`);
 		div.click();
 		div.innerHTML.should.equal("18");
 	});
 
 	it("can decrement an attribute", function () {
-		var div = make(
-			`<div value="5" _="on click decrement @value then put @value into me"></div>`
-		);
+		var div = make(`<div value="5" _="on click decrement @value then put @value into me"></div>`);
 		div.click();
 		div.click();
 		div.click();

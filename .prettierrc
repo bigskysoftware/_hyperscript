@@ -1,0 +1,8 @@
+{
+	overrides: [
+		{
+			files: "**/*.js",
+			printWidth: 120,
+		}
+	]
+}

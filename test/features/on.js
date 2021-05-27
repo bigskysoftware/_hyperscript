@@ -41,9 +41,7 @@ describe("the on feature", function () {
 
 	it("listeners are removed when the element is removed from the dom", function () {
 		var bar = make("<div id='bar'></div>");
-		var div = make(
-			"<div _='on click from #bar set #bar.innerHTML to #bar.innerHTML + \"a\"'></div>"
-		);
+		var div = make("<div _='on click from #bar set #bar.innerHTML to #bar.innerHTML + \"a\"'></div>");
 		bar.innerHTML.should.equal("");
 		bar.click();
 		bar.innerHTML.should.equal("a");
@@ -71,21 +69,15 @@ describe("the on feature", function () {
 	});
 
 	it("can pick detail fields out by name", function () {
-		var bar = make(
-			"<div id='d1' _='on click send custom(foo:\"fromBar\") to #d2'></div>"
-		);
-		var div = make(
-			"<div id='d2' _='on custom(foo) call me.classList.add(foo)'></div>"
-		);
+		var bar = make("<div id='d1' _='on click send custom(foo:\"fromBar\") to #d2'></div>");
+		var div = make("<div id='d2' _='on custom(foo) call me.classList.add(foo)'></div>");
 		div.classList.contains("fromBar").should.equal(false);
 		bar.click();
 		div.classList.contains("fromBar").should.equal(true);
 	});
 
 	it("can fire an event on load", function (done) {
-		var div = make(
-			"<div id='d1' _='on load put \"Loaded\" into my.innerHTML'></div>"
-		);
+		var div = make("<div id='d1' _='on load put \"Loaded\" into my.innerHTML'></div>");
 		setTimeout(function () {
 			div.innerText.should.equal("Loaded");
 			done();
@@ -103,23 +95,17 @@ describe("the on feature", function () {
 	});
 
 	it("can have a simple event filter", function () {
-		var div = make(
-			"<div id='d1' _='on click[false] log event then put \"Clicked\" into my.innerHTML'></div>"
-		);
+		var div = make("<div id='d1' _='on click[false] log event then put \"Clicked\" into my.innerHTML'></div>");
 		div.click();
 		byId("d1").innerText.should.equal("");
 	});
 
 	it("can refer to event properties directly in filter", function () {
-		var div = make(
-			"<div _='on click[buttons==0] log event then put \"Clicked\" into my.innerHTML'></div>"
-		);
+		var div = make("<div _='on click[buttons==0] log event then put \"Clicked\" into my.innerHTML'></div>");
 		div.click();
 		div.innerText.should.equal("Clicked");
 
-		div = make(
-			"<div _='on click[buttons==1] log event then put \"Clicked\" into my.innerHTML'></div>"
-		);
+		div = make("<div _='on click[buttons==1] log event then put \"Clicked\" into my.innerHTML'></div>");
 		div.click();
 		div.innerText.should.equal("");
 
@@ -131,9 +117,7 @@ describe("the on feature", function () {
 	});
 
 	it("can click after a positive event filter", function () {
-		var div = make(
-			"<div _='on foo(bar)[bar] put \"triggered\" into my.innerHTML'></div>"
-		);
+		var div = make("<div _='on foo(bar)[bar] put \"triggered\" into my.innerHTML'></div>");
 		div.dispatchEvent(new CustomEvent("foo", { detail: { bar: false } }));
 		div.innerText.should.equal("");
 
@@ -147,9 +131,7 @@ describe("the on feature", function () {
 			return i++;
 		};
 
-		var div = make(
-			"<div _='on every click put increment() into my.innerHTML then wait for a customEvent'></div>"
-		);
+		var div = make("<div _='on every click put increment() into my.innerHTML then wait for a customEvent'></div>");
 		div.click();
 		div.innerText.should.equal("1");
 		div.click();
@@ -204,9 +186,7 @@ describe("the on feature", function () {
 		};
 
 		// start first event
-		var div = make(
-			"<div _='on foo wait for bar then call increment()'></div>"
-		);
+		var div = make("<div _='on foo wait for bar then call increment()'></div>");
 		div.dispatchEvent(new CustomEvent("foo"));
 		i.should.equal(0);
 
@@ -242,9 +222,7 @@ describe("the on feature", function () {
 		};
 
 		// start first event
-		var div = make(
-			"<div _='on foo queue first wait for bar then call increment()'></div>"
-		);
+		var div = make("<div _='on foo queue first wait for bar then call increment()'></div>");
 		div.dispatchEvent(new CustomEvent("foo"));
 		i.should.equal(0);
 
@@ -280,9 +258,7 @@ describe("the on feature", function () {
 		};
 
 		// start first event
-		var div = make(
-			"<div _='on foo queue last wait for bar then call increment()'></div>"
-		);
+		var div = make("<div _='on foo queue last wait for bar then call increment()'></div>");
 		div.dispatchEvent(new CustomEvent("foo"));
 		i.should.equal(0);
 
@@ -318,9 +294,7 @@ describe("the on feature", function () {
 		};
 
 		// start first event
-		var div = make(
-			"<div _='on foo queue all wait for bar then call increment()'></div>"
-		);
+		var div = make("<div _='on foo queue all wait for bar then call increment()'></div>");
 		div.dispatchEvent(new CustomEvent("foo"));
 		i.should.equal(0);
 
@@ -400,9 +374,7 @@ describe("the on feature", function () {
 	});
 
 	it("can filter events based on count", function () {
-		var div = make(
-			"<div _='on click 1 put 1 + my.innerHTML as Int into my.innerHTML'>0</div>"
-		);
+		var div = make("<div _='on click 1 put 1 + my.innerHTML as Int into my.innerHTML'>0</div>");
 		div.click();
 		div.innerHTML.should.equal("1");
 		div.click();
@@ -412,9 +384,7 @@ describe("the on feature", function () {
 	});
 
 	it("can filter events based on count range", function () {
-		var div = make(
-			"<div _='on click 1 to 2 put 1 + my.innerHTML as Int into my.innerHTML'>0</div>"
-		);
+		var div = make("<div _='on click 1 to 2 put 1 + my.innerHTML as Int into my.innerHTML'>0</div>");
 		div.click();
 		div.innerHTML.should.equal("1");
 		div.click();
@@ -424,9 +394,7 @@ describe("the on feature", function () {
 	});
 
 	it("can filter events based on unbounded count range", function () {
-		var div = make(
-			"<div _='on click 2 and on put 1 + my.innerHTML as Int into my.innerHTML'>0</div>"
-		);
+		var div = make("<div _='on click 2 and on put 1 + my.innerHTML as Int into my.innerHTML'>0</div>");
 		div.click();
 		div.innerHTML.should.equal("0");
 		div.click();
@@ -454,9 +422,7 @@ describe("the on feature", function () {
 	it("can listen for general mutations", function (done) {
 		// pretty subtle: mutation events are async, so we need to ensure that we wait for the mutation event
 		// so that we don't end up in an infinite mutation loop
-		var div = make(
-			"<div _='on mutation put \"Mutated\" into me then wait for hyperscript:mutation'></div>"
-		);
+		var div = make("<div _='on mutation put \"Mutated\" into me then wait for hyperscript:mutation'></div>");
 		div.setAttribute("foo", "bar");
 		setTimeout(function () {
 			div.innerHTML.should.equal("Mutated");
@@ -465,9 +431,7 @@ describe("the on feature", function () {
 	});
 
 	it("can listen for attribute mutations", function (done) {
-		var div = make(
-			"<div _='on mutation of attributes put \"Mutated\" into me'></div>"
-		);
+		var div = make("<div _='on mutation of attributes put \"Mutated\" into me'></div>");
 		div.setAttribute("foo", "bar");
 		setTimeout(function () {
 			div.innerHTML.should.equal("Mutated");
@@ -476,9 +440,7 @@ describe("the on feature", function () {
 	});
 
 	it("can listen for specific attribute mutations", function (done) {
-		var div = make(
-			"<div _='on mutation of @foo put \"Mutated\" into me'></div>"
-		);
+		var div = make("<div _='on mutation of @foo put \"Mutated\" into me'></div>");
 		div.setAttribute("foo", "bar");
 		setTimeout(function () {
 			div.innerHTML.should.equal("Mutated");
@@ -487,9 +449,7 @@ describe("the on feature", function () {
 	});
 
 	it("can listen for specific attribute mutations and filter out other attribute mutations", function (done) {
-		var div = make(
-			"<div _='on mutation of @bar put \"Mutated\" into me'></div>"
-		);
+		var div = make("<div _='on mutation of @bar put \"Mutated\" into me'></div>");
 		div.setAttribute("foo", "bar");
 		setTimeout(function () {
 			div.innerHTML.should.equal("");
@@ -509,9 +469,7 @@ describe("the on feature", function () {
 	});
 
 	it("can listen for childList mutation filter out other mutations", function (done) {
-		var div = make(
-			"<div _='on mutation of childList put \"Mutated\" into me'></div>"
-		);
+		var div = make("<div _='on mutation of childList put \"Mutated\" into me'></div>");
 		div.setAttribute("foo", "bar");
 		setTimeout(function () {
 			div.innerHTML.should.equal("");
@@ -520,9 +478,7 @@ describe("the on feature", function () {
 	});
 
 	it("can listen for characterData mutation filter out other mutations", function (done) {
-		var div = make(
-			"<div _='on mutation of characterData put \"Mutated\" into me'></div>"
-		);
+		var div = make("<div _='on mutation of characterData put \"Mutated\" into me'></div>");
 		div.setAttribute("foo", "bar");
 		setTimeout(function () {
 			div.innerHTML.should.equal("");
@@ -531,9 +487,7 @@ describe("the on feature", function () {
 	});
 
 	it("can listen for multiple mutations", function (done) {
-		var div = make(
-			"<div _='on mutation of @foo or @bar put \"Mutated\" into me'></div>"
-		);
+		var div = make("<div _='on mutation of @foo or @bar put \"Mutated\" into me'></div>");
 		div.setAttribute("foo", "bar");
 		setTimeout(function () {
 			div.innerHTML.should.equal("Mutated");
@@ -542,9 +496,7 @@ describe("the on feature", function () {
 	});
 
 	it("can listen for multiple mutations 2", function (done) {
-		var div = make(
-			"<div _='on mutation of @foo or @bar put \"Mutated\" into me'></div>"
-		);
+		var div = make("<div _='on mutation of @foo or @bar put \"Mutated\" into me'></div>");
 		div.setAttribute("bar", "bar");
 		setTimeout(function () {
 			div.innerHTML.should.equal("Mutated");
@@ -554,9 +506,7 @@ describe("the on feature", function () {
 
 	it("can listen for attribute mutations on other elements", function (done) {
 		var div1 = make("<div id='d1'></div>");
-		var div2 = make(
-			"<div _='on mutation of attributes from #d1 put \"Mutated\" into me'></div>"
-		);
+		var div2 = make("<div _='on mutation of attributes from #d1 put \"Mutated\" into me'></div>");
 		div1.setAttribute("foo", "bar");
 		setTimeout(function () {
 			div2.innerHTML.should.equal("Mutated");

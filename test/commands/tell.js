@@ -208,9 +208,7 @@ describe("the tell command", function () {
 	});
 
 	it("yourself attribute also works", function () {
-		make(
-			`<div id="d1" _="on click tell #d2 remove yourself"><div id="d2"></div></div>`
-		);
+		make(`<div id="d1" _="on click tell #d2 remove yourself"><div id="d2"></div></div>`);
 
 		var div1 = byId("d1");
 		var div2 = byId("d2");

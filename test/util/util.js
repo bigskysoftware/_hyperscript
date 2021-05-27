@@ -72,15 +72,7 @@ function getParseErrorFor(src) {
 
 function startsWith(str, expected) {
 	assert.isNotNull(str);
-	assert.equal(
-		str.indexOf(expected),
-		0,
-		"Expected string:\n\n" +
-			str +
-			"\n\nto start with:\n\n" +
-			expected +
-			"\n\n"
-	);
+	assert.equal(str.indexOf(expected), 0, "Expected string:\n\n" + str + "\n\nto start with:\n\n" + expected + "\n\n");
 }
 
 function getHTTPMethod(xhr) {
@@ -128,9 +120,7 @@ function getQuery(url) {
 	var hash = url.indexOf("#");
 	if (hash == -1 && question == -1) return "";
 	if (hash == -1) hash = url.length;
-	return question == -1 || hash == question + 1
-		? url.substring(hash)
-		: url.substring(question + 1, hash);
+	return question == -1 || hash == question + 1 ? url.substring(hash) : url.substring(question + 1, hash);
 }
 
 function getParameters(xhr) {

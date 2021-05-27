@@ -8,22 +8,14 @@ describe("The (top-level) js feature", function () {
 
 	it("can run js at the top level", function () {
 		window.testSuccess = false;
-		var script = make(
-			"<script type=text/hyperscript>" +
-				"  js " +
-				"    window.testSuccess = true " +
-				"  end "
-		);
+		var script = make("<script type=text/hyperscript>" + "  js " + "    window.testSuccess = true " + "  end ");
 		assert.equal(window.testSuccess, true);
 		delete window.testSuccess;
 	});
 
 	it("can expose globals", function () {
 		var script = make(
-			"<script type=text/hyperscript>" +
-				"  js " +
-				"    return { foo: 'test succeeded' }; " +
-				"  end "
+			"<script type=text/hyperscript>" + "  js " + "    return { foo: 'test succeeded' }; " + "  end "
 		);
 		assert.equal(window.foo, "test succeeded");
 		delete window.foo;

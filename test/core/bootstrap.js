@@ -86,10 +86,7 @@ describe("_hyperscript boostrapping", function () {
 
 	it("can respond to events on other elements", function () {
 		var bar = make("<div id='bar'></div>");
-		var div = make(
-			"<div _='on click from #bar " +
-				"                             add .clicked'></div>"
-		);
+		var div = make("<div _='on click from #bar " + "                             add .clicked'></div>");
 		div.classList.contains("clicked").should.equal(false);
 		bar.click();
 		div.classList.contains("clicked").should.equal(true);
@@ -97,9 +94,7 @@ describe("_hyperscript boostrapping", function () {
 
 	it("can take a class from other elements", function () {
 		var d1 = make("<div class='divs foo'></div>");
-		var d2 = make(
-			"<div class='divs' _='on click take .foo from .divs'></div>"
-		);
+		var d2 = make("<div class='divs' _='on click take .foo from .divs'></div>");
 		var d3 = make("<div  class='divs'></div>");
 		d1.classList.contains("foo").should.equal(true);
 		d2.classList.contains("foo").should.equal(false);
@@ -111,26 +106,20 @@ describe("_hyperscript boostrapping", function () {
 	});
 
 	it("can set properties", function () {
-		var d1 = make(
-			"<div id='d1' _='on click put \"foo\" into #d1.innerHTML'></div>"
-		);
+		var d1 = make("<div id='d1' _='on click put \"foo\" into #d1.innerHTML'></div>");
 		d1.click();
 		d1.innerHTML.should.equal("foo");
 	});
 
 	it("can set styles", function () {
-		var d1 = make(
-			"<div _='on click put \"red\" into my.style.color'>lolwat</div>"
-		);
+		var d1 = make("<div _='on click put \"red\" into my.style.color'>lolwat</div>");
 		d1.click();
 		d1.style.color.should.equal("red");
 	});
 
 	it("can send events with args", function () {
 		var div = make("<div _='on click send foo(x:42) to #bar'></div>");
-		var bar = make(
-			"<div id='bar' _='on foo put event.detail.x into my.innerHTML'></div>"
-		);
+		var bar = make("<div id='bar' _='on foo put event.detail.x into my.innerHTML'></div>");
 		bar.classList.contains("foo-sent").should.equal(false);
 		div.click();
 		bar.innerHTML.should.equal("42");
@@ -142,9 +131,7 @@ describe("_hyperscript boostrapping", function () {
 			calledWith = val;
 		};
 		try {
-			var div = make(
-				"<div _='on click call globalFunction(\"foo\")'></div>"
-			);
+			var div = make("<div _='on click call globalFunction(\"foo\")'></div>");
 			div.click();
 			"foo".should.equal(calledWith);
 		} finally {

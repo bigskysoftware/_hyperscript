@@ -51,9 +51,7 @@ describe("the line info  parser", function () {
 	});
 
 	it("get line works for statements", function () {
-		var elt = _hyperscript.parse(
-			"if true\n  log 'it was true'\n    log 'it was true'"
-		);
+		var elt = _hyperscript.parse("if true\n  log 'it was true'\n    log 'it was true'");
 		elt.lineFor().should.equal("if true");
 		elt.trueBranch.lineFor().should.equal("  log 'it was true'");
 		elt.trueBranch.next.lineFor().should.equal("    log 'it was true'");

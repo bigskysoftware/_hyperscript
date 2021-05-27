@@ -7,9 +7,7 @@ describe("the unless command modifier", function () {
 	});
 
 	it("unless modifier can conditionally execute a command", function () {
-		var div = make(
-			"<div _='on click toggle .foo unless I match .bar'></div>"
-		);
+		var div = make("<div _='on click toggle .foo unless I match .bar'></div>");
 
 		div.classList.contains("foo").should.equal(false);
 		div.click();

@@ -55,8 +55,6 @@ describe("the string expression", function () {
 			'`<div age="${record.age}" style="color:${record.favouriteColour}">${record.name}</div>`',
 			{ record: record }
 		);
-		result.should.equal(
-			'<div age="21" style="color:bleaux">John Connor</div>'
-		);
+		result.should.equal('<div age="21" style="color:bleaux">John Connor</div>');
 	});
 });

@@ -14,45 +14,35 @@ describe("the show command", function () {
 	});
 
 	it("can show element with display:block explicitly", function () {
-		var div = make(
-			"<div style=display:none _='on click show me with display'></div>"
-		);
+		var div = make("<div style=display:none _='on click show me with display'></div>");
 		getComputedStyle(div).display.should.equal("none");
 		div.click();
 		getComputedStyle(div).display.should.equal("block");
 	});
 
 	it("can show element with custom display value", function () {
-		var div = make(
-			"<div style=display:none _='on click show me with display: flex'></div>"
-		);
+		var div = make("<div style=display:none _='on click show me with display: flex'></div>");
 		getComputedStyle(div).display.should.equal("none");
 		div.click();
 		getComputedStyle(div).display.should.equal("flex");
 	});
 
 	it("can show element with inline-block display value", function () {
-		var div = make(
-			"<div style=display:none _='on click show me with display: inline-block'></div>"
-		);
+		var div = make("<div style=display:none _='on click show me with display: inline-block'></div>");
 		getComputedStyle(div).display.should.equal("none");
 		div.click();
 		getComputedStyle(div).display.should.equal("inline-block");
 	});
 
 	it("can show element with opacity:1", function () {
-		var div = make(
-			"<div style=opacity:0 _='on click show me with opacity'></div>"
-		);
+		var div = make("<div style=opacity:0 _='on click show me with opacity'></div>");
 		getComputedStyle(div).opacity.should.equal("0");
 		div.click();
 		getComputedStyle(div).opacity.should.equal("1");
 	});
 
 	it("can show element, with visibility:visible", function () {
-		var div = make(
-			"<div style=visibility:hidden _='on click show me with visibility'></div>"
-		);
+		var div = make("<div style=visibility:hidden _='on click show me with visibility'></div>");
 		getComputedStyle(div).visibility.should.equal("hidden");
 		div.click();
 		getComputedStyle(div).visibility.should.equal("visible");

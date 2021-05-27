@@ -18,9 +18,7 @@ describe("the settle command", function () {
 
 	it("can settle target no transition", function (done) {
 		var d1 = make("<div id='d1'></div>");
-		var d2 = make(
-			"<div _='on click settle #d1 then add .foo to #d1'></div>"
-		);
+		var d2 = make("<div _='on click settle #d1 then add .foo to #d1'></div>");
 		d2.click();
 		d1.classList.contains("foo").should.equal(false);
 		setTimeout(function () {

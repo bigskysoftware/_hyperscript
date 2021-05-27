@@ -52,9 +52,7 @@
 						"transitionend",
 						function () {
 							if (!resolved) {
-								resolve(
-									runtime.findNext(settleCommand, context)
-								);
+								resolve(runtime.findNext(settleCommand, context));
 							}
 						},
 						{ once: true }
@@ -77,15 +75,9 @@
 			if (classRef == null) {
 				attributeRef = parser.parseElement("attributeRef", tokens);
 				if (attributeRef == null) {
-					cssDeclaration = parser.parseElement(
-						"objectLiteral",
-						tokens
-					);
+					cssDeclaration = parser.parseElement("objectLiteral", tokens);
 					if (cssDeclaration == null) {
-						parser.raiseParseError(
-							tokens,
-							"Expected either a class reference or attribute expression"
-						);
+						parser.raiseParseError(tokens, "Expected either a class reference or attribute expression");
 					}
 				}
 			} else {
@@ -123,10 +115,7 @@
 					args: [to],
 					op: function (context, to, attrRef) {
 						runtime.forEach(to, function (target) {
-							target.setAttribute(
-								attributeRef.name,
-								attributeRef.value
-							);
+							target.setAttribute(attributeRef.name, attributeRef.value);
 						});
 						return runtime.findNext(addCmd, context);
 					},
@@ -213,9 +202,7 @@
 						if (this.classRefs) {
 							runtime.forEach(classRefs, function (classRef) {
 								runtime.forEach(from, function (target) {
-									target.classList.remove(
-										classRef.className()
-									);
+									target.classList.remove(classRef.className());
 								});
 							});
 						} else {
@@ -244,16 +231,11 @@
 				if (classRef == null) {
 					attributeRef = parser.parseElement("attributeRef", tokens);
 					if (attributeRef == null) {
-						parser.raiseParseError(
-							tokens,
-							"Expected either a class reference or attribute expression"
-						);
+						parser.raiseParseError(tokens, "Expected either a class reference or attribute expression");
 					}
 				} else {
 					var classRefs = [classRef];
-					while (
-						(classRef = parser.parseElement("classRef", tokens))
-					) {
+					while ((classRef = parser.parseElement("classRef", tokens))) {
 						classRefs.push(classRef);
 					}
 				}
@@ -268,11 +250,7 @@
 			if (tokens.matchToken("for")) {
 				var time = parser.requireElement("timeExpression", tokens);
 			} else if (tokens.matchToken("until")) {
-				var evt = parser.requireElement(
-					"dotOrColonPath",
-					tokens,
-					"Expected event name"
-				);
+				var evt = parser.requireElement("dotOrColonPath", tokens, "Expected event name");
 				if (tokens.matchToken("from")) {
 					var from = parser.requireElement("expression", tokens);
 				}
@@ -290,9 +268,7 @@
 				toggle: function (on) {
 					if (between) {
 						runtime.forEach(on, function (target) {
-							if (
-								target.classList.contains(classRef.className())
-							) {
+							if (target.classList.contains(classRef.className())) {
 								target.classList.remove(classRef.className());
 								target.classList.add(classRef2.className());
 							} else {
@@ -311,10 +287,7 @@
 							if (target.hasAttribute(attributeRef.name)) {
 								target.removeAttribute(attributeRef.name);
 							} else {
-								target.setAttribute(
-									attributeRef.name,
-									attributeRef.value
-								);
+								target.setAttribute(attributeRef.name, attributeRef.value);
 							}
 						});
 					}
@@ -336,9 +309,7 @@
 								evt,
 								function () {
 									toggleCmd.toggle(on);
-									resolve(
-										runtime.findNext(toggleCmd, context)
-									);
+									resolve(runtime.findNext(toggleCmd, context));
 								},
 								{ once: true }
 							);
@@ -387,10 +358,7 @@
 	var parseShowHideTarget = function (parser, runtime, tokens) {
 		var target;
 		var currentTokenValue = tokens.currentToken();
-		if (
-			currentTokenValue.value === "with" ||
-			parser.commandBoundary(currentTokenValue)
-		) {
+		if (currentTokenValue.value === "with" || parser.commandBoundary(currentTokenValue)) {
 			target = parser.parseElement("implicitMeTarget", tokens);
 		} else {
 			target = parser.parseElement("targetExpression", tokens);
@@ -402,18 +370,12 @@
 		var configDefault = _hyperscript.config.defaultHideShowStrategy;
 		var strategies = HIDE_SHOW_STRATEGIES;
 		if (_hyperscript.config.hideShowStrategies) {
-			strategies = mergeObjects(
-				strategies,
-				_hyperscript.config.hideShowStrategies
-			); // merge in user provided strategies
+			strategies = mergeObjects(strategies, _hyperscript.config.hideShowStrategies); // merge in user provided strategies
 		}
 		name = name || configDefault || "display";
 		var value = strategies[name];
 		if (value == null) {
-			parser.raiseParseError(
-				tokens,
-				"Unknown show/hide strategy : " + name
-			);
+			parser.raiseParseError(tokens, "Unknown show/hide strategy : " + name);
 		}
 		return value;
 	};
@@ -484,11 +446,7 @@
 				details: details,
 				args: [eventName, details],
 				op: function (context, eventNameStr, details) {
-					runtime.triggerEvent(
-						context.me,
-						eventNameStr,
-						details ? details : {}
-					);
+					runtime.triggerEvent(context.me, eventNameStr, details ? details : {});
 					return runtime.findNext(triggerCmd, context);
 				},
 			};
@@ -540,12 +498,7 @@
 		}
 		if (value instanceof Element || value instanceof HTMLDocument) {
 			while (value.firstChild) value.removeChild(value.firstChild);
-			value.append(
-				_hyperscript.internals.runtime.convertValue(
-					valueToPut,
-					"Fragment"
-				)
-			);
+			value.append(_hyperscript.internals.runtime.convertValue(valueToPut, "Fragment"));
 		} else {
 			if (prop) {
 				context[prop] = valueToPut;
@@ -559,11 +512,7 @@
 		if (tokens.matchToken("put")) {
 			var value = parser.requireElement("expression", tokens);
 
-			var operationToken = tokens.matchAnyToken(
-				"into",
-				"before",
-				"after"
-			);
+			var operationToken = tokens.matchAnyToken("into", "before", "after");
 
 			if (operationToken == null && tokens.matchToken("at")) {
 				operationToken = tokens.matchAnyToken("start", "end");
@@ -571,10 +520,7 @@
 			}
 
 			if (operationToken == null) {
-				parser.raiseParseError(
-					tokens,
-					"Expected one of 'into', 'before', 'at start of', 'at end of', 'after'"
-				);
+				parser.raiseParseError(tokens, "Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
 			}
 			var target = parser.requireElement("targetExpression", tokens);
 
@@ -593,10 +539,7 @@
 				var attributeWrite = true;
 				prop = target.name;
 				root = parser.requireElement("implicitMeTarget", tokens);
-			} else if (
-				target.type === "attributeRefAccess" &&
-				operation === "into"
-			) {
+			} else if (target.type === "attributeRefAccess" && operation === "into") {
 				var attributeWrite = true;
 				prop = target.attribute.name;
 				root = target.root;
@@ -641,10 +584,7 @@
 									elt,
 									valueToPut instanceof Node
 										? valueToPut
-										: runtime.convertValue(
-												valueToPut,
-												"Fragment"
-										  )
+										: runtime.convertValue(valueToPut, "Fragment")
 								);
 							});
 						}
@@ -675,10 +615,7 @@
 			if (tokens.matchOpToken("'")) {
 				tokens.requireToken("s");
 			}
-		} else if (
-			tokens.currentToken().type === "IDENTIFIER" &&
-			tokens.currentToken().value === "its"
-		) {
+		} else if (tokens.currentToken().type === "IDENTIFIER" && tokens.currentToken().value === "its") {
 			var identifier = tokens.matchToken("its");
 			var targets = {
 				type: "pseudopossessiveIts",
@@ -728,27 +665,17 @@
 			var transition = {
 				to: to,
 				args: [targets, properties, from, to, using, over],
-				op: function (
-					context,
-					targets,
-					properties,
-					from,
-					to,
-					using,
-					over
-				) {
+				op: function (context, targets, properties, from, to, using, over) {
 					var promises = [];
 					runtime.forEach(targets, function (target) {
 						var promise = new Promise(function (resolve, reject) {
 							var initialTransition = target.style.transition;
 							if (over) {
-								target.style.transition =
-									"all " + over + "ms ease-in";
+								target.style.transition = "all " + over + "ms ease-in";
 							} else if (using) {
 								target.style.transition = using;
 							} else {
-								target.style.transition =
-									_hyperscript.config.defaultTransition;
+								target.style.transition = _hyperscript.config.defaultTransition;
 							}
 							var internalData = runtime.getInternalData(target);
 							var computedStyles = getComputedStyle(target);
@@ -769,8 +696,7 @@
 								var property = properties[i];
 								var fromVal = from[i];
 								if (fromVal == "computed" || fromVal == null) {
-									target.style[property] =
-										initialStyles[property];
+									target.style[property] = initialStyles[property];
 								} else {
 									target.style[property] = fromVal;
 								}
@@ -782,8 +708,7 @@
 									var property = properties[i];
 									var toVal = to[i];
 									if (toVal == "initial") {
-										var propertyValue =
-											internalData.initalStyles[property];
+										var propertyValue = internalData.initalStyles[property];
 										target.style[property] = propertyValue;
 									} else {
 										target.style[property] = toVal;
@@ -794,8 +719,7 @@
 									"transitionend",
 									function () {
 										// console.log("transition ended", transition);
-										target.style.transition =
-											initialTransition;
+										target.style.transition = initialTransition;
 										resolve();
 									},
 									{ once: true }
@@ -869,78 +793,66 @@
 		};
 	});
 
-	_hyperscript.addLeafExpression(
-		"closestExpr",
-		function (parser, runtime, tokens) {
-			if (tokens.matchToken("closest")) {
-				if (tokens.matchToken("parent")) {
-					var parentSearch = true;
-				}
+	_hyperscript.addLeafExpression("closestExpr", function (parser, runtime, tokens) {
+		if (tokens.matchToken("closest")) {
+			if (tokens.matchToken("parent")) {
+				var parentSearch = true;
+			}
 
-				var css = null;
-				if (tokens.currentToken().type === "ATTRIBUTE_REF") {
-					var attributeRef = parser.parseElement(
-						"attributeRefAccess",
-						tokens,
-						null
-					);
-					css = "[" + attributeRef.attribute.name + "]";
-				}
+			var css = null;
+			if (tokens.currentToken().type === "ATTRIBUTE_REF") {
+				var attributeRef = parser.parseElement("attributeRefAccess", tokens, null);
+				css = "[" + attributeRef.attribute.name + "]";
+			}
 
-				if (css == null) {
-					var expr = parser.parseElement("targetExpression", tokens);
-					if (expr.css == null) {
-						parser.raiseParseError(
-							tokens,
-							"Expected a CSS expression"
-						);
-					} else {
-						css = expr.css;
-					}
-				}
-
-				if (tokens.matchToken("to")) {
-					var to = parser.parseElement("targetExpression", tokens);
+			if (css == null) {
+				var expr = parser.parseElement("targetExpression", tokens);
+				if (expr.css == null) {
+					parser.raiseParseError(tokens, "Expected a CSS expression");
 				} else {
-					var to = parser.parseElement("implicitMeTarget", tokens);
-				}
-
-				var closestExpr = {
-					type: "closestExpr",
-					parentSearch: parentSearch,
-					expr: expr,
-					css: css,
-					to: to,
-					args: [to],
-					op: function (ctx, to) {
-						if (to == null) {
-							return null;
-						} else {
-							if (parentSearch) {
-								var node = to.parentElement
-									? to.parentElement.closest(css)
-									: null;
-							} else {
-								var node = to.closest(css);
-							}
-							return node;
-						}
-					},
-					evaluate: function (context) {
-						return runtime.unifiedEval(this, context);
-					},
-				};
-
-				if (attributeRef) {
-					attributeRef.root = closestExpr;
-					attributeRef.args = [closestExpr];
-					return attributeRef;
-				} else {
-					return closestExpr;
+					css = expr.css;
 				}
 			}
+
+			if (tokens.matchToken("to")) {
+				var to = parser.parseElement("targetExpression", tokens);
+			} else {
+				var to = parser.parseElement("implicitMeTarget", tokens);
+			}
+
+			var closestExpr = {
+				type: "closestExpr",
+				parentSearch: parentSearch,
+				expr: expr,
+				css: css,
+				to: to,
+				args: [to],
+				op: function (ctx, to) {
+					if (to == null) {
+						return null;
+					} else {
+						if (parentSearch) {
+							var node = to.parentElement ? to.parentElement.closest(css) : null;
+						} else {
+							var node = to.closest(css);
+						}
+						return node;
+					}
+				},
+				evaluate: function (context) {
+					return runtime.unifiedEval(this, context);
+				},
+			};
+
+			if (attributeRef) {
+				attributeRef.root = closestExpr;
+				attributeRef.args = [closestExpr];
+				return attributeRef;
+			} else {
+				return closestExpr;
+			}
 		}
-	);
+	});
 
 	_hyperscript.addCommand("go", function (parser, runtime, tokens) {
 		if (tokens.matchToken("go")) {
@@ -958,24 +870,13 @@
 					}
 				} else {
 					tokens.matchToken("the"); // optional the
-					var verticalPosition = tokens.matchAnyToken(
-						"top",
-						"bottom",
-						"middle"
-					);
-					var horizontalPosition = tokens.matchAnyToken(
-						"left",
-						"center",
-						"right"
-					);
+					var verticalPosition = tokens.matchAnyToken("top", "bottom", "middle");
+					var horizontalPosition = tokens.matchAnyToken("left", "center", "right");
 					if (verticalPosition || horizontalPosition) {
 						tokens.requireToken("of");
 					}
 					var target = parser.requireElement("expression", tokens);
-					var smoothness = tokens.matchAnyToken(
-						"smoothly",
-						"instantly"
-					);
+					var smoothness = tokens.matchAnyToken("smoothly", "instantly");
 
 					var scrollOptions = {};
 					if (verticalPosition) {
@@ -1034,9 +935,7 @@
 		}
 	});
 
-	_hyperscript.config.conversions["Values"] = function (
-		/** @type {Node | NodeList} */ node
-	) {
+	_hyperscript.config.conversions["Values"] = function (/** @type {Node | NodeList} */ node) {
 		/** @type Object<string,string | string[]> */
 		var result = {};
 

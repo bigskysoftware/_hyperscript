@@ -50,9 +50,7 @@ describe("the toggle command", function () {
 
 	it("can toggle until an event on another element", function (done) {
 		var d1 = make("<div id='d1'></div>");
-		var div = make(
-			"<div _='on click toggle .foo until foo from #d1'></div>"
-		);
+		var div = make("<div _='on click toggle .foo until foo from #d1'></div>");
 		div.classList.contains("foo").should.equal(false);
 		div.click();
 		div.classList.contains("foo").should.equal(true);
@@ -64,9 +62,7 @@ describe("the toggle command", function () {
 	});
 
 	it("can toggle between two classes", function () {
-		var div = make(
-			"<div class='foo' _='on click toggle between .foo and .bar'></div>"
-		);
+		var div = make("<div class='foo' _='on click toggle between .foo and .bar'></div>");
 		div.classList.contains("foo").should.equal(true);
 		div.classList.contains("bar").should.equal(false);
 		div.click();

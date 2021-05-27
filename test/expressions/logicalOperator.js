@@ -16,11 +16,7 @@ describe("the logicalOperator expression", function () {
 
 	it("unparenthesized expressions with multiple operators cause an error", function () {
 		var result = getParseErrorFor("true and false or true");
-		result
-			.indexOf(
-				"You must parenthesize logical operations with different operators"
-			)
-			.should.equal(0);
+		result.indexOf("You must parenthesize logical operations with different operators").should.equal(0);
 	});
 
 	it("parenthesized expressions with multiple operators work", function () {

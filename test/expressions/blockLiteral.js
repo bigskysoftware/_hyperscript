@@ -15,9 +15,7 @@ describe("the blockLiteral expression", function () {
 	});
 
 	it("can map an array", function () {
-		var result = evalHyperScript(
-			"['a', 'ab', 'abc'].map(\\ s -> s.length )"
-		);
+		var result = evalHyperScript("['a', 'ab', 'abc'].map(\\ s -> s.length )");
 		result.should.deep.equal([1, 2, 3]);
 	});
 });
