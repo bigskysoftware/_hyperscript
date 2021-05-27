@@ -39,7 +39,7 @@ describe("the on feature", function () {
 		div.classList.contains("clicked").should.equal(true);
 	});
 
-	it("listeners are removed when the element is removed from the dom", function () {
+	it("listeners on other elements are removed when the registering element is removed", function () {
 		var bar = make("<div id='bar'></div>");
 		var div = make("<div _='on click from #bar set #bar.innerHTML to #bar.innerHTML + \"a\"'></div>");
 		bar.innerHTML.should.equal("");
@@ -48,6 +48,13 @@ describe("the on feature", function () {
 		div.parentElement.removeChild(div);
 		bar.click();
 		bar.innerHTML.should.equal("a");
+	});
+
+	it("listeners on self are not removed when the element is removed", function () {
+		var div = make("<div _='on someCustomEvent put 1 into me'></div>");
+		div.remove();
+		div.dispatchEvent(new Event("someCustomEvent"));
+		div.innerHTML.should.equal("1");
 	});
 
 	it('supports "elsewhere" modifier', function () {

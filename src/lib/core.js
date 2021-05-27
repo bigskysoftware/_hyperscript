@@ -3403,7 +3403,9 @@
 
 									target.addEventListener(eventName, function listener(evt) {
 										// OK NO PROMISE
-										if (elt instanceof Node && !elt.getRootNode()) {
+										if (elt instanceof Node
+										&& target !== elt
+										&& elt.getRootNode() === null) {
 											target.removeEventListener(eventName, listener);
 											return;
 										}
