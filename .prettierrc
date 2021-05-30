@@ -2,7 +2,9 @@
 	overrides: [
 		{
 			files: "**/*.js",
-			printWidth: 120,
+			options: {
+				printWidth: 120,
+			}
 		}
 	]
 }

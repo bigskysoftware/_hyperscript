@@ -1,7 +1,3 @@
----
-layout: layout.njk
-title: ///_hyperscript
----
 
 ## The `add` Command
 
@@ -25,7 +21,7 @@ The `add` command allows you to add a class (via a [class ref](/expressions/clas
 
 <div _="on click add .clacked to #another-div">Click Me!</div>
 
-<button _="on click add [disabled='true']">Disable Me!</button>
+<button _="on click add [@disabled='true']">Disable Me!</button>
 
 <input
   type="color"

@@ -1,7 +1,3 @@
----
-layout: layout.njk
-title: ///_hyperscript
----
 
 ## The `tell` Command
 
@@ -21,7 +17,7 @@ You can refer to the target as `you`, `your` or `yourself`
 
 ```html
 <div
-  _="on click tell <p/> in me 
+  _="on click tell <p/> in me
                    add .highlight -- adds the highlight class to each p
                                   -- found in this element...
                    log your textContent

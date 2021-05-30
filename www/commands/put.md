@@ -1,7 +1,3 @@
----
-layout: layout.njk
-title: ///_hyperscript
----
 
 ## The `put` Command
 
@@ -24,7 +20,7 @@ The `put` command allows you to insert content into a variable, property or the 
 <div _="on click put '<em>Clicked!</em>' into my.innerHTML">Click Me!</div>
 
 <div
-  _="on click 
+  _="on click
 	call document.createElement('em')
 	put 'Clicked!' in it
 	put it in me"
