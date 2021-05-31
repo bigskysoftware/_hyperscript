@@ -4666,35 +4666,33 @@
 				argExpressions: args,
 				args: [url, args],
 				op: function (context, url, args) {
-					return new Promise(function (resolve, reject) {
-						fetch(url, args)
-							.then(function (value) {
-								if (type === "response") {
-									context.result = value;
-									resolve(runtime.findNext(fetchCmd, context));
-								} else if (type === "json") {
-									value.json().then(function (result) {
-										context.result = result;
-										resolve(runtime.findNext(fetchCmd, context));
-									});
-								} else {
-									value.text().then(function (result) {
-										if (conversion) result = runtime.convertValue(result, conversion);
-
-										if (type === "html") result = runtime.convertValue(result, "Fragment");
-
-										context.result = result;
-										resolve(runtime.findNext(fetchCmd, context));
-									});
-								}
-							})
-							.catch(function (reason) {
-								runtime.triggerEvent(context.me, "fetch:error", {
-									reason: reason,
+					return fetch(url, args)
+						.then(function (resp) {
+							if (type === "response") {
+								context.result = resp;
+								return runtime.findNext(fetchCmd, context);
+							}
+							if (type === "json") {
+								return resp.json().then(function (result) {
+									context.result = result;
+									return runtime.findNext(fetchCmd, context);
 								});
-								reject(reason);
+							}
+							return resp.text().then(function (result) {
+								if (conversion) result = runtime.convertValue(result, conversion);
+
+								if (type === "html") result = runtime.convertValue(result, "Fragment");
+
+								context.result = result;
+								return runtime.findNext(fetchCmd, context);
 							});
-					});
+						})
+						.catch(function (reason) {
+							runtime.triggerEvent(context.me, "fetch:error", {
+								reason: reason,
+							});
+							throw reason;
+						});
 				},
 			};
 			return fetchCmd;
