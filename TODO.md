@@ -95,3 +95,10 @@
     log local x        -- logs 20
     log x              -- logs 20 per the resolution algorithm outlined above
   ```
+* For readability, getting and setting a `element` scoped variable may use a pseudo-possessive `'s`
+  ```html
+    <div _="init set the element's foo to 10
+            on click put foo into me">
+      Click me...
+    </div>
+  ```
