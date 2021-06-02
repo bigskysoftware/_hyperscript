@@ -87,7 +87,7 @@
   * examine the `local` scope, if `x` exists, return its value
   * examine the `elements` scope, if `x` exists, return its value
   * examine the `global` scope, if `x` exists, return its value
-* Behaviors each have an *isolated* `element` scope
+* hyperscript [behaviors](/features/behavior/) each have their own *isolated* `element` scope
   * `element` scoped variables are not shared between behaviors or between a behavior and the normal element scope
   * There is no mechanism for referencing the normal element scopes values from within a behavior
   * All constructor arguments to behaviors are scoped at the `element` level and shared across features within the
@@ -96,8 +96,8 @@
 * If you wish to explicitly create an element variable, you must use the `element` keyword: `set element x to 10`
 * Lower level scopes may mask upper levels of scope by explicitly specifying the level at which a variable is set:
   ```hyperscript
-    set global x to 10 -- set's a global variable x to 10
-    set local x to 20  -- set's a local variable x to 20
+    set global x to 10 -- sets a global variable x to 10
+    set local x to 20  -- sets a local variable x to 20
     log global x       -- logs 10
     log local x        -- logs 20
     log x              -- logs 20 per the resolution algorithm outlined above
