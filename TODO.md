@@ -2,16 +2,16 @@
 
 ### 0.1.0 release
 * Carson(?) - Proper scoping, including in behaviors
-* Deniz - Determine how to handle mutations to the DOM with respect to listeners 
-   * lazily remove listeners when owner has been removed from DOM
-   * when a node is replaced in the DOM, what about the listeners put on it by other elements?
+* Deniz - Determine how to handle mutations to the DOM with respect to listeners
+   * [ ] when a node is replaced in the DOM, what about the listeners put on it by other elements?
+   * [X] lazily remove listeners when owner has been removed from DOM
 * Ben(?) - improve `fetch` command w/ more obvious syntax for body, headers, etc.
   ```text
-    fetch /foo with a POST 
+    fetch /foo with a POST
     fetch /foo with a POST and body {foo:"bar"}
     fetch /foo with a POST and body {foo:"bar"} and headers {blah:'blah'}
   ```
-  * make defaults pluggable 
+  * make defaults pluggable
   * resurrect `ajax` command?  (had more functionality in some ways)
 * Ben(?) - Better DOM manipulation tools? (needs research)
 * Carson (?) - Recovering parser (we are single error right now)
@@ -38,10 +38,10 @@
 * repeat command improvements
     ```
     // By default, counter uses "it" convention
-    repeat from 1 to 10 
+    repeat from 1 to 10
         put it in myVar
     end
-    
+
     // This would also work if IterableVariable is an Array or Object
     repeat for x in IterableVariable
         call JsFn(x)
@@ -50,3 +50,9 @@
 * date/time library [See GitHub](https://github.com/bigskysoftware/_hyperscript/issues/123)
 * `global` keyword [See GitHub](https://github.com/bigskysoftware/_hyperscript/issues/122)
 * Expressions for `field`, `button`, `tag` and `nodeList` [See GitHub](https://github.com/bigskysoftware/_hyperscript/issues/121)
+* Event for DOM mutation commands (put, append, render) -- user can add listener to initialize inserted content
+* Interpolate elements into queries
+  ```hyperscript
+  <${me} ~ pre>code/> -- all code blocks after me
+  ```
+  do this by adding a temporary attribute
