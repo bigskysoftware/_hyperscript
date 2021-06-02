@@ -36,6 +36,6 @@ describe("the async command", function () {
 			div.classList.contains("bar").should.equal(true);
 			div.classList.contains("foo").should.equal(true);
 			done();
-		}, 20);
+		}, 30);
 	});
 });

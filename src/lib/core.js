@@ -36,6 +36,17 @@
 		return obj1;
 	}
 
+	function getOrInitObject(root, prop) {
+		var value = root[prop];
+		if (value) {
+			return value;
+		} else {
+			var newObj = {};
+			root[prop] = newObj;
+			return newObj;
+		}
+	}
+
 	/**
 	 * parseJSON parses a JSON string into a corresponding value.  If the
 	 * value passed in is not valid JSON, then it logs an error and returns `null`.
@@ -1559,35 +1570,34 @@
 			}
 		}
 
-		/**
-		 * @param {*} owner
-		 * @param {*} feature
-		 * @param {*} hyperscriptTarget
-		 * @param {*} event
-		 * @returns {Context}
-		 */
-		function makeContext(owner, feature, hyperscriptTarget, event, extras) {
-			/** @type {Context} */
-			var ctx = {
-				meta: {
-					parser: _parser,
-					lexer: _lexer,
-					runtime: _runtime,
-					owner: owner,
-					feature: feature,
-					iterators: {},
-				},
-				me: hyperscriptTarget,
-				event: event,
-				target: event ? event.target : null,
-				detail: event ? event.detail : null,
-				body: "document" in globalScope ? document.body : null,
-			};
-			ctx.meta.ctx = ctx;
-			addFeatures(owner, ctx);
-			if (typeof extras === "object") mergeObjects(ctx, extras);
-			return ctx;
-		}
+			/**
+			 * @param {*} owner
+			 * @param {*} feature
+			 * @param {*} hyperscriptTarget
+			 * @param {*} event
+			 * @returns {Context}
+			 */
+			function makeContext(owner, feature, hyperscriptTarget, event) {
+				/** @type {Context} */
+				var ctx = {
+					meta: {
+						parser: _parser,
+						lexer: _lexer,
+						runtime: _runtime,
+						owner: owner,
+						feature: feature,
+						iterators: {},
+					},
+					me: hyperscriptTarget,
+					event: event,
+					target: event ? event.target : null,
+					detail: event ? event.detail : null,
+					body: "document" in globalScope ? document.body : null,
+				};
+				ctx.meta.ctx = ctx;
+				addFeatures(owner, ctx);
+				return ctx;
+			}
 
 		/**
 		 * @returns string
@@ -1760,52 +1770,118 @@
 			return typeName === typeString;
 		}
 
-		/**
-		 * @param {string} str
-		 * @param {Context} context
-		 * @returns {any}
-		 */
-		function resolveSymbol(str, context) {
-			if (str === "me" || str === "my" || str === "I") {
-				return context["me"];
+			function getElementScope(context) {
+				var elt = context.meta.owner;
+				if (elt) {
+					var internalData = getInternalData(elt);
+					var scopeName = 'elementScope'
+					if (context.meta.feature && context.meta.feature.behavior) {
+						scopeName = context.meta.feature.behavior + "Scope";
+					}
+					var elementScope = getOrInitObject(internalData, scopeName);
+					return elementScope;
+				} else {
+					return {}; // no element, return empty scope
+				}
 			}
-			if (str === "it" || str === "its") {
-				return context["result"];
-			}
-			if (str === "you" || str === "your" || str == "yourself") {
-				return context["beingTold"];
-			} else {
-				if (context.meta && context.meta.context) {
-					var fromMetaContext = context.meta.context[str];
-					if (typeof fromMetaContext !== "undefined") {
-						return fromMetaContext;
+
+			/**
+			 * @param {string} str
+			 * @param {Context} context
+			 * @returns {any}
+			 */
+			function resolveSymbol(str, context, type) {
+				if (str === "me" || str === "my" || str === "I") {
+					return context["me"];
+				}
+				if (str === "it" || str === "its") {
+					return context["result"];
+				}
+				if (str === "you" || str === "your" || str === "yourself") {
+					return context["beingTold"];
+				} else {
+					if (type === "global") {
+						return globalScope[str];
+					} else if (type === "element") {
+						var elementScope = getElementScope(context);
+						return elementScope[str];
+					} else if (type === "local") {
+						return context[str];
+					} else {
+						// meta scope (used for event conditionals)
+						if (context.meta && context.meta.context) {
+							var fromMetaContext = context.meta.context[str];
+							if (typeof fromMetaContext !== "undefined") {
+								return fromMetaContext;
+							}
+						}
+						// local scope
+						var fromContext = context[str];
+						if (typeof fromContext !== "undefined") {
+							return fromContext;
+						} else {
+							// element scope
+							var elementScope = getElementScope(context);
+							fromContext = elementScope[str];
+							if (typeof fromContext !== "undefined") {
+								return fromContext;
+							} else {
+								// global scope
+								return globalScope[str];
+							}
+						}
 					}
 				}
-				var fromContext = context[str];
-				if (typeof fromContext !== "undefined") {
-					return fromContext;
-				} else {
-					return globalScope[str];
-				}
 			}
-		}
 
-		/**
-		 * @param {GrammarElement} command
-		 * @param {Context} context
-		 * @returns {undefined | GrammarElement}
-		 */
-		function findNext(command, context) {
-			if (command) {
-				if (command.resolveNext) {
-					return command.resolveNext(context);
-				} else if (command.next) {
-					return command.next;
+			function setSymbol(str, context, type, value) {
+				if (type === "global") {
+					globalScope[str] = value;
+				} else if (type === "element") {
+					var elementScope = getElementScope(context);
+					elementScope[str] = value;
+				} else if (type === "local") {
+					context[str] = value;
 				} else {
-					return findNext(command.parent, context);
+					// local scope
+					var fromContext = context[str];
+					if (typeof fromContext !== "undefined") {
+						context[str] = value;
+					} else {
+						// element scope
+						var elementScope = getElementScope(context);
+						fromContext = elementScope[str];
+						if (typeof fromContext !== "undefined") {
+							elementScope[str] = value;
+						} else {
+							// global scope
+							fromContext = globalScope[str];
+							if (typeof fromContext !== "undefined") {
+								globalScope[str] = value;
+							} else {
+								context[str] = value;
+							}
+						}
+					}
 				}
 			}
-		}
+
+				/**
+			 * @param {GrammarElement} command
+			 * @param {Context} context
+			 * @returns {undefined | GrammarElement}
+			 */
+			function findNext(command, context) {
+				if (command) {
+					if (command.resolveNext) {
+						return command.resolveNext(context);
+					} else if (command.next) {
+						return command.next;
+					} else {
+						return findNext(command.parent, context);
+					}
+				}
+			}
 
 		/**
 		 * @param {Object<string,any>} root
@@ -1942,35 +2018,36 @@
 		/** @type string | null */
 		var hyperscriptUrl = "document" in globalScope ? document.currentScript.src : null;
 
-		/** @type {RuntimeObject} */
-		return {
-			typeCheck: typeCheck,
-			forEach: forEach,
-			triggerEvent: triggerEvent,
-			matchesSelector: matchesSelector,
-			getScript: getScript,
-			processNode: processNode,
-			evaluate: evaluate,
-			parse: parse,
-			getScriptSelector: getScriptSelector,
-			resolveSymbol: resolveSymbol,
-			makeContext: makeContext,
-			findNext: findNext,
-			unifiedEval: unifiedEval,
-			convertValue: convertValue,
-			unifiedExec: unifiedExec,
-			resolveProperty: resolveProperty,
-			assignToNamespace: assignToNamespace,
-			registerHyperTrace: registerHyperTrace,
-			getHyperTrace: getHyperTrace,
-			getInternalData: getInternalData,
-			escapeSelector: escapeSelector,
-			nullCheck: nullCheck,
-			isEmpty: isEmpty,
-			hyperscriptUrl: hyperscriptUrl,
-			HALT: HALT,
-		};
-	})();
+			/** @type {RuntimeObject} */
+			return {
+				typeCheck: typeCheck,
+				forEach: forEach,
+				triggerEvent: triggerEvent,
+				matchesSelector: matchesSelector,
+				getScript: getScript,
+				processNode: processNode,
+				evaluate: evaluate,
+				parse: parse,
+				getScriptSelector: getScriptSelector,
+				resolveSymbol: resolveSymbol,
+				setSymbol: setSymbol,
+				makeContext: makeContext,
+				findNext: findNext,
+				unifiedEval: unifiedEval,
+				convertValue: convertValue,
+				unifiedExec: unifiedExec,
+				resolveProperty: resolveProperty,
+				assignToNamespace: assignToNamespace,
+				registerHyperTrace: registerHyperTrace,
+				getHyperTrace: getHyperTrace,
+				getInternalData: getInternalData,
+				escapeSelector: escapeSelector,
+				nullCheck: nullCheck,
+				isEmpty: isEmpty,
+				hyperscriptUrl: hyperscriptUrl,
+				HALT: HALT,
+			};
+		})();
 
 	//====================================================================
 	// Grammar
@@ -2268,18 +2345,32 @@
 			};
 		});
 
-		_parser.addGrammarElement("symbol", function (parser, runtime, tokens) {
-			var identifier = tokens.matchTokenType("IDENTIFIER");
-			if (!identifier) return;
-			return {
-				type: "symbol",
-				token: identifier,
-				name: identifier.value,
-				evaluate: function (context) {
-					return runtime.resolveSymbol(identifier.value, context);
-				},
-			};
-		});
+			_parser.addGrammarElement("symbol", function (parser, runtime, tokens) {
+					var type = 'default';
+					if (tokens.matchToken("global")) {
+						type = 'global'
+					} else if (tokens.matchToken("element")) {
+						type = 'element'
+						// optional possessive
+						if (tokens.matchOpToken("'")) {
+							tokens.requireToken("s");
+						}
+					} else if (tokens.matchToken("local")) {
+						type = 'local'
+					}
+					var identifier = tokens.matchTokenType("IDENTIFIER");
+					if (identifier) {
+						return {
+							type: "symbol",
+							symbolType: type,
+							token: identifier,
+							name: identifier.value,
+							evaluate: function (context) {
+								return runtime.resolveSymbol(identifier.value, context, type);
+							},
+						};
+					}
+				});
 
 		_parser.addGrammarElement("implicitMeTarget", function (parser, runtime, tokens) {
 			return {
@@ -3046,24 +3137,31 @@
 		_parser.addGrammarElement("hyperscript", function (parser, runtime, tokens) {
 			var features = [];
 
-			if (tokens.hasMore()) {
-				while (parser.featureStart(tokens.currentToken()) || tokens.currentToken().value === "(") {
-					var feature = parser.requireElement("feature", tokens);
-					features.push(feature);
-					tokens.matchToken("end"); // optional end
+					if (tokens.hasMore()) {
+						while (
+							parser.featureStart(tokens.currentToken()) ||
+							tokens.currentToken().value === "("
+						) {
+							var feature = parser.requireElement(
+								"feature",
+								tokens
+							);
+							features.push(feature);
+							tokens.matchToken("end"); // optional end
+						}
+					}
+					return {
+						type: "hyperscript",
+						features: features,
+						apply: function (target, source, args) {
+							// no op
+							_runtime.forEach(features, function (feature) {
+								feature.install(target, source, args);
+							});
+						},
+					};
 				}
-			}
-			return {
-				type: "hyperscript",
-				features: features,
-				apply: function (target, source, args) {
-					// no op
-					_runtime.forEach(features, function (feature) {
-						feature.install(target, source, args);
-					});
-				},
-			};
-		});
+			);
 
 		var parseEventArgs = function (tokens) {
 			var args = [];
@@ -3268,69 +3366,77 @@
 				start = implicitReturn;
 			}
 
-			var onFeature = {
-				displayName: displayName,
-				events: events,
-				start: start,
-				every: every,
-				executing: false,
-				execCount: 0,
-				queue: queue,
-				execute: function (/** @type {Context} */ ctx) {
-					if (this.executing && this.every === false) {
-						if (queueNone || (queueFirst && queue.length > 0)) {
-							return;
-						}
-						if (queueLast) {
-							onFeature.queue.length = 0;
-						}
-						onFeature.queue.push(ctx);
-						return;
-					}
-					this.execCount++;
-					this.executing = true;
-					ctx.meta.resolve = function () {
-						onFeature.executing = false;
-						var queued = onFeature.queue.shift();
-						if (queued) {
-							setTimeout(function () {
-								onFeature.execute(queued);
-							}, 1);
-						}
-					};
-					ctx.meta.reject = function (err) {
-						console.error(err.message ? err.message : err);
-						var hypertrace = runtime.getHyperTrace(ctx, err);
-						if (hypertrace) {
-							hypertrace.print();
-						}
-						runtime.triggerEvent(ctx.me, "exception", {
-							error: err,
-						});
-						onFeature.executing = false;
-						var queued = onFeature.queue.shift();
-						if (queued) {
-							setTimeout(function () {
-								onFeature.execute(queued);
-							}, 1);
-						}
-					};
-					start.execute(ctx);
-				},
-				install: function (elt, source, args) {
-					runtime.forEach(onFeature.events, function (eventSpec) {
-						var targets;
-						if (eventSpec.elsewhere) {
-							targets = [document];
-						} else if (eventSpec.from) {
-							targets = eventSpec.from.evaluate({
-								me: elt,
-							});
-						} else {
-							targets = [elt];
-						}
-						runtime.forEach(targets, function (target) {
-							// OK NO PROMISE
+					var onFeature = {
+						displayName: displayName,
+						events: events,
+						start: start,
+						every: every,
+						executing: false,
+						execCount: 0,
+						queue: queue,
+						execute: function (/** @type {Context} */ ctx) {
+							if (this.executing && this.every === false) {
+								if (
+									queueNone ||
+									(queueFirst && queue.length > 0)
+								) {
+									return;
+								}
+								if (queueLast) {
+									onFeature.queue.length = 0;
+								}
+								onFeature.queue.push(ctx);
+								return;
+							}
+							this.execCount++;
+							this.executing = true;
+							ctx.meta.resolve = function () {
+								onFeature.executing = false;
+								var queued = onFeature.queue.shift();
+								if (queued) {
+									setTimeout(function () {
+										onFeature.execute(queued);
+									}, 1);
+								}
+							};
+							ctx.meta.reject = function (err) {
+								console.error(err.message ? err.message : err);
+								var hypertrace = runtime.getHyperTrace(
+									ctx,
+									err
+								);
+								if (hypertrace) {
+									hypertrace.print();
+								}
+								runtime.triggerEvent(ctx.me, "exception", {
+									error: err,
+								});
+								onFeature.executing = false;
+								var queued = onFeature.queue.shift();
+								if (queued) {
+									setTimeout(function () {
+										onFeature.execute(queued);
+									}, 1);
+								}
+							};
+							start.execute(ctx);
+						},
+						install: function (elt, source) {
+							runtime.forEach(
+								onFeature.events,
+								function (eventSpec) {
+									var targets;
+									if (eventSpec.elsewhere) {
+										targets = [document];
+									} else if (eventSpec.from) {
+										targets = eventSpec.from.evaluate({
+											me: elt,
+										});
+									} else {
+										targets = [elt];
+									}
+									runtime.forEach(targets, function (target) {
+										// OK NO PROMISE
 
 							var eventName = eventSpec.on;
 							if (eventSpec.mutationSpec) {
@@ -3369,13 +3475,21 @@
 									return;
 								}
 
-								var ctx = runtime.makeContext(elt, onFeature, elt, evt, args);
-								if (eventSpec.elsewhere && elt.contains(evt.target)) {
-									return;
-								}
-								if (eventSpec.from) {
-									ctx.result = target;
-								}
+												var ctx = runtime.makeContext(
+													elt,
+													onFeature,
+													elt,
+													evt
+												);
+												if (
+													eventSpec.elsewhere &&
+													elt.contains(evt.target)
+												) {
+													return;
+												}
+												if (eventSpec.from) {
+													ctx.result = target;
+												}
 
 								// establish context
 								runtime.forEach(eventSpec.args, function (arg) {
@@ -3486,30 +3600,39 @@
 				}
 			}
 
-			var start = parser.parseElement("commandList", tokens);
-			if (tokens.matchToken("catch")) {
-				var errorSymbol = tokens.requireTokenType("IDENTIFIER").value;
-				var errorHandler = parser.parseElement("commandList", tokens);
-			}
-			var functionFeature = {
-				displayName:
-					funcName +
-					"(" +
-					args
-						.map(function (arg) {
-							return arg.value;
-						})
-						.join(", ") +
-					")",
-				name: funcName,
-				args: args,
-				start: start,
-				errorHandler: errorHandler,
-				errorSymbol: errorSymbol,
-				install: function (target, source, installArgs) {
-					var func = function () {
-						// null, worker
-						var ctx = runtime.makeContext(source, functionFeature, target, null, installArgs);
+					var start = parser.parseElement("commandList", tokens);
+					if (tokens.matchToken("catch")) {
+						var errorSymbol =
+							tokens.requireTokenType("IDENTIFIER").value;
+						var errorHandler = parser.parseElement(
+							"commandList",
+							tokens
+						);
+					}
+					var functionFeature = {
+						displayName:
+							funcName +
+							"(" +
+							args
+								.map(function (arg) {
+									return arg.value;
+								})
+								.join(", ") +
+							")",
+						name: funcName,
+						args: args,
+						start: start,
+						errorHandler: errorHandler,
+						errorSymbol: errorSymbol,
+						install: function (target, source) {
+							var func = function () {
+								// null, worker
+								var ctx = runtime.makeContext(
+									source,
+									functionFeature,
+									target,
+									null
+								);
 
 						// install error handler if any
 						ctx.meta.errorHandler = errorHandler;
@@ -3585,17 +3708,24 @@
 			return functionFeature;
 		});
 
-		_parser.addFeature("init", function (parser, runtime, tokens) {
-			if (!tokens.matchToken("init")) return;
-			var start = parser.parseElement("commandList", tokens);
-			var initFeature = {
-				start: start,
-				install: function (target, source, args) {
-					setTimeout(function () {
-						start.execute(runtime.makeContext(target, this, target, null, args));
-					}, 0);
-				},
-			};
+			_parser.addFeature("init", function (parser, runtime, tokens) {
+				if (tokens.matchToken("init")) {
+					var start = parser.parseElement("commandList", tokens);
+					var initFeature = {
+						start: start,
+						install: function (target, source) {
+							setTimeout(function () {
+								start.execute(
+									runtime.makeContext(
+										target,
+										this,
+										target,
+										null
+									)
+								);
+							}, 0);
+						},
+					};
 
 			var implicitReturn = {
 				type: "implicitReturn",
@@ -3638,32 +3768,40 @@
 			var nameSpace = path.split(".");
 			var name = nameSpace.pop();
 
-			var formalParams = [];
-			if (tokens.matchOpToken("(") && !tokens.matchOpToken(")")) {
-				do {
-					formalParams.push(tokens.requireTokenType("IDENTIFIER").value);
-				} while (tokens.matchOpToken(","));
-				tokens.requireOpToken(")");
-			}
-			var hs = parser.parseElement("hyperscript", tokens);
+				var formalParams = [];
+				if (tokens.matchOpToken("(") && !tokens.matchOpToken(")")) {
+					do {
+						formalParams.push(
+							tokens.requireTokenType("IDENTIFIER").value
+						);
+					} while (tokens.matchOpToken(","));
+					tokens.requireOpToken(")");
+				}
+				var hs = parser.parseElement("hyperscript", tokens);
+				for (var i = 0; i < hs.features.length; i++) {
+					var feature = hs.features[i];
+					feature.behavior = path;
+				}
 
-			return {
-				install: function (target, source, outerArgs) {
-					runtime.assignToNamespace(
-						globalScope.document && globalScope.document.body,
-						nameSpace,
-						name,
-						function (target, source, innerArgs) {
-							var args = mergeObjects({}, outerArgs);
-							for (var i = 0; i < formalParams.length; i++) {
-								args[formalParams[i]] = innerArgs[formalParams[i]];
+				return {
+					install: function (target, source) {
+						runtime.assignToNamespace(
+							globalScope.document && globalScope.document.body,
+							nameSpace,
+							name,
+							function (target, source, innerArgs) {
+								var internalData = runtime.getInternalData(target);
+								var elementScope = getOrInitObject(internalData, path + "Scope");
+								for (var i = 0; i < formalParams.length; i++) {
+									elementScope[formalParams[i]] =
+										innerArgs[formalParams[i]];
+								}
+								hs.apply(target, source);
 							}
-							hs.apply(target, source, args);
-						}
-					);
-				},
-			};
-		});
+						);
+					},
+				};
+			});
 
 		_parser.addFeature("install", function (parser, runtime, tokens) {
 			if (!tokens.matchToken("install")) return;
@@ -3688,14 +3826,14 @@
 								if (!(behavior instanceof Function))
 									throw new Error(behaviorPath + " is not a behavior");
 
-								behavior(target, source, args);
+									behavior(target, source, args);
+								}
 							},
-						},
-						runtime.makeContext(target, installFeature, target)
-					);
-				},
+							runtime.makeContext(target, installFeature, target)
+						);
+					},
+				});
 			});
-		});
 
 		_parser.addGrammarElement("jsBody", function (parser, runtime, tokens) {
 			var jsSourceStart = tokens.currentToken().start;
@@ -4257,29 +4395,36 @@
 				root = target.root;
 			}
 
-			/** @type {GrammarElement} */
-			var setCmd = {
-				target: target,
-				symbolWrite: symbolWrite,
-				value: value,
-				args: [root, value],
-				op: function (context, root, valueToSet) {
-					if (symbolWrite) {
-						context[target.name] = valueToSet;
-					} else {
-						runtime.forEach(root, function (elt) {
-							if (attribute) {
-								elt.setAttribute(attribute.name, valueToSet);
-							} else {
-								elt[prop] = valueToSet;
-							}
-						});
-					}
-					return runtime.findNext(this, context);
-				},
+				/** @type {GrammarElement} */
+				var setCmd = {
+					target: target,
+					symbolWrite: symbolWrite,
+					value: value,
+					args: [root, value],
+					op: function (context, root, valueToSet) {
+						if (symbolWrite) {
+							runtime.setSymbol(target.name, context, target.symbolType, valueToSet);
+						} else {
+							runtime.forEach(root, function (elt) {
+								if (attribute) {
+									if (valueToSet == null) {
+										elt.removeAttribute(attribute.name);
+									} else {
+										elt.setAttribute(
+											attribute.name,
+											valueToSet
+										);
+									}
+								} else {
+									elt[prop] = valueToSet;
+								}
+							});
+						}
+						return runtime.findNext(this, context);
+					},
+				};
+				return setCmd;
 			};
-			return setCmd;
-		};
 
 		_parser.addCommand("default", function (parser, runtime, tokens) {
 			if (!tokens.matchToken("default")) return;

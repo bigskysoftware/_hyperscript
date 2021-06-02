@@ -1,7 +1,8 @@
 ## TODOs
 
-### 0.1.0 release
-* Carson(?) - Proper scoping, including in behaviors
+### 0.8.0 release
+* Carson - Proper scoping, including in behaviors NEEDS DOCS
+* Deniz - Rework target expression (?)
 * Deniz - Determine how to handle mutations to the DOM with respect to listeners
    * lazily remove listeners when owner has been removed from DOM
    * when a node is replaced in the DOM, what about the listeners put on it by other elements?
@@ -15,9 +16,15 @@
   * make defaults pluggable
   * resurrect `ajax` command?  (had more functionality in some ways)
 * Ben(?) - Better DOM manipulation tools? (needs research)
-* Carson (?) - Recovering parser (we are single error right now)
+* Carson - template support in class literals and id literals:
+  ```hyperscript
+    set foo to 'blah'
+    set x to .{foo}
+    set y to #{foo}
+  ```
 
 ### Language Features
+* Recovering parser (we are single error right now)
 * `delete` command
 * `reply` & `wait for response` in event handlers?
 * garbage collect event listeners added to external elements periodically (?)
