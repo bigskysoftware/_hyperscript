@@ -1973,37 +1973,98 @@
 				return typeName === typeString;
 			}
 
+			function getElementScope(context) {
+				var internalData = getInternalData(context.meta.owner);
+				var elementScope = internalData.elementScope;
+				if (elementScope == null) {
+					elementScope = {};
+					internalData.elementScope = elementScope;
+				}
+				return elementScope;
+			}
+
 			/**
 			 * @param {string} str
 			 * @param {Context} context
 			 * @returns {any}
 			 */
-			function resolveSymbol(str, context) {
+			function resolveSymbol(str, context, type) {
 				if (str === "me" || str === "my" || str === "I") {
 					return context["me"];
 				}
 				if (str === "it" || str === "its") {
 					return context["result"];
 				}
-				if (str === "you" || str === "your" || str == "yourself") {
+				if (str === "you" || str === "your" || str === "yourself") {
 					return context["beingTold"];
 				} else {
-					if (context.meta && context.meta.context) {
-						var fromMetaContext = context.meta.context[str];
-						if (typeof fromMetaContext !== "undefined") {
-							return fromMetaContext;
-						}
-					}
-					var fromContext = context[str];
-					if (typeof fromContext !== "undefined") {
-						return fromContext;
-					} else {
+					if (type === "global") {
 						return globalScope[str];
+					} else if (type === "element") {
+						var elementScope = getElementScope(context);
+						return elementScope[str];
+					} else if (type === "local") {
+						return context[str];
+					} else {
+						// meta scope (used for event conditionals)
+						if (context.meta && context.meta.context) {
+							var fromMetaContext = context.meta.context[str];
+							if (typeof fromMetaContext !== "undefined") {
+								return fromMetaContext;
+							}
+						}
+						// local scope
+						var fromContext = context[str];
+						if (typeof fromContext !== "undefined") {
+							return fromContext;
+						} else {
+							// element scope
+							var elementScope = getElementScope(context);
+							fromContext = elementScope[str];
+							if (typeof fromContext !== "undefined") {
+								return fromContext;
+							} else {
+								// global scope
+								return globalScope[str];
+							}
+						}
 					}
 				}
 			}
 
-			/**
+			function setSymbol(str, context, type, value) {
+				if (type === "global") {
+					globalScope[str] = value;
+				} else if (type === "element") {
+					var elementScope = getElementScope(context);
+					elementScope[str] = value;
+				} else if (type === "local") {
+					context[str] = value;
+				} else {
+					// local scope
+					var fromContext = context[str];
+					if (typeof fromContext !== "undefined") {
+						context[str] = value;
+					} else {
+						// element scope
+						var elementScope = getElementScope(context);
+						fromContext = elementScope[str];
+						if (typeof fromContext !== "undefined") {
+							elementScope[str] = value;
+						} else {
+							// global scope
+							fromContext = globalScope[str];
+							if (typeof fromContext !== "undefined") {
+								globalScope[str] = value;
+							} else {
+								context[str] = value;
+							}
+						}
+					}
+				}
+			}
+
+				/**
 			 * @param {GrammarElement} command
 			 * @param {Context} context
 			 * @returns {undefined | GrammarElement}
@@ -2178,6 +2239,7 @@
 				parse: parse,
 				getScriptSelector: getScriptSelector,
 				resolveSymbol: resolveSymbol,
+				setSymbol: setSymbol,
 				makeContext: makeContext,
 				findNext: findNext,
 				unifiedEval: unifiedEval,
@@ -2565,16 +2627,26 @@
 			_parser.addGrammarElement(
 				"symbol",
 				function (parser, runtime, tokens) {
+					var type = 'default';
+					if (tokens.matchToken("global")) {
+						type = 'global'
+					} else if (tokens.matchToken("element")) {
+						type = 'element'
+					} else if (tokens.matchToken("local")) {
+						type = 'local'
+					}
 					var identifier = tokens.matchTokenType("IDENTIFIER");
 					if (identifier) {
 						return {
 							type: "symbol",
+							symbolType: type,
 							token: identifier,
 							name: identifier.value,
 							evaluate: function (context) {
 								return runtime.resolveSymbol(
 									identifier.value,
-									context
+									context,
+									type
 								);
 							},
 						};
@@ -5289,14 +5361,18 @@
 					args: [root, value],
 					op: function (context, root, valueToSet) {
 						if (symbolWrite) {
-							context[target.name] = valueToSet;
+							runtime.setSymbol(target.name, context, target.symbolType, valueToSet);
 						} else {
 							runtime.forEach(root, function (elt) {
 								if (attribute) {
-									elt.setAttribute(
-										attribute.name,
-										valueToSet
-									);
+									if (valueToSet == null) {
+										elt.removeAttribute(attribute.name);
+									} else {
+										elt.setAttribute(
+											attribute.name,
+											valueToSet
+										);
+									}
 								} else {
 									elt[prop] = valueToSet;
 								}
