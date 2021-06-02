@@ -32,6 +32,14 @@ describe("scoping", function () {
 		div.getAttribute("out").should.equal("10");
 	});
 
+	it("element scoped variables support pseudo-possessive syntax", function () {
+		var div = make(
+			'<div id="d1" _="on click set the element\'s x to 10 then set @out to the element\'s x"></div>'
+		);
+		div.click();
+		div.getAttribute("out").should.equal("10");
+	});
+
 	it("element scoped variables span features", function () {
 		var div = make(
 			"<div id='d1' _='on click 1 set element x to 10 " +

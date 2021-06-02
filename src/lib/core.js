@@ -2646,6 +2646,10 @@
 						type = 'global'
 					} else if (tokens.matchToken("element")) {
 						type = 'element'
+						// optional possessive
+						if (tokens.matchOpToken("'")) {
+							tokens.requireToken("s");
+						}
 					} else if (tokens.matchToken("local")) {
 						type = 'local'
 					}
