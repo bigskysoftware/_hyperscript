@@ -64,33 +64,29 @@ describe("scoping", function () {
 		delete window.x
 	});
 
-	it("setting an element scoped variable spans features", function (finish) {
+	it("setting an element scoped variable spans features", function () {
 		var div = make(
-			"<div id='d1' _='init default element x to 0" +
-			"                       on click 1 set x to 10 " +
-			"                       on click 2 set @out to x'></div>"
+			"<div id='d1' _='on click 1 default element x to 0" +
+			"                       on click 2 set x to 10 " +
+			"                       on click 3 set @out to x'></div>"
 		);
-		setTimeout(function () {
-			div.click();
-			div.click();
-			div.getAttribute("out").should.equal("10");
-			finish();
-		}, 5);
+		div.click();
+		div.click();
+		div.click();
+		div.getAttribute("out").should.equal("10");
 	});
 
-	it("setting a global scoped variable spans features", function (finish) {
+	it("setting a global scoped variable spans features", function () {
 		var div = make(
-			"<div id='d1' _='init default global x to 0" +
-			"                       on click 1 set x to 10 " +
-			"                       on click 2 set @out to x'></div>"
+			"<div id='d1' _='on click 1 default global x to 0" +
+			"                       on click 2 set x to 10 " +
+			"                       on click 3 set @out to x'></div>"
 		);
-		setTimeout(function () {
-			div.click();
-			div.click();
-			div.getAttribute("out").should.equal("10");
-			delete window.x
-			finish();
-		}, 5);
+		div.click();
+		div.click();
+		div.click();
+		div.getAttribute("out").should.equal("10");
+		delete window.x
 	});
 
 	it("basic behavior scoping works", function() {
@@ -164,6 +160,31 @@ describe("scoping", function () {
 		delete window.BehaveTwo;
 	});
 
+	it("variables are hoisted", function() {
+		var div = make("<div id='d1' _='on click if true set foo to 10 end set @out to foo'></div>")
+		div.click();
+		div.getAttribute("out").should.equal("10");
+	});
+
+	it("local variables can override element variables", function() {
+		var div = make("<div id='d1' _='on click 1 set element foo to 20" +
+			"                                  on click 2 set local foo to 10 then set @out to foo" +
+			"                                  on click 3 set @out to foo'></div>")
+		div.click();
+		div.click();
+		div.getAttribute("out").should.equal("10");
+		div.click();
+		div.getAttribute("out").should.equal("20");
+	});
+
+	it("explicit element variable references works", function() {
+		var div = make("<div id='d1' _='on click 1 set element foo to 20" +
+			"                                  on click 2 set local foo to 10 then set @out to foo then set @out2 to element foo'></div>")
+		div.click();
+		div.click();
+		div.getAttribute("out").should.equal("10");
+		div.getAttribute("out2").should.equal("20");
+	});
 
 
 });
