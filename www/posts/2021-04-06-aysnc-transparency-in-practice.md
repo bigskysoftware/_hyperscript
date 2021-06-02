@@ -1,5 +1,4 @@
 ---
-layout: layout.njk
 tags: post
 title: async transparency in practice
 date: 2021-04-06
@@ -34,7 +33,6 @@ const getExchangeRate = async (fromCurrency, toCurrency) => {
     );
     const rate = response.data.rates;
     const euro = 1 / rate[fromCurrency];
-    const exchangeRate = euro * rate[toCurrency];
     return exchangeRate;
   } catch (error) {
     throw new Error(
@@ -80,7 +78,9 @@ All in all, a great little example of how to do asynchronous programming in java
 
 ## Converting To Hyperscript
 
-So, what does this code look like in hyperscript? Let's port it over! We'll start with `getExchangeRate`
+So, what does this code look like in hyperscript?  Let's port it over!
+
+We'll start with `getExchangeRate`
 
 ```hyperscript
 def getExchangeRate(fromCurrency, toCurrency)

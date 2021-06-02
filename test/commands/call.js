@@ -23,9 +23,7 @@ describe("the call command", function () {
 			calledWith = val;
 		};
 		try {
-			var div = make(
-				"<div _='on click call globalFunction(\"foo\")'></div>"
-			);
+			var div = make("<div _='on click call globalFunction(\"foo\")'></div>");
 			div.click();
 			"foo".should.equal(calledWith);
 		} finally {
@@ -83,9 +81,7 @@ describe("the call command", function () {
 			});
 		};
 		try {
-			var div = make(
-				"<div _='on click call promiseAnInt() then put it into my.innerHTML'></div>"
-			);
+			var div = make("<div _='on click call promiseAnInt() then put it into my.innerHTML'></div>");
 			div.click();
 			div.innerText.should.equal("");
 			finish(42);

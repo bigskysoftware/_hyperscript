@@ -31,11 +31,7 @@ describe("the mathOperator expression", function () {
 
 	it("unparenthesized expressions with multiple operators cause an error", function () {
 		var result = getParseErrorFor("1 + 2 * 3");
-		result
-			.indexOf(
-				"You must parenthesize math operations with different operators"
-			)
-			.should.equal(0);
+		result.indexOf("You must parenthesize math operations with different operators").should.equal(0);
 	});
 
 	it("parenthesized expressions with multiple operators work", function () {

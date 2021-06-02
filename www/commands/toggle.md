@@ -1,7 +1,3 @@
----
-layout: layout.njk
-title: ///_hyperscript
----
 
 ## The `toggle` Command
 
@@ -44,5 +40,7 @@ toggled until the given event is received.
 </div>
 <div id="help">I'm a helpful message!</div>
 
-<div _="on click toggle between .enabled and .disabled">Toggle Me!</div>
+<div _="on click toggle between .enabled and .disabled">
+  Toggle Me!
+</div>
 ```

@@ -38,9 +38,7 @@ describe("the append command", function () {
                             append '<span>This is my inner HTML</span>' to me
                             append '<b>With Tags</b>' to me"></div>`);
 		div.click();
-		div.innerHTML.should.equal(
-			"<span>This is my inner HTML</span><b>With Tags</b>"
-		);
+		div.innerHTML.should.equal("<span>This is my inner HTML</span><b>With Tags</b>");
 	});
 
 	/*

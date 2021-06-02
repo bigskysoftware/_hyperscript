@@ -8,10 +8,7 @@ describe("the _hyperscript parser", function () {
 
 	it("basic parse error messages work", function () {
 		var msg = getParseErrorFor("add - to");
-		startsWith(
-			msg,
-			"Expected either a class reference or attribute expression"
-		);
+		startsWith(msg, "Expected either a class reference or attribute expression");
 	});
 
 	it("continues initializing elements in the presence of a parse error", function () {

@@ -3,19 +3,14 @@
 (function (_hyperscript) {
 	function compileTemplate(template) {
 		return template.replace(/(?:^|\n)([^@]*)@?/gm, function (match, p1) {
-			var templateStr = (" " + p1)
-				.replace(/([^\\])\$\{/g, "$1$${escape html ")
-				.substring(1);
+			var templateStr = (" " + p1).replace(/([^\\])\$\{/g, "$1$${escape html ").substring(1);
 			return "\ncall __ht_template_result.push(`" + templateStr + "`)\n";
 		});
 	}
 
 	function renderTemplate(template, ctx) {
 		var buf = [];
-		_hyperscript(
-			template,
-			Object.assign({ __ht_template_result: buf }, ctx)
-		);
+		_hyperscript(template, Object.assign({ __ht_template_result: buf }, ctx));
 		return buf.join("");
 	}
 
@@ -30,10 +25,7 @@
 			args: [template, templateArgs],
 			op: function (ctx, template, templateArgs) {
 				console.log(compileTemplate(template.innerHTML));
-				ctx.result = renderTemplate(
-					compileTemplate(template.innerHTML),
-					templateArgs
-				);
+				ctx.result = renderTemplate(compileTemplate(template.innerHTML), templateArgs);
 				return runtime.findNext(this, ctx);
 			},
 		};
@@ -48,33 +40,30 @@
 			.replace(/\x27/g, "&#039;");
 	}
 
-	_hyperscript.addLeafExpression(
-		"escape",
-		function (parser, runtime, tokens) {
-			if (!tokens.matchToken("escape")) return;
-			var escapeType = tokens.matchTokenType("IDENTIFIER").value;
+	_hyperscript.addLeafExpression("escape", function (parser, runtime, tokens) {
+		if (!tokens.matchToken("escape")) return;
+		var escapeType = tokens.matchTokenType("IDENTIFIER").value;
 
-			// hidden! for use in templates
-			var unescaped = tokens.matchToken("unescaped");
+		// hidden! for use in templates
+		var unescaped = tokens.matchToken("unescaped");
 
-			var arg = parser.requireElement("expression", tokens);
+		var arg = parser.requireElement("expression", tokens);
 
-			return {
-				args: [arg],
-				op: function (ctx, arg) {
-					if (unescaped) return arg;
-					if (arg === undefined) return "";
-					switch (escapeType) {
-						case "html":
-							return escapeHTML(arg);
-						default:
-							throw new Error("Unknown escape: " + escapeType);
-					}
-				},
-				evaluate: function (ctx) {
-					return runtime.unifiedEval(this, ctx);
-				},
-			};
-		}
-	);
+		return {
+			args: [arg],
+			op: function (ctx, arg) {
+				if (unescaped) return arg;
+				if (arg === undefined) return "";
+				switch (escapeType) {
+					case "html":
+						return escapeHTML(arg);
+					default:
+						throw new Error("Unknown escape: " + escapeType);
+				}
+			},
+			evaluate: function (ctx) {
+				return runtime.unifiedEval(this, ctx);
+			},
+		};
+	});
 })(_hyperscript);

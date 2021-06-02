@@ -82,9 +82,7 @@ describe("as operator", function () {
 	});
 
 	it("converts a query selector into Values", function () {
-		var d1 = make(
-			`<div _="on click put <input.include/> as Values into my.customData"></div>`
-		);
+		var d1 = make(`<div _="on click put <input.include/> as Values into my.customData"></div>`);
 
 		d1.innerHTML = `
             <input class="include" name="firstName" value="John"><br>
@@ -231,9 +229,7 @@ describe("as operator", function () {
 		var result = evalHyperScript("nodeList as HTML", {
 			nodeList: fragment.childNodes,
 		});
-		result.should.equal(
-			`<div id="first">With Text</div><span id="second"></span><i id="third"></i>`
-		);
+		result.should.equal(`<div id="first">With Text</div><span id="second"></span><i id="third"></i>`);
 	});
 
 	it("converts an array into HTML", function () {
@@ -285,10 +281,7 @@ describe("as operator", function () {
 	});
 
 	it("can accept custom dynamic comversions", function () {
-		_hyperscript.config.conversions.dynamicResolvers.push(function (
-			conversion,
-			val
-		) {
+		_hyperscript.config.conversions.dynamicResolvers.push(function (conversion, val) {
 			if (conversion.indexOf("Foo:") === 0) {
 				var arg = conversion.split(":")[1];
 				return arg + val;

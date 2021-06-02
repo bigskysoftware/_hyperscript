@@ -27,9 +27,7 @@ describe("the _hyperscript runtime", function () {
 				" " +
 				"</script>"
 		);
-		var div = make(
-			"<div _='on click put bar().meta.feature.type into my.innerHTML'></div>"
-		);
+		var div = make("<div _='on click put bar().meta.feature.type into my.innerHTML'></div>");
 		div.click();
 		div.innerHTML.should.equal("onFeature");
 		delete window.bar;
@@ -59,12 +57,7 @@ describe("the _hyperscript runtime", function () {
 			throw new Error(str);
 		};
 		var script = make(
-			"<script type='text/hyperscript'>" +
-				"def bar() " +
-				"  call baz('nope') " +
-				"end " +
-				" " +
-				"</script>"
+			"<script type='text/hyperscript'>" + "def bar() " + "  call baz('nope') " + "end " + " " + "</script>"
 		);
 		var div = make("<div _='on click call bar()'></div>");
 		div.click();

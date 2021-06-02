@@ -22,11 +22,7 @@ describe("the init feature", function () {
 
 	it("can define an init block in a script", function (done) {
 		var div = make(
-			"<script type='text/hyperscript'>" +
-				"  init" +
-				"    set window.foo to 42" +
-				"  end" +
-				"</script>"
+			"<script type='text/hyperscript'>" + "  init" + "    set window.foo to 42" + "  end" + "</script>"
 		);
 		setTimeout(function () {
 			window.foo.should.equal(42);

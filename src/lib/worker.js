@@ -10,25 +10,14 @@
 				case "init":
 					importScripts(e.data._hyperscript);
 					importScripts.apply(self, e.data.extraScripts);
-					var tokens = _hyperscript.internals.lexer.makeTokensObject(
-						e.data.tokens,
-						[],
-						e.data.source
-					);
-					var hyperscript =
-						_hyperscript.internals.parser.parseElement(
-							"hyperscript",
-							tokens
-						);
+					var tokens = _hyperscript.internals.lexer.makeTokensObject(e.data.tokens, [], e.data.source);
+					var hyperscript = _hyperscript.internals.parser.parseElement("hyperscript", tokens);
 					hyperscript.apply(self);
 					postMessage({ type: "didInit" });
 					break;
 				case "call":
 					try {
-						var result = self[e.data.function].apply(
-							self,
-							e.data.args
-						);
+						var result = self[e.data.function].apply(self, e.data.args);
 						Promise.resolve(result)
 							.then(function (value) {
 								postMessage({
@@ -76,10 +65,8 @@
 					// no external scripts
 				} else {
 					do {
-						var extraScript =
-							tokens.requireTokenType("STRING").value;
-						var absoluteUrl = new URL(extraScript, location.href)
-							.href;
+						var extraScript = tokens.requireTokenType("STRING").value;
+						var absoluteUrl = new URL(extraScript, location.href).href;
 						extraScripts.push(absoluteUrl);
 					} while (tokens.matchOpToken(","));
 					tokens.requireOpToken(")");
@@ -92,10 +79,7 @@
 			var bodyStartIndex = tokens.consumed.length;
 			var bodyEndIndex = tokens.consumed.length;
 			do {
-				var feature = parser.parseAnyOf(
-					["defFeature", "jsFeature"],
-					tokens
-				);
+				var feature = parser.parseAnyOf(["defFeature", "jsFeature"], tokens);
 				if (feature) {
 					if (feature.type === "defFeature") {
 						funcNames.push(feature.name);
@@ -106,10 +90,7 @@
 				} else break;
 			} while (tokens.matchToken("end") && tokens.hasMore()); // worker end
 
-			var bodyTokens = tokens.consumed.slice(
-				bodyStartIndex,
-				bodyEndIndex + 1
-			);
+			var bodyTokens = tokens.consumed.slice(bodyStartIndex, bodyEndIndex + 1);
 
 			// Create worker
 
@@ -142,19 +123,12 @@
 					var args = arguments;
 					return new Promise(function (resolve, reject) {
 						var id = invocationIdCounter++;
-						worker.addEventListener(
-							"message",
-							function returnListener(e) {
-								if (e.data.id !== id) return;
-								worker.removeEventListener(
-									"message",
-									returnListener
-								);
-								if (e.data.type === "resolve")
-									resolve(e.data.value);
-								else reject(e.data.error);
-							}
-						);
+						worker.addEventListener("message", function returnListener(e) {
+							if (e.data.id !== id) return;
+							worker.removeEventListener("message", returnListener);
+							if (e.data.type === "resolve") resolve(e.data.value);
+							else reject(e.data.error);
+						});
 						workerPromise.then(function () {
 							// Worker has been initialized, send invocation.
 							worker.postMessage({
@@ -172,12 +146,7 @@
 				name: workerName,
 				worker: worker,
 				install: function (target) {
-					runtime.assignToNamespace(
-						target,
-						nameSpace,
-						workerName,
-						stubs
-					);
+					runtime.assignToNamespace(target, nameSpace, workerName, stubs);
 				},
 			};
 		}

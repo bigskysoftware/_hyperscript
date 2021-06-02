@@ -52,9 +52,7 @@ describe("array index operator", function () {
 	});
 
 	it("can get the range of first values in an array", function () {
-		var d1 = make(
-			`<div id="d1" _="on click set var to [0,1,2,3,4,5] then put var[..3] as String into #d1"></div>`
-		);
+		var d1 = make(`<div id="d1" _="on click set var to [0,1,2,3,4,5] then put var[..3] as String into #d1"></div>`);
 		d1.click();
 		d1.innerHTML.should.equal("0,1,2,3");
 	});
@@ -92,9 +90,7 @@ describe("array index operator", function () {
 	});
 
 	it("can get the range of last values in an array WITHOUT EXTRA SPACES", function () {
-		var d1 = make(
-			`<div id="d1" _="on click set var to [0,1,2,3,4,5] then put var[3..] as String into #d1"></div>`
-		);
+		var d1 = make(`<div id="d1" _="on click set var to [0,1,2,3,4,5] then put var[3..] as String into #d1"></div>`);
 		d1.click();
 		d1.innerHTML.should.equal("3,4,5");
 	});

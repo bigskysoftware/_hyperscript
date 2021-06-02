@@ -58,9 +58,7 @@ describe("function call expressions", function () {
 				return x;
 			},
 		};
-		var result = evalHyperScript(
-			"promiseValueBackIn(obj, 20).identity(promiseAnIntIn(10))"
-		);
+		var result = evalHyperScript("promiseValueBackIn(obj, 20).identity(promiseAnIntIn(10))");
 		result.then(function (result) {
 			result.should.equal(42);
 			delete window.obj;

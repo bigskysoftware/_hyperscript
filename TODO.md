@@ -51,6 +51,13 @@
 * date/time library [See GitHub](https://github.com/bigskysoftware/_hyperscript/issues/123)
 * `global` keyword [See GitHub](https://github.com/bigskysoftware/_hyperscript/issues/122)
 * Expressions for `field`, `button`, `tag` and `nodeList` [See GitHub](https://github.com/bigskysoftware/_hyperscript/issues/121)
+* Event for DOM mutation commands (put, append, render) -- user can add listener to initialize inserted content
+* Interpolate elements into queries
+  ```hyperscript
+  <${me} ~ pre>code/> -- all code blocks after me
+  ```
+  do this by adding a temporary attribute
+
 
 
 ### Scoping Spec

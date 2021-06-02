@@ -1,7 +1,3 @@
----
-layout: layout.njk
-title: ///_hyperscript
----
 
 ## The `go` Command
 
@@ -28,7 +24,11 @@ Finally, the `go back` form will navigate back in the history stack.
 ### Examples
 
 ```html
-<button _="on click go to https://duck.com">Go Search</button>
+<button _="on click go to https://duck.com">
+  Go Search
+</button>
 
-<button _="on click go to the top of the body">Go To The Top...</button>
+<button _="on click go to the top of the body">
+  Go To The Top...
+</button>
 ```

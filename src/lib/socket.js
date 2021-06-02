@@ -12,14 +12,11 @@
 	}
 
 	function genUUID() {
-		return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
-			/[xy]/g,
-			function (c) {
-				var r = (Math.random() * 16) | 0,
-					v = c == "x" ? r : (r & 0x3) | 0x8;
-				return v.toString(16);
-			}
-		);
+		return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+			var r = (Math.random() * 16) | 0,
+				v = c == "x" ? r : (r & 0x3) | 0x8;
+			return v.toString(16);
+		});
 	}
 
 	function createSocket(url) {
@@ -57,10 +54,7 @@
 								socket = socket ? socket : createSocket(url); //recreate socket if needed
 								socket.send(JSON.stringify(rpcInfo));
 
-								var promise = new Promise(function (
-									resolve,
-									reject
-								) {
+								var promise = new Promise(function (resolve, reject) {
 									promises[uuid] = {
 										resolve: resolve,
 										reject: reject,
@@ -95,9 +89,7 @@
 			var defaultTimeout = 10000;
 			if (tokens.matchToken("with")) {
 				tokens.requireToken("timeout");
-				defaultTimeout = parser
-					.requireElement("timeExpression", tokens)
-					.evaluate();
+				defaultTimeout = parser.requireElement("timeExpression", tokens).evaluate();
 			}
 
 			if (tokens.matchToken("on")) {
@@ -106,10 +98,7 @@
 					tokens.requireToken("json");
 					var jsonMessages = true;
 				}
-				var messageHandler = parser.requireElement(
-					"commandList",
-					tokens
-				);
+				var messageHandler = parser.requireElement("commandList", tokens);
 				var implicitReturn = {
 					type: "implicitReturn",
 					op: function (context) {
@@ -138,11 +127,7 @@
 					// remove hyperscript internals
 					delete details.sentBy;
 					delete details._namedArgList_;
-					socket.send(
-						JSON.stringify(
-							mergeObjects({ type: evt.type }, details)
-						)
-					);
+					socket.send(JSON.stringify(mergeObjects({ type: evt.type }, details)));
 				},
 				rpc: rpcProxy,
 			};
@@ -151,12 +136,7 @@
 				name: socketName,
 				socket: socketObject,
 				install: function (target) {
-					runtime.assignToNamespace(
-						target,
-						nameSpace,
-						socketName,
-						socketObject
-					);
+					runtime.assignToNamespace(target, nameSpace, socketName, socketObject);
 				},
 			};
 
@@ -179,19 +159,13 @@
 				}
 
 				if (messageHandler) {
-					var context = runtime.makeContext(
-						socketObject,
-						socketFeature,
-						socketObject
-					);
+					var context = runtime.makeContext(socketObject, socketFeature, socketObject);
 					if (jsonMessages) {
 						if (dataAsJson) {
 							context.message = dataAsJson;
 							context.result = dataAsJson;
 						} else {
-							throw (
-								"Received non-JSON message from socket: " + data
-							);
+							throw "Received non-JSON message from socket: " + data;
 						}
 					} else {
 						context.message = data;

@@ -19,9 +19,7 @@ describe("the attributeRef expression", function () {
 	});
 
 	it("attributeRef can be set as symbol", function () {
-		var div = make(
-			"<div _='on click set [@data-foo] to \"blue\"' data-foo='red'></div>"
-		);
+		var div = make("<div _='on click set [@data-foo] to \"blue\"' data-foo='red'></div>");
 		div.click();
 		div.getAttribute("data-foo").should.equal("blue");
 	});
@@ -33,9 +31,7 @@ describe("the attributeRef expression", function () {
 	});
 
 	it("attributeRef can be set through possessive", function () {
-		var div = make(
-			"<div _='on click set my [@data-foo] to \"blue\"' data-foo='red'></div>"
-		);
+		var div = make("<div _='on click set my [@data-foo] to \"blue\"' data-foo='red'></div>");
 		div.click();
 		div.getAttribute("data-foo").should.equal("blue");
 	});
@@ -53,9 +49,7 @@ describe("the attributeRef expression", function () {
 	});
 
 	it("attributeRef can be put as symbol", function () {
-		var div = make(
-			"<div _='on click put \"blue\" into [@data-foo]' data-foo='red'></div>"
-		);
+		var div = make("<div _='on click put \"blue\" into [@data-foo]' data-foo='red'></div>");
 		div.click();
 		div.getAttribute("data-foo").should.equal("blue");
 	});
@@ -73,9 +67,7 @@ describe("the attributeRef expression", function () {
 	});
 
 	it("attributeRef can be set as symbol w/ short syntax", function () {
-		var div = make(
-			"<div _='on click set @data-foo to \"blue\"' data-foo='red'></div>"
-		);
+		var div = make("<div _='on click set @data-foo to \"blue\"' data-foo='red'></div>");
 		div.click();
 		div.getAttribute("data-foo").should.equal("blue");
 	});
@@ -87,9 +79,7 @@ describe("the attributeRef expression", function () {
 	});
 
 	it("attributeRef can be set through possessive  w/ short syntax", function () {
-		var div = make(
-			"<div _='on click set my @data-foo to \"blue\"' data-foo='red'></div>"
-		);
+		var div = make("<div _='on click set my @data-foo to \"blue\"' data-foo='red'></div>");
 		div.click();
 		div.getAttribute("data-foo").should.equal("blue");
 	});
@@ -107,9 +97,7 @@ describe("the attributeRef expression", function () {
 	});
 
 	it("attributeRef can be put as symbol w/ short syntax", function () {
-		var div = make(
-			"<div _='on click put \"blue\" into @data-foo' data-foo='red'></div>"
-		);
+		var div = make("<div _='on click put \"blue\" into @data-foo' data-foo='red'></div>");
 		div.click();
 		div.getAttribute("data-foo").should.equal("blue");
 	});

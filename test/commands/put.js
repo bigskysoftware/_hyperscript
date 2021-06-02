@@ -7,9 +7,7 @@ describe("the put command", function () {
 	});
 
 	it("can set properties", function () {
-		var d1 = make(
-			"<div id='d1' _='on click put \"foo\" into #d1.innerHTML'></div>"
-		);
+		var d1 = make("<div id='d1' _='on click put \"foo\" into #d1.innerHTML'></div>");
 		d1.click();
 		d1.innerHTML.should.equal("foo");
 	});
@@ -35,26 +33,20 @@ describe("the put command", function () {
 	});
 
 	it("me symbol doesn't get stomped on direct write", function () {
-		var d1 = make(
-			'<div _=\'on click put "foo" into me then put "bar" into me\'></div>'
-		);
+		var d1 = make('<div _=\'on click put "foo" into me then put "bar" into me\'></div>');
 		d1.click();
 		d1.innerHTML.should.equal("bar");
 	});
 
 	it("can set styles", function () {
-		var d1 = make(
-			"<div _='on click put \"red\" into my.style.color'>lolwat</div>"
-		);
+		var d1 = make("<div _='on click put \"red\" into my.style.color'>lolwat</div>");
 		d1.click();
 		d1.style.color.should.equal("red");
 	});
 
 	it("can set javascript globals", function () {
 		try {
-			var d1 = make(
-				"<div _='on click put \"red\" into window.temp'>lolwat</div>"
-			);
+			var d1 = make("<div _='on click put \"red\" into window.temp'>lolwat</div>");
 			d1.click();
 			window["temp"].should.equal("red");
 		} finally {
@@ -63,12 +55,8 @@ describe("the put command", function () {
 	});
 
 	it("can set into class ref w/ flatmapped property", function () {
-		var div = make(
-			"<div _='on click put \"foo\" into .divs.parentElement.innerHTML'></div>"
-		);
-		make(
-			"<div id='d1'><div class='divs'></div></div><div id='d2'><div class='divs'></div></div>"
-		);
+		var div = make("<div _='on click put \"foo\" into .divs.parentElement.innerHTML'></div>");
+		make("<div id='d1'><div class='divs'></div></div><div id='d2'><div class='divs'></div></div>");
 		div.click();
 		var d1 = byId("d1");
 		var d2 = byId("d2");
@@ -86,9 +74,7 @@ describe("the put command", function () {
 	});
 
 	it("can set into id ref", function () {
-		var d1 = make(
-			"<div id='d1' _='on click put \"foo\" into #d1.innerHTML'></div>"
-		);
+		var d1 = make("<div id='d1' _='on click put \"foo\" into #d1.innerHTML'></div>");
 		d1.click();
 		d1.innerHTML.should.equal("foo");
 	});
@@ -108,17 +94,13 @@ describe("the put command", function () {
 	});
 
 	it("can insert after beginning", function () {
-		var d1 = make(
-			"<div id='d1' _='on click put \"foo\" at start of #d1'>*</div>"
-		);
+		var d1 = make("<div id='d1' _='on click put \"foo\" at start of #d1'>*</div>");
 		d1.click();
 		d1.textContent.should.equal("foo*");
 	});
 
 	it("can insert before end", function () {
-		var d1 = make(
-			"<div id='d1' _='on click put \"foo\" at end of #d1'>*</div>"
-		);
+		var d1 = make("<div id='d1' _='on click put \"foo\" at end of #d1'>*</div>");
 		d1.click();
 		d1.textContent.should.equal("*foo");
 	});
@@ -130,9 +112,7 @@ describe("the put command", function () {
 			});
 		};
 		try {
-			var d1 = make(
-				"<div id='d1' _='on click put promiseAString() into #d1.innerHTML'></div>"
-			);
+			var d1 = make("<div id='d1' _='on click put promiseAString() into #d1.innerHTML'></div>");
 			d1.click();
 			d1.innerHTML.should.equal("");
 			finish("foo");

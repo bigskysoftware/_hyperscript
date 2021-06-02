@@ -8,8 +8,7 @@ describe("the trigger command", function () {
 
 	it("can trigger events", function () {
 		var div = make(
-			"<div _='on click trigger foo end" +
-				"                          on foo add .foo-set end'></div>"
+			"<div _='on click trigger foo end" + "                          on foo add .foo-set end'></div>"
 		);
 		div.classList.contains("foo-set").should.equal(false);
 		div.click();
@@ -28,8 +27,7 @@ describe("the trigger command", function () {
 
 	it("can trigger events with dots", function () {
 		var div = make(
-			"<div _='on click trigger foo.bar end" +
-				"                          on foo.bar add .foo-set end'></div>"
+			"<div _='on click trigger foo.bar end" + "                          on foo.bar add .foo-set end'></div>"
 		);
 		div.classList.contains("foo-set").should.equal(false);
 		div.click();
@@ -48,8 +46,7 @@ describe("the trigger command", function () {
 
 	it("can trigger events with colons", function () {
 		var div = make(
-			"<div _='on click trigger foo:bar end" +
-				"                          on foo:bar add .foo-set end'></div>"
+			"<div _='on click trigger foo:bar end" + "                          on foo:bar add .foo-set end'></div>"
 		);
 		div.classList.contains("foo-set").should.equal(false);
 		div.click();

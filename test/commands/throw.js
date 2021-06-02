@@ -9,11 +9,7 @@ describe("the throw command", function () {
 	it("can throw a basic exception", function () {
 		try {
 			var script = make(
-				"<script type='text/hyperscript'>" +
-					"def foo() " +
-					'  throw "foo"' +
-					"end" +
-					"</script>"
+				"<script type='text/hyperscript'>" + "def foo() " + '  throw "foo"' + "end" + "</script>"
 			);
 			foo();
 			fail("Should have thrown");
@@ -26,12 +22,7 @@ describe("the throw command", function () {
 
 	it("can throw an async exception", function (done) {
 		var script = make(
-			"<script type='text/hyperscript'>" +
-				"def foo() " +
-				"  wait 2ms" +
-				'  throw "foo"' +
-				"end" +
-				"</script>"
+			"<script type='text/hyperscript'>" + "def foo() " + "  wait 2ms" + '  throw "foo"' + "end" + "</script>"
 		);
 		foo().catch(function (error) {
 			error.should.equal("foo");
@@ -65,12 +56,7 @@ describe("the throw command", function () {
 			throw "foo";
 		};
 		var script = make(
-			"<script type='text/hyperscript'>" +
-				"def foo() " +
-				"  wait 2ms" +
-				"  call bar()" +
-				"end" +
-				"</script>"
+			"<script type='text/hyperscript'>" + "def foo() " + "  wait 2ms" + "  call bar()" + "end" + "</script>"
 		);
 		foo().catch(function (error) {
 			error.should.equal("foo");

@@ -1,7 +1,3 @@
----
-layout: layout.njk
-title: ///_hyperscript
----
 
 ## The `fetch` Command
 
@@ -38,14 +34,14 @@ This command is asynchronous.
 </div>
 
 <div
-  _='on click fetch /test {method:"POST"} as json 
+  _='on click fetch /test {method:"POST"} as json
                  put "$it.result" into my.innerHTML'
 >
   Post to /test!
 </div>
 
 <div
-  _="on click fetch `${pageUrl}` as html 
+  _="on click fetch `${pageUrl}` as html
     get the textContent of the <h1/> in it
     call alert(result)"
 >
@@ -53,7 +49,7 @@ This command is asynchronous.
 </div>
 
 <div
-  _='on click fetch /number {method:"GET"} as Number 
+  _='on click fetch /number {method:"GET"} as Number
                  put "${it + 1}" into my.innerHTML'
 >
   Increment!

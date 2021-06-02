@@ -46,15 +46,10 @@ describe("the wait command", function () {
 	});
 
 	it("waiting on an event sets 'it' to the event", function (done) {
-		var div = make(
-			"<div _='on click wait for foo " +
-				"        then put its.detail into me'></div>"
-		);
+		var div = make("<div _='on click wait for foo " + "        then put its.detail into me'></div>");
 		div.click();
 		div.innerHTML.should.equal("");
-		div.dispatchEvent(
-			new CustomEvent("foo", { detail: "hyperscript is hyper cool" })
-		);
+		div.dispatchEvent(new CustomEvent("foo", { detail: "hyperscript is hyper cool" }));
 		setTimeout(function () {
 			div.innerHTML.should.equal("hyperscript is hyper cool");
 			done();
@@ -62,10 +57,7 @@ describe("the wait command", function () {
 	});
 
 	it("can destructure properties in a wait", function (done) {
-		var div = make(
-			"<div _='on click wait for foo(bar) " +
-				"        then put bar into me'></div>"
-		);
+		var div = make("<div _='on click wait for foo(bar) " + "        then put bar into me'></div>");
 		div.click();
 		div.innerHTML.should.equal("");
 		div.dispatchEvent(new CustomEvent("foo", { detail: { bar: "bar" } }));

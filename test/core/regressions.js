@@ -24,9 +24,7 @@ describe("_hyperscript regressions", function () {
 	});
 
 	it("can trigger htmx events", function () {
-		var div1 = make(
-			"<div id='div1' _='on htmx:foo put \"foo\" into my.innerHTML'></div>"
-		);
+		var div1 = make("<div id='div1' _='on htmx:foo put \"foo\" into my.innerHTML'></div>");
 		var div2 = make("<div _='on click send htmx:foo to #div1'></div>");
 		div2.click();
 		div1.innerHTML.should.equal("foo");
@@ -34,9 +32,7 @@ describe("_hyperscript regressions", function () {
 
 	it("can remove class by id", function () {
 		var form = make("<form class='hideme' id='email-form'></form>");
-		var div = make(
-			"<div _='on click remove .hideme from #email-form'></div>"
-		);
+		var div = make("<div _='on click remove .hideme from #email-form'></div>");
 		form.classList.contains("hideme").should.equal(true);
 		div.click();
 		form.classList.contains("hideme").should.equal(false);
@@ -51,9 +47,7 @@ describe("_hyperscript regressions", function () {
 
 	it("me and it is properly set when responding to events", function () {
 		var div2 = make("<div id='name'></div>");
-		var div = make(
-			"<div _='on click from #name set window.me to me set window.it to it'></div>"
-		);
+		var div = make("<div _='on click from #name set window.me to me set window.it to it'></div>");
 		div2.click();
 		window.me.should.equal(div);
 		window.it.should.equal(div2);
@@ -63,9 +57,7 @@ describe("_hyperscript regressions", function () {
 
 	it("me symbol works in from expressions", function () {
 		var div = make(
-			"<div>" +
-				"<div id='d1' _='on click from closest parent <div/> put \"Foo\" into me'></div>" +
-				"</div>"
+			"<div>" + "<div id='d1' _='on click from closest parent <div/> put \"Foo\" into me'></div>" + "</div>"
 		);
 		var d1 = byId("d1");
 		d1.innerHTML.should.equal("");

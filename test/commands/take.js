@@ -8,9 +8,7 @@ describe("the take command", function () {
 
 	it("can take a class from other elements", function () {
 		var d1 = make("<div class='div foo'></div>");
-		var d2 = make(
-			"<div class='div' _='on click take .foo from .div'></div>"
-		);
+		var d2 = make("<div class='div' _='on click take .foo from .div'></div>");
 		var d3 = make("<div class='div'></div>");
 		d1.classList.contains("foo").should.equal(true);
 		d2.classList.contains("foo").should.equal(false);
@@ -23,9 +21,7 @@ describe("the take command", function () {
 
 	it("can take a class for other elements", function () {
 		var d1 = make("<div class='div foo'></div>");
-		var d2 = make(
-			"<div class='div' _='on click take .foo from .div for #d3'></div>"
-		);
+		var d2 = make("<div class='div' _='on click take .foo from .div for #d3'></div>");
 		var d3 = make("<div id='d3' class='div'></div>");
 		d1.classList.contains("foo").should.equal(true);
 		d2.classList.contains("foo").should.equal(false);

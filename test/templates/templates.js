@@ -21,13 +21,7 @@ describe("Templating", function () {
 
 	it("supports repeat", function () {
 		var tmpl = make(
-			"<template>" +
-				"begin\n" +
-				"@repeat in [1, 2, 3]\n" +
-				"${it}\n" +
-				"@end\n" +
-				"end\n" +
-				"</template>"
+			"<template>" + "begin\n" + "@repeat in [1, 2, 3]\n" + "${it}\n" + "@end\n" + "end\n" + "</template>"
 		);
 		_hyperscript("render tmpl with (x: x) then put it into window.res", {
 			x: ":)",
@@ -39,15 +33,7 @@ describe("Templating", function () {
 
 	it("supports if", function () {
 		var tmpl = make(
-			"<template>" +
-				"begin\n" +
-				"@if true\n" +
-				"a\n" +
-				"@else\n" +
-				"b\n" +
-				"@end\n" +
-				"end\n" +
-				"</template>"
+			"<template>" + "begin\n" + "@if true\n" + "a\n" + "@else\n" + "b\n" + "@end\n" + "end\n" + "</template>"
 		);
 		_hyperscript("render tmpl with (x: x) then put it into window.res", {
 			x: ":)",

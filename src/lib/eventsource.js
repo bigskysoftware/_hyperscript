@@ -33,9 +33,7 @@
 
 			// Get the name we'll assign to this EventSource in the hyperscript context
 			/** @type {string} */
-			var name = parser
-				.requireElement("dotOrColonPath", tokens)
-				.evaluate();
+			var name = parser.requireElement("dotOrColonPath", tokens).evaluate();
 			var nameSpace = name.split(".");
 			var eventSourceName = nameSpace.pop();
 
@@ -59,10 +57,7 @@
 				open: function (url) {
 					// calculate default values for URL argument.
 					if (url == undefined) {
-						if (
-							stub.eventSource != null &&
-							stub.eventSource.url != undefined
-						) {
+						if (stub.eventSource != null && stub.eventSource.url != undefined) {
 							url = stub.eventSource.url;
 						} else {
 							throw "no url defined for EventSource.";
@@ -74,9 +69,7 @@
 						// If we're opening a new URL, then close the old one first.
 						if (url != stub.eventSource.url) {
 							stub.eventSource.close();
-						} else if (
-							stub.eventSource.readyState != EventSource.CLOSED
-						) {
+						} else if (stub.eventSource.readyState != EventSource.CLOSED) {
 							// Otherwise, we already have the right connection open, so there's nothing left to do.
 							return;
 						}
@@ -93,37 +86,19 @@
 					});
 
 					// On connection error, use exponential backoff to retry (random values from 1 second to 2^7 (128) seconds
-					stub.eventSource.addEventListener(
-						"error",
-						function (event) {
-							// If the EventSource is closed, then try to reopen
-							if (
-								stub.eventSource.readyState ==
-								EventSource.CLOSED
-							) {
-								stub.retryCount = Math.min(
-									7,
-									stub.retryCount + 1
-								);
-								var timeout =
-									Math.random() * (2 ^ stub.retryCount) * 500;
-								window.setTimeout(stub.open, timeout);
-							}
+					stub.eventSource.addEventListener("error", function (event) {
+						// If the EventSource is closed, then try to reopen
+						if (stub.eventSource.readyState == EventSource.CLOSED) {
+							stub.retryCount = Math.min(7, stub.retryCount + 1);
+							var timeout = Math.random() * (2 ^ stub.retryCount) * 500;
+							window.setTimeout(stub.open, timeout);
 						}
-					);
+					});
 
 					// Add event listeners
-					for (
-						var index = 0;
-						index < stub.listeners.length;
-						index++
-					) {
+					for (var index = 0; index < stub.listeners.length; index++) {
 						var item = stub.listeners[index];
-						stub.eventSource.addEventListener(
-							item.type,
-							item.handler,
-							item.options
-						);
+						stub.eventSource.addEventListener(item.type, item.handler, item.options);
 					}
 				},
 				close: function () {
@@ -140,11 +115,7 @@
 					});
 
 					if (stub.eventSource != null) {
-						stub.eventSource.addEventListener(
-							type,
-							handler,
-							options
-						);
+						stub.eventSource.addEventListener(type, handler, options);
 					}
 				},
 			};
@@ -156,34 +127,21 @@
 				name: eventSourceName,
 				object: stub,
 				install: function (target) {
-					runtime.assignToNamespace(
-						target,
-						nameSpace,
-						eventSourceName,
-						stub
-					);
+					runtime.assignToNamespace(target, nameSpace, eventSourceName, stub);
 				},
 			};
 
 			// Parse each event listener and add it into the list
 			while (tokens.matchToken("on")) {
 				// get event name
-				var eventName = parser
-					.requireElement("stringLike", tokens, "Expected event name")
-					.evaluate(); // OK to evaluate this in real-time?
+				var eventName = parser.requireElement("stringLike", tokens, "Expected event name").evaluate(); // OK to evaluate this in real-time?
 
 				// default encoding is "" (autodetect)
 				var encoding = "";
 
 				// look for alternate encoding
 				if (tokens.matchToken("as")) {
-					encoding = parser
-						.requireElement(
-							"stringLike",
-							tokens,
-							"Expected encoding type"
-						)
-						.evaluate(); // Ok to evaluate this in real time?
+					encoding = parser.requireElement("stringLike", tokens, "Expected encoding type").evaluate(); // Ok to evaluate this in real time?
 				}
 
 				// get command list for this event handler

@@ -5,18 +5,13 @@ describe("the behavior feature", function () {
 				"behavior TheBehaviorWeAreDefiningForHyperscriptTestingPurposes init end end" +
 				"</script>"
 		);
-		assert.property(
-			window,
-			"TheBehaviorWeAreDefiningForHyperscriptTestingPurposes"
-		);
+		assert.property(window, "TheBehaviorWeAreDefiningForHyperscriptTestingPurposes");
 		delete window.TheBehaviorWeAreDefiningForHyperscriptTestingPurposes;
 	});
 
 	it("can install behaviors", function () {
 		var behavior = make(
-			"<script type=text/hyperscript>" +
-				"behavior Behave on click add .foo end end" +
-				"</script>"
+			"<script type=text/hyperscript>" + "behavior Behave on click add .foo end end" + "</script>"
 		);
 		var div = make("<div _='install Behave'></div>");
 		div.classList.contains("foo").should.equal(false);
@@ -39,11 +34,7 @@ describe("the behavior feature", function () {
 	});
 
 	it("supports init blocks in behaviors", function (done) {
-		var behavior = make(
-			"<script type=text/hyperscript>" +
-				"behavior Behave init add .foo to me end" +
-				"</script>"
-		);
+		var behavior = make("<script type=text/hyperscript>" + "behavior Behave init add .foo to me end" + "</script>");
 		var div = make("<div _='install Behave'></div>");
 		setTimeout(() => {
 			div.classList.contains("foo").should.equal(true);
