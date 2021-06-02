@@ -4655,6 +4655,7 @@
 				} else if (tokens.matchToken("html")) {
 					type = "html";
 				} else if (tokens.matchToken("text")) {
+					// default, ignore
 				} else {
 					conversion = parser.requireElement("dotOrColonPath", tokens).evaluate();
 				}
