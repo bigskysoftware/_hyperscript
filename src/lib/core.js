@@ -37,6 +37,17 @@
 			return obj1;
 		}
 
+		function getOrInitObject(root, prop) {
+			var value = root[prop];
+			if (value) {
+				return value;
+			} else {
+				var newObj = {};
+				root[prop] = newObj;
+				return newObj;
+			}
+		}
+
 		/**
 		 * parseJSON parses a JSON string into a corresponding value.  If the
 		 * value passed in is not valid JSON, then it logs an error and returns `null`.
@@ -1750,8 +1761,7 @@
 				owner,
 				feature,
 				hyperscriptTarget,
-				event,
-				extras
+				event
 			) {
 				/** @type {Context} */
 				var ctx = {
@@ -1771,7 +1781,6 @@
 				};
 				ctx.meta.ctx = ctx;
 				addFeatures(owner, ctx);
-				if (typeof extras === "object") mergeObjects(ctx, extras);
 				return ctx;
 			}
 
@@ -1974,13 +1983,18 @@
 			}
 
 			function getElementScope(context) {
-				var internalData = getInternalData(context.meta.owner);
-				var elementScope = internalData.elementScope;
-				if (elementScope == null) {
-					elementScope = {};
-					internalData.elementScope = elementScope;
+				var elt = context.meta.owner;
+				if (elt) {
+					var internalData = getInternalData(elt);
+					var scopeName = 'elementScope'
+					if (context.meta.feature && context.meta.feature.behavior) {
+						scopeName = context.meta.feature.behavior + "Scope";
+					}
+					var elementScope = getOrInitObject(internalData, scopeName);
+					return elementScope;
+				} else {
+					return {}; // no element, return empty scope
 				}
-				return elementScope;
 			}
 
 			/**
@@ -3786,10 +3800,10 @@
 					return {
 						type: "hyperscript",
 						features: features,
-						apply: function (target, source, args) {
+						apply: function (target, source) {
 							// no op
 							_runtime.forEach(features, function (feature) {
-								feature.install(target, source, args);
+								feature.install(target, source);
 							});
 						},
 					};
@@ -4113,7 +4127,7 @@
 							};
 							start.execute(ctx);
 						},
-						install: function (elt, source, args) {
+						install: function (elt, source) {
 							runtime.forEach(
 								onFeature.events,
 								function (eventSpec) {
@@ -4216,8 +4230,7 @@
 													elt,
 													onFeature,
 													elt,
-													evt,
-													args
+													evt
 												);
 												if (
 													eventSpec.elsewhere &&
@@ -4417,15 +4430,14 @@
 						start: start,
 						errorHandler: errorHandler,
 						errorSymbol: errorSymbol,
-						install: function (target, source, installArgs) {
+						install: function (target, source) {
 							var func = function () {
 								// null, worker
 								var ctx = runtime.makeContext(
 									source,
 									functionFeature,
 									target,
-									null,
-									installArgs
+									null
 								);
 
 								// install error handler if any
@@ -4517,15 +4529,14 @@
 					var start = parser.parseElement("commandList", tokens);
 					var initFeature = {
 						start: start,
-						install: function (target, source, args) {
+						install: function (target, source) {
 							setTimeout(function () {
 								start.execute(
 									runtime.makeContext(
 										target,
 										this,
 										target,
-										null,
-										args
+										null
 									)
 								);
 							}, 0);
@@ -4586,20 +4597,25 @@
 					tokens.requireOpToken(")");
 				}
 				var hs = parser.parseElement("hyperscript", tokens);
+				for (var i = 0; i < hs.features.length; i++) {
+					var feature = hs.features[i];
+					feature.behavior = path;
+				}
 
 				return {
-					install: function (target, source, outerArgs) {
+					install: function (target, source) {
 						runtime.assignToNamespace(
 							globalScope.document && globalScope.document.body,
 							nameSpace,
 							name,
 							function (target, source, innerArgs) {
-								var args = mergeObjects({}, outerArgs);
+								var internalData = runtime.getInternalData(target);
+								var elementScope = getOrInitObject(internalData, path + "Scope");
 								for (var i = 0; i < formalParams.length; i++) {
-									args[formalParams[i]] =
+									elementScope[formalParams[i]] =
 										innerArgs[formalParams[i]];
 								}
-								hs.apply(target, source, args);
+								hs.apply(target, source);
 							}
 						);
 					},
@@ -4645,7 +4661,7 @@
 										);
 
 									behavior(target, source, args);
-								},
+								}
 							},
 							runtime.makeContext(target, installFeature, target)
 						);
