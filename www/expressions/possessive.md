@@ -7,7 +7,7 @@ title: ///_hyperscript
 
 ### Syntax
 
-```
+```ebnf
   ['my' | 'its' | <expressions>'s] <property>
   ['my' | 'its' | <expressions>'s] attribute <stringLike>
 ```

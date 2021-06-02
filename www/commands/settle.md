@@ -8,7 +8,7 @@ title: ///_hyperscript
 ### Syntax
 
 ```ebnf
-  setttle [<expression>]
+  settle [<expression>]
 ```
 
 ### Description

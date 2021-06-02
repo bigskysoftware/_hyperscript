@@ -20,7 +20,10 @@ on [every] <event-name>[(<param-list>)][\[<filter>\]] <count> [<debounce> | <thr
 
 If the `every` prefix is used, the event handler will not be synchronized (see [queueing](#queueing) below.)
 
-The `event-name` can be a symbol, a dot-separated symbol or a string that names the event to respond to
+The `event-name` can be a symbol, a dot-separated symbol or a string that names the event. The most obvious events
+of interest are are [standard HTML DOM events](https://www.w3schools.com/jsref/dom_obj_event.asp) such as click,
+focus/blur, change, etc. There are [many, many standard browser events](https://developer.mozilla.org/en-US/docs/Web/Events) that
+may be of interest depending on what you are trying to build. You may also wish to define your own events for higher level abstractions.
 
 The optional `param-list` is a comma separated list of parameter names. Parameters will be set from properties directly
 on the event or in the `details` property.
