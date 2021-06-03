@@ -34,4 +34,11 @@ describe("the classRef expression", function () {
 		var value = evalHyperScript(".c1:foo:bar");
 		value[0].should.equal(div);
 	});
+
+	it("template classRef works", function () {
+		var div = make("<div class='c1'></div>");
+		var value = evalHyperScript(".{'c1'}");
+		value[0].should.equal(div);
+	});
+
 });

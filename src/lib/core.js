@@ -555,9 +555,9 @@
 				} else {
 					if (isWhitespace(currentChar())) {
 						tokens.push(consumeWhitespace());
-					} else if (!possiblePrecedingSymbol() && currentChar() === "." && isAlpha(nextChar())) {
+					} else if (!possiblePrecedingSymbol() && currentChar() === "." && (isAlpha(nextChar()) || nextChar() === '{')) {
 						tokens.push(consumeClassReference());
-					} else if (!possiblePrecedingSymbol() && currentChar() === "#" && isAlpha(nextChar())) {
+					} else if (!possiblePrecedingSymbol() && currentChar() === "#" && (isAlpha(nextChar()) || nextChar() === '{')) {
 						tokens.push(consumeIdReference());
 					} else if (currentChar() === "[" && nextChar() === "@") {
 						tokens.push(consumeAttributeReference());
@@ -635,8 +635,21 @@
 			function consumeClassReference() {
 				var classRef = makeToken("CLASS_REF");
 				var value = consumeChar();
-				while (isValidCSSClassChar(currentChar())) {
+				if (currentChar() === '{') {
+					classRef.template = true;
 					value += consumeChar();
+					while (currentChar() && currentChar() !== "}") {
+						value += consumeChar();
+					}
+					if (currentChar() !== "}") {
+						throw Error("Unterminated class reference");
+					} else {
+						value += consumeChar(); // consume final curly
+					}
+				} else {
+					while (isValidCSSClassChar(currentChar())) {
+						value += consumeChar();
+					}
 				}
 				classRef.value = value;
 				classRef.end = position;
@@ -677,8 +690,21 @@
 			function consumeIdReference() {
 				var idRef = makeToken("ID_REF");
 				var value = consumeChar();
-				while (isValidCSSIDChar(currentChar())) {
+				if (currentChar() === '{') {
+					idRef.template = true;
 					value += consumeChar();
+					while (currentChar() && currentChar() !== "}") {
+						value += consumeChar();
+					}
+					if (currentChar() !== "}") {
+						throw Error("Unterminated id reference");
+					} else {
+						consumeChar(); // consume final quote
+					}
+				} else {
+					while (isValidCSSIDChar(currentChar())) {
+						value += consumeChar();
+					}
 				}
 				idRef.value = value;
 				idRef.end = position;
@@ -2137,30 +2163,65 @@
 		_parser.addLeafExpression("idRef", function (parser, runtime, tokens) {
 			var elementId = tokens.matchTokenType("ID_REF");
 			if (!elementId) return;
-			return {
-				type: "idRef",
-				css: elementId.value,
-				value: elementId.value.substr(1),
-				evaluate: function (context) {
-					return context.me.getRootNode().getElementById(this.value) || document.getElementById(this.value);
-				},
-			};
+			// TODO - unify these two expression types
+			if (elementId.template) {
+				var templateValue = elementId.value.substr(2, elementId.value.length - 2);
+				var innerTokens = _lexer.tokenize(templateValue);
+				var innerExpression = parser.requireElement("expression", innerTokens);
+				return {
+					type: "idRefTemplate",
+					args: [innerExpression],
+					op: function (context, arg) {
+						return context.me.getRootNode().getElementById(arg) || document.getElementById(arg);
+					},
+					evaluate: function (context) {
+						return runtime.unifiedEval(this, context);
+					},
+				};
+			} else {
+				return {
+					type: "idRef",
+					css: elementId.value,
+					value: elementId.value.substr(1),
+					evaluate: function (context) {
+						return context.me.getRootNode().getElementById(this.value) || document.getElementById(this.value);
+					}
+				}
+			}
 		});
 
 		_parser.addLeafExpression("classRef", function (parser, runtime, tokens) {
 			var classRef = tokens.matchTokenType("CLASS_REF");
 
 			if (!classRef) return;
-			return {
-				type: "classRef",
-				css: classRef.value,
-				className: function () {
-					return this.css.substr(1);
-				},
-				evaluate: function (context) {
-					return context.me.getRootNode().querySelectorAll(runtime.escapeSelector(this.css));
-				},
-			};
+
+			// TODO - unify these two expression types
+			if (classRef.template) {
+				var templateValue = classRef.value.substr(2, classRef.value.length - 2);
+				var innerTokens = _lexer.tokenize(templateValue);
+				var innerExpression = parser.requireElement("expression", innerTokens);
+				return {
+					type: "classRefTemplate",
+					args: [innerExpression],
+					op: function (context, arg) {
+						return document.querySelectorAll(runtime.escapeSelector("." + arg));
+					},
+					evaluate: function (context) {
+						return runtime.unifiedEval(this, context);
+					}
+				};
+			} else {
+				return {
+					type: "classRef",
+					css: classRef.value,
+					className: function () {
+						return this.css.substr(1);
+					},
+					evaluate: function (context) {
+						return context.me.getRootNode().querySelectorAll(runtime.escapeSelector(this.css));
+					}
+				};
+			}
 		});
 
 		_parser.addLeafExpression("queryRef", function (parser, runtime, tokens) {
@@ -3710,45 +3771,46 @@
 		});
 
 		_parser.addFeature("init", function (parser, runtime, tokens) {
-			if (tokens.matchToken("init")) {
-				var start = parser.parseElement("commandList", tokens);
-				var initFeature = {
-					start: start,
-					install: function (target, source) {
-						setTimeout(function () {
-							start.execute(
-								runtime.makeContext(
-									target,
-									this,
-									target,
-									null
-								)
-							);
-						}, 0);
-					},
-				};
+				if (tokens.matchToken("init")) {
+					var start = parser.parseElement("commandList", tokens);
+					var initFeature = {
+						start: start,
+						install: function (target, source) {
+							setTimeout(function () {
+								start.execute(
+									runtime.makeContext(
+										target,
+										this,
+										target,
+										null
+									)
+								);
+							}, 0);
+						},
+					};
 
-				var implicitReturn = {
-					type: "implicitReturn",
-					op: function (context) {
-						return runtime.HALT;
-					},
-					execute: function (context) {
-						// do nothing
-					},
-				};
-				// terminate body
-				if (start) {
-					var end = start;
-					while (end.next) {
-						end = end.next;
+					var implicitReturn = {
+						type: "implicitReturn",
+						op: function (context) {
+							return runtime.HALT;
+						},
+						execute: function (context) {
+							// do nothing
+						},
+					};
+					// terminate body
+					if (start) {
+						var end = start;
+						while (end.next) {
+							end = end.next;
+						}
+						end.next = implicitReturn;
+					} else {
+						initFeature.start = implicitReturn;
 					}
-					end.next = implicitReturn;
-				} else {
-					initFeature.start = implicitReturn;
+					parser.setParent(start, initFeature);
+					return initFeature;
 				}
-				parser.setParent(start, initFeature);
-				return initFeature;
 			}
 		);
 

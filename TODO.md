@@ -23,7 +23,6 @@
 * Recovering parser (we are single error right now)
 * `delete` command
 * `reply` & `wait for response` in event handlers?
-* garbage collect event listeners added to external elements periodically (?)
 *  Support a `timeout` modifier for commands like `fetch`, `call`, `wait for` etc.
   * deep project involving dealing w/ async commands not executing if they time out during execution
 * `merge/merge into` - Merge objects with one another
@@ -52,7 +51,6 @@
     end
     ```
 * date/time library [See GitHub](https://github.com/bigskysoftware/_hyperscript/issues/123)
-* `global` keyword [See GitHub](https://github.com/bigskysoftware/_hyperscript/issues/122)
 * Expressions for `field`, `button`, `tag` and `nodeList` [See GitHub](https://github.com/bigskysoftware/_hyperscript/issues/121)
 * Event for DOM mutation commands (put, append, render) -- user can add listener to initialize inserted content
 

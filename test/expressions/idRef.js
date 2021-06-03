@@ -17,4 +17,11 @@ describe("the idRef expression", function () {
 		var value = evalHyperScript("#d1");
 		should.equal(value, null);
 	});
+
+	it("template classRef works", function () {
+		var div = make("<div id='d1'></div>");
+		var value = evalHyperScript("#{'d1'}");
+		value.should.equal(div);
+	});
+
 });
