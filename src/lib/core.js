@@ -3168,20 +3168,15 @@
 			return parser.parseElement("asyncExpression", tokens);
 		});
 
-		_parser.addGrammarElement("targetExpression", function (parser, runtime, tokens) {
+		_parser.addGrammarElement("assignableExpression", function (parser, runtime, tokens) {
 			tokens.matchToken("the"); // optional the
 
 			// TODO obviously we need to generalize this as a left hand side / targetable concept
 			var expr = parser.parseElement("primaryExpression", tokens);
 			if (
 				expr.type === "symbol" ||
-				expr.type === "idRef" ||
-				expr.type === "inExpression" ||
-				expr.type === "queryRef" ||
-				expr.type === "classRef" ||
 				expr.type === "ofExpression" ||
 				expr.type === "propertyAccess" ||
-				expr.type === "closestExpr" ||
 				expr.type === "attributeRefAccess" ||
 				expr.type === "attributeRef" ||
 				expr.type === "possessive"
@@ -3282,7 +3277,7 @@
 				if (eventName === "intersection") {
 					var intersectionSpec = {};
 					if (tokens.matchToken("with")) {
-						intersectionSpec["with"] = parser.parseElement("targetExpression", tokens).evaluate();
+						intersectionSpec["with"] = parser.parseElement("expression", tokens).evaluate();
 					}
 					if (tokens.matchToken("having")) {
 						do {
@@ -3344,7 +3339,7 @@
 					if (tokens.matchToken("elsewhere")) {
 						elsewhere = true;
 					} else {
-						from = parser.parseElement("targetExpression", tokens);
+						from = parser.parseElement("expression", tokens);
 						if (!from) {
 							parser.raiseParseError('Expected either target value or "elsewhere".', tokens);
 						}
@@ -3812,7 +3807,7 @@
 					return initFeature;
 				}
 			}
-		);
+		});
 
 		_parser.addFeature("worker", function (parser, runtime, tokens) {
 			if (tokens.matchToken("worker")) {
@@ -4093,6 +4088,7 @@
 					args: [on],
 					op: function (context, on) {
 						var target = on ? on : context.me;
+						if (!(target instanceof EventTarget)) throw new Error("Not a valid event target: " + this.on.sourceFor())
 						return new Promise(function (resolve) {
 							var resolved = false;
 							runtime.forEach(events, function (eventInfo) {
@@ -4168,7 +4164,7 @@
 
 			var details = parser.parseElement("namedArgumentList", tokens);
 			if (tokens.matchToken("to")) {
-				var to = parser.requireElement("targetExpression", tokens);
+				var to = parser.requireElement("expression", tokens);
 			} else {
 				var to = parser.requireElement("implicitMeTarget", tokens);
 			}
@@ -4492,7 +4488,7 @@
 
 		_parser.addCommand("default", function (parser, runtime, tokens) {
 			if (!tokens.matchToken("default")) return;
-			var target = parser.requireElement("targetExpression", tokens);
+			var target = parser.requireElement("assignableExpression", tokens);
 			tokens.requireToken("to");
 
 			var value = parser.requireElement("expression", tokens);
@@ -4536,7 +4532,7 @@
 
 			try {
 				tokens.pushFollow("to");
-				var target = parser.requireElement("targetExpression", tokens);
+				var target = parser.requireElement("assignableExpression", tokens);
 			} finally {
 				tokens.popFollow();
 			}
@@ -4751,7 +4747,7 @@
 			var value = parser.requireElement("expression", tokens);
 
 			if (tokens.matchToken("to")) {
-				target = parser.requireElement("targetExpression", tokens);
+				target = parser.requireElement("expression", tokens);
 			}
 
 			if (target == null) {
@@ -4794,7 +4790,7 @@
 			var amount;
 
 			// This is optional.  Defaults to "result"
-			var target = parser.parseElement("targetExpression", tokens);
+			var target = parser.parseElement("assignableExpression", tokens);
 
 			// This is optional. Defaults to 1.
 			if (tokens.matchToken("by")) {
@@ -4824,7 +4820,7 @@
 			var amount;
 
 			// This is optional.  Defaults to "result"
-			var target = parser.parseElement("targetExpression", tokens);
+			var target = parser.parseElement("assignableExpression", tokens);
 
 			// This is optional. Defaults to 1.
 			if (tokens.matchToken("by")) {

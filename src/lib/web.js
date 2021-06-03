@@ -88,7 +88,7 @@
 			}
 
 			if (tokens.matchToken("to")) {
-				var to = parser.requireElement("targetExpression", tokens);
+				var to = parser.requireElement("expression", tokens);
 			} else {
 				var to = parser.parseElement("implicitMeTarget", tokens);
 			}
@@ -101,7 +101,7 @@
 					op: function (context, to) {
 						runtime.forEach(classRefs, function (classRef) {
 							runtime.forEach(to, function (target) {
-								target.classList.add(classRef.className());
+								if (target instanceof Element) target.classList.add(classRef.className());
 							});
 						});
 						return runtime.findNext(this, context);
@@ -172,7 +172,7 @@
 			}
 
 			if (tokens.matchToken("from")) {
-				var from = parser.requireElement("targetExpression", tokens);
+				var from = parser.requireElement("expression", tokens);
 			} else {
 				var from = parser.requireElement("implicitMeTarget", tokens);
 			}
@@ -242,7 +242,7 @@
 			}
 
 			if (tokens.matchToken("on")) {
-				var on = parser.requireElement("targetExpression", tokens);
+				var on = parser.requireElement("expression", tokens);
 			} else {
 				var on = parser.requireElement("implicitMeTarget", tokens);
 			}
@@ -361,7 +361,7 @@
 		if (currentTokenValue.value === "with" || parser.commandBoundary(currentTokenValue)) {
 			target = parser.parseElement("implicitMeTarget", tokens);
 		} else {
-			target = parser.parseElement("targetExpression", tokens);
+			target = parser.parseElement("expression", tokens);
 		}
 		return target;
 	};
@@ -459,13 +459,13 @@
 			var classRef = parser.parseElement("classRef", tokens);
 
 			if (tokens.matchToken("from")) {
-				var from = parser.requireElement("targetExpression", tokens);
+				var from = parser.requireElement("expression", tokens);
 			} else {
 				var from = classRef;
 			}
 
 			if (tokens.matchToken("for")) {
-				var forElt = parser.requireElement("targetExpression", tokens);
+				var forElt = parser.requireElement("expression", tokens);
 			} else {
 				var forElt = parser.requireElement("implicitMeTarget", tokens);
 			}
@@ -522,7 +522,7 @@
 			if (operationToken == null) {
 				parser.raiseParseError(tokens, "Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
 			}
-			var target = parser.requireElement("targetExpression", tokens);
+			var target = parser.requireElement("expression", tokens);
 
 			var operation = operationToken.value;
 
@@ -806,7 +806,7 @@
 			}
 
 			if (css == null) {
-				var expr = parser.parseElement("targetExpression", tokens);
+				var expr = parser.parseElement("expression", tokens);
 				if (expr.css == null) {
 					parser.raiseParseError(tokens, "Expected a CSS expression");
 				} else {
@@ -815,7 +815,7 @@
 			}
 
 			if (tokens.matchToken("to")) {
-				var to = parser.parseElement("targetExpression", tokens);
+				var to = parser.parseElement("expression", tokens);
 			} else {
 				var to = parser.parseElement("implicitMeTarget", tokens);
 			}
@@ -828,7 +828,7 @@
 				to: to,
 				args: [to],
 				op: function (ctx, to) {
-					if (to == null) {
+					if (to == null || !(to instanceof Element)) {
 						return null;
 					} else {
 						if (parentSearch) {
