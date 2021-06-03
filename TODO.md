@@ -1,7 +1,6 @@
 ## TODOs
 
 ### 0.8.0 release
-* Carson - Proper scoping, including in behaviors NEEDS DOCS
 * Deniz - Rework target expression (?)
 * Deniz - Determine how to handle mutations to the DOM with respect to listeners
    * lazily remove listeners when owner has been removed from DOM
