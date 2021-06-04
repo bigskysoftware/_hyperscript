@@ -4136,16 +4136,7 @@
 				};
 			}
 
-			var value;
-			while ((token = tokens.matchTokenType("IDENTIFIER") || tokens.matchAnyOpToken(".", ":", "-"))) {
-				value += token.value;
-			}
-
-			return {
-				evaluate() {
-					return token.value;
-				},
-			};
+			return parser.parseElement("dotOrColonPath", tokens);
 		});
 
 		_parser.addCommand("send", function (parser, runtime, tokens) {
