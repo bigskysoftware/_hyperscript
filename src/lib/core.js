@@ -372,7 +372,7 @@
 					(type == null || currentToken.type !== type) &&
 					(value == null || currentToken.value !== value) &&
 					currentToken.type !== "EOF"
-					) {
+				) {
 					var match = tokens.shift();
 					consumed.push(match);
 					tokenList.push(currentToken);
@@ -555,9 +555,17 @@
 				} else {
 					if (isWhitespace(currentChar())) {
 						tokens.push(consumeWhitespace());
-					} else if (!possiblePrecedingSymbol() && currentChar() === "." && (isAlpha(nextChar()) || nextChar() === '{')) {
+					} else if (
+						!possiblePrecedingSymbol() &&
+						currentChar() === "." &&
+						(isAlpha(nextChar()) || nextChar() === "{")
+					) {
 						tokens.push(consumeClassReference());
-					} else if (!possiblePrecedingSymbol() && currentChar() === "#" && (isAlpha(nextChar()) || nextChar() === '{')) {
+					} else if (
+						!possiblePrecedingSymbol() &&
+						currentChar() === "#" &&
+						(isAlpha(nextChar()) || nextChar() === "{")
+					) {
 						tokens.push(consumeIdReference());
 					} else if (currentChar() === "[" && nextChar() === "@") {
 						tokens.push(consumeAttributeReference());
@@ -635,7 +643,7 @@
 			function consumeClassReference() {
 				var classRef = makeToken("CLASS_REF");
 				var value = consumeChar();
-				if (currentChar() === '{') {
+				if (currentChar() === "{") {
 					classRef.template = true;
 					value += consumeChar();
 					while (currentChar() && currentChar() !== "}") {
@@ -690,7 +698,7 @@
 			function consumeIdReference() {
 				var idRef = makeToken("ID_REF");
 				var value = consumeChar();
-				if (currentChar() === '{') {
+				if (currentChar() === "{") {
 					idRef.template = true;
 					value += consumeChar();
 					while (currentChar() && currentChar() !== "}") {
@@ -1363,7 +1371,7 @@
 			}
 		}
 
-		var ARRAY_SENTINEL = {array_sentinel: true};
+		var ARRAY_SENTINEL = { array_sentinel: true };
 
 		function linearize(args) {
 			var arr = [];
@@ -1418,7 +1426,7 @@
 			}
 		}
 
-		var HALT = {halt_flag: true};
+		var HALT = { halt_flag: true };
 
 		/**
 		 * @param {GrammarDefinition} command
@@ -1801,7 +1809,7 @@
 			var elt = context.meta.owner;
 			if (elt) {
 				var internalData = getInternalData(elt);
-				var scopeName = 'elementScope'
+				var scopeName = "elementScope";
 				if (context.meta.feature && context.meta.feature.behavior) {
 					scopeName = context.meta.feature.behavior + "Scope";
 				}
@@ -2184,9 +2192,11 @@
 					css: elementId.value,
 					value: elementId.value.substr(1),
 					evaluate: function (context) {
-						return context.me.getRootNode().getElementById(this.value) || document.getElementById(this.value);
-					}
-				}
+						return (
+							context.me.getRootNode().getElementById(this.value) || document.getElementById(this.value)
+						);
+					},
+				};
 			}
 		});
 
@@ -2208,7 +2218,7 @@
 					},
 					evaluate: function (context) {
 						return runtime.unifiedEval(this, context);
-					}
+					},
 				};
 			} else {
 				return {
@@ -2219,7 +2229,7 @@
 					},
 					evaluate: function (context) {
 						return context.me.getRootNode().querySelectorAll(runtime.escapeSelector(this.css));
-					}
+					},
 				};
 			}
 		});
@@ -2385,7 +2395,7 @@
 					tokens.requireOpToken(":");
 					var value = parser.requireElement("expression", tokens);
 					valueExpressions.push(value);
-					fields.push({name: name, value: value});
+					fields.push({ name: name, value: value });
 				} while (tokens.matchOpToken(","));
 				tokens.requireOpToken(")");
 			}
@@ -2394,7 +2404,7 @@
 				fields: fields,
 				args: [valueExpressions],
 				op: function (context, values) {
-					var returnVal = {_namedArgList_: true};
+					var returnVal = { _namedArgList_: true };
 					for (var i = 0; i < values.length; i++) {
 						var field = fields[i];
 						returnVal[field.name.value] = values[i];
@@ -2408,17 +2418,17 @@
 		});
 
 		_parser.addGrammarElement("symbol", function (parser, runtime, tokens) {
-			var type = 'default';
+			var type = "default";
 			if (tokens.matchToken("global")) {
-				type = 'global'
+				type = "global";
 			} else if (tokens.matchToken("element")) {
-				type = 'element'
+				type = "element";
 				// optional possessive
 				if (tokens.matchOpToken("'")) {
 					tokens.requireToken("s");
 				}
 			} else if (tokens.matchToken("local")) {
-				type = 'local'
+				type = "local";
 			}
 			var identifier = tokens.matchTokenType("IDENTIFIER");
 			if (identifier) {
@@ -3192,33 +3202,26 @@
 		});
 
 		_parser.addGrammarElement("hyperscript", function (parser, runtime, tokens) {
-				var features = [];
+			var features = [];
 
-				if (tokens.hasMore()) {
-					while (
-						parser.featureStart(tokens.currentToken()) ||
-						tokens.currentToken().value === "("
-						) {
-						var feature = parser.requireElement(
-							"feature",
-							tokens
-						);
-						features.push(feature);
-						tokens.matchToken("end"); // optional end
-					}
+			if (tokens.hasMore()) {
+				while (parser.featureStart(tokens.currentToken()) || tokens.currentToken().value === "(") {
+					var feature = parser.requireElement("feature", tokens);
+					features.push(feature);
+					tokens.matchToken("end"); // optional end
 				}
-				return {
-					type: "hyperscript",
-					features: features,
-					apply: function (target, source, args) {
-						// no op
-						_runtime.forEach(features, function (feature) {
-							feature.install(target, source, args);
-						});
-					},
-				};
 			}
-		);
+			return {
+				type: "hyperscript",
+				features: features,
+				apply: function (target, source, args) {
+					// no op
+					_runtime.forEach(features, function (feature) {
+						feature.install(target, source, args);
+					});
+				},
+			};
+		});
 
 		var parseEventArgs = function (tokens) {
 			var args = [];
@@ -3245,7 +3248,7 @@
 			var events = [];
 			var displayName = null;
 			do {
-				var on = parser.requireElement("dotOrColonPath", tokens, "Expected event name");
+				var on = parser.requireElement("eventName", tokens, "Expected event name");
 
 				var eventName = on.evaluate(); // OK No Promise
 
@@ -3433,10 +3436,7 @@
 				queue: queue,
 				execute: function (/** @type {Context} */ ctx) {
 					if (this.executing && this.every === false) {
-						if (
-							queueNone ||
-							(queueFirst && queue.length > 0)
-						) {
+						if (queueNone || (queueFirst && queue.length > 0)) {
 							return;
 						}
 						if (queueLast) {
@@ -3458,10 +3458,7 @@
 					};
 					ctx.meta.reject = function (err) {
 						console.error(err.message ? err.message : err);
-						var hypertrace = runtime.getHyperTrace(
-							ctx,
-							err
-						);
+						var hypertrace = runtime.getHyperTrace(ctx, err);
 						if (hypertrace) {
 							hypertrace.print();
 						}
@@ -3479,159 +3476,149 @@
 					start.execute(ctx);
 				},
 				install: function (elt, source) {
-					runtime.forEach(
-						onFeature.events,
-						function (eventSpec) {
-							var targets;
-							if (eventSpec.elsewhere) {
-								targets = [document];
-							} else if (eventSpec.from) {
-								targets = eventSpec.from.evaluate({
-									me: elt,
-								});
-							} else {
-								targets = [elt];
-							}
-							runtime.forEach(targets, function (target) {
-								// OK NO PROMISE
+					runtime.forEach(onFeature.events, function (eventSpec) {
+						var targets;
+						if (eventSpec.elsewhere) {
+							targets = [document];
+						} else if (eventSpec.from) {
+							targets = eventSpec.from.evaluate({
+								me: elt,
+							});
+						} else {
+							targets = [elt];
+						}
+						runtime.forEach(targets, function (target) {
+							// OK NO PROMISE
 
-								var eventName = eventSpec.on;
-								if (eventSpec.mutationSpec) {
-									eventName = "hyperscript:mutation";
-									var observer = new MutationObserver(function (mutationList, observer) {
-										console.log(target, mutationList);
-										if (!onFeature.executing) {
-											_runtime.triggerEvent(target, eventName, {
-												mutationList: mutationList,
-												observer: observer,
-											});
-										}
-									});
-									observer.observe(target, eventSpec.mutationSpec);
-								}
-
-								if (eventSpec.intersectionSpec) {
-									eventName = "hyperscript:insersection";
-									var observer = new IntersectionObserver(function (entries) {
-										_runtime.forEach(entries, function (entry) {
-											var detail = {
-												observer: observer,
-											};
-											detail = mergeObjects(detail, entry);
-											detail["intersecting"] = entry.isIntersecting;
-											_runtime.triggerEvent(target, eventName, detail);
+							var eventName = eventSpec.on;
+							if (eventSpec.mutationSpec) {
+								eventName = "hyperscript:mutation";
+								var observer = new MutationObserver(function (mutationList, observer) {
+									console.log(target, mutationList);
+									if (!onFeature.executing) {
+										_runtime.triggerEvent(target, eventName, {
+											mutationList: mutationList,
+											observer: observer,
 										});
-									}, eventSpec.intersectionSpec);
-									observer.observe(target);
+									}
+								});
+								observer.observe(target, eventSpec.mutationSpec);
+							}
+
+							if (eventSpec.intersectionSpec) {
+								eventName = "hyperscript:insersection";
+								var observer = new IntersectionObserver(function (entries) {
+									_runtime.forEach(entries, function (entry) {
+										var detail = {
+											observer: observer,
+										};
+										detail = mergeObjects(detail, entry);
+										detail["intersecting"] = entry.isIntersecting;
+										_runtime.triggerEvent(target, eventName, detail);
+									});
+								}, eventSpec.intersectionSpec);
+								observer.observe(target);
+							}
+
+							target.addEventListener(eventName, function listener(evt) {
+								// OK NO PROMISE
+								if (elt instanceof Node && target !== elt && elt.getRootNode() === null) {
+									target.removeEventListener(eventName, listener);
+									return;
 								}
 
-								target.addEventListener(eventName, function listener(evt) {
-									// OK NO PROMISE
-									if (elt instanceof Node && target !== elt && elt.getRootNode() === null) {
-										target.removeEventListener(eventName, listener);
-										return;
-									}
+								var ctx = runtime.makeContext(elt, onFeature, elt, evt);
+								if (eventSpec.elsewhere && elt.contains(evt.target)) {
+									return;
+								}
+								if (eventSpec.from) {
+									ctx.result = target;
+								}
 
-									var ctx = runtime.makeContext(
-										elt,
-										onFeature,
-										elt,
-										evt
-									);
-									if (
-										eventSpec.elsewhere &&
-										elt.contains(evt.target)
-									) {
-										return;
-									}
-									if (eventSpec.from) {
-										ctx.result = target;
-									}
+								// establish context
+								runtime.forEach(eventSpec.args, function (arg) {
+									ctx[arg.value] =
+										ctx.event[arg.value] || (ctx.event.detail ? ctx.event.detail[arg.value] : null);
+								});
 
-									// establish context
-									runtime.forEach(eventSpec.args, function (arg) {
-										ctx[arg.value] =
-											ctx.event[arg.value] || (ctx.event.detail ? ctx.event.detail[arg.value] : null);
-									});
-
-									// apply filter
-									if (eventSpec.filter) {
-										var initialCtx = ctx.meta.context;
-										ctx.meta.context = ctx.event;
-										try {
-											var value = eventSpec.filter.evaluate(ctx); //OK NO PROMISE
-											if (value) {
-												// match the javascript semantics for if statements
-											} else {
-												return;
-											}
-										} finally {
-											ctx.meta.context = initialCtx;
-										}
-									}
-
-									if (eventSpec.inExpr) {
-										var inElement = evt.target;
-										while (true) {
-											if (inElement.matches && inElement.matches(eventSpec.inExpr.css)) {
-												ctx.result = inElement;
-												break;
-											} else {
-												inElement = inElement.parentElement;
-												if (inElement == null) {
-													return; // no match found
-												}
-											}
-										}
-									}
-
-									// verify counts
-									eventSpec.execCount++;
-									if (eventSpec.startCount) {
-										if (eventSpec.endCount) {
-											if (
-												eventSpec.execCount < eventSpec.startCount ||
-												eventSpec.execCount > eventSpec.endCount
-											) {
-												return;
-											}
-										} else if (eventSpec.unbounded) {
-											if (eventSpec.execCount < eventSpec.startCount) {
-												return;
-											}
-										} else if (eventSpec.execCount !== eventSpec.startCount) {
+								// apply filter
+								if (eventSpec.filter) {
+									var initialCtx = ctx.meta.context;
+									ctx.meta.context = ctx.event;
+									try {
+										var value = eventSpec.filter.evaluate(ctx); //OK NO PROMISE
+										if (value) {
+											// match the javascript semantics for if statements
+										} else {
 											return;
 										}
+									} finally {
+										ctx.meta.context = initialCtx;
 									}
+								}
 
-									//debounce
-									if (eventSpec.debounceTime) {
-										if (eventSpec.debounced) {
-											clearTimeout(eventSpec.debounced);
+								if (eventSpec.inExpr) {
+									var inElement = evt.target;
+									while (true) {
+										if (inElement.matches && inElement.matches(eventSpec.inExpr.css)) {
+											ctx.result = inElement;
+											break;
+										} else {
+											inElement = inElement.parentElement;
+											if (inElement == null) {
+												return; // no match found
+											}
 										}
-										eventSpec.debounced = setTimeout(function () {
-											onFeature.execute(ctx);
-										}, eventSpec.debounceTime);
-										return;
 									}
+								}
 
-									// throttle
-									if (eventSpec.throttleTime) {
+								// verify counts
+								eventSpec.execCount++;
+								if (eventSpec.startCount) {
+									if (eventSpec.endCount) {
 										if (
-											eventSpec.lastExec &&
-											Date.now() < eventSpec.lastExec + eventSpec.throttleTime
+											eventSpec.execCount < eventSpec.startCount ||
+											eventSpec.execCount > eventSpec.endCount
 										) {
 											return;
-										} else {
-											eventSpec.lastExec = Date.now();
 										}
+									} else if (eventSpec.unbounded) {
+										if (eventSpec.execCount < eventSpec.startCount) {
+											return;
+										}
+									} else if (eventSpec.execCount !== eventSpec.startCount) {
+										return;
 									}
+								}
 
-									// apply execute
-									onFeature.execute(ctx);
-								});
+								//debounce
+								if (eventSpec.debounceTime) {
+									if (eventSpec.debounced) {
+										clearTimeout(eventSpec.debounced);
+									}
+									eventSpec.debounced = setTimeout(function () {
+										onFeature.execute(ctx);
+									}, eventSpec.debounceTime);
+									return;
+								}
+
+								// throttle
+								if (eventSpec.throttleTime) {
+									if (
+										eventSpec.lastExec &&
+										Date.now() < eventSpec.lastExec + eventSpec.throttleTime
+									) {
+										return;
+									} else {
+										eventSpec.lastExec = Date.now();
+									}
+								}
+
+								// apply execute
+								onFeature.execute(ctx);
 							});
 						});
+					});
 				},
 			};
 			parser.setParent(start, onFeature);
@@ -3659,12 +3646,8 @@
 
 			var start = parser.parseElement("commandList", tokens);
 			if (tokens.matchToken("catch")) {
-				var errorSymbol =
-					tokens.requireTokenType("IDENTIFIER").value;
-				var errorHandler = parser.parseElement(
-					"commandList",
-					tokens
-				);
+				var errorSymbol = tokens.requireTokenType("IDENTIFIER").value;
+				var errorHandler = parser.parseElement("commandList", tokens);
 			}
 			var functionFeature = {
 				displayName:
@@ -3684,12 +3667,7 @@
 				install: function (target, source) {
 					var func = function () {
 						// null, worker
-						var ctx = runtime.makeContext(
-							source,
-							functionFeature,
-							target,
-							null
-						);
+						var ctx = runtime.makeContext(source, functionFeature, target, null);
 
 						// install error handler if any
 						ctx.meta.errorHandler = errorHandler;
@@ -3766,47 +3744,39 @@
 		});
 
 		_parser.addFeature("init", function (parser, runtime, tokens) {
-				if (tokens.matchToken("init")) {
-					var start = parser.parseElement("commandList", tokens);
-					var initFeature = {
-						start: start,
-						install: function (target, source) {
-							setTimeout(function () {
-								start.execute(
-									runtime.makeContext(
-										target,
-										this,
-										target,
-										null
-									)
-								);
-							}, 0);
-						},
-					};
+			if (!tokens.matchToken("init")) return;
 
-					var implicitReturn = {
-						type: "implicitReturn",
-						op: function (context) {
-							return runtime.HALT;
-						},
-						execute: function (context) {
-							// do nothing
-						},
-					};
-					// terminate body
-					if (start) {
-						var end = start;
-						while (end.next) {
-							end = end.next;
-						}
-						end.next = implicitReturn;
-					} else {
-						initFeature.start = implicitReturn;
-					}
-					parser.setParent(start, initFeature);
-					return initFeature;
+			var start = parser.parseElement("commandList", tokens);
+			var initFeature = {
+				start: start,
+				install: function (target, source) {
+					setTimeout(function () {
+						start.execute(runtime.makeContext(target, this, target, null));
+					}, 0);
+				},
+			};
+
+			var implicitReturn = {
+				type: "implicitReturn",
+				op: function (context) {
+					return runtime.HALT;
+				},
+				execute: function (context) {
+					// do nothing
+				},
+			};
+			// terminate body
+			if (start) {
+				var end = start;
+				while (end.next) {
+					end = end.next;
 				}
+				end.next = implicitReturn;
+			} else {
+				initFeature.start = implicitReturn;
 			}
+			parser.setParent(start, initFeature);
+			return initFeature;
 		});
 
 		_parser.addFeature("worker", function (parser, runtime, tokens) {
@@ -3814,9 +3784,9 @@
 				parser.raiseParseError(
 					tokens,
 					"In order to use the 'worker' feature, include " +
-					"the _hyperscript worker plugin. See " +
-					"https://hyperscript.org/features/worker/ for " +
-					"more info."
+						"the _hyperscript worker plugin. See " +
+						"https://hyperscript.org/features/worker/ for " +
+						"more info."
 				);
 			}
 		});
@@ -3830,9 +3800,7 @@
 			var formalParams = [];
 			if (tokens.matchOpToken("(") && !tokens.matchOpToken(")")) {
 				do {
-					formalParams.push(
-						tokens.requireTokenType("IDENTIFIER").value
-					);
+					formalParams.push(tokens.requireTokenType("IDENTIFIER").value);
 				} while (tokens.matchOpToken(","));
 				tokens.requireOpToken(")");
 			}
@@ -3852,8 +3820,7 @@
 							var internalData = runtime.getInternalData(target);
 							var elementScope = getOrInitObject(internalData, path + "Scope");
 							for (var i = 0; i < formalParams.length; i++) {
-								elementScope[formalParams[i]] =
-									innerArgs[formalParams[i]];
+								elementScope[formalParams[i]] = innerArgs[formalParams[i]];
 							}
 							hs.apply(target, source);
 						}
@@ -3886,7 +3853,7 @@
 									throw new Error(behaviorPath + " is not a behavior");
 
 								behavior(target, source, args);
-							}
+							},
 						},
 						runtime.makeContext(target, installFeature, target)
 					);
@@ -4088,7 +4055,8 @@
 					args: [on],
 					op: function (context, on) {
 						var target = on ? on : context.me;
-						if (!(target instanceof EventTarget)) throw new Error("Not a valid event target: " + this.on.sourceFor())
+						if (!(target instanceof EventTarget))
+							throw new Error("Not a valid event target: " + this.on.sourceFor());
 						return new Promise(function (resolve) {
 							var resolved = false;
 							runtime.forEach(events, function (eventInfo) {
@@ -4103,7 +4071,7 @@
 										resolve(runtime.findNext(waitCmd, context));
 									}
 								};
-								target.addEventListener(eventInfo.name, listener, {once: true});
+								target.addEventListener(eventInfo.name, listener, { once: true });
 							});
 						});
 					},
@@ -4156,6 +4124,28 @@
 					},
 				};
 			}
+		});
+
+		_parser.addGrammarElement("eventName", function (parser, runtime, tokens) {
+			var token;
+			if ((token = tokens.matchTokenType("STRING"))) {
+				return {
+					evaluate() {
+						return token.value;
+					},
+				};
+			}
+
+			var value;
+			while ((token = tokens.matchTokenType("IDENTIFIER") || tokens.matchAnyOpToken(".", ":", "-"))) {
+				value += token.value;
+			}
+
+			return {
+				evaluate() {
+					return token.value;
+				},
+			};
 		});
 
 		_parser.addCommand("send", function (parser, runtime, tokens) {
@@ -4470,10 +4460,7 @@
 								if (valueToSet == null) {
 									elt.removeAttribute(attribute.name);
 								} else {
-									elt.setAttribute(
-										attribute.name,
-										valueToSet
-									);
+									elt.setAttribute(attribute.name, valueToSet);
 								}
 							} else {
 								elt[prop] = valueToSet;
@@ -4710,7 +4697,7 @@
 							function (e) {
 								context.meta.iterators[slot].eventFired = true;
 							},
-							{once: true}
+							{ once: true }
 						);
 					}
 					return repeatCmd; // continue to loop
