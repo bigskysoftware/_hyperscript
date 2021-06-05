@@ -17,7 +17,7 @@ of hyperscript.
   when element A gets removed, the listener will be removed.
 
   ```html
-  Count: <output_="
+  Count: <output _="
   	on click from #inc
   		log 'Increment'
   		increment my textContent
