@@ -16,19 +16,19 @@ of hyperscript.
 - **BREAKING:** If an element A adds an event listener to another element B, then
   when element A gets removed, the listener will be removed.
 
-      ```html
-      Count: <output _="
-      	on click from #inc
-      		log 'Increment'
-      		increment my textContent
-      init
-      	remove me
-      ">0</output>
+  ```html
+  Count: <output_="
+  	on click from #inc
+  		log 'Increment'
+  		increment my textContent
+    init
+  	  remove me
+  ">0</output>
 
-      <!--After the <output/> is removed, clicking this will not log anything to
-      	the console-->
-      <button id="inc">Increment</button>
-      ```
+  <!--After the <output/> is removed, clicking this will not log anything to
+    the console-->
+  <button id="inc">Increment</button>
+  ```
 
 - Hyperscript now has scoping!
 
@@ -77,7 +77,7 @@ of hyperscript.
   put ['<b>hello</b>', document.createElement('hr')] at end of me
   ```
 
-- You can now use any epression as a CSS class or id,, as shown:
+- You can now use any expression as a CSS class or id,, as shown:
 
   ```hyperscript
   get idOfTheElementIWantToRemove()

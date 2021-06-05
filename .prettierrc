@@ -1,4 +1,5 @@
 {
+	embeddedLanguageFormatting: "off",
 	overrides: [
 		{
 			files: "**/*.js",
