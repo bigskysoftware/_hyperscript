@@ -67,7 +67,9 @@ and it gives you flexible control over how events are queued and filtered with a
 
 Hyperscript is expressive enough that many common UI patterns can be comfortably written directly inline
 in event handlers.  If you need to, you can factor logic out to [functions](#functions) as well, and you
-can invoke javascript functions directly from hyperscript (and vice-versa.)
+can invoke javascript functions directly from hyperscript (and vice-versa). Frequently used or complex
+handlers can be streamlined with [behaviors](#behaviors). Behaviors wrap up multiple features (event
+handlers, functions, unit blocks, etc.) with a shared state mechanism.
 
 ### <a name='promises'></a>[No More Promises](#promises)
 
