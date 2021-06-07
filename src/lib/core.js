@@ -2262,16 +2262,23 @@
 				args: args,
 				op: function (context, args) {
 					var query = queryValue;
+					var elements = [];
 					if (template) {
 						query = "";
 						for (var i = 1; i < arguments.length; i++) {
 							var val = arguments[i];
 							if (val) {
-								query += val;
+								if (val instanceof Element) {
+									val.dataset.hsQueryId = elements.length;
+									query += "[data-hs-query-id='" + elements.length + "']";
+									elements.push(val);
+								} else query += val;
 							}
 						}
 					}
-					return context.me.getRootNode().querySelectorAll(query);
+					var result = context.me.getRootNode().querySelectorAll(query);
+					runtime.forEach(elements, function (el) { el.removeAttribute("data-hs-query-id") });
+					return result;
 				},
 				evaluate: function (context) {
 					return runtime.unifiedEval(this, context);
