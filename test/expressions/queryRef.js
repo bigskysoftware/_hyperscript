@@ -84,4 +84,11 @@ describe("the queryRef expression", function () {
 		var value = evalHyperScript("<#$id/>", { id: "t2" });
 		value[0].should.equal(byId("t2"));
 	});
+
+	it("can interpolate elements into queries", function () {
+		var a = make("<div class='a'></div>");
+		var b = make("<div class='b'></div>");
+		var value = evalHyperScript("<${a} + div/>", { a });
+		value[0].should.equal(b);
+	});
 });

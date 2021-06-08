@@ -24,7 +24,8 @@ For example, if we want to render a list of colors:
 ```html
 <button
   _="on click
-  render #color-template with (colors: getColors()) then put it into #colors"
+    render #color-template with (colors: getColors())
+    then put it into #colors"
 >
   Get the colors
 </button>
@@ -35,8 +36,10 @@ Our template might look like this:
 ```html
 <template id="color-template">
   <ul>
-    @repeat in colors @set bg to it @set fg to getContrastingColor(it)
-    <li style="background: ${bg}; color: ${unescaped fg}">${bg}</li>
+    @repeat in colors
+      @set bg to it
+      @set fg to getContrastingColor(it)
+      <li style="background: ${bg}; color: ${unescaped fg}">${bg}</li>
     @end
   </ul>
 </template>
