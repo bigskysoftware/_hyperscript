@@ -56,4 +56,11 @@ describe("the positional expression", function () {
 		var result = evalHyperScript("the last of div", { div: div });
 		result.should.equal(byId("d3"));
 	});
+
+	it("is null safe", function () {
+		var result = evalHyperScript("the first of null");
+		should.equal(result, undefined);
+	});
+
+
 });

@@ -2915,19 +2915,21 @@
 				operator: op.value,
 				args: [rhs],
 				op: function (context, rhsVal) {
-					if (!Array.isArray(rhsVal)) {
+					if (rhsVal && !Array.isArray(rhsVal)) {
 						if (rhsVal.children) {
 							rhsVal = rhsVal.children;
 						} else {
 							rhsVal = Array.from(rhsVal);
 						}
 					}
-					if (this.operator === "first") {
-						return rhsVal[0];
-					} else if (this.operator === "last") {
-						return rhsVal[rhsVal.length - 1];
-					} else if (this.operator === "random") {
-						return rhsVal[Math.floor(Math.random() * rhsVal.length)];
+					if (rhsVal) {
+						if (this.operator === "first") {
+							return rhsVal[0];
+						} else if (this.operator === "last") {
+							return rhsVal[rhsVal.length - 1];
+						} else if (this.operator === "random") {
+							return rhsVal[Math.floor(Math.random() * rhsVal.length)];
+						}
 					}
 				},
 				evaluate: function (context) {
@@ -3766,46 +3768,45 @@
 		});
 
 		_parser.addFeature("init", function (parser, runtime, tokens) {
-				if (tokens.matchToken("init")) {
-					var start = parser.parseElement("commandList", tokens);
-					var initFeature = {
-						start: start,
-						install: function (target, source) {
-							setTimeout(function () {
-								start.execute(
-									runtime.makeContext(
-										target,
-										this,
-										target,
-										null
-									)
-								);
-							}, 0);
-						},
-					};
+			if (tokens.matchToken("init")) {
+				var start = parser.parseElement("commandList", tokens);
+				var initFeature = {
+					start: start,
+					install: function (target, source) {
+						setTimeout(function () {
+							start.execute(
+								runtime.makeContext(
+									target,
+									this,
+									target,
+									null
+								)
+							);
+						}, 0);
+					},
+				};
 
-					var implicitReturn = {
-						type: "implicitReturn",
-						op: function (context) {
-							return runtime.HALT;
-						},
-						execute: function (context) {
-							// do nothing
-						},
-					};
-					// terminate body
-					if (start) {
-						var end = start;
-						while (end.next) {
-							end = end.next;
-						}
-						end.next = implicitReturn;
-					} else {
-						initFeature.start = implicitReturn;
+				var implicitReturn = {
+					type: "implicitReturn",
+					op: function (context) {
+						return runtime.HALT;
+					},
+					execute: function (context) {
+						// do nothing
+					},
+				};
+				// terminate body
+				if (start) {
+					var end = start;
+					while (end.next) {
+						end = end.next;
 					}
-					parser.setParent(start, initFeature);
-					return initFeature;
+					end.next = implicitReturn;
+				} else {
+					initFeature.start = implicitReturn;
 				}
+				parser.setParent(start, initFeature);
+				return initFeature;
 			}
 		});
 
