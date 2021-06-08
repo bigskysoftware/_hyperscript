@@ -7,6 +7,7 @@
 | [decrement](/commands/decrement)   | Subtracts a value to a variable, property, or attribute                       | `decrement counter`                                                                     |
 | [fetch](/commands/fetch)           | Send a fetch request                                                          | `fetch /demo then put it into my.innerHTML`                                             |
 | [go](/commands/go)                 | Navigate to a new page or within a page                                       | `go to the top of the body smoothly`                                                    |
+| [halt](/commands/halt)             | Halts the current event (stopping propogate, etc.)                            | `halt`                                                                               |
 | [hide](/commands/hide)             | Hide an element in the DOM                                                    | `hide me`                                                                               |
 | [if](/commands/if)                 | A conditional control flow command                                            | `if me.selected then call alert('I\'m selected!')`                                      |
 | [increment](/commands/increment)   | Adds a value to a variable, property, or attribute                            | `increment counter`                                                                     |
