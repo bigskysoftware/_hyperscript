@@ -53,11 +53,11 @@ of hyperscript.
   <script type="text/hyperscript" src="draggable._hs"></script>
   ```
 
-- The [`on`](/commands/on) command now supports string literals as event
+- The [`on`](/commands/on) command now supports dashes (and most other characters) in event
   names.
 
   ```hyperscript
-  on "prism-live-init"
+  on somelibrary:before-init-something
     ...
   ```
 

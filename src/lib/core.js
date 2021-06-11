@@ -3257,7 +3257,7 @@
 			var events = [];
 			var displayName = null;
 			do {
-				var on = parser.requireElement("eventName", tokens, "Expected event name");
+				var on = parser.requireElement("nakedString", tokens, "Expected event name");
 
 				var eventName = on.evaluate(); // OK No Promise
 
@@ -4133,19 +4133,6 @@
 					},
 				};
 			}
-		});
-
-		_parser.addGrammarElement("eventName", function (parser, runtime, tokens) {
-			var token;
-			if ((token = tokens.matchTokenType("STRING"))) {
-				return {
-					evaluate() {
-						return token.value;
-					},
-				};
-			}
-
-			return parser.parseElement("dotOrColonPath", tokens);
 		});
 
 		_parser.addCommand("send", function (parser, runtime, tokens) {
