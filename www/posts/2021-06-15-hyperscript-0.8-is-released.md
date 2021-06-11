@@ -2,7 +2,7 @@
 layout: layout.njk
 tags: post
 title: hyperscript 0.8 has been released!
-date: 2021-05-25
+date: 2021-06-15
 ---
 
 ## hyperscript 0.8 Release
@@ -30,13 +30,13 @@ of hyperscript.
   <button id="inc">Increment</button>
   ```
 
-- Hyperscript now has scoping!
+- Hyperscript now has _local_, _global_ and _element-scoped_ variables.
 
   By default, variables are in the `local` scope, which means they disappear
   when the current handler or function finishes.
 
   Now, you can use the `global` scope to set variables that last as long as the
-  current thread (these are set on `window` for main thread, and `self` in
+  current thread (these are set on `window` in the main thread, and `self` in
   workers).
 
   In addition, you can set `element` scoped variables that persist as long as
@@ -51,14 +51,6 @@ of hyperscript.
 
   ```html
   <script type="text/hyperscript" src="draggable._hs"></script>
-  ```
-
-- The [`on`](/commands/on) command now supports dashes (and most other characters) in event
-  names.
-
-  ```hyperscript
-  on somelibrary:before-init-something
-    ...
   ```
 
 - You can use the [make](/commands/make) command to call constructors or
@@ -89,8 +81,6 @@ of hyperscript.
   add .{configuration.activeClass} to allActiveElements()
   ```
 
-- You can embed elements into
-
 - The [`render`](/commands/render) command now escapes HTML.
 
 - The [`fetch`](/commands/fetch) command can use [conversions](/expressions/as).
@@ -105,6 +95,14 @@ of hyperscript.
 
 - The new built-in Fragment conversion turns HTML strings and DOM elements
   (and arrays thereof) into `DocumentFragment`s
+
+- The [`on`](/commands/on) command now supports dashes (and most other characters) in event
+  names.
+
+  ```hyperscript
+  on somelibrary:before-init-something
+    ...
+  ```
 
 - You can use "yourself" to refer to the target of a [`tell`](/commands/tell)
   command, in addition to the existing "you" and "your"
