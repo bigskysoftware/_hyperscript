@@ -45,7 +45,7 @@ of hyperscript.
   those will be usable only from within that behavior and won't clash with
   anything.
 
-  For more details, see [](). <!-- TODO -->
+  For more details, see [Variables and scope](/docs/#variables_and_scope).
 
 - You can now load external hyperscript files!
 
@@ -77,16 +77,19 @@ of hyperscript.
   put ['<b>hello</b>', document.createElement('hr')] at end of me
   ```
 
-- You can now use any expression as a CSS class or id,, as shown:
+- You can now use any expression as a CSS class or id, as shown:
 
   ```hyperscript
-  get idOfTheElementIWantToRemove()
+  get idOfElementToRemove()
   remove #{it}
   ```
 
   ```hyperscript
-  add .{settings.activeClass} to allActiveElements()
+  set configuration to { activeClass: "active" }
+  add .{configuration.activeClass} to allActiveElements()
   ```
+
+- You can embed elements into
 
 - The [`render`](/commands/render) command now escapes HTML.
 
