@@ -96,11 +96,11 @@ of hyperscript.
 - The new built-in Fragment conversion turns HTML strings and DOM elements
   (and arrays thereof) into `DocumentFragment`s
 
-- The [`on`](/commands/on) command now supports dashes (and most other characters) in event
-  names.
+- The [`on`](/commands/on) command now supports string literals as event
+  names, so you can use characters like dashes.
 
   ```hyperscript
-  on somelibrary:before-init-something
+  on "somelibrary:before-init-something"
     ...
   ```
 

@@ -438,7 +438,7 @@
 
 	_hyperscript.addCommand("trigger", function (parser, runtime, tokens) {
 		if (tokens.matchToken("trigger")) {
-			var eventName = parser.requireElement("dotOrColonPath", tokens);
+			var eventName = parser.requireElement("eventName", tokens);
 			var details = parser.parseElement("namedArgumentList", tokens);
 
 			var triggerCmd = {
