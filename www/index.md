@@ -4,10 +4,10 @@ color: darkgoldenrod; border: gold 1px solid; font-size: 20px">
 hyperscript is in active development and is working to a 1.0 release.
 At this time the syntax and core feature set are considered to be reasonably complete.
 Key areas of focus for 1.0 include additional test cases and documentation improvements.
-Please join us at the 
+Please join us at the
 <a style="color: darkgoldenrod;font-weight: bold" href="https://htmx.org/discord">#hyperscript discord channel</a>
 to work with us as we push to a public release.  Thank you!
-</p> 
+</p>
 </div>
 
 ## intro
@@ -41,7 +41,7 @@ hyperscript is a companion project of [htmx](https://htmx.org) but note that bec
 ## examples
 
 ```html
-<script src="https://unpkg.com/hyperscript.org@0.0.9"></script>
+<script src="https://unpkg.com/hyperscript.org@0.8.0"></script>
 
 <button _="on click toggle .big-text">
   Toggle the "big-text" class on me on click
