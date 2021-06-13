@@ -1,36 +1,42 @@
-
 <div style="background-color: lightgoldenrodyellow; margin: 16px; border-radius: 8px;
-            color: darkgoldenrod; border: gold 1px solid; font-size: 20px">
-  <p>
-    <b>NOTE:</b> hyperscript is still in very early development and may change
-    dramatically between releases.  Please bear this in mind, and jump on the
-    <a style="color: darkgoldenrod;font-weight: bold" href="https://htmx.org/discord">#hyperscript discord channel</a> to work with us as we develop the language.  Thank you!
-  </p> 
+color: darkgoldenrod; border: gold 1px solid; font-size: 20px">
+<p>
+hyperscript is in active development and is working to a 1.0 release.
+At this time the syntax and core feature set are considered to be reasonably complete.
+Key areas of focus for 1.0 include additional test cases and documentation improvements.
+Please join us at the 
+<a style="color: darkgoldenrod;font-weight: bold" href="https://htmx.org/discord">#hyperscript discord channel</a>
+to work with us as we push to a public release.  Thank you!
+</p> 
 </div>
 
 ## intro
 
-hyperscript is an experimental scripting language designed for the web, inspired by 
- [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf)
+hyperscript is a scripting language designed for modern front-end web development.
+
+hyperscript makes writing event handlers and highly responsive user interfaces trivial with native language support
+for async behavior - easier than promises or async/await.
 
 hyperscript features include:
 
-<div style="padding: 16px">
-
-* Events are first class citizens in the language with clean syntax for [responding to](/features/on) and 
+* Events as first class citizens in the language. Clean syntax for [responding to](/features/on) and
   [sending](/commands/send) events, as well as [event-driven control flow](docs/#event-control-flow)
-* DOM-oriented syntax, such as [CSS id, CSS class and  CSS query literals](https://hyperscript.org/expressions/#css)
+* DOM-oriented syntax with seamless integrated [CSS id, CSS class and CSS query literals](https://hyperscript.org/expressions/#css)
 * First class [web workers](/docs#workers)
-* An [async-transparent](/docs#async) runtime, which removes the distinction between synchronous and asynchronous code
+* An [async-transparent](/docs#async) runtime for highly responsive user experiences.
 * A [pluggable & extendable](/docs/#extending) parser & grammar
 * A [debugger](/docs#debugging) to step through hyperscript code
 
-</div>
+You can see a comparison of hyperscript, vanillaJS and jQuery [here](/comparison).
+
+hyperscript is a companion project of [htmx](https://htmx.org).
+
+Because hyperscript relies on [promises](https://caniuse.com/?search=Promise), it does not strive for IE11 compatibility.
 
 You can see a comparison of hyperscript, vanillaJS and jQuery [here](/comparison).
 
-hyperscript is a companion project of [htmx](https://htmx.org) but note that because 
-[promises are not available in IE](https://caniuse.com/?search=Promise) hyperscript does *not* strive for IE11 compatibility.
+hyperscript is a companion project of [htmx](https://htmx.org) but note that because
+[promises are not available in IE](https://caniuse.com/?search=Promise) hyperscript does _not_ strive for IE11 compatibility.
 
 ## examples
 
@@ -91,9 +97,12 @@ Here are the examples above in demo form:
     </div>
 </div>
 
+## origins
+
+Hyperscript was originally inspired by [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf).
 
 ## haiku
 
-*the unknown button<br/>
+_the unknown button<br/>
 so often inscrutable<br/>
-now says what it does*
+now says what it does_

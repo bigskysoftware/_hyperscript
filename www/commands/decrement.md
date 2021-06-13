@@ -9,7 +9,7 @@ decrement <target> [by <number>]
 
 ### Description
 
-The `decrement` command adds to an existing variable, property, or attribute.  It defaults to adding the value `1`, but this can be changed using the `by` modifier.  If the target variable is null, then it is assumed to be `0`, and then decremented by the specified amount.  The `decrement` command is the opposite of the [`increment` command](/commands/increment) command.
+The `decrement` command adds to an existing variable, property, or attribute. It defaults to adding the value `1`, but this can be changed using the `by` modifier. If the target variable is null, then it is assumed to be `0`, and then decremented by the specified amount. The `decrement` command is the opposite of the [`increment` command](/commands/increment) command.
 
 ### Example
 

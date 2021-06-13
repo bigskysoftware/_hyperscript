@@ -12,5 +12,7 @@ Block expressions are anonymous functions that return a value (the right hand si
 ### Examples
 
 ```html
-<div _="on click setTimeout(\->console.log('called!'), 1000)">Log 'called!' in a second</div>
+<div _="on click setTimeout(\->console.log('called!'), 1000)">
+  Log 'called!' in a second
+</div>
 ```

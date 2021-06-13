@@ -9,17 +9,17 @@ Note: if you want the event source feature, you must either use the "Whole 9 Yar
 
 `eventsource <source-name> [from <source-url>] [on <event-name> (as <encoding>) <commands> end] end`
 
-* `source-name` is a name for the event source. This is available in the current hypertext scope and exposes additional data about the browser [EventSource](https://developer.mozilla.org/en-US/docs/Web/API/EventSource) object.
-* `source-url` is the server address that generates the SSE data stream.  You can specify a URL when you create the EventSource, or connect to one dynamically afterwards.
-* `event-name` is the name of the event as designated by the server.  If the server does not include an event name, then use "message" instead.
-* `encoding` is an optional parameter that can contain either "json" or "string".  If the encoding is left blank (or is unrecognized) then the message is passed through unmodified.
-* `command` is one or more commands to execute on the data every time an SSE message is received.
+- `source-name` is a name for the event source. This is available in the current hypertext scope and exposes additional data about the browser [EventSource](https://developer.mozilla.org/en-US/docs/Web/API/EventSource) object.
+- `source-url` is the server address that generates the SSE data stream. You can specify a URL when you create the EventSource, or connect to one dynamically afterwards.
+- `event-name` is the name of the event as designated by the server. If the server does not include an event name, then use "message" instead.
+- `encoding` is an optional parameter that can contain either "json" or "string". If the encoding is left blank (or is unrecognized) then the message is passed through unmodified.
+- `command` is one or more commands to execute on the data every time an SSE message is received.
 
 ### Description
 
-[Server Sent Events](https://en.wikipedia.org/wiki/Server-sent_events) are a simple way for your web server to push information directly to your clients that is [supported by all modern browsers](https://caniuse.com/eventsource).  They provide real-time, uni-directional communication from your server to a browser.  Server Sent Events cannot sent information back to your server.  If you need two-way communication, consider implementing[WebSockets](/features/socket/) instead.
+[Server Sent Events](https://en.wikipedia.org/wiki/Server-sent_events) are a simple way for your web server to push information directly to your clients that is [supported by all modern browsers](https://caniuse.com/eventsource). They provide real-time, uni-directional communication from your server to a browser. Server Sent Events cannot sent information back to your server. If you need two-way communication, consider implementing[WebSockets](/features/socket/) instead.
 
-SSE connections can require substantial work to set up and maintain.  For example, browsers are supposed to reconnect to a failed SSE stream automatically, but their behavior differs.  Hyperscript manages everything for you, and reconnects connections that have failed, so your code only has handle incoming messages.
+SSE connections can require substantial work to set up and maintain. For example, browsers are supposed to reconnect to a failed SSE stream automatically, but their behavior differs. Hyperscript manages everything for you, and reconnects connections that have failed, so your code only has handle incoming messages.
 
 ```hyperscript
 eventsource ChatUpdates from http://myserver.com/chat-updates
@@ -37,21 +37,21 @@ end
 
 #### About Event Names
 
-The SSE specification requires that every event listener must declare a specific event name that it will listen to.  There is no ability to designate a "catch all" handler for any unnamed events.  This means that you will need to know exactly what event names are being sent, and will need to write specific event handlers for each one.
+The SSE specification requires that every event listener must declare a specific event name that it will listen to. There is no ability to designate a "catch all" handler for any unnamed events. This means that you will need to know exactly what event names are being sent, and will need to write specific event handlers for each one.
 
-However, servers can also send SSE messages with *no name* attached to them.  In this case use an `on message` handler to catch unnamed events.
+However, servers can also send SSE messages with _no name_ attached to them. In this case use an `on message` handler to catch unnamed events.
 
 #### Decoding Messages
 
-You can specify two different ways to decode the message contents.  If you include `as string` in the message handler declaration, then the contents of the message will be populated in the handler exactly as they were sent, as a string.
+You can specify two different ways to decode the message contents. If you include `as string` in the message handler declaration, then the contents of the message will be populated in the handler exactly as they were sent, as a string.
 
-Instead, if you specify `as json`, then hyperscript will parse the message as a JSON formatted string.  If the data is not valid JSON, then it will throw an error
+Instead, if you specify `as json`, then hyperscript will parse the message as a JSON formatted string. If the data is not valid JSON, then it will throw an error
 
 Last, if you do not specify any encoding, then hyperscript will pass the original data through unmodified.
 
 ### Exposing EventSource Events
 
-[The EventSource object](https://developer.mozilla.org/en-US/docs/Web/API/EventSource) defined in every browser exposes several of its own events related to its own connection state.  It generates standard Javascript events for `open`, `close`, and `error`.  Each of these is available to your the hyperscript code like any other message generated by the system.  Here's an example of how to use them:
+[The EventSource object](https://developer.mozilla.org/en-US/docs/Web/API/EventSource) defined in every browser exposes several of its own events related to its own connection state. It generates standard Javascript events for `open`, `close`, and `error`. Each of these is available to your the hyperscript code like any other message generated by the system. Here's an example of how to use them:
 
 ```hyperscript
 eventsource demo from http://server/demo
@@ -77,12 +77,12 @@ end
 
 #### The EventSource Variable
 
-When you define an event source, it places a stub variable inside the current scope.  This variable stores the raw EventSource object provided by the browser, tracks connection retries, and publishes two useful methods that you can use within hyperscript. (see below for an example)
+When you define an event source, it places a stub variable inside the current scope. This variable stores the raw EventSource object provided by the browser, tracks connection retries, and publishes two useful methods that you can use within hyperscript. (see below for an example)
 
-* `open(url?)` connects to the EventSource.  If the EventSource already has a URL configured, then this function doesn't require any additional parameters.  However, if the EventSource does not already have a URL, then you must pass one here before it can open.  If the connection has already been opened, then no further action is taken.
-* `close` disconnects from the configured server address.  If the connection has already been closed, then no further action is taken.
+- `open(url?)` connects to the EventSource. If the EventSource already has a URL configured, then this function doesn't require any additional parameters. However, if the EventSource does not already have a URL, then you must pass one here before it can open. If the connection has already been opened, then no further action is taken.
+- `close` disconnects from the configured server address. If the connection has already been closed, then no further action is taken.
 
-You can also listen to events from this variable in other parts of your hyperscript code.  
+You can also listen to events from this variable in other parts of your hyperscript code.
 
 ```hyperscript
 
@@ -94,15 +94,15 @@ eventsource UpdateServer from http://server/updates
 end
 
 -- elsewhere in your code, listen for the "cancelGoAway" message, then disconnect
-on cancelGoAway from UpdateServer 
-    log "received cancel message from server" 
+on cancelGoAway from UpdateServer
+    log "received cancel message from server"
     call UpdateServer.close()
 end
 ```
 
 ### Dynamic Server Connections
 
-You may need to change the server URL that your EventSource is connected to.  You can do this at any time calling the `open(url)` method on the EventSource variable.  You can also initialize all of the handlers for an EventSource in your hyperscript application without connecting it to any server at all.
+You may need to change the server URL that your EventSource is connected to. You can do this at any time calling the `open(url)` method on the EventSource variable. You can also initialize all of the handlers for an EventSource in your hyperscript application without connecting it to any server at all.
 
 Calling the `open()` method repeatedly will close out any old connections and create a new connection on the updated URL.
 
@@ -126,9 +126,9 @@ DynamicServer.open("test.com/test3.sse") -- reconnects to a different endpoint.
 
 The following variables are populated within the event handler's scope when it is executed.
 
-* `me` is a reference to the EventSource object.  Additional data and methods are also available.  Outside of the event handler, this object is also available under the \<source-name\> provided.
-* `it` is the contents of the SSE message that was received.
-* `event` contains the raw event data
+- `me` is a reference to the EventSource object. Additional data and methods are also available. Outside of the event handler, this object is also available under the \<source-name\> provided.
+- `it` is the contents of the SSE message that was received.
+- `event` contains the raw event data
 
 ### Example
 
@@ -136,21 +136,21 @@ The following variables are populated within the event handler's scope when it i
 
 ```html
 <script type="text/hyperscript">
-eventsource recordUpdater from http://server-name/record-updater
+  eventsource recordUpdater from http://server-name/record-updater
 
-    on message as json
-        put it.name into #name
-        put it.username into #username
-        put it.email into #email
-        log me
-    end
+      on message as json
+          put it.name into #name
+          put it.username into #username
+          put it.email into #email
+          log me
+      end
 
-end
+  end
 </script>
 
 <div>
-    <button script="on click call recordUpdater.open()">Connect</button>
-    <button script="on click call recordUpdater.close()">Disconnect</button>
+  <button script="on click call recordUpdater.open()">Connect</button>
+  <button script="on click call recordUpdater.close()">Disconnect</button>
 </div>
 
 <h3>Real-Time Record</h3>

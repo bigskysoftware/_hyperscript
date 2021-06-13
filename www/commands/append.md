@@ -9,7 +9,7 @@ append <string> [to <string> | <array> | <HTML Element>]
 
 ### Description
 
-The `append` command adds a string value to the end of another string, array, or HTML Element.  If no target variable is defined, then the standard `result` variable is used by default.
+The `append` command adds a string value to the end of another string, array, or HTML Element. If no target variable is defined, then the standard `result` variable is used by default.
 
 ### Examples
 
@@ -19,7 +19,7 @@ If you target a string variable, then `append` uses `+=` to add the string to th
 
 ```hyperscript
 set fullName to "John"
-append " Connor" to fullName 
+append " Connor" to fullName
 -- fullName == "John Connnor"
 ```
 
@@ -45,7 +45,7 @@ append "<i>More HTML here</i>" to #myDIV
 
 #### Use `append` to collect content
 
-If no target variable is provided, `append` writes to the standard `result` variable by default.  In some cases this can help you to write even more compact code. But, be careful!  Many other commands will also write to the `result` (or `it`) variable, which can overwrite your work.
+If no target variable is provided, `append` writes to the standard `result` variable by default. In some cases this can help you to write even more compact code. But, be careful! Many other commands will also write to the `result` (or `it`) variable, which can overwrite your work.
 
 ```hyperscript
 set result to "<div>"

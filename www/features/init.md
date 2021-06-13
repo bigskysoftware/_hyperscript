@@ -4,8 +4,8 @@
 ### Syntax
 
 ```ebnf
-init 
-  {<command>} 
+init
+  {<command>}
 end
 ```
 

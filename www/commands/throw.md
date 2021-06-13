@@ -4,7 +4,7 @@
 ### Syntax
 
 ```ebnf
-throw <expression> 
+throw <expression>
 ```
 
 ### Description
@@ -15,7 +15,8 @@ The `throw` command throws an exception.
 
 ```html
 <script type="text/hyperscript">
-def throwsIfTrue(value)
-  if value throw "Yep!"
-end
+  def throwsIfTrue(value)
+    if value throw "Yep!"
+  end
 </script>
+```

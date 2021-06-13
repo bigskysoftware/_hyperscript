@@ -14,8 +14,10 @@ The `if` command provides the standard if-statement control flow.
 ### Examples
 
 ```html
-<div _="on click if I do not match .disabled 
-                   add .clicked">
+<div
+  _="on click if I do not match .disabled 
+                   add .clicked"
+>
   Click Me!
 </div>
 ```

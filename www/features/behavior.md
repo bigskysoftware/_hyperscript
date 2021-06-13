@@ -1,5 +1,5 @@
 
-## The `behavior` feature 
+## The `behavior` feature
 
 ### Syntax
 
@@ -15,17 +15,22 @@ install <name>(<named argument list>)
 
 ### Description
 
-Behaviors allow you to bundle together some hyperscript code (that would normally go in the _ attribute of an element) so that it can be "installed" on any other.
+Behaviors allow you to bundle together some hyperscript code (that would normally go in the \_ attribute of an element) so that it can be "installed" on any other.
 
 For instance, consider this disappearing div:
 
 ```html
-<div _="
+<div
+  _="
   on click remove me
-">Click to get rid of me</div>
+"
+>
+  Click to get rid of me
+</div>
 ```
 
 This revolutionary UI technology impresses the client, and they come to you with a list of other components that they would like to be Removable™. Do you copy this code to each of those elements? That would work, but is not ideal, since
+
 - This code is highly experimental, you'd like to be able to change it in just one place.
 - Your boss is considering licensing the Removable™ tech to other companies.
 
@@ -68,8 +73,7 @@ end
 ```
 
 ```html
-<div class="banner" _="install Removable(removeButton: #close-banner)">
-...
+<div class="banner" _="install Removable(removeButton: #close-banner)">...</div>
 ```
 
 This works well, but now our original div is broken. We can use an [`init` block](/features/init/) to set a default value for the parameter:
@@ -86,4 +90,4 @@ behavior Removable(removeButton)
 end
 ```
 
-Now our Removable™ innovation is reusable! For a more realistic example of a behavior, check out the Draggable behavior which creates a draggable window: [Draggable._hs](https://gist.github.com/dz4k/6505fb82ae7fdb0a03e6f3e360931aa9)
+Now our Removable™ innovation is reusable! For a more realistic example of a behavior, check out the Draggable behavior which creates a draggable window: [Draggable.\_hs](https://gist.github.com/dz4k/6505fb82ae7fdb0a03e6f3e360931aa9)

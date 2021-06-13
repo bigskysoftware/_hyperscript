@@ -10,7 +10,7 @@ get <expression>
 
 ### Description
 
-The `call` command allows you evaluate an expression.  
+The `call` command allows you evaluate an expression.
 
 The value of this expression will be put into the `it` variable.
 
@@ -19,12 +19,12 @@ The value of this expression will be put into the `it` variable.
 ### Examples
 
 ```html
-<div _="on click call myJavascriptFunction()">
-  Click Me!
-</div>
+<div _="on click call myJavascriptFunction()">Click Me!</div>
 
-<div _="on click get prompt('Enter your age')
-                 put 'You entered: $it' into my.innerHTML">
+<div
+  _="on click get prompt('Enter your age')
+                 put 'You entered: $it' into my.innerHTML"
+>
   Click Me!
 </div>
 ```

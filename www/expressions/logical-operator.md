@@ -16,9 +16,11 @@ Note that all logical operators have the same precedence, but if multiple distin
 ### Examples
 
 ```html
-<div _="on click 
+<div
+  _="on click 
           if I do not match .active and I do not contain .active 
-            add .active">
+            add .active"
+>
   Activate Me
 </div>
 ```
