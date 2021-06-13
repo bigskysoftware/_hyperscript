@@ -408,14 +408,14 @@ be easier to just use the counter.innerText instead, as shown below. Where and h
 will vary depending on what you are trying to accomplish.
 
 ```html
-<p id="counter">0</p>
-<button _="on click increment #counter.innerText">Add</button>
-<button _="on click decrement #counter.innerText">Subtract</button>
+<p id="counterText">0</p>
+<button _="on click increment #counterText.innerText">Add</button>
+<button _="on click decrement #counterText.innerText">Subtract</button>
 ```
 
-<p id="counter">0</p>
-<button _="on click increment #counter.innerText">Add</button>
-<button _="on click decrement #counter.innerText">Subtract</button>
+<p id="counterText">0</p>
+<button _="on click increment #counterText.innerText">Add</button>
+<button _="on click decrement #counterText.innerText">Subtract</button>
 
 #### <a name="event_queueing"></a>[Event Queueing](#event_queueing)
 
