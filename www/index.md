@@ -35,9 +35,6 @@ Because hyperscript relies on [promises](https://caniuse.com/?search=Promise), i
 
 You can see a comparison of hyperscript, vanillaJS and jQuery [here](/comparison).
 
-hyperscript is a companion project of [htmx](https://htmx.org) but note that because
-[promises are not available in IE](https://caniuse.com/?search=Promise) hyperscript does _not_ strive for IE11 compatibility.
-
 ## examples
 
 ```html
