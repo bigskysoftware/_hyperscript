@@ -31,8 +31,6 @@ hyperscript is a companion project of [htmx](https://htmx.org).
 
 Because hyperscript relies on [promises](https://caniuse.com/?search=Promise), it does not strive for IE11 compatibility.
 
-You can see a comparison of hyperscript, vanillaJS and jQuery [here](/comparison).
-
 ## examples
 
 ```html
