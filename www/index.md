@@ -1,13 +1,11 @@
 <div style="background-color: lightgoldenrodyellow; margin: 16px; border-radius: 8px;
 color: darkgoldenrod; border: gold 1px solid; font-size: 20px">
-<p>
-hyperscript is in active development and is working to a 1.0 release.
-At this time the syntax and core feature set are considered to be reasonably complete.
-Key areas of focus for 1.0 include additional test cases and documentation improvements.
-Please join us at the
+<p>hyperscript is in active development and is working to a 1.0 release.</p>
+<p>At this time the syntax and core feature set are considered to be reasonably complete.
+Key areas of focus for 1.0 include additional test cases and documentation improvements.</p>
+<p>Please join us at the
 <a style="color: darkgoldenrod;font-weight: bold" href="https://htmx.org/discord">#hyperscript discord channel</a>
-to work with us as we push to a public release.  Thank you!
-</p>
+as we push to 1.0!  Thank you!</p>
 </div>
 
 ## intro
