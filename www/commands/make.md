@@ -51,5 +51,5 @@ def formatPizzaToppings(toppings)
 and <span class="topping">Green Peppers</span>
 
 <style>
-.topping { font-weight: bold, color: #e10 }
+.topping { font-weight: bold; color: #e10 }
 </style>
