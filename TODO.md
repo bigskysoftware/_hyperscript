@@ -1,8 +1,6 @@
 ## TODOs
 
-### 0.8.0 release
-* Deniz - Rework target expression (?)
-* Deniz - `me` identifier inside of css query literals
+### 0.8.1 release
 * Ben(?) - improve `fetch` command w/ more obvious syntax for body, headers, etc.
   ```text
     fetch /foo with a POST
@@ -18,13 +16,16 @@
     set x to .{foo}
     set y to #{foo}
   ```
+* Carson - `next` and `previous` expressions
 
 ### Language Features
 * Recovering parser (we are single error right now)
 * `delete` command
+* `focus` command
 * `reply` & `wait for response` in event handlers?
 *  Support a `timeout` modifier for commands like `fetch`, `call`, `wait for` etc.
   * deep project involving dealing w/ async commands not executing if they time out during execution
+  * maybe just timeout for `fetch` ?
 * `merge/merge into` - Merge objects with one another
 * runtime type checked parameters and return types
   ```text
