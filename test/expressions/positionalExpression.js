@@ -23,8 +23,7 @@ describe("the positional expression", function () {
 				"                  <div id='d3' class='c1'></div>\n"
 		);
 		var result = evalHyperScript("the first of .c1");
-		// interestingly, query selector results are in reverse order amongst siblings
-		result.should.equal(byId("d3"));
+		result.should.equal(byId("d1"));
 	});
 
 	it("last works w/ array-like", function () {
@@ -34,7 +33,7 @@ describe("the positional expression", function () {
 				"                  <div id='d3' class='c1'></div>"
 		);
 		var result = evalHyperScript("the last of .c1");
-		result.should.equal(byId("d1"));
+		result.should.equal(byId("d3"));
 	});
 
 	it("first works w/ node", function () {

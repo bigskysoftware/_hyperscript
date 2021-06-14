@@ -9,12 +9,13 @@ function make(htmlStr) {
 		var range = document.createRange();
 		var fragment = range.createContextualFragment(htmlStr);
 		var wa = getWorkArea();
-		for (var i = fragment.childNodes.length - 1; i >= 0; i--) {
-			var child = fragment.childNodes[i];
+		var child = null;
+		while(fragment.children.length > 0) {
+			 child = fragment.children[0];
 			_hyperscript.processNode(child);
 			wa.appendChild(child);
 		}
-		return wa.lastChild;
+		return child; // return last added element
 	};
 	if (getWorkArea()) {
 		return makeFn();

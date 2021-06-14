@@ -39,7 +39,7 @@ describe("the repeat command", function () {
 		setTimeout(function () {
 			d1.innerHTML.should.equal("123");
 			done();
-		}, 40);
+		}, 50);
 	});
 
 	it("basic raw for loop works", function () {
