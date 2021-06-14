@@ -5,6 +5,8 @@
 
 ```ebnf
 tell <expression>
+  <statements>
+end
 ```
 
 ### Description

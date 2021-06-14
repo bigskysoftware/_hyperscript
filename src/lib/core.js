@@ -4139,7 +4139,7 @@
 			var token;
 			if ((token = tokens.matchTokenType("STRING"))) {
 				return {
-					evaluate() {
+					evaluate: function() {
 						return token.value;
 					},
 				};
@@ -4361,7 +4361,10 @@
 
 						var result = document.createElement(tagname);
 						if (id !== undefined) result.id = id;
-						for (var cls of classes) result.classList.add(cls);
+						for (var i = 0; i < classes.length; i++) {
+							var cls = classes[i];
+							result.classList.add(cls)
+						}
 
 						ctx.result = result;
 						if (name) ctx[name] = result;

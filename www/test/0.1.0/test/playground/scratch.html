@@ -1,0 +1,111 @@
+<html lang="en">
+	<head>
+		<link
+			rel="stylesheet"
+			href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css"
+		/>
+	</head>
+	<body style="padding: 20px; font-family: sans-serif">
+		<script src="../../src/lib/core.js"></script>
+		<script src="../../src/lib/web.js"></script>
+		<script src="../../src/lib/worker.js"></script>
+		<script src="../../src/lib/hdb.js"></script>
+		<script src="../util/util.js"></script>
+
+		<em>Work Area</em>
+		<hr />
+
+		<button
+			_="on click debounced at 1s put 1 + my.innerHTML as Int into my.innerHTML"
+		>
+			0
+		</button>
+
+		<button
+			_="on click throttled at 1s put 1 + my.innerHTML as Int into my.innerHTML"
+		>
+			0
+		</button>
+
+		<style>
+			.highlight {
+				font-weight: bold;
+			}
+		</style>
+
+		<div _="on mouseenter toggle .highlight on <p/> in me until mouseleave">
+			<div>This is a test</div>
+			<p>This is a test</p>
+			<div>This is a test</div>
+			<p>This is a test</p>
+			<div>This is a test</div>
+			<p>This is a test</p>
+		</div>
+		<div id="help">I'm a helpful message!</div>
+
+		<style>
+			.red {
+				transition: 400ms ease-in;
+				background: red;
+			}
+			.red2 {
+				background: red;
+				transition: 2s ease-in;
+			}
+		</style>
+		<div class="btn btn-primary" _="on click breakpoint toggle .red for 2s">
+			Toggle Red
+		</div>
+
+		<div class="btn btn-primary" _="on click toggle .red2 until transitionend">
+			Toggle Red
+		</div>
+
+		<br />
+		<br />
+		<br />
+
+		<style>
+			#pulsar {
+				transition: all 800ms ease-in-out;
+			}
+			.red3 {
+				background: red;
+			}
+		</style>
+		<div id="pulsar" _="on load repeat 6 times toggle .red3 then settle">
+			You thought the blink tag was dead?
+		</div>
+		z
+
+		<h3>Scroll Other Thing</h3>
+
+		<div _="on click log me then send scrollToEnd to #anotherDiv">
+			Scroll it
+		</div>
+
+		<div
+			id="anotherDiv"
+			_="on scrollToEnd log me then set my.scrollTop to my.scrollHeight"
+			style="height: 100px; overflow: scroll"
+		>
+			<p>P1</p>
+			<p>P2</p>
+			<p>P3</p>
+			<p>P4</p>
+			<p>P5</p>
+			<p>P6</p>
+			<p>P7</p>
+			<p>P8</p>
+		</div>
+
+		<div id="scroll-fun" style="border: 3px solid red; height: 1200px"></div>
+
+		<img
+			_="on intersection(intersecting) having threshold 0.5
+         if intersecting transition opacity to 1
+         else transition opacity to 0 "
+			src="https://placebear.com/200/300"
+		/>
+	</body>
+</html>

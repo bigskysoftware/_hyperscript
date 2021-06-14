@@ -66,8 +66,10 @@ respond to _any event_, even custom events that you create or that are triggered
 and it gives you flexible control over how events are queued and filtered with a simple, clean syntax.
 
 Hyperscript is expressive enough that many common UI patterns can be comfortably written directly inline
-in event handlers. If you need to, you can factor logic out to [functions](#functions) as well, and you
-can invoke javascript functions directly from hyperscript (and vice-versa.)
+in event handlers.  If you need to, you can factor logic out to [functions](#functions) as well, and you
+can invoke javascript functions directly from hyperscript (and vice-versa). Frequently used or complex
+handlers can be streamlined with [behaviors](#behaviors). Behaviors wrap up multiple features (event
+handlers, functions, unit blocks, etc.) with a shared state mechanism.
 
 ### <a name='promises'></a>[No More Promises](#promises)
 
@@ -188,7 +190,7 @@ OK, let's get on with it...
 Hyperscript is a dependency-free javascript library that can be included in a web page without any build steps:
 
 ```html
-<script src="https://unpkg.com/hyperscript.org@0.0.9"></script>
+<script src="https://unpkg.com/hyperscript.org@0.8.0"></script>
 ```
 
 After you've done this, you can begin adding hyperscript to elements:
