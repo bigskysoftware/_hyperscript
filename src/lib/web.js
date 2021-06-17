@@ -75,7 +75,7 @@
 			if (classRef == null) {
 				attributeRef = parser.parseElement("attributeRef", tokens);
 				if (attributeRef == null) {
-					cssDeclaration = parser.parseElement("objectLiteral", tokens);
+					cssDeclaration = parser.parseElement("styleLiteral", tokens);
 					if (cssDeclaration == null) {
 						parser.raiseParseError(tokens, "Expected either a class reference or attribute expression");
 					}
@@ -131,11 +131,7 @@
 					args: [to, cssDeclaration],
 					op: function (context, to, css) {
 						runtime.forEach(to, function (target) {
-							for (var key in css) {
-								if (css.hasOwnProperty(key)) {
-									target.style.setProperty(key, css[key]);
-								}
-							}
+							target.style.cssText += css;
 						});
 						return runtime.findNext(addCmd, context);
 					},
@@ -147,6 +143,51 @@
 			return addCmd;
 		}
 	});
+
+	_hyperscript.internals.parser.addGrammarElement("styleLiteral", function (parser, runtime, tokens) {
+		if (!tokens.matchOpToken("{")) return;
+
+		var stringParts = [""]
+		var exprs = []
+
+		while (tokens.hasMore()) {
+			if (tokens.matchOpToken("\\")) {
+				tokens.consumeToken();
+			} else if (tokens.matchOpToken("}")) {
+				break;
+			} else if (tokens.matchToken("$")) {
+				var opencurly = tokens.matchOpToken("{");
+				var expr = parser.parseElement("expression", tokens);
+				if (opencurly) tokens.requireOpToken("}");
+
+				exprs.push(expr)
+				stringParts.push("")
+			} else {
+				var tok = tokens.consumeToken();
+				stringParts[stringParts.length-1] += tokens.source.substring(tok.start, tok.end);
+			}
+
+			stringParts[stringParts.length-1] += tokens.lastWhitespace();
+		}
+
+		return {
+			type: "styleLiteral",
+			args: [exprs],
+			op: function (ctx, exprs) {
+				var rv = "";
+
+				stringParts.forEach(function (part, idx) {
+					rv += part;
+					if (idx in exprs) rv += exprs[idx];
+				});
+
+				return rv;
+			},
+			evaluate: function(ctx) {
+				return runtime.unifiedEval(this, ctx);
+			}
+		}
+	})
 
 	_hyperscript.addCommand("remove", function (parser, runtime, tokens) {
 		if (tokens.matchToken("remove")) {

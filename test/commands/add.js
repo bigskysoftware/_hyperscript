@@ -42,7 +42,7 @@ describe("the add command", function () {
 
 	it("can add css properties", function () {
 		var div = make(
-			"<div style='color: blue' " + '    _=\'on click add {color: "red", "font-family": "monospace"}\'></div>'
+			"<div style='color: blue' _='on click add {color: red; font-family: monospace}'></div>"
 		);
 		div.style.color.should.equal("blue");
 		div.click();
