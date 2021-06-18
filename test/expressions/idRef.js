@@ -24,4 +24,9 @@ describe("the idRef expression", function () {
 		value.should.equal(div);
 	});
 
+	it("id ref works from a disconnected element", function () {
+		var div = make("<div id='d1'></div>");
+		var value = evalHyperScript("#d1", { me: document.createElement('div') });
+		value.should.equal(div);
+	});
 });
