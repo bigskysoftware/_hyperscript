@@ -26,6 +26,7 @@
  */
 
 (function () {
+	var _hyperscript = typeof module !== 'undefined' ? module.exports : this._hyperscript
 	_hyperscript.addFeature("eventsource", function (parser, runtime, tokens) {
 		if (tokens.matchToken("eventsource")) {
 			var urlElement;

@@ -2,6 +2,8 @@
 /// This module provides the worker feature for hyperscript
 ///=========================================================================
 (function () {
+	var _hyperscript = typeof module !== 'undefined' ? module.exports : this._hyperscript
+
 	var invocationIdCounter = 0;
 
 	var workerFunc = function () {

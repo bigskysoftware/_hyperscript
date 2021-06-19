@@ -1,4 +1,6 @@
 (function () {
+	var _hyperscript = typeof module !== 'undefined' ? module.exports : this._hyperscript
+
 	var globalScope = typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this;
 
 	function HDB(ctx, runtime, breakpoint) {
@@ -318,7 +320,7 @@
 	}
 
 	.sec-code {
-	
+
 	}
 
 	.hdb h3 {

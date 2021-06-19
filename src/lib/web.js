@@ -11,6 +11,8 @@
 		return obj1;
 	}
 
+	var _hyperscript = typeof module !== 'undefined' ? module.exports : this._hyperscript
+
 	_hyperscript.addCommand("settle", function (parser, runtime, tokens) {
 		if (tokens.matchToken("settle")) {
 			if (!parser.commandBoundary(tokens.currentToken())) {
