@@ -6,7 +6,9 @@
 /** @var {HyperscriptObject} _hyperscript */
 
 (function (root, factory) {
-	if (typeof define === "function" && define.amd) {
+	if (typeof module != 'undefined') {
+		module.exports = factory();
+	} else if (typeof define === "function" && define.amd) {
 		// AMD. Register as an anonymous module.
 		define([], factory);
 	} else {
