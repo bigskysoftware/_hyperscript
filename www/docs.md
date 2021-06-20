@@ -61,7 +61,7 @@ and is in the same vein as many technologies that de-emphasize [Separation of Co
 in favor of [Locality of Behavior](https://htmx.org/essays/locality-of-behaviour/), such as [tailwinds](https://tailwindcss.com/),
 [AlpineJS](https://github.com/alpinejs/alpine/) and [htmx](https://htmx.org).
 
-Unlike the typical `on*` attributes, uch as `onClick`, hyperscript's event handling syntax allows you to
+Unlike the typical `on*` attributes, such as `onClick`, hyperscript's event handling syntax allows you to
 respond to _any event_, even custom events that you create or that are triggered by [other libraries](https://htmx.org/reference/#events),
 and it gives you flexible control over how events are queued and filtered with a simple, clean syntax.
 
