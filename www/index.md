@@ -38,7 +38,7 @@ You can see a comparison of hyperscript, vanillaJS and jQuery [here](/comparison
 ## examples
 
 ```html
-<script src="https://unpkg.com/hyperscript.org@0.8.0"></script>
+<script src="https://unpkg.com/hyperscript.org@0.8.1"></script>
 
 <button _="on click toggle .big-text">
   Toggle the "big-text" class on me on click
