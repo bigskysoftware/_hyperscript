@@ -2933,7 +2933,9 @@
 			var thing = parser.parseElement("expression", tokens);
 
 			var cssSelector = thing.css;
-			// ERROR if no CSS
+			if (cssSelector == null) {
+				parser.raiseParseError(tokens, "Expected a CSS expression");
+			}
 
 			if (tokens.matchToken("from")) {
 				var from = parser.requireElement("expression", tokens);
@@ -2944,7 +2946,7 @@
 			if (tokens.matchToken("within")) {
 				var inElt = parser.requireElement("expression", tokens);
 			} else {
-				inElt = document.body;
+				var inElt = document.body;
 			}
 
 			return {
