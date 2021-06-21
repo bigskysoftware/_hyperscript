@@ -61,7 +61,7 @@ and is in the same vein as many technologies that de-emphasize [Separation of Co
 in favor of [Locality of Behavior](https://htmx.org/essays/locality-of-behaviour/), such as [tailwinds](https://tailwindcss.com/),
 [AlpineJS](https://github.com/alpinejs/alpine/) and [htmx](https://htmx.org).
 
-Unlike the typical `on*` attributes, uch as `onClick`, hyperscript's event handling syntax allows you to
+Unlike the typical `on*` attributes, such as `onClick`, hyperscript's event handling syntax allows you to
 respond to _any event_, even custom events that you create or that are triggered by [other libraries](https://htmx.org/reference/#events),
 and it gives you flexible control over how events are queued and filtered with a simple, clean syntax.
 
@@ -408,14 +408,14 @@ be easier to just use the counter.innerText instead, as shown below. Where and h
 will vary depending on what you are trying to accomplish.
 
 ```html
-<p id="counter">0</p>
-<button _="on click increment #counter.innerText">Add</button>
-<button _="on click decrement #counter.innerText">Subtract</button>
+<p id="counterText">0</p>
+<button _="on click increment #counterText.innerText">Add</button>
+<button _="on click decrement #counterText.innerText">Subtract</button>
 ```
 
-<p id="counter">0</p>
-<button _="on click increment #counter.innerText">Add</button>
-<button _="on click decrement #counter.innerText">Subtract</button>
+<p id="counterText">0</p>
+<button _="on click increment #counterText.innerText">Add</button>
+<button _="on click decrement #counterText.innerText">Subtract</button>
 
 #### <a name="event_queueing"></a>[Event Queueing](#event_queueing)
 
