@@ -76,7 +76,7 @@ You can refer to a group of elements by class directly in hyperscript as follows
 <div class="example"></div>
 ```
 
-The `#example` is an ID literal and will evaluate all the elements with the class `example` on them.  Here we put some 
+The `#example` is an ID literal and will evaluate all the elements with the class `example` on them.  Here we put some
 text into their `innerHTML` when the top div is clicked.  Note that the [put command](/commands/put) can work with
 collections as well as single values, so it can put the given value into all the returned elements.
 
@@ -127,7 +127,7 @@ for anchor in <a/>
 end
 ```
 
-The longer syntax, surrounding the `@<attribute-name>` with square brackets, may be used for queries that require a 
+The longer syntax, surrounding the `@<attribute-name>` with square brackets, may be used for queries that require a
 value, or for commands like `toggle` or `add` that require a value
 
 ```hyperscript
@@ -163,7 +163,7 @@ language aliases
 
 Note that `I` is an alias for `me`, the current element.
 
-Furthermore, hyperscript supports two more comparison operators: `matches` and `contains` which can be used in the 
+Furthermore, hyperscript supports two more comparison operators: `matches` and `contains` which can be used in the
 following forms:
 
 ```text
@@ -182,7 +182,7 @@ following forms:
 
 ## <a name="strings"></a>[Strings](#strings)
 
-Strings are similar to javascript, and can start with `"` or `'`. 
+Strings are similar to javascript, and can start with `"` or `'`.
 
 ```html
 <div _="on click set world to 'hyperscript' put 'Hello $world' into my.innerHTML">
@@ -230,7 +230,7 @@ This is equivalent to:
 
 You may also access and set DOM attributes using the possessive with attribute literals:
 
-<div _="on click from body in <a/> 
+<div _="on click from body in <a/>
           put its @href into me
           halt -- prevent the default">
   Click on Links To See The URL
@@ -274,7 +274,7 @@ Properties on arrays, except for `length`, are expanded via a [flat map](https:/
 Hyperscript does not have anonymous functions or complex arrow functions.  Because hyperscript is [async transparent](/docs#async)
 complicated callbacks are generally not necessary.
 
-However it does support a simple, expression-only version of arrow functions called "blocks", with a slightly different 
+However it does support a simple, expression-only version of arrow functions called "blocks", with a slightly different
 syntax:
 
 ```text
@@ -286,7 +286,7 @@ Blocks start with a backslash, followed by args, then an `->` and then an expres
 
 ## <a name="async"></a>[Async](#async)
 
-By default, hyperscript synchronizes on any [Promises](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) 
+By default, hyperscript synchronizes on any [Promises](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise)
 that go through its runtime.  Consider the following code:
 
 ```html
@@ -302,10 +302,10 @@ end
 ```
 
 Here we have an asynchronous function with a `wait` in it that will cause the function to return a Promise rather than
-the value.  Hyperscript will "pause" evaluation of the event handler until that promise resolves and can provide a 
+the value.  Hyperscript will "pause" evaluation of the event handler until that promise resolves and can provide a
 value to the string expression, and then continue.  This is very cool and is usually what you want.
 
-However, there may be a case where you don't want hyperscript to pause and, instead, want to pass the raw promise on 
+However, there may be a case where you don't want hyperscript to pause and, instead, want to pass the raw promise on
 somewhere else.  To do this, you can use the `async` prefix for the expression
 
 ```html
@@ -401,4 +401,17 @@ first, last or a random element from an array-like object
 </div>
 ```
 
+## <a name="relative-positional"></a>[Relative Positional Expressions](#relative-positional)
+
+The [relative positional exprssions](/expressions/relative-positional), `next` and `previous`  allows you refer to the
+next or previous element of a given type within a linear, depth first forward or backward scan of the elements in the
+DOM tree
+
+```html
+<%!-- add the focused class to the next div in the dom with the header class on it -->
+<div _="on click add .focused to the next <div.header/>">
+  ...
 </div>
+```
+
+</div.header>
