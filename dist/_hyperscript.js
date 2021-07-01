@@ -6,7 +6,9 @@
 /** @var {HyperscriptObject} _hyperscript */
 
 (function (root, factory) {
-	if (typeof define === "function" && define.amd) {
+	if (typeof module != 'undefined') {
+		module.exports = factory();
+	} else if (typeof define === "function" && define.amd) {
 		// AMD. Register as an anonymous module.
 		define([], factory);
 	} else {
@@ -2050,6 +2052,16 @@
 			return value == undefined || value.length === 0;
 		}
 
+		/**
+		 * @param {Node} node
+		 * @returns {Document|ShadowRoot}
+		 */
+		function getRootNode(node) {
+			var rv = node.getRootNode();
+			if (!(node instanceof Document || node instanceof ShadowRoot)) rv = document;
+			return rv;
+		}
+
 		/** @type string | null */
 		var hyperscriptUrl = "document" in globalScope ? document.currentScript.src : null;
 
@@ -2079,6 +2091,7 @@
 			escapeSelector: escapeSelector,
 			nullCheck: nullCheck,
 			isEmpty: isEmpty,
+			getRootNode: getRootNode,
 			hyperscriptUrl: hyperscriptUrl,
 			HALT: HALT,
 		};
@@ -2180,7 +2193,7 @@
 					type: "idRefTemplate",
 					args: [innerExpression],
 					op: function (context, arg) {
-						return context.me.getRootNode().getElementById(arg) || document.getElementById(arg);
+						return runtime.getRootNode(context.me).getElementById(arg);
 					},
 					evaluate: function (context) {
 						return runtime.unifiedEval(this, context);
@@ -2193,7 +2206,7 @@
 					value: elementId.value.substr(1),
 					evaluate: function (context) {
 						return (
-							context.me.getRootNode().getElementById(this.value) || document.getElementById(this.value)
+							runtime.getRootNode(context.me).getElementById(this.value)
 						);
 					},
 				};
@@ -2214,7 +2227,7 @@
 					type: "classRefTemplate",
 					args: [innerExpression],
 					op: function (context, arg) {
-						return document.querySelectorAll(runtime.escapeSelector("." + arg));
+						return runtime.getRootNode(context.me).querySelectorAll(runtime.escapeSelector("." + arg));
 					},
 					evaluate: function (context) {
 						return runtime.unifiedEval(this, context);
@@ -2228,7 +2241,7 @@
 						return this.css.substr(1);
 					},
 					evaluate: function (context) {
-						return context.me.getRootNode().querySelectorAll(runtime.escapeSelector(this.css));
+						return runtime.getRootNode(context.me).querySelectorAll(runtime.escapeSelector(this.css));
 					},
 				};
 			}
@@ -2276,7 +2289,7 @@
 							}
 						}
 					}
-					var result = context.me.getRootNode().querySelectorAll(query);
+					var result = runtime.getRootNode(context.me).querySelectorAll(query);
 					runtime.forEach(elements, function (el) { el.removeAttribute("data-hs-query-id") });
 					return result;
 				},
@@ -2916,9 +2929,72 @@
 
 		_parser.addGrammarElement("unaryExpression", function (parser, runtime, tokens) {
 			return parser.parseAnyOf(
-				["logicalNot", "positionalExpression", "noExpression", "negativeNumber", "postfixExpression"],
+				["logicalNot", "relativePositionalExpression", "positionalExpression", "noExpression", "negativeNumber", "postfixExpression"],
 				tokens
 			);
+		});
+
+		_parser.addGrammarElement("relativePositionalExpression", function (parser, runtime, tokens) {
+			var op = tokens.matchAnyToken("next", "previous");
+			if (!op) return;
+			if (op.value === "next") {
+				var propName = "nextElementSibling";
+			} else {
+				var propName = "previousElementSibling";
+			}
+
+			var thing = parser.parseElement("expression", tokens);
+
+			var cssSelector = thing.css;
+			if (cssSelector == null) {
+				parser.raiseParseError(tokens, "Expected a CSS expression");
+			}
+
+			if (tokens.matchToken("from")) {
+				var from = parser.requireElement("expression", tokens);
+			} else {
+				var from = parser.requireElement("implicitMeTarget", tokens);
+			}
+
+			if (tokens.matchToken("within")) {
+				var inElt = parser.requireElement("expression", tokens);
+			} else {
+				var inElt = document.body;
+			}
+
+			return {
+				type: "relativePositionalExpression",
+				from: from,
+				inElt: inElt,
+				operator: op.value,
+				propName: propName,
+				args: [cssSelector, from, inElt],
+				op: function (context, css, from, inElt) {
+					var currentStart = from;
+					while (currentStart && (currentStart !== inElt)) { // while we haven't reached the terminal parent
+						var currentSearch = currentStart[propName];
+						while (currentSearch) {
+							if (currentSearch.matches(css)) { // if current search element matches, return it
+								return currentSearch;
+							} else {
+								// otherwise run a query selector in it to find the first matching element within it
+								var searchResult = currentSearch.querySelector(css);
+								if (searchResult) {
+									return searchResult;
+								}
+							}
+							// move to the next search node
+							currentSearch = currentSearch[propName];
+						}
+						// if no matches are found move up the DOM hierarchy and on to the next search node
+						currentStart = currentStart.parentElement;
+					}
+				},
+				evaluate: function (context) {
+					return runtime.unifiedEval(this, context);
+				},
+			}
+
 		});
 
 		_parser.addGrammarElement("positionalExpression", function (parser, runtime, tokens) {
@@ -3531,7 +3607,7 @@
 
 							target.addEventListener(eventName, function listener(evt) {
 								// OK NO PROMISE
-								if (elt instanceof Node && target !== elt && elt.getRootNode() === null) {
+								if (elt instanceof Node && target !== elt && !elt.isConnected) {
 									target.removeEventListener(eventName, listener);
 									return;
 								}

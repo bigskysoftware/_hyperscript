@@ -1,6 +1,6 @@
 ## TODOs
 
-### 0.8.1 release
+### 0.8.2 release
 * Ben(?) - improve `fetch` command w/ more obvious syntax for body, headers, etc.
   ```text
     fetch /foo with a POST

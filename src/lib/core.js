@@ -2929,9 +2929,72 @@
 
 		_parser.addGrammarElement("unaryExpression", function (parser, runtime, tokens) {
 			return parser.parseAnyOf(
-				["logicalNot", "positionalExpression", "noExpression", "negativeNumber", "postfixExpression"],
+				["logicalNot", "relativePositionalExpression", "positionalExpression", "noExpression", "negativeNumber", "postfixExpression"],
 				tokens
 			);
+		});
+
+		_parser.addGrammarElement("relativePositionalExpression", function (parser, runtime, tokens) {
+			var op = tokens.matchAnyToken("next", "previous");
+			if (!op) return;
+			if (op.value === "next") {
+				var propName = "nextElementSibling";
+			} else {
+				var propName = "previousElementSibling";
+			}
+
+			var thing = parser.parseElement("expression", tokens);
+
+			var cssSelector = thing.css;
+			if (cssSelector == null) {
+				parser.raiseParseError(tokens, "Expected a CSS expression");
+			}
+
+			if (tokens.matchToken("from")) {
+				var from = parser.requireElement("expression", tokens);
+			} else {
+				var from = parser.requireElement("implicitMeTarget", tokens);
+			}
+
+			if (tokens.matchToken("within")) {
+				var inElt = parser.requireElement("expression", tokens);
+			} else {
+				var inElt = document.body;
+			}
+
+			return {
+				type: "relativePositionalExpression",
+				from: from,
+				inElt: inElt,
+				operator: op.value,
+				propName: propName,
+				args: [cssSelector, from, inElt],
+				op: function (context, css, from, inElt) {
+					var currentStart = from;
+					while (currentStart && (currentStart !== inElt)) { // while we haven't reached the terminal parent
+						var currentSearch = currentStart[propName];
+						while (currentSearch) {
+							if (currentSearch.matches(css)) { // if current search element matches, return it
+								return currentSearch;
+							} else {
+								// otherwise run a query selector in it to find the first matching element within it
+								var searchResult = currentSearch.querySelector(css);
+								if (searchResult) {
+									return searchResult;
+								}
+							}
+							// move to the next search node
+							currentSearch = currentSearch[propName];
+						}
+						// if no matches are found move up the DOM hierarchy and on to the next search node
+						currentStart = currentStart.parentElement;
+					}
+				},
+				evaluate: function (context) {
+					return runtime.unifiedEval(this, context);
+				},
+			}
+
 		});
 
 		_parser.addGrammarElement("positionalExpression", function (parser, runtime, tokens) {
