@@ -1,11 +1,23 @@
 
+<header id="intro-to-hyperscript">
+
 # hyperscript is an easy and approachable language designed for modern front-end web development
 
-`<script src="https://unpkg.com/hyperscript.org@0.8.1"></script>`
+```hyperscript
+writeText(#snippet's innerText)
+  on navigator.clipboard
+put 'copied!' into me
+wait 2s
+put 'copy' into me
+```
+
+</header>
+
+<code id=snippet>&lt;script src="https://unpkg.com/hyperscript.org@0.8.1"></script></code>
  <button style="font:inherit; background: none; border: none; color: #3465a4"
 _="on click
-writeText(innerText of my previousElementSibling) on navigator.clipboard
-put 'copied!' into me">copy</button>
+writeText(#snippet's innerText) on navigator.clipboard
+put 'copied!' into me    wait 2s    put 'copy' into me">copy</button>
 
 hyperscript makes writing event handlers and highly responsive user interfaces
 trivial with native language support for async behavior&mdash;easier than
@@ -47,6 +59,22 @@ as we push to 1.0! Thank you!</p>
 compatibility.</small>
 
 <style>
+#intro-to-hyperscript {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: stretch;
+  align-items: center;
+}
+
+#intro-to-hyperscript h1 {
+  flex: 4 6 18ch;
+  margin-right: 2em;
+}
+
+#intro-to-hyperscript pre {
+  flex: 1 0 max-content;
+}
+
 #features ul {
   padding-left: 0;
   list-style: none;
