@@ -3,21 +3,34 @@
 
 # hyperscript is an easy and approachable language designed for modern front-end web development
 
-```hyperscript
-writeText(#snippet's innerText)
+<div id="sample">
+
+<pre><code id="snippet" class="lang-hyperscript">writeText(#snippet's innerText)
   on navigator.clipboard
 put 'copied!' into me
-wait 2s
-put 'copy' into me
-```
+wait 1s
+put 'copy' into me</code></pre>
 
+<p style="text-align: right">see it in action &rarr;
+<button class="btn primary" style="margin: auto" _="on click
+writeText(#snippet's innerText) on navigator.clipboard
+put 'copied!' into me
+wait 1s
+put 'copy' into me">
+copy
+</button>
+
+</div>
 </header>
 
-<code id=snippet>&lt;script src="https://unpkg.com/hyperscript.org@0.8.1"></script></code>
- <button style="font:inherit; background: none; border: none; color: #3465a4"
+
+`<script src="https://unpkg.com/hyperscript.org@0.8.1"></script></code>`
+<button style="font:inherit; background: none; border: none; color: #3465a4"
 _="on click
-writeText(#snippet's innerText) on navigator.clipboard
-put 'copied!' into me    wait 2s    put 'copy' into me">copy</button>
+writeText(my previousElementSibling's innerText) on navigator.clipboard
+put 'copied!' into me
+wait 2s
+put 'copy' into me">copy</button>
 
 hyperscript makes writing event handlers and highly responsive user interfaces
 trivial with native language support for async behavior&mdash;easier than
@@ -61,6 +74,7 @@ compatibility.</small>
 <style>
 #intro-to-hyperscript {
   display: flex;
+  position: relative;
   flex-flow: row wrap;
   justify-content: stretch;
   align-items: center;
@@ -71,7 +85,7 @@ compatibility.</small>
   margin-right: 2em;
 }
 
-#intro-to-hyperscript pre {
+#intro-to-hyperscript #sample {
   flex: 1 0 max-content;
 }
 
