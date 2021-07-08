@@ -50,6 +50,15 @@ describe("the add command", function () {
 		div.style.fontFamily.should.equal("monospace");
 	});
 
+	it("can add templated css properties", function () {
+		var div = make(
+			"<div style='color: blue' _='on click add {color: ${\"red\"};}'></div>"
+		);
+		div.style.color.should.equal("blue");
+		div.click();
+		div.style.color.should.equal("red");
+	});
+
 	it("can add multiple class refs", function () {
 		var div = make("<div _='on click add .foo .bar'></div>");
 		div.classList.contains("foo").should.equal(false);
