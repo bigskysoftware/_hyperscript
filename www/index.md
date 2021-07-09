@@ -89,10 +89,12 @@ compatibility.</small>
 #intro-to-hyperscript h1 {
   flex: 4 6 18ch;
   margin-right: 2em;
+  font-size: clamp(1.2em, 5vw, 2em);
 }
 
 #intro-to-hyperscript #sample {
-  flex: 1 0 max-content;
+  flex: 1 1 max-content;
+  max-width: 100%;
 }
 
 #sample-tip {
