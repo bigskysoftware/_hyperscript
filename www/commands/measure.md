@@ -1,7 +1,3 @@
----
-layout: layout.njk
-title: ///_hyperscript
----
 
 ## The `measure` Command
 
@@ -14,28 +10,28 @@ title: ///_hyperscript
 ### Description
 
 The `measure` command gets the measurements for a given element using `getBoundingClientRect()` as well as the
-`scroll*` properties.  It will place the result into the `result` variable.
+`scroll*` properties. It will place the result into the `result` variable.
 
 You may also specify particular measurements to be saved into local variables, by name.
 
 The available measurements are:
 
-* x
-* y
-* left
-* top
-* right
-* bottom
-* width
-* height
-* bounds
-* scrollLeft
-* scrollTop
-* scrollLeftMax
-* scrollTopMax
-* scrollWidth
-* scrollHeight
-* scroll
+- x
+- y
+- left
+- top
+- right
+- bottom
+- width
+- height
+- bounds
+- scrollLeft
+- scrollTop
+- scrollLeftMax
+- scrollTopMax
+- scrollWidth
+- scrollHeight
+- scroll
 
 ### Examples
 

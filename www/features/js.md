@@ -1,7 +1,3 @@
----
-layout: layout.njk
-title: ///_hyperscript
----
 
 ## The `js` Feature (top-level)
 
@@ -9,7 +5,7 @@ title: ///_hyperscript
 
 `js <js-body> end`
 
-* `js-body` is some JavaScript code.
+- `js-body` is some JavaScript code.
 
 ### Description
 
@@ -30,8 +26,11 @@ end
 `function` declarations inside a JS block will be exposed to the global scope (`let`, `var`, `const` declarations will not be exposed). As a result, this function can then be used in \_hyperscript code:
 
 ```html
-<input type=text _="
-    on input call regexFind('(.*)\+.*@.*', 1, my.value" />
+<input
+  type="text"
+  _="
+    on input call regexFind('(.*)\+.*@.*', 1, my.value"
+/>
 ```
 
 If you don't want to expose all the functions, return an object containing those that you _do_ want to expose:

@@ -1,0 +1,11 @@
+{
+	embeddedLanguageFormatting: "off",
+	overrides: [
+		{
+			files: "**/*.js",
+			options: {
+				printWidth: 120,
+			}
+		}
+	]
+}

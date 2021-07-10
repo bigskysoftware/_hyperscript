@@ -1,15 +1,11 @@
----
-layout: layout.njk
-title: ///_hyperscript
----
 
 ## The `init` Feature
 
 ### Syntax
 
 ```ebnf
-init 
-  {<command>} 
+init
+  {<command>}
 end
 ```
 

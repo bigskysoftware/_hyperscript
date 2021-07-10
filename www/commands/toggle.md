@@ -1,7 +1,3 @@
----
-layout: layout.njk
-title: ///_hyperscript
----
 
 ## The `toggle` Command
 
@@ -9,8 +5,8 @@ title: ///_hyperscript
 
 ```ebnf
 toggle ({<class-ref>} | attribute-ref | between <class-ref> and <class-ref>)
- [on <expression>] 
-  [(for <time expression>) | 
+ [on <expression>]
+  [(for <time expression>) |
    (until <event name> [from <expression>]]`
 ```
 
@@ -31,26 +27,18 @@ toggled until the given event is received.
 ### Examples
 
 ```html
-<div _="on click toggle .toggled">
-  Toggle Me!
-</div>
+<div _="on click toggle .toggled">Toggle Me!</div>
 
-<div _="on click toggle .toggled on #another-div">
-  Toggle Another Div!
-</div>
+<div _="on click toggle .toggled on #another-div">Toggle Another Div!</div>
 
-<button _="on click toggle [disabled='true']">
-  Toggle Disabled!
-</button>
+<button _="on click toggle [disabled='true']">Toggle Disabled!</button>
 
-<div _="on click toggle .toggled for 2s">
-  Toggle for 2 seconds
-</div>
+<div _="on click toggle .toggled for 2s">Toggle for 2 seconds</div>
 
 <div _="on mouseenter toggle .visible on #help until mouseleave">
   Mouse Over Me!
 </div>
-<div id="help"> I'm a helpful message!</div>
+<div id="help">I'm a helpful message!</div>
 
 <div _="on click toggle between .enabled and .disabled">
   Toggle Me!

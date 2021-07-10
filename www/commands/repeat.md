@@ -1,7 +1,3 @@
----
-layout: layout.njk
-title: ///_hyperscript
----
 
 ## The `repeat` Command
 
@@ -20,14 +16,14 @@ for <identifier> in <expression> [index <identifier>]
 
 ### Description
 
-The `repeat` command provides iteration in the hyperscript language.  It is very flexible and supports many forms.
+The `repeat` command provides iteration in the hyperscript language. It is very flexible and supports many forms.
 
-In every form you may assign a named value to the current iteration index by appending a `index i` to the 
+In every form you may assign a named value to the current iteration index by appending a `index i` to the
 loop specification.
 
 Here are examples of all the above forms:
 
-```text
+```hyperscript
   -- the basic for loop
   repeat for p in <p/>
     add .example to p

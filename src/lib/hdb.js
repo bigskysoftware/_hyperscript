@@ -1,5 +1,4 @@
 (function () {
-
 	var globalScope = this
 
 	function HDB(ctx, runtime, breakpoint) {
@@ -19,48 +18,56 @@
 			op: function (ctx) {
 				var hdb = new HDB(ctx, runtime, this);
 				window.hdb = hdb;
-				try{return hdb.break(ctx);}catch(e){console.error(e, e.stack)}
-			}
+				try {
+					return hdb.break(ctx);
+				} catch (e) {
+					console.error(e, e.stack);
+				}
+			},
 		};
-
-	})
+	});
 
 	HDB.prototype.break = function(ctx) {
 		var self = this;
 		console.log("=== HDB///_hyperscript/debugger ===");
 		self.ui();
 		return new Promise(function (resolve, reject) {
-			self.bus.addEventListener("continue", function () {
-				if (self.ctx !== ctx) {
-					// Context switch
-					for (var attr in ctx) {
-						delete ctx[attr];
+			self.bus.addEventListener(
+				"continue",
+				function () {
+					if (self.ctx !== ctx) {
+						// Context switch
+						for (var attr in ctx) {
+							delete ctx[attr];
+						}
+						Object.assign(ctx, self.ctx);
 					}
-					Object.assign(ctx, self.ctx);
-				}
-				delete window.hdb;
-				resolve(self.runtime.findNext(self.cmd, self.ctx));
-			}, { once: true });
-		})
-	}
+					delete window.hdb;
+					resolve(self.runtime.findNext(self.cmd, self.ctx));
+				},
+				{ once: true }
+			);
+		});
+	};
 
-	HDB.prototype.continueExec = function() {
+	HDB.prototype.continueExec = function () {
 		this.bus.dispatchEvent(new Event("continue"));
-	}
+	};
 
-	HDB.prototype.stepOver = function() {
+	HDB.prototype.stepOver = function () {
 		var self = this;
 		if (!self.cmd) return self.continueExec();
-		var result = self.cmd && self.cmd.type === 'breakpointCommand' ?
-			self.runtime.findNext(self.cmd, self.ctx) :	
-			self.runtime.unifiedEval(self.cmd, self.ctx);
+		var result =
+			self.cmd && self.cmd.type === "breakpointCommand"
+				? self.runtime.findNext(self.cmd, self.ctx)
+				: self.runtime.unifiedEval(self.cmd, self.ctx);
 		if (result.type === "implicitReturn") return self.stepOut();
 		if (result && result.then instanceof Function) {
 			return result.then(function (next) {
 				self.cmd = next;
 				self.bus.dispatchEvent(new Event("step"));
 				self.logCommand();
-			})
+			});
 		} else if (result.halt_flag) {
 			this.bus.dispatchEvent(new Event("continue"));
 		} else {
@@ -68,9 +75,9 @@
 			self.bus.dispatchEvent(new Event("step"));
 			this.logCommand();
 		}
-	}
+	};
 
-	HDB.prototype.stepOut = function() {
+	HDB.prototype.stepOut = function () {
 		var self = this;
 		if (!self.ctx.meta.caller) return self.continueExec();
 		var callingCmd = self.ctx.meta.callingCommand;
@@ -84,10 +91,10 @@
 		self.cmd = self.runtime.findNext(callingCmd, self.ctx);
 		self.cmd = self.runtime.findNext(self.cmd, self.ctx);
 		self.logCommand();
-		self.bus.dispatchEvent(new Event('step'))
-	}
+		self.bus.dispatchEvent(new Event("step"));
+	};
 
-	HDB.prototype.logCommand = function() {
+	HDB.prototype.logCommand = function () {
 		var hasSource = this.cmd.sourceFor instanceof Function;
 		var cmdSource = hasSource ? this.cmd.sourceFor() : '-- '+this.cmd.type;
 		console.log("[hdb] current command: " + cmdSource)
@@ -99,7 +106,7 @@
 	on continue from hdb.bus log 'done' then remove me.getRootNode().host">
 
 	<script type="text/hyperscript">
-	
+
 	def escapeHTML(unsafe)
 		js(unsafe) return unsafe
 			.replace(/&/g, "&amp;")
@@ -109,7 +116,7 @@
 			.replace(/\\x27/g, "&#039;") end
 		return it
 	end
-	
+
 	def highlightDebugCode
 		set start to hdb.cmd.startToken.start
 		set end to hdb.cmd.endToken.end
@@ -132,7 +139,7 @@
 					'"</span>'
 			end end
 			set rv to rv + '>'
-			return rv 
+			return rv
 		else if obj.call
 			if obj.hyperfunc
 				get "def " + obj.hypername + ' ...'
@@ -196,7 +203,7 @@
 				put escapeHTML(input) into .input in the entry
 				if no output
 					set output to _hyperscript(input, hdb.ctx)
-				end 
+				end
 				put prettyPrint(output) as Fragment into .output in the entry
 			">
 			<template id="tmpl-console-entry">
@@ -206,8 +213,8 @@
 				</li>
 			</template>
 		</ul>
-		
-		<form id="console-form" data-hist="0" _="on submit 
+
+		<form id="console-form" data-hist="0" _="on submit
 				send hdbUI:consoleEntry(input: #console-input's value) to #console
 				set #console-input's value to ''
 				set @data-hist to 0
@@ -215,7 +222,7 @@
 			on keydown[key is 'ArrowUp' or key is 'ArrowDown']
 				if no hdb.consoleHistory or exit end
 				log the event
-				if event.key is 'ArrowUp' and hdb.consoleHistory.length > -@data-hist 
+				if event.key is 'ArrowUp' and hdb.consoleHistory.length > -@data-hist
 					decrement @data-hist
 				else if event.key is 'ArrowDown' and @data-hist < 0
 					increment @data-hist
@@ -342,7 +349,7 @@
 		padding-left: 0;
 		margin: 0 .4em .4em .4em;
 	}
-	
+
 	#console>*+* {
 		margin-top: .5em;
 	}
@@ -372,14 +379,13 @@
 	.token.bold, .token.punctuation, .token.operator { font-weight: bold; }
 	</style>
 </div>
-`
+`;
 	HDB.prototype.ui = function () {
-		var node = document.createElement('div');
-		var shadow = node.attachShadow({ mode: 'open' });
-		node.style = 'all: initial';
+		var node = document.createElement("div");
+		var shadow = node.attachShadow({ mode: "open" });
+		node.style = "all: initial";
 		shadow.innerHTML = ui;
 		document.body.appendChild(node);
-		_hyperscript.processNode(shadow.querySelector('.hdb'));
-	}
-})()
-
+		_hyperscript.processNode(shadow.querySelector(".hdb"));
+	};
+})();

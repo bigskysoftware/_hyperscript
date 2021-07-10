@@ -12,7 +12,7 @@ it is a companion project of <https://htmx.org>
 
 ```html
 
-<script src="https://unpkg.com/hyperscript.org@0.0.9"></script>
+<script src="https://unpkg.com/hyperscript.org@0.8.1"></script>
 
 
 <button _="on click toggle .clicked">
@@ -24,7 +24,7 @@ it is a companion project of <https://htmx.org>
 </div>
 
 <div data-hs="on click call aJavascriptFunction() then
-              wait 10s then 
+              wait 10s then
               call anotherJavascriptFunction()">
            Do some stuff
 </div>

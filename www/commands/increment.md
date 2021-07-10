@@ -1,7 +1,3 @@
----
-layout: layout.njk
-title: ///_hyperscript
----
 
 ## The `increment` Command
 
@@ -13,7 +9,7 @@ increment <target> [by <number>]
 
 ### Description
 
-The `increment` command adds to an existing variable, property, or attribute.  It defaults to adding the value `1`, but this can be changed using the `by` modifier.  If the target variable is null, then it is assumed to be `0`, and then incremented by the specified amount.  The `increment` command is the opposite of the [`decrement` command](/commands/decrement) command.
+The `increment` command adds to an existing variable, property, or attribute. It defaults to adding the value `1`, but this can be changed using the `by` modifier. If the target variable is null, then it is assumed to be `0`, and then incremented by the specified amount. The `increment` command is the opposite of the [`decrement` command](/commands/decrement) command.
 
 ### Example
 
