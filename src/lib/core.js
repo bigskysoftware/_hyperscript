@@ -2058,7 +2058,7 @@
 		 */
 		function getRootNode(node) {
 			var rv = node.getRootNode();
-			if (!(node instanceof Document || node instanceof ShadowRoot)) rv = document;
+			if (!(rv instanceof Document || rv instanceof ShadowRoot)) rv = document;
 			return rv;
 		}
 
