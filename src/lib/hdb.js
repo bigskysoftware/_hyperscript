@@ -246,6 +246,7 @@
 		width: min(40ch, calc(100% - 1em));
 		max-height: calc(100% - 1em);
 		background-color: white;
+		font-family: sans-serif;
 		opacity: .9;
 		z-index: 2147483647;
 		color: black;
