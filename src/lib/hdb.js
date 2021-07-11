@@ -167,14 +167,15 @@
 					top:  \`\${its clientY - yoff}px\`
 				} to .hdb
 			end
-		">HDB///_hyperscript/debugger</h2>
+		">///_hyperscript/debugger</h2>
+		<ul role="toolbar" class="toolbar">
+			<li><button _="on click call hdb.continueExec()">Continue </button></li
+			><li><button _="on click call hdb.stepOver()">Step Over</button></li
+		></ul>
 	</header>
 
 	<section class="sec-code">
-		<ul role="toolbar" class="toolbar">
-			<li><button _="on click call hdb.continueExec()">Continue </button></li
-			><li><button _="on click call hdb.stepOver()    ">Step Over</button></li
-		></ul>
+
 		<div class="code-container">
 			<pre class="code language-hyperscript" _="
 				on update from .hdb if hdb.cmd.programSource
@@ -257,36 +258,38 @@
 		box-sizing: border-box;
 	}
 
+	header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: .4em;
+	}
+
 	.titlebar {
 		margin: 0;
 		font-size: 1em;
-		padding: .4em;
-		border-radius: .3em .3em 0 0;
 		touch-action: none;
 	}
 
 	.toolbar {
+		display: flex;
+		gap: .35em;
+
 		list-style: none;
 		padding-left: 0;
 		margin: 0;
-		background: #50a0b9;
-		border-bottom: 1px solid #440;
-		box-shadow: 0 1px 0 0 #fffa inset;
-	}
-
-	.toolbar li {
-		display: inline;
 	}
 
 	.toolbar a, .toolbar button {
-		display: inline-block;
-		border: none;
-		background: #ddecff;
-		border-right: 1px solid #3465a4;
+		background: #2183ff;
+		border: 1px solid #3465a4;
+		box-shadow: 0 1px #b3c6ff inset, 0 .06em .06em #000;
+		border-radius: .2em;
 		font: inherit;
 		padding: .2em .3em;
-		box-shadow: 1px 1px 0 0 #fffa inset;
-
+		color: white;
+		text-shadow: 0 1px black;
+		font-weight: bold;
 	}
 
 	.toolbar a:hover .toolbar a:focus, .toolbar button:hover, .toolbar button:focus {
@@ -300,7 +303,8 @@
 	.sec-code {
 		border-radius: .3em;
 		overflow: hidden;
-		box-shadow: 0 .1em .1em #0008;
+		box-shadow: 0 1px white inset, 0 .06em .06em #0008;
+		background: #bdf;
 		margin: 0 .4em;
 		border: 1px solid #3465a4;
 	}
@@ -316,11 +320,9 @@
 		line-height: 1.2em;
 		height: calc(12 * 1.2em);
 		border-radius: 0 0 .2em .2em;
-		background: #bdf;
-		box-shadow: 0 .2em .3em -.1em #3465a4 inset;
-		overflow: scroll;
+		overflow: auto;
 		scrollbar-width: thin;
-		scrollbar-color: #132f53 transparent;
+		scrollbar-color: #0003 transparent;
 	}
 
 	.code, #console, #console-input {
@@ -344,11 +346,12 @@
 	#console {
 		overflow-y: scroll;
 		scrollbar-width: thin;
-		scrollbar-color: #3465a4 transparent;
+		scrollbar-color: #afc2db transparent;
 		height: calc(12 * 1.2em);
 		list-style: none;
 		padding-left: 0;
 		margin: 0 .4em .4em .4em;
+		position: relative;
 	}
 
 	#console>*+* {
@@ -371,6 +374,7 @@
 
 	#console-input {
 		width: 100%;
+		font-size: inherit;
 	}
 
 	.token.tagname { font-weight: bold; }
