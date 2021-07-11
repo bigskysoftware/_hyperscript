@@ -127,17 +127,23 @@
 		return beforeCmd+"<u class='current'><code>"+cmd+"</code></u>"+afterCmd
 	end
 
+	def truncate(str, len)
+		if str.length <= len return str end
+		return str.substr(0, len) + '…'
+
 	def prettyPrint(obj)
 		if obj is null      return 'null'      end
 		if Element.prototype.isPrototypeOf(obj)
 			set rv to '&lt;<span class="token tagname">' +
 				obj.tagName.toLowerCase() + "</span>"
-			for attr in Array.from(obj.attributes) if attr.specified
-				set rv to rv +
-					' <span class="token attr">' + attr.nodeName +
-					'</span>=<span class="token string">"' + attr.textContent +
-					'"</span>'
-			end end
+			for attr in Array.from(obj.attributes)
+				if attr.specified
+					set rv to rv +
+						' <span class="token attr">' + attr.nodeName +
+						'</span>=<span class="token string">"' + truncate(attr.textContent, 10) +
+						'"</span>'
+				end
+			end
 			set rv to rv + '>'
 			return rv
 		else if obj.call
@@ -153,25 +159,30 @@
 	end
 	</script>
 
-	<header>
-		<h2 class="titlebar" _="
-		on pointerdown(clientX, clientY)
-			halt the event
-			measure my x, y
-			set xoff to clientX - x
-			set yoff to clientY - y
-			repeat until event pointerup from document
-				wait for pointermove or pointerup from document
-				add {
-					left: \`\${its clientX - xoff}px\`,
-					top:  \`\${its clientY - yoff}px\`
-				} to .hdb
-			end
-		">///_hyperscript/debugger</h2>
-		<ul role="toolbar" class="toolbar">
-			<li><button _="on click call hdb.continueExec()">Continue </button></li
-			><li><button _="on click call hdb.stepOver()">Step Over</button></li
-		></ul>
+	<header _="
+	on pointerdown(clientX, clientY)
+		halt the event
+		call event.stopPropagation()
+		measure my x, y
+		set xoff to clientX - x
+		set yoff to clientY - y
+		repeat until event pointerup from document
+			wait for pointermove or pointerup from document
+			add {
+				left: \`\${its clientX - xoff}px\`,
+				top:  \`\${its clientY - yoff}px\`
+			} to .hdb
+		end
+	">
+		<h2 class="titlebar">///_hyperscript/debugger</h2>
+		<ul role="toolbar" class="toolbar" _="on pointerdown halt">
+			<li><button _="on click call hdb.continueExec()">
+				Continue
+			</button>
+			<li><button _="on click call hdb.stepOver()">
+				Step Over
+			</button>
+		</ul>
 	</header>
 
 	<section class="sec-code">
