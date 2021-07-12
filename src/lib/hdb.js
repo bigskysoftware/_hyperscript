@@ -214,7 +214,11 @@
 				scrollIntoView({ block: 'end' }) the entry
 				put escapeHTML(input) into .input in the entry
 				if no output
-					set output to _hyperscript(input, hdb.ctx)
+					call _hyperscript.internals.runtime.parse(input)
+					if its execute is not undefined then execute(hdb.ctx) it
+					else evaluate(hdb.ctx) it
+					end
+					set output to it
 				end
 				put prettyPrint(output) as Fragment into .output in the entry
 			">
