@@ -1808,7 +1808,7 @@
 		}
 
 		function getElementScope(context) {
-			var elt = context.meta.owner;
+			var elt = context.meta && context.meta.owner;
 			if (elt) {
 				var internalData = getInternalData(elt);
 				var scopeName = "elementScope";
@@ -2058,7 +2058,7 @@
 		 */
 		function getRootNode(node) {
 			var rv = node.getRootNode();
-			if (!(node instanceof Document || node instanceof ShadowRoot)) rv = document;
+			if (!(rv instanceof Document || rv instanceof ShadowRoot)) rv = document;
 			return rv;
 		}
 
