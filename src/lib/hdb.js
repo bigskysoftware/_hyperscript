@@ -177,10 +177,10 @@
 		<h2 class="titlebar">///_hyperscript/debugger</h2>
 		<ul role="toolbar" class="toolbar" _="on pointerdown halt">
 			<li><button _="on click call hdb.continueExec()">
-				Continue
+				&#x23F5; Continue
 			</button>
 			<li><button _="on click call hdb.stepOver()">
-				Step Over
+				&#8631; Step Over
 			</button>
 		</ul>
 	</header>
