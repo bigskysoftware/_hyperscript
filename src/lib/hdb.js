@@ -163,7 +163,7 @@
 	on pointerdown(clientX, clientY)
 		halt the event
 		call event.stopPropagation()
-		measure my x, y
+		measure .hdb's x, y
 		set xoff to clientX - x
 		set yoff to clientY - y
 		repeat until event pointerup from document
