@@ -238,15 +238,12 @@
 				halt
 			on keydown[key is 'ArrowUp' or key is 'ArrowDown']
 				if no hdb.consoleHistory or exit end
-				log the event
-				log element oldContent
 				if element oldContent is null set element oldContent to #console-input.value end
 				if event.key is 'ArrowUp' and hdb.consoleHistory.length > -@data-hist
 					decrement @data-hist
 				else if event.key is 'ArrowDown' and @data-hist < 0
 					increment @data-hist
 				end end
-				log @data-hist, hdb.consoleHistory[hdb.consoleHistory.length + @data-hist as Int], oldContent
 				set #console-input.value to hdb.consoleHistory[hdb.consoleHistory.length + @data-hist as Int]
 					or oldContent
 				halt default
