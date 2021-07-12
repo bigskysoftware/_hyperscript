@@ -266,7 +266,8 @@
 		opacity: .9;
 		z-index: 2147483647;
 		color: black;
-		display: grid;
+		display: flex;
+		flex-flow: column;
 	}
 
 	* {
@@ -367,6 +368,7 @@
 		padding-left: 0;
 		margin: 0 .4em .4em .4em;
 		position: relative;
+		word-wrap: break-word;
 	}
 
 	#console>*+* {
