@@ -29,39 +29,48 @@ copy
 </div>
 </header>
 
-
-`<script src="https://unpkg.com/hyperscript.org@0.8.1"></script></code>`
-<button style="font:inherit; background: none; border: none; color: #3465a4"
-_="on click
-writeText(my previousElementSibling's innerText) on navigator.clipboard
-put 'copied!' into me
-wait 2s
-put 'copy' into me">copy</button>
-
 hyperscript makes writing event handlers and highly responsive user interfaces
 trivial with native language support for async behavior&mdash;easier than
 callbacks, promises, even async/await.
 
 <div id="features">
 
-* **Events as first class citizens in the language**&mdash;clean syntax for
-  [receiving](/features/on) and [sending](/commands/send) events, as well as
-  [event-driven control flow](docs/#event-control-flow)
-* **DOM-oriented syntax**&mdash;seamless integrated [CSS id, CSS class and CSS
-  query literals](https://hyperscript.org/expressions/#css)
-* **First-class [web workers](/docs#workers)**
-* **[Async-transparent](/docs#async) runtime**&mdash;highly responsive user
-  experiences without callback hell
-* **[Pluggable & extendable](/docs/#extending)** parser & grammar
-* **[Debugger](/docs#debugging)** to step through hyperscript code
-* **Inspired by [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf)**
+**Events as first class citizens in the language**&mdash;clean syntax for
+[receiving](/features/on) and [sending](/commands/send) events, as well as
+[event-driven control flow](docs/#event-control-flow)
+
+**DOM-oriented syntax**&mdash;seamless integrated [CSS id, CSS class and CSS
+query literals](https://hyperscript.org/expressions/#css)
+
+**First-class [web workers](/docs#workers)**
+
+**[Async-transparent](/docs#async) runtime**&mdash;highly responsive user
+experiences without callback hell
+
+**[Pluggable & extendable](/docs/#extending)** parser & grammar
+
+**[Debugger](/docs#debugging)** to step through hyperscript code
+
+**Inspired by [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf)**
   (not AppleScript)
+
 </div>
 
-[Read the **docs**](/docs) |
-[**Comparison** with vanilla JS and jQuery](/comparison) |
-[Companion of **htmx**](https://htmx.org) |
+<div id="links">
+
+[Companion of **htmx**](https://htmx.org)
+[**Comparison** with vanilla JS and jQuery](/comparison)
+[Read the **docs**](/docs)
 [Try it on the **playground**](/playground)
+<span>Install: `<script src="https://unpkg.com/hyperscript.org@0.8.1"></script>`
+<button style="font:inherit; background: none; border: none; color: #3465a4"
+  _="on click
+  writeText(my previousElementSibling's innerText) on navigator.clipboard
+  put 'copied!' into me
+  wait 2s
+  put 'copy' into me">copy</button></span>
+
+</div>
 
 <small style="color: darkgoldenrod;">
 <b style="font-size: 2em; padding: 4px .2ch 0 0; line-height: 1; float: left">β</b>
@@ -101,17 +110,22 @@ compatibility.</small>
   display: inline-block;
 }
 
-#features ul {
-  padding-left: 0;
-  list-style: none;
+#features {
   column-width: 40ch;
   column-gap: 2em;
-  margin-bottom: -1em;
 }
 
-#features li {
-  display: inline-block;
-  margin-bottom: 1em;
+#features > * {
+  margin: 0 0 1.4em 0;
+}
+
+#links p {
+  margin: 1.4em 0;
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: center;
+  text-align: center;
+  gap: .2em 2ch;
 }
 
 .example {
