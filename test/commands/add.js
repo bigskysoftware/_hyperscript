@@ -42,12 +42,21 @@ describe("the add command", function () {
 
 	it("can add css properties", function () {
 		var div = make(
-			"<div style='color: blue' " + '    _=\'on click add {color: "red", "font-family": "monospace"}\'></div>'
+			"<div style='color: blue' _='on click add {color: red; font-family: monospace}'></div>"
 		);
 		div.style.color.should.equal("blue");
 		div.click();
 		div.style.color.should.equal("red");
 		div.style.fontFamily.should.equal("monospace");
+	});
+
+	it("can add templated css properties", function () {
+		var div = make(
+			"<div style='color: blue' _='on click add {color: ${\"red\"};}'></div>"
+		);
+		div.style.color.should.equal("blue");
+		div.click();
+		div.style.color.should.equal("red");
 	});
 
 	it("can add multiple class refs", function () {
