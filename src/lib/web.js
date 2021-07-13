@@ -515,6 +515,7 @@
 			var operationToken = tokens.matchAnyToken("into", "before", "after");
 
 			if (operationToken == null && tokens.matchToken("at")) {
+				tokens.matchToken("the"); // optional "the"
 				operationToken = tokens.matchAnyToken("start", "end");
 				tokens.requireToken("of");
 			}
