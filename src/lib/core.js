@@ -4723,8 +4723,9 @@
 				loop: loop,
 				args: [whileExpr],
 				op: function (context, whileValue) {
-					var iterator = context.meta.iterators[slot];
+					var iteratorInfo = context.meta.iterators[slot];
 					var keepLooping = false;
+					var loopVal = null;
 					if (this.forever) {
 						keepLooping = true;
 					} else if (this.until) {
@@ -4733,25 +4734,26 @@
 						} else {
 							keepLooping = whileValue !== true;
 						}
-					} else if (whileValue) {
-						keepLooping = true;
+					} else if (whileExpr) {
+						keepLooping = whileValue;
 					} else if (times) {
-						keepLooping = iterator.index < this.times;
+						keepLooping = iteratorInfo.index < this.times;
 					} else {
-						keepLooping = iterator.value !== null && iterator.index < iterator.value.length;
+						var nextValFromIterator = iteratorInfo.iterator.next();
+						keepLooping = !nextValFromIterator.done;
+						loopVal = nextValFromIterator.value;
 					}
 
 					if (keepLooping) {
-						if (iterator.value) {
-							context[identifier] = iterator.value[iterator.index];
-							context.result = iterator.value[iterator.index];
+						if (iteratorInfo.value) {
+							context.result = context[identifier] = loopVal;
 						} else {
-							context.result = iterator.index;
+							context.result = iteratorInfo.index;
 						}
 						if (indexIdentifier) {
-							context[indexIdentifier] = iterator.index;
+							context[indexIdentifier] = iteratorInfo.index;
 						}
-						iterator.index++;
+						iteratorInfo.index++;
 						return loop;
 					} else {
 						context.meta.iterators[slot] = null;
@@ -4764,11 +4766,15 @@
 				name: "repeatInit",
 				args: [expression, evt, on],
 				op: function (context, value, event, on) {
-					context.meta.iterators[slot] = {
+					var iteratorInfo = {
 						index: 0,
 						value: value,
 						eventFired: false,
 					};
+					context.meta.iterators[slot] = iteratorInfo;
+					if (value && value[Symbol.iterator]) {
+						iteratorInfo.iterator = value[Symbol.iterator]();
+					}
 					if (evt) {
 						var target = on || context.me;
 						target.addEventListener(
