@@ -4,7 +4,7 @@
 ### Syntax
 
 ```ebnf
-put <expression> (into | before | at start of | at end of | after)  <expression>`
+put <expression> (into | before | at [the] start of | at [the] end of | after)  <expression>`
 ```
 
 ### Description

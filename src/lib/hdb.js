@@ -1,7 +1,5 @@
 (function () {
-	var _hyperscript = typeof module !== 'undefined' ? module.exports : this._hyperscript
-
-	var globalScope = typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this;
+	var globalScope = this
 
 	function HDB(ctx, runtime, breakpoint) {
 		this.ctx = ctx;
@@ -29,17 +27,9 @@
 		};
 	});
 
-	var markerStyle = "color: #006aff; font-family: sans-serif;";
-	var logTypeStyle = "font-style: italic; font-family: sans-serif;";
-	var sourceStyle = "color: greenyellow; background: black;";
-	var symbolStyle = "font-style: italic;";
-	var infoStyle = "font-weight: bold; font-family: sans-serif;";
-	var headingStyle =
-		"font-weight: bold; font-size: 1.4em; border: 1px solid #006aff; padding: .2em; display: block; width: max-content; max-width: 100%;";
-
-	HDB.prototype.break = function (ctx) {
+	HDB.prototype.break = function(ctx) {
 		var self = this;
-		console.log("%c=== HDB///_hyperscript/debugger ===", headingStyle);
+		console.log("=== HDB///_hyperscript/debugger ===");
 		self.ui();
 		return new Promise(function (resolve, reject) {
 			self.bus.addEventListener(
@@ -94,13 +84,9 @@
 		var oldMe = self.ctx.me;
 		self.ctx = self.ctx.meta.caller;
 		console.log(
-			"%c[hdb] %cstepping out into %c" + self.ctx.meta.feature.displayName,
-			markerStyle,
-			logTypeStyle,
-			symbolStyle
-		);
+			"[hdb] cstepping out into " + self.ctx.meta.feature.displayName)
 		if (self.ctx.me instanceof Element && self.ctx.me !== oldMe) {
-			console.log("%c[hdb] %cme: ", markerStyle, logTypeStyle, self.ctx.me);
+			console.log("[hdb] me: ", self.ctx.me)
 		}
 		self.cmd = self.runtime.findNext(callingCmd, self.ctx);
 		self.cmd = self.runtime.findNext(self.cmd, self.ctx);
@@ -110,14 +96,9 @@
 
 	HDB.prototype.logCommand = function () {
 		var hasSource = this.cmd.sourceFor instanceof Function;
-		var cmdSource = hasSource ? this.cmd.sourceFor() : "-- " + this.cmd.type;
-		console.log(
-			"%c[hdb] " + "%ccurrent command: " + "%c" + cmdSource,
-			markerStyle,
-			logTypeStyle,
-			hasSource ? sourceStyle : infoStyle
-		);
-	};
+		var cmdSource = hasSource ? this.cmd.sourceFor() : '-- '+this.cmd.type;
+		console.log("[hdb] current command: " + cmdSource)
+	}
 
 	var ui = `
 <div class="hdb" _="
@@ -125,15 +106,6 @@
 	on continue from hdb.bus log 'done' then remove me.getRootNode().host">
 
 	<script type="text/hyperscript">
-	def highlightDebugCode
-		set start to hdb.cmd.startToken.start
-		set end to hdb.cmd.endToken.end
-		set src to hdb.cmd.programSource
-		set beforeCmd to escapeHTML(src.substring(0, start))
-		set cmd to escapeHTML(src.substring(start, end))
-		set afterCmd to escapeHTML(src.substring(end))
-		return beforeCmd+"<u class='current'>"+cmd+"</u>"+afterCmd
-	end
 
 	def escapeHTML(unsafe)
 		js(unsafe) return unsafe
@@ -145,85 +117,140 @@
 		return it
 	end
 
+	def highlightDebugCode
+		set start to hdb.cmd.startToken.start
+		set end to hdb.cmd.endToken.end
+		set src to hdb.cmd.programSource
+		set beforeCmd to '<code>'+escapeHTML(src.substring(0, start))+'</code>'
+		set cmd to escapeHTML(src.substring(start, end))
+		set afterCmd to '<code>'+escapeHTML(src.substring(end))+'</code>'
+		return beforeCmd+"<u class='current'><code>"+cmd+"</code></u>"+afterCmd
+	end
+
+	def truncate(str, len)
+		if str.length <= len return str end
+		return str.substr(0, len) + '…'
+
 	def prettyPrint(obj)
-		if obj.outerHTML
-			get obj.outerHTML.split('>')[0] + '>'
+		if obj is null      return 'null'      end
+		if Element.prototype.isPrototypeOf(obj)
+			set rv to '&lt;<span class="token tagname">' +
+				obj.tagName.toLowerCase() + "</span>"
+			for attr in Array.from(obj.attributes)
+				if attr.specified
+					set rv to rv +
+						' <span class="token attr">' + attr.nodeName +
+						'</span>=<span class="token string">"' + truncate(attr.textContent, 10) +
+						'"</span>'
+				end
+			end
+			set rv to rv + '>'
+			return rv
 		else if obj.call
 			if obj.hyperfunc
-				get "def " + obj.hypername
+				get "def " + obj.hypername + ' ...'
 			else
-				get "function "+obj.name+"() {...}"
+				get "function "+obj.name+"(...) {...}"
 			end
-		else if obj
+		else if obj.toString
 			call obj.toString()
 		end
 		return escapeHTML((it or 'undefined').trim())
 	end
 	</script>
 
-	<header>
-		<h2 class="titlebar" _="
-		on pointerdown(clientX, clientY)
-			measure my x, y
-			set xoff to clientX - x
-			set yoff to clientY - y
-			repeat until event pointerup from document
-				wait for pointermove or pointerup from document
-				add {
-					left: \`\${its clientX - xoff}px\`,
-					top:  \`\${its clientY - yoff}px\`
-				} to hdbUI
-			end
-		">HDB///_hyperscript/debugger</h2>
-		<ul role="toolbar" class="toolbar">
-		<li><button _="on click call hdb.continueExec()">Continue</button></li
-		><li><button _="on click call hdb.stepOver()">Step Over</button></li>
+	<header _="
+	on pointerdown(clientX, clientY)
+		halt the event
+		call event.stopPropagation()
+		measure .hdb's x, y
+		set xoff to clientX - x
+		set yoff to clientY - y
+		repeat until event pointerup from document
+			wait for pointermove or pointerup from document
+			add {
+				left: \`\${its clientX - xoff}px\`,
+				top:  \`\${its clientY - yoff}px\`
+			} to .hdb
+		end
+	">
+		<h2 class="titlebar">HDB</h2>
+		<ul role="toolbar" class="toolbar" _="on pointerdown halt">
+			<li><button _="on click call hdb.continueExec()">
+				&#x23F5; Continue
+			</button>
+			<li><button _="on click call hdb.stepOver()">
+				&#8631; Step Over
+			</button>
 		</ul>
 	</header>
 
-	<section class="sec-eval">
-		<h3>Evaluate Expression</h3>
-		<form class="eval-form"  _="
-		    on submit
-			  get the first <input/> in me
-			  then call _hyperscript(its.value, hdb.ctx)
-			  then call prettyPrint(it)
-			  then put it into the <output/> in me
-			  then halt">
-			<input type="text" id="eval-expr" placeholder="e.g. target.innerText">
-			<button type="submit">Go</button>
-			<output id="eval-output"><em>The value will show up here</em></output>
-	</section>
-
 	<section class="sec-code">
-		<h3 _="on update from .hdb
-			put 'Debugging <code>'+hdb.cmd.parent.displayName+'</code>' into me"></h3>
 
 		<div class="code-container">
-			<pre class="code" _="on update from .hdb
-			                          if hdb.cmd.programSource
-				                        put highlightDebugCode() into my.innerHTML
-				                        scrollIntoView({ block: 'nearest' }) the
-				                        	first .current in me"></pre>
+			<pre class="code language-hyperscript" _="
+				on update from .hdb if hdb.cmd.programSource
+			    	put highlightDebugCode() into me
+			    	if Prism
+			    		call Prism.highlightAllUnder(me)
+			    	end
+			        scrollIntoView({ block: 'nearest' }) the
+			        	first .current in me"><code></code></pre>
 		</div>
 	</section>
 
-	<section class="sec-ctx">
+	<section class="sec-console" _="
+		-- Print context at startup
+		init repeat for var in Object.keys(hdb.ctx) if var is not 'meta'
+			send hdbUI:consoleEntry(input: var, output: hdb.ctx[var]) to #console">
 
-		<h3>Context</h3>
+		<ul id="console" role="list" _="
+			on hdbUI:consoleEntry(input, output)
+				if no hdb.consoleHistory set hdb.consoleHistory to [] end
+				push(input) on hdb.consoleHistory
+				set node to #tmpl-console-entry.content.cloneNode(true)
+				put the node at end of me
+				set entry to my lastElementChild
+				scrollIntoView({ block: 'end' }) the entry
+				put escapeHTML(input) into .input in the entry
+				if no output
+					call _hyperscript.internals.runtime.parse(input)
+					if its execute is not undefined then execute(hdb.ctx) it
+					else evaluate(hdb.ctx) it
+					end
+					set output to it
+				end
+				put prettyPrint(output) as Fragment into .output in the entry
+			">
+			<template id="tmpl-console-entry">
+				<li class="console-entry">
+					<kbd><code class="input"></code></kbd>
+					<samp class="output"></samp>
+				</li>
+			</template>
+		</ul>
 
-		<dl class="context" _="
-			on update from .hdb
-			set my.innerHTML to ''
-			repeat for var in Object.keys(hdb.ctx) if var != 'meta'
-				get '<dt>'+var+'<dd>'+prettyPrint(hdb.ctx[var])
-				put it at end of me
-			end end
-
-			on click
-				get closest <dt/> to target
-				log hdb.ctx[its.innerText]"></dl>
-
+		<form id="console-form" data-hist="0" _="on submit
+				send hdbUI:consoleEntry(input: #console-input's value) to #console
+				set #console-input's value to ''
+				set @data-hist to 0
+				set element oldContent to null
+				halt
+			on keydown[key is 'ArrowUp' or key is 'ArrowDown']
+				if no hdb.consoleHistory or exit end
+				if element oldContent is null set element oldContent to #console-input.value end
+				if event.key is 'ArrowUp' and hdb.consoleHistory.length > -@data-hist
+					decrement @data-hist
+				else if event.key is 'ArrowDown' and @data-hist < 0
+					increment @data-hist
+				end end
+				set #console-input.value to hdb.consoleHistory[hdb.consoleHistory.length + @data-hist as Int]
+					or oldContent
+				halt default
+			on input if @data-hist is '0' set element oldContent to #console-input.value">
+			<input id="console-input" placeholder="Enter an expression&hellip;"
+				autocomplete="off">
+		</form>
 	</section>
 
 	<style>
@@ -233,94 +260,70 @@
 		box-shadow: 0 .2em .3em #0008;
 		position: fixed;
 		top: .5em; right: .5em;
-		width: min(40ch, calc(100% - 1em)); height: calc(100% - 1em);
+		width: min(40ch, calc(100% - 1em));
+		max-height: calc(100% - 1em);
 		background-color: white;
+		font-family: sans-serif;
 		opacity: .9;
 		z-index: 2147483647;
 		color: black;
-		display: grid;
+		display: flex;
+		flex-flow: column;
 	}
 
 	* {
 		box-sizing: border-box;
 	}
 
+	header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: .4em;
+	}
+
 	.titlebar {
 		margin: 0;
 		font-size: 1em;
-		padding: .5em;
-		background: linear-gradient(to bottom, #eee, #ccc);
-		border-bottom: 1px solid #888;
-		border-radius: .3em .3em 0 0;
 		touch-action: none;
 	}
 
 	.toolbar {
+		display: flex;
+		gap: .35em;
+
 		list-style: none;
 		padding-left: 0;
 		margin: 0;
-		background: linear-gradient(to bottom, #666, #999);
-		border-bottom: 1px solid #444;
-	}
-
-	.toolbar li {
-		display: inline;
 	}
 
 	.toolbar a, .toolbar button {
-		display: inline-block;
-		border: none;
-		background: linear-gradient(to bottom, #ccc, #aaa);
-		border-right: 1px solid #444;
+		background: #2183ff;
+		border: 1px solid #3465a4;
+		box-shadow: 0 1px #b3c6ff inset, 0 .06em .06em #000;
+		border-radius: .2em;
 		font: inherit;
-		padding: .3em;
+		padding: .2em .3em;
+		color: white;
+		text-shadow: 0 1px black;
+		font-weight: bold;
 	}
 
 	.toolbar a:hover .toolbar a:focus, .toolbar button:hover, .toolbar button:focus {
-		background: linear-gradient(to bottom, #eee, #bbb);
+		background: #94c8ff;
 	}
 
 	.toolbar a:active, .toolbar button:active {
-		background: linear-gradient(to bottom, #777, #999);
-	}
-
-	.eval-form {
-		display: grid;
-		grid-template-columns: 1fr auto;
-		grid-template-areas: 'input go' 'output output';
-		padding: .4em;
-	}
-
-	#eval-expr {
-		grid-area: input;
-		border-radius: .2em 0 0 0;
-		font: inherit;
-		font-family: Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", Monaco, "Courier New", Courier, monospace;
-		box-shadow: 0 .05em .2em #0008 inset;
-		border: 1px solid #0008;
-		border-right: none;
-		padding: .4em;
-	}
-
-	#eval-output {
-		grid-area: output;
-		border-radius: 0 0 .2em .2em;
-		background: #111;
-		font-family: Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", Monaco, "Courier New", Courier, monospace;
-		color: greenyellow;
-		text-shadow: 0 0 .2em greenyellow;
-		padding: .4em;
-	}
-
-	.eval-form button {
-		grid-area: 'go';
-		border-radius: 0 .2em 0 0;
-		background: linear-gradient(to bottom, #ccc, #aaa);
-		border: 1px solid #444;
+		background: #3465a4;
 	}
 
 	.sec-code {
-
+		border-radius: .3em;
+		overflow: hidden;
+		box-shadow: 0 1px white inset, 0 .06em .06em #0008;
+		background: #bdf;
+		margin: 0 .4em;
+		border: 1px solid #3465a4;
 	}
 
 	.hdb h3 {
@@ -330,24 +333,26 @@
 	}
 
 	.code-container {
+		display: grid;
 		line-height: 1.2em;
 		height: calc(12 * 1.2em);
-		padding: .1em;
-		border-radius: .2em;
-		background: #eda;
-		box-shadow: 0 .1em .3em #650 inset;
-		margin: .4em;
-		display: grid;
+		border-radius: 0 0 .2em .2em;
+		overflow: auto;
+		scrollbar-width: thin;
+		scrollbar-color: #0003 transparent;
+	}
+
+	.code, #console, #console-input {
+		font-family: Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", Monaco, "Courier New", Courier, monospace;
 	}
 
 	.code {
-		font-family: Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", Monaco, "Courier New", Courier, monospace;
-		height: 100%;
-		overflow-y: scroll;
-		scrollbar-width: thin;
-		scrollbar-color: #650 transparent;
+		width: 0;
 		margin: 0;
 		padding-left: 1ch;
+		tab-size: 2;
+		-moz-tab-size: 2;
+		-o-tab-size: 2;
 	}
 
 	.current {
@@ -355,25 +360,46 @@
 		background: #abf;
 	}
 
-	.sec-ctx {
-		display: contents;
-	}
-
-	.sec-ctx dl {
-		font-family: Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", Monaco, "Courier New", Courier, monospace;
-		line-height: 1.2em;
-		max-height: calc(12 * 1.2em);
-		padding: .1em;
-		margin: .4em;
-		border-radius: .2em;
-
-		overflow: auto;
+	#console {
+		overflow-y: scroll;
 		scrollbar-width: thin;
+		scrollbar-color: #afc2db transparent;
+		height: calc(12 * 1.2em);
+		list-style: none;
+		padding-left: 0;
+		margin: 0 .4em .4em .4em;
+		position: relative;
+		word-wrap: break-word;
 	}
 
-	.sec-ctx dt {
-		color: #02a;
+	#console>*+* {
+		margin-top: .5em;
 	}
+
+	.console-entry>* {
+		display: block;
+	}
+
+	.console-entry .input  { color: #3465a4; }
+	.console-entry .output { color: #333; }
+
+	.console-entry .input:before  { content: '>> ' }
+	.console-entry .output:before { content: '<- ' }
+
+	#console-form {
+		margin: 0 .4em .4em .4em;
+	}
+
+	#console-input {
+		width: 100%;
+		font-size: inherit;
+	}
+
+	.token.tagname { font-weight: bold; }
+	.token.attr, .token.builtin, .token.italic { font-style: italic; }
+	.token.string { opacity: .8; }
+	.token.keyword { color: #3465a4; }
+	.token.bold, .token.punctuation, .token.operator { font-weight: bold; }
 	</style>
 </div>
 `;
