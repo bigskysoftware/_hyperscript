@@ -107,6 +107,16 @@ a {
     }
 }
 
+#links {
+    a {
+        padding: 0px 8px;
+    }
+    #install {
+        display: inline-block;
+        padding: 8px;
+    }
+}
+
 .hamburger {
     display: none;
 }

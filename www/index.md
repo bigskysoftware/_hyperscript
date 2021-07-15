@@ -58,17 +58,18 @@ experiences without callback hell
 
 <div id="links">
 
-[Companion of **htmx**](https://htmx.org)
-[**Comparison** with vanilla JS and jQuery](/comparison)
-[Read the **docs**](/docs)
+[Companion of **htmx**](https://htmx.org) |
+[**Comparison** with vanilla JS and jQuery](/comparison) |
+[Read the **docs**](/docs) |
 [Try it on the **playground**](/playground)
-<span>Install: `<script src="https://unpkg.com/hyperscript.org@0.8.1"></script>`
+<span id='install'>Install: `<script src="https://unpkg.com/hyperscript.org@0.8.1"></script>`
 <button style="font:inherit; background: none; border: none; color: #3465a4"
   _="on click
   writeText(my previousElementSibling's innerText) on navigator.clipboard
   put 'copied!' into me
   wait 2s
-  put 'copy' into me">copy</button></span>
+  put 'copy' into me">copy</button>
+</span>
 
 </div>
 
@@ -82,9 +83,9 @@ improvements. Please join us at the
 as we push to 1.0! Thank you!</p>
 </small>
 
- <small>Because hyperscript relies on
+ <small><em>NB: because hyperscript relies on
 [promises](https://caniuse.com/?search=Promise), it does not strive for IE11
-compatibility.</small>
+compatibility, unlike htmx.</small>
 
 <style>
 #intro-to-hyperscript {
