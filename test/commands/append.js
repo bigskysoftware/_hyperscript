@@ -33,12 +33,18 @@ describe("the append command", function () {
 		div.innerHTML.should.equal("1,2,3,4");
 	});
 
-	it("can append a value to a DOM node", function () {
+	it("can append a value to a DOM 'me'", function () {
 		var div = make(`<div _="on click 
                             append '<span>This is my inner HTML</span>' to me
                             append '<b>With Tags</b>' to me"></div>`);
 		div.click();
 		div.innerHTML.should.equal("<span>This is my inner HTML</span><b>With Tags</b>");
+	});
+
+	it("can append a value to a named DOM node", function () {
+		var div = make(`<div _="on click append ' World' to #target"><span id="target">Hello</div></div>`);
+		div.click();
+		div.innerHTML.should.equal(`<span id="target">Hello World</span>`);
 	});
 
 	/*

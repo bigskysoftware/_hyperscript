@@ -4815,6 +4815,7 @@
 			if (!tokens.matchToken("append")) return;
 			var target = null;
 			var prop = null;
+			var isIdRef = false;
 
 			var value = parser.requireElement("expression", tokens);
 
@@ -4824,6 +4825,8 @@
 
 			if (target == null) {
 				prop = "result";
+			} else if (target.type == "idRef") {
+				isIdRef = true
 			} else if (target.type === "symbol") {
 				prop = target.name;
 			} else if (target.type === "propertyAccess") {
@@ -4837,14 +4840,17 @@
 				target: target,
 				args: [value],
 				op: function (context, value) {
-					if (Array.isArray(context[prop])) {
+
+					if (isIdRef) {
+						/** @type HTMLElement */
+						var element = target.evaluate(context)
+						if (element != undefined) {
+							element.innerHTML += value.toString()
+						}
+					} else if (Array.isArray(context[prop])) {
 						context[prop].push(value);
 					} else if (context[prop] instanceof Element) {
-						if (typeof value == "string") {
-							context[prop].innerHTML += value;
-						} else {
-							throw "Don't know how to append non-strings to an HTML Element yet.";
-						}
+						context[prop].innerHTML += value.toString();
 					} else {
 						context[prop] += value;
 					}
