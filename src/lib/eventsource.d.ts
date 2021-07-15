@@ -1,3 +1,6 @@
+// QUESTION: Is it OK to pack additional data into the "Feature" struct that's returned?
+// TODO: Add methods for EventSourceFeature.connect() and EventSourceFeature.close()
+
 interface EventSourceFeature {
     name: string
     object: EventSourceStub

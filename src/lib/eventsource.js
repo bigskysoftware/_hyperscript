@@ -2,9 +2,6 @@
 /// This module provides the EventSource (SSE) feature for hyperscript
 ///=========================================================================
 
-// QUESTION: Is it OK to pack additional data into the "Feature" struct that's returned?
-// TODO: Add methods for EventSourceFeature.connect() and EventSourceFeature.close()
-
 (function () {
 	_hyperscript.addFeature("eventsource", function (parser, runtime, tokens) {
 		if (tokens.matchToken("eventsource")) {
