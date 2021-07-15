@@ -18,7 +18,7 @@ describe("the idRef expression", function () {
 		should.equal(value, null);
 	});
 
-	it("template classRef works", function () {
+	it("template id ref works", function () {
 		var div = make("<div id='d1'></div>");
 		var value = evalHyperScript("#{'d1'}");
 		value.should.equal(div);

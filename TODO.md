@@ -10,12 +10,6 @@
   * make defaults pluggable
   * resurrect `ajax` command?  (had more functionality in some ways)
 * Ben(?) - Better DOM manipulation tools? (needs research)
-* Carson - template support in class literals and id literals:
-  ```hyperscript
-    set foo to 'blah'
-    set x to .{foo}
-    set y to #{foo}
-  ```
 * Carson - `next` and `previous` expressions 2.0 (work with arrays?)
 * Deniz - fix the way that CSS literals evaluate
 
