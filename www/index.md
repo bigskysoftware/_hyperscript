@@ -85,7 +85,7 @@ as we push to 1.0! Thank you!</p>
 
  <small><em>NB: because hyperscript relies on
 [promises](https://caniuse.com/?search=Promise), it does not strive for IE11
-compatibility, unlike htmx.</small>
+compatibility, unlike htmx.</em></small>
 
 <style>
 #intro-to-hyperscript {
