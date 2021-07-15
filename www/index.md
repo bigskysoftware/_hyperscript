@@ -1,101 +1,196 @@
-<div style="background-color: lightgoldenrodyellow; margin: 16px; border-radius: 8px;
-color: darkgoldenrod; border: gold 1px solid; font-size: 20px">
-<p>hyperscript is in active development and is working to a 1.0 release.</p>
-<p>At this time the syntax and core feature set are considered to be reasonably complete.
-Key areas of focus for 1.0 include additional test cases and documentation improvements.</p>
-<p>Please join us at the
-<a style="color: darkgoldenrod;font-weight: bold" href="https://htmx.org/discord">#hyperscript discord channel</a>
-as we push to 1.0!  Thank you!</p>
+
+<header id="intro-to-hyperscript">
+
+# hyperscript is an easy and approachable language designed for modern front-end web development
+
+<div id="sample">
+
+<pre _="
+  on mouseenter queue none
+    repeat until event mouseleave
+      transition #sample-tip's transform to 'translateX(-2ch)' using 'all 500ms ease-out'
+      transition #sample-tip's transform to initial            using 'all 500ms ease-in'
+"><code id="snippet" class="lang-hyperscript">writeText(#snippet's innerText)
+  on navigator.clipboard
+put 'copied!' into me
+wait 1s
+put 'copy' into me</code></pre>
+
+<p style="text-align: right">
+<span id="sample-tip">see it in action &rarr;</span>
+<button class="btn primary" style="margin: auto" _="on click
+writeText(#snippet's innerText) on navigator.clipboard
+put 'copied!' into me
+wait 1s
+put 'copy' into me">
+copy
+</button>
+
+</div>
+</header>
+
+hyperscript makes writing event handlers and highly responsive user interfaces
+trivial with native language support for async behavior&mdash;easier than
+callbacks, promises, even async/await.
+
+<div id="features">
+
+**Events as first class citizens in the language**&mdash;clean syntax for
+[receiving](/features/on) and [sending](/commands/send) events, as well as
+[event-driven control flow](docs/#event-control-flow)
+
+**DOM-oriented syntax**&mdash;seamless integrated [CSS id, CSS class and CSS
+query literals](https://hyperscript.org/expressions/#css)
+
+**First-class [web workers](/docs#workers)**
+
+**[Async-transparent](/docs#async) runtime**&mdash;highly responsive user
+experiences without callback hell
+
+**[Pluggable & extendable](/docs/#extending)** parser & grammar
+
+**[Debugger](/docs#debugging)** to step through hyperscript code
+
+**Inspired by [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf)**
+  (not AppleScript)
+
 </div>
 
-## intro
+<div id="links">
 
-hyperscript is a scripting language designed for modern front-end web development.
+[Companion of **htmx**](https://htmx.org) |
+[**Comparison** with vanilla JS and jQuery](/comparison) |
+[Read the **docs**](/docs) |
+[Try it on the **playground**](/playground)
+<span id='install'>Install: `<script src="https://unpkg.com/hyperscript.org@0.8.1"></script>`
+<button style="font:inherit; background: none; border: none; color: #3465a4"
+  _="on click
+  writeText(my previousElementSibling's innerText) on navigator.clipboard
+  put 'copied!' into me
+  wait 1s
+  put 'copy' into me">copy</button>
+</span>
 
-hyperscript makes writing event handlers and highly responsive user interfaces trivial with native language support
-for async behavior - easier than promises or async/await.
+</div>
 
-hyperscript features include:
+<small style="color: darkgoldenrod;">
+<b style="font-size: 2em; padding: 4px .2ch 0 0; line-height: 1; float: left">β</b>
+hyperscript is in active development and is working to a 1.0 release. At this
+time, the syntax and core feature set are considered to be reasonably complete.
+Key areas of focus for 1.0 include additional test cases and documentation
+improvements. Please join us at the
+<a style="color: darkgoldenrod;font-weight: bold" href="https://htmx.org/discord">#hyperscript discord channel</a>
+as we push to 1.0! Thank you!</p>
+</small>
 
-* Events as first class citizens in the language. Clean syntax for [responding to](/features/on) and
-  [sending](/commands/send) events, as well as [event-driven control flow](docs/#event-control-flow)
-* DOM-oriented syntax with seamless integrated [CSS id, CSS class and CSS query literals](https://hyperscript.org/expressions/#css)
-* First class [web workers](/docs#workers)
-* An [async-transparent](/docs#async) runtime for highly responsive user experiences.
-* A [pluggable & extendable](/docs/#extending) parser & grammar
-* A [debugger](/docs#debugging) to step through hyperscript code
+ <small><em>NB: because hyperscript relies on
+[promises](https://caniuse.com/?search=Promise), it does not strive for IE11
+compatibility, unlike htmx.</em></small>
 
-You can see a comparison of hyperscript, vanillaJS and jQuery [here](/comparison).
+<style>
+#intro-to-hyperscript {
+  display: flex;
+  position: relative;
+  flex-flow: row wrap;
+  justify-content: stretch;
+  align-items: center;
+}
 
-hyperscript is a companion project of [htmx](https://htmx.org).
+#intro-to-hyperscript h1 {
+  flex: 4 6 18ch;
+  margin-right: 2em;
+  font-size: clamp(1.2em, 5vw, 2em);
+}
 
-Because hyperscript relies on [promises](https://caniuse.com/?search=Promise), it does not strive for IE11 compatibility.
+#intro-to-hyperscript #sample {
+  flex: 1 1 max-content;
+  max-width: 100%;
+}
+
+#sample-tip {
+  display: inline-block;
+}
+
+#features {
+  column-width: 40ch;
+  column-gap: 2em;
+}
+
+#features > * {
+  margin: 0 0 1.4em 0;
+}
+
+#links p {
+  margin: 1.4em 0;
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: center;
+  text-align: center;
+  gap: .2em 2ch;
+}
+
+.example {
+  margin: .5em auto;
+  text-align: center;
+}
+</style>
 
 ## examples
 
 ```html
-<script src="https://unpkg.com/hyperscript.org@0.8.1"></script>
-
 <button _="on click toggle .big-text">
   Toggle the "big-text" class on me on click
 </button>
+```
 
+<div class="example">
+<style>
+button {
+  transition: all 300ms ease-in;
+}
+button.big-text {
+  font-size: 2em;
+}
+</style>
+<button class="btn primary" _="on click toggle .big-text">
+  Toggle .clicked
+</button>
+</div>
+
+```html
 <div _="on mouseenter toggle .visible on #help until mouseleave">
   Mouse Over Me!
 </div>
 <div id="help"> I'm a helpful message!</div>
 
-<button _="on click log me then call alert('yep, it\’s an alert')">
-    Show An Alert
+```
+
+<div class="example">
+<style>
+#help {
+  opacity: 0;
+}
+#help.visible {
+  opacity: 1;
+  transition: opacity 200ms ease-in;
+}
+</style>
+<div _="on mouseenter toggle .visible on #help until mouseleave">
+  Mouse Over Me!
+</div>
+<div id="help"> I'm a helpful message!</div>
+</div>
+
+```html
+<button _="on click log me then call alert('yep, it’s an alert')">
+  Show An Alert
 </button>
 ```
 
-## demos
-
-Here are the examples above in demo form:
-
-<div class="row">
-    <div class="4 col">
-        <style>
-        button {
-          transition: all 300ms ease-in;
-        }
-        button.big-text {
-          font-size: 2em;
-        }
-        </style>
-        <button class="btn primary" _="on click toggle .big-text">
-          Toggle .clicked
-        </button>
-        </div>
-    <div class="4 col">
-        <style>
-        #help {
-          opacity: 0;
-        }
-        #help.visible {
-          opacity: 1;
-          transition: opacity 200ms ease-in;
-        }
-        </style>
-        <div _="on mouseenter toggle .visible on #help until mouseleave">
-          Mouse Over Me!
-        </div>
-        <div id="help"> I'm a helpful message!</div>
-    </div>
-    <div class="4 col">
-        <button class="btn primary" _="on click log me then call alert('yep, it\'s an alert - check the console...')">
-            Show An Alert
-        </button>
-    </div>
+<div class="example">
+<button class="btn primary" _="
+  on click
+    log me then call alert('yep, it\'s an alert - check the console...')">
+  Show An Alert
+</button>
 </div>
-
-## origins
-
-Hyperscript was originally inspired by [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf).
-
-## haiku
-
-_the unknown button<br/>
-so often inscrutable<br/>
-now says what it does_
