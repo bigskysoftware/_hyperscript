@@ -95,7 +95,7 @@
  * @property {string} [type]
  * @property {any[]} [args]
  * @property {(ctx:Context, root:*, ...args:any) => GrammarElement} [op]
- * @property {(context:Context) => any} [evaluate]
+ * @property {(context?:Context) => any} [evaluate]
  * @property {GrammarElement} [parent]
  * @property {GrammarElement} [next]
  * @property {(context:Context) => GrammarElement} [resolveNext]
