@@ -37,11 +37,13 @@ append 3 to resultArray
 
 #### Append to an HTML Element
 
-If you target an HTML Element, then the value is appended to the end of the element's `innerHTML`
+If you target an HTML Element, then the value is appended to the end of the element's `innerHTML`.  This also works with `me` and `myself` references.
 
 ```hyperscript
 append "<i>More HTML here</i>" to #myDIV
+append "<b>well done</b>" to myself
 ```
+
 
 #### Use `append` to collect content
 
