@@ -67,7 +67,7 @@ experiences without callback hell
   _="on click
   writeText(my previousElementSibling's innerText) on navigator.clipboard
   put 'copied!' into me
-  wait 2s
+  wait 1s
   put 'copy' into me">copy</button>
 </span>
 

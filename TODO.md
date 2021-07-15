@@ -16,7 +16,8 @@
     set x to .{foo}
     set y to #{foo}
   ```
-* Carson - `next` and `previous` expressions
+* Carson - `next` and `previous` expressions 2.0 (work with arrays?)
+* Deniz - fix the way that CSS literals evaluate
 
 ### Language Features
 * Recovering parser (we are single error right now)
@@ -46,10 +47,6 @@
         put it in myVar
     end
 
-    // This would also work if IterableVariable is an Array or Object
-    repeat for x in IterableVariable
-        call JsFn(x)
-    end
     ```
 * date/time library [See GitHub](https://github.com/bigskysoftware/_hyperscript/issues/123)
 * Expressions for `field`, `button`, `tag` and `nodeList` [See GitHub](https://github.com/bigskysoftware/_hyperscript/issues/121)
