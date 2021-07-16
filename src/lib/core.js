@@ -4466,7 +4466,7 @@
 				parser.raiseParseError("Implicit function calls must start with a simple function", tokens);
 			}
 			// optional "on", "with", or "to"
-			if (!tokens.matchAnyToken("to", "on", "with") && parser.commandBoundary(tokens.currentToken())) {
+			if (!tokens.matchAnyToken("to", "on", "with", "into", "from", "at") && parser.commandBoundary(tokens.currentToken())) {
 				var target = parser.requireElement("implicitMeTarget", tokens);
 			} else {
 				var target = parser.requireElement("expression", tokens);
