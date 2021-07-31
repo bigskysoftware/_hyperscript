@@ -91,8 +91,12 @@
 
 	class ElementCollection {
 		constructor(css, relativeToElement) {
-			this.css = css;
+			this._css = css;
 			this.relativeToElement = relativeToElement;
+		}
+		
+		get css() {
+			return this._css;
 		}
 
 		[Symbol.iterator]() {
@@ -2311,6 +2315,30 @@
 				};
 			}
 		});
+		
+		class TemplatedQueryElementCollection extends ElementCollection {
+			constructor(css, relativeToElement, templateParts) {
+				super(css, relativeToElement);
+				this.templateParts = templateParts;
+				this.elements = templateParts.filter(elt => elt instanceof Element);
+			}
+			
+			get css() {
+				let rv = "", i = 0
+			    for (const val of this.templateParts) {
+					if (val instanceof Element) {
+						rv += "[data-hs-query-id='" + i++ + "']";
+					} else rv += val;
+				}
+				return rv;
+			}
+			
+			[Symbol.iterator]() {
+				this.elements.forEach((el, i) => el.dataset.hsQueryId = i);
+				return super[Symbol.iterator]();
+				this.elements.forEach(el => el.removeAttribute('data-hs-query-id'));
+			}
+		}
 
 		_parser.addLeafExpression("queryRef", function (parser, runtime, tokens) {
 			var queryStart = tokens.matchOpToken("<");
@@ -2338,25 +2366,12 @@
 				type: "queryRef",
 				css: queryValue,
 				args: args,
-				op: function (context, args) {
-					var query = queryValue;
-					var elements = [];
+				op: function (context, ...args) {
 					if (template) {
-						query = "";
-						for (var i = 1; i < arguments.length; i++) {
-							var val = arguments[i];
-							if (val) {
-								if (val instanceof Element) {
-									val.dataset.hsQueryId = elements.length;
-									query += "[data-hs-query-id='" + elements.length + "']";
-									elements.push(val);
-								} else query += val;
-							}
-						}
+						return new TemplatedQueryElementCollection(queryValue, context.me, args)
+					} else {
+						return new ElementCollection(queryValue, context.me)
 					}
-					var result = runtime.getRootNode(context.me).querySelectorAll(query);
-					runtime.forEach(elements, function (el) { el.removeAttribute("data-hs-query-id") });
-					return result;
 				},
 				evaluate: function (context) {
 					return runtime.unifiedEval(this, context);
