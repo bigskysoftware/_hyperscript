@@ -82,8 +82,25 @@
 	function varargConstructor(Cls, args) {
 		return new (Cls.bind.apply(Cls, [Cls].concat(args)))();
 	}
-
+	
 	var globalScope = typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this;
+
+	//====================================================================
+	// Standard library
+	//====================================================================
+
+	class ElementCollection {
+		constructor(css, relativeToElement) {
+			this.css = css;
+			this.relativeToElement = relativeToElement;
+		}
+
+		[Symbol.iterator]() {
+			return _runtime.getRootNode(this.relativeToElement)
+				.querySelectorAll(this.css)
+				[Symbol.iterator]();
+		}
+	}
 
 	//====================================================================
 	// Lexer
@@ -1364,6 +1381,21 @@
 		}
 
 		/**
+		 * shouldAutoIterate returns `true` if the provided value 
+		 * should be implicitly iterated over when accessing properties,
+		 * and as the target of some commands.
+		 *
+		 * Currently, this is when the value is an {ElementCollection}
+		 * or {isArrayLike} returns true.
+		 *
+		 * @param {any} value
+		 * @returns {boolean}
+		 */
+		function shouldAutoIterate(value) {
+			return value instanceof ElementCollection || isArrayLike(value);
+		}
+		
+		/**
 		 * forEach executes the provided `func` on every item in the `value` array.
 		 * if `value` is a single item (and not an array) then `func` is simply called
 		 * once.  If `value` is null, then no further actions are taken.
@@ -1387,7 +1419,25 @@
 				func(value);
 			}
 		}
-
+		
+		/**
+		 * implicitLoop executes the provided `func` on:
+		 * - every item of {value}, if {value} should be auto-iterated
+		 *   (see {shouldAutoIterate})
+		 * - {value} otherwise
+		 *
+		 * @template T
+		 * @param {NodeList | T | T[]} value
+		 * @param {(item:Node | T) => void} func
+		 */
+		function implicitLoop(value, func) {
+			if (shouldAutoIterate(value)) {
+				for (const x of value) func(x);
+			} else {
+				func(value);
+			}
+		}
+		
 		var ARRAY_SENTINEL = { array_sentinel: true };
 
 		function linearize(args) {
@@ -1948,7 +1998,7 @@
 					return val;
 				}
 
-				if (isArrayLike(root)) {
+				if (shouldAutoIterate(root)) {
 					// flat map
 					var result = [];
 					for (var component of root) {
@@ -2083,6 +2133,7 @@
 		return {
 			typeCheck: typeCheck,
 			forEach: forEach,
+			implicitLoop: implicitLoop,
 			triggerEvent: triggerEvent,
 			matchesSelector: matchesSelector,
 			getScript: getScript,
@@ -2227,19 +2278,6 @@
 			}
 		});
 
-		class ElementCollection {
-			constructor(css, ctx) {
-				this.css = css;
-				this.ctx = ctx;
-			}
-
-			[Symbol.iterator]() {
-				return runtime.getRootNode(this.context.me)
-					.querySelectorAll(runtime.escapeSelector(this.css))
-					[Symbol.iterator]();
-			}
-		}
-
 		_parser.addLeafExpression("classRef", function (parser, runtime, tokens) {
 			var classRef = tokens.matchTokenType("CLASS_REF");
 
@@ -2254,7 +2292,7 @@
 					type: "classRefTemplate",
 					args: [innerExpression],
 					op: function (context, arg) {
-						return new ElementCollection("." + arg)
+						return new ElementCollection("." + arg, context.me)
 					},
 					evaluate: function (context) {
 						return runtime.unifiedEval(this, context);
@@ -2268,9 +2306,7 @@
 						return this.css.substr(1);
 					},
 					evaluate: function (context) {
-						return new ElementCollection(runtime.escapeSelector(this.css), () => {
-							return runtime.getRootNode(context.me).querySelectorAll(runtime.escapeSelector(this.css))
-						})
+						return new ElementCollection(runtime.escapeSelector(this.css), context.me)
 					},
 				};
 			}
@@ -4563,7 +4599,7 @@
 					if (symbolWrite) {
 						runtime.setSymbol(target.name, context, target.symbolType, valueToSet);
 					} else {
-						runtime.forEach(root, function (elt) {
+						runtime.implicitLoop(root, function (elt) {
 							if (attribute) {
 								if (valueToSet == null) {
 									elt.removeAttribute(attribute.name);
@@ -5068,6 +5104,7 @@
 				parser: _parser,
 				runtime: _runtime,
 			},
+			ElementCollection: ElementCollection,
 			addFeature: function (keyword, definition) {
 				_parser.addFeature(keyword, definition);
 			},

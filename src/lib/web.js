@@ -240,12 +240,12 @@
 					attributeRef: attributeRef,
 					elementExpr: elementExpr,
 					from: from,
-					args: [from],
-					op: function (context, from) {
-						if (this.classRefs) {
+					args: [classRefs, from],
+					op: function (context, classRefs, from) {
+						if (classRefs) {
 							runtime.forEach(classRefs, function (classRef) {
-								runtime.forEach(from, function (target) {
-									target.classList.remove(classRef.className());
+								runtime.implicitLoop(from, function (target) {
+									target.classList.remove(classRef.css.substr(1));
 								});
 							});
 						} else {
@@ -517,9 +517,9 @@
 				classRef: classRef,
 				from: from,
 				forElt: forElt,
-				args: [from, forElt],
-				op: function (context, from, forElt) {
-					var clazz = this.classRef.css.substr(1);
+				args: [classRef, from, forElt],
+				op: function (context, eltColl, from, forElt) {
+					var clazz = eltColl.css.substr(1);
 					runtime.forEach(from, function (target) {
 						target.classList.remove(clazz);
 					});
@@ -603,11 +603,11 @@
 					} else {
 						if (operation === "into") {
 							if (attributeWrite) {
-								runtime.forEach(root, function (elt) {
+								runtime.implicitLoop(root, function (elt) {
 									elt.setAttribute(prop, valueToPut);
 								});
 							} else {
-								runtime.forEach(root, function (elt) {
+								runtime.implicitLoop(root, function (elt) {
 									putInto(elt, prop, valueToPut);
 								});
 							}
@@ -623,7 +623,7 @@
 									? Element.prototype.append
 									: "unreachable";
 
-							runtime.forEach(root, function (elt) {
+							runtime.implicitLoop(root, function (elt) {
 								op.call(
 									elt,
 									valueToPut instanceof Node
@@ -983,9 +983,9 @@
 		/** @type Object<string,string | string[]> */
 		var result = {};
 
-		var forEach = _hyperscript.internals.runtime.forEach;
+		var implicitLoop = _hyperscript.internals.runtime.implicitLoop;
 
-		forEach(node, function (/** @type HTMLInputElement */ node) {
+		implicitLoop(node, function (/** @type HTMLInputElement */ node) {
 			// Try to get a value directly from this node
 			var input = getInputInfo(node);
 
@@ -997,7 +997,7 @@
 			// Otherwise, try to query all child elements of this node that *should* contain values.
 			if (node.querySelectorAll != undefined) {
 				var children = node.querySelectorAll("input,select,textarea");
-				forEach(children, appendValue);
+				children.forEach(appendValue);
 			}
 		});
 
@@ -1106,7 +1106,7 @@
 
 	_hyperscript.config.conversions["Fragment"] = function (val) {
 		var frag = document.createDocumentFragment();
-		_hyperscript.internals.runtime.forEach(val, function (val) {
+		_hyperscript.internals.runtime.implicitLoop(val, function (val) {
 			if (val instanceof Node) frag.append(val);
 			else {
 				var temp = document.createElement("template");
