@@ -1353,6 +1353,17 @@
 		}
 
 		/**
+		 * isIterable returns `true` if the provided value supports the
+		 * iterator protocol.
+		 *
+		 * @param {any} value
+		 * @returns {value[Symbol.iterator] is Function}
+		 */
+		function isIterable(value) {
+			return Symbol.iterator in value && typeof value[Symbol.iterator] === 'function';
+		}
+
+		/**
 		 * forEach executes the provided `func` on every item in the `value` array.
 		 * if `value` is a single item (and not an array) then `func` is simply called
 		 * once.  If `value` is null, then no further actions are taken.
@@ -1364,6 +1375,10 @@
 		function forEach(value, func) {
 			if (value == null) {
 				// do nothing
+			} else if (typeof value[Symbol.iterator] === 'function') {
+				for (const nth of value) {
+					func(nth);
+				}
 			} else if (isArrayLike(value)) {
 				for (var i = 0; i < value.length; i++) {
 					func(value[i]);
@@ -1936,8 +1951,7 @@
 				if (isArrayLike(root)) {
 					// flat map
 					var result = [];
-					for (var i = 0; i < root.length; i++) {
-						var component = root[i];
+					for (var component of root) {
 						var componentValue = attribute ? component.getAttribute(property) : component[property];
 						if (componentValue) {
 							result.push(componentValue);
@@ -2213,6 +2227,19 @@
 			}
 		});
 
+		class ElementCollection {
+			constructor(css, ctx) {
+				this.css = css;
+				this.ctx = ctx;
+			}
+
+			[Symbol.iterator]() {
+				return runtime.getRootNode(this.context.me)
+					.querySelectorAll(runtime.escapeSelector(this.css))
+					[Symbol.iterator]();
+			}
+		}
+
 		_parser.addLeafExpression("classRef", function (parser, runtime, tokens) {
 			var classRef = tokens.matchTokenType("CLASS_REF");
 
@@ -2227,7 +2254,7 @@
 					type: "classRefTemplate",
 					args: [innerExpression],
 					op: function (context, arg) {
-						return runtime.getRootNode(context.me).querySelectorAll(runtime.escapeSelector("." + arg));
+						return new ElementCollection("." + arg)
 					},
 					evaluate: function (context) {
 						return runtime.unifiedEval(this, context);
@@ -2241,7 +2268,9 @@
 						return this.css.substr(1);
 					},
 					evaluate: function (context) {
-						return runtime.getRootNode(context.me).querySelectorAll(runtime.escapeSelector(this.css));
+						return new ElementCollection(runtime.escapeSelector(this.css), () => {
+							return runtime.getRootNode(context.me).querySelectorAll(runtime.escapeSelector(this.css))
+						})
 					},
 				};
 			}
