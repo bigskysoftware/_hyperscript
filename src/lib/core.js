@@ -96,7 +96,15 @@
 		}
 		
 		get css() {
-			return this._css;
+			return _runtime.escapeSelector(this._css);
+		}
+		
+		get className() {
+			return this._css.substr(1);
+		}
+		
+		get id() {
+			return this.className();
 		}
 
 		[Symbol.iterator]() {
@@ -2306,11 +2314,8 @@
 				return {
 					type: "classRef",
 					css: classRef.value,
-					className: function () {
-						return this.css.substr(1);
-					},
 					evaluate: function (context) {
-						return new ElementCollection(runtime.escapeSelector(this.css), context.me)
+						return new ElementCollection(this.css, context.me)
 					},
 				};
 			}
@@ -2335,8 +2340,9 @@
 			
 			[Symbol.iterator]() {
 				this.elements.forEach((el, i) => el.dataset.hsQueryId = i);
-				return super[Symbol.iterator]();
+				const rv = super[Symbol.iterator]();
 				this.elements.forEach(el => el.removeAttribute('data-hs-query-id'));
+				return rv;
 			}
 		}
 

@@ -99,11 +99,11 @@
 				var addCmd = {
 					classRefs: classRefs,
 					to: to,
-					args: [to],
-					op: function (context, to) {
+					args: [to, classRefs],
+					op: function (context, to, classRefs) {
 						runtime.forEach(classRefs, function (classRef) {
 							runtime.forEach(to, function (target) {
-								if (target instanceof Element) target.classList.add(classRef.className());
+								if (target instanceof Element) target.classList.add(classRef.className);
 							});
 						});
 						return runtime.findNext(this, context);
@@ -245,7 +245,7 @@
 						if (classRefs) {
 							runtime.forEach(classRefs, function (classRef) {
 								runtime.implicitLoop(from, function (target) {
-									target.classList.remove(classRef.css.substr(1));
+									target.classList.remove(classRef.className);
 								});
 							});
 						} else {
@@ -308,21 +308,21 @@
 				time: time,
 				evt: evt,
 				from: from,
-				toggle: function (on) {
+				toggle: function (on, classRef, classRef2, classRefs) {
 					if (between) {
 						runtime.forEach(on, function (target) {
-							if (target.classList.contains(classRef.className())) {
-								target.classList.remove(classRef.className());
-								target.classList.add(classRef2.className());
+							if (target.classList.contains(classRef.className)) {
+								target.classList.remove(classRef.className);
+								target.classList.add(classRef2.className);
 							} else {
-								target.classList.add(classRef.className());
-								target.classList.remove(classRef2.className());
+								target.classList.add(classRef.className);
+								target.classList.remove(classRef2.className);
 							}
 						});
-					} else if (this.classRefs) {
-						runtime.forEach(this.classRefs, function (classRef) {
+					} else if (classRefs) {
+						runtime.forEach(classRefs, function (classRef) {
 							runtime.forEach(on, function (target) {
-								target.classList.toggle(classRef.className());
+								target.classList.toggle(classRef.className);
 							});
 						});
 					} else {
@@ -335,13 +335,13 @@
 						});
 					}
 				},
-				args: [on, time, evt, from],
-				op: function (context, on, time, evt, from) {
+				args: [on, time, evt, from, classRef, classRef2, classRefs],
+				op: function (context, on, time, evt, from, classRef, classRef2, classRefs) {
 					if (time) {
 						return new Promise(function (resolve) {
-							toggleCmd.toggle(on);
+							toggleCmd.toggle(on, classRef, classRef2, classRefs);
 							setTimeout(function () {
-								toggleCmd.toggle(on);
+								toggleCmd.toggle(on, classRef, classRef2, classRefs);
 								resolve(runtime.findNext(toggleCmd, context));
 							}, time);
 						});
@@ -351,15 +351,15 @@
 							target.addEventListener(
 								evt,
 								function () {
-									toggleCmd.toggle(on);
+									toggleCmd.toggle(on, classRef, classRef2, classRefs);
 									resolve(runtime.findNext(toggleCmd, context));
 								},
 								{ once: true }
 							);
-							toggleCmd.toggle(on);
+							toggleCmd.toggle(on, classRef, classRef2, classRefs);
 						});
 					} else {
-						this.toggle(on);
+						this.toggle(on, classRef, classRef2, classRefs);
 						return runtime.findNext(toggleCmd, context);
 					}
 				},
@@ -519,7 +519,7 @@
 				forElt: forElt,
 				args: [classRef, from, forElt],
 				op: function (context, eltColl, from, forElt) {
-					var clazz = eltColl.css.substr(1);
+					var clazz = eltColl.className;
 					runtime.forEach(from, function (target) {
 						target.classList.remove(clazz);
 					});
