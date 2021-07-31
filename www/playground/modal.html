@@ -21,14 +21,14 @@
     def focusNext(elt)
         set focusRing to (<a, button, input:not([type=hidden]), textarea, select, details/> in me) as Array
         set nextIndex to focusRing.indexOf(elt) + 1
-        set next to focusRing[nextIndex] or first in focusRing
-        call next.focus()
+        set nextFocusable to focusRing[nextIndex] or first in focusRing
+        call nextFocusable.focus()
     end
     def focusPrevious(elt)
         set focusRing to (<a, button, input:not([type=hidden]), textarea, select, details/> in me) as Array
         set previousIndex to focusRing.indexOf(elt) - 1
-        set previous to focusRing[previousIndex] or last in focusRing
-        call previous.focus()
+        set previousFocusable to focusRing[previousIndex] or last in focusRing
+        call previousFocusable.focus()
     end		
     ">
     <div style="position: fixed; z-index: 50; top: 0; right: 0; left: 0; bottom: 0; overflow-y: auto;">

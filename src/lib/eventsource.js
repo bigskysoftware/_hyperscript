@@ -2,29 +2,6 @@
 /// This module provides the EventSource (SSE) feature for hyperscript
 ///=========================================================================
 
-// QUESTION: Is it OK to pack additional data into the "Feature" struct that's returned?
-// TODO: Add methods for EventSourceFeature.connect() and EventSourceFeature.close()
-
-/**
- * @typedef {object} EventSourceFeature
- * @property {string} name
- * @property {EventSourceStub} object
- * @property {() => void} install
- *
- * @typedef {object} EventSourceStub
- * @property {EventSource} eventSource
- * @property {EventListenerEntry[]} listeners
- * @property {number} retryCount
- * @property {(url?:string) => void} open
- * @property {() => void} close
- * @property {(type: keyof HTMLElementEventMap, listener:(event: Event) => any, options?: boolean | AddEventListenerOptions) => void} addEventListener
- *
- * @typedef {object} EventListenerEntry
- * @property {string} type
- * @property {EventHandlerNonNull} handler
- * @property {*=} options
- */
-
 (function () {
 	var _hyperscript = typeof module !== 'undefined' ? module.exports : this._hyperscript
 	_hyperscript.addFeature("eventsource", function (parser, runtime, tokens) {

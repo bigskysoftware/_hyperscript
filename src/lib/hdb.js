@@ -169,9 +169,10 @@
 		repeat until event pointerup from document
 			wait for pointermove or pointerup from document
 			add {
-				left: \`\${its clientX - xoff}px\`,
-				top:  \`\${its clientY - yoff}px\`
+				left: \${its clientX - xoff}px;
+				top:  \${its clientY - yoff}px;
 			} to .hdb
+			log .hdb
 		end
 	">
 		<h2 class="titlebar">HDB</h2>

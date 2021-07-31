@@ -1,16 +1,16 @@
 declare namespace _hyperscript {
-  function addFeature(keyword: string, definition: FeatureDefinition): any;
+  function addFeature(keyword: string, definition: GrammarDefinition): any;
 
-  function addCommand(keyword: string, definition: CommandDefinition): any;
+  function addCommand(keyword: string, definition: GrammarDefinition): any;
 
   function addLeafExpression(
     keyword: string,
-    definition: CommandDefinition
+    definition: GrammarDefinition
   ): any;
 
   function addIndirectExpression(
     keyword: string,
-    definition: CommandDefinition
+    definition: GrammarDefinition
   ): any;
 
   function evaluate(str: string, ctx: Context): any;
