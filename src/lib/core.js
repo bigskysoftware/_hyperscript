@@ -82,8 +82,37 @@
 	function varargConstructor(Cls, args) {
 		return new (Cls.bind.apply(Cls, [Cls].concat(args)))();
 	}
-
+	
 	var globalScope = typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this;
+
+	//====================================================================
+	// Standard library
+	//====================================================================
+
+	class ElementCollection {
+		constructor(css, relativeToElement) {
+			this._css = css;
+			this.relativeToElement = relativeToElement;
+		}
+		
+		get css() {
+			return _runtime.escapeSelector(this._css);
+		}
+		
+		get className() {
+			return this._css.substr(1);
+		}
+		
+		get id() {
+			return this.className();
+		}
+
+		[Symbol.iterator]() {
+			return _runtime.getRootNode(this.relativeToElement)
+				.querySelectorAll(this.css)
+				[Symbol.iterator]();
+		}
+	}
 
 	//====================================================================
 	// Lexer
@@ -1353,6 +1382,32 @@
 		}
 
 		/**
+		 * isIterable returns `true` if the provided value supports the
+		 * iterator protocol.
+		 *
+		 * @param {any} value
+		 * @returns {value[Symbol.iterator] is Function}
+		 */
+		function isIterable(value) {
+			return Symbol.iterator in value && typeof value[Symbol.iterator] === 'function';
+		}
+
+		/**
+		 * shouldAutoIterate returns `true` if the provided value 
+		 * should be implicitly iterated over when accessing properties,
+		 * and as the target of some commands.
+		 *
+		 * Currently, this is when the value is an {ElementCollection}
+		 * or {isArrayLike} returns true.
+		 *
+		 * @param {any} value
+		 * @returns {boolean}
+		 */
+		function shouldAutoIterate(value) {
+			return value instanceof ElementCollection || isArrayLike(value);
+		}
+		
+		/**
 		 * forEach executes the provided `func` on every item in the `value` array.
 		 * if `value` is a single item (and not an array) then `func` is simply called
 		 * once.  If `value` is null, then no further actions are taken.
@@ -1364,6 +1419,10 @@
 		function forEach(value, func) {
 			if (value == null) {
 				// do nothing
+			} else if (typeof value[Symbol.iterator] === 'function') {
+				for (const nth of value) {
+					func(nth);
+				}
 			} else if (isArrayLike(value)) {
 				for (var i = 0; i < value.length; i++) {
 					func(value[i]);
@@ -1372,7 +1431,25 @@
 				func(value);
 			}
 		}
-
+		
+		/**
+		 * implicitLoop executes the provided `func` on:
+		 * - every item of {value}, if {value} should be auto-iterated
+		 *   (see {shouldAutoIterate})
+		 * - {value} otherwise
+		 *
+		 * @template T
+		 * @param {NodeList | T | T[]} value
+		 * @param {(item:Node | T) => void} func
+		 */
+		function implicitLoop(value, func) {
+			if (shouldAutoIterate(value)) {
+				for (const x of value) func(x);
+			} else {
+				func(value);
+			}
+		}
+		
 		var ARRAY_SENTINEL = { array_sentinel: true };
 
 		function linearize(args) {
@@ -1933,11 +2010,10 @@
 					return val;
 				}
 
-				if (isArrayLike(root)) {
+				if (shouldAutoIterate(root)) {
 					// flat map
 					var result = [];
-					for (var i = 0; i < root.length; i++) {
-						var component = root[i];
+					for (var component of root) {
 						var componentValue = attribute ? component.getAttribute(property) : component[property];
 						if (componentValue) {
 							result.push(componentValue);
@@ -2069,6 +2145,7 @@
 		return {
 			typeCheck: typeCheck,
 			forEach: forEach,
+			implicitLoop: implicitLoop,
 			triggerEvent: triggerEvent,
 			matchesSelector: matchesSelector,
 			getScript: getScript,
@@ -2227,7 +2304,7 @@
 					type: "classRefTemplate",
 					args: [innerExpression],
 					op: function (context, arg) {
-						return runtime.getRootNode(context.me).querySelectorAll(runtime.escapeSelector("." + arg));
+						return new ElementCollection("." + arg, context.me)
 					},
 					evaluate: function (context) {
 						return runtime.unifiedEval(this, context);
@@ -2237,15 +2314,37 @@
 				return {
 					type: "classRef",
 					css: classRef.value,
-					className: function () {
-						return this.css.substr(1);
-					},
 					evaluate: function (context) {
-						return runtime.getRootNode(context.me).querySelectorAll(runtime.escapeSelector(this.css));
+						return new ElementCollection(this.css, context.me)
 					},
 				};
 			}
 		});
+		
+		class TemplatedQueryElementCollection extends ElementCollection {
+			constructor(css, relativeToElement, templateParts) {
+				super(css, relativeToElement);
+				this.templateParts = templateParts;
+				this.elements = templateParts.filter(elt => elt instanceof Element);
+			}
+			
+			get css() {
+				let rv = "", i = 0
+			    for (const val of this.templateParts) {
+					if (val instanceof Element) {
+						rv += "[data-hs-query-id='" + i++ + "']";
+					} else rv += val;
+				}
+				return rv;
+			}
+			
+			[Symbol.iterator]() {
+				this.elements.forEach((el, i) => el.dataset.hsQueryId = i);
+				const rv = super[Symbol.iterator]();
+				this.elements.forEach(el => el.removeAttribute('data-hs-query-id'));
+				return rv;
+			}
+		}
 
 		_parser.addLeafExpression("queryRef", function (parser, runtime, tokens) {
 			var queryStart = tokens.matchOpToken("<");
@@ -2273,25 +2372,12 @@
 				type: "queryRef",
 				css: queryValue,
 				args: args,
-				op: function (context, args) {
-					var query = queryValue;
-					var elements = [];
+				op: function (context, ...args) {
 					if (template) {
-						query = "";
-						for (var i = 1; i < arguments.length; i++) {
-							var val = arguments[i];
-							if (val) {
-								if (val instanceof Element) {
-									val.dataset.hsQueryId = elements.length;
-									query += "[data-hs-query-id='" + elements.length + "']";
-									elements.push(val);
-								} else query += val;
-							}
-						}
+						return new TemplatedQueryElementCollection(queryValue, context.me, args)
+					} else {
+						return new ElementCollection(queryValue, context.me)
 					}
-					var result = runtime.getRootNode(context.me).querySelectorAll(query);
-					runtime.forEach(elements, function (el) { el.removeAttribute("data-hs-query-id") });
-					return result;
 				},
 				evaluate: function (context) {
 					return runtime.unifiedEval(this, context);
@@ -4534,7 +4620,7 @@
 					if (symbolWrite) {
 						runtime.setSymbol(target.name, context, target.symbolType, valueToSet);
 					} else {
-						runtime.forEach(root, function (elt) {
+						runtime.implicitLoop(root, function (elt) {
 							if (attribute) {
 								if (valueToSet == null) {
 									elt.removeAttribute(attribute.name);
@@ -5039,6 +5125,7 @@
 				parser: _parser,
 				runtime: _runtime,
 			},
+			ElementCollection: ElementCollection,
 			addFeature: function (keyword, definition) {
 				_parser.addFeature(keyword, definition);
 			},

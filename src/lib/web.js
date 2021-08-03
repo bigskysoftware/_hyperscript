@@ -11,6 +11,8 @@
 		return obj1;
 	}
 
+	var _hyperscript = typeof module !== 'undefined' ? module.exports : this._hyperscript
+
 	_hyperscript.addCommand("settle", function (parser, runtime, tokens) {
 		if (tokens.matchToken("settle")) {
 			if (!parser.commandBoundary(tokens.currentToken())) {
@@ -97,11 +99,11 @@
 				var addCmd = {
 					classRefs: classRefs,
 					to: to,
-					args: [to],
-					op: function (context, to) {
+					args: [to, classRefs],
+					op: function (context, to, classRefs) {
 						runtime.forEach(classRefs, function (classRef) {
 							runtime.forEach(to, function (target) {
-								if (target instanceof Element) target.classList.add(classRef.className());
+								if (target instanceof Element) target.classList.add(classRef.className);
 							});
 						});
 						return runtime.findNext(this, context);
@@ -238,12 +240,12 @@
 					attributeRef: attributeRef,
 					elementExpr: elementExpr,
 					from: from,
-					args: [from],
-					op: function (context, from) {
-						if (this.classRefs) {
+					args: [classRefs, from],
+					op: function (context, classRefs, from) {
+						if (classRefs) {
 							runtime.forEach(classRefs, function (classRef) {
-								runtime.forEach(from, function (target) {
-									target.classList.remove(classRef.className());
+								runtime.implicitLoop(from, function (target) {
+									target.classList.remove(classRef.className);
 								});
 							});
 						} else {
@@ -306,21 +308,21 @@
 				time: time,
 				evt: evt,
 				from: from,
-				toggle: function (on) {
+				toggle: function (on, classRef, classRef2, classRefs) {
 					if (between) {
 						runtime.forEach(on, function (target) {
-							if (target.classList.contains(classRef.className())) {
-								target.classList.remove(classRef.className());
-								target.classList.add(classRef2.className());
+							if (target.classList.contains(classRef.className)) {
+								target.classList.remove(classRef.className);
+								target.classList.add(classRef2.className);
 							} else {
-								target.classList.add(classRef.className());
-								target.classList.remove(classRef2.className());
+								target.classList.add(classRef.className);
+								target.classList.remove(classRef2.className);
 							}
 						});
-					} else if (this.classRefs) {
-						runtime.forEach(this.classRefs, function (classRef) {
+					} else if (classRefs) {
+						runtime.forEach(classRefs, function (classRef) {
 							runtime.forEach(on, function (target) {
-								target.classList.toggle(classRef.className());
+								target.classList.toggle(classRef.className);
 							});
 						});
 					} else {
@@ -333,13 +335,13 @@
 						});
 					}
 				},
-				args: [on, time, evt, from],
-				op: function (context, on, time, evt, from) {
+				args: [on, time, evt, from, classRef, classRef2, classRefs],
+				op: function (context, on, time, evt, from, classRef, classRef2, classRefs) {
 					if (time) {
 						return new Promise(function (resolve) {
-							toggleCmd.toggle(on);
+							toggleCmd.toggle(on, classRef, classRef2, classRefs);
 							setTimeout(function () {
-								toggleCmd.toggle(on);
+								toggleCmd.toggle(on, classRef, classRef2, classRefs);
 								resolve(runtime.findNext(toggleCmd, context));
 							}, time);
 						});
@@ -349,15 +351,15 @@
 							target.addEventListener(
 								evt,
 								function () {
-									toggleCmd.toggle(on);
+									toggleCmd.toggle(on, classRef, classRef2, classRefs);
 									resolve(runtime.findNext(toggleCmd, context));
 								},
 								{ once: true }
 							);
-							toggleCmd.toggle(on);
+							toggleCmd.toggle(on, classRef, classRef2, classRefs);
 						});
 					} else {
-						this.toggle(on);
+						this.toggle(on, classRef, classRef2, classRefs);
 						return runtime.findNext(toggleCmd, context);
 					}
 				},
@@ -515,9 +517,9 @@
 				classRef: classRef,
 				from: from,
 				forElt: forElt,
-				args: [from, forElt],
-				op: function (context, from, forElt) {
-					var clazz = this.classRef.css.substr(1);
+				args: [classRef, from, forElt],
+				op: function (context, eltColl, from, forElt) {
+					var clazz = eltColl.className;
 					runtime.forEach(from, function (target) {
 						target.classList.remove(clazz);
 					});
@@ -601,11 +603,11 @@
 					} else {
 						if (operation === "into") {
 							if (attributeWrite) {
-								runtime.forEach(root, function (elt) {
+								runtime.implicitLoop(root, function (elt) {
 									elt.setAttribute(prop, valueToPut);
 								});
 							} else {
-								runtime.forEach(root, function (elt) {
+								runtime.implicitLoop(root, function (elt) {
 									putInto(elt, prop, valueToPut);
 								});
 							}
@@ -621,7 +623,7 @@
 									? Element.prototype.append
 									: "unreachable";
 
-							runtime.forEach(root, function (elt) {
+							runtime.implicitLoop(root, function (elt) {
 								op.call(
 									elt,
 									valueToPut instanceof Node
@@ -981,9 +983,9 @@
 		/** @type Object<string,string | string[]> */
 		var result = {};
 
-		var forEach = _hyperscript.internals.runtime.forEach;
+		var implicitLoop = _hyperscript.internals.runtime.implicitLoop;
 
-		forEach(node, function (/** @type HTMLInputElement */ node) {
+		implicitLoop(node, function (/** @type HTMLInputElement */ node) {
 			// Try to get a value directly from this node
 			var input = getInputInfo(node);
 
@@ -995,7 +997,7 @@
 			// Otherwise, try to query all child elements of this node that *should* contain values.
 			if (node.querySelectorAll != undefined) {
 				var children = node.querySelectorAll("input,select,textarea");
-				forEach(children, appendValue);
+				children.forEach(appendValue);
 			}
 		});
 
@@ -1104,7 +1106,7 @@
 
 	_hyperscript.config.conversions["Fragment"] = function (val) {
 		var frag = document.createDocumentFragment();
-		_hyperscript.internals.runtime.forEach(val, function (val) {
+		_hyperscript.internals.runtime.implicitLoop(val, function (val) {
 			if (val instanceof Node) frag.append(val);
 			else {
 				var temp = document.createElement("template");
