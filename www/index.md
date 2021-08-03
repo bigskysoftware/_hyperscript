@@ -29,9 +29,9 @@ copy
 </div>
 </header>
 
-hyperscript makes writing event handlers and highly responsive user interfaces
-trivial with native language support for async behavior&mdash;easier than
-callbacks, promises, even async/await.
+ <span class="lede">hyperscript makes writing event handlers and highly 
+responsive user interfaces trivial with native language support for async 
+behavior&mdash;easier than callbacks, promises, even async/await.</span>
 
 <div id="features">
 
@@ -109,6 +109,10 @@ compatibility, unlike htmx.</em></small>
 
 #sample-tip {
   display: inline-block;
+}
+
+.lede {
+	font-size: clamp(1.1em, 2vw, 1.2em);
 }
 
 #features {
