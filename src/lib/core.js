@@ -82,7 +82,7 @@
 	function varargConstructor(Cls, args) {
 		return new (Cls.bind.apply(Cls, [Cls].concat(args)))();
 	}
-	
+
 	var globalScope = typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this;
 
 	//====================================================================
@@ -94,15 +94,15 @@
 			this._css = css;
 			this.relativeToElement = relativeToElement;
 		}
-		
+
 		get css() {
 			return _runtime.escapeSelector(this._css);
 		}
-		
+
 		get className() {
 			return this._css.substr(1);
 		}
-		
+
 		get id() {
 			return this.className();
 		}
@@ -1393,7 +1393,7 @@
 		}
 
 		/**
-		 * shouldAutoIterate returns `true` if the provided value 
+		 * shouldAutoIterate returns `true` if the provided value
 		 * should be implicitly iterated over when accessing properties,
 		 * and as the target of some commands.
 		 *
@@ -1406,7 +1406,7 @@
 		function shouldAutoIterate(value) {
 			return value instanceof ElementCollection || isArrayLike(value);
 		}
-		
+
 		/**
 		 * forEach executes the provided `func` on every item in the `value` array.
 		 * if `value` is a single item (and not an array) then `func` is simply called
@@ -1431,7 +1431,7 @@
 				func(value);
 			}
 		}
-		
+
 		/**
 		 * implicitLoop executes the provided `func` on:
 		 * - every item of {value}, if {value} should be auto-iterated
@@ -1449,7 +1449,7 @@
 				func(value);
 			}
 		}
-		
+
 		var ARRAY_SENTINEL = { array_sentinel: true };
 
 		function linearize(args) {
@@ -2320,14 +2320,14 @@
 				};
 			}
 		});
-		
+
 		class TemplatedQueryElementCollection extends ElementCollection {
 			constructor(css, relativeToElement, templateParts) {
 				super(css, relativeToElement);
 				this.templateParts = templateParts;
 				this.elements = templateParts.filter(elt => elt instanceof Element);
 			}
-			
+
 			get css() {
 				let rv = "", i = 0
 			    for (const val of this.templateParts) {
@@ -2337,7 +2337,7 @@
 				}
 				return rv;
 			}
-			
+
 			[Symbol.iterator]() {
 				this.elements.forEach((el, i) => el.dataset.hsQueryId = i);
 				const rv = super[Symbol.iterator]();
@@ -3020,13 +3020,63 @@
 			);
 		});
 
+		var scanForwardQuery = function(start, root, match, wrap) {
+			var results = root.querySelectorAll(match);
+			for (var i = 0; i < results.length; i++) {
+				var elt = results[i];
+				if (elt.compareDocumentPosition(start) === Node.DOCUMENT_POSITION_PRECEDING) {
+					return elt;
+				}
+			}
+			if (wrap) {
+				return results[0];
+			}
+		}
+
+		var scanBackwardsQuery = function(start, root, match, wrap) {
+			var results = root.querySelectorAll(match);
+			for (var i = results.length - 1; i >= 0; i--) {
+				var elt = results[i];
+				if (elt.compareDocumentPosition(start) === Node.DOCUMENT_POSITION_FOLLOWING) {
+					return elt;
+				}
+			}
+			if (wrap) {
+				return results[results.length - 1];
+			}
+		}
+
+		var scanForwardArray = function(start, array, match, wrap) {
+			var matches = [];
+			for (var i = 0; i < array.length; i++) {
+				var elt = array[i];
+				if (elt.matches(match) || elt === start) {
+					matches.push(elt);
+				}
+			}
+			for (var i = 0; i < matches.length - 1; i++) {
+				var elt = matches[i];
+				if (elt === start) {
+					return matches[i + 1];
+				}
+			}
+			if (wrap) {
+				var first = matches[0];
+				if (first && first.matches(match)) {
+					return first;
+				}
+			}
+		}
+
+		var scanBackwardsArray = function(start, array, match, wrap) {
+			return scanForwardArray(start, Array.from(array).reverse(), match, wrap);
+		}
+
 		_parser.addGrammarElement("relativePositionalExpression", function (parser, runtime, tokens) {
 			var op = tokens.matchAnyToken("next", "previous");
 			if (!op) return;
 			if (op.value === "next") {
-				var propName = "nextElementSibling";
-			} else {
-				var propName = "previousElementSibling";
+				var forwardSearch = true;
 			}
 
 			var thing = parser.parseElement("expression", tokens);
@@ -3037,43 +3087,59 @@
 			}
 
 			if (tokens.matchToken("from")) {
-				var from = parser.requireElement("expression", tokens);
+				tokens.pushFollow("in");
+				try {
+					var from = parser.requireElement("expression", tokens);
+				} finally {
+					tokens.popFollow();
+				}
 			} else {
 				var from = parser.requireElement("implicitMeTarget", tokens);
 			}
 
-			if (tokens.matchToken("within")) {
+			var inSearch = false;
+			if (tokens.matchToken("in")) {
+				inSearch = true;
 				var inElt = parser.requireElement("expression", tokens);
+			} else if (tokens.matchToken("within")) {
+				var withinElt = parser.requireElement("expression", tokens);
 			} else {
-				var inElt = document.body;
+				var withinElt = document.body;
+			}
+
+			var wrapping = false;
+			if (tokens.matchToken("with")) {
+				tokens.requireToken("wrapping")
+				wrapping = true;
 			}
 
 			return {
 				type: "relativePositionalExpression",
 				from: from,
+				forwardSearch: forwardSearch,
+				inSearch: inSearch,
+				wrapping: wrapping,
 				inElt: inElt,
+				withinElt: withinElt,
 				operator: op.value,
-				propName: propName,
-				args: [cssSelector, from, inElt],
-				op: function (context, css, from, inElt) {
-					var currentStart = from;
-					while (currentStart && (currentStart !== inElt)) { // while we haven't reached the terminal parent
-						var currentSearch = currentStart[propName];
-						while (currentSearch) {
-							if (currentSearch.matches(css)) { // if current search element matches, return it
-								return currentSearch;
+				args: [cssSelector, from, inElt, withinElt],
+				op: function (context, css, from, inElt, withinElt) {
+					if(inSearch) {
+						if (inElt) {
+							if (forwardSearch) {
+								return scanForwardArray(from, inElt, css, wrapping);
 							} else {
-								// otherwise run a query selector in it to find the first matching element within it
-								var searchResult = currentSearch.querySelector(css);
-								if (searchResult) {
-									return searchResult;
-								}
+								return scanBackwardsArray(from, inElt, css, wrapping);
 							}
-							// move to the next search node
-							currentSearch = currentSearch[propName];
 						}
-						// if no matches are found move up the DOM hierarchy and on to the next search node
-						currentStart = currentStart.parentElement;
+					} else {
+						if (withinElt) {
+							if (forwardSearch) {
+								return scanForwardQuery(from, withinElt, css, wrapping);
+							} else {
+								return scanBackwardsQuery(from, withinElt, css, wrapping);
+							}
+						}
 					}
 				},
 				evaluate: function (context) {
