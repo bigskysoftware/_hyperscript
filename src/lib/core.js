@@ -3048,12 +3048,11 @@
 
 		var scanForwardArray = function(start, array, match, wrap) {
 			var matches = [];
-			for (var i = 0; i < array.length; i++) {
-				var elt = array[i];
+			_runtime.forEach(array, function(elt){
 				if (elt.matches(match) || elt === start) {
 					matches.push(elt);
 				}
-			}
+			})
 			for (var i = 0; i < matches.length - 1; i++) {
 				var elt = matches[i];
 				if (elt === start) {
@@ -3080,11 +3079,6 @@
 			}
 
 			var thing = parser.parseElement("expression", tokens);
-
-			var cssSelector = thing.css;
-			if (cssSelector == null) {
-				parser.raiseParseError(tokens, "Expected a CSS expression");
-			}
 
 			if (tokens.matchToken("from")) {
 				tokens.pushFollow("in");
@@ -3122,8 +3116,14 @@
 				inElt: inElt,
 				withinElt: withinElt,
 				operator: op.value,
-				args: [cssSelector, from, inElt, withinElt],
-				op: function (context, css, from, inElt, withinElt) {
+				args: [thing, from, inElt, withinElt],
+				op: function (context, thing, from, inElt, withinElt) {
+
+					var css = thing.css;
+					if (css == null) {
+						throw "Expected a CSS value";
+					}
+
 					if(inSearch) {
 						if (inElt) {
 							if (forwardSearch) {
