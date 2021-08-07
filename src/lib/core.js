@@ -4207,6 +4207,12 @@
 			if (!tokens.matchToken("async")) return;
 			if (tokens.matchToken("do")) {
 				var body = parser.requireElement("commandList", tokens);
+
+				// Append halt
+				var end = body;
+				while (end.next) end = end.next;
+				end.next = runtime.HALT;
+
 				tokens.requireToken("end");
 			} else {
 				var body = parser.requireElement("command", tokens);
