@@ -24,7 +24,7 @@ Finally, the `go back` form will navigate back in the history stack.
 ### Examples
 
 ```html
-<button _="on click go to https://duck.com">
+<button _="on click go to url https://duck.com">
   Go Search
 </button>
 
