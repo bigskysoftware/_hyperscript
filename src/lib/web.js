@@ -11,7 +11,7 @@
 		return obj1;
 	}
 
-	var _hyperscript = typeof module !== 'undefined' ? module.exports : this._hyperscript
+	var _hyperscript = this._hyperscript
 
 	_hyperscript.addCommand("settle", function (parser, runtime, tokens) {
 		if (tokens.matchToken("settle")) {
@@ -96,7 +96,7 @@
 			}
 
 			if (classRefs) {
-				var addCmd = {
+				return {
 					classRefs: classRefs,
 					to: to,
 					args: [to, classRefs],
@@ -110,7 +110,7 @@
 					},
 				};
 			} else if (attributeRef) {
-				var addCmd = {
+				return {
 					type: "addCmd",
 					attributeRef: attributeRef,
 					to: to,
@@ -119,14 +119,14 @@
 						runtime.forEach(to, function (target) {
 							target.setAttribute(attributeRef.name, attributeRef.value);
 						});
-						return runtime.findNext(addCmd, context);
+						return runtime.findNext(this, context);
 					},
 					execute: function (ctx) {
 						return runtime.unifiedExec(this, ctx);
 					},
 				};
 			} else {
-				var addCmd = {
+				return {
 					type: "addCmd",
 					cssDeclaration: cssDeclaration,
 					to: to,
@@ -135,14 +135,13 @@
 						runtime.forEach(to, function (target) {
 							target.style.cssText += css;
 						});
-						return runtime.findNext(addCmd, context);
+						return runtime.findNext(this, context);
 					},
 					execute: function (ctx) {
 						return runtime.unifiedExec(this, ctx);
 					},
 				};
 			}
-			return addCmd;
 		}
 	});
 
@@ -221,7 +220,7 @@
 			}
 
 			if (elementExpr) {
-				var removeCmd = {
+				return {
 					elementExpr: elementExpr,
 					from: from,
 					args: [elementExpr],
@@ -235,7 +234,7 @@
 					},
 				};
 			} else {
-				var removeCmd = {
+				return {
 					classRefs: classRefs,
 					attributeRef: attributeRef,
 					elementExpr: elementExpr,
@@ -257,7 +256,6 @@
 					},
 				};
 			}
-			return removeCmd;
 		}
 	});
 
@@ -621,7 +619,7 @@
 									? Element.prototype.prepend
 									: operation === "end"
 									? Element.prototype.append
-									: "unreachable";
+									: Element.prototype.append; // unreachable
 
 							runtime.implicitLoop(root, function (elt) {
 								op.call(
@@ -641,6 +639,7 @@
 	});
 
 	function parsePseudopossessiveTarget(parser, runtime, tokens) {
+		var targets;
 		if (
 			tokens.matchToken("the") ||
 			tokens.matchToken("element") ||
@@ -651,7 +650,7 @@
 		) {
 			parser.possessivesDisabled = true;
 			try {
-				var targets = parser.parseElement("expression", tokens);
+				targets = parser.parseElement("expression", tokens);
 			} finally {
 				delete parser.possessivesDisabled;
 			}
@@ -661,7 +660,7 @@
 			}
 		} else if (tokens.currentToken().type === "IDENTIFIER" && tokens.currentToken().value === "its") {
 			var identifier = tokens.matchToken("its");
-			var targets = {
+			targets = {
 				type: "pseudopossessiveIts",
 				token: identifier,
 				name: identifier.value,
@@ -671,7 +670,7 @@
 			};
 		} else {
 			tokens.matchToken("my") || tokens.matchToken("me"); // consume optional 'my'
-			var targets = parser.parseElement("implicitMeTarget", tokens);
+			targets = parser.parseElement("implicitMeTarget", tokens);
 		}
 		return targets;
 	}

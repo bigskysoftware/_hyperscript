@@ -8,9 +8,9 @@
 (function (root, factory) {
 	if (typeof module != 'undefined') {
 		module.exports = factory();
-	} else if (typeof define === "function" && define.amd) {
+	} else if (typeof this.define === "function" && this.define.amd) {
 		// AMD. Register as an anonymous module.
-		define([], factory);
+		this.define([], factory);
 	} else {
 		// Browser globals
 		root._hyperscript = factory();
@@ -83,7 +83,7 @@
 		return new (Cls.bind.apply(Cls, [Cls].concat(args)))();
 	}
 
-	var globalScope = typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this;
+	var globalScope = (1, eval)("this");
 
 	//====================================================================
 	// Standard library
@@ -188,7 +188,7 @@
 		 * @returns string
 		 */
 		function positionString(token) {
-			return "[Line: " + token.line + ", Column: " + token.col + "]";
+			return "[Line: " + token.line + ", Column: " + token.column + "]";
 		}
 
 		/**
@@ -223,7 +223,7 @@
 		 * @param {boolean} [dollarIsOp]
 		 * @returns boolean
 		 */
-		function isIdentifierChar(c) {
+		function isIdentifierChar(c, dollarIsOp) {
 			return c === "_" || c === "$";
 		}
 
@@ -254,7 +254,7 @@
 			}
 
 			/**
-			 * @param {Token[]} tokens
+			 * @param {TokensObject} tokens
 			 * @param {*} error
 			 */
 			function raiseError(tokens, error) {
@@ -321,7 +321,7 @@
 			 * @param {string} [type2]
 			 * @param {string} [type3]
 			 * @param {string} [type4]
-			 * @returns {Token | void}
+			 * @returns {Token}
 			 */
 			function requireTokenType(type1, type2, type3, type4) {
 				var token = matchTokenType(type1, type2, type3, type4);
@@ -918,10 +918,10 @@
 		/**
 		 * @param {string} type
 		 * @param {TokensObject} tokens
-		 * @param {*} root
+		 * @param {GrammarElement?} root
 		 * @returns GrammarElement
 		 */
-		function parseElement(type, tokens, root) {
+		function parseElement(type, tokens, root = undefined) {
 			var elementDefinition = GRAMMAR[type];
 			if (elementDefinition) {
 				var start = tokens.currentToken();
@@ -948,7 +948,9 @@
 		 */
 		function requireElement(type, tokens, message, root) {
 			var result = parseElement(type, tokens, root);
-			return result || raiseParseError(tokens, message || "Expected " + type);
+			if (!result) raiseParseError(tokens, message || "Expected " + type);
+			// @ts-ignore
+			return result;
 		}
 
 		/**
@@ -981,7 +983,7 @@
 		function addCommand(keyword, definition) {
 			var commandGrammarType = keyword + "Command";
 			var commandDefinitionWrapper = function (parser, runtime, tokens) {
-				var commandElement = definition(parser, runtime, tokens);
+				const commandElement = definition(parser, runtime, tokens);
 				if (commandElement) {
 					commandElement.type = commandGrammarType;
 					commandElement.execute = function (context) {
@@ -1051,16 +1053,17 @@
 
 		addGrammarElement("command", function (parser, runtime, tokens) {
 			if (tokens.matchOpToken("(")) {
-				var commandElement = parser.requireElement("command", tokens);
+				const commandElement = parser.requireElement("command", tokens);
 				tokens.requireOpToken(")");
 				return commandElement;
 			}
 
 			var commandDefinition = COMMANDS[tokens.currentToken().value];
+			let commandElement;
 			if (commandDefinition) {
-				var commandElement = commandDefinition(parser, runtime, tokens);
+				commandElement = commandDefinition(parser, runtime, tokens);
 			} else if (tokens.currentToken().type === "IDENTIFIER" && tokens.token(1).value === "(") {
-				var commandElement = parser.requireElement("pseudoCommand", tokens);
+				commandElement = parser.requireElement("pseudoCommand", tokens);
 			}
 			if (commandElement) {
 				return parser.parseElement("indirectStatement", tokens, commandElement);
@@ -1073,7 +1076,8 @@
 			var cmd = parser.parseElement("command", tokens);
 			if (cmd) {
 				tokens.matchToken("then");
-				cmd.next = parser.parseElement("commandList", tokens);
+				const next = parser.parseElement("commandList", tokens);
+				if (next) cmd.next = next;
 				return cmd;
 			}
 		});
@@ -1154,7 +1158,7 @@
 
 		/**
 		 * @param {TokensObject} tokens
-		 * @param {string} message
+		 * @param {string} [message]
 		 */
 		function raiseParseError(tokens, message) {
 			message =
@@ -1171,7 +1175,7 @@
 		function parseHyperScript(tokens) {
 			var result = parseElement("hyperscript", tokens);
 			if (tokens.hasMore()) raiseParseError(tokens);
-			return result;
+			if (result) return result;
 		}
 
 		/**
@@ -1180,6 +1184,7 @@
 		 */
 		function setParent(elt, parent) {
 			if (elt) {
+				console.log(elt);
 				elt.parent = parent;
 				setParent(elt.next, parent);
 			}
@@ -1203,7 +1208,7 @@
 
 		/**
 		 * @param {Token} token
-		 * @returns {true | void}
+		 * @returns {boolean}
 		 */
 		function commandBoundary(token) {
 			if (
@@ -1217,14 +1222,15 @@
 			) {
 				return true;
 			}
+			return false;
 		}
 
 		/**
 		 * @param {TokensObject} tokens
-		 * @returns {(string | Token)[]}
+		 * @returns {(string | GrammarElement)[]}
 		 */
 		function parseStringTemplate(tokens) {
-			/** @type (string | Token)[] */
+			/** @type {(string | GrammarElement)[]} */
 			var returnArr = [""];
 			do {
 				returnArr.push(tokens.lastWhitespace());
@@ -1272,7 +1278,6 @@
 	// Runtime
 	//====================================================================
 
-	/** @type ConversionMap */
 	var CONVERSIONS = {
 		dynamicResolvers: /** @type DynamicConversionFunction[] */ [],
 		String: function (val) {
@@ -1293,7 +1298,7 @@
 			return Number(val);
 		},
 		Date: function (val) {
-			return Date(val);
+			return new Date(val);
 		},
 		Array: function (val) {
 			return Array.from(val);
@@ -1327,12 +1332,8 @@
 		function matchesSelector(elt, selector) {
 			// noinspection JSUnresolvedVariable
 			var matchesFunction =
-				elt.matches ||
-				elt.matchesSelector ||
-				elt.msMatchesSelector ||
-				elt.mozMatchesSelector ||
-				elt.webkitMatchesSelector ||
-				elt.oMatchesSelector;
+				// @ts-ignore
+				elt.matches || elt.matchesSelector || elt.msMatchesSelector || elt.mozMatchesSelector || elt.webkitMatchesSelector || elt.oMatchesSelector;
 			return matchesFunction && matchesFunction.call(elt, selector);
 		}
 
@@ -1357,7 +1358,7 @@
 		}
 
 		/**
-		 * @param {HTMLElement} elt
+		 * @param {Element} elt
 		 * @param {string} eventName
 		 * @param {Object} [detail]
 		 * @returns {boolean}
@@ -1386,10 +1387,12 @@
 		 * iterator protocol.
 		 *
 		 * @param {any} value
-		 * @returns {value[Symbol.iterator] is Function}
+		 * @returns {value is Iterable}
 		 */
 		function isIterable(value) {
-			return Symbol.iterator in value && typeof value[Symbol.iterator] === 'function';
+			return typeof value === 'object' 
+				&& Symbol.iterator in value 
+				&& typeof value[Symbol.iterator] === 'function';
 		}
 
 		/**
@@ -1401,7 +1404,7 @@
 		 * or {isArrayLike} returns true.
 		 *
 		 * @param {any} value
-		 * @returns {boolean}
+		 * @returns {value is any[] | NodeList | ElementCollection}
 		 */
 		function shouldAutoIterate(value) {
 			return value instanceof ElementCollection || isArrayLike(value);
@@ -1413,13 +1416,13 @@
 		 * once.  If `value` is null, then no further actions are taken.
 		 *
 		 * @template T
-		 * @param {NodeList | T | T[]} value
-		 * @param {(item:Node | T) => void} func
+		 * @param {T | Iterable<T>} value
+		 * @param {(item: T) => void} func
 		 */
 		function forEach(value, func) {
 			if (value == null) {
 				// do nothing
-			} else if (typeof value[Symbol.iterator] === 'function') {
+			} else if (isIterable(value)) {
 				for (const nth of value) {
 					func(nth);
 				}
@@ -1505,10 +1508,10 @@
 			}
 		}
 
-		var HALT = { halt_flag: true };
+		var HALT = {};
 
 		/**
-		 * @param {GrammarDefinition} command
+		 * @param {GrammarElement} command
 		 * @param {Context} ctx
 		 */
 		function unifiedExec(command, ctx) {
@@ -1655,7 +1658,7 @@
 		}
 
 		/**
-		 * @param {HTMLElement} elt
+		 * @param {Element} elt
 		 * @returns {string | null}
 		 */
 		function getScript(elt) {
@@ -1665,7 +1668,7 @@
 					return elt.getAttribute(scriptAttribute);
 				}
 			}
-			if (elt["type"] === "text/hyperscript") {
+			if (elt instanceof HTMLScriptElement && elt.type === "text/hyperscript") {
 				return elt.innerText;
 			}
 			return null;
@@ -1763,7 +1766,7 @@
 		function parse(src) {
 			var tokens = _lexer.tokenize(src);
 			if (_parser.commandStart(tokens.currentToken())) {
-				var commandList = _parser.parseElement("commandList", tokens);
+				var commandList = _parser.requireElement("commandList", tokens);
 				var last = commandList;
 				while (last.next) {
 					last = last.next;
@@ -1775,17 +1778,17 @@
 				};
 				return commandList;
 			} else if (_parser.featureStart(tokens.currentToken())) {
-				var hyperscript = _parser.parseElement("hyperscript", tokens);
+				var hyperscript = _parser.requireElement("hyperscript", tokens);
 				return hyperscript;
 			} else {
-				var expression = _parser.parseElement("expression", tokens);
+				var expression = _parser.requireElement("expression", tokens);
 				return expression;
 			}
 		}
 
 		/**
 		 * @param {string} src
-		 * @param {Context} ctx
+		 * @param {Context} [ctx]
 		 * @returns {any}
 		 */
 		function evaluate(src, ctx) {
@@ -1813,14 +1816,14 @@
 			}
 			if (elt.querySelectorAll) {
 				forEach(elt.querySelectorAll(selector + ", [type='text/hyperscript']"), function (elt) {
-					initElement(elt, elt.type === "text/hyperscript" ? document.body : elt);
+					initElement(elt, elt instanceof HTMLScriptElement && elt.type === "text/hyperscript" ? document.body : elt);
 				});
 			}
 		}
 
 		/**
-		 * @param {HTMLElement} elt
-		 * @param {HTMLElement} [target]
+		 * @param {Element} elt
+		 * @param {Element} [target]
 		 */
 		function initElement(elt, target) {
 			if (elt.closest && elt.closest(_hyperscript.config.disableSelector)) {
@@ -1835,6 +1838,7 @@
 						internalData.script = src;
 						var tokens = _lexer.tokenize(src);
 						var hyperScript = _parser.parseHyperScript(tokens);
+						if (!hyperScript) return;
 						hyperScript.apply(target || elt, elt);
 						setTimeout(function () {
 							triggerEvent(target || elt, "load", {
@@ -1858,7 +1862,7 @@
 		}
 
 		/**
-		 * @param {HTMLElement} elt
+		 * @param {Element} elt
 		 * @returns {Object}
 		 */
 		function getInternalData(elt) {
@@ -2134,11 +2138,12 @@
 		 */
 		function getRootNode(node) {
 			var rv = node.getRootNode();
-			if (!(rv instanceof Document || rv instanceof ShadowRoot)) rv = document;
-			return rv;
+			if (rv instanceof Document || rv instanceof ShadowRoot) return rv;
+			else return document;
 		}
 
 		/** @type string | null */
+		// @ts-ignore
 		var hyperscriptUrl = "document" in globalScope ? document.currentScript.src : null;
 
 		/** @type {RuntimeObject} */
@@ -2195,11 +2200,13 @@
 			var stringToken = tokens.matchTokenType("STRING");
 			if (!stringToken) return;
 			var rawValue = stringToken.value;
+			/** @type {any[]} */
+			var args;
 			if (stringToken.template) {
 				var innerTokens = _lexer.tokenize(rawValue, true);
-				var args = parser.parseStringTemplate(innerTokens);
+				args = parser.parseStringTemplate(innerTokens);
 			} else {
-				var args = [];
+				args = [];
 			}
 			return {
 				type: "string",
@@ -2277,13 +2284,14 @@
 					},
 				};
 			} else {
+				const value = elementId.value.substr(1);
 				return {
 					type: "idRef",
 					css: elementId.value,
-					value: elementId.value.substr(1),
+					value: value,
 					evaluate: function (context) {
 						return (
-							runtime.getRootNode(context.me).getElementById(this.value)
+							runtime.getRootNode(context.me).getElementById(value)
 						);
 					},
 				};
@@ -2311,11 +2319,12 @@
 					},
 				};
 			} else {
+				const css = classRef.value;
 				return {
 					type: "classRef",
-					css: classRef.value,
+					css: css,
 					evaluate: function (context) {
-						return new ElementCollection(this.css, context.me)
+						return new ElementCollection(css, context.me)
 					},
 				};
 			}
@@ -2428,7 +2437,7 @@
 					type: "objectKey",
 					key: token.value,
 					evaluate: function () {
-						return this.key;
+						return token.value;
 					},
 				};
 			} else if (tokens.matchOpToken("[")) {
@@ -2455,7 +2464,7 @@
 					type: "objectKey",
 					key: key,
 					evaluate: function () {
-						return this.key;
+						return key;
 					},
 				};
 			}
@@ -2524,6 +2533,7 @@
 		});
 
 		_parser.addGrammarElement("symbol", function (parser, runtime, tokens) {
+			/** @type {SymbolScope} */
 			var type = "default";
 			if (tokens.matchToken("global")) {
 				type = "global";
@@ -2538,13 +2548,14 @@
 			}
 			var identifier = tokens.matchTokenType("IDENTIFIER");
 			if (identifier) {
+				const name = identifier.value;
 				return {
 					type: "symbol",
 					symbolType: type,
 					token: identifier,
-					name: identifier.value,
+					name: name,
 					evaluate: function (context) {
-						return runtime.resolveSymbol(identifier.value, context, type);
+						return runtime.resolveSymbol(name, context, type);
 					},
 				};
 			}
@@ -2562,10 +2573,11 @@
 		_parser.addLeafExpression("boolean", function (parser, runtime, tokens) {
 			var booleanLiteral = tokens.matchToken("true") || tokens.matchToken("false");
 			if (!booleanLiteral) return;
+			const value = booleanLiteral.value === "true";
 			return {
 				type: "boolean",
 				evaluate: function (context) {
-					return booleanLiteral.value === "true";
+					return value;
 				},
 			};
 		});
@@ -2649,7 +2661,7 @@
 				factor: factor,
 				args: [time],
 				op: function (_context, val) {
-					return val * this.factor;
+					return val * factor;
 				},
 				evaluate: function (context) {
 					return runtime.unifiedEval(this, context);
@@ -2666,7 +2678,7 @@
 				prop: prop,
 				args: [root],
 				op: function (_context, rootVal) {
-					var value = runtime.resolveProperty(rootVal, prop.value);
+					var value = runtime.resolveProperty(rootVal, prop.value, false);
 					return value;
 				},
 				evaluate: function (context) {
@@ -2745,6 +2757,7 @@
 					args: [root],
 					op: function (context, rootVal) {
 						if (attribute) {
+							// @ts-ignore
 							var value = runtime.resolveProperty(rootVal, attribute.name, true);
 						} else {
 							var value = runtime.resolveProperty(rootVal, prop.value, false);
@@ -2877,6 +2890,7 @@
 				attribute: attribute,
 				args: [root],
 				op: function (_ctx, rootVal) {
+					// @ts-ignore
 					var value = runtime.resolveProperty(rootVal, attribute.name, true);
 					return value;
 				},
@@ -2945,15 +2959,14 @@
 				return {
 					type: "typeCheck",
 					typeName: typeName,
-					root: root,
 					nullOk: nullOk,
 					args: [root],
 					op: function (context, val) {
-						var passed = runtime.typeCheck(val, this.typeName.value, this.nullOk);
+						var passed = runtime.typeCheck(val, typeName.value, nullOk);
 						if (passed) {
 							return val;
 						} else {
-							throw new Error("Typecheck failed!  Expected: " + this.typeName.value);
+							throw new Error("Typecheck failed!  Expected: " + typeName.value);
 						}
 					},
 					evaluate: function (context) {
@@ -3092,13 +3105,14 @@
 			}
 
 			var inSearch = false;
+			var withinElt;
 			if (tokens.matchToken("in")) {
 				inSearch = true;
 				var inElt = parser.requireElement("expression", tokens);
 			} else if (tokens.matchToken("within")) {
-				var withinElt = parser.requireElement("expression", tokens);
+				withinElt = parser.requireElement("expression", tokens);
 			} else {
-				var withinElt = document.body;
+				withinElt = document.body;
 			}
 
 			var wrapping = false;
@@ -3154,6 +3168,7 @@
 			if (!op) return;
 			tokens.matchAnyToken("in", "from", "of");
 			var rhs = parser.requireElement("unaryExpression", tokens);
+			const operator = op.value;
 			return {
 				type: "positionalExpression",
 				rhs: rhs,
@@ -3168,11 +3183,11 @@
 						}
 					}
 					if (rhsVal) {
-						if (this.operator === "first") {
+						if (operator === "first") {
 							return rhsVal[0];
-						} else if (this.operator === "last") {
+						} else if (operator === "last") {
 							return rhsVal[rhsVal.length - 1];
-						} else if (this.operator === "random") {
+						} else if (operator === "random") {
 							return rhsVal[Math.floor(Math.random() * rhsVal.length)];
 						}
 					}
@@ -3202,15 +3217,15 @@
 					operator: operator,
 					args: [expr, rhs],
 					op: function (context, lhsVal, rhsVal) {
-						if (this.operator === "+") {
+						if (operator === "+") {
 							return lhsVal + rhsVal;
-						} else if (this.operator === "-") {
+						} else if (operator === "-") {
 							return lhsVal - rhsVal;
-						} else if (this.operator === "*") {
+						} else if (operator === "*") {
 							return lhsVal * rhsVal;
-						} else if (this.operator === "/") {
+						} else if (operator === "/") {
 							return lhsVal / rhsVal;
-						} else if (this.operator === "%") {
+						} else if (operator === "%") {
 							return lhsVal % rhsVal;
 						}
 					},
@@ -3230,116 +3245,116 @@
 		_parser.addGrammarElement("comparisonOperator", function (parser, runtime, tokens) {
 			var expr = parser.parseElement("mathExpression", tokens);
 			var comparisonToken = tokens.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==");
-			var comparisonStr = comparisonToken ? comparisonToken.value : null;
+			var operator = comparisonToken ? comparisonToken.value : null;
 			var hasRightValue = true; // By default, most comparisons require two values, but there are some exceptions.
 			var typeCheck = false;
 
-			if (comparisonStr == null) {
+			if (operator == null) {
 				if (tokens.matchToken("is") || tokens.matchToken("am")) {
 					if (tokens.matchToken("not")) {
 						if (tokens.matchToken("in")) {
-							comparisonStr = "not in";
+							operator = "not in";
 						} else if (tokens.matchToken("a")) {
-							comparisonStr = "not a";
+							operator = "not a";
 							typeCheck = true;
 						} else if (tokens.matchToken("empty")) {
-							comparisonStr = "not empty";
+							operator = "not empty";
 							hasRightValue = false;
 						} else {
-							comparisonStr = "!=";
+							operator = "!=";
 						}
 					} else if (tokens.matchToken("in")) {
-						comparisonStr = "in";
+						operator = "in";
 					} else if (tokens.matchToken("a")) {
-						comparisonStr = "a";
+						operator = "a";
 						typeCheck = true;
 					} else if (tokens.matchToken("empty")) {
-						comparisonStr = "empty";
+						operator = "empty";
 						hasRightValue = false;
 					} else {
-						comparisonStr = "==";
+						operator = "==";
 					}
 				} else if (tokens.matchToken("matches") || tokens.matchToken("match")) {
-					comparisonStr = "match";
+					operator = "match";
 				} else if (tokens.matchToken("contains") || tokens.matchToken("contain")) {
-					comparisonStr = "contain";
+					operator = "contain";
 				} else if (tokens.matchToken("do") || tokens.matchToken("does")) {
 					tokens.requireToken("not");
 					if (tokens.matchToken("matches") || tokens.matchToken("match")) {
-						comparisonStr = "not match";
+						operator = "not match";
 					} else if (tokens.matchToken("contains") || tokens.matchToken("contain")) {
-						comparisonStr = "not contain";
+						operator = "not contain";
 					} else {
 						parser.raiseParseError(tokens, "Expected matches or contains");
 					}
 				}
 			}
 
-			if (comparisonStr) {
+			if (operator) {
 				// Do not allow chained comparisons, which is dumb
 				if (typeCheck) {
 					var typeName = tokens.requireTokenType("IDENTIFIER");
 					var nullOk = !tokens.matchOpToken("!");
 				} else if (hasRightValue) {
 					var rhs = parser.requireElement("mathExpression", tokens);
-					if (comparisonStr === "match" || comparisonStr === "not match") {
+					if (operator === "match" || operator === "not match") {
 						rhs = rhs.css ? rhs.css : rhs;
 					}
 				}
 				expr = {
 					type: "comparisonOperator",
-					operator: comparisonStr,
+					operator: operator,
 					typeName: typeName,
 					nullOk: nullOk,
 					lhs: expr,
 					rhs: rhs,
 					args: [expr, rhs],
 					op: function (context, lhsVal, rhsVal) {
-						if (this.operator === "==") {
+						if (operator === "==") {
 							return lhsVal == rhsVal;
-						} else if (this.operator === "!=") {
+						} else if (operator === "!=") {
 							return lhsVal != rhsVal;
 						}
-						if (this.operator === "in") {
+						if (operator === "in") {
 							return rhsVal != null && Array.from(rhsVal).indexOf(lhsVal) >= 0;
 						}
-						if (this.operator === "not in") {
+						if (operator === "not in") {
 							return rhsVal == null || Array.from(rhsVal).indexOf(lhsVal) < 0;
 						}
-						if (this.operator === "match") {
+						if (operator === "match") {
 							return lhsVal != null && lhsVal.matches(rhsVal);
 						}
-						if (this.operator === "not match") {
+						if (operator === "not match") {
 							return lhsVal == null || !lhsVal.matches(rhsVal);
 						}
-						if (this.operator === "contain") {
+						if (operator === "contain") {
 							return lhsVal != null && lhsVal.contains(rhsVal);
 						}
-						if (this.operator === "not contain") {
+						if (operator === "not contain") {
 							return lhsVal == null || !lhsVal.contains(rhsVal);
 						}
-						if (this.operator === "===") {
+						if (operator === "===") {
 							return lhsVal === rhsVal;
-						} else if (this.operator === "!==") {
+						} else if (operator === "!==") {
 							return lhsVal !== rhsVal;
-						} else if (this.operator === "<") {
+						} else if (operator === "<") {
 							return lhsVal < rhsVal;
-						} else if (this.operator === ">") {
+						} else if (operator === ">") {
 							return lhsVal > rhsVal;
-						} else if (this.operator === "<=") {
+						} else if (operator === "<=") {
 							return lhsVal <= rhsVal;
-						} else if (this.operator === ">=") {
+						} else if (operator === ">=") {
 							return lhsVal >= rhsVal;
-						} else if (this.operator === "empty") {
+						} else if (operator === "empty") {
 							return runtime.isEmpty(lhsVal);
-						} else if (this.operator === "not empty") {
+						} else if (operator === "not empty") {
 							return !runtime.isEmpty(lhsVal);
-						} else if (this.operator === "a") {
-							return runtime.typeCheck(lhsVal, this.typeName.value, this.nullOk);
-						} else if (this.operator === "not a") {
-							return !runtime.typeCheck(lhsVal, this.typeName.value, this.nullOk);
+						} else if (operator === "a") {
+							return runtime.typeCheck(lhsVal, typeName.value, nullOk);
+						} else if (operator === "not a") {
+							return !runtime.typeCheck(lhsVal, typeName.value, nullOk);
 						} else {
-							throw "Unknown comparison : " + this.operator;
+							throw "Unknown comparison : " + operator;
 						}
 					},
 					evaluate: function (context) {
@@ -3365,14 +3380,15 @@
 					parser.raiseParseError(tokens, "You must parenthesize logical operations with different operators");
 				}
 				var rhs = parser.requireElement("comparisonExpression", tokens);
+				const operator = logicalOp.value;
 				expr = {
 					type: "logicalOperator",
-					operator: logicalOp.value,
+					operator: operator,
 					lhs: expr,
 					rhs: rhs,
 					args: [expr, rhs],
 					op: function (context, lhsVal, rhsVal) {
-						if (this.operator === "and") {
+						if (operator === "and") {
 							return lhsVal && rhsVal;
 						} else {
 							return lhsVal || rhsVal;
@@ -3420,19 +3436,19 @@
 
 			// TODO obviously we need to generalize this as a left hand side / targetable concept
 			var expr = parser.parseElement("primaryExpression", tokens);
-			if (
+			if (expr && (
 				expr.type === "symbol" ||
 				expr.type === "ofExpression" ||
 				expr.type === "propertyAccess" ||
 				expr.type === "attributeRefAccess" ||
 				expr.type === "attributeRef" ||
-				expr.type === "possessive"
+				expr.type === "possessive")
 			) {
 				return expr;
 			} else {
 				_parser.raiseParseError(
 					tokens,
-					"A target expression must be writable.  The expression type '" + expr.type + "' is not."
+					"A target expression must be writable.  The expression type '" + (expr && expr.type) + "' is not."
 				);
 			}
 			return expr;
@@ -3517,14 +3533,14 @@
 				if (eventName === "intersection") {
 					var intersectionSpec = {};
 					if (tokens.matchToken("with")) {
-						intersectionSpec["with"] = parser.parseElement("expression", tokens).evaluate();
+						intersectionSpec["with"] = parser.requireElement("expression", tokens).evaluate();
 					}
 					if (tokens.matchToken("having")) {
 						do {
 							if (tokens.matchToken("margin")) {
-								intersectionSpec["rootMargin"] = parser.parseElement("stringLike", tokens).evaluate();
+								intersectionSpec["rootMargin"] = parser.requireElement("stringLike", tokens).evaluate();
 							} else if (tokens.matchToken("threshold")) {
-								intersectionSpec["threshold"] = parser.parseElement("expression", tokens).evaluate();
+								intersectionSpec["threshold"] = parser.requireElement("expression", tokens).evaluate();
 							} else {
 								parser.raiseParseError(tokens, "Unknown intersection config specification");
 							}
@@ -3581,7 +3597,7 @@
 					} else {
 						from = parser.parseElement("expression", tokens);
 						if (!from) {
-							parser.raiseParseError('Expected either target value or "elsewhere".', tokens);
+							parser.raiseParseError(tokens, 'Expected either target value or "elsewhere".');
 						}
 					}
 				}
@@ -3597,10 +3613,12 @@
 				if (tokens.matchToken("debounced")) {
 					tokens.requireToken("at");
 					var timeExpr = parser.requireElement("timeExpression", tokens);
+					// @ts-ignore
 					var debounceTime = timeExpr.evaluate({}); // OK No promise TODO make a literal time expr
 				} else if (tokens.matchToken("throttled")) {
 					tokens.requireToken("at");
 					var timeExpr = parser.requireElement("timeExpression", tokens);
+					// @ts-ignore
 					var throttleTime = timeExpr.evaluate({}); // OK No promise TODO make a literal time expr
 				}
 
@@ -3640,7 +3658,7 @@
 				}
 			}
 
-			var start = parser.requireElement("commandList", tokens);
+			var commandList = parser.parseElement("commandList", tokens);
 
 			var implicitReturn = {
 				type: "implicitReturn",
@@ -3653,7 +3671,11 @@
 					// do nothing
 				},
 			};
-			if (start) {
+
+			if (commandList) {
+				/** @type {GrammarElement} */
+				var start = commandList;
+				
 				var end = start;
 				while (end.next) {
 					end = end.next;
@@ -3672,7 +3694,7 @@
 				execCount: 0,
 				queue: queue,
 				execute: function (/** @type {Context} */ ctx) {
-					if (this.executing && this.every === false) {
+					if (this.executing && every === false) {
 						if (queueNone || (queueFirst && queue.length > 0)) {
 							return;
 						}
@@ -3682,7 +3704,7 @@
 						onFeature.queue.push(ctx);
 						return;
 					}
-					this.execCount++;
+					onFeature.execCount++;
 					this.executing = true;
 					ctx.meta.resolve = function () {
 						onFeature.executing = false;
@@ -3730,7 +3752,7 @@
 							var eventName = eventSpec.on;
 							if (eventSpec.mutationSpec) {
 								eventName = "hyperscript:mutation";
-								var observer = new MutationObserver(function (mutationList, observer) {
+								const observer = new MutationObserver(function (mutationList, observer) {
 									console.log(target, mutationList);
 									if (!onFeature.executing) {
 										_runtime.triggerEvent(target, eventName, {
@@ -3744,7 +3766,7 @@
 
 							if (eventSpec.intersectionSpec) {
 								eventName = "hyperscript:insersection";
-								var observer = new IntersectionObserver(function (entries) {
+								const observer = new IntersectionObserver(function (entries) {
 									_runtime.forEach(entries, function (entry) {
 										var detail = {
 											observer: observer,
@@ -3775,7 +3797,7 @@
 								// establish context
 								runtime.forEach(eventSpec.args, function (arg) {
 									ctx[arg.value] =
-										ctx.event[arg.value] || (ctx.event.detail ? ctx.event.detail[arg.value] : null);
+										ctx.event[arg.value] || ('detail' in ctx.event ? ctx.event['detail'][arg.value] : null);
 								});
 
 								// apply filter
@@ -3881,7 +3903,7 @@
 				}
 			}
 
-			var start = parser.parseElement("commandList", tokens);
+			var start = parser.requireElement("commandList", tokens);
 			if (tokens.matchToken("catch")) {
 				var errorSymbol = tokens.requireTokenType("IDENTIFIER").value;
 				var errorHandler = parser.parseElement("commandList", tokens);
@@ -3988,7 +4010,7 @@
 				start: start,
 				install: function (target, source) {
 					setTimeout(function () {
-						start.execute(runtime.makeContext(target, this, target, null));
+						start && start.execute(runtime.makeContext(target, this, target, null));
 					}, 0);
 				},
 			};
@@ -4030,7 +4052,7 @@
 
 		_parser.addFeature("behavior", function (parser, runtime, tokens) {
 			if (!tokens.matchToken("behavior")) return;
-			var path = parser.parseElement("dotOrColonPath", tokens).evaluate();
+			var path = parser.requireElement("dotOrColonPath", tokens).evaluate();
 			var nameSpace = path.split(".");
 			var name = nameSpace.pop();
 
@@ -4041,7 +4063,7 @@
 				} while (tokens.matchOpToken(","));
 				tokens.requireOpToken(")");
 			}
-			var hs = parser.parseElement("hyperscript", tokens);
+			var hs = parser.requireElement("hyperscript", tokens);
 			for (var i = 0; i < hs.features.length; i++) {
 				var feature = hs.features[i];
 				feature.behavior = path;
@@ -4107,7 +4129,7 @@
 			var expectFunctionDeclaration = false;
 			while (tokens.hasMore()) {
 				jsLastToken = tokens.consumeToken();
-				var peek = tokens.currentToken(true);
+				var peek = tokens.token(0, true);
 				if (peek.type === "IDENTIFIER" && peek.value === "end") {
 					break;
 				}
@@ -4134,7 +4156,7 @@
 
 		_parser.addFeature("js", function (parser, runtime, tokens) {
 			if (!tokens.matchToken("js")) return;
-			var jsBody = parser.parseElement("jsBody", tokens);
+			var jsBody = parser.requireElement("jsBody", tokens);
 
 			var jsSource =
 				jsBody.jsSource +
@@ -4173,23 +4195,23 @@
 				}
 			}
 
-			var jsBody = parser.parseElement("jsBody", tokens);
+			var jsBody = parser.requireElement("jsBody", tokens);
 			tokens.matchToken("end");
 
 			var func = varargConstructor(Function, inputs.concat([jsBody.jsSource]));
 
-			return {
+			var command = {
 				jsSource: jsBody.jsSource,
 				function: func,
 				inputs: inputs,
 				op: function (context) {
 					var args = [];
 					inputs.forEach(function (input) {
-						args.push(runtime.resolveSymbol(input, context));
+						args.push(runtime.resolveSymbol(input, context, 'default'));
 					});
 					var result = func.apply(globalScope, args);
 					if (result && typeof result.then === "function") {
-						return Promise(function (resolve) {
+						return new Promise(function (resolve) {
 							result.then(function (actualResult) {
 								context.result = actualResult;
 								resolve(runtime.findNext(this, context));
@@ -4201,6 +4223,7 @@
 					}
 				},
 			};
+			return command;
 		});
 
 		_parser.addCommand("async", function (parser, runtime, tokens) {
@@ -4217,7 +4240,7 @@
 			} else {
 				var body = parser.requireElement("command", tokens);
 			}
-			return {
+			var command = {
 				body: body,
 				op: function (context) {
 					setTimeout(function () {
@@ -4226,6 +4249,7 @@
 					return runtime.findNext(this, context);
 				},
 			};
+			return command;
 		});
 
 		_parser.addCommand("tell", function (parser, runtime, tokens) {
@@ -4276,6 +4300,8 @@
 
 		_parser.addCommand("wait", function (parser, runtime, tokens) {
 			if (!tokens.matchToken("wait")) return;
+			var command;
+			
 			// wait on event
 			if (tokens.matchToken("for")) {
 				tokens.matchToken("a"); // optional "a"
@@ -4292,7 +4318,7 @@
 				}
 
 				// wait on event
-				var waitCmd = {
+				command = {
 					event: events,
 					on: on,
 					args: [on],
@@ -4300,18 +4326,18 @@
 						var target = on ? on : context.me;
 						if (!(target instanceof EventTarget))
 							throw new Error("Not a valid event target: " + this.on.sourceFor());
-						return new Promise(function (resolve) {
+						return new Promise((resolve) => {
 							var resolved = false;
-							runtime.forEach(events, function (eventInfo) {
-								var listener = function (event) {
+							runtime.forEach(events, (eventInfo) => {
+								var listener = (event) => {
 									context.result = event;
-									runtime.forEach(eventInfo.args, function (arg) {
+									runtime.forEach(eventInfo.args, (arg) => {
 										context[arg.value] =
 											event[arg.value] || (event.detail ? event.detail[arg.value] : null);
 									});
 									if (!resolved) {
 										resolved = true;
-										resolve(runtime.findNext(waitCmd, context));
+										resolve(runtime.findNext(this, context));
 									}
 								};
 								target.addEventListener(eventInfo.name, listener, { once: true });
@@ -4319,22 +4345,24 @@
 						});
 					},
 				};
+				return command;
 			} else {
+				var time;
 				if (tokens.matchToken("a")) {
 					tokens.requireToken("tick");
 					time = 0;
 				} else {
-					var time = _parser.requireElement("timeExpression", tokens);
+					time = _parser.requireElement("timeExpression", tokens);
 				}
 
-				var waitCmd = {
+				command = {
 					type: "waitCmd",
 					time: time,
 					args: [time],
 					op: function (context, timeValue) {
-						return new Promise(function (resolve) {
-							setTimeout(function () {
-								resolve(runtime.findNext(waitCmd, context));
+						return new Promise((resolve) => {
+							setTimeout(() => {
+								resolve(runtime.findNext(this, context));
 							}, timeValue);
 						});
 					},
@@ -4342,8 +4370,8 @@
 						return runtime.unifiedExec(this, context);
 					},
 				};
+				return command;
 			}
-			return waitCmd;
 		});
 
 		// TODO  - colon path needs to eventually become part of ruby-style symbols
@@ -4579,8 +4607,9 @@
 				var name = tokens.requireTokenType("IDENTIFIER").value;
 			}
 
-			if (expr.type === "queryRef")
-				return {
+			var command;
+			if (expr.type === "queryRef") {
+				command = {
 					op: function (ctx) {
 						var match,
 							tagname = "div",
@@ -4606,8 +4635,9 @@
 						return runtime.findNext(this, ctx);
 					},
 				};
-			else
-				return {
+				return command;
+			} else {
+				command = {
 					args: [expr, args],
 					op: function (ctx, expr, args) {
 						ctx.result = varargConstructor(expr, args);
@@ -4616,12 +4646,14 @@
 						return runtime.findNext(this, ctx);
 					},
 				};
+				return command;
+			}
 		});
 
 		_parser.addGrammarElement("pseudoCommand", function (parser, runtime, tokens) {
 			var expr = parser.requireElement("primaryExpression", tokens);
 			if (expr.type !== "functionCall" && expr.root.type !== "symbol") {
-				parser.raiseParseError("Implicit function calls must start with a simple function", tokens);
+				parser.raiseParseError(tokens, "Implicit function calls must start with a simple function");
 			}
 			// optional "on", "with", or "to"
 			if (!tokens.matchAnyToken("to", "on", "with", "into", "from", "at") && parser.commandBoundary(tokens.currentToken())) {
@@ -4743,7 +4775,7 @@
 				tokens.requireToken("on");
 				var target = parser.requireElement("expression", tokens);
 
-				return {
+				var command = {
 					objectLiteral: obj,
 					target: target,
 					args: [obj, target],
@@ -4752,6 +4784,7 @@
 						return runtime.findNext(this, ctx);
 					},
 				};
+				return command;
 			}
 
 			try {
@@ -4800,13 +4833,14 @@
 
 		var parseRepeatExpression = function (parser, tokens, runtime, startedWithForToken) {
 			var innerStartToken = tokens.currentToken();
+			var identifier;
 			if (tokens.matchToken("for") || startedWithForToken) {
 				var identifierToken = tokens.requireTokenType("IDENTIFIER");
-				var identifier = identifierToken.value;
+				identifier = identifierToken.value;
 				tokens.requireToken("in");
 				var expression = parser.requireElement("expression", tokens);
 			} else if (tokens.matchToken("in")) {
-				var identifier = "it";
+				identifier = "it";
 				var expression = parser.requireElement("expression", tokens);
 			} else if (tokens.matchToken("while")) {
 				var whileExpr = parser.requireElement("expression", tokens);
@@ -4990,7 +5024,7 @@
 				throw "Unable to append to " + target.type;
 			}
 
-			return {
+			var command = {
 				value: value,
 				target: target,
 				args: [value],
@@ -5010,9 +5044,10 @@
 					return runtime.findNext(this, context);
 				},
 				execute: function (context) {
-					return runtime.unifiedExec(this, context, value, target);
+					return runtime.unifiedExec(this, context/*, value, target*/);
 				},
 			};
+			return command;
 		});
 
 		_parser.addCommand("increment", function (parser, runtime, tokens) {
@@ -5027,7 +5062,7 @@
 				amount = parser.requireElement("expression", tokens);
 			}
 
-			return {
+			var command = {
 				target: target,
 				args: [target, amount],
 				op: function (context, targetValue, amount) {
@@ -5040,9 +5075,10 @@
 					return setter;
 				},
 				execute: function (context) {
-					return runtime.unifiedExec(this, context, target, amount);
+					return runtime.unifiedExec(this, context/* , target, amount */);
 				},
 			};
+			return command;
 		});
 
 		_parser.addCommand("decrement", function (parser, runtime, tokens) {
@@ -5057,7 +5093,7 @@
 				amount = parser.requireElement("expression", tokens);
 			}
 
-			return {
+			var command = {
 				target: target,
 				args: [target, amount],
 				op: function (context, targetValue, amount) {
@@ -5070,9 +5106,10 @@
 					return setter;
 				},
 				execute: function (context) {
-					return runtime.unifiedExec(this, context, target, amount);
+					return runtime.unifiedExec(this, context/*, target, amount*/);
 				},
 			};
+			return command;
 		});
 
 		_parser.addCommand("fetch", function (parser, runtime, tokens) {
@@ -5147,6 +5184,7 @@
 	}
 
 	function getMetaConfig() {
+		/** @type {HTMLMetaElement} */
 		var element = document.querySelector('meta[name="htmx-config"]');
 		if (element) {
 			return parseJSON(element.content);
@@ -5163,8 +5201,10 @@
 	}
 
 	if ("document" in globalScope) {
+		/** @type {HTMLScriptElement[]} */
+		var scripts = Array.from(document.querySelectorAll("script[type='text/hyperscript'][src]"))
 		Promise.all(
-			Array.from(document.querySelectorAll("script[type='text/hyperscript'][src]")).map(function (script) {
+			scripts.map(function (script) {
 				return fetch(script.src)
 					.then(function (res) {
 						return res.text();
@@ -5177,7 +5217,7 @@
 			ready(function () {
 				mergeMetaConfig();
 				_runtime.processNode(document.documentElement);
-				document.addEventListener("htmx:load", function (evt) {
+				document.addEventListener("htmx:load", function (/** @type {CustomEvent} */ evt) {
 					_runtime.processNode(evt.detail.elt);
 				});
 			});

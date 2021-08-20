@@ -37,7 +37,7 @@ describe("as operator", function () {
 
 	it("converts value as Date", function () {
 		var result = evalHyperScript("1 as Date");
-		result.should.equal(Date(1));
+		result.getTime().should.equal(new Date(1).getTime());
 	});
 
 	it("converts value as JSON", function () {
