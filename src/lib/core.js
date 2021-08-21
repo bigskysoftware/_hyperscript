@@ -1343,12 +1343,12 @@
 		 */
 		function makeEvent(eventName, detail) {
 			var evt;
-			if (window.CustomEvent && typeof window.CustomEvent === "function") {
-				evt = new CustomEvent(eventName, {
+			if (globalScope.Event && typeof globalScope.Event === "function") {
+				evt = new Event(eventName, {
 					bubbles: true,
 					cancelable: true,
-					detail: detail,
 				});
+				evt['detail'] = detail;
 			} else {
 				evt = document.createEvent("CustomEvent");
 				evt.initCustomEvent(eventName, true, true, detail);
@@ -1378,7 +1378,7 @@
 		 * @returns {value is Array | NodeList}
 		 */
 		function isArrayLike(value) {
-			return Array.isArray(value) || value instanceof NodeList;
+			return Array.isArray(value) || (typeof NodeList !== 'undefined' && value instanceof NodeList);
 		}
 
 		/**
@@ -1791,7 +1791,9 @@
 		 * @returns {any}
 		 */
 		function evaluate(src, ctx) {
-			var body = 'document' in globalScope ? globalScope.document.body : makeModule();
+			class HyperscriptModule extends EventTarget {}
+
+			var body = 'document' in globalScope ? globalScope.document.body : new HyperscriptModule();
 			ctx = mergeObjects(makeContext(body, null, body, null), ctx || {});
 			var element = parse(src);
 			if (element.execute) {
@@ -1801,10 +1803,6 @@
 				return body.hyperscriptFeatures;
 			} else {
 				return element.evaluate(ctx);
-			}
-
-			function makeModule() {
-				return { hyperscriptFeatures: {} }
 			}
 		}
 
@@ -3784,9 +3782,10 @@
 								observer.observe(target);
 							}
 
-							target.addEventListener(eventName, function listener(evt) {
+							var addEventListener = target.addEventListener || target.on;
+							addEventListener.call(target, eventName, function listener(evt) {
 								// OK NO PROMISE
-								if (elt instanceof Node && target !== elt && !elt.isConnected) {
+								if (typeof Node !== 'undefined' && elt instanceof Node && target !== elt && !elt.isConnected) {
 									target.removeEventListener(eventName, listener);
 									return;
 								}
@@ -4009,14 +4008,19 @@
 
 		_parser.addFeature("init", function (parser, runtime, tokens) {
 			if (!tokens.matchToken("init")) return;
+			var immediately = tokens.matchToken('immediately');
 
 			var start = parser.parseElement("commandList", tokens);
 			var initFeature = {
 				start: start,
 				install: function (target, source) {
-					setTimeout(function () {
+					if (immediately) {
 						start && start.execute(runtime.makeContext(target, this, target, null));
-					}, 0);
+					} else {
+						setTimeout(function () {
+							start && start.execute(runtime.makeContext(target, this, target, null));
+						}, 0);
+					}
 				},
 			};
 
