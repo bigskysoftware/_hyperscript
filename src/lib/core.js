@@ -1792,14 +1792,20 @@
 		 * @returns {any}
 		 */
 		function evaluate(src, ctx) {
-			ctx = mergeObjects(makeContext(document.body, null, document.body, null), ctx || {});
+			var body = 'document' in globalScope ? globalScope.document.body : makeModule();
+			ctx = mergeObjects(makeContext(body, null, body, null), ctx || {});
 			var element = parse(src);
 			if (element.execute) {
 				return element.execute(ctx);
 			} else if (element.apply) {
-				element.apply(document.body, null);
+				element.apply(body, null);
+				return body.hyperscriptFeatures;
 			} else {
 				return element.evaluate(ctx);
+			}
+
+			function makeModule() {
+				return { hyperscriptFeatures: {} }
 			}
 		}
 
@@ -2537,7 +2543,7 @@
 			var type = "default";
 			if (tokens.matchToken("global")) {
 				type = "global";
-			} else if (tokens.matchToken("element")) {
+			} else if (tokens.matchToken("element") || tokens.matchToken("module")) {
 				type = "element";
 				// optional possessive
 				if (tokens.matchOpToken("'")) {
