@@ -18,6 +18,9 @@
   ],
   "main": "dist/_hyperscript.min.js",
   "unpkg": "dist/_hyperscript.min.js",
+  "bin": {
+    "_hyperscript": "src/bin/node-hyperscript.js"
+  },
   "scripts": {
     "test": "mocha-chrome test/index.html",
     "www": "node scripts/www.js",

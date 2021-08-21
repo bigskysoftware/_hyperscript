@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 
 const _hyperscript = require('../lib/core');
 const fs = require('fs/promises');
