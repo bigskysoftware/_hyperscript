@@ -14,7 +14,7 @@
  * @property {(keyword:string, definition:GrammarDefinition) => void | GrammarElement } addCommand
  * @property {(keyword:string, definition:GrammarDefinition) => void | GrammarElement } addLeafExpression
  * @property {(keyword:string, definition:GrammarDefinition) => void | GrammarElement } addIndirectExpression
- * @property {(str:string, ctx?:Object) => *} evaluate
+ * @property {(str:string, ctx?:Object, args?:Object) => *} evaluate
  * @property {(str:string) => *} parse
  * @property {(elt:HTMLElement) => void} processNode
  * @property {HyperscriptConfigObject} config

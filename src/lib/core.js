@@ -1788,19 +1788,30 @@
 		/**
 		 * @param {string} src
 		 * @param {Context} [ctx]
+		 * @param {Object} [args]
 		 * @returns {any}
 		 */
-		function evaluate(src, ctx) {
-			class HyperscriptModule extends EventTarget {}
+		function evaluate(src, ctx, args) {
+			class HyperscriptModule extends EventTarget {
+				constructor(mod) {
+					super();
+					this.module = mod;
+				}
+				toString() {
+					return this.module.id;
+				}
+			}
 
-			var body = 'document' in globalScope ? globalScope.document.body : new HyperscriptModule();
+			var body = 'document' in globalScope
+				? globalScope.document.body 
+				: new HyperscriptModule(args && args.module);
 			ctx = mergeObjects(makeContext(body, null, body, null), ctx || {});
 			var element = parse(src);
 			if (element.execute) {
 				element.execute(ctx);
 				return ctx.result;
 			} else if (element.apply) {
-				element.apply(body, null);
+				element.apply(body, body, args);
 				return body.hyperscriptFeatures;
 			} else {
 				return element.evaluate(ctx);
@@ -2039,11 +2050,11 @@
 		 * @param {any} value
 		 */
 		function assignToNamespace(elt, nameSpace, name, value) {
-			if (typeof document === "undefined" || elt === document.body) {
+			if (typeof document !== "undefined" && elt === document.body) {
 				var root = globalScope;
 			} else {
 				var root = elt["hyperscriptFeatures"];
-				if (root == null) {
+				if (root === null || root === undefined) {
 					root = {};
 					elt["hyperscriptFeatures"] = root;
 				}
@@ -5261,17 +5272,9 @@
 			addIndirectExpression: function (name, definition) {
 				_parser.addIndirectExpression(name, definition);
 			},
-			evaluate: function (str, ctx) {
-				//OK
-				return _runtime.evaluate(str, ctx); //OK
-			},
-			parse: function (str) {
-				//OK
-				return _runtime.parse(str); //OK
-			},
-			processNode: function (elt) {
-				_runtime.processNode(elt);
-			},
+			evaluate: _runtime.evaluate.bind(_runtime),
+			parse: _runtime.parse.bind(_runtime),
+			processNode: _runtime.processNode.bind(_runtime),
 			config: {
 				attributes: "_, script, data-script",
 				defaultTransition: "all 500ms ease-in",

@@ -38,7 +38,7 @@ interface _GrammarElement {
   eventSource?: EventSource;
   install?: () => void;
   execute?: (context:Context) => void;
-  apply?: (target: Element, source: Element) => void;
+  apply?: (target: Element, source: Element, args?: Object) => void;
   [others: string]: any;
 }
 
