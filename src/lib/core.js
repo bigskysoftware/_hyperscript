@@ -13,9 +13,9 @@
 		this.define([], factory);
 	} else {
 		// Browser globals
-		root._hyperscript = factory();
+		root['_hyperscript'] = factory();
 	}
-})(typeof self !== "undefined" ? self : this, function () {
+})(typeof self !== "undefined" ? self : this, /** @return {HyperscriptObject} */function () {
 	"use strict";
 
 	//====================================================================
@@ -1797,7 +1797,8 @@
 			ctx = mergeObjects(makeContext(body, null, body, null), ctx || {});
 			var element = parse(src);
 			if (element.execute) {
-				return element.execute(ctx);
+				element.execute(ctx);
+				return ctx.result;
 			} else if (element.apply) {
 				element.apply(body, null);
 				return body.hyperscriptFeatures;
@@ -3745,6 +3746,7 @@
 						} else if (eventSpec.from) {
 							targets = eventSpec.from.evaluate({
 								me: elt,
+								meta: { owner: elt, feature: onFeature },
 							});
 						} else {
 							targets = [elt];
