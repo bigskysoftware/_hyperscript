@@ -4313,10 +4313,17 @@
 				tokens.matchToken("a"); // optional "a"
 				var events = [];
 				do {
-					events.push({
-						name: _parser.requireElement("dotOrColonPath", tokens, "Expected event name").evaluate(),
-						args: parseEventArgs(tokens),
-					});
+					var lookahead = tokens.token(0);
+					if (lookahead.type === 'NUMBER' || lookahead.type === 'L_PAREN') {
+						events.push({
+							time: parser.requireElement('timeExpression', tokens).evaluate() // TODO: do we want to allow async here?
+						})
+					} else {
+						events.push({
+							name: _parser.requireElement("dotOrColonPath", tokens, "Expected event name").evaluate(),
+							args: parseEventArgs(tokens),
+						});
+					}
 				} while (tokens.matchToken("or"));
 
 				if (tokens.matchToken("from")) {
@@ -4346,7 +4353,8 @@
 										resolve(runtime.findNext(this, context));
 									}
 								};
-								target.addEventListener(eventInfo.name, listener, { once: true });
+								if (eventInfo.name) target.addEventListener(eventInfo.name, listener, { once: true });
+								else if (eventInfo.time) setTimeout(listener, eventInfo.time, eventInfo.time)
 							});
 						});
 					},
