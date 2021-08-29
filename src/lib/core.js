@@ -1390,8 +1390,8 @@
 		 * @returns {value is Iterable}
 		 */
 		function isIterable(value) {
-			return typeof value === 'object' 
-				&& Symbol.iterator in value 
+			return typeof value === 'object'
+				&& Symbol.iterator in value
 				&& typeof value[Symbol.iterator] === 'function';
 		}
 
@@ -3681,7 +3681,7 @@
 			if (commandList) {
 				/** @type {GrammarElement} */
 				var start = commandList;
-				
+
 				var end = start;
 				while (end.next) {
 					end = end.next;
@@ -4307,7 +4307,7 @@
 		_parser.addCommand("wait", function (parser, runtime, tokens) {
 			if (!tokens.matchToken("wait")) return;
 			var command;
-			
+
 			// wait on event
 			if (tokens.matchToken("for")) {
 				tokens.matchToken("a"); // optional "a"
@@ -5153,6 +5153,10 @@
 				argExpressions: args,
 				args: [url, args],
 				op: function (context, url, args) {
+					var detail = args || {};
+					detail["sentBy"] = context.me;
+					runtime.triggerEvent(context.me, "hyperscript:beforeFetch", detail);
+					args = detail;		
 					return fetch(url, args)
 						.then(function (resp) {
 							if (type === "response") {
