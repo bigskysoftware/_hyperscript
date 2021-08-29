@@ -21,11 +21,11 @@ response text.
 
 This command saves the result into the `it` variable.
 
-This command triggers the event `hyperscript:beforeFetch`. This event receives the parameters for the command as its `event.detail`. This is useful to globally change the behaviour of fetch, for example to add a custom header to every request, for example adding an `X-CSRFToken` Header for django apps:
+This command triggers the event `hyperscript:beforeFetch`. This event receives the parameters for the command as its `event.detail`. This is useful to globally change the behaviour of fetch, for example to add a custom header to every request.
 
 ```javascript
 document.body.addEventListener('hyperscript:beforeFetch', (event) => {
-    event.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
+    event.detail.headers['X-AuthToken'] = getAuthToken(); 
 });
 ```
 
