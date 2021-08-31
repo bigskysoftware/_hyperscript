@@ -1867,17 +1867,18 @@
 			}
 		}
 
+		var internalDataMap = new WeakMap
+
 		/**
 		 * @param {Element} elt
 		 * @returns {Object}
 		 */
 		function getInternalData(elt) {
-			var dataProp = "hyperscript-internal-data";
-			var data = elt[dataProp];
-			if (!data) {
-				data = elt[dataProp] = {};
+			var internalData = internalDataMap.get(elt);
+			if (typeof internalData === 'undefined') {
+				internalDataMap.set(elt, internalData = {});
 			}
-			return data;
+			return internalData;
 		}
 
 		/**
