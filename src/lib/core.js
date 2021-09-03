@@ -1673,15 +1673,27 @@
 			return null;
 		}
 
+		var hyperscriptFeaturesMap = new WeakMap
+
+		/**
+		 * @param {Element} elt
+		 * @returns {Object}
+		 */
+		function getHyperscriptFeatures(elt) {
+			var hyperscriptFeatures = hyperscriptFeaturesMap.get(elt);
+			if (typeof hyperscriptFeatures === 'undefined') {
+				hyperscriptFeaturesMap.set(elt, hyperscriptFeatures = {});
+			}
+			return hyperscriptFeatures;
+		}
+
 		/**
 		 * @param {Object} owner
 		 * @param {Context} ctx
 		 */
 		function addFeatures(owner, ctx) {
 			if (owner) {
-				if (owner.hyperscriptFeatures) {
-					mergeObjects(ctx, owner.hyperscriptFeatures);
-				}
+				mergeObjects(ctx, getHyperscriptFeatures(owner));
 				addFeatures(owner.parentElement, ctx);
 			}
 		}
@@ -1812,9 +1824,13 @@
 				return ctx.result;
 			} else if (element.apply) {
 				element.apply(body, body, args);
-				return body.hyperscriptFeatures;
+				return getHyperscriptFeatures(body);
 			} else {
 				return element.evaluate(ctx);
+			}
+
+			function makeModule() {
+				return {}
 			}
 		}
 
@@ -1826,7 +1842,7 @@
 			if (matchesSelector(elt, selector)) {
 				initElement(elt, elt);
 			}
-			if (elt["type"] === "text/hyperscript") {
+			if (elt instanceof HTMLScriptElement && elt.type === "text/hyperscript") {
 				initElement(elt, document.body);
 			}
 			if (elt.querySelectorAll) {
@@ -1876,17 +1892,18 @@
 			}
 		}
 
+		var internalDataMap = new WeakMap
+
 		/**
 		 * @param {Element} elt
 		 * @returns {Object}
 		 */
 		function getInternalData(elt) {
-			var dataProp = "hyperscript-internal-data";
-			var data = elt[dataProp];
-			if (!data) {
-				data = elt[dataProp] = {};
+			var internalData = internalDataMap.get(elt);
+			if (typeof internalData === 'undefined') {
+				internalDataMap.set(elt, internalData = {});
 			}
-			return data;
+			return internalData;
 		}
 
 		/**
@@ -2053,11 +2070,7 @@
 			if (typeof document !== "undefined" && elt === document.body) {
 				var root = globalScope;
 			} else {
-				var root = elt["hyperscriptFeatures"];
-				if (root === null || root === undefined) {
-					root = {};
-					elt["hyperscriptFeatures"] = root;
-				}
+				var root = getHyperscriptFeatures(elt);
 			}
 			while (nameSpace.length > 0) {
 				var propertyName = nameSpace.shift();
@@ -4329,10 +4342,17 @@
 				tokens.matchToken("a"); // optional "a"
 				var events = [];
 				do {
-					events.push({
-						name: _parser.requireElement("dotOrColonPath", tokens, "Expected event name").evaluate(),
-						args: parseEventArgs(tokens),
-					});
+					var lookahead = tokens.token(0);
+					if (lookahead.type === 'NUMBER' || lookahead.type === 'L_PAREN') {
+						events.push({
+							time: parser.requireElement('timeExpression', tokens).evaluate() // TODO: do we want to allow async here?
+						})
+					} else {
+						events.push({
+							name: _parser.requireElement("dotOrColonPath", tokens, "Expected event name").evaluate(),
+							args: parseEventArgs(tokens),
+						});
+					}
 				} while (tokens.matchToken("or"));
 
 				if (tokens.matchToken("from")) {
@@ -4362,7 +4382,8 @@
 										resolve(runtime.findNext(this, context));
 									}
 								};
-								target.addEventListener(eventInfo.name, listener, { once: true });
+								if (eventInfo.name) target.addEventListener(eventInfo.name, listener, { once: true });
+								else if (eventInfo.time) setTimeout(listener, eventInfo.time, eventInfo.time)
 							});
 						});
 					},
