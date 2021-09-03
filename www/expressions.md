@@ -391,7 +391,7 @@ element:
 
 ## <a name="positional"></a>[Positional Expressions](#positional)
 
-The [positional exprssions](/expressions/positiona), `first`, `last` and `random`  allows you to get the
+The [positional expressions](/expressions/positional/), `first`, `last` and `random`  allows you to get the
 first, last or a random element from an array-like object
 
 ```html
@@ -403,7 +403,7 @@ first, last or a random element from an array-like object
 
 ## <a name="relative-positional"></a>[Relative Positional Expressions](#relative-positional)
 
-The [relative positional exprssions](/expressions/relative-positional), `next` and `previous`  allows you refer to the
+The [relative positional expressions](/expressions/relative-positional/), `next` and `previous`  allows you refer to the
 next or previous element of a given type within a linear, depth first forward or backward scan of the elements in the
 DOM tree
 

@@ -37,7 +37,7 @@ See [expressions](/expressions) for an overview.
 | [of expression](/expressions/of) | Get a property of an object | `the location of window`
 | [positional expressions](/expressions/positional) | Get a positional value out of an array-like object | `first from <div/>`
 | [possessive expressions](/expressions/possessive) | Get a property or attribute from an element | `the window's location`
-| [relative positional expressions](/expressions/relateivePositional) | Get a positional value out of an array-like object | `first from <div/>`
+| [relative positional expressions](/expressions/relative-positional/) | Get a positional value out of an array-like object | `first from <div/>`
 
 ## <a name='magic-values'></a> [Magic Values](#magic-values)
 
