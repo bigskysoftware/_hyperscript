@@ -1674,15 +1674,27 @@
 			return null;
 		}
 
+		var hyperscriptFeaturesMap = new WeakMap
+
+		/**
+		 * @param {Element} elt
+		 * @returns {Object}
+		 */
+		function getHyperscriptFeatures(elt) {
+			var hyperscriptFeatures = hyperscriptFeaturesMap.get(elt);
+			if (typeof hyperscriptFeatures === 'undefined') {
+				hyperscriptFeaturesMap.set(elt, hyperscriptFeatures = {});
+			}
+			return hyperscriptFeatures;
+		}
+
 		/**
 		 * @param {Object} owner
 		 * @param {Context} ctx
 		 */
 		function addFeatures(owner, ctx) {
 			if (owner) {
-				if (owner.hyperscriptFeatures) {
-					mergeObjects(ctx, owner.hyperscriptFeatures);
-				}
+				mergeObjects(ctx, getHyperscriptFeatures(owner));
 				addFeatures(owner.parentElement, ctx);
 			}
 		}
@@ -1799,13 +1811,13 @@
 				return element.execute(ctx);
 			} else if (element.apply) {
 				element.apply(body, null);
-				return body.hyperscriptFeatures;
+				return getHyperscriptFeatures(body);
 			} else {
 				return element.evaluate(ctx);
 			}
 
 			function makeModule() {
-				return { hyperscriptFeatures: {} }
+				return {}
 			}
 		}
 
@@ -1817,7 +1829,7 @@
 			if (matchesSelector(elt, selector)) {
 				initElement(elt, elt);
 			}
-			if (elt["type"] === "text/hyperscript") {
+			if (elt instanceof HTMLScriptElement && elt.type === "text/hyperscript") {
 				initElement(elt, document.body);
 			}
 			if (elt.querySelectorAll) {
@@ -2045,11 +2057,7 @@
 			if (typeof document === "undefined" || elt === document.body) {
 				var root = globalScope;
 			} else {
-				var root = elt["hyperscriptFeatures"];
-				if (root == null) {
-					root = {};
-					elt["hyperscriptFeatures"] = root;
-				}
+				var root = getHyperscriptFeatures(elt);
 			}
 			while (nameSpace.length > 0) {
 				var propertyName = nameSpace.shift();
