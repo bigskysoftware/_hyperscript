@@ -85,7 +85,19 @@
 	})
 
 	if (Prism.languages.markup) {
-		Prism.languages.markup.tag.addInlined('script', 'hyperscript')
+		Prism.languages.insertBefore('markup', 'cdata', {
+			'script-type-text-hyperscript': {
+				pattern: /(<script\s+type="text\/hyperscript"[^>]*>)[^<]*(?=<\/script>)/i,
+				lookbehind: true,
+				greedy: true,
+				inside: {
+					'language-hyperscript': {
+						pattern: /[\s\S]+/,
+						inside: Prism.languages.hyperscript
+					}
+				}
+			}
+		})
 		Prism.languages.markup.tag.addAttribute('_', 'hyperscript')
 	}
 })
