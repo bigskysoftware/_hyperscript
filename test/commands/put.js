@@ -64,6 +64,16 @@ describe("the put command", function () {
 		d2.textContent.should.equal("foo");
 	});
 
+	it("can set into class ref w/ flatmapped property using of", function () {
+		var div = make("<div _='on click put \"foo\" into innerHTML of parentElement of .divs'></div>");
+		make("<div id='d1'><div class='divs'></div></div><div id='d2'><div class='divs'></div></div>");
+		div.click();
+		var d1 = byId("d1");
+		var d2 = byId("d2");
+		d1.textContent.should.equal("foo");
+		d2.textContent.should.equal("foo");
+	});
+
 	it("can set local variables", function () {
 		var d1 = make(
 			"<div id='d1' _='on click put \"foo\" into newVar then" +
