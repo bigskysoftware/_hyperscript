@@ -17,7 +17,7 @@
 		return {
 			op: function (ctx) {
 				var hdb = new HDB(ctx, runtime, this);
-				window.hdb = hdb;
+				window['hdb'] = hdb;
 				try {
 					return hdb.break(ctx);
 				} catch (e) {
@@ -26,24 +26,22 @@
 			},
 		};
 	});
-
 	HDB.prototype.break = function(ctx) {
-		var self = this;
 		console.log("=== HDB///_hyperscript/debugger ===");
-		self.ui();
-		return new Promise(function (resolve, reject) {
-			self.bus.addEventListener(
+		this.ui();
+		return new Promise((resolve, reject) => {
+			this.bus.addEventListener(
 				"continue",
-				function () {
-					if (self.ctx !== ctx) {
+				() => {
+					if (this.ctx !== ctx) {
 						// Context switch
 						for (var attr in ctx) {
 							delete ctx[attr];
 						}
-						Object.assign(ctx, self.ctx);
+						Object.assign(ctx, this.ctx);
 					}
-					delete window.hdb;
-					resolve(self.runtime.findNext(self.cmd, self.ctx));
+					delete window['hdb'];
+					resolve(this.runtime.findNext(this.cmd, this.ctx));
 				},
 				{ once: true }
 			);
@@ -55,44 +53,47 @@
 	};
 
 	HDB.prototype.stepOver = function () {
-		var self = this;
-		if (!self.cmd) return self.continueExec();
+		if (!this.cmd) return this.continueExec();
 		var result =
-			self.cmd && self.cmd.type === "breakpointCommand"
-				? self.runtime.findNext(self.cmd, self.ctx)
-				: self.runtime.unifiedEval(self.cmd, self.ctx);
-		if (result.type === "implicitReturn") return self.stepOut();
+			this.cmd && this.cmd.type === "breakpointCommand"
+				? this.runtime.findNext(this.cmd, this.ctx)
+				: this.runtime.unifiedEval(this.cmd, this.ctx);
+		if (result.type === "implicitReturn") return this.stepOut();
 		if (result && result.then instanceof Function) {
-			return result.then(function (next) {
-				self.cmd = next;
-				self.bus.dispatchEvent(new Event("step"));
-				self.logCommand();
+			return result.then(next => {
+				this.cmd = next;
+				this.bus.dispatchEvent(new Event("step"));
+				this.logCommand();
 			});
 		} else if (result.halt_flag) {
 			this.bus.dispatchEvent(new Event("continue"));
 		} else {
-			self.cmd = result;
-			self.bus.dispatchEvent(new Event("step"));
+			this.cmd = result;
+			this.bus.dispatchEvent(new Event("step"));
 			this.logCommand();
 		}
 	};
 
 	HDB.prototype.stepOut = function () {
-		var self = this;
-		if (!self.ctx.meta.caller) return self.continueExec();
-		var callingCmd = self.ctx.meta.callingCommand;
-		var oldMe = self.ctx.me;
-		self.ctx = self.ctx.meta.caller;
+		if (!this.ctx.meta.caller) return this.continueExec();
+		var callingCmd = this.ctx.meta.callingCommand;
+		var oldMe = this.ctx.me;
+		this.ctx = this.ctx.meta.caller;
 		console.log(
-			"[hdb] cstepping out into " + self.ctx.meta.feature.displayName)
-		if (self.ctx.me instanceof Element && self.ctx.me !== oldMe) {
-			console.log("[hdb] me: ", self.ctx.me)
+			"[hdb] stepping out into " + this.ctx.meta.feature.displayName)
+		if (this.ctx.me instanceof Element && this.ctx.me !== oldMe) {
+			console.log("[hdb] me: ", this.ctx.me)
 		}
-		self.cmd = self.runtime.findNext(callingCmd, self.ctx);
-		self.cmd = self.runtime.findNext(self.cmd, self.ctx);
-		self.logCommand();
-		self.bus.dispatchEvent(new Event("step"));
+		this.cmd = this.runtime.findNext(callingCmd, this.ctx);
+		this.cmd = this.runtime.findNext(this.cmd, this.ctx);
+		this.logCommand();
+		this.bus.dispatchEvent(new Event("step"));
 	};
+
+	HDB.prototype.skipTo = function (toCmd) {
+		this.cmd = toCmd
+		this.bus.dispatchEvent(new Event("skip"));
+	}
 
 	HDB.prototype.logCommand = function () {
 		var hasSource = this.cmd.sourceFor instanceof Function;
@@ -102,7 +103,7 @@
 
 	var ui = `
 <div class="hdb" _="
-	on load or step from hdb.bus send update to me
+	on load or step or skip from hdb.bus send update to me
 	on continue from hdb.bus log 'done' then remove me.getRootNode().host">
 
 	<script type="text/hyperscript">
@@ -407,7 +408,7 @@
 	HDB.prototype.ui = function () {
 		var node = document.createElement("div");
 		var shadow = node.attachShadow({ mode: "open" });
-		node.style = "all: initial";
+		node.style.cssText = "all: initial";
 		shadow.innerHTML = ui;
 		document.body.appendChild(node);
 		_hyperscript.processNode(shadow.querySelector(".hdb"));
