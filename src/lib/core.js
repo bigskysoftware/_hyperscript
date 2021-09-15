@@ -1184,7 +1184,6 @@
 		 */
 		function setParent(elt, parent) {
 			if (elt) {
-				console.log(elt);
 				elt.parent = parent;
 				setParent(elt.next, parent);
 			}

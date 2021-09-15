@@ -103,7 +103,9 @@
 
 	var ui = `
 <div class="hdb" _="
-	on load or step or skip from hdb.bus send update to me
+	on load trigger update 
+	on step from hdb.bus trigger update
+	on skip from hdb.bus trigger update
 	on continue from hdb.bus log 'done' then remove me.getRootNode().host">
 
 	<script type="text/hyperscript">
@@ -119,13 +121,30 @@
 	end
 
 	def highlightDebugCode
-		set start to hdb.cmd.startToken.start
-		set end to hdb.cmd.endToken.end
-		set src to hdb.cmd.programSource
-		set beforeCmd to '<code>'+escapeHTML(src.substring(0, start))+'</code>'
-		set cmd to escapeHTML(src.substring(start, end))
-		set afterCmd to '<code>'+escapeHTML(src.substring(end))+'</code>'
-		return beforeCmd+"<u class='current'><code>"+cmd+"</code></u>"+afterCmd
+		set rv to []
+		set hdb.uiCommandMap to []
+		set cmd to hdb.cmd.parent.start
+		append escapeHTML(hdb.cmd.programSource.substring(0, cmd.startToken.start)) to rv
+		repeat until cmd.halt_flag or cmd.type is 'implicitReturn'
+			push(cmd) on hdb.uiCommandMap
+			append \`<button class="skip" data-cmd="\${hdb.uiCommandMap's length-1}">skip</button>\` to rv
+			set src to escapeHTML(hdb.cmd.programSource.substring(cmd.startToken.start, cmd.endToken.end))
+			if cmd is hdb.cmd
+				append '<u class="current">' + src + '</u>' to rv
+			else
+				append src to rv
+			end
+			append escapeHTML(hdb.cmd.programSource.substring(cmd.endToken.end, cmd.next.startToken.start)) to rv
+			set cmd to cmd.next
+		end
+		return rv.join('')
+		-- set start to hdb.cmd.startToken.start
+		-- set end to hdb.cmd.endToken.end
+		-- set src to hdb.cmd.programSource
+		-- set beforeCmd to '<code>'+escapeHTML(src.substring(0, start))+'</code>'
+		-- set cmd to escapeHTML(src.substring(start, end))
+		-- set afterCmd to '<code>'+escapeHTML(src.substring(end))+'</code>'
+		-- return beforeCmd+"<u class='current'><code>"+cmd+"</code></u>"+afterCmd
 	end
 
 	def truncate(str, len)
@@ -164,7 +183,8 @@
 	on pointerdown(clientX, clientY)
 		halt the event
 		call event.stopPropagation()
-		measure .hdb's x, y
+		get first .hdb
+		measure its x, y
 		set xoff to clientX - x
 		set yoff to clientY - y
 		repeat until event pointerup from document
@@ -173,7 +193,6 @@
 				left: \${its clientX - xoff}px;
 				top:  \${its clientY - yoff}px;
 			} to .hdb
-			log .hdb
 		end
 	">
 		<h2 class="titlebar">HDB</h2>
@@ -197,7 +216,13 @@
 			    		call Prism.highlightAllUnder(me)
 			    	end
 			        scrollIntoView({ block: 'nearest' }) the
-			        	first .current in me"><code></code></pre>
+			        	first .current in me
+				end
+
+				on click
+					tell closest .skip to target
+						get (your @data-cmd) as Int
+						call hdb.skipTo(hdb.uiCommandMap[result])"><code></code></pre>
 		</div>
 	</section>
 
