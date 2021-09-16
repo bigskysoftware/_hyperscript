@@ -95,6 +95,28 @@
 		this.bus.dispatchEvent(new Event("skip"));
 	}
 
+	HDB.prototype.rewrite = function (command, newCode) {
+		const parent = command.parent
+		let prev = parent.start
+		while (prev.next !== command) prev = prev.next
+		const next = command.next
+
+		const tok = _hyperscript.internals.lexer.tokenize(newCode)
+		const newcmd = _hyperscript.internals.parser.requireElement('command', tok)
+
+		console.log(newcmd)
+		newcmd.startToken    = command.startToken
+		newcmd.endToken     	 = command.endToken
+		newcmd.programSource = command.programSource
+		newcmd.sourceFor = function () { return newCode }
+
+		prev.next = newcmd
+		newcmd.next = next
+		newcmd.parent = parent
+
+		this.bus.dispatchEvent(new Event('step'))
+	}
+
 	HDB.prototype.logCommand = function () {
 		var hasSource = this.cmd.sourceFor instanceof Function;
 		var cmdSource = hasSource ? this.cmd.sourceFor() : '-- '+this.cmd.type;
@@ -127,12 +149,14 @@
 		append escapeHTML(hdb.cmd.programSource.substring(0, cmd.startToken.start)) to rv
 		repeat until cmd.halt_flag or cmd.type is 'implicitReturn'
 			push(cmd) on hdb.uiCommandMap
-			append \`<button class="skip" data-cmd="\${hdb.uiCommandMap's length-1}">skip</button>\` to rv
-			set src to escapeHTML(hdb.cmd.programSource.substring(cmd.startToken.start, cmd.endToken.end))
+			set cmdNo to hdb.uiCommandMap's length-1
+			append \`<button class="skip" data-cmd="\${cmdNo}">skip</button>\` to rv
+			append \`<button class="rewrite" data-cmd="\${cmdNo}">rewrite</button>\` to rv
+			set src to escapeHTML(cmd.sourceFor())
 			if cmd is hdb.cmd
-				append '<u class="current">' + src + '</u>' to rv
+				append '<u class="current"><span data-cmd="' + cmdNo + '">' + src + '</span></u>' to rv
 			else
-				append src to rv
+				append '<span data-cmd="' + cmdNo + '">' + src + '</span>' to rv
 			end
 			append escapeHTML(hdb.cmd.programSource.substring(cmd.endToken.end, cmd.next.startToken.start)) to rv
 			set cmd to cmd.next
@@ -220,9 +244,24 @@
 				end
 
 				on click
-					tell closest .skip to target
-						get (your @data-cmd) as Int
-						call hdb.skipTo(hdb.uiCommandMap[result])"><code></code></pre>
+					if target matches .skip
+						get (target's @data-cmd) as Int
+						call hdb.skipTo(hdb.uiCommandMap[result])
+					end
+					if target matches .rewrite
+						set cmdNo to (target's @data-cmd) as Int
+						set span to the first <span[data-cmd='\${cmdNo}'] />
+						put \`<form class=rewrite><input id=cmd></form>\` into the span
+					end
+				end
+
+				on submit
+					halt the event
+					get (closest @data-cmd to target) as Int
+					log 'cmd no', it
+					call hdb.rewrite(hdb.uiCommandMap[result], #cmd's value)
+				end
+			"><code></code></pre>
 		</div>
 	</section>
 
