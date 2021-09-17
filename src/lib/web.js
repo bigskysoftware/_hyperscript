@@ -571,7 +571,7 @@
 			var symbolWrite = false;
 			var root = null;
 			var prop = null;
-			if (target.type === "propertyAccess" && operation === "into") {
+			if (target.prop && target.root && operation === "into") {
 				prop = target.prop.value;
 				root = target.root;
 			} else if (target.type === "symbol" && operation === "into") {

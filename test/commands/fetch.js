@@ -131,4 +131,73 @@ describe("the fetch command", function () {
 			done();
 		}, 50);
 	});
+
+	it("triggers an event just before fetching", function (done) {
+		window.fetch.returns(
+			Promise.resolve(
+				new window.Response("yay", {
+					status: 200,
+					headers: { "Content-type": "text/html" },
+				})
+			)
+		);
+		window.addEventListener('hyperscript:beforeFetch', (event) => {
+			event.target.className = "foo-set";
+		});
+		var div = make("<div _='on click fetch \"/test\" then put it into my.innerHTML end'></div>");
+		div.classList.contains("foo-set").should.equal(false);
+		div.click();
+		div.classList.contains("foo-set").should.equal(true);
+		setTimeout(function () {
+			div.innerHTML.should.equal("yay");
+			done();
+		}, 50);
+	});
+
+	it("submits the fetch parameters to the event handler", function (done) {
+		window.fetch.returns(
+			Promise.resolve(
+				new window.Response("yay", {
+					status: 200,
+					headers: { "Content-type": "text/html" },
+				})
+			)
+		);
+		var evtListener = function(event) {
+			event.detail.headers.should.have.property('X-CustomHeader', 'foo');
+		}
+		window.addEventListener('hyperscript:beforeFetch', evtListener);
+		var div = make("<div _='on click fetch \"/test\" {headers: {\"X-CustomHeader\": \"foo\"}} then put it into my.innerHTML end'></div>");
+		div.click();
+		setTimeout(function () {
+			window.removeEventListener('hyperscript:beforeFetch', evtListener);
+			div.innerHTML.should.equal("yay");
+			done();
+		}, 50);
+	});
+
+	it("allows the event handler to change the fetch parameters", function (done) {
+		window.fetch.callsFake(function () {
+			arguments[1].should.have.property('headers');
+			arguments[1].headers.should.have.property('X-CustomHeader', 'foo');
+			return Promise.resolve(
+				new window.Response("yay", {
+					status: 200,
+					headers: { "Content-type": "text/html" },
+				})
+			)
+		});
+		var evtListener = function(event) {
+			event.detail.headers = {'X-CustomHeader': 'foo'};
+		}
+		window.addEventListener('hyperscript:beforeFetch', evtListener);
+		var div = make("<div _='on click fetch \"/test\" then put it into my.innerHTML end'></div>");
+		div.click();
+		setTimeout(function () {
+			window.removeEventListener('hyperscript:beforeFetch', evtListener);
+			div.innerHTML.should.equal("yay");
+			done();
+		}, 50);
+	});
+
 });
