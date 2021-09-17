@@ -106,7 +106,7 @@
 
 		console.log(newcmd)
 		newcmd.startToken    = command.startToken
-		newcmd.endToken     	 = command.endToken
+		newcmd.endToken      = command.endToken
 		newcmd.programSource = command.programSource
 		newcmd.sourceFor = function () { return newCode }
 
@@ -163,12 +163,6 @@
 		end
 		return rv.join('')
 		-- set start to hdb.cmd.startToken.start
-		-- set end to hdb.cmd.endToken.end
-		-- set src to hdb.cmd.programSource
-		-- set beforeCmd to '<code>'+escapeHTML(src.substring(0, start))+'</code>'
-		-- set cmd to escapeHTML(src.substring(start, end))
-		-- set afterCmd to '<code>'+escapeHTML(src.substring(end))+'</code>'
-		-- return beforeCmd+"<u class='current'><code>"+cmd+"</code></u>"+afterCmd
 	end
 
 	def truncate(str, len)
