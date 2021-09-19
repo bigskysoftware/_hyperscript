@@ -2371,6 +2371,7 @@
 		}
 
 		_parser.addLeafExpression("queryRef", function (parser, runtime, tokens) {
+			var definite = tokens.lastMatch() && (tokens.lastMatch().value === "the");
 			var queryStart = tokens.matchOpToken("<");
 			if (!queryStart) return;
 			var queryTokens = tokens.consumeUntil("/");
@@ -2397,10 +2398,16 @@
 				css: queryValue,
 				args: args,
 				op: function (context, ...args) {
+					var collection;
 					if (template) {
-						return new TemplatedQueryElementCollection(queryValue, context.me, args)
+						collection = new TemplatedQueryElementCollection(queryValue, context.me, args);
 					} else {
-						return new ElementCollection(queryValue, context.me)
+						collection = new ElementCollection(queryValue, context.me)
+					}
+					if (definite) {
+						return _runtime.getRootNode(context.me).querySelector(collection.css);
+					} else {
+						return collection;
 					}
 				},
 				evaluate: function (context) {
@@ -5165,7 +5172,7 @@
 					var detail = args || {};
 					detail["sentBy"] = context.me;
 					runtime.triggerEvent(context.me, "hyperscript:beforeFetch", detail);
-					args = detail;		
+					args = detail;
 					return fetch(url, args)
 						.then(function (resp) {
 							if (type === "response") {
