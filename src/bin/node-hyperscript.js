@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const _hyperscript = require('../lib/core.js');
+import _hyperscript from '../lib/core'
 const fs = require('fs');
 const path = require('path')
 

@@ -53,6 +53,7 @@
     "concat": "^1.0.3",
     "eleventy-plugin-sass": "^1.0.0",
     "fs-extra": "^9.0.0",
+    "microbundle": "^0.13.3",
     "mocha": "^7.1.1",
     "mocha-chrome": "^2.2.0",
     "node-sass": "^5.0.0",
