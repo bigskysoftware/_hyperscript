@@ -1184,7 +1184,6 @@
 		 */
 		function setParent(elt, parent) {
 			if (elt) {
-				console.log(elt);
 				elt.parent = parent;
 				setParent(elt.next, parent);
 			}
@@ -5165,7 +5164,7 @@
 					var detail = args || {};
 					detail["sentBy"] = context.me;
 					runtime.triggerEvent(context.me, "hyperscript:beforeFetch", detail);
-					args = detail;		
+					args = detail;
 					return fetch(url, args)
 						.then(function (resp) {
 							if (type === "response") {
