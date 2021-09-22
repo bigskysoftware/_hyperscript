@@ -3483,9 +3483,9 @@
 				features: features,
 				apply: function (target, source, args) {
 					// no op
-					_runtime.forEach(features, function (feature) {
+					for (const feature of features) {
 						feature.install(target, source, args);
-					});
+					}
 				},
 			};
 		});
@@ -3749,7 +3749,7 @@
 					start.execute(ctx);
 				},
 				install: function (elt, source) {
-					runtime.forEach(onFeature.events, function (eventSpec) {
+					for (const eventSpec of onFeature.events) {
 						var targets;
 						if (eventSpec.elsewhere) {
 							targets = [document];
@@ -3781,14 +3781,14 @@
 							if (eventSpec.intersectionSpec) {
 								eventName = "hyperscript:insersection";
 								const observer = new IntersectionObserver(function (entries) {
-									_runtime.forEach(entries, function (entry) {
+									for (const entry of entries) {
 										var detail = {
 											observer: observer,
 										};
 										detail = mergeObjects(detail, entry);
 										detail["intersecting"] = entry.isIntersecting;
 										_runtime.triggerEvent(target, eventName, detail);
-									});
+									}
 								}, eventSpec.intersectionSpec);
 								observer.observe(target);
 							}
@@ -3809,10 +3809,10 @@
 								}
 
 								// establish context
-								runtime.forEach(eventSpec.args, function (arg) {
+								for (const arg of eventSpec.args) {
 									ctx[arg.value] =
 										ctx.event[arg.value] || ('detail' in ctx.event ? ctx.event['detail'][arg.value] : null);
-								});
+								}
 
 								// apply filter
 								if (eventSpec.filter) {
@@ -3891,7 +3891,7 @@
 								onFeature.execute(ctx);
 							});
 						});
-					});
+					}
 				},
 			};
 			parser.setParent(start, onFeature);
@@ -4349,13 +4349,13 @@
 							throw new Error("Not a valid event target: " + this.on.sourceFor());
 						return new Promise((resolve) => {
 							var resolved = false;
-							runtime.forEach(events, (eventInfo) => {
+							for (const eventInfo of events) {
 								var listener = (event) => {
 									context.result = event;
-									runtime.forEach(eventInfo.args, (arg) => {
+									for (const arg of eventInfo.args) {
 										context[arg.value] =
 											event[arg.value] || (event.detail ? event.detail[arg.value] : null);
-									});
+									}
 									if (!resolved) {
 										resolved = true;
 										resolve(runtime.findNext(this, context));
@@ -4363,7 +4363,7 @@
 								};
 								if (eventInfo.name) target.addEventListener(eventInfo.name, listener, { once: true });
 								else if (eventInfo.time) setTimeout(listener, eventInfo.time, eventInfo.time)
-							});
+							}
 						});
 					},
 				};
