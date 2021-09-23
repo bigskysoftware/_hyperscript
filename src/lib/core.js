@@ -3754,9 +3754,7 @@
 						if (eventSpec.elsewhere) {
 							targets = [document];
 						} else if (eventSpec.from) {
-							targets = eventSpec.from.evaluate({
-								me: elt,
-							});
+							targets = eventSpec.from.evaluate(runtime.makeContext(elt, onFeature, elt, null));
 						} else {
 							targets = [elt];
 						}
@@ -4024,7 +4022,7 @@
 				start: start,
 				install: function (target, source) {
 					setTimeout(function () {
-						start && start.execute(runtime.makeContext(target, this, target, null));
+						start && start.execute(runtime.makeContext(target, initFeature, target, null));
 					}, 0);
 				},
 			};
