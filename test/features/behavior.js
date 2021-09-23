@@ -42,4 +42,35 @@ describe("the behavior feature", function () {
 			done();
 		});
 	});
+
+	it("can pass element arguments to listen to in behaviors", function () {
+		var behavior = make(
+			"<script type=text/hyperscript>" +
+			"behavior Behave(elt) on click from elt put 'foo' into me end end" +
+			"</script>"
+		);
+		var btn = make("<button id='b1'></button>");
+		var div = make("<div _='install Behave(elt: #b1)'></div>");
+		div.textContent.should.equal("");
+		btn.click();
+		div.textContent.should.equal("foo");
+		delete window.Behave;
+	});
+
+	it("can refer to arguments in init blocks", function (done) {
+		var behavior = make(
+			"<script type=text/hyperscript>" +
+			"behavior Behave(elt) init put 'foo' into elt end end" +
+			"</script>"
+		);
+		var div1 = make("<div id='d1'></div>");
+		var div2 = make("<div _='install Behave(elt: #d1)'></div>");
+		div1.textContent.should.equal("");
+		setTimeout(function () {
+			div1.textContent.should.equal("foo");
+			delete window.Behave;
+			done();
+		}, 10);
+	});
+
 });
