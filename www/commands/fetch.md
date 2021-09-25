@@ -35,7 +35,7 @@ This command is asynchronous.
 
 <div
   _='on click fetch /test {method:"POST"} as json
-                 put "$it.result" into my.innerHTML'
+                 put `Result: $it.result` into my.innerHTML'
 >
   Post to /test!
 </div>
