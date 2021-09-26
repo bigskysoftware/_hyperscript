@@ -1,16 +1,16 @@
 declare namespace _hyperscript {
-  function addFeature(keyword: string, definition: FeatureDefinition): any;
+  function addFeature(keyword: string, definition: GrammarDefinition): any;
 
-  function addCommand(keyword: string, definition: CommandDefinition): any;
+  function addCommand(keyword: string, definition: GrammarDefinition): any;
 
   function addLeafExpression(
     keyword: string,
-    definition: CommandDefinition
+    definition: GrammarDefinition
   ): any;
 
   function addIndirectExpression(
     keyword: string,
-    definition: CommandDefinition
+    definition: GrammarDefinition
   ): any;
 
   function evaluate(str: string, ctx: Context): any;
@@ -22,4 +22,49 @@ declare namespace _hyperscript {
   let internals: HyperscriptInternalsObject;
 
   let config: HyperscriptConfigObject;
+}
+
+interface _GrammarElement {
+  type?: string;
+  args?: any[];
+  op?: (ctx:Context, root:any, ...args:any) => any;
+  evaluate?: (context?:Context) => any;
+  parent?: GrammarElement;
+  root?: GrammarElement;
+  keyword?: String;
+  endToken?: Token;
+  next?: GrammarElement;
+  resolveNext?: (context:Context) => GrammarElement;
+  eventSource?: EventSource;
+  install?: () => void;
+  execute?: (context:Context) => void;
+  apply?: (target: Element, source: Element, args?: Object) => void;
+  [others: string]: any;
+}
+
+interface _ConversionMap {
+  dynamicResolvers: DynamicConversionFunction[];
+}
+
+interface _Context {
+  meta: ContextMetaData;
+  me: Element;
+  event:Event;
+  target: Element;
+  detail: any;
+  body: HTMLElement;
+  beingTold?: Element;
+  [others: string]: any;
+}
+
+interface _ContextMetaData {
+  parser: ParserObject;
+  lexer: LexerObject;
+  runtime: RuntimeObject;
+  owner: any;
+  feature: GrammarElement;
+  iterators: any;
+  ctx?: Context;
+  command?: GrammarElement;
+  [others: string]: any;
 }

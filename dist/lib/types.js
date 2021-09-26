@@ -14,7 +14,7 @@
  * @property {(keyword:string, definition:GrammarDefinition) => void | GrammarElement } addCommand
  * @property {(keyword:string, definition:GrammarDefinition) => void | GrammarElement } addLeafExpression
  * @property {(keyword:string, definition:GrammarDefinition) => void | GrammarElement } addIndirectExpression
- * @property {(str:string, ctx:Context) => *} evaluate
+ * @property {(str:string, ctx?:Object, args?:Object) => *} evaluate
  * @property {(str:string) => *} parse
  * @property {(elt:HTMLElement) => void} processNode
  * @property {HyperscriptConfigObject} config
@@ -28,6 +28,7 @@
  * @property {string} attributes
  * @property {string} defaultTransition
  * @property {HyperscriptConversionsObject} conversions
+ * @property {string} [disableSelector]
  *
  * @typedef {Object<string,(val:any) => any>} HyperscriptConversionsObject
  * @property {any[(name:string, value:any) => any]} dynamicResolvers
@@ -40,10 +41,14 @@
  * @property {(tokens:Token[], consumed:Token[], source:string) => TokensObject} makeTokensObject
  *
  * @typedef TokensObject
+ * @property {(str: string) => void} pushFollow
+ * @property {() => void} popFollow
+ * @property {() => string[]} clearFollow
+ * @property {(f: string[]) => void} restoreFollow
  * @property {(type1:string, type2?:string, type3?:string, type4?:string) => Token | void} matchTokenType
  * @property {(token:string) => Token | void} matchToken
- * @property {(token:string) => Token | void} matchAnyToken
- * @property {(token:string) => Token | void} matchAnyOpToken
+ * @property {(...token:string[]) => Token | void} matchAnyToken
+ * @property {(...token:string[]) => Token | void} matchAnyOpToken
  * @property {(token:string) => Token | void} matchOpToken
  * @property {(type1:string, type2?:string, type3?:string, type4?:string) => Token} requireTokenType
  * @property {(token:string) => Token} requireOpToken
@@ -69,13 +74,14 @@
  * @property {number} [end]
  * @property {number} [column]
  * @property {number} [line]
- * @property {boolean} [op] // `true` if this token represents an operator
+ * @property {boolean} [op] `true` if this token represents an operator
+ * @property {boolean} [template] `true` if this token is a template, for class refs, id refs, strings
  *
  *
  * PARSER *************************
  *
  * @typedef ParserObject
- * @property {(elt:GrammarElement, parent:GrammarElement) => void} setParent
+ * @property {(elt:GrammarElement | void, parent:GrammarElement) => void} setParent
  * @property {(type:string, tokens:TokensObject, message?:string, root?:any) => GrammarElement} requireElement
  * @property {(type:string, tokens:TokensObject, root?:any) => GrammarElement | void} parseElement
  * @property {(token:Token) => GrammarDefinition} featureStart
@@ -89,20 +95,12 @@
  * @property {(name:string, definition:GrammarDefinition) => void} addFeature
  * @property {(name:string, definition:GrammarDefinition) => void} addLeafExpression
  * @property {(name:string, definition:GrammarDefinition) => void} addIndirectExpression
- * @property {(tokens:TokensObject) => (string | Token)[] } parseStringTemplate
+ * @property {(tokens:TokensObject) => (string | GrammarElement)[] } parseStringTemplate
+ * @property {boolean} [possessivesDisabled]
  *
- * @typedef GrammarElement
- * @property {string} [type]
- * @property {any[]} [args]
- * @property {(ctx:Context, root:*, ...args:any) => GrammarElement} [op]
- * @property {(context:Context) => any} [evaluate]
- * @property {GrammarElement} [parent]
- * @property {GrammarElement} [next]
- * @property {(context:Context) => GrammarElement} [resolveNext]
- * @property {EventSource} [eventSource]
- * @property {() => void} [install]
- * @property {(context:Context) => void} [execute]
  *
+ * @typedef {_GrammarElement} GrammarElement
+ * 
  * @callback GrammarDefinition
  * @param {ParserObject} parser
  * @param {RuntimeObject} runtime
@@ -115,50 +113,40 @@
  * @typedef RuntimeObject
  * @property {(value:any, typeString:string, nullOk?:boolean) => boolean } typeCheck
  * @property {(value:any, func:(item:any) => void) => void } forEach
- * @property {(elt:HTMLElement, eventName:string, detail:{}) => boolean } triggerEvent
+ * @property {(value:any, func:(item:any) => void) => void } implicitLoop
+ * @property {(elt:Element, eventName:string, detail:{}) => boolean } triggerEvent
  * @property {(elt:HTMLElement, selector:string) => boolean } matchesSelector
  * @property {(elt:HTMLElement) => string | null } getScript
  * @property {(elt:HTMLElement) => void } processNode
- * @property {(src:string, ctx:Context) => any } evaluate
+ * @property {(src:string, ctx?:Context) => any } evaluate
  * @property {(src:string) => GrammarElement } parse
  * @property {() => string } getScriptSelector
- * @property {(str:string, ctx:Context) => any } resolveSymbol
+ * @property {(str:string, ctx:Context, type: SymbolScope) => any } resolveSymbol
+ * @property {(str:string, ctx:Context, type: SymbolScope, value: any) => void} setSymbol
  * @property {(owner:*, feature:*, hyperscriptTarget:*, event:*) => Context } makeContext
  * @property {(command:GrammarElement, ctx:Context) => GrammarElement | undefined } findNext
  * @property {(parseElement:*, ctx:Context) => * } unifiedEval
  * @property {(value:any, type:string) => any } convertValue
- * @property {(command: GrammarDefinition, ctx:Context) => void } unifiedExec
+ * @property {(command: GrammarElement, ctx:Context) => void } unifiedExec
  * @property {(root:Object<string,any>, property:string, attribute:boolean) => any } resolveProperty
  * @property {(elt:Element, namespace:string[], name:string, value:any) => void } assignToNamespace
- * @property {() => void } registerHyperTrace
- * @property {() => void } getHyperTrace
+ * @property {(ctx: Context, thrown: any) => void } registerHyperTrace
+ * @property {(ctx: Context, thrown: any) => any } getHyperTrace
  * @property {(elt:HTMLElement) => Object } getInternalData
  * @property {(str:string) => string } escapeSelector
  * @property {(value:any, elt:*) => void } nullCheck
  * @property {(value:any) => boolean} isEmpty
+ * @property {(node: Node) => Document | ShadowRoot} getRootNode
  * @property {string | null} hyperscriptUrl
  * @property {Object} HALT
  *
- * @typedef {{meta: object, me: Element, event:Event, target: Element, detail: any, body: Document}} Context
- * @property {ContextMetaData} meta
- * @property {*} me
- * @property {*} event
- * @property {*} target
- * @property {*} detail
- * @property {*} body
+ * @typedef {_Context} Context
+ * 
+ * @typedef {_ContextMetaData} ContextMetaData
  *
- * @typedef ContextMetaData
- * @property {ParserObject} parser
- * @property {LexerObject} lexer
- * @property {RuntimeObject} runtime
- * @property {*} owner
- * @property {*} feature
- * @property {*} iterators
- * @property {ContextMetaData} ctx
+ * @typedef {'local'|'element'|'global'|'default'} SymbolScope
  *
- *
- * @typedef {Object<string,ConversionFunction>} ConversionMap
- * @property {DynamicConversionFunction[]} dynamicResolvers
+ * @typedef {_ConversionMap} ConversionMap
  *
  * @typedef {(value:any) => any} ConversionFunction
  * @typedef {(conversionName:string, value:any) => any} DynamicConversionFunction
