@@ -19,7 +19,7 @@ or `as response` modifiers.
 Additionally, you can use [conversions](/expressions/as) directly on the
 response text.
 
-This command saves the result into the `it` variable.
+This command saves the result into the `it` variable, we recommend to use backticks (`) for string interpolation, for example, `${it.var}`, and nested one `${it.var.var}`.
 
 This command is asynchronous.
 
@@ -35,7 +35,7 @@ This command is asynchronous.
 
 <div
   _='on click fetch /test {method:"POST"} as json
-                 put `Result: $it.result` into my.innerHTML'
+                 put `Result: ${it.result}` into my.innerHTML'
 >
   Post to /test!
 </div>
