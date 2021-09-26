@@ -6,12 +6,13 @@ import _hyperscript from "./core"
 
 var invocationIdCounter = 0;
 
-var workerFunc = function () {
+var workerFunc = function (self) {
 	self.onmessage = function (e) {
 		switch (e.data.type) {
 			case "init":
-				importScripts(e.data._hyperscript);
-				importScripts.apply(self, e.data.extraScripts);
+				self.importScripts(e.data._hyperscript);
+				self.importScripts.apply(self, e.data.extraScripts);
+				const _hyperscript = self['_hyperscript']
 				var tokens = _hyperscript.internals.lexer.makeTokensObject(e.data.tokens, [], e.data.source);
 				var hyperscript = _hyperscript.internals.parser.parseElement("hyperscript", tokens);
 				hyperscript.apply(self);
@@ -49,7 +50,7 @@ var workerFunc = function () {
 
 // extract the body of the function, which was only defined so
 // that we can get syntax highlighting
-var workerCode = "(" + workerFunc.toString() + ")()";
+var workerCode = "(" + workerFunc.toString() + ")(self)";
 var blob = new Blob([workerCode], { type: "text/javascript" });
 var workerUri = URL.createObjectURL(blob);
 
@@ -96,7 +97,7 @@ _hyperscript.addFeature("worker", function (parser, runtime, tokens) {
 
 		// Create worker
 
-		var worker = new Worker(workerUri, { type: "module" });
+		var worker = new Worker(workerUri);
 
 		// Send init message to worker
 

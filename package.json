@@ -29,7 +29,7 @@
     "dist": "npm run clear && npm run copy && npm run bundle",
     "clear": "rm -rf dist/*",
     "copy": "cp -r src/* dist/",
-    "bundle": "microbundle src/web/* -o dist --name=_hyperscript -f modern,esm,cjs,umd"
+    "bundle": "microbundle src/web/* -o dist --name=_hyperscript -f modern,esm,umd"
   },
   "repository": {
     "type": "git",
