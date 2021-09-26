@@ -5,6 +5,7 @@ function HDB(ctx, runtime, breakpoint) {
 	this.ctx = ctx;
 	this.runtime = runtime;
 	this.cmd = breakpoint;
+	this._hyperscript = _hyperscript;
 
 	this.bus = new EventTarget();
 } // See below for methods
@@ -162,7 +163,8 @@ end
 on pointerdown(clientX, clientY)
 	halt the event
 	call event.stopPropagation()
-	measure .hdb's x, y
+	get closest .hdb
+	measure its x, y
 	set xoff to clientX - x
 	set yoff to clientY - y
 	repeat until event pointerup from document
@@ -171,7 +173,6 @@ on pointerdown(clientX, clientY)
 			left: \${its clientX - xoff}px;
 			top:  \${its clientY - yoff}px;
 		} to .hdb
-		log .hdb
 	end
 ">
 	<h2 class="titlebar">HDB</h2>
@@ -214,7 +215,7 @@ on pointerdown(clientX, clientY)
 			scrollIntoView({ block: 'end' }) the entry
 			put escapeHTML(input) into .input in the entry
 			if no output
-				call _hyperscript.internals.runtime.parse(input)
+				call hdb._hyperscript.internals.runtime.parse(input)
 				if its execute is not undefined then execute(hdb.ctx) it
 				else evaluate(hdb.ctx) it
 				end

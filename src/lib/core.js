@@ -1,77 +1,14 @@
 ///=========================================================================
 /// This module provides the core runtime and grammar for hyperscript
 ///=========================================================================
-//AMD insanity
+
+import { getOrInitObject, mergeObjects, parseJSON, varargConstructor } from "./utils";
+
 
 /**
  * @type {HyperscriptObject}
  */
 let _hyperscript
-
-//====================================================================
-// Utilities
-//====================================================================
-
-/**
- * mergeObjects combines the keys from obj2 into obj2, then returns obj1
- *
- * @param {object} obj1
- * @param {object} obj2
- * @returns object
- */
-function mergeObjects(obj1, obj2) {
-	for (var key in obj2) {
-		if (obj2.hasOwnProperty(key)) {
-			obj1[key] = obj2[key];
-		}
-	}
-	return obj1;
-}
-
-function getOrInitObject(root, prop) {
-	var value = root[prop];
-	if (value) {
-		return value;
-	} else {
-		var newObj = {};
-		root[prop] = newObj;
-		return newObj;
-	}
-}
-
-/**
- * parseJSON parses a JSON string into a corresponding value.  If the
- * value passed in is not valid JSON, then it logs an error and returns `null`.
- *
- * @param {string} jString
- * @returns any
- */
-function parseJSON(jString) {
-	try {
-		return JSON.parse(jString);
-	} catch (error) {
-		logError(error);
-		return null;
-	}
-}
-
-/**
- * logError writes an error message to the Javascript console.  It can take any
- * value, but msg should commonly be a simple string.
- * @param {*} msg
- */
-function logError(msg) {
-	if (console.error) {
-		console.error(msg);
-	} else if (console.log) {
-		console.log("ERROR: ", msg);
-	}
-}
-
-// TODO: JSDoc description of what's happening here
-function varargConstructor(Cls, args) {
-	return new (Cls.bind.apply(Cls, [Cls].concat(args)))();
-}
 
 var globalScope = globalThis;
 
@@ -1666,7 +1603,7 @@ var _runtime = (function () {
 	var hyperscriptFeaturesMap = new WeakMap
 
 	/**
-	 * @param {Element} elt
+	 * @param {*} elt
 	 * @returns {Object}
 	 */
 	function getHyperscriptFeatures(elt) {
@@ -2057,10 +1994,11 @@ var _runtime = (function () {
 	 * @param {any} value
 	 */
 	function assignToNamespace(elt, nameSpace, name, value) {
+		let root
 		if (typeof document !== "undefined" && elt === document.body) {
-			var root = globalScope;
+			root = globalScope;
 		} else {
-			var root = getHyperscriptFeatures(elt);
+			root = getHyperscriptFeatures(elt);
 		}
 		while (nameSpace.length > 0) {
 			var propertyName = nameSpace.shift();
