@@ -5,6 +5,7 @@ function HDB(ctx, runtime, breakpoint) {
 	this.ctx = ctx;
 	this.runtime = runtime;
 	this.cmd = breakpoint;
+	this._hyperscript = _hyperscript;
 
 	this.bus = new EventTarget();
 } // See below for methods
@@ -214,7 +215,7 @@ on pointerdown(clientX, clientY)
 			scrollIntoView({ block: 'end' }) the entry
 			put escapeHTML(input) into .input in the entry
 			if no output
-				call _hyperscript.internals.runtime.parse(input)
+				call hdb._hyperscript.internals.runtime.parse(input)
 				if its execute is not undefined then execute(hdb.ctx) it
 				else evaluate(hdb.ctx) it
 				end
