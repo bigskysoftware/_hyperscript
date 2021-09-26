@@ -163,7 +163,8 @@ end
 on pointerdown(clientX, clientY)
 	halt the event
 	call event.stopPropagation()
-	measure .hdb's x, y
+	get closest .hdb
+	measure its x, y
 	set xoff to clientX - x
 	set yoff to clientY - y
 	repeat until event pointerup from document
@@ -172,7 +173,6 @@ on pointerdown(clientX, clientY)
 			left: \${its clientX - xoff}px;
 			top:  \${its clientY - yoff}px;
 		} to .hdb
-		log .hdb
 	end
 ">
 	<h2 class="titlebar">HDB</h2>
