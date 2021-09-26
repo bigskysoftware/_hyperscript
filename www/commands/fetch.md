@@ -19,7 +19,12 @@ or `as response` modifiers.
 Additionally, you can use [conversions](/expressions/as) directly on the
 response text.
 
-This command saves the result into the `it` variable, we recommend to use backticks (`) for string interpolation, for example, `${it.var}`, and nested one `${it.var.var}`.
+This command saves the result into the `it` variable, we recommend to use backticks
+for string interpolation. For example:
+```
+`${it.var}`          // Access JSON object like: {"var": "value"}
+`${it.var1.var2}`    // Access nested JSON object like: {"var1": {"var2": "value"}}
+```
 
 This command is asynchronous.
 
