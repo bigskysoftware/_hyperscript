@@ -25,6 +25,8 @@
 
 	var PROXY_BLACKLIST = ["then", "catch", "length", "asyncWrapper", "toJSON"];
 
+	var _hyperscript = typeof module !== 'undefined' ? module.exports : this._hyperscript
+
 	_hyperscript.addFeature("socket", function (parser, runtime, tokens) {
 		function getProxy(timeout) {
 			return new Proxy(
