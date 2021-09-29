@@ -2829,6 +2829,7 @@
 
 		_parser.addIndirectExpression("asExpression", function (parser, runtime, tokens, root) {
 			if (!tokens.matchToken("as")) return;
+			tokens.matchToken("a") || tokens.matchToken("an");
 			var conversion = parser.requireElement("dotOrColonPath", tokens).evaluate(); // OK No promise
 			var propertyAccess = {
 				type: "asExpression",
@@ -5140,7 +5141,8 @@
 			var type = "text";
 			var conversion;
 			if (tokens.matchToken("as")) {
-				if (tokens.matchToken("json")) {
+				tokens.matchToken("a") || tokens.matchToken("an");
+				if (tokens.matchToken("json") || tokens.matchToken("Object")) {
 					type = "json";
 				} else if (tokens.matchToken("response")) {
 					type = "response";

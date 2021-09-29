@@ -4,7 +4,7 @@
 ### Syntax
 
 ```ebnf
-fetch <stringLike> [<object literal>] [ as ( json | text | request ) ]
+fetch <stringLike> [<object literal>] [ as [ a | an ]( json | Object | text | request ) ]
 ```
 
 ### Description
@@ -25,7 +25,7 @@ This command triggers the event `hyperscript:beforeFetch`. This event receives t
 
 ```javascript
 document.body.addEventListener('hyperscript:beforeFetch', (event) => {
-    event.detail.headers['X-AuthToken'] = getAuthToken(); 
+    event.detail.headers['X-AuthToken'] = getAuthToken();
 });
 ```
 

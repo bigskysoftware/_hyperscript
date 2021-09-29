@@ -81,6 +81,44 @@ describe("the fetch command", function () {
 		}, 50);
 	});
 
+	it("can do a simple fetch w/ json using Object syntax", function (done) {
+		window.fetch.returns(
+			Promise.resolve(
+				new window.Response('{"foo":1}', {
+					status: 200,
+					headers: { "Content-type": "application/json" },
+				})
+			)
+		);
+		var div = make(
+			"<div _='on click fetch /test as Object then get result as JSON then put it into my.innerHTML'></div>"
+		);
+		div.click();
+		setTimeout(function () {
+			div.innerHTML.should.equal('{"foo":1}');
+			done();
+		}, 50);
+	});
+
+	it("can do a simple fetch w/ json using Object syntax and an 'an' prefix", function (done) {
+		window.fetch.returns(
+			Promise.resolve(
+				new window.Response('{"foo":1}', {
+					status: 200,
+					headers: { "Content-type": "application/json" },
+				})
+			)
+		);
+		var div = make(
+			"<div _='on click fetch /test as an Object then get result as JSON then put it into my.innerHTML'></div>"
+		);
+		div.click();
+		setTimeout(function () {
+			div.innerHTML.should.equal('{"foo":1}');
+			done();
+		}, 50);
+	});
+
 	it("can do a simple fetch with a response object", function (done) {
 		window.fetch.returns(
 			Promise.resolve(

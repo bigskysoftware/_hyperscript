@@ -40,6 +40,11 @@ describe("as operator", function () {
 		result.getTime().should.equal(new Date(1).getTime());
 	});
 
+	it("can use the a modifier if you like ", function () {
+		var result = evalHyperScript("1 as a Date");
+		result.getTime().should.equal(new Date(1).getTime());
+	});
+
 	it("converts value as JSON", function () {
 		var result = evalHyperScript("{foo:'bar'} as JSON");
 		result.should.equal('{"foo":"bar"}');
@@ -47,6 +52,11 @@ describe("as operator", function () {
 
 	it("converts string as Object", function () {
 		var result = evalHyperScript('\'{"foo":"bar"}\' as Object');
+		result["foo"].should.equal("bar");
+	});
+
+	it("can use the an modifier if you'd like ", function () {
+		var result = evalHyperScript('\'{"foo":"bar"}\' as an Object');
 		result["foo"].should.equal("bar");
 	});
 
@@ -173,7 +183,7 @@ describe("as operator", function () {
 
         Works with Radio Buttons
         <input type="radio" name="coolOrNaw" value="Cool" checked>
-        <input type="radio" name="coolOrNaw" value="Naw Bruh">        
+        <input type="radio" name="coolOrNaw" value="Naw Bruh">
 
         Works with Checkboxes
         <input type="checkbox" name="gender" value="Male" checked>

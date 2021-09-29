@@ -4,7 +4,7 @@
 ### Syntax
 
 ```ebnf
-  <expression> as CONVERSION
+  <expression> as [ a | an ] CONVERSION
 ```
 
 ### Description
