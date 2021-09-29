@@ -64,4 +64,23 @@ describe("_hyperscript regressions", function () {
 		div.click();
 		d1.innerHTML.should.equal("Foo");
 	});
+
+	it("can refer to function in init blocks", function (done) {
+		var div = make(
+			"<script type='text/hyperscript'>" +
+			"  init " +
+			"    call foo() " +
+			"  end " +
+			"  def foo() " +
+			"    put \"here\" into #d1's innerHTML " +
+			"  end</script> " +
+			"<div id='d1'></div>"
+		);
+		var d1 = byId("d1");
+		setTimeout(function(){
+			d1.innerHTML.should.equal("here");
+			delete foo;
+			done();
+		}, 10)
+	});
 });
