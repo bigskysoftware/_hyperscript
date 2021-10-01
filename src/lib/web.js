@@ -531,9 +531,9 @@
 		}
 	});
 
-	function putInto(context, prop, valueToPut) {
+	function putInto(runtime, context, prop, valueToPut) {
 		if (prop) {
-			var value = context[prop];
+			var value = runtime.resolveSymbol(prop, context);
 		} else {
 			var value = context;
 		}
@@ -542,7 +542,7 @@
 			value.append(_hyperscript.internals.runtime.convertValue(valueToPut, "Fragment"));
 		} else {
 			if (prop) {
-				context[prop] = valueToPut;
+				runtime.setSymbol(prop, context, null, valueToPut);
 			} else {
 				throw "Don't know how to put a value into " + typeof context;
 			}
@@ -597,7 +597,7 @@
 				args: [root, value],
 				op: function (context, root, valueToPut) {
 					if (symbolWrite) {
-						putInto(context, prop, valueToPut);
+						putInto(runtime, context, prop, valueToPut);
 					} else {
 						if (operation === "into") {
 							if (attributeWrite) {
@@ -606,7 +606,7 @@
 								});
 							} else {
 								runtime.implicitLoop(root, function (elt) {
-									putInto(elt, prop, valueToPut);
+									putInto(runtime, elt, prop, valueToPut);
 								});
 							}
 						} else {

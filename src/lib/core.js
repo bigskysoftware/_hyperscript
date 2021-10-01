@@ -2829,6 +2829,7 @@
 
 		_parser.addIndirectExpression("asExpression", function (parser, runtime, tokens, root) {
 			if (!tokens.matchToken("as")) return;
+			tokens.matchToken("a") || tokens.matchToken("an");
 			var conversion = parser.requireElement("dotOrColonPath", tokens).evaluate(); // OK No promise
 			var propertyAccess = {
 				type: "asExpression",
@@ -3754,9 +3755,7 @@
 						if (eventSpec.elsewhere) {
 							targets = [document];
 						} else if (eventSpec.from) {
-							targets = eventSpec.from.evaluate({
-								me: elt,
-							});
+							targets = eventSpec.from.evaluate(runtime.makeContext(elt, onFeature, elt, null));
 						} else {
 							targets = [elt];
 						}
@@ -4024,7 +4023,7 @@
 				start: start,
 				install: function (target, source) {
 					setTimeout(function () {
-						start && start.execute(runtime.makeContext(target, this, target, null));
+						start && start.execute(runtime.makeContext(target, initFeature, target, null));
 					}, 0);
 				},
 			};
@@ -4673,17 +4672,24 @@
 		});
 
 		_parser.addGrammarElement("pseudoCommand", function (parser, runtime, tokens) {
-			var expr = parser.requireElement("primaryExpression", tokens);
-			if (expr.type !== "functionCall" && expr.root.type !== "symbol") {
+
+			tokens.pushFollow("of");
+			try {
+				var expr = parser.requireElement("primaryExpression", tokens);
+			} finally {
+				tokens.popFollow();
+			}
+			if (expr.type !== "functionCall" && expr.root.type !== "symbol" && expr.root.root != null) {
 				parser.raiseParseError(tokens, "Implicit function calls must start with a simple function");
 			}
-			// optional "on", "with", or "to"
-			if (!tokens.matchAnyToken("to", "on", "with", "into", "from", "at") && parser.commandBoundary(tokens.currentToken())) {
-				var target = parser.requireElement("implicitMeTarget", tokens);
-			} else {
-				var target = parser.requireElement("expression", tokens);
-			}
+
 			var functionName = expr.root.name;
+
+			if (tokens.matchAnyToken("to", "on", "with", "into", "from", "at", "of")) {
+				var target = parser.requireElement("expression", tokens);
+			} else if (tokens.matchToken("me")) {
+				var target = parser.requireElement("implicitMeTarget", tokens);
+			}
 			var functionArgs = expr.argExressions;
 
 			/** @type {GrammarElement} */
@@ -4692,7 +4698,11 @@
 				expr: expr,
 				args: [target, functionArgs],
 				op: function (context, target, args) {
-					var func = target[functionName];
+					if (target) {
+						var func = target[functionName];
+					} else {
+						var func = runtime.resolveSymbol(functionName, context);
+					}
 					if (func.hyperfunc) {
 						args.push(context);
 					}
@@ -5142,7 +5152,8 @@
 			var type = "text";
 			var conversion;
 			if (tokens.matchToken("as")) {
-				if (tokens.matchToken("json")) {
+				tokens.matchToken("a") || tokens.matchToken("an");
+				if (tokens.matchToken("json") || tokens.matchToken("Object")) {
 					type = "json";
 				} else if (tokens.matchToken("response")) {
 					type = "response";
@@ -5164,7 +5175,7 @@
 					var detail = args || {};
 					detail["sentBy"] = context.me;
 					runtime.triggerEvent(context.me, "hyperscript:beforeFetch", detail);
-					args = detail;		
+					args = detail;
 					return fetch(url, args)
 						.then(function (resp) {
 							if (type === "response") {
