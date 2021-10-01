@@ -150,8 +150,10 @@
 		repeat until cmd.halt_flag or cmd.type is 'implicitReturn'
 			push(cmd) on hdb.uiCommandMap
 			set cmdNo to hdb.uiCommandMap's length-1
-			append \`<button class="skip" data-cmd="\${cmdNo}">skip</button>\` to rv
-			append \`<button class="rewrite" data-cmd="\${cmdNo}">rewrite</button>\` to rv
+			if global HYPERSCRIPT_HDB_EXPERIMENTAL
+				append \`<button class="skip" data-cmd="\${cmdNo}">skip</button>\` to rv
+				append \`<button class="rewrite" data-cmd="\${cmdNo}">rewrite</button>\` to rv
+			end
 			set src to escapeHTML(cmd.sourceFor())
 			if cmd is hdb.cmd
 				append '<u class="current"><span data-cmd="' + cmdNo + '">' + src + '</span></u>' to rv
