@@ -235,8 +235,7 @@
 			    	if Prism
 			    		call Prism.highlightAllUnder(me)
 			    	end
-			        scrollIntoView({ block: 'nearest' }) the
-			        	first .current in me
+			        go to bottom of .current in me
 				end
 
 				on click
@@ -273,12 +272,12 @@
 				set node to #tmpl-console-entry.content.cloneNode(true)
 				put the node at end of me
 				set entry to my lastElementChild
-				scrollIntoView({ block: 'end' }) the entry
+				go to bottom of the entry
 				put escapeHTML(input) into .input in the entry
 				if no output
 					call _hyperscript.internals.runtime.parse(input)
-					if its execute is not undefined then execute(hdb.ctx) it
-					else evaluate(hdb.ctx) it
+					if its execute is not undefined then call its execute(hdb.ctx)
+					else call its evaluate(hdb.ctx)
 					end
 					set output to it
 				end
