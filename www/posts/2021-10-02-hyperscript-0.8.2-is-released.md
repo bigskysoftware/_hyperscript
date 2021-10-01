@@ -13,6 +13,12 @@ of hyperscript.
 
 ### Changes
 
-#TODO
+* The Hyperscript Debugger (HDB) has been reworked and has many improvements (TODO Deniz?)
+* The hyperscript runtime now fires a  `hyperscript:beforeFetch` event to allow you to configure fetch requests
+* The `wait for` command now supports a timeout mechanism (TODO Deniz - documentation?)
+* Improvements to the implementations of the `next`/`previous` expressions
+* Dramatic internal runtime improvements, particularly in the evaluation of query literals (e.g. `<.foo/>`)
+* Scoping fixes (see <https://github.com/bigskysoftware/_hyperscript/issues/173>)
+* Expanded support for function invocation in pseudo-commands (TODO Carson - documentation)
 
 Enjoy!
