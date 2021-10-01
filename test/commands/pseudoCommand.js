@@ -8,8 +8,8 @@ describe("pseudoCommands", function () {
 
 	it("Basic instance function with expression", function () {
 		var d1 = make(
-			"<div id='d1' _='on click getElementById(\"d1\") the document " +
-				"                                          put result into window.results'></div>"
+			"<div id='d1' _='on click getElementById(\"d1\") of the document " +
+				"                                          put the result into window.results'></div>"
 		);
 		d1.click();
 		var value = window.results;
@@ -39,9 +39,9 @@ describe("pseudoCommands", function () {
 		value.should.equal(d1);
 	});
 
-	it("Basic instance function with implicit target", function () {
+	it("Basic instance function with me target", function () {
 		var d1 = make(
-			"<div id='d1' _='on click foo() " +
+			"<div id='d1' _='on click foo() on me " +
 				"                                          put result into my.bar'></div>"
 		);
 		d1.foo = function () {
@@ -51,10 +51,23 @@ describe("pseudoCommands", function () {
 		d1.bar.should.equal("foo");
 	});
 
-	it("Basic instance function with implicit target followed by then", function () {
+	it("Can use functions defined outside of the current element", function () {
+		window.foo = function() {
+			return "foo";
+		}
 		var d1 = make(
 			"<div id='d1' _='on click foo() then" +
 				"                                          put result into my.bar'></div>"
+		);
+		d1.click();
+		d1.bar.should.equal("foo");
+		delete window.foo;
+	});
+
+	it("Basic instance function with me target no preposition", function () {
+		var d1 = make(
+			"<div id='d1' _='on click foo() me " +
+			"                                          put result into my.bar'></div>"
 		);
 		d1.foo = function () {
 			return "foo";
@@ -62,4 +75,13 @@ describe("pseudoCommands", function () {
 		d1.click();
 		d1.bar.should.equal("foo");
 	});
+
+	it("functions defined alongside can be invoked", function () {
+		var d1 = make(
+			"<div id='d1' _='def foo() return \"foo\" end on click foo() then put result into my.bar'></div>"
+		);
+		d1.click();
+		d1.bar.should.equal("foo");
+	});
+
 });
