@@ -8,7 +8,7 @@ describe("pseudoCommands", function () {
 
 	it("Basic instance function with expression", function () {
 		var d1 = make(
-			"<div id='d1' _='on click getElementById(\"d1\") of the document " +
+			"<div id='d1' _='on click getElementById(\"d1\") from the document " +
 				"                                          put the result into window.results'></div>"
 		);
 		d1.click();

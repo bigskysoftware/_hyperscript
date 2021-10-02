@@ -4673,7 +4673,6 @@
 
 		_parser.addGrammarElement("pseudoCommand", function (parser, runtime, tokens) {
 
-			tokens.pushFollow("of");
 			try {
 				var expr = parser.requireElement("primaryExpression", tokens);
 			} finally {
@@ -4685,7 +4684,7 @@
 
 			var functionName = expr.root.name;
 
-			if (tokens.matchAnyToken("to", "on", "with", "into", "from", "at", "of")) {
+			if (tokens.matchAnyToken("the", "to", "on", "with", "into", "from", "at")) {
 				var target = parser.requireElement("expression", tokens);
 			} else if (tokens.matchToken("me")) {
 				var target = parser.requireElement("implicitMeTarget", tokens);

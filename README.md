@@ -12,7 +12,7 @@ it is a companion project of <https://htmx.org>
 
 ```html
 
-<script src="https://unpkg.com/hyperscript.org@0.8.1"></script>
+<script src="https://unpkg.com/hyperscript.org@0.8.2"></script>
 
 
 <button _="on click toggle .clicked">
