@@ -4,7 +4,7 @@
 ### Syntax
 
 ```ebnf
-fetch <stringLike> [<object literal>] [ as [ a | an ]( json | Object | text | request ) ]
+fetch <stringLike> [<object literal>] [ as [ a | an ]( json | Object | text | response ) ]
 ```
 
 ### Description
@@ -13,8 +13,8 @@ The `fetch` command issues a [fetch](https://developer.mozilla.org/en-US/docs/We
 given URL. The URL can either be a naked URL or a string literal.
 
 By default the result will be processed as text, but you can have it processed
-as JSON, as HTML, or as a raw request object by adding the `as json`, `as html`
-or `as request` modifiers.
+as JSON, as HTML, or as a raw response object by adding the `as json`, `as html`
+or `as response` modifiers.
 
 Additionally, you can use [conversions](/expressions/as) directly on the
 response text.
@@ -43,7 +43,7 @@ This command is asynchronous.
 
 <div
   _='on click fetch /test {method:"POST"} as json
-                 put "$it.result" into my.innerHTML'
+                 put `Result: $it.result` into my.innerHTML'
 >
   Post to /test!
 </div>

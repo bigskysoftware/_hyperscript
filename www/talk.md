@@ -1,7 +1,7 @@
 
 ## hyperscript Talk
 
-[htmx & hyperscript discord server](/discord)
+[htmx & hyperscript discord server](https://htmx.org/discord)
 
 ## Features & Bug Reports
 
