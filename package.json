@@ -26,10 +26,11 @@
   "scripts": {
     "test": "mocha-chrome test/index.html",
     "www": "node scripts/www.js",
-    "dist": "npm run clear && npm run copy && npm run bundle",
+    "dist": "npm run clear && npm run copy && npm run bundle-all",
     "clear": "rm -rf dist/*",
     "copy": "cp -r src/* dist/",
-    "bundle": "microbundle src/web/* -o dist --name=_hyperscript -f modern,esm,umd"
+    "bundle-dev": "microbundle src/web/_hyperscript_w9y.js -o dist/_hyperscript_w9y.js --name=_hyperscript -f umd",
+    "bundle-all": "microbundle src/web/* -o dist --name=_hyperscript -f modern,esm,umd"
   },
   "repository": {
     "type": "git",
