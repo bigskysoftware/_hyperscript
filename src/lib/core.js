@@ -3596,6 +3596,8 @@
 					throttleTime: throttleTime,
 					mutationSpec: mutationSpec,
 					intersectionSpec: intersectionSpec,
+					debounced: undefined,
+					lastExec: undefined,
 				});
 			} while (tokens.matchToken("or"));
 

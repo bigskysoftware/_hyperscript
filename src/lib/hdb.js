@@ -17,12 +17,7 @@
 
 		return {
 			op: function (ctx) {
-<<<<<<< HEAD
 				globalThis.hdb = hdb = new HDB(ctx, runtime, this);
-=======
-				var hdb = new HDB(ctx, runtime, this);
-				window['hdb'] = hdb;
->>>>>>> upstream/dev
 				try {
 					return hdb.break(ctx);
 				} catch (e) {
@@ -45,13 +40,8 @@
 						}
 						Object.assign(ctx, this.ctx);
 					}
-<<<<<<< HEAD
-					delete globalThis.hdb;
-					resolve(self.runtime.findNext(self.cmd, self.ctx));
-=======
 					delete window['hdb'];
 					resolve(this.runtime.findNext(this.cmd, this.ctx));
->>>>>>> upstream/dev
 				},
 				{ once: true }
 			);
@@ -134,15 +124,10 @@
 	}
 
 	var ui = `
-<<<<<<< HEAD
-	<div class="hdb" _="
-	on load or step from hdb.bus send update to me
-=======
 <div class="hdb" _="
 	on load trigger update 
 	on step from hdb.bus trigger update
 	on skip from hdb.bus trigger update
->>>>>>> upstream/dev
 	on continue from hdb.bus log 'done' then remove me.getRootNode().host">
 
 	<script type="text/hyperscript">
@@ -218,11 +203,7 @@
 	on pointerdown(clientX, clientY)
 		halt the event
 		call event.stopPropagation()
-<<<<<<< HEAD
-		get closest .hdb
-=======
 		get first .hdb
->>>>>>> upstream/dev
 		measure its x, y
 		set xoff to clientX - x
 		set yoff to clientY - y
@@ -250,14 +231,6 @@
 		<div class="code-container">
 			<pre class="code language-hyperscript" _="
 				on update from .hdb if hdb.cmd.programSource
-<<<<<<< HEAD
-					put highlightDebugCode() into me
-					if Prism
-						call Prism.highlightAllUnder(me)
-					end
-					scrollIntoView({ block: 'nearest' }) the
-						first .current in me"><code></code></pre>
-=======
 			    	put highlightDebugCode() into me
 			    	if Prism
 			    		call Prism.highlightAllUnder(me)
@@ -284,7 +257,6 @@
 					call hdb.rewrite(hdb.uiCommandMap[result], #cmd's value)
 				end
 			"><code></code></pre>
->>>>>>> upstream/dev
 		</div>
 	</section>
 

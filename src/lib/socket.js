@@ -25,6 +25,7 @@
 		return new WebSocket(url.evaluate());
 	}
 
+	/** @type {(string | symbol)[]} */
 	var PROXY_BLACKLIST = ["then", "catch", "length", "asyncWrapper", "toJSON"];
 
 	_hyperscript.addFeature("socket", function (parser, runtime, tokens) {

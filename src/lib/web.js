@@ -3,15 +3,7 @@
 	///=========================================================================
 
 	import _hyperscript from "./core"
-
-	function mergeObjects(obj1, obj2) {
-		for (var key in obj2) {
-			if (obj2.hasOwnProperty(key)) {
-				obj1[key] = obj2[key];
-			}
-		}
-		return obj1;
-	}
+	import { mergeObjects } from "./utils"
 
 	_hyperscript.addCommand("settle", function (parser, runtime, tokens) {
 		if (tokens.matchToken("settle")) {
