@@ -1,6 +1,7 @@
 ///=========================================================================
 /// This module provides the worker feature for hyperscript
 ///=========================================================================
+<<<<<<< HEAD
 
 import _hyperscript from "./core"
 
@@ -34,6 +35,41 @@ var workerFunc = function (self) {
 								type: "reject",
 								id: e.data.id,
 								error: error.toString(),
+=======
+(function () {
+	var _hyperscript = typeof module !== 'undefined' ? module.exports : this._hyperscript
+
+	var invocationIdCounter = 0;
+
+	var workerFunc = function () {
+		self.onmessage = function (e) {
+			switch (e.data.type) {
+				case "init":
+					importScripts(e.data._hyperscript);
+					importScripts.apply(self, e.data.extraScripts);
+					var tokens = _hyperscript.internals.lexer.makeTokensObject(e.data.tokens, [], e.data.source);
+					var hyperscript = _hyperscript.internals.parser.parseElement("hyperscript", tokens);
+					hyperscript.apply(self);
+					postMessage({ type: "didInit" });
+					break;
+				case "call":
+					try {
+						var result = self[e.data.function].apply(self, e.data.args);
+						Promise.resolve(result)
+							.then(function (value) {
+								postMessage({
+									type: "resolve",
+									id: e.data.id,
+									value: value,
+								});
+							})
+							.catch(function (error) {
+								postMessage({
+									type: "reject",
+									id: e.data.id,
+									error: error.toString(),
+								});
+>>>>>>> upstream/dev
 							});
 						});
 				} catch (error) {

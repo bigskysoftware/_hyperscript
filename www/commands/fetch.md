@@ -4,7 +4,7 @@
 ### Syntax
 
 ```ebnf
-fetch <stringLike> [<object literal>] [ as ( json | text | request ) ]
+fetch <stringLike> [<object literal>] [ as [ a | an ]( json | Object | text | request ) ]
 ```
 
 ### Description
@@ -20,6 +20,14 @@ Additionally, you can use [conversions](/expressions/as) directly on the
 response text.
 
 This command saves the result into the `it` variable.
+
+This command triggers the event `hyperscript:beforeFetch`. This event receives the parameters for the command as its `event.detail`. This is useful to globally change the behaviour of fetch, for example to add a custom header to every request.
+
+```javascript
+document.body.addEventListener('hyperscript:beforeFetch', (event) => {
+    event.detail.headers['X-AuthToken'] = getAuthToken();
+});
+```
 
 This command is asynchronous.
 

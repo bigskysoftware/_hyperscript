@@ -1,10 +1,24 @@
 
 import _hyperscript from "./core"
 
-function compileTemplate(template) {
-	return template.replace(/(?:^|\n)([^@]*)@?/gm, function (match, p1) {
-		var templateStr = (" " + p1).replace(/([^\\])\$\{/g, "$1$${escape html ").substring(1);
-		return "\ncall __ht_template_result.push(`" + templateStr + "`)\n";
+	var _hyperscript = typeof module !== 'undefined' ? module.exports : this._hyperscript
+
+	_hyperscript.addCommand("render", function (parser, runtime, tokens) {
+		if (!tokens.matchToken("render")) return;
+		var template_ = parser.requireElement("expression", tokens);
+		var templateArgs = {};
+		if (tokens.matchToken("with")) {
+			templateArgs = parser.parseElement("namedArgumentList", tokens);
+		}
+		return {
+			args: [template_, templateArgs],
+			op: function (ctx, template, templateArgs) {
+				if (!(template instanceof Element)) throw new Error(template_.sourceFor() + " is not an element");
+				console.log(compileTemplate(template.innerHTML));
+				ctx.result = renderTemplate(compileTemplate(template.innerHTML), templateArgs);
+				return runtime.findNext(this, ctx);
+			},
+		};
 	});
 }
 

@@ -17,7 +17,12 @@
 
 		return {
 			op: function (ctx) {
+<<<<<<< HEAD
 				globalThis.hdb = hdb = new HDB(ctx, runtime, this);
+=======
+				var hdb = new HDB(ctx, runtime, this);
+				window['hdb'] = hdb;
+>>>>>>> upstream/dev
 				try {
 					return hdb.break(ctx);
 				} catch (e) {
@@ -26,24 +31,27 @@
 			},
 		};
 	});
-
 	HDB.prototype.break = function(ctx) {
-		var self = this;
 		console.log("=== HDB///_hyperscript/debugger ===");
-		self.ui();
-		return new Promise(function (resolve, reject) {
-			self.bus.addEventListener(
+		this.ui();
+		return new Promise((resolve, reject) => {
+			this.bus.addEventListener(
 				"continue",
-				function () {
-					if (self.ctx !== ctx) {
+				() => {
+					if (this.ctx !== ctx) {
 						// Context switch
 						for (var attr in ctx) {
 							delete ctx[attr];
 						}
-						Object.assign(ctx, self.ctx);
+						Object.assign(ctx, this.ctx);
 					}
+<<<<<<< HEAD
 					delete globalThis.hdb;
 					resolve(self.runtime.findNext(self.cmd, self.ctx));
+=======
+					delete window['hdb'];
+					resolve(this.runtime.findNext(this.cmd, this.ctx));
+>>>>>>> upstream/dev
 				},
 				{ once: true }
 			);
@@ -55,44 +63,69 @@
 	};
 
 	HDB.prototype.stepOver = function () {
-		var self = this;
-		if (!self.cmd) return self.continueExec();
+		if (!this.cmd) return this.continueExec();
 		var result =
-			self.cmd && self.cmd.type === "breakpointCommand"
-				? self.runtime.findNext(self.cmd, self.ctx)
-				: self.runtime.unifiedEval(self.cmd, self.ctx);
-		if (result.type === "implicitReturn") return self.stepOut();
+			this.cmd && this.cmd.type === "breakpointCommand"
+				? this.runtime.findNext(this.cmd, this.ctx)
+				: this.runtime.unifiedEval(this.cmd, this.ctx);
+		if (result.type === "implicitReturn") return this.stepOut();
 		if (result && result.then instanceof Function) {
-			return result.then(function (next) {
-				self.cmd = next;
-				self.bus.dispatchEvent(new Event("step"));
-				self.logCommand();
+			return result.then(next => {
+				this.cmd = next;
+				this.bus.dispatchEvent(new Event("step"));
+				this.logCommand();
 			});
 		} else if (result.halt_flag) {
 			this.bus.dispatchEvent(new Event("continue"));
 		} else {
-			self.cmd = result;
-			self.bus.dispatchEvent(new Event("step"));
+			this.cmd = result;
+			this.bus.dispatchEvent(new Event("step"));
 			this.logCommand();
 		}
 	};
 
 	HDB.prototype.stepOut = function () {
-		var self = this;
-		if (!self.ctx.meta.caller) return self.continueExec();
-		var callingCmd = self.ctx.meta.callingCommand;
-		var oldMe = self.ctx.me;
-		self.ctx = self.ctx.meta.caller;
+		if (!this.ctx.meta.caller) return this.continueExec();
+		var callingCmd = this.ctx.meta.callingCommand;
+		var oldMe = this.ctx.me;
+		this.ctx = this.ctx.meta.caller;
 		console.log(
-			"[hdb] cstepping out into " + self.ctx.meta.feature.displayName)
-		if (self.ctx.me instanceof Element && self.ctx.me !== oldMe) {
-			console.log("[hdb] me: ", self.ctx.me)
+			"[hdb] stepping out into " + this.ctx.meta.feature.displayName)
+		if (this.ctx.me instanceof Element && this.ctx.me !== oldMe) {
+			console.log("[hdb] me: ", this.ctx.me)
 		}
-		self.cmd = self.runtime.findNext(callingCmd, self.ctx);
-		self.cmd = self.runtime.findNext(self.cmd, self.ctx);
-		self.logCommand();
-		self.bus.dispatchEvent(new Event("step"));
+		this.cmd = this.runtime.findNext(callingCmd, this.ctx);
+		this.cmd = this.runtime.findNext(this.cmd, this.ctx);
+		this.logCommand();
+		this.bus.dispatchEvent(new Event("step"));
 	};
+
+	HDB.prototype.skipTo = function (toCmd) {
+		this.cmd = toCmd
+		this.bus.dispatchEvent(new Event("skip"));
+	}
+
+	HDB.prototype.rewrite = function (command, newCode) {
+		const parent = command.parent
+		let prev = parent.start
+		while (prev.next !== command) prev = prev.next
+		const next = command.next
+
+		const tok = _hyperscript.internals.lexer.tokenize(newCode)
+		const newcmd = _hyperscript.internals.parser.requireElement('command', tok)
+
+		console.log(newcmd)
+		newcmd.startToken    = command.startToken
+		newcmd.endToken      = command.endToken
+		newcmd.programSource = command.programSource
+		newcmd.sourceFor = function () { return newCode }
+
+		prev.next = newcmd
+		newcmd.next = next
+		newcmd.parent = parent
+
+		this.bus.dispatchEvent(new Event('step'))
+	}
 
 	HDB.prototype.logCommand = function () {
 		var hasSource = this.cmd.sourceFor instanceof Function;
@@ -101,8 +134,15 @@
 	}
 
 	var ui = `
+<<<<<<< HEAD
 	<div class="hdb" _="
 	on load or step from hdb.bus send update to me
+=======
+<div class="hdb" _="
+	on load trigger update 
+	on step from hdb.bus trigger update
+	on skip from hdb.bus trigger update
+>>>>>>> upstream/dev
 	on continue from hdb.bus log 'done' then remove me.getRootNode().host">
 
 	<script type="text/hyperscript">
@@ -118,13 +158,28 @@
 	end
 
 	def highlightDebugCode
-		set start to hdb.cmd.startToken.start
-		set end to hdb.cmd.endToken.end
-		set src to hdb.cmd.programSource
-		set beforeCmd to '<code>'+escapeHTML(src.substring(0, start))+'</code>'
-		set cmd to escapeHTML(src.substring(start, end))
-		set afterCmd to '<code>'+escapeHTML(src.substring(end))+'</code>'
-		return beforeCmd+"<u class='current'><code>"+cmd+"</code></u>"+afterCmd
+		set rv to []
+		set hdb.uiCommandMap to []
+		set cmd to hdb.cmd.parent.start
+		append escapeHTML(hdb.cmd.programSource.substring(0, cmd.startToken.start)) to rv
+		repeat until cmd.halt_flag or cmd.type is 'implicitReturn'
+			push(cmd) on hdb.uiCommandMap
+			set cmdNo to hdb.uiCommandMap's length-1
+			if global HYPERSCRIPT_HDB_EXPERIMENTAL
+				append \`<button class="skip" data-cmd="\${cmdNo}">skip</button>\` to rv
+				append \`<button class="rewrite" data-cmd="\${cmdNo}">rewrite</button>\` to rv
+			end
+			set src to escapeHTML(cmd.sourceFor())
+			if cmd is hdb.cmd
+				append '<u class="current"><span data-cmd="' + cmdNo + '">' + src + '</span></u>' to rv
+			else
+				append '<span data-cmd="' + cmdNo + '">' + src + '</span>' to rv
+			end
+			append escapeHTML(hdb.cmd.programSource.substring(cmd.endToken.end, cmd.next.startToken.start)) to rv
+			set cmd to cmd.next
+		end
+		return rv.join('')
+		-- set start to hdb.cmd.startToken.start
 	end
 
 	def truncate(str, len)
@@ -163,7 +218,11 @@
 	on pointerdown(clientX, clientY)
 		halt the event
 		call event.stopPropagation()
+<<<<<<< HEAD
 		get closest .hdb
+=======
+		get first .hdb
+>>>>>>> upstream/dev
 		measure its x, y
 		set xoff to clientX - x
 		set yoff to clientY - y
@@ -191,12 +250,41 @@
 		<div class="code-container">
 			<pre class="code language-hyperscript" _="
 				on update from .hdb if hdb.cmd.programSource
+<<<<<<< HEAD
 					put highlightDebugCode() into me
 					if Prism
 						call Prism.highlightAllUnder(me)
 					end
 					scrollIntoView({ block: 'nearest' }) the
 						first .current in me"><code></code></pre>
+=======
+			    	put highlightDebugCode() into me
+			    	if Prism
+			    		call Prism.highlightAllUnder(me)
+			    	end
+			        go to bottom of .current in me
+				end
+
+				on click
+					if target matches .skip
+						get (target's @data-cmd) as Int
+						call hdb.skipTo(hdb.uiCommandMap[result])
+					end
+					if target matches .rewrite
+						set cmdNo to (target's @data-cmd) as Int
+						set span to the first <span[data-cmd='\${cmdNo}'] />
+						put \`<form class=rewrite><input id=cmd></form>\` into the span
+					end
+				end
+
+				on submit
+					halt the event
+					get (closest @data-cmd to target) as Int
+					log 'cmd no', it
+					call hdb.rewrite(hdb.uiCommandMap[result], #cmd's value)
+				end
+			"><code></code></pre>
+>>>>>>> upstream/dev
 		</div>
 	</section>
 
@@ -212,12 +300,12 @@
 				set node to #tmpl-console-entry.content.cloneNode(true)
 				put the node at end of me
 				set entry to my lastElementChild
-				scrollIntoView({ block: 'end' }) the entry
+				go to bottom of the entry
 				put escapeHTML(input) into .input in the entry
 				if no output
-					call hdb._hyperscript.internals.runtime.parse(input)
-					if its execute is not undefined then execute(hdb.ctx) it
-					else evaluate(hdb.ctx) it
+					call _hyperscript.internals.runtime.parse(input)
+					if its execute is not undefined then call its execute(hdb.ctx)
+					else call its evaluate(hdb.ctx)
 					end
 					set output to it
 				end
@@ -407,7 +495,7 @@
 	HDB.prototype.ui = function () {
 		var node = document.createElement("div");
 		var shadow = node.attachShadow({ mode: "open" });
-		node.style = "all: initial";
+		node.style.cssText = "all: initial";
 		shadow.innerHTML = ui;
 		document.body.appendChild(node);
 		_hyperscript.processNode(shadow.querySelector(".hdb"));

@@ -10,48 +10,24 @@ function mergeObjects(obj1, obj2) {
 			obj1[key] = obj2[key];
 		}
 	}
-	return obj1;
-}
 
-function genUUID() {
-	return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-		var r = (Math.random() * 16) | 0,
-			v = c == "x" ? r : (r & 0x3) | 0x8;
-		return v.toString(16);
-	});
-}
+	var PROXY_BLACKLIST = ["then", "catch", "length", "asyncWrapper", "toJSON"];
 
-function createSocket(url) {
-	return new WebSocket(url.evaluate());
-}
+	var _hyperscript = typeof module !== 'undefined' ? module.exports : this._hyperscript
 
-var PROXY_BLACKLIST = ["then", "catch", "length", "asyncWrapper", "toJSON"];
-
-_hyperscript.addFeature("socket", function (parser, runtime, tokens) {
-	function getProxy(timeout) {
-		return new Proxy(
-			{},
-			{
-				get: function (obj, property) {
-					if (PROXY_BLACKLIST.indexOf(property) >= 0) {
-						return null;
-					} else if (property === "noTimeout") {
-						return getProxy(-1);
-					} else if (property === "timeout") {
-						return function (i) {
-							return getProxy(parseInt(i));
-						};
-					} else {
-						return function () {
-							var uuid = genUUID();
-							var args = [];
-							for (var i = 0; i < arguments.length; i++) {
-								args.push(arguments[i]);
-							}
-							var rpcInfo = {
-								iid: uuid,
-								function: property,
-								args: args,
+	_hyperscript.addFeature("socket", function (parser, runtime, tokens) {
+		function getProxy(timeout) {
+			return new Proxy(
+				{},
+				{
+					get: function (obj, property) {
+						if (PROXY_BLACKLIST.indexOf(property) >= 0) {
+							return null;
+						} else if (property === "noTimeout") {
+							return getProxy(-1);
+						} else if (property === "timeout") {
+							return function (i) {
+								return getProxy(parseInt(i));
 							};
 							socket = socket ? socket : createSocket(url); //recreate socket if needed
 							socket.send(JSON.stringify(rpcInfo));

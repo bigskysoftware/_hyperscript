@@ -2,23 +2,23 @@
 /// This module provides the EventSource (SSE) feature for hyperscript
 ///=========================================================================
 
-import _hyperscript from "./core"
+(function () {
+	var _hyperscript = typeof module !== 'undefined' ? module.exports : this._hyperscript
+	_hyperscript.addFeature("eventsource", function (parser, runtime, tokens) {
+		if (tokens.matchToken("eventsource")) {
+			var urlElement;
+			var withCredentials = false;
 
-_hyperscript.addFeature("eventsource", function (parser, runtime, tokens) {
-	if (tokens.matchToken("eventsource")) {
-		var urlElement;
-		var withCredentials = false;
+			// Get the name we'll assign to this EventSource in the hyperscript context
+			/** @type {string} */
+			var name = parser.requireElement("dotOrColonPath", tokens).evaluate();
+			var nameSpace = name.split(".");
+			var eventSourceName = nameSpace.pop();
 
-		// Get the name we'll assign to this EventSource in the hyperscript context
-		/** @type {string} */
-		var name = parser.requireElement("dotOrColonPath", tokens).evaluate();
-		var nameSpace = name.split(".");
-		var eventSourceName = nameSpace.pop();
-
-		// Get the URL of the EventSource
-		if (tokens.matchToken("from")) {
-			urlElement = parser.requireElement("stringLike", tokens);
-		}
+			// Get the URL of the EventSource
+			if (tokens.matchToken("from")) {
+				urlElement = parser.requireElement("stringLike", tokens);
+			}
 
 		// Get option to connect with/without credentials
 		if (tokens.matchToken("with")) {

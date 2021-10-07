@@ -1316,8 +1316,8 @@
 		 * @returns {value is Iterable}
 		 */
 		function isIterable(value) {
-			return typeof value === 'object' 
-				&& Symbol.iterator in value 
+			return typeof value === 'object'
+				&& Symbol.iterator in value
 				&& typeof value[Symbol.iterator] === 'function';
 		}
 
@@ -2772,6 +2772,7 @@
 
 		_parser.addIndirectExpression("asExpression", function (parser, runtime, tokens, root) {
 			if (!tokens.matchToken("as")) return;
+			tokens.matchToken("a") || tokens.matchToken("an");
 			var conversion = parser.requireElement("dotOrColonPath", tokens).evaluate(); // OK No promise
 			var propertyAccess = {
 				type: "asExpression",
@@ -3426,9 +3427,9 @@
 				features: features,
 				apply: function (target, source, args) {
 					// no op
-					_runtime.forEach(features, function (feature) {
+					for (const feature of features) {
 						feature.install(target, source, args);
-					});
+					}
 				},
 			};
 		});
@@ -3632,7 +3633,7 @@
 			if (commandList) {
 				/** @type {GrammarElement} */
 				var start = commandList;
-				
+
 				var end = start;
 				while (end.next) {
 					end = end.next;
@@ -3692,15 +3693,12 @@
 					start.execute(ctx);
 				},
 				install: function (elt, source) {
-					runtime.forEach(onFeature.events, function (eventSpec) {
+					for (const eventSpec of onFeature.events) {
 						var targets;
 						if (eventSpec.elsewhere) {
 							targets = [document];
 						} else if (eventSpec.from) {
-							targets = eventSpec.from.evaluate({
-								me: elt,
-								meta: { owner: elt, feature: onFeature },
-							});
+							targets = eventSpec.from.evaluate(runtime.makeContext(elt, onFeature, elt, null));
 						} else {
 							targets = [elt];
 						}
@@ -3725,14 +3723,14 @@
 							if (eventSpec.intersectionSpec) {
 								eventName = "hyperscript:insersection";
 								const observer = new IntersectionObserver(function (entries) {
-									_runtime.forEach(entries, function (entry) {
+									for (const entry of entries) {
 										var detail = {
 											observer: observer,
 										};
 										detail = mergeObjects(detail, entry);
 										detail["intersecting"] = entry.isIntersecting;
 										_runtime.triggerEvent(target, eventName, detail);
-									});
+									}
 								}, eventSpec.intersectionSpec);
 								observer.observe(target);
 							}
@@ -3754,10 +3752,10 @@
 								}
 
 								// establish context
-								runtime.forEach(eventSpec.args, function (arg) {
+								for (const arg of eventSpec.args) {
 									ctx[arg.value] =
 										ctx.event[arg.value] || ('detail' in ctx.event ? ctx.event['detail'][arg.value] : null);
-								});
+								}
 
 								// apply filter
 								if (eventSpec.filter) {
@@ -3836,7 +3834,7 @@
 								onFeature.execute(ctx);
 							});
 						});
-					});
+					}
 				},
 			};
 			parser.setParent(start, onFeature);
@@ -3969,13 +3967,9 @@
 			var initFeature = {
 				start: start,
 				install: function (target, source) {
-					if (immediately) {
-						start && start.execute(runtime.makeContext(target, this, target, null));
-					} else {
-						setTimeout(function () {
-							start && start.execute(runtime.makeContext(target, this, target, null));
-						}, 0);
-					}
+					setTimeout(function () {
+						start && start.execute(runtime.makeContext(target, initFeature, target, null));
+					}, 0);
 				},
 			};
 
@@ -4265,7 +4259,7 @@
 		_parser.addCommand("wait", function (parser, runtime, tokens) {
 			if (!tokens.matchToken("wait")) return;
 			var command;
-			
+
 			// wait on event
 			if (tokens.matchToken("for")) {
 				tokens.matchToken("a"); // optional "a"
@@ -4299,13 +4293,13 @@
 							throw new Error("Not a valid event target: " + this.on.sourceFor());
 						return new Promise((resolve) => {
 							var resolved = false;
-							runtime.forEach(events, (eventInfo) => {
+							for (const eventInfo of events) {
 								var listener = (event) => {
 									context.result = event;
-									runtime.forEach(eventInfo.args, (arg) => {
+									for (const arg of eventInfo.args) {
 										context[arg.value] =
 											event[arg.value] || (event.detail ? event.detail[arg.value] : null);
-									});
+									}
 									if (!resolved) {
 										resolved = true;
 										resolve(runtime.findNext(this, context));
@@ -4313,7 +4307,7 @@
 								};
 								if (eventInfo.name) target.addEventListener(eventInfo.name, listener, { once: true });
 								else if (eventInfo.time) setTimeout(listener, eventInfo.time, eventInfo.time)
-							});
+							}
 						});
 					},
 				};
@@ -4623,17 +4617,24 @@
 		});
 
 		_parser.addGrammarElement("pseudoCommand", function (parser, runtime, tokens) {
-			var expr = parser.requireElement("primaryExpression", tokens);
-			if (expr.type !== "functionCall" && expr.root.type !== "symbol") {
+
+			tokens.pushFollow("of");
+			try {
+				var expr = parser.requireElement("primaryExpression", tokens);
+			} finally {
+				tokens.popFollow();
+			}
+			if (expr.type !== "functionCall" && expr.root.type !== "symbol" && expr.root.root != null) {
 				parser.raiseParseError(tokens, "Implicit function calls must start with a simple function");
 			}
-			// optional "on", "with", or "to"
-			if (!tokens.matchAnyToken("to", "on", "with", "into", "from", "at") && parser.commandBoundary(tokens.currentToken())) {
-				var target = parser.requireElement("implicitMeTarget", tokens);
-			} else {
-				var target = parser.requireElement("expression", tokens);
-			}
+
 			var functionName = expr.root.name;
+
+			if (tokens.matchAnyToken("to", "on", "with", "into", "from", "at", "of")) {
+				var target = parser.requireElement("expression", tokens);
+			} else if (tokens.matchToken("me")) {
+				var target = parser.requireElement("implicitMeTarget", tokens);
+			}
 			var functionArgs = expr.argExressions;
 
 			/** @type {GrammarElement} */
@@ -4642,7 +4643,11 @@
 				expr: expr,
 				args: [target, functionArgs],
 				op: function (context, target, args) {
-					var func = target[functionName];
+					if (target) {
+						var func = target[functionName];
+					} else {
+						var func = runtime.resolveSymbol(functionName, context);
+					}
 					if (func.hyperfunc) {
 						args.push(context);
 					}
@@ -5092,7 +5097,8 @@
 			var type = "text";
 			var conversion;
 			if (tokens.matchToken("as")) {
-				if (tokens.matchToken("json")) {
+				tokens.matchToken("a") || tokens.matchToken("an");
+				if (tokens.matchToken("json") || tokens.matchToken("Object")) {
 					type = "json";
 				} else if (tokens.matchToken("response")) {
 					type = "response";
@@ -5111,6 +5117,10 @@
 				argExpressions: args,
 				args: [url, args],
 				op: function (context, url, args) {
+					var detail = args || {};
+					detail["sentBy"] = context.me;
+					runtime.triggerEvent(context.me, "hyperscript:beforeFetch", detail);
+					args = detail;
 					return fetch(url, args)
 						.then(function (resp) {
 							if (type === "response") {
