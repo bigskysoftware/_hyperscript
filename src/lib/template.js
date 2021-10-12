@@ -1,20 +1,21 @@
-("use strict");
 
-(function (_hyperscript) {
-	function compileTemplate(template) {
-		return template.replace(/(?:^|\n)([^@]*)@?/gm, function (match, p1) {
-			var templateStr = (" " + p1).replace(/([^\\])\$\{/g, "$1$${escape html ").substring(1);
-			return "\ncall __ht_template_result.push(`" + templateStr + "`)\n";
-		});
-	}
+function compileTemplate(template) {
+	return template.replace(/(?:^|\n)([^@]*)@?/gm, function (match, p1) {
+		var templateStr = (" " + p1).replace(/([^\\])\$\{/g, "$1$${escape html ").substring(1);
+		return "\ncall __ht_template_result.push(`" + templateStr + "`)\n";
+	});
+}
+
+/**
+ * @param {HyperscriptObject} _hyperscript
+ */
+export default _hyperscript => {
 
 	function renderTemplate(template, ctx) {
 		var buf = [];
-		_hyperscript(template, Object.assign({ __ht_template_result: buf }, ctx));
+		_hyperscript.evaluate(template, Object.assign({ __ht_template_result: buf }, ctx));
 		return buf.join("");
 	}
-
-	var _hyperscript = typeof module !== 'undefined' ? module.exports : this._hyperscript
 
 	_hyperscript.addCommand("render", function (parser, runtime, tokens) {
 		if (!tokens.matchToken("render")) return;
@@ -69,4 +70,4 @@
 			},
 		};
 	});
-})(_hyperscript);
+}

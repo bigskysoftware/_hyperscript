@@ -1,25 +1,31 @@
 ///=========================================================================
 /// This module provides the worker feature for hyperscript
 ///=========================================================================
-(function () {
-	var _hyperscript = typeof module !== 'undefined' ? module.exports : this._hyperscript
+
+/**
+ * @param {HyperscriptObject} _hyperscript
+ */
+export default _hyperscript => {
 
 	var invocationIdCounter = 0;
 
-	var workerFunc = function () {
+	var workerFunc = function (self) {
 		self.onmessage = function (e) {
 			switch (e.data.type) {
 				case "init":
-					importScripts(e.data._hyperscript);
-					importScripts.apply(self, e.data.extraScripts);
+					self.importScripts(e.data._hyperscript);
+					self.importScripts.apply(self, e.data.extraScripts);
+					const _hyperscript = self['_hyperscript']
 					var tokens = _hyperscript.internals.lexer.makeTokensObject(e.data.tokens, [], e.data.source);
 					var hyperscript = _hyperscript.internals.parser.parseElement("hyperscript", tokens);
-					hyperscript.apply(self);
+					hyperscript.apply(self, self);
 					postMessage({ type: "didInit" });
 					break;
 				case "call":
 					try {
-						var result = self[e.data.function].apply(self, e.data.args);
+						var result = self['_hyperscript'].internals.runtime
+							.getHyperscriptFeatures(self)[e.data.function]
+							.apply(self, e.data.args);
 						Promise.resolve(result)
 							.then(function (value) {
 								postMessage({
@@ -49,7 +55,7 @@
 
 	// extract the body of the function, which was only defined so
 	// that we can get syntax highlighting
-	var workerCode = "(" + workerFunc.toString() + ")()";
+	var workerCode = "(" + workerFunc.toString() + ")(self)";
 	var blob = new Blob([workerCode], { type: "text/javascript" });
 	var workerUri = URL.createObjectURL(blob);
 
@@ -121,6 +127,7 @@
 			// Create function stubs
 			var stubs = {};
 			funcNames.forEach(function (funcName) {
+				console.log(funcName)
 				stubs[funcName] = function () {
 					var args = arguments;
 					return new Promise(function (resolve, reject) {
@@ -153,4 +160,4 @@
 			};
 		}
 	});
-})();
+}
