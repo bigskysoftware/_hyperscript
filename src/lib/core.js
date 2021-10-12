@@ -5030,6 +5030,20 @@
 			}
 		});
 
+		_parser.addCommand("continue", function (parser, runtime, tokens) {
+			if (!tokens.matchToken("continue")) return;
+
+			var command = {
+				op: function (context) {
+					return runtime.findNext(this.parent, context);
+				},
+				execute: function (context) {
+					return runtime.unifiedExec(this, context);
+				},
+			};
+			return command;
+		});
+
 		_parser.addGrammarElement("stringLike", function (parser, runtime, tokens) {
 			return _parser.parseAnyOf(["string", "nakedString"], tokens);
 		});
