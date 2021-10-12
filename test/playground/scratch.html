@@ -25,16 +25,61 @@
           log "here2"
           remove .outline-none .border-gray-400
       end
- </script>
-
-		<style>
-				.border-gray-400 {
-						border: 4px solid gray;
+ 		</script>
+		<script>
+function toggleHeight(elt) {
+		var display = elt.style.display;
+		elt.style.transition = 'height ease 500ms'
+		elt.style.overflow = 'hidden'
+		var current = elt.getBoundingClientRect().height
+		elt.style.height = 'auto';
+		elt.style.display = "block";
+		var full = elt.getBoundingClientRect().height
+		elt.style.height = current + "px";
+		setTimeout(function () {
+				if (display === 'none') {
+						elt.style.height = full + "px";
+				} else {
+						elt.style.height = "0px";
+						elt.addEventListener('transitionend', function () {
+								elt.style.display = "none";
+						}, {once: true});
 				}
-		</style>
+		}, 1);
+}
+		</script>
 
-		<input type="text" value="" name="username" id="username"/>
-		<div _="install Focusable(inp: #username)" class="">
+
+<!--		<input type="text" value="" name="username" id="username"/>-->
+<!--		<div _="install Focusable(inp: #username)" class="">-->
+<!--				asdf-->
+<!--		</div>-->
+
+	<button _="on click toggleHeight(#d1)">
+			Slide Toggle
+	</button>
+
+	<div id="d1" style="display: none">
+			Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+	</div>
+	<hr/>
+
+		<script>
+		</script>
+<div style="position:fixed;top:0;left:0;right:0;height:30px;background-color:purple;color:white;text-align:center;"
+ _="init
+			set element lastScroll to 0
+		on scroll from window
+			set the currentScroll to the window's pageYOffset
+			if the currentScroll < lastScroll
+				transition my height to 30px over 150ms
+			else
+				transition my height to 0 over 150ms
+			end
+			set the lastScroll to the currentScroll">
+  Header
+</div>
+		<div style="height:2900px">
 				asdf
 		</div>
 
