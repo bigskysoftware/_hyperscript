@@ -32,6 +32,22 @@ describe("scoping", function () {
 		div.getAttribute("out").should.equal("10");
 	});
 
+	it("element scoped variables work w/short syntax", function () {
+		var div = make(
+			"<div id='d1' _='on click set :x to 10 then set @out to :x'></div>"
+		);
+		div.click();
+		div.getAttribute("out").should.equal("10");
+	});
+
+	it("element scoped variables work w/short syntax then no syntax", function () {
+		var div = make(
+			"<div id='d1' _='on click set :x to 10 then set @out to x'></div>"
+		);
+		div.click();
+		div.getAttribute("out").should.equal("10");
+	});
+
 	it("element scoped variables support pseudo-possessive syntax", function () {
 		var div = make(
 			'<div id="d1" _="on click set the element\'s x to 10 then set @out to the element\'s x"></div>'
@@ -44,6 +60,16 @@ describe("scoping", function () {
 		var div = make(
 			"<div id='d1' _='on click 1 set element x to 10 " +
 			"                       on click 2 set @out to x'></div>"
+		);
+		div.click();
+		div.click();
+		div.getAttribute("out").should.equal("10");
+	});
+
+	it("element scoped variables span features", function () {
+		var div = make(
+			"<div id='d1' _='on click 1 set :x to 10 " +
+			"                       on click 2 set @out to :x'></div>"
 		);
 		div.click();
 		div.click();
@@ -66,6 +92,24 @@ describe("scoping", function () {
 	it("global scoped variables work", function () {
 		var div = make(
 			"<div id='d1' _='on click set global x to 10 then set @out to x'></div>"
+		);
+		div.click();
+		div.getAttribute("out").should.equal("10");
+		delete window.x
+	});
+
+	it("global scoped variables work w/ short syntax", function () {
+		var div = make(
+			"<div id='d1' _='on click set $x to 10 then set @out to $x'></div>"
+		);
+		div.click();
+		div.getAttribute("out").should.equal("10");
+		delete window.x
+	});
+
+	it("global scoped variables work w/ short syntax then no syntax", function () {
+		var div = make(
+			"<div id='d1' _='on click set $x to 10 then set @out to x'></div>"
 		);
 		div.click();
 		div.getAttribute("out").should.equal("10");
@@ -194,5 +238,15 @@ describe("scoping", function () {
 		div.getAttribute("out2").should.equal("20");
 	});
 
+	it("global scoped variables span features", function () {
+		var div = make(
+			"<div id='d1' _='on click 1 set $x to 10 " +
+			"                       on click 2 set @out to $x'></div>"
+		);
+		div.click();
+		div.click();
+		delete window.x;
+		div.getAttribute("out").should.equal("10");
+	});
 
 });
