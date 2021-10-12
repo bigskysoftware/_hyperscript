@@ -1,5 +1,5 @@
 
-import template from "../lib/template"
+import template from "../lib/template.js"
 
 template(window._hyperscript)
 

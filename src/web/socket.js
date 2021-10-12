@@ -1,5 +1,5 @@
 
-import socket from "../lib/socket"
+import socket from "../lib/socket.js"
 
 socket(window._hyperscript)
 

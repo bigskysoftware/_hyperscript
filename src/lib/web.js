@@ -2,7 +2,7 @@
 /// This module provides the core web functionality for hyperscript
 ///=========================================================================
 
-import { mergeObjects } from "./utils"
+import { mergeObjects } from "./utils.js"
 
 /**
  * @param {HyperscriptObject} _hyperscript

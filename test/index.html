@@ -33,12 +33,16 @@
 		<script src="../node_modules/chai/chai.js"></script>
 		<script src="../node_modules/mocha/mocha.js"></script>
 		<script src="../node_modules/sinon/pkg/sinon.js"></script>
-		<script src="../dist/_hyperscript_w9y.min.js"></script>
 		<script class="mocha-init">
 			mocha.setup("bdd");
 			mocha.checkLeaks();
 			should = chai.should();
 			assert = chai.assert;
+
+			var _hyperscript;
+			before(async function() {
+				_hyperscript = (await import('../src/web/_hyperscript_w9y.js')).default
+			})
 		</script>
 
 		<script src="util/util.js"></script>
