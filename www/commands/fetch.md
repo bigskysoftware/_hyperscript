@@ -19,7 +19,12 @@ or `as response` modifiers.
 Additionally, you can use [conversions](/expressions/as) directly on the
 response text.
 
-This command saves the result into the `it` variable.
+This command saves the result into the `it` variable, we recommend to use backticks
+for string interpolation. For example:
+```
+`${it.var}`          // Access JSON object like: {"var": "value"}
+`${it.var1.var2}`    // Access nested JSON object like: {"var1": {"var2": "value"}}
+```
 
 This command triggers the event `hyperscript:beforeFetch`. This event receives the parameters for the command as its `event.detail`. This is useful to globally change the behaviour of fetch, for example to add a custom header to every request.
 
@@ -43,7 +48,7 @@ This command is asynchronous.
 
 <div
   _='on click fetch /test {method:"POST"} as json
-                 put `Result: $it.result` into my.innerHTML'
+                 put `Result: ${it.result}` into my.innerHTML'
 >
   Post to /test!
 </div>
