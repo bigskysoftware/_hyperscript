@@ -4,7 +4,7 @@
 ### Syntax
 
 ```ebnf
-wait (<time expression> | for <event> [from <source>] )
+wait (<time expression> | for (<event> [from <source>]) [or ...] )
 ```
 
 ### Description
@@ -23,6 +23,19 @@ In the `wait <time-expr>` form, it waits the given amount of time, which can be 
 - `100 milliseconds` - 100 milliseconds
 - `1 s` - 1000 milliseconds
 - `1 seconds` - 1000 milliseconds
+
+You can also mix timeouts and delays, which can be useful to avoid waiting forever for an event:
+
+```hyperscript
+-- Fail if the thing doesn't load after 1s.
+wait for load or 1s 
+if the result is not an Event
+  throw 'Took too long to load.'
+end
+
+-- Parens are required for dynamic timeouts.
+wait for click or (config.clickTimeout) ms
+```
 
 This command is asynchronous. All commands that follow it will be delayed until the wait completes.
 

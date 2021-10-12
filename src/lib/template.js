@@ -14,6 +14,8 @@
 		return buf.join("");
 	}
 
+	var _hyperscript = typeof module !== 'undefined' ? module.exports : this._hyperscript
+
 	_hyperscript.addCommand("render", function (parser, runtime, tokens) {
 		if (!tokens.matchToken("render")) return;
 		var template_ = parser.requireElement("expression", tokens);

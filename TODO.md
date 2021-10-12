@@ -1,31 +1,25 @@
 ## TODOs
 
-### 0.8.2 release
-* Ben(?) - improve `fetch` command w/ more obvious syntax for body, headers, etc.
+### 0.9.0 release
+* Carson(?) - improve `fetch` command w/ more obvious syntax for body, headers, etc.
   ```text
     fetch /foo with a POST
     fetch /foo with a POST and body {foo:"bar"}
     fetch /foo with a POST and body {foo:"bar"} and headers {blah:'blah'}
   ```
   * make defaults pluggable
-  * resurrect `ajax` command?  (had more functionality in some ways)
-* Ben(?) - Better DOM manipulation tools? (needs research)
-* Carson - template support in class literals and id literals:
-  ```hyperscript
-    set foo to 'blah'
-    set x to .{foo}
-    set y to #{foo}
-  ```
-* Carson - `next` and `previous` expressions
+  * event model
+* Change feature installation to use `is` rather than `install` (maybe both?)
+*  Support a `timeout` modifier for commands like `fetch`, `call`, `wait for` etc.
+  * general support is a deep project involving dealing w/ async commands not executing if they time out during execution
+  * maybe just timeout for specific commands ?
 
 ### Language Features
+* Ben(?) - Better DOM manipulation tools? (needs research)
 * Recovering parser (we are single error right now)
 * `delete` command
 * `focus` command
 * `reply` & `wait for response` in event handlers?
-*  Support a `timeout` modifier for commands like `fetch`, `call`, `wait for` etc.
-  * deep project involving dealing w/ async commands not executing if they time out during execution
-  * maybe just timeout for `fetch` ?
 * `merge/merge into` - Merge objects with one another
 * runtime type checked parameters and return types
   ```text
@@ -37,7 +31,6 @@
 * Support parenthesizes expressions in pseudopossessives: `transition (the div's parent's parent)'s opacity to 1`
 * Event model
 * functions should be able to be marked `sync` to make only one execution at a time occur, in serial fashion
-* unify all css() like literals to a general dynamic evaluation (eval is context sensitive)
 * Make `first, last, random` work as identifiers (backtracking parser)
 * repeat command improvements
     ```
@@ -46,10 +39,6 @@
         put it in myVar
     end
 
-    // This would also work if IterableVariable is an Array or Object
-    repeat for x in IterableVariable
-        call JsFn(x)
-    end
     ```
 * date/time library [See GitHub](https://github.com/bigskysoftware/_hyperscript/issues/123)
 * Expressions for `field`, `button`, `tag` and `nodeList` [See GitHub](https://github.com/bigskysoftware/_hyperscript/issues/121)

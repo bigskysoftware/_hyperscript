@@ -18,11 +18,8 @@ the search from is the current element that the script is on.
 You can use the `within` clause to restrict the search to a given subset of the DOM.  The default
 
 ```html
-<div _="on click log first in me">... Log my first child ...</div>
-
-<div _="on click log last in me">
-  ...
-  Log my last child
+<button _="on click toggle .hidden on the next <div/>">Toggle Hidden</button>
+<div class="hidden">
   ...
 </div>
 ```

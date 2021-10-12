@@ -190,7 +190,7 @@ OK, let's get on with it...
 Hyperscript is a dependency-free javascript library that can be included in a web page without any build steps:
 
 ```html
-<script src="https://unpkg.com/hyperscript.org@0.8.1"></script>
+<script src="https://unpkg.com/hyperscript.org@0.8.2"></script>
 ```
 
 After you've done this, you can begin adding hyperscript to elements:
@@ -1255,9 +1255,26 @@ And you can use any results return from the javascript in the default `it` varia
 
 While almost all commands have a specific start symbol, there is one other type of command: pseudo-commands.
 
-Pseudo-commands allow you to treat a method on an object as a command. The method name must be followed by
-an argument list, then optional prepositional syntax to clarify the code, then an expression. The method will be
-looked up on the value returned by the expression and executed.
+Pseudo-commands allow you to treat a method as a command.
+
+There are two forms:
+
+#### Naked pseudo-commands
+
+Naked pseudo-commands are just normal method invocations:
+
+```html
+  <button _="on click alert('clicked!')">
+    Refresh the Location
+  </button>
+```
+
+#### Prepositional pseudo-commands
+
+Prepositional pseudo-commands include a preposition syntax after the function, one of "the", "to", "on", "with", "into", "from", "at",
+  followed by an expression.
+
+The method will be looked up on the value returned by the expression and then executed.
 
 Consider the `refresh()` method found on `window.location`. In hyperscript, you can use it as a pseudo-command like so:
 

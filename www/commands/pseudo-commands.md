@@ -4,7 +4,7 @@
 ### Syntax
 
 ```ebnf
-  <method name>(<arg list>) [(to | on | with)] <expression>
+  <method name>(<arg list>) [(to | on | with | into | from | at)] <expression>
 ```
 
 ### Description
