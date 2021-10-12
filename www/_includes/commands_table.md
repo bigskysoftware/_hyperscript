@@ -4,10 +4,11 @@
 | [append](/commands/append)         | Appends a value to a string, array or HTML Element                            | `append "value" to myString`                                                            |
 | [async](/commands/async)           | Runs commands asynchronously                                                  | `async fetch /example`                                                                  |
 | [call/get](/commands/call)         | Evaluates an expression (e.g. a Javascript Function)                          | `call alert('yep, you can call javascript!)` <br/><br/> `get prompt('Enter your name')` |
+| [continue](/commands/continue)     | Skips the remainder of a loop and continues at the top of the next iteration. | `repeat 3 times continue end`                                                           |
 | [decrement](/commands/decrement)   | Subtracts a value to a variable, property, or attribute                       | `decrement counter`                                                                     |
 | [fetch](/commands/fetch)           | Send a fetch request                                                          | `fetch /demo then put it into my.innerHTML`                                             |
 | [go](/commands/go)                 | Navigate to a new page or within a page                                       | `go to the top of the body smoothly`                                                    |
-| [halt](/commands/halt)             | Halts the current event (stopping propogate, etc.)                            | `halt`                                                                               |
+| [halt](/commands/halt)             | Halts the current event (stopping propogate, etc.)                            | `halt`                                                                                  |
 | [hide](/commands/hide)             | Hide an element in the DOM                                                    | `hide me`                                                                               |
 | [if](/commands/if)                 | A conditional control flow command                                            | `if me.selected then call alert('I\'m selected!')`                                      |
 | [increment](/commands/increment)   | Adds a value to a variable, property, or attribute                            | `increment counter`                                                                     |
