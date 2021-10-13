@@ -1,10 +1,13 @@
-(function () {
-	var globalScope = this
 
+/**
+ * @param {HyperscriptObject} _hyperscript
+ */
+export default _hyperscript => {
 	function HDB(ctx, runtime, breakpoint) {
 		this.ctx = ctx;
 		this.runtime = runtime;
 		this.cmd = breakpoint;
+		this._hyperscript = _hyperscript;
 
 		this.bus = new EventTarget();
 	} // See below for methods
@@ -12,12 +15,11 @@
 	_hyperscript.addCommand("breakpoint", function (parser, runtime, tokens) {
 		if (!tokens.matchToken("breakpoint")) return;
 
-		var hdb = new HDB();
+		var hdb;
 
 		return {
 			op: function (ctx) {
-				var hdb = new HDB(ctx, runtime, this);
-				window['hdb'] = hdb;
+				globalThis.hdb = hdb = new HDB(ctx, runtime, this);
 				try {
 					return hdb.break(ctx);
 				} catch (e) {
@@ -462,8 +464,8 @@
 	.token.keyword { color: #3465a4; }
 	.token.bold, .token.punctuation, .token.operator { font-weight: bold; }
 	</style>
-</div>
-`;
+	</div>
+	`;
 	HDB.prototype.ui = function () {
 		var node = document.createElement("div");
 		var shadow = node.attachShadow({ mode: "open" });
@@ -472,4 +474,4 @@
 		document.body.appendChild(node);
 		_hyperscript.processNode(shadow.querySelector(".hdb"));
 	};
-})();
+}

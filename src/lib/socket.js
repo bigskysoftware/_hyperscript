@@ -1,31 +1,25 @@
-///=========================================================================
-/// This module provides the worker feature for hyperscript
-///=========================================================================
-(function () {
-	function mergeObjects(obj1, obj2) {
-		for (var key in obj2) {
-			if (obj2.hasOwnProperty(key)) {
-				obj1[key] = obj2[key];
-			}
-		}
-		return obj1;
-	}
 
-	function genUUID() {
-		return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-			var r = (Math.random() * 16) | 0,
-				v = c == "x" ? r : (r & 0x3) | 0x8;
-			return v.toString(16);
-		});
-	}
+import { mergeObjects } from "./utils.js";
 
-	function createSocket(url) {
-		return new WebSocket(url.evaluate());
-	}
+function genUUID() {
+	return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+		var r = (Math.random() * 16) | 0,
+		v = c == "x" ? r : (r & 0x3) | 0x8;
+		return v.toString(16);
+	});
+}
 
+function createSocket(url) {
+	return new WebSocket(url.evaluate());
+}
+
+/**
+ * @param {HyperscriptObject} _hyperscript
+ */
+export default _hyperscript => {
+
+	/** @type {(string | symbol)[]} */
 	var PROXY_BLACKLIST = ["then", "catch", "length", "asyncWrapper", "toJSON"];
-
-	var _hyperscript = typeof module !== 'undefined' ? module.exports : this._hyperscript
 
 	_hyperscript.addFeature("socket", function (parser, runtime, tokens) {
 		function getProxy(timeout) {
@@ -185,4 +179,4 @@
 			return socketFeature;
 		}
 	});
-})();
+}

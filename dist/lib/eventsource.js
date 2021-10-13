@@ -2,8 +2,10 @@
 /// This module provides the EventSource (SSE) feature for hyperscript
 ///=========================================================================
 
-(function () {
-	var _hyperscript = typeof module !== 'undefined' ? module.exports : this._hyperscript
+/**
+ * @param {HyperscriptObject} _hyperscript
+ */
+export default _hyperscript => {
 	_hyperscript.addFeature("eventsource", function (parser, runtime, tokens) {
 		if (tokens.matchToken("eventsource")) {
 			var urlElement;
@@ -213,4 +215,4 @@
 			}
 		}
 	});
-})();
+}

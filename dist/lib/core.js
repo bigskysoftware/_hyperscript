@@ -1,89 +1,16 @@
-///=========================================================================
-/// This module provides the core runtime and grammar for hyperscript
-///=========================================================================
-//AMD insanity
+	///=========================================================================
+	/// This module provides the core runtime and grammar for hyperscript
+	///=========================================================================
 
-/** @var {HyperscriptObject} _hyperscript */
+	import { getOrInitObject, mergeObjects, parseJSON, varargConstructor } from "./utils";
 
-(function (root, factory) {
-	if (typeof module != 'undefined') {
-		module.exports = factory();
-	} else if (typeof this.define === "function" && this.define.amd) {
-		// AMD. Register as an anonymous module.
-		this.define([], factory);
-	} else {
-		// Browser globals
-		root._hyperscript = factory();
-	}
-})(typeof self !== "undefined" ? self : this, function () {
-	"use strict";
-
-	//====================================================================
-	// Utilities
-	//====================================================================
 
 	/**
-	 * mergeObjects combines the keys from obj2 into obj2, then returns obj1
-	 *
-	 * @param {object} obj1
-	 * @param {object} obj2
-	 * @returns object
+	 * @type {HyperscriptObject}
 	 */
-	function mergeObjects(obj1, obj2) {
-		for (var key in obj2) {
-			if (obj2.hasOwnProperty(key)) {
-				obj1[key] = obj2[key];
-			}
-		}
-		return obj1;
-	}
+	let _hyperscript
 
-	function getOrInitObject(root, prop) {
-		var value = root[prop];
-		if (value) {
-			return value;
-		} else {
-			var newObj = {};
-			root[prop] = newObj;
-			return newObj;
-		}
-	}
-
-	/**
-	 * parseJSON parses a JSON string into a corresponding value.  If the
-	 * value passed in is not valid JSON, then it logs an error and returns `null`.
-	 *
-	 * @param {string} jString
-	 * @returns any
-	 */
-	function parseJSON(jString) {
-		try {
-			return JSON.parse(jString);
-		} catch (error) {
-			logError(error);
-			return null;
-		}
-	}
-
-	/**
-	 * logError writes an error message to the Javascript console.  It can take any
-	 * value, but msg should commonly be a simple string.
-	 * @param {*} msg
-	 */
-	function logError(msg) {
-		if (console.error) {
-			console.error(msg);
-		} else if (console.log) {
-			console.log("ERROR: ", msg);
-		}
-	}
-
-	// TODO: JSDoc description of what's happening here
-	function varargConstructor(Cls, args) {
-		return new (Cls.bind.apply(Cls, [Cls].concat(args)))();
-	}
-
-	var globalScope = (1, eval)("this");
+	var globalScope = globalThis;
 
 	//====================================================================
 	// Standard library
@@ -1343,12 +1270,12 @@
 		 */
 		function makeEvent(eventName, detail) {
 			var evt;
-			if (window.CustomEvent && typeof window.CustomEvent === "function") {
-				evt = new CustomEvent(eventName, {
+			if (globalScope.Event && typeof globalScope.Event === "function") {
+				evt = new Event(eventName, {
 					bubbles: true,
 					cancelable: true,
-					detail: detail,
 				});
+				evt['detail'] = detail;
 			} else {
 				evt = document.createEvent("CustomEvent");
 				evt.initCustomEvent(eventName, true, true, detail);
@@ -1378,7 +1305,7 @@
 		 * @returns {value is Array | NodeList}
 		 */
 		function isArrayLike(value) {
-			return Array.isArray(value) || value instanceof NodeList;
+			return Array.isArray(value) || (typeof NodeList !== 'undefined' && value instanceof NodeList);
 		}
 
 		/**
@@ -1560,10 +1487,10 @@
 		}
 
 		/**
-		 * @param {*} parseElement
-		 * @param {Context} ctx
-		 * @returns {*}
-		 */
+		* @param {*} parseElement
+		* @param {Context} ctx
+		* @returns {*}
+		*/
 		function unifiedEval(parseElement, ctx) {
 			/** @type any[] */
 			var args = [ctx];
@@ -1641,14 +1568,14 @@
 			}
 		}
 
-		var _scriptAttrs = null;
+		let _scriptAttrs = null;
 
 		/**
-		 * getAttributes returns the attribute name(s) to use when
-		 * locating hyperscript scripts in a DOM element.  If no value
-		 * has been configured, it defaults to _hyperscript.config.attributes
-		 * @returns string[]
-		 */
+		* getAttributes returns the attribute name(s) to use when
+		* locating hyperscript scripts in a DOM element.  If no value
+		* has been configured, it defaults to _hyperscript.config.attributes
+		* @returns string[]
+		*/
 		function getScriptAttributes() {
 			if (_scriptAttrs == null) {
 				_scriptAttrs = _hyperscript.config.attributes.replace(/ /g, "").split(",");
@@ -1657,9 +1584,9 @@
 		}
 
 		/**
-		 * @param {Element} elt
-		 * @returns {string | null}
-		 */
+		* @param {Element} elt
+		* @returns {string | null}
+		*/
 		function getScript(elt) {
 			for (var i = 0; i < getScriptAttributes().length; i++) {
 				var scriptAttribute = getScriptAttributes()[i];
@@ -1676,9 +1603,9 @@
 		var hyperscriptFeaturesMap = new WeakMap
 
 		/**
-		 * @param {Element} elt
-		 * @returns {Object}
-		 */
+		* @param {*} elt
+		* @returns {Object}
+		*/
 		function getHyperscriptFeatures(elt) {
 			var hyperscriptFeatures = hyperscriptFeaturesMap.get(elt);
 			if (typeof hyperscriptFeatures === 'undefined') {
@@ -1688,9 +1615,9 @@
 		}
 
 		/**
-		 * @param {Object} owner
-		 * @param {Context} ctx
-		 */
+		* @param {Object} owner
+		* @param {Context} ctx
+		*/
 		function addFeatures(owner, ctx) {
 			if (owner) {
 				mergeObjects(ctx, getHyperscriptFeatures(owner));
@@ -1699,12 +1626,12 @@
 		}
 
 		/**
-		 * @param {*} owner
-		 * @param {*} feature
-		 * @param {*} hyperscriptTarget
-		 * @param {*} event
-		 * @returns {Context}
-		 */
+		* @param {*} owner
+		* @param {*} feature
+		* @param {*} hyperscriptTarget
+		* @param {*} event
+		* @returns {Context}
+		*/
 		function makeContext(owner, feature, hyperscriptTarget, event) {
 			/** @type {Context} */
 			var ctx = {
@@ -1728,8 +1655,8 @@
 		}
 
 		/**
-		 * @returns string
-		 */
+		* @returns string
+		*/
 		function getScriptSelector() {
 			return getScriptAttributes()
 				.map(function (attribute) {
@@ -1739,10 +1666,10 @@
 		}
 
 		/**
-		 * @param {any} value
-		 * @param {string} type
-		 * @returns {any}
-		 */
+		* @param {any} value
+		* @param {string} type
+		* @returns {any}
+		*/
 		function convertValue(value, type) {
 			var dynamicResolvers = CONVERSIONS.dynamicResolvers;
 			for (var i = 0; i < dynamicResolvers.length; i++) {
@@ -1771,9 +1698,9 @@
 		}
 
 		/**
-		 * @param {string} src
-		 * @returns {GrammarElement}
-		 */
+		* @param {string} src
+		* @returns {GrammarElement}
+		*/
 		function parse(src) {
 			var tokens = _lexer.tokenize(src);
 			if (_parser.commandStart(tokens.currentToken())) {
@@ -1798,18 +1725,32 @@
 		}
 
 		/**
-		 * @param {string} src
-		 * @param {Context} [ctx]
-		 * @returns {any}
-		 */
-		function evaluate(src, ctx) {
-			var body = 'document' in globalScope ? globalScope.document.body : makeModule();
+		* @param {string} src
+		* @param {Context} [ctx]
+		* @param {Object} [args]
+		* @returns {any}
+		*/
+		function evaluate(src, ctx, args) {
+			class HyperscriptModule extends EventTarget {
+				constructor(mod) {
+					super();
+					this.module = mod;
+				}
+				toString() {
+					return this.module.id;
+				}
+			}
+
+			var body = 'document' in globalScope
+				? globalScope.document.body 
+				: new HyperscriptModule(args && args.module);
 			ctx = mergeObjects(makeContext(body, null, body, null), ctx || {});
 			var element = parse(src);
 			if (element.execute) {
-				return element.execute(ctx);
+				element.execute(ctx);
+				return ctx.result;
 			} else if (element.apply) {
-				element.apply(body, null);
+				element.apply(body, body, args);
 				return getHyperscriptFeatures(body);
 			} else {
 				return element.evaluate(ctx);
@@ -1821,8 +1762,8 @@
 		}
 
 		/**
-		 * @param {HTMLElement} elt
-		 */
+		* @param {HTMLElement} elt
+		*/
 		function processNode(elt) {
 			var selector = _runtime.getScriptSelector();
 			if (matchesSelector(elt, selector)) {
@@ -1839,9 +1780,9 @@
 		}
 
 		/**
-		 * @param {Element} elt
-		 * @param {Element} [target]
-		 */
+		* @param {Element} elt
+		* @param {Element} [target]
+		*/
 		function initElement(elt, target) {
 			if (elt.closest && elt.closest(_hyperscript.config.disableSelector)) {
 				return;
@@ -1881,9 +1822,9 @@
 		var internalDataMap = new WeakMap
 
 		/**
-		 * @param {Element} elt
-		 * @returns {Object}
-		 */
+		* @param {Element} elt
+		* @returns {Object}
+		*/
 		function getInternalData(elt) {
 			var internalData = internalDataMap.get(elt);
 			if (typeof internalData === 'undefined') {
@@ -1893,11 +1834,11 @@
 		}
 
 		/**
-		 * @param {any} value
-		 * @param {string} typeString
-		 * @param {boolean} [nullOk]
-		 * @returns {boolean}
-		 */
+		* @param {any} value
+		* @param {string} typeString
+		* @param {boolean} [nullOk]
+		* @returns {boolean}
+		*/
 		function typeCheck(value, typeString, nullOk) {
 			if (value == null && nullOk) {
 				return true;
@@ -1922,10 +1863,10 @@
 		}
 
 		/**
-		 * @param {string} str
-		 * @param {Context} context
-		 * @returns {any}
-		 */
+		* @param {string} str
+		* @param {Context} context
+		* @returns {any}
+		*/
 		function resolveSymbol(str, context, type) {
 			if (str === "me" || str === "my" || str === "I") {
 				return context["me"];
@@ -2003,10 +1944,10 @@
 		}
 
 		/**
-		 * @param {GrammarElement} command
-		 * @param {Context} context
-		 * @returns {undefined | GrammarElement}
-		 */
+		* @param {GrammarElement} command
+		* @param {Context} context
+		* @returns {undefined | GrammarElement}
+		*/
 		function findNext(command, context) {
 			if (command) {
 				if (command.resolveNext) {
@@ -2020,11 +1961,11 @@
 		}
 
 		/**
-		 * @param {Object<string,any>} root
-		 * @param {string} property
-		 * @param {boolean} attribute
-		 * @returns {any}
-		 */
+		* @param {Object<string,any>} root
+		* @param {string} property
+		* @param {boolean} attribute
+		* @returns {any}
+		*/
 		function resolveProperty(root, property, attribute) {
 			if (root != null) {
 				var val = attribute && root.getAttribute ? root.getAttribute(property) : root[property];
@@ -2047,16 +1988,17 @@
 		}
 
 		/**
-		 * @param {Element} elt
-		 * @param {string[]} nameSpace
-		 * @param {string} name
-		 * @param {any} value
-		 */
+		* @param {Element} elt
+		* @param {string[]} nameSpace
+		* @param {string} name
+		* @param {any} value
+		*/
 		function assignToNamespace(elt, nameSpace, name, value) {
-			if (typeof document === "undefined" || elt === document.body) {
-				var root = globalScope;
+			let root
+			if (typeof document !== "undefined" && elt === document.body) {
+				root = globalScope;
 			} else {
-				var root = getHyperscriptFeatures(elt);
+				root = getHyperscriptFeatures(elt);
 			}
 			while (nameSpace.length > 0) {
 				var propertyName = nameSpace.shift();
@@ -2119,9 +2061,9 @@
 		}
 
 		/**
-		 * @param {string} str
-		 * @returns {string}
-		 */
+		* @param {string} str
+		* @returns {string}
+		*/
 		function escapeSelector(str) {
 			return str.replace(/:/g, function (str) {
 				return "\\" + str;
@@ -2129,9 +2071,9 @@
 		}
 
 		/**
-		 * @param {any} value
-		 * @param {*} elt
-		 */
+		* @param {any} value
+		* @param {*} elt
+		*/
 		function nullCheck(value, elt) {
 			if (value == null) {
 				throw new Error(elt.sourceFor() + " is null");
@@ -2139,17 +2081,17 @@
 		}
 
 		/**
-		 * @param {any} value
-		 * @returns {boolean}
-		 */
+		* @param {any} value
+		* @returns {boolean}
+		*/
 		function isEmpty(value) {
 			return value == undefined || value.length === 0;
 		}
 
 		/**
-		 * @param {Node} node
-		 * @returns {Document|ShadowRoot}
-		 */
+		* @param {Node} node
+		* @returns {Document|ShadowRoot}
+		*/
 		function getRootNode(node) {
 			var rv = node.getRootNode();
 			if (rv instanceof Document || rv instanceof ShadowRoot) return rv;
@@ -2158,38 +2100,39 @@
 
 		/** @type string | null */
 		// @ts-ignore
-		var hyperscriptUrl = "document" in globalScope ? document.currentScript.src : null;
+		var hyperscriptUrl = "document" in globalScope ? import.meta.url : null;
 
 		/** @type {RuntimeObject} */
 		return {
-			typeCheck: typeCheck,
-			forEach: forEach,
-			implicitLoop: implicitLoop,
-			triggerEvent: triggerEvent,
-			matchesSelector: matchesSelector,
-			getScript: getScript,
-			processNode: processNode,
-			evaluate: evaluate,
-			parse: parse,
-			getScriptSelector: getScriptSelector,
-			resolveSymbol: resolveSymbol,
-			setSymbol: setSymbol,
-			makeContext: makeContext,
-			findNext: findNext,
-			unifiedEval: unifiedEval,
-			convertValue: convertValue,
-			unifiedExec: unifiedExec,
-			resolveProperty: resolveProperty,
-			assignToNamespace: assignToNamespace,
-			registerHyperTrace: registerHyperTrace,
-			getHyperTrace: getHyperTrace,
-			getInternalData: getInternalData,
-			escapeSelector: escapeSelector,
-			nullCheck: nullCheck,
-			isEmpty: isEmpty,
-			getRootNode: getRootNode,
-			hyperscriptUrl: hyperscriptUrl,
-			HALT: HALT,
+			typeCheck,
+			forEach,
+			implicitLoop,
+			triggerEvent,
+			matchesSelector,
+			getScript,
+			processNode,
+			evaluate,
+			parse,
+			getScriptSelector,
+			resolveSymbol,
+			setSymbol,
+			makeContext,
+			findNext,
+			unifiedEval,
+			convertValue,
+			unifiedExec,
+			resolveProperty,
+			assignToNamespace,
+			registerHyperTrace,
+			getHyperTrace,
+			getInternalData,
+			getHyperscriptFeatures,
+			escapeSelector,
+			nullCheck,
+			isEmpty,
+			getRootNode,
+			hyperscriptUrl,
+			HALT,
 		};
 	})();
 
@@ -2353,7 +2296,7 @@
 
 			get css() {
 				let rv = "", i = 0
-			    for (const val of this.templateParts) {
+				for (const val of this.templateParts) {
 					if (val instanceof Element) {
 						rv += "[data-hs-query-id='" + i++ + "']";
 					} else rv += val;
@@ -3653,6 +3596,8 @@
 					throttleTime: throttleTime,
 					mutationSpec: mutationSpec,
 					intersectionSpec: intersectionSpec,
+					debounced: undefined,
+					lastExec: undefined,
 				});
 			} while (tokens.matchToken("or"));
 
@@ -3792,9 +3737,10 @@
 								observer.observe(target);
 							}
 
-							target.addEventListener(eventName, function listener(evt) {
+							var addEventListener = target.addEventListener || target.on;
+							addEventListener.call(target, eventName, function listener(evt) {
 								// OK NO PROMISE
-								if (elt instanceof Node && target !== elt && !elt.isConnected) {
+								if (typeof Node !== 'undefined' && elt instanceof Node && target !== elt && !elt.isConnected) {
 									target.removeEventListener(eventName, listener);
 									return;
 								}
@@ -4017,6 +3963,7 @@
 
 		_parser.addFeature("init", function (parser, runtime, tokens) {
 			if (!tokens.matchToken("init")) return;
+			var immediately = tokens.matchToken('immediately');
 
 			var start = parser.parseElement("commandList", tokens);
 			var initFeature = {
@@ -4718,13 +4665,13 @@
 		});
 
 		/**
-		 * @param {ParserObject} parser
-		 * @param {RuntimeObject} runtime
-		 * @param {TokensObject} tokens
-		 * @param {*} target
-		 * @param {*} value
-		 * @returns
-		 */
+		* @param {ParserObject} parser
+		* @param {RuntimeObject} runtime
+		* @param {TokensObject} tokens
+		* @param {*} target
+		* @param {*} value
+		* @returns
+		*/
 		var makeSetter = function (parser, runtime, tokens, target, value) {
 			var symbolWrite = target.type === "symbol";
 			var attributeWrite = target.type === "attributeRef";
@@ -5263,7 +5210,8 @@
 	//====================================================================
 	// API
 	//====================================================================
-	return mergeObjects(
+	/** @type {HyperscriptObject} */
+	export default _hyperscript = mergeObjects(
 		function (str, ctx) {
 			return _runtime.evaluate(str, ctx); //OK
 		},
@@ -5286,17 +5234,9 @@
 			addIndirectExpression: function (name, definition) {
 				_parser.addIndirectExpression(name, definition);
 			},
-			evaluate: function (str, ctx) {
-				//OK
-				return _runtime.evaluate(str, ctx); //OK
-			},
-			parse: function (str) {
-				//OK
-				return _runtime.parse(str); //OK
-			},
-			processNode: function (elt) {
-				_runtime.processNode(elt);
-			},
+			evaluate: _runtime.evaluate.bind(_runtime),
+			parse: _runtime.parse.bind(_runtime),
+			processNode: _runtime.processNode.bind(_runtime),
 			config: {
 				attributes: "_, script, data-script",
 				defaultTransition: "all 500ms ease-in",
@@ -5305,4 +5245,3 @@
 			},
 		}
 	);
-});

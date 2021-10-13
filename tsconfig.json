@@ -5,6 +5,6 @@
         "outDir": "dist/lib",
         "target":"ES2015"
     },
-    "include": ["src/lib/*"],
+    "include": ["src/lib/*", "src/bin/*"],
     "exclude": ["node_modules"],
 }

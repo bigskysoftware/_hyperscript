@@ -1,18 +1,13 @@
 ///=========================================================================
 /// This module provides the core web functionality for hyperscript
 ///=========================================================================
-(function () {
-	function mergeObjects(obj1, obj2) {
-		for (var key in obj2) {
-			if (obj2.hasOwnProperty(key)) {
-				obj1[key] = obj2[key];
-			}
-		}
-		return obj1;
-	}
 
-	var _hyperscript = this._hyperscript
+import { mergeObjects } from "./utils"
 
+/**
+ * @param {HyperscriptObject} _hyperscript
+ */
+export default _hyperscript => {
 	_hyperscript.addCommand("settle", function (parser, runtime, tokens) {
 		if (tokens.matchToken("settle")) {
 			if (!parser.commandBoundary(tokens.currentToken())) {
@@ -1115,4 +1110,4 @@
 		});
 		return frag;
 	};
-})();
+}
