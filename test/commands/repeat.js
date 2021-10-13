@@ -252,4 +252,22 @@ describe("the repeat command", function () {
 		d1.click();
 		d1.innerHTML.should.equal("aaa");
 	});
+
+	it("loop continue works", function () {
+		var d1 = make(
+			`<div _="on click 
+				repeat 2 times
+					for x in ['A', 'B', 'C', 'D']
+						if (x != 'D') then
+							put 'success ' + x  + '. ' at end of me
+							continue
+							put 'FAIL!!. ' at end of me
+						end
+						put 'expected D. ' at end of me
+					end
+				end
+			"></div>`);
+		d1.click();
+		d1.innerHTML.should.equal("success A. success B. success C. expected D. success A. success B. success C. expected D. ");
+	});
 });

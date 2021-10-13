@@ -4977,6 +4977,28 @@ var _runtime = (function () {
 		}
 	});
 
+  _parser.addCommand("continue", function (parser, runtime, tokens) {
+
+    if (!tokens.matchToken("continue")) return;
+
+    var command = {
+      op: function (context) {
+
+        // scan for the closest repeat statement
+        for (var parent = this.parent ; true ; parent = parent.parent) {
+
+          if (parent == undefined) {
+            parser.raiseParseError(tokens, "Command `continue` cannot be used outside of a `repeat` loop.")
+          }		
+          if (parent.loop != undefined) {
+            return parent.resolveNext(context)
+          }
+        }
+      }
+    };
+    return command;
+  });
+
 	_parser.addGrammarElement("stringLike", function (parser, runtime, tokens) {
 		return _parser.parseAnyOf(["string", "nakedString"], tokens);
 	});
