@@ -257,14 +257,17 @@ describe("the repeat command", function () {
 		var d1 = make(
 			`<div _="on click 
 				repeat 2 times
-					repeat 3 times
-						put 'success? ' at end of me
-						continue
-						put 'fail. ' at end of me
+					for x in ['A', 'B', 'C', 'D']
+						if (x != 'D') then
+							put 'success ' + x  + '. ' at end of me
+							continue
+							put 'FAIL!!. ' at end of me
+						end
+						put 'expected D. ' at end of me
 					end
 				end
 			"></div>`);
 		d1.click();
-		d1.innerHTML.should.equal("success? success? success? success? success? success? ");
+		d1.innerHTML.should.equal("success A. success B. success C. expected D. success A. success B. success C. expected D. ");
 	});
 });

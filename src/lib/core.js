@@ -5031,15 +5031,23 @@
 		});
 
 		_parser.addCommand("continue", function (parser, runtime, tokens) {
+
 			if (!tokens.matchToken("continue")) return;
 
 			var command = {
 				op: function (context) {
-					return runtime.findNext(this.parent, context);
-				},
-				execute: function (context) {
-					return runtime.unifiedExec(this, context);
-				},
+
+					// scan for the closest repeat statement
+					for (var parent = this.parent ; true ; parent = parent.parent) {
+
+						if (parent == undefined) {
+							parser.raiseParseError(tokens, "Command `continue` cannot be used outside of a `repeat` loop.")
+						}		
+						if (parent.loop != undefined) {
+							return parent.resolveNext(context)
+						}
+					}
+				}
 			};
 			return command;
 		});
