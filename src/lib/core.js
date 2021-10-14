@@ -1742,7 +1742,7 @@ var _runtime = (function () {
 		}
 
 		var body = 'document' in globalScope
-			? globalScope.document.body 
+			? globalScope.document.body
 			: new HyperscriptModule(args && args.module);
 		ctx = mergeObjects(makeContext(body, null, body, null), ctx || {});
 		var element = parse(src);
@@ -4217,7 +4217,7 @@ var _runtime = (function () {
 		if (!tokens.matchToken("tell")) return;
 		var value = parser.requireElement("expression", tokens);
 		var body = parser.requireElement("commandList", tokens);
-		if (tokens.hasMore()) {
+		if (tokens.hasMore() && !parser.featureStart(tokens.currentToken())) {
 			tokens.requireToken("end");
 		}
 		var slot = "tell_" + startToken.start;
@@ -4989,7 +4989,7 @@ var _runtime = (function () {
 
           if (parent == undefined) {
             parser.raiseParseError(tokens, "Command `continue` cannot be used outside of a `repeat` loop.")
-          }		
+          }
           if (parent.loop != undefined) {
             return parent.resolveNext(context)
           }
