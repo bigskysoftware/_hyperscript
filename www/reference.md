@@ -32,7 +32,7 @@ See [expressions](/expressions) for an overview.
 | [logical operator](/expressions/logical-operator) | Logical operators | `x and y`<br/>`z or false`
 | [no operator](/expressions/no) | No operator | `no element.children`
 | [query reference](/expressions/query-reference) | A query reference | `<button/> <:focused/>`
-| [time expression](/expressions/time) | A time expression | `200ms`
+| [time expression](/expressions/time-expression) | A time expression | `200ms`
 | [closest expression](/expressions/closest) | Find closest element | `closest <div/>`
 | [of expression](/expressions/of) | Get a property of an object | `the location of window`
 | [positional expressions](/expressions/positional) | Get a positional value out of an array-like object | `first from <div/>`
