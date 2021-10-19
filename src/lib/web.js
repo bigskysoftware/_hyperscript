@@ -472,24 +472,6 @@ export default _hyperscript => {
 		}
 	});
 
-	_hyperscript.addCommand("trigger", function (parser, runtime, tokens) {
-		if (tokens.matchToken("trigger")) {
-			var eventName = parser.requireElement("eventName", tokens);
-			var details = parser.parseElement("namedArgumentList", tokens);
-
-			var triggerCmd = {
-				eventName: eventName,
-				details: details,
-				args: [eventName, details],
-				op: function (context, eventNameStr, details) {
-					runtime.triggerEvent(context.me, eventNameStr, details ? details : {});
-					return runtime.findNext(triggerCmd, context);
-				},
-			};
-			return triggerCmd;
-		}
-	});
-
 	_hyperscript.addCommand("take", function (parser, runtime, tokens) {
 		if (tokens.matchToken("take")) {
 			var classRef = parser.parseElement("classRef", tokens);

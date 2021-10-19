@@ -1005,7 +1005,7 @@ has begun and then waits for it to complete, before another run through the loop
 
 ### <a name="send"></a>[Send](#send)
 
-The [send command](/commands/send) sends an event to another element in the DOM. You can pass arguments to the other
+The [send command](/commands/send) sends an event to the current or another element in the DOM. You can pass arguments with the
 event via an optional named argument syntax.
 
 Here are some an examples:
@@ -1020,12 +1020,7 @@ Here are some an examples:
 <div id="div1" _="on remove remove me">I will be removed...</div>
 ```
 
-### <a name="trigger"></a>[Trigger](#trigger)
-
-The [trigger command](/commands/trigger) triggers an event on the current element. You can use this to centralize logic
-in one event handler.
-
-Here is an examples that centralizes logic to remove an element:
+You can also use the `trigger` keyword, rather than `send` if that reads better:
 
 ```html
 <div _="on click trigger remove

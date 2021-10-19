@@ -4379,11 +4379,19 @@ var _runtime = (function () {
 	});
 
 	_parser.addCommand("send", function (parser, runtime, tokens) {
-		if (!tokens.matchToken("send")) return;
+		if (tokens.matchToken("send")) {
+			var cmdType = 'send';
+		} else if (tokens.matchToken("trigger")) {
+			var cmdType = 'trigger';
+		} else {
+			return false;
+		}
+
 		var eventName = parser.requireElement("eventName", tokens);
 
 		var details = parser.parseElement("namedArgumentList", tokens);
-		if (tokens.matchToken("to")) {
+		if ((cmdType === "send" && tokens.matchToken("to")) ||
+		    (cmdType === "trigger" && tokens.matchToken("on"))) {
 			var to = parser.requireElement("expression", tokens);
 		} else {
 			var to = parser.requireElement("implicitMeTarget", tokens);
