@@ -4365,6 +4365,7 @@ var _runtime = (function () {
 		}
 	});
 
+
 	_parser.addGrammarElement("eventName", function (parser, runtime, tokens) {
 		var token;
 		if ((token = tokens.matchTokenType("STRING"))) {
@@ -4378,20 +4379,12 @@ var _runtime = (function () {
 		return parser.parseElement("dotOrColonPath", tokens);
 	});
 
-	_parser.addCommand("send", function (parser, runtime, tokens) {
-		if (tokens.matchToken("send")) {
-			var cmdType = 'send';
-		} else if (tokens.matchToken("trigger")) {
-			var cmdType = 'trigger';
-		} else {
-			return false;
-		}
-
+	function parseSendCmd(cmdType, parser, runtime, tokens) {
 		var eventName = parser.requireElement("eventName", tokens);
 
 		var details = parser.parseElement("namedArgumentList", tokens);
 		if ((cmdType === "send" && tokens.matchToken("to")) ||
-		    (cmdType === "trigger" && tokens.matchToken("on"))) {
+			(cmdType === "trigger" && tokens.matchToken("on"))) {
 			var to = parser.requireElement("expression", tokens);
 		} else {
 			var to = parser.requireElement("implicitMeTarget", tokens);
@@ -4410,6 +4403,18 @@ var _runtime = (function () {
 			},
 		};
 		return sendCmd;
+	}
+
+	_parser.addCommand("trigger", function (parser, runtime, tokens) {
+		if (tokens.matchToken("trigger")) {
+			return parseSendCmd("trigger", parser, runtime, tokens);
+		}
+	});
+
+	_parser.addCommand("send", function (parser, runtime, tokens) {
+		if (tokens.matchToken("send")) {
+			return parseSendCmd("send", parser, runtime, tokens);
+		}
 	});
 
 	var parseReturnFunction = function (parser, runtime, tokens, returnAValue) {
