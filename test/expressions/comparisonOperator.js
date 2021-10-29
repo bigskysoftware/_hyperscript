@@ -237,6 +237,36 @@ describe("the comparisonOperator expression", function () {
 		result.should.equal(true);
 	});
 
+	it("include works", function () {
+		var outer = make("<div><div id='d2'></div></div>");
+		var inner = byId("d2");
+
+		var result = evalHyperScript("foo includes foobar", {
+			foo: "foo",
+			foobar: "foobar",
+		});
+		result.should.equal(false);
+
+		var result = evalHyperScript("foobar includes foo", {
+			foo: "foo",
+			foobar: "foobar",
+		});
+		result.should.equal(true);
+
+		var result = evalHyperScript("foo does not include foobar", {
+			foo: "foo",
+			foobar: "foobar",
+		});
+		result.should.equal(true);
+
+		var result = evalHyperScript("foobar does not include foo", {
+			foo: "foo",
+			foobar: "foobar",
+		});
+		result.should.equal(false);
+
+	});
+
 	it("does not contain works", function () {
 		var outer = make("<div><div id='d2'></div></div>");
 		var inner = byId("d2");

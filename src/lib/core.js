@@ -3236,12 +3236,16 @@ var _runtime = (function () {
 				operator = "match";
 			} else if (tokens.matchToken("contains") || tokens.matchToken("contain")) {
 				operator = "contain";
+			} else if (tokens.matchToken("includes")) {
+				operator = "include";
 			} else if (tokens.matchToken("do") || tokens.matchToken("does")) {
 				tokens.requireToken("not");
 				if (tokens.matchToken("matches") || tokens.matchToken("match")) {
 					operator = "not match";
 				} else if (tokens.matchToken("contains") || tokens.matchToken("contain")) {
 					operator = "not contain";
+				} else if (tokens.matchToken("include")) {
+					operator = "not include";
 				} else {
 					parser.raiseParseError(tokens, "Expected matches or contains");
 				}
@@ -3290,6 +3294,12 @@ var _runtime = (function () {
 					}
 					if (operator === "not contain") {
 						return lhsVal == null || !lhsVal.contains(rhsVal);
+					}
+					if (operator === "include") {
+						return lhsVal != null && lhsVal.includes(rhsVal);
+					}
+					if (operator === "not include") {
+						return lhsVal == null || !lhsVal.includes(rhsVal);
 					}
 					if (operator === "===") {
 						return lhsVal === rhsVal;
