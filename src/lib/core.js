@@ -2457,11 +2457,10 @@ var _runtime = (function () {
 		};
 	});
 
-	_parser.addGrammarElement("namedArgumentList", function (parser, runtime, tokens) {
-		if (!tokens.matchOpToken("(")) return;
+	_parser.addGrammarElement("nakedNamedArgumentList", function (parser, runtime, tokens) {
 		var fields = [];
 		var valueExpressions = [];
-		if (!tokens.matchOpToken(")")) {
+		if (tokens.currentToken().type === "IDENTIFIER") {
 			do {
 				var name = tokens.requireTokenType("IDENTIFIER");
 				tokens.requireOpToken(":");
@@ -2469,7 +2468,6 @@ var _runtime = (function () {
 				valueExpressions.push(value);
 				fields.push({ name: name, value: value });
 			} while (tokens.matchOpToken(","));
-			tokens.requireOpToken(")");
 		}
 		return {
 			type: "namedArgumentList",
@@ -2487,6 +2485,13 @@ var _runtime = (function () {
 				return runtime.unifiedEval(this, context);
 			},
 		};
+	});
+
+	_parser.addGrammarElement("namedArgumentList", function (parser, runtime, tokens) {
+		if (!tokens.matchOpToken("(")) return;
+		var elt = parser.requireElement("nakedNamedArgumentList", tokens);
+		tokens.requireOpToken(")");
+		return elt;
 	});
 
 	_parser.addGrammarElement("symbol", function (parser, runtime, tokens) {
@@ -5156,7 +5161,12 @@ var _runtime = (function () {
 	_parser.addCommand("fetch", function (parser, runtime, tokens) {
 		if (!tokens.matchToken("fetch")) return;
 		var url = parser.requireElement("stringLike", tokens);
-		var args = parser.parseElement("objectLiteral", tokens);
+
+		if (tokens.matchToken("with")) {
+			var args = parser.parseElement("nakedNamedArgumentList", tokens);
+		} else {
+			var args = parser.parseElement("objectLiteral", tokens);
+		}
 
 		var type = "text";
 		var conversion;

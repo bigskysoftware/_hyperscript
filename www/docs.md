@@ -1204,7 +1204,7 @@ Here are some example usages:
   Fetch it as JSON!
 </button>
 
-<button _="on click fetch /example {method:'POST'} then put it into my.innerHTML">
+<button _="on click fetch /example with method:'POST' then put it into my.innerHTML">
   Fetch it with a POST!
 </button>
 ```
