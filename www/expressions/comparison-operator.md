@@ -5,9 +5,13 @@
 
 ```ebnf
 <expr> < <expr>
+<expr> is less than <expr>
 <expr> <= <expr>
+<expr> is less than or equal to <expr>
 <expr> > <expr>
+<expr> is greater than <expr>
 <expr> >= <expr>
+<expr> is greater than or equal to <expr>
 <expr> == <expr>
 <expr> === <expr>
 <expr> is <expr>

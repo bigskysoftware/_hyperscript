@@ -3229,6 +3229,24 @@ var _runtime = (function () {
 				} else if (tokens.matchToken("empty")) {
 					operator = "empty";
 					hasRightValue = false;
+				} else if (tokens.matchToken("less")) {
+					tokens.requireToken("than");
+					if (tokens.matchToken("or")) {
+						tokens.requireToken("equal");
+						tokens.requireToken("to");
+						operator = "<=";
+					} else {
+						operator = "<";
+					}
+				} else if (tokens.matchToken("greater")) {
+					tokens.requireToken("than");
+					if (tokens.matchToken("or")) {
+						tokens.requireToken("equal");
+						tokens.requireToken("to");
+						operator = ">=";
+					} else {
+						operator = ">";
+					}
 				} else {
 					operator = "==";
 				}

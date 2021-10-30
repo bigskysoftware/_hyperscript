@@ -357,4 +357,50 @@ describe("the comparisonOperator expression", function () {
 		var result = evalHyperScript("'' is not a String!");
 		result.should.equal(false);
 	});
+
+	it("english less than works", function () {
+		var result = evalHyperScript("1 is less than 2");
+		result.should.equal(true);
+
+		var result = evalHyperScript("2 is less than 1");
+		result.should.equal(false);
+
+		var result = evalHyperScript("2 is less than 2");
+		result.should.equal(false);
+	});
+
+	it("english less than or equal works", function () {
+		var result = evalHyperScript("1 is less than or equal to 2");
+		result.should.equal(true);
+
+		var result = evalHyperScript("2 is less than or equal to 1");
+		result.should.equal(false);
+
+		var result = evalHyperScript("2 is less than or equal to 2");
+		result.should.equal(true);
+	});
+
+	it("english greater than works", function () {
+		var result = evalHyperScript("1 is greater than 2");
+		result.should.equal(false);
+
+		var result = evalHyperScript("2 is greater than 1");
+		result.should.equal(true);
+
+		var result = evalHyperScript("2 is greater than 2");
+		result.should.equal(false);
+	});
+
+	it("english greater than or equal works", function () {
+		var result = evalHyperScript("1 is greater than or equal to 2");
+		result.should.equal(false);
+
+		var result = evalHyperScript("2 is greater than or equal to 1");
+		result.should.equal(true);
+
+		var result = evalHyperScript("2 is greater than or equal to 2");
+		result.should.equal(true);
+	});
+
+
 });
