@@ -1,12 +1,12 @@
 
-import _hyperscript from "../lib/core"
+import _hyperscript from "../lib/core.js"
 
-import web from "../lib/web"
-import worker from "../lib/worker"
-import socket from "../lib/socket"
-import eventsource from "../lib/eventsource"
-import template from "../lib/template"
-import hdb from "../lib/hdb"
+import web from "../lib/web.js"
+import worker from "../lib/worker.js"
+import socket from "../lib/socket.js"
+import eventsource from "../lib/eventsource.js"
+import template from "../lib/template.js"
+import hdb from "../lib/hdb.js"
 
 web(_hyperscript)
 worker(_hyperscript)
