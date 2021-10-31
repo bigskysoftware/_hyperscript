@@ -83,4 +83,18 @@ describe("_hyperscript regressions", function () {
 			done();
 		}, 10)
 	});
+
+	it("can create a paragraph tag", function () {
+		var i1 = make("<input id='i1' value='foo'>");
+		var d2 = make("<div id='d2'></div>");
+		var div = make("<div _='on click make a <p/>  put #i1.value into its textContent put it.outerHTML before the end of #d2'></div>");
+		div.click()
+		d2.innerHTML.should.equal("<p>foo</p>");
+	});
+
+	it("async exception", function () {
+		var div = make("<div _='on click async transition opacity to 0 log \"hello!\"'></div>");
+		div.click()
+	});
+
 });

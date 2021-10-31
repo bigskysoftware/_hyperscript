@@ -546,24 +546,24 @@ export default _hyperscript => {
 			var operation = operationToken.value;
 
 			var symbolWrite = false;
-			var root = null;
+			var rootExpr = null;
 			var prop = null;
 			if (target.prop && target.root && operation === "into") {
 				prop = target.prop.value;
-				root = target.root;
+				rootExpr = target.root;
 			} else if (target.type === "symbol" && operation === "into") {
 				symbolWrite = true;
 				prop = target.name;
 			} else if (target.type === "attributeRef" && operation === "into") {
 				var attributeWrite = true;
 				prop = target.name;
-				root = parser.requireElement("implicitMeTarget", tokens);
+				rootExpr = parser.requireElement("implicitMeTarget", tokens);
 			} else if (target.type === "attributeRefAccess" && operation === "into") {
 				var attributeWrite = true;
 				prop = target.attribute.name;
-				root = target.root;
+				rootExpr = target.root;
 			} else {
-				root = target;
+				rootExpr = target;
 			}
 
 			var putCmd = {
@@ -571,7 +571,7 @@ export default _hyperscript => {
 				operation: operation,
 				symbolWrite: symbolWrite,
 				value: value,
-				args: [root, value],
+				args: [rootExpr, value],
 				op: function (context, root, valueToPut) {
 					if (symbolWrite) {
 						putInto(runtime, context, prop, valueToPut);
@@ -598,14 +598,16 @@ export default _hyperscript => {
 									? Element.prototype.append
 									: Element.prototype.append; // unreachable
 
-							runtime.implicitLoop(root, function (elt) {
-								op.call(
-									elt,
-									valueToPut instanceof Node
-										? valueToPut
-										: runtime.convertValue(valueToPut, "Fragment")
-								);
-							});
+							if (root) {
+								runtime.implicitLoop(root, function (elt) {
+									op.call(
+										elt,
+										valueToPut instanceof Node
+											? valueToPut
+											: runtime.convertValue(valueToPut, "Fragment")
+									);
+								});
+							}
 						}
 					}
 					return runtime.findNext(this, context);
