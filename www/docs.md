@@ -190,7 +190,7 @@ OK, let's get on with it...
 Hyperscript is a dependency-free javascript library that can be included in a web page without any build steps:
 
 ```html
-<script src="https://unpkg.com/hyperscript.org@0.8.2"></script>
+<script src="https://unpkg.com/hyperscript.org@0.8.3"></script>
 ```
 
 After you've done this, you can begin adding hyperscript to elements:
@@ -1005,7 +1005,7 @@ has begun and then waits for it to complete, before another run through the loop
 
 ### <a name="send"></a>[Send](#send)
 
-The [send command](/commands/send) sends an event to another element in the DOM. You can pass arguments to the other
+The [send command](/commands/send) sends an event to the current or another element in the DOM. You can pass arguments with the
 event via an optional named argument syntax.
 
 Here are some an examples:
@@ -1020,12 +1020,7 @@ Here are some an examples:
 <div id="div1" _="on remove remove me">I will be removed...</div>
 ```
 
-### <a name="trigger"></a>[Trigger](#trigger)
-
-The [trigger command](/commands/trigger) triggers an event on the current element. You can use this to centralize logic
-in one event handler.
-
-Here is an examples that centralizes logic to remove an element:
+You can also use the `trigger` keyword, rather than `send` if that reads better:
 
 ```html
 <div _="on click trigger remove
@@ -1209,7 +1204,7 @@ Here are some example usages:
   Fetch it as JSON!
 </button>
 
-<button _="on click fetch /example {method:'POST'} then put it into my.innerHTML">
+<button _="on click fetch /example with method:'POST' then put it into my.innerHTML">
   Fetch it with a POST!
 </button>
 ```

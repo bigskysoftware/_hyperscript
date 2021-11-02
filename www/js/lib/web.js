@@ -1,18 +1,13 @@
 ///=========================================================================
 /// This module provides the core web functionality for hyperscript
 ///=========================================================================
-(function () {
-	function mergeObjects(obj1, obj2) {
-		for (var key in obj2) {
-			if (obj2.hasOwnProperty(key)) {
-				obj1[key] = obj2[key];
-			}
-		}
-		return obj1;
-	}
 
-	var _hyperscript = this._hyperscript
+import { mergeObjects } from "./utils.js"
 
+/**
+ * @param {HyperscriptObject} _hyperscript
+ */
+export default _hyperscript => {
 	_hyperscript.addCommand("settle", function (parser, runtime, tokens) {
 		if (tokens.matchToken("settle")) {
 			if (!parser.commandBoundary(tokens.currentToken())) {
@@ -477,24 +472,6 @@
 		}
 	});
 
-	_hyperscript.addCommand("trigger", function (parser, runtime, tokens) {
-		if (tokens.matchToken("trigger")) {
-			var eventName = parser.requireElement("eventName", tokens);
-			var details = parser.parseElement("namedArgumentList", tokens);
-
-			var triggerCmd = {
-				eventName: eventName,
-				details: details,
-				args: [eventName, details],
-				op: function (context, eventNameStr, details) {
-					runtime.triggerEvent(context.me, eventNameStr, details ? details : {});
-					return runtime.findNext(triggerCmd, context);
-				},
-			};
-			return triggerCmd;
-		}
-	});
-
 	_hyperscript.addCommand("take", function (parser, runtime, tokens) {
 		if (tokens.matchToken("take")) {
 			var classRef = parser.parseElement("classRef", tokens);
@@ -569,24 +546,24 @@
 			var operation = operationToken.value;
 
 			var symbolWrite = false;
-			var root = null;
+			var rootExpr = null;
 			var prop = null;
 			if (target.prop && target.root && operation === "into") {
 				prop = target.prop.value;
-				root = target.root;
+				rootExpr = target.root;
 			} else if (target.type === "symbol" && operation === "into") {
 				symbolWrite = true;
 				prop = target.name;
 			} else if (target.type === "attributeRef" && operation === "into") {
 				var attributeWrite = true;
 				prop = target.name;
-				root = parser.requireElement("implicitMeTarget", tokens);
+				rootExpr = parser.requireElement("implicitMeTarget", tokens);
 			} else if (target.type === "attributeRefAccess" && operation === "into") {
 				var attributeWrite = true;
 				prop = target.attribute.name;
-				root = target.root;
+				rootExpr = target.root;
 			} else {
-				root = target;
+				rootExpr = target;
 			}
 
 			var putCmd = {
@@ -594,7 +571,7 @@
 				operation: operation,
 				symbolWrite: symbolWrite,
 				value: value,
-				args: [root, value],
+				args: [rootExpr, value],
 				op: function (context, root, valueToPut) {
 					if (symbolWrite) {
 						putInto(runtime, context, prop, valueToPut);
@@ -621,14 +598,16 @@
 									? Element.prototype.append
 									: Element.prototype.append; // unreachable
 
-							runtime.implicitLoop(root, function (elt) {
-								op.call(
-									elt,
-									valueToPut instanceof Node
-										? valueToPut
-										: runtime.convertValue(valueToPut, "Fragment")
-								);
-							});
+							if (root) {
+								runtime.implicitLoop(root, function (elt) {
+									op.call(
+										elt,
+										valueToPut instanceof Node
+											? valueToPut
+											: runtime.convertValue(valueToPut, "Fragment")
+									);
+								});
+							}
 						}
 					}
 					return runtime.findNext(this, context);
@@ -1115,4 +1094,4 @@
 		});
 		return frag;
 	};
-})();
+}

@@ -19,7 +19,7 @@
 | [remove](/commands/remove)         | Removes content                                                               | `log "bye, bye" then remove me`                                                         |
 | [repeat](/commands/repeat)         | Iterates                                                                      | `repeat for x in [1, 2, 3] log x end`                                                   |
 | [return](/commands/return)         | Returns a value                                                               | `return 42`                                                                             |
-| [send](/commands/send)             | Sends an event                                                                | `send customEvent to #a-div`                                                            |
+| [send/trigger](/commands/send)             | Sends an event                                                                | `send customEvent to #a-div`                                                            |
 | [set](/commands/set)               | Sets a variable or property to a given value                                  | `set x to 0`                                                                            |
 | [settle](/commands/setttle)        | Waits for a transition to end on an element, if any                           | `set x to 0`                                                                            |
 | [show](/commands/show)             | Show an element in the DOM                                                    | `show #anotherDiv`                                                                      |
@@ -28,5 +28,4 @@
 | [throw](/commands/throw)           | Throws an exception                                                           | `throw "Bad Value"`                                                                     |
 | [toggle](/commands/toggle)         | Toggles content on a target                                                   | `toggle .clicked on me`                                                                 |
 | [transition](/commands/transition) | Transitions properties on an element                                          | `transition opacity to 0`                                                               |
-| [trigger](/commands/trigger)       | triggers an event on the current element                                      | `trigger customEvent`                                                                   |
 | [wait](/commands/wait)             | Waits for an event or a given amount of time before resuming the command list | `wait 2s then remove me`                                                                |

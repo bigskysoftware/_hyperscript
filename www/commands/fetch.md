@@ -4,7 +4,7 @@
 ### Syntax
 
 ```ebnf
-fetch <stringLike> [<object literal>] [ as [ a | an ]( json | Object | text | request ) ]
+fetch <stringLike> [<object literal> | 'with' <naked named arguments>] [ as [ a | an ]( json | Object | text | request ) ]
 ```
 
 ### Description
@@ -42,7 +42,7 @@ This command is asynchronous.
 </div>
 
 <div
-  _='on click fetch /test {method:"POST"} as json
+  _='on click fetch /test with method:"POST" as json
                  put "$it.result" into my.innerHTML'
 >
   Post to /test!
@@ -57,8 +57,8 @@ This command is asynchronous.
 </div>
 
 <div
-  _='on click fetch /number {method:"GET"} as Number
-                 put "${it + 1}" into my.innerHTML'
+  _='on click fetch /number with method:"POST" as Number
+                 put "${it + 1}" into my innerHTML'
 >
   Increment!
 </div>

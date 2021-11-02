@@ -1742,7 +1742,7 @@ var _runtime = (function () {
 		}
 
 		var body = 'document' in globalScope
-			? globalScope.document.body 
+			? globalScope.document.body
 			: new HyperscriptModule(args && args.module);
 		ctx = mergeObjects(makeContext(body, null, body, null), ctx || {});
 		var element = parse(src);
@@ -2457,11 +2457,10 @@ var _runtime = (function () {
 		};
 	});
 
-	_parser.addGrammarElement("namedArgumentList", function (parser, runtime, tokens) {
-		if (!tokens.matchOpToken("(")) return;
+	_parser.addGrammarElement("nakedNamedArgumentList", function (parser, runtime, tokens) {
 		var fields = [];
 		var valueExpressions = [];
-		if (!tokens.matchOpToken(")")) {
+		if (tokens.currentToken().type === "IDENTIFIER") {
 			do {
 				var name = tokens.requireTokenType("IDENTIFIER");
 				tokens.requireOpToken(":");
@@ -2469,7 +2468,6 @@ var _runtime = (function () {
 				valueExpressions.push(value);
 				fields.push({ name: name, value: value });
 			} while (tokens.matchOpToken(","));
-			tokens.requireOpToken(")");
 		}
 		return {
 			type: "namedArgumentList",
@@ -2487,6 +2485,13 @@ var _runtime = (function () {
 				return runtime.unifiedEval(this, context);
 			},
 		};
+	});
+
+	_parser.addGrammarElement("namedArgumentList", function (parser, runtime, tokens) {
+		if (!tokens.matchOpToken("(")) return;
+		var elt = parser.requireElement("nakedNamedArgumentList", tokens);
+		tokens.requireOpToken(")");
+		return elt;
 	});
 
 	_parser.addGrammarElement("symbol", function (parser, runtime, tokens) {
@@ -3229,6 +3234,24 @@ var _runtime = (function () {
 				} else if (tokens.matchToken("empty")) {
 					operator = "empty";
 					hasRightValue = false;
+				} else if (tokens.matchToken("less")) {
+					tokens.requireToken("than");
+					if (tokens.matchToken("or")) {
+						tokens.requireToken("equal");
+						tokens.requireToken("to");
+						operator = "<=";
+					} else {
+						operator = "<";
+					}
+				} else if (tokens.matchToken("greater")) {
+					tokens.requireToken("than");
+					if (tokens.matchToken("or")) {
+						tokens.requireToken("equal");
+						tokens.requireToken("to");
+						operator = ">=";
+					} else {
+						operator = ">";
+					}
 				} else {
 					operator = "==";
 				}
@@ -3236,12 +3259,16 @@ var _runtime = (function () {
 				operator = "match";
 			} else if (tokens.matchToken("contains") || tokens.matchToken("contain")) {
 				operator = "contain";
+			} else if (tokens.matchToken("includes")) {
+				operator = "include";
 			} else if (tokens.matchToken("do") || tokens.matchToken("does")) {
 				tokens.requireToken("not");
 				if (tokens.matchToken("matches") || tokens.matchToken("match")) {
 					operator = "not match";
 				} else if (tokens.matchToken("contains") || tokens.matchToken("contain")) {
 					operator = "not contain";
+				} else if (tokens.matchToken("include")) {
+					operator = "not include";
 				} else {
 					parser.raiseParseError(tokens, "Expected matches or contains");
 				}
@@ -3290,6 +3317,12 @@ var _runtime = (function () {
 					}
 					if (operator === "not contain") {
 						return lhsVal == null || !lhsVal.contains(rhsVal);
+					}
+					if (operator === "include") {
+						return lhsVal != null && lhsVal.includes(rhsVal);
+					}
+					if (operator === "not include") {
+						return lhsVal == null || !lhsVal.includes(rhsVal);
 					}
 					if (operator === "===") {
 						return lhsVal === rhsVal;
@@ -4217,7 +4250,7 @@ var _runtime = (function () {
 		if (!tokens.matchToken("tell")) return;
 		var value = parser.requireElement("expression", tokens);
 		var body = parser.requireElement("commandList", tokens);
-		if (tokens.hasMore()) {
+		if (tokens.hasMore() && !parser.featureStart(tokens.currentToken())) {
 			tokens.requireToken("end");
 		}
 		var slot = "tell_" + startToken.start;
@@ -4365,6 +4398,7 @@ var _runtime = (function () {
 		}
 	});
 
+
 	_parser.addGrammarElement("eventName", function (parser, runtime, tokens) {
 		var token;
 		if ((token = tokens.matchTokenType("STRING"))) {
@@ -4378,12 +4412,12 @@ var _runtime = (function () {
 		return parser.parseElement("dotOrColonPath", tokens);
 	});
 
-	_parser.addCommand("send", function (parser, runtime, tokens) {
-		if (!tokens.matchToken("send")) return;
+	function parseSendCmd(cmdType, parser, runtime, tokens) {
 		var eventName = parser.requireElement("eventName", tokens);
 
 		var details = parser.parseElement("namedArgumentList", tokens);
-		if (tokens.matchToken("to")) {
+		if ((cmdType === "send" && tokens.matchToken("to")) ||
+			(cmdType === "trigger" && tokens.matchToken("on"))) {
 			var to = parser.requireElement("expression", tokens);
 		} else {
 			var to = parser.requireElement("implicitMeTarget", tokens);
@@ -4402,6 +4436,18 @@ var _runtime = (function () {
 			},
 		};
 		return sendCmd;
+	}
+
+	_parser.addCommand("trigger", function (parser, runtime, tokens) {
+		if (tokens.matchToken("trigger")) {
+			return parseSendCmd("trigger", parser, runtime, tokens);
+		}
+	});
+
+	_parser.addCommand("send", function (parser, runtime, tokens) {
+		if (tokens.matchToken("send")) {
+			return parseSendCmd("send", parser, runtime, tokens);
+		}
 	});
 
 	var parseReturnFunction = function (parser, runtime, tokens, returnAValue) {
@@ -4989,7 +5035,7 @@ var _runtime = (function () {
 
           if (parent == undefined) {
             parser.raiseParseError(tokens, "Command `continue` cannot be used outside of a `repeat` loop.")
-          }		
+          }
           if (parent.loop != undefined) {
             return parent.resolveNext(context)
           }
@@ -5115,7 +5161,12 @@ var _runtime = (function () {
 	_parser.addCommand("fetch", function (parser, runtime, tokens) {
 		if (!tokens.matchToken("fetch")) return;
 		var url = parser.requireElement("stringLike", tokens);
-		var args = parser.parseElement("objectLiteral", tokens);
+
+		if (tokens.matchToken("with")) {
+			var args = parser.parseElement("nakedNamedArgumentList", tokens);
+		} else {
+			var args = parser.parseElement("objectLiteral", tokens);
+		}
 
 		var type = "text";
 		var conversion;
