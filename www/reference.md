@@ -27,17 +27,17 @@ See [expressions](/expressions) for an overview.
 | [attribute reference](/expressions/attribute-ref) | An attribute reference | `[selected=true]`
 | [block literal](/expressions/block-literal) | Anonymous functions with an expression body | `\ x -> x * x`
 | [class reference](/expressions/class-reference) | A class reference | `.active`
+| [closest expression](/expressions/closest) | Find closest element | `closest <div/>`
 | [comparison operator](/expressions/comparison-operator) | Comparison operators | `x == "foo" I match <:active/>`
 | [id reference](/expressions/id-reference) | An id reference | `#main-div`
 | [logical operator](/expressions/logical-operator) | Logical operators | `x and y`<br/>`z or false`
 | [no operator](/expressions/no) | No operator | `no element.children`
-| [query reference](/expressions/query-reference) | A query reference | `<button/> <:focused/>`
-| [time expression](/expressions/time-expression) | A time expression | `200ms`
-| [closest expression](/expressions/closest) | Find closest element | `closest <div/>`
 | [of expression](/expressions/of) | Get a property of an object | `the location of window`
+| [query reference](/expressions/query-reference) | A query reference | `<button/> <:focused/>`
+| [relative positional expressions](/expressions/relative-positional/) | Get a positional value out of an array-like object | `first from <div/>`
 | [positional expressions](/expressions/positional) | Get a positional value out of an array-like object | `first from <div/>`
 | [possessive expressions](/expressions/possessive) | Get a property or attribute from an element | `the window's location`
-| [relative positional expressions](/expressions/relative-positional/) | Get a positional value out of an array-like object | `first from <div/>`
+| [time expression](/expressions/time-expression) | A time expression | `200ms`
 
 ## <a name='magic-values'></a> [Magic Values](#magic-values)
 
