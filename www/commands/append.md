@@ -45,6 +45,15 @@ append "<b>well done</b>" to myself
 ```
 
 
+#### Append to a collection of HTML Elements
+
+If you use a CSS selector to target a group of HTML Elements, then the value is appended to the end of the every element's `innerHTML`.
+
+```hyperscript
+append "<i>More HTML here</i>" to <.classRef/>
+```
+
+
 #### Use `append` to collect content
 
 If no target variable is provided, `append` writes to the standard `result` variable by default. In some cases this can help you to write even more compact code. But, be careful! Many other commands will also write to the `result` (or `it`) variable, which can overwrite your work.
