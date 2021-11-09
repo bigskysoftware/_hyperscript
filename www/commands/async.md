@@ -24,11 +24,11 @@ even if they return a promise)
   put a value into the button
 -->
 <button
-  _="on click async do 
+  _="on click async do
                       fetch /example
                       put it into my.innerHTML
                     end
-                    put 'Fetching It!' into my.innerHTML"
+                    put 'Fetching It!' into my innerHTML"
 >
   Fetch it!
 </button>

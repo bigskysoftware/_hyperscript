@@ -185,7 +185,7 @@ following forms:
 Strings are similar to javascript, and can start with `"` or `'`.
 
 ```html
-<div _="on click set world to 'hyperscript' put 'Hello $world' into my.innerHTML">
+<div _="on click set world to 'hyperscript' put 'Hello $world' into my innerHTML">
   Click Me
 </div>
 ```
@@ -194,7 +194,7 @@ In a few places, hyperscript allows "naked" strings, strings without a leading q
 the [fetch command](/commands/fetch), which can take a URL as a naked string:
 
 ```html
-<button _="on click fetch /example then put it into my.innerHTML">
+<button _="on click fetch /example then put it into my innerHTML">
     Fetch It!
 </button>
 ```
@@ -204,7 +204,7 @@ Here the `/example` element is an example of a naked string.  Naked strings are 
 Javascript string templates are supported by using the same syntax, enclosing backtics:
 
 ```html
-<button _="on click fetch /example then put `result: ${the result}` into my.innerHTML">
+<button _="on click fetch /example then put `result: ${the result}` into my innerHTML">
     Fetch It!
 </button>
 ```

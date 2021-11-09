@@ -14,7 +14,7 @@
  * @property {(keyword:string, definition:GrammarDefinition) => void | GrammarElement } addCommand
  * @property {(keyword:string, definition:GrammarDefinition) => void | GrammarElement } addLeafExpression
  * @property {(keyword:string, definition:GrammarDefinition) => void | GrammarElement } addIndirectExpression
- * @property {(str:string, ctx:Context) => *} evaluate
+ * @property {(str:string, ctx?:Object, args?:Object) => *} evaluate
  * @property {(str:string) => *} parse
  * @property {(elt:HTMLElement) => void} processNode
  * @property {HyperscriptConfigObject} config
@@ -121,7 +121,7 @@
  * @property {(src:string, ctx?:Context) => any } evaluate
  * @property {(src:string) => GrammarElement } parse
  * @property {() => string } getScriptSelector
- * @property {(str:string, ctx:Context, type: SymbolScope) => any } resolveSymbol
+ * @property {(str:string, ctx:Context, type?: SymbolScope) => any } resolveSymbol
  * @property {(str:string, ctx:Context, type: SymbolScope, value: any) => void} setSymbol
  * @property {(owner:*, feature:*, hyperscriptTarget:*, event:*) => Context } makeContext
  * @property {(command:GrammarElement, ctx:Context) => GrammarElement | undefined } findNext

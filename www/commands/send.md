@@ -1,16 +1,19 @@
 
-## The `send` Command
+## The `send`/`trigger` Command
 
 ### Syntax
 
 ```ebnf
  send <event-name>[(<named arguments)] [to <expression>]
+ trigger <event-name>[(<named arguments)] [on <expression>]
 ```
 
 ### Description
 
 The `send` command sends an event to the given target. Arguments can optionally provided in a named argument list
 and will be passed in the `event.detail` object.
+
+You can alternatively use the equivalent `trigger` syntax.
 
 ### Examples
 
@@ -21,5 +24,10 @@ and will be passed in the `event.detail` object.
   _="on doIt(answer) put 'The answer is $answer' into my.innerHTML"
 >
   Check the console for the answer...
+</div>
+
+<div _="on click trigger doIt(answer:42)
+        on doIt(answer) log `The answer is $answer`">
+  Click Me!
 </div>
 ```

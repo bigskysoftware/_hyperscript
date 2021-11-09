@@ -5,7 +5,7 @@
     "scripting",
     "HTML"
   ],
-  "version": "0.8.2",
+  "version": "0.8.3",
   "homepage": "https://hyperscript.org/",
   "bugs": {
     "url": "https://github.com/bigskysoftware/_hyperscript/issues"
@@ -16,29 +16,21 @@
     "README.md",
     "dist/*.js"
   ],
-  "main": "dist/_hyperscript.min.js",
+  "main": "dist/_hyperscript_web.min.js",
+  "exports": "./dist/_hyperscript_web.modern.js",
+  "module": "./dist/_hyperscript_web.esm.js",
   "unpkg": "dist/_hyperscript.min.js",
+  "bin": {
+    "_hyperscript": "src/bin/node-hyperscript.js"
+  },
   "scripts": {
     "test": "mocha-chrome test/index.html",
     "www": "node scripts/www.js",
-    "dist": "npm run clear && npm run copy && npm run concat && npm run terser && npm run gzip",
+    "dist": "npm run clear && npm run copy && npm run bundle-all",
     "clear": "rm -rf dist/*",
     "copy": "cp -r src/* dist/",
-    "concat": "npm run concat:hyperscript && npm run concat:w9y",
-    "concat:hyperscript": "concat src/lib/core.js src/lib/web.js -o dist/_hyperscript.js",
-    "concat:w9y": "concat src/lib/core.js src/lib/web.js src/lib/worker.js src/lib/template.js src/lib/socket.js src/lib/eventsource.js -o dist/_hyperscript_w9y.js",
-    "terser": "npm run terser:hyperscript && npm run terser:core && npm run terser:web && npm run terser:worker && npm run terser:w9y",
-    "terser:hyperscript": "terser -m eval -o dist/_hyperscript.min.js dist/_hyperscript.js",
-    "terser:core": "terser -m eval -o dist/lib/core.min.js dist/lib/core.js",
-    "terser:web": "terser -m eval -o dist/lib/web.min.js dist/lib/web.js",
-    "terser:worker": "terser -m eval -o dist/lib/worker.min.js dist/lib/worker.js",
-    "terser:w9y": "terser -m eval -o dist/_hyperscript_w9y.min.js dist/_hyperscript_w9y.js",
-    "gzip": "npm run gzip:hyperscript && npm run gzip:core && npm run gzip:web && npm run gzip:worker && npm run gzip:w9y",
-    "gzip:hyperscript": "gzip -k -f dist/_hyperscript.min.js",
-    "gzip:web": "gzip -k -f dist/lib/web.min.js",
-    "gzip:core": "gzip -k -f dist/lib/core.min.js",
-    "gzip:worker": "gzip -k -f dist/lib/worker.min.js",
-    "gzip:w9y": "gzip -k -f dist/_hyperscript_w9y.min.js"
+    "bundle-dev": "microbundle src/web/_hyperscript_w9y.js -o dist/_hyperscript_w9y.js --name=_hyperscript -f umd",
+    "bundle-all": "microbundle src/web/* -o dist --name=_hyperscript -f modern,esm,umd"
   },
   "repository": {
     "type": "git",
@@ -47,14 +39,13 @@
   "devDependencies": {
     "@11ty/eleventy": "^0.10.0",
     "chai": "^4.2.0",
-    "concat": "^1.0.3",
     "eleventy-plugin-sass": "^1.0.0",
     "fs-extra": "^9.0.0",
+    "microbundle": "^0.13.3",
     "mocha": "^7.1.1",
     "mocha-chrome": "^2.2.0",
     "node-sass": "^5.0.0",
     "sass": "^1.32.8",
-    "sinon": "^9.0.2",
-    "terser": "^5.9.0"
+    "sinon": "^9.0.2"
   }
 }
