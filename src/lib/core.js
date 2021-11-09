@@ -5051,46 +5051,62 @@ var _runtime = (function () {
 
 	_parser.addCommand("append", function (parser, runtime, tokens) {
 		if (!tokens.matchToken("append")) return;
-		var target = null;
-		var prop = null;
 
+		var target = null;
 		var value = parser.requireElement("expression", tokens);
 
+		// What object/variable should be appended to?
 		if (tokens.matchToken("to")) {
 			target = parser.requireElement("expression", tokens);
 		}
 
+		// If no target is defined, default to `result`
 		if (target == null) {
-			prop = "result";
-		} else if (target.type === "symbol") {
-			prop = target.name;
-		} else if (target.type === "propertyAccess") {
-			prop = target.prop.value;
-		} else {
-			throw "Unable to append to " + target.type;
+			target = {
+				type: "symbol",
+				name: "result",
+				evaluate: function(context) {
+					return runtime.resolveSymbol("result", context);
+				}
+			}
 		}
 
 		var command = {
-			value: value,
 			target: target,
-			args: [value],
-			op: function (context, value) {
-				if (Array.isArray(context[prop])) {
-					context[prop].push(value);
-				} else if (context[prop] instanceof Element) {
-					if (typeof value == "string") {
-						context[prop].innerHTML += value;
-					} else {
-						throw "Don't know how to append non-strings to an HTML Element yet.";
-					}
-				} else {
-					context[prop] += value;
+			value: value,
+			args: [target, value],
+			op: function (context, targetValue, value) {
+
+				// Special handling for Arrays
+				if (Array.isArray(targetValue)) {
+					targetValue.push(value);
+					return runtime.findNext(this, context);
+				} 
+				
+				// Special handling for Elements (default to innerHTML)
+				if (targetValue instanceof Element) {
+					targetValue.innerHTML += value.toString()
+					return runtime.findNext(this, context);
 				}
 
-				return runtime.findNext(this, context);
+				// Special handling for ElementCollections (append to each element's innerHTML)
+				if (targetValue instanceof ElementCollection) {
+					for (var element of targetValue) {
+						element.innerHTML += value;
+					}
+					return runtime.findNext(this, context);
+				}
+				
+				// Default: use makeSetter() to update the target's value
+				var newValue = targetValue + value;
+				var setter = makeSetter(parser, runtime, tokens, target, newValue);
+				context.result = newValue;
+				setter.parent = this;
+				return setter;
 			},
+
 			execute: function (context) {
-				return runtime.unifiedExec(this, context/*, value, target*/);
+				return runtime.unifiedExec(this, context/*, target, value*/);
 			},
 		};
 		return command;
@@ -5131,7 +5147,7 @@ var _runtime = (function () {
 		if (!tokens.matchToken("decrement")) return;
 		var amount;
 
-		// This is optional.  Defaults to "result"
+		// This is optional.  Defaults to `result`
 		var target = parser.parseElement("assignableExpression", tokens);
 
 		// This is optional. Defaults to 1.

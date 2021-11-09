@@ -24,10 +24,19 @@ describe("the append command", function () {
 		div.innerHTML.should.equal("1,2,3,4");
 	});
 
-	it("can append a value to 'it'", function () {
+	it("can append a value to 'result'", function () {
 		var div = make(`<div _="on click 
                             set result to [1,2,3]
                             append 4
+                            put it as String into me"></div>`);
+		div.click();
+		div.innerHTML.should.equal("1,2,3,4");
+	});
+
+	it("can append a value to 'it'", function () {
+		var div = make(`<div _="on click 
+                            set result to [1,2,3]
+                            append 4 to it
                             put it as String into me"></div>`);
 		div.click();
 		div.innerHTML.should.equal("1,2,3,4");
@@ -47,11 +56,16 @@ describe("the append command", function () {
 		div.innerHTML.should.equal(`<span id="target">Hello World</span>`);
 	});
 
-	/*
     it("can append a value to an object property", function () {
-        var div = make(`<div id="id" _="on click append '_new' to my.id"></div>`);
+        var div = make(`<div id="id" _="on click append '_new' to my id"></div>`);
         div.click();
-        div.id.should.equal("id2");
+        div.id.should.equal("id_new");
     })
-    */
+
+    it("can append a value to CSS selector", function () {
+        var div = make(`<div id="id" _="on click append 'GRAY' to <.color/>"><span class="color"></span><span class="range"></span><span class="color"></span></div>`);
+        div.click();
+        div.innerHTML.should.equal(`<span class="color">GRAY</span><span class="range"></span><span class="color">GRAY</span>`);
+    })
+
 });
