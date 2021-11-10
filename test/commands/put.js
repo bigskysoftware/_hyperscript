@@ -115,6 +115,25 @@ describe("the put command", function () {
 		d1.textContent.should.equal("*foo");
 	});
 
+	it("can set into property ref", function () {
+		var d1 = make("<div class='divs' _='on click put \"foo\" into @bar'></div>");
+		d1.click();
+		d1.getAttribute("bar").should.equal("foo");
+	});
+
+	it("can set into indirect property ref", function () {
+		var d1 = make("<div class='divs' _='on click put \"foo\" into my @bar'></div>");
+		d1.click();
+		d1.getAttribute("bar").should.equal("foo");
+	});
+
+	it("can set into indirect property ref 2", function () {
+		var d1 = make("<div class='divs' _=\"on click put 'foo' into #div2's @bar\"></div>");
+		var d2 = make("<div id='div2'></div>");
+		d1.click();
+		d2.getAttribute("bar").should.equal("foo");
+	});
+
 	it("waits on promises", function (done) {
 		window.promiseAString = function () {
 			return new Promise(function (finish) {

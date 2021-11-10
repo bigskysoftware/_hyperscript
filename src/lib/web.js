@@ -558,7 +558,7 @@ export default _hyperscript => {
 				var attributeWrite = true;
 				prop = target.name;
 				rootExpr = parser.requireElement("implicitMeTarget", tokens);
-			} else if (target.type === "attributeRefAccess" && operation === "into") {
+			} else if (target.attribute && operation === "into") {
 				var attributeWrite = true;
 				prop = target.attribute.name;
 				rootExpr = target.root;
