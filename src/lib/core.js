@@ -34,6 +34,15 @@ class ElementCollection {
 		return this.className();
 	}
 
+	contains(elt) {
+		for (let element of this) {
+			if (element.contains(elt)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	[Symbol.iterator]() {
 		return _runtime.getRootNode(this.relativeToElement)
 			.querySelectorAll(this.css)
@@ -3205,6 +3214,16 @@ var _runtime = (function () {
 		return parser.parseAnyOf(["mathOperator", "unaryExpression"], tokens);
 	});
 
+	function sloppyContains(src, container, value){
+		if (container['contains']) {
+			return container.contains(value);
+		} else if (container['includes']) {
+			return container.includes(value);
+		} else {
+			throw Error("The value of " + src.sourceFor() + " does not have a contains or includes method on it");
+		}
+	}
+
 	_parser.addGrammarElement("comparisonOperator", function (parser, runtime, tokens) {
 		var expr = parser.parseElement("mathExpression", tokens);
 		var comparisonToken = tokens.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==");
@@ -3259,7 +3278,7 @@ var _runtime = (function () {
 				operator = "match";
 			} else if (tokens.matchToken("contains") || tokens.matchToken("contain")) {
 				operator = "contain";
-			} else if (tokens.matchToken("includes")) {
+			} else if (tokens.matchToken("includes") || tokens.matchToken("include")) {
 				operator = "include";
 			} else if (tokens.matchToken("do") || tokens.matchToken("does")) {
 				tokens.requireToken("not");
@@ -3286,6 +3305,7 @@ var _runtime = (function () {
 					rhs = rhs.css ? rhs.css : rhs;
 				}
 			}
+			var lhs = expr;
 			expr = {
 				type: "comparisonOperator",
 				operator: operator,
@@ -3300,29 +3320,29 @@ var _runtime = (function () {
 					} else if (operator === "!=") {
 						return lhsVal != rhsVal;
 					}
-					if (operator === "in") {
-						return rhsVal != null && Array.from(rhsVal).indexOf(lhsVal) >= 0;
-					}
-					if (operator === "not in") {
-						return rhsVal == null || Array.from(rhsVal).indexOf(lhsVal) < 0;
-					}
 					if (operator === "match") {
 						return lhsVal != null && lhsVal.matches(rhsVal);
 					}
 					if (operator === "not match") {
 						return lhsVal == null || !lhsVal.matches(rhsVal);
 					}
+					if (operator === "in") {
+						return rhsVal != null && sloppyContains(rhs, rhsVal, lhsVal);
+					}
+					if (operator === "not in") {
+						return rhsVal == null || !sloppyContains(rhs, rhsVal, lhsVal);
+					}
 					if (operator === "contain") {
-						return lhsVal != null && lhsVal.contains(rhsVal);
+						return lhsVal != null && sloppyContains(lhs, lhsVal, rhsVal);
 					}
 					if (operator === "not contain") {
-						return lhsVal == null || !lhsVal.contains(rhsVal);
+						return lhsVal == null || !sloppyContains(lhs, lhsVal, rhsVal);
 					}
 					if (operator === "include") {
-						return lhsVal != null && lhsVal.includes(rhsVal);
+						return lhsVal != null && sloppyContains(lhs, lhsVal, rhsVal);
 					}
 					if (operator === "not include") {
-						return lhsVal == null || !lhsVal.includes(rhsVal);
+						return lhsVal == null || !sloppyContains(lhs, lhsVal, rhsVal);
 					}
 					if (operator === "===") {
 						return lhsVal === rhsVal;
