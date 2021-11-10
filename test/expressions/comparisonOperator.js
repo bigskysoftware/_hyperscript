@@ -208,7 +208,7 @@ describe("the comparisonOperator expression", function () {
 		result.should.equal(true);
 	});
 
-	it("contains works", function () {
+	it("contains works with elts", function () {
 		var outer = make("<div><div id='d2'></div></div>");
 		var inner = byId("d2");
 
@@ -235,6 +235,34 @@ describe("the comparisonOperator expression", function () {
 			that: outer,
 		});
 		result.should.equal(true);
+	});
+
+	it("contains works with arrays", function () {
+		var outer = [1, 2, 3];
+		var inner = 1;
+
+		var result = evalHyperScript("I contain that", {
+			me: outer,
+			that: inner,
+		});
+		result.should.equal(true);
+
+		var result = evalHyperScript("that contains me", {
+			me: inner,
+			that: outer,
+		});
+		result.should.equal(true);
+	});
+
+	it("contains works with css literals", function () {
+
+		make("<div id='d1' class='outer'><div id='d2'></div></div>");
+
+		var result = evalHyperScript(".outer contains #d2");
+		result.should.equal(true);
+
+		var result = evalHyperScript("#d2 contains #d1");
+		result.should.equal(false);
 	});
 
 	it("include works", function () {
@@ -265,6 +293,34 @@ describe("the comparisonOperator expression", function () {
 		});
 		result.should.equal(false);
 
+	});
+
+	it("includes works with arrays", function () {
+		var outer = [1, 2, 3];
+		var inner = 1;
+
+		var result = evalHyperScript("I include that", {
+			me: outer,
+			that: inner,
+		});
+		result.should.equal(true);
+
+		var result = evalHyperScript("that includes me", {
+			me: inner,
+			that: outer,
+		});
+		result.should.equal(true);
+	});
+
+	it("includes works with css literals", function () {
+
+		make("<div id='d1' class='outer'><div id='d2'></div></div>");
+
+		var result = evalHyperScript(".outer includes #d2");
+		result.should.equal(true);
+
+		var result = evalHyperScript("#d2 includes #d1");
+		result.should.equal(false);
 	});
 
 	it("does not contain works", function () {
