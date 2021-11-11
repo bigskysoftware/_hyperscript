@@ -208,6 +208,22 @@ describe("the comparisonOperator expression", function () {
 		result.should.equal(true);
 	});
 
+	it("match works w/ strings", function () {
+		var result = evalHyperScript("'a' matches '.*'");
+		result.should.equal(true);
+
+		var result = evalHyperScript("'a' matches 'b'");
+		result.should.equal(false);
+	});
+
+	it("does not match works w/ strings", function () {
+		var result = evalHyperScript("'a' does not match '.*'");
+		result.should.equal(false);
+
+		var result = evalHyperScript("'a' does not match 'b'");
+		result.should.equal(true);
+	});
+
 	it("contains works with elts", function () {
 		var outer = make("<div><div id='d2'></div></div>");
 		var inner = byId("d2");

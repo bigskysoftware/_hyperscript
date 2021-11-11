@@ -3223,6 +3223,15 @@ var _runtime = (function () {
 			throw Error("The value of " + src.sourceFor() + " does not have a contains or includes method on it");
 		}
 	}
+	function sloppyMatches(src, target, toMatch){
+		if (target['match']) {
+			return !!target.match(toMatch);
+		} else if (target['matches']) {
+			return target.matches(toMatch);
+		} else {
+			throw Error("The value of " + src.sourceFor() + " does not have a match or matches method on it");
+		}
+	}
 
 	_parser.addGrammarElement("comparisonOperator", function (parser, runtime, tokens) {
 		var expr = parser.parseElement("mathExpression", tokens);
@@ -3321,10 +3330,10 @@ var _runtime = (function () {
 						return lhsVal != rhsVal;
 					}
 					if (operator === "match") {
-						return lhsVal != null && lhsVal.matches(rhsVal);
+						return lhsVal != null && sloppyMatches(lhs, lhsVal, rhsVal);
 					}
 					if (operator === "not match") {
-						return lhsVal == null || !lhsVal.matches(rhsVal);
+						return lhsVal == null || !sloppyMatches(lhs, lhsVal, rhsVal);
 					}
 					if (operator === "in") {
 						return rhsVal != null && sloppyContains(rhs, rhsVal, lhsVal);
