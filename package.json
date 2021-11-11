@@ -5,7 +5,7 @@
     "scripting",
     "HTML"
   ],
-  "version": "0.8.2.1",
+  "version": "0.8.3",
   "homepage": "https://hyperscript.org/",
   "bugs": {
     "url": "https://github.com/bigskysoftware/_hyperscript/issues"
@@ -25,8 +25,8 @@
     "clear": "rm -rf dist/*",
     "copy": "cp -r src/* dist/",
     "concat": "npm run concat:hyperscript && npm run concat:w9y",
-    "concat:hyperscript": "concat src/lib/core.js src/lib/web.js -o dist/_hyperscript.js",
-    "concat:w9y": "concat src/lib/core.js src/lib/web.js src/lib/worker.js src/lib/template.js src/lib/socket.js src/lib/eventsource.js -o dist/_hyperscript_w9y.js",
+    "concat:hyperscript": "cat src/lib/core.js src/lib/web.js >> dist/_hyperscript.js",
+    "concat:w9y": "cat src/lib/core.js src/lib/web.js src/lib/worker.js src/lib/template.js src/lib/socket.js src/lib/eventsource.js >> dist/_hyperscript_w9y.js",
     "terser": "npm run terser:hyperscript && npm run terser:core && npm run terser:web && npm run terser:worker && npm run terser:w9y",
     "terser:hyperscript": "terser -m eval -o dist/_hyperscript.min.js dist/_hyperscript.js",
     "terser:core": "terser -m eval -o dist/lib/core.min.js dist/lib/core.js",
