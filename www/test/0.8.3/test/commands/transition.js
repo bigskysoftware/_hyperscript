@@ -17,6 +17,17 @@ describe("the transition command", function () {
 		}, 20);
 	});
 
+	it("can transition a single property on form", function (done) {
+		var form = make("<form _='on click transition width from 0px to 100px'></form>");
+		form.style.width.should.equal("");
+		form.click();
+		form.style.width.should.equal("0px");
+		setTimeout(function () {
+			form.style.width.should.equal("100px");
+			done();
+		}, 20);
+	});
+
 	it("can transition a single property on current element with the my prefix", function (done) {
 		var div = make("<div _='on click transition my width from 0px to 100px'></div>");
 		div.style.width.should.equal("");

@@ -97,7 +97,7 @@ export default _hyperscript => {
 					args: [to, classRefs],
 					op: function (context, to, classRefs) {
 						runtime.forEach(classRefs, function (classRef) {
-							runtime.forEach(to, function (target) {
+							runtime.implicitLoop(to, function (target) {
 								if (target instanceof Element) target.classList.add(classRef.className);
 							});
 						});
@@ -111,7 +111,7 @@ export default _hyperscript => {
 					to: to,
 					args: [to],
 					op: function (context, to, attrRef) {
-						runtime.forEach(to, function (target) {
+						runtime.implicitLoop(to, function (target) {
 							target.setAttribute(attributeRef.name, attributeRef.value);
 						});
 						return runtime.findNext(this, context);
@@ -127,7 +127,7 @@ export default _hyperscript => {
 					to: to,
 					args: [to, cssDeclaration],
 					op: function (context, to, css) {
-						runtime.forEach(to, function (target) {
+						runtime.implicitLoop(to, function (target) {
 							target.style.cssText += css;
 						});
 						return runtime.findNext(this, context);
@@ -220,7 +220,7 @@ export default _hyperscript => {
 					from: from,
 					args: [elementExpr],
 					op: function (context, element) {
-						runtime.forEach(element, function (target) {
+						runtime.implicitLoop(element, function (target) {
 							if (target.parentElement) {
 								target.parentElement.removeChild(target);
 							}
@@ -243,7 +243,7 @@ export default _hyperscript => {
 								});
 							});
 						} else {
-							runtime.forEach(from, function (target) {
+							runtime.implicitLoop(from, function (target) {
 								target.removeAttribute(attributeRef.name);
 							});
 						}
@@ -303,7 +303,7 @@ export default _hyperscript => {
 				from: from,
 				toggle: function (on, classRef, classRef2, classRefs) {
 					if (between) {
-						runtime.forEach(on, function (target) {
+						runtime.implicitLoop(on, function (target) {
 							if (target.classList.contains(classRef.className)) {
 								target.classList.remove(classRef.className);
 								target.classList.add(classRef2.className);
@@ -314,7 +314,7 @@ export default _hyperscript => {
 						});
 					} else if (classRefs) {
 						runtime.forEach(classRefs, function (classRef) {
-							runtime.forEach(on, function (target) {
+							runtime.implicitLoop(on, function (target) {
 								target.classList.toggle(classRef.className);
 							});
 						});
@@ -437,7 +437,7 @@ export default _hyperscript => {
 				target: target,
 				args: [target],
 				op: function (ctx, target) {
-					runtime.forEach(target, function (elt) {
+					runtime.implicitLoop(target, function (elt) {
 						hideShowStrategy("hide", elt);
 					});
 					return runtime.findNext(this, ctx);
@@ -470,7 +470,7 @@ export default _hyperscript => {
 				target: target,
 				args: [target],
 				op: function (ctx, target) {
-					runtime.forEach(target, function (elt) {
+					runtime.implicitLoop(target, function (elt) {
 						hideShowStrategy("show", elt, arg);
 					});
 					return runtime.findNext(this, ctx);
@@ -502,10 +502,10 @@ export default _hyperscript => {
 				args: [classRef, from, forElt],
 				op: function (context, eltColl, from, forElt) {
 					var clazz = eltColl.className;
-					runtime.forEach(from, function (target) {
+					runtime.implicitLoop(from, function (target) {
 						target.classList.remove(clazz);
 					});
-					runtime.forEach(forElt, function (target) {
+					runtime.implicitLoop(forElt, function (target) {
 						target.classList.add(clazz);
 					});
 					return runtime.findNext(this, context);
@@ -696,7 +696,7 @@ export default _hyperscript => {
 				args: [targets, properties, from, to, using, over],
 				op: function (context, targets, properties, from, to, using, over) {
 					var promises = [];
-					runtime.forEach(targets, function (target) {
+					runtime.implicitLoop(targets, function (target) {
 						var promise = new Promise(function (resolve, reject) {
 							var initialTransition = target.style.transition;
 							if (over) {

@@ -13,6 +13,13 @@ describe("the show command", function () {
 		getComputedStyle(div).display.should.equal("block");
 	});
 
+	it("can show form, with display:block by default", function () {
+		var form = make("<form style=display:none _='on click show me'></form>");
+		getComputedStyle(form).display.should.equal("none");
+		form.click();
+		getComputedStyle(form).display.should.equal("block");
+	});
+
 	it("can show element with display:block explicitly", function () {
 		var div = make("<div style=display:none _='on click show me with display'></div>");
 		getComputedStyle(div).display.should.equal("none");
@@ -55,4 +62,27 @@ describe("the show command", function () {
 		div.click();
 		getComputedStyle(showme).display.should.equal("block");
 	});
+
+	it("can show multiple elements with inline-block display value", function () {
+		var div = make("<div _='on click show <#d1, #d2/> with display: inline-block'></div>");
+		var d1 = make("<div style='display: none' id='d1'></div>");
+		var d2 = make("<div style='display: none' id='d2'></div>");
+		getComputedStyle(d1).display.should.equal("none");
+		getComputedStyle(d2).display.should.equal("none");
+		div.click();
+		getComputedStyle(d1).display.should.equal("inline-block");
+		getComputedStyle(d2).display.should.equal("inline-block");
+	});
+
+	it("can show multiple elements as class with inline-block display value", function () {
+		var div = make("<div _='on click show .c1 with display:inline-block'></div>");
+		var d1 = make("<div style='display: none' id='d1' class='c1'></div>");
+		var d2 = make("<div style='display: none' id='d2' class='c1'></div>");
+		getComputedStyle(d1).display.should.equal("none");
+		getComputedStyle(d2).display.should.equal("none");
+		div.click();
+		getComputedStyle(d1).display.should.equal("inline-block");
+		getComputedStyle(d2).display.should.equal("inline-block");
+	});
+
 });

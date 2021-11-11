@@ -1,31 +1,25 @@
 ///=========================================================================
 /// This module provides the worker feature for hyperscript
 ///=========================================================================
-
-/**
- * @param {HyperscriptObject} _hyperscript
- */
-export default _hyperscript => {
+(function () {
+	var _hyperscript = typeof module !== 'undefined' ? module.exports : this._hyperscript
 
 	var invocationIdCounter = 0;
 
-	var workerFunc = function (self) {
+	var workerFunc = function () {
 		self.onmessage = function (e) {
 			switch (e.data.type) {
 				case "init":
-					self.importScripts(e.data._hyperscript);
-					self.importScripts.apply(self, e.data.extraScripts);
-					const _hyperscript = self['_hyperscript']
+					importScripts(e.data._hyperscript);
+					importScripts.apply(self, e.data.extraScripts);
 					var tokens = _hyperscript.internals.lexer.makeTokensObject(e.data.tokens, [], e.data.source);
 					var hyperscript = _hyperscript.internals.parser.parseElement("hyperscript", tokens);
-					hyperscript.apply(self, self);
+					hyperscript.apply(self);
 					postMessage({ type: "didInit" });
 					break;
 				case "call":
 					try {
-						var result = self['_hyperscript'].internals.runtime
-							.getHyperscriptFeatures(self)[e.data.function]
-							.apply(self, e.data.args);
+						var result = self[e.data.function].apply(self, e.data.args);
 						Promise.resolve(result)
 							.then(function (value) {
 								postMessage({
@@ -55,7 +49,7 @@ export default _hyperscript => {
 
 	// extract the body of the function, which was only defined so
 	// that we can get syntax highlighting
-	var workerCode = "(" + workerFunc.toString() + ")(self)";
+	var workerCode = "(" + workerFunc.toString() + ")()";
 	var blob = new Blob([workerCode], { type: "text/javascript" });
 	var workerUri = URL.createObjectURL(blob);
 
@@ -127,7 +121,6 @@ export default _hyperscript => {
 			// Create function stubs
 			var stubs = {};
 			funcNames.forEach(function (funcName) {
-				console.log(funcName)
 				stubs[funcName] = function () {
 					var args = arguments;
 					return new Promise(function (resolve, reject) {
@@ -160,4 +153,4 @@ export default _hyperscript => {
 			};
 		}
 	});
-}
+})();

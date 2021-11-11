@@ -13,6 +13,13 @@ describe("the remove command", function () {
 		div.classList.contains("foo").should.equal(false);
 	});
 
+	it("can remove class ref on a single form", function () {
+		var form = make("<form class='foo' _='on click remove .foo'></form>");
+		form.classList.contains("foo").should.equal(true);
+		form.click();
+		form.classList.contains("foo").should.equal(false);
+	});
+
 	it("can target another div for class ref", function () {
 		var bar = make("<div class='foo' id='bar'></div>");
 		var div = make("<div _='on click remove .foo from #bar'></div>");

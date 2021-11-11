@@ -1,13 +1,18 @@
 ///=========================================================================
 /// This module provides the core web functionality for hyperscript
 ///=========================================================================
+(function () {
+	function mergeObjects(obj1, obj2) {
+		for (var key in obj2) {
+			if (obj2.hasOwnProperty(key)) {
+				obj1[key] = obj2[key];
+			}
+		}
+		return obj1;
+	}
 
-import { mergeObjects } from "./utils.js"
+	var _hyperscript = this._hyperscript
 
-/**
- * @param {HyperscriptObject} _hyperscript
- */
-export default _hyperscript => {
 	_hyperscript.addCommand("settle", function (parser, runtime, tokens) {
 		if (tokens.matchToken("settle")) {
 			if (!parser.commandBoundary(tokens.currentToken())) {
@@ -97,7 +102,7 @@ export default _hyperscript => {
 					args: [to, classRefs],
 					op: function (context, to, classRefs) {
 						runtime.forEach(classRefs, function (classRef) {
-							runtime.forEach(to, function (target) {
+							runtime.implicitLoop(to, function (target) {
 								if (target instanceof Element) target.classList.add(classRef.className);
 							});
 						});
@@ -111,7 +116,7 @@ export default _hyperscript => {
 					to: to,
 					args: [to],
 					op: function (context, to, attrRef) {
-						runtime.forEach(to, function (target) {
+						runtime.implicitLoop(to, function (target) {
 							target.setAttribute(attributeRef.name, attributeRef.value);
 						});
 						return runtime.findNext(this, context);
@@ -127,7 +132,7 @@ export default _hyperscript => {
 					to: to,
 					args: [to, cssDeclaration],
 					op: function (context, to, css) {
-						runtime.forEach(to, function (target) {
+						runtime.implicitLoop(to, function (target) {
 							target.style.cssText += css;
 						});
 						return runtime.findNext(this, context);
@@ -220,7 +225,7 @@ export default _hyperscript => {
 					from: from,
 					args: [elementExpr],
 					op: function (context, element) {
-						runtime.forEach(element, function (target) {
+						runtime.implicitLoop(element, function (target) {
 							if (target.parentElement) {
 								target.parentElement.removeChild(target);
 							}
@@ -243,7 +248,7 @@ export default _hyperscript => {
 								});
 							});
 						} else {
-							runtime.forEach(from, function (target) {
+							runtime.implicitLoop(from, function (target) {
 								target.removeAttribute(attributeRef.name);
 							});
 						}
@@ -303,7 +308,7 @@ export default _hyperscript => {
 				from: from,
 				toggle: function (on, classRef, classRef2, classRefs) {
 					if (between) {
-						runtime.forEach(on, function (target) {
+						runtime.implicitLoop(on, function (target) {
 							if (target.classList.contains(classRef.className)) {
 								target.classList.remove(classRef.className);
 								target.classList.add(classRef2.className);
@@ -314,7 +319,7 @@ export default _hyperscript => {
 						});
 					} else if (classRefs) {
 						runtime.forEach(classRefs, function (classRef) {
-							runtime.forEach(on, function (target) {
+							runtime.implicitLoop(on, function (target) {
 								target.classList.toggle(classRef.className);
 							});
 						});
@@ -430,7 +435,7 @@ export default _hyperscript => {
 				target: target,
 				args: [target],
 				op: function (ctx, target) {
-					runtime.forEach(target, function (elt) {
+					runtime.implicitLoop(target, function (elt) {
 						hideShowStrategy("hide", elt);
 					});
 					return runtime.findNext(this, ctx);
@@ -463,12 +468,30 @@ export default _hyperscript => {
 				target: target,
 				args: [target],
 				op: function (ctx, target) {
-					runtime.forEach(target, function (elt) {
+					runtime.implicitLoop(target, function (elt) {
 						hideShowStrategy("show", elt, arg);
 					});
 					return runtime.findNext(this, ctx);
 				},
 			};
+		}
+	});
+
+	_hyperscript.addCommand("trigger", function (parser, runtime, tokens) {
+		if (tokens.matchToken("trigger")) {
+			var eventName = parser.requireElement("eventName", tokens);
+			var details = parser.parseElement("namedArgumentList", tokens);
+
+			var triggerCmd = {
+				eventName: eventName,
+				details: details,
+				args: [eventName, details],
+				op: function (context, eventNameStr, details) {
+					runtime.triggerEvent(context.me, eventNameStr, details ? details : {});
+					return runtime.findNext(triggerCmd, context);
+				},
+			};
+			return triggerCmd;
 		}
 	});
 
@@ -495,10 +518,10 @@ export default _hyperscript => {
 				args: [classRef, from, forElt],
 				op: function (context, eltColl, from, forElt) {
 					var clazz = eltColl.className;
-					runtime.forEach(from, function (target) {
+					runtime.implicitLoop(from, function (target) {
 						target.classList.remove(clazz);
 					});
-					runtime.forEach(forElt, function (target) {
+					runtime.implicitLoop(forElt, function (target) {
 						target.classList.add(clazz);
 					});
 					return runtime.findNext(this, context);
@@ -546,24 +569,24 @@ export default _hyperscript => {
 			var operation = operationToken.value;
 
 			var symbolWrite = false;
-			var rootExpr = null;
+			var root = null;
 			var prop = null;
 			if (target.prop && target.root && operation === "into") {
 				prop = target.prop.value;
-				rootExpr = target.root;
+				root = target.root;
 			} else if (target.type === "symbol" && operation === "into") {
 				symbolWrite = true;
 				prop = target.name;
 			} else if (target.type === "attributeRef" && operation === "into") {
 				var attributeWrite = true;
 				prop = target.name;
-				rootExpr = parser.requireElement("implicitMeTarget", tokens);
+				root = parser.requireElement("implicitMeTarget", tokens);
 			} else if (target.type === "attributeRefAccess" && operation === "into") {
 				var attributeWrite = true;
 				prop = target.attribute.name;
-				rootExpr = target.root;
+				root = target.root;
 			} else {
-				rootExpr = target;
+				root = target;
 			}
 
 			var putCmd = {
@@ -571,7 +594,7 @@ export default _hyperscript => {
 				operation: operation,
 				symbolWrite: symbolWrite,
 				value: value,
-				args: [rootExpr, value],
+				args: [root, value],
 				op: function (context, root, valueToPut) {
 					if (symbolWrite) {
 						putInto(runtime, context, prop, valueToPut);
@@ -598,16 +621,14 @@ export default _hyperscript => {
 									? Element.prototype.append
 									: Element.prototype.append; // unreachable
 
-							if (root) {
-								runtime.implicitLoop(root, function (elt) {
-									op.call(
-										elt,
-										valueToPut instanceof Node
-											? valueToPut
-											: runtime.convertValue(valueToPut, "Fragment")
-									);
-								});
-							}
+							runtime.implicitLoop(root, function (elt) {
+								op.call(
+									elt,
+									valueToPut instanceof Node
+										? valueToPut
+										: runtime.convertValue(valueToPut, "Fragment")
+								);
+							});
 						}
 					}
 					return runtime.findNext(this, context);
@@ -689,7 +710,7 @@ export default _hyperscript => {
 				args: [targets, properties, from, to, using, over],
 				op: function (context, targets, properties, from, to, using, over) {
 					var promises = [];
-					runtime.forEach(targets, function (target) {
+					runtime.implicitLoop(targets, function (target) {
 						var promise = new Promise(function (resolve, reject) {
 							var initialTransition = target.style.transition;
 							if (over) {
@@ -1094,4 +1115,4 @@ export default _hyperscript => {
 		});
 		return frag;
 	};
-}
+})();

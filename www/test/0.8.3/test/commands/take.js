@@ -19,6 +19,19 @@ describe("the take command", function () {
 		d3.classList.contains("foo").should.equal(false);
 	});
 
+	it("can take a class from other forms", function () {
+		var f1 = make("<form class='div foo'></form>");
+		var f2 = make("<form class='div' _='on click take .foo from .div'></form>");
+		var f3 = make("<form class='div'></form>");
+		f1.classList.contains("foo").should.equal(true);
+		f2.classList.contains("foo").should.equal(false);
+		f3.classList.contains("foo").should.equal(false);
+		f2.click();
+		f1.classList.contains("foo").should.equal(false);
+		f2.classList.contains("foo").should.equal(true);
+		f3.classList.contains("foo").should.equal(false);
+	});
+
 	it("can take a class for other elements", function () {
 		var d1 = make("<div class='div foo'></div>");
 		var d2 = make("<div class='div' _='on click take .foo from .div for #d3'></div>");
