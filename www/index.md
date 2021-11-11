@@ -29,8 +29,8 @@ copy
 </div>
 </header>
 
- <span class="lede">hyperscript makes writing event handlers and highly 
-responsive user interfaces trivial with native language support for async 
+ <span class="lede">hyperscript makes writing event handlers and highly
+responsive user interfaces trivial with native language support for async
 behavior&mdash;easier than callbacks, promises, even async/await.</span>
 
 <div id="features">
@@ -62,7 +62,7 @@ experiences without callback hell
 [**Comparison** with vanilla JS and jQuery](/comparison) |
 [Read the **docs**](/docs) |
 [Try it on the **playground**](/playground)
-<span id='install'>Install: `<script src="https://unpkg.com/hyperscript.org@0.8.2"></script>`
+<span id='install'>Install: `<script src="https://unpkg.com/hyperscript.org@0.8.2.1"></script>`
 <button style="font:inherit; background: none; border: none; color: #3465a4"
   _="on click
   writeText(my previousElementSibling's innerText) on navigator.clipboard
