@@ -13,6 +13,13 @@ describe("the add command", function () {
 		div.classList.contains("foo").should.equal(true);
 	});
 
+	it("can add class ref on a single form", function () {
+		var form = make("<form _='on click add .foo'></form>");
+		form.classList.contains("foo").should.equal(false);
+		form.click();
+		form.classList.contains("foo").should.equal(true);
+	});
+
 	it("can target another div for class ref", function () {
 		var bar = make("<div id='bar'></div>");
 		var div = make("<div _='on click add .foo to #bar'></div>");

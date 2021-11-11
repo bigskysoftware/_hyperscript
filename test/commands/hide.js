@@ -12,6 +12,12 @@ describe("the hide command", function () {
 		getComputedStyle(div).display.should.equal("none");
 	});
 
+	it("can hide form with no target", function () {
+		var form = make("<form _='on click hide'></form>");
+		form.click();
+		getComputedStyle(form).display.should.equal("none");
+	});
+
 	it("can hide element with no target followed by command", function () {
 		var div = make("<div _='on click hide add .foo'></div>");
 		getComputedStyle(div).display.should.equal("block");

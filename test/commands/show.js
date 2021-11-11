@@ -13,6 +13,13 @@ describe("the show command", function () {
 		getComputedStyle(div).display.should.equal("block");
 	});
 
+	it("can show form, with display:block by default", function () {
+		var form = make("<form style=display:none _='on click show me'></form>");
+		getComputedStyle(form).display.should.equal("none");
+		form.click();
+		getComputedStyle(form).display.should.equal("block");
+	});
+
 	it("can show element with display:block explicitly", function () {
 		var div = make("<div style=display:none _='on click show me with display'></div>");
 		getComputedStyle(div).display.should.equal("none");

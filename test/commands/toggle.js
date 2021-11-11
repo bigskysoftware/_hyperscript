@@ -15,6 +15,15 @@ describe("the toggle command", function () {
 		div.classList.contains("foo").should.equal(false);
 	});
 
+	it("can toggle class ref on a single form", function () {
+		var form = make("<form _='on click toggle .foo'></form>");
+		form.classList.contains("foo").should.equal(false);
+		form.click();
+		form.classList.contains("foo").should.equal(true);
+		form.click();
+		form.classList.contains("foo").should.equal(false);
+	});
+
 	it("can target another div for class ref toggle", function () {
 		var bar = make("<div id='bar'></div>");
 		var div = make("<div _='on click toggle .foo on #bar'></div>");
