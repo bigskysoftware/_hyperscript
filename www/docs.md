@@ -190,7 +190,7 @@ OK, let's get on with it...
 Hyperscript is a dependency-free javascript library that can be included in a web page without any build steps:
 
 ```html
-<script src="https://unpkg.com/hyperscript.org@0.8.3"></script>
+<script src="https://unpkg.com/hyperscript.org@0.8.4"></script>
 ```
 
 After you've done this, you can begin adding hyperscript to elements:
