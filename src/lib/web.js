@@ -366,9 +366,16 @@ export default _hyperscript => {
 			if (arg) {
 				element.style.display = arg;
 			} else if (op === "hide") {
+				const internalData = _hyperscript.internals.runtime.getInternalData(element);
+				internalData.originalDisplay = element.style.display;
 				element.style.display = "none";
 			} else {
-				element.style.display = "block";
+				const internalData = _hyperscript.internals.runtime.getInternalData(element);
+				if (internalData.originalDisplay) {
+					element.style.display = internalData.originalDisplay;
+				} else {
+					element.style.removeProperty('display');
+				}
 			}
 		},
 		visibility: function (op, element, arg) {

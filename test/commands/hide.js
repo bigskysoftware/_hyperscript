@@ -12,6 +12,17 @@ describe("the hide command", function () {
 		getComputedStyle(div).display.should.equal("none");
 	});
 
+	it("hide element then show element retains original display", function () {
+		var div = make("<div _='on click 1 hide" +
+			"                          on click 2 show'></div>");
+		div.click();
+		div.style.display.should.equal("none");
+		getComputedStyle(div).display.should.equal("none");
+		div.click();
+		div.style.display.should.equal("");
+		getComputedStyle(div).display.should.equal("block");
+	});
+
 	it("can hide element with no target followed by command", function () {
 		var div = make("<div _='on click hide add .foo'></div>");
 		getComputedStyle(div).display.should.equal("block");
