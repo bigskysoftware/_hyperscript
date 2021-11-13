@@ -85,4 +85,66 @@ describe("the show command", function () {
 		getComputedStyle(d2).display.should.equal("inline-block");
 	});
 
+	it("can use a when clause to show or hide an element", function () {
+		var div = make("<div _='on click " +
+			"                              toggle .foo " +
+			"                              show when I match .foo'></div>");
+		div.classList.contains("foo").should.equal(false);
+		div.click();
+		div.classList.contains("foo").should.equal(true);
+		getComputedStyle(div).display.should.equal("block");
+		div.click();
+		div.classList.contains("foo").should.equal(false);
+		getComputedStyle(div).display.should.equal("none");
+		div.click();
+		div.classList.contains("foo").should.equal(true);
+		getComputedStyle(div).display.should.equal("block");
+	});
+
+	it("can use a when clause and a with clause to show or hide an element", function () {
+		var div = make("<div _='on click " +
+			"                              toggle .foo " +
+			"                              show with opacity when I match .foo'></div>");
+		div.classList.contains("foo").should.equal(false);
+		div.click();
+		div.classList.contains("foo").should.equal(true);
+		getComputedStyle(div).opacity.should.equal("1");
+		div.click();
+		div.classList.contains("foo").should.equal(false);
+		getComputedStyle(div).opacity.should.equal("0");
+		div.click();
+		div.classList.contains("foo").should.equal(true);
+		getComputedStyle(div).opacity.should.equal("1");
+	});
+
+	it("can filter over a set of elements using the its symbol", function () {
+		var div = make("<div _='on click show <p/> in me when its innerText contains \"foo\"'>" +
+			"<p id='p1'>foo</p>" +
+			"<p id='p2'>bar</p>" +
+			"<p id='p3'>foo</p>" +
+			"<p id='p4'>doh</p>" +
+			"</div>");
+
+		var p1 = byId("p1")
+		var p2 = byId("p2")
+		var p3 = byId("p3")
+		var p4 = byId("p4")
+
+		getComputedStyle(p1).display.should.equal("block");
+		getComputedStyle(p2).display.should.equal("block");
+		getComputedStyle(p3).display.should.equal("block");
+		getComputedStyle(p4).display.should.equal("block");
+
+		div.click();
+
+		getComputedStyle(p1).display.should.equal("block");
+		getComputedStyle(p2).display.should.equal("none");
+		getComputedStyle(p3).display.should.equal("block");
+		getComputedStyle(p4).display.should.equal("none");
+
+
+	});
+
+
+
 });

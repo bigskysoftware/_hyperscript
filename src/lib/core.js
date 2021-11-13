@@ -1737,6 +1737,14 @@ var _runtime = (function () {
 		}
 	}
 
+	function evaluateNoPromise(elt, ctx) {
+		let result = elt.evaluate(ctx);
+		if (result.next) {
+			throw new Error(elt.sourceFor() + " returned a Promise in a context that they are not allowed.");
+		}
+		return result;
+	}
+
 	/**
 	* @param {string} src
 	* @param {Context} [ctx]
@@ -2125,6 +2133,7 @@ var _runtime = (function () {
 		getScript,
 		processNode,
 		evaluate,
+		evaluateNoPromise,
 		parse,
 		getScriptSelector,
 		resolveSymbol,
