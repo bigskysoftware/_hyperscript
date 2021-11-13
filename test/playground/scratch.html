@@ -6,11 +6,12 @@
 		/>
 	</head>
 	<body style="padding: 20px; font-family: sans-serif">
-		<script src="../../src/lib/core.js"></script>
-		<script src="../../src/lib/web.js"></script>
-		<script src="../../src/lib/worker.js"></script>
-		<script src="../../src/lib/hdb.js"></script>
-		<script src="../util/util.js"></script>
+	<script>
+			async function foo(){
+					_hyperscript = (await import('../../src/web/_hyperscript_w9y.js')).default
+			}
+			foo();
+	</script>
 
 		<em>Work Area</em>
 		<hr />
@@ -33,10 +34,81 @@
 				}
 		</style>
 
-		<input type="text" value="" name="username" id="username"/>
-		<div _="install Focusable(inp: #username)" class="">
-				asdf
-		</div>
+
+	<input type="text" placeholder="Search..."
+				 _="on keyup
+				     if the event's key is 'Escape'
+				       set my value to ''
+				       trigger keyup
+				     else
+				      show <p/> in #quotes when its textContent contains my value">
+
+	<div id="quotes">
+			<p>
+					"Talk is cheap. Show me the code."
+					- Linus Torvalds
+			</p>
+			<p>
+					"when you don't create things, you become defined by your tastes rather than ability. your tastes only narrow & exclude people. so create."
+					- Why The Lucky Stiff
+			</p>
+			<p>
+					"Programs must be written for people to read, and only incidentally for machines to execute."
+					- Harold Abelson, Structure and Interpretation of Computer Programs
+			</p>
+			<p>
+					"Programming today is a race between software engineers striving to build bigger and better idiot-proof programs, and the Universe trying to produce bigger and better idiots. So far, the Universe is winning."
+					- Rick Cook, The Wizardry Compiled
+			</p>
+			<p>
+					"Always code as if the guy who ends up maintaining your code will be a violent psychopath who knows where you live"
+					- John Woods
+			</p>
+			<p>
+					"Any fool can write code that a computer can understand. Good programmers write code that humans can understand."
+					- Martin Fowler
+			</p>
+			<p>
+					"The best programs are written so that computing machines can perform them quickly and so that human beings can understand them clearly. A programmer is ideally an essayist who works with traditional aesthetic and literary forms as well as mathematical concepts, to communicate the way that an algorithm works and to convince a reader that the results will be correct."
+					- Donald E. Knuth, Selected Papers on Computer Science
+			</p>
+			<p>
+					"I'm not a great programmer; I'm just a good programmer with great habits."
+					- Kent Beck
+			</p>
+			<p>
+					"Give a man a program, frustrate him for a day.
+					Teach a man to program, frustrate him for a lifetime."
+					- Muhammad Waseem
+			</p>
+			<p>
+
+					"Truth can only be found in one place: the code."
+					- Robert C. Martin, Clean Code: A Handbook of Agile Software Craftsmanship
+			</p>
+			<p>
+					"That's the thing about people who think they hate computers. What they really hate is lousy programmers."
+					- Larry Niven
+			</p>
+			<p>
+					"A language that doesn't affect the way you think about programming is not worth knowing."
+					- Alan J. Perlis
+			</p>
+			<p>
+					"The most disastrous thing that you can ever learn is your first programming language."
+					- Alan Kay
+			</p>
+			<p>
+					"Object-oriented programming offers a sustainable way to write spaghetti code. It lets you accrete programs as a series of patches."
+					- Paul Graham, Hackers & Painters: Big Ideas from the Computer Age
+			</p>
+			<p>
+					"Everyone knows that debugging is twice as hard as writing a program in the first place. So if you're as clever as you can be when you write it, how will you ever debug it?"
+					- Brian Kernighan
+			</p>
+	</div>
+
+
 
 	</body>
 </html>

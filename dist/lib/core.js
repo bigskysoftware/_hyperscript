@@ -2,7 +2,7 @@
 /// This module provides the core runtime and grammar for hyperscript
 ///=========================================================================
 
-import { getOrInitObject, mergeObjects, parseJSON, varargConstructor } from "./utils.js";
+import {getOrInitObject, mergeObjects, parseJSON, varargConstructor} from "./utils.js";
 
 
 /**
@@ -32,6 +32,15 @@ class ElementCollection {
 
 	get id() {
 		return this.className();
+	}
+
+	contains(elt) {
+		for (let element of this) {
+			if (element.contains(elt)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	[Symbol.iterator]() {
@@ -508,7 +517,7 @@ var _lexer = (function () {
 		}
 
 		while (position < source.length) {
-			if (currentChar() === "-" && nextChar() === "-") {
+			if (currentChar() === "-" && nextChar() === "-" && (isWhitespace(charAfterThat()) || charAfterThat() === "")) {
 				consumeComment();
 			} else {
 				if (isWhitespace(currentChar())) {
@@ -762,6 +771,10 @@ var _lexer = (function () {
 		 */
 		function nextChar() {
 			return source.charAt(position + 1);
+		}
+
+		function charAfterThat() {
+			return source.charAt(position + 2);
 		}
 
 		/**
@@ -1724,6 +1737,14 @@ var _runtime = (function () {
 		}
 	}
 
+	function evaluateNoPromise(elt, ctx) {
+		let result = elt.evaluate(ctx);
+		if (result.next) {
+			throw new Error(elt.sourceFor() + " returned a Promise in a context that they are not allowed.");
+		}
+		return result;
+	}
+
 	/**
 	* @param {string} src
 	* @param {Context} [ctx]
@@ -2112,6 +2133,7 @@ var _runtime = (function () {
 		getScript,
 		processNode,
 		evaluate,
+		evaluateNoPromise,
 		parse,
 		getScriptSelector,
 		resolveSymbol,
@@ -3205,6 +3227,25 @@ var _runtime = (function () {
 		return parser.parseAnyOf(["mathOperator", "unaryExpression"], tokens);
 	});
 
+	function sloppyContains(src, container, value){
+		if (container['contains']) {
+			return container.contains(value);
+		} else if (container['includes']) {
+			return container.includes(value);
+		} else {
+			throw Error("The value of " + src.sourceFor() + " does not have a contains or includes method on it");
+		}
+	}
+	function sloppyMatches(src, target, toMatch){
+		if (target['match']) {
+			return !!target.match(toMatch);
+		} else if (target['matches']) {
+			return target.matches(toMatch);
+		} else {
+			throw Error("The value of " + src.sourceFor() + " does not have a match or matches method on it");
+		}
+	}
+
 	_parser.addGrammarElement("comparisonOperator", function (parser, runtime, tokens) {
 		var expr = parser.parseElement("mathExpression", tokens);
 		var comparisonToken = tokens.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==");
@@ -3259,7 +3300,7 @@ var _runtime = (function () {
 				operator = "match";
 			} else if (tokens.matchToken("contains") || tokens.matchToken("contain")) {
 				operator = "contain";
-			} else if (tokens.matchToken("includes")) {
+			} else if (tokens.matchToken("includes") || tokens.matchToken("include")) {
 				operator = "include";
 			} else if (tokens.matchToken("do") || tokens.matchToken("does")) {
 				tokens.requireToken("not");
@@ -3286,6 +3327,7 @@ var _runtime = (function () {
 					rhs = rhs.css ? rhs.css : rhs;
 				}
 			}
+			var lhs = expr;
 			expr = {
 				type: "comparisonOperator",
 				operator: operator,
@@ -3300,29 +3342,29 @@ var _runtime = (function () {
 					} else if (operator === "!=") {
 						return lhsVal != rhsVal;
 					}
-					if (operator === "in") {
-						return rhsVal != null && Array.from(rhsVal).indexOf(lhsVal) >= 0;
-					}
-					if (operator === "not in") {
-						return rhsVal == null || Array.from(rhsVal).indexOf(lhsVal) < 0;
-					}
 					if (operator === "match") {
-						return lhsVal != null && lhsVal.matches(rhsVal);
+						return lhsVal != null && sloppyMatches(lhs, lhsVal, rhsVal);
 					}
 					if (operator === "not match") {
-						return lhsVal == null || !lhsVal.matches(rhsVal);
+						return lhsVal == null || !sloppyMatches(lhs, lhsVal, rhsVal);
+					}
+					if (operator === "in") {
+						return rhsVal != null && sloppyContains(rhs, rhsVal, lhsVal);
+					}
+					if (operator === "not in") {
+						return rhsVal == null || !sloppyContains(rhs, rhsVal, lhsVal);
 					}
 					if (operator === "contain") {
-						return lhsVal != null && lhsVal.contains(rhsVal);
+						return lhsVal != null && sloppyContains(lhs, lhsVal, rhsVal);
 					}
 					if (operator === "not contain") {
-						return lhsVal == null || !lhsVal.contains(rhsVal);
+						return lhsVal == null || !sloppyContains(lhs, lhsVal, rhsVal);
 					}
 					if (operator === "include") {
-						return lhsVal != null && lhsVal.includes(rhsVal);
+						return lhsVal != null && sloppyContains(lhs, lhsVal, rhsVal);
 					}
 					if (operator === "not include") {
-						return lhsVal == null || !lhsVal.includes(rhsVal);
+						return lhsVal == null || !sloppyContains(lhs, lhsVal, rhsVal);
 					}
 					if (operator === "===") {
 						return lhsVal === rhsVal;

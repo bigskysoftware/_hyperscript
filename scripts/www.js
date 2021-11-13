@@ -10,9 +10,8 @@ fs.copySync("node_modules/chai/chai.js", currentReleaseRoot + "/node_modules/cha
 fs.copySync("node_modules/sinon/pkg/sinon.js", currentReleaseRoot + "/node_modules/sinon/pkg/sinon.js");
 fs.copySync("test/", currentReleaseRoot + "/test");
 fs.copySync("src/", currentReleaseRoot + "/src");
-fs.copySync("src/lib/core.js", "www/js/lib/core.js");
-fs.copySync("src/lib/web.js", "www/js/lib/web.js");
-fs.copySync("src/lib/worker.js", "www/js/lib/worker.js");
+fs.copySync("dist/", currentReleaseRoot + "/dist");
+fs.copySync("dist/_hyperscript_w9y.min.js", "www/js/_hyperscript_w9y.min.js");
 fs.copySync("src/lib/hdb.js", "www/js/lib/hdb.js");
 
 var testHTML = "<html><body style='font-family: sans-serif'><h1>HTMX TESTS</h1><ul>\n"

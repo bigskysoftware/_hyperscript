@@ -366,9 +366,18 @@ export default _hyperscript => {
 			if (arg) {
 				element.style.display = arg;
 			} else if (op === "hide") {
+				const internalData = _hyperscript.internals.runtime.getInternalData(element);
+				if (internalData.originalDisplay == null) {
+					internalData.originalDisplay = element.style.display;
+				}
 				element.style.display = "none";
 			} else {
-				element.style.display = "block";
+				const internalData = _hyperscript.internals.runtime.getInternalData(element);
+				if (internalData.originalDisplay) {
+					element.style.display = internalData.originalDisplay;
+				} else {
+					element.style.removeProperty('display');
+				}
 			}
 		},
 		visibility: function (op, element, arg) {
@@ -394,7 +403,7 @@ export default _hyperscript => {
 	var parseShowHideTarget = function (parser, runtime, tokens) {
 		var target;
 		var currentTokenValue = tokens.currentToken();
-		if (currentTokenValue.value === "with" || parser.commandBoundary(currentTokenValue)) {
+		if (currentTokenValue.value === "when" || currentTokenValue.value === "with" || parser.commandBoundary(currentTokenValue)) {
 			target = parser.parseElement("implicitMeTarget", tokens);
 		} else {
 			target = parser.parseElement("expression", tokens);
@@ -457,14 +466,31 @@ export default _hyperscript => {
 					})
 					.join("");
 			}
+
+			if (tokens.matchToken("when")) {
+				var when = parser.requireElement("expression", tokens);
+			}
+
 			var hideShowStrategy = resolveStrategy(parser, tokens, name);
 
 			return {
 				target: target,
+				when: when,
 				args: [target],
 				op: function (ctx, target) {
 					runtime.implicitLoop(target, function (elt) {
-						hideShowStrategy("show", elt, arg);
+						if (when) {
+							ctx['result'] = elt;
+							let whenResult = runtime.evaluateNoPromise(when, ctx);
+							if (whenResult) {
+								hideShowStrategy("show", elt, arg);
+							} else {
+								hideShowStrategy("hide", elt);
+							}
+							ctx['result'] = null;
+						} else {
+							hideShowStrategy("show", elt, arg);
+						}
 					});
 					return runtime.findNext(this, ctx);
 				},
@@ -558,7 +584,7 @@ export default _hyperscript => {
 				var attributeWrite = true;
 				prop = target.name;
 				rootExpr = parser.requireElement("implicitMeTarget", tokens);
-			} else if (target.type === "attributeRefAccess" && operation === "into") {
+			} else if (target.attribute && operation === "into") {
 				var attributeWrite = true;
 				prop = target.attribute.name;
 				rootExpr = target.root;
