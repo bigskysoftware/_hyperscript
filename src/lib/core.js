@@ -517,7 +517,7 @@ var _lexer = (function () {
 		}
 
 		while (position < source.length) {
-			if (currentChar() === "-" && nextChar() === "-") {
+			if (currentChar() === "-" && nextChar() === "-" && (isWhitespace(charAfterThat()) || charAfterThat() === "")) {
 				consumeComment();
 			} else {
 				if (isWhitespace(currentChar())) {
@@ -771,6 +771,10 @@ var _lexer = (function () {
 		 */
 		function nextChar() {
 			return source.charAt(position + 1);
+		}
+
+		function charAfterThat() {
+			return source.charAt(position + 2);
 		}
 
 		/**

@@ -29,7 +29,7 @@ describe("the _hyperscript parser", function () {
 				"-- this is a comment\n" +
 				"def foo() -- this is another comment\n" +
 				'  return "foo"\n' +
-				"end --end with a comment" +
+				"end -- end with a comment" +
 				"</script>"
 		);
 		foo().should.equal("foo");

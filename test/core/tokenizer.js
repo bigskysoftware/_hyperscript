@@ -47,7 +47,7 @@ describe("the _hyperscript tokenizer", function () {
 		var lexer = _hyperscript.internals.lexer;
 		lexer.tokenize("--").list.length.should.equal(0);
 		lexer.tokenize("asdf--").list.length.should.equal(1);
-		lexer.tokenize("--asdf").list.length.should.equal(0);
+		lexer.tokenize("-- asdf").list.length.should.equal(0);
 		lexer.tokenize("--\nasdf").list.length.should.equal(1);
 		lexer.tokenize("--\nasdf--").list.length.should.equal(1);
 	});

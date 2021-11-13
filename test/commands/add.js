@@ -13,6 +13,13 @@ describe("the add command", function () {
 		div.classList.contains("foo").should.equal(true);
 	});
 
+	it("can add class ref w/ double dash on a single div", function () {
+		var div = make("<div _='on click add .foo--bar'></div>");
+		div.classList.contains("foo--bar").should.equal(false);
+		div.click();
+		div.classList.contains("foo--bar").should.equal(true);
+	});
+
 	it("can add class ref on a single form", function () {
 		var form = make("<form _='on click add .foo'></form>");
 		form.classList.contains("foo").should.equal(false);
