@@ -770,7 +770,7 @@
 								{ once: true }
 							);
 
-							// it no transition has started in
+							// it no transition has started in 100ms, continue
 							setTimeout(function () {
 								if (!resolved && !transitionStarted) {
 									//console.log("transition ended", transition);
