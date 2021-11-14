@@ -2535,7 +2535,7 @@ var _runtime = (function () {
 		var identifier = tokens.matchTokenType("IDENTIFIER");
 		if (identifier) {
 			var name = identifier.value;
-			if (name.indexOf("$") === 0) {
+			if (name.indexOf("$") === 0 && name.length > 1) {
 				type = "global";
 				name = name.substr(1);
 			}
