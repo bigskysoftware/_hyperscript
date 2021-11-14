@@ -15,6 +15,15 @@ describe("the let command", function () {
 		d1.innerHTML.should.equal("foo");
 	});
 
+	it("can use = w/ let", function () {
+		var d1 = make(
+			"<div id='d1' _='on click let newVar = \"foo\" then" +
+				"                             put newVar into #d1.innerHTML'></div>"
+		);
+		d1.click();
+		d1.innerHTML.should.equal("foo");
+	});
+
 	it("can let element variables", function () {
 		var d1 = make(
 			"<div id='d1' _='on click let :newVar be \"foo\" then" +

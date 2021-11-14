@@ -4873,7 +4873,9 @@ var _runtime = (function () {
 		} finally {
 			tokens.popFollow();
 		}
-		tokens.requireToken("to");
+		if (!(tokens.matchToken("to") || tokens.matchOpToken('='))) {
+			parser.raiseParseError(tokens, "Expected 'to' or = for set command")
+		}
 		var value = parser.requireElement("expression", tokens);
 		return makeSetter(parser, runtime, tokens, target, value);
 	});
@@ -4881,7 +4883,9 @@ var _runtime = (function () {
 	_parser.addCommand("let", function (parser, runtime, tokens) {
 		if (!tokens.matchToken("let")) return;
 		var target = parser.requireElement("symbol", tokens);
-		tokens.requireToken("be");
+		if (!(tokens.matchToken("be") || tokens.matchOpToken('='))) {
+			parser.raiseParseError(tokens, "Expected 'be' or = for set command")
+		}
 		var value = parser.requireElement("expression", tokens);
 		/** @type {GrammarElement} */
 		var letCmd = {

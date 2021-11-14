@@ -4,7 +4,7 @@
 ### Syntax
 
 ```ebnf
-  let <symbol> be <expression>
+  let <symbol> [be|=] <expression>
 ```
 
 ### Description

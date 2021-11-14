@@ -4,7 +4,7 @@
 ### Syntax
 
 ```ebnf
-  set <expression> to <expression>
+  set <expression> [to|=] <expression>
   set <object literal> on <expression>
 ```
 
