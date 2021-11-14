@@ -743,36 +743,62 @@ export default _hyperscript => {
 							for (var i = 0; i < properties.length; i++) {
 								var property = properties[i];
 								var fromVal = from[i];
-								if (fromVal == "computed" || fromVal == null) {
+								if (fromVal === "computed" || fromVal == null) {
 									target.style[property] = initialStyles[property];
 								} else {
 									target.style[property] = fromVal;
 								}
 							}
-							// console.log("transition started", transition);
+							//console.log("transition started", transition);
+
+							var transitionStarted = false;
+							var resolved = false;
+
+							target.addEventListener(
+								"transitionend",
+								function () {
+									if (!resolved) {
+										//console.log("transition ended", transition);
+										target.style.transition = initialTransition;
+										resolved = true;
+										resolve();
+									}
+								},
+								{ once: true }
+							);
+
+							target.addEventListener(
+								"transitionstart",
+								function () {
+									transitionStarted = true;
+								},
+								{ once: true }
+							);
+
+							// it no transition has started in 100ms, continue
+							setTimeout(function () {
+								if (!resolved && !transitionStarted) {
+									//console.log("transition ended", transition);
+									target.style.transition = initialTransition;
+									resolved = true;
+									resolve();
+								}
+							}, 100);
+
 							setTimeout(function () {
 								var autoProps = [];
 								for (var i = 0; i < properties.length; i++) {
 									var property = properties[i];
 									var toVal = to[i];
-									if (toVal == "initial") {
+									if (toVal === "initial") {
 										var propertyValue = internalData.initalStyles[property];
 										target.style[property] = propertyValue;
 									} else {
 										target.style[property] = toVal;
 									}
-									// console.log("set", property, "to", target.style[property], "on", target, "value passed in : ", toVal);
+									//console.log("set", property, "to", target.style[property], "on", target, "value passed in : ", toVal);
 								}
-								target.addEventListener(
-									"transitionend",
-									function () {
-										// console.log("transition ended", transition);
-										target.style.transition = initialTransition;
-										resolve();
-									},
-									{ once: true }
-								);
-							}, 5);
+							}, 0);
 						});
 						promises.push(promise);
 					});
