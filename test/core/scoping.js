@@ -102,7 +102,7 @@ describe("scoping", function () {
 	it("setting an element scoped variable spans features", function () {
 		var div = make(
 			"<div id='d1' _='on click 1 default element x to 0" +
-			"                       on click 2 set x to 10 " +
+			"                       on click 2 set element x to 10 " +
 			"                       on click 3 set @out to x'></div>"
 		);
 		div.click();
@@ -114,7 +114,7 @@ describe("scoping", function () {
 	it("setting a global scoped variable spans features", function () {
 		var div = make(
 			"<div id='d1' _='on click 1 default global x to 0" +
-			"                       on click 2 set x to 10 " +
+			"                       on click 2 set global x to 10 " +
 			"                       on click 3 set @out to x'></div>"
 		);
 		div.click();

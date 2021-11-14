@@ -1,4 +1,4 @@
-describe("the let feature", function () {
+describe("the set feature", function () {
 	beforeEach(function () {
 		clearWorkArea();
 	});
@@ -8,7 +8,7 @@ describe("the let feature", function () {
 
 	it("can define variables with let at the element level", function (done) {
 		var div = make(
-			"<div _='let :foo be 42 " +
+			"<div _='set :foo to 42 " +
 				"           on click put :foo into my innerHTML'></div>"
 		);
 		div.click();

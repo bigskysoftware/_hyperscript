@@ -4050,8 +4050,8 @@ var _runtime = (function () {
 		return functionFeature;
 	});
 
-	_parser.addFeature("let", function (parser, runtime, tokens) {
-		let letCmd = parser.parseElement("letCommand", tokens);
+	_parser.addFeature("set", function (parser, runtime, tokens) {
+		let setCmd = parser.parseElement("setCommand", tokens);
 
 		var implicitReturn = {
 			type: "implicitReturn",
@@ -4062,18 +4062,18 @@ var _runtime = (function () {
 			},
 		};
 
-		if (letCmd) {
-			if (letCmd.target.scope !== "element") {
+		if (setCmd) {
+			if (setCmd.target.scope !== "element") {
 				parser.raiseParseError(tokens, "variables declared at the feature level must be element scoped.");
 			}
-			let letFeature = {
-				start: letCmd,
+			let setFeature = {
+				start: setCmd,
 				install: function (target, source) {
-					letCmd && letCmd.execute(runtime.makeContext(target, letFeature, target, null));
+					setCmd && setCmd.execute(runtime.makeContext(target, setFeature, target, null));
 				},
 			};
-			letCmd.next = implicitReturn;
-			return letFeature;
+			setCmd.next = implicitReturn;
+			return setFeature;
 		}
 	});
 
@@ -4899,31 +4899,9 @@ var _runtime = (function () {
 		} finally {
 			tokens.popFollow();
 		}
-		if (!(tokens.matchToken("to") || tokens.matchOpToken('='))) {
-			parser.raiseParseError(tokens, "Expected 'to' or = for set command")
-		}
+		tokens.requireToken("to");
 		var value = parser.requireElement("expression", tokens);
 		return makeSetter(parser, runtime, tokens, target, value);
-	});
-
-	_parser.addCommand("let", function (parser, runtime, tokens) {
-		if (!tokens.matchToken("let")) return;
-		var target = parser.requireElement("symbol", tokens);
-		if (!(tokens.matchToken("be") || tokens.matchOpToken('='))) {
-			parser.raiseParseError(tokens, "Expected 'be' or = for set command")
-		}
-		var value = parser.requireElement("expression", tokens);
-		/** @type {GrammarElement} */
-		var letCmd = {
-			target: target,
-			value: value,
-			args: [value],
-			op: function (context, valueToSet) {
-				runtime.setSymbol(target.name, context, target.scope === 'default' ?  'local' : target.scope, valueToSet);
-				return runtime.findNext(this, context);
-			},
-		};
-		return letCmd;
 	});
 
 	_parser.addCommand("if", function (parser, runtime, tokens) {

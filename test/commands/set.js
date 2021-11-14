@@ -63,15 +63,6 @@ describe("the set command", function () {
 		d1.innerHTML.should.equal("foo");
 	});
 
-	it("can set local variables w/ =", function () {
-		var d1 = make(
-			"<div id='d1' _='on click set newVar = \"foo\" then" +
-				"                                    put newVar into #d1.innerHTML'></div>"
-		);
-		d1.click();
-		d1.innerHTML.should.equal("foo");
-	});
-
 	it("can set into id ref", function () {
 		var d1 = make("<div id='d1' _='on click set #d1.innerHTML to \"foo\"'></div>");
 		d1.click();

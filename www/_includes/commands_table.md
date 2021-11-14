@@ -13,7 +13,6 @@
 | [if](/commands/if)                 | A conditional control flow command                                            | `if me.selected then call alert('I\'m selected!')`                                      |
 | [increment](/commands/increment)   | Adds a value to a variable, property, or attribute                            | `increment counter`                                                                     |
 | [js](/commands/js)                 | Embeds javascript                                                             | `js alert('this is javascript'); end`                                                   |
-| [let](/commands/let)               | Defines a new variable, defaulting to the local scope                         | `let x be 10`                                                                           |
 | [log](/commands/log)               | Logs a given expression to the console, if possible                           | `log me`                                                                                |
 | [make](/commands/make)             | Creates a class instance or DOM element                                       | `make a Set from a, b. c`, `make a <p/> called para`                                    |
 | [put](/commands/put)               | Puts a value into a given variable or property                                | `put "cool!" into me.innerHTML`                                                         |

@@ -334,9 +334,9 @@ hyperscript has 3 kinds different variable scopes: local, element-scoped, and gl
 
 You may use scope modifiers to give symbols particular scopes:
 
-* A variable with a `global` prefix is a global: `let global myGlobal be true`
-* A variable with a `element` prefix is element-scoped `let element myElementVar be true`
-* A variable with a `element` prefix is locally scoped `let local x be true`
+* A variable with a `global` prefix is a global: `set global myGlobal to true`
+* A variable with a `element` prefix is element-scoped `set element myElementVar to true`
+* A variable with a `element` prefix is locally scoped `set local x to true`
 
 Hyperscript also supports and recommends using prefixes for global and element scoped variables:
 
@@ -347,9 +347,8 @@ By using these prefixes it is easy to tell differently scoped variables from one
 syntax:
 
 ```hyperscript
-  let $foo be 10
-  let :bar be 20
-  let doh be 42
+  set $foo to 10 -- sets a global named $foo
+  set :bar to 20 -- sets an element scoped variable named :bar
 ```
 
 Note that hyperscript has a flat local scope, similar to javascripts `var` statement.
@@ -557,17 +556,17 @@ If you have logic that you wish to run at the point of loading, you may use an `
 
 The `init` keyword should be followed by a set of commands to execute when the element is loaded.
 
-### <a name="let_feature"></a>[Init Blocks](#let_feature)
+### <a name="set_feature"></a>[Set Feature](#set_feature)
 
 If you wish to declare a [element-scoped]((/docs#variables_and_scope)) variable you may do so by using a
-`let` feature:
+`set` feature:
 
 ```html
-<div _='let :theAnswer be 42
+<div _='set :theAnswer to 42
         on click put :theAnswer into my innerHTML'></div>
 ```
 
-The syntax is identical to the [`let`](/commands/let) command but the variable must be element-scoped.
+The syntax is identical to the [`set`](/commands/let) command, but the variable must be element-scoped.
 
 ### <a name="functions"></a>[Functions](#functions)
 
@@ -1142,18 +1141,6 @@ Other positional options are:
 * `at end of`
 * `at start of`
 
-### <a name="let"></a>[Let](#let)
-
-The [let command](/commands/let) defines a new variable.
-
-```hyperscript
- let x be 10
- log x
-```
-
-Variables defined with let will default to the local scope, unless a [scope modifier](#variables_and_scope) is
-used.
-
 ### <a name="set"></a>[Set](#set)
 
 The [set command](/commands/set) sets a value somewhere, either into a variable or into a property.
@@ -1163,8 +1150,8 @@ Here is an example function setting a few variables
 ```html
 <script type="text/hyperscript">
   function numberString(total)
-    let i be the total
-    let str be ""
+    set i to the total
+    set str to ""
     repeat while i > 0
       set str to str + i
       set i to i - 1
