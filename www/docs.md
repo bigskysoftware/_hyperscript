@@ -325,8 +325,38 @@ The current element can be referred to with the symbol `me` (and also `my`, more
 
 ### <a name="variables_and_scope"></a>[Variables and Scope](#variables_and_scope)
 
-hyperscript has 3 kinds of variables: local, element-scoped, and global. This section explains their differences
-with an example, and shows alternatives as well.
+hyperscript has 3 kinds different variable scopes: local, element-scoped, and globals.
+
+* Global variables are globally available (and should be used sparingly)
+* Element-scoped variables are local to the element they are declared on, but shared across all features and
+  feature executions within that element
+* Local scoped variables are scoped to the currently executing event handler, etc
+
+You may use scope modifiers to give symbols particular scopes:
+
+* A variable with a `global` prefix is a global: `let global myGlobal be true`
+* A variable with a `element` prefix is element-scoped `let element myElementVar be true`
+* A variable with a `element` prefix is locally scoped `let local x be true`
+
+Hyperscript also supports and recommends using prefixes for global and element scoped variables:
+
+* If a variable starts with the `$` character, it will default to the global scope unless it has an explicit scope modifier
+* If a variable starts with the `:` character, it will default to the element scope unless it has an explicit scope modifier
+
+By using these prefixes it is easy to tell differently scoped variables from one another without a lot of additional
+syntax:
+
+```hyperscript
+  let $foo be 10
+  let :bar be 20
+  let doh be 42
+```
+
+Note that hyperscript has a flat local scope, similar to javascripts `var` statement.
+
+#### <a name=scope-examples></a> [Scoping Examples](#scope-examples)
+
+Below are some scoping examles in hyperscript
 
 #### <a name=local-scope></a> [Local Scope](#local-scope)
 
@@ -346,29 +376,29 @@ to 1, and then foo disappears.
 To make a counter, we can use <dfn>global variables</dfn>:
 
 ```html
-<button _="on click increment global foo then set my innerText to foo">Global Counter</button>
+<button _="on click increment $foo then set my innerText to $foo">Global Counter</button>
 ```
 
-<button _="on click increment global foo then set my.innerText to foo">Global Counter</button>
+<button _="on click increment $foo then set my innerText to $foo">Global Counter</button>
 
-Now it works! Notice how we didn't need to write `global` the second time we used `foo`.
+Now it works!
 
 Those with programming experience will immediately see the issue. This is a fine pattern if the counter is the only
 thing on the page, but if we have two counters, they will increment the same `foo`. Even worse, if two different
 components of the page use the name `foo` for two different things, it'll likely be difficult to even figure out
 what's happening. See how clicking the counter above makes this identical counter below skip numbers:
 
-<button _="on click increment global foo then set my.innerText to foo">Global Counter</button>
+<button _="on click increment $foo then set my innerText to $foo">Global Counter</button>
 
 #### <a name=element-scope></a> [Element Scope](#element-scope)
 
 To alleviate this issue, hyperscript also offers <dfn>element-scoped variables</dfn>:
 
 ```html
-<button _="on click increment element foo then set my innerText to foo">Isolated Counter</button>
+<button _="on click increment :foo then set my innerText to :foo">Isolated Counter</button>
 ```
 
-<button _="on click increment element foo then set my.innerText to foo">Isolated Counter</button>
+<button _="on click increment :foo then set my innerText to :foo">Isolated Counter</button>
 
 Here, the variable `foo` lasts as long as the button exists, and can only be accessed by the code of that element.
 This allows elements to have variables that stay around without interfering with one another.
@@ -515,7 +545,7 @@ Here is a demo:
          else transition opacity to 0 "
      src="https://placebear.com/200/300"/>
 
-### <a name="init"></a>[Init Blocks](init)
+### <a name="init"></a>[Init Blocks](#init)
 
 If you have logic that you wish to run at the point of loading, you may use an `init` block:
 
@@ -526,6 +556,18 @@ If you have logic that you wish to run at the point of loading, you may use an `
 ```
 
 The `init` keyword should be followed by a set of commands to execute when the element is loaded.
+
+### <a name="let_feature"></a>[Init Blocks](#let_feature)
+
+If you wish to declare a [element-scoped]((/docs#variables_and_scope)) variable you may do so by using a
+`let` feature:
+
+```html
+<div _='let :theAnswer be 42
+        on click put :theAnswer into my innerHTML'></div>
+```
+
+The syntax is identical to the [`let`](/commands/let) command but the variable must be element-scoped.
 
 ### <a name="functions"></a>[Functions](#functions)
 
@@ -1100,6 +1142,18 @@ Other positional options are:
 * `at end of`
 * `at start of`
 
+### <a name="let"></a>[Let](#let)
+
+The [let command](/commands/let) defines a new variable.
+
+```hyperscript
+ let x be 10
+ log x
+```
+
+Variables defined with let will default to the local scope, unless a [scope modifier](#variables_and_scope) is
+used.
+
 ### <a name="set"></a>[Set](#set)
 
 The [set command](/commands/set) sets a value somewhere, either into a variable or into a property.
@@ -1109,8 +1163,8 @@ Here is an example function setting a few variables
 ```html
 <script type="text/hyperscript">
   function numberString(total)
-    set i to total
-    set str to ""
+    let i be the total
+    let str be ""
     repeat while i > 0
       set str to str + i
       set i to i - 1

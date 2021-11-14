@@ -2517,35 +2517,43 @@ var _runtime = (function () {
 	});
 
 	_parser.addGrammarElement("symbol", function (parser, runtime, tokens) {
-		/** @type {SymbolScope} */
-		var type = "default";
+		/** @scope {SymbolScope} */
+		var scope = "default";
 		if (tokens.matchToken("global")) {
-			type = "global";
+			scope = "global";
 		} else if (tokens.matchToken("element") || tokens.matchToken("module")) {
-			type = "element";
+			scope = "element";
 			// optional possessive
 			if (tokens.matchOpToken("'")) {
 				tokens.requireToken("s");
 			}
-		} else if (tokens.matchOpToken(":")) {
-			type = "element";
 		} else if (tokens.matchToken("local")) {
-			type = "local";
+			scope = "local";
 		}
-		var identifier = tokens.matchTokenType("IDENTIFIER");
+
+		// TODO better look ahead here
+		let eltPrefix = tokens.matchOpToken(":");
+		let identifier = tokens.matchTokenType("IDENTIFIER");
 		if (identifier) {
 			var name = identifier.value;
-			if (name.indexOf("$") === 0 && name.length > 1) {
-				type = "global";
-				name = name.substr(1);
+			if (eltPrefix) {
+				name = ":" + name;
+			}
+			if (scope === "default") {
+				if (name.indexOf("$") === 0) {
+					scope = "global";
+				}
+				if (name.indexOf(":") === 0) {
+					scope = "element";
+				}
 			}
 			return {
 				type: "symbol",
-				symbolType: type,
 				token: identifier,
+				scope: scope,
 				name: name,
 				evaluate: function (context) {
-					return runtime.resolveSymbol(name, context, type);
+					return runtime.resolveSymbol(name, context, scope);
 				},
 			};
 		}
@@ -4042,9 +4050,35 @@ var _runtime = (function () {
 		return functionFeature;
 	});
 
+	_parser.addFeature("let", function (parser, runtime, tokens) {
+		let letCmd = parser.parseElement("letCommand", tokens);
+
+		var implicitReturn = {
+			type: "implicitReturn",
+			op: function (context) {
+				return runtime.HALT;
+			},
+			execute: function (context) {
+			},
+		};
+
+		if (letCmd) {
+			if (letCmd.target.scope !== "element") {
+				parser.raiseParseError(tokens, "variables declared at the feature level must be element scoped.");
+			}
+			let letFeature = {
+				start: letCmd,
+				install: function (target, source) {
+					letCmd && letCmd.execute(runtime.makeContext(target, letFeature, target, null));
+				},
+			};
+			letCmd.next = implicitReturn;
+			return letFeature;
+		}
+	});
+
 	_parser.addFeature("init", function (parser, runtime, tokens) {
 		if (!tokens.matchToken("init")) return;
-		var immediately = tokens.matchToken('immediately');
 
 		var start = parser.parseElement("commandList", tokens);
 		var initFeature = {
@@ -4794,7 +4828,7 @@ var _runtime = (function () {
 			args: [root, value],
 			op: function (context, root, valueToSet) {
 				if (symbolWrite) {
-					runtime.setSymbol(target.name, context, target.symbolType, valueToSet);
+					runtime.setSymbol(target.name, context, target.scope, valueToSet);
 				} else {
 					runtime.implicitLoop(root, function (elt) {
 						if (attribute) {
@@ -4865,9 +4899,31 @@ var _runtime = (function () {
 		} finally {
 			tokens.popFollow();
 		}
-		tokens.requireToken("to");
+		if (!(tokens.matchToken("to") || tokens.matchOpToken('='))) {
+			parser.raiseParseError(tokens, "Expected 'to' or = for set command")
+		}
 		var value = parser.requireElement("expression", tokens);
 		return makeSetter(parser, runtime, tokens, target, value);
+	});
+
+	_parser.addCommand("let", function (parser, runtime, tokens) {
+		if (!tokens.matchToken("let")) return;
+		var target = parser.requireElement("symbol", tokens);
+		if (!(tokens.matchToken("be") || tokens.matchOpToken('='))) {
+			parser.raiseParseError(tokens, "Expected 'be' or = for set command")
+		}
+		var value = parser.requireElement("expression", tokens);
+		/** @type {GrammarElement} */
+		var letCmd = {
+			target: target,
+			value: value,
+			args: [value],
+			op: function (context, valueToSet) {
+				runtime.setSymbol(target.name, context, target.scope === 'default' ?  'local' : target.scope, valueToSet);
+				return runtime.findNext(this, context);
+			},
+		};
+		return letCmd;
 	});
 
 	_parser.addCommand("if", function (parser, runtime, tokens) {
