@@ -5,6 +5,6 @@
         "outDir": "dist/lib",
         "target":"ES2015"
     },
-    "include": ["src/lib/*", "src/bin/*"],
+    "include": ["src/lib/*", "src/bin/*", "src/lib/plugin/socket.js", "src/lib/plugin/template.js", "src/lib/plugin/worker.js", "src/lib/plugin/web.js"],
     "exclude": ["node_modules"],
 }
