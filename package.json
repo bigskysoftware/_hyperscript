@@ -5,7 +5,7 @@
     "scripting",
     "HTML"
   ],
-  "version": "0.8.4-beta.1",
+  "version": "0.8.4-beta.3",
   "homepage": "https://hyperscript.org/",
   "bugs": {
     "url": "https://github.com/bigskysoftware/_hyperscript/issues"
@@ -56,7 +56,7 @@
     "copy": "cp -r src/* dist/",
     "bundle-module-plugins": "microbundle src/lib/plugin/*.js -f modern",
     "bundle-umd-plugins": "microbundle src/web/plugin/*.js -f umd",
-    "bundle-hyperscript": "microbundle src/web/*.js -f modern,umd",
+    "bundle-hyperscript": "microbundle src/web/*.js -f modern,umd --name _hyperscript",
     "bundle-all": "npm run bundle-hyperscript && npm run bundle-module-plugins && npm run bundle-umd-plugins"
   },
   "repository": {
