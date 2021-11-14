@@ -14,12 +14,38 @@
   "files": [
     "LICENSE",
     "README.md",
-    "dist/*.js"
+    "dist/*",
+    "src/lib/*.js"
   ],
   "main": "dist/_hyperscript_web.min.js",
-  "exports": "./dist/_hyperscript_web.modern.js",
+  "exports": {
+  	".": {
+  	  "browser": "./dist/_hyperscript_web.modern.js",
+  	  "umd": "./dist/_hyperscript_web.min.js"
+  	},
+  	"./worker": {
+  	  "browser": "./src/lib/worker.js",
+  	  "umd": "./dist/worker.min.js"
+  	},
+  	"./socket": {
+  	  "browser": "./src/lib/socket.js",
+  	  "umd": "./dist/socket.min.js"
+  	},
+  	"./eventsource": {
+  	  "browser": "./src/lib/eventsource.js",
+  	  "umd": "./dist/eventsource.min.js"
+  	},
+  	"./hdb": {
+  	  "browser": "./src/lib/hdb.js",
+  	  "umd": "./dist/eventsource.min.js"
+  	},
+  	"./template": {
+  	  "browser": "./src/lib/hdb.js",
+  	  "umd": "./dist/eventsource.min.js"
+  	}
+  },
   "module": "./dist/_hyperscript_web.esm.js",
-  "unpkg": "dist/_hyperscript.min.js",
+  "unpkg": "dist/_hyperscript_web.min.js",
   "bin": {
     "_hyperscript": "src/bin/node-hyperscript.js"
   },
