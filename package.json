@@ -14,33 +14,32 @@
   "files": [
     "LICENSE",
     "README.md",
-    "dist/*",
-    "src/lib/*.js"
+    "dist/*"
   ],
   "main": "dist/_hyperscript_web.min.js",
   "exports": {
   	".": {
-  	  "browser": "./dist/_hyperscript_web.modern.js",
+  	  "import": "./dist/_hyperscript_web.modern.js",
   	  "umd": "./dist/_hyperscript_web.min.js"
   	},
   	"./worker": {
-  	  "browser": "./src/lib/worker.js",
+  	  "import": "./dist/worker.modern.js",
   	  "umd": "./dist/worker.min.js"
   	},
   	"./socket": {
-  	  "browser": "./src/lib/socket.js",
+  	  "import": "./dist/socket.modern.js",
   	  "umd": "./dist/socket.min.js"
   	},
   	"./eventsource": {
-  	  "browser": "./src/lib/eventsource.js",
+  	  "import": "./dist/eventsource.modern.js",
   	  "umd": "./dist/eventsource.min.js"
   	},
   	"./hdb": {
-  	  "browser": "./src/lib/hdb.js",
+  	  "import": "./dist/hdb.modern.js",
   	  "umd": "./dist/eventsource.min.js"
   	},
   	"./template": {
-  	  "browser": "./src/lib/hdb.js",
+  	  "import": "./dist/hdb.modern.js",
   	  "umd": "./dist/eventsource.min.js"
   	}
   },
@@ -55,8 +54,10 @@
     "dist": "npm run clear && npm run copy && npm run bundle-all",
     "clear": "rm -rf dist/*",
     "copy": "cp -r src/* dist/",
-    "bundle-dev": "microbundle src/web/_hyperscript_w9y.js -o dist/_hyperscript_w9y.js --name=_hyperscript -f umd",
-    "bundle-all": "microbundle src/web/* -o dist --name=_hyperscript -f modern,esm,umd"
+    "bundle-module-plugins": "microbundle src/lib/plugin/*.js -f modern",
+    "bundle-umd-plugins": "microbundle src/web/plugin/*.js -f umd",
+    "bundle-hyperscript": "microbundle src/web/*.js -f modern,umd",
+    "bundle-all": "npm run bundle-hyperscript && npm run bundle-module-plugins && npm run bundle-umd-plugins"
   },
   "repository": {
     "type": "git",
