@@ -2,7 +2,7 @@
 /// This module provides the core runtime and grammar for hyperscript
 ///=========================================================================
 
-import { getOrInitObject, mergeObjects, parseJSON, varargConstructor } from "./utils.js";
+import {getOrInitObject, mergeObjects, parseJSON, varargConstructor} from "./utils.js";
 
 
 /**
