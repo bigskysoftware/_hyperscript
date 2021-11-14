@@ -2549,8 +2549,8 @@ var _runtime = (function () {
 			}
 			return {
 				type: "symbol",
-				symbolType: scope,
 				token: identifier,
+				scope: scope,
 				name: name,
 				evaluate: function (context) {
 					return runtime.resolveSymbol(name, context, scope);
@@ -4050,9 +4050,35 @@ var _runtime = (function () {
 		return functionFeature;
 	});
 
+	_parser.addFeature("let", function (parser, runtime, tokens) {
+		let letCmd = parser.parseElement("letCommand", tokens);
+
+		var implicitReturn = {
+			type: "implicitReturn",
+			op: function (context) {
+				return runtime.HALT;
+			},
+			execute: function (context) {
+			},
+		};
+
+		if (letCmd) {
+			if (letCmd.target.scope !== "element") {
+				parser.raiseParseError(tokens, "variables declared at the feature level must be element scoped.");
+			}
+			let letFeature = {
+				start: letCmd,
+				install: function (target, source) {
+					letCmd && letCmd.execute(runtime.makeContext(target, letFeature, target, null));
+				},
+			};
+			letCmd.next = implicitReturn;
+			return letFeature;
+		}
+	});
+
 	_parser.addFeature("init", function (parser, runtime, tokens) {
 		if (!tokens.matchToken("init")) return;
-		var immediately = tokens.matchToken('immediately');
 
 		var start = parser.parseElement("commandList", tokens);
 		var initFeature = {
@@ -4802,7 +4828,7 @@ var _runtime = (function () {
 			args: [root, value],
 			op: function (context, root, valueToSet) {
 				if (symbolWrite) {
-					runtime.setSymbol(target.name, context, target.symbolType, valueToSet);
+					runtime.setSymbol(target.name, context, target.scope, valueToSet);
 				} else {
 					runtime.implicitLoop(root, function (elt) {
 						if (attribute) {
@@ -4893,7 +4919,7 @@ var _runtime = (function () {
 			value: value,
 			args: [value],
 			op: function (context, valueToSet) {
-				runtime.setSymbol(target.name, context, target.symbolType === 'default' ?  'local' : target.symbolType, valueToSet);
+				runtime.setSymbol(target.name, context, target.scope === 'default' ?  'local' : target.scope, valueToSet);
 				return runtime.findNext(this, context);
 			},
 		};

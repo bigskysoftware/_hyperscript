@@ -352,6 +352,12 @@ syntax:
   let doh be 42
 ```
 
+Note that hyperscript has a flat local scope, similar to javascripts `var` statement.
+
+#### <a name=scope-examples></a> [Scoping Examples](#scope-examples)
+
+Below are some scoping examles in hyperscript
+
 #### <a name=local-scope></a> [Local Scope](#local-scope)
 
 Consider the following snippet, which declares and increments the variable foo when the button is clicked:
@@ -539,7 +545,7 @@ Here is a demo:
          else transition opacity to 0 "
      src="https://placebear.com/200/300"/>
 
-### <a name="init"></a>[Init Blocks](init)
+### <a name="init"></a>[Init Blocks](#init)
 
 If you have logic that you wish to run at the point of loading, you may use an `init` block:
 
@@ -550,6 +556,18 @@ If you have logic that you wish to run at the point of loading, you may use an `
 ```
 
 The `init` keyword should be followed by a set of commands to execute when the element is loaded.
+
+### <a name="let_feature"></a>[Init Blocks](#let_feature)
+
+If you wish to declare a [element-scoped]((/docs#variables_and_scope)) variable you may do so by using a
+`let` feature:
+
+```html
+<div _='let :theAnswer be 42
+        on click put :theAnswer into my innerHTML'></div>
+```
+
+The syntax is identical to the [`let`](/commands/let) command but the variable must be element-scoped.
 
 ### <a name="functions"></a>[Functions](#functions)
 
