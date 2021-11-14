@@ -333,7 +333,7 @@ with an example, and shows alternatives as well.
 Consider the following snippet, which declares and increments the variable foo when the button is clicked:
 
 ```html
-<button _="on click increment foo then set my.innerText to foo">Bad Counter</button>
+<button _="on click increment foo then set my innerText to foo">Bad Counter</button>
 ```
 
 <button _="on click increment foo then set my.innerText to foo">Bad Counter</button>
@@ -346,7 +346,7 @@ to 1, and then foo disappears.
 To make a counter, we can use <dfn>global variables</dfn>:
 
 ```html
-<button _="on click increment global foo then set my.innerText to foo">Global Counter</button>
+<button _="on click increment global foo then set my innerText to foo">Global Counter</button>
 ```
 
 <button _="on click increment global foo then set my.innerText to foo">Global Counter</button>
@@ -365,7 +365,7 @@ what's happening. See how clicking the counter above makes this identical counte
 To alleviate this issue, hyperscript also offers <dfn>element-scoped variables</dfn>:
 
 ```html
-<button _="on click increment element foo then set my.innerText to foo">Isolated Counter</button>
+<button _="on click increment element foo then set my innerText to foo">Isolated Counter</button>
 ```
 
 <button _="on click increment element foo then set my.innerText to foo">Isolated Counter</button>
