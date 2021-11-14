@@ -24,6 +24,7 @@ I do not match <expr>
 <expr> does not match <expr>
 I contain <expr>
 <expr> contains <expr>
+<expr> is in <expr>
 I do not contain <expr>
 <expr> does not contain <expr>
 <expr> includes <expr>
@@ -39,7 +40,9 @@ I do not include <expr>
 
 Many comparison operators are similar to comparison operators in javascript. In addition to the usual comparison operators, hyperscript includes the english terms `is` and `is not` for `==` and `!=` respectively.
 
-Hyperscript also includes three additional operations, `match`, `contain` and `include` and various syntaxes depending on what is being tested against. `match` will test if the left hand side matches the CSS query, where `contains` will test if the left hand side contains any matches of the given CSS query.  Include will invoke the `includes` method on the left hand expression, passing in the right hand expression.
+Hyperscript also includes three additional operations, `match`, `contain` and `include` and various syntaxes depending on what is being tested against. `match` will test if the left hand side matches the CSS query or Regular Expression string.  `contains` will test if the left hand side contains OR includes the right hand side (invoking `contains()` or `includes()`).  `includes` is identical to `contains`.
+
+The `is in` test effectively flips the left hand side and right hand side of the `contains` comparison.
 
 You can also test if a value exists or not using the `is empty` and `is not empty` comparisons. Hyperscript considers "empty" values to be `undefined`, `null`, empty strings, and zero length arrays and objects. This works in the same way as the [`no` expression](/expressions/no).
 
