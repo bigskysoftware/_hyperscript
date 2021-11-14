@@ -2517,35 +2517,43 @@ var _runtime = (function () {
 	});
 
 	_parser.addGrammarElement("symbol", function (parser, runtime, tokens) {
-		/** @type {SymbolScope} */
-		var type = "default";
+		/** @scope {SymbolScope} */
+		var scope = "default";
 		if (tokens.matchToken("global")) {
-			type = "global";
+			scope = "global";
 		} else if (tokens.matchToken("element") || tokens.matchToken("module")) {
-			type = "element";
+			scope = "element";
 			// optional possessive
 			if (tokens.matchOpToken("'")) {
 				tokens.requireToken("s");
 			}
-		} else if (tokens.matchOpToken(":")) {
-			type = "element";
 		} else if (tokens.matchToken("local")) {
-			type = "local";
+			scope = "local";
 		}
-		var identifier = tokens.matchTokenType("IDENTIFIER");
+
+		// TODO better look ahead here
+		let eltPrefix = tokens.matchOpToken(":");
+		let identifier = tokens.matchTokenType("IDENTIFIER");
 		if (identifier) {
 			var name = identifier.value;
-			if (name.indexOf("$") === 0 && name.length > 1) {
-				type = "global";
-				name = name.substr(1);
+			if (eltPrefix) {
+				name = ":" + name;
+			}
+			if (scope === "default") {
+				if (name.indexOf("$") === 0) {
+					scope = "global";
+				}
+				if (name.indexOf(":") === 0) {
+					scope = "element";
+				}
 			}
 			return {
 				type: "symbol",
-				symbolType: type,
+				symbolType: scope,
 				token: identifier,
 				name: name,
 				evaluate: function (context) {
-					return runtime.resolveSymbol(name, context, type);
+					return runtime.resolveSymbol(name, context, scope);
 				},
 			};
 		}

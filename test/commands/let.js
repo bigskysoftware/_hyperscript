@@ -31,8 +31,8 @@ describe("the let command", function () {
 		);
 		d1.click();
 		d1.innerHTML.should.equal("foo");
-		window.newVar.should.equal("foo");
-		delete window.newVar;
+		window.$newVar.should.equal("foo");
+		delete window.$newVar;
 	});
 
 	it("let defaults to local scope", function () {

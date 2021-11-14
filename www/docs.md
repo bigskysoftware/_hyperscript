@@ -330,30 +330,27 @@ hyperscript has 3 kinds different variable scopes: local, element-scoped, and gl
 * Global variables are globally available (and should be used sparingly)
 * Element-scoped variables are local to the element they are declared on, but shared across all features and
   feature executions within that element
-* Local scoped variables are stored only for a single execution of a feature.
+* Local scoped variables are scoped to the currently executing event handler, etc
 
-As of hyperscript `0.8.3`, different scopes for symbols may be indicated by prefixes:
+You may use scope modifiers to give symbols particular scopes:
 
-* A variable with a `$` prefix is a global: `set $myGlobal to true`
-* A variable with a `:` prefix is element-scoped `set :myElementVar to true`
-* Other variables are locally scoped `set x to true`
+* A variable with a `global` prefix is a global: `let global myGlobal be true`
+* A variable with a `element` prefix is element-scoped `let element myElementVar be true`
+* A variable with a `element` prefix is locally scoped `let local x be true`
 
-Note that the prefix is *not* considered part of the name of the variable.  So the following code will print `true`
+Hyperscript also supports and recommends using prefixes for global and element scoped variables:
+
+* If a variable starts with the `$` character, it will default to the global scope unless it has an explicit scope modifier
+* If a variable starts with the `:` character, it will default to the element scope unless it has an explicit scope modifier
+
+By using these prefixes it is easy to tell differently scoped variables from one another without a lot of additional
+syntax:
 
 ```hyperscript
-set $myGlobal to "global value"
-log window.myGlobal
+  let $foo be 10
+  let :bar be 20
+  let doh be 42
 ```
-
-`myGlobal` is the name of the variable, `$` is simply a shorthand for the `global` scope modifier described below.
-
-The shorthand scoping syntax is recommended with variables.  It is concise, clear and consistent.
-
-However, you may also use the long-form scope modifiers instead:
-
-* A variable with a `global` prefix is a global: `set global myGlobal to true`
-* A variable with a `element` prefix is element-scoped `set element myElementVar to true`
-* A variable with a `element` prefix is locally scoped `set local x to true`
 
 #### <a name=local-scope></a> [Local Scope](#local-scope)
 
