@@ -2527,12 +2527,18 @@ var _runtime = (function () {
 			if (tokens.matchOpToken("'")) {
 				tokens.requireToken("s");
 			}
+		} else if (tokens.matchOpToken(":")) {
+			type = "element";
 		} else if (tokens.matchToken("local")) {
 			type = "local";
 		}
 		var identifier = tokens.matchTokenType("IDENTIFIER");
 		if (identifier) {
-			const name = identifier.value;
+			var name = identifier.value;
+			if (name.indexOf("$") === 0) {
+				type = "global";
+				name = name.substr(1);
+			}
 			return {
 				type: "symbol",
 				symbolType: type,
