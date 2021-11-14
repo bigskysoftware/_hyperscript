@@ -1,7 +1,7 @@
 ---
 layout: layout.njk
 tags: post
-title: hyperscript 0.8.3 has been released!
+title: hyperscript 0.8.4 has been released!
 date: 2021-11-02
 ---
 
