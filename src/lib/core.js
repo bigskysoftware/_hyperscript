@@ -4870,6 +4870,24 @@ var _runtime = (function () {
 		return makeSetter(parser, runtime, tokens, target, value);
 	});
 
+	_parser.addCommand("let", function (parser, runtime, tokens) {
+		if (!tokens.matchToken("let")) return;
+		var target = parser.requireElement("symbol", tokens);
+		tokens.requireToken("be");
+		var value = parser.requireElement("expression", tokens);
+		/** @type {GrammarElement} */
+		var letCmd = {
+			target: target,
+			value: value,
+			args: [value],
+			op: function (context, valueToSet) {
+				runtime.setSymbol(target.name, context, target.symbolType === 'default' ?  'local' : target.symbolType, valueToSet);
+				return runtime.findNext(this, context);
+			},
+		};
+		return letCmd;
+	});
+
 	_parser.addCommand("if", function (parser, runtime, tokens) {
 		if (!tokens.matchToken("if")) return;
 		var expr = parser.requireElement("expression", tokens);

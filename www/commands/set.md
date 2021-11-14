@@ -15,6 +15,18 @@ but reads more naturally for operations like setting variables.
 
 It can also be used to set many properties at once using the `set {...} on` form.
 
+### Symbol Resolution
+
+When setting a symbol, such as `x`, the following rules are used:
+
+* If a symbol `x` exists in the current local scope, set the locally scoped value
+* If not, if a symbol `x` exists in the current element scope, set the element scoped value
+* If not, if a symbol `x` exists in the global scope, set the global value
+* If not, create a new locally scoped symbol named `x` with the value
+
+In order to avoid collisions with other scopes, it is recommended that you use [`let`](/commands/let) rather than
+set for defining new variables.
+
 ### Examples
 
 ```html
