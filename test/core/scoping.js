@@ -232,4 +232,14 @@ describe("scoping", function () {
 		div.getAttribute("out").should.equal("10");
 	});
 
+	it("set favors local variables over global variables", function() {
+		window.foo = 12;
+		var div = make("<div id='d1' _='on click 1 set foo to 20 then set @out to foo'></div>")
+		div.click();
+		div.getAttribute("out").should.equal("20");
+		window.foo.should.equal(12);
+		delete window.foo;
+	});
+
+
 });

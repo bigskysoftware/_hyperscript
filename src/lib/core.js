@@ -1952,13 +1952,7 @@ var _runtime = (function () {
 				if (typeof fromContext !== "undefined") {
 					elementScope[str] = value;
 				} else {
-					// global scope
-					fromContext = globalScope[str];
-					if (typeof fromContext !== "undefined") {
-						globalScope[str] = value;
-					} else {
-						context[str] = value;
-					}
+					context[str] = value;
 				}
 			}
 		}

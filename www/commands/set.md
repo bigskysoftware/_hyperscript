@@ -4,7 +4,7 @@
 ### Syntax
 
 ```ebnf
-  set <expression> [to|=] <expression>
+  set <expression> to <expression>
   set <object literal> on <expression>
 ```
 
@@ -20,12 +20,15 @@ It can also be used to set many properties at once using the `set {...} on` form
 When setting a symbol, such as `x`, the following rules are used:
 
 * If a symbol `x` exists in the current local scope, set the locally scoped value
-* If not, if a symbol `x` exists in the current element scope, set the element scoped value
-* If not, if a symbol `x` exists in the global scope, set the global value
+* If not, if a symbol `x` exists in the current element-local scope, set the element-local scoped value
 * If not, create a new locally scoped symbol named `x` with the value
 
-In order to avoid collisions with other scopes, it is recommended that you use [`let`](/commands/let) rather than
-set for defining new variables.
+Note that if you wish to set a global variable you must explicitly use the `global` modifier unless the symbol starts
+with a `$`:
+
+```hyperscript
+  set global globalVar to 10
+```
 
 ### Examples
 

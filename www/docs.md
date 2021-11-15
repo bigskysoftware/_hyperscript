@@ -325,10 +325,10 @@ The current element can be referred to with the symbol `me` (and also `my`, more
 
 ### <a name="variables_and_scope"></a>[Variables and Scope](#variables_and_scope)
 
-hyperscript has 3 kinds different variable scopes: local, element-scoped, and globals.
+hyperscript has 3 kinds different variable scopes: local, element-local, and globals.
 
 * Global variables are globally available (and should be used sparingly)
-* Element-scoped variables are local to the element they are declared on, but shared across all features and
+* Element-local variables are scoped to the element they are declared on, but shared across all features and
   feature executions within that element
 * Local scoped variables are scoped to the currently executing event handler, etc
 
@@ -336,9 +336,9 @@ You may use scope modifiers to give symbols particular scopes:
 
 * A variable with a `global` prefix is a global: `set global myGlobal to true`
 * A variable with a `element` prefix is element-scoped `set element myElementVar to true`
-* A variable with a `element` prefix is locally scoped `set local x to true`
+* A variable with a `local` prefix is locally scoped `set local x to true`
 
-Hyperscript also supports and recommends using prefixes for global and element scoped variables:
+Hyperscript also supports and recommends using prefixes for both global and element scoped variables:
 
 * If a variable starts with the `$` character, it will default to the global scope unless it has an explicit scope modifier
 * If a variable starts with the `:` character, it will default to the element scope unless it has an explicit scope modifier
