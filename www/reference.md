@@ -35,7 +35,7 @@ See [expressions](/expressions) for an overview.
 | [no operator](/expressions/no) | No operator | `no element.children`
 | [of expression](/expressions/of) | Get a property of an object | `the location of window`
 | [query reference](/expressions/query-reference) | A query reference | `<button/> <:focused/>`
-| [relative positional expressions](/expressions/relative-positional/) | Get a positional value out of an array-like object | `first from <div/>`
+| [relative positional expressions](/expressions/relative-positional/) | Get a positional value out of an array-like object | `next <div/> from me`
 | [positional expressions](/expressions/positional) | Get a positional value out of an array-like object | `first from <div/>`
 | [possessive expressions](/expressions/possessive) | Get a property or attribute from an element | `the window's location`
 | [time expression](/expressions/time-expression) | A time expression | `200ms`
