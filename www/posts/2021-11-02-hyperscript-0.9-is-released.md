@@ -1,14 +1,14 @@
 ---
 layout: layout.njk
 tags: post
-title: hyperscript 0.8.4 has been released!
-date: 2021-11-02
+title: hyperscript 0.9 has been released!
+date: 2021-11-19
 ---
 
 ## hyperscript 0.9 Release
 
 We are pleased to present the
-[0.8.4 release](https://unpkg.com/browse/hyperscript.org@0.8.4/)
+[0.9 release](https://unpkg.com/browse/hyperscript.org@0.9.0/)
 of hyperscript.
 
 ### Changes
