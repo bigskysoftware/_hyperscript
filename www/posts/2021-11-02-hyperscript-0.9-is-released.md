@@ -29,6 +29,11 @@ of hyperscript.
   `add .foo--bar`
 * The [`show`](/commands/show) command now supports a `when` clause that allows you to apply `if(expr) show else hide`
   logic directly inline
+* Scoping rules have been [updated slightly](https://hyperscript.org/docs/#variables_and_scope): you must explicitly 
+  declare access to `global`variables now
+* However, this release introduces scope prefixing as well:
+  * Any variable that starts with a colon (`:`) will be treated as element scoped unless otherwise specified
+  * Any variable that starts with a dollar (`$`) will be treated as global soped unless otherwise specified
 
 
 ### Bug Fixes
