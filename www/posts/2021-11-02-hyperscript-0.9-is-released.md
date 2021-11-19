@@ -40,7 +40,7 @@ of hyperscript.
     -- becomes
     prompt('Enter  your name')
     put `Hello ${the result}` into #response
-
+  ```
 
 ### Bug Fixes
 
