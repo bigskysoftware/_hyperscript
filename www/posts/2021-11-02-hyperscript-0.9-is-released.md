@@ -23,8 +23,7 @@ of hyperscript.
 * A new [`matches`](/expressions/comparison-operator) comparison operator for testing if a string matches a regular
   expression string
 * English-style relative comparisons such as [`is less than`](/expressions/comparison-operator)
-* Improved [`fetch`](/commands/fetch) syntax:
-  `fetch /url with method: 
+* Improved [`fetch`](/commands/fetch) syntax to have a `with` clause: `fetch /url with method:'POST'`
 * Comments now require two dashes and a space, like so: `-- `, which enables double dashes in class literals like so:
   `add .foo--bar`
 * The [`show`](/commands/show) command now supports a `when` clause that allows you to apply `if(expr) show else hide`
