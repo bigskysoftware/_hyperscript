@@ -1952,13 +1952,7 @@ var _runtime = (function () {
 				if (typeof fromContext !== "undefined") {
 					elementScope[str] = value;
 				} else {
-					// global scope
-					fromContext = globalScope[str];
-					if (typeof fromContext !== "undefined") {
-						globalScope[str] = value;
-					} else {
-						context[str] = value;
-					}
+					context[str] = value;
 				}
 			}
 		}
@@ -2517,35 +2511,43 @@ var _runtime = (function () {
 	});
 
 	_parser.addGrammarElement("symbol", function (parser, runtime, tokens) {
-		/** @type {SymbolScope} */
-		var type = "default";
+		/** @scope {SymbolScope} */
+		var scope = "default";
 		if (tokens.matchToken("global")) {
-			type = "global";
+			scope = "global";
 		} else if (tokens.matchToken("element") || tokens.matchToken("module")) {
-			type = "element";
+			scope = "element";
 			// optional possessive
 			if (tokens.matchOpToken("'")) {
 				tokens.requireToken("s");
 			}
-		} else if (tokens.matchOpToken(":")) {
-			type = "element";
 		} else if (tokens.matchToken("local")) {
-			type = "local";
+			scope = "local";
 		}
-		var identifier = tokens.matchTokenType("IDENTIFIER");
+
+		// TODO better look ahead here
+		let eltPrefix = tokens.matchOpToken(":");
+		let identifier = tokens.matchTokenType("IDENTIFIER");
 		if (identifier) {
 			var name = identifier.value;
-			if (name.indexOf("$") === 0 && name.length > 1) {
-				type = "global";
-				name = name.substr(1);
+			if (eltPrefix) {
+				name = ":" + name;
+			}
+			if (scope === "default") {
+				if (name.indexOf("$") === 0) {
+					scope = "global";
+				}
+				if (name.indexOf(":") === 0) {
+					scope = "element";
+				}
 			}
 			return {
 				type: "symbol",
-				symbolType: type,
 				token: identifier,
+				scope: scope,
 				name: name,
 				evaluate: function (context) {
-					return runtime.resolveSymbol(name, context, type);
+					return runtime.resolveSymbol(name, context, scope);
 				},
 			};
 		}
@@ -4042,9 +4044,35 @@ var _runtime = (function () {
 		return functionFeature;
 	});
 
+	_parser.addFeature("set", function (parser, runtime, tokens) {
+		let setCmd = parser.parseElement("setCommand", tokens);
+
+		var implicitReturn = {
+			type: "implicitReturn",
+			op: function (context) {
+				return runtime.HALT;
+			},
+			execute: function (context) {
+			},
+		};
+
+		if (setCmd) {
+			if (setCmd.target.scope !== "element") {
+				parser.raiseParseError(tokens, "variables declared at the feature level must be element scoped.");
+			}
+			let setFeature = {
+				start: setCmd,
+				install: function (target, source) {
+					setCmd && setCmd.execute(runtime.makeContext(target, setFeature, target, null));
+				},
+			};
+			setCmd.next = implicitReturn;
+			return setFeature;
+		}
+	});
+
 	_parser.addFeature("init", function (parser, runtime, tokens) {
 		if (!tokens.matchToken("init")) return;
-		var immediately = tokens.matchToken('immediately');
 
 		var start = parser.parseElement("commandList", tokens);
 		var initFeature = {
@@ -4794,7 +4822,7 @@ var _runtime = (function () {
 			args: [root, value],
 			op: function (context, root, valueToSet) {
 				if (symbolWrite) {
-					runtime.setSymbol(target.name, context, target.symbolType, valueToSet);
+					runtime.setSymbol(target.name, context, target.scope, valueToSet);
 				} else {
 					runtime.implicitLoop(root, function (elt) {
 						if (attribute) {
