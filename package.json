@@ -5,7 +5,7 @@
     "scripting",
     "HTML"
   ],
-  "version": "0.8.4-beta.3",
+  "version": "0.9.0",
   "homepage": "https://hyperscript.org/",
   "bugs": {
     "url": "https://github.com/bigskysoftware/_hyperscript/issues"
@@ -18,30 +18,30 @@
   ],
   "main": "dist/_hyperscript_web.min.js",
   "exports": {
-  	".": {
-  	  "import": "./dist/_hyperscript_web.modern.js",
-  	  "umd": "./dist/_hyperscript_web.min.js"
-  	},
-  	"./worker": {
-  	  "import": "./dist/worker.modern.js",
-  	  "umd": "./dist/worker.min.js"
-  	},
-  	"./socket": {
-  	  "import": "./dist/socket.modern.js",
-  	  "umd": "./dist/socket.min.js"
-  	},
-  	"./eventsource": {
-  	  "import": "./dist/eventsource.modern.js",
-  	  "umd": "./dist/eventsource.min.js"
-  	},
-  	"./hdb": {
-  	  "import": "./dist/hdb.modern.js",
-  	  "umd": "./dist/eventsource.min.js"
-  	},
-  	"./template": {
-  	  "import": "./dist/hdb.modern.js",
-  	  "umd": "./dist/eventsource.min.js"
-  	}
+    ".": {
+      "import": "./dist/_hyperscript_web.modern.js",
+      "umd": "./dist/_hyperscript_web.min.js"
+    },
+    "./worker": {
+      "import": "./dist/worker.modern.js",
+      "umd": "./dist/worker.min.js"
+    },
+    "./socket": {
+      "import": "./dist/socket.modern.js",
+      "umd": "./dist/socket.min.js"
+    },
+    "./eventsource": {
+      "import": "./dist/eventsource.modern.js",
+      "umd": "./dist/eventsource.min.js"
+    },
+    "./hdb": {
+      "import": "./dist/hdb.modern.js",
+      "umd": "./dist/eventsource.min.js"
+    },
+    "./template": {
+      "import": "./dist/hdb.modern.js",
+      "umd": "./dist/eventsource.min.js"
+    }
   },
   "module": "./dist/_hyperscript_web.esm.js",
   "unpkg": "dist/_hyperscript_web.min.js",
