@@ -33,6 +33,13 @@ of hyperscript.
 * However, this release introduces scope prefixing as well:
   * Any variable that starts with a colon (`:`) will be treated as element scoped unless otherwise specified
   * Any variable that starts with a dollar (`$`) will be treated as global soped unless otherwise specified
+* Global functions can now be called without a `call` statement:
+  ```
+    call prompt('Enter  your name')
+    put `Hello ${the result}` into #response
+    -- becomes
+    prompt('Enter  your name')
+    put `Hello ${the result}` into #response
 
 
 ### Bug Fixes
