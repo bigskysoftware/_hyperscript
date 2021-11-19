@@ -32,7 +32,7 @@ of hyperscript.
   declare access to `global`variables now
 * However, this release introduces scope prefixing as well:
   * Any variable that starts with a colon (`:`) will be treated as element scoped unless otherwise specified
-  * Any variable that starts with a dollar (`$`) will be treated as global soped unless otherwise specified
+  * Any variable that starts with a dollar (`$`) will be treated as global scoped unless otherwise specified
 * Global functions can now be called without a `call` statement:
   ```
     call prompt('Enter  your name')
