@@ -1,14 +1,14 @@
 ---
 layout: layout.njk
 tags: post
-title: hyperscript 0.8.4 has been released!
-date: 2021-11-02
+title: hyperscript 0.9 has been released!
+date: 2021-11-19
 ---
 
 ## hyperscript 0.9 Release
 
 We are pleased to present the
-[0.8.4 release](https://unpkg.com/browse/hyperscript.org@0.8.4/)
+[0.9 release](https://unpkg.com/browse/hyperscript.org@0.9.0/)
 of hyperscript.
 
 ### Changes
@@ -23,13 +23,24 @@ of hyperscript.
 * A new [`matches`](/expressions/comparison-operator) comparison operator for testing if a string matches a regular
   expression string
 * English-style relative comparisons such as [`is less than`](/expressions/comparison-operator)
-* Improved [`fetch`](/commands/fetch) syntax:
-  `fetch /url with method: 
+* Improved [`fetch`](/commands/fetch) syntax to have a `with` clause: `fetch /url with method:'POST'`
 * Comments now require two dashes and a space, like so: `-- `, which enables double dashes in class literals like so:
   `add .foo--bar`
 * The [`show`](/commands/show) command now supports a `when` clause that allows you to apply `if(expr) show else hide`
   logic directly inline
-
+* Scoping rules have been [updated slightly](https://hyperscript.org/docs/#variables_and_scope): you must explicitly 
+  declare access to `global`variables now
+* However, this release introduces scope prefixing as well:
+  * Any variable that starts with a colon (`:`) will be treated as element scoped unless otherwise specified
+  * Any variable that starts with a dollar (`$`) will be treated as global scoped unless otherwise specified
+* Global functions can now be called without a `call` statement:
+  ```
+    call prompt('Enter  your name')
+    put `Hello ${the result}` into #response
+    -- becomes
+    prompt('Enter  your name')
+    put `Hello ${the result}` into #response
+  ```
 
 ### Bug Fixes
 
