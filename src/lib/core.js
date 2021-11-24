@@ -4528,7 +4528,11 @@ var _runtime = (function () {
 
 	var parseReturnFunction = function (parser, runtime, tokens, returnAValue) {
 		if (returnAValue) {
-			var value = parser.requireElement("expression", tokens);
+			if (parser.commandBoundary(tokens.currentToken())) {
+				parser.raiseParseError(tokens, "'return' commands must return a value.  If you do not wish to return a value, use 'exit' instead.");
+			} else {
+				var value = parser.requireElement("expression", tokens);
+			}
 		}
 
 		var returnCmd = {

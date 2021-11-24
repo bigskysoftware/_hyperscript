@@ -97,4 +97,9 @@ describe("_hyperscript regressions", function () {
 		div.click()
 	});
 
+	it("return followed by boundary returns an error", function () {
+		var msg = getParseErrorFor("return end");
+		startsWith(msg, "'return' commands must return a value.  If you do not wish to return a value, use 'exit' instead.");
+	});
+
 });
