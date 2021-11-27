@@ -71,7 +71,6 @@
     "microbundle": "^0.13.3",
     "mocha": "^7.1.1",
     "mocha-chrome": "^2.2.0",
-    "node-sass": "^5.0.0",
     "sass": "^1.32.8",
     "sinon": "^9.0.2"
   }
