@@ -4,4 +4,6 @@ module.exports = function(config) {
     config.addPassthroughCopy("img");
     config.addPassthroughCopy("js");
     config.addPassthroughCopy("test");
+
+    config.addCollection('cookbook', coll => coll.getFilteredByGlob('cookbook/*'))
 }

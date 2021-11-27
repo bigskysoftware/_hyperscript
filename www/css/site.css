@@ -305,6 +305,18 @@ h1,h2,h3,h4{
     }
 }
 
+.heading-wrapper > a {
+    opacity: 0;
+    font-size: 1.5em;
+    width: 0;
+    transform: translateX(-1ch);
+    float: left;
+}
+    .heading-wrapper:hover > a,
+    .heading-wrapper > a:focus {
+        opacity: 1;
+    }
+
 
 @media(min-width:45em) {
 
