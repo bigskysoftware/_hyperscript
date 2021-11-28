@@ -66,6 +66,12 @@ describe("the if command", function () {
 		d1.innerHTML.should.equal("foo");
 	});
 
+	it("otherwise alias works", function () {
+		var d1 = make("<div _='on click if false otherwise put \"foo\" into me.innerHTML'></div>");
+		d1.click();
+		d1.innerHTML.should.equal("foo");
+	});
+	
 	it("triple else if branch works", function () {
 		var d1 = make("<div _='on click if false else if false else put \"foo\" into me.innerHTML'></div>");
 		d1.click();
