@@ -1154,6 +1154,7 @@ var _parser = (function () {
 			token.value == "end" ||
 			token.value == "then" ||
 			token.value == "else" ||
+			token.value == "otherwise" ||
 			token.value == ")" ||
 			commandStart(token) ||
 			featureStart(token) ||
@@ -4907,7 +4908,7 @@ var _runtime = (function () {
 		var expr = parser.requireElement("expression", tokens);
 		tokens.matchToken("then"); // optional 'then'
 		var trueBranch = parser.parseElement("commandList", tokens);
-		if (tokens.matchToken("else")) {
+		if (tokens.matchToken("else") || tokens.matchToken("otherwise")) {
 			var falseBranch = parser.parseElement("commandList", tokens);
 		}
 		if (tokens.hasMore()) {
