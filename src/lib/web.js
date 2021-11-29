@@ -373,7 +373,7 @@ export default _hyperscript => {
 				element.style.display = "none";
 			} else {
 				const internalData = _hyperscript.internals.runtime.getInternalData(element);
-				if (internalData.originalDisplay) {
+				if (internalData.originalDisplay && internalData.originalDisplay !== 'none') {
 					element.style.display = internalData.originalDisplay;
 				} else {
 					element.style.removeProperty('display');

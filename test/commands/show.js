@@ -145,6 +145,13 @@ describe("the show command", function () {
 
 	});
 
-
+	it("starting off with display none does not stick", function () {
+		var div = make("<div style='display: none' _='on click toggle .foo show when I match .foo'></div>");
+		getComputedStyle(div).display.should.equal("none");
+		div.click();
+		getComputedStyle(div).display.should.equal("block");
+		div.click();
+		getComputedStyle(div).display.should.equal("none");
+	});
 
 });
