@@ -15,7 +15,23 @@
 
 		<em>Work Area</em>
 		<hr />
-		<script type="text/hyperscript">
+
+
+	<select id="weather" name="weather"
+					_="on change show #specify when my value is 'other'">
+			<option value="sunny">Sunny</option>
+			<option value="cloudy">Cloudy</option>
+			<option value="other">Other</option>
+	</select>
+
+	<div id="specify" style="display: none">
+			Please specify...
+			<input  name="other" type="text" value="">
+	</div>
+
+  <hr/>
+
+	<script type="text/hyperscript">
       behavior Focusable(inp)
         init
           log inp
@@ -157,7 +173,6 @@ function toggleHeight(elt) {
 		<div style="height:2900px">
 				asdf
 		</div>
-
 
 
 	</body>
