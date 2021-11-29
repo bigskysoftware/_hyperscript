@@ -102,4 +102,10 @@ describe("_hyperscript regressions", function () {
 		startsWith(msg, "'return' commands must return a value.  If you do not wish to return a value, use 'exit' instead.");
 	});
 
+	it("string literals can dot-invoked against", function () {
+		_hyperscript("'foo'.length").should.equal(3);
+		_hyperscript("`foo`.length").should.equal(3);
+		_hyperscript("\"foo\".length").should.equal(3);
+	});
+
 });

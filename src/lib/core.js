@@ -795,6 +795,9 @@ var _lexer = (function () {
 				isAlpha(lastToken) ||
 				isNumeric(lastToken) ||
 				lastToken === ")" ||
+				lastToken === "\"" ||
+				lastToken === "'" ||
+				lastToken === "`" ||
 				lastToken === "}" ||
 				lastToken === "]"
 			);
