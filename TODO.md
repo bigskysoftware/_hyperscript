@@ -1,6 +1,6 @@
 ## TODOs
 
-### 0.9.0 release
+### 0.9.x release
 * Carson(?) - improve `fetch` command w/ more obvious syntax for body, headers, etc.
   ```text
     fetch /foo with a POST
