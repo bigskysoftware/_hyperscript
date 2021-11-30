@@ -5135,48 +5135,59 @@ var _runtime = (function () {
 
 	_parser.addCommand("append", function (parser, runtime, tokens) {
 		if (!tokens.matchToken("append")) return;
-		var target = null;
-		var prop = null;
+		var targetExpr = null;
 
 		var value = parser.requireElement("expression", tokens);
 
+		var implicitResult = {
+			type: "implicitResult",
+			args: [],
+			op: function (context) {
+				return context.result;
+			},
+			evaluate: function (context) {
+				return runtime.unifiedEval(this, context);
+			}
+		};
+
 		if (tokens.matchToken("to")) {
-			target = parser.requireElement("expression", tokens);
+			targetExpr = parser.requireElement("expression", tokens);
+		} else {
+			targetExpr = implicitResult;
 		}
 
-		if (target == null) {
-			prop = "result";
-		} else if (target.type === "symbol") {
-			prop = target.name;
-		} else if (target.type === "propertyAccess") {
-			prop = target.prop.value;
-		} else {
-			throw "Unable to append to " + target.type;
+		var setter = null;
+		if (targetExpr.type === "symbol" || targetExpr.type === "attributeRef" || targetExpr.root != null) {
+			setter = makeSetter(parser, runtime, tokens, targetExpr, implicitResult);
 		}
 
 		var command = {
 			value: value,
-			target: target,
-			args: [value],
-			op: function (context, value) {
-				if (Array.isArray(context[prop])) {
-					context[prop].push(value);
-				} else if (context[prop] instanceof Element) {
-					if (typeof value == "string") {
-						context[prop].innerHTML += value;
-					} else {
-						throw "Don't know how to append non-strings to an HTML Element yet.";
-					}
+			target: targetExpr,
+			args: [targetExpr, value],
+			op: function (context, target, value) {
+				if (Array.isArray(target)) {
+					target.push(value);
+					return runtime.findNext(this, context);
+				} else if (target instanceof Element) {
+					target.innerHTML += value;
+					return runtime.findNext(this, context);
+				} else if(setter) {
+					context.result = target + value;
+					return setter;
 				} else {
-					context[prop] += value;
+					throw Error("Unable to append a value!")
 				}
-
-				return runtime.findNext(this, context);
 			},
 			execute: function (context) {
 				return runtime.unifiedExec(this, context/*, value, target*/);
 			},
 		};
+
+		if (setter != null) {
+			setter.parent = command;
+		}
+
 		return command;
 	});
 
@@ -5192,23 +5203,23 @@ var _runtime = (function () {
 			amount = parser.requireElement("expression", tokens);
 		}
 
-		var command = {
+		var implicitIncrementOp = {
+			type: "implicitIncrementOp",
 			target: target,
 			args: [target, amount],
 			op: function (context, targetValue, amount) {
 				targetValue = targetValue ? parseFloat(targetValue) : 0;
 				amount = amount ? parseFloat(amount) : 1;
 				var newValue = targetValue + amount;
-				var setter = makeSetter(parser, runtime, tokens, target, newValue);
 				context.result = newValue;
-				setter.parent = this;
-				return setter;
+				return newValue;
 			},
-			execute: function (context) {
-				return runtime.unifiedExec(this, context/* , target, amount */);
-			},
+			evaluate: function (context) {
+				return runtime.unifiedEval(this, context);
+			}
 		};
-		return command;
+
+		return makeSetter(parser, runtime, tokens, target, implicitIncrementOp);
 	});
 
 	_parser.addCommand("decrement", function (parser, runtime, tokens) {
@@ -5223,23 +5234,23 @@ var _runtime = (function () {
 			amount = parser.requireElement("expression", tokens);
 		}
 
-		var command = {
+		var implicitDecrementOp = {
+			type: "implicitDecrementOp",
 			target: target,
 			args: [target, amount],
 			op: function (context, targetValue, amount) {
 				targetValue = targetValue ? parseFloat(targetValue) : 0;
 				amount = amount ? parseFloat(amount) : 1;
 				var newValue = targetValue - amount;
-				var setter = makeSetter(parser, runtime, tokens, target, newValue);
 				context.result = newValue;
-				setter.parent = this;
-				return setter;
+				return newValue;
 			},
-			execute: function (context) {
-				return runtime.unifiedExec(this, context/*, target, amount*/);
-			},
+			evaluate: function (context) {
+				return runtime.unifiedEval(this, context);
+			}
 		};
-		return command;
+
+		return makeSetter(parser, runtime, tokens, target, implicitDecrementOp);
 	});
 
 	_parser.addCommand("fetch", function (parser, runtime, tokens) {
