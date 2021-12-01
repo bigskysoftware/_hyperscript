@@ -54,4 +54,10 @@ describe("the append command", function () {
         div.id.should.equal("id_new");
     })
 
+    it("multiple appends work", function () {
+        var div = make(`<div id="id" _="on click get 'foo' then append 'bar' then append 'doh' then append it to me"></div>`);
+        div.click();
+		div.innerHTML.should.equal("foobardoh");
+    })
+
 });

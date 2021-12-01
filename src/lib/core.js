@@ -5139,26 +5139,22 @@ var _runtime = (function () {
 
 		var value = parser.requireElement("expression", tokens);
 
-		var implicitResult = {
-			type: "implicitResult",
-			args: [],
-			op: function (context) {
-				return context.result;
-			},
+		var implicitResultSymbol = {
+			type: "symbol",
 			evaluate: function (context) {
-				return runtime.unifiedEval(this, context);
-			}
+				return runtime.resolveSymbol("result", context);
+			},
 		};
 
 		if (tokens.matchToken("to")) {
 			targetExpr = parser.requireElement("expression", tokens);
 		} else {
-			targetExpr = implicitResult;
+			targetExpr = implicitResultSymbol;
 		}
 
 		var setter = null;
 		if (targetExpr.type === "symbol" || targetExpr.type === "attributeRef" || targetExpr.root != null) {
-			setter = makeSetter(parser, runtime, tokens, targetExpr, implicitResult);
+			setter = makeSetter(parser, runtime, tokens, targetExpr, implicitResultSymbol);
 		}
 
 		var command = {
