@@ -60,4 +60,10 @@ describe("the append command", function () {
 		div.innerHTML.should.equal("foobardoh");
     })
 
+    it("append to undefined ignores the undefined", function () {
+        var div = make(`<div id="id" _="on click append 'bar' then append it to me"></div>`);
+        div.click();
+		div.innerHTML.should.equal("bar");
+    })
+
 });
