@@ -5169,7 +5169,7 @@ var _runtime = (function () {
 					target.innerHTML += value;
 					return runtime.findNext(this, context);
 				} else if(setter) {
-					context.result = target + value;
+					context.result = (target || "") + value;
 					return setter;
 				} else {
 					throw Error("Unable to append a value!")
