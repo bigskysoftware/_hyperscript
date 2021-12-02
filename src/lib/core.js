@@ -3,7 +3,7 @@
 ///=========================================================================
 
 import {getOrInitObject, mergeObjects, parseJSON, varargConstructor} from "./utils.js";
-import {tokenize} from "./lexer/lexer.js"
+import * as lexer from "./lexer/lexer.js"
 
 /**
  * @type {HyperscriptObject}
@@ -71,29 +71,29 @@ var _parser = (function () {
 	/**
 	 * @param {*} parseElement
 	 * @param {*} start
-	 * @param {TokensObject} tokens
+	 * @param {Tokens} tokens
 	 */
 	function initElt(parseElement, start, tokens) {
 		parseElement.startToken = start;
-		parseElement.sourceFor = tokens.sourceFor;
-		parseElement.lineFor = tokens.lineFor;
+		parseElement.sourceFor = lexer.sourceFor;
+		parseElement.lineFor = lexer.lineFor;
 		parseElement.programSource = tokens.source;
 	}
 
 	/**
 	 * @param {string} type
-	 * @param {TokensObject} tokens
+	 * @param {Tokens} tokens
 	 * @param {GrammarElement?} root
 	 * @returns GrammarElement
 	 */
 	function parseElement(type, tokens, root = undefined) {
 		var elementDefinition = GRAMMAR[type];
 		if (elementDefinition) {
-			var start = tokens.currentToken();
+			var start = lexer.currentToken(tokens);
 			var parseElement = elementDefinition(_parser, _runtime, tokens, root);
 			if (parseElement) {
 				initElt(parseElement, start, tokens);
-				parseElement.endToken = parseElement.endToken || tokens.lastMatch();
+				parseElement.endToken = parseElement.endToken || lexer.lastMatch(tokens);
 				var root = parseElement.root;
 				while (root != null) {
 					initElt(root, start, tokens);
@@ -106,21 +106,21 @@ var _parser = (function () {
 
 	/**
 	 * @param {string} type
-	 * @param {TokensObject} tokens
+	 * @param {Tokens} tokens
 	 * @param {string} [message]
 	 * @param {*} [root]
 	 * @returns {GrammarElement}
 	 */
 	function requireElement(type, tokens, message, root) {
 		var result = parseElement(type, tokens, root);
-		if (!result) raiseParseError(tokens, message || "Expected " + type);
+		if (!result) lexer.raiseParseError(tokens, message || "Expected " + type);
 		// @ts-ignore
 		return result;
 	}
 
 	/**
 	 * @param {string[]} types
-	 * @param {TokensObject} tokens
+	 * @param {Tokens} tokens
 	 * @returns {GrammarElement}
 	 */
 	function parseAnyOf(types, tokens) {
@@ -204,30 +204,30 @@ var _parser = (function () {
 	/* Core hyperscript Grammar Elements                                                            */
 	/* ============================================================================================ */
 	addGrammarElement("feature", function (parser, runtime, tokens) {
-		if (tokens.matchOpToken("(")) {
+		if (lexer.matchOpToken(tokens, "(")) {
 			var featureElement = parser.requireElement("feature", tokens);
-			tokens.requireOpToken(")");
+			lexer.requireOpToken(tokens, ")");
 			return featureElement;
 		}
 
-		var featureDefinition = FEATURES[tokens.currentToken().value];
+		var featureDefinition = FEATURES[lexer.currentToken(tokens).value];
 		if (featureDefinition) {
 			return featureDefinition(parser, runtime, tokens);
 		}
 	});
 
 	addGrammarElement("command", function (parser, runtime, tokens) {
-		if (tokens.matchOpToken("(")) {
+		if (lexer.matchOpToken(tokens, "(")) {
 			const commandElement = parser.requireElement("command", tokens);
-			tokens.requireOpToken(")");
+			lexer.requireOpToken(tokens, ")");
 			return commandElement;
 		}
 
-		var commandDefinition = COMMANDS[tokens.currentToken().value];
+		var commandDefinition = COMMANDS[lexer.currentToken(tokens).value];
 		let commandElement;
 		if (commandDefinition) {
 			commandElement = commandDefinition(parser, runtime, tokens);
-		} else if (tokens.currentToken().type === "IDENTIFIER" && tokens.token(1).value === "(") {
+		} else if (lexer.currentToken(tokens).type === "IDENTIFIER" && lexer.token(tokens, 1).value === "(") {
 			commandElement = parser.requireElement("pseudoCommand", tokens);
 		}
 		if (commandElement) {
@@ -240,7 +240,7 @@ var _parser = (function () {
 	addGrammarElement("commandList", function (parser, runtime, tokens) {
 		var cmd = parser.parseElement("command", tokens);
 		if (cmd) {
-			tokens.matchToken("then");
+			lexer.matchToken(tokens, "then");
 			const next = parser.parseElement("commandList", tokens);
 			if (next) cmd.next = next;
 			return cmd;
@@ -260,7 +260,7 @@ var _parser = (function () {
 	addGrammarElement("indirectExpression", function (parser, runtime, tokens, root) {
 		for (var i = 0; i < INDIRECT_EXPRESSIONS.length; i++) {
 			var indirect = INDIRECT_EXPRESSIONS[i];
-			root.endToken = tokens.lastMatch();
+			root.endToken = lexer.lastMatch(tokens);
 			var result = parser.parseElement(indirect, tokens, root);
 			if (result) {
 				return result;
@@ -270,8 +270,8 @@ var _parser = (function () {
 	});
 
 	addGrammarElement("indirectStatement", function (parser, runtime, tokens, root) {
-		if (tokens.matchToken("unless")) {
-			root.endToken = tokens.lastMatch();
+		if (lexer.matchToken(tokens, "unless")) {
+			root.endToken = lexer.lastMatch(tokens);
 			var conditional = parser.requireElement("expression", tokens);
 			var unless = {
 				type: "unlessStatementModifier",
@@ -298,7 +298,7 @@ var _parser = (function () {
 		if (leaf) {
 			return parser.parseElement("indirectExpression", tokens, leaf);
 		}
-		parser.raiseParseError(tokens, "Unexpected value: " + tokens.currentToken().value);
+		lexer.raiseParseError(tokens, "Unexpected value: " + lexer.currentToken(tokens).value);
 	});
 
 	/* ============================================================================================ */
@@ -306,40 +306,15 @@ var _parser = (function () {
 
 	/* ============================================================================================ */
 
-	/**
-	 *
-	 * @param {TokensObject} tokens
-	 * @returns string
-	 */
-	function createParserContext(tokens) {
-		var currentToken = tokens.currentToken();
-		var source = tokens.source;
-		var lines = source.split("\n");
-		var line = currentToken && currentToken.line ? currentToken.line - 1 : lines.length - 1;
-		var contextLine = lines[line];
-		var offset = currentToken && currentToken.line ? currentToken.column : contextLine.length - 1;
-		return contextLine + "\n" + " ".repeat(offset) + "^^\n\n";
-	}
+
 
 	/**
-	 * @param {TokensObject} tokens
-	 * @param {string} [message]
-	 */
-	function raiseParseError(tokens, message) {
-		message =
-			(message || "Unexpected Token : " + tokens.currentToken().value) + "\n\n" + createParserContext(tokens);
-		var error = new Error(message);
-		error["tokens"] = tokens;
-		throw error;
-	}
-
-	/**
-	 * @param {TokensObject} tokens
+	 * @param {Tokens} tokens
 	 * @returns {GrammarElement}
 	 */
 	function parseHyperScript(tokens) {
 		var result = parseElement("hyperscript", tokens);
-		if (tokens.hasMore()) raiseParseError(tokens);
+		if (lexer.hasMore(tokens)) lexer.raiseParseError(tokens);
 		if (result) return result;
 	}
 
@@ -391,31 +366,31 @@ var _parser = (function () {
 	}
 
 	/**
-	 * @param {TokensObject} tokens
+	 * @param {Tokens} tokens
 	 * @returns {(string | GrammarElement)[]}
 	 */
 	function parseStringTemplate(tokens) {
 		/** @type {(string | GrammarElement)[]} */
 		var returnArr = [""];
 		do {
-			returnArr.push(tokens.lastWhitespace());
-			if (tokens.currentToken().value === "$") {
-				tokens.consumeToken();
-				var startingBrace = tokens.matchOpToken("{");
+			returnArr.push(lexer.lastWhitespace(tokens));
+			if (lexer.currentToken(tokens).value === "$") {
+				lexer.consumeToken(tokens);
+				var startingBrace = lexer.matchOpToken(tokens, "{");
 				returnArr.push(requireElement("expression", tokens));
 				if (startingBrace) {
-					tokens.requireOpToken("}");
+					lexer.requireOpToken(tokens, "}");
 				}
 				returnArr.push("");
-			} else if (tokens.currentToken().value === "\\") {
-				tokens.consumeToken(); // skip next
-				tokens.consumeToken();
+			} else if (lexer.currentToken(tokens).value === "\\") {
+				lexer.consumeToken(tokens); // skip next
+				lexer.consumeToken(tokens);
 			} else {
-				var token = tokens.consumeToken();
+				var token = lexer.consumeToken(tokens);
 				returnArr[returnArr.length - 1] += token ? token.value : "";
 			}
-		} while (tokens.hasMore());
-		returnArr.push(tokens.lastWhitespace());
+		} while (lexer.hasMore(tokens));
+		returnArr.push(lexer.lastWhitespace(tokens));
 		return returnArr;
 	}
 
@@ -429,7 +404,6 @@ var _parser = (function () {
 		commandBoundary: commandBoundary,
 		parseAnyOf: parseAnyOf,
 		parseHyperScript: parseHyperScript,
-		raiseParseError: raiseParseError,
 		addGrammarElement: addGrammarElement,
 		addCommand: addCommand,
 		addFeature: addFeature,
@@ -940,8 +914,8 @@ var _runtime = (function () {
 	* @returns {GrammarElement}
 	*/
 	function parse(src) {
-		var tokens = tokenize(src);
-		if (_parser.commandStart(tokens.currentToken())) {
+		var tokens = lexer.tokenize(src);
+		if (_parser.commandStart(lexer.currentToken(tokens))) {
 			var commandList = _parser.requireElement("commandList", tokens);
 			var last = commandList;
 			while (last.next) {
@@ -953,7 +927,7 @@ var _runtime = (function () {
 				},
 			};
 			return commandList;
-		} else if (_parser.featureStart(tokens.currentToken())) {
+		} else if (_parser.featureStart(lexer.currentToken(tokens))) {
 			var hyperscript = _parser.requireElement("hyperscript", tokens);
 			return hyperscript;
 		} else {
@@ -1040,7 +1014,7 @@ var _runtime = (function () {
 				try {
 					internalData.initialized = true;
 					internalData.script = src;
-					var tokens = tokenize(src);
+					var tokens = lexer.tokenize(src);
 					var hyperScript = _parser.parseHyperScript(tokens);
 					if (!hyperScript) return;
 					hyperScript.apply(target || elt, elt);
@@ -1382,26 +1356,26 @@ var _runtime = (function () {
 //====================================================================
 {
 	_parser.addLeafExpression("parenthesized", function (parser, _runtime, tokens) {
-		if (tokens.matchOpToken("(")) {
-			var follows = tokens.clearFollow();
+		if (lexer.matchOpToken(tokens, "(")) {
+			var follows = lexer.clearFollows(tokens);
 			try {
 				var expr = parser.requireElement("expression", tokens);
 			} finally {
-				tokens.restoreFollow(follows);
+				lexer.restoreFollows(tokens, follows);
 			}
-			tokens.requireOpToken(")");
+			lexer.requireOpToken(tokens, ")");
 			return expr;
 		}
 	});
 
 	_parser.addLeafExpression("string", function (parser, runtime, tokens) {
-		var stringToken = tokens.matchTokenType("STRING");
+		var stringToken = lexer.matchTokenType(tokens, "STRING");
 		if (!stringToken) return;
 		var rawValue = stringToken.value;
 		/** @type {any[]} */
 		var args;
 		if (stringToken.template) {
-			var innerTokens = tokenize(rawValue, true);
+			var innerTokens = lexer.tokenize(rawValue, true);
 			args = parser.parseStringTemplate(innerTokens);
 		} else {
 			args = [];
@@ -1431,9 +1405,9 @@ var _runtime = (function () {
 	});
 
 	_parser.addGrammarElement("nakedString", function (parser, runtime, tokens) {
-		if (tokens.hasMore()) {
-			var tokenArr = tokens.consumeUntilWhitespace();
-			tokens.matchTokenType("WHITESPACE");
+		if (lexer.hasMore(tokens)) {
+			var tokenArr = lexer.consumeUntilWhitespace(tokens);
+			lexer.matchTokenType(tokens, "WHITESPACE");
 			return {
 				type: "nakedString",
 				tokens: tokenArr,
@@ -1449,7 +1423,7 @@ var _runtime = (function () {
 	});
 
 	_parser.addLeafExpression("number", function (parser, runtime, tokens) {
-		var number = tokens.matchTokenType("NUMBER");
+		var number = lexer.matchTokenType(tokens, "NUMBER");
 		if (!number) return;
 		var numberToken = number;
 		var value = parseFloat(number.value);
@@ -1464,12 +1438,12 @@ var _runtime = (function () {
 	});
 
 	_parser.addLeafExpression("idRef", function (parser, runtime, tokens) {
-		var elementId = tokens.matchTokenType("ID_REF");
+		var elementId = lexer.matchTokenType(tokens, "ID_REF");
 		if (!elementId) return;
 		// TODO - unify these two expression types
 		if (elementId.template) {
 			var templateValue = elementId.value.substr(2, elementId.value.length - 2);
-			var innerTokens = tokenize(templateValue);
+			var innerTokens = lexer.tokenize(templateValue);
 			var innerExpression = parser.requireElement("expression", innerTokens);
 			return {
 				type: "idRefTemplate",
@@ -1497,14 +1471,14 @@ var _runtime = (function () {
 	});
 
 	_parser.addLeafExpression("classRef", function (parser, runtime, tokens) {
-		var classRef = tokens.matchTokenType("CLASS_REF");
+		var classRef = lexer.matchTokenType(tokens, "CLASS_REF");
 
 		if (!classRef) return;
 
 		// TODO - unify these two expression types
 		if (classRef.template) {
 			var templateValue = classRef.value.substr(2, classRef.value.length - 2);
-			var innerTokens = tokenize(templateValue);
+			var innerTokens = lexer.tokenize(templateValue);
 			var innerExpression = parser.requireElement("expression", innerTokens);
 			return {
 				type: "classRefTemplate",
@@ -1554,11 +1528,11 @@ var _runtime = (function () {
 	}
 
 	_parser.addLeafExpression("queryRef", function (parser, runtime, tokens) {
-		var queryStart = tokens.matchOpToken("<");
+		var queryStart = lexer.matchOpToken(tokens, "<");
 		if (!queryStart) return;
-		var queryTokens = tokens.consumeUntil("/");
-		tokens.requireOpToken("/");
-		tokens.requireOpToken(">");
+		var queryTokens = lexer.consumeUntil(tokens, "/");
+		lexer.requireOpToken(tokens, "/");
+		lexer.requireOpToken(tokens, ">");
 		var queryValue = queryTokens
 			.map(function (t) {
 				if (t.type === "STRING") {
@@ -1571,7 +1545,7 @@ var _runtime = (function () {
 
 		if (queryValue.indexOf("$") >= 0) {
 			var template = true;
-			var innerTokens = tokenize(queryValue, true);
+			var innerTokens = lexer.tokenize(queryValue, true);
 			var args = parser.parseStringTemplate(innerTokens);
 		}
 
@@ -1593,7 +1567,7 @@ var _runtime = (function () {
 	});
 
 	_parser.addLeafExpression("attributeRef", function (parser, runtime, tokens) {
-		var attributeRef = tokens.matchTokenType("ATTRIBUTE_REF");
+		var attributeRef = lexer.matchTokenType(tokens, "ATTRIBUTE_REF");
 		if (!attributeRef) return;
 		var outerVal = attributeRef.value;
 		if (outerVal.indexOf("[") === 0) {
@@ -1630,7 +1604,7 @@ var _runtime = (function () {
 
 	_parser.addGrammarElement("objectKey", function (parser, runtime, tokens) {
 		var token;
-		if ((token = tokens.matchTokenType("STRING"))) {
+		if ((token = lexer.matchTokenType(tokens, "STRING"))) {
 			return {
 				type: "objectKey",
 				key: token.value,
@@ -1638,9 +1612,9 @@ var _runtime = (function () {
 					return token.value;
 				},
 			};
-		} else if (tokens.matchOpToken("[")) {
+		} else if (lexer.matchOpToken(tokens, "[")) {
 			var expr = parser.parseElement("expression", tokens);
-			tokens.requireOpToken("]");
+			lexer.requireOpToken(tokens, "]");
 			return {
 				type: "objectKey",
 				expr: expr,
@@ -1655,7 +1629,7 @@ var _runtime = (function () {
 		} else {
 			var key = "";
 			do {
-				token = tokens.matchTokenType("IDENTIFIER") || tokens.matchOpToken("-");
+				token = lexer.matchTokenType(tokens, "IDENTIFIER") || lexer.matchOpToken(tokens, "-");
 				if (token) key += token.value;
 			} while (token);
 			return {
@@ -1669,18 +1643,18 @@ var _runtime = (function () {
 	});
 
 	_parser.addLeafExpression("objectLiteral", function (parser, runtime, tokens) {
-		if (!tokens.matchOpToken("{")) return;
+		if (!lexer.matchOpToken(tokens, "{")) return;
 		var keyExpressions = [];
 		var valueExpressions = [];
-		if (!tokens.matchOpToken("}")) {
+		if (!lexer.matchOpToken(tokens, "}")) {
 			do {
 				var name = parser.requireElement("objectKey", tokens);
-				tokens.requireOpToken(":");
+				lexer.requireOpToken(tokens, ":");
 				var value = parser.requireElement("expression", tokens);
 				valueExpressions.push(value);
 				keyExpressions.push(name);
-			} while (tokens.matchOpToken(","));
-			tokens.requireOpToken("}");
+			} while (lexer.matchOpToken(tokens, ","));
+			lexer.requireOpToken(tokens, "}");
 		}
 		return {
 			type: "objectLiteral",
@@ -1701,14 +1675,14 @@ var _runtime = (function () {
 	_parser.addGrammarElement("nakedNamedArgumentList", function (parser, runtime, tokens) {
 		var fields = [];
 		var valueExpressions = [];
-		if (tokens.currentToken().type === "IDENTIFIER") {
+		if (lexer.currentToken(tokens).type === "IDENTIFIER") {
 			do {
-				var name = tokens.requireTokenType("IDENTIFIER");
-				tokens.requireOpToken(":");
+				var name = lexer.requireTokenType(tokens, "IDENTIFIER");
+				lexer.requireOpToken(tokens, ":");
 				var value = parser.requireElement("expression", tokens);
 				valueExpressions.push(value);
 				fields.push({ name: name, value: value });
-			} while (tokens.matchOpToken(","));
+			} while (lexer.matchOpToken(tokens, ","));
 		}
 		return {
 			type: "namedArgumentList",
@@ -1729,30 +1703,30 @@ var _runtime = (function () {
 	});
 
 	_parser.addGrammarElement("namedArgumentList", function (parser, runtime, tokens) {
-		if (!tokens.matchOpToken("(")) return;
+		if (!lexer.matchOpToken(tokens, "(")) return;
 		var elt = parser.requireElement("nakedNamedArgumentList", tokens);
-		tokens.requireOpToken(")");
+		lexer.requireOpToken(tokens, ")");
 		return elt;
 	});
 
 	_parser.addGrammarElement("symbol", function (parser, runtime, tokens) {
 		/** @scope {SymbolScope} */
 		var scope = "default";
-		if (tokens.matchToken("global")) {
+		if (lexer.matchToken(tokens, "global")) {
 			scope = "global";
-		} else if (tokens.matchToken("element") || tokens.matchToken("module")) {
+		} else if (lexer.matchToken(tokens, "element") || lexer.matchToken(tokens, "module")) {
 			scope = "element";
 			// optional possessive
-			if (tokens.matchOpToken("'")) {
-				tokens.requireToken("s");
+			if (lexer.matchOpToken(tokens, "'")) {
+				lexer.requireToken(tokens, "s");
 			}
-		} else if (tokens.matchToken("local")) {
+		} else if (lexer.matchToken(tokens, "local")) {
 			scope = "local";
 		}
 
 		// TODO better look ahead here
-		let eltPrefix = tokens.matchOpToken(":");
-		let identifier = tokens.matchTokenType("IDENTIFIER");
+		let eltPrefix = lexer.matchOpToken(tokens, ":");
+		let identifier = lexer.matchTokenType(tokens, "IDENTIFIER");
 		if (identifier) {
 			var name = identifier.value;
 			if (eltPrefix) {
@@ -1788,7 +1762,7 @@ var _runtime = (function () {
 	});
 
 	_parser.addLeafExpression("boolean", function (parser, runtime, tokens) {
-		var booleanLiteral = tokens.matchToken("true") || tokens.matchToken("false");
+		var booleanLiteral = lexer.matchToken(tokens, "true") || lexer.matchToken(tokens, "false");
 		if (!booleanLiteral) return;
 		const value = booleanLiteral.value === "true";
 		return {
@@ -1800,7 +1774,7 @@ var _runtime = (function () {
 	});
 
 	_parser.addLeafExpression("null", function (parser, runtime, tokens) {
-		if (tokens.matchToken("null")) {
+		if (lexer.matchToken(tokens, "null")) {
 			return {
 				type: "null",
 				evaluate: function (context) {
@@ -1811,14 +1785,14 @@ var _runtime = (function () {
 	});
 
 	_parser.addLeafExpression("arrayLiteral", function (parser, runtime, tokens) {
-		if (!tokens.matchOpToken("[")) return;
+		if (!lexer.matchOpToken(tokens, "[")) return;
 		var values = [];
-		if (!tokens.matchOpToken("]")) {
+		if (!lexer.matchOpToken(tokens, "]")) {
 			do {
 				var expr = parser.requireElement("expression", tokens);
 				values.push(expr);
-			} while (tokens.matchOpToken(","));
-			tokens.requireOpToken("]");
+			} while (lexer.matchOpToken(tokens, ","));
+			lexer.requireOpToken(tokens, "]");
 		}
 		return {
 			type: "arrayLiteral",
@@ -1834,18 +1808,18 @@ var _runtime = (function () {
 	});
 
 	_parser.addLeafExpression("blockLiteral", function (parser, runtime, tokens) {
-		if (!tokens.matchOpToken("\\")) return;
+		if (!lexer.matchOpToken(tokens, "\\")) return;
 		var args = [];
-		var arg1 = tokens.matchTokenType("IDENTIFIER");
+		var arg1 = lexer.matchTokenType(tokens, "IDENTIFIER");
 		if (arg1) {
 			args.push(arg1);
-			while (tokens.matchOpToken(",")) {
-				args.push(tokens.requireTokenType("IDENTIFIER"));
+			while (lexer.matchOpToken(tokens, ",")) {
+				args.push(lexer.requireTokenType(tokens, "IDENTIFIER"));
 			}
 		}
 		// TODO compound op token
-		tokens.requireOpToken("-");
-		tokens.requireOpToken(">");
+		lexer.requireOpToken(tokens, "-");
+		lexer.requireOpToken(tokens, ">");
 		var expr = parser.requireElement("expression", tokens);
 		return {
 			type: "blockLiteral",
@@ -1867,9 +1841,9 @@ var _runtime = (function () {
 	_parser.addGrammarElement("timeExpression", function (parser, runtime, tokens) {
 		var time = parser.requireElement("expression", tokens);
 		var factor = 1;
-		if (tokens.matchToken("s") || tokens.matchToken("seconds")) {
+		if (lexer.matchToken(tokens, "s") || lexer.matchToken(tokens, "seconds")) {
 			factor = 1000;
-		} else if (tokens.matchToken("ms") || tokens.matchToken("milliseconds")) {
+		} else if (lexer.matchToken(tokens, "ms") || lexer.matchToken(tokens, "milliseconds")) {
 			// do nothing
 		}
 		return {
@@ -1887,8 +1861,8 @@ var _runtime = (function () {
 	});
 
 	_parser.addIndirectExpression("propertyAccess", function (parser, runtime, tokens, root) {
-		if (!tokens.matchOpToken(".")) return;
-		var prop = tokens.requireTokenType("IDENTIFIER");
+		if (!lexer.matchOpToken(tokens, ".")) return;
+		var prop = lexer.requireTokenType(tokens, "IDENTIFIER");
 		var propertyAccess = {
 			type: "propertyAccess",
 			root: root,
@@ -1906,7 +1880,7 @@ var _runtime = (function () {
 	});
 
 	_parser.addIndirectExpression("of", function (parser, runtime, tokens, root) {
-		if (!tokens.matchToken("of")) return;
+		if (!lexer.matchToken(tokens, "of")) return;
 		var newRoot = parser.requireElement("expression", tokens);
 		// find the urroot
 		var childOfUrRoot = null;
@@ -1916,7 +1890,7 @@ var _runtime = (function () {
 			urRoot = urRoot.root;
 		}
 		if (urRoot.type !== "symbol" && urRoot.type !== "attributeRef") {
-			parser.raiseParseError(tokens, "Cannot take a property of a non-symbol: " + urRoot.type);
+			lexer.raiseParseError(tokens, "Cannot take a property of a non-symbol: " + urRoot.type);
 		}
 		var attribute = urRoot.type === "attributeRef";
 		var prop = urRoot.name;
@@ -1952,19 +1926,19 @@ var _runtime = (function () {
 		if (parser.possessivesDisabled) {
 			return;
 		}
-		var apostrophe = tokens.matchOpToken("'");
+		var apostrophe = lexer.matchOpToken(tokens, "'");
 		if (
 			apostrophe ||
 			(root.type === "symbol" &&
 				(root.name === "my" || root.name === "its" || root.name === "your") &&
-				tokens.currentToken().type === "IDENTIFIER")
+				lexer.currentToken(tokens).type === "IDENTIFIER")
 		) {
 			if (apostrophe) {
-				tokens.requireToken("s");
+				lexer.requireToken(tokens, "s");
 			}
 			var attribute = parser.parseElement("attributeRef", tokens);
 			if (attribute == null) {
-				var prop = tokens.requireTokenType("IDENTIFIER");
+				var prop = lexer.requireTokenType(tokens, "IDENTIFIER");
 			}
 			var propertyAccess = {
 				type: "possessive",
@@ -1990,7 +1964,7 @@ var _runtime = (function () {
 	});
 
 	_parser.addIndirectExpression("inExpression", function (parser, runtime, tokens, root) {
-		if (!tokens.matchToken("in")) return;
+		if (!lexer.matchToken(tokens, "in")) return;
 		if ((root.type !== "idRef" && root.type === "queryRef") || root.type === "classRef") {
 			var query = true;
 		}
@@ -2031,8 +2005,8 @@ var _runtime = (function () {
 	});
 
 	_parser.addIndirectExpression("asExpression", function (parser, runtime, tokens, root) {
-		if (!tokens.matchToken("as")) return;
-		tokens.matchToken("a") || tokens.matchToken("an");
+		if (!lexer.matchToken(tokens, "as")) return;
+		lexer.matchToken(tokens, "a") || lexer.matchToken(tokens, "an");
 		var conversion = parser.requireElement("dotOrColonPath", tokens).evaluate(); // OK No promise
 		var propertyAccess = {
 			type: "asExpression",
@@ -2049,13 +2023,13 @@ var _runtime = (function () {
 	});
 
 	_parser.addIndirectExpression("functionCall", function (parser, runtime, tokens, root) {
-		if (!tokens.matchOpToken("(")) return;
+		if (!lexer.matchOpToken(tokens, "(")) return;
 		var args = [];
-		if (!tokens.matchOpToken(")")) {
+		if (!lexer.matchOpToken(tokens, ")")) {
 			do {
 				args.push(parser.requireElement("expression", tokens));
-			} while (tokens.matchOpToken(","));
-			tokens.requireOpToken(")");
+			} while (lexer.matchOpToken(tokens, ","));
+			lexer.requireOpToken(tokens, ")");
 		}
 
 		if (root.root) {
@@ -2120,27 +2094,27 @@ var _runtime = (function () {
 	});
 
 	_parser.addIndirectExpression("arrayIndex", function (parser, runtime, tokens, root) {
-		if (!tokens.matchOpToken("[")) return;
+		if (!lexer.matchOpToken(tokens, "[")) return;
 		var andBefore = false;
 		var andAfter = false;
 		var firstIndex = null;
 		var secondIndex = null;
 
-		if (tokens.matchOpToken("..")) {
+		if (lexer.matchOpToken(tokens, "..")) {
 			andBefore = true;
 			firstIndex = parser.requireElement("expression", tokens);
 		} else {
 			firstIndex = parser.requireElement("expression", tokens);
 
-			if (tokens.matchOpToken("..")) {
+			if (lexer.matchOpToken(tokens, "..")) {
 				andAfter = true;
-				var current = tokens.currentToken();
+				var current = lexer.currentToken(tokens);
 				if (current.type !== "R_BRACKET") {
 					secondIndex = parser.parseElement("expression", tokens);
 				}
 			}
 		}
-		tokens.requireOpToken("]");
+		lexer.requireOpToken(tokens, "]");
 
 		var arrayIndex = {
 			type: "arrayIndex",
@@ -2171,9 +2145,9 @@ var _runtime = (function () {
 
 	_parser.addGrammarElement("postfixExpression", function (parser, runtime, tokens) {
 		var root = parser.parseElement("primaryExpression", tokens);
-		if (tokens.matchOpToken(":")) {
-			var typeName = tokens.requireTokenType("IDENTIFIER");
-			var nullOk = !tokens.matchOpToken("!");
+		if (lexer.matchOpToken(tokens, ":")) {
+			var typeName = lexer.requireTokenType(tokens, "IDENTIFIER");
+			var nullOk = !lexer.matchOpToken(tokens, "!");
 			return {
 				type: "typeCheck",
 				typeName: typeName,
@@ -2197,7 +2171,7 @@ var _runtime = (function () {
 	});
 
 	_parser.addGrammarElement("logicalNot", function (parser, runtime, tokens) {
-		if (!tokens.matchToken("not")) return;
+		if (!lexer.matchToken(tokens, "not")) return;
 		var root = parser.requireElement("unaryExpression", tokens);
 		return {
 			type: "logicalNot",
@@ -2213,7 +2187,7 @@ var _runtime = (function () {
 	});
 
 	_parser.addGrammarElement("noExpression", function (parser, runtime, tokens) {
-		if (!tokens.matchToken("no")) return;
+		if (!lexer.matchToken(tokens, "no")) return;
 		var root = parser.requireElement("unaryExpression", tokens);
 		return {
 			type: "noExpression",
@@ -2229,7 +2203,7 @@ var _runtime = (function () {
 	});
 
 	_parser.addGrammarElement("negativeNumber", function (parser, runtime, tokens) {
-		if (!tokens.matchOpToken("-")) return;
+		if (!lexer.matchOpToken(tokens, "-")) return;
 		var root = parser.requireElement("unaryExpression", tokens);
 		return {
 			type: "negativeNumber",
@@ -2303,7 +2277,7 @@ var _runtime = (function () {
 	}
 
 	_parser.addGrammarElement("relativePositionalExpression", function (parser, runtime, tokens) {
-		var op = tokens.matchAnyToken("next", "previous");
+		var op = lexer.matchAnyToken(tokens, "next", "previous");
 		if (!op) return;
 		if (op.value === "next") {
 			var forwardSearch = true;
@@ -2311,12 +2285,12 @@ var _runtime = (function () {
 
 		var thing = parser.parseElement("expression", tokens);
 
-		if (tokens.matchToken("from")) {
-			tokens.pushFollow("in");
+		if (lexer.matchToken(tokens, "from")) {
+			lexer.pushFollow(tokens, "in");
 			try {
 				var from = parser.requireElement("expression", tokens);
 			} finally {
-				tokens.popFollow();
+				lexer.popFollow(tokens);
 			}
 		} else {
 			var from = parser.requireElement("implicitMeTarget", tokens);
@@ -2324,18 +2298,18 @@ var _runtime = (function () {
 
 		var inSearch = false;
 		var withinElt;
-		if (tokens.matchToken("in")) {
+		if (lexer.matchToken(tokens, "in")) {
 			inSearch = true;
 			var inElt = parser.requireElement("expression", tokens);
-		} else if (tokens.matchToken("within")) {
+		} else if (lexer.matchToken(tokens, "within")) {
 			withinElt = parser.requireElement("expression", tokens);
 		} else {
 			withinElt = document.body;
 		}
 
 		var wrapping = false;
-		if (tokens.matchToken("with")) {
-			tokens.requireToken("wrapping")
+		if (lexer.matchToken(tokens, "with")) {
+			lexer.requireToken(tokens, "wrapping")
 			wrapping = true;
 		}
 
@@ -2382,9 +2356,9 @@ var _runtime = (function () {
 	});
 
 	_parser.addGrammarElement("positionalExpression", function (parser, runtime, tokens) {
-		var op = tokens.matchAnyToken("first", "last", "random");
+		var op = lexer.matchAnyToken(tokens, "first", "last", "random");
 		if (!op) return;
-		tokens.matchAnyToken("in", "from", "of");
+		lexer.matchAnyToken(tokens, "in", "from", "of");
 		var rhs = parser.requireElement("unaryExpression", tokens);
 		const operator = op.value;
 		return {
@@ -2420,12 +2394,12 @@ var _runtime = (function () {
 		var expr = parser.parseElement("unaryExpression", tokens);
 		var mathOp,
 			initialMathOp = null;
-		mathOp = tokens.matchAnyOpToken("+", "-", "*", "/", "%");
+		mathOp = lexer.matchAnyOpToken(tokens, "+", "-", "*", "/", "%");
 		while (mathOp) {
 			initialMathOp = initialMathOp || mathOp;
 			var operator = mathOp.value;
 			if (initialMathOp.value !== operator) {
-				parser.raiseParseError(tokens, "You must parenthesize math operations with different operators");
+				lexer.raiseParseError(tokens, "You must parenthesize math operations with different operators");
 			}
 			var rhs = parser.parseElement("unaryExpression", tokens);
 			expr = {
@@ -2451,7 +2425,7 @@ var _runtime = (function () {
 					return runtime.unifiedEval(this, context);
 				},
 			};
-			mathOp = tokens.matchAnyOpToken("+", "-", "*", "/", "%");
+			mathOp = lexer.matchAnyOpToken(tokens, "+", "-", "*", "/", "%");
 		}
 		return expr;
 	});
@@ -2481,47 +2455,47 @@ var _runtime = (function () {
 
 	_parser.addGrammarElement("comparisonOperator", function (parser, runtime, tokens) {
 		var expr = parser.parseElement("mathExpression", tokens);
-		var comparisonToken = tokens.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==");
+		var comparisonToken = lexer.matchAnyOpToken(tokens, "<", ">", "<=", ">=", "==", "===", "!=", "!==");
 		var operator = comparisonToken ? comparisonToken.value : null;
 		var hasRightValue = true; // By default, most comparisons require two values, but there are some exceptions.
 		var typeCheck = false;
 
 		if (operator == null) {
-			if (tokens.matchToken("is") || tokens.matchToken("am")) {
-				if (tokens.matchToken("not")) {
-					if (tokens.matchToken("in")) {
+			if (lexer.matchToken(tokens, "is") || lexer.matchToken(tokens, "am")) {
+				if (lexer.matchToken(tokens, "not")) {
+					if (lexer.matchToken(tokens, "in")) {
 						operator = "not in";
-					} else if (tokens.matchToken("a")) {
+					} else if (lexer.matchToken(tokens, "a")) {
 						operator = "not a";
 						typeCheck = true;
-					} else if (tokens.matchToken("empty")) {
+					} else if (lexer.matchToken(tokens, "empty")) {
 						operator = "not empty";
 						hasRightValue = false;
 					} else {
 						operator = "!=";
 					}
-				} else if (tokens.matchToken("in")) {
+				} else if (lexer.matchToken(tokens, "in")) {
 					operator = "in";
-				} else if (tokens.matchToken("a")) {
+				} else if (lexer.matchToken(tokens, "a")) {
 					operator = "a";
 					typeCheck = true;
-				} else if (tokens.matchToken("empty")) {
+				} else if (lexer.matchToken(tokens, "empty")) {
 					operator = "empty";
 					hasRightValue = false;
-				} else if (tokens.matchToken("less")) {
-					tokens.requireToken("than");
-					if (tokens.matchToken("or")) {
-						tokens.requireToken("equal");
-						tokens.requireToken("to");
+				} else if (lexer.matchToken(tokens, "less")) {
+					lexer.requireToken(tokens, "than");
+					if (lexer.matchToken(tokens, "or")) {
+						lexer.requireToken(tokens, "equal");
+						lexer.requireToken(tokens, "to");
 						operator = "<=";
 					} else {
 						operator = "<";
 					}
-				} else if (tokens.matchToken("greater")) {
-					tokens.requireToken("than");
-					if (tokens.matchToken("or")) {
-						tokens.requireToken("equal");
-						tokens.requireToken("to");
+				} else if (lexer.matchToken(tokens, "greater")) {
+					lexer.requireToken(tokens, "than");
+					if (lexer.matchToken(tokens, "or")) {
+						lexer.requireToken(tokens, "equal");
+						lexer.requireToken(tokens, "to");
 						operator = ">=";
 					} else {
 						operator = ">";
@@ -2529,22 +2503,22 @@ var _runtime = (function () {
 				} else {
 					operator = "==";
 				}
-			} else if (tokens.matchToken("matches") || tokens.matchToken("match")) {
+			} else if (lexer.matchToken(tokens, "matches") || lexer.matchToken(tokens, "match")) {
 				operator = "match";
-			} else if (tokens.matchToken("contains") || tokens.matchToken("contain")) {
+			} else if (lexer.matchToken(tokens, "contains") || lexer.matchToken(tokens, "contain")) {
 				operator = "contain";
-			} else if (tokens.matchToken("includes") || tokens.matchToken("include")) {
+			} else if (lexer.matchToken(tokens, "includes") || lexer.matchToken(tokens, "include")) {
 				operator = "include";
-			} else if (tokens.matchToken("do") || tokens.matchToken("does")) {
-				tokens.requireToken("not");
-				if (tokens.matchToken("matches") || tokens.matchToken("match")) {
+			} else if (lexer.matchToken(tokens, "do") || lexer.matchToken(tokens, "does")) {
+				lexer.requireToken(tokens, "not");
+				if (lexer.matchToken(tokens, "matches") || lexer.matchToken(tokens, "match")) {
 					operator = "not match";
-				} else if (tokens.matchToken("contains") || tokens.matchToken("contain")) {
+				} else if (lexer.matchToken(tokens, "contains") || lexer.matchToken(tokens, "contain")) {
 					operator = "not contain";
-				} else if (tokens.matchToken("include")) {
+				} else if (lexer.matchToken(tokens, "include")) {
 					operator = "not include";
 				} else {
-					parser.raiseParseError(tokens, "Expected matches or contains");
+					lexer.raiseParseError(tokens, "Expected matches or contains");
 				}
 			}
 		}
@@ -2552,8 +2526,8 @@ var _runtime = (function () {
 		if (operator) {
 			// Do not allow chained comparisons, which is dumb
 			if (typeCheck) {
-				var typeName = tokens.requireTokenType("IDENTIFIER");
-				var nullOk = !tokens.matchOpToken("!");
+				var typeName = lexer.requireTokenType(tokens, "IDENTIFIER");
+				var nullOk = !lexer.matchOpToken(tokens, "!");
 			} else if (hasRightValue) {
 				var rhs = parser.requireElement("mathExpression", tokens);
 				if (operator === "match" || operator === "not match") {
@@ -2639,11 +2613,11 @@ var _runtime = (function () {
 		var expr = parser.parseElement("comparisonExpression", tokens);
 		var logicalOp,
 			initialLogicalOp = null;
-		logicalOp = tokens.matchToken("and") || tokens.matchToken("or");
+		logicalOp = lexer.matchToken(tokens, "and") || lexer.matchToken(tokens, "or");
 		while (logicalOp) {
 			initialLogicalOp = initialLogicalOp || logicalOp;
 			if (initialLogicalOp.value !== logicalOp.value) {
-				parser.raiseParseError(tokens, "You must parenthesize logical operations with different operators");
+				lexer.raiseParseError(tokens, "You must parenthesize logical operations with different operators");
 			}
 			var rhs = parser.requireElement("comparisonExpression", tokens);
 			const operator = logicalOp.value;
@@ -2664,7 +2638,7 @@ var _runtime = (function () {
 					return runtime.unifiedEval(this, context);
 				},
 			};
-			logicalOp = tokens.matchToken("and") || tokens.matchToken("or");
+			logicalOp = lexer.matchToken(tokens, "and") || lexer.matchToken(tokens, "or");
 		}
 		return expr;
 	});
@@ -2674,7 +2648,7 @@ var _runtime = (function () {
 	});
 
 	_parser.addGrammarElement("asyncExpression", function (parser, runtime, tokens) {
-		if (tokens.matchToken("async")) {
+		if (lexer.matchToken(tokens, "async")) {
 			var value = parser.requireElement("logicalExpression", tokens);
 			var expr = {
 				type: "asyncExpression",
@@ -2693,12 +2667,12 @@ var _runtime = (function () {
 	});
 
 	_parser.addGrammarElement("expression", function (parser, runtime, tokens) {
-		tokens.matchToken("the"); // optional the
+		lexer.matchToken(tokens, "the"); // optional the
 		return parser.parseElement("asyncExpression", tokens);
 	});
 
 	_parser.addGrammarElement("assignableExpression", function (parser, runtime, tokens) {
-		tokens.matchToken("the"); // optional the
+		lexer.matchToken(tokens, "the"); // optional the
 
 		// TODO obviously we need to generalize this as a left hand side / targetable concept
 		var expr = parser.parseElement("primaryExpression", tokens);
@@ -2712,7 +2686,7 @@ var _runtime = (function () {
 		) {
 			return expr;
 		} else {
-			_parser.raiseParseError(
+			lexer.raiseParseError(
 				tokens,
 				"A target expression must be writable.  The expression type '" + (expr && expr.type) + "' is not."
 			);
@@ -2723,11 +2697,11 @@ var _runtime = (function () {
 	_parser.addGrammarElement("hyperscript", function (parser, runtime, tokens) {
 		var features = [];
 
-		if (tokens.hasMore()) {
-			while (parser.featureStart(tokens.currentToken()) || tokens.currentToken().value === "(") {
+		if (lexer.hasMore(tokens)) {
+			while (parser.featureStart(lexer.currentToken(tokens)) || lexer.currentToken(tokens).value === "(") {
 				var feature = parser.requireElement("feature", tokens);
 				features.push(feature);
-				tokens.matchToken("end"); // optional end
+				lexer.matchToken(tokens, "end"); // optional end
 			}
 		}
 		return {
@@ -2746,22 +2720,22 @@ var _runtime = (function () {
 		var args = [];
 		// handle argument list (look ahead 3)
 		if (
-			tokens.token(0).value === "(" &&
-			(tokens.token(1).value === ")" || tokens.token(2).value === "," || tokens.token(2).value === ")")
+			lexer.token(tokens, 0).value === "(" &&
+			(lexer.token(tokens, 1).value === ")" || lexer.token(tokens, 2).value === "," || lexer.token(tokens, 2).value === ")")
 		) {
-			tokens.matchOpToken("(");
+			lexer.matchOpToken(tokens, "(");
 			do {
-				args.push(tokens.requireTokenType("IDENTIFIER"));
-			} while (tokens.matchOpToken(","));
-			tokens.requireOpToken(")");
+				args.push(lexer.requireTokenType(tokens, "IDENTIFIER"));
+			} while (lexer.matchOpToken(tokens, ","));
+			lexer.requireOpToken(tokens, ")");
 		}
 		return args;
 	};
 
 	_parser.addFeature("on", function (parser, runtime, tokens) {
-		if (!tokens.matchToken("on")) return;
+		if (!lexer.matchToken(tokens, "on")) return;
 		var every = false;
-		if (tokens.matchToken("every")) {
+		if (lexer.matchToken(tokens, "every")) {
 			every = true;
 		}
 		var events = [];
@@ -2779,75 +2753,75 @@ var _runtime = (function () {
 			var args = parseEventArgs(tokens);
 
 			var filter = null;
-			if (tokens.matchOpToken("[")) {
+			if (lexer.matchOpToken(tokens, "[")) {
 				filter = parser.requireElement("expression", tokens);
-				tokens.requireOpToken("]");
+				lexer.requireOpToken(tokens, "]");
 			}
 
-			if (tokens.currentToken().type === "NUMBER") {
-				var startCountToken = tokens.consumeToken();
+			if (lexer.currentToken(tokens).type === "NUMBER") {
+				var startCountToken = lexer.consumeToken(tokens);
 				var startCount = parseInt(startCountToken.value);
-				if (tokens.matchToken("to")) {
-					var endCountToken = tokens.consumeToken();
+				if (lexer.matchToken(tokens, "to")) {
+					var endCountToken = lexer.consumeToken(tokens);
 					var endCount = parseInt(endCountToken.value);
-				} else if (tokens.matchToken("and")) {
+				} else if (lexer.matchToken(tokens, "and")) {
 					var unbounded = true;
-					tokens.requireToken("on");
+					lexer.requireToken(tokens, "on");
 				}
 			}
 
 			if (eventName === "intersection") {
 				var intersectionSpec = {};
-				if (tokens.matchToken("with")) {
+				if (lexer.matchToken(tokens, "with")) {
 					intersectionSpec["with"] = parser.requireElement("expression", tokens).evaluate();
 				}
-				if (tokens.matchToken("having")) {
+				if (lexer.matchToken(tokens, "having")) {
 					do {
-						if (tokens.matchToken("margin")) {
+						if (lexer.matchToken(tokens, "margin")) {
 							intersectionSpec["rootMargin"] = parser.requireElement("stringLike", tokens).evaluate();
-						} else if (tokens.matchToken("threshold")) {
+						} else if (lexer.matchToken(tokens, "threshold")) {
 							intersectionSpec["threshold"] = parser.requireElement("expression", tokens).evaluate();
 						} else {
-							parser.raiseParseError(tokens, "Unknown intersection config specification");
+							lexer.raiseParseError(tokens, "Unknown intersection config specification");
 						}
-					} while (tokens.matchToken("and"));
+					} while (lexer.matchToken(tokens, "and"));
 				}
 			} else if (eventName === "mutation") {
 				var mutationSpec = {};
-				if (tokens.matchToken("of")) {
+				if (lexer.matchToken(tokens, "of")) {
 					do {
-						if (tokens.matchToken("anything")) {
+						if (lexer.matchToken(tokens, "anything")) {
 							mutationSpec["attributes"] = true;
 							mutationSpec["subtree"] = true;
 							mutationSpec["characterData"] = true;
 							mutationSpec["childList"] = true;
-						} else if (tokens.matchToken("childList")) {
+						} else if (lexer.matchToken(tokens, "childList")) {
 							mutationSpec["childList"] = true;
-						} else if (tokens.matchToken("attributes")) {
+						} else if (lexer.matchToken(tokens, "attributes")) {
 							mutationSpec["attributes"] = true;
 							mutationSpec["attributeOldValue"] = true;
-						} else if (tokens.matchToken("subtree")) {
+						} else if (lexer.matchToken(tokens, "subtree")) {
 							mutationSpec["subtree"] = true;
-						} else if (tokens.matchToken("characterData")) {
+						} else if (lexer.matchToken(tokens, "characterData")) {
 							mutationSpec["characterData"] = true;
 							mutationSpec["characterDataOldValue"] = true;
-						} else if (tokens.currentToken().type === "ATTRIBUTE_REF") {
-							var attribute = tokens.consumeToken();
+						} else if (lexer.currentToken(tokens).type === "ATTRIBUTE_REF") {
+							var attribute = lexer.consumeToken(tokens);
 							if (mutationSpec["attributeFilter"] == null) {
 								mutationSpec["attributeFilter"] = [];
 							}
 							if (attribute.value.indexOf("@") == 0) {
 								mutationSpec["attributeFilter"].push(attribute.value.substring(1));
 							} else {
-								parser.raiseParseError(
+								lexer.raiseParseError(
 									tokens,
 									"Only shorthand attribute references are allowed here"
 								);
 							}
 						} else {
-							parser.raiseParseError(tokens, "Unknown mutation config specification");
+							lexer.raiseParseError(tokens, "Unknown mutation config specification");
 						}
-					} while (tokens.matchToken("or"));
+					} while (lexer.matchToken(tokens, "or"));
 				} else {
 					mutationSpec["attributes"] = true;
 					mutationSpec["characterData"] = true;
@@ -2857,32 +2831,32 @@ var _runtime = (function () {
 
 			var from = null;
 			var elsewhere = false;
-			if (tokens.matchToken("from")) {
-				if (tokens.matchToken("elsewhere")) {
+			if (lexer.matchToken(tokens, "from")) {
+				if (lexer.matchToken(tokens, "elsewhere")) {
 					elsewhere = true;
 				} else {
 					from = parser.parseElement("expression", tokens);
 					if (!from) {
-						parser.raiseParseError(tokens, 'Expected either target value or "elsewhere".');
+						lexer.raiseParseError(tokens, 'Expected either target value or "elsewhere".');
 					}
 				}
 			}
 			// support both "elsewhere" and "from elsewhere"
-			if (from === null && elsewhere === false && tokens.matchToken("elsewhere")) {
+			if (from === null && elsewhere === false && lexer.matchToken(tokens, "elsewhere")) {
 				elsewhere = true;
 			}
 
-			if (tokens.matchToken("in")) {
+			if (lexer.matchToken(tokens, "in")) {
 				var inExpr = parser.parseAnyOf(["idRef", "queryRef", "classRef"], tokens);
 			}
 
-			if (tokens.matchToken("debounced")) {
-				tokens.requireToken("at");
+			if (lexer.matchToken(tokens, "debounced")) {
+				lexer.requireToken(tokens, "at");
 				var timeExpr = parser.requireElement("timeExpression", tokens);
 				// @ts-ignore
 				var debounceTime = timeExpr.evaluate({}); // OK No promise TODO make a literal time expr
-			} else if (tokens.matchToken("throttled")) {
-				tokens.requireToken("at");
+			} else if (lexer.matchToken(tokens, "throttled")) {
+				lexer.requireToken(tokens, "at");
 				var timeExpr = parser.requireElement("timeExpression", tokens);
 				// @ts-ignore
 				var throttleTime = timeExpr.evaluate({}); // OK No promise TODO make a literal time expr
@@ -2907,21 +2881,21 @@ var _runtime = (function () {
 				debounced: undefined,
 				lastExec: undefined,
 			});
-		} while (tokens.matchToken("or"));
+		} while (lexer.matchToken(tokens, "or"));
 
 		var queue = [];
 		var queueLast = true;
 		if (!every) {
-			if (tokens.matchToken("queue")) {
-				if (tokens.matchToken("all")) {
+			if (lexer.matchToken(tokens, "queue")) {
+				if (lexer.matchToken(tokens, "all")) {
 					var queueAll = true;
 					var queueLast = false;
-				} else if (tokens.matchToken("first")) {
+				} else if (lexer.matchToken(tokens, "first")) {
 					var queueFirst = true;
-				} else if (tokens.matchToken("none")) {
+				} else if (lexer.matchToken(tokens, "none")) {
 					var queueNone = true;
 				} else {
-					tokens.requireToken("last");
+					lexer.requireToken(tokens, "last");
 				}
 			}
 		}
@@ -3152,27 +3126,27 @@ var _runtime = (function () {
 	});
 
 	_parser.addFeature("def", function (parser, runtime, tokens) {
-		if (!tokens.matchToken("def")) return;
+		if (!lexer.matchToken(tokens, "def")) return;
 		var functionName = parser.requireElement("dotOrColonPath", tokens);
 		var nameVal = functionName.evaluate(); // OK
 		var nameSpace = nameVal.split(".");
 		var funcName = nameSpace.pop();
 
 		var args = [];
-		if (tokens.matchOpToken("(")) {
-			if (tokens.matchOpToken(")")) {
+		if (lexer.matchOpToken(tokens, "(")) {
+			if (lexer.matchOpToken(tokens, ")")) {
 				// emtpy args list
 			} else {
 				do {
-					args.push(tokens.requireTokenType("IDENTIFIER"));
-				} while (tokens.matchOpToken(","));
-				tokens.requireOpToken(")");
+					args.push(lexer.requireTokenType(tokens, "IDENTIFIER"));
+				} while (lexer.matchOpToken(tokens, ","));
+				lexer.requireOpToken(tokens, ")");
 			}
 		}
 
 		var start = parser.requireElement("commandList", tokens);
-		if (tokens.matchToken("catch")) {
-			var errorSymbol = tokens.requireTokenType("IDENTIFIER").value;
+		if (lexer.matchToken(tokens, "catch")) {
+			var errorSymbol = lexer.requireTokenType(tokens, "IDENTIFIER").value;
 			var errorHandler = parser.parseElement("commandList", tokens);
 		}
 		var functionFeature = {
@@ -3283,7 +3257,7 @@ var _runtime = (function () {
 
 		if (setCmd) {
 			if (setCmd.target.scope !== "element") {
-				parser.raiseParseError(tokens, "variables declared at the feature level must be element scoped.");
+				lexer.raiseParseError(tokens, "variables declared at the feature level must be element scoped.");
 			}
 			let setFeature = {
 				start: setCmd,
@@ -3297,7 +3271,7 @@ var _runtime = (function () {
 	});
 
 	_parser.addFeature("init", function (parser, runtime, tokens) {
-		if (!tokens.matchToken("init")) return;
+		if (!lexer.matchToken(tokens, "init")) return;
 
 		var start = parser.parseElement("commandList", tokens);
 		var initFeature = {
@@ -3333,8 +3307,8 @@ var _runtime = (function () {
 	});
 
 	_parser.addFeature("worker", function (parser, runtime, tokens) {
-		if (tokens.matchToken("worker")) {
-			parser.raiseParseError(
+		if (lexer.matchToken(tokens, "worker")) {
+			lexer.raiseParseError(
 				tokens,
 				"In order to use the 'worker' feature, include " +
 					"the _hyperscript worker plugin. See " +
@@ -3345,17 +3319,17 @@ var _runtime = (function () {
 	});
 
 	_parser.addFeature("behavior", function (parser, runtime, tokens) {
-		if (!tokens.matchToken("behavior")) return;
+		if (!lexer.matchToken(tokens, "behavior")) return;
 		var path = parser.requireElement("dotOrColonPath", tokens).evaluate();
 		var nameSpace = path.split(".");
 		var name = nameSpace.pop();
 
 		var formalParams = [];
-		if (tokens.matchOpToken("(") && !tokens.matchOpToken(")")) {
+		if (lexer.matchOpToken(tokens, "(") && !lexer.matchOpToken(tokens, ")")) {
 			do {
-				formalParams.push(tokens.requireTokenType("IDENTIFIER").value);
-			} while (tokens.matchOpToken(","));
-			tokens.requireOpToken(")");
+				formalParams.push(lexer.requireTokenType(tokens, "IDENTIFIER").value);
+			} while (lexer.matchOpToken(tokens, ","));
+			lexer.requireOpToken(tokens, ")");
 		}
 		var hs = parser.requireElement("hyperscript", tokens);
 		for (var i = 0; i < hs.features.length; i++) {
@@ -3383,7 +3357,7 @@ var _runtime = (function () {
 	});
 
 	_parser.addFeature("install", function (parser, runtime, tokens) {
-		if (!tokens.matchToken("install")) return;
+		if (!lexer.matchToken(tokens, "install")) return;
 		var behaviorPath = parser.requireElement("dotOrColonPath", tokens).evaluate();
 		var behaviorNamespace = behaviorPath.split(".");
 		var args = parser.parseElement("namedArgumentList", tokens);
@@ -3415,15 +3389,15 @@ var _runtime = (function () {
 	});
 
 	_parser.addGrammarElement("jsBody", function (parser, runtime, tokens) {
-		var jsSourceStart = tokens.currentToken().start;
-		var jsLastToken = tokens.currentToken();
+		var jsSourceStart = lexer.currentToken(tokens).start;
+		var jsLastToken = lexer.currentToken(tokens);
 
 		var funcNames = [];
 		var funcName = "";
 		var expectFunctionDeclaration = false;
-		while (tokens.hasMore()) {
-			jsLastToken = tokens.consumeToken();
-			var peek = tokens.token(0, true);
+		while (lexer.hasMore(tokens)) {
+			jsLastToken = lexer.consumeToken(tokens);
+			var peek = lexer.token(tokens, 0, true);
 			if (peek.type === "IDENTIFIER" && peek.value === "end") {
 				break;
 			}
@@ -3449,7 +3423,7 @@ var _runtime = (function () {
 	});
 
 	_parser.addFeature("js", function (parser, runtime, tokens) {
-		if (!tokens.matchToken("js")) return;
+		if (!lexer.matchToken(tokens, "js")) return;
 		var jsBody = parser.requireElement("jsBody", tokens);
 
 		var jsSource =
@@ -3474,23 +3448,23 @@ var _runtime = (function () {
 	});
 
 	_parser.addCommand("js", function (parser, runtime, tokens) {
-		if (!tokens.matchToken("js")) return;
+		if (!lexer.matchToken(tokens, "js")) return;
 		// Parse inputs
 		var inputs = [];
-		if (tokens.matchOpToken("(")) {
-			if (tokens.matchOpToken(")")) {
+		if (lexer.matchOpToken(tokens, "(")) {
+			if (lexer.matchOpToken(tokens, ")")) {
 				// empty input list
 			} else {
 				do {
-					var inp = tokens.requireTokenType("IDENTIFIER");
+					var inp = lexer.requireTokenType(tokens, "IDENTIFIER");
 					inputs.push(inp.value);
-				} while (tokens.matchOpToken(","));
-				tokens.requireOpToken(")");
+				} while (lexer.matchOpToken(tokens, ","));
+				lexer.requireOpToken(tokens, ")");
 			}
 		}
 
 		var jsBody = parser.requireElement("jsBody", tokens);
-		tokens.matchToken("end");
+		lexer.matchToken(tokens, "end");
 
 		var func = varargConstructor(Function, inputs.concat([jsBody.jsSource]));
 
@@ -3521,8 +3495,8 @@ var _runtime = (function () {
 	});
 
 	_parser.addCommand("async", function (parser, runtime, tokens) {
-		if (!tokens.matchToken("async")) return;
-		if (tokens.matchToken("do")) {
+		if (!lexer.matchToken(tokens, "async")) return;
+		if (lexer.matchToken(tokens, "do")) {
 			var body = parser.requireElement("commandList", tokens);
 
 			// Append halt
@@ -3530,7 +3504,7 @@ var _runtime = (function () {
 			while (end.next) end = end.next;
 			end.next = runtime.HALT;
 
-			tokens.requireToken("end");
+			lexer.requireToken(tokens, "end");
 		} else {
 			var body = parser.requireElement("command", tokens);
 		}
@@ -3547,12 +3521,12 @@ var _runtime = (function () {
 	});
 
 	_parser.addCommand("tell", function (parser, runtime, tokens) {
-		var startToken = tokens.currentToken();
-		if (!tokens.matchToken("tell")) return;
+		var startToken = lexer.currentToken(tokens);
+		if (!lexer.matchToken(tokens, "tell")) return;
 		var value = parser.requireElement("expression", tokens);
 		var body = parser.requireElement("commandList", tokens);
-		if (tokens.hasMore() && !parser.featureStart(tokens.currentToken())) {
-			tokens.requireToken("end");
+		if (lexer.hasMore(tokens) && !parser.featureStart(lexer.currentToken(tokens))) {
+			lexer.requireToken(tokens, "end");
 		}
 		var slot = "tell_" + startToken.start;
 		var tellCmd = {
@@ -3593,15 +3567,15 @@ var _runtime = (function () {
 	});
 
 	_parser.addCommand("wait", function (parser, runtime, tokens) {
-		if (!tokens.matchToken("wait")) return;
+		if (!lexer.matchToken(tokens, "wait")) return;
 		var command;
 
 		// wait on event
-		if (tokens.matchToken("for")) {
-			tokens.matchToken("a"); // optional "a"
+		if (lexer.matchToken(tokens, "for")) {
+			lexer.matchToken(tokens, "a"); // optional "a"
 			var events = [];
 			do {
-				var lookahead = tokens.token(0);
+				var lookahead = lexer.token(tokens, 0);
 				if (lookahead.type === 'NUMBER' || lookahead.type === 'L_PAREN') {
 					events.push({
 						time: parser.requireElement('timeExpression', tokens).evaluate() // TODO: do we want to allow async here?
@@ -3612,9 +3586,9 @@ var _runtime = (function () {
 						args: parseEventArgs(tokens),
 					});
 				}
-			} while (tokens.matchToken("or"));
+			} while (lexer.matchToken(tokens, "or"));
 
-			if (tokens.matchToken("from")) {
+			if (lexer.matchToken(tokens, "from")) {
 				var on = parser.requireElement("expression", tokens);
 			}
 
@@ -3650,8 +3624,8 @@ var _runtime = (function () {
 			return command;
 		} else {
 			var time;
-			if (tokens.matchToken("a")) {
-				tokens.requireToken("tick");
+			if (lexer.matchToken(tokens, "a")) {
+				lexer.requireToken(tokens, "tick");
 				time = 0;
 			} else {
 				time = _parser.requireElement("timeExpression", tokens);
@@ -3678,15 +3652,15 @@ var _runtime = (function () {
 
 	// TODO  - colon path needs to eventually become part of ruby-style symbols
 	_parser.addGrammarElement("dotOrColonPath", function (parser, runtime, tokens) {
-		var root = tokens.matchTokenType("IDENTIFIER");
+		var root = lexer.matchTokenType(tokens, "IDENTIFIER");
 		if (root) {
 			var path = [root.value];
 
-			var separator = tokens.matchOpToken(".") || tokens.matchOpToken(":");
+			var separator = lexer.matchOpToken(tokens, ".") || lexer.matchOpToken(tokens, ":");
 			if (separator) {
 				do {
-					path.push(tokens.requireTokenType("IDENTIFIER").value);
-				} while (tokens.matchOpToken(separator.value));
+					path.push(lexer.requireTokenType(tokens, "IDENTIFIER").value);
+				} while (lexer.matchOpToken(tokens, separator.value));
 			}
 
 			return {
@@ -3702,7 +3676,7 @@ var _runtime = (function () {
 
 	_parser.addGrammarElement("eventName", function (parser, runtime, tokens) {
 		var token;
-		if ((token = tokens.matchTokenType("STRING"))) {
+		if ((token = lexer.matchTokenType(tokens, "STRING"))) {
 			return {
 				evaluate: function() {
 					return token.value;
@@ -3717,8 +3691,8 @@ var _runtime = (function () {
 		var eventName = parser.requireElement("eventName", tokens);
 
 		var details = parser.parseElement("namedArgumentList", tokens);
-		if ((cmdType === "send" && tokens.matchToken("to")) ||
-			(cmdType === "trigger" && tokens.matchToken("on"))) {
+		if ((cmdType === "send" && lexer.matchToken(tokens, "to")) ||
+			(cmdType === "trigger" && lexer.matchToken(tokens, "on"))) {
 			var to = parser.requireElement("expression", tokens);
 		} else {
 			var to = parser.requireElement("implicitMeTarget", tokens);
@@ -3740,21 +3714,21 @@ var _runtime = (function () {
 	}
 
 	_parser.addCommand("trigger", function (parser, runtime, tokens) {
-		if (tokens.matchToken("trigger")) {
+		if (lexer.matchToken(tokens, "trigger")) {
 			return parseSendCmd("trigger", parser, runtime, tokens);
 		}
 	});
 
 	_parser.addCommand("send", function (parser, runtime, tokens) {
-		if (tokens.matchToken("send")) {
+		if (lexer.matchToken(tokens, "send")) {
 			return parseSendCmd("send", parser, runtime, tokens);
 		}
 	});
 
 	var parseReturnFunction = function (parser, runtime, tokens, returnAValue) {
 		if (returnAValue) {
-			if (parser.commandBoundary(tokens.currentToken())) {
-				parser.raiseParseError(tokens, "'return' commands must return a value.  If you do not wish to return a value, use 'exit' instead.");
+			if (parser.commandBoundary(lexer.currentToken(tokens))) {
+				lexer.raiseParseError(tokens, "'return' commands must return a value.  If you do not wish to return a value, use 'exit' instead.");
 			} else {
 				var value = parser.requireElement("expression", tokens);
 			}
@@ -3783,30 +3757,30 @@ var _runtime = (function () {
 	};
 
 	_parser.addCommand("return", function (parser, runtime, tokens) {
-		if (tokens.matchToken("return")) {
+		if (lexer.matchToken(tokens, "return")) {
 			return parseReturnFunction(parser, runtime, tokens, true);
 		}
 	});
 
 	_parser.addCommand("exit", function (parser, runtime, tokens) {
-		if (tokens.matchToken("exit")) {
+		if (lexer.matchToken(tokens, "exit")) {
 			return parseReturnFunction(parser, runtime, tokens, false);
 		}
 	});
 
 	_parser.addCommand("halt", function (parser, runtime, tokens) {
-		if (tokens.matchToken("halt")) {
-			if (tokens.matchToken("the")) {
-				tokens.requireToken("event");
+		if (lexer.matchToken(tokens, "halt")) {
+			if (lexer.matchToken(tokens, "the")) {
+				lexer.requireToken(tokens, "event");
 				// optional possessive
-				if (tokens.matchOpToken("'")) {
-					tokens.requireToken("s");
+				if (lexer.matchOpToken(tokens, "'")) {
+					lexer.requireToken(tokens, "s");
 				}
 				var keepExecuting = true;
 			}
-			if (tokens.matchToken("bubbling")) {
+			if (lexer.matchToken(tokens, "bubbling")) {
 				var bubbling = true;
-			} else if (tokens.matchToken("default")) {
+			} else if (lexer.matchToken(tokens, "default")) {
 				var haltDefault = true;
 			}
 			var exit = parseReturnFunction(parser, runtime, tokens, false);
@@ -3839,12 +3813,12 @@ var _runtime = (function () {
 	});
 
 	_parser.addCommand("log", function (parser, runtime, tokens) {
-		if (!tokens.matchToken("log")) return;
+		if (!lexer.matchToken(tokens, "log")) return;
 		var exprs = [parser.parseElement("expression", tokens)];
-		while (tokens.matchOpToken(",")) {
+		while (lexer.matchOpToken(tokens, ",")) {
 			exprs.push(parser.requireElement("expression", tokens));
 		}
-		if (tokens.matchToken("with")) {
+		if (lexer.matchToken(tokens, "with")) {
 			var withExpr = parser.requireElement("expression", tokens);
 		}
 		var logCmd = {
@@ -3864,7 +3838,7 @@ var _runtime = (function () {
 	});
 
 	_parser.addCommand("throw", function (parser, runtime, tokens) {
-		if (!tokens.matchToken("throw")) return;
+		if (!lexer.matchToken(tokens, "throw")) return;
 		var expr = parser.requireElement("expression", tokens);
 		var throwCmd = {
 			expr: expr,
@@ -3896,34 +3870,34 @@ var _runtime = (function () {
 		return callCmd;
 	};
 	_parser.addCommand("call", function (parser, runtime, tokens) {
-		if (!tokens.matchToken("call")) return;
+		if (!lexer.matchToken(tokens, "call")) return;
 		var call = parseCallOrGet(parser, runtime, tokens);
 		if (call.expr && call.expr.type !== "functionCall") {
-			parser.raiseParseError(tokens, "Must be a function invocation");
+			lexer.raiseParseError(tokens, "Must be a function invocation");
 		}
 		return call;
 	});
 	_parser.addCommand("get", function (parser, runtime, tokens) {
-		if (tokens.matchToken("get")) {
+		if (lexer.matchToken(tokens, "get")) {
 			return parseCallOrGet(parser, runtime, tokens);
 		}
 	});
 
 	_parser.addCommand("make", function (parser, runtime, tokens) {
-		if (!tokens.matchToken("make")) return;
-		tokens.matchToken("a") || tokens.matchToken("an");
+		if (!lexer.matchToken(tokens, "make")) return;
+		lexer.matchToken(tokens, "a") || lexer.matchToken(tokens, "an");
 
 		var expr = parser.requireElement("expression", tokens);
 
 		var args = [];
-		if (expr.type !== "queryRef" && tokens.matchToken("from")) {
+		if (expr.type !== "queryRef" && lexer.matchToken(tokens, "from")) {
 			do {
 				args.push(parser.requireElement("expression", tokens));
-			} while (tokens.matchOpToken(","));
+			} while (lexer.matchOpToken(tokens, ","));
 		}
 
-		if (tokens.matchToken("called")) {
-			var name = tokens.requireTokenType("IDENTIFIER").value;
+		if (lexer.matchToken(tokens, "called")) {
+			var name = lexer.requireTokenType(tokens, "IDENTIFIER").value;
 		}
 
 		var command;
@@ -3974,17 +3948,17 @@ var _runtime = (function () {
 		try {
 			var expr = parser.requireElement("primaryExpression", tokens);
 		} finally {
-			tokens.popFollow();
+			lexer.popFollow(tokens);
 		}
 		if (expr.type !== "functionCall" && expr.root.type !== "symbol" && expr.root.root != null) {
-			parser.raiseParseError(tokens, "Implicit function calls must start with a simple function");
+			lexer.raiseParseError(tokens, "Implicit function calls must start with a simple function");
 		}
 
 		var functionName = expr.root.name;
 
-		if (tokens.matchAnyToken("the", "to", "on", "with", "into", "from", "at")) {
+		if (lexer.matchAnyToken(tokens, "the", "to", "on", "with", "into", "from", "at")) {
 			var target = parser.requireElement("expression", tokens);
-		} else if (tokens.matchToken("me")) {
+		} else if (lexer.matchToken(tokens, "me")) {
 			var target = parser.requireElement("implicitMeTarget", tokens);
 		}
 		var functionArgs = expr.argExressions;
@@ -4018,7 +3992,7 @@ var _runtime = (function () {
 	/**
 	* @param {ParserObject} parser
 	* @param {RuntimeObject} runtime
-	* @param {TokensObject} tokens
+	* @param {Tokens} tokens
 	* @param {*} target
 	* @param {*} value
 	* @returns
@@ -4027,7 +4001,7 @@ var _runtime = (function () {
 		var symbolWrite = target.type === "symbol";
 		var attributeWrite = target.type === "attributeRef";
 		if (!attributeWrite && !symbolWrite && target.root == null) {
-			parser.raiseParseError(tokens, "Can only put directly into symbols, not references");
+			lexer.raiseParseError(tokens, "Can only put directly into symbols, not references");
 		}
 
 		var root = null;
@@ -4072,9 +4046,9 @@ var _runtime = (function () {
 	};
 
 	_parser.addCommand("default", function (parser, runtime, tokens) {
-		if (!tokens.matchToken("default")) return;
+		if (!lexer.matchToken(tokens, "default")) return;
 		var target = parser.requireElement("assignableExpression", tokens);
-		tokens.requireToken("to");
+		lexer.requireToken(tokens, "to");
 
 		var value = parser.requireElement("expression", tokens);
 
@@ -4098,10 +4072,10 @@ var _runtime = (function () {
 	});
 
 	_parser.addCommand("set", function (parser, runtime, tokens) {
-		if (!tokens.matchToken("set")) return;
-		if (tokens.currentToken().type === "L_BRACE") {
+		if (!lexer.matchToken(tokens, "set")) return;
+		if (lexer.currentToken(tokens).type === "L_BRACE") {
 			var obj = parser.requireElement("objectLiteral", tokens);
-			tokens.requireToken("on");
+			lexer.requireToken(tokens, "on");
 			var target = parser.requireElement("expression", tokens);
 
 			var command = {
@@ -4117,26 +4091,26 @@ var _runtime = (function () {
 		}
 
 		try {
-			tokens.pushFollow("to");
+			lexer.pushFollow(tokens, "to");
 			var target = parser.requireElement("assignableExpression", tokens);
 		} finally {
-			tokens.popFollow();
+			lexer.popFollow(tokens);
 		}
-		tokens.requireToken("to");
+		lexer.requireToken(tokens, "to");
 		var value = parser.requireElement("expression", tokens);
 		return makeSetter(parser, runtime, tokens, target, value);
 	});
 
 	_parser.addCommand("if", function (parser, runtime, tokens) {
-		if (!tokens.matchToken("if")) return;
+		if (!lexer.matchToken(tokens, "if")) return;
 		var expr = parser.requireElement("expression", tokens);
-		tokens.matchToken("then"); // optional 'then'
+		lexer.matchToken(tokens, "then"); // optional 'then'
 		var trueBranch = parser.parseElement("commandList", tokens);
-		if (tokens.matchToken("else") || tokens.matchToken("otherwise")) {
+		if (lexer.matchToken(tokens, "else") || lexer.matchToken(tokens, "otherwise")) {
 			var falseBranch = parser.parseElement("commandList", tokens);
 		}
-		if (tokens.hasMore()) {
-			tokens.requireToken("end");
+		if (lexer.hasMore(tokens)) {
+			lexer.requireToken(tokens, "end");
 		}
 
 		/** @type {GrammarElement} */
@@ -4161,38 +4135,38 @@ var _runtime = (function () {
 	});
 
 	var parseRepeatExpression = function (parser, tokens, runtime, startedWithForToken) {
-		var innerStartToken = tokens.currentToken();
+		var innerStartToken = lexer.currentToken(tokens);
 		var identifier;
-		if (tokens.matchToken("for") || startedWithForToken) {
-			var identifierToken = tokens.requireTokenType("IDENTIFIER");
+		if (lexer.matchToken(tokens, "for") || startedWithForToken) {
+			var identifierToken = lexer.requireTokenType(tokens, "IDENTIFIER");
 			identifier = identifierToken.value;
-			tokens.requireToken("in");
+			lexer.requireToken(tokens, "in");
 			var expression = parser.requireElement("expression", tokens);
-		} else if (tokens.matchToken("in")) {
+		} else if (lexer.matchToken(tokens, "in")) {
 			identifier = "it";
 			var expression = parser.requireElement("expression", tokens);
-		} else if (tokens.matchToken("while")) {
+		} else if (lexer.matchToken(tokens, "while")) {
 			var whileExpr = parser.requireElement("expression", tokens);
-		} else if (tokens.matchToken("until")) {
+		} else if (lexer.matchToken(tokens, "until")) {
 			var isUntil = true;
-			if (tokens.matchToken("event")) {
+			if (lexer.matchToken(tokens, "event")) {
 				var evt = _parser.requireElement("dotOrColonPath", tokens, "Expected event name");
-				if (tokens.matchToken("from")) {
+				if (lexer.matchToken(tokens, "from")) {
 					var on = parser.requireElement("expression", tokens);
 				}
 			} else {
 				var whileExpr = parser.requireElement("expression", tokens);
 			}
-		} else if (tokens.matchTokenType("NUMBER")) {
+		} else if (lexer.matchTokenType(tokens, "NUMBER")) {
 			var times = parseFloat(innerStartToken.value);
-			tokens.requireToken("times");
+			lexer.requireToken(tokens, "times");
 		} else {
-			tokens.matchToken("forever"); // consume optional forever
+			lexer.matchToken(tokens, "forever"); // consume optional forever
 			var forever = true;
 		}
 
-		if (tokens.matchToken("index")) {
-			var identifierToken = tokens.requireTokenType("IDENTIFIER");
+		if (lexer.matchToken(tokens, "index")) {
+			var identifierToken = lexer.requireTokenType(tokens, "IDENTIFIER");
 			var indexIdentifier = identifierToken.value;
 		}
 
@@ -4216,8 +4190,8 @@ var _runtime = (function () {
 			};
 			last.next = waitATick;
 		}
-		if (tokens.hasMore()) {
-			tokens.requireToken("end");
+		if (lexer.hasMore(tokens)) {
+			lexer.requireToken(tokens, "end");
 		}
 
 		if (identifier == null) {
@@ -4317,20 +4291,20 @@ var _runtime = (function () {
 	};
 
 	_parser.addCommand("repeat", function (parser, runtime, tokens) {
-		if (tokens.matchToken("repeat")) {
+		if (lexer.matchToken(tokens, "repeat")) {
 			return parseRepeatExpression(parser, tokens, runtime, false);
 		}
 	});
 
 	_parser.addCommand("for", function (parser, runtime, tokens) {
-		if (tokens.matchToken("for")) {
+		if (lexer.matchToken(tokens, "for")) {
 			return parseRepeatExpression(parser, tokens, runtime, true);
 		}
 	});
 
   _parser.addCommand("continue", function (parser, runtime, tokens) {
 
-    if (!tokens.matchToken("continue")) return;
+    if (!lexer.matchToken(tokens, "continue")) return;
 
     var command = {
       op: function (context) {
@@ -4339,7 +4313,7 @@ var _runtime = (function () {
         for (var parent = this.parent ; true ; parent = parent.parent) {
 
           if (parent == undefined) {
-            parser.raiseParseError(tokens, "Command `continue` cannot be used outside of a `repeat` loop.")
+            lexer.raiseParseError(tokens, "Command `continue` cannot be used outside of a `repeat` loop.")
           }
           if (parent.loop != undefined) {
             return parent.resolveNext(context)
@@ -4355,13 +4329,13 @@ var _runtime = (function () {
 	});
 
 	_parser.addCommand("append", function (parser, runtime, tokens) {
-		if (!tokens.matchToken("append")) return;
+		if (!lexer.matchToken(tokens, "append")) return;
 		var target = null;
 		var prop = null;
 
 		var value = parser.requireElement("expression", tokens);
 
-		if (tokens.matchToken("to")) {
+		if (lexer.matchToken(tokens, "to")) {
 			target = parser.requireElement("expression", tokens);
 		}
 
@@ -4402,14 +4376,14 @@ var _runtime = (function () {
 	});
 
 	_parser.addCommand("increment", function (parser, runtime, tokens) {
-		if (!tokens.matchToken("increment")) return;
+		if (!lexer.matchToken(tokens, "increment")) return;
 		var amount;
 
 		// This is optional.  Defaults to "result"
 		var target = parser.parseElement("assignableExpression", tokens);
 
 		// This is optional. Defaults to 1.
-		if (tokens.matchToken("by")) {
+		if (lexer.matchToken(tokens, "by")) {
 			amount = parser.requireElement("expression", tokens);
 		}
 
@@ -4433,14 +4407,14 @@ var _runtime = (function () {
 	});
 
 	_parser.addCommand("decrement", function (parser, runtime, tokens) {
-		if (!tokens.matchToken("decrement")) return;
+		if (!lexer.matchToken(tokens, "decrement")) return;
 		var amount;
 
 		// This is optional.  Defaults to "result"
 		var target = parser.parseElement("assignableExpression", tokens);
 
 		// This is optional. Defaults to 1.
-		if (tokens.matchToken("by")) {
+		if (lexer.matchToken(tokens, "by")) {
 			amount = parser.requireElement("expression", tokens);
 		}
 
@@ -4464,10 +4438,10 @@ var _runtime = (function () {
 	});
 
 	_parser.addCommand("fetch", function (parser, runtime, tokens) {
-		if (!tokens.matchToken("fetch")) return;
+		if (!lexer.matchToken(tokens, "fetch")) return;
 		var url = parser.requireElement("stringLike", tokens);
 
-		if (tokens.matchToken("with")) {
+		if (lexer.matchToken(tokens, "with")) {
 			var args = parser.parseElement("nakedNamedArgumentList", tokens);
 		} else {
 			var args = parser.parseElement("objectLiteral", tokens);
@@ -4475,15 +4449,15 @@ var _runtime = (function () {
 
 		var type = "text";
 		var conversion;
-		if (tokens.matchToken("as")) {
-			tokens.matchToken("a") || tokens.matchToken("an");
-			if (tokens.matchToken("json") || tokens.matchToken("Object")) {
+		if (lexer.matchToken(tokens, "as")) {
+			lexer.matchToken(tokens, "a") || lexer.matchToken(tokens, "an");
+			if (lexer.matchToken(tokens, "json") || lexer.matchToken(tokens, "Object")) {
 				type = "json";
-			} else if (tokens.matchToken("response")) {
+			} else if (lexer.matchToken(tokens, "response")) {
 				type = "response";
-			} else if (tokens.matchToken("html")) {
+			} else if (lexer.matchToken(tokens, "html")) {
 				type = "html";
-			} else if (tokens.matchToken("text")) {
+			} else if (lexer.matchToken(tokens, "text")) {
 				// default, ignore
 			} else {
 				conversion = parser.requireElement("dotOrColonPath", tokens).evaluate();

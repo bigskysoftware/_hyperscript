@@ -43,7 +43,7 @@ var OP_TABLE = {
  * @param {string} c
  * @returns boolean
  */
-function isValidCSSClassChar(cz) {
+function isValidCSSClassChar(c) {
     return isAlpha(c) || isNumeric(c) || c === "-" || c === "_" || c === ":";
 }
 
@@ -122,318 +122,306 @@ function isReservedChar(c) {
  * @param {Token[]} tokens
  * @param {Token[]} consumed
  * @param {string} source
- * @returns {TokensObject}
+ * @returns {Tokens}
  */
 export function makeTokensObject(tokens, consumed, source) {
     /** @type {Tokens} */
-    const t = { tokens, consumed, source };
+    const t = {
+        tokens,
+        consumed,
+        source,
+        _lastConsumed: null,
+        _follows: [],
+    };
+
     consumeWhitespace(t); // consume initial whitespace
 
-    /** @type Token | null */
-    var _lastConsumed = null;
+    return t;
+}
 
-    function consumeWhitespace(t) {
-        while (token(t, 0, true).type === "WHITESPACE") {
-            consumed.push(tokens.shift());
-        }
-    }
 
-    /**
-     * @param {TokensObject} tokens
-     * @param {*} error
-     */
-    function raiseError(tokens, error) {
-        _parser.raiseParseError(tokens, error);
+export function consumeWhitespace(t) {
+    while (token(t, 0, true).type === "WHITESPACE") {
+        t.consumed.push(t.tokens.shift());
     }
+}
 
 /**
- * @typedef {Object} Tokens
- * @property {Token[]} tokens
- * @property {Token[]} consumed
- * @property {string} source
+ * @param {Tokens} tokens
+ * @param {*} error
  */
+export function raiseError(tokens, error) {
+    raiseParseError(tokens, error);
+}
 
-    /**
-     * @param {Tokens} t
-     * @param {string} value
-     * @returns {Token}
-     */
-    function requireOpToken(t, value) {
-        var token = matchOpToken(t, value);
-        if (token) {
-            return token;
-        } else {
-            raiseError(this, "Expected '" + value + "' but found '" + currentToken().value + "'");
+/**
+ * @param {Tokens} t
+ * @param {string} value
+ * @returns {Token}
+ */
+export function requireOpToken(t, value) {
+    var token = matchOpToken(t, value);
+    if (token) {
+        return token;
+    } else {
+        raiseError(this, "Expected '" + value + "' but found '" + currentToken(t).value + "'");
+    }
+}
+
+/**
+ * @param {Tokens} t
+ * @param {...string} ops
+ * @returns {Token | void}
+ */
+export function matchAnyOpToken(t, ...ops) {
+    for (const opToken of ops) {
+        var match = matchOpToken(t, opToken);
+        if (match) {
+            return match;
         }
     }
+}
 
-    /**
-     * @param {Tokens} t
-     * @param {...string} ops
-     * @returns {Token | void}
-     */
-    function matchAnyOpToken(t, ...ops) {
-        for (const opToken of ops) {
-            var match = matchOpToken(t, opToken);
-            if (match) {
-                return match;
-            }
+/**
+ * @param {Tokens} t
+ * @param {...string} tokens
+ * @returns {Token | void}
+ */
+export function matchAnyToken(t, ...tokens) {
+    for (const token of tokens) {
+        var match = matchToken(t, token);
+        if (match) {
+            return match;
         }
     }
+}
 
-    /**
-     * @param {Tokens} t
-     * @param {...string} tokens
-     * @returns {Token | void}
-     */
-    function matchAnyToken(t, ...tokens) {
-        for (const token of tokens) {
-            var match = matchToken(t, token);
-            if (match) {
-                return match;
-            }
-        }
+/**
+ * @param {Tokens} t
+ * @param {string} value
+ * @returns {Token | void}
+ */
+export function matchOpToken(t, value) {
+    if (currentToken(t) && currentToken(t).op && currentToken(t).value === value) {
+        return consumeToken(t);
     }
+}
 
-    /**
-     * @param {Tokens} t
-     * @param {string} value
-     * @returns {Token | void}
-     */
-    function matchOpToken(t, value) {
-        if (currentToken(t) && currentToken(t).op && currentToken(t).value === value) {
-            return consumeToken(t);
-        }
+/**
+ * @param {Tokens} t
+ * @param {...string} types
+ * @returns {Token}
+ */
+export function requireTokenType(t, ...types) {
+    var token = matchTokenType(t, ...types);
+    if (token) {
+        return token;
+    } else {
+        raiseError(t, "Expected one of " + JSON.stringify(types));
     }
+}
 
-    /**
-     * @param {Tokens} t
-     * @param {...string} types
-     * @returns {Token}
-     */
-    function requireTokenType(t, ...types) {
-        var token = matchTokenType(t, ...types);
-        if (token) {
-            return token;
-        } else {
-            raiseError(t, "Expected one of " + JSON.stringify(types));
-        }
+/**
+ * @param {Tokens} t
+ * @param {...string} types
+ * @returns {Token | void}
+ */
+export function matchTokenType(t, ...types) {
+    if (
+        currentToken(t) &&
+        currentToken(t).type &&
+        types.indexOf(currentToken(t).type) >= 0
+    ) {
+        return consumeToken(t);
     }
+}
 
-    /**
-     * @param {Tokens} t
-     * @param {...string} types
-     * @returns {Token | void}
-     */
-    function matchTokenType(t, ...types) {
-        if (
-            currentToken(t) &&
-            currentToken(t).type &&
-            types.indexOf(currentToken(t).type) >= 0
-        ) {
-            return consumeToken(t);
-        }
+/**
+ * @param {Tokens} t
+ * @param {string} value
+ * @param {string} [type]
+ * @returns {Token}
+ */
+export function requireToken(t, value, type) {
+    var token = matchToken(t, value, type);
+    if (token) {
+        return token;
+    } else {
+        raiseError(this, "Expected '" + value + "' but found '" + currentToken(t).value + "'");
     }
+}
 
-    /**
-     * @param {Tokens} t
-     * @param {string} value
-     * @param {string} [type]
-     * @returns {Token}
-     */
-    function requireToken(t, value, type) {
-        var token = matchToken(t, value, type);
-        if (token) {
-            return token;
-        } else {
-            raiseError(this, "Expected '" + value + "' but found '" + currentToken().value + "'");
-        }
+/**
+ * @param {Tokens} t
+ * @param {string} value
+ * @param {string} [type]
+ * @returns {Token | void}
+ */
+export function matchToken(t, value, type) {
+    if (t._follows.indexOf(value) !== -1) {
+        return; // disallowed token here
     }
-
-    /**
-     * @param {Tokens} t
-     * @param {string} value
-     * @param {string} [type]
-     * @returns {Token | void}
-     */
-    function matchToken(t, value, type) {
-        if (follows.indexOf(value) !== -1) {
-            return; // disallowed token here
-        }
-        var type = type || "IDENTIFIER";
-        if (currentToken(t) && currentToken(t).value === value && currentToken(t).type === type) {
-            return consumeToken(t);
-        }
+    var type = type || "IDENTIFIER";
+    if (currentToken(t) && currentToken(t).value === value && currentToken(t).type === type) {
+        return consumeToken(t);
     }
+}
 
-    /**
-     * @param {Tokens} t
-     * @returns {Token}
-     */
-    function consumeToken(t) {
+/**
+ * @param {Tokens} t
+ * @returns {Token}
+ */
+export function consumeToken(t) {
+    var match = t.tokens.shift();
+    t.consumed.push(match);
+    t._lastConsumed = match;
+    consumeWhitespace(t); // consume any whitespace
+    return match;
+}
+
+/**
+ * @param {Tokens} t
+ * @param {string} value
+ * @param {string} [type]
+ * @returns {Token[]}
+ */
+export function consumeUntil(t, value, type) {
+    /** @type Token[] */
+    var tokenList = [];
+    var currentToken = token(t, 0, true);
+
+    while (
+        (type == null || currentToken.type !== type) &&
+        (value == null || currentToken.value !== value) &&
+        currentToken.type !== "EOF"
+    ) {
         var match = t.tokens.shift();
         t.consumed.push(match);
-        _lastConsumed = match;
-        consumeWhitespace(t); // consume any whitespace
-        return match;
+        tokenList.push(currentToken);
+        currentToken = token(t, 0, true);
     }
-
-    /**
-     * @param {Tokens} t
-     * @param {string} value
-     * @param {string} [type]
-     * @returns {Token[]}
-     */
-    function consumeUntil(t, value, type) {
-        /** @type Token[] */
-        var tokenList = [];
-        var currentToken = token(t, 0, true);
-
-        while (
-            (type == null || currentToken.type !== type) &&
-            (value == null || currentToken.value !== value) &&
-            currentToken.type !== "EOF"
-        ) {
-            var match = t.tokens.shift();
-            t.consumed.push(match);
-            tokenList.push(currentToken);
-            currentToken = token(0, true);
-        }
-        consumeWhitespace(t); // consume any whitespace
-        return tokenList;
-    }
-
-    /**
-     * @param {Tokens} t
-     * @returns {string}
-     */
-    function lastWhitespace(t) {
-        if (t.consumed[t.consumed.length - 1] && t.consumed[t.consumed.length - 1].type === "WHITESPACE") {
-            return t.consumed[t.consumed.length - 1].value;
-        } else {
-            return "";
-        }
-    }
-
-    function consumeUntilWhitespace(t) {
-        return consumeUntil(t, null, "WHITESPACE");
-    }
-
-    /**
-     * @param {Tokens} t
-     * @returns {boolean}
-     */
-    function hasMore(t) {
-        return t.tokens.length > 0;
-    }
-
-    /**
-     * @param {Tokens} t
-     * @param {number} n
-     * @param {boolean} [dontIgnoreWhitespace]
-     * @returns {Token}
-     */
-    function token(t, n, dontIgnoreWhitespace) {
-        var /**@type {Token}*/ token;
-        var i = 0;
-        do {
-            if (!dontIgnoreWhitespace) {
-                while (t.tokens[i] && t.tokens[i].type === "WHITESPACE") {
-                    i++;
-                }
-            }
-            token = t.tokens[i];
-            n--;
-            i++;
-        } while (n > -1);
-        if (token) {
-            return token;
-        } else {
-            return {
-                type: "EOF",
-                value: "<<<EOF>>>",
-            };
-        }
-    }
-
-    /**
-     * @param {Tokens} t
-     * @returns {Token}
-     */
-    function currentToken(t) {
-        return token(t, 0);
-    }
-
-    /**
-     * @returns {Token | null}
-     */
-    function lastMatch() {
-        return _lastConsumed;
-    }
-
-    /**
-     * @returns {string}
-     */
-    function sourceFor(t) {
-        return t.source.substring(this.startToken.start, this.endToken.end);
-    }
-
-    /**
-     * @returns {string}
-     */
-    function lineFor() {
-        return source.split("\n")[this.startToken.line - 1];
-    }
-
-    var follows = [];
-
-    function pushFollow(str) {
-        follows.push(str);
-    }
-
-    function popFollow() {
-        follows.pop();
-    }
-
-    function clearFollows() {
-        var tmp = follows;
-        follows = [];
-        return tmp;
-    }
-
-    function restoreFollows(f) {
-        follows = f;
-    }
-
-    /** @type {TokensObject} */
-    return {
-        pushFollow: pushFollow,
-        popFollow: popFollow,
-        clearFollow: clearFollows,
-        restoreFollow: restoreFollows,
-        matchAnyToken: matchAnyToken,
-        matchAnyOpToken: matchAnyOpToken,
-        matchOpToken: matchOpToken,
-        requireOpToken: requireOpToken,
-        matchTokenType: matchTokenType,
-        requireTokenType: requireTokenType,
-        consumeToken: consumeToken,
-        matchToken: matchToken,
-        requireToken: requireToken,
-        list: tokens,
-        consumed: consumed,
-        source: source,
-        hasMore: hasMore,
-        currentToken: currentToken,
-        lastMatch: lastMatch,
-        token: token,
-        consumeUntil: consumeUntil,
-        consumeUntilWhitespace: consumeUntilWhitespace,
-        lastWhitespace: lastWhitespace,
-        sourceFor: sourceFor,
-        lineFor: lineFor,
-    };
+    consumeWhitespace(t); // consume any whitespace
+    return tokenList;
 }
+
+/**
+ * @param {Tokens} t
+ * @returns {string}
+ */
+export function lastWhitespace(t) {
+    if (t.consumed[t.consumed.length - 1] && t.consumed[t.consumed.length - 1].type === "WHITESPACE") {
+        return t.consumed[t.consumed.length - 1].value;
+    } else {
+        return "";
+    }
+}
+
+export function consumeUntilWhitespace(t) {
+    return consumeUntil(t, null, "WHITESPACE");
+}
+
+/**
+ * @param {Tokens} t
+ * @returns {boolean}
+ */
+export function hasMore(t) {
+    return t.tokens.length > 0;
+}
+
+/**
+ * @param {Tokens} t
+ * @param {number} n
+ * @param {boolean} [dontIgnoreWhitespace]
+ * @returns {Token}
+ */
+export function token(t, n, dontIgnoreWhitespace) {
+    var /**@type {Token}*/ token;
+    var i = 0;
+    do {
+        if (!dontIgnoreWhitespace) {
+            while (t.tokens[i] && t.tokens[i].type === "WHITESPACE") {
+                i++;
+            }
+        }
+        token = t.tokens[i];
+        n--;
+        i++;
+    } while (n > -1);
+    if (token) {
+        return token;
+    } else {
+        return {
+            type: "EOF",
+            value: "<<<EOF>>>",
+        };
+    }
+}
+
+/**
+ * @param {Tokens} t
+ * @returns {Token}
+ */
+export function currentToken(t) {
+    return token(t, 0);
+}
+
+/**
+ * @param {Tokens} t
+ * @returns {Token | null}
+ */
+export function lastMatch(t) {
+    return t._lastConsumed;
+}
+
+/**
+ * @param {Tokens} t
+ * @returns {string}
+ */
+export function sourceFor(t) {
+    return t.source.substring(this.startToken.start, this.endToken.end);
+}
+
+/**
+ * @param {Tokens} t
+ * @returns {string}
+ */
+export function lineFor(t) {
+    return t.source.split("\n")[this.startToken.line - 1];
+}
+
+/**
+ * @param {Tokens} t 
+ * @param {string} str 
+ */
+export function pushFollow(t, str) {
+    t._follows.push(str);
+}
+
+/**
+ * @param {Tokens} t 
+ */
+export function popFollow(t) {
+    t._follows.pop();
+}
+
+/**
+ * @param {Tokens} t 
+ * @returns {string[]}
+ */
+export function clearFollows(t) {
+    var tmp = t._follows;
+    t._follows = [];
+    return tmp;
+}
+
+/**
+ * @param {Tokens} t 
+ * @param {string[]} f 
+ */
+export function restoreFollows(t, f) {
+    t._follows = f;
+}
+
 
 /**
  * @param {Token[]} tokens
@@ -459,7 +447,7 @@ function isValidSingleQuoteStringStart(tokens) {
 /**
  * @param {string} string
  * @param {boolean} [template]
- * @returns {TokensObject}
+ * @returns {Tokens}
  */
 export function tokenize(string, template) {
     var tokens = /** @type {Token[]}*/ [];
@@ -544,7 +532,7 @@ export function tokenize(string, template) {
      * @param {string} [value]
      * @returns {Token}
      */
-    function makeToken(type, value?) {
+    function makeToken(type, value) {
         return {
             type: type,
             value: value,
@@ -778,4 +766,31 @@ export function tokenize(string, template) {
         whitespace.end = position;
         return whitespace;
     }
+}
+
+/**
+ *
+ * @param {Tokens} tokens
+ * @returns string
+ */
+function createParserContext(tokens) {
+    var currentToken = currentToken(tokens);
+    var source = tokens.source;
+    var lines = source.split("\n");
+    var line = currentToken && currentToken.line ? currentToken.line - 1 : lines.length - 1;
+    var contextLine = lines[line];
+    var offset = currentToken && currentToken.line ? currentToken.column : contextLine.length - 1;
+    return contextLine + "\n" + " ".repeat(offset) + "^^\n\n";
+}
+
+/**
+ * @param {Tokens} tokens
+ * @param {string} [message]
+ */
+export function raiseParseError(tokens, message) {
+	message =
+		(message || "Unexpected Token : " + currentToken(tokens).value) + "\n\n" + createParserContext(tokens);
+	var error = new Error(message);
+	error["tokens"] = tokens;
+	throw error;
 }

@@ -59,7 +59,6 @@ interface _Context {
 
 interface _ContextMetaData {
   parser: ParserObject;
-  lexer: LexerObject;
   runtime: RuntimeObject;
   owner: any;
   feature: GrammarElement;
