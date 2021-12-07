@@ -7,8 +7,8 @@ is responding to the event.
 ### Syntax
 
 ```ebnf
-on [every] <event-name>[(<param-list>)][\[<filter>\]] <count> [<debounce> | <throttle>]
-   { or [every] <event-name>[(<param-list>)][\[<filter>\]] <count> }
+on [every] <event-name>[(<param-list>)][\[<filter>\]] [<count>] [from <expr>] [<debounce> | <throttle>]
+   { or [every] <event-name>[(<param-list>)][\[<filter>\]] [<count>] [from <expr>] [<debounce> | <throttle>] }
     [queue (all | first | last | none)]
     {<command>}
 [end]
@@ -34,6 +34,10 @@ The optional `count` is a count filter with a value of either a specific number,
   on click 2 to 10
   on click 11 and on
 ```
+
+You can then optionally listen to an even from another element using the `from <expr>` syntax, including the special
+value `elsewhere`, which will listen for the event from elsewhere in the DOM.  (This is useful if you want "click-away to
+close" behavior.)
 
 Finally an event can specify a `debounced at` or `throttled at` value to debounce or throttle the events.
 
