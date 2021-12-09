@@ -35,7 +35,7 @@ The optional `count` is a count filter with a value of either a specific number,
   on click 11 and on
 ```
 
-You can then optionally listen to an even from another element using the `from <expr>` syntax, including the special
+You can then optionally listen to an event from another element using the `from <expr>` syntax, including the special
 value `elsewhere`, which will listen for the event from elsewhere in the DOM.  (This is useful if you want "click-away to
 close" behavior.)
 
