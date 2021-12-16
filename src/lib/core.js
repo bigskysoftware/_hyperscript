@@ -2121,13 +2121,13 @@ var _runtime = (function () {
 		let internalData = getInternalData(elt);
 		var eventQueuesForElt = internalData.eventQueues;
 		if (eventQueuesForElt == null) {
-			eventQueuesForElt = {};
+			eventQueuesForElt = new Map();
 			internalData.eventQueues = eventQueuesForElt;
 		}
-		var eventQueueForFeature = eventQueuesForElt[onFeature];
+		var eventQueueForFeature = eventQueuesForElt.get(onFeature);
 		if (eventQueueForFeature == null) {
 			eventQueueForFeature = {queue:[], executing:false};
-			eventQueuesForElt[onFeature] = eventQueueForFeature;
+			eventQueuesForElt.set(onFeature, eventQueueForFeature);
 		}
 		return eventQueueForFeature;
 	}
