@@ -4962,12 +4962,15 @@ var _runtime = (function () {
 			} else {
 				var whileExpr = parser.requireElement("expression", tokens);
 			}
-		} else if (tokens.matchTokenType("NUMBER")) {
-			var times = parseFloat(innerStartToken.value);
-			tokens.requireToken("times");
 		} else {
-			tokens.matchToken("forever"); // consume optional forever
-			var forever = true;
+			if (!parser.commandBoundary(tokens.currentToken()) &&
+			    tokens.currentToken().value !== 'forever') {
+				var times = parser.requireElement("expression", tokens);
+				tokens.requireToken("times");
+			} else {
+				tokens.matchToken("forever"); // consume optional forever
+				var forever = true;
+			}
 		}
 
 		if (tokens.matchToken("index")) {
@@ -5021,8 +5024,8 @@ var _runtime = (function () {
 				return this;
 			},
 			loop: loop,
-			args: [whileExpr],
-			op: function (context, whileValue) {
+			args: [whileExpr, times],
+			op: function (context, whileValue, times) {
 				var iteratorInfo = context.meta.iterators[slot];
 				var keepLooping = false;
 				var loopVal = null;
@@ -5037,7 +5040,7 @@ var _runtime = (function () {
 				} else if (whileExpr) {
 					keepLooping = whileValue;
 				} else if (times) {
-					keepLooping = iteratorInfo.index < this.times;
+					keepLooping = iteratorInfo.index < times;
 				} else {
 					var nextValFromIterator = iteratorInfo.iterator.next();
 					keepLooping = !nextValFromIterator.done;
