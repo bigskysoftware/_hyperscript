@@ -17,13 +17,18 @@ var globalScope = globalThis;
 //====================================================================
 
 class ElementCollection {
-	constructor(css, relativeToElement) {
+	constructor(css, relativeToElement, escape) {
 		this._css = css;
 		this.relativeToElement = relativeToElement;
+		this.escape = escape;
 	}
 
 	get css() {
-		return _runtime.escapeSelector(this._css);
+		if (this.escape) {
+			return _runtime.escapeSelector(this._css);
+		} else {
+			return this._css;
+		}
 	}
 
 	get className() {
@@ -2289,7 +2294,7 @@ var _runtime = (function () {
 				type: "classRefTemplate",
 				args: [innerExpression],
 				op: function (context, arg) {
-					return new ElementCollection("." + arg, context.me)
+					return new ElementCollection("." + arg, context.me, true)
 				},
 				evaluate: function (context) {
 					return runtime.unifiedEval(this, context);
@@ -2301,7 +2306,7 @@ var _runtime = (function () {
 				type: "classRef",
 				css: css,
 				evaluate: function (context) {
-					return new ElementCollection(css, context.me)
+					return new ElementCollection(css, context.me, true)
 				},
 			};
 		}
