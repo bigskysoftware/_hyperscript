@@ -12,8 +12,8 @@ toggle ({<class-ref>} | attribute-ref | between <class-ref> and <class-ref>)
 
 ### Description
 
-The `toggle` command allows you to toggle a class or set of classes (via a [class ref](/expresssions/class-ref)) or an attribute
-(via an [attribute ref](/expresssions/attribute-ref)) on either the current element or, if a [target expression](/expressions/target)
+The `toggle` command allows you to toggle a class or set of classes (via a [class ref](/expresssions/class-reference)) or an attribute
+(via an [attribute ref](/expressions/attribute-ref)) on either the current element or, if a [target expression](/expressions)
 is provided, to the targeted element(s).
 
 You can also use the form `toggle between .class1 and .class2` to flip between two classes.
