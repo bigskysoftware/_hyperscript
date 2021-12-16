@@ -2117,6 +2117,21 @@ var _runtime = (function () {
 		else return document;
 	}
 
+	function getEventQueueFor(elt, onFeature) {
+		let internalData = getInternalData(elt);
+		var eventQueuesForElt = internalData.eventQueues;
+		if (eventQueuesForElt == null) {
+			eventQueuesForElt = new Map();
+			internalData.eventQueues = eventQueuesForElt;
+		}
+		var eventQueueForFeature = eventQueuesForElt.get(onFeature);
+		if (eventQueueForFeature == null) {
+			eventQueueForFeature = {queue:[], executing:false};
+			eventQueuesForElt.set(onFeature, eventQueueForFeature);
+		}
+		return eventQueueForFeature;
+	}
+
 	/** @type string | null */
 	// @ts-ignore
 	var hyperscriptUrl = "document" in globalScope ? import.meta.url : null;
@@ -2151,6 +2166,7 @@ var _runtime = (function () {
 		nullCheck,
 		isEmpty,
 		getRootNode,
+		getEventQueueFor,
 		hyperscriptUrl,
 		HALT,
 	};
@@ -3688,7 +3704,6 @@ var _runtime = (function () {
 			});
 		} while (tokens.matchToken("or"));
 
-		var queue = [];
 		var queueLast = true;
 		if (!every) {
 			if (tokens.matchToken("queue")) {
@@ -3737,25 +3752,24 @@ var _runtime = (function () {
 			events: events,
 			start: start,
 			every: every,
-			executing: false,
 			execCount: 0,
-			queue: queue,
 			execute: function (/** @type {Context} */ ctx) {
-				if (this.executing && every === false) {
-					if (queueNone || (queueFirst && queue.length > 0)) {
+				let eventQueueInfo = runtime.getEventQueueFor(ctx.me, onFeature);
+				if (eventQueueInfo.executing && every === false) {
+					if (queueNone || (queueFirst && eventQueueInfo.queue.length > 0)) {
 						return;
 					}
 					if (queueLast) {
-						onFeature.queue.length = 0;
+						eventQueueInfo.queue.length = 0;
 					}
-					onFeature.queue.push(ctx);
+					eventQueueInfo.queue.push(ctx);
 					return;
 				}
 				onFeature.execCount++;
-				this.executing = true;
+				eventQueueInfo.executing = true;
 				ctx.meta.resolve = function () {
-					onFeature.executing = false;
-					var queued = onFeature.queue.shift();
+					eventQueueInfo.executing = false;
+					var queued = eventQueueInfo.queue.shift();
 					if (queued) {
 						setTimeout(function () {
 							onFeature.execute(queued);
@@ -3771,8 +3785,8 @@ var _runtime = (function () {
 					runtime.triggerEvent(ctx.me, "exception", {
 						error: err,
 					});
-					onFeature.executing = false;
-					var queued = onFeature.queue.shift();
+					eventQueueInfo.executing = false;
+					var queued = eventQueueInfo.queue.shift();
 					if (queued) {
 						setTimeout(function () {
 							onFeature.execute(queued);
