@@ -386,6 +386,9 @@ describe("the comparisonOperator expression", function () {
 
 		var result = evalHyperScript("[1,2,3] is empty");
 		result.should.equal(false);
+
+		var result = evalHyperScript(".aClassThatDoesNotExist is empty");
+		result.should.equal(true);
 	});
 
 	it("is not empty works", function () {

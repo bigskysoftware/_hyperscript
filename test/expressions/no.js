@@ -14,6 +14,11 @@ describe("the no expression", function () {
 		result.should.equal(true);
 	});
 
+	it("no returns true for empty selector", function () {
+		var result = evalHyperScript("no .aClassThatDoesNotExist");
+		result.should.equal(true);
+	});
+
 	it("no returns false for non-null", function () {
 		var result = evalHyperScript("no ['thing']");
 		result.should.equal(false);
