@@ -2,12 +2,14 @@
 /// This module provides the EventSource (SSE) feature for hyperscript
 ///=========================================================================
 
+import { matchToken, requireToken } from "../lexer/lexer.js"
+
 /**
  * @param {HyperscriptObject} _hyperscript
  */
 export default _hyperscript => {
 	_hyperscript.addFeature("eventsource", function (parser, runtime, tokens) {
-		if (tokens.matchToken("eventsource")) {
+		if (matchToken(tokens, "eventsource")) {
 			var urlElement;
 			var withCredentials = false;
 
@@ -18,13 +20,13 @@ export default _hyperscript => {
 			var eventSourceName = nameSpace.pop();
 
 			// Get the URL of the EventSource
-			if (tokens.matchToken("from")) {
+			if (matchToken(tokens, "from")) {
 				urlElement = parser.requireElement("stringLike", tokens);
 			}
 
 			// Get option to connect with/without credentials
-			if (tokens.matchToken("with")) {
-				if (tokens.matchToken("credentials")) {
+			if (matchToken(tokens, "with")) {
+				if (matchToken(tokens, "credentials")) {
 					withCredentials = true;
 				}
 			}
@@ -112,7 +114,7 @@ export default _hyperscript => {
 			};
 
 			// Parse each event listener and add it into the list
-			while (tokens.matchToken("on")) {
+			while (matchToken(tokens, "on")) {
 				// get event name
 				var eventName = parser.requireElement("stringLike", tokens, "Expected event name").evaluate(); // OK to evaluate this in real-time?
 
@@ -120,14 +122,14 @@ export default _hyperscript => {
 				var encoding = "";
 
 				// look for alternate encoding
-				if (tokens.matchToken("as")) {
+				if (matchToken(tokens, "as")) {
 					encoding = parser.requireElement("stringLike", tokens, "Expected encoding type").evaluate(); // Ok to evaluate this in real time?
 				}
 
 				// get command list for this event handler
 				var commandList = parser.requireElement("commandList", tokens);
 				addImplicitReturnToCommandList(commandList);
-				tokens.requireToken("end");
+				requireToken(tokens, "end");
 
 				// Save the event listener into the feature.  This lets us
 				// connect listeners to new EventSources if we have to reconnect.
@@ -137,7 +139,7 @@ export default _hyperscript => {
 				});
 			}
 
-			tokens.requireToken("end");
+			requireToken(tokens, "end");
 
 			// If we have a URL element, then connect to the remote server now.
 			// Otherwise, we can connect later with a call to .open()

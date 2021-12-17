@@ -1,3 +1,4 @@
+import { matchToken, matchTokenType } from "../lexer/lexer";
 
 function compileTemplate(template) {
 	return template.replace(/(?:^|\n)([^@]*)@?/gm, function (match, p1) {
@@ -18,10 +19,10 @@ export default _hyperscript => {
 	}
 
 	_hyperscript.addCommand("render", function (parser, runtime, tokens) {
-		if (!tokens.matchToken("render")) return;
+		if (!matchToken(tokens, "render")) return;
 		var template_ = parser.requireElement("expression", tokens);
 		var templateArgs = {};
-		if (tokens.matchToken("with")) {
+		if (matchToken(tokens, "with")) {
 			templateArgs = parser.parseElement("namedArgumentList", tokens);
 		}
 		return {
@@ -45,11 +46,11 @@ export default _hyperscript => {
 	}
 
 	_hyperscript.addLeafExpression("escape", function (parser, runtime, tokens) {
-		if (!tokens.matchToken("escape")) return;
-		var escapeType = tokens.matchTokenType("IDENTIFIER").value;
+		if (!matchToken(tokens, "escape")) return;
+		var escapeType = matchTokenType(tokens, "IDENTIFIER").value;
 
 		// hidden! for use in templates
-		var unescaped = tokens.matchToken("unescaped");
+		var unescaped = matchToken(tokens, "unescaped");
 
 		var arg = parser.requireElement("expression", tokens);
 

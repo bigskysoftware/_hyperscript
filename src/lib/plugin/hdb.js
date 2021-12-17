@@ -1,4 +1,6 @@
 
+import { matchToken } from "../lexer/lexer.js";
+
 /**
  * @param {HyperscriptObject} _hyperscript
  */
@@ -13,7 +15,7 @@ export default _hyperscript => {
 	} // See below for methods
 
 	_hyperscript.addCommand("breakpoint", function (parser, runtime, tokens) {
-		if (!tokens.matchToken("breakpoint")) return;
+		if (!matchToken(tokens, "breakpoint")) return;
 
 		var hdb;
 

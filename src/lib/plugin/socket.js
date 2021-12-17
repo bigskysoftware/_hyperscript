@@ -1,4 +1,5 @@
 
+import { matchToken, requireToken } from "../lexer/lexer.js";
 import { mergeObjects } from "../utils.js";
 
 function genUUID() {
@@ -73,7 +74,7 @@ export default _hyperscript => {
 			);
 		}
 
-		if (tokens.matchToken("socket")) {
+		if (matchToken(tokens, "socket")) {
 			var name = parser.requireElement("dotOrColonPath", tokens);
 			var qualifiedName = name.evaluate();
 			var nameSpace = qualifiedName.split(".");
@@ -83,15 +84,15 @@ export default _hyperscript => {
 			var url = parser.requireElement("stringLike", tokens);
 
 			var defaultTimeout = 10000;
-			if (tokens.matchToken("with")) {
-				tokens.requireToken("timeout");
+			if (matchToken(tokens, "with")) {
+				requireToken(tokens, "timeout");
 				defaultTimeout = parser.requireElement("timeExpression", tokens).evaluate();
 			}
 
-			if (tokens.matchToken("on")) {
-				tokens.requireToken("message");
-				if (tokens.matchToken("as")) {
-					tokens.requireToken("json");
+			if (matchToken(tokens, "on")) {
+				requireToken(tokens, "message");
+				if (matchToken(tokens, "as")) {
+					requireToken(tokens, "json");
 					var jsonMessages = true;
 				}
 				var messageHandler = parser.requireElement("commandList", tokens);

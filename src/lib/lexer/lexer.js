@@ -224,7 +224,7 @@ export function requireTokenType(t, ...types) {
 /**
  * @param {Tokens} t
  * @param {...string} types
- * @returns {Token | void}
+ * @returns {Token?}
  */
 export function matchTokenType(t, ...types) {
     if (

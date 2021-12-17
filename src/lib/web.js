@@ -2,6 +2,21 @@
 /// This module provides the core web functionality for hyperscript
 ///=========================================================================
 
+import { 
+	consumeToken, 
+	consumeUntilWhitespace, 
+	currentToken, 
+	hasMore, 
+	lastWhitespace, 
+	matchAnyToken, 
+	matchOpToken, 
+	matchToken, 
+	matchTokenType, 
+	raiseParseError, 
+	requireOpToken, 
+	requireToken, 
+	requireTokenType 
+} from "./lexer/lexer.js";
 import { mergeObjects } from "./utils.js"
 
 /**
@@ -9,8 +24,8 @@ import { mergeObjects } from "./utils.js"
  */
 export default _hyperscript => {
 	_hyperscript.addCommand("settle", function (parser, runtime, tokens) {
-		if (tokens.matchToken("settle")) {
-			if (!parser.commandBoundary(tokens.currentToken())) {
+		if (matchToken(tokens, "settle")) {
+			if (!parser.commandBoundary(currentToken(tokens))) {
 				var on = parser.requireElement("expression", tokens);
 			} else {
 				var on = parser.requireElement("implicitMeTarget", tokens);
@@ -65,7 +80,7 @@ export default _hyperscript => {
 	});
 
 	_hyperscript.addCommand("add", function (parser, runtime, tokens) {
-		if (tokens.matchToken("add")) {
+		if (matchToken(tokens, "add")) {
 			var classRef = parser.parseElement("classRef", tokens);
 			var attributeRef = null;
 			var cssDeclaration = null;
@@ -74,7 +89,7 @@ export default _hyperscript => {
 				if (attributeRef == null) {
 					cssDeclaration = parser.parseElement("styleLiteral", tokens);
 					if (cssDeclaration == null) {
-						parser.raiseParseError(tokens, "Expected either a class reference or attribute expression");
+						raiseParseError(tokens, "Expected either a class reference or attribute expression");
 					}
 				}
 			} else {
@@ -84,7 +99,7 @@ export default _hyperscript => {
 				}
 			}
 
-			if (tokens.matchToken("to")) {
+			if (matchToken(tokens, "to")) {
 				var to = parser.requireElement("expression", tokens);
 			} else {
 				var to = parser.parseElement("implicitMeTarget", tokens);
@@ -141,29 +156,29 @@ export default _hyperscript => {
 	});
 
 	_hyperscript.internals.parser.addGrammarElement("styleLiteral", function (parser, runtime, tokens) {
-		if (!tokens.matchOpToken("{")) return;
+		if (!matchOpToken(tokens, "{")) return;
 
 		var stringParts = [""]
 		var exprs = []
 
-		while (tokens.hasMore()) {
-			if (tokens.matchOpToken("\\")) {
-				tokens.consumeToken();
-			} else if (tokens.matchOpToken("}")) {
+		while (hasMore(tokens, )) {
+			if (matchOpToken(tokens, "\\")) {
+				consumeToken(tokens, );
+			} else if (matchOpToken(tokens, "}")) {
 				break;
-			} else if (tokens.matchToken("$")) {
-				var opencurly = tokens.matchOpToken("{");
+			} else if (matchToken(tokens, "$")) {
+				var opencurly = matchOpToken(tokens, "{");
 				var expr = parser.parseElement("expression", tokens);
-				if (opencurly) tokens.requireOpToken("}");
+				if (opencurly) requireOpToken(tokens, "}");
 
 				exprs.push(expr)
 				stringParts.push("")
 			} else {
-				var tok = tokens.consumeToken();
+				var tok = consumeToken(tokens, );
 				stringParts[stringParts.length-1] += tokens.source.substring(tok.start, tok.end);
 			}
 
-			stringParts[stringParts.length-1] += tokens.lastWhitespace();
+			stringParts[stringParts.length-1] += lastWhitespace(tokens, );
 		}
 
 		return {
@@ -186,7 +201,7 @@ export default _hyperscript => {
 	})
 
 	_hyperscript.addCommand("remove", function (parser, runtime, tokens) {
-		if (tokens.matchToken("remove")) {
+		if (matchToken(tokens, "remove")) {
 			var classRef = parser.parseElement("classRef", tokens);
 			var attributeRef = null;
 			var elementExpr = null;
@@ -195,7 +210,7 @@ export default _hyperscript => {
 				if (attributeRef == null) {
 					elementExpr = parser.parseElement("expression", tokens);
 					if (elementExpr == null) {
-						parser.raiseParseError(
+						raiseParseError(
 							tokens,
 							"Expected either a class reference, attribute expression or value expression"
 						);
@@ -208,7 +223,7 @@ export default _hyperscript => {
 				}
 			}
 
-			if (tokens.matchToken("from")) {
+			if (matchToken(tokens, "from")) {
 				var from = parser.requireElement("expression", tokens);
 			} else {
 				var from = parser.requireElement("implicitMeTarget", tokens);
@@ -255,11 +270,11 @@ export default _hyperscript => {
 	});
 
 	_hyperscript.addCommand("toggle", function (parser, runtime, tokens) {
-		if (tokens.matchToken("toggle")) {
-			if (tokens.matchToken("between")) {
+		if (matchToken(tokens, "toggle")) {
+			if (matchToken(tokens, "between")) {
 				var between = true;
 				var classRef = parser.parseElement("classRef", tokens);
-				tokens.requireToken("and");
+				requireToken(tokens, "and");
 				var classRef2 = parser.requireElement("classRef", tokens);
 			} else {
 				var classRef = parser.parseElement("classRef", tokens);
@@ -267,7 +282,7 @@ export default _hyperscript => {
 				if (classRef == null) {
 					attributeRef = parser.parseElement("attributeRef", tokens);
 					if (attributeRef == null) {
-						parser.raiseParseError(tokens, "Expected either a class reference or attribute expression");
+						raiseParseError(tokens, "Expected either a class reference or attribute expression");
 					}
 				} else {
 					var classRefs = [classRef];
@@ -277,17 +292,17 @@ export default _hyperscript => {
 				}
 			}
 
-			if (tokens.matchToken("on")) {
+			if (matchToken(tokens, "on")) {
 				var on = parser.requireElement("expression", tokens);
 			} else {
 				var on = parser.requireElement("implicitMeTarget", tokens);
 			}
 
-			if (tokens.matchToken("for")) {
+			if (matchToken(tokens, "for")) {
 				var time = parser.requireElement("timeExpression", tokens);
-			} else if (tokens.matchToken("until")) {
+			} else if (matchToken(tokens, "until")) {
 				var evt = parser.requireElement("dotOrColonPath", tokens, "Expected event name");
-				if (tokens.matchToken("from")) {
+				if (matchToken(tokens, "from")) {
 					var from = parser.requireElement("expression", tokens);
 				}
 			}
@@ -402,7 +417,7 @@ export default _hyperscript => {
 
 	var parseShowHideTarget = function (parser, runtime, tokens) {
 		var target;
-		var currentTokenValue = tokens.currentToken();
+		var currentTokenValue = currentToken(tokens, );
 		if (currentTokenValue.value === "when" || currentTokenValue.value === "with" || parser.commandBoundary(currentTokenValue)) {
 			target = parser.parseElement("implicitMeTarget", tokens);
 		} else {
@@ -426,12 +441,12 @@ export default _hyperscript => {
 	};
 
 	_hyperscript.addCommand("hide", function (parser, runtime, tokens) {
-		if (tokens.matchToken("hide")) {
+		if (matchToken(tokens, "hide")) {
 			var target = parseShowHideTarget(parser, runtime, tokens);
 
 			var name = null;
-			if (tokens.matchToken("with")) {
-				name = tokens.requireTokenType("IDENTIFIER").value;
+			if (matchToken(tokens, "with")) {
+				name = requireTokenType(tokens, "IDENTIFIER").value;
 			}
 			var hideShowStrategy = resolveStrategy(parser, tokens, name);
 
@@ -449,17 +464,17 @@ export default _hyperscript => {
 	});
 
 	_hyperscript.addCommand("show", function (parser, runtime, tokens) {
-		if (tokens.matchToken("show")) {
+		if (matchToken(tokens, "show")) {
 			var target = parseShowHideTarget(parser, runtime, tokens);
 
 			var name = null;
-			if (tokens.matchToken("with")) {
-				name = tokens.requireTokenType("IDENTIFIER").value;
+			if (matchToken(tokens, "with")) {
+				name = requireTokenType(tokens, "IDENTIFIER").value;
 			}
 			var arg = null;
-			if (tokens.matchOpToken(":")) {
-				var tokenArr = tokens.consumeUntilWhitespace();
-				tokens.matchTokenType("WHITESPACE");
+			if (matchOpToken(tokens, ":")) {
+				var tokenArr = consumeUntilWhitespace(tokens, );
+				matchTokenType(tokens, "WHITESPACE");
 				arg = tokenArr
 					.map(function (t) {
 						return t.value;
@@ -467,7 +482,7 @@ export default _hyperscript => {
 					.join("");
 			}
 
-			if (tokens.matchToken("when")) {
+			if (matchToken(tokens, "when")) {
 				var when = parser.requireElement("expression", tokens);
 			}
 
@@ -499,16 +514,16 @@ export default _hyperscript => {
 	});
 
 	_hyperscript.addCommand("take", function (parser, runtime, tokens) {
-		if (tokens.matchToken("take")) {
+		if (matchToken(tokens, "take")) {
 			var classRef = parser.parseElement("classRef", tokens);
 
-			if (tokens.matchToken("from")) {
+			if (matchToken(tokens, "from")) {
 				var from = parser.requireElement("expression", tokens);
 			} else {
 				var from = classRef;
 			}
 
-			if (tokens.matchToken("for")) {
+			if (matchToken(tokens, "for")) {
 				var forElt = parser.requireElement("expression", tokens);
 			} else {
 				var forElt = parser.requireElement("implicitMeTarget", tokens);
@@ -553,19 +568,19 @@ export default _hyperscript => {
 	}
 
 	_hyperscript.addCommand("put", function (parser, runtime, tokens) {
-		if (tokens.matchToken("put")) {
+		if (matchToken(tokens, "put")) {
 			var value = parser.requireElement("expression", tokens);
 
-			var operationToken = tokens.matchAnyToken("into", "before", "after");
+			var operationToken = matchAnyToken(tokens, "into", "before", "after");
 
-			if (operationToken == null && tokens.matchToken("at")) {
-				tokens.matchToken("the"); // optional "the"
-				operationToken = tokens.matchAnyToken("start", "end");
-				tokens.requireToken("of");
+			if (operationToken == null && matchToken(tokens, "at")) {
+				matchToken(tokens, "the"); // optional "the"
+				operationToken = matchAnyToken(tokens, "start", "end");
+				requireToken(tokens, "of");
 			}
 
 			if (operationToken == null) {
-				parser.raiseParseError(tokens, "Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
+				raiseParseError(tokens, "Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
 			}
 			var target = parser.requireElement("expression", tokens);
 
@@ -646,12 +661,12 @@ export default _hyperscript => {
 	function parsePseudopossessiveTarget(parser, runtime, tokens) {
 		var targets;
 		if (
-			tokens.matchToken("the") ||
-			tokens.matchToken("element") ||
-			tokens.matchToken("elements") ||
-			tokens.currentToken().type === "CLASS_REF" ||
-			tokens.currentToken().type === "ID_REF" ||
-			(tokens.currentToken().op && tokens.currentToken().value === "<")
+			matchToken(tokens, "the") ||
+			matchToken(tokens, "element") ||
+			matchToken(tokens, "elements") ||
+			currentToken(tokens, ).type === "CLASS_REF" ||
+			currentToken(tokens, ).type === "ID_REF" ||
+			(currentToken(tokens, ).op && currentToken(tokens, ).value === "<")
 		) {
 			parser.possessivesDisabled = true;
 			try {
@@ -660,11 +675,11 @@ export default _hyperscript => {
 				delete parser.possessivesDisabled;
 			}
 			// optional possessive
-			if (tokens.matchOpToken("'")) {
-				tokens.requireToken("s");
+			if (matchOpToken(tokens, "'")) {
+				requireToken(tokens, "s");
 			}
-		} else if (tokens.currentToken().type === "IDENTIFIER" && tokens.currentToken().value === "its") {
-			var identifier = tokens.matchToken("its");
+		} else if (currentToken(tokens, ).type === "IDENTIFIER" && currentToken(tokens, ).value === "its") {
+			var identifier = matchToken(tokens, "its");
 			targets = {
 				type: "pseudopossessiveIts",
 				token: identifier,
@@ -674,20 +689,20 @@ export default _hyperscript => {
 				},
 			};
 		} else {
-			tokens.matchToken("my") || tokens.matchToken("me"); // consume optional 'my'
+			matchToken(tokens, "my") || matchToken(tokens, "me"); // consume optional 'my'
 			targets = parser.parseElement("implicitMeTarget", tokens);
 		}
 		return targets;
 	}
 
 	_hyperscript.addCommand("transition", function (parser, runtime, tokens) {
-		if (tokens.matchToken("transition")) {
+		if (matchToken(tokens, "transition")) {
 			var targets = parsePseudopossessiveTarget(parser, runtime, tokens);
 
 			var properties = [];
 			var from = [];
 			var to = [];
-			var currentToken = tokens.currentToken();
+			var currentToken = currentToken(tokens, );
 			while (
 				!parser.commandBoundary(currentToken) &&
 				currentToken.value !== "over" &&
@@ -695,18 +710,18 @@ export default _hyperscript => {
 			) {
 				properties.push(parser.requireElement("stringLike", tokens));
 
-				if (tokens.matchToken("from")) {
+				if (matchToken(tokens, "from")) {
 					from.push(parser.requireElement("stringLike", tokens));
 				} else {
 					from.push(null);
 				}
-				tokens.requireToken("to");
+				requireToken(tokens, "to");
 				to.push(parser.requireElement("stringLike", tokens));
-				currentToken = tokens.currentToken();
+				currentToken = currentToken(tokens, );
 			}
-			if (tokens.matchToken("over")) {
+			if (matchToken(tokens, "over")) {
 				var over = parser.requireElement("timeExpression", tokens);
-			} else if (tokens.matchToken("using")) {
+			} else if (matchToken(tokens, "using")) {
 				var using = parser.requireElement("expression", tokens);
 			}
 
@@ -812,15 +827,15 @@ export default _hyperscript => {
 	});
 
 	_hyperscript.addCommand("measure", function (parser, runtime, tokens) {
-		if (!tokens.matchToken("measure")) return;
+		if (!matchToken(tokens, "measure")) return;
 
 		var target = parsePseudopossessiveTarget(parser, runtime, tokens);
 
 		var propsToMeasure = [];
-		if (!parser.commandBoundary(tokens.currentToken()))
+		if (!parser.commandBoundary(currentToken(tokens, )))
 			do {
-				propsToMeasure.push(tokens.matchTokenType("IDENTIFIER").value);
-			} while (tokens.matchOpToken(","));
+				propsToMeasure.push(matchTokenType(tokens, "IDENTIFIER").value);
+			} while (matchOpToken(tokens, ","));
 
 		return {
 			properties: propsToMeasure,
@@ -868,13 +883,13 @@ export default _hyperscript => {
 	});
 
 	_hyperscript.addLeafExpression("closestExpr", function (parser, runtime, tokens) {
-		if (tokens.matchToken("closest")) {
-			if (tokens.matchToken("parent")) {
+		if (matchToken(tokens, "closest")) {
+			if (matchToken(tokens, "parent")) {
 				var parentSearch = true;
 			}
 
 			var css = null;
-			if (tokens.currentToken().type === "ATTRIBUTE_REF") {
+			if (currentToken(tokens, ).type === "ATTRIBUTE_REF") {
 				var attributeRef = parser.parseElement("attributeRefAccess", tokens, null);
 				css = "[" + attributeRef.attribute.name + "]";
 			}
@@ -882,13 +897,13 @@ export default _hyperscript => {
 			if (css == null) {
 				var expr = parser.parseElement("expression", tokens);
 				if (expr.css == null) {
-					parser.raiseParseError(tokens, "Expected a CSS expression");
+					raiseParseError(tokens, "Expected a CSS expression");
 				} else {
 					css = expr.css;
 				}
 			}
 
-			if (tokens.matchToken("to")) {
+			if (matchToken(tokens, "to")) {
 				var to = parser.parseElement("expression", tokens);
 			} else {
 				var to = parser.parseElement("implicitMeTarget", tokens);
@@ -929,28 +944,28 @@ export default _hyperscript => {
 	});
 
 	_hyperscript.addCommand("go", function (parser, runtime, tokens) {
-		if (tokens.matchToken("go")) {
-			if (tokens.matchToken("back")) {
+		if (matchToken(tokens, "go")) {
+			if (matchToken(tokens, "back")) {
 				var back = true;
 			} else {
-				tokens.matchToken("to");
-				if (tokens.matchToken("url")) {
+				matchToken(tokens, "to");
+				if (matchToken(tokens, "url")) {
 					var target = parser.requireElement("stringLike", tokens);
 					var url = true;
-					if (tokens.matchToken("in")) {
-						tokens.requireToken("new");
-						tokens.requireToken("window");
+					if (matchToken(tokens, "in")) {
+						requireToken(tokens, "new");
+						requireToken(tokens, "window");
 						var newWindow = true;
 					}
 				} else {
-					tokens.matchToken("the"); // optional the
-					var verticalPosition = tokens.matchAnyToken("top", "bottom", "middle");
-					var horizontalPosition = tokens.matchAnyToken("left", "center", "right");
+					matchToken(tokens, "the"); // optional the
+					var verticalPosition = matchAnyToken(tokens, "top", "bottom", "middle");
+					var horizontalPosition = matchAnyToken(tokens, "left", "center", "right");
 					if (verticalPosition || horizontalPosition) {
-						tokens.requireToken("of");
+						requireToken(tokens, "of");
 					}
 					var target = parser.requireElement("expression", tokens);
-					var smoothness = tokens.matchAnyToken("smoothly", "instantly");
+					var smoothness = matchAnyToken(tokens, "smoothly", "instantly");
 
 					var scrollOptions = {};
 					if (verticalPosition) {
