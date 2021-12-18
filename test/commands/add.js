@@ -47,6 +47,16 @@ describe("the add command", function () {
 		div.classList.contains("foo").should.equal(false);
 	});
 
+	it("can add to children", function () {
+		var div = make("<div _='on click add .foo to my children'>" + "<p id='p1'></p>" + "</div>");
+		var p1 = byId("p1");
+		p1.classList.contains("foo").should.equal(false);
+		div.classList.contains("foo").should.equal(false);
+		div.click();
+		p1.classList.contains("foo").should.equal(true);
+		div.classList.contains("foo").should.equal(false);
+	});
+
 	it("can add non-class attributes", function () {
 		var div = make("<div _='on click add [@foo=\"bar\"]'></div>");
 		div.hasAttribute("foo").should.equal(false);

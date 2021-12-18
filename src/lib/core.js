@@ -1322,7 +1322,8 @@ var _runtime = (function () {
 	 * @returns {value is Array | NodeList}
 	 */
 	function isArrayLike(value) {
-		return Array.isArray(value) || (typeof NodeList !== 'undefined' && value instanceof NodeList);
+		return Array.isArray(value) ||
+			(typeof NodeList !== 'undefined' && (value instanceof NodeList || value instanceof HTMLCollection));
 	}
 
 	/**
@@ -1350,7 +1351,8 @@ var _runtime = (function () {
 	 * @returns {value is any[] | NodeList | ElementCollection}
 	 */
 	function shouldAutoIterate(value) {
-		return value instanceof ElementCollection || isArrayLike(value);
+		return  value instanceof ElementCollection ||
+			   isArrayLike(value);
 	}
 
 	/**
