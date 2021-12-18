@@ -446,6 +446,22 @@ will vary depending on what you are trying to accomplish.
 <button _="on click increment #counterText.innerText">Add</button>
 <button _="on click decrement #counterText.innerText">Subtract</button>
 
+In this case, it would also be possible to put the event handlers on the counter itself, having it listen 
+and react to click events on each of the buttons.  
+
+```html
+<p id="counterText" 
+    _="on click from #add increment my innerText
+       on click from #subtract decrement my innerText"
+>0</p>
+<button id="add">Add</button>
+<button id="subtract">Subtract</button>
+```
+
+<p id="counterText">0</p>
+<button _="on click increment #counterText.innerText">Add</button>
+<button _="on click decrement #counterText.innerText">Subtract</button>
+
 #### <a name="event_queueing"></a>[Event Queueing](#event_queueing)
 
 By default, the event handler will be run synchronously, so if the event is triggered again before the event handler
