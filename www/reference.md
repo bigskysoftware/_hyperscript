@@ -44,7 +44,7 @@ See [expressions](/expressions) for an overview.
 
 |  name | description | example
 |-------|-------------|---------
-| [it](/expressions/it) | The result of a previous command | `fetch /people as JSON then put it into people`
+| [it](/expressions/it) | The result of a previous command | `fetch /people as json then put it into people`
 | [me](/expressions/me) | Reference to the current element | `put 'clicked' into me`
 | [you](/expressions/you) | Reference to a target element | `tell <p/> remove yourself`
 
