@@ -4,7 +4,7 @@
 ### Syntax
 
 ```ebnf
-  if <conditional> [then] <command-list> [else <command-list>] end`
+  if <conditional> [then] <command-list> [(else | otherwise) <command-list>] end`
 ```
 
 ### Description
@@ -15,7 +15,7 @@ The `if` command provides the standard if-statement control flow.
 
 ```html
 <div
-  _="on click if I do not match .disabled 
+  _="on click if I do not match .disabled
                    add .clicked"
 >
   Click Me!

@@ -27,9 +27,10 @@ table {
 .logo {
     font-size: 28px;
     font-weight: bold;
-    &:hover{
-        cursor: pointer;
-    }
+}
+
+.logo:hover {
+    cursor: pointer;
 }
 
 .light {
@@ -100,21 +101,18 @@ a {
     text-align: center;
 }
 
-.nav {
-    ul {
-        list-style: none;
-        padding-left: 12px;
-    }
+.nav ul {
+    list-style: none;
+    padding-left: 12px;
 }
 
-#links {
-    a {
-        padding: 0px 8px;
-    }
-    #install {
-        display: inline-block;
-        padding: 8px;
-    }
+#links a {
+    padding: 0px 8px;
+}
+
+#links #install {
+    display: inline-block;
+    padding: 8px;
 }
 
 .hamburger {
@@ -145,9 +143,9 @@ h4 {
         overflow: hidden;
         text-align: center;
         font-size: 22px;
-        &.show {
-            height: initial;
-        }
+    }
+    #nav.show {
+        height: initial;
     }
     .hero {
         font-size: 2.5em;
@@ -293,16 +291,13 @@ h1,h2,h3,h4{
     margin-bottom: .65em;
 }
 
-* UL in content */
+/* UL in content */
 :not(.nav) ul{
     padding-left: 2em;
 }
 
 .nav ul{
     padding-left: 0;
-    li ul {
-        padding-left:12px;
-    }
 }
 
 .heading-wrapper > a {
@@ -317,6 +312,9 @@ h1,h2,h3,h4{
         opacity: 1;
     }
 
+.nav ul li ul {
+    padding-left:12px;
+}
 
 @media(min-width:45em) {
 
@@ -338,10 +336,9 @@ h1,h2,h3,h4{
     .github-stars{
         display:flex;
         align-items:center;
-        a{
-            margin:0 calc(.5em + .7vw);
-        }
-
+    }
+    .github-stars a{
+        margin:0 calc(.5em + .7vw);
     }
 
     /* Content */
@@ -369,9 +366,10 @@ h1,h2,h3,h4{
     .github-stars{
         text-align:center;
         margin-top:1em;
-        a{
-            display:block;
-        }
+
+    }
+    .github-stars a{
+        display:block;
     }
 }
 

@@ -253,9 +253,19 @@ describe("the repeat command", function () {
 		d1.innerHTML.should.equal("aaa");
 	});
 
+	it("times loop with expression works", function () {
+		var d1 = make(
+			"<div _='on click repeat 3 + 3 times" +
+				'                                    put "a" at end of me' +
+				"                                  end'></div>"
+		);
+		d1.click();
+		d1.innerHTML.should.equal("aaaaaa");
+	});
+
 	it("loop continue works", function () {
 		var d1 = make(
-			`<div _="on click 
+			`<div _="on click
 				repeat 2 times
 					for x in ['A', 'B', 'C', 'D']
 						if (x != 'D') then

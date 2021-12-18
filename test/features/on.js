@@ -519,4 +519,30 @@ describe("the on feature", function () {
 			done();
 		}, 50);
 	});
+
+	it("each behavior installation has its own event queue", function (done) {
+		var behavior = make(
+			"<script type=text/hyperscript>" +
+			"behavior DemoBehavior on foo wait 10ms then set my innerHTML to 'behavior'" +
+			"</script>"
+		);
+		var div = make("<div _='install DemoBehavior'></div>");
+		div.dispatchEvent(new CustomEvent("foo"));
+
+		var div2 = make("<div _='install DemoBehavior'></div>");
+		div2.dispatchEvent(new CustomEvent("foo"));
+
+		var div3 = make("<div _='install DemoBehavior'></div>");
+		div3.dispatchEvent(new CustomEvent("foo"));
+
+		setTimeout(function () {
+			div.innerHTML.should.equal("behavior")
+			div2.innerHTML.should.equal("behavior")
+			div3.innerHTML.should.equal("behavior")
+			delete window.DemoBehavior;
+			done();
+		}, 100);
+	});
+
+
 });

@@ -17,13 +17,18 @@ var globalScope = globalThis;
 //====================================================================
 
 class ElementCollection {
-	constructor(css, relativeToElement) {
+	constructor(css, relativeToElement, escape) {
 		this._css = css;
 		this.relativeToElement = relativeToElement;
+		this.escape = escape;
 	}
 
 	get css() {
-		return _runtime.escapeSelector(this._css);
+		if (this.escape) {
+			return _runtime.escapeSelector(this._css);
+		} else {
+			return this._css;
+		}
 	}
 
 	get className() {
@@ -43,10 +48,18 @@ class ElementCollection {
 		return false;
 	}
 
+	get length() {
+		return this.selectMatches().length;
+	}
+
 	[Symbol.iterator]() {
-		return _runtime.getRootNode(this.relativeToElement)
-			.querySelectorAll(this.css)
-			[Symbol.iterator]();
+		let query = this.selectMatches();
+		return query [Symbol.iterator]();
+	}
+
+	selectMatches() {
+		let query = _runtime.getRootNode(this.relativeToElement).querySelectorAll(this.css);
+		return query;
 	}
 }
 
@@ -795,6 +808,9 @@ var _lexer = (function () {
 				isAlpha(lastToken) ||
 				isNumeric(lastToken) ||
 				lastToken === ")" ||
+				lastToken === "\"" ||
+				lastToken === "'" ||
+				lastToken === "`" ||
 				lastToken === "}" ||
 				lastToken === "]"
 			);
@@ -1154,6 +1170,7 @@ var _parser = (function () {
 			token.value == "end" ||
 			token.value == "then" ||
 			token.value == "else" ||
+			token.value == "otherwise" ||
 			token.value == ")" ||
 			commandStart(token) ||
 			featureStart(token) ||
@@ -1318,7 +1335,8 @@ var _runtime = (function () {
 	 * @returns {value is Array | NodeList}
 	 */
 	function isArrayLike(value) {
-		return Array.isArray(value) || (typeof NodeList !== 'undefined' && value instanceof NodeList);
+		return Array.isArray(value) ||
+			(typeof NodeList !== 'undefined' && (value instanceof NodeList || value instanceof HTMLCollection));
 	}
 
 	/**
@@ -1346,7 +1364,8 @@ var _runtime = (function () {
 	 * @returns {value is any[] | NodeList | ElementCollection}
 	 */
 	function shouldAutoIterate(value) {
-		return value instanceof ElementCollection || isArrayLike(value);
+		return  value instanceof ElementCollection ||
+			   isArrayLike(value);
 	}
 
 	/**
@@ -2113,6 +2132,21 @@ var _runtime = (function () {
 		else return document;
 	}
 
+	function getEventQueueFor(elt, onFeature) {
+		let internalData = getInternalData(elt);
+		var eventQueuesForElt = internalData.eventQueues;
+		if (eventQueuesForElt == null) {
+			eventQueuesForElt = new Map();
+			internalData.eventQueues = eventQueuesForElt;
+		}
+		var eventQueueForFeature = eventQueuesForElt.get(onFeature);
+		if (eventQueueForFeature == null) {
+			eventQueueForFeature = {queue:[], executing:false};
+			eventQueuesForElt.set(onFeature, eventQueueForFeature);
+		}
+		return eventQueueForFeature;
+	}
+
 	/** @type string | null */
 	// @ts-ignore
 	var hyperscriptUrl = "document" in globalScope ? import.meta.url : null;
@@ -2147,6 +2181,7 @@ var _runtime = (function () {
 		nullCheck,
 		isEmpty,
 		getRootNode,
+		getEventQueueFor,
 		hyperscriptUrl,
 		HALT,
 	};
@@ -2285,7 +2320,7 @@ var _runtime = (function () {
 				type: "classRefTemplate",
 				args: [innerExpression],
 				op: function (context, arg) {
-					return new ElementCollection("." + arg, context.me)
+					return new ElementCollection("." + arg, context.me, true)
 				},
 				evaluate: function (context) {
 					return runtime.unifiedEval(this, context);
@@ -2297,7 +2332,7 @@ var _runtime = (function () {
 				type: "classRef",
 				css: css,
 				evaluate: function (context) {
-					return new ElementCollection(css, context.me)
+					return new ElementCollection(css, context.me, true)
 				},
 			};
 		}
@@ -3684,7 +3719,6 @@ var _runtime = (function () {
 			});
 		} while (tokens.matchToken("or"));
 
-		var queue = [];
 		var queueLast = true;
 		if (!every) {
 			if (tokens.matchToken("queue")) {
@@ -3733,25 +3767,24 @@ var _runtime = (function () {
 			events: events,
 			start: start,
 			every: every,
-			executing: false,
 			execCount: 0,
-			queue: queue,
 			execute: function (/** @type {Context} */ ctx) {
-				if (this.executing && every === false) {
-					if (queueNone || (queueFirst && queue.length > 0)) {
+				let eventQueueInfo = runtime.getEventQueueFor(ctx.me, onFeature);
+				if (eventQueueInfo.executing && every === false) {
+					if (queueNone || (queueFirst && eventQueueInfo.queue.length > 0)) {
 						return;
 					}
 					if (queueLast) {
-						onFeature.queue.length = 0;
+						eventQueueInfo.queue.length = 0;
 					}
-					onFeature.queue.push(ctx);
+					eventQueueInfo.queue.push(ctx);
 					return;
 				}
 				onFeature.execCount++;
-				this.executing = true;
+				eventQueueInfo.executing = true;
 				ctx.meta.resolve = function () {
-					onFeature.executing = false;
-					var queued = onFeature.queue.shift();
+					eventQueueInfo.executing = false;
+					var queued = eventQueueInfo.queue.shift();
 					if (queued) {
 						setTimeout(function () {
 							onFeature.execute(queued);
@@ -3767,8 +3800,8 @@ var _runtime = (function () {
 					runtime.triggerEvent(ctx.me, "exception", {
 						error: err,
 					});
-					onFeature.executing = false;
-					var queued = onFeature.queue.shift();
+					eventQueueInfo.executing = false;
+					var queued = eventQueueInfo.queue.shift();
 					if (queued) {
 						setTimeout(function () {
 							onFeature.execute(queued);
@@ -4907,7 +4940,7 @@ var _runtime = (function () {
 		var expr = parser.requireElement("expression", tokens);
 		tokens.matchToken("then"); // optional 'then'
 		var trueBranch = parser.parseElement("commandList", tokens);
-		if (tokens.matchToken("else")) {
+		if (tokens.matchToken("else") || tokens.matchToken("otherwise")) {
 			var falseBranch = parser.parseElement("commandList", tokens);
 		}
 		if (tokens.hasMore()) {
@@ -4958,12 +4991,15 @@ var _runtime = (function () {
 			} else {
 				var whileExpr = parser.requireElement("expression", tokens);
 			}
-		} else if (tokens.matchTokenType("NUMBER")) {
-			var times = parseFloat(innerStartToken.value);
-			tokens.requireToken("times");
 		} else {
-			tokens.matchToken("forever"); // consume optional forever
-			var forever = true;
+			if (!parser.commandBoundary(tokens.currentToken()) &&
+			    tokens.currentToken().value !== 'forever') {
+				var times = parser.requireElement("expression", tokens);
+				tokens.requireToken("times");
+			} else {
+				tokens.matchToken("forever"); // consume optional forever
+				var forever = true;
+			}
 		}
 
 		if (tokens.matchToken("index")) {
@@ -5017,8 +5053,8 @@ var _runtime = (function () {
 				return this;
 			},
 			loop: loop,
-			args: [whileExpr],
-			op: function (context, whileValue) {
+			args: [whileExpr, times],
+			op: function (context, whileValue, times) {
 				var iteratorInfo = context.meta.iterators[slot];
 				var keepLooping = false;
 				var loopVal = null;
@@ -5033,7 +5069,7 @@ var _runtime = (function () {
 				} else if (whileExpr) {
 					keepLooping = whileValue;
 				} else if (times) {
-					keepLooping = iteratorInfo.index < this.times;
+					keepLooping = iteratorInfo.index < times;
 				} else {
 					var nextValFromIterator = iteratorInfo.iterator.next();
 					keepLooping = !nextValFromIterator.done;
@@ -5131,48 +5167,55 @@ var _runtime = (function () {
 
 	_parser.addCommand("append", function (parser, runtime, tokens) {
 		if (!tokens.matchToken("append")) return;
-		var target = null;
-		var prop = null;
+		var targetExpr = null;
 
 		var value = parser.requireElement("expression", tokens);
 
+		var implicitResultSymbol = {
+			type: "symbol",
+			evaluate: function (context) {
+				return runtime.resolveSymbol("result", context);
+			},
+		};
+
 		if (tokens.matchToken("to")) {
-			target = parser.requireElement("expression", tokens);
+			targetExpr = parser.requireElement("expression", tokens);
+		} else {
+			targetExpr = implicitResultSymbol;
 		}
 
-		if (target == null) {
-			prop = "result";
-		} else if (target.type === "symbol") {
-			prop = target.name;
-		} else if (target.type === "propertyAccess") {
-			prop = target.prop.value;
-		} else {
-			throw "Unable to append to " + target.type;
+		var setter = null;
+		if (targetExpr.type === "symbol" || targetExpr.type === "attributeRef" || targetExpr.root != null) {
+			setter = makeSetter(parser, runtime, tokens, targetExpr, implicitResultSymbol);
 		}
 
 		var command = {
 			value: value,
-			target: target,
-			args: [value],
-			op: function (context, value) {
-				if (Array.isArray(context[prop])) {
-					context[prop].push(value);
-				} else if (context[prop] instanceof Element) {
-					if (typeof value == "string") {
-						context[prop].innerHTML += value;
-					} else {
-						throw "Don't know how to append non-strings to an HTML Element yet.";
-					}
+			target: targetExpr,
+			args: [targetExpr, value],
+			op: function (context, target, value) {
+				if (Array.isArray(target)) {
+					target.push(value);
+					return runtime.findNext(this, context);
+				} else if (target instanceof Element) {
+					target.innerHTML += value;
+					return runtime.findNext(this, context);
+				} else if(setter) {
+					context.result = (target || "") + value;
+					return setter;
 				} else {
-					context[prop] += value;
+					throw Error("Unable to append a value!")
 				}
-
-				return runtime.findNext(this, context);
 			},
 			execute: function (context) {
 				return runtime.unifiedExec(this, context/*, value, target*/);
 			},
 		};
+
+		if (setter != null) {
+			setter.parent = command;
+		}
+
 		return command;
 	});
 
@@ -5188,23 +5231,23 @@ var _runtime = (function () {
 			amount = parser.requireElement("expression", tokens);
 		}
 
-		var command = {
+		var implicitIncrementOp = {
+			type: "implicitIncrementOp",
 			target: target,
 			args: [target, amount],
 			op: function (context, targetValue, amount) {
 				targetValue = targetValue ? parseFloat(targetValue) : 0;
 				amount = amount ? parseFloat(amount) : 1;
 				var newValue = targetValue + amount;
-				var setter = makeSetter(parser, runtime, tokens, target, newValue);
 				context.result = newValue;
-				setter.parent = this;
-				return setter;
+				return newValue;
 			},
-			execute: function (context) {
-				return runtime.unifiedExec(this, context/* , target, amount */);
-			},
+			evaluate: function (context) {
+				return runtime.unifiedEval(this, context);
+			}
 		};
-		return command;
+
+		return makeSetter(parser, runtime, tokens, target, implicitIncrementOp);
 	});
 
 	_parser.addCommand("decrement", function (parser, runtime, tokens) {
@@ -5219,23 +5262,23 @@ var _runtime = (function () {
 			amount = parser.requireElement("expression", tokens);
 		}
 
-		var command = {
+		var implicitDecrementOp = {
+			type: "implicitDecrementOp",
 			target: target,
 			args: [target, amount],
 			op: function (context, targetValue, amount) {
 				targetValue = targetValue ? parseFloat(targetValue) : 0;
 				amount = amount ? parseFloat(amount) : 1;
 				var newValue = targetValue - amount;
-				var setter = makeSetter(parser, runtime, tokens, target, newValue);
 				context.result = newValue;
-				setter.parent = this;
-				return setter;
+				return newValue;
 			},
-			execute: function (context) {
-				return runtime.unifiedExec(this, context/*, target, amount*/);
-			},
+			evaluate: function (context) {
+				return runtime.unifiedEval(this, context);
+			}
 		};
-		return command;
+
+		return makeSetter(parser, runtime, tokens, target, implicitDecrementOp);
 	});
 
 	_parser.addCommand("fetch", function (parser, runtime, tokens) {
