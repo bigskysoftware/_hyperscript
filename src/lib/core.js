@@ -48,10 +48,18 @@ class ElementCollection {
 		return false;
 	}
 
+	get length() {
+		return this.selectMatches().length;
+	}
+
 	[Symbol.iterator]() {
-		return _runtime.getRootNode(this.relativeToElement)
-			.querySelectorAll(this.css)
-			[Symbol.iterator]();
+		let query = this.selectMatches();
+		return query [Symbol.iterator]();
+	}
+
+	selectMatches() {
+		let query = _runtime.getRootNode(this.relativeToElement).querySelectorAll(this.css);
+		return query;
 	}
 }
 
