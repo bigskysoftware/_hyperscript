@@ -544,5 +544,69 @@ describe("the on feature", function () {
 		}, 100);
 	});
 
+	it("can catch exceptions thrown in js functions", function () {
+		window.throwBar =  function() {
+			throw "bar";
+		}
+		var btn = make(
+			"<button _='on click throwBar() catch e put e into me'></button>"
+		);
+		btn.click();
+		btn.innerHTML.should.equal("bar");
+		delete window.throwBar;
+	});
+
+	it("can catch exceptions thrown in hyperscript functions", function () {
+		make("<script type='text/hyperscript'>" +
+			"  def throwBar()" +
+			"    throw 'bar'" +
+			"  end" +
+			"</script>s")
+		var btn = make(
+			"<button _='on click throwBar() catch e put e into me'></button>"
+		);
+		btn.click();
+		btn.innerHTML.should.equal("bar");
+		delete window.throwBar;
+	});
+
+	it("can catch top-level exceptions", function () {
+		var btn = make(
+			"<button _='on click throw \"bar\" catch e put e into me'></button>"
+		);
+		btn.click();
+		btn.innerHTML.should.equal("bar");
+	});
+
+	it("can catch async top-level exceptions", function (done) {
+		var btn = make(
+			"<button _='on click wait 1ms then throw \"bar\" catch e put e into me'></button>"
+		);
+		btn.click();
+		setTimeout(function () {
+			btn.innerHTML.should.equal("bar");
+			done();
+		}, 10);
+	});
+
+	it("async exceptions don't kill the event queue", function (done) {
+		var btn = make(
+			"<button _='on click " +
+			"                    increment :x  " +
+			"                    if :x is 1 " +
+			"                      wait 1ms then throw \"bar\" " +
+			"                    otherwise " +
+			"                      put \"success\" into me" +
+			"                    end " +
+			"                    catch e " +
+			"                      put e into me'></button>"
+		);
+		btn.click();
+		btn.click();
+		setTimeout(function () {
+			btn.innerHTML.should.equal("success");
+			done();
+		}, 20);
+	});
 
 });
