@@ -1222,7 +1222,16 @@ var _parser = (function () {
 //====================================================================
 
 var CONVERSIONS = {
-	dynamicResolvers: /** @type DynamicConversionFunction[] */ [],
+	dynamicResolvers: /** @type DynamicConversionFunction[] */ [
+		function(str, value){
+			if (str === "Fixed") {
+				return Number(value).toFixed();
+			} else if (str.indexOf("Fixed:") === 0) {
+				let num = str.split(":")[1];
+				return Number(value).toFixed(parseInt(num));
+			}
+		}
+	],
 	String: function (val) {
 		if (val.toString) {
 			return val.toString();
@@ -1237,7 +1246,6 @@ var CONVERSIONS = {
 		return parseFloat(val);
 	},
 	Number: function (val) {
-		console.log(val);
 		return Number(val);
 	},
 	Date: function (val) {
@@ -3814,7 +3822,6 @@ var _runtime = (function () {
 						if (eventSpec.mutationSpec) {
 							eventName = "hyperscript:mutation";
 							const observer = new MutationObserver(function (mutationList, observer) {
-								console.log(target, mutationList);
 								if (!onFeature.executing) {
 									_runtime.triggerEvent(target, eventName, {
 										mutationList: mutationList,
@@ -4480,7 +4487,7 @@ var _runtime = (function () {
 			var separator = tokens.matchOpToken(".") || tokens.matchOpToken(":");
 			if (separator) {
 				do {
-					path.push(tokens.requireTokenType("IDENTIFIER").value);
+					path.push(tokens.requireTokenType("IDENTIFIER", "NUMBER").value);
 				} while (tokens.matchOpToken(separator.value));
 			}
 

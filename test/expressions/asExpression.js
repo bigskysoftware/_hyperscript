@@ -27,6 +27,14 @@ describe("as operator", function () {
 		result.should.equal(10.4);
 	});
 
+	it("converts value as Fixed", function () {
+		var result = evalHyperScript("'10.4' as Fixed");
+		result.should.equal('10');
+
+		var result = evalHyperScript("'10.4899' as Fixed:2");
+		result.should.equal('10.49');
+	});
+
 	it("converts value as Number", function () {
 		var result = evalHyperScript("'10' as Number");
 		result.should.equal(10);
