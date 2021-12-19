@@ -2127,9 +2127,11 @@ var _runtime = (function () {
 	* @returns {Document|ShadowRoot}
 	*/
 	function getRootNode(node) {
-		var rv = node.getRootNode();
-		if (rv instanceof Document || rv instanceof ShadowRoot) return rv;
-		else return document;
+		if (node && node instanceof Node) {
+			var rv = node.getRootNode();
+			if (rv instanceof Document || rv instanceof ShadowRoot) return rv;
+		}
+		return document;
 	}
 
 	function getEventQueueFor(elt, onFeature) {
@@ -3033,6 +3035,22 @@ var _runtime = (function () {
 				return runtime.isEmpty(val);
 			},
 			evaluate: function (context) {
+				return runtime.unifiedEval(this, context);
+			},
+		};
+	});
+
+	_parser.addLeafExpression("some", function (parser, runtime, tokens) {
+		if (!tokens.matchToken("some")) return;
+		var root = parser.requireElement("expression", tokens);
+		return {
+			type: "noExpression",
+			root: root,
+			args: [root],
+			op: function (_context, val) {
+				return !runtime.isEmpty(val);
+			},
+			evaluate(ctx) {
 				return runtime.unifiedEval(this, context);
 			},
 		};
