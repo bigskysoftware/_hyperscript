@@ -17,13 +17,18 @@ var globalScope = globalThis;
 //====================================================================
 
 class ElementCollection {
-	constructor(css, relativeToElement) {
+	constructor(css, relativeToElement, escape) {
 		this._css = css;
 		this.relativeToElement = relativeToElement;
+		this.escape = escape;
 	}
 
 	get css() {
-		return _runtime.escapeSelector(this._css);
+		if (this.escape) {
+			return _runtime.escapeSelector(this._css);
+		} else {
+			return this._css;
+		}
 	}
 
 	get className() {
@@ -43,10 +48,18 @@ class ElementCollection {
 		return false;
 	}
 
+	get length() {
+		return this.selectMatches().length;
+	}
+
 	[Symbol.iterator]() {
-		return _runtime.getRootNode(this.relativeToElement)
-			.querySelectorAll(this.css)
-			[Symbol.iterator]();
+		let query = this.selectMatches();
+		return query [Symbol.iterator]();
+	}
+
+	selectMatches() {
+		let query = _runtime.getRootNode(this.relativeToElement).querySelectorAll(this.css);
+		return query;
 	}
 }
 
@@ -1322,7 +1335,8 @@ var _runtime = (function () {
 	 * @returns {value is Array | NodeList}
 	 */
 	function isArrayLike(value) {
-		return Array.isArray(value) || (typeof NodeList !== 'undefined' && value instanceof NodeList);
+		return Array.isArray(value) ||
+			(typeof NodeList !== 'undefined' && (value instanceof NodeList || value instanceof HTMLCollection));
 	}
 
 	/**
@@ -1350,7 +1364,8 @@ var _runtime = (function () {
 	 * @returns {value is any[] | NodeList | ElementCollection}
 	 */
 	function shouldAutoIterate(value) {
-		return value instanceof ElementCollection || isArrayLike(value);
+		return  value instanceof ElementCollection ||
+			   isArrayLike(value);
 	}
 
 	/**
@@ -2305,7 +2320,7 @@ var _runtime = (function () {
 				type: "classRefTemplate",
 				args: [innerExpression],
 				op: function (context, arg) {
-					return new ElementCollection("." + arg, context.me)
+					return new ElementCollection("." + arg, context.me, true)
 				},
 				evaluate: function (context) {
 					return runtime.unifiedEval(this, context);
@@ -2317,7 +2332,7 @@ var _runtime = (function () {
 				type: "classRef",
 				css: css,
 				evaluate: function (context) {
-					return new ElementCollection(css, context.me)
+					return new ElementCollection(css, context.me, true)
 				},
 			};
 		}
