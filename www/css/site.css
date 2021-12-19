@@ -300,6 +300,18 @@ h1,h2,h3,h4{
     padding-left: 0;
 }
 
+.heading-wrapper > a {
+    opacity: 0;
+    font-size: 1.5em;
+    width: 0;
+    transform: translateX(-1ch);
+    float: left;
+}
+    .heading-wrapper:hover > a,
+    .heading-wrapper > a:focus {
+        opacity: 1;
+    }
+
 .nav ul li ul {
     padding-left:12px;
 }

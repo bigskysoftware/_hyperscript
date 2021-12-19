@@ -91,4 +91,11 @@ describe("the queryRef expression", function () {
 		var value = evalHyperScript("<${a} + div/>", { a });
 		Array.from(value)[0].should.equal(b);
 	});
+
+	it("queryRefs support colons properly", function () {
+		var b = make("<input class='foo' type='checkbox' checked='checked'>");
+		var value = evalHyperScript("<input.foo:checked/>");
+		Array.from(value).length.should.equal(1);
+	});
+
 });

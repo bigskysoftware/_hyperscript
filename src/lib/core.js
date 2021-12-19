@@ -17,13 +17,18 @@ var globalScope = globalThis;
 //====================================================================
 
 class ElementCollection {
-	constructor(css, relativeToElement) {
+	constructor(css, relativeToElement, escape) {
 		this._css = css;
 		this.relativeToElement = relativeToElement;
+		this.escape = escape;
 	}
 
 	get css() {
-		return _runtime.escapeSelector(this._css);
+		if (this.escape) {
+			return _runtime.escapeSelector(this._css);
+		} else {
+			return this._css;
+		}
 	}
 
 	get className() {
@@ -43,10 +48,18 @@ class ElementCollection {
 		return false;
 	}
 
+	get length() {
+		return this.selectMatches().length;
+	}
+
 	[Symbol.iterator]() {
-		return _runtime.getRootNode(this.relativeToElement)
-			.querySelectorAll(this.css)
-			[Symbol.iterator]();
+		let query = this.selectMatches();
+		return query [Symbol.iterator]();
+	}
+
+	selectMatches() {
+		let query = _runtime.getRootNode(this.relativeToElement).querySelectorAll(this.css);
+		return query;
 	}
 }
 
@@ -2122,9 +2135,11 @@ var _runtime = (function () {
 	* @returns {Document|ShadowRoot}
 	*/
 	function getRootNode(node) {
-		var rv = node.getRootNode();
-		if (rv instanceof Document || rv instanceof ShadowRoot) return rv;
-		else return document;
+		if (node && node instanceof Node) {
+			var rv = node.getRootNode();
+			if (rv instanceof Document || rv instanceof ShadowRoot) return rv;
+		}
+		return document;
 	}
 
 	function getEventQueueFor(elt, onFeature) {
@@ -2315,7 +2330,7 @@ var _runtime = (function () {
 				type: "classRefTemplate",
 				args: [innerExpression],
 				op: function (context, arg) {
-					return new ElementCollection("." + arg, context.me)
+					return new ElementCollection("." + arg, context.me, true)
 				},
 				evaluate: function (context) {
 					return runtime.unifiedEval(this, context);
@@ -2327,7 +2342,7 @@ var _runtime = (function () {
 				type: "classRef",
 				css: css,
 				evaluate: function (context) {
-					return new ElementCollection(css, context.me)
+					return new ElementCollection(css, context.me, true)
 				},
 			};
 		}
@@ -3028,6 +3043,22 @@ var _runtime = (function () {
 				return runtime.isEmpty(val);
 			},
 			evaluate: function (context) {
+				return runtime.unifiedEval(this, context);
+			},
+		};
+	});
+
+	_parser.addLeafExpression("some", function (parser, runtime, tokens) {
+		if (!tokens.matchToken("some")) return;
+		var root = parser.requireElement("expression", tokens);
+		return {
+			type: "noExpression",
+			root: root,
+			args: [root],
+			op: function (_context, val) {
+				return !runtime.isEmpty(val);
+			},
+			evaluate(ctx) {
 				return runtime.unifiedEval(this, context);
 			},
 		};
