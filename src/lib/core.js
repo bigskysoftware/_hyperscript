@@ -1509,17 +1509,20 @@ var _runtime = (function () {
 			try {
 				var next = unifiedEval(command, ctx);
 			} catch (e) {
-				_runtime.registerHyperTrace(ctx, e);
-				if (ctx.meta.errorHandler && !ctx.meta.handlingError) {
-					ctx.meta.handlingError = true;
-					ctx[ctx.meta.errorSymmbol] = e;
-					command = ctx.meta.errorHandler;
-					continue;
-				} else if (ctx.meta.reject) {
-					ctx.meta.reject(e);
+				if (ctx.meta.handlingFinally) {
+					console.error(" Exception in finally block: ", e);
 					next = HALT;
 				} else {
-					throw e;
+					_runtime.registerHyperTrace(ctx, e);
+					if (ctx.meta.errorHandler && !ctx.meta.handlingError) {
+						ctx.meta.handlingError = true;
+						ctx[ctx.meta.errorSymbol] = e;
+						command = ctx.meta.errorHandler;
+						continue;
+					} else  {
+						ctx.meta.currentException = e;
+						next = HALT;
+					}
 				}
 			}
 			if (next == null) {
@@ -1529,23 +1532,32 @@ var _runtime = (function () {
 				next.then(function (resolvedNext) {
 					unifiedExec(resolvedNext, ctx);
 				}).catch(function (reason) {
-					_runtime.registerHyperTrace(ctx, reason);
-					if (ctx.meta.errorHandler && !ctx.meta.handlingError) {
-						ctx.meta.handlingError = true;
-						ctx[ctx.meta.errorSymmbol] = reason;
-						unifiedExec(ctx.meta.errorHandler, ctx);
-					} else if (ctx.meta.reject) {
-						ctx.meta.reject(reason);
-					} else {
-						throw reason;
-					}
+					unifiedExec({ // Anonymous command to simply throw the exception
+						op: function(){
+							throw reason;
+						}
+					}, ctx);
 				});
 				return;
 			} else if (next === HALT) {
-				if (ctx.meta.onHalt) {
-					ctx.meta.onHalt();
+				if (ctx.meta.finallyHandler && !ctx.meta.handlingFinally) {
+					ctx.meta.handlingFinally = true;
+					command = ctx.meta.finallyHandler;
+				} else {
+					if (ctx.meta.onHalt) {
+						ctx.meta.onHalt();
+					}
+					if (ctx.meta.currentException) {
+						if (ctx.meta.reject) {
+							ctx.meta.reject(ctx.meta.currentException);
+							return;
+						} else {
+							throw ctx.meta.currentException;
+						}
+					} else {
+						return;
+					}
 				}
-				return;
 			} else {
 				command = next; // move to the next command
 			}
@@ -3788,6 +3800,11 @@ var _runtime = (function () {
 			parser.ensureTerminated(errorHandler);
 		}
 
+		if (tokens.matchToken("finally")) {
+			var finallyHandler = parser.requireElement("commandList", tokens);
+			parser.ensureTerminated(finallyHandler);
+		}
+
 		var onFeature = {
 			displayName: displayName,
 			events: events,
@@ -3897,7 +3914,8 @@ var _runtime = (function () {
 
 							// install error handler if any
 							ctx.meta.errorHandler = errorHandler;
-							ctx.meta.errorSymmbol = errorSymbol;
+							ctx.meta.errorSymbol = errorSymbol;
+							ctx.meta.finallyHandler = finallyHandler;
 
 							// apply filter
 							if (eventSpec.filter) {
@@ -4003,10 +4021,17 @@ var _runtime = (function () {
 		}
 
 		var start = parser.requireElement("commandList", tokens);
+
 		if (tokens.matchToken("catch")) {
 			var errorSymbol = tokens.requireTokenType("IDENTIFIER").value;
 			var errorHandler = parser.parseElement("commandList", tokens);
 		}
+
+		if (tokens.matchToken("finally")) {
+			var finallyHandler = parser.requireElement("commandList", tokens);
+			parser.ensureTerminated(finallyHandler);
+		}
+
 		var functionFeature = {
 			displayName:
 				funcName +
@@ -4022,6 +4047,7 @@ var _runtime = (function () {
 			start: start,
 			errorHandler: errorHandler,
 			errorSymbol: errorSymbol,
+			finallyHandler: finallyHandler,
 			install: function (target, source) {
 				var func = function () {
 					// null, worker
@@ -4029,7 +4055,8 @@ var _runtime = (function () {
 
 					// install error handler if any
 					ctx.meta.errorHandler = errorHandler;
-					ctx.meta.errorSymmbol = errorSymbol;
+					ctx.meta.errorSymbol = errorSymbol;
+					ctx.meta.finallyHandler = finallyHandler;
 
 					for (var i = 0; i < args.length; i++) {
 						var name = args[i];

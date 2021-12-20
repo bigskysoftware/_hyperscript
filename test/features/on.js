@@ -609,4 +609,133 @@ describe("the on feature", function () {
 		}, 20);
 	});
 
+	it("exceptions in catch block don't kill the event queue", function () {
+		var btn = make(
+			"<button _='on click " +
+			"                    increment :x  " +
+			"                    if :x is 1 " +
+			"                      throw \"bar\" " +
+			"                    otherwise " +
+			"                      put \"success\" into me" +
+			"                    end " +
+			"                  catch e " +
+			"                      put e into me then throw e'></button>"
+		);
+		btn.click();
+		btn.click();
+		btn.innerHTML.should.equal("success");
+	});
+
+	it("uncaught exceptions trigger 'exception' event", function () {
+		var btn = make(
+			"<button _='on click put \"foo\" into me then throw \"bar\"" +
+			"                  on exception(error) put error into me'></button>"
+		);
+		btn.click();
+		btn.innerHTML.should.equal("bar");
+	});
+
+
+	it("caught exceptions do not trigger 'exception'  event", function () {
+		var btn = make(
+			"<button _='on click put \"foo\" into me then throw \"bar\"" +
+			"                     catch e log e" +
+			"                  on exception(error) put error into me'></button>"
+		);
+		btn.click();
+		btn.innerHTML.should.equal("foo");
+	});
+
+	it("rethrown exceptions trigger 'exception'  event", function () {
+		var btn = make(
+			"<button _='on click put \"foo\" into me then throw \"bar\"" +
+			"                     catch e throw e" +
+			"                  on exception(error) put error into me'></button>"
+		);
+		btn.click();
+		btn.innerHTML.should.equal("bar");
+	});
+
+	it("basic finally blocks work", function () {
+		var btn = make(
+			"<button _='on click throw \"bar\"" +
+			       "             finally put \"bar\" into me'></button>"
+		);
+		btn.click();
+		btn.innerHTML.should.equal("bar");
+	});
+
+	it("finally blocks work when exception thrown in catch", function () {
+		var btn = make(
+			"<button _='on click throw \"bar\"" +
+					"            catch e throw e" +
+					"            finally put \"bar\" into me'></button>"
+		);
+		btn.click();
+		btn.innerHTML.should.equal("bar");
+	});
+
+	it("async basic finally blocks work", function (done) {
+		var btn = make(
+			"<button _='on click wait a tick then throw \"bar\"" +
+			       "             finally put \"bar\" into me'></button>"
+		);
+		btn.click();
+		setTimeout(function () {
+			btn.innerHTML.should.equal("bar");
+			done();
+		}, 20);
+	});
+
+	it("async finally blocks work when exception thrown in catch", function (done) {
+		var btn = make(
+			"<button _='on click wait a tick then throw \"bar\"" +
+					"            catch e set :foo to \"foo\" then throw e" +
+					"            finally put :foo + \"bar\" into me'></button>"
+		);
+		btn.click();
+		setTimeout(function () {
+			btn.innerHTML.should.equal("foobar");
+			done();
+		}, 20);
+	});
+
+
+	it("async exceptions in finally block don't kill the event queue", function (done) {
+		var btn = make(
+			"<button _='on click " +
+			"                    increment :x" +
+			"                  finally  " +
+			"                    if :x is 1 " +
+			"                      wait 1ms then throw \"bar\" " +
+			"                    otherwise " +
+			"                      put \"success\" into me" +
+			"                    end " +
+			"                    '></button>"
+		);
+		btn.click();
+		btn.click();
+		setTimeout(function () {
+			btn.innerHTML.should.equal("success");
+			done();
+		}, 20);
+	});
+
+	it("exceptions in finally block don't kill the event queue", function () {
+		var btn = make(
+			"<button _='on click " +
+			"                    increment :x  " +
+			"                  finally  " +
+			"                    if :x is 1 " +
+			"                      throw \"bar\" " +
+			"                    otherwise " +
+			"                      put \"success\" into me" +
+			"                    end " +
+			"                  '></button>"
+		);
+		btn.click();
+		btn.click();
+		btn.innerHTML.should.equal("success");
+	});
+
 });
