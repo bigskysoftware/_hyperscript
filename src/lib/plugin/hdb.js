@@ -127,9 +127,9 @@ export default _hyperscript => {
 
 	var ui = `
 <div class="hdb" _="
-	on load trigger update 
-	on step from hdb.bus trigger update
-	on skip from hdb.bus trigger update
+	on load trigger update end 
+	on step from hdb.bus trigger update end
+	on skip from hdb.bus trigger update end
 	on continue from hdb.bus log 'done' then remove me.getRootNode().host">
 
 	<script type="text/hyperscript">
@@ -145,28 +145,11 @@ export default _hyperscript => {
 	end
 
 	def highlightDebugCode
-		set rv to []
-		set hdb.uiCommandMap to []
-		set cmd to hdb.cmd.parent.start
-		append escapeHTML(hdb.cmd.programSource.substring(0, cmd.startToken.start)) to rv
-		repeat until cmd.halt_flag or cmd.type is 'implicitReturn'
-			push(cmd) on hdb.uiCommandMap
-			set cmdNo to hdb.uiCommandMap's length-1
-			if global HYPERSCRIPT_HDB_EXPERIMENTAL
-				append \`<button class="skip" data-cmd="\${cmdNo}">skip</button>\` to rv
-				append \`<button class="rewrite" data-cmd="\${cmdNo}">rewrite</button>\` to rv
-			end
-			set src to escapeHTML(cmd.sourceFor())
-			if cmd is hdb.cmd
-				append '<u class="current"><span data-cmd="' + cmdNo + '">' + src + '</span></u>' to rv
-			else
-				append '<span data-cmd="' + cmdNo + '">' + src + '</span>' to rv
-			end
-			append escapeHTML(hdb.cmd.programSource.substring(cmd.endToken.end, cmd.next.startToken.start)) to rv
-			set cmd to cmd.next
-		end
-		return rv.join('')
-		-- set start to hdb.cmd.startToken.start
+		set src to hdb.cmd.programSource
+		get escapeHTML(src.substring(0, hdb.cmd.startToken.start))
+		append '<u class=current>' + escapeHTML(hdb.cmd.sourceFor()) + '</u>'
+		append escapeHTML(src.substring(hdb.cmd.endToken.end))
+		return it
 	end
 
 	def truncate(str, len)
