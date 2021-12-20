@@ -9,8 +9,22 @@ function genUUID() {
 	});
 }
 
+function parseUrl(url) {
+	var finalUrl = url;
+	if (finalUrl.indexOf("/") === 0) {  // complete absolute paths without scheme only
+		var basePart = window.location.hostname + (window.location.port ? ':' + window.location.port : '');
+		if (window.location.protocol === 'https:') {
+			finalUrl = "wss://" + basePart + finalUrl;
+		} else if (window.location.protocol === 'http:') {
+			finalUrl = "ws://" + basePart + finalUrl;
+		}
+	}
+	return finalUrl;
+}
+
 function createSocket(url) {
-	return new WebSocket(url.evaluate());
+	var parsedUrl = parseUrl(url.evaluate());
+	return new WebSocket(parsedUrl);
 }
 
 /**
