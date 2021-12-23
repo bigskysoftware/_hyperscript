@@ -477,5 +477,46 @@ describe("the comparisonOperator expression", function () {
 		result.should.equal(true);
 	});
 
+	it("exists works", function () {
+		var result = evalHyperScript("undefined exists");
+		result.should.equal(false);
+
+		var result = evalHyperScript("null exists");
+		result.should.equal(false);
+
+		var result = evalHyperScript("#doesNotExist exists");
+		result.should.equal(false);
+
+		var result = evalHyperScript(".aClassThatDoesNotExist exists");
+		result.should.equal(false);
+
+		var result = evalHyperScript("<.aClassThatDoesNotExist/> exists");
+		result.should.equal(false);
+
+		var result = evalHyperScript("<body/> exists");
+		result.should.equal(true);
+	});
+
+	it("does not exist works", function () {
+		var result = evalHyperScript("undefined does not exist");
+		result.should.equal(true);
+
+		var result = evalHyperScript("null does not exist");
+		result.should.equal(true);
+
+		var result = evalHyperScript("#doesNotExist does not exist");
+		result.should.equal(true);
+
+		var result = evalHyperScript(".aClassThatDoesNotExist does not exist");
+		result.should.equal(true);
+
+		var result = evalHyperScript("<.aClassThatDoesNotExist/> does not exist");
+		result.should.equal(true);
+
+		var result = evalHyperScript("<body/> does not exist");
+		result.should.equal(false);
+	});
+
+
 
 });

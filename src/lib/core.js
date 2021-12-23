@@ -2165,6 +2165,22 @@ var _runtime = (function () {
 	}
 
 	/**
+	* @param {any} value
+	* @returns {boolean}
+	*/
+	function doesExist(value) {
+		if(value == null){
+			return false;
+		}
+		if (shouldAutoIterate(value)) {
+			for (const elt of value) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
 	* @param {Node} node
 	* @returns {Document|ShadowRoot}
 	*/
@@ -2224,6 +2240,7 @@ var _runtime = (function () {
 		escapeSelector,
 		nullCheck,
 		isEmpty,
+		doesExist,
 		getRootNode,
 		getEventQueueFor,
 		hyperscriptUrl,
@@ -3399,6 +3416,9 @@ var _runtime = (function () {
 				} else {
 					operator = "==";
 				}
+			} else if (tokens.matchToken("exist") || tokens.matchToken("exists")) {
+				operator = "exist";
+				hasRightValue = false;
 			} else if (tokens.matchToken("matches") || tokens.matchToken("match")) {
 				operator = "match";
 			} else if (tokens.matchToken("contains") || tokens.matchToken("contain")) {
@@ -3411,6 +3431,9 @@ var _runtime = (function () {
 					operator = "not match";
 				} else if (tokens.matchToken("contains") || tokens.matchToken("contain")) {
 					operator = "not contain";
+				} else if (tokens.matchToken("exist") || tokens.matchToken("exist")) {
+					operator = "not exist";
+					hasRightValue = false;
 				} else if (tokens.matchToken("include")) {
 					operator = "not include";
 				} else {
@@ -3485,6 +3508,10 @@ var _runtime = (function () {
 						return runtime.isEmpty(lhsVal);
 					} else if (operator === "not empty") {
 						return !runtime.isEmpty(lhsVal);
+					} else if (operator === "exist") {
+						return runtime.doesExist(lhsVal);
+					} else if (operator === "not exist") {
+						return !runtime.doesExist(lhsVal);
 					} else if (operator === "a") {
 						return runtime.typeCheck(lhsVal, typeName.value, nullOk);
 					} else if (operator === "not a") {
