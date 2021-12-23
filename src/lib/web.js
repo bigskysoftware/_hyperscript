@@ -11,15 +11,16 @@ export default _hyperscript => {
 	_hyperscript.addCommand("settle", function (parser, runtime, tokens) {
 		if (tokens.matchToken("settle")) {
 			if (!parser.commandBoundary(tokens.currentToken())) {
-				var on = parser.requireElement("expression", tokens);
+				var onExpr = parser.requireElement("expression", tokens);
 			} else {
-				var on = parser.requireElement("implicitMeTarget", tokens);
+				var onExpr = parser.requireElement("implicitMeTarget", tokens);
 			}
 
 			var settleCommand = {
 				type: "settleCmd",
-				args: [on],
+				args: [onExpr],
 				op: function (context, on) {
+					runtime.nullCheck(on, onExpr);
 					var resolve = null;
 					var resolved = false;
 					var transitionStarted = false;
@@ -85,17 +86,18 @@ export default _hyperscript => {
 			}
 
 			if (tokens.matchToken("to")) {
-				var to = parser.requireElement("expression", tokens);
+				var toExpr = parser.requireElement("expression", tokens);
 			} else {
-				var to = parser.parseElement("implicitMeTarget", tokens);
+				var toExpr = parser.parseElement("implicitMeTarget", tokens);
 			}
 
 			if (classRefs) {
 				return {
 					classRefs: classRefs,
-					to: to,
-					args: [to, classRefs],
+					to: toExpr,
+					args: [toExpr, classRefs],
 					op: function (context, to, classRefs) {
+						runtime.nullCheck(to, toExpr);
 						runtime.forEach(classRefs, function (classRef) {
 							runtime.implicitLoop(to, function (target) {
 								if (target instanceof Element) target.classList.add(classRef.className);
@@ -108,9 +110,10 @@ export default _hyperscript => {
 				return {
 					type: "addCmd",
 					attributeRef: attributeRef,
-					to: to,
-					args: [to],
+					to: toExpr,
+					args: [toExpr],
 					op: function (context, to, attrRef) {
+						runtime.nullCheck(to, toExpr);
 						runtime.implicitLoop(to, function (target) {
 							target.setAttribute(attributeRef.name, attributeRef.value);
 						});
@@ -124,9 +127,10 @@ export default _hyperscript => {
 				return {
 					type: "addCmd",
 					cssDeclaration: cssDeclaration,
-					to: to,
-					args: [to, cssDeclaration],
+					to: toExpr,
+					args: [toExpr, cssDeclaration],
 					op: function (context, to, css) {
+						runtime.nullCheck(to, toExpr);
 						runtime.implicitLoop(to, function (target) {
 							target.style.cssText += css;
 						});
@@ -209,17 +213,18 @@ export default _hyperscript => {
 			}
 
 			if (tokens.matchToken("from")) {
-				var from = parser.requireElement("expression", tokens);
+				var fromExpr = parser.requireElement("expression", tokens);
 			} else {
-				var from = parser.requireElement("implicitMeTarget", tokens);
+				var fromExpr = parser.requireElement("implicitMeTarget", tokens);
 			}
 
 			if (elementExpr) {
 				return {
 					elementExpr: elementExpr,
-					from: from,
+					from: fromExpr,
 					args: [elementExpr],
 					op: function (context, element) {
+						runtime.nullCheck(element, elementExpr);
 						runtime.implicitLoop(element, function (target) {
 							if (target.parentElement) {
 								target.parentElement.removeChild(target);
@@ -233,9 +238,10 @@ export default _hyperscript => {
 					classRefs: classRefs,
 					attributeRef: attributeRef,
 					elementExpr: elementExpr,
-					from: from,
-					args: [classRefs, from],
+					from: fromExpr,
+					args: [classRefs, fromExpr],
 					op: function (context, classRefs, from) {
+						runtime.nullCheck(from, fromExpr);
 						if (classRefs) {
 							runtime.forEach(classRefs, function (classRef) {
 								runtime.implicitLoop(from, function (target) {
@@ -278,9 +284,9 @@ export default _hyperscript => {
 			}
 
 			if (tokens.matchToken("on")) {
-				var on = parser.requireElement("expression", tokens);
+				var onExpr = parser.requireElement("expression", tokens);
 			} else {
-				var on = parser.requireElement("implicitMeTarget", tokens);
+				var onExpr = parser.requireElement("implicitMeTarget", tokens);
 			}
 
 			if (tokens.matchToken("for")) {
@@ -297,11 +303,12 @@ export default _hyperscript => {
 				classRef2: classRef2,
 				classRefs: classRefs,
 				attributeRef: attributeRef,
-				on: on,
+				on: onExpr,
 				time: time,
 				evt: evt,
 				from: from,
 				toggle: function (on, classRef, classRef2, classRefs) {
+					runtime.nullCheck(on, onExpr);
 					if (between) {
 						runtime.implicitLoop(on, function (target) {
 							if (target.classList.contains(classRef.className)) {
@@ -328,7 +335,7 @@ export default _hyperscript => {
 						});
 					}
 				},
-				args: [on, time, evt, from, classRef, classRef2, classRefs],
+				args: [onExpr, time, evt, from, classRef, classRef2, classRefs],
 				op: function (context, on, time, evt, from, classRef, classRef2, classRefs) {
 					if (time) {
 						return new Promise(function (resolve) {
@@ -427,7 +434,7 @@ export default _hyperscript => {
 
 	_hyperscript.addCommand("hide", function (parser, runtime, tokens) {
 		if (tokens.matchToken("hide")) {
-			var target = parseShowHideTarget(parser, runtime, tokens);
+			var targetExpr = parseShowHideTarget(parser, runtime, tokens);
 
 			var name = null;
 			if (tokens.matchToken("with")) {
@@ -436,9 +443,10 @@ export default _hyperscript => {
 			var hideShowStrategy = resolveStrategy(parser, tokens, name);
 
 			return {
-				target: target,
-				args: [target],
+				target: targetExpr,
+				args: [targetExpr],
 				op: function (ctx, target) {
+					runtime.nullCheck(target, targetExpr);
 					runtime.implicitLoop(target, function (elt) {
 						hideShowStrategy("hide", elt);
 					});
@@ -504,23 +512,25 @@ export default _hyperscript => {
 			var classRef = parser.parseElement("classRef", tokens);
 
 			if (tokens.matchToken("from")) {
-				var from = parser.requireElement("expression", tokens);
+				var fromExpr = parser.requireElement("expression", tokens);
 			} else {
-				var from = classRef;
+				var fromExpr = classRef;
 			}
 
 			if (tokens.matchToken("for")) {
-				var forElt = parser.requireElement("expression", tokens);
+				var forExpr = parser.requireElement("expression", tokens);
 			} else {
-				var forElt = parser.requireElement("implicitMeTarget", tokens);
+				var forExpr = parser.requireElement("implicitMeTarget", tokens);
 			}
 
 			var takeCmd = {
 				classRef: classRef,
-				from: from,
-				forElt: forElt,
-				args: [classRef, from, forElt],
+				from: fromExpr,
+				forElt: forExpr,
+				args: [classRef, fromExpr, forExpr],
 				op: function (context, eltColl, from, forElt) {
+					runtime.nullCheck(from, fromExpr);
+					runtime.nullCheck(forElt, forExpr);
 					var clazz = eltColl.className;
 					runtime.implicitLoop(from, function (target) {
 						target.classList.remove(clazz);
@@ -603,6 +613,7 @@ export default _hyperscript => {
 					if (symbolWrite) {
 						putInto(runtime, context, prop, valueToPut);
 					} else {
+						runtime.nullCheck(root, rootExpr);
 						if (operation === "into") {
 							if (attributeWrite) {
 								runtime.implicitLoop(root, function (elt) {
@@ -625,16 +636,14 @@ export default _hyperscript => {
 									? Element.prototype.append
 									: Element.prototype.append; // unreachable
 
-							if (root) {
-								runtime.implicitLoop(root, function (elt) {
-									op.call(
-										elt,
-										valueToPut instanceof Node
-											? valueToPut
-											: runtime.convertValue(valueToPut, "Fragment")
-									);
-								});
-							}
+							runtime.implicitLoop(root, function (elt) {
+								op.call(
+									elt,
+									valueToPut instanceof Node
+										? valueToPut
+										: runtime.convertValue(valueToPut, "Fragment")
+								);
+							});
 						}
 					}
 					return runtime.findNext(this, context);
@@ -683,7 +692,7 @@ export default _hyperscript => {
 
 	_hyperscript.addCommand("transition", function (parser, runtime, tokens) {
 		if (tokens.matchToken("transition")) {
-			var targets = parsePseudopossessiveTarget(parser, runtime, tokens);
+			var targetsExpr = parsePseudopossessiveTarget(parser, runtime, tokens);
 
 			var properties = [];
 			var from = [];
@@ -713,8 +722,9 @@ export default _hyperscript => {
 
 			var transition = {
 				to: to,
-				args: [targets, properties, from, to, using, over],
+				args: [targetsExpr, properties, from, to, using, over],
 				op: function (context, targets, properties, from, to, using, over) {
+					runtime.nullCheck(targets, targetsExpr);
 					var promises = [];
 					runtime.implicitLoop(targets, function (target) {
 						var promise = new Promise(function (resolve, reject) {

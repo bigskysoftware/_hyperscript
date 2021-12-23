@@ -4524,17 +4524,18 @@ var _runtime = (function () {
 		var details = parser.parseElement("namedArgumentList", tokens);
 		if ((cmdType === "send" && tokens.matchToken("to")) ||
 			(cmdType === "trigger" && tokens.matchToken("on"))) {
-			var to = parser.requireElement("expression", tokens);
+			var toExpr = parser.requireElement("expression", tokens);
 		} else {
-			var to = parser.requireElement("implicitMeTarget", tokens);
+			var toExpr = parser.requireElement("implicitMeTarget", tokens);
 		}
 
 		var sendCmd = {
 			eventName: eventName,
 			details: details,
-			to: to,
-			args: [to, eventName, details],
+			to: toExpr,
+			args: [toExpr, eventName, details],
 			op: function (context, to, eventName, details) {
+				runtime.nullCheck(to, toExpr);
 				runtime.forEach(to, function (target) {
 					runtime.triggerEvent(target, eventName, details ? details : {});
 				});
