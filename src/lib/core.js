@@ -5341,24 +5341,27 @@ if ("document" in globalScope) {
 	/** @type {HTMLScriptElement[]} */
 	var scripts = Array.from(document.querySelectorAll("script[type='text/hyperscript'][src]"))
 	Promise.all(
-		scripts.map(function (script) {
-			return fetch(script.src)
-				.then(function (res) {
-					return res.text();
-				})
-				.then(function (code) {
-					return _runtime.evaluate(code);
-				});
+			scripts.map(function (script) {
+				return fetch(script.src)
+					.then(function (res) {
+						return res.text();
+					});
+			})
+		)
+		.then(function (script_values) {
+			// forEach instead of map, since the return value of .evaluate is not used by the then
+			return script_values.forEach(_runtime.evaluate);
 		})
-	).then(function () {
-		ready(function () {
-			mergeMetaConfig();
-			_runtime.processNode(document.documentElement);
-			document.addEventListener("htmx:load", function (/** @type {CustomEvent} */ evt) {
-				_runtime.processNode(evt.detail.elt);
+		.then(function () {
+			ready(function () {
+				mergeMetaConfig();
+				_runtime.processNode(document.documentElement);
+				document.addEventListener("htmx:load", function (/** @type {CustomEvent} */ evt) {
+
+					_runtime.processNode(evt.detail.elt);
+				});
 			});
 		});
-	});
 }
 
 //====================================================================
