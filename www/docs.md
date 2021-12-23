@@ -190,7 +190,7 @@ OK, let's get on with it...
 Hyperscript is a dependency-free javascript library that can be included in a web page without any build steps:
 
 ```html
-<script src="https://unpkg.com/hyperscript.org@0.9.1"></script>
+<script src="https://unpkg.com/hyperscript.org@0.9.2"></script>
 ```
 
 After you've done this, you can begin adding hyperscript to elements:
@@ -446,11 +446,11 @@ will vary depending on what you are trying to accomplish.
 <button _="on click increment #counterText.innerText">Add</button>
 <button _="on click decrement #counterText.innerText">Subtract</button>
 
-In this case, it would also be possible to put the event handlers on the counter itself, having it listen 
-and react to click events on each of the buttons.  
+In this case, it would also be possible to put the event handlers on the counter itself, having it listen
+and react to click events on each of the buttons.
 
 ```html
-<p id="counterText" 
+<p id="counterText"
     _="on click from #add increment my innerText
        on click from #subtract decrement my innerText"
 >0</p>
