@@ -1,0 +1,179 @@
+<html lang="en">
+	<head>
+		<link
+			rel="stylesheet"
+			href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css"
+		/>
+	</head>
+	<body style="padding: 20px; font-family: sans-serif">
+	<script>
+			async function foo(){
+					_hyperscript = (await import('../../src/web/_hyperscript_w9y.js')).default
+			}
+			foo();
+	</script>
+
+		<em>Work Area</em>
+		<hr />
+
+
+	<select id="weather" name="weather"
+					_="on change show #specify when my value is 'other'">
+			<option value="sunny">Sunny</option>
+			<option value="cloudy">Cloudy</option>
+			<option value="other">Other</option>
+	</select>
+
+	<div id="specify" style="display: none">
+			Please specify...
+			<input  name="other" type="text" value="">
+	</div>
+
+  <hr/>
+
+	<script type="text/hyperscript">
+      behavior Focusable(inp)
+        init
+          log inp
+        on focus from inp
+          log "here"
+          add .outline-none .border-gray-400
+        on blur from inp
+          log "here2"
+          remove .outline-none .border-gray-400
+      end
+ 		</script>
+		<script>
+function toggleHeight(elt) {
+		var display = elt.style.display;
+		elt.style.transition = 'height ease 500ms'
+		elt.style.overflow = 'hidden'
+		var current = elt.getBoundingClientRect().height
+		elt.style.height = 'auto';
+		elt.style.display = "block";
+		var full = elt.getBoundingClientRect().height
+		elt.style.height = current + "px";
+		setTimeout(function () {
+				if (display === 'none') {
+						elt.style.height = full + "px";
+				} else {
+						elt.style.height = "0px";
+						elt.addEventListener('transitionend', function () {
+								elt.style.display = "none";
+						}, {once: true});
+				}
+		}, 1);
+}
+		</script>
+
+
+<!--		<input type="text" value="" name="username" id="username"/>-->
+<!--		<div _="install Focusable(inp: #username)" class="">-->
+<!--				asdf-->
+<!--		</div>-->
+
+
+	<input type="text" placeholder="Search..."
+				 _="on keyup
+				     if the event's key is 'Escape'
+				       set my value to ''
+				       trigger keyup
+				     else
+				      show <p/> in #quotes when its textContent contains my value">
+
+	<div id="quotes">
+			<p>
+					"Talk is cheap. Show me the code."
+					- Linus Torvalds
+			</p>
+			<p>
+					"when you don't create things, you become defined by your tastes rather than ability. your tastes only narrow & exclude people. so create."
+					- Why The Lucky Stiff
+			</p>
+			<p>
+					"Programs must be written for people to read, and only incidentally for machines to execute."
+					- Harold Abelson, Structure and Interpretation of Computer Programs
+			</p>
+			<p>
+					"Programming today is a race between software engineers striving to build bigger and better idiot-proof programs, and the Universe trying to produce bigger and better idiots. So far, the Universe is winning."
+					- Rick Cook, The Wizardry Compiled
+			</p>
+			<p>
+					"Always code as if the guy who ends up maintaining your code will be a violent psychopath who knows where you live"
+					- John Woods
+			</p>
+			<p>
+					"Any fool can write code that a computer can understand. Good programmers write code that humans can understand."
+					- Martin Fowler
+			</p>
+			<p>
+					"The best programs are written so that computing machines can perform them quickly and so that human beings can understand them clearly. A programmer is ideally an essayist who works with traditional aesthetic and literary forms as well as mathematical concepts, to communicate the way that an algorithm works and to convince a reader that the results will be correct."
+					- Donald E. Knuth, Selected Papers on Computer Science
+			</p>
+			<p>
+					"I'm not a great programmer; I'm just a good programmer with great habits."
+					- Kent Beck
+			</p>
+			<p>
+					"Give a man a program, frustrate him for a day.
+					Teach a man to program, frustrate him for a lifetime."
+					- Muhammad Waseem
+			</p>
+			<p>
+
+					"Truth can only be found in one place: the code."
+					- Robert C. Martin, Clean Code: A Handbook of Agile Software Craftsmanship
+			</p>
+			<p>
+					"That's the thing about people who think they hate computers. What they really hate is lousy programmers."
+					- Larry Niven
+			</p>
+			<p>
+					"A language that doesn't affect the way you think about programming is not worth knowing."
+					- Alan J. Perlis
+			</p>
+			<p>
+					"The most disastrous thing that you can ever learn is your first programming language."
+					- Alan Kay
+			</p>
+			<p>
+					"Object-oriented programming offers a sustainable way to write spaghetti code. It lets you accrete programs as a series of patches."
+					- Paul Graham, Hackers & Painters: Big Ideas from the Computer Age
+			</p>
+			<p>
+					"Everyone knows that debugging is twice as hard as writing a program in the first place. So if you're as clever as you can be when you write it, how will you ever debug it?"
+					- Brian Kernighan
+			</p>
+	</div>
+
+		<button _="on click toggleHeight(#d1)">
+				Slide Toggle
+		</button>
+
+		<div id="d1" style="display: none">
+				Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		</div>
+		<hr/>
+
+		<script>
+		</script>
+		<div style="position:fixed;top:0;left:0;right:0;height:30px;background-color:purple;color:white;text-align:center;"
+				 _="init
+			set element lastScroll to 0
+		on scroll from window
+			set the currentScroll to the window's pageYOffset
+			if the currentScroll < lastScroll
+				transition my height to 30px over 150ms
+			else
+				transition my height to 0 over 150ms
+			end
+			set the lastScroll to the currentScroll">
+				Header
+		</div>
+		<div style="height:2900px">
+				asdf
+		</div>
+
+
+	</body>
+</html>
