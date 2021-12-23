@@ -108,4 +108,14 @@ describe("_hyperscript regressions", function () {
 		_hyperscript("\"foo\".length").should.equal(3);
 	});
 
+	it("button query in form", function () {
+		var form = make("<form _='on click get the <button/> in me then" +
+			"                                   set it @disabled to true'>" +
+			"  <button id='b1'>Button</button>" +
+			"</form>");
+		var btn = byId("b1");
+		form.click();
+		b1.disabled.should.equal(true);
+	});
+
 });

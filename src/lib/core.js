@@ -2852,15 +2852,15 @@ var _runtime = (function () {
 			op: function (context, rootVal, target) {
 				var returnArr = [];
 				if (query) {
-					runtime.forEach(target, function (targetElt) {
+					runtime.implicitLoop(target, function (targetElt) {
 						var results = targetElt.querySelectorAll(root.css);
 						for (var i = 0; i < results.length; i++) {
 							returnArr.push(results[i]);
 						}
 					});
 				} else {
-					runtime.forEach(rootVal, function (rootElt) {
-						runtime.forEach(target, function (targetElt) {
+					runtime.implicitLoop(rootVal, function (rootElt) {
+						runtime.implicitLoop(target, function (targetElt) {
 							if (rootElt === targetElt) {
 								returnArr.push(rootElt);
 							}
