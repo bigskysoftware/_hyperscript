@@ -825,7 +825,7 @@ export default _hyperscript => {
 	_hyperscript.addCommand("measure", function (parser, runtime, tokens) {
 		if (!tokens.matchToken("measure")) return;
 
-		var target = parsePseudopossessiveTarget(parser, runtime, tokens);
+		var targetExpr = parsePseudopossessiveTarget(parser, runtime, tokens);
 
 		var propsToMeasure = [];
 		if (!parser.commandBoundary(tokens.currentToken()))
@@ -835,8 +835,9 @@ export default _hyperscript => {
 
 		return {
 			properties: propsToMeasure,
-			args: [target],
+			args: [targetExpr],
 			op: function (ctx, target) {
+				runtime.nullCheck(target, targetExpr);
 				if (0 in target) target = target[0]; // not measuring multiple elts
 				var rect = target.getBoundingClientRect();
 				var scroll = {

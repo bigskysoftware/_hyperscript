@@ -105,4 +105,8 @@ describe("_hyperscript runtime errors", function () {
 		ensureThrows("default #doesntExist's innerHTML to 'foo'", "'#doesntExist' is null");
 	})
 
+	it("reports null errors on measure command properly", function(){
+		ensureThrows("measure #doesntExist", "'#doesntExist' is null");
+	})
+
 });
