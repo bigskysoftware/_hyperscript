@@ -30,6 +30,7 @@ interface _GrammarElement {
   op?: (ctx:Context, root:any, ...args:any) => any;
   evaluate?: (context?:Context) => any;
   parent?: GrammarElement;
+  children?: Set<_GrammarElement>;
   root?: GrammarElement;
   keyword?: String;
   endToken?: Token;
