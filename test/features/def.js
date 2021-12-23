@@ -277,4 +277,107 @@ describe("the def feature", function () {
 		byId("d1").click();
 		div.innerText.should.equal("42");
 	});
+
+	it("finally blocks run normally", function () {
+		var script = make(
+			"<script type='text/hyperscript'>" +
+			"def foo() " +
+			'  set window.bar to 10' +
+			"finally " +
+			"   set window.bar to 20 " +
+			"end" +
+			"</script>"
+		);
+		foo();
+		window.bar.should.equal(20);
+		delete window.bar;
+		delete window.foo;
+	});
+
+	it("finally blocks run when an exception occurs", function () {
+		var script = make(
+			"<script type='text/hyperscript'>" +
+			"def foo() " +
+			'  set window.bar to 10' +
+			'  throw "foo"' +
+			"finally " +
+			"   set window.bar to 20 " +
+			"end" +
+			"</script>"
+		);
+		try {
+			foo();
+		} catch(e) {
+			// ignore
+		}
+		window.bar.should.equal(20);
+		delete window.bar;
+		delete window.foo;
+	});
+
+	it("finally blocks run when an exception expr occurs", function (done) {
+		window.throwsAsyncException = function(){
+			return new Promise(function(resolve, reject){
+				reject("foo");
+			})
+		}
+		var script = make(
+			"<script type='text/hyperscript'>" +
+			"def foo() " +
+			'  set window.bar to 10' +
+			'  call throwsAsyncException()' +
+			"finally " +
+			"   set window.bar to 20 " +
+			"end" +
+			"</script>"
+		);
+		foo();
+		setTimeout(function () {
+			window.bar.should.equal(20);
+			delete window.throwsAsyncException;
+			delete window.bar;
+			delete window.foo;
+			done();
+		}, 20);
+	});
+
+	it("async finally blocks run normally", function (done) {
+		var script = make(
+			"<script type='text/hyperscript'>" +
+			"def foo() " +
+			'  wait a tick then set window.bar to 10' +
+			"finally " +
+			"   set window.bar to 20 " +
+			"end" +
+			"</script>"
+		);
+		foo();
+		setTimeout(function(){
+			window.bar.should.equal(20);
+			delete window.bar;
+			delete window.foo;
+			done();
+		}, 20)
+	});
+
+	it("async finally blocks run when an exception occurs", function (done) {
+		var script = make(
+			"<script type='text/hyperscript'>" +
+			"def foo() " +
+			'  wait a tick then set window.bar to 10' +
+			'  throw "foo"' +
+			"finally " +
+			"   set window.bar to 20 " +
+			"end" +
+			"</script>"
+		);
+		foo();
+		setTimeout(function(){
+			window.bar.should.equal(20);
+			delete window.bar;
+			delete window.foo;
+			done();
+		}, 20)
+	});
+
 });

@@ -450,7 +450,7 @@ export default _hyperscript => {
 
 	_hyperscript.addCommand("show", function (parser, runtime, tokens) {
 		if (tokens.matchToken("show")) {
-			var target = parseShowHideTarget(parser, runtime, tokens);
+			var targetExpr = parseShowHideTarget(parser, runtime, tokens);
 
 			var name = null;
 			if (tokens.matchToken("with")) {
@@ -474,10 +474,11 @@ export default _hyperscript => {
 			var hideShowStrategy = resolveStrategy(parser, tokens, name);
 
 			return {
-				target: target,
+				target: targetExpr,
 				when: when,
-				args: [target],
+				args: [targetExpr],
 				op: function (ctx, target) {
+					runtime.nullCheck(target, targetExpr);
 					runtime.implicitLoop(target, function (elt) {
 						if (when) {
 							ctx['result'] = elt;

@@ -1214,23 +1214,47 @@ var _parser = (function () {
 		return returnArr;
 	}
 
+	function ensureTerminated(commandList) {
+		var implicitReturn = {
+			type: "implicitReturn",
+			op: function (context) {
+				context.meta.returned = true;
+				if (context.meta.resolve) {
+					context.meta.resolve();
+				}
+				return _runtime.HALT;
+			},
+			execute: function (ctx) {
+				// do nothing
+			},
+		};
+
+		var end = commandList;
+		while (end.next) {
+			end = end.next;
+		}
+		end.next = implicitReturn;
+	}
+
+
 	// parser API
 	return {
-		setParent: setParent,
-		requireElement: requireElement,
-		parseElement: parseElement,
-		featureStart: featureStart,
-		commandStart: commandStart,
-		commandBoundary: commandBoundary,
-		parseAnyOf: parseAnyOf,
-		parseHyperScript: parseHyperScript,
-		raiseParseError: raiseParseError,
-		addGrammarElement: addGrammarElement,
-		addCommand: addCommand,
-		addFeature: addFeature,
-		addLeafExpression: addLeafExpression,
-		addIndirectExpression: addIndirectExpression,
-		parseStringTemplate: parseStringTemplate,
+		setParent,
+		requireElement,
+		parseElement,
+		featureStart,
+		commandStart,
+		commandBoundary,
+		parseAnyOf,
+		parseHyperScript,
+		raiseParseError,
+		addGrammarElement,
+		addCommand,
+		addFeature,
+		addLeafExpression,
+		addIndirectExpression,
+		parseStringTemplate,
+		ensureTerminated,
 	};
 })();
 
@@ -1489,17 +1513,20 @@ var _runtime = (function () {
 			try {
 				var next = unifiedEval(command, ctx);
 			} catch (e) {
-				_runtime.registerHyperTrace(ctx, e);
-				if (ctx.meta.errorHandler && !ctx.meta.handlingError) {
-					ctx.meta.handlingError = true;
-					ctx[ctx.meta.errorSymmbol] = e;
-					command = ctx.meta.errorHandler;
-					continue;
-				} else if (ctx.meta.reject) {
-					ctx.meta.reject(e);
+				if (ctx.meta.handlingFinally) {
+					console.error(" Exception in finally block: ", e);
 					next = HALT;
 				} else {
-					throw e;
+					_runtime.registerHyperTrace(ctx, e);
+					if (ctx.meta.errorHandler && !ctx.meta.handlingError) {
+						ctx.meta.handlingError = true;
+						ctx[ctx.meta.errorSymbol] = e;
+						command = ctx.meta.errorHandler;
+						continue;
+					} else  {
+						ctx.meta.currentException = e;
+						next = HALT;
+					}
 				}
 			}
 			if (next == null) {
@@ -1509,21 +1536,32 @@ var _runtime = (function () {
 				next.then(function (resolvedNext) {
 					unifiedExec(resolvedNext, ctx);
 				}).catch(function (reason) {
-					_runtime.registerHyperTrace(ctx, reason);
-					if (ctx.meta.errorHandler && !ctx.meta.handlingError) {
-						ctx.meta.handlingError = true;
-						ctx[ctx.meta.errorSymmbol] = reason;
-						unifiedExec(ctx.meta.errorHandler, ctx);
-					} else if (ctx.meta.reject) {
-						ctx.meta.reject(reason);
-					} else {
-						throw reason;
-					}
+					unifiedExec({ // Anonymous command to simply throw the exception
+						op: function(){
+							throw reason;
+						}
+					}, ctx);
 				});
 				return;
 			} else if (next === HALT) {
-				// done
-				return;
+				if (ctx.meta.finallyHandler && !ctx.meta.handlingFinally) {
+					ctx.meta.handlingFinally = true;
+					command = ctx.meta.finallyHandler;
+				} else {
+					if (ctx.meta.onHalt) {
+						ctx.meta.onHalt();
+					}
+					if (ctx.meta.currentException) {
+						if (ctx.meta.reject) {
+							ctx.meta.reject(ctx.meta.currentException);
+							return;
+						} else {
+							throw ctx.meta.currentException;
+						}
+					} else {
+						return;
+					}
+				}
 			} else {
 				command = next; // move to the next command
 			}
@@ -1593,15 +1631,7 @@ var _runtime = (function () {
 						}
 					})
 					.catch(function (reason) {
-						if (ctx.meta.errorHandler && !ctx.meta.handlingError) {
-							ctx.meta.handlingError = true;
-							ctx[ctx.meta.errorSymmbol] = reason;
-							unifiedExec(ctx.meta.errorHandler, ctx);
-						} else if (ctx.meta.reject) {
-							ctx.meta.reject(reason);
-						} else {
-							// TODO: no meta context to reject with, trigger event?
-						}
+						reject(reason);
 					});
 			});
 		} else {
@@ -2122,7 +2152,7 @@ var _runtime = (function () {
 	*/
 	function nullCheck(value, elt) {
 		if (value == null) {
-			throw new Error(elt.sourceFor() + " is null");
+			throw new Error("'" + elt.sourceFor() + "' is null");
 		}
 	}
 
@@ -2826,15 +2856,15 @@ var _runtime = (function () {
 			op: function (context, rootVal, target) {
 				var returnArr = [];
 				if (query) {
-					runtime.forEach(target, function (targetElt) {
+					runtime.implicitLoop(target, function (targetElt) {
 						var results = targetElt.querySelectorAll(root.css);
 						for (var i = 0; i < results.length; i++) {
 							returnArr.push(results[i]);
 						}
 					});
 				} else {
-					runtime.forEach(rootVal, function (rootElt) {
-						runtime.forEach(target, function (targetElt) {
+					runtime.implicitLoop(rootVal, function (rootElt) {
+						runtime.implicitLoop(target, function (targetElt) {
 							if (rootElt === targetElt) {
 								returnArr.push(rootElt);
 							}
@@ -3765,31 +3795,18 @@ var _runtime = (function () {
 			}
 		}
 
-		var commandList = parser.parseElement("commandList", tokens);
+		var start = parser.requireElement("commandList", tokens);
+		parser.ensureTerminated(start);
 
-		var implicitReturn = {
-			type: "implicitReturn",
-			op: function (context) {
-				// automatically resolve at the end of an event handler if nothing else does
-				context.meta.resolve();
-				return runtime.HALT;
-			},
-			execute: function (ctx) {
-				// do nothing
-			},
-		};
+		if (tokens.matchToken("catch")) {
+			var errorSymbol = tokens.requireTokenType("IDENTIFIER").value;
+			var errorHandler = parser.requireElement("commandList", tokens);
+			parser.ensureTerminated(errorHandler);
+		}
 
-		if (commandList) {
-			/** @type {GrammarElement} */
-			var start = commandList;
-
-			var end = start;
-			while (end.next) {
-				end = end.next;
-			}
-			end.next = implicitReturn;
-		} else {
-			start = implicitReturn;
+		if (tokens.matchToken("finally")) {
+			var finallyHandler = parser.requireElement("commandList", tokens);
+			parser.ensureTerminated(finallyHandler);
 		}
 
 		var onFeature = {
@@ -3798,6 +3815,8 @@ var _runtime = (function () {
 			start: start,
 			every: every,
 			execCount: 0,
+			errorHandler: errorHandler,
+			errorSymbol: errorSymbol,
 			execute: function (/** @type {Context} */ ctx) {
 				let eventQueueInfo = runtime.getEventQueueFor(ctx.me, onFeature);
 				if (eventQueueInfo.executing && every === false) {
@@ -3812,7 +3831,7 @@ var _runtime = (function () {
 				}
 				onFeature.execCount++;
 				eventQueueInfo.executing = true;
-				ctx.meta.resolve = function () {
+				ctx.meta.onHalt = function () {
 					eventQueueInfo.executing = false;
 					var queued = eventQueueInfo.queue.shift();
 					if (queued) {
@@ -3830,13 +3849,6 @@ var _runtime = (function () {
 					runtime.triggerEvent(ctx.me, "exception", {
 						error: err,
 					});
-					eventQueueInfo.executing = false;
-					var queued = eventQueueInfo.queue.shift();
-					if (queued) {
-						setTimeout(function () {
-							onFeature.execute(queued);
-						}, 1);
-					}
 				};
 				start.execute(ctx);
 			},
@@ -3903,6 +3915,11 @@ var _runtime = (function () {
 								ctx[arg.value] =
 									ctx.event[arg.value] || ('detail' in ctx.event ? ctx.event['detail'][arg.value] : null);
 							}
+
+							// install error handler if any
+							ctx.meta.errorHandler = errorHandler;
+							ctx.meta.errorSymbol = errorSymbol;
+							ctx.meta.finallyHandler = finallyHandler;
 
 							// apply filter
 							if (eventSpec.filter) {
@@ -4008,10 +4025,17 @@ var _runtime = (function () {
 		}
 
 		var start = parser.requireElement("commandList", tokens);
+
 		if (tokens.matchToken("catch")) {
 			var errorSymbol = tokens.requireTokenType("IDENTIFIER").value;
 			var errorHandler = parser.parseElement("commandList", tokens);
 		}
+
+		if (tokens.matchToken("finally")) {
+			var finallyHandler = parser.requireElement("commandList", tokens);
+			parser.ensureTerminated(finallyHandler);
+		}
+
 		var functionFeature = {
 			displayName:
 				funcName +
@@ -4027,6 +4051,7 @@ var _runtime = (function () {
 			start: start,
 			errorHandler: errorHandler,
 			errorSymbol: errorSymbol,
+			finallyHandler: finallyHandler,
 			install: function (target, source) {
 				var func = function () {
 					// null, worker
@@ -4034,7 +4059,8 @@ var _runtime = (function () {
 
 					// install error handler if any
 					ctx.meta.errorHandler = errorHandler;
-					ctx.meta.errorSymmbol = errorSymbol;
+					ctx.meta.errorSymbol = errorSymbol;
+					ctx.meta.finallyHandler = finallyHandler;
 
 					for (var i = 0; i < args.length; i++) {
 						var name = args[i];
@@ -4068,38 +4094,11 @@ var _runtime = (function () {
 			},
 		};
 
-		var implicitReturn = {
-			type: "implicitReturn",
-			op: function (context) {
-				// automatically return at the end of the function if nothing else does
-				context.meta.returned = true;
-				if (context.meta.resolve) {
-					context.meta.resolve();
-				}
-				return runtime.HALT;
-			},
-			execute: function (context) {
-				// do nothing
-			},
-		};
-		// terminate body
-		if (start) {
-			var end = start;
-			while (end.next) {
-				end = end.next;
-			}
-			end.next = implicitReturn;
-		} else {
-			functionFeature.start = implicitReturn;
-		}
+		parser.ensureTerminated(start);
 
-		// terminate error handler
+		// terminate error handler if any
 		if (errorHandler) {
-			var end = errorHandler;
-			while (end.next) {
-				end = end.next;
-			}
-			end.next = implicitReturn;
+			parser.ensureTerminated(errorHandler);
 		}
 
 		parser.setParent(start, functionFeature);
@@ -4108,16 +4107,6 @@ var _runtime = (function () {
 
 	_parser.addFeature("set", function (parser, runtime, tokens) {
 		let setCmd = parser.parseElement("setCommand", tokens);
-
-		var implicitReturn = {
-			type: "implicitReturn",
-			op: function (context) {
-				return runtime.HALT;
-			},
-			execute: function (context) {
-			},
-		};
-
 		if (setCmd) {
 			if (setCmd.target.scope !== "element") {
 				parser.raiseParseError(tokens, "variables declared at the feature level must be element scoped.");
@@ -4128,7 +4117,7 @@ var _runtime = (function () {
 					setCmd && setCmd.execute(runtime.makeContext(target, setFeature, target, null));
 				},
 			};
-			setCmd.next = implicitReturn;
+			parser.ensureTerminated(setCmd);
 			return setFeature;
 		}
 	});
@@ -4136,7 +4125,7 @@ var _runtime = (function () {
 	_parser.addFeature("init", function (parser, runtime, tokens) {
 		if (!tokens.matchToken("init")) return;
 
-		var start = parser.parseElement("commandList", tokens);
+		var start = parser.requireElement("commandList", tokens);
 		var initFeature = {
 			start: start,
 			install: function (target, source) {
@@ -4146,25 +4135,8 @@ var _runtime = (function () {
 			},
 		};
 
-		var implicitReturn = {
-			type: "implicitReturn",
-			op: function (context) {
-				return runtime.HALT;
-			},
-			execute: function (context) {
-				// do nothing
-			},
-		};
 		// terminate body
-		if (start) {
-			var end = start;
-			while (end.next) {
-				end = end.next;
-			}
-			end.next = implicitReturn;
-		} else {
-			initFeature.start = implicitReturn;
-		}
+		parser.ensureTerminated(start);
 		parser.setParent(start, initFeature);
 		return initFeature;
 	});
@@ -4603,15 +4575,13 @@ var _runtime = (function () {
 			op: function (context, value) {
 				var resolve = context.meta.resolve;
 				context.meta.returned = true;
+				context.meta.returnValue = value;
 				if (resolve) {
 					if (value) {
 						resolve(value);
 					} else {
 						resolve();
 					}
-				} else {
-					context.meta.returned = true;
-					context.meta.returnValue = value;
 				}
 				return runtime.HALT;
 			},
@@ -4708,13 +4678,7 @@ var _runtime = (function () {
 			args: [expr],
 			op: function (ctx, expr) {
 				runtime.registerHyperTrace(ctx, expr);
-				var reject = ctx.meta && ctx.meta.reject;
-				if (reject) {
-					reject(expr);
-					return runtime.HALT;
-				} else {
-					throw expr;
-				}
+				throw expr;
 			},
 		};
 		return throwCmd;
@@ -4867,17 +4831,17 @@ var _runtime = (function () {
 			parser.raiseParseError(tokens, "Can only put directly into symbols, not references");
 		}
 
-		var root = null;
+		var rootElt = null;
 		var prop = null;
 		if (symbolWrite) {
-			// root is null
+			// rootElt is null
 		} else if (attributeWrite) {
-			root = parser.requireElement("implicitMeTarget", tokens);
+			rootElt = parser.requireElement("implicitMeTarget", tokens);
 			var attribute = target;
 		} else {
 			prop = target.prop ? target.prop.value : null;
 			var attribute = target.attribute;
-			root = target.root;
+			rootElt = target.root;
 		}
 
 		/** @type {GrammarElement} */
@@ -4885,11 +4849,12 @@ var _runtime = (function () {
 			target: target,
 			symbolWrite: symbolWrite,
 			value: value,
-			args: [root, value],
+			args: [rootElt, value],
 			op: function (context, root, valueToSet) {
 				if (symbolWrite) {
 					runtime.setSymbol(target.name, context, target.scope, valueToSet);
 				} else {
+					runtime.nullCheck(root, rootElt);
 					runtime.implicitLoop(root, function (elt) {
 						if (attribute) {
 							if (valueToSet == null) {

@@ -2,7 +2,7 @@ describe("the behavior feature", function () {
 	it("can define behaviors", function () {
 		var behavior = make(
 			"<script type=text/hyperscript>" +
-				"behavior TheBehaviorWeAreDefiningForHyperscriptTestingPurposes init end end" +
+				"behavior TheBehaviorWeAreDefiningForHyperscriptTestingPurposes init log 'foo' end end" +
 				"</script>"
 		);
 		assert.property(window, "TheBehaviorWeAreDefiningForHyperscriptTestingPurposes");
