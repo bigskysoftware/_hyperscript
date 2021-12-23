@@ -2148,7 +2148,7 @@ var _runtime = (function () {
 	*/
 	function nullCheck(value, elt) {
 		if (value == null) {
-			throw new Error(elt.sourceFor() + " is null");
+			throw new Error("'" + elt.sourceFor() + "' is null");
 		}
 	}
 
@@ -4827,17 +4827,17 @@ var _runtime = (function () {
 			parser.raiseParseError(tokens, "Can only put directly into symbols, not references");
 		}
 
-		var root = null;
+		var rootElt = null;
 		var prop = null;
 		if (symbolWrite) {
-			// root is null
+			// rootElt is null
 		} else if (attributeWrite) {
-			root = parser.requireElement("implicitMeTarget", tokens);
+			rootElt = parser.requireElement("implicitMeTarget", tokens);
 			var attribute = target;
 		} else {
 			prop = target.prop ? target.prop.value : null;
 			var attribute = target.attribute;
-			root = target.root;
+			rootElt = target.root;
 		}
 
 		/** @type {GrammarElement} */
@@ -4845,11 +4845,12 @@ var _runtime = (function () {
 			target: target,
 			symbolWrite: symbolWrite,
 			value: value,
-			args: [root, value],
+			args: [rootElt, value],
 			op: function (context, root, valueToSet) {
 				if (symbolWrite) {
 					runtime.setSymbol(target.name, context, target.scope, valueToSet);
 				} else {
+					runtime.nullCheck(root, rootElt);
 					runtime.implicitLoop(root, function (elt) {
 						if (attribute) {
 							if (valueToSet == null) {
