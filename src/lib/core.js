@@ -1139,8 +1139,12 @@ var _parser = (function () {
 	 * @param {GrammarElement} parent
 	 */
 	function setParent(elt, parent) {
-		if (elt) {
+		if (typeof elt === 'object') {
 			elt.parent = parent;
+			if (typeof parent === 'object') {
+				parent.children = (parent.children || new Set());
+				parent.children.add(elt)
+			}
 			setParent(elt.next, parent);
 		}
 	}
