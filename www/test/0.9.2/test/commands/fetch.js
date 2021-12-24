@@ -255,4 +255,21 @@ describe("the fetch command", function () {
 		}, 50);
 	});
 
+	it("can catch an error that occurs when using fetch", function (done) {
+		window.fetch.returns(
+			Promise.reject(
+				new window.Response("Nope", {
+					status: 404,
+					headers: { "Content-type": "text/html" },
+				})
+			)
+		);
+		var div = make("<div _='on click fetch /test catch e log e put \"yay\" into me'></div>");
+		div.click();
+		setTimeout(function () {
+			div.innerHTML.should.equal("yay");
+			done();
+		}, 50);
+	});
+
 });

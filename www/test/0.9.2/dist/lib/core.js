@@ -5303,12 +5303,47 @@ var _runtime = (function () {
 		return makeSetter(parser, runtime, tokens, target, implicitDecrementOp);
 	});
 
+	_parser.addGrammarElement("fetchArgumentList", function (parser, runtime, tokens) {
+		var fields = [];
+		var valueExpressions = [];
+		if (tokens.currentToken().type === "IDENTIFIER") {
+			do {
+				var name = tokens.requireTokenType("IDENTIFIER");
+				tokens.requireOpToken(":");
+				if (name.value === "timeout") {
+					var value = parser.requireElement("timeExpression", tokens);
+				} else {
+					var value = parser.requireElement("expression", tokens);
+				}
+				valueExpressions.push(value);
+				fields.push({ name: name, value: value });
+			} while (tokens.matchOpToken(","));
+		}
+		return {
+			type: "fetchArgumentList",
+			fields: fields,
+			args: [valueExpressions],
+			op: function (context, values) {
+				var returnVal = { _namedArgList_: true };
+				for (var i = 0; i < values.length; i++) {
+					var field = fields[i];
+					returnVal[field.name.value] = values[i];
+				}
+				return returnVal;
+			},
+			evaluate: function (context) {
+				return runtime.unifiedEval(this, context);
+			},
+		};
+	});
+
+
 	_parser.addCommand("fetch", function (parser, runtime, tokens) {
 		if (!tokens.matchToken("fetch")) return;
 		var url = parser.requireElement("stringLike", tokens);
 
 		if (tokens.matchToken("with")) {
-			var args = parser.parseElement("nakedNamedArgumentList", tokens);
+			var args = parser.parseElement("fetchArgumentList", tokens);
 		} else {
 			var args = parser.parseElement("objectLiteral", tokens);
 		}
@@ -5338,17 +5373,42 @@ var _runtime = (function () {
 			op: function (context, url, args) {
 				var detail = args || {};
 				detail["sentBy"] = context.me;
+				detail["headers"] = detail["headers"] || {}
+				var abortController = new AbortController();
+				let abortListener = context.me.addEventListener('fetch:abort', function(){
+					abortController.abort();
+				}, {once: true});
+				detail['signal'] = abortController.signal;
 				runtime.triggerEvent(context.me, "hyperscript:beforeFetch", detail);
+				runtime.triggerEvent(context.me, "fetch:beforeRequest", detail);
 				args = detail;
+				console.log(args);
+				var finished = false;
+				if (args.timeout) {
+					setTimeout(function () {
+						if (!finished) {
+							console.log("Aborting!");
+							abortController.abort();
+						}
+					}, args.timeout);
+				}
 				return fetch(url, args)
 					.then(function (resp) {
+						let resultDetails = {response:resp};
+						runtime.triggerEvent(context.me, "fetch:afterResponse", resultDetails);
+						resp = resultDetails.response;
+
 						if (type === "response") {
 							context.result = resp;
+							runtime.triggerEvent(context.me, "fetch:afterRequest", {result:resp});
+							finished = true;
 							return runtime.findNext(fetchCmd, context);
 						}
 						if (type === "json") {
 							return resp.json().then(function (result) {
 								context.result = result;
+								runtime.triggerEvent(context.me, "fetch:afterRequest", {result});
+								finished = true;
 								return runtime.findNext(fetchCmd, context);
 							});
 						}
@@ -5358,14 +5418,19 @@ var _runtime = (function () {
 							if (type === "html") result = runtime.convertValue(result, "Fragment");
 
 							context.result = result;
+							runtime.triggerEvent(context.me, "fetch:afterRequest", {result});
+							finished = true;
 							return runtime.findNext(fetchCmd, context);
 						});
 					})
 					.catch(function (reason) {
+						console.log(reason);
 						runtime.triggerEvent(context.me, "fetch:error", {
 							reason: reason,
 						});
 						throw reason;
+					}).finally(function(){
+						context.me.removeEventListener('fetch:abort', abortListener);
 					});
 			},
 		};
