@@ -13,12 +13,7 @@ of hyperscript.
 
 ### Changes
 
-* The `repeat N times` form of the repeat command now supports an expression for `N` (rather than only a number literal)
-* A new `Fixed` conversion can convert a number to a fixed-precision string:
-  ```hyperscript
-    log 3.1415 as Fixed:2 -- prints "3.14"
-  ```
-* Event handlers now support a `catch` and `finally` block:
+* [Event handlers](/commands/on) now support a `catch` and `finally` block:
   ```hyperscript
     on click
       doSomething()
@@ -27,19 +22,27 @@ of hyperscript.
     finally
       cleanUp()
   ```
-* Functions also now support a `finally` block
+* [Functions](/commands/def) also now support a `finally` block
   ```hyperscript
     def foo()
       doSomething()
     finally
       cleanUp()
   ```
+* The [`fetch`](/commands/fetch) command now support both configurable timeouts
+  as well as the ability to cancel a fetch request by sending a `fetch:abort` event
+  to the element making the request
 * *Much* better error reporting in the presence of nulls, rather
   than random exceptions from hyperscript internals
 * Support for an `exists` operator:
   ```hyperscript
     if .someClass exists
       ...
+  ```
+* The `repeat N times` form of the repeat command now supports an expression for `N` (rather than only a number literal)
+* A new `Fixed` conversion can convert a number to a fixed-precision string:
+  ```hyperscript
+    log 3.1415 as Fixed:2 -- prints "3.14"
   ```
 
 ### Bug Fixes
