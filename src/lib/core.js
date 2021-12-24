@@ -5373,6 +5373,7 @@ var _runtime = (function () {
 			op: function (context, url, args) {
 				var detail = args || {};
 				detail["sentBy"] = context.me;
+				detail["headers"] = detail["headers"] || {}
 				var abortController = new AbortController();
 				let abortListener = context.me.addEventListener('fetch:abort', function(){
 					abortController.abort();
