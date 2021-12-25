@@ -130,11 +130,15 @@ export default _hyperscript => {
 		console.log("[hdb] current command: " + cmdSource)
 	}
 
-	HDB.prototype.traverse = function* (ge) {
-		yield ge;
-		if ('children' in ge) for (const child of ge.children) {
-			yield* this.traverse(child);
-		}
+	HDB.prototype.traverse = function (ge) {
+		const rv = [];
+
+		(function recurse (ge) {
+			rv.push(ge);
+			for (const child of ge.children) recurse(rv);
+		})(ge);
+
+		return rv;
 	}
 
 	var ui = `
