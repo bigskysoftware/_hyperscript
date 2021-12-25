@@ -5384,12 +5384,10 @@ var _runtime = (function () {
 				runtime.triggerEvent(context.me, "hyperscript:beforeFetch", detail);
 				runtime.triggerEvent(context.me, "fetch:beforeRequest", detail);
 				args = detail;
-				console.log(args);
 				var finished = false;
 				if (args.timeout) {
 					setTimeout(function () {
 						if (!finished) {
-							console.log("Aborting!");
 							abortController.abort();
 						}
 					}, args.timeout);
@@ -5426,7 +5424,6 @@ var _runtime = (function () {
 						});
 					})
 					.catch(function (reason) {
-						console.log(reason);
 						runtime.triggerEvent(context.me, "fetch:error", {
 							reason: reason,
 						});
