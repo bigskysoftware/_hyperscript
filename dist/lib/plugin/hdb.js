@@ -131,10 +131,14 @@ export default _hyperscript => {
 	}
 
 	HDB.prototype.traverse = function* (ge) {
-		yield ge;
-		if ('children' in ge) for (const child of ge.children) {
-			yield* this.traverse(child);
-		}
+		const rv = [];
+
+		(function recurse (ge) {
+			rv.push(ge);
+			for (const child of ge.children) recurse(rv);
+		})(ge);
+
+		return rv;
 	}
 
 	var ui = `
