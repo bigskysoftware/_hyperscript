@@ -964,6 +964,7 @@ var _parser = (function () {
 		var featureDefinitionWrapper = function (parser, runtime, tokens) {
 			var featureElement = definition(parser, runtime, tokens);
 			if (featureElement) {
+				featureElement.isFeature = true;
 				featureElement.keyword = keyword;
 				featureElement.type = featureGrammarType;
 				return featureElement;
@@ -4379,6 +4380,7 @@ var _runtime = (function () {
 				return runtime.findNext(this, context);
 			},
 		};
+		parser.setParent(body, command);
 		return command;
 	});
 

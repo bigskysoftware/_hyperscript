@@ -13,6 +13,12 @@ of hyperscript.
 
 ### Changes
 
+* The hyperscript debugger (hdb) now supports arbitrary jumping!
+
+<div style="text-align: center">
+<img src="/img/debugging.gif" style="width: 80%; margin: 20px">
+</div>
+
 * [Event handlers](/commands/on) now support a `catch` and `finally` block:
   ```hyperscript
     on click
