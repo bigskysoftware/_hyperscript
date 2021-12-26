@@ -2,7 +2,7 @@
 layout: layout.njk
 tags: post
 title: hyperscript 0.9.2 has been released!
-date: 2021-11-29
+date: 2021-12-25
 ---
 
 ## hyperscript 0.9.2 Release
