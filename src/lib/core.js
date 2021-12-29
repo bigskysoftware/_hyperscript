@@ -3043,8 +3043,29 @@ var _runtime = (function () {
 		return _parser.parseElement("indirectExpression", tokens, arrayIndex);
 	});
 
+	// taken from https://drafts.csswg.org/css-values-4/#relative-length
+	//        and https://drafts.csswg.org/css-values-4/#absolute-length
+	var STRING_POSTFIXES = [
+		'em', 'ex', 'cap', 'ch', 'ic', 'rem', 'lh', 'rlh', 'vw', 'vh', 'vi', 'vb', 'vmin', 'vmax',
+		'cm', 'mm', 'Q', 'in', 'pc', 'pt', 'px'
+	];
 	_parser.addGrammarElement("postfixExpression", function (parser, runtime, tokens) {
 		var root = parser.parseElement("primaryExpression", tokens);
+
+		let stringPosfix = tokens.matchAnyToken.apply(tokens, STRING_POSTFIXES) || tokens.matchOpToken("%");
+		if (stringPosfix) {
+			return {
+				type: "stringPostfix",
+				postfix: stringPosfix.value,
+				args: [root],
+				op: function (context, val) {
+					return "" + val + stringPosfix.value;
+				},
+				evaluate: function (context) {
+					return runtime.unifiedEval(this, context);
+				},
+			};
+		}
 		if (tokens.matchOpToken(":")) {
 			var typeName = tokens.requireTokenType("IDENTIFIER");
 			var nullOk = !tokens.matchOpToken("!");

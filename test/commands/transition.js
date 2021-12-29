@@ -17,6 +17,20 @@ describe("the transition command", function () {
 		}, 20);
 	});
 
+	it("can transition with parameterized values", function (done) {
+		var div = make("<div _='on click " +
+			"                               set startWidth to 0" +
+			"                               set endWidth to 100" +
+			"                               transition width from (startWidth)px to (endWidth)px'></div>");
+		div.style.width.should.equal("");
+		div.click();
+		div.style.width.should.equal("0px");
+		setTimeout(function () {
+			div.style.width.should.equal("100px");
+			done();
+		}, 20);
+	});
+
 	it("can transition a single property on form", function (done) {
 		var form = make("<form _='on click transition width from 0px to 100px'></form>");
 		form.style.width.should.equal("");

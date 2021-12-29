@@ -706,12 +706,12 @@ export default _hyperscript => {
 				properties.push(parser.requireElement("stringLike", tokens));
 
 				if (tokens.matchToken("from")) {
-					from.push(parser.requireElement("stringLike", tokens));
+					from.push(parser.requireElement("expression", tokens));
 				} else {
 					from.push(null);
 				}
 				tokens.requireToken("to");
-				to.push(parser.requireElement("stringLike", tokens));
+				to.push(parser.requireElement("expression", tokens));
 				currentToken = tokens.currentToken();
 			}
 			if (tokens.matchToken("over")) {
