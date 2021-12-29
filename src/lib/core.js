@@ -1356,11 +1356,12 @@ var _runtime = (function () {
 	 * @param {Element} elt
 	 * @param {string} eventName
 	 * @param {Object} [detail]
+	 * @param {Element} sender
 	 * @returns {boolean}
 	 */
-	function triggerEvent(elt, eventName, detail) {
+	function triggerEvent(elt, eventName, detail, sender) {
 		detail = detail || {};
-		detail["sentBy"] = elt;
+		detail["sender"] = sender;
 		var event = makeEvent(eventName, detail);
 		var eventResult = elt.dispatchEvent(event);
 		return eventResult;
@@ -1724,6 +1725,7 @@ var _runtime = (function () {
 			event: event,
 			target: event ? event.target : null,
 			detail: event ? event.detail : null,
+			sender: event ? event.detail ? event.detail.sender : null : null,
 			body: "document" in globalScope ? document.body : null,
 		};
 		ctx.meta.ctx = ctx;
@@ -4594,7 +4596,7 @@ var _runtime = (function () {
 			op: function (context, to, eventName, details) {
 				runtime.nullCheck(to, toExpr);
 				runtime.forEach(to, function (target) {
-					runtime.triggerEvent(target, eventName, details ? details : {});
+					runtime.triggerEvent(target, eventName, details, context.me);
 				});
 				return runtime.findNext(sendCmd, context);
 			},
@@ -5385,7 +5387,7 @@ var _runtime = (function () {
 			args: [url, args],
 			op: function (context, url, args) {
 				var detail = args || {};
-				detail["sentBy"] = context.me;
+				detail["sender"] = context.me;
 				detail["headers"] = detail["headers"] || {}
 				var abortController = new AbortController();
 				let abortListener = context.me.addEventListener('fetch:abort', function(){

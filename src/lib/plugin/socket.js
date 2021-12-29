@@ -121,7 +121,7 @@ export default _hyperscript => {
 				dispatchEvent: function (evt) {
 					var details = evt.detail;
 					// remove hyperscript internals
-					delete details.sentBy;
+					delete details.sender;
 					delete details._namedArgList_;
 					socket.send(JSON.stringify(mergeObjects({ type: evt.type }, details)));
 				},
