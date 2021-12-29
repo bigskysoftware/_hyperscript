@@ -1019,8 +1019,8 @@ var _parser = (function () {
 		let commandElement;
 		if (commandDefinition) {
 			commandElement = commandDefinition(parser, runtime, tokens);
-		} else if (tokens.currentToken().type === "IDENTIFIER" && tokens.token(1).value === "(") {
-			commandElement = parser.requireElement("pseudoCommand", tokens);
+		} else if (tokens.currentToken().type === "IDENTIFIER") {
+			commandElement = parser.parseElement("pseudoCommand", tokens);
 		}
 		if (commandElement) {
 			return parser.parseElement("indirectStatement", tokens, commandElement);
@@ -4802,46 +4802,68 @@ var _runtime = (function () {
 
 	_parser.addGrammarElement("pseudoCommand", function (parser, runtime, tokens) {
 
-		try {
-			var expr = parser.requireElement("primaryExpression", tokens);
-		} finally {
-			tokens.popFollow();
-		}
-		if (expr.type !== "functionCall" && expr.root.type !== "symbol" && expr.root.root != null) {
-			parser.raiseParseError(tokens, "Implicit function calls must start with a simple function");
+		let lookAhead = tokens.token(1);
+		if (!(lookAhead && lookAhead.op && (lookAhead.value === '.' || lookAhead.value === "("))) {
+			return null;
 		}
 
-		var functionName = expr.root.name;
+		var expr = parser.requireElement("primaryExpression", tokens);
 
-		if (tokens.matchAnyToken("the", "to", "on", "with", "into", "from", "at")) {
-			var target = parser.requireElement("expression", tokens);
-		} else if (tokens.matchToken("me")) {
-			var target = parser.requireElement("implicitMeTarget", tokens);
+		var rootRoot = expr.root;
+		var root = expr;
+		while (rootRoot.root != null) {
+			root = root.root;
+			rootRoot = rootRoot.root;
 		}
-		var functionArgs = expr.argExressions;
+
+		if (expr.type !== "functionCall") {
+			parser.raiseParseError(tokens, "Pseudo-commands must be function calls");
+		}
+
+		if (root.type === "functionCall" && root.root.root == null) {
+			if (tokens.matchAnyToken("the", "to", "on", "with", "into", "from", "at")) {
+				var realRoot = parser.requireElement("expression", tokens);
+			} else if (tokens.matchToken("me")) {
+				var realRoot = parser.requireElement("implicitMeTarget", tokens);
+			}
+		}
 
 		/** @type {GrammarElement} */
-		var pseudoCommand = {
-			type: "pseudoCommand",
-			expr: expr,
-			args: [target, functionArgs],
-			op: function (context, target, args) {
-				if (target) {
-					var func = target[functionName];
-				} else {
-					var func = runtime.resolveSymbol(functionName, context);
-				}
-				if (func.hyperfunc) {
-					args.push(context);
-				}
-				var result = func.apply(target, args);
-				context.result = result;
-				return runtime.findNext(pseudoCommand, context);
-			},
-			execute: function (context) {
-				return runtime.unifiedExec(this, context);
-			},
-		};
+
+		if(realRoot){
+			var pseudoCommand = {
+				type: "pseudoCommand",
+				root: realRoot,
+				argExressions: root.argExressions,
+				args: [realRoot, root.argExressions],
+				op: function (context, rootRoot, args) {
+					runtime.nullCheck(rootRoot, realRoot);
+					var func = rootRoot[root.root.name];
+					runtime.nullCheck(func, root);
+					if (func.hyperfunc) {
+						args.push(context);
+					}
+					context.result = func.apply(rootRoot, args);
+					return runtime.findNext(pseudoCommand, context);
+				},
+				execute: function (context) {
+					return runtime.unifiedExec(this, context);
+				},
+			}
+		} else {
+			var pseudoCommand = {
+				type: "pseudoCommand",
+				expr: expr,
+				args: [expr],
+				op: function (context, result) {
+					context.result = result;
+					return runtime.findNext(pseudoCommand, context);
+				},
+				execute: function (context) {
+					return runtime.unifiedExec(this, context);
+				},
+			};
+		}
 
 		return pseudoCommand;
 	});
