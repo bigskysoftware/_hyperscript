@@ -2738,28 +2738,6 @@ var _runtime = (function () {
 		};
 	});
 
-	_parser.addGrammarElement("timeExpression", function (parser, runtime, tokens) {
-		var time = parser.requireElement("expression", tokens);
-		var factor = 1;
-		if (tokens.matchToken("s") || tokens.matchToken("seconds")) {
-			factor = 1000;
-		} else if (tokens.matchToken("ms") || tokens.matchToken("milliseconds")) {
-			// do nothing
-		}
-		return {
-			type: "timeExpression",
-			time: time,
-			factor: factor,
-			args: [time],
-			op: function (_context, val) {
-				return val * factor;
-			},
-			evaluate: function (context) {
-				return runtime.unifiedEval(this, context);
-			},
-		};
-	});
-
 	_parser.addIndirectExpression("propertyAccess", function (parser, runtime, tokens, root) {
 		if (!tokens.matchOpToken(".")) return;
 		var prop = tokens.requireTokenType("IDENTIFIER");
@@ -3045,9 +3023,10 @@ var _runtime = (function () {
 
 	// taken from https://drafts.csswg.org/css-values-4/#relative-length
 	//        and https://drafts.csswg.org/css-values-4/#absolute-length
+	//        (NB: we do not support `in` dues to conflicts w/ the hyperscript grammar)
 	var STRING_POSTFIXES = [
 		'em', 'ex', 'cap', 'ch', 'ic', 'rem', 'lh', 'rlh', 'vw', 'vh', 'vi', 'vb', 'vmin', 'vmax',
-		'cm', 'mm', 'Q', 'in', 'pc', 'pt', 'px'
+		'cm', 'mm', 'Q', 'pc', 'pt', 'px'
 	];
 	_parser.addGrammarElement("postfixExpression", function (parser, runtime, tokens) {
 		var root = parser.parseElement("primaryExpression", tokens);
@@ -3066,6 +3045,28 @@ var _runtime = (function () {
 				},
 			};
 		}
+
+		var timeFactor = null;
+		if (tokens.matchToken("s") || tokens.matchToken("seconds")) {
+			timeFactor = 1000;
+		} else if (tokens.matchToken("ms") || tokens.matchToken("milliseconds")) {
+			timeFactor = 1;
+		}
+		if (timeFactor) {
+			return {
+				type: "timeExpression",
+				time: root,
+				factor: timeFactor,
+				args: [root],
+				op: function (_context, val) {
+					return val * timeFactor;
+				},
+				evaluate: function (context) {
+					return runtime.unifiedEval(this, context);
+				},
+			};
+		}
+
 		if (tokens.matchOpToken(":")) {
 			var typeName = tokens.requireTokenType("IDENTIFIER");
 			var nullOk = !tokens.matchOpToken("!");
@@ -3799,12 +3800,12 @@ var _runtime = (function () {
 
 			if (tokens.matchToken("debounced")) {
 				tokens.requireToken("at");
-				var timeExpr = parser.requireElement("timeExpression", tokens);
+				var timeExpr = parser.requireElement("expression", tokens);
 				// @ts-ignore
 				var debounceTime = timeExpr.evaluate({}); // OK No promise TODO make a literal time expr
 			} else if (tokens.matchToken("throttled")) {
 				tokens.requireToken("at");
-				var timeExpr = parser.requireElement("timeExpression", tokens);
+				var timeExpr = parser.requireElement("expression", tokens);
 				// @ts-ignore
 				var throttleTime = timeExpr.evaluate({}); // OK No promise TODO make a literal time expr
 			}
@@ -4465,7 +4466,7 @@ var _runtime = (function () {
 				var lookahead = tokens.token(0);
 				if (lookahead.type === 'NUMBER' || lookahead.type === 'L_PAREN') {
 					events.push({
-						time: parser.requireElement('timeExpression', tokens).evaluate() // TODO: do we want to allow async here?
+						time: parser.requireElement('expression', tokens).evaluate() // TODO: do we want to allow async here?
 					})
 				} else {
 					events.push({
@@ -4515,7 +4516,7 @@ var _runtime = (function () {
 				tokens.requireToken("tick");
 				time = 0;
 			} else {
-				time = _parser.requireElement("timeExpression", tokens);
+				time = _parser.requireElement("expression", tokens);
 			}
 
 			command = {
@@ -5350,47 +5351,12 @@ var _runtime = (function () {
 		return makeSetter(parser, runtime, tokens, target, implicitDecrementOp);
 	});
 
-	_parser.addGrammarElement("fetchArgumentList", function (parser, runtime, tokens) {
-		var fields = [];
-		var valueExpressions = [];
-		if (tokens.currentToken().type === "IDENTIFIER") {
-			do {
-				var name = tokens.requireTokenType("IDENTIFIER");
-				tokens.requireOpToken(":");
-				if (name.value === "timeout") {
-					var value = parser.requireElement("timeExpression", tokens);
-				} else {
-					var value = parser.requireElement("expression", tokens);
-				}
-				valueExpressions.push(value);
-				fields.push({ name: name, value: value });
-			} while (tokens.matchOpToken(","));
-		}
-		return {
-			type: "fetchArgumentList",
-			fields: fields,
-			args: [valueExpressions],
-			op: function (context, values) {
-				var returnVal = { _namedArgList_: true };
-				for (var i = 0; i < values.length; i++) {
-					var field = fields[i];
-					returnVal[field.name.value] = values[i];
-				}
-				return returnVal;
-			},
-			evaluate: function (context) {
-				return runtime.unifiedEval(this, context);
-			},
-		};
-	});
-
-
 	_parser.addCommand("fetch", function (parser, runtime, tokens) {
 		if (!tokens.matchToken("fetch")) return;
 		var url = parser.requireElement("stringLike", tokens);
 
 		if (tokens.matchToken("with")) {
-			var args = parser.parseElement("fetchArgumentList", tokens);
+			var args = parser.parseElement("nakedNamedArgumentList", tokens);
 		} else {
 			var args = parser.parseElement("objectLiteral", tokens);
 		}

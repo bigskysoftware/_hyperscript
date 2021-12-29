@@ -290,7 +290,7 @@ export default _hyperscript => {
 			}
 
 			if (tokens.matchToken("for")) {
-				var time = parser.requireElement("timeExpression", tokens);
+				var time = parser.requireElement("expression", tokens);
 			} else if (tokens.matchToken("until")) {
 				var evt = parser.requireElement("dotOrColonPath", tokens, "Expected event name");
 				if (tokens.matchToken("from")) {
@@ -715,7 +715,7 @@ export default _hyperscript => {
 				currentToken = tokens.currentToken();
 			}
 			if (tokens.matchToken("over")) {
-				var over = parser.requireElement("timeExpression", tokens);
+				var over = parser.requireElement("expression", tokens);
 			} else if (tokens.matchToken("using")) {
 				var using = parser.requireElement("expression", tokens);
 			}
