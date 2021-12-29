@@ -87,4 +87,56 @@ describe("the _hyperscript runtime", function () {
 			done();
 		}, 100);
 	});
+
+	it("arrays args are handled properly wrt Promises", function (done) {
+		var script = make(
+			"<script type='text/hyperscript'>" +
+				"def invokesArrayPromise() " +
+				"  return {" +
+				"            foo: stringPromise()," +
+				"            bar: stringPromise()," +
+				"            baz: stringPromise()" +
+			    "         }" +
+				"end " +
+				" " +
+				"def stringPromise() " +
+				"  wait 20ms " +
+				"  return 'foo' " +
+				"end " +
+				" " +
+				"</script>"
+		);
+		invokesArrayPromise()
+			.then(function(result){
+				result.foo.should.equal('foo');
+				result.bar.should.equal('foo');
+				result.baz.should.equal('foo');
+				delete window.invokesArrayPromise;
+				delete window.stringPromise;
+				done();
+			})
+	});
+
+	it("scalar args are handled properly wrt Promises", function (done) {
+		var script = make(
+			"<script type='text/hyperscript'>" +
+				"def invokesScalarPromise() " +
+				"  return stringPromise()" +
+				"end " +
+				" " +
+				"def stringPromise() " +
+				"  wait 20ms " +
+				"  return 'foo' " +
+				"end " +
+				" " +
+				"</script>"
+		);
+		invokesScalarPromise()
+			.then(function(result){
+				result.should.equal('foo');
+				delete window.invokesScalarPromise;
+				delete window.stringPromise;
+				done();
+			})
+	});
 });
