@@ -11,6 +11,7 @@
     send foo to #bar
     put the result into me
   ```
+* ~~Support `sender` symbol when responding to events~~
 
 ### Language Features
 * Ben(?) - Better DOM manipulation tools? (needs research)
