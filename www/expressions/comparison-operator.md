@@ -34,7 +34,7 @@ I do not include <expr>
 <expr> is not empty
 <expr> is a <type name>
 <expr> is not a <type name>
-<expr> exist
+<expr> exists
 <expr> does not exist
 ```
 
