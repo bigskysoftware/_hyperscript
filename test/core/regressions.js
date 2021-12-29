@@ -118,4 +118,14 @@ describe("_hyperscript regressions", function () {
 		b1.disabled.should.equal(true);
 	});
 
+	it("can invoke functions w/ numbers in name", function () {
+		window.select2 = function(){
+			return "select2";
+		}
+		var btn = make("<button _='on click put select2() into me'/>");
+		btn.click();
+		btn.innerText.should.equal("select2");
+		delete window.select2;
+	});
+
 });

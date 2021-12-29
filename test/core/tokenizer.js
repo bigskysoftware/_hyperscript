@@ -162,6 +162,23 @@ describe("the _hyperscript tokenizer", function () {
 		token.value.should.equal("bar");
 	});
 
+	it("handles identifiers with numbers properly", function () {
+		var lexer = _hyperscript.internals.lexer;
+
+		var token = lexer.tokenize("f1oo").consumeToken();
+		token.type.should.equal("IDENTIFIER");
+		token.value.should.equal("f1oo");
+
+		var token = lexer.tokenize("fo1o").consumeToken();
+		token.type.should.equal("IDENTIFIER");
+		token.value.should.equal("fo1o");
+
+		var token = lexer.tokenize("foo1").consumeToken();
+		token.type.should.equal("IDENTIFIER");
+		token.value.should.equal("foo1");
+
+	});
+
 	it("handles numbers properly", function () {
 		var lexer = _hyperscript.internals.lexer;
 

@@ -705,7 +705,9 @@ var _lexer = (function () {
 		function consumeIdentifier() {
 			var identifier = makeToken("IDENTIFIER");
 			var value = consumeChar();
-			while (isAlpha(currentChar()) || isIdentifierChar(currentChar())) {
+			while (isAlpha(currentChar()) ||
+			       isNumeric(currentChar()) ||
+			       isIdentifierChar(currentChar())) {
 				value += consumeChar();
 			}
 			identifier.value = value;
