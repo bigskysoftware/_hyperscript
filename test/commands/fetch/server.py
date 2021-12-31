@@ -19,6 +19,10 @@ def request_type():
     resp.headers['Access-Control-Allow-Origin'] = '*'
     return resp
 
+@app.route('/json')
+def json():
+    return {resp:'Hello JSON!'}
+
 # main driver function
 if __name__ == '__main__':
     app.run()
