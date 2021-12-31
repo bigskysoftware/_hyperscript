@@ -551,6 +551,8 @@ var _lexer = (function () {
 					tokens.push(consumeAttributeReference());
 				} else if (currentChar() === "@") {
 					tokens.push(consumeShortAttributeReference());
+				} else if (currentChar() === "*" && isAlpha(nextChar())) {
+					tokens.push(consumeStyleReference());
 				} else if (isAlpha(currentChar()) || (!inTemplate() && isIdentifierChar(currentChar()))) {
 					tokens.push(consumeIdentifier());
 				} else if (isNumeric(currentChar())) {
@@ -670,6 +672,20 @@ var _lexer = (function () {
 			attributeRef.value = value;
 			attributeRef.end = position;
 			return attributeRef;
+		}
+
+		function consumeStyleReference() {
+			var styleRef = makeToken("STYLE_REF");
+			var value = consumeChar();
+			while (isAlpha(currentChar()) || currentChar() === "-") {
+				value += consumeChar();
+			}
+			if (currentChar() === "!") {
+				value += consumeChar();
+			}
+			styleRef.value = value;
+			styleRef.end = position;
+			return styleRef;
 		}
 
 		/**
@@ -2021,9 +2037,9 @@ var _runtime = (function () {
 	* @param {boolean} attribute
 	* @returns {any}
 	*/
-	function resolveProperty(root, property, attribute) {
+	function flatGet(root, property, getter) {
 		if (root != null) {
-			var val = attribute && root.getAttribute ? root.getAttribute(property) : root[property];
+			var val = getter(root, property);
 			if (typeof val !== "undefined") {
 				return val;
 			}
@@ -2032,7 +2048,7 @@ var _runtime = (function () {
 				// flat map
 				var result = [];
 				for (var component of root) {
-					var componentValue = attribute ? component.getAttribute(property) : component[property];
+					var componentValue = getter(component, property);
 					if (componentValue) {
 						result.push(componentValue);
 					}
@@ -2040,6 +2056,22 @@ var _runtime = (function () {
 				return result;
 			}
 		}
+	}
+
+	function resolveProperty(root, property) {
+		return flatGet(root, property, (root, property) => root[property] )
+	}
+
+	function resolveAttribute(root, property) {
+		return flatGet(root, property, (root, property) => root.getAttribute && root.getAttribute(property) )
+	}
+
+	function resolveStyle(root, property) {
+		return flatGet(root, property, (root, property) => root.style && root.style[property] )
+	}
+
+	function resolveComputedStyle(root, property) {
+		return flatGet(root, property, (root, property) => getComputedStyle(root).getPropertyValue(property) )
 	}
 
 	/**
@@ -2211,6 +2243,9 @@ var _runtime = (function () {
 		convertValue,
 		unifiedExec,
 		resolveProperty,
+		resolveAttribute,
+		resolveStyle,
+		resolveComputedStyle,
 		assignToNamespace,
 		registerHyperTrace,
 		getHyperTrace,
@@ -2478,6 +2513,42 @@ var _runtime = (function () {
 		};
 	});
 
+	_parser.addLeafExpression("styleRef", function (parser, runtime, tokens) {
+		var styleRef = tokens.matchTokenType("STYLE_REF");
+		if (!styleRef) return;
+		var styleProp = styleRef.value.substr(1);
+		if (styleProp.endsWith("!")) {
+			styleProp = styleProp.slice(0, -1);
+			return {
+				type: "computedStyleRef",
+				name: styleProp,
+				op: function (context) {
+					var target = context.beingTold || context.me;
+					if (target) {
+						return runtime.resolveComputedStyle(target, styleProp);
+					}
+				},
+				evaluate: function (context) {
+					return runtime.unifiedEval(this, context);
+				},
+			};
+		} else {
+			return {
+				type: "styleRef",
+				name: styleProp,
+				op: function (context) {
+					var target = context.beingTold || context.me;
+					if (target) {
+						return runtime.resolveStyle(target, styleProp);
+					}
+				},
+				evaluate: function (context) {
+					return runtime.unifiedEval(this, context);
+				},
+			};
+		}
+	});
+
 	_parser.addGrammarElement("objectKey", function (parser, runtime, tokens) {
 		var token;
 		if ((token = tokens.matchTokenType("STRING"))) {
@@ -2723,7 +2794,7 @@ var _runtime = (function () {
 			prop: prop,
 			args: [root],
 			op: function (_context, rootVal) {
-				var value = runtime.resolveProperty(rootVal, prop.value, false);
+				var value = runtime.resolveProperty(rootVal, prop.value);
 				return value;
 			},
 			evaluate: function (context) {
@@ -2743,20 +2814,35 @@ var _runtime = (function () {
 			childOfUrRoot = urRoot;
 			urRoot = urRoot.root;
 		}
-		if (urRoot.type !== "symbol" && urRoot.type !== "attributeRef") {
+		if (urRoot.type !== "symbol" && urRoot.type !== "attributeRef" && urRoot.type !== "styleRef" && urRoot.type !== "computedStyleRef") {
 			parser.raiseParseError(tokens, "Cannot take a property of a non-symbol: " + urRoot.type);
 		}
 		var attribute = urRoot.type === "attributeRef";
+		var style = urRoot.type === "styleRef" || urRoot.type === "computedStyleRef";
+		if (attribute || style) {
+			var attributeElt = urRoot
+		}
 		var prop = urRoot.name;
+
 		var propertyAccess = {
 			type: "ofExpression",
 			prop: urRoot.token,
 			root: newRoot,
-			attribute: attribute,
+			attribute: attributeElt,
 			expression: root,
 			args: [newRoot],
 			op: function (context, rootVal) {
-				return runtime.resolveProperty(rootVal, prop, attribute);
+				if (attribute) {
+					return runtime.resolveAttribute(rootVal, prop);
+				} else if (style) {
+					if (urRoot.type === "computedStyleRef") {
+						return runtime.resolveComputedStyle(rootVal, prop);
+					} else {
+						return runtime.resolveStyle(rootVal, prop);
+					}
+				} else {
+					return runtime.resolveProperty(rootVal, prop);
+				}
 			},
 			evaluate: function (context) {
 				return runtime.unifiedEval(this, context);
@@ -2785,27 +2871,37 @@ var _runtime = (function () {
 			apostrophe ||
 			(root.type === "symbol" &&
 				(root.name === "my" || root.name === "its" || root.name === "your") &&
-				tokens.currentToken().type === "IDENTIFIER")
+				(tokens.currentToken().type === "IDENTIFIER" || tokens.currentToken().type === "ATTRIBUTE_REF" || tokens.currentToken().type === "STYLE_REF"))
 		) {
 			if (apostrophe) {
 				tokens.requireToken("s");
 			}
 			var attribute = parser.parseElement("attributeRef", tokens);
 			if (attribute == null) {
-				var prop = tokens.requireTokenType("IDENTIFIER");
+				var style = parser.parseElement("styleRef", tokens);
+				if (style == null) {
+					var prop = tokens.requireTokenType("IDENTIFIER");
+				}
 			}
 			var propertyAccess = {
 				type: "possessive",
 				root: root,
-				attribute: attribute,
+				attribute: attribute || style,
 				prop: prop,
 				args: [root],
 				op: function (context, rootVal) {
 					if (attribute) {
 						// @ts-ignore
-						var value = runtime.resolveProperty(rootVal, attribute.name, true);
+						var value = runtime.resolveAttribute(rootVal, attribute.name);
+					} else if (style) {
+						// @ts-ignore
+						if (style.type === 'computedStyleRef') {
+							var value = runtime.resolveComputedStyle(rootVal, style.name);
+						} else {
+							var value = runtime.resolveStyle(rootVal, style.name);
+						}
 					} else {
-						var value = runtime.resolveProperty(rootVal, prop.value, false);
+						var value = runtime.resolveProperty(rootVal, prop.value);
 					}
 					return value;
 				},
@@ -2944,7 +3040,7 @@ var _runtime = (function () {
 			args: [root],
 			op: function (_ctx, rootVal) {
 				// @ts-ignore
-				var value = runtime.resolveProperty(rootVal, attribute.name, true);
+				var value = runtime.resolveAttribute(rootVal, attribute.name);
 				return value;
 			},
 			evaluate: function (context) {
@@ -3613,6 +3709,7 @@ var _runtime = (function () {
 			expr.type === "propertyAccess" ||
 			expr.type === "attributeRefAccess" ||
 			expr.type === "attributeRef" ||
+			expr.type === "styleRef" ||
 			expr.type === "possessive")
 		) {
 			return expr;
@@ -4884,9 +4981,12 @@ var _runtime = (function () {
 	* @returns
 	*/
 	var makeSetter = function (parser, runtime, tokens, target, value) {
+
 		var symbolWrite = target.type === "symbol";
 		var attributeWrite = target.type === "attributeRef";
-		if (!attributeWrite && !symbolWrite && target.root == null) {
+		var styleWrite = target.type === "styleRef";
+
+		if (!(attributeWrite || styleWrite || symbolWrite) && target.root == null) {
 			parser.raiseParseError(tokens, "Can only put directly into symbols, not references");
 		}
 
@@ -4894,7 +4994,7 @@ var _runtime = (function () {
 		var prop = null;
 		if (symbolWrite) {
 			// rootElt is null
-		} else if (attributeWrite) {
+		} else if (attributeWrite || styleWrite) {
 			rootElt = parser.requireElement("implicitMeTarget", tokens);
 			var attribute = target;
 		} else {
@@ -4916,10 +5016,14 @@ var _runtime = (function () {
 					runtime.nullCheck(root, rootElt);
 					runtime.implicitLoop(root, function (elt) {
 						if (attribute) {
-							if (valueToSet == null) {
-								elt.removeAttribute(attribute.name);
+							if (attribute.type === "attributeRef") {
+								if (valueToSet == null) {
+									elt.removeAttribute(attribute.name);
+								} else {
+									elt.setAttribute(attribute.name, valueToSet);
+								}
 							} else {
-								elt.setAttribute(attribute.name, valueToSet);
+								elt.style[attribute.name] = valueToSet;
 							}
 						} else {
 							elt[prop] = valueToSet;

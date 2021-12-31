@@ -595,8 +595,13 @@ export default _hyperscript => {
 				var attributeWrite = true;
 				prop = target.name;
 				rootExpr = parser.requireElement("implicitMeTarget", tokens);
+			} else if (target.type === "styleRef" && operation === "into") {
+				var styleWrite = true;
+				prop = target.name;
+				rootExpr = parser.requireElement("implicitMeTarget", tokens);
 			} else if (target.attribute && operation === "into") {
-				var attributeWrite = true;
+				var attributeWrite = target.attribute.type === "attributeRef";
+				var styleWrite = target.attribute.type === "styleRef";
 				prop = target.attribute.name;
 				rootExpr = target.root;
 			} else {
@@ -618,6 +623,10 @@ export default _hyperscript => {
 							if (attributeWrite) {
 								runtime.implicitLoop(root, function (elt) {
 									elt.setAttribute(prop, valueToPut);
+								});
+							} else if (styleWrite) {
+								runtime.implicitLoop(root, function (elt) {
+									elt.style[prop] = valueToPut;
 								});
 							} else {
 								runtime.implicitLoop(root, function (elt) {
