@@ -2819,23 +2819,30 @@ var _runtime = (function () {
 
 	_parser.addIndirectExpression("inExpression", function (parser, runtime, tokens, root) {
 		if (!tokens.matchToken("in")) return;
-		if ((root.type !== "idRef" && root.type === "queryRef") || root.type === "classRef") {
-			var query = true;
-		}
 		var target = parser.requireElement("expression", tokens);
 		var propertyAccess = {
 			type: "inExpression",
 			root: root,
-			args: [query ? null : root, target],
+			args: [root, target],
 			op: function (context, rootVal, target) {
 				var returnArr = [];
-				if (query) {
+				if (rootVal.css) {
 					runtime.implicitLoop(target, function (targetElt) {
-						var results = targetElt.querySelectorAll(root.css);
+						var results = targetElt.querySelectorAll(rootVal.css);
 						for (var i = 0; i < results.length; i++) {
 							returnArr.push(results[i]);
 						}
 					});
+				} else if (rootVal instanceof Element) {
+					var within = false;
+					runtime.implicitLoop(target, function (targetElt) {
+						if (targetElt.contains(rootVal)) {
+							within = true;
+						}
+					});
+					if(within) {
+						return rootVal;
+					}
 				} else {
 					runtime.implicitLoop(rootVal, function (rootElt) {
 						runtime.implicitLoop(target, function (targetElt) {

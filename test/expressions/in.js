@@ -33,4 +33,41 @@ describe("the in expression", function () {
 		var result = evalHyperScript("<p.foo/> in <div#d3/>");
 		result.length.should.equal(1);
 	});
+
+	it("id returns values", function () {
+		var div = make("<div _='on click get #p1 in me then put its id into @result'><p id='p1'></p></div>");
+		div.click();
+		div.getAttribute("result").should.equal('p1');
+	});
+
+	it("id template returns values", function () {
+		var div = make("<div _='on click get #{\"p1\"} in me then put its id into @result'><p id='p1'></p></div>");
+		div.click();
+		div.getAttribute("result").should.equal('p1');
+	});
+
+	it("class returns values", function () {
+		var div = make("<div _='on click get the first .p1 in me then put its id into @result'><p id='p1' class='p1'></p></div>");
+		div.click();
+		div.getAttribute("result").should.equal('p1');
+	});
+
+	it("class template returns values", function () {
+		var div = make("<div _='on click get the first .{\"p1\"} in me then put its id into @result'><p id='p1' class='p1'></p></div>");
+		div.click();
+		div.getAttribute("result").should.equal('p1');
+	});
+
+	it("query returns values", function () {
+		var div = make("<div _='on click get the first <p/> in me then put its id into @result'><p id='p1' class='p1'></p></div>");
+		div.click();
+		div.getAttribute("result").should.equal('p1');
+	});
+
+	it("query template returns values", function () {
+		var div = make("<div _='on click get the first <${\"p\"}/> in me then put its id into @result'><p id='p1' class='p1'></p></div>");
+		div.click();
+		div.getAttribute("result").should.equal('p1');
+	});
+
 });
