@@ -10,12 +10,12 @@
 | [go](/commands/go)                 | Navigate to a new page or within a page                                       | `go to the top of the body smoothly`                                                    |
 | [halt](/commands/halt)             | Halts the current event (stopping propogate, etc.)                            | `halt`                                                                                  |
 | [hide](/commands/hide)             | Hide an element in the DOM                                                    | `hide me`                                                                               |
-| [if](/commands/if)                 | A conditional control flow command                                            | `if me.selected then call alert('I\'m selected!')`                                      |
+| [if](/commands/if)                 | A conditional control flow command                                            | `if I match .selected then call alert('I\'m selected!')`                                      |
 | [increment](/commands/increment)   | Adds a value to a variable, property, or attribute                            | `increment counter`                                                                     |
 | [js](/commands/js)                 | Embeds javascript                                                             | `js alert('this is javascript'); end`                                                   |
 | [log](/commands/log)               | Logs a given expression to the console, if possible                           | `log me`                                                                                |
 | [make](/commands/make)             | Creates a class instance or DOM element                                       | `make a Set from a, b. c`, `make a <p/> called para`                                    |
-| [put](/commands/put)               | Puts a value into a given variable or property                                | `put "cool!" into me.innerHTML`                                                         |
+| [put](/commands/put)               | Puts a value into a given variable or property                                | `put "cool!" into me`                                                         |
 | [remove](/commands/remove)         | Removes content                                                               | `log "bye, bye" then remove me`                                                         |
 | [repeat](/commands/repeat)         | Iterates                                                                      | `repeat for x in [1, 2, 3] log x end`                                                   |
 | [return](/commands/return)         | Returns a value                                                               | `return 42`                                                                             |
