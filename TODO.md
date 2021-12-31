@@ -11,6 +11,11 @@
     send foo to #bar
     put the result into me
   ```
+* Fix `fetch` issue when an `as` follows a `with`:
+  ```applescript
+     fetch /foo with method:"POST" as json -- as json bindes to "POST" too tightly
+   ```
+  options are to support curlies after `with` and/or look ahead for `json` etc.
 * ~~Support `sender` symbol when responding to events~~
 
 ### Language Features
