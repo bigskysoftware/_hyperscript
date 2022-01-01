@@ -102,6 +102,17 @@ describe("_hyperscript regressions", function () {
 		startsWith(msg, "'return' commands must return a value.  If you do not wish to return a value, use 'exit' instead.");
 	});
 
+	it("extra chars cause error when evaling", function () {
+		var msg = getParseErrorFor("1!");
+		startsWith(msg, "Unexpected Token : !");
+
+		msg = getParseErrorFor("return 1!");
+		startsWith(msg, "Unexpected Token : !");
+
+		msg = getParseErrorFor("init set x to 1!");
+		startsWith(msg, "Unexpected Token : !");
+	});
+
 	it("string literals can dot-invoked against", function () {
 		_hyperscript("'foo'.length").should.equal(3);
 		_hyperscript("`foo`.length").should.equal(3);

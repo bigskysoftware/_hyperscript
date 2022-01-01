@@ -1774,21 +1774,16 @@ var _runtime = (function () {
 		var tokens = _lexer.tokenize(src);
 		if (_parser.commandStart(tokens.currentToken())) {
 			var commandList = _parser.requireElement("commandList", tokens);
-			var last = commandList;
-			while (last.next) {
-				last = last.next;
-			}
-			last.next = {
-				op: function () {
-					return HALT;
-				},
-			};
+			if (tokens.hasMore()) _parser.raiseParseError(tokens);
+			_parser.ensureTerminated(commandList);
 			return commandList;
 		} else if (_parser.featureStart(tokens.currentToken())) {
 			var hyperscript = _parser.requireElement("hyperscript", tokens);
+			if (tokens.hasMore()) _parser.raiseParseError(tokens);
 			return hyperscript;
 		} else {
 			var expression = _parser.requireElement("expression", tokens);
+			if (tokens.hasMore()) _parser.raiseParseError(tokens);
 			return expression;
 		}
 	}
