@@ -161,7 +161,7 @@ describe("the put command", function () {
 	});
 
 	it("can set into indirect style ref 3", function () {
-		var d1 = make("<div class='divs' _=\"on click put 'red' the *color of #div2\"></div>");
+		var d1 = make("<div class='divs' _=\"on click put 'red' into the *color of #div2\"></div>");
 		var d2 = make("<div id='div2'></div>");
 		d1.click();
 		d2.style["color"].should.equal("red");
