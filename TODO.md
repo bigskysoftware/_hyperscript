@@ -3,7 +3,7 @@
 ### 0.9.x release
 
 * ~~Convert hyperscript runtime to wrap arrays w/ a Promise rather than `linerize/delinearize` :)~~
-* Support `*width` syntax for referring to style properties (similar to `@` for normal attributes)
+* ~~Support `*width` syntax for referring to style properties (similar to `@` for normal attributes)~~
 * Finish new documentation (Carson)
 * Wait a tick before `transition` to allow previous mutations to settle?
 * Integrate events to allow call-like behavior:
