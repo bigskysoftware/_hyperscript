@@ -312,6 +312,10 @@ var _lexer = (function () {
 			}
 		}
 
+		function peekToken(value, peek, type) {
+			return tokens[peek] && tokens[peek].value === value && tokens[peek].type === type
+		}
+
 		/**
 		 * @param {string} value
 		 * @param {string} [type]
@@ -473,6 +477,7 @@ var _lexer = (function () {
 			matchTokenType: matchTokenType,
 			requireTokenType: requireTokenType,
 			consumeToken: consumeToken,
+			peekToken: peekToken,
 			matchToken: matchToken,
 			requireToken: requireToken,
 			list: tokens,
@@ -678,9 +683,6 @@ var _lexer = (function () {
 			var styleRef = makeToken("STYLE_REF");
 			var value = consumeChar();
 			while (isAlpha(currentChar()) || currentChar() === "-") {
-				value += consumeChar();
-			}
-			if (currentChar() === "!") {
 				value += consumeChar();
 			}
 			styleRef.value = value;
@@ -2512,8 +2514,8 @@ var _runtime = (function () {
 		var styleRef = tokens.matchTokenType("STYLE_REF");
 		if (!styleRef) return;
 		var styleProp = styleRef.value.substr(1);
-		if (styleProp.endsWith("!")) {
-			styleProp = styleProp.slice(0, -1);
+		if (styleProp.startsWith("computed-")) {
+			styleProp = styleProp.substr("computed-".length);
 			return {
 				type: "computedStyleRef",
 				name: styleProp,
@@ -5433,32 +5435,44 @@ var _runtime = (function () {
 		return makeSetter(parser, runtime, tokens, target, implicitDecrementOp);
 	});
 
+	function parseConversionInfo(tokens, parser) {
+		var type = "text";
+		var conversion;
+		tokens.matchToken("a") || tokens.matchToken("an");
+		if (tokens.matchToken("json") || tokens.matchToken("Object")) {
+			type = "json";
+		} else if (tokens.matchToken("response")) {
+			type = "response";
+		} else if (tokens.matchToken("html")) {
+			type = "html";
+		} else if (tokens.matchToken("text")) {
+			// default, ignore
+		} else {
+			conversion = parser.requireElement("dotOrColonPath", tokens).evaluate();
+		}
+		return {type, conversion};
+	}
+
 	_parser.addCommand("fetch", function (parser, runtime, tokens) {
 		if (!tokens.matchToken("fetch")) return;
 		var url = parser.requireElement("stringLike", tokens);
 
-		if (tokens.matchToken("with")) {
+		if (tokens.matchToken("as")) {
+			var conversionInfo = parseConversionInfo(tokens, parser);
+		}
+
+		if (tokens.matchToken("with") && tokens.currentToken().value !== "{") {
 			var args = parser.parseElement("nakedNamedArgumentList", tokens);
 		} else {
 			var args = parser.parseElement("objectLiteral", tokens);
 		}
 
-		var type = "text";
-		var conversion;
-		if (tokens.matchToken("as")) {
-			tokens.matchToken("a") || tokens.matchToken("an");
-			if (tokens.matchToken("json") || tokens.matchToken("Object")) {
-				type = "json";
-			} else if (tokens.matchToken("response")) {
-				type = "response";
-			} else if (tokens.matchToken("html")) {
-				type = "html";
-			} else if (tokens.matchToken("text")) {
-				// default, ignore
-			} else {
-				conversion = parser.requireElement("dotOrColonPath", tokens).evaluate();
-			}
+		if (conversionInfo == null && tokens.matchToken("as")) {
+			conversionInfo = parseConversionInfo(tokens, parser);
 		}
+
+		var type = conversionInfo ? conversionInfo.type : "text";
+		var conversion = conversionInfo ? conversionInfo.conversion : null
 
 		/** @type {GrammarElement} */
 		var fetchCmd = {

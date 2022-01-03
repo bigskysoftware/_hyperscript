@@ -204,6 +204,41 @@ describe("the fetch command", function () {
 		}, 50);
 	});
 
+	it("can put response conversion after with", function (done) {
+		window.fetch.returns(
+			Promise.resolve(
+				new window.Response("yay", {
+					status: 200,
+					headers: { "Content-type": "text/html" },
+				})
+			)
+		);
+		var div = make("<div _='on click fetch /test with {method:\"POST\"} as text then put it into my.innerHTML'></div>");
+		div.click();
+		setTimeout(function () {
+			div.innerHTML.should.equal("yay");
+			done();
+		}, 50);
+	});
+
+
+	it("can put response conversion before with", function (done) {
+		window.fetch.returns(
+			Promise.resolve(
+				new window.Response("yay", {
+					status: 200,
+					headers: { "Content-type": "text/html" },
+				})
+			)
+		);
+		var div = make("<div _='on click fetch /test as text with {method:\"POST\"} then put it into my.innerHTML'></div>");
+		div.click();
+		setTimeout(function () {
+			div.innerHTML.should.equal("yay");
+			done();
+		}, 50);
+	});
+
 	it("triggers an event just before fetching", function (done) {
 		window.fetch.returns(
 			Promise.resolve(

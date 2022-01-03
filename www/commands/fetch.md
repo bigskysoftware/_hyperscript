@@ -4,7 +4,7 @@
 ### Syntax
 
 ```ebnf
-fetch <stringLike> [<object literal> | 'with' <naked named arguments>] [ as [ a | an ]( json | Object | text | request ) ]
+fetch <stringLike> [ as [ a | an ]( json | Object | text | request ) ] [<object literal> | 'with' <naked named arguments>]
 ```
 
 ### Description
@@ -91,7 +91,7 @@ document.body.addEventListener('fetch:beforeRequest', (event) => {
   Get from /example!
 </button>
 
-<button _='on click fetch /test with method:"POST" as json
+<button _='on click fetch /test as json with method:"POST"
                     put `${its result}` into my innerHTML'>
   Post to /test!
 </button>
@@ -102,7 +102,7 @@ document.body.addEventListener('fetch:beforeRequest', (event) => {
   Get the title of the page!
 </button>
 
-<div _='on click fetch /number with method:"POST" as Number
+<div _='on click fetch /number as Number with method:"POST"
                  put "${the result + 1}" into my innerHTML'>
   Increment!
 </div>
