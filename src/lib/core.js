@@ -3991,7 +3991,7 @@ var _runtime = (function () {
 					} else {
 						targets = [elt];
 					}
-					runtime.forEach(targets, function (target) {
+					runtime.implicitLoop(targets, function (target) {
 						// OK NO PROMISE
 
 						var eventName = eventSpec.on;

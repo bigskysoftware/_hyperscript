@@ -126,7 +126,7 @@ describe("_hyperscript regressions", function () {
 			"</form>");
 		var btn = byId("b1");
 		form.click();
-		b1.disabled.should.equal(true);
+		btn.disabled.should.equal(true);
 	});
 
 	it("can invoke functions w/ numbers in name", function () {
@@ -138,5 +138,16 @@ describe("_hyperscript regressions", function () {
 		btn.innerText.should.equal("select2");
 		delete window.select2;
 	});
+
+	it("listen for event on form", function () {
+		var form = make("<form>" +
+			"  <button id='b1' _='on click from closest <form/> put \"clicked\" into me'>Button</button>" +
+			"</form>");
+		var btn = byId("b1");
+		form.click();
+		btn.innerHTML.should.equal("clicked");
+	});
+
+
 
 });
