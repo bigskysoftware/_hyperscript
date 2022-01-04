@@ -712,7 +712,18 @@ export default _hyperscript => {
 				currentToken.value !== "over" &&
 				currentToken.value !== "using"
 			) {
-				properties.push(parser.requireElement("stringLike", tokens));
+				if (tokens.currentToken().type === "STYLE_REF") {
+					let styleRef = tokens.consumeToken();
+					let styleProp = styleRef.value.substr(1);
+					properties.push({
+						type: "styleRefValue",
+						evaluate: function () {
+							return styleProp;
+						},
+					});
+				} else {
+					properties.push(parser.requireElement("stringLike", tokens));
+				}
 
 				if (tokens.matchToken("from")) {
 					from.push(parser.requireElement("expression", tokens));
