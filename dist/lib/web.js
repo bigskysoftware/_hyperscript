@@ -290,7 +290,7 @@ export default _hyperscript => {
 			}
 
 			if (tokens.matchToken("for")) {
-				var time = parser.requireElement("timeExpression", tokens);
+				var time = parser.requireElement("expression", tokens);
 			} else if (tokens.matchToken("until")) {
 				var evt = parser.requireElement("dotOrColonPath", tokens, "Expected event name");
 				if (tokens.matchToken("from")) {
@@ -595,8 +595,13 @@ export default _hyperscript => {
 				var attributeWrite = true;
 				prop = target.name;
 				rootExpr = parser.requireElement("implicitMeTarget", tokens);
+			} else if (target.type === "styleRef" && operation === "into") {
+				var styleWrite = true;
+				prop = target.name;
+				rootExpr = parser.requireElement("implicitMeTarget", tokens);
 			} else if (target.attribute && operation === "into") {
-				var attributeWrite = true;
+				var attributeWrite = target.attribute.type === "attributeRef";
+				var styleWrite = target.attribute.type === "styleRef";
 				prop = target.attribute.name;
 				rootExpr = target.root;
 			} else {
@@ -618,6 +623,10 @@ export default _hyperscript => {
 							if (attributeWrite) {
 								runtime.implicitLoop(root, function (elt) {
 									elt.setAttribute(prop, valueToPut);
+								});
+							} else if (styleWrite) {
+								runtime.implicitLoop(root, function (elt) {
+									elt.style[prop] = valueToPut;
 								});
 							} else {
 								runtime.implicitLoop(root, function (elt) {
@@ -703,19 +712,30 @@ export default _hyperscript => {
 				currentToken.value !== "over" &&
 				currentToken.value !== "using"
 			) {
-				properties.push(parser.requireElement("stringLike", tokens));
+				if (tokens.currentToken().type === "STYLE_REF") {
+					let styleRef = tokens.consumeToken();
+					let styleProp = styleRef.value.substr(1);
+					properties.push({
+						type: "styleRefValue",
+						evaluate: function () {
+							return styleProp;
+						},
+					});
+				} else {
+					properties.push(parser.requireElement("stringLike", tokens));
+				}
 
 				if (tokens.matchToken("from")) {
-					from.push(parser.requireElement("stringLike", tokens));
+					from.push(parser.requireElement("expression", tokens));
 				} else {
 					from.push(null);
 				}
 				tokens.requireToken("to");
-				to.push(parser.requireElement("stringLike", tokens));
+				to.push(parser.requireElement("expression", tokens));
 				currentToken = tokens.currentToken();
 			}
 			if (tokens.matchToken("over")) {
-				var over = parser.requireElement("timeExpression", tokens);
+				var over = parser.requireElement("expression", tokens);
 			} else if (tokens.matchToken("using")) {
 				var using = parser.requireElement("expression", tokens);
 			}
