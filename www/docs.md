@@ -711,6 +711,8 @@ They can be installed as shown:
 <div class="banner" _="install Removable(removeButton: #close-banner)">
   ...
 ```
+  
+Behaviors **must** be defined before they can be "installed". Behaviors can be loaded remotely. The import should be placed towards the beginning of the document or before being "installed".
 
 For a better example of a behavior, check out [Draggable.\_hs](https://gist.github.com/dz4k/6505fb82ae7fdb0a03e6f3e360931aa9).
 
