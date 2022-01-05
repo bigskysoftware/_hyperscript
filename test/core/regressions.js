@@ -102,6 +102,17 @@ describe("_hyperscript regressions", function () {
 		startsWith(msg, "'return' commands must return a value.  If you do not wish to return a value, use 'exit' instead.");
 	});
 
+	it("extra chars cause error when evaling", function () {
+		var msg = getParseErrorFor("1!");
+		startsWith(msg, "Unexpected Token : !");
+
+		msg = getParseErrorFor("return 1!");
+		startsWith(msg, "Unexpected Token : !");
+
+		msg = getParseErrorFor("init set x to 1!");
+		startsWith(msg, "Unexpected Token : !");
+	});
+
 	it("string literals can dot-invoked against", function () {
 		_hyperscript("'foo'.length").should.equal(3);
 		_hyperscript("`foo`.length").should.equal(3);
@@ -115,7 +126,28 @@ describe("_hyperscript regressions", function () {
 			"</form>");
 		var btn = byId("b1");
 		form.click();
-		b1.disabled.should.equal(true);
+		btn.disabled.should.equal(true);
 	});
+
+	it("can invoke functions w/ numbers in name", function () {
+		window.select2 = function(){
+			return "select2";
+		}
+		var btn = make("<button _='on click put select2() into me'/>");
+		btn.click();
+		btn.innerText.should.equal("select2");
+		delete window.select2;
+	});
+
+	it("listen for event on form", function () {
+		var form = make("<form>" +
+			"  <button id='b1' _='on click from closest <form/> put \"clicked\" into me'>Button</button>" +
+			"</form>");
+		var btn = byId("b1");
+		form.click();
+		btn.innerHTML.should.equal("clicked");
+	});
+
+
 
 });

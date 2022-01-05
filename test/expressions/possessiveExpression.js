@@ -78,6 +78,12 @@ describe("possessiveExpression", function () {
 		result.should.equal("bar");
 	});
 
+	it("can access my attribute", function () {
+		var div = make("<div data-foo='bar'></div>");
+		var result = evalHyperScript("my @data-foo", { me: div });
+		result.should.equal("bar");
+	});
+
 	it("can access multiple basic attributes", function () {
 		make("<div class='c1' data-foo='bar'></div><div class='c1' data-foo='bar'></div>");
 		var result = evalHyperScript(".c1's [@data-foo]");
@@ -93,7 +99,46 @@ describe("possessiveExpression", function () {
 	});
 
 	it("can set multiple basic attributes", function () {
-		make("<div class='c1' data-foo='bar'></div><div class='c1' data-foo='bar'></div>");
+		make("<div id='d1' class='c1' data-foo='bar'></div><div id='d2' class='c1' data-foo='bar'></div>");
 		var result = evalHyperScript("set .c1's [@data-foo] to 'blah'");
+		byId('d1').getAttribute('data-foo').should.equal('blah')
+		byId('d2').getAttribute('data-foo').should.equal('blah')
+	});
+
+	it("can access basic style", function () {
+		var div = make("<div style='color:red'></div>");
+		var result = evalHyperScript("foo's *color", { foo: div });
+		result.should.equal("red");
+	});
+
+	it("can access my style", function () {
+		var div = make("<div style='color:red'></div>");
+		var result = evalHyperScript("my *color", { me: div });
+		result.should.equal("red");
+	});
+
+	it("can access multiple basic styles", function () {
+		make("<div class='c1' style='color:red'></div><div class='c1' style='color:red'></div>");
+		var result = evalHyperScript(".c1's *color");
+		result.should.deep.equal(["red", "red"]);
+	});
+
+	it("can set root styles", function () {
+		var div = make("<div style='color:red'></div>");
+		var result = evalHyperScript("set *color to 'blue'", {me: div});
+		div.style["color"].should.equal("blue");
+	});
+
+	it("can set basic styles", function () {
+		var div = make("<div style='color:red'></div>");
+		var result = evalHyperScript("set foo's *color to 'blue'", {foo: div});
+		div.style["color"].should.equal("blue");
+	});
+
+	it("can set multiple basic styles", function () {
+		make("<div id='d1' class='c1' style='color:red'></div><div id='d2' class='c1' style='color:red'></div>");
+		var result = evalHyperScript("set .c1's *color to 'blue'");
+		byId('d1').style['color'].should.equal('blue')
+		byId('d2').style['color'].should.equal('blue')
 	});
 });

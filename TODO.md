@@ -1,18 +1,22 @@
 ## TODOs
 
 ### 0.9.x release
-* Carson(?) - improve `fetch` command w/ more obvious syntax for body, headers, etc.
-  ```text
-    fetch /foo with a POST
-    fetch /foo with a POST and body {foo:"bar"}
-    fetch /foo with a POST and body {foo:"bar"} and headers {blah:'blah'}
+
+* ~~Convert hyperscript runtime to wrap arrays w/ a Promise rather than `linerize/delinearize` :)~~
+* ~~Support `*width` syntax for referring to style properties (similar to `@` for normal attributes)~~
+* Finish new documentation (Carson)
+* Wait a tick before `transition` to allow previous mutations to settle?
+* Integrate events to allow call-like behavior:
+  ```applescript
+    send foo to #bar
+    put the result into me
   ```
-  * make defaults pluggable
-  * event model
-* Change feature installation to use `is` rather than `install` (maybe both?)
-*  Support a `timeout` modifier for commands like `fetch`, `call`, `wait for` etc.
-  * general support is a deep project involving dealing w/ async commands not executing if they time out during execution
-  * maybe just timeout for specific commands ?
+* ~~Fix `fetch` issue when an `as` follows a `with`:~~
+  ```applescript
+     fetch /foo with method:"POST" as json -- as json bindes to "POST" too tightly
+   ```
+  options are to ~~support curlies after `with` syntax~~ and/or look ahead for `json` etc.
+* ~~Support `sender` symbol when responding to events~~
 
 ### Language Features
 * Ben(?) - Better DOM manipulation tools? (needs research)

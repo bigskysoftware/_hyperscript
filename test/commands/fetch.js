@@ -170,7 +170,7 @@ describe("the fetch command", function () {
 		}, 50);
 	});
 
-	it("can do a simple post alt syntax", function (done) {
+	it("can do a simple post alt syntax wihtout curlies", function (done) {
 		window.fetch.returns(
 			Promise.resolve(
 				new window.Response("yay", {
@@ -180,6 +180,58 @@ describe("the fetch command", function () {
 			)
 		);
 		var div = make("<div _='on click fetch /test with method:\"POST\" then put it into my.innerHTML'></div>");
+		div.click();
+		setTimeout(function () {
+			div.innerHTML.should.equal("yay");
+			done();
+		}, 50);
+	});
+
+	it("can do a simple post alt syntax w/ curlies", function (done) {
+		window.fetch.returns(
+			Promise.resolve(
+				new window.Response("yay", {
+					status: 200,
+					headers: { "Content-type": "text/html" },
+				})
+			)
+		);
+		var div = make("<div _='on click fetch /test with {method:\"POST\"} then put it into my.innerHTML'></div>");
+		div.click();
+		setTimeout(function () {
+			div.innerHTML.should.equal("yay");
+			done();
+		}, 50);
+	});
+
+	it("can put response conversion after with", function (done) {
+		window.fetch.returns(
+			Promise.resolve(
+				new window.Response("yay", {
+					status: 200,
+					headers: { "Content-type": "text/html" },
+				})
+			)
+		);
+		var div = make("<div _='on click fetch /test with {method:\"POST\"} as text then put it into my.innerHTML'></div>");
+		div.click();
+		setTimeout(function () {
+			div.innerHTML.should.equal("yay");
+			done();
+		}, 50);
+	});
+
+
+	it("can put response conversion before with", function (done) {
+		window.fetch.returns(
+			Promise.resolve(
+				new window.Response("yay", {
+					status: 200,
+					headers: { "Content-type": "text/html" },
+				})
+			)
+		);
+		var div = make("<div _='on click fetch /test as text with {method:\"POST\"} then put it into my.innerHTML'></div>");
 		div.click();
 		setTimeout(function () {
 			div.innerHTML.should.equal("yay");
