@@ -711,6 +711,15 @@ They can be installed as shown:
 <div class="banner" _="install Removable(removeButton: #close-banner)">
   ...
 ```
+These behaviors can also be loaded remotely, but in that case, they **must**
+appear before loading hyperscript:
+
+```
+<script type="text/hyperscript" src="/behaviors._hs"></script>
+<script src="https://unpkg.com/hyperscript.org"></script>
+```
+  
+Behaviors must be defined before they are installed if the defined locally. If behaviors are loaded remotely, they can be defined anywhere as long as they are appear before loading hyperscript.
 
 For a better example of a behavior, check out [Draggable.\_hs](https://gist.github.com/dz4k/6505fb82ae7fdb0a03e6f3e360931aa9).
 
