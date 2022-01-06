@@ -711,6 +711,8 @@ They can be installed as shown:
 <div class="banner" _="install Removable(removeButton: #close-banner)">
   ...
 ```
+  
+Behaviors must be defined before they are "installed," if defined locally. If behaviors are loaded remotely they **must** appear before loading hyperscript, but they can be loaded after they are "installed".
 
 For a better example of a behavior, check out [Draggable.\_hs](https://gist.github.com/dz4k/6505fb82ae7fdb0a03e6f3e360931aa9).
 
