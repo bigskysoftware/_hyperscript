@@ -88,7 +88,7 @@ export default _hyperscript => {
 			if (tokens.matchToken("to")) {
 				var toExpr = parser.requireElement("expression", tokens);
 			} else {
-				var toExpr = parser.parseElement("implicitMeTarget", tokens);
+				var toExpr = parser.requireElement("implicitMeTarget", tokens);
 			}
 
 			if (classRefs) {
@@ -509,7 +509,7 @@ export default _hyperscript => {
 
 	_hyperscript.addCommand("take", function (parser, runtime, tokens) {
 		if (tokens.matchToken("take")) {
-			var classRef = parser.parseElement("classRef", tokens);
+			var classRef = parser.requireElement("classRef", tokens);
 
 			if (tokens.matchToken("from")) {
 				var fromExpr = parser.requireElement("expression", tokens);
@@ -907,12 +907,12 @@ export default _hyperscript => {
 
 			var css = null;
 			if (tokens.currentToken().type === "ATTRIBUTE_REF") {
-				var attributeRef = parser.parseElement("attributeRefAccess", tokens, null);
+				var attributeRef = parser.requireElement("attributeRefAccess", tokens, null);
 				css = "[" + attributeRef.attribute.name + "]";
 			}
 
 			if (css == null) {
-				var expr = parser.parseElement("expression", tokens);
+				var expr = parser.requireElement("expression", tokens);
 				if (expr.css == null) {
 					parser.raiseParseError(tokens, "Expected a CSS expression");
 				} else {
@@ -1034,7 +1034,7 @@ export default _hyperscript => {
 							target.scrollIntoView(scrollOptions);
 						});
 					}
-					return runtime.findNext(goCmd);
+					return runtime.findNext(goCmd, ctx);
 				},
 			};
 			return goCmd;

@@ -27,8 +27,8 @@ declare namespace _hyperscript {
 interface _GrammarElement {
   type?: string;
   args?: any[];
-  op?: (ctx:Context, root:any, ...args:any) => any;
-  evaluate?: (context?:Context) => any;
+  op?: (this: _GrammarElement, ctx:Context, root:any, ...args:any) => any;
+  evaluate?: (this: _GrammarElement, context?:Context) => any;
   parent?: GrammarElement;
   children?: Set<_GrammarElement>;
   root?: GrammarElement;
@@ -37,9 +37,9 @@ interface _GrammarElement {
   next?: GrammarElement;
   resolveNext?: (context:Context) => GrammarElement;
   eventSource?: EventSource;
-  install?: () => void;
-  execute?: (context:Context) => void;
-  apply?: (target: object, source: object, args?: Object) => void;
+  install?: (this: _GrammarElement) => void;
+  execute?: (this: _GrammarElement, context:Context) => void;
+  apply?: (this: _GrammarElement, target: object, source: object, args?: Object) => void;
   [others: string]: any;
 }
 

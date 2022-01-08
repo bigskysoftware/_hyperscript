@@ -85,7 +85,7 @@ export default _hyperscript => {
 			var defaultTimeout = 10000;
 			if (tokens.matchToken("with")) {
 				tokens.requireToken("timeout");
-				defaultTimeout = parser.requireElement("timeExpression", tokens).evaluate();
+				defaultTimeout = parser.requireElement("expression", tokens).evaluate();
 			}
 
 			if (tokens.matchToken("on")) {
@@ -121,7 +121,7 @@ export default _hyperscript => {
 				dispatchEvent: function (evt) {
 					var details = evt.detail;
 					// remove hyperscript internals
-					delete details.sentBy;
+					delete details.sender;
 					delete details._namedArgList_;
 					socket.send(JSON.stringify(mergeObjects({ type: evt.type }, details)));
 				},
