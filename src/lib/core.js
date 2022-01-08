@@ -1231,7 +1231,7 @@ var _parser = (function () {
 	}
 
 	/**
-	 * @param {GrammarElement} commandList 
+	 * @param {GrammarElement} commandList
 	 */
 	function ensureTerminated(commandList) {
 		var implicitReturn = {
@@ -1789,9 +1789,9 @@ var _runtime = (function () {
 	}
 
 	/**
-	 * 
-	 * @param {GrammarElement} elt 
-	 * @param {Context} ctx 
+	 *
+	 * @param {GrammarElement} elt
+	 * @param {Context} ctx
 	 * @returns {any}
 	 */
 	function evaluateNoPromise(elt, ctx) {
@@ -2068,9 +2068,9 @@ var _runtime = (function () {
 	}
 
 	/**
-	 * 
-	 * @param {Object<string, any>} root 
-	 * @param {string} property 
+	 *
+	 * @param {Object<string, any>} root
+	 * @param {string} property
 	 * @returns {string}
 	 */
 	function resolveStyle(root, property) {
@@ -2078,9 +2078,9 @@ var _runtime = (function () {
 	}
 
 	/**
-	 * 
-	 * @param {Object<string, any>} root 
-	 * @param {string} property 
+	 *
+	 * @param {Object<string, any>} root
+	 * @param {string} property
 	 * @returns {string}
 	 */
 	function resolveComputedStyle(root, property) {
@@ -2217,9 +2217,9 @@ var _runtime = (function () {
 	}
 
 	/**
-	 * 
-	 * @param {Element} elt 
-	 * @param {GrammarElement} onFeature 
+	 *
+	 * @param {Element} elt
+	 * @param {GrammarElement} onFeature
 	 * @returns {EventQueue}
 	 */
 	function getEventQueueFor(elt, onFeature) {
@@ -4595,17 +4595,22 @@ var _runtime = (function () {
 						for (const eventInfo of events) {
 							var listener = (event) => {
 								context.result = event;
-								for (const arg of eventInfo.args) {
-									context[arg.value] =
-										event[arg.value] || (event.detail ? event.detail[arg.value] : null);
+								if (eventInfo.args) {
+									for (const arg of eventInfo.args) {
+										context[arg.value] =
+											event[arg.value] || (event.detail ? event.detail[arg.value] : null);
+									}
 								}
 								if (!resolved) {
 									resolved = true;
 									resolve(runtime.findNext(this, context));
 								}
 							};
-							if (eventInfo.name) target.addEventListener(eventInfo.name, listener, { once: true });
-							else if (eventInfo.time) setTimeout(listener, eventInfo.time, eventInfo.time)
+							if (eventInfo.name){
+								target.addEventListener(eventInfo.name, listener, {once: true});
+							} else if (eventInfo.time != null) {
+								setTimeout(listener(), eventInfo.time, eventInfo.time)
+							}
 						}
 					});
 				},
