@@ -312,10 +312,6 @@ var _lexer = (function () {
 			}
 		}
 
-		function peekToken(value, peek, type) {
-			return tokens[peek] && tokens[peek].value === value && tokens[peek].type === type
-		}
-
 		/**
 		 * @param {string} value
 		 * @param {string} [type]
@@ -477,7 +473,6 @@ var _lexer = (function () {
 			matchTokenType: matchTokenType,
 			requireTokenType: requireTokenType,
 			consumeToken: consumeToken,
-			peekToken: peekToken,
 			matchToken: matchToken,
 			requireToken: requireToken,
 			list: tokens,
@@ -1235,6 +1230,9 @@ var _parser = (function () {
 		return returnArr;
 	}
 
+	/**
+	 * @param {GrammarElement} commandList
+	 */
 	function ensureTerminated(commandList) {
 		var implicitReturn = {
 			type: "implicitReturn",
@@ -1374,7 +1372,7 @@ var _runtime = (function () {
 	 * @param {Element} elt
 	 * @param {string} eventName
 	 * @param {Object} [detail]
-	 * @param {Element} sender
+	 * @param {Element} [sender]
 	 * @returns {boolean}
 	 */
 	function triggerEvent(elt, eventName, detail, sender) {
@@ -1790,6 +1788,12 @@ var _runtime = (function () {
 		}
 	}
 
+	/**
+	 *
+	 * @param {GrammarElement} elt
+	 * @param {Context} ctx
+	 * @returns {any}
+	 */
 	function evaluateNoPromise(elt, ctx) {
 		let result = elt.evaluate(ctx);
 		if (result.next) {
@@ -2012,7 +2016,7 @@ var _runtime = (function () {
 	}
 
 	/**
-	* @param {GrammarElement} command
+	* @param {GrammarElement | void} command
 	* @param {Context} context
 	* @returns {undefined | GrammarElement}
 	*/
@@ -2031,7 +2035,7 @@ var _runtime = (function () {
 	/**
 	* @param {Object<string,any>} root
 	* @param {string} property
-	* @param {boolean} attribute
+	* @param {(Object, string) => any} getter
 	* @returns {any}
 	*/
 	function flatGet(root, property, getter) {
@@ -2063,10 +2067,22 @@ var _runtime = (function () {
 		return flatGet(root, property, (root, property) => root.getAttribute && root.getAttribute(property) )
 	}
 
+	/**
+	 *
+	 * @param {Object<string, any>} root
+	 * @param {string} property
+	 * @returns {string}
+	 */
 	function resolveStyle(root, property) {
 		return flatGet(root, property, (root, property) => root.style && root.style[property] )
 	}
 
+	/**
+	 *
+	 * @param {Object<string, any>} root
+	 * @param {string} property
+	 * @returns {string}
+	 */
 	function resolveComputedStyle(root, property) {
 		return flatGet(root, property, (root, property) => getComputedStyle(root).getPropertyValue(property) )
 	}
@@ -2200,6 +2216,12 @@ var _runtime = (function () {
 		return document;
 	}
 
+	/**
+	 *
+	 * @param {Element} elt
+	 * @param {GrammarElement} onFeature
+	 * @returns {EventQueue}
+	 */
 	function getEventQueueFor(elt, onFeature) {
 		let internalData = getInternalData(elt);
 		var eventQueuesForElt = internalData.eventQueues;
@@ -2654,7 +2676,7 @@ var _runtime = (function () {
 	});
 
 	_parser.addGrammarElement("symbol", function (parser, runtime, tokens) {
-		/** @scope {SymbolScope} */
+		/** @type {SymbolScope} */
 		var scope = "default";
 		if (tokens.matchToken("global")) {
 			scope = "global";
@@ -2887,18 +2909,20 @@ var _runtime = (function () {
 				prop: prop,
 				args: [root],
 				op: function (context, rootVal) {
+					/** @type {any} */
+					let value;
 					if (attribute) {
 						// @ts-ignore
-						var value = runtime.resolveAttribute(rootVal, attribute.name);
+						value = runtime.resolveAttribute(rootVal, attribute.name);
 					} else if (style) {
 						// @ts-ignore
 						if (style.type === 'computedStyleRef') {
-							var value = runtime.resolveComputedStyle(rootVal, style.name);
+							value = runtime.resolveComputedStyle(rootVal, style.name);
 						} else {
-							var value = runtime.resolveStyle(rootVal, style.name);
+							value = runtime.resolveStyle(rootVal, style.name);
 						}
 					} else {
-						var value = runtime.resolveProperty(rootVal, prop.value);
+						value = runtime.resolveProperty(rootVal, prop.value);
 					}
 					return value;
 				},
@@ -3991,7 +4015,7 @@ var _runtime = (function () {
 					} else {
 						targets = [elt];
 					}
-					runtime.forEach(targets, function (target) {
+					runtime.implicitLoop(targets, function (target) {
 						// OK NO PROMISE
 
 						var eventName = eventSpec.on;
@@ -4571,17 +4595,22 @@ var _runtime = (function () {
 						for (const eventInfo of events) {
 							var listener = (event) => {
 								context.result = event;
-								for (const arg of eventInfo.args) {
-									context[arg.value] =
-										event[arg.value] || (event.detail ? event.detail[arg.value] : null);
+								if (eventInfo.args) {
+									for (const arg of eventInfo.args) {
+										context[arg.value] =
+											event[arg.value] || (event.detail ? event.detail[arg.value] : null);
+									}
 								}
 								if (!resolved) {
 									resolved = true;
 									resolve(runtime.findNext(this, context));
 								}
 							};
-							if (eventInfo.name) target.addEventListener(eventInfo.name, listener, { once: true });
-							else if (eventInfo.time) setTimeout(listener, eventInfo.time, eventInfo.time)
+							if (eventInfo.name){
+								target.addEventListener(eventInfo.name, listener, {once: true});
+							} else if (eventInfo.time != null) {
+								setTimeout(listener(), eventInfo.time, eventInfo.time)
+							}
 						}
 					});
 				},
@@ -4930,9 +4959,9 @@ var _runtime = (function () {
 		}
 
 		/** @type {GrammarElement} */
-
+		let pseudoCommand
 		if(realRoot){
-			var pseudoCommand = {
+			pseudoCommand = {
 				type: "pseudoCommand",
 				root: realRoot,
 				argExressions: root.argExressions,
@@ -4952,7 +4981,7 @@ var _runtime = (function () {
 				},
 			}
 		} else {
-			var pseudoCommand = {
+			pseudoCommand = {
 				type: "pseudoCommand",
 				expr: expr,
 				args: [expr],
@@ -5315,12 +5344,36 @@ var _runtime = (function () {
     return command;
   });
 
+  _parser.addCommand("break", function (parser, runtime, tokens) {
+
+    if (!tokens.matchToken("break")) return;
+
+    var command = {
+      op: function (context) {
+
+        // scan for the closest repeat statement
+        for (var parent = this.parent ; true ; parent = parent.parent) {
+
+          if (parent == undefined) {
+            parser.raiseParseError(tokens, "Command `continue` cannot be used outside of a `repeat` loop.")
+          }
+          if (parent.loop != undefined) {
+			  console.log(parent);
+			  return runtime.findNext(parent.parent, context);
+          }
+        }
+      }
+    };
+    return command;
+  });
+
 	_parser.addGrammarElement("stringLike", function (parser, runtime, tokens) {
 		return _parser.parseAnyOf(["string", "nakedString"], tokens);
 	});
 
 	_parser.addCommand("append", function (parser, runtime, tokens) {
 		if (!tokens.matchToken("append")) return;
+		/** @type {GrammarElement} */
 		var targetExpr = null;
 
 		var value = parser.requireElement("expression", tokens);

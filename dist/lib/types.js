@@ -29,6 +29,8 @@
  * @property {string} defaultTransition
  * @property {HyperscriptConversionsObject} conversions
  * @property {string} [disableSelector]
+ * @property {string} defaultHideShowStrategy
+ * @property {Object<string, (Element) => void>} hideShowStrategies
  *
  * @typedef {Object<string,(val:any) => any>} HyperscriptConversionsObject
  * @property {any[(name:string, value:any) => any]} dynamicResolvers
@@ -89,13 +91,14 @@
  * @property {(token:Token) => boolean} commandBoundary
  * @property {(types:string[], tokens:TokensObject) => GrammarElement} parseAnyOf
  * @property {(tokens:TokensObject) => GrammarElement | void} parseHyperScript
- * @property {(tokens:TokensObject, message:string) => void} raiseParseError
+ * @property {(tokens:TokensObject, message?:string) => void} raiseParseError
  * @property {(name:string, definition:GrammarDefinition) => void} addGrammarElement
  * @property {(name:string, definition:GrammarDefinition) => void} addCommand
  * @property {(name:string, definition:GrammarDefinition) => void} addFeature
  * @property {(name:string, definition:GrammarDefinition) => void} addLeafExpression
  * @property {(name:string, definition:GrammarDefinition) => void} addIndirectExpression
  * @property {(tokens:TokensObject) => (string | GrammarElement)[] } parseStringTemplate
+ * @property {(commandList: GrammarElement) => void} ensureTerminated
  * @property {boolean} [possessivesDisabled]
  *
  *
@@ -114,7 +117,7 @@
  * @property {(value:any, typeString:string, nullOk?:boolean) => boolean } typeCheck
  * @property {(value:any, func:(item:any) => void) => void } forEach
  * @property {(value:any, func:(item:any) => void) => void } implicitLoop
- * @property {(elt:Element, eventName:string, detail:{}) => boolean } triggerEvent
+ * @property {(elt:Element, eventName:string, detail?:{}, sender?:Element) => boolean } triggerEvent
  * @property {(elt:HTMLElement, selector:string) => boolean } matchesSelector
  * @property {(elt:HTMLElement) => string | null } getScript
  * @property {(elt:HTMLElement) => void } processNode
@@ -126,18 +129,24 @@
  * @property {(owner:*, feature:*, hyperscriptTarget:*, event:*) => Context } makeContext
  * @property {(command:GrammarElement, ctx:Context) => GrammarElement | undefined } findNext
  * @property {(parseElement:*, ctx:Context) => * } unifiedEval
+ * @property {(elt:GrammarElement, ctx?:Context) => any} evaluateNoPromise
  * @property {(value:any, type:string) => any } convertValue
  * @property {(command: GrammarElement, ctx:Context) => void } unifiedExec
- * @property {(root:Object<string,any>, property:string, attribute:boolean) => any } resolveProperty
+ * @property {(root:Object<string,any>, property:string) => string } resolveAttribute
+ * @property {(root:Object<string,any>, property:string) => any } resolveProperty
  * @property {(elt:Element, namespace:string[], name:string, value:any) => void } assignToNamespace
  * @property {(ctx: Context, thrown: any) => void } registerHyperTrace
  * @property {(ctx: Context, thrown: any) => any } getHyperTrace
  * @property {(elt:HTMLElement) => Object } getInternalData
+ * @property {(elt: Element, onFeature: GrammarElement) => EventQueue} getEventQueueFor
  * @property {(str:string) => string } escapeSelector
  * @property {(value:any, elt:*) => void } nullCheck
  * @property {(value:any) => boolean} isEmpty
  * @property {(node: Node) => Document | ShadowRoot} getRootNode
  * @property {string | null} hyperscriptUrl
+ * @property {(root: Object, property: string) => string} resolveComputedStyle
+ * @property {(root: Object, property: string) => string} resolveStyle
+ * @property {(any) => boolean} doesExist
  * @property {Object} HALT
  *
  * @typedef {_Context} Context
@@ -150,5 +159,7 @@
  *
  * @typedef {(value:any) => any} ConversionFunction
  * @typedef {(conversionName:string, value:any) => any} DynamicConversionFunction
+ * 
+ * @typedef {{queue:Array, executing:boolean}} EventQueue
  *
  */
