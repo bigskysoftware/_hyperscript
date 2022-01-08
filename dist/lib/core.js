@@ -4609,7 +4609,7 @@ var _runtime = (function () {
 							if (eventInfo.name){
 								target.addEventListener(eventInfo.name, listener, {once: true});
 							} else if (eventInfo.time != null) {
-								setTimeout(listener(), eventInfo.time, eventInfo.time)
+								setTimeout(listener, eventInfo.time, eventInfo.time)
 							}
 						}
 					});
