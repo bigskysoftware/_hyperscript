@@ -262,7 +262,23 @@ export default _hyperscript => {
 
 	_hyperscript.addCommand("toggle", function (parser, runtime, tokens) {
 		if (tokens.matchToken("toggle")) {
-			if (tokens.matchToken("between")) {
+			tokens.matchAnyToken("the", "my");
+			if (tokens.currentToken().type === "STYLE_REF") {
+				let styleRef = tokens.consumeToken();
+				var name = styleRef.value.substr(1);
+				var visibility = true;
+				var hideShowStrategy = resolveStrategy(parser, tokens, name);
+				if (tokens.matchToken("of")) {
+					tokens.pushFollow("with");
+					try {
+						var onExpr = parser.requireElement("expression", tokens);
+					} finally {
+						tokens.popFollow();
+					}
+				} else {
+					var onExpr = parser.requireElement("implicitMeTarget", tokens);
+				}
+			} else if (tokens.matchToken("between")) {
 				var between = true;
 				var classRef = parser.parseElement("classRef", tokens);
 				tokens.requireToken("and");
@@ -283,10 +299,12 @@ export default _hyperscript => {
 				}
 			}
 
-			if (tokens.matchToken("on")) {
-				var onExpr = parser.requireElement("expression", tokens);
-			} else {
-				var onExpr = parser.requireElement("implicitMeTarget", tokens);
+			if (visibility !== true) {
+				if (tokens.matchToken("on")) {
+					var onExpr = parser.requireElement("expression", tokens);
+				} else {
+					var onExpr = parser.requireElement("implicitMeTarget", tokens);
+				}
 			}
 
 			if (tokens.matchToken("for")) {
@@ -309,7 +327,11 @@ export default _hyperscript => {
 				from: from,
 				toggle: function (on, classRef, classRef2, classRefs) {
 					runtime.nullCheck(on, onExpr);
-					if (between) {
+					if (visibility) {
+						runtime.implicitLoop(on, function (target) {
+							hideShowStrategy("toggle", target);
+						});
+					} else if (between) {
 						runtime.implicitLoop(on, function (target) {
 							if (target.classList.contains(classRef.className)) {
 								target.classList.remove(classRef.className);
@@ -372,6 +394,12 @@ export default _hyperscript => {
 		display: function (op, element, arg) {
 			if (arg) {
 				element.style.display = arg;
+			} else if (op === "toggle") {
+				if (getComputedStyle(element).display === "none") {
+					HIDE_SHOW_STRATEGIES.display("show", element, arg);
+				} else {
+					HIDE_SHOW_STRATEGIES.display("hide", element, arg);
+				}
 			} else if (op === "hide") {
 				const internalData = _hyperscript.internals.runtime.getInternalData(element);
 				if (internalData.originalDisplay == null) {
@@ -390,6 +418,12 @@ export default _hyperscript => {
 		visibility: function (op, element, arg) {
 			if (arg) {
 				element.style.visibility = arg;
+			} else if (op === "toggle") {
+				if (getComputedStyle(element).visibility === "hidden") {
+					HIDE_SHOW_STRATEGIES.visibility("show", element, arg);
+				} else {
+					HIDE_SHOW_STRATEGIES.visibility("hide", element, arg);
+				}
 			} else if (op === "hide") {
 				element.style.visibility = "hidden";
 			} else {
@@ -399,6 +433,12 @@ export default _hyperscript => {
 		opacity: function (op, element, arg) {
 			if (arg) {
 				element.style.opacity = arg;
+			} else if (op === "toggle") {
+				if (getComputedStyle(element).opacity === "0") {
+					HIDE_SHOW_STRATEGIES.opacity("show", element, arg);
+				} else {
+					HIDE_SHOW_STRATEGIES.opacity("hide", element, arg);
+				}
 			} else if (op === "hide") {
 				element.style.opacity = "0";
 			} else {

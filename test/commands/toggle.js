@@ -93,4 +93,88 @@ describe("the toggle command", function () {
 		div.classList.contains("foo").should.equal(false);
 		div.classList.contains("bar").should.equal(true);
 	});
+
+	it("can toggle display", function () {
+		var div = make("<div _='on click toggle *display'></div>");
+		getComputedStyle(div).display.should.equal("block");
+		div.click();
+		getComputedStyle(div).display.should.equal("none");
+		div.click();
+		getComputedStyle(div).display.should.equal("block");
+	});
+
+	it("can toggle opacity", function () {
+		var div = make("<div _='on click toggle *opacity'></div>");
+		getComputedStyle(div).opacity.should.equal("1");
+		div.click();
+		getComputedStyle(div).opacity.should.equal("0");
+		div.click();
+		getComputedStyle(div).opacity.should.equal("1");
+	});
+
+	it("can toggle opacity", function () {
+		var div = make("<div _='on click toggle *visibility'></div>");
+		getComputedStyle(div).visibility.should.equal("visible");
+		div.click();
+		getComputedStyle(div).visibility.should.equal("hidden");
+		div.click();
+		getComputedStyle(div).visibility.should.equal("visible");
+	});
+
+	it("can toggle display w/ my", function () {
+		var div = make("<div _='on click toggle my *display'></div>");
+		getComputedStyle(div).display.should.equal("block");
+		div.click();
+		getComputedStyle(div).display.should.equal("none");
+		div.click();
+		getComputedStyle(div).display.should.equal("block");
+	});
+
+	it("can toggle display w/ my", function () {
+		var div = make("<div _='on click toggle my *opacity'></div>");
+		getComputedStyle(div).opacity.should.equal("1");
+		div.click();
+		getComputedStyle(div).opacity.should.equal("0");
+		div.click();
+		getComputedStyle(div).opacity.should.equal("1");
+	});
+
+	it("can toggle display w/ my", function () {
+		var div = make("<div _='on click toggle my *visibility'></div>");
+		getComputedStyle(div).visibility.should.equal("visible");
+		div.click();
+		getComputedStyle(div).visibility.should.equal("hidden");
+		div.click();
+		getComputedStyle(div).visibility.should.equal("visible");
+	});
+
+	it("can toggle display on other elt", function () {
+		var div = make("<div _='on click toggle the *display of #d2'></div>");
+		var div2 = make("<div id='d2'></div>");
+		getComputedStyle(div2).display.should.equal("block");
+		div.click();
+		getComputedStyle(div2).display.should.equal("none");
+		div.click();
+		getComputedStyle(div2).display.should.equal("block");
+	});
+
+	it("can toggle display on other elt", function () {
+		var div = make("<div _='on click toggle the *opacity of #d2'></div>");
+		var div2 = make("<div id='d2'></div>");
+		getComputedStyle(div2).opacity.should.equal("1");
+		div.click();
+		getComputedStyle(div2).opacity.should.equal("0");
+		div.click();
+		getComputedStyle(div2).opacity.should.equal("1");
+	});
+
+	it("can toggle display on other elt", function () {
+		var div = make("<div _='on click toggle the *visibility of #d2'></div>");
+		var div2 = make("<div id='d2'></div>");
+		getComputedStyle(div2).visibility.should.equal("visible");
+		div.click();
+		getComputedStyle(div2).visibility.should.equal("hidden");
+		div.click();
+		getComputedStyle(div2).visibility.should.equal("visible");
+	});
 });
