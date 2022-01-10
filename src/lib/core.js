@@ -1252,6 +1252,9 @@ var _parser = (function () {
 		return returnArr;
 	}
 
+	/**
+	 * @param {GrammarElement} commandList
+	 */
 	function ensureTerminated(commandList) {
 		var implicitReturn = {
 			type: "implicitReturn",
@@ -1807,6 +1810,12 @@ var _runtime = (function () {
 		}
 	}
 
+	/**
+	 *
+	 * @param {GrammarElement} elt
+	 * @param {Context} ctx
+	 * @returns {any}
+	 */
 	function evaluateNoPromise(elt, ctx) {
 		let result = elt.evaluate(ctx);
 		if (result.next) {
@@ -2080,10 +2089,22 @@ var _runtime = (function () {
 		return flatGet(root, property, (root, property) => root.getAttribute && root.getAttribute(property) )
 	}
 
+	/**
+	 *
+	 * @param {Object<string, any>} root
+	 * @param {string} property
+	 * @returns {string}
+	 */
 	function resolveStyle(root, property) {
 		return flatGet(root, property, (root, property) => root.style && root.style[property] )
 	}
 
+	/**
+	 *
+	 * @param {Object<string, any>} root
+	 * @param {string} property
+	 * @returns {string}
+	 */
 	function resolveComputedStyle(root, property) {
 		return flatGet(root, property, (root, property) => getComputedStyle(root).getPropertyValue(property) )
 	}
@@ -2217,6 +2238,12 @@ var _runtime = (function () {
 		return document;
 	}
 
+	/**
+	 *
+	 * @param {Element} elt
+	 * @param {GrammarElement} onFeature
+	 * @returns {EventQueue}
+	 */
 	function getEventQueueFor(elt, onFeature) {
 		let internalData = getInternalData(elt);
 		var eventQueuesForElt = internalData.eventQueues;
