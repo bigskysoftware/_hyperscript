@@ -51,8 +51,8 @@ experiences without callback hell
 
 **[Debugger](/docs#debugging)** to step through hyperscript code
 
-**Inspired by [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf)**
-  (not AppleScript)
+**An [xTalk](https://en.wikipedia.org/wiki/XTalk) syntax, inspired by [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf)**
+
 
 </div>
 
