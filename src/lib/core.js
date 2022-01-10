@@ -777,9 +777,26 @@ var _lexer = (function () {
 			var value = "";
 			while (currentChar() && currentChar() !== startChar) {
 				if (currentChar() === "\\") {
-					consumeChar(); // consume escape char and move on
+					consumeChar(); // consume escape char and get the next one
+					let nextChar = consumeChar();
+					if (nextChar === "b") {
+						value += "\b";
+					} else if (nextChar === "f") {
+						value += "\f";
+					} else if (nextChar === "n") {
+						value += "\n";
+					} else if (nextChar === "r") {
+						value += "\r";
+					} else if (nextChar === "t") {
+						value += "\t";
+					} else if (nextChar === "v") {
+						value += "\v";
+					} else {
+						value += nextChar;
+					}
+				} else {
+					value += consumeChar();
 				}
-				value += consumeChar();
 			}
 			if (currentChar() !== startChar) {
 				throw Error("Unterminated string at " + positionString(string));
