@@ -4571,17 +4571,22 @@ var _runtime = (function () {
 						for (const eventInfo of events) {
 							var listener = (event) => {
 								context.result = event;
-								for (const arg of eventInfo.args) {
-									context[arg.value] =
-										event[arg.value] || (event.detail ? event.detail[arg.value] : null);
+								if (eventInfo.args) {
+									for (const arg of eventInfo.args) {
+										context[arg.value] =
+											event[arg.value] || (event.detail ? event.detail[arg.value] : null);
+									}
 								}
 								if (!resolved) {
 									resolved = true;
 									resolve(runtime.findNext(this, context));
 								}
 							};
-							if (eventInfo.name) target.addEventListener(eventInfo.name, listener, { once: true });
-							else if (eventInfo.time) setTimeout(listener, eventInfo.time, eventInfo.time)
+							if (eventInfo.name){
+								target.addEventListener(eventInfo.name, listener, {once: true});
+							} else if (eventInfo.time != null) {
+								setTimeout(listener(), eventInfo.time, eventInfo.time)
+							}
 						}
 					});
 				},
