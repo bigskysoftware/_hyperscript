@@ -245,6 +245,27 @@ describe("the _hyperscript tokenizer", function () {
 		}
 	});
 
+	it("handles all special escapes properly", function () {
+		var lexer = _hyperscript.internals.lexer;
+		var token = lexer.tokenize('"\\b"').consumeToken();
+		token.value.should.equal("\b");
+
+		token = lexer.tokenize('"\\f"').consumeToken();
+		token.value.should.equal("\f");
+
+		token = lexer.tokenize('"\\n"').consumeToken();
+		token.value.should.equal("\n");
+
+		token = lexer.tokenize('"\\r"').consumeToken();
+		token.value.should.equal("\r");
+
+		token = lexer.tokenize('"\\t"').consumeToken();
+		token.value.should.equal("\t");
+
+		token = lexer.tokenize('"\\v"').consumeToken();
+		token.value.should.equal("\v");
+	});
+
 	it("handles strings properly 2", function () {
 		var lexer = _hyperscript.internals.lexer;
 		var token = lexer.tokenize("'foo'").consumeToken();
