@@ -312,6 +312,10 @@ var _lexer = (function () {
 			}
 		}
 
+		function peekToken(value, peek, type) {
+			return tokens[peek] && tokens[peek].value === value && tokens[peek].type === type
+		}
+
 		/**
 		 * @param {string} value
 		 * @param {string} [type]
@@ -473,6 +477,7 @@ var _lexer = (function () {
 			matchTokenType: matchTokenType,
 			requireTokenType: requireTokenType,
 			consumeToken: consumeToken,
+			peekToken: peekToken,
 			matchToken: matchToken,
 			requireToken: requireToken,
 			list: tokens,
@@ -1230,9 +1235,6 @@ var _parser = (function () {
 		return returnArr;
 	}
 
-	/**
-	 * @param {GrammarElement} commandList 
-	 */
 	function ensureTerminated(commandList) {
 		var implicitReturn = {
 			type: "implicitReturn",
@@ -1372,7 +1374,7 @@ var _runtime = (function () {
 	 * @param {Element} elt
 	 * @param {string} eventName
 	 * @param {Object} [detail]
-	 * @param {Element} [sender]
+	 * @param {Element} sender
 	 * @returns {boolean}
 	 */
 	function triggerEvent(elt, eventName, detail, sender) {
@@ -1788,12 +1790,6 @@ var _runtime = (function () {
 		}
 	}
 
-	/**
-	 * 
-	 * @param {GrammarElement} elt 
-	 * @param {Context} ctx 
-	 * @returns {any}
-	 */
 	function evaluateNoPromise(elt, ctx) {
 		let result = elt.evaluate(ctx);
 		if (result.next) {
@@ -2016,7 +2012,7 @@ var _runtime = (function () {
 	}
 
 	/**
-	* @param {GrammarElement | void} command
+	* @param {GrammarElement} command
 	* @param {Context} context
 	* @returns {undefined | GrammarElement}
 	*/
@@ -2035,7 +2031,7 @@ var _runtime = (function () {
 	/**
 	* @param {Object<string,any>} root
 	* @param {string} property
-	* @param {(Object, string) => any} getter
+	* @param {boolean} attribute
 	* @returns {any}
 	*/
 	function flatGet(root, property, getter) {
@@ -2067,22 +2063,10 @@ var _runtime = (function () {
 		return flatGet(root, property, (root, property) => root.getAttribute && root.getAttribute(property) )
 	}
 
-	/**
-	 * 
-	 * @param {Object<string, any>} root 
-	 * @param {string} property 
-	 * @returns {string}
-	 */
 	function resolveStyle(root, property) {
 		return flatGet(root, property, (root, property) => root.style && root.style[property] )
 	}
 
-	/**
-	 * 
-	 * @param {Object<string, any>} root 
-	 * @param {string} property 
-	 * @returns {string}
-	 */
 	function resolveComputedStyle(root, property) {
 		return flatGet(root, property, (root, property) => getComputedStyle(root).getPropertyValue(property) )
 	}
@@ -2216,12 +2200,6 @@ var _runtime = (function () {
 		return document;
 	}
 
-	/**
-	 * 
-	 * @param {Element} elt 
-	 * @param {GrammarElement} onFeature 
-	 * @returns {EventQueue}
-	 */
 	function getEventQueueFor(elt, onFeature) {
 		let internalData = getInternalData(elt);
 		var eventQueuesForElt = internalData.eventQueues;
@@ -2676,7 +2654,7 @@ var _runtime = (function () {
 	});
 
 	_parser.addGrammarElement("symbol", function (parser, runtime, tokens) {
-		/** @type {SymbolScope} */
+		/** @scope {SymbolScope} */
 		var scope = "default";
 		if (tokens.matchToken("global")) {
 			scope = "global";
@@ -2909,20 +2887,18 @@ var _runtime = (function () {
 				prop: prop,
 				args: [root],
 				op: function (context, rootVal) {
-					/** @type {any} */
-					let value;
 					if (attribute) {
 						// @ts-ignore
-						value = runtime.resolveAttribute(rootVal, attribute.name);
+						var value = runtime.resolveAttribute(rootVal, attribute.name);
 					} else if (style) {
 						// @ts-ignore
 						if (style.type === 'computedStyleRef') {
-							value = runtime.resolveComputedStyle(rootVal, style.name);
+							var value = runtime.resolveComputedStyle(rootVal, style.name);
 						} else {
-							value = runtime.resolveStyle(rootVal, style.name);
+							var value = runtime.resolveStyle(rootVal, style.name);
 						}
 					} else {
-						value = runtime.resolveProperty(rootVal, prop.value);
+						var value = runtime.resolveProperty(rootVal, prop.value);
 					}
 					return value;
 				},
@@ -4954,9 +4930,9 @@ var _runtime = (function () {
 		}
 
 		/** @type {GrammarElement} */
-		let pseudoCommand
+
 		if(realRoot){
-			pseudoCommand = {
+			var pseudoCommand = {
 				type: "pseudoCommand",
 				root: realRoot,
 				argExressions: root.argExressions,
@@ -4976,7 +4952,7 @@ var _runtime = (function () {
 				},
 			}
 		} else {
-			pseudoCommand = {
+			var pseudoCommand = {
 				type: "pseudoCommand",
 				expr: expr,
 				args: [expr],
@@ -5345,7 +5321,6 @@ var _runtime = (function () {
 
 	_parser.addCommand("append", function (parser, runtime, tokens) {
 		if (!tokens.matchToken("append")) return;
-		/** @type {GrammarElement} */
 		var targetExpr = null;
 
 		var value = parser.requireElement("expression", tokens);
