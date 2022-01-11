@@ -22,24 +22,27 @@
 * [DOM manipulation](#working_with_the_dom)
   * [finding things](#finding_things)
     * [DOM literals](#dom_literals)
-    * [In Expression](#in)
+    * [Finding Things In Other Things](#in)
   * [updating things](#updating_things)
     * [putting new content into the DOM](#set_and_put)
     * [adding, removing & toggling](#add_remove_toggle)
       * [removing content](#removing)
 
-* Old
-  * [commands](#commands)
-  * [expressions](#expressions)
+* Deniz
 * [advanced features](#advanced_features)
   * [behaviors](#behaviors)
   * [workers](#workers)
   * [sockets](#sockets)
   * [event sources](#event_source)
+* [debugging](#debugging)
+
+
+* Old
+  * [commands](#commands)
+  * [expressions](#expressions)
   * [async transparency](#async)
     * [async keyword](#async-keyword)
     * [event driven control flow](#event-control-flow)
-* [debugging](#debugging)
 * [extending](#extending)
 * [security](#security)
 * [history](#history)
@@ -249,26 +252,11 @@ hyperscript has three different variable scopes: `local`, `element`, and `global
 * Element variables are scoped to the element they are declared on, but shared across all features on that element
 * Local scoped variables are scoped to the currently executing feature
 
-You may use scope modifiers to give symbols particular scopes:
-
-* A variable with a `global` prefix is a global
-  ```hyperscript
-     set global myGlobal to true
-  ```
-* A variable with a `element` prefix is element-scoped
-  ```hyperscript
-     set element myElementVar to true
-  ```
-* A variable with a `local` prefix is locally scoped
-  ```hyperscript
-     set local x to true
-  ```
-
-Hyperscript has a flat local scope, similar to javascripts `var` statement.
+Note that hyperscript has a flat local scope, similar to javascript's `var` statement.
 
 #### <a name="names_and_scoping"></a>[Variable Names & Scoping](#names_and_scoping)
 
-In order to make creating non-local variables easier and also to make them easier to recognize in code, hyperscript
+In order to make non-locally scoped variables easy to create and recognize in code, hyperscript
 supports the following naming conventions:
 
 * If a variable starts with the `$` character, it will default to the global scope
@@ -297,23 +285,41 @@ Here is an example of a click handler that uses an element scoped variable to ma
 
 This script also uses the implicit `it` symbol, which we will discuss [below](#special-names).
 
+#### <a name="scoping_modifiers"></a>[Scoping Modifiers](#scoping_modifiers)
+
+You may also use scope modifiers to give symbols particular scopes:
+
+* A variable with a `global` prefix is a global
+  ```hyperscript
+     set global myGlobal to true
+  ```
+* A variable with a `element` prefix is element-scoped
+  ```hyperscript
+     set element myElementVar to true
+  ```
+* A variable with a `local` prefix is locally scoped
+  ```hyperscript
+     set local x to true
+  ```
+
 #### <a name=attributes></a> [Attributes](#attributes)
 
-In addition to scoped variables, another way to store data is to put it directly in the DOM, on element attributes.
+In addition to scoped variables, another way to store data is to put it directly in the DOM, on an element's attribute.
+
 You can access attributes on an element with the following syntax, using an `@` prefix:
 
 ```hyperscript
   set @my-attr to 10
 ```
 
-This will store the value 10 in the attribute `my-attr`:
+This will store the value 10 in the attribute `my-attr` on the current element:
 
 ```html
-  <dev my-attr="10"></dev>
+  <div my-attr="10"></div>
 ```
 
-Note that, unlike regular variables, attributes can only store strings.  Anything else you store in them will be converted to a
-string.
+Note that, unlike regular variables, attributes can only store strings.  Anything else you store in them will be converted
+to a string.
 
 You can remember the `@` sign as the **AT**tribute operator.
 
@@ -333,8 +339,8 @@ Here is the above example, rewritten to use an attribute rather than an element-
 If you click the above button a few times and then inspect it using your browsers developer tools, you'll note that it
 has a `my-attr` attribute on it that holds a string value of the click count.
 
-It is also worth noting that the [`increment`](/commands/increment) is smart enough to handle the fact that the
-attribute value is a string when incrementing it.
+It is also worth mentioning that the [`increment`](/commands/increment) is smart enough to handle the fact that the
+attribute value is a string and automatically converts it to a number when incrementing it.
 
 #### <a name=special-names></a> [Special Names & Symbols](#special-names)
 
@@ -380,7 +386,7 @@ This is exactly equivalent to the previous example, but reads more nicely and hy
 
 ##### <a name='zoo'></a>[The Hyperscript Zoo](#zoo)
 
-Below is a table of the implicit hyperscript symbols, affectionately known as "The Hyperscript Zoo":
+Hyperscript has symbols that are automatically available, depending on the context, that make scripting more convenient:
 
 | name     | description                                                        |
 | -------- | ------------------------------------------------------------------ |
@@ -394,14 +400,14 @@ Below is a table of the implicit hyperscript symbols, affectionately known as "T
 | `body`   | the body of the current document, if any                           |
 | `target` | the target of the current event, if any                            |
 | `detail` | the detail of the event that triggered the current handler, if any |
-| `sender` | the element that send the current event, if any                    |
+| `sender` | the element that sent the current event, if any                    |
 
 Note that the `target` is the element that the event originally occurred on, and event handlers may be placed
 on parent elements to take advantage of [event bubbling](https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Building_blocks/Events#event_bubbling_and_capture) and reduce redundancy in code.
 
 ### <a name=properties></a> [Properties](#properties)
 
-Hyperscript offers a lot of different ways to access properties in the language.  The first two should be familiar
+Hyperscript offers a few different ways to access properties of objects.  The first two should be familiar
 to javascript developers:
 
 ```hyperscript
@@ -963,16 +969,16 @@ on click from #example-btn
 You can see how the support for CSS literals directly in the language cleans the code up quite a bit, allowing us
 to focus on the logic at hand.
 
-#### <a name="in"></a>[In Expressions](#in)
+#### <a name="in"></a>[Finding Things In Other Things](#in)
 
-Often you want to restrict a CSS query to a particular element.  To do this you can use the `in` expression:
+Often you want to find things in a particular element.  To do this you can use the `in` expression:
 
 ```hyperscript
   -- add the class 'highlight' to all paragraph tags in the current element
   add .highlight to <p/> in me
 ```
 
-#### <a name="closest"></a>[Closest Expressions](#closest)
+#### <a name="closest"></a>[Finding The Closest Matching (Parent) Element](#closest)
 
 Sometimes you wish to find the closest element in a parent hierarchy that matches some selector.  To do this you can
 use the [`closest`](/expressions/closest) expression:
@@ -990,7 +996,7 @@ and recurses up the DOM from there.  If you wish to start at the parent, you can
   add .highlight to the closest parent <div/>
 ```
 
-#### <a name="positional"></a>[Positional Expressions](#positional)
+#### <a name="positional"></a>[Finding Things By Position](#positional)
 
 You can use the [positional expressions](/expressions/positional) to get the first, last or a random element from
 a collection of things:
@@ -1000,10 +1006,10 @@ a collection of things:
   add .highlight to the first <p/> in me
 ```
 
-#### <a name="relative_positional"></a>[Relative Positional Expressions](#relative_positional)
+#### <a name="relative_positional"></a>[Finding Things Relative To Other Things](#relative_positional)
 
-You can use the [relative positional expression](/expressions/relative-positional) to get an element relative to either
-the current element, or another element:
+You can use the [relative positional expressions](/expressions/relative-positional) `next` and `previous` to get an element
+ relative to either the current element, or another element:
 
 ```hyperscript
   -- add the class 'highlight' to the next paragraph found in a forward scan of the DOM
