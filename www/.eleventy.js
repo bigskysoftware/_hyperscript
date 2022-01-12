@@ -6,4 +6,6 @@ module.exports = function(config) {
     config.addPassthroughCopy("test");
 
     config.addCollection('cookbook', coll => coll.getFilteredByGlob('cookbook/*'))
+
+    require("./_build/widgets")(config);
 }
