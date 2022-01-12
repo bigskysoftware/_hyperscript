@@ -175,4 +175,20 @@ describe("the transition command", function () {
 	});
 
 
+	it("can use initial to transition to original value", function (done) {
+		var div = make("<div style='width: 10px' _='on click 1 transition my *width to 100px " +
+			"                                              on click 2 transition my *width to initial'></div>");
+		div.style.width.should.equal("10px");
+		div.click();
+		setTimeout(function () {
+			div.style.width.should.equal("100px");
+			div.click();
+			setTimeout(function () {
+				div.style.width.should.equal("10px");
+				done();
+			}, 20);
+		}, 20);
+	});
+
+
 });
