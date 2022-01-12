@@ -11,7 +11,8 @@
   * [variables & names](#variables)
     * [scoping](#scoping)
     * [special-names](#special-names)
-  * [properties](#properties)
+  * [objects](#objects)
+    * [properties](#properties)
   * [control flow](#control-flow)
     * [loops](#loops)
   * [events](#events)
@@ -27,6 +28,14 @@
     * [putting new content into the DOM](#set_and_put)
     * [adding, removing & toggling](#add_remove_toggle)
       * [removing content](#removing)
+    *
+* [remote content]
+  * [fetch]
+  * [going places]
+* [async transparency](#async)
+    * [async keyword](#async-keyword)
+    * [event driven control flow](#event-control-flow)
+
 
 * Deniz
 * [advanced features](#advanced_features)
@@ -40,9 +49,6 @@
 * Old
   * [commands](#commands)
   * [expressions](#expressions)
-  * [async transparency](#async)
-    * [async keyword](#async-keyword)
-    * [event driven control flow](#event-control-flow)
 * [extending](#extending)
 * [security](#security)
 * [history](#history)
@@ -404,7 +410,19 @@ Hyperscript has symbols that are automatically available, depending on the conte
 Note that the `target` is the element that the event originally occurred on, and event handlers may be placed
 on parent elements to take advantage of [event bubbling](https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Building_blocks/Events#event_bubbling_and_capture) and reduce redundancy in code.
 
-### <a name=properties></a> [Properties](#properties)
+### <a name=logging></a> [Logging To The Console](#logging)
+
+If you wish to print something to the `console` you can use the [`log` command](/commands/log):
+
+```hyperscript
+  log "Hello Console!"
+```
+#### <a name=objects></a> [Objects](#objects)
+
+Hyperscript is not an object oriented language (it is event oriented) but it still allows you to work with objects
+in an easy and convenient manner.
+
+#### <a name=properties></a> [Properties](#properties)
 
 Hyperscript offers a few different ways to access properties of objects.  The first two should be familiar
 to javascript developers:
@@ -454,6 +472,47 @@ collections of values:
 ```
 
 On an array, only the `length` property will not perform a flat map in this manner.
+
+#### <a name=make></a> [Creating New Objects](#make)
+
+If you want to make new objects, you can use the [`make` command](/commands/make):
+
+```hyperscript
+make a URL from "/path/", "https://origin.example.com"
+```
+
+Which is equal to the JavaScript `new URL("/path/", "https://origin.example.com")`
+
+If you wish to assign an identifier to the new object you can use the ` called ` modifier:
+
+```hyperscript
+make a URL from "/path/", "https://origin.example.com" called myURL
+log myURL
+```
+
+You can also use [`query literals`](/expressions/query_references), discussed [below](#dom_literals), to create new HTML content:
+
+```hyperscript
+make an <a.navlink/>
+```
+
+#### <a name=arrays></a> [Arrays](#arrays)
+
+Hyperscript arrays work very similarly to Javascript arrays:
+
+```hyperscript
+  set myArr to [1, 2, 3]
+  log myArr[0]           -- logs "1"
+```
+
+You can use the `first`, `last` and `random` keywords, discussed [below](#positional), with arrays:
+
+```hyperscript
+  set myArr to [1, 2, 3]
+  log the first of myArr[0]  -- logs "1"
+  log the last of myArr[0]   -- logs "3"
+  log random in myArr[0]     -- logs a random element from the array
+```
 
 ### <a name=control-flow></a> [Control Flow](#control-flow)
 
@@ -646,13 +705,44 @@ The [`append`](/commands/append) command can append content to strings (as well 
     log it           -- log it to the console
 ```
 
+### <a name=calling-functions></a> [Calling Functions](#calling-functions)
+
+There are many ways to invoke functions in hyperscript.  Two commands let you invoke a function and automatically
+assign the result to the `result` variable: [`call`](/commands/call) and [`get`](/commands/get):
+
+```hyperscript
+  call alert('hello world!')
+  get the nextInteger() then log it -- using the 'it' alias for 'result`
+```
+
+You can also invoke functions as stand-alone commands:
+
+```hyperscript
+  log "Getting the selection"
+  getSelection()
+  log "Got the selection"
+  log it
+```
+
+Finally, you can use the [`pseudo-command`](/commands/pseudo-commands)` syntax, which allows you to put the function
+call first on the line, to improve readability in some cases:
+
+```hyperscript
+  refresh() the location of the window
+  writeText('evil') into the navigator's clipboard
+  reset() the #contact-form
+```
+
+These are called pseudo-commands because this syntax make the function look like a normal command in hyperscript.
+
 ### <a name="events"></a>[Events & Event Handlers](#event)
 
 [Events](https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Building_blocks/Events) are at the core of what
 hyperscript is designed for, and [event handlers](/features/on) are the primary entry point into most hyperscript
 code.
 
-hyperscript's event handlers allow you to respond to any event (not just DOM events, as with `onClick` handlers) and provide a slew of features for making working with events easier
+hyperscript's event handlers allow you to respond to any event (not just DOM events, as with `onClick` handlers) and
+provide a slew of features for making working with events easier.
 
 Here is an example:
 
