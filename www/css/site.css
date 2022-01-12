@@ -57,6 +57,7 @@ table {
 
 code {
     font-weight: bold;
+    font-family: monospace, monospace;
 }
 
 p {
@@ -66,8 +67,6 @@ p {
 
 pre[class*="language-"] {
     font-size: 16px;
-    margin-top: 1em !important;
-    margin-bottom: 1em !important;
 }
 
 blockquote {
@@ -314,6 +313,51 @@ h1,h2,h3,h4{
 
 .nav ul li ul {
     padding-left:12px;
+}
+
+.example {
+    background-color: rgb(197, 218, 255);
+    border-radius: 1em;
+    border: 1px solid rgb(29, 153, 255);
+    padding: .5em;
+    margin-block: .5em;
+}
+
+.example > figcaption {
+    color: rgb(15, 77, 128);
+    font-size: .8em;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+}
+
+.example hr {
+    margin-block: .5em;
+}
+
+.example p {
+    margin: 0;
+}
+
+.example button {
+    padding: .5em;
+    font-size: 1em;
+    font-family: inherit;
+    letter-spacing: .1em;
+    background: rgb(15, 77, 128);
+    color: white;
+    border: none;
+    border-radius: .5em;
+    margin-inline-end: .3em;
+}
+
+.example output {
+    display: inline-block;
+    min-width: 3em;
+    text-align: center;
+    padding: calc(.5em - 2px);
+    border: 2px dotted rgb(15, 77, 128);
+    border-radius: 8px;
+    margin-inline-end: .3em;
 }
 
 @media(min-width:45em) {

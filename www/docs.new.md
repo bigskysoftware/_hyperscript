@@ -68,20 +68,17 @@ respond to events and do simple DOM manipulation directly within elements on a w
 
 Here is a simple example of hyperscript:
 
-```html
+{% example %}
 <button _="on click toggle .red on me">
   Click Me
 </button>
-```
+{% endexample %}
+
 <style>
   .red {
-    background-color: rgba(255,0,0,0.48);
-    transition: all ease-in 200ms;
+    background: rgba(255,0,0,0.48) !important;
   }
 </style>
-<button _="on click toggle .red on me">
-  Click Me
-</button>
 
 The first thing to notice is that hyperscript is defined directly on the button, using the `_` property.
 
@@ -242,14 +239,12 @@ Here is how you create a simple, local variable:
 ```
 
 Here is an example that creates a local variable and then logs it to the console:
-```html
+
+{% example "Local variable" %}
 <button _="on click set x to 10 then log x">
   Click Me
 </button>
-```
-<button _="on click set x to 10 then log x">
-  Click Me
-</button>
+{% endexample %}
 
 If you click this button and open up the console, you should see `10` being logged to it.
 
@@ -281,16 +276,12 @@ syntax:
 
 Here is an example of a click handler that uses an element scoped variable to maintain a counter:
 
-```html
-<button _="on click increment :x then put it into the next <p/>">
+{% example %}
+<button _="on click increment :x then put it into the next <output/>">
   Click Me
 </button>
-<p></p>
-```
-<button _="on click increment :x then put it into the next <p/>">
-  Click Me
-</button>
-<p></p>
+<output>--</output>
+{% endexample %}
 
 This script also uses the implicit `it` symbol, which we will discuss [below](#special-names).
 
@@ -334,16 +325,12 @@ You can remember the `@` sign as the **AT**tribute operator.
 
 Here is the above example, rewritten to use an attribute rather than an element-scoped variable:
 
-```html
-<button _="on click increment @my-attr then put it into the next <p/>">
+{% example %}
+<button _="on click increment @my-attr then put it into the next <output/>">
   Click Me
 </button>
-<p></p>
-```
-<button _="on click increment @my-attr then put it into the next <p/>">
-  Click Me
-</button>
-<p></p>
+<output>--</output>
+{% endexample %}
 
 If you click the above button a few times and then inspect it using your browsers developer tools, you'll note that it
 has a `my-attr` attribute on it that holds a string value of the click count.
@@ -358,16 +345,12 @@ to refer to the same thing to make a script more readable!
 We have already seen the use of the `it` symbol above, to put the result of an `increment` command into an
 element.  It turns out that `it` is an alias for `result`, which we could have used just as easily:
 
-```html
-<button _="on click increment :x then put result into the next <p/>">
+{% example "It" %}
+<button _="on click increment :x then put result into the next <output/>">
   Click Me
 </button>
-<p></p>
-```
-<button _="on click increment :x then put result into the next <p/>">
-  Click Me
-</button>
-<p></p>
+<output>--</output>
+{% endexample %}
 
 It may be equivalent, but it doesn't read as nicely does it?  That's why hyperscript supports the `it` symbol as well.
 
@@ -377,16 +360,12 @@ Another funny thing you might have noticed is the `the` in this hyperscript.
 in hyperscript and can be used to make your code read more nicely.  For example, if we wanted to use `result` rather than
  it, we could update our use of `result` to be `the result`, which reads more nicely:
 
-```html
-<button _="on click increment :x then put the result into the next <p/>">
+{% example "The" %}
+<button _="on click increment :x then put the result into the next <output/>">
   Click Me
 </button>
-<p></p>
-```
-<button _="on click increment :x then put the result into the next <p/>">
-  Click Me
-</button>
-<p></p>
+<output>--</output>
+{% endexample %}
 
 This is exactly equivalent to the previous example, but reads more nicely and hyperscript is all about readability.
 
@@ -523,37 +502,29 @@ The primary source of control flow in hyperscript is the [if command](/commands/
 in an if statement is not parenthesized and that hyperscript uses `end` rather than curly-braces to delimit
 command blocks:
 
-```html
-<button _="on click increment :x
-              if :x < 3
-                put :x into the next <p/>
-              else
-                put '3 is the max...' into the next <p/> ">
-  Click Me
-</button>
-<p></p>
-```
+{% example '"If" command' %}
 <button _="on click increment :x
               if :x <= 3
-                put :x into the next <p/>
+                put :x into the next <output/>
               else
-                put '3 is the max...' into the next <p/>
+                put '3 is the max...' into the next <output/>
               end">
   Click Me
 </button>
-<p></p>
+<output>--</output>
+{% endexample %}
 
 As mentioned in the introduction, `end` is often omitted when it isn't needed in order to make script smaller:
 
 ```html
 <button _="on click increment :x
               if :x < 3
-                put :x into the next <p/>
+                put :x into the next <output/>
               else
-                put '3 is the max...' into the next <p/>">
+                put '3 is the max...' into the next <output/>">
   Click Me
 </button>
-<p></p>
+<output>--</output>
 ```
 
 #### <a name="comparisons"></a> [Comparisons & Logical Operators](#comparisons)
@@ -749,16 +720,7 @@ provide a slew of features for making working with events easier.
 
 Here is an example:
 
-```html
-<style>
-.clicked::after {
-  content: "... Clicked!"
-}
-</style>
-<button _="on click add .clicked">
-  Add The "clicked" Class To Me
-</button>
-```
+{% example "Event Handlers" %}
 <style>
 .clicked::after {
   content: " ... Clicked!"
@@ -767,6 +729,7 @@ Here is an example:
 <button _="on click add .clicked">
   Add The "clicked" Class To Me
 </button>
+{% endexample %}
 
 The script above, again, found on the `_` attribute, does, well, almost exactly what it says:
 
@@ -867,34 +830,24 @@ You may also use the [`exit`](/commands/exit) command to exit an event handler
 hyperscript not only makes it easy to respond to events, but also makes it very easy to send events to other elements
 using the [`send`](/commands/send) and [`trigger`](/commands/trigger) commands.  Both commands do the same thing: sending an event to an element (possibly the current element!) to handle.  Here are a few examples:
 
-```html
-<button _="on click send foo to the next <div/>">Send Foo</button>
-<button _="on click trigger bar on the next <div/>">Send Bar</button>
-<div _="on foo put 'I got a foo event!' into me
-        on bar put 'I got a bar event!' into me">
+{% example "Send, Trigger" %}
+<button _="on click send foo to the next <output/>">Send Foo</button>
+<button _="on click trigger bar on the next <output/>">Send Bar</button>
+<output _="on foo put 'I got a foo event!' into me
+           on bar put 'I got a bar event!' into me">
   No Events Yet...
-</div>
-```
-<button _="on click send foo to the next <div/>">Send Foo</button>
-<button _="on click trigger bar on the next <div/>">Send Bar</button>
-<div _="on foo put 'I got a foo event!' into me
-        on bar put 'I got a bar event!' into me">
-  No Events Yet...
-</div>
+</output>
+{% endexample %}
 
 You can also pass arguments to events via the `event.detail` property, and use the destructuring syntax discussed above to parameterize events:
-```html
-<button _="on click send showMsg(msg:'foo') to the next <div/>">Send Foo</button>
-<button _="on click send showMsg(msg:'bar') to the next <div/>">Send Bar</button>
-<div _="on showMsg(msg) put 'The message ' + msg + ' was sent to me' into me">
+
+{% example "Send with arguments" %}
+<button _="on click send showMsg(msg:'foo') to the next <output/>">Send Foo</button>
+<button _="on click send showMsg(msg:'bar') to the next <output/>">Send Bar</button>
+<output _="on showMsg(msg) put 'The message ' + msg + ' was sent to me' into me">
   No Events Yet...
-</div>
-```
-<button _="on click send showMsg(msg:'foo') to the next <div/>">Send Foo</button>
-<button _="on click send showMsg(msg:'bar') to the next <div/>">Send Bar</button>
-<div _="on showMsg(msg) put 'The message ' + msg + ' was sent to me' into me">
-  No Events Yet...
-</div>
+</output>
+{% endexample %}
 
 Working with events is very smooth in hyperscript and allows you to build event-driven code with very little effort or unnecessary complexity.
 
@@ -1201,47 +1154,35 @@ flexible, as we will see.
 
 First, let's just set the `innerHTML` of an element to a string:
 
-```html
+{% example "Setting innerHTML" %}
 <button _="on click set my innerHTML to 'Clicked!'">
   Click Me
 </button>
-```
-<button _="on click set my innerHTML to 'Clicked!'">
-  Click Me
-</button>
+{% endexample %}
 
 Using the `put` command would look like this:
 
-```html
+{% example 'Setting properties with "put"' %}
 <button _="on click put 'Clicked!' into my.innerHTML">
   Click Me
 </button>
-```
-<button _="on click put 'Clicked!' into my.innerHTML">
-  Click Me
-</button>
+{% endexample %}
 
 And, in fact, the `put` command is smart enough to default to `innerHTML` when you put something into an element, so we can omit the `innerHTML`:
 
-```html
+{% example "Putting things into elements" %}
 <button _="on click put 'Clicked!' into me">
   Click Me
 </button>
-```
-<button _="on click put 'Clicked!' into me">
-  Click Me
-</button>
+{% endexample %}
 
 The `put` command can also place content in different spots based on how it is used:
 
-```html
+{% example "Put X before Y" %}
 <button _="on click put 'Clicked!' before me">
   Click Me
 </button>
-```
-<button _="on click put 'Clicked!' before me">
-  Click Me
-</button>
+{% endexample %}
 
 The `put` command can be used in the following ways:
 
@@ -1256,14 +1197,11 @@ This flexibility is why we generally recommend the `put` command when updating c
 
 One exception to this rule is when setting attributes, which we typically recommend using `set`.  It just reads better to us:
 
-```html
+{% example "Setting attributes" %}
 <button _="on click set @disabled to 'disabled'">
   Disable Me
 </button>
-```
-<button _="on click set @disabled to 'disabled'">
-  Disable Me
-</button>
+{% endexample %}
 
 #### <a name="add_remove_toggle"></a>[Add, Remove & Toggle](#add_remove_toggle)
 
@@ -1272,79 +1210,55 @@ supports the [`add`](/commands/add), [`remove`](/commands/remove) and [`toggle`]
 
 Here are some examples adding, removing and toggling classes:
 
-```html
-<button _="on click add .red on me">
-  Click Me
-</button>
-```
+{% example '"add" command' %}
 <button _="on click add .red to me">
   Click Me
 </button>
+{% endexample %}
 
-```html
+{% example '"remove" command' %}
 <button class="red" _="on click remove .red from me">
   Click Me
 </button>
-```
-<button class="red" _="on click remove .red from me">
-  Click Me
-</button>
+{% endexample %}
 
-```html
+{% example '"toggle" command' %}
 <button _="on click toggle .red on me">
   Click Me
 </button>
-```
-<button _="on click toggle .red on me">
-  Click Me
-</button>
+{% endexample %}
 
 You can also add, remove and toggle attributes as well.  Here is an example:
 
-```html
+{% example "Toggle an attribute" %}
 <button _="on click toggle @disabled on #say-hello">
-  Toggle Disabled
+  Toggle Disabled State
 </button>
 <button id="say-hello" _="on click alert('hello!')">
   Say Hello
 </button>
-```
-<button _="on click toggle @disabled on #say-hello">
-  Toggle Disabled
-</button>
-<button id="say-hello" _="on click alert('hello!')">
-  Say Hello
-</button>
+{% endexample %}
 
 Finally, you can toggle the visibility of elements by toggling a style literal:
 
-```html
+{% example "Toggle an attribute" %}
 <button _="on click toggle *display of the next <p/>">
   Toggle The Next Paragraph
 </button>
 <p>
   Hyperscript is rad!
 </p>
-```
-<button _="on click toggle *display of the next <p/>">
-  Toggle The Next Paragraph
-</button>
-<p>
-  Hyperscript is rad!
-</p>
+{% endexample %}
 
 ##### <a name="removing"></a>[Removing Content](#removing)
 
 You can also use the [`remove` command](/commands/remove) to remove content from the DOM:
 
-```html
+{% example "Remove an element" %}
 <button _="on click remove me">
   Remove Me
 </button>
-```
-<button _="on click remove me">
-  Remove Me
-</button>
+{% endexample %}
 
 The remove command is smart enough to figure out what you want to happen based on what you tell it to remove.
 
@@ -1352,43 +1266,31 @@ The remove command is smart enough to figure out what you want to happen based o
 
 You can show and hide things with the [`show`](/commands/show) and [`hide`](/commands/hide) commands:
 
-```html
+{% example "Show, Hide" %}
 <button _="on click
                hide me
                wait 2s
                show me">
                Peekaboo
 </button>
-```
-<button _="on click
-               hide me
-               wait 2s
-               show me">
-               Peekaboo
-</button>
+{% endexample %}
 
 By default, the `show` and `hide` commands will use the `display` style property.  You can instead use `visibility`
 or `opacity` with the following syntax:
 
-```html
+{% example "Show/hide strategies" %}
 <button _="on click
                hide me with opacity
                wait 2s
                show me with opacity">
                Peekaboo
 </button>
-```
-<button _="on click
-               hide me with opacity
-               wait 2s
-               show me with opacity">
-               Peekaboo
-</button>
+{% endexample %}
 
 You can also apply a conditional to the `show` command to conditionally show elements that match a given condition by
 using a `when` clause:
 
-```html
+{% example "Filter elements with `show ... when`" %}
 <input _="on keyup show <li/> in #color-list
                      when it's innerHTML contains my value">
 <ul id="color-list">
@@ -1398,49 +1300,31 @@ using a `when` clause:
   <li>Green</li>
   <li>Yellow</li>
 </ul>
-```
-<input _="on keyup show <li/> in #color-list
-                     when it's innerHTML contains my value">
-<ul id="color-list">
-  <li>Red</li>
-  <li>Blue</li>
-  <li>Blueish Green</li>
-  <li>Green</li>
-  <li>Yellow</li>
-</ul>
+{% endexample %}
 
 And, as mentioned above, you can also toggle visibility using the `toggle` command:
 
-```html
+{% example "Toggle visibility" %}
 <button _="on click toggle *display of the next <p/>">
   Toggle The Next Paragraph
 </button>
 <p>
   Hyperscript is rad!
 </p>
-```
-<button _="on click toggle *display of the next <p/>">
-  Toggle The Next Paragraph
-</button>
-<p>
-  Hyperscript is rad!
-</p>
+{% endexample %}
 
 #### <a name="transitions"></a>[Transitions](#transitions)
 
 You can transition a style from one state to another using the [`transition` command](/commands/transition).  This
 allows you to animate transitions between different states:
 
-```html
-<button _="on click transition my *font-size to 20px then
-                    wait 500ms then
-                    transition my *font-size to initial">
+{% example '"transition" command' %}
+<button _="on click transition my *font-size to 20px 
+               then wait 500ms
+               then transition my *font-size to initial">
   Transition My Font Size
 </button>
-```
-<button _="on click transition my *font-size to 20px then wait 500ms then transition my *font-size to initial">
-  Transition My Font Size
-</button>
+{% endexample %}
 
 The above example makes use of the special `initial` symbol, which you can use to refer to the initial value of an
 elements style when the first transition begins.
@@ -1453,14 +1337,11 @@ Another common way to trigger transitions is by adding or removing classes or se
 `add` do *not* block on transitions.  If you wish to wait until a transition completes after adding a new class, you
 should use the [`settle` command](/commands/settle):
 
-```html
+{% example "Wait for transitions/animations to finish" %}
 <button _="on click add .red then settle then remove .red">
   Flash Red
 </button>
-```
-<button _="on click add .red then settle then remove .red">
-  Flash Red
-</button>
+{% endexample %}
 
 If the above code did not have the `settle` command, the button would not flash red because the class `.red` would be
 added and then removed immediately, not allowing the 200ms transition to `.red` to complete.
