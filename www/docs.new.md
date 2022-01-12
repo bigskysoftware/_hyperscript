@@ -496,6 +496,21 @@ You can use the `first`, `last` and `random` keywords, discussed [below](#positi
   log random in myArr[0]     -- logs a random element from the array
   ~~~ 
 
+##### <a name="closures"></a> [Closures](#closures)
+
+Hyperscript does not encourage the use of closures or callbacks nearly as much  Javascript.  Rather, it uses
+[async transparency](#async-transparency) to handle many of the situations where Javascript would use them.
+
+However, there is one area where closures provide a lot of value in hyperscript: data structure manipulation.  The
+hyperscript syntax for closures is inspired by haskell, starting with a `\` character, then the arguments, then an arrow
+`->`, followed by an expression:
+
+```hyperscript
+  set strs to ["a", "list", "of", "strings"]
+  set lens to strs.map( \ s -> s.length )
+  log lens
+```
+
 ### <a name=control-flow></a> [Control Flow](#control-flow)
 
 The primary source of control flow in hyperscript is the [if command](/commands/if).  Note that the expression
@@ -1346,5 +1361,38 @@ should use the [`settle` command](/commands/settle):
 If the above code did not have the `settle` command, the button would not flash red because the class `.red` would be
 added and then removed immediately, not allowing the 200ms transition to `.red` to complete.
 
+### <a name="measuring"></a>[Measuring Things](#measuring)
+
+Sometimes you want to know the dimensions of an element in the DOM in order to perform some sort of translation or
+transition.  Hyperscript has a [`measure` command](/commands/measure) that will give you measurement information
+for an element:
+
+```html
+<button _="on click measure my top then
+                    put `My top is ${top}` into the next <p/>">
+Click Me To Measure My Top
+</button>
+<p></p>
+```
+<button _="on click measure my top then put `My top is ${top}` into the next <p/>">
+Click Me To Measure My Top
+</button>
+<p></p>
+
+You can also use the pseudo-style literal form `*computed-<style property>` to get the computed (actual) style property
+value for an element
+
+```html
+<button _="on click get my *computed-width
+                    put `My width is ${the result}` into the next <p/>">
+Click Me To Get My Computed Width
+</button>
+<p></p>
+```
+<button _="on click get my *computed-width
+                    put `My width is ${the result}` into the next <p/>">
+Click Me To Get My Computed Width
+</button>
+<p></p>
 
 </div>
