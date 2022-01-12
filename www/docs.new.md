@@ -22,16 +22,18 @@
     * [exceptions](#exceptions)
 * [DOM manipulation](#working_with_the_dom)
   * [finding things](#finding_things)
-    * [DOM literals](#dom_literals)
-    * [Finding Things In Other Things](#in)
+    * [using DOM literals](#dom_literals)
+    * [finding things in other things](#in)
   * [updating things](#updating_things)
     * [putting new content into the DOM](#set_and_put)
     * [adding, removing & toggling](#add_remove_toggle)
       * [removing content](#removing)
-    *
-* [remote content]
-  * [fetch]
-  * [going places]
+    * [showing & hiding](#show_hide)
+    * [transitions](#transitions)
+  * [measuring things]()
+* [remote content]()
+  * [fetch]()
+  * [going places]()
 * [async transparency](#async)
     * [async keyword](#async-keyword)
     * [event driven control flow](#event-control-flow)
@@ -56,7 +58,8 @@
 </div>
 
 </div>
-<div class="10 col">
+
+<div class="10 col" style="padding-bottom: 250px">
 
 ## <a name="introduction"></a>[Introduction](#introduction)
 
@@ -1345,7 +1348,122 @@ You can also use the [`remove` command](/commands/remove) to remove content from
 
 The remove command is smart enough to figure out what you want to happen based on what you tell it to remove.
 
-#### <a name="set_and_put"></a>[Set & Put](#set_and_put)
+#### <a name="show_hide"></a>[Showing & Hiding Things](#show_hide)
+
+You can show and hide things with the [`show`](/commands/show) and [`hide`](/commands/hide) commands:
+
+```html
+<button _="on click
+               hide me
+               wait 2s
+               show me">
+               Peekaboo
+</button>
+```
+<button _="on click
+               hide me
+               wait 2s
+               show me">
+               Peekaboo
+</button>
+
+By default, the `show` and `hide` commands will use the `display` style property.  You can instead use `visibility`
+or `opacity` with the following syntax:
+
+```html
+<button _="on click
+               hide me with opacity
+               wait 2s
+               show me with opacity">
+               Peekaboo
+</button>
+```
+<button _="on click
+               hide me with opacity
+               wait 2s
+               show me with opacity">
+               Peekaboo
+</button>
+
+You can also apply a conditional to the `show` command to conditionally show elements that match a given condition by
+using a `when` clause:
+
+```html
+<input _="on keyup show <li/> in #color-list
+                     when it's innerHTML contains my value">
+<ul id="color-list">
+  <li>Red</li>
+  <li>Blue</li>
+  <li>Blueish Green</li>
+  <li>Green</li>
+  <li>Yellow</li>
+</ul>
+```
+<input _="on keyup show <li/> in #color-list
+                     when it's innerHTML contains my value">
+<ul id="color-list">
+  <li>Red</li>
+  <li>Blue</li>
+  <li>Blueish Green</li>
+  <li>Green</li>
+  <li>Yellow</li>
+</ul>
+
+And, as mentioned above, you can also toggle visibility using the `toggle` command:
+
+```html
+<button _="on click toggle *display of the next <p/>">
+  Toggle The Next Paragraph
+</button>
+<p>
+  Hyperscript is rad!
+</p>
+```
+<button _="on click toggle *display of the next <p/>">
+  Toggle The Next Paragraph
+</button>
+<p>
+  Hyperscript is rad!
+</p>
+
+#### <a name="transitions"></a>[Transitions](#transitions)
+
+You can transition a style from one state to another using the [`transition` command](/commands/transition).  This
+allows you to animate transitions between different states:
+
+```html
+<button _="on click transition my *font-size to 20px then
+                    wait 500ms then
+                    transition my *font-size to initial">
+  Transition My Font Size
+</button>
+```
+<button _="on click transition my *font-size to 20px then wait 500ms then transition my *font-size to initial">
+  Transition My Font Size
+</button>
+
+The above example makes use of the special `initial` symbol, which you can use to refer to the initial value of an
+elements style when the first transition begins.
+
+##### <a name="settling"></a>[Class-Based Transitions](#settling)
+
+The `transition` command is blocking: it will wait until the transition completes before the next command executes.
+
+Another common way to trigger transitions is by adding or removing classes or setting styles directly.  Commands like
+`add` do *not* block on transitions.  If you wish to wait until a transition completes after adding a new class, you
+should use the [`settle` command](/commands/settle):
+
+```html
+<button _="on click add .red then settle then remove .red">
+  Flash Red
+</button>
+```
+<button _="on click add .red then settle then remove .red">
+  Flash Red
+</button>
+
+If the above code did not have the `settle` command, the button would not flash red because the class `.red` would be
+added and then removed immediately, not allowing the 200ms transition to `.red` to complete.
 
 
 </div>

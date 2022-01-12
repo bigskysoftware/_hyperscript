@@ -771,7 +771,16 @@ export default _hyperscript => {
 					from.push(null);
 				}
 				tokens.requireToken("to");
-				to.push(parser.requireElement("expression", tokens));
+				if (tokens.matchToken("initial")) {
+					to.push({
+						type: "initial_literal",
+						evaluate : function(){
+							return "initial";
+						}
+					});
+				} else {
+					to.push(parser.requireElement("expression", tokens));
+				}
 				currentToken = tokens.currentToken();
 			}
 			if (tokens.matchToken("over")) {

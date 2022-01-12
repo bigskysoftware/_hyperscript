@@ -4,7 +4,7 @@
 ### Syntax
 
 ```ebnf
-hide [target] [with <hide-show-strategy>[: <argument>]]
+hide [target] [with <hide-show-strategy>[: <argument>]] [when <expr>]
 ```
 
 ### Description
@@ -15,11 +15,11 @@ By default, the following strategies are available:
 
 - `display` - toggle display between `none` and `block`
 - `visibility` - toggle visibility between `hidden` and `visible`
-- `opacity` - toggle visibility between `0` and `1`
+- `opacity` - toggle opacity between `0` and `1`
 
 You can change the default hide/show strategy by setting `_hyperscript.config.defaultHideShowStrategy`
 
-You can add new hide/show strategies by setting the `hyperscript.config.hideShowStrategies` object.
+You can add new hide/show strategies by setting new values into the `_hyperscript.config.hideShowStrategies` object.
 
 ### Examples
 
