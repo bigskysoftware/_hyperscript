@@ -339,8 +339,7 @@ Here is the above example, rewritten to use an attribute rather than an element-
 If you click the above button a few times and then inspect it using your browsers developer tools, you'll note that it
 has a `my-attr` attribute on it that holds a string value of the click count.
 
-It is also worth mentioning that the [`increment`](/commands/increment) is smart enough to handle the fact that the
-attribute value is a string and automatically converts it to a number when incrementing it.
+The [`increment`](/commands/increment) command is discussed below.
 
 #### <a name=special-names></a> [Special Names & Symbols](#special-names)
 
@@ -495,7 +494,7 @@ As mentioned in the introduction, `end` is often omitted when it isn't needed in
 <p></p>
 ```
 
-#### <a name="comparisons"></a> [Comparisons](#comparisons)
+#### <a name="comparisons"></a> [Comparisons & Logical Operators](#comparisons)
 
 In addition to the usual comparison operators from javascript, such as `==` and `!=`, hyperscript
 supports [a rich set of natural language style comparisons](/expressions/comparison operator) for use in `if` commands:
@@ -509,10 +508,18 @@ A small sampling is shown below:
 | `no`     | equivalent to `!= null`: `if no .tab in me`
 | `match`  | does a CSS test : `if I match .selected`
 | `exists` | tests if an object is non-null : `if #tab1 exists`
+| `is greater than` | tests if a number is greater than another number : `if x is greater than y`
 | `empty`  | tests if a collectin is empty : `if .tabs is empty`
 
 Using these natural language alternatives allow you to write more concise and clear conditional expressions in your
 if commands.
+
+Comparisons can be combined via the `and`, `or` and `not` expressions:
+
+```hyperscript
+  if I am <:checked/> and the closest <form/> is <:focused/>
+    add .highlight to the closest <form/>
+```
 
 ### <a name="loops"></a>[Loops](#loops)
 
@@ -558,6 +565,8 @@ for x in [1, 2, 3] index i
 end
 ```
 
+Loops support both the [`break`](/commands/break) and [`continue`](/commands/continue) commands.
+
 #### <a name="aggregate_operations"></a>[Aggregate Operations](#aggregate_operations)
 
 Note that loops are often not required in hyperscript because many commands will automatically deal with arrays and
@@ -572,6 +581,70 @@ write this:
 
 The [`add`](/commands/add) command will take care of looping over all elements with the class `.bar`, so there
 is no need to explicitly loop.
+
+#### <a name="math"></a>[Math Operations](#math)
+
+Hyperscript supports most of the regular math operators:
+
+```hyperscript
+  set x to 10
+  set y to 20
+  set sum to x + y
+  set diff to x - y
+  set product to x * y
+```
+
+Note that in hyperscript operators must be fully parenthesized when used in combination:
+
+```hyperscript
+  set x to 10
+  set y to 20
+  set sumOfSquares to (x * x) + (y * y)
+```
+
+If you did not fully parenthesize this expression it would be a parse error.
+
+Hyperscript also offers an [`increment`](/commands/increment) and [`decrement`](/commands/decrement) command for modifying numbers:
+
+```hyperscript
+  set x to 1
+  increment x
+  puts x -- prints 2 to the console
+```
+
+A nice thing about the `increment` and `decrement` commands is that they will automatically handle string to number
+conversions and, therefore, can be used with numbers stored in attributes on the DOM:
+
+```hyperscript
+  on click
+     increment @data-counter
+     if @data-counter as Integer is greater than 4
+       add @disabled -- disable after the 5th click
+```
+
+#### <a name="strings"></a>[Strings](#strings)
+
+Hyperscript supports strings that use either a single quotes or double quotes:
+
+```hyperscript
+  set hello to 'hello'
+  set world to "world"
+  set helloWorld to hello + " " + world
+```
+
+and also supports javascript style template strings:
+
+```hyperscript
+  set helloWorld to `${hello} ${world}`
+```
+
+The [`append`](/commands/append) command can append content to strings (as well as to arrays and the DOM):
+
+```hyperscript
+    get "hello"      -- set result to "hello"
+    append " world"  -- append " world" to the result
+    log it           -- log it to the console
+```
 
 ### <a name="events"></a>[Events & Event Handlers](#event)
 
@@ -681,7 +754,9 @@ This lets you, for example, test for a middle click on the click event, by refer
 
 #### <a name="halting_events"></a>[Halting Events](#halting_events)
 
-An event handler can exit with the [`halt`](/commands/halt) command.  By default this command will halt the current events bubbling, call `preventDefault()` and exit the current event handlers.  However, there are forms available to stop only the event from bubbling, but continue on in the event handler:
+An event handler can exit with the [`halt`](/commands/halt) command.  By default this command will halt the current event
+bubbling, call `preventDefault()` and exit the current event handlers.  However, there are forms available to stop only
+the event from bubbling, but continue on in the event handler:
 
 ```html
 <script type="text/hyperscript">
@@ -691,6 +766,8 @@ An event handler can exit with the [`halt`](/commands/halt) command.  By default
   end
 </script>
 ```
+
+You may also use the [`exit`](/commands/exit) command to exit an event handler
 
 #### <a name="sending_events"></a>[Sending Events](#sending_events)
 
@@ -825,6 +902,9 @@ hyperscript functions can take parameters and return values in the expected way:
   end
 </script>
 ```
+
+You may also exit a function using [`return`](/commands/return) if you wish to return a value or
+ [`exit`](/commands/exit) if you do not want to return a value
 
 #### <a name="function_namespacing"></a>[Namespacing](#function_namespacing)
 
@@ -1070,6 +1150,13 @@ The `put` command can also place content in different spots based on how it is u
   Click Me
 </button>
 
+The `put` command can be used in the following ways:
+
+ * `put content before me` - puts the content in front of the element
+ * `put content at the start of me` - puts the content at the beginning of the element
+ * `put content at the end of me` - puts the content at the end of the element
+ * `put content after me` - puts the content after the element
+
 This flexibility is why we generally recommend the `put` command when updating content in the DOM.
 
 ##### <a name="set_attributes"></a>[Setting Attributes](#setting_attributes)
@@ -1167,5 +1254,8 @@ You can also use the [`remove` command](/commands/remove) to remove content from
 </button>
 
 The remove command is smart enough to figure out what you want to happen based on what you tell it to remove.
+
+#### <a name="set_and_put"></a>[Set & Put](#set_and_put)
+
 
 </div>
