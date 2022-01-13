@@ -1837,40 +1837,19 @@ Hyperscript includes a debugger, [hdb](/hdb), that allows you to debug by insert
 To use it you need to include the `lib/hdb.js` file. You can then add `breakpoint` commands in your hyperscript
 to trigger the debugger.
 
-```html
-<div>
-Debug: <input id="debug-on" type='checkbox' checked="checked">
-</div>
-<button _="on click
-             if #debug-on matches <:checked/>
-               breakpoint
-             end
-             tell #debug-demo
-               transition 'background-color' to red
-               transition 'background-color' to green
-               transition 'background-color' to blue
-               transition 'background-color' to initial
-           ">Colorize...</button>
+{% example "Debugging" %}
+<button _="
+  on click
+  tell next <output/>
+    breakpoint
+    put 'You can click <kbd><samp>Step Over</samp></kbd> to execute the command' into you
+    put 'Click the <kbd><samp>&rdca;</kbd></samp> button to skip to a command'   into you
+    put 'Click <kbd><samp>Continue</samp></kbd> when you’re done'                into you
+    put '--'                                                                     into you
+">Debug</button>
+<output>--</output>
+{% endexample %}
 
-<div id="debug-demo">TechnoColor Dream Debugging...</div>
-```
-
-<div>
-Debug: <input id="debug-on" type='checkbox' checked="checked">
-</div>
-<button class='btn primary'
-        _="on click
-            if #debug-on matches <:checked/>
-              breakpoint
-            end
-            tell #debug-demo
-              transition 'background-color' to red
-              transition 'background-color' to green
-              transition 'background-color' to blue
-              transition 'background-color' to initial
-           ">Colorize...</button>
-
-<div id="debug-demo">TechniColor Dream Debugging...</div>
 
 ## <a name="extending"></a>[Extending](#extending)
 
