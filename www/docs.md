@@ -216,7 +216,7 @@ Note that `end` can often be omitted for both features and statements if either
 * Another feature starts:
   ~~~ html
   <button _="on click if true log 'Clicked!'
-             on mouseenterlog 'Mouse entered!'">
+             on mouseenter log 'Mouse entered!'">
   Click Me
   </button>
   ~~~
