@@ -16,19 +16,19 @@
   * [control flow](#control-flow)
     * [loops](#loops)
   * [events](#events)
-    * [sending events](#sending_events)
+    * [sending events](#sending-events)
   * [init blocks](#init)
   * [functions](#functions)
     * [exceptions](#exceptions)
-* [DOM manipulation](#working_with_the_dom)
-  * [finding things](#finding_things)
-    * [using DOM literals](#dom_literals)
+* [DOM manipulation](#working-with-the-dom)
+  * [finding things](#finding-things)
+    * [using DOM literals](#dom-literals)
     * [finding things in other things](#in)
   * [updating things](#updating_things)
-    * [putting new content into the DOM](#set_and_put)
-    * [adding, removing & toggling](#add_remove_toggle)
+    * [putting new content into the DOM](#set-and-put)
+    * [adding, removing & toggling](#add-remove-toggle)
       * [removing content](#removing)
-    * [showing & hiding](#show_hide)
+    * [showing & hiding](#show-hide)
     * [transitions](#transitions)
   * [measuring things]()
 * [remote content](#remote-content)
@@ -39,11 +39,11 @@
     * [toggling](#toggling)
     * [event driven control flow](#event-control-flow)
     * [the async keyword](#async-keyword)
-* [advanced features](#advanced_features)
+* [advanced features](#advanced-features)
   * [behaviors](#behaviors)
   * [workers](#workers)
   * [sockets](#sockets)
-  * [event sources](#event_source)
+  * [event sources](#event-source)
   * [inline js](#js)
 * [debugging](#debugging)
 * [extending](#extending)
@@ -848,7 +848,7 @@ the event from bubbling, but continue on in the event handler:
 
 You may also use the [`exit`](/commands/exit) command to exit an event handler
 
-#### <a name="sending_events"></a>[Sending Events](#sending_events)
+#### <a name="sending-events"></a>[Sending Events](#sending-events)
 
 hyperscript not only makes it easy to respond to events, but also makes it very easy to send events to other elements
 using the [`send`](/commands/send) and [`trigger`](/commands/trigger) commands.  Both commands do the same thing: sending an event to an element (possibly the current element!) to handle.  Here are a few examples:
@@ -1047,18 +1047,18 @@ You may throw an exception using the familiar `throw` keyword:
       throw "I am not selected!
     ...
   ~~~
-## <a name="working_with_the_dom"></a>[Working With The DOM](#working_with_the_dom)
+## <a name="working-with-the-dom"></a>[Working With The DOM](#working-with-the-dom)
 
 The primary use case for hyperscript is adding small bits of interactivity to the DOM and, as such, it has a lot of syntax
 for making this easy and natural.  We have glossed over a lot of this syntax in previous examples but now we will get into
 the details of what you have available:
 
-### <a name="finding_things"></a>[Finding Elements](#finding_things)
+### <a name="finding-things"></a>[Finding Elements](#finding-things)
 
 There are two sides to DOM manipulation: finding stuff and mutating it.  In this section we will focus on how to
 find things in the DOM.
 
-#### <a name="dom_literals"></a>[DOM Literals](#dom_literals)
+#### <a name="dom_literals"></a>[DOM Literals](#dom-literals)
 
 You are probably used to things like number literals (e.g. `1`) or string literals (e.g. `"hello world"`).  _hyperscript,
 since it is designed for DOM manipulation, supports special literals that make it easy to work with the DOM.  Some
@@ -1169,7 +1169,7 @@ You can use the [relative positional expressions](/expressions/relative-position
 
 Using the expressions above, you should be able to find the elements you want to update easily.  Now, on to updating them!
 
-#### <a name="set_and_put"></a>[Set & Put](#set_and_put)
+#### <a name="set-and-put"></a>[Set & Put](#set-and-put)
 
 The most basic way to update elements is using the [`set`](/commands/set) and [`put`](/commands/put).  Recall that these
 commands can also be used to set local variables.  When it comes to updating DOM elements, the `put` command is more
@@ -1216,7 +1216,7 @@ The `put` command can be used in the following ways:
 
 This flexibility is why we generally recommend the `put` command when updating content in the DOM.
 
-##### <a name="set_attributes"></a>[Setting Attributes](#setting_attributes)
+##### <a name="setting-attributes"></a>[Setting Attributes](#setting-attributes)
 
 One exception to this rule is when setting attributes, which we typically recommend using `set`.  It just reads better to us:
 
@@ -1226,7 +1226,7 @@ One exception to this rule is when setting attributes, which we typically recomm
 </button>
 {% endexample %}
 
-#### <a name="add_remove_toggle"></a>[Add, Remove & Toggle](#add_remove_toggle)
+#### <a name="add-remove-toggle"></a>[Add, Remove & Toggle](#add-remove-toggle)
 
 A very common operation in front end scripting is adding or removing classes or attributes from DOM elements. hyperscript
 supports the [`add`](/commands/add), [`remove`](/commands/remove) and [`toggle`](/commands/toggle) commands do help do this.
@@ -1285,7 +1285,7 @@ You can also use the [`remove` command](/commands/remove) to remove content from
 
 The remove command is smart enough to figure out what you want to happen based on what you tell it to remove.
 
-#### <a name="show_hide"></a>[Showing & Hiding Things](#show_hide)
+#### <a name="show-hide"></a>[Showing & Hiding Things](#show-hide)
 
 You can show and hide things with the [`show`](/commands/show) and [`hide`](/commands/hide) commands:
 
@@ -1757,7 +1757,7 @@ You can send messages to the socket by using the normal [`send`](/commands/send)
 
 You can read more about the RPC mechanism on the [`socket` page](/features/socket#rpc).
 
-### <a name="event_source"></a>[Event Source](#event_source)
+### <a name="event-source"></a>[Event Source](#event-source)
 
 [Server Sent Events](https://en.wikipedia.org/wiki/Server-sent_events) are a simple way for your web server to push
 information directly to your clients that is [supported by all modern browsers](https://caniuse.com/eventsource).
