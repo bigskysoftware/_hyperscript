@@ -133,21 +133,16 @@ compatibility, unlike htmx.</em></small>
   gap: .2em 2ch;
 }
 
-.example {
-  margin: .5em auto;
-  text-align: center;
-}
 </style>
 
 ## examples
 
-```html
+{% example %}
 <button _="on click toggle .big-text">
   Toggle the "big-text" class on me on click
 </button>
-```
+{% endexample %}
 
-<div class="example">
 <style>
 button {
   transition: all 300ms ease-in;
@@ -156,20 +151,14 @@ button.big-text {
   font-size: 2em;
 }
 </style>
-<button class="btn primary" _="on click toggle .big-text">
-  Toggle .clicked
-</button>
-</div>
 
-```html
+{% example %}
 <div _="on mouseenter toggle .visible on #help until mouseleave">
   Mouse Over Me!
 </div>
 <div id="help"> I'm a helpful message!</div>
+{% endexample %}
 
-```
-
-<div class="example">
 <style>
 #help {
   opacity: 0;
@@ -179,22 +168,11 @@ button.big-text {
   transition: opacity 200ms ease-in;
 }
 </style>
-<div _="on mouseenter toggle .visible on #help until mouseleave">
-  Mouse Over Me!
-</div>
-<div id="help"> I'm a helpful message!</div>
-</div>
 
-```html
-<button _="on click log me then call alert('yep, it’s an alert')">
-  Show An Alert
-</button>
-```
-
-<div class="example">
-<button class="btn primary" _="
+{% example %}
+<button _="
   on click
     log me then call alert('yep, it\'s an alert - check the console...')">
   Show An Alert
 </button>
-</div>
+{% endexample %}
