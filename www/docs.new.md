@@ -15,6 +15,8 @@
     * [properties](#properties)
   * [control flow](#control-flow)
     * [loops](#loops)
+  * [math](#math)
+  * [strings](#strings)
   * [events](#events)
     * [sending events](#sending-events)
   * [init blocks](#init)
@@ -577,7 +579,7 @@ Comparisons can be combined via the `and`, `or` and `not` expressions:
     add .highlight to the closest <form/>
   ~~~
 
-### <a name="loops"></a>[Loops](#loops)
+#### <a name="loops"></a>[Loops](#loops)
 
 The [repeat command](/commands/repeat) is the looping construct in hyperscript and supports a large number of variants,
 including a shortend `for` version:
@@ -638,7 +640,7 @@ write this:
 The [`add`](/commands/add) command will take care of looping over all elements with the class `.bar`, so there
 is no need to explicitly loop.
 
-#### <a name="math"></a>[Math Operations](#math)
+### <a name="math"></a>[Math Operations](#math)
 
 Hyperscript supports most of the regular math operators:
 
@@ -678,7 +680,7 @@ conversions and, therefore, can be used with numbers stored in attributes on the
        add @disabled -- disable after the 5th click
   ~~~
 
-#### <a name="strings"></a>[Strings](#strings)
+### <a name="strings"></a>[Strings](#strings)
 
 Hyperscript supports strings that use either a single quotes or double quotes:
 
