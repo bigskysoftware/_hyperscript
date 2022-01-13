@@ -77,10 +77,10 @@ Here is a simple example of some hyperscript:
   }
 </style>
 
-The first thing to notice is that hyperscript is defined directly on the button, using the `_` property.
+The first thing to notice is that hyperscript is defined *directly on the button*, using the `_` (underscore) attribute.
 
-Embedding code directly on the button like this
-might seem a bit funny, but hyperscript is one of a growing number of technologies that de-emphasize [Separation of Concerns](https://en.wikipedia.org/wiki/Separation_of_concerns)
+Embedding code directly on the button like this might seem strange at first, but hyperscript is one of a growing number
+of technologies that de-emphasize [Separation of Concerns](https://en.wikipedia.org/wiki/Separation_of_concerns)
 in favor of [Locality of Behavior](https://htmx.org/essays/locality-of-behaviour/).  Other examples of technologies
 going this direction are [tailwinds](https://tailwindcss.com/), [AlpineJS](https://github.com/alpinejs/alpine/) and [htmx](https://htmx.org).
 
@@ -92,7 +92,7 @@ like english than the programming languages you are probably used to.
 This unusual syntax has advantages, once you get over the initial shock:
 
 * It is very distinctive, making it obvious when hyperscript is being used in a web page
-* It reads very easily, making it obvious what a script is doing
+* It is very easy to read, making it obvious what a script is doing
 
 Hyperscript favors read time over write time when it comes to code. It can be a bit tricky to get the syntax
 right when you are starting out, but it reads very clearly once the code is written.
@@ -126,6 +126,19 @@ After you've done this, you can begin adding hyperscript to elements:
     Click Me!
   </div>
   ~~~
+
+You can also add hyperscript within script tags that are denoted as `text/hyperscript`:
+
+```html
+  <script type="text/hyperscript">
+    on mousedown
+      halt the event -- prevent text selection...
+      -- do other stuff...
+    end
+  </script>
+```
+
+Features defined in script tags will apply to the `body`.
 
 Hyperscript has an open, pluggable grammar & some advanced features do not ship by default (e.g. [workers](#workers)).
 
