@@ -65,8 +65,8 @@ experiences without callback hell
 [Read the **docs**](/docs) |
 [Try it on the **playground**](/playground)
 
-<span id='install'><strong>Install:</strong> `<script src="https://unpkg.com/hyperscript.org@0.9.4"></script>`
-<button
+ <span id='install'>Install: `<script src="https://unpkg.com/hyperscript.org@0.9.4"></script>`
+<button style="font:inherit;font-size:.8em;background:#3465a4;padding:0 .2em;color:white;border:none;border-radius:1000em"
   _="on click
   writeText(my previousElementSibling's innerText) on navigator.clipboard
   put 'copied!' into me
