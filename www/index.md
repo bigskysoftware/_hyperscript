@@ -10,8 +10,8 @@
     repeat until event mouseleave
       transition #sample-tip's transform to 'translateX(-2ch)' using 'all 500ms ease-out'
       transition #sample-tip's transform to initial            using 'all 500ms ease-in'
-"><code id="snippet" class="lang-hyperscript">writeText(#snippet's innerText)
-  on navigator.clipboard
+"><code id="snippet" class="lang-hyperscript">writeText(the #snippet's innerText)
+  into the navigator's clipboard
 put 'copied!' into me
 wait 1s
 put 'copy' into me</code></pre>
@@ -19,7 +19,7 @@ put 'copy' into me</code></pre>
 <p style="text-align: right">
 <span id="sample-tip">see it in action &rarr;</span>
 <button class="btn primary" style="margin: auto" _="on click
-writeText(#snippet's innerText) on navigator.clipboard
+writeText(the #snippet's innerText) into the navigator's clipboard
 put 'copied!' into me
 wait 1s
 put 'copy' into me">
