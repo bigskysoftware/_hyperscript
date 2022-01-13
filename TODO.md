@@ -4,7 +4,7 @@
 
 * ~~Convert hyperscript runtime to wrap arrays w/ a Promise rather than `linerize/delinearize` :)~~
 * ~~Support `*width` syntax for referring to style properties (similar to `@` for normal attributes)~~
-* Finish new documentation (Carson)
+* ~~Finish new documentation (Carson)~~
 * ~~Fix `fetch` issue when an `as` follows a `with`:~~
   ```applescript
      fetch /foo with method:"POST" as json -- as json bindes to "POST" too tightly
