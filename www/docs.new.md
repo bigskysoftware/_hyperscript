@@ -1828,7 +1828,7 @@ implementation:
 Note that there is also a way to include [inline javascript](/commands/js)
 directly within a hyperscript body, for local optimizations.
 
-## <a name="debugging"></a>[Debugging (Alpha)](#debugging)
+## <a name="debugging"></a>[Debugging](#debugging)
 
 **Note: The hyperscript debugger is in alpha and, like the rest of the language, is undergoing active development**
 
