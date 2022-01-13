@@ -1,21 +1,19 @@
 /**
- * htmx theme for JavaScript, CSS and HTML
- * based on okaidia theme by ocodia
+ * GHColors theme by Avi Aryan (http://aviaryan.in)
+ * Inspired by Github syntax coloring
  */
 
 code[class*="language-"],
 pre[class*="language-"] {
-    color: #f8f8f2;
-    background: none;
-    text-shadow: 0 1px rgba(0, 0, 0, 0.3);
-    font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace, monospace;
-    font-size: 1em;
+    color: #393A34;
+    font-family: "Consolas", "Bitstream Vera Sans Mono", "Courier New", Courier, monospace;
+    direction: ltr;
     text-align: left;
     white-space: pre;
     word-spacing: normal;
     word-break: normal;
-    word-wrap: normal;
-    line-height: 1.5;
+    font-size: .9em;
+    line-height: 1.2em;
 
     -moz-tab-size: 4;
     -o-tab-size: 4;
@@ -27,97 +25,98 @@ pre[class*="language-"] {
     hyphens: none;
 }
 
-/* Code blocks */
-pre:is([class*="language-"]) {
-    padding: .5em;
-    margin: .5em 0;
-    overflow: auto;
-    scrollbar-width: thin;
-    border-radius: 0.3em;
+pre > code[class*="language-"] {
+    font-size: 1em;
 }
 
-:not(pre) > code[class*="language-"],
+pre[class*="language-"]::-moz-selection, pre[class*="language-"] ::-moz-selection,
+code[class*="language-"]::-moz-selection, code[class*="language-"] ::-moz-selection {
+    background: #b3d4fc;
+}
+
+pre[class*="language-"]::selection, pre[class*="language-"] ::selection,
+code[class*="language-"]::selection, code[class*="language-"] ::selection {
+    background: #b3d4fc;
+}
+
+/* Code blocks */
 pre[class*="language-"] {
-    background: #272822;
+    padding: 1em;
+    margin: .5em 0;
+    overflow: auto;
+    border: 1px solid #dddddd;
+    background-color: white;
 }
 
 /* Inline code */
 :not(pre) > code[class*="language-"] {
-    padding: .1em;
-    border-radius: .3em;
-    white-space: normal;
+    padding: .2em;
+    padding-top: 1px;
+    padding-bottom: 1px;
+    background: #f8f8f8;
+    border: 1px solid #dddddd;
 }
 
 .token.comment,
 .token.prolog,
 .token.doctype,
 .token.cdata {
-    color: #b2b2b2;
-}
-
-.token.punctuation {
-    color: #f8f8f2;
+    color: #999988;
+    font-style: italic;
 }
 
 .token.namespace {
     opacity: .7;
 }
 
-.token.property,
-.token.tag,
-.token.constant,
-.token.symbol,
-.token.deleted {
-    color: #7fabff;
-}
-
-.token.boolean,
-.token.number {
-    color: #7fabff;
-}
-
-.token.selector,
-.token.attr-name,
 .token.string,
-.token.char,
-.token.builtin,
-.token.inserted {
-    color: #a6e22e;
+.token.attr-value {
+    color: #e3116c;
 }
 
-.token.operator,
+.token.punctuation,
+.token.operator {
+    color: #393A34; /* no highlight */
+}
+
 .token.entity,
 .token.url,
-.language-css .token.string,
-.style .token.string,
-.token.variable {
-    color: #f8f8f2;
+.token.symbol,
+.token.number,
+.token.boolean,
+.token.variable,
+.token.constant,
+.token.property,
+.token.regex,
+.token.inserted {
+    color: #36acaa;
 }
 
 .token.atrule,
-.token.attr-value,
+.token.keyword,
+.token.attr-name,
+.language-autohotkey .token.selector {
+    color: #00a4db;
+}
+
 .token.function,
-.token.class-name {
-    color: #e6db74;
+.token.deleted,
+.language-autohotkey .token.tag {
+    color: #9a050f;
 }
 
-.token.keyword {
-    color: #66d9ef;
-}
-
-.token.regex,
-.token.important {
-    color: #fd971f;
+.token.tag,
+.token.selector,
+.language-autohotkey .token.keyword {
+    color: #00009f;
 }
 
 .token.important,
+.token.function,
 .token.bold {
     font-weight: bold;
 }
+
 .token.italic {
     font-style: italic;
-}
-
-.token.entity {
-    cursor: help;
 }
