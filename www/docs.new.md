@@ -1850,6 +1850,7 @@ to trigger the debugger.
 <output>--</output>
 {% endexample %}
 
+
 ## <a name="extending"></a>[Extending](#extending)
 
 Hyperscript has a pluggable grammar that allows you to define new features, commands and certain types of expressions.
