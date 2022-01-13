@@ -62,8 +62,9 @@ experiences without callback hell
 [**Comparison** with vanilla JS and jQuery](/comparison) |
 [Read the **docs**](/docs) |
 [Try it on the **playground**](/playground)
-<span id='install'>Install: `<script src="https://unpkg.com/hyperscript.org@0.9.4"></script>`
-<button style="font:inherit; background: none; border: none; color: #3465a4"
+
+ <span id='install'>Install: `<script src="https://unpkg.com/hyperscript.org@0.9.4"></script>`
+<button style="font:inherit;font-size:.8em;background:#3465a4;padding:0 .2em;color:white;border:none;border-radius:1000em"
   _="on click
   writeText(my previousElementSibling's innerText) on navigator.clipboard
   put 'copied!' into me
