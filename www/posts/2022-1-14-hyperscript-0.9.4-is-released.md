@@ -35,7 +35,7 @@ of hyperscript.
     log my *opacity          -- logs the explicit opacity of the element
     log my *computed-opacity -- logs the computed opacity of the element
   ```
-* [measurment literals](/docs#dom-literals) are now available, making it terms like `50%` available generally in
+* [measurement literals](/docs#dom-literals) are now available, making it terms like `50%` available generally in
   the language:
   ```hyperscript
     set my *opacity to 50%
