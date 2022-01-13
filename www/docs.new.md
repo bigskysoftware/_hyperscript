@@ -38,21 +38,14 @@
     * [waiting](#wait)
     * [toggling](#toggling)
     * [event driven control flow](#event-control-flow)
-    * [async keyword](#async-keyword)
-
-
-* Deniz
+    * [the async keyword](#async-keyword)
 * [advanced features](#advanced_features)
   * [behaviors](#behaviors)
   * [workers](#workers)
   * [sockets](#sockets)
   * [event sources](#event_source)
+  * [inline js](#js)
 * [debugging](#debugging)
-
-
-* Old
-  * [commands](#commands)
-  * [expressions](#expressions)
 * [extending](#extending)
 * [security](#security)
 * [history](#history)
@@ -1675,5 +1668,291 @@ So, if you wanted to invoke a method that returns a promise, say `returnsAPromis
 
 Hyperscript will immediately put the value "I called it..." into the next output element, even if the result
 from `returnsAPromise()` has not yet resolved.
+
+## <a name="advanced-features"></a>[Advanced Features](#advanced-features)
+
+We have covered the basics (and not-so-basics) of hyperscript.  Now we come to the more advanced
+features of the language.
+
+### <a name="behaviors"></a>[Behaviors](#behaviors)
+
+Behaviors allow you to bundle together some hyperscript code (that would normally go in the \_ attribute of an element) so that it can be "installed" on any other. They are defined with [the `behavior` keyword](/features/behavior):
+
+```hyperscript
+behavior Removable
+  on click
+    remove me
+  end
+end
+```
+
+They can accept arguments:
+
+```hyperscript
+behavior Removable(removeButton)
+  on click from removeButton
+    remove me
+  end
+end
+```
+
+They can be installed as shown:
+
+```html
+<div class="banner" _="install Removable(removeButton: #close-banner)">
+  ...
+```
+
+For a better example of a behavior, check out [Draggable.\_hs](https://gist.github.com/dz4k/6505fb82ae7fdb0a03e6f3e360931aa9).
+
+### <a name="workers"></a>[Web Workers](#workers)
+
+[WebWorkers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers) can be defined
+inline in hyperscript by using the [`worker` keyword](/features/worker).
+
+The worker does not share a namespace with other code, it is in it's own isolated sandbox. However, you may interact
+with the worker via function calls, passing data back and forth in the normal manner.
+
+```html
+<script type="text/hyperscript">
+  worker Incrementer
+    def increment(i)
+      return i + 1
+    end
+  end
+</script>
+<button _="on click call Incrementer.increment(41) then put 'The answer is: ' + it into my.innerHTML">
+  Call a Worker...
+</button>
+```
+
+This makes it very easy to define and work with web workers.
+
+Note that you can use the inline js feature discussed next if you want to use javascript in your worker. You might
+want to do this if you need better performance on calculations than hyperscript provides, for example.
+
+### <a name="sockets"></a>[Web Sockets](#sockets)
+
+[Web Sockets](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API) allow for two-way communication with
+a web server, and are becoming increasingly popular for building web applications. Hyperscript provides a simple way to
+create them, as well as a simple [Remote Procedure Call (RPC)](https://en.wikipedia.org/wiki/Remote_procedure_call) mechanism
+layered on top of them, by using the [`socket` keyword](/features/sockets).
+
+Here is a simple web socket declaration in hyperscript:
+
+```hyperscript
+socket MySocket ws://myserver.com/example
+  on message as json
+    log message
+end
+```
+
+This socket will log all messages that it receives as a parsed JSON object.
+
+You can send messages to the socket by using the normal [`send`](/commands/send) command:
+
+```hyperscript
+    send myMessage(foo: "bar", doh: 42) to MySocket
+```
+
+You can read more about the RPC mechanism on the [`socket` page](/features/socket#rpc).
+
+### <a name="event_source"></a>[Event Source](#event_source)
+
+[Server Sent Events](https://en.wikipedia.org/wiki/Server-sent_events) are a simple way for your web server to push
+information directly to your clients that is [supported by all modern browsers](https://caniuse.com/eventsource).
+
+They provide real-time, uni-directional communication from your server to a browser. Server Sent Events cannot send
+information back to your server. If you need two-way communication, consider using [sockets](/features/socket/) instead.
+
+You can declare an SSE connection by using the [`eventsource` keyword](/features/event-source) and can dynamically change
+the connected URL at any time without having to reconnect event listeners.
+
+Here is an example event source in hyperscript:
+
+```hyperscript
+eventsource ChatUpdates from http://myserver.com/chat-updates
+
+    on message as string
+        put it into #div
+    end
+
+    on open
+        log "connection opened."
+    end
+
+end
+```
+
+This event source will put all `message` events in to the `#div` and will log when an `open` event occurs.
+This feature also publishes events, too, so you can listen for Server Sent Events from other parts of your code.
+
+### <a name="js"></a>[Inline JS](#js)
+
+Inline javascript may be defined using the [`js` keyword](/features/js). You might do this for performance reasons,
+since the hyperscript runtime is more focused on flexibility, rather than performance.
+
+This feature is useful in [workers](#workers), when you want to pass javascript across to the worker's
+implementation:
+
+```html
+<script type="text/hyperscript">
+  worker CoinMiner
+    js
+      function mineNext() {
+        // a javascript implementation...
+      }
+    end
+    def nextCoin()
+      return mineNext()
+    end
+  end
+</script>
+```
+
+Note that there is also a way to include [inline javascript](/commands/js)
+directly within a hyperscript body, for local optimizations.
+
+## <a name="debugging"></a>[Debugging (Alpha)](#debugging)
+
+**Note: The hyperscript debugger is in alpha and, like the rest of the language, is undergoing active development**
+
+Hyperscript includes a debugger, [hdb](/hdb), that allows you to debug by inserting `breakpoint` commands in your hyperscript.
+
+To use it you need to include the `lib/hdb.js` file. You can then add `breakpoint` commands in your hyperscript
+to trigger the debugger.
+
+```html
+<div>
+Debug: <input id="debug-on" type='checkbox' checked="checked">
+</div>
+<button _="on click
+             if #debug-on matches <:checked/>
+               breakpoint
+             end
+             tell #debug-demo
+               transition 'background-color' to red
+               transition 'background-color' to green
+               transition 'background-color' to blue
+               transition 'background-color' to initial
+           ">Colorize...</button>
+
+<div id="debug-demo">TechnoColor Dream Debugging...</div>
+```
+
+<div>
+Debug: <input id="debug-on" type='checkbox' checked="checked">
+</div>
+<button class='btn primary'
+        _="on click
+            if #debug-on matches <:checked/>
+              breakpoint
+            end
+            tell #debug-demo
+              transition 'background-color' to red
+              transition 'background-color' to green
+              transition 'background-color' to blue
+              transition 'background-color' to initial
+           ">Colorize...</button>
+
+<div id="debug-demo">TechniColor Dream Debugging...</div>
+
+## <a name="extending"></a>[Extending](#extending)
+
+Hyperscript has a pluggable grammar that allows you to define new features, commands and certain types of expressions.
+
+Here is an example that adds a new command, `foo`, that logs `"A Wild Foo Was Found!" if the value of its expression
+was "foo":
+
+```javascript
+    _hyperscript.addCommand('foo', function(parser, runtime, tokens) { // register for the command keyword "foo"
+
+        if(tokens.match('foo')){                                       // consume the keyword "foo"
+
+            var expr = parser.requireElement('expression', tokens);    // parse an expression for the value
+
+            var fooCmd = {
+                expr: expr,    // store the expression on the element
+
+                args: [expr],  // return all necessary expressions for
+                               // the command to execute for evaluation by
+                               // the runtime
+
+                op: function (context, value) {                 // implement the logic of the command
+                    if(value == "foo"){                         // taking the runtime context and the value
+                        console.log("A Wild Foo Was Found!")    // of the result of evaluating the expr expression
+                    }
+
+                    return runtime.findNext(this)               // return the next command to execute
+                                                                // (you may also return a promise)
+                }
+            }
+            return fooCmd; // return the new command object
+        }
+    })
+```
+
+With this command defined you can now write the following hyperscript:
+
+```hyperscript
+  def testFoo()
+    set str to "foo"
+    foo str
+  end
+```
+
+And "A Wild Foo Was Found!" would be printed to the console.
+
+## <a name="security"></a>[Security](#security)
+
+Hyperscript allows you to define logic directly in your DOM. This has a number of advantages, the
+largest being [Locality of Behavior](https://htmx.org/essays/locality-of-behaviour/) making your system
+more coherent.
+
+One concern with this approach, however, is security. This is especially the case if you are injecting user-created
+content into your site without any sort of HTML escaping discipline.
+
+You should, of course, escape all 3rd party untrusted content that is injected into your site to prevent, among other
+issues, [XSS attacks](https://en.wikipedia.org/wiki/Cross-site_scripting). The `_`, `script` and `data-script` attributes,
+as well as inline `<script>` tags should all be filtered.
+
+Note that it is important to understand that hyperscript is _interpreted_ and, thus, does not use eval (except for the inline js
+features). You (or your security team) may use a [CSP](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP)
+that disallows inline scripting. This will have _no effect_ on hyperscript functionality, and is almost certainly not
+what you (or your security team) intends.
+
+To address this, if you don't want a particular part of the DOM to allow for hyperscript interpretation, you may place a
+`disable-scripting` or `data-disable-scripting` attribute on the enclosing element of that area.
+
+This will prevent hyperscript from executing within that area in the DOM:
+
+```html
+  <div data-disable-scripting>
+    <%= user_content %>
+  </div>
+```
+
+This approach allows you enjoy the benefits of [Locality of Behavior](https://htmx.org/essays/locality-of-behaviour/)
+while still providing additional safety if your HTML-escaping discipline fails.
+
+## <a name="history"></a>[Language History](#history)
+
+The initial motivation for hyperscript came when I ported [intercooler.js](https://intercoolerjs.org) to
+htmx.  Intercooler had a feature, [`ic-action`](https://intercoolerjs.org/attributes/ic-action.html) that
+allowed for some simple client-side interactions.  One of my goals with htmx was to remove non-core fuctionality
+from intercooler, and really focus it in on the hypermedia-exchange concept, so `ic-action` didn't make the
+cut.
+
+However, I couldn't shake the feeling that there was something there: an embedded, scripty way of doing light
+front end coding.  It even had some proto-async transparent features.  But, with my focus on htmx, I had to
+set it aside.
+
+As I developed htmx, I included an extensive [event model](https://htmx.org/reference/#events). Over time,
+I realized that I wanted to have a clean way to utilize these events naturally and directly within HTML.  HTML supports `on*` attributes for handling standard DOM events (e.g. `onClick`) of course, but they don't work for custom events like `htmx:load`.
+
+The more I looked at it, the more I thought that there was a need for a small, domain specific language that was
+event oriented and made DOM scripting efficient and fun.  I had programmed in [HyperTalk](https://en.wikipedia.org/wiki/HyperTalk), the scripting language for [HyperCard](https://en.wikipedia.org/wiki/HyperCard), when I was younger and remembered that it integrated events very well into the language.  So I dug up some old documentation on it and began work on hyperscript, a HyperTalk-derived scripting language for the web.
+
+And here we are.  I hope you find the language useful, or, at least, funny.  :)
 
 </div>
