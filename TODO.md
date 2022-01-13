@@ -2,17 +2,8 @@
 
 ### 0.9.x release
 
-* ~~Convert hyperscript runtime to wrap arrays w/ a Promise rather than `linerize/delinearize` :)~~
-* ~~Support `*width` syntax for referring to style properties (similar to `@` for normal attributes)~~
-* ~~Finish new documentation (Carson)~~
-* ~~Fix `fetch` issue when an `as` follows a `with`:~~
-  ```applescript
-     fetch /foo with method:"POST" as json -- as json bindes to "POST" too tightly
-   ```
-  options are to ~~support curlies after `with` syntax~~ and/or look ahead for `json` etc.
-* ~~Support `sender` symbol when responding to events~~
-
 ### Language Features
+* support `\.` shorthand syntax for `\ x -> x.`
 * Wait a tick before `transition` to allow previous mutations to settle?
 * Integrate events to allow call-like behavior:
   ```applescript
