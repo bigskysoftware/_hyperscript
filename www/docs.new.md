@@ -8,9 +8,9 @@
 * [introduction](#introduction)
 * [install & quick start](#install)
 * [language basics](#lang)
-  * [variables & names](#variables)
+  * [variables](#variables)
     * [scoping](#scoping)
-    * [special-names](#special-names)
+    * [special names](#special-names)
   * [objects](#objects)
     * [properties](#properties)
   * [control flow](#control-flow)
@@ -64,9 +64,9 @@
 ## <a name="introduction"></a>[Introduction](#introduction)
 
 Hyperscript is a scripting language for doing front end web development.  It is designed to make it very easy to
-respond to events and do simple DOM manipulation directly within elements on a web page.
+respond to events and do simple DOM manipulation in code that is directly embedded on elements on a web page.
 
-Here is a simple example of hyperscript:
+Here is a simple example of some hyperscript:
 
 {% example %}
 <button _="on click toggle .red on me">
@@ -92,19 +92,21 @@ used today. Hyperscript is part of the [xTalk](https://en.wikipedia.org/wiki/XTa
 ultimately derive from [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf).  These languages all read more
 like english than the programming languages you are probably used to.
 
-This unusual syntax has advantages, once you get over the initial hump:
+This unusual syntax has advantages, once you get over the initial shock:
 
 * It is very distinctive, making it obvious when hyperscript is being used in a web page
 * It reads very easily, making it obvious what a script is doing
 
 Hyperscript favors read time over write time when it comes to code. It can be a bit tricky to get the syntax
-right when you are starting out, but it reads very clearly once the code is written.  Code is typically read many
-more times than it is written, so this tradeoff is a reasonable one.
+right when you are starting out, but it reads very clearly once the code is written.
+
+Code is typically read many more times than it is written, so we feel this tradeoff is a good one for simple
+front end scripting needs.
 
 Below you will find an overview of the various features, commands and expressions in hyperscript, as well as links to
 more detailed treatments of each them.
 
-Some other resources you may want to check out are:
+Some other hypserscript resources you may want to check out are:
 
  * The [cookbook](/cookbook) for existing hyperscripts you can start using and modifying for your own needs.
  * The [VanillaJS/jQuery/hyperscript comparison](/comparison), which shows the differences between vanillajs, jQuery
@@ -200,14 +202,14 @@ Note that `end` can often be omitted for both features and statements if either
   <button _="on click if true log 'Clicked!'">
   Click Me
   </button>
-  ~~~ 
+  ~~~
 * Another feature starts:
   ~~~ html
   <button _="on click if true log 'Clicked!'
              on mouseenterlog 'Mouse entered!'">
   Click Me
   </button>
-  ~~~ 
+  ~~~
 In practice, `end` is used only when necessary, in order to keep scripts small.
 
 #### Expressions
@@ -236,7 +238,7 @@ Here is how you create a simple, local variable:
 
   ~~~ hyperscript
   set x to 10
-  ~~~ 
+  ~~~
 
 Here is an example that creates a local variable and then logs it to the console:
 
@@ -272,7 +274,7 @@ syntax:
   ~~~ hyperscript
   set $foo to 10 -- sets a global named $foo
   set :bar to 20 -- sets an element scoped variable named :bar
-  ~~~ 
+  ~~~
 
 Here is an example of a click handler that uses an element scoped variable to maintain a counter:
 
@@ -292,15 +294,15 @@ You may also use scope modifiers to give symbols particular scopes:
 * A variable with a `global` prefix is a global
   ~~~ hyperscript
   set global myGlobal to true
-  ~~~ 
+  ~~~
 * A variable with a `element` prefix is element-scoped
   ~~~ hyperscript
   set element myElementVar to true
-  ~~~ 
+  ~~~
 * A variable with a `local` prefix is locally scoped
   ~~~ hyperscript
   set local x to true
-  ~~~ 
+  ~~~
 
 #### <a name=attributes></a> [Attributes](#attributes)
 
@@ -316,7 +318,7 @@ This will store the value 10 in the attribute `my-attr` on the current element:
 
   ~~~ html
   <div my-attr="10"></div>
-  ~~~ 
+  ~~~
 
 Note that, unlike regular variables, attributes can only store strings.  Anything else you store in them will be converted
 to a string.
@@ -398,7 +400,7 @@ If you wish to print something to the `console` you can use the [`log` command](
 
   ~~~ hyperscript
   log "Hello Console!"
-  ~~~ 
+  ~~~
 #### <a name=objects></a> [Objects](#objects)
 
 Hyperscript is not an object oriented language (it is event oriented) but it still allows you to work with objects
@@ -413,7 +415,7 @@ to javascript developers:
   set x to {name : "Joe", age: 35}    -- create an object with some properties
   log x.name                          -- standard "dot" notation
   log x['name']                       -- standard array-index notation
-  ~~~ 
+  ~~~
 
 The next mechanism is known as a [possessive expression](/expressions/possessive) and uses the standard english `'s`
 to express a property access:
@@ -421,7 +423,7 @@ to express a property access:
   ~~~ hyperscript
   set x to {name : "Joe", age: 35}    -- create an object with some properties
   log x's name                        -- access the name property using a possessive
-  ~~~ 
+  ~~~
 
 Note that there are two special cases for the possessive expression, the symbols `my` and `its`, both of which
 can be used without the `'s` for possessive expressions (as with standard english)
@@ -430,14 +432,14 @@ can be used without the `'s` for possessive expressions (as with standard englis
   get the first <div/> then          -- get the first div in the DOM, setting the `results` variable
   set my innerHTML to its innerHTML  -- use possessive expressions to set the current elements innerHTML
                                      -- to the innerHTML of that div
-  ~~~ 
+  ~~~
 
 Finally, you can also use the [of expression](/expressions/of) to get a property as well:
 
   ~~~ hyperscript
   set x to {name : "Joe", age: 35}    -- create an object with some properties
   log the name of x                   -- access the name property using an of expression
-  ~~~ 
+  ~~~
 
 Note that this flips the order of the property and the element that the property is on.
 
@@ -451,7 +453,7 @@ collections of values:
   set allDivs to <div/>                      -- get all divs
   set allParents to the parent of allDivs    -- get all parents of those divs as an array
   set allChildren to the children of allDivs -- get all children of those divs as an array
-  ~~~ 
+  ~~~
 
 On an array, only the `length` property will not perform a flat map in this manner.
 
@@ -461,7 +463,7 @@ If you want to make new objects, you can use the [`make` command](/commands/make
 
   ~~~ hyperscript
   make a URL from "/path/", "https://origin.example.com"
-  ~~~ 
+  ~~~
 
 Which is equal to the JavaScript `new URL("/path/", "https://origin.example.com")`
 
@@ -470,13 +472,13 @@ If you wish to assign an identifier to the new object you can use the ` called `
   ~~~ hyperscript
   make a URL from "/path/", "https://origin.example.com" called myURL
   log myURL
-  ~~~ 
+  ~~~
 
 You can also use [`query literals`](/expressions/query_references), discussed [below](#dom_literals), to create new HTML content:
 
   ~~~ hyperscript
   make an <a.navlink/>
-  ~~~ 
+  ~~~
 
 #### <a name=arrays></a> [Arrays](#arrays)
 
@@ -485,7 +487,7 @@ Hyperscript arrays work very similarly to Javascript arrays:
   ~~~ hyperscript
   set myArr to [1, 2, 3]
   log myArr[0]           -- logs "1"
-  ~~~ 
+  ~~~
 
 You can use the `first`, `last` and `random` keywords, discussed [below](#positional), with arrays:
 
@@ -494,7 +496,7 @@ You can use the `first`, `last` and `random` keywords, discussed [below](#positi
   log the first of myArr[0]  -- logs "1"
   log the last of myArr[0]   -- logs "3"
   log random in myArr[0]     -- logs a random element from the array
-  ~~~ 
+  ~~~
 
 ##### <a name="closures"></a> [Closures](#closures)
 
@@ -540,7 +542,7 @@ As mentioned in the introduction, `end` is often omitted when it isn't needed in
     Click Me
   </button>
   <output>--</output>
-  ~~~ 
+  ~~~
 
 #### <a name="comparisons"></a> [Comparisons & Logical Operators](#comparisons)
 
@@ -567,7 +569,7 @@ Comparisons can be combined via the `and`, `or` and `not` expressions:
   ~~~ hyperscript
   if I am <:checked/> and the closest <form/> is <:focused/>
     add .highlight to the closest <form/>
-  ~~~ 
+  ~~~
 
 ### <a name="loops"></a>[Loops](#loops)
 
@@ -611,7 +613,7 @@ including a shortend `for` version:
   for x in [1, 2, 3] index i
     log i, "is", x
   end
-  ~~~ 
+  ~~~
 
 Loops support both the [`break`](/commands/break) and [`continue`](/commands/continue) commands.
 
@@ -625,7 +627,7 @@ write this:
 
   ~~~ hyperscript
   add .foo to .bar
-  ~~~ 
+  ~~~
 
 The [`add`](/commands/add) command will take care of looping over all elements with the class `.bar`, so there
 is no need to explicitly loop.
@@ -640,7 +642,7 @@ Hyperscript supports most of the regular math operators:
   set sum to x + y
   set diff to x - y
   set product to x * y
-  ~~~ 
+  ~~~
 
 Note that in hyperscript operators must be fully parenthesized when used in combination:
 
@@ -648,7 +650,7 @@ Note that in hyperscript operators must be fully parenthesized when used in comb
   set x to 10
   set y to 20
   set sumOfSquares to (x * x) + (y * y)
-  ~~~ 
+  ~~~
 
 If you did not fully parenthesize this expression it would be a parse error.
 
@@ -658,7 +660,7 @@ Hyperscript also offers an [`increment`](/commands/increment) and [`decrement`](
   set x to 1
   increment x
   puts x -- prints 2 to the console
-  ~~~ 
+  ~~~
 
 A nice thing about the `increment` and `decrement` commands is that they will automatically handle string to number
 conversions and, therefore, can be used with numbers stored in attributes on the DOM:
@@ -668,7 +670,7 @@ conversions and, therefore, can be used with numbers stored in attributes on the
      increment @data-counter
      if @data-counter as Integer is greater than 4
        add @disabled -- disable after the 5th click
-  ~~~ 
+  ~~~
 
 #### <a name="strings"></a>[Strings](#strings)
 
@@ -678,13 +680,13 @@ Hyperscript supports strings that use either a single quotes or double quotes:
   set hello to 'hello'
   set world to "world"
   set helloWorld to hello + " " + world
-  ~~~ 
+  ~~~
 
 and also supports javascript style template strings:
 
   ~~~ hyperscript
   set helloWorld to `${hello} ${world}`
-  ~~~ 
+  ~~~
 
 The [`append`](/commands/append) command can append content to strings (as well as to arrays and the DOM):
 
@@ -692,7 +694,7 @@ The [`append`](/commands/append) command can append content to strings (as well 
     get "hello"      -- set result to "hello"
     append " world"  -- append " world" to the result
     log it           -- log it to the console
-  ~~~ 
+  ~~~
 
 ### <a name=calling-functions></a> [Calling Functions](#calling-functions)
 
@@ -702,7 +704,7 @@ assign the result to the `result` variable: [`call`](/commands/call) and [`get`]
   ~~~ hyperscript
   call alert('hello world!')
   get the nextInteger() then log it -- using the 'it' alias for 'result`
-  ~~~ 
+  ~~~
 
 You can also invoke functions as stand-alone commands:
 
@@ -711,7 +713,7 @@ You can also invoke functions as stand-alone commands:
   getSelection()
   log "Got the selection"
   log it
-  ~~~ 
+  ~~~
 
 Finally, you can use the [`pseudo-command`](/commands/pseudo-commands)` syntax, which allows you to put the function
 call first on the line, to improve readability in some cases:
@@ -720,7 +722,7 @@ call first on the line, to improve readability in some cases:
   refresh() the location of the window
   writeText('evil') into the navigator's clipboard
   reset() the #contact-form
-  ~~~ 
+  ~~~
 
 These are called pseudo-commands because this syntax make the function look like a normal command in hyperscript.
 
@@ -778,7 +780,7 @@ handler execution has not finished (due to some asynchronous operation.)
   <button _="on every click add .clicked">
     Add The "clicked" Class To Me
   </button>
-  ~~~ 
+  ~~~
 
 This is useful in cases where you want to make sure you get the handler logic for every event going immediately.
 
@@ -805,7 +807,7 @@ You can [destructure](https://hacks.mozilla.org/2015/05/es6-in-depth-destructuri
   <button _="on click(button) log button">
     Log the event.button property
   </button>
-  ~~~ 
+  ~~~
 
 #### <a name="event_filters"></a>[Event Filters](#event_filters)
 
@@ -821,7 +823,7 @@ This lets you, for example, test for a middle click on the click event, by refer
   <button _="on click[button==1] add .clicked">
     Middle-Click To Add The "clicked" Class To Me
   </button>
-  ~~~ 
+  ~~~
 
 #### <a name="halting_events"></a>[Halting Events](#halting_events)
 
@@ -836,7 +838,7 @@ the event from bubbling, but continue on in the event handler:
       -- do other stuff...
     end
   </script>
-  ~~~ 
+  ~~~
 
 You may also use the [`exit`](/commands/exit) command to exit an event handler
 
@@ -877,7 +879,7 @@ API, but will act more like a regular event handler.
 
   ~~~ html
   <div _='on mutation of @foo put "Mutated" into me'></div>
-  ~~~ 
+  ~~~
 
 This div will listen for mutations of the `foo` attribute on this div and, when one occurs, will put the value
 "Mutated" into the element.
@@ -892,7 +894,7 @@ API. Again, hyperscript makes this API feel more event-driven:
           if intersecting transition opacity to 1
           else transition opacity to 0 "
       src="https://placebear.com/200/300"/>
-  ~~~ 
+  ~~~
 
 This image will become visible when 50% or more of it has scrolled into view. Note that the `intersecting` property
 is destructured into a local symbol, and the `having threshold` modifier is used to specify that 50% of the image
@@ -913,7 +915,7 @@ If you have logic that you wish to run when an element is initialized, you can u
   <div _="init transition my opacity to 100% over 3 seconds">
     Fade Me In
   </div>
-  ~~~ 
+  ~~~
 
 The `init` keyword should be followed by a set of commands to execute when the element is loaded.
 
@@ -933,7 +935,7 @@ Functions can also be defined in a hyperscript `script` tag:
       return "I waited..."
     end
   </script>
-  ~~~ 
+  ~~~
 
 This will define a global function, `waitAndReturn()` that can be invoked from anywhere in hyperscript.
 
@@ -942,7 +944,7 @@ These scripts can also be loaded remotely, but in that case, they **must** appea
   ~~~ html
   <script type="text/hyperscript" src="/functions._hs"></script>
   <script src="https://unpkg.com/hyperscript.org"></script>
-  ~~~ 
+  ~~~
 
 hyperscript is interoperable with javascript, and global hyperscript functions can be called from javascript, as well
 as vice-versa:
@@ -952,7 +954,7 @@ as vice-versa:
   str.then(function(val){
     console.log("String is: " + val);
   })
-  ~~~ 
+  ~~~
 
 hyperscript functions can take parameters and return values in the expected way:
 
@@ -962,7 +964,7 @@ hyperscript functions can take parameters and return values in the expected way:
       return i + 1
     end
   </script>
-  ~~~ 
+  ~~~
 
 You may also exit a function using [`return`](/commands/return) if you wish to return a value or
  [`exit`](/commands/exit) if you do not want to return a value
@@ -981,7 +983,7 @@ functions into a specific namespace, rather than polluting the global namespace:
   <script>
     console.log(utils.increment(41)); // access it from javascript
   </script>
-  ~~~ 
+  ~~~
 
 ### <a name="exceptions"></a>[Exception Handling](#exceptions)
 
@@ -999,7 +1001,7 @@ Both functions and event handlers may have a `catch` block associated with them:
   catch e
     log e
   end
-  ~~~ 
+  ~~~
 
 This allows you to handle exceptions that occur during the execution of the function or event handler.
 
@@ -1010,7 +1012,7 @@ message of the exception:
   ~~~ hyperscript
   on exception(error)
        log "An error occurred: " + error
-  ~~~ 
+  ~~~
 
 Note that exception handling in hyperscript respects the [async-transparent](#async) behavior of the language.
 
@@ -1025,7 +1027,7 @@ Both functions and event handlers also support a `finally` block to ensure that 
     put the result after me
   finally
     remove @disabled from me
-  ~~~ 
+  ~~~
 
 In this code we ensure that the `disabled` property is removed from the current element.
 
@@ -1038,7 +1040,7 @@ You may throw an exception using the familiar `throw` keyword:
     if I do not match .selected
       throw "I am not selected!
     ...
-  ~~~ 
+  ~~~
 ## <a name="working_with_the_dom"></a>[Working With The DOM](#working_with_the_dom)
 
 The primary use case for hyperscript is adding small bits of interactivity to the DOM and, as such, it has a lot of syntax
@@ -1074,7 +1076,7 @@ Here are a few examples:
   add .highlight to <div.tabs/>  -- adds the 'highlight' class to all divs with the class 'tabs' on them
   set my *width to 35px          -- sets the width of the current element to 35 pixels
   add @disabled to me            -- adds the `disabled` attribute to the current element
-  ~~~ 
+  ~~~
 
 Class literals, ID Literals and Query Literals all support templating syntax so you can look up dynamic values
 easily:
@@ -1088,7 +1090,7 @@ easily:
 
   set elementType to 'div'
   remove <#{elementType}.hidden/>         -- removes all divs w/ class .hidden on them from the DOM
-  ~~~ 
+  ~~~
 
 These literals make it very easy to work with the DOM in a concise, enjoyable manner.  Compare the following
 javascript:
@@ -1098,14 +1100,14 @@ javascript:
     .addEventListener('click', e => {
       document.querySelectorAll(".elements-to-remove").forEach(value => value.remove());
   })
-  ~~~ 
+  ~~~
 
 with the corresponding hyperscript:
 
   ~~~ hyperscript
   on click from #example-btn
     remove .elements-to-remove
-  ~~~ 
+  ~~~
 
 You can see how the support for CSS literals directly in the language cleans the code up quite a bit, allowing us
 to focus on the logic at hand.
@@ -1117,7 +1119,7 @@ Often you want to find things in a particular element.  To do this you can use t
   ~~~ hyperscript
   -- add the class 'highlight' to all paragraph tags in the current element
   add .highlight to <p/> in me
-  ~~~ 
+  ~~~
 
 #### <a name="closest"></a>[Finding The Closest Matching (Parent) Element](#closest)
 
@@ -1127,7 +1129,7 @@ use the [`closest`](/expressions/closest) expression:
   ~~~ hyperscript
   -- add the class 'highlight' to the closest table row to the current element
   add .highlight to the closest <tr/>
-  ~~~ 
+  ~~~
 
 Note that `closest` [starts with the current element](https://developer.mozilla.org/en-US/docs/Web/API/Element/closest)
 and recurses up the DOM from there.  If you wish to start at the parent, you can use this form:
@@ -1135,7 +1137,7 @@ and recurses up the DOM from there.  If you wish to start at the parent, you can
   ~~~ hyperscript
   -- add the class 'highlight' to the closest div to the current element, excluding the current element
   add .highlight to the closest parent <div/>
-  ~~~ 
+  ~~~
 
 #### <a name="positional"></a>[Finding Things By Position](#positional)
 
@@ -1145,7 +1147,7 @@ a collection of things:
   ~~~ hyperscript
   -- add the class 'highlight' to the first paragraph tag in the current element
   add .highlight to the first <p/> in me
-  ~~~ 
+  ~~~
 
 #### <a name="relative_positional"></a>[Finding Things Relative To Other Things](#relative_positional)
 
@@ -1155,7 +1157,7 @@ You can use the [relative positional expressions](/expressions/relative-position
   ~~~ hyperscript
   -- add the class 'highlight' to the next paragraph found in a forward scan of the DOM
   add .highlight to the next <p/>
-  ~~~ 
+  ~~~
 
 ### <a name="updating_things"></a>[Updating The DOM](#updating_things)
 
@@ -1334,7 +1336,7 @@ You can transition a style from one state to another using the [`transition` com
 allows you to animate transitions between different states:
 
 {% example '"transition" command' %}
-<button _="on click transition my *font-size to 20px 
+<button _="on click transition my *font-size to 20px
                then wait 500ms
                then transition my *font-size to initial">
   Transition My Font Size
@@ -1394,5 +1396,73 @@ Click Me To Get My Computed Width
 Click Me To Get My Computed Width
 </button>
 <p></p>
+
+## <a name="remote-content"></a>[Remote Content](#remote-content)
+
+Hyperscript is primarily designed for front end scripting, local things like toggling a class on a div and so on,
+and is designed to pair well with [htmx](https://htmx.org), which uses a hypermedia approach for interacting with
+servers.
+
+Broadly, we recommend that approach: you stay firmly within the original REST-ful model of the web, keeping things
+simple and consistent, and you can use hyperscript for small bits of front end functionality.  htmx and hyperscript
+integrate seamlessly, so any hyperscript you return to htmx will be automatically initialized without any additionl
+work on your part.
+
+### <a name="fetch"></a>[Fetch](#fetch)
+
+However, there are times when calling out to a remote server is useful from a scripting context, and hyperscript
+supports the [`fetch` command](/commands/fetch) for doing so:
+
+```html
+<button _="on click fetch /clickedMessage then put the result into the next <output/>">
+  Fetch It
+</button>
+<output></output>
+```
+<button _="on click fetch /clickedMessage then put the result into the next <output/>">
+  Fetch It
+</button>
+<output></output>
+
+The fetch command uses the [fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) and allows you
+configure the fetch as you want, including passing along headers, a body, and so forth.
+
+Additionally, you may notice that the `fetch` command, in contrast with the `fetch()` function, does not require
+that you deal with a Promise.   Rather the hyperscript runtime deals with the promise for you, so you can simply
+use the `result` of the fetch as if the fetch command was blocking.
+
+This is thanks to the [async transparency](#async-transparency) of hyperscript, discussed below.
+
+### <a name="go"></a>[Going Places](#go)
+
+While using ajax is exciting, sometimes you simply wish to navigate the browser to a new location.  To support this
+hyperscript has a [`go` command](/commands/go) that allows you to navigate locally or to new URLs, depending on how it
+is used:
+
+```html
+<button _="on click
+              go to the top of the body smoothly
+              wait 2s
+              go to the bottom of me smoothly">
+              Take A Trip
+</button>
+```
+<button _="on click
+              go to the top of the body smoothly
+              wait 2s
+              go to the bottom of me smoothly">
+              Take A Trip
+</button>
+
+You can also use it to navigate to another web page entirely:
+
+```html
+<button _="on click go to url https://htmx.org">
+              Go Check Out htmx
+</button>
+```
+<button _="on click go to url https://htmx.org">
+              Go Check Out htmx
+</button>
 
 </div>
