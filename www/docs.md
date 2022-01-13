@@ -522,7 +522,7 @@ You can use the `first`, `last` and `random` keywords, discussed [below](#positi
 ##### <a name="closures"></a> [Closures](#closures)
 
 Hyperscript does not encourage the use of closures or callbacks nearly as much  Javascript.  Rather, it uses
-[async transparency](#async-transparency) to handle many of the situations where Javascript would use them.
+[async transparency](#async) to handle many of the situations where Javascript would use them.
 
 However, there is one area where closures provide a lot of value in hyperscript: data structure manipulation.  The
 hyperscript syntax for closures is inspired by haskell, starting with a `\` character, then the arguments, then an arrow
@@ -1452,7 +1452,7 @@ Additionally, you may notice that the `fetch` command, in contrast with the `fet
 that you deal with a Promise.   Rather the hyperscript runtime deals with the promise for you, so you can simply
 use the `result` of the fetch as if the fetch command was blocking.
 
-This is thanks to the [async transparency](#async-transparency) of hyperscript, discussed below.
+This is thanks to the [async transparency](#async) of hyperscript, discussed below.
 
 ### <a name="go"></a>[Going Places](#go)
 
@@ -1486,7 +1486,7 @@ You can also use it to navigate to another web page entirely:
               Go Check Out htmx
 </button>
 
-## <a name="async-transparency"></a>[Async Transparency](#async-transparency)
+## <a name="async"></a>[Async Transparency](#async)
 
 One of the most distinctive features of hyperscript is that it is "async transparent".  What that means is that,
 for the most part, you, the script writer, do not need to worry about asynchronous behavior.  In the [`fetch`](#fetch)

@@ -1,7 +1,7 @@
 
 <header id="intro-to-hyperscript">
 
-# hyperscript is an easy and approachable language designed for modern front-end web development
+# hyperscript is an easy & approachable language designed for modern front-end web development
 
 <div id="sample">
 
@@ -30,8 +30,10 @@ copy
 </header>
 
  <span class="lede">hyperscript makes writing event handlers and highly
-responsive user interfaces trivial with native language support for async
-behavior&mdash;easier than callbacks, promises, even async/await.</span>
+responsive user interfaces easy with a clear, DOM-oriented syntax and by transparently
+ handling asynchronous behavior for you &mdash; easier than callbacks, promises, even async/await.</span>
+
+## features
 
 <div id="features">
 
@@ -59,11 +61,12 @@ experiences without callback hell
 <div id="links">
 
 [Companion of **htmx**](https://htmx.org) |
-[**Comparison** with vanilla JS and jQuery](/comparison) |
+[**Comparison** with VanillaJS & jQuery](/comparison) |
 [Read the **docs**](/docs) |
 [Try it on the **playground**](/playground)
-<span id='install'>Install: `<script src="https://unpkg.com/hyperscript.org@0.9.4"></script>`
-<button style="font:inherit; background: none; border: none; color: #3465a4"
+
+<span id='install'><strong>Install:</strong> `<script src="https://unpkg.com/hyperscript.org@0.9.4"></script>`
+<button
   _="on click
   writeText(my previousElementSibling's innerText) on navigator.clipboard
   put 'copied!' into me
@@ -84,8 +87,8 @@ as we push to 1.0! Thank you!</p>
 </small>
 
  <small><em>NB: because hyperscript relies on
-[promises](https://caniuse.com/?search=Promise), unlike htmx it cannot offer IE11
-compatibility.</em></small>
+[promises](https://caniuse.com/?search=Promise) it cannot offer IE11
+compatibility</em></small>
 
 <style>
 #intro-to-hyperscript {
@@ -170,9 +173,10 @@ button.big-text {
 </style>
 
 {% example %}
-<button _="
-  on click
-    log me then call alert('yep, it\'s an alert - check the console...')">
+<button _="on click
+             call alert('OK, Going to put the current date into the output!')
+             make a Date then put it into the next <output/>">
   Show An Alert
 </button>
+<output>--</output>
 {% endexample %}

@@ -96,10 +96,6 @@ a {
     padding-left: 12px;
 }
 
-#links a {
-    padding: 0px 8px;
-}
-
 #links #install {
     display: inline-block;
     padding: 8px;
@@ -354,6 +350,10 @@ h1,h2,h3,h4{
     border: 2px dotted rgb(15, 77, 128);
     border-radius: 8px;
     margin-right: .3em;
+}
+
+.example hr {
+    margin-bottom: 4px;
 }
 
 @media(min-width:45em) {
