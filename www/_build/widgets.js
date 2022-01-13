@@ -6,7 +6,7 @@ module.exports = function (config) {
         else rv += `<figcaption>Example</figcaption>\n\n`
         rv += "```html"
         rv += content
-        rv += "```\n\n---\n\n"
+        rv += "```\n\n"
         rv += content
         rv += "</figure>"
         return rv

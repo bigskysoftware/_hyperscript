@@ -3,10 +3,10 @@
  * Inspired by Github syntax coloring
  */
 
-code[class*="language-"],
-pre[class*="language-"] {
+code,
+pre {
     color: #393A34;
-    font-family: "Consolas", "Bitstream Vera Sans Mono", "Courier New", Courier, monospace;
+    font-family: "Source Code Pro", "Ubuntu Mono", "Consolas", "Bitstream Vera Sans Mono", "Courier New", Courier, monospace, monospace;
     direction: ltr;
     text-align: left;
     white-space: pre;
@@ -25,36 +25,37 @@ pre[class*="language-"] {
     hyphens: none;
 }
 
-pre > code[class*="language-"] {
-    font-size: 1em;
-}
-
-pre[class*="language-"]::-moz-selection, pre[class*="language-"] ::-moz-selection,
-code[class*="language-"]::-moz-selection, code[class*="language-"] ::-moz-selection {
+pre::-moz-selection, pre ::-moz-selection,
+code::-moz-selection, code ::-moz-selection {
     background: #b3d4fc;
 }
 
-pre[class*="language-"]::selection, pre[class*="language-"] ::selection,
-code[class*="language-"]::selection, code[class*="language-"] ::selection {
+pre::selection, pre ::selection,
+code::selection, code ::selection {
     background: #b3d4fc;
 }
 
 /* Code blocks */
-pre[class*="language-"] {
-    padding: 1em;
+pre {
+    padding: .5em .9em;
     margin: .5em 0;
+    border-radius: .5em;
+    clip-path: inset(0% round .5em);
     overflow: auto;
-    border: 1px solid #dddddd;
-    background-color: white;
+    scrollbar-width: thin;
+    scrollbar-color: #3d81da transparent;
+    background: white;
+    border: 1px solid #0002;
 }
 
-/* Inline code */
-:not(pre) > code[class*="language-"] {
-    padding: .2em;
-    padding-top: 1px;
-    padding-bottom: 1px;
-    background: #f8f8f8;
-    border: 1px solid #dddddd;
+pre code {
+    font-size: 1em;
+}
+
+:not(pre) > code {
+    padding: 0 .5ch;
+    box-sizing: content-box;
+    border: 1px solid #0002;
 }
 
 .token.comment,
@@ -96,7 +97,7 @@ pre[class*="language-"] {
 .token.keyword,
 .token.attr-name,
 .language-autohotkey .token.selector {
-    color: #00a4db;
+    color: #3d81da;
 }
 
 .token.function,
@@ -108,7 +109,7 @@ pre[class*="language-"] {
 .token.tag,
 .token.selector,
 .language-autohotkey .token.keyword {
-    color: #00009f;
+    color: #8b26ff;
 }
 
 .token.important,

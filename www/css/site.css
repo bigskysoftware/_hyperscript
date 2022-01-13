@@ -55,18 +55,9 @@ table {
     font-weight: bold;
 }
 
-code {
-    font-weight: bold;
-    font-family: monospace, monospace;
-}
-
 p {
     margin-top: 16px;
     margin-bottom: 16px;
-}
-
-pre[class*="language-"] {
-    font-size: 16px;
 }
 
 blockquote {
@@ -316,11 +307,11 @@ h1,h2,h3,h4{
 }
 
 .example {
-    background-color: rgb(197, 218, 255);
+    background-color: rgb(232, 240, 255);
     border-radius: 1em;
-    border: 1px solid rgb(29, 153, 255);
+    border: 1px solid #0002;
     padding: .5em;
-    margin-block: .5em;
+    margin: .5em 0;
 }
 
 .example > figcaption {
@@ -328,10 +319,6 @@ h1,h2,h3,h4{
     font-size: .8em;
     text-transform: uppercase;
     letter-spacing: .12em;
-}
-
-.example hr {
-    margin-block: .5em;
 }
 
 .example p {
@@ -347,7 +334,16 @@ h1,h2,h3,h4{
     color: white;
     border: none;
     border-radius: .5em;
-    margin-inline-end: .3em;
+    margin-right: .3em;
+    transition: filter .1s ease-in-out;
+}
+
+.example button:hover {
+    filter: brightness(1.3);
+}
+
+.example button:active {
+    filter: brightness(1.8);
 }
 
 .example output {
@@ -357,7 +353,7 @@ h1,h2,h3,h4{
     padding: calc(.5em - 2px);
     border: 2px dotted rgb(15, 77, 128);
     border-radius: 8px;
-    margin-inline-end: .3em;
+    margin-right: .3em;
 }
 
 @media(min-width:45em) {
