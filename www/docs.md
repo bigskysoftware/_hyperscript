@@ -1168,6 +1168,10 @@ Some are inspired by CSS, while others are our own creation.
 
 Here is a table of the DOM literals:
 
+{% syntax "<``css selector`` />" %}
+
+{% syntax "add ``class|attribute``* to ``element``" %}
+
 | name                 | example          | description                                                        |
 | -------------------- | ---------------- | ------------------------------------------------------------------ |
 | Class Literals       | `.selected`      | A class literal starts with a `.` and will return all elements with that class
