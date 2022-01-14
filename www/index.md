@@ -35,7 +35,7 @@ responsive user interfaces easy with a clear, DOM-oriented syntax and by transpa
 
 ## features
 
-<div id="features">
+<div id="features-list">
 
 **Events as first class citizens in the language**&mdash;clean syntax for
 [receiving](/features/on) and [sending](/commands/send) events, as well as
@@ -118,12 +118,12 @@ compatibility</em></small>
 	font-size: clamp(1.1em, 2vw, 1.2em);
 }
 
-#features {
+#features-list {
   column-width: 40ch;
   column-gap: 2em;
 }
 
-#features > * {
+#features-list > * {
   margin: 0 0 1.4em 0;
 }
 
