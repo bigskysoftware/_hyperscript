@@ -32,14 +32,14 @@
       * [removing content](#removing)
     * [showing & hiding](#show-hide)
     * [transitions](#transitions)
-  * [measuring things]()
+  * [measuring things](#measuring)
 * [remote content](#remote-content)
   * [fetch](#fetch)
   * [going places](#go)
 * [async transparency](#async)
     * [waiting](#wait)
     * [toggling](#toggling)
-    * [event driven control flow](#event-control-flow)
+    * [loops](#loops)
     * [the async keyword](#async-keyword)
 * [advanced features](#advanced-features)
   * [behaviors](#behaviors)
@@ -150,7 +150,7 @@ To use a feature like workers you can either:
 * use the "Whole 9 Yards" version of hyperscript, which includes everything by default and can be
   found at `/dist/hyperscript_w9y.js`
 
-## <a name='basics'></a>[Language Basics](#basics)
+## <a name='lang'></a>[Language Basics](#lang)
 
 A hyperscript script consists of a series of ["features"](/reference#features), the most common of which is an
 event handler, as we saw in the first example.  The body of a feature then consists of a series of
