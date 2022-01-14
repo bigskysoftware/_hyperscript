@@ -62,7 +62,10 @@ pre code {
 .token.prolog,
 .token.doctype,
 .token.cdata {
-    color: #999988;
+
+    color: #444433;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Fira Sans", "Noto Sans", "Droid Sans", "Helvetica Neue", sans-serif;
     font-style: italic;
 }
 
