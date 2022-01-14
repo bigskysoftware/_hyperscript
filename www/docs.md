@@ -5,52 +5,7 @@
 
 <div id="contents" style="overflow-y: auto; max-height: 90vh">
 
-* [introduction](#introduction)
-* [install & quick start](#install)
-* [language basics](#lang)
-  * [variables](#variables)
-    * [scoping](#scoping)
-    * [special names](#special-names)
-  * [objects](#objects)
-    * [properties](#properties)
-  * [control flow](#control-flow)
-    * [loops](#loops)
-  * [math](#math)
-  * [strings](#strings)
-  * [events](#events)
-    * [sending events](#sending-events)
-  * [init blocks](#init)
-  * [functions](#functions)
-    * [exceptions](#exceptions)
-* [DOM manipulation](#working-with-the-dom)
-  * [finding things](#finding-things)
-    * [using DOM literals](#dom-literals)
-    * [finding things in other things](#in)
-  * [updating things](#updating_things)
-    * [putting new content into the DOM](#set-and-put)
-    * [adding, removing & toggling](#add-remove-toggle)
-      * [removing content](#removing)
-    * [showing & hiding](#show-hide)
-    * [transitions](#transitions)
-  * [measuring things]()
-* [remote content](#remote-content)
-  * [fetch](#fetch)
-  * [going places](#go)
-* [async transparency](#async)
-    * [waiting](#wait)
-    * [toggling](#toggling)
-    * [event driven control flow](#event-control-flow)
-    * [the async keyword](#async-keyword)
-* [advanced features](#advanced-features)
-  * [behaviors](#behaviors)
-  * [workers](#workers)
-  * [sockets](#sockets)
-  * [event sources](#event-source)
-  * [inline js](#js)
-* [debugging](#debugging)
-* [extending](#extending)
-* [security](#security)
-* [history](#history)
+[[toc]]
 
 </div>
 
@@ -58,7 +13,7 @@
 
 <div class="10 col" style="padding-bottom: 250px">
 
-## <a name="introduction"></a>[Introduction](#introduction)
+## Introduction
 
 Hyperscript is a scripting language for doing front end web development.  It is designed to make it very easy to
 respond to events and do simple DOM manipulation in code that is directly embedded on elements on a web page.
@@ -113,7 +68,7 @@ Some other hypserscript resources you may want to check out are:
 
 OK, let's get started with hyperscript!
 
-## <a name="install"></a>[Install & Quick Start](#install)
+## Install & Quick Start {#install}
 
 Hyperscript is a dependency-free javascript library that can be included in a web page without any build step:
 
@@ -150,7 +105,7 @@ To use a feature like workers you can either:
 * use the "Whole 9 Yards" version of hyperscript, which includes everything by default and can be
   found at `/dist/hyperscript_w9y.js`
 
-## <a name='basics'></a>[Language Basics](#basics)
+## Language Basics {#basics}
 
 A hyperscript script consists of a series of ["features"](/reference#features), the most common of which is an
 event handler, as we saw in the first example.  The body of a feature then consists of a series of
@@ -244,7 +199,7 @@ Others are a bit more exotic and, for example, make it easy to work with the DOM
 
 We will see how features, commands and expressions all fit together and what they can do in the coming sections.
 
-### <a name="variables"></a>[Variables](#variables)
+### Variables {#variables}
 
 In hyperscript, variables are created by the [`set`](/commands/set) or [`put`](/commands/put) commands,
 with `set` being preferred.
@@ -265,7 +220,7 @@ Here is an example that creates a local variable and then logs it to the console
 
 If you click this button and open up the console, you should see `10` being logged to it.
 
-#### <a name="scoping"></a>[Scoping](#scoping)
+#### Scoping {#scoping}
 
 hyperscript has three different variable scopes: `local`, `element`, and `global`.
 
@@ -275,7 +230,7 @@ hyperscript has three different variable scopes: `local`, `element`, and `global
 
 Note that hyperscript has a flat local scope, similar to javascript's `var` statement.
 
-#### <a name="names_and_scoping"></a>[Variable Names & Scoping](#names_and_scoping)
+#### Variable Names & Scoping {#names_and_scoping}
 
 In order to make non-locally scoped variables easy to create and recognize in code, hyperscript
 supports the following naming conventions:
@@ -302,7 +257,7 @@ Here is an example of a click handler that uses an element scoped variable to ma
 
 This script also uses the implicit `it` symbol, which we will discuss [below](#special-names).
 
-#### <a name="scoping_modifiers"></a>[Scoping Modifiers](#scoping_modifiers)
+#### Scoping Modifiers {#scoping_modifiers}
 
 You may also use scope modifiers to give symbols particular scopes:
 
@@ -394,7 +349,7 @@ This is exactly equivalent to the previous example, but reads better.  Hyperscri
 
 In this case, we'd probably stick with `it` :)
 
-##### <a name='zoo'></a>[The Hyperscript Zoo](#zoo)
+##### The Hyperscript Zoo {#zoo}
 
 In addition to `result` and `it`, hyperscript has a number of other symbols that are automatically available, depending
 on the context, that make your scripting life more convenient.
@@ -623,7 +578,7 @@ Comparisons can be combined via the `and`, `or` and `not` expressions in the usu
     add .highlight to the closest <form/>
   ~~~
 
-#### <a name="loops"></a>[Loops](#loops)
+#### Loops {#loops}
 
 The [repeat command](/commands/repeat) is the looping mechanism in hyperscript.
 
@@ -681,7 +636,7 @@ Loops support both the [`break`](/commands/break) and [`continue`](/commands/con
 
 You can also use events to signal when a loop ends, see [the async section on loops](#async_loops)
 
-#### <a name="aggregate_operations"></a>[Aggregate Operations](#aggregate_operations)
+#### Aggregate Operations {#aggregate_operations}
 
 Note that loops are often not required in hyperscript.  Many commands will automatically deal with arrays and
 collections for you.
@@ -697,7 +652,7 @@ The [`add`](/commands/add) command will take care of looping over all elements w
 
 No need to loop explicitly over the results.
 
-### <a name="math"></a>[Math Operations](#math)
+### Math Operations {#math}
 
 Hyperscript supports most of the regular math operators:
 
@@ -742,7 +697,7 @@ conversions and, therefore, can be used with numbers stored in attributes on the
        add @disabled -- disable after the 5th click
   ~~~
 
-### <a name="strings"></a>[Strings](#strings)
+### Strings {#strings}
 
 Hyperscript supports strings that use either a single quotes or double quotes:
 
@@ -796,7 +751,7 @@ call first on the line, to improve readability in some cases:
 
 These are called "pseudo-commands" because this syntax makes function calls look like a normal command in hyperscript.
 
-### <a name="events"></a>[Events & Event Handlers](#event)
+### Events & Event Handlers {#event}
 
 [Events](https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Building_blocks/Events) are at the core of hyperscript,
 and [event handlers](/features/on) are the primary entry point into most hyperscript code.
@@ -833,14 +788,14 @@ Event handlers have a *very* extensive syntax that allows you to, for example:
 You can read all the gory details on the [event handler](/features/on) page, but chances are, if you want some special
 handling of an event, hyperscript has a nice, clear syntax for doing so.
 
-#### <a name="event_queueing"></a>[Event Queueing](#event_queueing)
+#### Event Queueing {#event_queueing}
 
 By default, the event handler will be run synchronously, so if the event is triggered again before the event handler
 finished, the new event will be queued and handled only when the current event handler finishes.
 
 You can modify this behavior in a few different ways:
 
-##### <a name="on_every"></a>[The Every Modifier](#on_every)
+##### The Every Modifier {#on_every}
 
 An event handler with the `every` modifier will execute the event handler for every event that is received,
  even if the preceding handler execution has not finished.
@@ -853,7 +808,7 @@ An event handler with the `every` modifier will execute the event handler for ev
 
 This is useful in cases where you want to make sure you get the handler logic for every event going immediately.
 
-##### <a name="queue"></a>[The Queue Modifier](#on_every)
+##### The Queue Modifier {#on_queue}
 
 The `every` keyword is a prefix to the event name, but for other queuing options, you use postfix the event name
 with the `queue` keyword.
@@ -879,7 +834,7 @@ You may pick from one of four strategies:
 If you click quickly on the button above you will see that the count slowly increases as each event waits 1 second and
 then completes, and the next event that has queued up executes.
 
-#### <a name="event_destructuring"></a>[Event Destructuring](#event_destructuring)
+#### Event Destructuring {#event_destructuring}
 
 You can [destructure](https://hacks.mozilla.org/2015/05/es6-in-depth-destructuring/) properties found either on the
  `event` or in the `event.detail` properties by appending a parenthesized list of names after the event name.
@@ -896,7 +851,7 @@ This will create a local variable of the same name as the referenced property:
 Here the `event.button` property is being destructured into a local variable, which we then put into the next
 `output` element
 
-#### <a name="event_filters"></a>[Event Filters](#event_filters)
+#### Event Filters {#event_filters}
 
 You can filter events by adding a bracketed expression after the event name and destructured properties (if any).
 
@@ -912,7 +867,7 @@ This lets you, for example, test for a middle click on the click event, by refer
   </button>
 {% endexample %}
 
-#### <a name="halting_events"></a>[Halting Events](#halting_events)
+#### Halting Events {#halting_events}
 
 An event handler can exit with the [`halt`](/commands/halt) command.  By default this command will halt the current event
 bubbling, call `preventDefault()` and exit the current event handlers.  However, there are forms available to stop only
@@ -929,7 +884,7 @@ the event from bubbling, but continue on in the event handler:
 
 You may also use the [`exit`](/commands/exit) command to exit a function, discussed below.
 
-#### <a name="sending-events"></a>[Sending Events](#sending-events)
+#### Sending Events {#sending-events}
 
 hyperscript not only makes it easy to respond to events, but also makes it very easy to send events to other elements
 using the [`send`](/commands/send) and [`trigger`](/commands/trigger) commands.  Both commands do the same thing:
@@ -963,7 +918,7 @@ event-driven code without a lot of fuss.
 
 hyperscript includes a few synthetic events that make it easier to use more complex APIs in javascript.
 
-##### <a name="mutation"></a>[Mutation Events](#mutation)
+##### Mutation Events {#mutation}
 
 You can listen for mutations on an element with the `on mutation` form. This will use the [Mutation Observer](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver)
 API, but will act more like a regular event handler.
@@ -986,7 +941,7 @@ below:
 <output>--</output>
 {% endexample %}
 
-##### <a name="intersection"></a>[Intersection Events](#intersection)
+##### Intersection Events {#intersection}
 
 Another synthetic event is the `intersection` event that uses the [Intersection Observer](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API)
 API. Again, hyperscript makes this API feel more event-driven:
@@ -1009,7 +964,7 @@ Here is a demo:
          else transition opacity to 0 "
      src="https://placebear.com/200/300"/>
 
-### <a name="init"></a>[Init Blocks](#init)
+### Init Blocks {#init}
 
 If you have logic that you wish to run when an element is initialized, you can use the `init` block to do so:
 
@@ -1021,7 +976,7 @@ If you have logic that you wish to run when an element is initialized, you can u
 
 The `init` keyword should be followed by a set of commands to execute when the element is loaded.
 
-### <a name="functions"></a>[Functions](#functions)
+### Functions {#functions}
 
 Functions in hyperscript are defined by using the [`def` keyword](/features/def).
 
@@ -1073,7 +1028,7 @@ Hyperscript functions can take parameters and return values in the expected way:
 You may exit a function using [`return`](/commands/return) if you wish to return a value or
  [`exit`](/commands/exit) if you do not want to return a value.
 
-#### <a name="function_namespacing"></a>[Namespacing](#function_namespacing)
+#### Namespacing {#function_namespacing}
 
 You can namespace a function by prefixing it with dot separated identifiers. This allows you to place
 functions into a specific namespace, rather than polluting the global namespace:
@@ -1089,7 +1044,7 @@ functions into a specific namespace, rather than polluting the global namespace:
   </script>
   ~~~
 
-### <a name="exceptions"></a>[Exception Handling](#exceptions)
+### Exception Handling {#exceptions}
 
 Both functions and event handlers may have a `catch` block associated with them:
 
@@ -1120,7 +1075,7 @@ message of the exception:
 
 Note that exception handling in hyperscript respects the [async-transparent](#async) behavior of the language.
 
-#### <a name="finally"></a>[Finally Blocks](#finally)
+#### Finally Blocks {#finally}
 
 Both functions and event handlers also support a `finally` block to ensure that some cleanup code is executed:
 
@@ -1135,7 +1090,7 @@ Both functions and event handlers also support a `finally` block to ensure that 
 
 In this code we ensure that the `disabled` property is removed from the current element.
 
-#### <a name="throw"></a>[Throwing Exceptions](#throw)
+#### Throwing Exceptions {#throw}
 
 You may throw an exception using the familiar `throw` keyword:
 
@@ -1145,7 +1100,7 @@ You may throw an exception using the familiar `throw` keyword:
       throw "I am not selected!"
     ...
   ~~~
-## <a name="working-with-the-dom"></a>[Working With The DOM](#working-with-the-dom)
+## Working With The DOM {#working-with-the-dom}
 
 The primary use case for hyperscript is adding small bits of interactivity to the DOM and, as such, it has a lot of syntax
 for making this easy and natural.
@@ -1153,12 +1108,12 @@ for making this easy and natural.
 We have glossed over a lot of this syntax in previous examples (we hope it was intuitive enough!) but now we will get
 into the details of what they all do:
 
-### <a name="finding-things"></a>[Finding Elements](#finding-things)
+### Finding Elements {#finding-things}
 
 There are two sides to DOM manipulation: finding stuff and mutating it.  In this section we will focus on how to
 find things in the DOM.
 
-#### <a name="dom-literals"></a>[DOM Literals](#dom-literals)
+#### DOM Literals {#dom-literals}
 
 You are probably used to things like number literals (e.g. `1`) or string literals (e.g. `"hello world"`).
 
@@ -1232,7 +1187,7 @@ with the corresponding hyperscript:
 You can see how the support for CSS literals directly in hyperscript makes for a much cleaner script, allowing us
 to focus on the logic at hand.
 
-#### <a name="in"></a>[Finding Things In Other Things](#in)
+#### Finding Things In Other Things {#in}
 
 Often you want to find things *within* a particular element.  To do this you can use the `in` expression:
 
@@ -1241,7 +1196,7 @@ Often you want to find things *within* a particular element.  To do this you can
   add .highlight to <p/> in me
   ~~~
 
-#### <a name="closest"></a>[Finding The Closest Matching (Parent) Element](#closest)
+#### Finding The Closest Matching (Parent) Element {#closest}
 
 Sometimes you wish to find the closest element in a parent hierarchy that matches some selector.  In JavaScript
 you might use the [`closest()` function](https://developer.mozilla.org/en-US/docs/Web/API/Element/closest)
@@ -1261,7 +1216,7 @@ and recurses up the DOM from there.  If you wish to start at the parent instead,
   add .highlight to the closest parent <div/>
   ~~~
 
-#### <a name="positional"></a>[Finding Things By Position](#positional)
+#### Finding Things By Position {#positional}
 
 You can use the [positional expressions](/expressions/positional) to get the first, last or a random element from
 a collection of things:
@@ -1271,7 +1226,7 @@ a collection of things:
   add .highlight to the first <p/> in me
   ~~~
 
-#### <a name="relative_positional"></a>[Finding Things Relative To Other Things](#relative_positional)
+#### Finding Things Relative To Other Things {#relative_positional}
 
 You can use the [relative positional expressions](/expressions/relative-positional) `next` and `previous` to get an element
  relative to either the current element, or to another element:
@@ -1283,13 +1238,13 @@ You can use the [relative positional expressions](/expressions/relative-position
 
 Note that `next` and `previous` support wrapping, if you want that.
 
-### <a name="updating_things"></a>[Updating The DOM](#updating_things)
+### Updating The DOM {#updating_things}
 
 Using the expressions above, you should be able to find the elements you want to update easily.
 
 Now, on to updating them!
 
-#### <a name="set-and-put"></a>[Set & Put](#set-and-put)
+#### Set & Put {#set-and-put}
 
 The most basic way to update contents in the DOM is using the [`set`](/commands/set) and [`put`](/commands/put) commands.
 Recall that these commands can also be used to set local variables.
@@ -1338,7 +1293,7 @@ The `put` command can be used in the following ways:
 
 This flexibility is why we generally recommend the `put` command when updating content in the DOM.
 
-##### <a name="setting-attributes"></a>[Setting Attributes](#setting-attributes)
+##### Setting Attributes {#setting-attributes}
 
 One exception to this rule is when setting attributes, which we typically recommend using `set`.
 
@@ -1352,7 +1307,7 @@ It just reads better to us:
 
 `set` is recommended for setting values into normal variables as well.
 
-#### <a name="add-remove-toggle"></a>[Add, Remove & Toggle](#add-remove-toggle)
+#### Add, Remove & Toggle {#add-remove-toggle}
 
 A very common operation in front end scripting is adding or removing classes or attributes from DOM elements. hyperscript
 supports the [`add`](/commands/add), [`remove`](/commands/remove) and [`toggle`](/commands/toggle) commands do help do this.
@@ -1399,7 +1354,7 @@ Finally, you can toggle the visibility of elements by toggling a style literal:
 </p>
 {% endexample %}
 
-##### <a name="removing"></a>[Removing Content](#removing)
+##### Removing Content {#removing}
 
 You can also use the [`remove` command](/commands/remove) to remove content from the DOM:
 
@@ -1411,7 +1366,7 @@ You can also use the [`remove` command](/commands/remove) to remove content from
 
 The remove command is smart enough to figure out what you want to happen based on what you tell it to remove.
 
-#### <a name="show-hide"></a>[Showing & Hiding Things](#show-hide)
+#### Showing & Hiding Things {#show-hide}
 
 You can show and hide things with the [`show`](/commands/show) and [`hide`](/commands/hide) commands:
 
@@ -1462,7 +1417,7 @@ We mentioned this above, but as a reminder, you can toggle visibility using the 
 </p>
 {% endexample %}
 
-#### <a name="transitions"></a>[Transitions](#transitions)
+#### Transitions {#transitions}
 
 You can transition a style from one state to another using the [`transition` command](/commands/transition).  This
 allows you to animate transitions between different states:
@@ -1478,7 +1433,7 @@ allows you to animate transitions between different states:
 The above example makes use of the special `initial` symbol, which you can use to refer to the initial value of an
 elements style when the first transition begins.
 
-##### <a name="settling"></a>[Class-Based Transitions](#settling)
+##### Class-Based Transitions {#settling}
 
 The `transition` command is blocking: it will wait until the transition completes before the next command executes.
 
@@ -1501,7 +1456,7 @@ added and then removed immediately
 
 This would not allow the 800ms transition to `.red` to complete.
 
-### <a name="measuring"></a>[Measuring Things](#measuring)
+### Measuring Things {#measuring}
 
 Sometimes you want to know the dimensions of an element in the DOM in order to perform some sort of translation or
 transition.  Hyperscript has a [`measure` command](/commands/measure) that will give you measurement information
@@ -1526,7 +1481,7 @@ Click Me To Get My Computed Width
 <output>--</output>
 {% endexample %}
 
-## <a name="remote-content"></a>[Remote Content](#remote-content)
+## Remote Content {#remote-content}
 
 Hyperscript is primarily designed for front end scripting, local things like toggling a class on a div and so on,
 and is designed to pair well with [htmx](https://htmx.org), which uses a hypermedia approach for interacting with
@@ -1537,7 +1492,7 @@ simple and consistent, and you can use hyperscript for small bits of front end f
 integrate seamlessly, so any hyperscript you return to htmx will be automatically initialized without any additionl
 work on your part.
 
-### <a name="fetch"></a>[Fetch](#fetch)
+### Fetch {#fetch}
 
 However, there are times when calling out to a remote server is useful from a scripting context, and hyperscript
 supports the [`fetch` command](/commands/fetch) for doing so:
@@ -1559,7 +1514,7 @@ use the `result` of the fetch as if the fetch command was blocking.
 
 This is thanks to the [async transparency](#async) of hyperscript, discussed below.
 
-### <a name="go"></a>[Going Places](#go)
+### Going Places {#go}
 
 While using ajax is exciting, sometimes you simply wish to navigate the browser to a new location.  To support this
 hyperscript has a [`go` command](/commands/go) that allows you to navigate locally or to new URLs, depending on how it
@@ -1582,7 +1537,7 @@ You can also use it to navigate to another web page entirely:
 </button>
 {% endexample %}
 
-## <a name="async"></a>[Async Transparency](#async)
+## Async Transparency {#async}
 
 One of the most distinctive features of hyperscript is that it is "async transparent".  What that means is that,
 for the most part, you, the script writer, do not need to worry about asynchronous behavior.  In the [`fetch`](#fetch)
@@ -1598,7 +1553,7 @@ This dramatically simplifies many coding patterns and effectively
 Furthermore, this infrastructure allows hyperscript to work extremely effectively with events, allowing for
 *event driven* control flow, explained below.
 
-### <a name="wait"></a>[Waiting](#wait)
+### Waiting {#wait}
 
 In javascript, if you want to wait some amount of time, you can use the venerable `setTimeout()` function:
 
@@ -1676,7 +1631,7 @@ so `the result's type` will be `"continue"`.
 If, on the other hand, you don't click the Continue button within 3 seconds, the `wait` command resume based
 on the timeout, setting the `result` to `null`, so `the result's type` will be null.
 
-### <a name="toggling"></a>[Toggling](#toggling)
+### Toggling {#toggling}
 
 Previously we looked at the `toggle` command.  It turns out that it, to, can work with events:
 
@@ -1689,7 +1644,7 @@ Previously we looked at the `toggle` command.  It turns out that it, to, can wor
 You can, of course, toggle the class on other elements, or toggle an attribute, or use different events: the
 possibilities are endless.
 
-### <a name="async_loops"></a>[Loops](#async_loops)
+### Loops {#async_loops}
 
 You can add async behavior to a loop by adding a `wait` command in the body, but loops can also have a *loop
 condition* based on receiving an event.
@@ -1723,7 +1678,7 @@ However, note that the CSS transition is allowed to finish smoothly, rather than
 because the event listener that terminates the loop is only consulted once a complete loop is made, adding
 and removing the class and settling cleanly.
 
-### <a name="async-keyword"></a>[The `async` keyword](#async-keyword)
+### The `async` keyword {#async-keyword}
 
 Sometimes you do want something to occur asynchronously.    Hyperscript provides an `async` keyword that will
 tell the runtime _not_ to synchronize on a value.
@@ -1739,12 +1694,12 @@ So, if you wanted to invoke a method that returns a promise, say `returnsAPromis
 Hyperscript will immediately put the value "I called it..." into the next output element, even if the result
 from `returnsAPromise()` has not yet resolved.
 
-## <a name="advanced-features"></a>[Advanced Features](#advanced-features)
+## Advanced Features {#advanced-features}
 
 We have covered the basics (and not-so-basics) of hyperscript.  Now we come to the more advanced
 features of the language.
 
-### <a name="behaviors"></a>[Behaviors](#behaviors)
+### Behaviors {#behaviors}
 
 Behaviors allow you to bundle together some hyperscript code (that would normally go in the \_ attribute of an element) so that it can be "installed" on any other. They are defined with [the `behavior` keyword](/features/behavior):
 
@@ -1775,7 +1730,7 @@ They can be installed as shown:
 
 For a better example of a behavior, check out [Draggable.\_hs](https://gist.github.com/dz4k/6505fb82ae7fdb0a03e6f3e360931aa9).
 
-### <a name="workers"></a>[Web Workers](#workers)
+### Web Workers {#workers}
 
 [WebWorkers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers) can be defined
 inline in hyperscript by using the [`worker` keyword](/features/worker).
@@ -1801,7 +1756,7 @@ This makes it very easy to define and work with web workers.
 Note that you can use the inline js feature discussed next if you want to use javascript in your worker. You might
 want to do this if you need better performance on calculations than hyperscript provides, for example.
 
-### <a name="sockets"></a>[Web Sockets](#sockets)
+### Web Sockets {#sockets}
 
 [Web Sockets](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API) allow for two-way communication with
 a web server, and are becoming increasingly popular for building web applications. Hyperscript provides a simple way to
@@ -1827,7 +1782,7 @@ You can send messages to the socket by using the normal [`send`](/commands/send)
 
 You can read more about the RPC mechanism on the [`socket` page](/features/socket#rpc).
 
-### <a name="event-source"></a>[Event Source](#event-source)
+### Event Source {#event-source}
 
 [Server Sent Events](https://en.wikipedia.org/wiki/Server-sent_events) are a simple way for your web server to push
 information directly to your clients that is [supported by all modern browsers](https://caniuse.com/eventsource).
@@ -1857,7 +1812,7 @@ end
 This event source will put all `message` events in to the `#div` and will log when an `open` event occurs.
 This feature also publishes events, too, so you can listen for Server Sent Events from other parts of your code.
 
-### <a name="js"></a>[Inline JS](#js)
+### Inline JS {#js}
 
 Inline javascript may be defined using the [`js` keyword](/features/js). You might do this for performance reasons,
 since the hyperscript runtime is more focused on flexibility, rather than performance.
@@ -1883,7 +1838,7 @@ implementation:
 Note that there is also a way to include [inline javascript](/commands/js)
 directly within a hyperscript body, for local optimizations.
 
-## <a name="debugging"></a>[Debugging](#debugging)
+## Debugging {#debugging}
 
 **Note: The hyperscript debugger is in alpha and, like the rest of the language, is undergoing active development**
 
@@ -1906,7 +1861,7 @@ to trigger the debugger.
 {% endexample %}
 
 
-## <a name="extending"></a>[Extending](#extending)
+## Extending {#extending}
 
 Hyperscript has a pluggable grammar that allows you to define new features, commands and certain types of expressions.
 
@@ -1952,7 +1907,7 @@ With this command defined you can now write the following hyperscript:
 
 And "A Wild Foo Was Found!" would be printed to the console.
 
-## <a name="security"></a>[Security](#security)
+## Security {#security}
 
 Hyperscript allows you to define logic directly in your DOM. This has a number of advantages, the
 largest being [Locality of Behavior](https://htmx.org/essays/locality-of-behaviour/) making your system
@@ -1984,7 +1939,7 @@ This will prevent hyperscript from executing within that area in the DOM:
 This approach allows you enjoy the benefits of [Locality of Behavior](https://htmx.org/essays/locality-of-behaviour/)
 while still providing additional safety if your HTML-escaping discipline fails.
 
-## <a name="history"></a>[Language History](#history)
+## Language History {#history}
 
 The initial motivation for hyperscript came when I ported [intercooler.js](https://intercoolerjs.org) to
 htmx.  Intercooler had a feature, [`ic-action`](https://intercoolerjs.org/attributes/ic-action.html) that
