@@ -48,6 +48,13 @@ describe("the show command", function () {
 		getComputedStyle(div).opacity.should.equal("1");
 	});
 
+	it("can show element with opacity style literal", function () {
+		var div = make("<div style=opacity:0 _='on click show me with *opacity'></div>");
+		getComputedStyle(div).opacity.should.equal("0");
+		div.click();
+		getComputedStyle(div).opacity.should.equal("1");
+	});
+
 	it("can show element, with visibility:visible", function () {
 		var div = make("<div style=visibility:hidden _='on click show me with visibility'></div>");
 		getComputedStyle(div).visibility.should.equal("hidden");

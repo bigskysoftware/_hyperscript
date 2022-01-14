@@ -335,6 +335,19 @@ h1,h2,h3,h4{
     transition: all .2s ease-in-out;
 }
 
+.example button[disabled] {
+    padding: .5em;
+    font-size: 1em;
+    font-family: inherit;
+    letter-spacing: .1em;
+    background: rgb(87, 87, 87);
+    color: white;
+    border: none;
+    border-radius: .5em;
+    margin-right: .3em;
+    transition: all .2s ease-in-out;
+}
+
 .example button:hover {
     filter: brightness(1.3);
 }

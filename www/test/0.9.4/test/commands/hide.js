@@ -71,6 +71,13 @@ describe("the hide command", function () {
 		getComputedStyle(div).opacity.should.equal("0");
 	});
 
+	it("can hide element with opacity style literal", function () {
+		var div = make("<div _='on click hide me with *opacity'></div>");
+		getComputedStyle(div).opacity.should.equal("1");
+		div.click();
+		getComputedStyle(div).opacity.should.equal("0");
+	});
+
 	it("can hide element, with visibility:hidden", function () {
 		var div = make("<div _='on click hide me with visibility'></div>");
 		getComputedStyle(div).visibility.should.equal("visible");

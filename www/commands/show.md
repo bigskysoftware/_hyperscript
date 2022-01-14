@@ -17,6 +17,8 @@ By default, the following strategies are available:
 - `visibility` - toggle visibility between `hidden` and `visible`
 - `opacity` - toggle visibility between `0` and `1`
 
+You can also use the style-literal form (e.g. `*display`).
+
 You can change the default hide/show strategy by setting `_hyperscript.config.defaultHideShowStrategy`
 
 You can add new hide/show strategies by setting the `hyperscript.config.hideShowStrategies` object.
@@ -38,7 +40,7 @@ in `target`
   I'll show inline after a few seconds!
 </div>
 
-<div _="on load wait 2s then show with opacity">
+<div _="on load wait 2s then show with *opacity">
   I'll show after a few seconds with opacity!
 </div>
 

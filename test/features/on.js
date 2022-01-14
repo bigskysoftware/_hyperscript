@@ -82,6 +82,15 @@ describe("the on feature", function () {
 		div.classList.contains("fromBar").should.equal(true);
 	});
 
+	it("can pick event properties out by name", function () {
+		var bar = make("<div id='d1' _='on click send fromBar to #d2'></div>");
+		var div = make("<div id='d2' _='on fromBar(type) call me.classList.add(type)'></div>");
+		div.classList.contains("fromBar").should.equal(false);
+		bar.click();
+		div.classList.contains("fromBar").should.equal(true);
+	});
+
+
 	it("can fire an event on load", function (done) {
 		var div = make("<div id='d1' _='on load put \"Loaded\" into my.innerHTML'></div>");
 		setTimeout(function () {

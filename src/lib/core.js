@@ -4085,8 +4085,12 @@ var _runtime = (function () {
 
 							// establish context
 							for (const arg of eventSpec.args) {
-								ctx[arg.value] =
-									ctx.event[arg.value] || ('detail' in ctx.event ? ctx.event['detail'][arg.value] : null);
+								let eventValue = ctx.event[arg.value];
+								if (eventValue !== undefined) {
+									ctx[arg.value] = eventValue;
+								} else if ('detail' in ctx.event) {
+									ctx[arg.value] = ctx.event['detail'][arg.value];
+								}
 							}
 
 							// install error handler if any

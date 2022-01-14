@@ -478,7 +478,10 @@ export default _hyperscript => {
 
 			var name = null;
 			if (tokens.matchToken("with")) {
-				name = tokens.requireTokenType("IDENTIFIER").value;
+				name = tokens.requireTokenType("IDENTIFIER", "STYLE_REF").value;
+				if (name.indexOf("*") === 0) {
+					name = name.substr(1);
+				}
 			}
 			var hideShowStrategy = resolveStrategy(parser, tokens, name);
 
@@ -502,7 +505,10 @@ export default _hyperscript => {
 
 			var name = null;
 			if (tokens.matchToken("with")) {
-				name = tokens.requireTokenType("IDENTIFIER").value;
+				name = tokens.requireTokenType("IDENTIFIER", "STYLE_REF").value;
+				if (name.indexOf("*") === 0) {
+					name = name.substr(1);
+				}
 			}
 			var arg = null;
 			if (tokens.matchOpToken(":")) {
