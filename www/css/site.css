@@ -396,6 +396,28 @@ h1,h2,h3,h4{
     color: #3465a4;
 }
 
+.syntaxes {
+    background-color: rgb(232, 240, 255);
+    border-radius: 1em;
+    border: 1px solid #0002;
+    padding: .5em;
+    margin: .5em 0;
+}
+
+.syntaxes dt {
+    margin-left: -1em;
+}
+
+.syntaxes dd {
+    margin: 1em 0;
+}
+
+.syntaxes dt code {
+    background-color: white;
+    border-color: #4d82c9;
+    font-weight: 700;
+}
+
 @media(min-width:45em) {
 
     /* Menu */
