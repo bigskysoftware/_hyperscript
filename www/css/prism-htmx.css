@@ -63,17 +63,19 @@ a code {
 	color: #3d81da;
 }
 
-.token.comment,
-.token.prolog,
-.token.doctype,
-.token.cdata {
-
-    color: #444433;
+.token.comment {
+    color: #399c35;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
     "Ubuntu", "Fira Sans", "Noto Sans", "Droid Sans", "Helvetica Neue", sans-serif;
     font-style: italic;
+    font-size: .95em;
 }
 
+.token.prolog,
+.token.doctype,
+.token.cdata {
+    color: #9aa;
+}
 .token.namespace {
     opacity: .7;
 }

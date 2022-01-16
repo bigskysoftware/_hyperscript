@@ -86,14 +86,14 @@ After you've done this, you can begin adding hyperscript to elements:
 
 You can also add hyperscript within script tags that are denoted as `text/hyperscript`:
 
-```html
+  ~~~ html
   <script type="text/hyperscript">
     on mousedown
       halt the event -- prevent text selection...
       -- do other stuff...
     end
   </script>
-```
+  ~~~
 
 Features defined in script tags will apply to the `body`.
 
@@ -458,10 +458,10 @@ On an array, only the `length` property will not perform a flat map in this mann
 Finally, all property accesses in hyperscript are null safe, so if the object that the property is being accessed on
 is null, the result of the property access will be null as well, without a need to null-check:
 
-```hyperscript
+  ~~~ hyperscript
   set example to null
   log example.prop     -- logs null, because `example` is null
-```
+  ~~~
 
 This null-safe behavior is appropriate for a scripting language intended for front-end work.
 
@@ -515,11 +515,11 @@ However, there is one area where closures provide a lot of value in hyperscript:
 hyperscript syntax for closures is inspired by [haskell](https://www.haskell.org/), starting with a `\` character,
 then the arguments, then an arrow `->`, followed by an expression:
 
-```hyperscript
+  ~~~ hyperscript
   set strs to ["a", "list", "of", "strings"]
   set lens to strs.map( \ s -> s.length )
   log lens
-```
+  ~~~
 
 ### <a name=control-flow></a> [Control Flow](#control-flow)
 
@@ -1604,12 +1604,12 @@ Furthermore, this infrastructure allows hyperscript to work extremely effectivel
 
 In javascript, if you want to wait some amount of time, you can use the venerable `setTimeout()` function:
 
-```javascript
-console.log("Start...")
-setTimeout(function(){
-  console.log("Finish...")
-}, 1000);
-```
+  ~~~ javascript
+  console.log("Start...")
+  setTimeout(function(){
+    console.log("Finish...")
+  }, 1000);
+  ~~~
 
 This code will print `"Start"` to the console and then, after a second (1000 milliseconds) it will print `"Finish"`.
 
@@ -1620,11 +1620,11 @@ starts.
 
 Contrast that with the equivalent hyperscript, which uses the [`wait` command](/commands/wait):
 
-```hyperscript
-log "Start..."
-wait 1s
-log "Finish..."
-```
+  ~~~ hyperscript
+  log "Start..."
+  wait 1s
+  log "Finish..."
+  ~~~
 
 You can see how this reads very nicely, with a linear set of operations occurring in sequence.
 
@@ -1634,19 +1634,19 @@ shielded from that complexity, and you can simply write linear, natural code.
 This flexible runtime allows for even more interesting code.  The `wait` command, for example, can wait for an *event*
 not just a timeout:
 
-{% example "Waiting On Events" %}
-<button _="on click put 'Started...' into the next <output/>
-                    wait for a continue   -- wait for a continue event...
-                    put 'Finished...' into the next <output/>
-                    wait 2s
-                    put '' into the next <output/>">
-  Start
-</button>
-<button _="on click send continue to the previous <button/>">
-  Continue
-</button>
-<output>--</output>
-{% endexample %}
+  {% example "Waiting On Events" %}
+  <button _="on click put 'Started...' into the next <output/>
+                      wait for a continue   -- wait for a continue event...
+                      put 'Finished...' into the next <output/>
+                      wait 2s
+                      put '' into the next <output/>">
+    Start
+  </button>
+  <button _="on click send continue to the previous <button/>">
+    Continue
+  </button>
+  <output>--</output>
+  {% endexample %}
 
 Now we are starting to see how powerful the async transparent runtime of hyperscript can be: with it you are able to
 integrate events directly into your control flow while still writing scripts in a natural, linear fashion.
@@ -1732,11 +1732,11 @@ tell the runtime _not_ to synchronize on a value.
 
 So, if you wanted to invoke a method that returns a promise, say `returnsAPromise()` but not wait on it to return, you write code like this:
 
-```html
-<button _="on click call async returnsAPromise() put 'I called it...' into the next <output/>">
-  Get The Answer...
-</button>
-```
+  ~~~ html
+  <button _="on click call async returnsAPromise() put 'I called it...' into the next <output/>">
+    Get The Answer...
+  </button>
+  ~~~
 
 Hyperscript will immediately put the value "I called it..." into the next output element, even if the result
 from `returnsAPromise()` has not yet resolved.
@@ -1750,30 +1750,30 @@ features of the language.
 
 Behaviors allow you to bundle together some hyperscript code (that would normally go in the \_ attribute of an element) so that it can be "installed" on any other. They are defined with [the `behavior` keyword](/features/behavior):
 
-```hyperscript
-behavior Removable
-  on click
-    remove me
+  ~~~ hyperscript
+  behavior Removable
+    on click
+      remove me
+    end
   end
-end
-```
+  ~~~
 
 They can accept arguments:
 
-```hyperscript
-behavior Removable(removeButton)
-  on click from removeButton
-    remove me
+  ~~~ hyperscript
+  behavior Removable(removeButton)
+    on click from removeButton
+      remove me
+    end
   end
-end
-```
+  ~~~
 
 They can be installed as shown:
 
-```html
-<div class="banner" _="install Removable(removeButton: #close-banner)">
-  ...
-```
+  ~~~ html
+  <div class="banner" _="install Removable(removeButton: #close-banner)">
+    ...
+  ~~~
 
 For a better example of a behavior, check out [Draggable.\_hs](https://gist.github.com/dz4k/6505fb82ae7fdb0a03e6f3e360931aa9).
 
@@ -1785,18 +1785,18 @@ inline in hyperscript by using the [`worker` keyword](/features/worker).
 The worker does not share a namespace with other code, it is in it's own isolated sandbox. However, you may interact
 with the worker via function calls, passing data back and forth in the normal manner.
 
-```html
-<script type="text/hyperscript">
-  worker Incrementer
-    def increment(i)
-      return i + 1
+  ~~~ html
+  <script type="text/hyperscript">
+    worker Incrementer
+      def increment(i)
+        return i + 1
+      end
     end
-  end
-</script>
-<button _="on click call Incrementer.increment(41) then put 'The answer is: ' + it into my.innerHTML">
-  Call a Worker...
-</button>
-```
+  </script>
+  <button _="on click call Incrementer.increment(41) then put 'The answer is: ' + it into my.innerHTML">
+    Call a Worker...
+  </button>
+  ~~~
 
 This makes it very easy to define and work with web workers.
 
@@ -1812,20 +1812,20 @@ layered on top of them, by using the [`socket` keyword](/features/sockets).
 
 Here is a simple web socket declaration in hyperscript:
 
-```hyperscript
-socket MySocket ws://myserver.com/example
-  on message as json
-    log message
-end
-```
+  ~~~ hyperscript
+  socket MySocket ws://myserver.com/example
+    on message as json
+      log message
+  end
+  ~~~
 
 This socket will log all messages that it receives as a parsed JSON object.
 
 You can send messages to the socket by using the normal [`send`](/commands/send) command:
 
-```hyperscript
-    send myMessage(foo: "bar", doh: 42) to MySocket
-```
+  ~~~ hyperscript
+  send myMessage(foo: "bar", doh: 42) to MySocket
+  ~~~
 
 You can read more about the RPC mechanism on the [`socket` page](/features/socket#rpc).
 
@@ -1842,19 +1842,19 @@ the connected URL at any time without having to reconnect event listeners.
 
 Here is an example event source in hyperscript:
 
-```hyperscript
-eventsource ChatUpdates from http://myserver.com/chat-updates
+  ~~~ hyperscript
+  eventsource ChatUpdates from http://myserver.com/chat-updates
 
     on message as string
-        put it into #div
+      put it into #div
     end
 
     on open
-        log "connection opened."
+      log "connection opened."
     end
 
-end
-```
+  end
+  ~~~
 
 This event source will put all `message` events in to the `#div` and will log when an `open` event occurs.
 This feature also publishes events, too, so you can listen for Server Sent Events from other parts of your code.
@@ -1867,20 +1867,20 @@ since the hyperscript runtime is more focused on flexibility, rather than perfor
 This feature is useful in [workers](#workers), when you want to pass javascript across to the worker's
 implementation:
 
-```html
-<script type="text/hyperscript">
-  worker CoinMiner
-    js
-      function mineNext() {
-        // a javascript implementation...
-      }
+  ~~~ html
+  <script type="text/hyperscript">
+    worker CoinMiner
+      js
+        function mineNext() {
+          // a javascript implementation...
+        }
+      end
+      def nextCoin()
+        return mineNext()
+      end
     end
-    def nextCoin()
-      return mineNext()
-    end
-  end
-</script>
-```
+  </script>
+  ~~~
 
 Note that there is also a way to include [inline javascript](/commands/js)
 directly within a hyperscript body, for local optimizations.
@@ -1915,33 +1915,35 @@ Hyperscript has a pluggable grammar that allows you to define new features, comm
 Here is an example that adds a new command, `foo`, that logs `"A Wild Foo Was Found!" if the value of its expression
 was "foo":
 
-```javascript
-    _hyperscript.addCommand('foo', function(parser, runtime, tokens) { // register for the command keyword "foo"
+  ~~~ javascript
+  // register for the command keyword "foo"
+  _hyperscript.addCommand('foo', function(parser, runtime, tokens) {
 
-        if(tokens.match('foo')){                                       // consume the keyword "foo"
+    // A foo command  must start with "foo".
+    if(!tokens.match('foo')) return
 
-            var expr = parser.requireElement('expression', tokens);    // parse an expression for the value
+    // Parse an expression.
+    const expr = parser.requireElement('expression', tokens);
 
-            var fooCmd = {
-                expr: expr,    // store the expression on the element
+    return {
+      // All expressions needed by the command to execute.
+      // These will be evaluated and the result will be passed back to us.
+      args: [expr],
 
-                args: [expr],  // return all necessary expressions for
-                               // the command to execute for evaluation by
-                               // the runtime
-
-                op: function (context, value) {                 // implement the logic of the command
-                    if(value == "foo"){                         // taking the runtime context and the value
-                        console.log("A Wild Foo Was Found!")    // of the result of evaluating the expr expression
-                    }
-
-                    return runtime.findNext(this)               // return the next command to execute
-                                                                // (you may also return a promise)
-                }
-            }
-            return fooCmd; // return the new command object
+      // Implement the logic of the command.
+      // Can be synchronous or asynchronous.
+      // @param {Context} context The runtime context, contains local variables.
+      // @param {*} value The result of evaluating expr.
+      async op(context, value) {
+        if (value == "foo") {
+          console.log("A Wild Foo Was Found!")
         }
-    })
-```
+        // Return the next command to execute.
+        return runtime.findNext(this)
+      }
+    }
+  })
+  ~~~
 
 With this command defined you can now write the following hyperscript:
 
