@@ -40,11 +40,11 @@ of hyperscript.
   ```hyperscript
     set my *opacity to 50%
   ```
-* [pseudo commands](/expressions/psuedo-commands) now support an expanded syntax, including the ability to simply
-  use a function as a top level command:
+* [pseudo commands](/commands/pseudo-commands) now support an expanded syntax, including the ability to simply
+  use a function as a top-level command:
   ```hyperscript
     on click
-       alert("I was clicked") -- a stand alone function can now simply be a top level command
+       alert("I was clicked") -- a stand alone function call can now simply be a top level command
   ```
 * the `sender` symbol is now available in event handlers, and will be set to the element that sent an event to the current
   element, if any
