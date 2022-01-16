@@ -24,6 +24,11 @@ module.exports = function (config) {
 
     config.addShortcode("syntax", syntax)
 
+    function syntaxify(line) {
+    	return line
+    		.replace(/`([^`]+)`/g, (match, p1) => syntax(p1))
+    }
+
     config.addPairedShortcode("syntaxes", content => {
     	const buf = []
     	const lines = content.split('\n');
@@ -33,7 +38,7 @@ module.exports = function (config) {
 	    		buf.push(line);
 	    	} else if (!indented(line)) {
 	    		dt = true;
-    			buf.push('\n<dt>' + syntax(line.slice(1, -1)));
+    			buf.push('\n<dt>' + syntaxify(line));
     		} else {
     			if (dt) buf.push('<dd>\n');
     			dt = false;
