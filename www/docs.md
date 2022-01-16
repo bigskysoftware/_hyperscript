@@ -401,19 +401,22 @@ on the context, that make your scripting life more convenient.
 
 Here is a table of available symbols:
 
-| name     | description                                                        |
-| -------- | ------------------------------------------------------------------ |
-| `result` | the result of the last command, if any (e.g. a `call` or `fetch`)  |
-| `it`     | alias for `result`                                                 |
-| `its`    | alias for `result`                                                 |
-| `me`     | the element that the current event handler is running on           |
-| `my`     | alias for `me`                                                     |
-| `I`      | alias for `me`                                                     |
-| `event`  | the event that triggered the event current handler, if any         |
-| `body`   | the body of the current document, if any                           |
-| `target` | the target of the current event, if any                            |
-| `detail` | the detail of the event that triggered the current handler, if any |
-| `sender` | the element that sent the current event, if any                    |
+{% syntaxes %}
+`result` `it` `its`
+	the result of the last command, if any (e.g. a `call` or `fetch`)
+`me` `my` `I`
+	the element that the current event handler is running on
+`event`
+	the event that triggered the event current handler, if any
+`body`
+	the body of the current document, if any
+`target`
+	the target of the current event, if any
+`detail`
+	the detail of the event that triggered the current handler, if any
+`sender`
+	the element that sent the current event, if any
+{% endsyntaxes %}
 
 Note that the `target` is the element that the event *originally* occurred on.
 
@@ -604,15 +607,30 @@ supports [a rich set of natural language style comparisons](/expressions/compari
 
 A small sampling is shown below:
 
-| name     | description                                                        |
-| -------- | ------------------------------------------------------------------ |
-| `is`     | equivalent to `==`: `if 1 is 1`
-| `is not` | equivalent to `!=`: `if 1 is not 1`
-| `no`     | equivalent to `!= null`: `if no .tab in me`
-| `match`  | does a CSS test : `if I match .selected`
-| `exists` | tests if an object is non-null : `if #tab1 exists`
-| `is greater than` | tests if a number is greater than another number : `if x is greater than y`
-| `empty`  | tests if a collectin is empty : `if .tabs is empty`
+{% syntaxes %}
+`[[a]] is [[b]]`
+	Same as {%syntax "[[a]] == [[b]]"%}.
+`[[a]] is not [[b]]`
+	Same as {%syntax "[[a]] != [[b]]"%}.
+`no [[a]]`
+	Same as {%syntax "[[a]] == null or [[a]] == undefined"%}.
+`[[element]] matches [[selector]]`
+	Does a CSS test, i.e. `if I match .selected`.
+`[[a]] exists`
+	Same as {%syntax "not (no [[a]])"%}.
+`[[x]] is greater than [[y]]`
+`[[x]] is less than [[y]]`
+	Same as `>` and `<`, respectively.
+`[[collection]] is empty`
+	Tests if a collection is empty.
+{% endsyntaxes %}
+
+If the left hand side of the operator is `I`, then `is` can be replaced with `am`:
+
+  ~~~ hyperscript
+  get chosenElement()
+  if I am the result then remove me end
+  ~~~
 
 Using these natural language alternatives allows you to write very readable scripts.
 

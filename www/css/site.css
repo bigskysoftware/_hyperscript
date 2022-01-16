@@ -409,7 +409,7 @@ h1,h2,h3,h4{
 }
 
 .syntaxes dd {
-    margin: 1em 0;
+	margin-top: -.8em;
 }
 
 .syntaxes dt code {
