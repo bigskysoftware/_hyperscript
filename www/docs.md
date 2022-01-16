@@ -129,7 +129,7 @@ All hyperscript scripts are made up of these basic building blocks.
 
 #### Comments
 
-Comments in hyperscript start with the `--` character and go to the end of the line:
+Comments in hyperscript start with the `--` characters and a whitespace character (space, tab, carriage return or newline) and go to the end of the line:
   ~~~ hyperscript
   -- this is a comment
   log "Yep, that was a comment"
