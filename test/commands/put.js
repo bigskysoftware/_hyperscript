@@ -187,4 +187,34 @@ describe("the put command", function () {
 			delete window.finish;
 		}
 	});
+
+	it("can put properties w/ array access syntax", function () {
+		var d1 = make("<div _='on click put \"red\" into my style[\"color\"]'>lolwat</div>");
+		d1.click();
+		d1.style.color.should.equal("red");
+	});
+
+	it("can put properties w/ array access syntax and var", function () {
+		var d1 = make("<div _='on click set foo to \"color\" then put \"red\" into my style[foo]'>lolwat</div>");
+		d1.click();
+		d1.style.color.should.equal("red");
+	});
+
+	it("can put array vals w/ array access syntax", function () {
+		var d1 = make("<div _='on click set arr to [1, 2, 3] put \"red\" into arr[0] put arr[0] into my *color'>lolwat</div>");
+		d1.click();
+		d1.style.color.should.equal("red");
+	});
+
+	it("can put array vals w/ array access syntax and var", function () {
+		var d1 = make("<div _='on click set arr to [1, 2, 3] set idx to 0 put \"red\" into arr[idx] put arr[0] into my *color'>lolwat</div>");
+		try {
+			d1.click();
+		} catch(e) {
+			console.log(e);
+		}
+		d1.style.color.should.equal("red");
+	});
+
+
 });
