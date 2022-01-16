@@ -803,8 +803,8 @@ You can also invoke functions as stand-alone commands:
   log it
   ~~~
 
-Finally, you can use the [`pseudo-command`](/commands/pseudo-commands)` syntax, which allows you to put the function
-call first on the line, to improve readability in some cases:
+Finally, you can use the [`pseudo-command`](/commands/pseudo-commands)` syntax, which allows you to put the method
+name first on the line in a method call, to improve readability in some cases:
 
   ~~~ hyperscript
   refresh() the location of the window
@@ -812,7 +812,7 @@ call first on the line, to improve readability in some cases:
   reset() the #contact-form
   ~~~
 
-These are called "pseudo-commands" because this syntax makes function calls look like a normal command in hyperscript.
+These are called "pseudo-commands" because this syntax makes method calls look like a normal command in hyperscript.
 
 ### <a name="events"></a>[Events & Event Handlers](#event)
 
