@@ -55,6 +55,15 @@ To cancel a fetch request, send a `fetch:abort` event to the element that trigge
 </div>
 ```
 
+### Dynamic URLs with Template Literals
+
+If you need to fetch from a dynamically-generated URL, just use a [template literal string](/expressions/string/) (the ones with the backticks) as the URL.  For example:
+
+```hyperscript
+set userId to my [@data-userId]
+fetch `/users/${userId}/profile` as JSON
+```
+
 ### Events
 
 The `fetch` command features a few events that can be listened to (using hyperscript or javascript) to do things

@@ -58,6 +58,11 @@ pre code {
     border: 1px solid #0002;
 }
 
+a code {
+	border-bottom: 1px solid #3d81da;
+	color: #3d81da;
+}
+
 .token.comment,
 .token.prolog,
 .token.doctype,

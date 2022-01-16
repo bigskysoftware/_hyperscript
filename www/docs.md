@@ -1168,14 +1168,32 @@ Some are inspired by CSS, while others are our own creation.
 
 Here is a table of the DOM literals:
 
-| name                 | example          | description                                                        |
-| -------------------- | ---------------- | ------------------------------------------------------------------ |
-| Class Literals       | `.selected`      | A class literal starts with a `.` and will return all elements with that class
-| ID Literals          | `#tab-container` | An ID literal starts with a `#` and returns the element with that id
-| Query Literals       | `<div/>`         | A query literal is contained within a `<` and `/>`, returns all elements matching the CSS selector
-| Attribute Literals   | `@value`         | An attribute literal starts with an `@` (hence, *att*ribute, get it?) and returns the value of that attribute
-| Style Literals       | `*width`         | A style literal starts with an `*` (a reference to [CSS Tricks](https://css-tricks.com/)) and returns the value of that style attribute
-| Measurement Literals | `1px`, `0%`      | A measurement literal is an expression followed by a "measurement" ending such as `px` or `%`, and it will return a string with the ending appended to it
+{% syntaxes %}
+`.[[class name]]`
+`.{[[expression]]}`
+	A <dfn>class literal</dfn> starts with a `.` and returns all elements with that class.
+
+`#[[ID]]`
+`#{[[expression]]}`
+	An <dfn>ID literal</dfn> starts with a `#` and returns the element with that id.
+
+`<[[css selector]] />`
+	A <dfn>query literal</dfn> is contained within a `<` and `/>`, returns all elements matching the CSS selector.
+
+`@[[attribute name]]`
+	An <dfn>attribute literal</dfn> starts with an `@` (hence, *at*tribute, get it?) and returns the value of that 
+	attribute.
+
+`*[[style property]]`
+	A <dfn>style literal</dfn> starts with an `*` (a reference to [CSS Tricks](https://css-tricks.com/)) and returns the
+	value of that style property.
+
+`1em`
+`0%`
+`[[expression]] px`
+	A <dfn>measurement literal</dfn> is an expression followed by a CSS unit, and it appends the unit as a string. So, the
+	above expressions are the same as `"1px"`, `"0%"` and {%syntax "&#96;${[[expression]]}px&#96;"%}.
+{% endsyntaxes%}
 
 Here are a few examples of these literals in action:
 
@@ -1331,10 +1349,21 @@ The `put` command can also place content in different places based on how it is 
 
 The `put` command can be used in the following ways:
 
- * `put content before me` - puts the content in front of the element
- * `put content at the start of me` - puts the content at the beginning of the element
- * `put content at the end of me` - puts the content at the end of the element
- * `put content after me` - puts the content after the element
+{% syntaxes %}
+`put [[content]] before [[element]]`
+	Puts the content in front of the element, using [`Element.before`][].
+`put [[content]] at the start of [[element]]`
+	Puts the content at the beginning of the element, using [`Element.prepend`][].
+`put [[content]] at the end of [[element]]`
+	Puts the content at the end of the element, using [`Element.append`][].
+`put [[content]] before [[element]]`
+	Puts the content in front of the element, using [`Element.after`][].
+{% endsyntaxes %}
+
+[`Element.before`]:  https://developer.mozilla.org/en-US/docs/Web/API/Element/before
+[`Element.prepend`]: https://developer.mozilla.org/en-US/docs/Web/API/Element/prepend
+[`Element.append`]:  https://developer.mozilla.org/en-US/docs/Web/API/Element/append
+[`Element.after`]:   https://developer.mozilla.org/en-US/docs/Web/API/Element/after
 
 This flexibility is why we generally recommend the `put` command when updating content in the DOM.
 
