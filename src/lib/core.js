@@ -5468,6 +5468,90 @@ var _runtime = (function () {
 		return command;
 	});
 
+	function parsePickRange(parser, runtime, tokens) {
+	    tokens.matchToken("at") || tokens.matchToken("from");
+	    const rv = { includeStart: true, includeEnd: false }
+
+	    rv.from = tokens.matchToken("start") ? 0 : parser.requireElement("expression", tokens)
+
+	    if (tokens.matchToken("to") || tokens.matchOpToken("..")) {
+	      if (tokens.matchToken("end")) {
+	        rv.toEnd = true;
+	      } else {
+  	      rv.to = parser.requireElement("expression", tokens);
+  	    }
+	    }
+
+	    if (tokens.matchToken("inclusive")) range.includeEnd = true;
+	    else if (tokens.matchToken("exclusive")) range.includeStart = false;
+
+	    return rv;
+	}
+
+	_parser.addCommand("pick", (parser, runtime, tokens) => {
+	  if (!tokens.matchToken("pick")) return;
+
+	  if (tokens.matchToken("item") || tokens.matchToken("items")
+	   || tokens.matchToken("character") || tokens.matchToken("characters")) {
+	    const range = parsePickRange(parser, runtime, tokens);
+
+	    tokens.requireToken("from");
+	    const root = parser.requireElement("expression", tokens);
+
+	    return {
+	      args: [root, range.from, range.to],
+	      op(ctx, root, from, to) {
+	        if (range.toEnd) to = root.length;
+	        if (!range.includeStart) from++;
+	        if (range.includeEnd) to++;
+	        if (to == null || to == undefined) to = from + 1;
+	        ctx.result = root.slice(from, to);
+	        return runtime.findNext(this, ctx);
+	      }
+	    }
+	  }
+
+	  if (tokens.matchToken("match")) {
+	    tokens.matchToken("of");
+	    const re = parser.parseElement("expression", tokens);
+	    const flags = ""
+	    if (tokens.matchOpToken("|")) {
+	      flags = tokens.matchToken("identifier");
+	    }
+
+	    tokens.requireToken("from");
+	    const root = parser.parseElement("expression", tokens);
+
+	    return {
+	      args: [root, re],
+	      op(ctx, root, re) {
+	        ctx.result = new RegExp(re, flags).exec(root);
+	        return runtime.findNext(this, ctx);
+	      }
+	    }
+	  }
+
+	  if (tokens.matchToken("matches")) {
+	    tokens.matchToken("of");
+	    const re = parser.parseElement("expression", tokens);
+	    const flags = "gu"
+	    if (tokens.matchOpToken("|")) {
+	      flags = tokens.matchToken("identifier");
+	    }
+
+	    tokens.requireToken("from");
+	    const root = parser.parseElement("expression", tokens);
+
+	    return {
+	      args: [root, re],
+	      op(ctx, root, re) {
+	        ctx.result = new RegExp(re, flags).exec(root);
+	        return runtime.findNext(this, ctx);
+	      }
+	    }
+	  }
+	});
+
 	_parser.addCommand("increment", function (parser, runtime, tokens) {
 		if (!tokens.matchToken("increment")) return;
 		var amount;
