@@ -58,8 +58,8 @@ table {
     clip: rect(1px, 1px, 1px, 1px);
     padding:0 !important;
     border:0 !important;
-    height: 1px !important; 
-    width: 1px !important; 
+    height: 1px !important;
+    width: 1px !important;
     overflow: hidden;
 }
 
@@ -390,9 +390,9 @@ h1,h2,h3,h4{
     margin-bottom: 4px;
 }
 
-.syntax b {
+.syntaxvar {
     background: #cdf;
-    color: #3465a4;
+    color: var(--midBlue);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
     "Ubuntu", "Fira Sans", "Noto Sans", "Droid Sans", "Helvetica Neue", sans-serif;
     font-weight: normal;
@@ -400,20 +400,27 @@ h1,h2,h3,h4{
     border-radius: .5em;
 }
 
-.syntax sup {
+.syntax sup, .syntax sub {
     background: #cdf;
     line-height: 1.1ch;
-    width: 1.1ch;
     display: inline-block;
-    border-radius: 50%;
+    border-radius: 100em;
     text-align: center;
-    margin-left: -.4em;
     border: 2px solid white;
     box-sizing: content-box;
-    font-size: 1.1em;
+    font-size: 1em;
     font-weight: bold;
+    color: var(--midBlue);
+}
+
+.syntax sub {
+    font-weight: normal;
+    vertical-align: text-bottom;
+}
+
+.syntax sup {
+    width: 1.1ch;
     vertical-align: text-top;
-    color: #3465a4;
 }
 
 .syntaxes {
