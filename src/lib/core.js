@@ -4908,7 +4908,7 @@ var _runtime = (function () {
 		}
 
 		if (tokens.matchToken("called")) {
-			var name = tokens.requireTokenType("IDENTIFIER").value;
+			var target = parser.requireElement("symbol", tokens);
 		}
 
 		var command;
@@ -4934,7 +4934,9 @@ var _runtime = (function () {
 					}
 
 					ctx.result = result;
-					if (name) ctx[name] = result;
+					if (target){
+						runtime.setSymbol(target.name, ctx, target.scope, result);
+					}
 
 					return runtime.findNext(this, ctx);
 				},
@@ -4945,7 +4947,9 @@ var _runtime = (function () {
 				args: [expr, args],
 				op: function (ctx, expr, args) {
 					ctx.result = varargConstructor(expr, args);
-					if (name) ctx[name] = ctx.result;
+					if (target){
+						runtime.setSymbol(target.name, ctx, target.scope, ctx.result);
+					}
 
 					return runtime.findNext(this, ctx);
 				},

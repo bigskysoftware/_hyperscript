@@ -11,6 +11,12 @@ describe("the make command", function () {
 		delete window.obj;
 	});
 
+	it("can make named objects w/ global scope", function () {
+		evalHyperScript(`make a WeakMap called $wm`);
+		window['$wm'].should.be.a("weakmap");
+		delete window['$wm'];
+	});
+
 	it("can make objects with arguments", function () {
 		evalHyperScript(`
 			make a URL from "/playground/", "https://hyperscript.org/"
@@ -22,7 +28,7 @@ describe("the make command", function () {
 
 	it("can make named objects with arguments", function () {
 		evalHyperScript(`
-			make a URL from "/playground/", "https://hyperscript.org/" called u 
+			make a URL from "/playground/", "https://hyperscript.org/" called u
 			set window.obj to u`);
 		window.obj.should.be.a("URL");
 		window.obj.href.should.equal("https://hyperscript.org/playground/");
