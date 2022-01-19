@@ -96,4 +96,24 @@ describe("the pick command", () => {
     window.$test.should.equal("abcdefghijklmnopqrstuv");
     delete window.$test;
   })
+
+  // Regex
+
+  const haystack = "The 32 quick brown foxes jumped 12 times over the 149 lazy dogs";
+
+  it("can pick a single regex match", () => {
+    evalHyperScript(String.raw`
+      pick match of "\\d+" from haystack
+      set window.test to it`, { haystack });
+    [...window.test].should.deep.equal(["32"]);
+    delete window.test;
+  })
+
+  it("can pick all regex matches", () => {
+    evalHyperScript(String.raw`
+      pick matches of "\\d+" from haystack
+      set window.test to it`, { haystack });
+    [...window.test].should.deep.equal([["32"], ["12"], ["149"]]);
+    delete window.test;
+  })
 })

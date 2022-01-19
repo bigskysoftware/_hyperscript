@@ -16,11 +16,14 @@ var globalScope = globalThis;
 // Standard library
 //====================================================================
 
+var shouldAutoIterateSymbol = Symbol()
+
 class ElementCollection {
 	constructor(css, relativeToElement, escape) {
 		this._css = css;
 		this.relativeToElement = relativeToElement;
 		this.escape = escape;
+		this[shouldAutoIterateSymbol] = true;
 	}
 
 	get css() {
@@ -1442,7 +1445,7 @@ var _runtime = (function () {
 	 * @returns {value is any[] | NodeList | ElementCollection}
 	 */
 	function shouldAutoIterate(value) {
-		return  value instanceof ElementCollection ||
+		return  value[shouldAutoIterateSymbol] ||
 			   isArrayLike(value);
 	}
 
@@ -5488,6 +5491,31 @@ var _runtime = (function () {
 	    return rv;
 	}
 
+	class RegExpIterator {
+	  constructor(re, str) {
+	    this.re = re;
+	    this.str = str;
+	  }
+
+	  next() {
+	    const match = this.re.exec(this.str);
+	    if (match === null) return { done: true };
+	    else return { value: match };
+	  }
+	}
+
+	class RegExpIterable {
+	  constructor(re, flags, str) {
+	    this.re = re;
+	    this.flags = flags;
+	    this.str = str;
+	  }
+
+	  [Symbol.iterator]() {
+	    return new RegExpIterator(new RegExp(this.re, this.flags), this.str);
+	  }
+	}
+
 	_parser.addCommand("pick", (parser, runtime, tokens) => {
 	  if (!tokens.matchToken("pick")) return;
 
@@ -5516,7 +5544,7 @@ var _runtime = (function () {
 	    const re = parser.parseElement("expression", tokens);
 	    const flags = ""
 	    if (tokens.matchOpToken("|")) {
-	      flags = tokens.matchToken("identifier");
+	      flags = tokens.matchToken("identifier").value;
 	    }
 
 	    tokens.requireToken("from");
@@ -5536,8 +5564,9 @@ var _runtime = (function () {
 	    const re = parser.parseElement("expression", tokens);
 	    const flags = "gu"
 	    if (tokens.matchOpToken("|")) {
-	      flags = tokens.matchToken("identifier");
+	      flags = 'g' + tokens.matchToken("identifier").value.replace('g', '');
 	    }
+	    console.log('flags', flags)
 
 	    tokens.requireToken("from");
 	    const root = parser.parseElement("expression", tokens);
@@ -5545,7 +5574,7 @@ var _runtime = (function () {
 	    return {
 	      args: [root, re],
 	      op(ctx, root, re) {
-	        ctx.result = new RegExp(re, flags).exec(root);
+	        ctx.result = new RegExpIterable(re, flags, root);
 	        return runtime.findNext(this, ctx);
 	      }
 	    }
