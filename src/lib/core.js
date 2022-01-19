@@ -5519,6 +5519,8 @@ var _runtime = (function () {
 	_parser.addCommand("pick", (parser, runtime, tokens) => {
 	  if (!tokens.matchToken("pick")) return;
 
+	  tokens.matchToken("the");
+
 	  if (tokens.matchToken("item") || tokens.matchToken("items")
 	   || tokens.matchToken("character") || tokens.matchToken("characters")) {
 	    const range = parsePickRange(parser, runtime, tokens);
