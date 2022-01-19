@@ -3117,14 +3117,24 @@ var _runtime = (function () {
 		var arrayIndex = {
 			type: "arrayIndex",
 			root: root,
+			prop: firstIndex,
 			firstIndex: firstIndex,
 			secondIndex: secondIndex,
 			args: [root, firstIndex, secondIndex],
 			op: function (_ctx, root, firstIndex, secondIndex) {
+				if (root == null) {
+					return null;
+				}
 				if (andBefore) {
+					if (firstIndex < 0) {
+						firstIndex = root.length + firstIndex;
+					}
 					return root.slice(0, firstIndex + 1); // returns all items from beginning to firstIndex (inclusive)
 				} else if (andAfter) {
 					if (secondIndex != null) {
+						if (secondIndex < 0) {
+							secondIndex = root.length + secondIndex;
+						}
 						return root.slice(firstIndex, secondIndex + 1); // returns all items from firstIndex to secondIndex (inclusive)
 					} else {
 						return root.slice(firstIndex); // returns from firstIndex to end of array
@@ -3751,6 +3761,7 @@ var _runtime = (function () {
 			expr.type === "attributeRefAccess" ||
 			expr.type === "attributeRef" ||
 			expr.type === "styleRef" ||
+			expr.type === "arrayIndex" ||
 			expr.type === "possessive")
 		) {
 			return expr;
@@ -5039,6 +5050,7 @@ var _runtime = (function () {
 		var symbolWrite = target.type === "symbol";
 		var attributeWrite = target.type === "attributeRef";
 		var styleWrite = target.type === "styleRef";
+		var arrayWrite = target.type === "arrayIndex";
 
 		if (!(attributeWrite || styleWrite || symbolWrite) && target.root == null) {
 			parser.raiseParseError(tokens, "Can only put directly into symbols, not references");
@@ -5051,6 +5063,9 @@ var _runtime = (function () {
 		} else if (attributeWrite || styleWrite) {
 			rootElt = parser.requireElement("implicitMeTarget", tokens);
 			var attribute = target;
+		} else if(arrayWrite) {
+			prop = target.firstIndex;
+			rootElt = target.root;
 		} else {
 			prop = target.prop ? target.prop.value : null;
 			var attribute = target.attribute;
@@ -5062,27 +5077,31 @@ var _runtime = (function () {
 			target: target,
 			symbolWrite: symbolWrite,
 			value: value,
-			args: [rootElt, value],
-			op: function (context, root, valueToSet) {
+			args: [rootElt, prop, value],
+			op: function (context, root, prop, valueToSet) {
 				if (symbolWrite) {
 					runtime.setSymbol(target.name, context, target.scope, valueToSet);
 				} else {
 					runtime.nullCheck(root, rootElt);
-					runtime.implicitLoop(root, function (elt) {
-						if (attribute) {
-							if (attribute.type === "attributeRef") {
-								if (valueToSet == null) {
-									elt.removeAttribute(attribute.name);
+					if (arrayWrite) {
+						root[prop] = valueToSet;
+					} else {
+						runtime.implicitLoop(root, function (elt) {
+							if (attribute) {
+								if (attribute.type === "attributeRef") {
+									if (valueToSet == null) {
+										elt.removeAttribute(attribute.name);
+									} else {
+										elt.setAttribute(attribute.name, valueToSet);
+									}
 								} else {
-									elt.setAttribute(attribute.name, valueToSet);
+									elt.style[attribute.name] = valueToSet;
 								}
 							} else {
-								elt.style[attribute.name] = valueToSet;
+								elt[prop] = valueToSet;
 							}
-						} else {
-							elt[prop] = valueToSet;
-						}
-					});
+						});
+					}
 				}
 				return runtime.findNext(this, context);
 			},
@@ -5656,24 +5675,27 @@ if ("document" in globalScope) {
 	/** @type {HTMLScriptElement[]} */
 	var scripts = Array.from(document.querySelectorAll("script[type='text/hyperscript'][src]"))
 	Promise.all(
-		scripts.map(function (script) {
-			return fetch(script.src)
-				.then(function (res) {
-					return res.text();
-				})
-				.then(function (code) {
-					return _runtime.evaluate(code);
-				});
+			scripts.map(function (script) {
+				return fetch(script.src)
+					.then(function (res) {
+						return res.text();
+					});
+			})
+		)
+		.then(function (script_values) {
+			// forEach instead of map, since the return value of .evaluate is not used by the then
+			return script_values.forEach(_runtime.evaluate);
 		})
-	).then(function () {
-		ready(function () {
-			mergeMetaConfig();
-			_runtime.processNode(document.documentElement);
-			document.addEventListener("htmx:load", function (/** @type {CustomEvent} */ evt) {
-				_runtime.processNode(evt.detail.elt);
+		.then(function () {
+			ready(function () {
+				mergeMetaConfig();
+				_runtime.processNode(document.documentElement);
+				document.addEventListener("htmx:load", function (/** @type {CustomEvent} */ evt) {
+
+					_runtime.processNode(evt.detail.elt);
+				});
 			});
 		});
-	});
 }
 
 //====================================================================

@@ -86,14 +86,14 @@ After you've done this, you can begin adding hyperscript to elements:
 
 You can also add hyperscript within script tags that are denoted as `text/hyperscript`:
 
-```html
+  ~~~ html
   <script type="text/hyperscript">
     on mousedown
       halt the event -- prevent text selection...
       -- do other stuff...
     end
   </script>
-```
+  ~~~
 
 Features defined in script tags will apply to the `body`.
 
@@ -356,19 +356,22 @@ on the context, that make your scripting life more convenient.
 
 Here is a table of available symbols:
 
-| name     | description                                                        |
-| -------- | ------------------------------------------------------------------ |
-| `result` | the result of the last command, if any (e.g. a `call` or `fetch`)  |
-| `it`     | alias for `result`                                                 |
-| `its`    | alias for `result`                                                 |
-| `me`     | the element that the current event handler is running on           |
-| `my`     | alias for `me`                                                     |
-| `I`      | alias for `me`                                                     |
-| `event`  | the event that triggered the event current handler, if any         |
-| `body`   | the body of the current document, if any                           |
-| `target` | the target of the current event, if any                            |
-| `detail` | the detail of the event that triggered the current handler, if any |
-| `sender` | the element that sent the current event, if any                    |
+{% syntaxes %}
+`result` `it` `its`
+	the result of the last command, if any (e.g. a `call` or `fetch`)
+`me` `my` `I`
+	the element that the current event handler is running on
+`event`
+	the event that triggered the event current handler, if any
+`body`
+	the body of the current document, if any
+`target`
+	the target of the current event, if any
+`detail`
+	the detail of the event that triggered the current handler, if any
+`sender`
+	the element that sent the current event, if any
+{% endsyntaxes %}
 
 Note that the `target` is the element that the event *originally* occurred on.
 
@@ -455,10 +458,10 @@ On an array, only the `length` property will not perform a flat map in this mann
 Finally, all property accesses in hyperscript are null safe, so if the object that the property is being accessed on
 is null, the result of the property access will be null as well, without a need to null-check:
 
-```hyperscript
+  ~~~ hyperscript
   set example to null
   log example.prop     -- logs null, because `example` is null
-```
+  ~~~
 
 This null-safe behavior is appropriate for a scripting language intended for front-end work.
 
@@ -512,11 +515,11 @@ However, there is one area where closures provide a lot of value in hyperscript:
 hyperscript syntax for closures is inspired by [haskell](https://www.haskell.org/), starting with a `\` character,
 then the arguments, then an arrow `->`, followed by an expression:
 
-```hyperscript
+  ~~~ hyperscript
   set strs to ["a", "list", "of", "strings"]
   set lens to strs.map( \ s -> s.length )
   log lens
-```
+  ~~~
 
 ### <a name=control-flow></a> [Control Flow](#control-flow)
 
@@ -559,15 +562,30 @@ supports [a rich set of natural language style comparisons](/expressions/compari
 
 A small sampling is shown below:
 
-| name     | description                                                        |
-| -------- | ------------------------------------------------------------------ |
-| `is`     | equivalent to `==`: `if 1 is 1`
-| `is not` | equivalent to `!=`: `if 1 is not 1`
-| `no`     | equivalent to `!= null`: `if no .tab in me`
-| `match`  | does a CSS test : `if I match .selected`
-| `exists` | tests if an object is non-null : `if #tab1 exists`
-| `is greater than` | tests if a number is greater than another number : `if x is greater than y`
-| `empty`  | tests if a collectin is empty : `if .tabs is empty`
+{% syntaxes %}
+`[[a]] is [[b]]`
+	Same as {%syntax "[[a]] == [[b]]"%}.
+`[[a]] is not [[b]]`
+	Same as {%syntax "[[a]] != [[b]]"%}.
+`no [[a]]`
+	Same as {%syntax "[[a]] == null or [[a]] == undefined"%}.
+`[[element]] matches [[selector]]`
+	Does a CSS test, i.e. `if I match .selected`.
+`[[a]] exists`
+	Same as {%syntax "not (no [[a]])"%}.
+`[[x]] is greater than [[y]]`
+`[[x]] is less than [[y]]`
+	Same as `>` and `<`, respectively.
+`[[collection]] is empty`
+	Tests if a collection is empty.
+{% endsyntaxes %}
+
+If the left hand side of the operator is `I`, then `is` can be replaced with `am`:
+
+  ~~~ hyperscript
+  get chosenElement()
+  if I am the result then remove me end
+  ~~~
 
 Using these natural language alternatives allows you to write very readable scripts.
 
@@ -740,8 +758,8 @@ You can also invoke functions as stand-alone commands:
   log it
   ~~~
 
-Finally, you can use the [`pseudo-command`](/commands/pseudo-commands)` syntax, which allows you to put the function
-call first on the line, to improve readability in some cases:
+Finally, you can use the [`pseudo-command`](/commands/pseudo-commands)` syntax, which allows you to put the method
+name first on the line in a method call, to improve readability in some cases:
 
   ~~~ hyperscript
   refresh() the location of the window
@@ -749,7 +767,7 @@ call first on the line, to improve readability in some cases:
   reset() the #contact-form
   ~~~
 
-These are called "pseudo-commands" because this syntax makes function calls look like a normal command in hyperscript.
+These are called "pseudo-commands" because this syntax makes method calls look like a normal command in hyperscript.
 
 ### Events & Event Handlers {#event}
 
@@ -1123,14 +1141,32 @@ Some are inspired by CSS, while others are our own creation.
 
 Here is a table of the DOM literals:
 
-| name                 | example          | description                                                        |
-| -------------------- | ---------------- | ------------------------------------------------------------------ |
-| Class Literals       | `.selected`      | A class literal starts with a `.` and will return all elements with that class
-| ID Literals          | `#tab-container` | An ID literal starts with a `#` and returns the element with that id
-| Query Literals       | `<div/>`         | A query literal is contained within a `<` and `/>`, returns all elements matching the CSS selector
-| Attribute Literals   | `@value`         | An attribute literal starts with an `@` (hence, *att*ribute, get it?) and returns the value of that attribute
-| Style Literals       | `*width`         | A style literal starts with an `*` (a reference to [CSS Tricks](https://css-tricks.com/)) and returns the value of that style attribute
-| Measurement Literals | `1px`, `0%`      | A measurement literal is an expression followed by a "measurement" ending such as `px` or `%`, and it will return a string with the ending appended to it
+{% syntaxes %}
+`.[[class name]]`
+`.{[[expression]]}`
+	A <dfn>class literal</dfn> starts with a `.` and returns all elements with that class.
+
+`#[[ID]]`
+`#{[[expression]]}`
+	An <dfn>ID literal</dfn> starts with a `#` and returns the element with that id.
+
+`<[[css selector]] />`
+	A <dfn>query literal</dfn> is contained within a `<` and `/>`, returns all elements matching the CSS selector.
+
+`@[[attribute name]]`
+	An <dfn>attribute literal</dfn> starts with an `@` (hence, *at*tribute, get it?) and returns the value of that 
+	attribute.
+
+`*[[style property]]`
+	A <dfn>style literal</dfn> starts with an `*` (a reference to [CSS Tricks](https://css-tricks.com/)) and returns the
+	value of that style property.
+
+`1em`
+`0%`
+`[[expression]] px`
+	A <dfn>measurement literal</dfn> is an expression followed by a CSS unit, and it appends the unit as a string. So, the
+	above expressions are the same as `"1px"`, `"0%"` and {%syntax "&#96;${[[expression]]}px&#96;"%}.
+{% endsyntaxes%}
 
 Here are a few examples of these literals in action:
 
@@ -1286,10 +1322,21 @@ The `put` command can also place content in different places based on how it is 
 
 The `put` command can be used in the following ways:
 
- * `put content before me` - puts the content in front of the element
- * `put content at the start of me` - puts the content at the beginning of the element
- * `put content at the end of me` - puts the content at the end of the element
- * `put content after me` - puts the content after the element
+{% syntaxes %}
+`put [[content]] before [[element]]`
+	Puts the content in front of the element, using [`Element.before`][].
+`put [[content]] at the start of [[element]]`
+	Puts the content at the beginning of the element, using [`Element.prepend`][].
+`put [[content]] at the end of [[element]]`
+	Puts the content at the end of the element, using [`Element.append`][].
+`put [[content]] before [[element]]`
+	Puts the content in front of the element, using [`Element.after`][].
+{% endsyntaxes %}
+
+[`Element.before`]:  https://developer.mozilla.org/en-US/docs/Web/API/Element/before
+[`Element.prepend`]: https://developer.mozilla.org/en-US/docs/Web/API/Element/prepend
+[`Element.append`]:  https://developer.mozilla.org/en-US/docs/Web/API/Element/append
+[`Element.after`]:   https://developer.mozilla.org/en-US/docs/Web/API/Element/after
 
 This flexibility is why we generally recommend the `put` command when updating content in the DOM.
 
@@ -1557,12 +1604,12 @@ Furthermore, this infrastructure allows hyperscript to work extremely effectivel
 
 In javascript, if you want to wait some amount of time, you can use the venerable `setTimeout()` function:
 
-```javascript
-console.log("Start...")
-setTimeout(function(){
-  console.log("Finish...")
-}, 1000);
-```
+  ~~~ javascript
+  console.log("Start...")
+  setTimeout(function(){
+    console.log("Finish...")
+  }, 1000);
+  ~~~
 
 This code will print `"Start"` to the console and then, after a second (1000 milliseconds) it will print `"Finish"`.
 
@@ -1573,11 +1620,11 @@ starts.
 
 Contrast that with the equivalent hyperscript, which uses the [`wait` command](/commands/wait):
 
-```hyperscript
-log "Start..."
-wait 1s
-log "Finish..."
-```
+  ~~~ hyperscript
+  log "Start..."
+  wait 1s
+  log "Finish..."
+  ~~~
 
 You can see how this reads very nicely, with a linear set of operations occurring in sequence.
 
@@ -1587,19 +1634,19 @@ shielded from that complexity, and you can simply write linear, natural code.
 This flexible runtime allows for even more interesting code.  The `wait` command, for example, can wait for an *event*
 not just a timeout:
 
-{% example "Waiting On Events" %}
-<button _="on click put 'Started...' into the next <output/>
-                    wait for a continue   -- wait for a continue event...
-                    put 'Finished...' into the next <output/>
-                    wait 2s
-                    put '' into the next <output/>">
-  Start
-</button>
-<button _="on click send continue to the previous <button/>">
-  Continue
-</button>
-<output>--</output>
-{% endexample %}
+  {% example "Waiting On Events" %}
+  <button _="on click put 'Started...' into the next <output/>
+                      wait for a continue   -- wait for a continue event...
+                      put 'Finished...' into the next <output/>
+                      wait 2s
+                      put '' into the next <output/>">
+    Start
+  </button>
+  <button _="on click send continue to the previous <button/>">
+    Continue
+  </button>
+  <output>--</output>
+  {% endexample %}
 
 Now we are starting to see how powerful the async transparent runtime of hyperscript can be: with it you are able to
 integrate events directly into your control flow while still writing scripts in a natural, linear fashion.
@@ -1685,11 +1732,11 @@ tell the runtime _not_ to synchronize on a value.
 
 So, if you wanted to invoke a method that returns a promise, say `returnsAPromise()` but not wait on it to return, you write code like this:
 
-```html
-<button _="on click call async returnsAPromise() put 'I called it...' into the next <output/>">
-  Get The Answer...
-</button>
-```
+  ~~~ html
+  <button _="on click call async returnsAPromise() put 'I called it...' into the next <output/>">
+    Get The Answer...
+  </button>
+  ~~~
 
 Hyperscript will immediately put the value "I called it..." into the next output element, even if the result
 from `returnsAPromise()` has not yet resolved.
@@ -1703,30 +1750,30 @@ features of the language.
 
 Behaviors allow you to bundle together some hyperscript code (that would normally go in the \_ attribute of an element) so that it can be "installed" on any other. They are defined with [the `behavior` keyword](/features/behavior):
 
-```hyperscript
-behavior Removable
-  on click
-    remove me
+  ~~~ hyperscript
+  behavior Removable
+    on click
+      remove me
+    end
   end
-end
-```
+  ~~~
 
 They can accept arguments:
 
-```hyperscript
-behavior Removable(removeButton)
-  on click from removeButton
-    remove me
+  ~~~ hyperscript
+  behavior Removable(removeButton)
+    on click from removeButton
+      remove me
+    end
   end
-end
-```
+  ~~~
 
 They can be installed as shown:
 
-```html
-<div class="banner" _="install Removable(removeButton: #close-banner)">
-  ...
-```
+  ~~~ html
+  <div class="banner" _="install Removable(removeButton: #close-banner)">
+    ...
+  ~~~
 
 For a better example of a behavior, check out [Draggable.\_hs](https://gist.github.com/dz4k/6505fb82ae7fdb0a03e6f3e360931aa9).
 
@@ -1738,18 +1785,18 @@ inline in hyperscript by using the [`worker` keyword](/features/worker).
 The worker does not share a namespace with other code, it is in it's own isolated sandbox. However, you may interact
 with the worker via function calls, passing data back and forth in the normal manner.
 
-```html
-<script type="text/hyperscript">
-  worker Incrementer
-    def increment(i)
-      return i + 1
+  ~~~ html
+  <script type="text/hyperscript">
+    worker Incrementer
+      def increment(i)
+        return i + 1
+      end
     end
-  end
-</script>
-<button _="on click call Incrementer.increment(41) then put 'The answer is: ' + it into my.innerHTML">
-  Call a Worker...
-</button>
-```
+  </script>
+  <button _="on click call Incrementer.increment(41) then put 'The answer is: ' + it into my.innerHTML">
+    Call a Worker...
+  </button>
+  ~~~
 
 This makes it very easy to define and work with web workers.
 
@@ -1765,20 +1812,20 @@ layered on top of them, by using the [`socket` keyword](/features/sockets).
 
 Here is a simple web socket declaration in hyperscript:
 
-```hyperscript
-socket MySocket ws://myserver.com/example
-  on message as json
-    log message
-end
-```
+  ~~~ hyperscript
+  socket MySocket ws://myserver.com/example
+    on message as json
+      log message
+  end
+  ~~~
 
 This socket will log all messages that it receives as a parsed JSON object.
 
 You can send messages to the socket by using the normal [`send`](/commands/send) command:
 
-```hyperscript
-    send myMessage(foo: "bar", doh: 42) to MySocket
-```
+  ~~~ hyperscript
+  send myMessage(foo: "bar", doh: 42) to MySocket
+  ~~~
 
 You can read more about the RPC mechanism on the [`socket` page](/features/socket#rpc).
 
@@ -1795,19 +1842,19 @@ the connected URL at any time without having to reconnect event listeners.
 
 Here is an example event source in hyperscript:
 
-```hyperscript
-eventsource ChatUpdates from http://myserver.com/chat-updates
+  ~~~ hyperscript
+  eventsource ChatUpdates from http://myserver.com/chat-updates
 
     on message as string
-        put it into #div
+      put it into #div
     end
 
     on open
-        log "connection opened."
+      log "connection opened."
     end
 
-end
-```
+  end
+  ~~~
 
 This event source will put all `message` events in to the `#div` and will log when an `open` event occurs.
 This feature also publishes events, too, so you can listen for Server Sent Events from other parts of your code.
@@ -1820,20 +1867,20 @@ since the hyperscript runtime is more focused on flexibility, rather than perfor
 This feature is useful in [workers](#workers), when you want to pass javascript across to the worker's
 implementation:
 
-```html
-<script type="text/hyperscript">
-  worker CoinMiner
-    js
-      function mineNext() {
-        // a javascript implementation...
-      }
+  ~~~ html
+  <script type="text/hyperscript">
+    worker CoinMiner
+      js
+        function mineNext() {
+          // a javascript implementation...
+        }
+      end
+      def nextCoin()
+        return mineNext()
+      end
     end
-    def nextCoin()
-      return mineNext()
-    end
-  end
-</script>
-```
+  </script>
+  ~~~
 
 Note that there is also a way to include [inline javascript](/commands/js)
 directly within a hyperscript body, for local optimizations.
@@ -1868,33 +1915,35 @@ Hyperscript has a pluggable grammar that allows you to define new features, comm
 Here is an example that adds a new command, `foo`, that logs `"A Wild Foo Was Found!" if the value of its expression
 was "foo":
 
-```javascript
-    _hyperscript.addCommand('foo', function(parser, runtime, tokens) { // register for the command keyword "foo"
+  ~~~ javascript
+  // register for the command keyword "foo"
+  _hyperscript.addCommand('foo', function(parser, runtime, tokens) {
 
-        if(tokens.match('foo')){                                       // consume the keyword "foo"
+    // A foo command  must start with "foo".
+    if(!tokens.match('foo')) return
 
-            var expr = parser.requireElement('expression', tokens);    // parse an expression for the value
+    // Parse an expression.
+    const expr = parser.requireElement('expression', tokens);
 
-            var fooCmd = {
-                expr: expr,    // store the expression on the element
+    return {
+      // All expressions needed by the command to execute.
+      // These will be evaluated and the result will be passed back to us.
+      args: [expr],
 
-                args: [expr],  // return all necessary expressions for
-                               // the command to execute for evaluation by
-                               // the runtime
-
-                op: function (context, value) {                 // implement the logic of the command
-                    if(value == "foo"){                         // taking the runtime context and the value
-                        console.log("A Wild Foo Was Found!")    // of the result of evaluating the expr expression
-                    }
-
-                    return runtime.findNext(this)               // return the next command to execute
-                                                                // (you may also return a promise)
-                }
-            }
-            return fooCmd; // return the new command object
+      // Implement the logic of the command.
+      // Can be synchronous or asynchronous.
+      // @param {Context} context The runtime context, contains local variables.
+      // @param {*} value The result of evaluating expr.
+      async op(context, value) {
+        if (value == "foo") {
+          console.log("A Wild Foo Was Found!")
         }
-    })
-```
+        // Return the next command to execute.
+        return runtime.findNext(this)
+      }
+    }
+  })
+  ~~~
 
 With this command defined you can now write the following hyperscript:
 

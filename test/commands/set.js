@@ -159,4 +159,30 @@ describe("the set command", function () {
 		obj.should.deep.equal({ foo: 1, bar: 2, baz: 3 });
 		delete window.obj;
 	});
+
+	it("can set props w/ array access syntax", function () {
+		var d1 = make("<div _='on click set my style[\"color\"] to \"red\"'>lolwat</div>");
+		d1.click();
+		d1.style.color.should.equal("red");
+	});
+
+	it("can set props w/ array access syntax and var", function () {
+		var d1 = make("<div _='on click set foo to \"color\" then set my style[foo] to \"red\"'>lolwat</div>");
+		d1.click();
+		d1.style.color.should.equal("red");
+	});
+
+
+	it("can set arrays w/ array access syntax", function () {
+		var d1 = make("<div _='on click set arr to [1, 2, 3] set arr[0] to \"red\" set my *color to arr[0]'>lolwat</div>");
+		d1.click();
+		d1.style.color.should.equal("red");
+	});
+
+	it("can set arrays w/ array access syntax and var", function () {
+		var d1 = make("<div _='on click set arr to [1, 2, 3] set idx to 0 set arr[idx] to \"red\" set my *color to arr[0]'>lolwat</div>");
+		d1.click();
+		d1.style.color.should.equal("red");
+	});
+
 });

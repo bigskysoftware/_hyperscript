@@ -592,7 +592,7 @@ export default _hyperscript => {
 	});
 
 	function putInto(runtime, context, prop, valueToPut) {
-		if (prop) {
+		if (prop != null) {
 			var value = runtime.resolveSymbol(prop, context);
 		} else {
 			var value = context;
@@ -601,7 +601,7 @@ export default _hyperscript => {
 			while (value.firstChild) value.removeChild(value.firstChild);
 			value.append(_hyperscript.internals.runtime.convertValue(valueToPut, "Fragment"));
 		} else {
-			if (prop) {
+			if (prop != null) {
 				runtime.setSymbol(prop, context, null, valueToPut);
 			} else {
 				throw "Don't know how to put a value into " + typeof context;
@@ -628,10 +628,16 @@ export default _hyperscript => {
 
 			var operation = operationToken.value;
 
+			var arrayIndex = false;
 			var symbolWrite = false;
 			var rootExpr = null;
 			var prop = null;
-			if (target.prop && target.root && operation === "into") {
+
+			if (target.type === "arrayIndex" && operation === "into") {
+				arrayIndex = true;
+				prop = target.prop;
+				rootExpr = target.root;
+			}  else if (target.prop && target.root && operation === "into") {
 				prop = target.prop.value;
 				rootExpr = target.root;
 			} else if (target.type === "symbol" && operation === "into") {
@@ -659,8 +665,8 @@ export default _hyperscript => {
 				operation: operation,
 				symbolWrite: symbolWrite,
 				value: value,
-				args: [rootExpr, value],
-				op: function (context, root, valueToPut) {
+				args: [rootExpr, prop, value],
+				op: function (context, root, prop, valueToPut) {
 					if (symbolWrite) {
 						putInto(runtime, context, prop, valueToPut);
 					} else {
@@ -674,6 +680,8 @@ export default _hyperscript => {
 								runtime.implicitLoop(root, function (elt) {
 									elt.style[prop] = valueToPut;
 								});
+							} else if (arrayIndex) {
+								root[prop] = valueToPut;
 							} else {
 								runtime.implicitLoop(root, function (elt) {
 									putInto(runtime, elt, prop, valueToPut);
