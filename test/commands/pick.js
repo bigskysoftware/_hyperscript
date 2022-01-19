@@ -1,6 +1,8 @@
 describe("the pick command", () => {
   const arr = [10, 11, 12, 13, 14, 15, 16]
 
+  // Array indexing
+
   it("can pick items from an array", () => {
     evalHyperScript(`
       pick items 1 to 3 from arr
@@ -43,6 +45,55 @@ describe("the pick command", () => {
       set $test to it`, { arr });
 
     window.$test.should.deep.equal([10, 11, 12]);
+    delete window.$test;
+  })
+
+  // String indexing
+
+  const str = "abcdefghijklmnopqrstuvwxyz"
+
+  it("can pick items from a string", () => {
+    evalHyperScript(`
+      pick items 1 to 3 from str
+      set $test to it`, { str });
+
+    window.$test.should.equal("bc");
+    delete window.$test;
+  })
+
+  it("can pick a single item from a string", () => {
+    evalHyperScript(`
+      pick item 2 from str
+      set $test to it`, { str });
+
+    window.$test.should.equal("c");
+    delete window.$test;
+  })
+
+  it("can use 'end' when picking items from a string", () => {
+    evalHyperScript(`
+      pick item 4 to end from str
+      set $test to it`, { str });
+
+    window.$test.should.equal("efghijklmnopqrstuvwxyz");
+    delete window.$test;
+  })
+
+  it("can use 'start' when picking items from a string", () => {
+    evalHyperScript(`
+      pick items start to 3 from str
+      set $test to it`, { str });
+
+    window.$test.should.equal("abc");
+    delete window.$test;
+  })
+
+  it("can use negative indices when picking items from a string", () => {
+    evalHyperScript(`
+      pick items 0 to -4 from str
+      set $test to it`, { str });
+
+    window.$test.should.equal("abcdefghijklmnopqrstuv");
     delete window.$test;
   })
 })
