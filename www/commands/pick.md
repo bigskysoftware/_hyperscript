@@ -4,6 +4,9 @@
 This command has several forms:
 
 - [`item` | `items`](#pick-items)
+- [`character` | `characters`](#pick-characters)
+- [`match`](#pick-match)
+- [`matches`](#pick-matches)
 
 ### Pick Items {#pick-items}
 
@@ -42,7 +45,7 @@ You can use the keywords `start` or `end` for <var>start</var> and
   --      it = [10, 11, 12, 13, 14, 15]
   ~~~
 
-### Pick Characters
+### Pick Characters {#pick-characters}
 
 #### Syntax
 
@@ -54,7 +57,7 @@ You can use the keywords `start` or `end` for <var>start</var> and
 
 Same as [`pick items`](#pick-items), but for strings, using `String.slice`.
 
-### Pick Match
+### Pick Match {#pick-match}
 
 #### Syntax
 
@@ -72,7 +75,7 @@ Selects the first match for the <var>regex</var> in the <var>string</var>.
   log it[1] -- "quick"
   ~~~
 
-### Pick Matches
+### Pick Matches {#pick-matches}
 
 #### Syntax
 
