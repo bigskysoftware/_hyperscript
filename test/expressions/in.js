@@ -70,4 +70,11 @@ describe("the in expression", function () {
 		div.getAttribute("result").should.equal('p1');
 	});
 
+	it("in expression binds to unaryOperators", function () {
+		var div = make("<div id='d2'><p class='foo'>bar</p><p></p></div>");
+		var result = evalHyperScript("the innerText of the first <p.foo/> in #d2 is 'bar'");
+		result.should.equal(true);
+	});
+
+
 });

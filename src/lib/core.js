@@ -2847,7 +2847,7 @@ var _runtime = (function () {
 
 	_parser.addIndirectExpression("of", function (parser, runtime, tokens, root) {
 		if (!tokens.matchToken("of")) return;
-		var newRoot = parser.requireElement("expression", tokens);
+		var newRoot = parser.requireElement("unaryExpression", tokens);
 		// find the urroot
 		var childOfUrRoot = null;
 		var urRoot = root;
@@ -2956,7 +2956,7 @@ var _runtime = (function () {
 
 	_parser.addIndirectExpression("inExpression", function (parser, runtime, tokens, root) {
 		if (!tokens.matchToken("in")) return;
-		var target = parser.requireElement("expression", tokens);
+		var target = parser.requireElement("unaryExpression", tokens);
 		var propertyAccess = {
 			type: "inExpression",
 			root: root,
@@ -3287,6 +3287,7 @@ var _runtime = (function () {
 	});
 
 	_parser.addGrammarElement("unaryExpression", function (parser, runtime, tokens) {
+		tokens.matchToken("the"); // optional "the"
 		return parser.parseAnyOf(
 			["logicalNot", "relativePositionalExpression", "positionalExpression", "noExpression", "negativeNumber", "postfixExpression"],
 			tokens
@@ -3356,7 +3357,7 @@ var _runtime = (function () {
 		if (tokens.matchToken("from")) {
 			tokens.pushFollow("in");
 			try {
-				var from = parser.requireElement("expression", tokens);
+				var from = parser.requireElement("unaryExpression", tokens);
 			} finally {
 				tokens.popFollow();
 			}
@@ -3368,9 +3369,9 @@ var _runtime = (function () {
 		var withinElt;
 		if (tokens.matchToken("in")) {
 			inSearch = true;
-			var inElt = parser.requireElement("expression", tokens);
+			var inElt = parser.requireElement("unaryExpression", tokens);
 		} else if (tokens.matchToken("within")) {
-			withinElt = parser.requireElement("expression", tokens);
+			withinElt = parser.requireElement("unaryExpression", tokens);
 		} else {
 			withinElt = document.body;
 		}
@@ -3927,7 +3928,7 @@ var _runtime = (function () {
 			}
 
 			if (tokens.matchToken("in")) {
-				var inExpr = parser.parseAnyOf(["idRef", "queryRef", "classRef"], tokens);
+				var inExpr = parser.parseElement('unaryExpression', tokens);
 			}
 
 			if (tokens.matchToken("debounced")) {
