@@ -5406,7 +5406,6 @@ var _runtime = (function () {
             parser.raiseParseError(tokens, "Command `continue` cannot be used outside of a `repeat` loop.")
           }
           if (parent.loop != undefined) {
-			  console.log(parent);
 			  return runtime.findNext(parent.parent, context);
           }
         }

@@ -135,7 +135,7 @@ export default _hyperscript => {
 
 		(function recurse (ge) {
 			rv.push(ge);
-			for (const child of ge.children) recurse(rv);
+			if ('children' in ge) for (const child of ge.children) recurse(child);
 		})(ge);
 
 		return rv;
@@ -143,7 +143,7 @@ export default _hyperscript => {
 
 	var ui = `
 <div class="hdb" _="
-	on load trigger update end 
+	on load trigger update end
 	on step from hdb.bus trigger update end
 	on skip from hdb.bus trigger update end
 	on continue from hdb.bus log 'done' then remove me.getRootNode().host">
@@ -171,7 +171,7 @@ export default _hyperscript => {
 	def renderCode
 		set hdb.cmdMap to []
 		set src to hdb.cmd.programSource
-		
+
 		-- Find feature
 		set feat to hdb.cmd
 		repeat until no feat.parent or feat.isFeature set feat to feat.parent end
@@ -305,7 +305,7 @@ export default _hyperscript => {
 				go to bottom of the entry
 				put escapeHTML(input) into .input in the entry
 				if no output
-					call _hyperscript.internals.runtime.parse(input)
+					call hdb._hyperscript.parse(input)
 					if its execute is not undefined then call its execute(hdb.ctx)
 					else call its evaluate(hdb.ctx)
 					end
