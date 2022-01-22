@@ -1154,7 +1154,7 @@ Here is a table of the DOM literals:
 	A <dfn>query literal</dfn> is contained within a `<` and `/>`, returns all elements matching the CSS selector.
 
 `@[[attribute name]]`
-	An <dfn>attribute literal</dfn> starts with an `@` (hence, *at*tribute, get it?) and returns the value of that 
+	An <dfn>attribute literal</dfn> starts with an `@` (hence, *at*tribute, get it?) and returns the value of that
 	attribute.
 
 `*[[style property]]`
@@ -1887,9 +1887,107 @@ directly within a hyperscript body, for local optimizations.
 
 ## Debugging {#debugging}
 
-**Note: The hyperscript debugger is in alpha and, like the rest of the language, is undergoing active development**
+Debugging hyperscript can be done a few different ways.  The simplest and most familiar way for most developers to debug
+ hyperscript is the use of the [`log`](/commands/log) command to log intermediate results.  This is
+the venerable "print debugging":
 
-Hyperscript includes a debugger, [hdb](/hdb), that allows you to debug by inserting `breakpoint` commands in your hyperscript.
+```hyperscript
+get <div.highlighted/> then log the result
+```
+
+This is a reasonable way to start debugging but it is, obviously, fairly primitive.
+
+### Beeping
+
+An annoying aspect of print debugging is that you are often required to extract bits of expressions in order to
+print them out, which can interrupt the flow of code.  Consider this example of hyperscript:
+
+```hyperscript
+  add .highlighted to <p/> in <div.hilight/>
+```
+
+If this wasn't behaving as you expect and you wanted to debug the results, you might break it up like so:
+
+```hyperscript
+  set highlightDiv to <div.hilight/>
+  log highlightDiv
+  set highlightParagraphs to <p/> in highlightDiv
+  log highlightParagraphs
+  add .highlighted to highlightParagraphs
+```
+
+This is a fairly violent code change and it obscures what the actual logic is.
+
+To avoid this, hyperscript offers a [`beep!`](/expressions/beep) operator.  The `beep!` operator can be thought of
+as a pass-through expression: it simply passes the value of whatever expression comes afterwards through unmodified.
+
+However, along the way, it logs the following information to the console:
+
+* The source code of the expression
+* The value of the expression
+* The type of the expressions
+
+So, considering the above code, rather than breaking things up, we might just try this:
+
+```hyperscript
+  add .highlighted to <p/> in beep! <div.hilight/>
+```
+
+Here we have added a `beep!` just before the `<div.hilight/>` expression.  Now when the code runs
+we will see the following in the console:
+
+```
+///_ BEEP! The expression 'the <div.foo/>' evaluates to: ElementCollection {_css: "div.hilight", ...} of type ElementCollection
+```
+
+You can see the expressions source, it's value (which you can right click on and assign to a temporary value to work
+with in most browsers) as well as the type of the value.  All of this had no effect on the evaluation of the expression
+or statement.
+
+Let's store the `ElementCollection` as a temporary value, `temp1`.
+
+We could now move the `beep!` out to the `in` expression like so:
+
+```hyperscript
+  add .highlighted to beep! <p/> in <div.hilight/>
+```
+
+And we might see results like this:
+
+```
+///_ BEEP! The expression (<p/> in <div.hilight/>) evaluates to: [] of type Array
+```
+
+Seeing this, we realize that no paragraphs elements are being returned by the `in` expression, which is why the class is
+ not being added to them.
+
+In the console we check the length of the original `ElementCollection`:
+
+```
+> temp1.length
+0
+```
+
+And, sure enough, the length is zero.  On inspecting the divs in question, it turns out we had misspelled the class name
+`hilight` rather than `highlight`.
+
+After making the fix, we can remove the `beep!` (which is *obviously* not supposed to be there!):
+
+```hyperscript
+  add .highlighted to <p/> in <div.highlight/>
+```
+
+And things work as expected.
+
+As you can see, `beep!` allows us to do much more sophisticated print debugging, while not disrupting code nearly as
+drastically as traditional print debugging would require.
+
+### HDB - The Hyperscript Debugger
+
+An even more sophisticated debugging technique is to use [hdb](/hdb), the Hyperscript Debugger, which allows you to
+debug by inserting `breakpoint` commands in your hyperscript.
+
+**Note: The hyperscript debugger is in alpha and, like the rest of the language, is undergoing active development**
 
 To use it you need to include the `lib/hdb.js` file. You can then add `breakpoint` commands in your hyperscript
 to trigger the debugger.
@@ -2008,4 +2106,4 @@ event oriented and made DOM scripting efficient and fun.  I had programmed in [H
 
 And here we are.  I hope you find the language useful, or, at least, funny.  :)
 
-</div>
+</div.highlighted>

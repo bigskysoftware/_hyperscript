@@ -728,6 +728,9 @@ var _lexer = (function () {
 			       isIdentifierChar(currentChar())) {
 				value += consumeChar();
 			}
+			if (currentChar() === "!" && value === "beep") {
+				value += consumeChar();
+			}
 			identifier.value = value;
 			identifier.end = position;
 			return identifier;
@@ -2989,11 +2992,7 @@ var _runtime = (function () {
 						});
 					});
 				}
-				if (returnArr.length > 0) {
-					return returnArr;
-				} else {
-					return null;
-				}
+				return returnArr;
 			},
 			evaluate: function (context) {
 				return runtime.unifiedEval(this, context);
@@ -3289,9 +3288,41 @@ var _runtime = (function () {
 	_parser.addGrammarElement("unaryExpression", function (parser, runtime, tokens) {
 		tokens.matchToken("the"); // optional "the"
 		return parser.parseAnyOf(
-			["logicalNot", "relativePositionalExpression", "positionalExpression", "noExpression", "negativeNumber", "postfixExpression"],
+			["beepExpression", "logicalNot", "relativePositionalExpression", "positionalExpression", "noExpression", "negativeNumber", "postfixExpression"],
 			tokens
 		);
+	});
+
+	_parser.addGrammarElement("beepExpression", function (parser, runtime, tokens) {
+		if (!tokens.matchToken("beep!")) return;
+		var expression = parser.parseElement("unaryExpression", tokens);
+		if (expression) {
+			expression.booped = true;
+			var originalEvaluate = expression.evaluate;
+			expression.evaluate = function(ctx){
+				let value = originalEvaluate.apply(expression, arguments);
+				let element = ctx.me;
+				if (runtime.triggerEvent(element, "hyperscript:beep", {element, expression, value})) {
+					var typeName;
+					if (value) {
+						if (value.constructor) {
+							typeName = value.constructor.name;
+						} else {
+							typeName = "unknown";
+						}
+					} else {
+						typeName = "object (null)"
+					}
+					var logValue = value;
+					if (typeName === "String") {
+						logValue = '"' + logValue + '"';
+					}
+					console.log("///_ BEEP! The expression (" + expression.sourceFor().substr(6) + ") evaluates to:", logValue,  "of type " + typeName);
+				}
+				return value;
+			}
+			return expression;
+		}
 	});
 
 	var scanForwardQuery = function(start, root, match, wrap) {
