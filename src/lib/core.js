@@ -2271,6 +2271,7 @@ var _runtime = (function () {
 		typeCheck,
 		forEach,
 		implicitLoop,
+		shouldAutoIterate,
 		triggerEvent,
 		matchesSelector,
 		getScript,

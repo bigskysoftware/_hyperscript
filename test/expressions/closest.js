@@ -86,4 +86,18 @@ describe("the closest expression", function () {
 		d1.click();
 		div.getAttribute("foo").should.equal("doh");
 	});
+
+	it("returns an array where appropriate", function () {
+		var div = make("<div id='d2' class='bar'><div id='d1' class='foo' _='on click add .doh to closest .bar to .foo'></div></div>" +
+			"                  <div id='d3' class='bar'><div class='foo'></div></div>");
+		var d1 = byId("d1");
+		var d2 = byId("d2");
+		var d3 = byId("d3");
+		d2.classList.contains("doh").should.equal(false);
+		d3.classList.contains("doh").should.equal(false);
+		d1.click();
+		d2.classList.contains("doh").should.equal(true);
+		d3.classList.contains("doh").should.equal(true);
+	});
+
 });

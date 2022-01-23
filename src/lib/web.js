@@ -1026,15 +1026,22 @@ export default _hyperscript => {
 				to: to,
 				args: [to],
 				op: function (ctx, to) {
-					if (to == null || !(to instanceof Element)) {
+					if (to == null) {
 						return null;
 					} else {
-						if (parentSearch) {
-							var node = to.parentElement ? to.parentElement.closest(css) : null;
+						let result = [];
+						runtime.implicitLoop(to, function(to){
+							if (parentSearch) {
+								result.push(to.parentElement ? to.parentElement.closest(css) : null);
+							} else {
+								result.push(to.closest(css));
+							}
+						})
+						if (runtime.shouldAutoIterate(to)) {
+							return result;
 						} else {
-							var node = to.closest(css);
+							return result[0];
 						}
-						return node;
 					}
 				},
 				evaluate: function (context) {
