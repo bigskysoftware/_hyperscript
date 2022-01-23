@@ -739,7 +739,44 @@ The [`append`](/commands/append) command can append content to strings (as well 
     log it           -- log it to the console
   ~~~
 
-### <a name=calling-functions></a> [Calling Functions](#calling-functions)
+### Conversions {#conversions}
+
+To convert values between different types, hyperscript has an [`as` operator](/expressions/as):
+
+{% example "Converting Values" %}
+<button _="on click
+               get the (value of the next <input/>) as an Int
+               increment it
+               put it into the next <output/>">
+  Add 1 To :
+</button>
+<input/>
+<output>--</output>
+{% endexample %}
+
+Here we get the input value, which is a String, and we convert it to an Integer.  Note that we need to use parenthesis
+to ensure that the `as` expression does not bind too tightly.
+
+We then increment the number and put it into the next `output` element.
+
+Out of the box hyperscript offers a number of useful conversions:
+
+* `Array` - convert to Array
+* `Date` - convert to Date
+* `Float` - convert to float
+* `Fragment` - converts a string into an HTML Fragment
+* `HTML` - converts NodeLists and arrays to an HTML string
+* `Int` - convert to integer
+* `JSON` - convert to a JSON String
+* `Number` - convert to number
+* `Object` - convert from a JSON String
+* `String` - convert to String
+* `Values` - converts a Form (or other element) into a struct containing its input names/values
+* `Fixed<:N>` - convert to a fixed precision string representation of the number, with an optional precision of `N`
+
+You can also add your own conversions to the language as well.
+
+### Calling Functions {#calling-functions}
 
 There are many ways to invoke functions in hyperscript.  Two commands let you invoke a function and automatically
 assign the result to the `result` variable: [`call`](/commands/call) and [`get`](/commands/get):

@@ -1,6 +1,16 @@
 ## TODOs
 
 ### 0.9.x release
+* Allow `window` to work w/ `go` cmd
+* Allow offset w/ `go`:
+  ```hyperscript
+  go to the top of the window + 10px
+  ```
+* Fix `closest` to work w/ array roots
+* ~~Document conversion expressions~~
+* better `beep!` support w/ `ElementCollection` (show values)
+* add `when` clause to add command
+* `JSONValues`, `FormValues` & `FormDataValues` conversions
 
 ### Language Features
 * support `\.` shorthand syntax for `\ x -> x.`
