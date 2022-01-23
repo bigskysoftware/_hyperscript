@@ -1133,7 +1133,11 @@ export default _hyperscript => {
 		}
 	});
 
-	_hyperscript.config.conversions["Values"] = function (/** @type {Node | NodeList} */ node) {
+	_hyperscript.config.conversions.dynamicResolvers.push(function (str, node) {
+		if (!(str === "Values" || str.indexOf("Values:") === 0)) {
+			return;
+		}
+		var conversion = str.split(":")[1];
 		/** @type Object<string,string | string[]> */
 		var result = {};
 
@@ -1155,7 +1159,17 @@ export default _hyperscript => {
 			}
 		});
 
-		return result;
+		if (conversion) {
+			if (conversion === "JSON") {
+				return JSON.stringify(result);
+			} else if (conversion === "Form") {
+				return new URLSearchParams(result).toString();
+			} else {
+				throw "Unknown conversion: " + conversion;
+			}
+		} else {
+			return result;
+		}
 
 		/**
 		 * @param {HTMLInputElement} node
@@ -1221,7 +1235,7 @@ export default _hyperscript => {
 				return undefined;
 			}
 		}
-	};
+	});
 
 	_hyperscript.config.conversions["HTML"] = function (value) {
 		var toHTML = /** @returns {string}*/ function (/** @type any*/ value) {

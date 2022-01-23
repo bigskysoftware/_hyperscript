@@ -17,7 +17,7 @@ describe("the in expression", function () {
 		result.should.deep.equal([1, 3]);
 
 		var result = evalHyperScript("[4, 5, 6] in [1, 2, 3]");
-		should.equal(result, null);
+		result.should.deep.equal([]);
 	});
 
 	it("basic query return values", function () {

@@ -289,7 +289,7 @@ describe("as operator", function () {
 		result.lastChild.tagName.should.equal("P");
 	});
 
-	it("can accept custom comversions", function () {
+	it("can accept custom conversions", function () {
 		_hyperscript.config.conversions["Foo"] = function (val) {
 			return "foo" + val;
 		};
@@ -298,15 +298,45 @@ describe("as operator", function () {
 		delete _hyperscript.config.conversions.Foo;
 	});
 
-	it("can accept custom dynamic comversions", function () {
-		_hyperscript.config.conversions.dynamicResolvers.push(function (conversion, val) {
+	it("can accept custom dynamic conversions", function () {
+		let myConversion = function (conversion, val) {
 			if (conversion.indexOf("Foo:") === 0) {
 				var arg = conversion.split(":")[1];
 				return arg + val;
 			}
-		});
+		};
+		_hyperscript.config.conversions.dynamicResolvers.push(myConversion);
 		var result = evalHyperScript("1 as Foo:Bar");
 		result.should.equal("Bar1");
-		_hyperscript.config.conversions.dynamicResolvers = [];
+		_hyperscript.config.conversions.dynamicResolvers.pop();
 	});
+
+	it("converts a form element into Values JSON", function () {
+		var node = document.createElement("form");
+		node.innerHTML = `
+            <input name="firstName" value="John"><br>
+            <input name="lastName" value="Connor"><br>
+            <div>
+                <input name="areaCode" value="213">
+                <input name="phone" value="555-1212">
+            </div>`;
+
+		var result = evalHyperScript("x as Values:JSON", { x: node });
+		result.should.equal('{"firstName":"John","lastName":"Connor","areaCode":"213","phone":"555-1212"}');
+	});
+
+	it("converts a form element into Values Form Data", function () {
+		var node = document.createElement("form");
+		node.innerHTML = `
+            <input name="firstName" value="John"><br>
+            <input name="lastName" value="Connor"><br>
+            <div>
+                <input name="areaCode" value="213">
+                <input name="phone" value="555-1212">
+            </div>`;
+
+		var result = evalHyperScript("x as Values:Form", { x: node });
+		result.should.equal('firstName=John&lastName=Connor&areaCode=213&phone=555-1212');
+	});
+
 });
