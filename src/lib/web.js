@@ -1086,10 +1086,10 @@ export default _hyperscript => {
 						window.history.back();
 					} else if (url) {
 						if (to) {
-							if (to.indexOf("#") === 0 && !newWindow) {
-								window.location.href = to;
+							if (newWindow) {
+								window.open(to);
 							} else {
-								window.open(to, newWindow ? "_blank" : null);
+								window.location.href = to;
 							}
 						}
 					} else {
