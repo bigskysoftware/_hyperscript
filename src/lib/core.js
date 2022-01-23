@@ -3316,6 +3316,8 @@ var _runtime = (function () {
 					var logValue = value;
 					if (typeName === "String") {
 						logValue = '"' + logValue + '"';
+					} else if (value instanceof ElementCollection) {
+						logValue = Array.from(value);
 					}
 					console.log("///_ BEEP! The expression (" + expression.sourceFor().substr(6) + ") evaluates to:", logValue,  "of type " + typeName);
 				}

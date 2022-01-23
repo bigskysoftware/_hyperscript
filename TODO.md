@@ -8,9 +8,9 @@
   ```
 * Fix `closest` to work w/ array roots
 * ~~Document conversion expressions~~
-* better `beep!` support w/ `ElementCollection` (show values)
+* ~~better `beep!` support w/ `ElementCollection` (show values)~~
 * add `when` clause to add command
-* `JSONValues`, `FormValues` & `FormDataValues` conversions
+* `Values:JSON`, `Values:Form` & `Values:FormData` conversions
 
 ### Language Features
 * support `\.` shorthand syntax for `\ x -> x.`
