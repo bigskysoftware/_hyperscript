@@ -115,7 +115,7 @@ If you postfix the event with `queue` you may pick from one of four strategies:
 - `first` - The first event that arrives will be queued, all others will be dropped
 - `last` - The last event that arrives will be queued, all others will be dropped
 
-`queued last` is the default behavior
+`queue last` is the default behavior
 
 ### <a name="exceptions"></a>[Exceptions](#exceptions)
 
