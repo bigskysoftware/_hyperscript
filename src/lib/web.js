@@ -91,6 +91,13 @@ export default _hyperscript => {
 				var toExpr = parser.requireElement("implicitMeTarget", tokens);
 			}
 
+			if (tokens.matchToken("when")) {
+				if (cssDeclaration) {
+					parser.raiseParseError(tokens, "Only class and properties are supported with a when clause")
+				}
+				var when = parser.requireElement("expression", tokens);
+			}
+
 			if (classRefs) {
 				return {
 					classRefs: classRefs,
@@ -100,7 +107,18 @@ export default _hyperscript => {
 						runtime.nullCheck(to, toExpr);
 						runtime.forEach(classRefs, function (classRef) {
 							runtime.implicitLoop(to, function (target) {
-								if (target instanceof Element) target.classList.add(classRef.className);
+								if (when) {
+									context['result'] = target;
+									let whenResult = runtime.evaluateNoPromise(when, context);
+									if (whenResult) {
+										if (target instanceof Element) target.classList.add(classRef.className);
+									} else {
+										if (target instanceof Element) target.classList.remove(classRef.className);
+									}
+									context['result'] = null;
+								} else {
+									if (target instanceof Element) target.classList.add(classRef.className);
+								}
 							});
 						});
 						return runtime.findNext(this, context);
@@ -115,7 +133,18 @@ export default _hyperscript => {
 					op: function (context, to, attrRef) {
 						runtime.nullCheck(to, toExpr);
 						runtime.implicitLoop(to, function (target) {
-							target.setAttribute(attributeRef.name, attributeRef.value);
+							if (when) {
+								context['result'] = target;
+								let whenResult = runtime.evaluateNoPromise(when, context);
+								if (whenResult) {
+									target.setAttribute(attributeRef.name, attributeRef.value);
+								} else {
+									target.removeAttribute(attributeRef.name);
+								}
+								context['result'] = null;
+							} else {
+								target.setAttribute(attributeRef.name, attributeRef.value);
+							}
 						});
 						return runtime.findNext(this, context);
 					},

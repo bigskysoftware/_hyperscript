@@ -98,4 +98,24 @@ describe("the add command", function () {
 		div.click();
 		div.classList.contains("foo:bar-doh").should.equal(true);
 	});
+
+	it("can filter class addition via the when clause", function () {
+		var div1 = make("<div _='on click add .rey to .bar when it matches .doh'></div>");
+		var div2 = make("<div class='bar'></div>");
+		var div3 = make("<div class='bar doh'></div>");
+		div1.click();
+		div2.classList.contains("rey").should.equal(false);
+		div3.classList.contains("rey").should.equal(true);
+	});
+
+	it("can filter property addition via the when clause", function () {
+		var div1 = make("<div _='on click add @rey to .bar when it matches .doh'></div>");
+		var div2 = make("<div class='bar'></div>");
+		var div3 = make("<div class='bar doh'></div>");
+		div1.click();
+		div2.hasAttribute("rey").should.equal(false);
+		div3.hasAttribute("rey").should.equal(true);
+	});
+
+
 });
