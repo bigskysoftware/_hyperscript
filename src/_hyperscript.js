@@ -1427,7 +1427,7 @@
          * @returns {value is (any[] | ElementCollection)}
          */
         shouldAutoIterate(value) {
-            return  value[shouldAutoIterateSymbol] ||
+            return value != null && value[shouldAutoIterateSymbol] ||
                 this.isArrayLike(value);
         }
 
@@ -4168,6 +4168,11 @@
                             // OK NO PROMISE
     
                             var eventName = eventSpec.on;
+                            if (target == null) {
+                              console.warn("'%s' feature ignored because target does not exists:", displayName, elt);
+                              return;
+                            }
+                            
                             if (eventSpec.mutationSpec) {
                                 eventName = "hyperscript:mutation";
                                 const observer = new MutationObserver(function (mutationList, observer) {
