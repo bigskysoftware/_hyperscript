@@ -63,6 +63,7 @@ experiences without callback hell
 [Companion of **htmx**](https://htmx.org) |
 [**Comparison** with VanillaJS & jQuery](/comparison) |
 [Read the **docs**](/docs) |
+[Cheatsheet](/hyperscript_cheatsheet.pdf) 
 [Try it on the **playground**](/playground)
 
  <span id='install'>Install: `<script src="https://unpkg.com/hyperscript.org@0.9.4"></script>`
