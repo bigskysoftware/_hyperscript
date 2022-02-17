@@ -65,7 +65,7 @@ experiences without callback hell
 [Read the **docs**](/docs) |
 [Try it on the **playground**](/playground)
 
- <span id='install'>Install: `<script src="https://unpkg.com/hyperscript.org@0.9.4"></script>`
+ <span id='install'>Install: `<script src="https://unpkg.com/hyperscript.org@0.9.5"></script>`
 <button style="font:inherit;font-size:.8em;background:#3465a4;color:white;border:none;padding: 0 .4em; border-radius: .4em"
   _="on click
   writeText(my previousElementSibling's innerText) on navigator.clipboard

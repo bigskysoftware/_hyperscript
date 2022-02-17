@@ -24,6 +24,8 @@ By default, hyperscript provides the following conversions:
 * `Object` - convert from a JSON String
 * `String` - convert to String
 * `Values` - converts a Form (or other element) into a struct containing its input names/values
+* `Values:Form` - converts a Form (or other element) into form encoded string
+* `Values:JSON` - converts a Form (or other element) into json encoded string
 * `Fixed<:N>` - convert to a fixed precision string representation of the number, with an optional precision of `N`
 
 Some examples:

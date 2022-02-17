@@ -774,7 +774,7 @@ Out of the box hyperscript offers a number of useful conversions:
 * `Values` - converts a Form (or other element) into a struct containing its input names/values
 * `Fixed<:N>` - convert to a fixed precision string representation of the number, with an optional precision of `N`
 
-You can also add your own conversions to the language as well.
+You can also [add your own conversions](/expressions/as) to the language as well.
 
 ### Calling Functions {#calling-functions}
 
