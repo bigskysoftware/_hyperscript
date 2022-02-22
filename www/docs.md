@@ -1366,7 +1366,7 @@ The `put` command can be used in the following ways:
 	Puts the content at the beginning of the element, using [`Element.prepend`][].
 `put [[content]] at the end of [[element]]`
 	Puts the content at the end of the element, using [`Element.append`][].
-`put [[content]] before [[element]]`
+`put [[content]] after [[element]]`
 	Puts the content in front of the element, using [`Element.after`][].
 {% endsyntaxes %}
 
