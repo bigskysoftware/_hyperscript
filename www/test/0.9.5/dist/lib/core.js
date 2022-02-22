@@ -3306,7 +3306,9 @@ var _runtime = (function () {
 				if (runtime.triggerEvent(element, "hyperscript:beep", {element, expression, value})) {
 					var typeName;
 					if (value) {
-						if (value.constructor) {
+						if (value instanceof ElementCollection){
+							typeName = "ElementCollection";
+						} else if (value.constructor) {
 							typeName = value.constructor.name;
 						} else {
 							typeName = "unknown";
