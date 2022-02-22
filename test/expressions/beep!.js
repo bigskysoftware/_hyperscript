@@ -38,11 +38,14 @@ describe("the beep! expression", function () {
 	});
 
 	it("beeps the result of an ElementCollection", function () {
+		var lastLog = null;
 		withFakeLog(function(){
 			let div = make("<div class='foo' _='on click get beep! .foo'></div>");
 			div.click()
+			lastLog = console.log.lastLog;
 			console.log.lastLog.should.deep.equal(['///_ BEEP! The expression (.foo) evaluates to:', [div], 'of type ElementCollection' ]);
 		})
+		console.log(lastLog);
 	});
 
 	it("can be cancelled", function () {
