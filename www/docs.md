@@ -568,7 +568,7 @@ A small sampling is shown below:
 `[[a]] is not [[b]]`
 	Same as {%syntax "[[a]] != [[b]]"%}.
 `no [[a]]`
-	Same as {%syntax "[[a]] == null or [[a]] == undefined"%}.
+	Same as {%syntax "[[a]] == null or [[a]] == undefined or [[a.length]] == 0"%}.
 `[[element]] matches [[selector]]`
 	Does a CSS test, i.e. `if I match .selected`.
 `[[a]] exists`
