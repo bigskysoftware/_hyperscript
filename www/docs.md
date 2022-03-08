@@ -1274,7 +1274,7 @@ Often you want to find things *within* a particular element.  To do this you can
 Sometimes you wish to find the closest element in a parent hierarchy that matches some selector.  In JavaScript
 you might use the [`closest()` function](https://developer.mozilla.org/en-US/docs/Web/API/Element/closest)
 
-To do this in hhyperscript you can use the [`closest`](/expressions/closest) expression:
+To do this in hyperscript you can use the [`closest`](/expressions/closest) expression:
 
   ~~~ hyperscript
   -- add the class 'highlight' to the closest table row to the current element
