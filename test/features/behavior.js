@@ -87,6 +87,7 @@ describe("the behavior feature", function () {
 						put element's bar["count"] into me
 					end
 				end
+			</script>
 			`);
 		var div = make("<div _='install Behave'></div>");
 		div.textContent.should.equal("");
