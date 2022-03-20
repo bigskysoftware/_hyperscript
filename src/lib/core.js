@@ -2075,9 +2075,7 @@ var _runtime = (function () {
 				var result = [];
 				for (var component of root) {
 					var componentValue = getter(component, property);
-					if (componentValue) {
-						result.push(componentValue);
-					}
+					result.push(componentValue);
 				}
 				return result;
 			}
