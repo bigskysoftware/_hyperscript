@@ -1,15 +1,20 @@
 
 
-<details id="contents" style="
-  overflow-y: auto; 
-  max-height: 80vh; 
-  max-width: 40ch; 
-  position: fixed; 
-  top: 4.5rem; 
-  margin-left: auto;
-  z-index: 100;
-  box-shadow: 0 .1em .2em var(--faded-fg);
-  ">
+<details id="contents" class="list-of-links " 
+  style="
+    overflow-y: auto; 
+    max-height: 80vh; 
+    max-width: 40ch; 
+    position: sticky; 
+    top: 4.5rem; 
+    margin-left: auto;
+    z-index: 100;
+    box-shadow: 0 .1em .2em var(--faded-fg);
+  "
+  _="
+    on click elsewhere set me.open to false
+  "
+  >
 
 <summary style="position: sticky; top: 0">Table of Contents</summary>
 
