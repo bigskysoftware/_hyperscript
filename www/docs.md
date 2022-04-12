@@ -1,17 +1,21 @@
-<div class="row">
-<div class="2 col nav">
 
-**Contents**
 
-<div id="contents" style="overflow-y: auto; max-height: 90vh">
+<details id="contents" style="
+  overflow-y: auto; 
+  max-height: 80vh; 
+  max-width: 40ch; 
+  position: fixed; 
+  top: 4.5rem; 
+  margin-left: auto;
+  z-index: 100;
+  box-shadow: 0 .1em .2em var(--faded-fg);
+  ">
+
+<summary style="position: sticky; top: 0">Table of Contents</summary>
 
 [[toc]]
 
-</div>
-
-</div>
-
-<div class="10 col" style="padding-bottom: 250px">
+</details>
 
 ## Introduction
 
@@ -2142,5 +2146,3 @@ The more I looked at it, the more I thought that there was a need for a small, d
 event oriented and made DOM scripting efficient and fun.  I had programmed in [HyperTalk](https://en.wikipedia.org/wiki/HyperTalk), the scripting language for [HyperCard](https://en.wikipedia.org/wiki/HyperCard), when I was younger and remembered that it integrated events very well into the language.  So I dug up some old documentation on it and began work on hyperscript, a HyperTalk-derived scripting language for the web.
 
 And here we are.  I hope you find the language useful, or, at least, funny.  :)
-
-</div.highlighted>
