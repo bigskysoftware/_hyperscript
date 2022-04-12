@@ -1,11 +1,12 @@
 ---
 title: ///_hyperscript
 ---
-
+<!doctype html>
 <html lang="en">
 <head>
     <title>{{ title }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://the.missing.style"/>
     <link rel="stylesheet" href="/css/site.css"/>
     <link rel="stylesheet" href="/css/prism-htmx.css"/>
     <script src="https://unpkg.com/prismjs@1.25.0/components/prism-core.min.js"></script>
@@ -17,48 +18,24 @@ title: ///_hyperscript
     <script src="/js/_hyperscript_w9y.min.js"></script>
 </head>
 <body>
-<div class="top-nav">
-    <div class="c">
-        <div class="menu">
-            <div class="logo-wrapper">
-                <a href="/"><img height="36px" src="/img/light_logo.png"></a>
-                <svg onclick="document.getElementById('nav').classList.toggle('show')" class="hamburger" viewBox="0 0 100 80" width="25" height="25" style="margin-bottom:-5px">
-                    <rect width="100" height="20" style="fill:rgb(52, 101, 164)" rx="10"></rect>
-                    <rect y="30" width="100" height="20" style="fill:rgb(52, 101, 164)" rx="10"></rect>
-                    <rect y="60" width="100" height="20" style="fill:rgb(52, 101, 164)" rx="10"></rect>
-                </svg>
-            </div>
-            {% if page.url.indexOf("/examples/") == 0 %}
-            <div id="nav" class="navigation nav"> <!-- don't boost on demo pages, sinon hijacks everything :/ -->
-                {% else %}
-                <div id="nav" class="navigation" hx-boost="true">
-                    {% endif %}
-                    <div class="navigation-items" preload="mouseover">
-                        <div>
-                            <a href="/docs/">docs</a>
-                        </div>
-                        <div>
-                            <a href="/reference/">reference</a>
-                        </div>
-                        <div>
-                            <a href="/cookbook/">cookbook</a>
-                        </div>
-                        <div>
-                            <a href="/talk/">talk</a>
-                        </div>
-                        <div>
-                            <a href="https://github.com/sponsors/bigskysoftware?o=esb">sponsor</a>
-                        </div>
-                    </div>
-                    <div class="github-stars">
-                        <a href="https://github.com/bigskysoftware/_hyperscript">github</a>
-                        <iframe style="margin:auto;" src="https://ghbtns.com/github-btn.html?user=bigskysoftware&repo=_hyperscript&type=star&count=true" frameborder="0" scrolling="0" width="150" height="20" title="Star htmx on GitHub"></iframe>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+<header is="nav-bar" class="">
+    {% if page.url.indexOf("/examples/") == 0 %}
+    <nav id="nav" class="navigation nav"> <!-- don't boost on demo pages, sinon hijacks everything :/ -->
+    {% else %}
+    <nav id="nav" class="navigation" hx-boost="true">
+    {% endif %}
+        <ul role="list" preload="mouseover">
+            <li><a href="/"><img alt="///_hyperscript" src="/img/light_logo.png"></a>
+            <li><a href="/docs/">docs</a>
+            <li><a href="/reference/">reference</a>
+            <li><a href="/cookbook/">cookbook</a>
+            <li><a href="/talk/">talk</a>
+            <li><a href="https://github.com/sponsors/bigskysoftware?o=esb">sponsor</a>
+            <li><a href="https://github.com/bigskysoftware/_hyperscript">github</a>
+            <li><iframe src="https://ghbtns.com/github-btn.html?user=bigskysoftware&repo=_hyperscript&type=star&count=true" frameborder="0" scrolling="0" class="github-stars" style="width:150;height:20;margin:auto" title="Star htmx on GitHub"></iframe>
+        </ul>
+    </nav>
+</header>
 <div class="c content">
     {{ content | safe }}
 </div>
