@@ -68,7 +68,7 @@ experiences without callback hell
  <span id='install'>Install: <input type=text style=display:inline;width:auto readonly value='<script src="https://unpkg.com/hyperscript.org@0.9.5"></script>'>
 <button
   _="on click
-  writeText(my previousElementSibling's innerText) on navigator.clipboard
+  writeText(my previousElementSibling's value) on navigator.clipboard
   put 'copied!' into me
   wait 1s
   put 'copy' into me">copy</button>
@@ -76,15 +76,12 @@ experiences without callback hell
 
 </div>
 
-<small style="color: darkgoldenrod;">
-<b style="font-size: 2em; padding: 4px .2ch 0 0; line-height: 1; float: left">β</b>
 hyperscript is in active development and is working to a 1.0 release. At this
 time, the syntax and core feature set are considered to be reasonably complete.
 Key areas of focus for 1.0 include additional test cases and documentation
 improvements. Please join us at the
 <a style="color: darkgoldenrod;font-weight: bold" href="https://htmx.org/discord">#hyperscript discord channel</a>
-as we push to 1.0! Thank you!</p>
-</small>
+as we push to 1.0! Thank you!
 
  <small><em>NB: because hyperscript relies on
 [promises](https://caniuse.com/?search=Promise) it cannot offer IE11
@@ -102,7 +99,7 @@ compatibility</em></small>
 #intro-to-hyperscript h1 {
   flex: 4 6 18ch;
   margin-right: 2em;
-  font-size: clamp(1.2em, 5vw, 2em);
+  hyphens: auto;
 }
 
 #intro-to-hyperscript #sample {
