@@ -560,7 +560,7 @@ var _lexer = (function () {
 					tokens.push(consumeStyleReference());
 				} else if (isAlpha(currentChar()) || (!inTemplate() && isIdentifierChar(currentChar()))) {
 					tokens.push(consumeIdentifier());
-				} else if (isNumeric(currentChar())) {
+				} else if (isNumeric(currentChar()) || (currentChar() === "-" && isNumeric(nextChar()))) {
 					tokens.push(consumeNumber());
 				} else if (!inTemplate() && (currentChar() === '"' || currentChar() === "`")) {
 					tokens.push(consumeString());
@@ -742,6 +742,9 @@ var _lexer = (function () {
 		function consumeNumber() {
 			var number = makeToken("NUMBER");
 			var value = consumeChar();
+			if (currentChar() === "-" && isNumeric(nextChar())) {
+				value += consumeChar();
+			}
 			while (isNumeric(currentChar())) {
 				value += consumeChar();
 			}

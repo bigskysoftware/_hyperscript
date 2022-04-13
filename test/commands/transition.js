@@ -190,5 +190,15 @@ describe("the transition command", function () {
 		}, 20);
 	});
 
+	it("can transition current element using negative values", function (done) {
+		var div = make("<div style='position: absolute; right: 200px;' " + 
+			"_='on click transition right from 200px to -200px'></div>");
+		div.click();
+		div.style.right.should.equal("200px");
+		setTimeout(function () {
+			div.style.right.should.equal("-200px");
+			done();
+		}, 20);
+	});
 
 });
