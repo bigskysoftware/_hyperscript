@@ -1,22 +1,45 @@
 
 
-<details id="contents" class="list-of-links " 
-  style="
-    overflow-y: auto; 
-    max-height: 80vh; 
-    max-width: 40ch; 
-    position: sticky; 
-    top: 4.5rem; 
-    margin-left: auto;
-    z-index: 100;
-    box-shadow: 0 .1em .2em var(--faded-fg);
-  "
-  _="
-    on click elsewhere set me.open to false
-  "
-  >
+<style>
+#contents {
+  overflow-y: auto; 
+  max-height: 80vh; 
+  width: min(40ch, var(--line-length)); 
+  position: fixed; 
+  bottom: 0;
+  right: var(--gutter-width);
+  margin-left: auto;
+  margin-bottom: 0;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  scrollbar-width: thin;
+  z-index: 100;
+  box-shadow: 0 .1em .2em var(--faded-fg);
+}
 
-<summary style="position: sticky; top: 0">Table of Contents</summary>
+#contents[open] {
+  animation: open 100ms ease-in;
+}
+
+@keyframes open {
+  from { transform: translateY(calc(100% - var(--rhythm))) }
+  to { transform: none }
+}
+</style>
+
+<details id="contents" class="list-of-links " _="
+    on click elsewhere trigger willClose on me
+    on willClose
+      transition my *transform to 'translateY(calc(100% - var(--rhythm)))' using 'all 100ms ease-in'
+      set me.open to false
+      set my *transform to 'none'
+  ">
+
+<summary style="position: sticky; top: 0" _="
+    on click[my parentElement.open]
+      halt the event's default
+      trigger willClose on me
+">Table of Contents</summary>
 
 [[toc]]
 
