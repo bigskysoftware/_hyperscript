@@ -1,14 +1,14 @@
 
 module.exports = function (config) {
     config.addPairedShortcode('example', (content, caption) => {
-        let rv = "<div class='missing-card'><figure style='margin-inline:0'>\n\n"
+        let rv = "<figure class='missing-card'>\n\n"
         if (caption) rv += `<figcaption>Example: ${caption}</figcaption>\n\n`
         else rv += `<figcaption>Example</figcaption>\n\n`
         rv += "  ~~~ html"
         rv += content
         rv += "~~~\n\n"
         rv += content
-        rv += "</figure></div>"
+        rv += "</figure>"
         return rv
     })
 
