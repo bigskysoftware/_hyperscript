@@ -33,6 +33,26 @@
       transition my *transform to 'translateY(calc(100% - var(--rhythm)))' using 'all 100ms ease-in'
       set me.open to false
       set my *transform to 'none'
+    on keydown(key)[document.activeElement matches <#contents a />] from window
+      set a to document.activeElement
+      get null
+      if key is 'ArrowDown'
+        get the next <a /> from a within #contents
+      end
+      if key is 'ArrowUp'
+        get the previous <a /> from a within #contents
+      end
+      if key is 'ArrowRight'
+        get the first <a /> in <ul /> in a's parentElement
+      end
+      if key is 'ArrowLeft'
+        get the first <a /> in (the closest <ul /> to a).parentElement
+      end
+      if it
+        log it
+        halt the event
+        focus() on it
+      end
   ">
 
 <summary style="position: sticky; top: 0" _="
