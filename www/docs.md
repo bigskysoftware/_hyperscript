@@ -105,7 +105,7 @@ OK, let's get started with hyperscript!
 Hyperscript is a dependency-free javascript library that can be included in a web page without any build step:
 
   ~~~ html
-  <script src="https://unpkg.com/hyperscript.org@0.9.4"></script>
+  <script src="https://unpkg.com/hyperscript.org@0.9.5"></script>
   ~~~
 
 After you've done this, you can begin adding hyperscript to elements:
@@ -1306,7 +1306,7 @@ Often you want to find things *within* a particular element.  To do this you can
 Sometimes you wish to find the closest element in a parent hierarchy that matches some selector.  In JavaScript
 you might use the [`closest()` function](https://developer.mozilla.org/en-US/docs/Web/API/Element/closest)
 
-To do this in hhyperscript you can use the [`closest`](/expressions/closest) expression:
+To do this in hyperscript you can use the [`closest`](/expressions/closest) expression:
 
   ~~~ hyperscript
   -- add the class 'highlight' to the closest table row to the current element
