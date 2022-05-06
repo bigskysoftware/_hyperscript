@@ -63,7 +63,8 @@ experiences without callback hell
 [Companion of **htmx**](https://htmx.org) |
 [**Comparison** with VanillaJS & jQuery](/comparison) |
 [Read the **docs**](/docs) |
-[Try it on the **playground**](/playground)
+[Try it on the **playground**](/playground) |
+[Check out the **cheatsheet**](https://denizaksimsek.com/wiki/en/HS%20Cheatsheet)
 
  <span id='install'>Install: `<script src="https://unpkg.com/hyperscript.org@0.9.5"></script>`
 <button style="font:inherit;font-size:.8em;background:#3465a4;color:white;border:none;padding: 0 .4em; border-radius: .4em"
