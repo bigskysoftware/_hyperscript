@@ -1702,7 +1702,10 @@ var _runtime = (function () {
 	function getHyperscriptFeatures(elt) {
 		var hyperscriptFeatures = hyperscriptFeaturesMap.get(elt);
 		if (typeof hyperscriptFeatures === 'undefined') {
-			hyperscriptFeaturesMap.set(elt, hyperscriptFeatures = {});
+			if (elt) {
+				// in some rare cases, elt is null and this line crashes
+				hyperscriptFeaturesMap.set(elt, hyperscriptFeatures = {});
+			}
 		}
 		return hyperscriptFeatures;
 	}
