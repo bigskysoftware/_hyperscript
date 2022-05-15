@@ -73,16 +73,6 @@ body {
     width: 100%;
 }
 
-hr {
-    outline: 0;
-}
-
-.c {
-    width: calc(100% - 2em);
-    max-width: 55em;
-    margin: auto;
-}
-
 /* MENU */
 
 .menu{
@@ -90,7 +80,6 @@ hr {
 }
 
 .github-stars{
-    all: initial;
     max-width:95px;
 }
 
