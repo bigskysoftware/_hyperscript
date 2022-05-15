@@ -1,36 +1,43 @@
 
-
 <style>
+@media (min-width: 768px) {
+  .two-column {
+    display: grid;
+    --gutters: max(var(--gap), calc(var(--gutter-width) / 2));
+    grid-template-columns: var(--gutters) 1fr 3fr var(--gutters);
+    grid-template-areas: '. sidebar main .';
+    width: 100vw;
+    gap: calc(2 * var(--rhythm));
+  
+    position: relative;
+    left: 50%;
+    transform: translateX(-50vw);
+  }
+}
+#contents-container {
+  grid-area: sidebar;
+}
 #contents {
-  overflow-y: auto; 
-  max-height: 80vh; 
-  width: min(40ch, var(--line-length)); 
-  position: fixed; 
-  bottom: 0;
-  right: var(--gutter-width);
-  margin-left: auto;
-  margin-bottom: 0;
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-  scrollbar-width: thin;
-  z-index: 100;
-  box-shadow: 0 .1em .2em var(--faded-fg);
+  position: sticky;
+  top: 1em;
+  max-height: 80vh;
+  overflow: scroll;
 }
-
-#contents[open] {
-  animation: open 100ms ease-in;
+#contents summary {
+  position: sticky;
+  top: 0;
 }
-
-@keyframes open {
-  from { transform: translateY(calc(100% - var(--rhythm))) }
-  to { transform: none }
+#docs-contents {
+  grid-area: main;
+  min-width: 1px; /* https://css-tricks.com/preventing-a-grid-blowout/ */
 }
 </style>
 
-<details id="contents" class="list-of-links " _="
+<div class="two-column full-bleed">
+
+<div id="contents-container"><details open id="contents" class="list-of-links" _="
     on click elsewhere trigger willClose on me
     on willClose
-      transition my *transform to 'translateY(calc(100% - var(--rhythm)))' using 'all 100ms ease-in'
       set me.open to false
       set my *transform to 'none'
     on keydown(key)[document.activeElement matches <#contents a />] from window
@@ -55,7 +62,7 @@
       end
   ">
 
-<summary style="position: sticky; top: 0" _="
+<summary _="
     on click[my parentElement.open]
       halt the event's default
       trigger willClose on me
@@ -63,7 +70,9 @@
 
 [[toc]]
 
-</details>
+</details></div>
+
+<div id="docs-contents">
 
 ## Introduction
 
@@ -2194,3 +2203,7 @@ The more I looked at it, the more I thought that there was a need for a small, d
 event oriented and made DOM scripting efficient and fun.  I had programmed in [HyperTalk](https://en.wikipedia.org/wiki/HyperTalk), the scripting language for [HyperCard](https://en.wikipedia.org/wiki/HyperCard), when I was younger and remembered that it integrated events very well into the language.  So I dug up some old documentation on it and began work on hyperscript, a HyperTalk-derived scripting language for the web.
 
 And here we are.  I hope you find the language useful, or, at least, funny.  :)
+
+</div>
+
+</div>
