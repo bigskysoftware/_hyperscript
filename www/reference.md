@@ -15,7 +15,7 @@
 
 ## <a name='commands'></a>[Commands](#commands)
 
-See also [pseudo-commands](/commands/pseudo-commands.md).
+See also [pseudo-commands](/commands/pseudo-commands/).
 
 {% include commands_table.md %}
 
