@@ -1,24 +1,24 @@
 
-<header id="intro-to-hyperscript">
+<div id="intro-to-hyperscript">
 
 # hyperscript is an easy & approachable language designed for modern front-end web development
 
-<div id="sample">
+<div id="sample" class="basicgrid">
 
 <pre _="
   on mouseenter queue none
     repeat until event mouseleave
       transition #sample-tip's transform to 'translateX(-2ch)' using 'all 500ms ease-out'
-      transition #sample-tip's transform to initial            using 'all 500ms ease-in'
-"><code id="snippet" class="lang-hyperscript">writeText(the #snippet's innerText)
+      transition #sample-tip's transform to initial            using 'all 500ms ease-in'"
+><code id="snippet" class="lang-hyperscript">writeText(the #snippet's innerText)
   into the navigator's clipboard
 put 'copied!' into me
 wait 1s
 put 'copy' into me</code></pre>
 
-<p style="text-align: right">
+<p class="col-0">
 <span id="sample-tip">see it in action &rarr;</span>
-<button class="btn primary" style="margin: auto" _="on click
+<button class="btn primary" _="on click
 writeText(the #snippet's innerText) into the navigator's clipboard
 put 'copied!' into me
 wait 1s
@@ -27,11 +27,11 @@ copy
 </button>
 
 </div>
-</header>
+</div>
 
- <span class="lede">hyperscript makes writing event handlers and highly
+hyperscript makes writing event handlers and highly
 responsive user interfaces easy with a clear, DOM-oriented syntax and by transparently
- handling asynchronous behavior for you &mdash; easier than callbacks, promises, even async/await.</span>
+ handling asynchronous behavior for you &mdash; easier than callbacks, promises, even async/await.
 
 ## features
 
@@ -83,57 +83,13 @@ improvements. Please join us at the
 <a style="color: darkgoldenrod;font-weight: bold" href="https://htmx.org/discord">#hyperscript discord channel</a>
 as we push to 1.0! Thank you!
 
- <small><em>NB: because hyperscript relies on
+<aside class="box warn crowded">
+
+NB: because hyperscript relies on
 [promises](https://caniuse.com/?search=Promise) it cannot offer IE11
-compatibility</em></small>
+compatibility
 
-<style>
-#intro-to-hyperscript {
-  display: flex;
-  position: relative;
-  flex-flow: row wrap;
-  justify-content: stretch;
-  align-items: center;
-}
-
-#intro-to-hyperscript h1 {
-  flex: 4 6 18ch;
-  margin-right: 2em;
-  hyphens: auto;
-}
-
-#intro-to-hyperscript #sample {
-  flex: 1 1 max-content;
-  max-width: 100%;
-}
-
-#sample-tip {
-  display: inline-block;
-}
-
-.lede {
-	font-size: clamp(1.1em, 2vw, 1.2em);
-}
-
-#features-list {
-  column-width: 40ch;
-  column-gap: 2em;
-}
-
-#features-list > * {
-  margin: 0 0 1.4em 0;
-}
-
-#links p {
-  margin: 1.4em 0;
-  display: flex;
-  flex-flow: row wrap;
-  justify-content: center;
-  text-align: center;
-  gap: .2em 2ch;
-}
-
-</style>
+</aside>
 
 ## examples
 

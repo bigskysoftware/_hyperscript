@@ -1,25 +1,6 @@
 
 <style>
-@media (min-width: 768px) {
-  .two-column {
-    display: grid;
-    --gutters: max(var(--gap), calc(var(--gutter-width) / 2));
-    grid-template-columns: var(--gutters) 1fr 3fr var(--gutters);
-    grid-template-areas: '. sidebar main .';
-    width: 100vw;
-    gap: calc(2 * var(--rhythm));
-  
-    position: relative;
-    left: 50%;
-    transform: translateX(-50vw);
-  }
-}
-#contents-container {
-  grid-area: sidebar;
-}
 #contents {
-  position: sticky;
-  top: 1em;
   max-height: 80vh;
   overflow: scroll;
 }
@@ -27,52 +8,25 @@
   position: sticky;
   top: 0;
 }
-#docs-contents {
-  grid-area: main;
-  min-width: 1px; /* https://css-tricks.com/preventing-a-grid-blowout/ */
-}
 </style>
 
-<div class="two-column full-bleed">
 
-<div id="contents-container"><details open id="contents" class="list-of-links" _="
-    on click elsewhere trigger willClose on me
-    on willClose
-      set me.open to false
-      set my *transform to 'none'
-    on keydown(key)[document.activeElement matches <#contents a />] from window
-      set a to document.activeElement
-      get null
-      if key is 'ArrowDown'
-        get the next <a /> from a within #contents
-      end
-      if key is 'ArrowUp'
-        get the previous <a /> from a within #contents
-      end
-      if key is 'ArrowRight'
-        get the first <a /> in <ul /> in a's parentElement
-      end
-      if key is 'ArrowLeft'
-        get the first <a /> in (the closest <ul /> to a).parentElement
-      end
-      if it
-        log it
-        halt the event
-        focus() on it
-      end
-  ">
+<div class="fullbleed pad airy">
 
-<summary _="
-    on click[my parentElement.open]
-      halt the event's default
-      trigger willClose on me
-">Table of Contents</summary>
+<div class="basicgrid colwidth-l">
+
+<nav class="dense col-1 sticky top" aria-label="Table of contents">
+<details open id="contents" class="list-of-links">
+<summary>Table of Contents</summary>
 
 [[toc]]
 
-</details></div>
+</details>
+</nav>
 
-<div id="docs-contents">
+<div id="docs-contents" class="dense col-6">
+
+# hyperscript documentation
 
 ## Introduction
 
@@ -2203,6 +2157,8 @@ The more I looked at it, the more I thought that there was a need for a small, d
 event oriented and made DOM scripting efficient and fun.  I had programmed in [HyperTalk](https://en.wikipedia.org/wiki/HyperTalk), the scripting language for [HyperCard](https://en.wikipedia.org/wiki/HyperCard), when I was younger and remembered that it integrated events very well into the language.  So I dug up some old documentation on it and began work on hyperscript, a HyperTalk-derived scripting language for the web.
 
 And here we are.  I hope you find the language useful, or, at least, funny.  :)
+
+</div>
 
 </div>
 
