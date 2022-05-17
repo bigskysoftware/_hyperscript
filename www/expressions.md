@@ -1,26 +1,14 @@
 
-<div class="row">
-<div class="2 col nav">
+<div class="basicgrid fullbleed pad col-width-l">
+<div class="col-1">
 
 **Contents**
 
-<div id="contents">
-
-* [Introduction](#introduction)
-* [CSS Literals](#css)
-* [Comparisons](#css)
-* [Strings](#strings)
-* [Possessive Expressions](#possessives)
-* [Null Safety](#null-safety)
-* [Array Expansion](#array-expansion)
-* [Blocks](#blocks)
-* [Async Expressions](#async)
-* [Time Expressions](#time)
+[[toc]]
 
 </div>
 
-</div>
-<div class="10 col">
+<div class="col-3">
 
 
 ## <a name="introduction"></a>[Introduction](#introduction)
@@ -414,4 +402,6 @@ DOM tree
 </div>
 ```
 
-</div.header>
+</div>
+
+</div>
