@@ -3,6 +3,7 @@
 #contents {
   max-height: 80vh;
   overflow: scroll;
+  scrollbar-width: thin;
 }
 #contents summary {
   position: sticky;
@@ -142,7 +143,7 @@ In the script above:
 
 All hyperscript scripts are made up of these basic building blocks.
 
-#### Comments
+### Comments
 
 Comments in hyperscript start with the `--` character and go to the end of the line:
   ~~~ hyperscript
@@ -152,7 +153,7 @@ Comments in hyperscript start with the `--` character and go to the end of the l
 
 There is no multi-line comment syntax.
 
-#### Separators
+### Separators
 
 Multiple commands may be optionally separated with a `then`, which acts like a semi-colon in javascript:
 
@@ -197,7 +198,7 @@ The `end` terminator can often be omitted for both features and statements if ei
 
 In practice, `end` is used only when necessary, in order to keep scripts small and neat.
 
-#### Expressions
+### Expressions
 
 Many expressions in hyperscript will be familiar to developers and are based on expressions available in javascript:
 
