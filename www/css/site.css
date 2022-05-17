@@ -85,21 +85,13 @@ body {
     display: block;
     width: 0;
     float: left;
-    opacity: .4;
+    opacity: 0;
     transform: translateX(-1.5ch);
     font-weight: normal;
     text-decoration: none;
 }
-
-.heading-wrapper > a {
-    opacity: 0;
-    font-size: 1.5em;
-    width: 0;
-    transform: translateX(-1ch);
-    float: left;
-}
-    .heading-wrapper:hover > a,
-    .heading-wrapper > a:focus {
+    :hover > .header-anchor,
+    .header-anchor:focus {
         opacity: 1;
     }
 

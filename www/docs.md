@@ -11,11 +11,11 @@
 </style>
 
 
-<div class="fullbleed pad airy">
+<div class="fullbleed pad autodensity">
 
-<div class="basicgrid colwidth-l">
+<div class="basicgrid colwidth-m">
 
-<nav class="dense col-1 sticky top" aria-label="Table of contents">
+<nav class="dense col-2 sticky top" aria-label="Table of contents">
 <details open id="contents" class="list-of-links">
 <summary>Table of Contents</summary>
 
