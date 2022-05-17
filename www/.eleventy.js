@@ -1,6 +1,7 @@
 
 const markdownItAttrs = require("markdown-it-attrs");
 const markdownItAnchor = require("markdown-it-anchor");
+const markdownItDeflist = require("markdown-it-deflist");
 module.exports = function(config) {
     config.addPassthroughCopy("css");
     config.addPassthroughCopy("img");
@@ -11,6 +12,7 @@ module.exports = function(config) {
 
     var md = new (require("markdown-it"))({ html: true });
     md.use(markdownItAttrs);
+    md.use(markdownItDeflist);
     md.use(markdownItAnchor, {
         permalink: markdownItAnchor.permalink.ariaHidden({
             symbol: "§",

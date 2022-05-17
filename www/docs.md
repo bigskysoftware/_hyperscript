@@ -15,7 +15,7 @@
 
 <div class="basicgrid colwidth-m">
 
-<nav class="dense col-2 sticky top" aria-label="Table of contents">
+<nav class="dense col-1 sticky top" aria-label="Table of contents">
 <details open id="contents" class="list-of-links">
 <summary>Table of Contents</summary>
 
@@ -24,7 +24,7 @@
 </details>
 </nav>
 
-<div id="docs-contents" class="dense col-6">
+<div id="docs-contents" class="dense col-3">
 
 # hyperscript documentation
 

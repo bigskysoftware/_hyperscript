@@ -75,5 +75,8 @@
     "mocha": "^7.1.1",
     "mocha-chrome": "^2.2.0",
     "sinon": "^9.0.2"
+  },
+  "dependencies": {
+    "markdown-it-deflist": "^2.1.0"
   }
 }
