@@ -22,10 +22,6 @@ body {
     font-weight: bold;
 }
 
-.center {
-    text-align: center;
-}
-
 @media(max-width:45em) {
     pre[class*="language-"]  {
         /* margin-left: calc(50% - 50vw) !important; */
@@ -97,6 +93,7 @@ body {
 
 
 .table-of-contents ul {
+    list-style: none;
     padding-left: 0;
 }
     .table-of-contents ul ul {

@@ -12,9 +12,9 @@
 </style>
 
 
-<div class="fullbleed pad autodensity">
+<div class="fullbleed pad autodensity center">
 
-<div class="basicgrid colwidth-m">
+<div class="basicgrid colwidth-s">
 
 <nav class="dense col-1 sticky top" aria-label="Table of contents">
 <details open id="contents" class="list-of-links">
@@ -25,7 +25,7 @@
 </details>
 </nav>
 
-<div id="docs-contents" class="dense col-3">
+<div id="docs-contents" class="dense col-4 container">
 
 # hyperscript documentation
 
@@ -2158,6 +2158,8 @@ The more I looked at it, the more I thought that there was a need for a small, d
 event oriented and made DOM scripting efficient and fun.  I had programmed in [HyperTalk](https://en.wikipedia.org/wiki/HyperTalk), the scripting language for [HyperCard](https://en.wikipedia.org/wiki/HyperCard), when I was younger and remembered that it integrated events very well into the language.  So I dug up some old documentation on it and began work on hyperscript, a HyperTalk-derived scripting language for the web.
 
 And here we are.  I hope you find the language useful, or, at least, funny.  :)
+
+</div>
 
 </div>
 
