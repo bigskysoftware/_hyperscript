@@ -100,7 +100,7 @@ init
 <button id="inc">Increment</button>
 ```
 
-### <a name="queueing"></a>[Event Queuing](#queueing)
+### Event Queuing
 
 You can control the event queuing behavior of an event handler by using the `every` and `queue` keyword.
 
@@ -117,7 +117,7 @@ If you postfix the event with `queue` you may pick from one of four strategies:
 
 `queued last` is the default behavior
 
-### <a name="exceptions"></a>[Exceptions](#exceptions)
+### Exceptions
 
 If an exception occurs during an event handler, the `exception` event will be triggered on the element, and may
 be handled as a normal event:
@@ -131,7 +131,7 @@ be handled as a normal event:
 </div>
 ```
 
-#### <a name="mutation"></a>[Mutation Events](#mutation)
+#### Mutation Events
 
 Hyperscript includes a few synthetic events that make use of more complex APIs. For example, you can listen for
 mutations on an element with the `on mutation` form. This will use the [Mutation Observer](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver)
@@ -144,7 +144,7 @@ API, but will act more like a regular event handler.
 This div will listen for mutations of the `foo` attribute on this div and, when one occurs, will put the value
 "Mutated" into the element.
 
-#### <a name="intersection"></a>[Intersection Events](#intersection)
+#### Intersection Events
 
 Another synthetic event is the `intersection` event that uses the [Intersection Observer](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API)
 API. Again, hyperscript makes this API feel more event-driven:

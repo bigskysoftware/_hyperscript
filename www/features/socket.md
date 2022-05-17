@@ -44,7 +44,7 @@ You can send messages to the socket by using the normal [`send`](/commands/send)
     send myMessage(foo: "bar", doh: 42) to MySocket
 ```
 
-### <a name='rpc'></a>[RPC](#rpc)
+### RPC
 
 Hyperscript provides a simple RPC mechanism layered on top of websockets. Given the socket definiton above, you can
 make the following call in hyperscript:

@@ -11,7 +11,7 @@
 <div class="col-3">
 
 
-## <a name="introduction"></a>[Introduction](#introduction)
+## Introduction
 
 Expressions in hyperscript are a mix of familiar and new.  Many of the expected operations from javascript are there:
 
@@ -37,12 +37,12 @@ However, once you get past the basics, hyperscript starts to get a little wild.
 
 Let's start with CSS literals.
 
-## <a name="css"></a>[CSS Literals](#css)
+## CSS Literals
 
 Hyperscript gives you the ability to embed CSS literals directly in your code to select elements.  There are four
 main expression types:
 
-### <a name="id-literals">[ID Literals](#id-literals)
+### ID Literals
 
 You can refer to an element by ID directly in hyperscript as follows:
 
@@ -54,7 +54,7 @@ You can refer to an element by ID directly in hyperscript as follows:
 The `#example` is an ID literal and will evaluate to the element with the given id.  Here we put some text into its
 `innerHTML` when the top div is clicked.
 
-### <a name="class-literals">[Class Literals](#class-literals)
+### Class Literals
 
 You can refer to a group of elements by class directly in hyperscript as follows:
 
@@ -68,7 +68,7 @@ The `#example` is an ID literal and will evaluate all the elements with the clas
 text into their `innerHTML` when the top div is clicked.  Note that the [put command](/commands/put) can work with
 collections as well as single values, so it can put the given value into all the returned elements.
 
-### <a name="queries"/>[Query Literals](#queries)
+### Query Literals
 
 You can refer to a group of elements by an arbitrary [CSS selector](https://www.w3schools.com/cssref/css_selectors.asp)
  by enclosing the selector in a `<` and `/>`:
@@ -89,7 +89,7 @@ This example will put "Clicked" into every div on the page!
 
 This example will put "Clicked" into every div that does not have the `example` class on it.
 
-### <a name="attributes">[Attribute Literals](#attributes)
+### Attribute Literals
 
 Finally, you can refer to an attribute with two syntaxes:
 
@@ -138,7 +138,7 @@ The `in` expression isn't a literal, but can be used in conjunction with them fo
 The `in` expression in this case evaluates the query in the given context on the right hand side.  Here we are looking
 up paragraph tags inside the clicked element (`me`) and setting their `innerHTML` to "Clicked!"
 
-## <a name="comparisons"></a>[Comparisons](#comparisons)
+## Comparisons
 
 In addition to the typical comparison operators, such as `==` and `!=`, hyperscript supports the following natural
 language aliases
@@ -168,7 +168,7 @@ following forms:
   it does not contain <:focus/>
 ```
 
-## <a name="strings"></a>[Strings](#strings)
+## Strings
 
 Strings are similar to javascript, and can start with `"` or `'`.
 
@@ -197,7 +197,7 @@ Javascript string templates are supported by using the same syntax, enclosing ba
 </button>
 ```
 
-## <a name="possessives"></a>[Possessive Expressions](#possessives)
+## Possessive Expressions
 
 The possessive expression is an expression that starts with `my` or `its` or a symbol followed by a `'s' and that is
 roughly the equivalent of a property acesss
@@ -225,7 +225,7 @@ You may also access and set DOM attributes using the possessive with attribute l
 </div>
 
 
-## <a name="conversions"></a>[Conversions](#conversions)
+## Conversions
 
 Hyperscript centralizes conversions into a single construct, the `as` expression:
 
@@ -243,11 +243,11 @@ Out of the box hyperscript provides the following conversions:
 * `Number` - converts to a number
 * `Date` - converts to a date
 
-## <a name="null-safety"></a>[Null Safety](#null-safety)
+## Null Safety
 
 The `.` operator in hyperscript is null safe, so `elt.parent` will evaluate to `null` if `elt` is null
 
-## <a name="array-expansion"></a>[Array Expansion](#array-expansion)
+## Array Expansion
 
 Properties on arrays, except for `length`, are expanded via a [flat map](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flatMap)
 
@@ -257,7 +257,7 @@ Properties on arrays, except for `length`, are expanded via a [flat map](https:/
   set divChildren to divs.children        -- get all children of those divs
 ```
 
-## <a name="blocks"></a>[Blocks](#blocks)
+## Blocks
 
 Hyperscript does not have anonymous functions or complex arrow functions.  Because hyperscript is [async transparent](/docs#async)
 complicated callbacks are generally not necessary.
@@ -272,7 +272,7 @@ syntax:
 
 Blocks start with a backslash, followed by args, then an `->` and then an expression value.
 
-## <a name="async"></a>[Async](#async)
+## Async
 
 By default, hyperscript synchronizes on any [Promises](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise)
 that go through its runtime.  Consider the following code:
@@ -305,7 +305,7 @@ somewhere else.  To do this, you can use the `async` prefix for the expression
 Here we pass the promise returned by `waitThenReturn10()` out to `handleAPromise()`, *as* a Promise, rather than resolving
 it.
 
-## <a name="time"></a>[Time Expressions](#time)
+## Time Expressions
 
 In a few places in the hyperscript grammar you can use "time expressions", which are just natural ways to specify
 a time interval.  The [wait command](/commands/wait) is one such place:
@@ -326,7 +326,7 @@ You can use the following formats for time expressions:
 Note that a space between the number and modifier are not necessary, and that the `ms` modifier is just for clarity
 since milliseconds is the normal interpretation for things like `setTimeout()`, which the wait command is based on.
 
-## <a name="time"></a>[Of Expressions](#of)
+## Of Expressions
 
 The [`of`](/expressions/of) expression allows you to reverse the normal object oriented syntax and write logic in more natural english
 
@@ -344,7 +344,7 @@ Can be rewritten like this:
   </button>
 ```
 
-## <a name="closest"></a>[Closest Expressions](#closest)
+## Closest Expressions
 
 The [`closest`](/expressions/closest) expression allows you to find the closest match of a CSS selector
 
@@ -377,7 +377,7 @@ element:
 </div>
 ```
 
-## <a name="positional"></a>[Positional Expressions](#positional)
+## Positional Expressions
 
 The [positional expressions](/expressions/positional/), `first`, `last` and `random`  allows you to get the
 first, last or a random element from an array-like object
@@ -389,7 +389,7 @@ first, last or a random element from an array-like object
 </div>
 ```
 
-## <a name="relative-positional"></a>[Relative Positional Expressions](#relative-positional)
+## Relative Positional Expressions
 
 The [relative positional expressions](/expressions/relative-positional/), `next` and `previous`  allows you refer to the
 next or previous element of a given type within a linear, depth first forward or backward scan of the elements in the
