@@ -711,7 +711,7 @@ conversions and, therefore, can be used with numbers stored in attributes on the
   ~~~ hyperscript
   on click
      increment @data-counter
-     if @data-counter as Integer is greater than 4
+     if @data-counter as Int is greater than 4
        add @disabled -- disable after the 5th click
   ~~~
 
