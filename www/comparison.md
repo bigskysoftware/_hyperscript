@@ -20,11 +20,11 @@ Both the VanillaJS and JQuery verisons will often require callbacks, making for 
 * [Fade And Remove](#fade-and-remove)
 * [Fetch And Insert](#fetch-and-insert)
 * [Debounced Input](#debounced-input)
-* [Toggle A Class](#toggle-class)
+* [Toggle A Class](#toggle-a-class)
 * [Trigger An Event](#trigger-an-event)
-* [Show An Element](#show-element)
+* [Show An Element](#show-an-element)
 
-## <a name='fade-and-remove'>[Fade And Remove](#fade-and-remove)
+## Fade And Remove
 
 Pattern: fade and remove an element after it is clicked
 
@@ -131,7 +131,7 @@ $(function(){
   Remove Me
 </div>
 
-## <a name='fetch-and-insert'>[Fetch And Insert](#fetch-and-insert)
+## Fetch And Insert
 
 Pattern: fetch some data and insert it into an element
 
@@ -211,7 +211,7 @@ $(function(){
 </button>
 <div id="fetch-target-3"></div>
 
-## <a name='debounced-input'>[Debounced Input](#debounced-input)
+## Debounced Input
 
 Pattern: debounce event handling to avoid triggering logic in response to multiple, shortly
 spaced events. This is specifically a _trailing debounce_.
@@ -296,7 +296,7 @@ $(function(){
             put my.value into #debounce-target-3"/>
 <div id="debounce-target-3"></div>
 
-## <a name='toggle-class'>[Toggle A Class](#toggle-class)
+## Toggle A Class
 
 Pattern: toggle a class on another element when clicked
 
@@ -379,7 +379,7 @@ $(function(){
   Toggle Target
 </div>
 
-## <a name='trigger-an-event'>[Trigger An Event](#trigger-an-event)
+## Trigger An Event
 
 Pattern: trigger a custom event on another element in the DOM
 
@@ -480,7 +480,7 @@ $(function(){
   Event Target
 </div>
 
-## <a name='show-element'>[Show An Element](#show-element)
+## Show An Element
 
 Make an element visible by setting the `display` style to `block`
 

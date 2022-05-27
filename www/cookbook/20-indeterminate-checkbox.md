@@ -2,16 +2,12 @@
 title: Set a checkbox to indeterminate state on load/reset
 ---
 
-```html
+{% example "Click 'Reset' to get an indeterminate checkbox" %}
 <form>
 <input class="indeterminate" type="checkbox" _="on load set my.indeterminate to true">
 <input type="reset" _="on click set .indeterminate.indeterminate to true">
 </form>
-```
-<form>
-<input class="indeterminate" type="checkbox" _="on load set my.indeterminate to true">
-<input type="reset" _="on click set .indeterminate.indeterminate to true">
-</form>
+{% endexample %}
 
 HTML checkboxes technically have three states - checked, unchecked and indeterminate. Oddly,
 the indeterminate state can only be set via the JavaScript runtime - there is no way to set the state

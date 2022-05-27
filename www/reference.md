@@ -1,5 +1,5 @@
 
-## <a name='features'></a>[Features](#features)
+## Features
 
 |  name | description | example
 |-------|-------------|---------
@@ -13,11 +13,11 @@
 | [socket](/features/socket) | Create a Web Socket
 | [worker](/features/worker) | Create a Web Worker for asynchrnous work
 
-## <a name='commands'></a>[Commands](#commands)
+## Commands
 
 {% include commands_table.md %}
 
-## <a name='expressions'></a>[Expressions](#expressions)
+## Expressions
 
 See [expressions](/expressions) for an overview.
 
@@ -40,7 +40,7 @@ See [expressions](/expressions) for an overview.
 | [possessive expressions](/expressions/possessive) | Get a property or attribute from an element | `the window's location`
 | [time expression](/expressions/time-expression) | A time expression | `200ms`
 
-## <a name='magic-values'></a> [Magic Values](#magic-values)
+## Magic Values
 
 |  name | description | example
 |-------|-------------|---------
@@ -48,7 +48,7 @@ See [expressions](/expressions) for an overview.
 | [me](/expressions/me) | Reference to the current element | `put 'clicked' into me`
 | [you](/expressions/you) | Reference to a target element | `tell <p/> remove yourself`
 
-## <a name='literals'></a> [Literals](#literals)
+## Literals
 
 Define other values just like you do in Javascript
 

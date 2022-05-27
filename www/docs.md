@@ -1,17 +1,33 @@
-<div class="row">
-<div class="2 col nav">
 
-**Contents**
+<style>
+#contents {
+  max-height: 80vh;
+  overflow: scroll;
+  scrollbar-width: thin;
+}
+#contents summary {
+  position: sticky;
+  top: 0;
+}
+</style>
 
-<div id="contents" style="overflow-y: auto; max-height: 90vh">
+
+<div class="fullbleed pad autodensity center">
+
+<div class="basicgrid colwidth-s">
+
+<nav class="dense col-1 sticky top" aria-label="Table of contents">
+<details open id="contents" class="list-of-links">
+<summary>Table of Contents</summary>
 
 [[toc]]
 
-</div>
+</details>
+</nav>
 
-</div>
+<div id="docs-contents" class="dense col-4 container">
 
-<div class="10 col" style="padding-bottom: 250px">
+# hyperscript documentation
 
 ## Introduction
 
@@ -73,7 +89,7 @@ OK, let's get started with hyperscript!
 Hyperscript is a dependency-free javascript library that can be included in a web page without any build step:
 
   ~~~ html
-  <script src="https://unpkg.com/hyperscript.org@0.9.4"></script>
+  <script src="https://unpkg.com/hyperscript.org@0.9.5"></script>
   ~~~
 
 After you've done this, you can begin adding hyperscript to elements:
@@ -127,7 +143,7 @@ In the script above:
 
 All hyperscript scripts are made up of these basic building blocks.
 
-#### Comments
+### Comments
 
 Comments in hyperscript start with the `--` character and go to the end of the line:
   ~~~ hyperscript
@@ -137,7 +153,7 @@ Comments in hyperscript start with the `--` character and go to the end of the l
 
 There is no multi-line comment syntax.
 
-#### Separators
+### Separators
 
 Multiple commands may be optionally separated with a `then`, which acts like a semi-colon in javascript:
 
@@ -182,7 +198,7 @@ The `end` terminator can often be omitted for both features and statements if ei
 
 In practice, `end` is used only when necessary, in order to keep scripts small and neat.
 
-#### Expressions
+### Expressions
 
 Many expressions in hyperscript will be familiar to developers and are based on expressions available in javascript:
 
@@ -274,7 +290,7 @@ You may also use scope modifiers to give symbols particular scopes:
   set local x to true
   ~~~
 
-#### <a name=attributes></a> [Attributes](#attributes)
+#### Attributes
 
 In addition to scoped variables, another way to store data is to put it directly in the DOM, in an attribute of an
 element.
@@ -310,7 +326,7 @@ has a `my-attr` attribute on it that holds a string value of the click count.
 
 The [`increment` command](/commands/increment)  is discussed [below](#math).
 
-#### <a name=special-names></a> [Special Names & Symbols](#special-names)
+#### Special Names & Symbols
 
 One of the interesting aspects of hyperscript is its use of implicit names for things, often with multiple ways
 to refer to the same thing.  This might sound crazy, and it kind of is, but it helps to make scripts much more
@@ -379,7 +395,7 @@ Event handlers, discussed [below](#on), may be placed on parent elements to take
 of [event bubbling](https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Building_blocks/Events#event_bubbling_and_capture)
 which can reduce redundancy in code.
 
-### <a name=logging></a> [Logging To The Console](#logging)
+### Logging To The Console
 
 If you wish to print something to the `console` you can use the [`log` command](/commands/log):
 
@@ -389,7 +405,7 @@ If you wish to print something to the `console` you can use the [`log` command](
 
 Simplicity itself.
 
-#### <a name=objects></a> [Objects](#objects)
+#### Objects
 
 Hyperscript is not an object-oriented language: it is, rather, event-oriented.  However it still allows you to work with
 objects in an easy and convenient manner, which facilitates interoperability with all the functionality of JavaScript,
@@ -397,7 +413,7 @@ including the DOM APIs, javascript libraries and so on.
 
 Here is how you can work with objects in hyperscript:
 
-#### <a name=properties></a> [Properties](#properties)
+#### Properties
 
 Hyperscript offers a few different ways to access properties of objects.  The first two should be familiar
 to javascript developers:
@@ -439,7 +455,7 @@ Which of these options you choose for property access is up to you.  We recommen
 most cases as being the most "hyperscripty", with the `of` form being chosen when it helps clarify some code by
 putting the final property at the front of the expression.
 
-##### <a name="flat-mapping"></a> [Flat Mapping](#flat-mapping)
+##### Flat Mapping
 
 Inspired by [jQuery](https://jquery.org), another feature of property access in hyperscript is that, when a property is access on an
 Array-like object, it will [flat-map](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flatMap)
@@ -453,7 +469,7 @@ the results to a single, linear array of that property applied to all values wit
 
 On an array, only the `length` property will not perform a flat map in this manner.
 
-##### <a name="null-safety"></a> [Null Safety](#null-safety)
+##### Null Safety
 
 Finally, all property accesses in hyperscript are null safe, so if the object that the property is being accessed on
 is null, the result of the property access will be null as well, without a need to null-check:
@@ -465,7 +481,7 @@ is null, the result of the property access will be null as well, without a need 
 
 This null-safe behavior is appropriate for a scripting language intended for front-end work.
 
-#### <a name=make></a> [Creating New Objects](#make)
+#### Creating New Objects
 
 If you want to make new objects, you can use the [`make` command](/commands/make):
 
@@ -488,7 +504,7 @@ You can also use [`query literals`](/expressions/query_references), discussed [b
   make an <a.navlink/> then put it after me
   ~~~
 
-#### <a name=arrays></a> [Arrays](#arrays)
+#### Arrays
 
 Hyperscript arrays work very similarly to Javascript arrays:
 
@@ -506,7 +522,7 @@ You can use the `first`, `last` and `random` keywords, discussed [below](#positi
   log random in myArr[0]     -- logs a random element from the array
   ~~~
 
-##### <a name="closures"></a> [Closures](#closures)
+##### Closures
 
 Hyperscript does not encourage the use of closures or callbacks nearly as much  Javascript.  Rather, it uses
 [async transparency](#async) to handle many of the situations in which Javascript would use them.
@@ -521,7 +537,7 @@ then the arguments, then an arrow `->`, followed by an expression:
   log lens
   ~~~
 
-### <a name=control-flow></a> [Control Flow](#control-flow)
+### Control Flow
 
 Conditional control flow in hyperscript is done with the the [if command](/commands/if).  The conditional expression
 in an if statement is not parenthesized. Hyperscript uses `end` rather than curly-braces to delimit the conditional body.
@@ -555,7 +571,7 @@ As mentioned in the introduction, `end` is often omitted when it isn't needed in
 
 You can chain `if/else` commands together in the usual manner.
 
-#### <a name="comparisons"></a> [Comparisons & Logical Operators](#comparisons)
+#### Comparisons & Logical Operators
 
 In addition to the usual comparison operators from javascript, such as `==` and `!=`, hyperscript
 supports [a rich set of natural language style comparisons](/expressions/comparison-operator) for use in `if` commands:
@@ -1274,7 +1290,7 @@ Often you want to find things *within* a particular element.  To do this you can
 Sometimes you wish to find the closest element in a parent hierarchy that matches some selector.  In JavaScript
 you might use the [`closest()` function](https://developer.mozilla.org/en-US/docs/Web/API/Element/closest)
 
-To do this in hhyperscript you can use the [`closest`](/expressions/closest) expression:
+To do this in hyperscript you can use the [`closest`](/expressions/closest) expression:
 
   ~~~ hyperscript
   -- add the class 'highlight' to the closest table row to the current element
@@ -2143,4 +2159,10 @@ event oriented and made DOM scripting efficient and fun.  I had programmed in [H
 
 And here we are.  I hope you find the language useful, or, at least, funny.  :)
 
-</div.highlighted>
+</div>
+
+</div>
+
+</div>
+
+</div>
