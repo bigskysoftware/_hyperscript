@@ -35,7 +35,7 @@ Pattern: fade and remove an element after it is clicked
 .fade-out {
   opacity: 0;
 }
-#remove-me {
+#vanilla-remove-me {
   transition: opacity 1s ease-in-out;
 }
 </style>
@@ -65,7 +65,7 @@ Pattern: fade and remove an element after it is clicked
 .fade-out {
   opacity: 0;
 }
-#remove-me {
+#vanilla-remove-me {
   transition: opacity 1s ease-in-out;
 }
 </style>
