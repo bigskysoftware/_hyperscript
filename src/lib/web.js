@@ -244,18 +244,20 @@ export default _hyperscript => {
 			if (tokens.matchToken("from")) {
 				var fromExpr = parser.requireElement("expression", tokens);
 			} else {
-				var fromExpr = parser.requireElement("implicitMeTarget", tokens);
+				if (elementExpr == null) {
+					var fromExpr = parser.requireElement("implicitMeTarget", tokens);
+				}
 			}
 
 			if (elementExpr) {
 				return {
 					elementExpr: elementExpr,
 					from: fromExpr,
-					args: [elementExpr],
-					op: function (context, element) {
+					args: [elementExpr, fromExpr],
+					op: function (context, element, from) {
 						runtime.nullCheck(element, elementExpr);
 						runtime.implicitLoop(element, function (target) {
-							if (target.parentElement) {
+							if (target.parentElement && (from == null || from.contains(target))) {
 								target.parentElement.removeChild(target);
 							}
 						});
