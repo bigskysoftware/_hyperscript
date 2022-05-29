@@ -4571,8 +4571,9 @@ var _runtime = (function () {
 		var command = {
 			body: body,
 			op: function (context) {
+				const asyncContext = { ...context }
 				setTimeout(function () {
-					body.execute(context);
+					body.execute(asyncContext);
 				});
 				return runtime.findNext(this, context);
 			},

@@ -220,6 +220,19 @@ describe("the tell command", function () {
 		div1.innerHTML.should.equal("");
 	});
 
+	it("yourself attribute also works within async", function () {
+		make(`<div id="d1" _="on click tell #d2 async do remove yourself end"><div id="d2"></div></div>`);
+
+		var div1 = byId("d1");
+		var div2 = byId("d2");
+
+		div1.innerHTML.should.equal(`<div id="d2"></div>`);
+
+		div1.click();
+
+		setTimeout(() => div1.innerHTML.should.equal(""))
+	});
+
 	it("tell terminates with a feature", function () {
 		make(`<div id="d1" _="on click tell #d2 remove yourself on click tell #d3 remove yourself"><div id="d2"></div><div id="d3"></div></div>`);
 
