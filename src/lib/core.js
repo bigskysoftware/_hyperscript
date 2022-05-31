@@ -1975,13 +1975,13 @@ var _runtime = (function () {
 	*/
 	function resolveSymbol(str, context, type) {
 		if (str === "me" || str === "my" || str === "I") {
-			return context["me"];
+			return context.me;
 		}
 		if (str === "it" || str === "its") {
-			return context["result"];
+			return context.result;
 		}
 		if (str === "you" || str === "your" || str === "yourself") {
-			return context["beingTold"];
+			return context.beingTold;
 		} else {
 			if (type === "global") {
 				return globalScope[str];
