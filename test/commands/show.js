@@ -62,6 +62,13 @@ describe("the show command", function () {
 		getComputedStyle(div).visibility.should.equal("visible");
 	});
 
+	it("can show element, with tailwindcss removing hidden class", function () {
+		var div = make("<div class='hidden' _='on click show me with tailwindcss'></div>");
+		div.classList.contains("hidden").should.equal(true);
+		div.click();
+		div.classList.contains("hidden").should.equal(false);
+	});
+
 	it("can show other elements", function () {
 		var showme = make("<div style=display:none class=showme></div>");
 		var div = make("<div _='on click show .showme'></div>");

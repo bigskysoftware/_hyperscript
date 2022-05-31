@@ -16,6 +16,7 @@ By default, the following strategies are available:
 - `display` - toggle display between `none` and `block`
 - `visibility` - toggle visibility between `hidden` and `visible`
 - `opacity` - toggle visibility between `0` and `1`
+- `tailwindcss` - add / remove `hidden` css class
 
 You can also use the style-literal form (e.g. `*display`).
 

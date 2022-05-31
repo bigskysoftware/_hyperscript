@@ -16,6 +16,7 @@ By default, the following strategies are available:
 - `display` - toggle display between `none` and `block`
 - `visibility` - toggle visibility between `hidden` and `visible`
 - `opacity` - toggle opacity between `0` and `1`
+- `tailwindcss` - add / remove `hidden` css class
 
 You can change the default hide/show strategy by setting `_hyperscript.config.defaultHideShowStrategy`
 

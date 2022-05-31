@@ -85,6 +85,13 @@ describe("the hide command", function () {
 		getComputedStyle(div).visibility.should.equal("hidden");
 	});
 
+	it("can hide element, with tailwindcss hidden class", function () {
+		var div = make("<div _='on click hide me with tailwindcss'></div>");
+		div.classList.contains("hidden").should.equal(false);
+		div.click();
+		div.classList.contains("hidden").should.equal(true);
+	});
+
 	it("can hide other elements", function () {
 		var hideme = make("<div class=hideme></div>");
 		var div = make("<div _='on click hide .hideme'></div>");
