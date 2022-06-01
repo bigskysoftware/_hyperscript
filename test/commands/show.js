@@ -63,10 +63,24 @@ describe("the show command", function () {
 	});
 
 	it("can show element, with tailwindcss removing hidden class", function () {
-		var div = make("<div class='hidden' _='on click show me with tailwindcss'></div>");
+		var div = make("<div class='hidden' _='on click show me with twDisplay'></div>");
 		div.classList.contains("hidden").should.equal(true);
 		div.click();
 		div.classList.contains("hidden").should.equal(false);
+	});
+
+	it("can show element, with tailwindcss removing invisible class", function () {
+		var div = make("<div class='invisible' _='on click show me with twVisibility'></div>");
+		div.classList.contains("invisible").should.equal(true);
+		div.click();
+		div.classList.contains("invisible").should.equal(false);
+	});
+
+	it("can show element, with tailwindcss removing opacity-0 class", function () {
+		var div = make("<div class='opacity-0' _='on click show me with twOpacity'></div>");
+		div.classList.contains("opacity-0").should.equal(true);
+		div.click();
+		div.classList.contains("opacity-0").should.equal(false);
 	});
 
 	it("can show other elements", function () {

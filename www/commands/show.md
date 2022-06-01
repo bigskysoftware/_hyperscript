@@ -16,7 +16,9 @@ By default, the following strategies are available:
 - `display` - toggle display between `none` and `block`
 - `visibility` - toggle visibility between `hidden` and `visible`
 - `opacity` - toggle visibility between `0` and `1`
-- `tailwindcss` - add / remove `hidden` css class
+- `twDisplay` - add / remove `hidden` css class [Tailwind documentation](https://tailwindcss.com/docs/display#hidden)
+- `twVisibility` - add / remove `invisible` css class [Tailwind documentation](https://tailwindcss.com/docs/visibility#making-elements-invisible)
+- `twOpacity` - add / remove `opacity-0` css class [Tailwind documentation](https://tailwindcss.com/docs/opacity)
 
 You can also use the style-literal form (e.g. `*display`).
 
