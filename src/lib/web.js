@@ -984,7 +984,7 @@ export default _hyperscript => {
 				};
 
 				runtime.forEach(propsToMeasure, function (prop) {
-					if (prop in ctx.result) ctx[prop] = ctx.result[prop];
+					if (prop in ctx.result) ctx.locals[prop] = ctx.result[prop];
 					else throw "No such measurement as " + prop;
 				});
 

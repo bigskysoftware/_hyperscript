@@ -1,6 +1,6 @@
 describe("propertyAccess", function () {
 	it("can access basic properties", function () {
-		var result = evalHyperScript("foo.foo", { foo: { foo: "foo" } });
+		var result = evalHyperScript("foo.foo", { locals: { foo: { foo: "foo" } } });
 		result.should.equal("foo");
 	});
 
@@ -10,20 +10,20 @@ describe("propertyAccess", function () {
 	});
 
 	it("of form works", function () {
-		var result = evalHyperScript("foo of foo", { foo: { foo: "foo" } });
+		var result = evalHyperScript("foo of foo", { locals: { foo: { foo: "foo" } } });
 		result.should.equal("foo");
 	});
 
 	it("of form works w/ complex left side", function () {
 		var result = evalHyperScript("bar.doh of foo", {
-			foo: { bar: { doh: "foo" } },
+			locals: { foo: { bar: { doh: "foo" } } }
 		});
 		result.should.equal("foo");
 	});
 
 	it("of form works w/ complex right side", function () {
 		var result = evalHyperScript("doh of foo.bar", {
-			foo: { bar: { doh: "foo" } },
+			locals: { foo: { bar: { doh: "foo" } } }
 		});
 		result.should.equal("foo");
 	});

@@ -42,7 +42,7 @@ describe("the positional expression", function () {
 				"                  <div id='d2' class='c1'></div>" +
 				"                  <div id='d3' class='c1'></div></div>"
 		);
-		var result = evalHyperScript("the first of div", { div: div });
+		var result = evalHyperScript("the first of div", { locals: { div: div } });
 		result.should.equal(byId("d1"));
 	});
 
@@ -52,7 +52,7 @@ describe("the positional expression", function () {
 				"                  <div id='d2' class='c1'></div>" +
 				"                  <div id='d3' class='c1'></div></div>"
 		);
-		var result = evalHyperScript("the last of div", { div: div });
+		var result = evalHyperScript("the last of div", { locals: { div: div } });
 		result.should.equal(byId("d3"));
 	});
 

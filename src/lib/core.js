@@ -1540,7 +1540,7 @@ var _runtime = (function () {
 					_runtime.registerHyperTrace(ctx, e);
 					if (ctx.meta.errorHandler && !ctx.meta.handlingError) {
 						ctx.meta.handlingError = true;
-						ctx[ctx.meta.errorSymbol] = e;
+						ctx.locals[ctx.meta.errorSymbol] = e;
 						command = ctx.meta.errorHandler;
 						continue;
 					} else  {
@@ -1716,7 +1716,7 @@ var _runtime = (function () {
 	*/
 	function addFeatures(owner, ctx) {
 		if (owner) {
-			mergeObjects(ctx, getHyperscriptFeatures(owner));
+			mergeObjects(ctx.locals, getHyperscriptFeatures(owner));
 			addFeatures(owner.parentElement, ctx);
 		}
 	}
@@ -1738,7 +1738,9 @@ var _runtime = (function () {
 				owner: owner,
 				feature: feature,
 				iterators: {},
+				__ht_context: true
 			},
+			locals: {},
 			me: hyperscriptTarget,
 			event: event,
 			target: event ? event.target : null,
@@ -1970,6 +1972,22 @@ var _runtime = (function () {
 
 	/**
 	* @param {string} str
+	* @returns {boolean}
+	*/
+	function isReservedWord(str) {
+		return ["meta", "it", "result", "locals", "event", "target", "detail", "sender", "body"].includes(str)
+	}
+
+	/**
+	* @param {any} context
+	* @returns {boolean}
+	*/
+	function isHyperscriptContext(context) {
+		return context.meta && context.meta.__ht_context
+	}
+
+	/**
+	* @param {string} str
 	* @param {Context} context
 	* @returns {any}
 	*/
@@ -1977,7 +1995,7 @@ var _runtime = (function () {
 		if (str === "me" || str === "my" || str === "I") {
 			return context.me;
 		}
-		if (str === "it" || str === "its") {
+		if (str === "it" || str === "its" || str === "result") {
 			return context.result;
 		}
 		if (str === "you" || str === "your" || str === "yourself") {
@@ -1989,7 +2007,7 @@ var _runtime = (function () {
 				var elementScope = getElementScope(context);
 				return elementScope[str];
 			} else if (type === "local") {
-				return context[str];
+				return context.locals[str];
 			} else {
 				// meta scope (used for event conditionals)
 				if (context.meta && context.meta.context) {
@@ -1998,8 +2016,13 @@ var _runtime = (function () {
 						return fromMetaContext;
 					}
 				}
-				// local scope
-				var fromContext = context[str];
+				if (isHyperscriptContext(context) && !isReservedWord(str)) {
+					// local scope
+					var fromContext = context.locals[str];
+				} else {
+					// direct get from normal JS object or top-level of context
+					var fromContext = context[str];
+				}
 				if (typeof fromContext !== "undefined") {
 					return fromContext;
 				} else {
@@ -2024,20 +2047,25 @@ var _runtime = (function () {
 			var elementScope = getElementScope(context);
 			elementScope[str] = value;
 		} else if (type === "local") {
-			context[str] = value;
+			context.locals[str] = value;
 		} else {
-			// local scope
-			var fromContext = context[str];
-			if (typeof fromContext !== "undefined") {
-				context[str] = value;
+			if (isHyperscriptContext(context) && !isReservedWord(str) && typeof context.locals[str] !== "undefined") {
+				// local scope
+				context.locals[str] = value;
 			} else {
 				// element scope
 				var elementScope = getElementScope(context);
-				fromContext = elementScope[str];
+				var fromContext = elementScope[str];
 				if (typeof fromContext !== "undefined") {
 					elementScope[str] = value;
 				} else {
-					context[str] = value;
+					if (isHyperscriptContext(context) && !isReservedWord(str)) {
+						// local scope
+						context.locals[str] = value;
+					} else {
+						// direct set on normal JS object or top-level of context
+						context[str] = value;
+					}
 				}
 			}
 		}
@@ -2822,7 +2850,7 @@ var _runtime = (function () {
 				var returnFunc = function () {
 					//TODO - push scope
 					for (var i = 0; i < args.length; i++) {
-						ctx[args[i].value] = arguments[i];
+						ctx.locals[args[i].value] = arguments[i];
 					}
 					return expr.evaluate(ctx); //OK
 				};
@@ -4136,9 +4164,9 @@ var _runtime = (function () {
 							for (const arg of eventSpec.args) {
 								let eventValue = ctx.event[arg.value];
 								if (eventValue !== undefined) {
-									ctx[arg.value] = eventValue;
+									ctx.locals[arg.value] = eventValue;
 								} else if ('detail' in ctx.event) {
-									ctx[arg.value] = ctx.event['detail'][arg.value];
+									ctx.locals[arg.value] = ctx.event['detail'][arg.value];
 								}
 							}
 
@@ -4292,7 +4320,7 @@ var _runtime = (function () {
 						var name = args[i];
 						var argumentVal = arguments[i];
 						if (name) {
-							ctx[name.value] = argumentVal;
+							ctx.locals[name.value] = argumentVal;
 						}
 					}
 					ctx.meta.caller = arguments[args.length];
@@ -4670,7 +4698,7 @@ var _runtime = (function () {
 								context.result = event;
 								if (eventInfo.args) {
 									for (const arg of eventInfo.args) {
-										context[arg.value] =
+										context.locals[arg.value] =
 											event[arg.value] || (event.detail ? event.detail[arg.value] : null);
 									}
 								}
@@ -5346,12 +5374,12 @@ var _runtime = (function () {
 
 				if (keepLooping) {
 					if (iteratorInfo.value) {
-						context.result = context[identifier] = loopVal;
+						context.result = context.locals[identifier] = loopVal;
 					} else {
 						context.result = iteratorInfo.index;
 					}
 					if (indexIdentifier) {
-						context[indexIdentifier] = iteratorInfo.index;
+						context.locals[indexIdentifier] = iteratorInfo.index;
 					}
 					iteratorInfo.index++;
 					return loop;

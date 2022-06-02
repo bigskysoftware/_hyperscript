@@ -73,7 +73,7 @@ describe("the queryRef expression", function () {
 				"                  <div foo='bar' class='c2'></div>" +
 				"                  <div class='c3'></div>"
 		);
-		var value = evalHyperScript("<[foo='${x}']/>", { x: "bar" });
+		var value = evalHyperScript("<[foo='${x}']/>", { locals: { x: "bar" } });
 		Array.from(value).length.should.equal(1);
 	});
 
@@ -81,14 +81,14 @@ describe("the queryRef expression", function () {
 		var div = make(
 			"<div id='t1'></div>" + "                  <div id='t2'></div>" + "                  <div id='t3'></div>"
 		);
-		var value = evalHyperScript("<#$id/>", { id: "t2" });
+		var value = evalHyperScript("<#$id/>", { locals: { id: "t2" } });
 		Array.from(value)[0].should.equal(byId("t2"));
 	});
 
 	it("can interpolate elements into queries", function () {
 		var a = make("<div class='a'></div>");
 		var b = make("<div class='b'></div>");
-		var value = evalHyperScript("<${a} + div/>", { a });
+		var value = evalHyperScript("<${a} + div/>", { locals: { a } });
 		Array.from(value)[0].should.equal(b);
 	});
 
