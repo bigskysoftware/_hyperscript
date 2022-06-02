@@ -1721,6 +1721,34 @@ var _runtime = (function () {
 		}
 	}
 
+	class Context {
+		/**
+		* @param {*} owner
+		* @param {*} feature
+		* @param {*} hyperscriptTarget
+		* @param {*} event
+		*/
+		constructor(owner, feature, hyperscriptTarget, event) {
+			this.meta = {
+				parser: _parser,
+				lexer: _lexer,
+				runtime: _runtime,
+				owner: owner,
+				feature: feature,
+				iterators: {},
+				ctx: this
+			}
+			this.locals = {};
+			this.me = hyperscriptTarget,
+			this.event = event;
+			this.target = event ? event.target : null;
+			this.detail = event ? event.detail : null;
+			this.sender = event ? event.detail ? event.detail.sender : null : null;
+			this.body = "document" in globalScope ? document.body : null;
+			addFeatures(owner, this);
+		}
+	}
+
 	/**
 	* @param {*} owner
 	* @param {*} feature
@@ -1729,28 +1757,7 @@ var _runtime = (function () {
 	* @returns {Context}
 	*/
 	function makeContext(owner, feature, hyperscriptTarget, event) {
-		/** @type {Context} */
-		var ctx = {
-			meta: {
-				parser: _parser,
-				lexer: _lexer,
-				runtime: _runtime,
-				owner: owner,
-				feature: feature,
-				iterators: {},
-				__ht_context: true
-			},
-			locals: {},
-			me: hyperscriptTarget,
-			event: event,
-			target: event ? event.target : null,
-			detail: event ? event.detail : null,
-			sender: event ? event.detail ? event.detail.sender : null : null,
-			body: "document" in globalScope ? document.body : null,
-		};
-		ctx.meta.ctx = ctx;
-		addFeatures(owner, ctx);
-		return ctx;
+		return new Context(owner, feature, hyperscriptTarget, event)
 	}
 
 	/**
@@ -1983,7 +1990,7 @@ var _runtime = (function () {
 	* @returns {boolean}
 	*/
 	function isHyperscriptContext(context) {
-		return context.meta && context.meta.__ht_context
+		return context instanceof Context;
 	}
 
 	/**
