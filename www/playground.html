@@ -9,14 +9,14 @@ title: ///_hyperscript
    or hit ctrl-enter in the editor, and the code will be loaded into the content.  You can also look at the source
    for this page, which is written entirely in hyperscript.  :)</p>
 
-<div class="row" style="margin-top: 16px">
-    <div class="8 col" style="margin-bottom: 8px">
+<div class="basicgrid">
+    <div class="col-2">
 
-        <div style="margin-bottom: .65em;">
-            <span style="font-size: 1.5em; font-weight: bold">HTML (ctrl-enter to load)</span>
-            <div style="float:right">
+        <div class="tool-bar">
+            <h2 style="margin: 0;">HTML (ctrl-enter to load)</h2>
+            <label>
                 Load Example:
-                <select style="font-size: 22px; padding:4px; margin-top: -12px; width: 4em"
+                <select style="width: 10ch;"
                         _="on change
                              if my value is not 'Clear'
                                fetch `/playground/${my value}`
@@ -33,10 +33,9 @@ title: ///_hyperscript
                     <option value="input_mirroring">Input Mirror</option>
                     <option value="password_visibility">Password Hiding</option>
                 </select>
-            </div>
-        </div>
-        <textarea id="code"
-                  style="width: 100%; height:300px; margin-bottom: 12px; font-size: 16px; padding: 4px; background-color: whitesmoke"
+            </label>
+          </div>
+        <p><textarea id="code" class="monospace" rows="15" style="width: 100%;"
                   _="on keyup[ctrlKey and key is 'Enter'] or loadCode
                           transition #contents opacity to 0 over 10ms
                           put my value into #contents
@@ -51,8 +50,9 @@ title: ///_hyperscript
             </button>
         </div>
     </div>
-    <div class="4 col">
-        <input placeholder="Enter an expression..." type="text" style="width: 100%; font-size: 18px; padding: 8px"
+    <div class="col-1">
+        <h2>Eval</h2>
+        <input placeholder="Enter an expression..." type="text"
                _="def evalHyperscript(src)
                     send showResult(result: JSON.stringify(_hyperscript(src), null, 2)) to #eval-contents
                   catch e
@@ -66,7 +66,6 @@ title: ///_hyperscript
                        send showResult(result: '') to #eval-contents
                      end
                      select() me"/>
-        <h2>Eval</h2>
         <h2>Output</h2>
         <div id="eval-contents" style="width: 100%; height:100%;font-family:'Courier New', monospace; overflow: auto; max-height: 230px"
              _="on showResult(result)
@@ -84,11 +83,7 @@ title: ///_hyperscript
         <small><a href="#" _="on click send showResult(result: '') to #eval-contents">clear</a></small>
     </div>
 </div>
-
-<div class="row" style="margin-top: 16px;padding: 24px">
-    <div class="12 col" style="background-color: whitesmoke; padding-top: 12px; padding-bottom: 100px; border-radius: 8px">
-        <h2>Content</h2>
-        <div id="contents">
-        </div>
-    </div>
+<div class="box">
+    <h2>Content</h2>
+    <div id="contents"></div>
 </div>

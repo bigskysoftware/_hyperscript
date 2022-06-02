@@ -1,17 +1,33 @@
-<div class="row">
-<div class="2 col nav">
 
-**Contents**
+<style>
+#contents {
+  max-height: 80vh;
+  overflow: scroll;
+  scrollbar-width: thin;
+}
+#contents summary {
+  position: sticky;
+  top: 0;
+}
+</style>
 
-<div id="contents" style="overflow-y: auto; max-height: 90vh">
+
+<div class="fullbleed pad autodensity center">
+
+<div class="basicgrid colwidth-s">
+
+<nav class="dense col-1 sticky top" aria-label="Table of contents">
+<details open id="contents" class="list-of-links">
+<summary>Table of Contents</summary>
 
 [[toc]]
 
-</div>
+</details>
+</nav>
 
-</div>
+<div id="docs-contents" class="dense col-4 container">
 
-<div class="10 col" style="padding-bottom: 250px">
+# hyperscript documentation
 
 ## Introduction
 
@@ -73,7 +89,7 @@ OK, let's get started with hyperscript!
 Hyperscript is a dependency-free javascript library that can be included in a web page without any build step:
 
   ~~~ html
-  <script src="https://unpkg.com/hyperscript.org@0.9.4"></script>
+  <script src="https://unpkg.com/hyperscript.org@0.9.5"></script>
   ~~~
 
 After you've done this, you can begin adding hyperscript to elements:
@@ -127,9 +143,9 @@ In the script above:
 
 All hyperscript scripts are made up of these basic building blocks.
 
-#### Comments
+### Comments
 
-Comments in hyperscript start with the `--` character and go to the end of the line:
+Comments in hyperscript start with the `--` characters and a whitespace character (space, tab, carriage return or newline) and go to the end of the line:
   ~~~ hyperscript
   -- this is a comment
   log "Yep, that was a comment"
@@ -137,7 +153,7 @@ Comments in hyperscript start with the `--` character and go to the end of the l
 
 There is no multi-line comment syntax.
 
-#### Separators
+### Separators
 
 Multiple commands may be optionally separated with a `then`, which acts like a semi-colon in javascript:
 
@@ -182,7 +198,7 @@ The `end` terminator can often be omitted for both features and statements if ei
 
 In practice, `end` is used only when necessary, in order to keep scripts small and neat.
 
-#### Expressions
+### Expressions
 
 Many expressions in hyperscript will be familiar to developers and are based on expressions available in javascript:
 
@@ -274,7 +290,7 @@ You may also use scope modifiers to give symbols particular scopes:
   set local x to true
   ~~~
 
-#### <a name=attributes></a> [Attributes](#attributes)
+#### Attributes
 
 In addition to scoped variables, another way to store data is to put it directly in the DOM, in an attribute of an
 element.
@@ -310,7 +326,7 @@ has a `my-attr` attribute on it that holds a string value of the click count.
 
 The [`increment` command](/commands/increment)  is discussed [below](#math).
 
-#### <a name=special-names></a> [Special Names & Symbols](#special-names)
+#### Special Names & Symbols
 
 One of the interesting aspects of hyperscript is its use of implicit names for things, often with multiple ways
 to refer to the same thing.  This might sound crazy, and it kind of is, but it helps to make scripts much more
@@ -379,7 +395,7 @@ Event handlers, discussed [below](#on), may be placed on parent elements to take
 of [event bubbling](https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Building_blocks/Events#event_bubbling_and_capture)
 which can reduce redundancy in code.
 
-### <a name=logging></a> [Logging To The Console](#logging)
+### Logging To The Console
 
 If you wish to print something to the `console` you can use the [`log` command](/commands/log):
 
@@ -389,7 +405,7 @@ If you wish to print something to the `console` you can use the [`log` command](
 
 Simplicity itself.
 
-#### <a name=objects></a> [Objects](#objects)
+#### Objects
 
 Hyperscript is not an object-oriented language: it is, rather, event-oriented.  However it still allows you to work with
 objects in an easy and convenient manner, which facilitates interoperability with all the functionality of JavaScript,
@@ -397,7 +413,7 @@ including the DOM APIs, javascript libraries and so on.
 
 Here is how you can work with objects in hyperscript:
 
-#### <a name=properties></a> [Properties](#properties)
+#### Properties
 
 Hyperscript offers a few different ways to access properties of objects.  The first two should be familiar
 to javascript developers:
@@ -439,7 +455,7 @@ Which of these options you choose for property access is up to you.  We recommen
 most cases as being the most "hyperscripty", with the `of` form being chosen when it helps clarify some code by
 putting the final property at the front of the expression.
 
-##### <a name="flat-mapping"></a> [Flat Mapping](#flat-mapping)
+##### Flat Mapping
 
 Inspired by [jQuery](https://jquery.org), another feature of property access in hyperscript is that, when a property is access on an
 Array-like object, it will [flat-map](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flatMap)
@@ -453,7 +469,7 @@ the results to a single, linear array of that property applied to all values wit
 
 On an array, only the `length` property will not perform a flat map in this manner.
 
-##### <a name="null-safety"></a> [Null Safety](#null-safety)
+##### Null Safety
 
 Finally, all property accesses in hyperscript are null safe, so if the object that the property is being accessed on
 is null, the result of the property access will be null as well, without a need to null-check:
@@ -465,7 +481,7 @@ is null, the result of the property access will be null as well, without a need 
 
 This null-safe behavior is appropriate for a scripting language intended for front-end work.
 
-#### <a name=make></a> [Creating New Objects](#make)
+#### Creating New Objects
 
 If you want to make new objects, you can use the [`make` command](/commands/make):
 
@@ -488,7 +504,7 @@ You can also use [`query literals`](/expressions/query_references), discussed [b
   make an <a.navlink/> then put it after me
   ~~~
 
-#### <a name=arrays></a> [Arrays](#arrays)
+#### Arrays
 
 Hyperscript arrays work very similarly to Javascript arrays:
 
@@ -506,7 +522,7 @@ You can use the `first`, `last` and `random` keywords, discussed [below](#positi
   log random in myArr[0]     -- logs a random element from the array
   ~~~
 
-##### <a name="closures"></a> [Closures](#closures)
+##### Closures
 
 Hyperscript does not encourage the use of closures or callbacks nearly as much  Javascript.  Rather, it uses
 [async transparency](#async) to handle many of the situations in which Javascript would use them.
@@ -521,7 +537,7 @@ then the arguments, then an arrow `->`, followed by an expression:
   log lens
   ~~~
 
-### <a name=control-flow></a> [Control Flow](#control-flow)
+### Control Flow
 
 Conditional control flow in hyperscript is done with the the [if command](/commands/if).  The conditional expression
 in an if statement is not parenthesized. Hyperscript uses `end` rather than curly-braces to delimit the conditional body.
@@ -555,7 +571,7 @@ As mentioned in the introduction, `end` is often omitted when it isn't needed in
 
 You can chain `if/else` commands together in the usual manner.
 
-#### <a name="comparisons"></a> [Comparisons & Logical Operators](#comparisons)
+#### Comparisons & Logical Operators
 
 In addition to the usual comparison operators from javascript, such as `==` and `!=`, hyperscript
 supports [a rich set of natural language style comparisons](/expressions/comparison-operator) for use in `if` commands:
@@ -568,7 +584,7 @@ A small sampling is shown below:
 `[[a]] is not [[b]]`
 	Same as {%syntax "[[a]] != [[b]]"%}.
 `no [[a]]`
-	Same as {%syntax "[[a]] == null or [[a]] == undefined"%}.
+	Same as {%syntax "[[a]] == null or [[a]] == undefined or [[a.length]] == 0"%}.
 `[[element]] matches [[selector]]`
 	Does a CSS test, i.e. `if I match .selected`.
 `[[a]] exists`
@@ -711,7 +727,7 @@ conversions and, therefore, can be used with numbers stored in attributes on the
   ~~~ hyperscript
   on click
      increment @data-counter
-     if @data-counter as Integer is greater than 4
+     if @data-counter as Int is greater than 4
        add @disabled -- disable after the 5th click
   ~~~
 
@@ -739,7 +755,44 @@ The [`append`](/commands/append) command can append content to strings (as well 
     log it           -- log it to the console
   ~~~
 
-### <a name=calling-functions></a> [Calling Functions](#calling-functions)
+### Conversions {#conversions}
+
+To convert values between different types, hyperscript has an [`as` operator](/expressions/as):
+
+{% example "Converting Values" %}
+<button _="on click
+               get the (value of the next <input/>) as an Int
+               increment it
+               put it into the next <output/>">
+  Add 1 To :
+</button>
+<input/>
+<output>--</output>
+{% endexample %}
+
+Here we get the input value, which is a String, and we convert it to an Integer.  Note that we need to use parenthesis
+to ensure that the `as` expression does not bind too tightly.
+
+We then increment the number and put it into the next `output` element.
+
+Out of the box hyperscript offers a number of useful conversions:
+
+* `Array` - convert to Array
+* `Date` - convert to Date
+* `Float` - convert to float
+* `Fragment` - converts a string into an HTML Fragment
+* `HTML` - converts NodeLists and arrays to an HTML string
+* `Int` - convert to integer
+* `JSON` - convert to a JSON String
+* `Number` - convert to number
+* `Object` - convert from a JSON String
+* `String` - convert to String
+* `Values` - converts a Form (or other element) into a struct containing its input names/values
+* `Fixed<:N>` - convert to a fixed precision string representation of the number, with an optional precision of `N`
+
+You can also [add your own conversions](/expressions/as) to the language as well.
+
+### Calling Functions {#calling-functions}
 
 There are many ways to invoke functions in hyperscript.  Two commands let you invoke a function and automatically
 assign the result to the `result` variable: [`call`](/commands/call) and [`get`](/commands/get):
@@ -1154,7 +1207,7 @@ Here is a table of the DOM literals:
 	A <dfn>query literal</dfn> is contained within a `<` and `/>`, returns all elements matching the CSS selector.
 
 `@[[attribute name]]`
-	An <dfn>attribute literal</dfn> starts with an `@` (hence, *at*tribute, get it?) and returns the value of that 
+	An <dfn>attribute literal</dfn> starts with an `@` (hence, *at*tribute, get it?) and returns the value of that
 	attribute.
 
 `*[[style property]]`
@@ -1237,7 +1290,7 @@ Often you want to find things *within* a particular element.  To do this you can
 Sometimes you wish to find the closest element in a parent hierarchy that matches some selector.  In JavaScript
 you might use the [`closest()` function](https://developer.mozilla.org/en-US/docs/Web/API/Element/closest)
 
-To do this in hhyperscript you can use the [`closest`](/expressions/closest) expression:
+To do this in hyperscript you can use the [`closest`](/expressions/closest) expression:
 
   ~~~ hyperscript
   -- add the class 'highlight' to the closest table row to the current element
@@ -1329,8 +1382,8 @@ The `put` command can be used in the following ways:
 	Puts the content at the beginning of the element, using [`Element.prepend`][].
 `put [[content]] at the end of [[element]]`
 	Puts the content at the end of the element, using [`Element.append`][].
-`put [[content]] before [[element]]`
-	Puts the content in front of the element, using [`Element.after`][].
+`put [[content]] after [[element]]`
+	Puts the content after the element, using [`Element.after`][].
 {% endsyntaxes %}
 
 [`Element.before`]:  https://developer.mozilla.org/en-US/docs/Web/API/Element/before
@@ -1887,9 +1940,107 @@ directly within a hyperscript body, for local optimizations.
 
 ## Debugging {#debugging}
 
-**Note: The hyperscript debugger is in alpha and, like the rest of the language, is undergoing active development**
+Debugging hyperscript can be done a few different ways.  The simplest and most familiar way for most developers to debug
+ hyperscript is the use of the [`log`](/commands/log) command to log intermediate results.  This is
+the venerable "print debugging":
 
-Hyperscript includes a debugger, [hdb](/hdb), that allows you to debug by inserting `breakpoint` commands in your hyperscript.
+```hyperscript
+get <div.highlighted/> then log the result
+```
+
+This is a reasonable way to start debugging but it is, obviously, fairly primitive.
+
+### Beeping
+
+An annoying aspect of print debugging is that you are often required to extract bits of expressions in order to
+print them out, which can interrupt the flow of code.  Consider this example of hyperscript:
+
+```hyperscript
+  add .highlighted to <p/> in <div.hilight/>
+```
+
+If this wasn't behaving as you expect and you wanted to debug the results, you might break it up like so:
+
+```hyperscript
+  set highlightDiv to <div.hilight/>
+  log highlightDiv
+  set highlightParagraphs to <p/> in highlightDiv
+  log highlightParagraphs
+  add .highlighted to highlightParagraphs
+```
+
+This is a fairly violent code change and it obscures what the actual logic is.
+
+To avoid this, hyperscript offers a [`beep!`](/expressions/beep) operator.  The `beep!` operator can be thought of
+as a pass-through expression: it simply passes the value of whatever expression comes afterwards through unmodified.
+
+However, along the way, it logs the following information to the console:
+
+* The source code of the expression
+* The value of the expression
+* The type of the expressions
+
+So, considering the above code, rather than breaking things up, we might just try this:
+
+```hyperscript
+  add .highlighted to <p/> in beep! <div.hilight/>
+```
+
+Here we have added a `beep!` just before the `<div.hilight/>` expression.  Now when the code runs
+we will see the following in the console:
+
+```
+///_ BEEP! The expression 'the <div.foo/>' evaluates to: ElementCollection {_css: "div.hilight", ...} of type ElementCollection
+```
+
+You can see the expressions source, it's value (which you can right click on and assign to a temporary value to work
+with in most browsers) as well as the type of the value.  All of this had no effect on the evaluation of the expression
+or statement.
+
+Let's store the `ElementCollection` as a temporary value, `temp1`.
+
+We could now move the `beep!` out to the `in` expression like so:
+
+```hyperscript
+  add .highlighted to beep! <p/> in <div.hilight/>
+```
+
+And we might see results like this:
+
+```
+///_ BEEP! The expression (<p/> in <div.hilight/>) evaluates to: [] of type Array
+```
+
+Seeing this, we realize that no paragraphs elements are being returned by the `in` expression, which is why the class is
+ not being added to them.
+
+In the console we check the length of the original `ElementCollection`:
+
+```
+> temp1.length
+0
+```
+
+And, sure enough, the length is zero.  On inspecting the divs in question, it turns out we had misspelled the class name
+`hilight` rather than `highlight`.
+
+After making the fix, we can remove the `beep!` (which is *obviously* not supposed to be there!):
+
+```hyperscript
+  add .highlighted to <p/> in <div.highlight/>
+```
+
+And things work as expected.
+
+As you can see, `beep!` allows us to do much more sophisticated print debugging, while not disrupting code nearly as
+drastically as traditional print debugging would require.
+
+### HDB - The Hyperscript Debugger
+
+An even more sophisticated debugging technique is to use [hdb](/hdb), the Hyperscript Debugger, which allows you to
+debug by inserting `breakpoint` commands in your hyperscript.
+
+**Note: The hyperscript debugger is in alpha and, like the rest of the language, is undergoing active development**
 
 To use it you need to include the `lib/hdb.js` file. You can then add `breakpoint` commands in your hyperscript
 to trigger the debugger.
@@ -2007,5 +2158,11 @@ The more I looked at it, the more I thought that there was a need for a small, d
 event oriented and made DOM scripting efficient and fun.  I had programmed in [HyperTalk](https://en.wikipedia.org/wiki/HyperTalk), the scripting language for [HyperCard](https://en.wikipedia.org/wiki/HyperCard), when I was younger and remembered that it integrated events very well into the language.  So I dug up some old documentation on it and began work on hyperscript, a HyperTalk-derived scripting language for the web.
 
 And here we are.  I hope you find the language useful, or, at least, funny.  :)
+
+</div>
+
+</div>
+
+</div>
 
 </div>

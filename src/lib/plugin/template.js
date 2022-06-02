@@ -28,7 +28,6 @@ export default _hyperscript => {
 			args: [template_, templateArgs],
 			op: function (ctx, template, templateArgs) {
 				if (!(template instanceof Element)) throw new Error(template_.sourceFor() + " is not an element");
-				console.log(compileTemplate(template.innerHTML));
 				ctx.result = renderTemplate(compileTemplate(template.innerHTML), templateArgs);
 				return runtime.findNext(this, ctx);
 			},

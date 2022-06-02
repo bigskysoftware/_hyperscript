@@ -48,6 +48,13 @@ describe("the append command", function () {
 		div.innerHTML.should.equal("Content");
 	});
 
+	it("can append a value to I", function () {
+		var div = make(`<div _="on click 
+                            append 'Content' to I"></div>`);
+		div.click();
+		div.innerHTML.should.equal("Content");
+	});
+
     it("can append a value to an object property", function () {
         var div = make(`<div id="id" _="on click append '_new' to my id"></div>`);
         div.click();

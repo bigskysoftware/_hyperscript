@@ -1,41 +1,56 @@
 
-<header id="intro-to-hyperscript">
+<div id="intro-to-hyperscript">
 
 # hyperscript is an easy & approachable language designed for modern front-end web development
 
-<div id="sample">
-
-<pre _="
+<div id="sample" class="basicgrid" style="align-items: stretch" _="
   on mouseenter queue none
     repeat until event mouseleave
       transition #sample-tip's transform to 'translateX(-2ch)' using 'all 500ms ease-out'
-      transition #sample-tip's transform to initial            using 'all 500ms ease-in'
-"><code id="snippet" class="lang-hyperscript">writeText(the #snippet's innerText)
+      transition #sample-tip's transform to initial            using 'all 500ms ease-in'">
+
+<div class="box">
+<pre><code id="snippet" class="lang-hyperscript">writeText(the #snippet's innerText)
   into the navigator's clipboard
 put 'copied!' into me
 wait 1s
 put 'copy' into me</code></pre>
+</div>
 
-<p style="text-align: right">
+<div class="box center">
 <span id="sample-tip">see it in action &rarr;</span>
-<button class="btn primary" style="margin: auto" _="on click
+<button class="btn primary" _="on click
 writeText(the #snippet's innerText) into the navigator's clipboard
 put 'copied!' into me
 wait 1s
 put 'copy' into me">
 copy
 </button>
+</div>
+</div>
+</div>
+
+hyperscript makes writing event handlers and highly
+responsive user interfaces easy with a clear, DOM-oriented syntax and by transparently
+ handling asynchronous behavior for you &mdash; easier than callbacks, promises, even async/await.
+
+
+<div>
+
+ <span id='install'>Install: <input type=text style=display:inline;width:auto readonly value='<script src="https://unpkg.com/hyperscript.org@0.9.5"></script>'>
+<button
+  _="on click
+  writeText(my previousElementSibling's value) on navigator.clipboard
+  put 'copied!' into me
+  wait 1s
+  put 'copy' into me">copy</button>
+</span>
 
 </div>
-</header>
-
- <span class="lede">hyperscript makes writing event handlers and highly
-responsive user interfaces easy with a clear, DOM-oriented syntax and by transparently
- handling asynchronous behavior for you &mdash; easier than callbacks, promises, even async/await.</span>
 
 ## features
 
-<div id="features-list">
+<div id="features-list" class="textcolumns">
 
 **Events as first class citizens in the language**&mdash;clean syntax for
 [receiving](/features/on) and [sending](/commands/send) events, as well as
@@ -55,6 +70,13 @@ experiences without callback hell
 
 **An [xTalk](https://en.wikipedia.org/wiki/XTalk) syntax, inspired by [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf)**
 
+See the [**Comparison** with VanillaJS & jQuery](/comparison)
+
+Read the [**docs**](/docs)
+
+Try it on the [**playground**](/playground)
+
+Community news: [This Week in HTMX](https://thisweek.htmx.org)
 
 </div>
 
@@ -63,80 +85,22 @@ experiences without callback hell
 [Companion of **htmx**](https://htmx.org) |
 [**Comparison** with VanillaJS & jQuery](/comparison) |
 [Read the **docs**](/docs) |
-[Try it on the **playground**](/playground)
+[Try it on the **playground**](/playground) |
+[Check out the **cheatsheet**](https://denizaksimsek.com/wiki/en/HS%20Cheatsheet)
 
- <span id='install'>Install: `<script src="https://unpkg.com/hyperscript.org@0.9.4"></script>`
-<button style="font:inherit;font-size:.8em;background:#3465a4;color:white;border:none;padding: 0 .4em; border-radius: .4em"
-  _="on click
-  writeText(my previousElementSibling's innerText) on navigator.clipboard
-  put 'copied!' into me
-  wait 1s
-  put 'copy' into me">copy</button>
-</span>
+<aside class="box warn crowded color" style="font-size: .9em; --rhythm: 1em;">
 
-</div>
+hyperscript is in active development, working towards 1.0. The syntax and core
+feature set are reasonably complete. We're focusing on more test cases and
+docs. Please join us at the
+<a style="font-weight: bold" href="https://htmx.org/discord">#hyperscript discord channel</a>
+&mdash; thank you!
 
-<small style="color: darkgoldenrod;">
-<b style="font-size: 2em; padding: 4px .2ch 0 0; line-height: 1; float: left">β</b>
-hyperscript is in active development and is working to a 1.0 release. At this
-time, the syntax and core feature set are considered to be reasonably complete.
-Key areas of focus for 1.0 include additional test cases and documentation
-improvements. Please join us at the
-<a style="color: darkgoldenrod;font-weight: bold" href="https://htmx.org/discord">#hyperscript discord channel</a>
-as we push to 1.0! Thank you!</p>
-</small>
-
- <small><em>NB: because hyperscript relies on
+NB: because hyperscript relies on
 [promises](https://caniuse.com/?search=Promise) it cannot offer IE11
-compatibility</em></small>
+compatibility
 
-<style>
-#intro-to-hyperscript {
-  display: flex;
-  position: relative;
-  flex-flow: row wrap;
-  justify-content: stretch;
-  align-items: center;
-}
-
-#intro-to-hyperscript h1 {
-  flex: 4 6 18ch;
-  margin-right: 2em;
-  font-size: clamp(1.2em, 5vw, 2em);
-}
-
-#intro-to-hyperscript #sample {
-  flex: 1 1 max-content;
-  max-width: 100%;
-}
-
-#sample-tip {
-  display: inline-block;
-}
-
-.lede {
-	font-size: clamp(1.1em, 2vw, 1.2em);
-}
-
-#features-list {
-  column-width: 40ch;
-  column-gap: 2em;
-}
-
-#features-list > * {
-  margin: 0 0 1.4em 0;
-}
-
-#links p {
-  margin: 1.4em 0;
-  display: flex;
-  flex-flow: row wrap;
-  justify-content: center;
-  text-align: center;
-  gap: .2em 2ch;
-}
-
-</style>
+</aside>
 
 ## examples
 

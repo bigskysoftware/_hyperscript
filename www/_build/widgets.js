@@ -1,7 +1,7 @@
 
 module.exports = function (config) {
     config.addPairedShortcode('example', (content, caption) => {
-        let rv = "<figure class='example'>\n\n"
+        let rv = "<figure class='box info'>\n\n"
         if (caption) rv += `<figcaption>Example: ${caption}</figcaption>\n\n`
         else rv += `<figcaption>Example</figcaption>\n\n`
         rv += "  ~~~ html"
@@ -47,7 +47,7 @@ module.exports = function (config) {
     			buf.push(dedent(line));
     		}
     	}
-    	return `<dl class="syntaxes">${buf.join('\n')}</dl>`;
+    	return `<div class="missing-card"><dl class="syntaxes">${buf.join('\n')}</dl></div>`;
     })
 }
 

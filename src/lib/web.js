@@ -91,6 +91,13 @@ export default _hyperscript => {
 				var toExpr = parser.requireElement("implicitMeTarget", tokens);
 			}
 
+			if (tokens.matchToken("when")) {
+				if (cssDeclaration) {
+					parser.raiseParseError(tokens, "Only class and properties are supported with a when clause")
+				}
+				var when = parser.requireElement("expression", tokens);
+			}
+
 			if (classRefs) {
 				return {
 					classRefs: classRefs,
@@ -100,7 +107,18 @@ export default _hyperscript => {
 						runtime.nullCheck(to, toExpr);
 						runtime.forEach(classRefs, function (classRef) {
 							runtime.implicitLoop(to, function (target) {
-								if (target instanceof Element) target.classList.add(classRef.className);
+								if (when) {
+									context['result'] = target;
+									let whenResult = runtime.evaluateNoPromise(when, context);
+									if (whenResult) {
+										if (target instanceof Element) target.classList.add(classRef.className);
+									} else {
+										if (target instanceof Element) target.classList.remove(classRef.className);
+									}
+									context['result'] = null;
+								} else {
+									if (target instanceof Element) target.classList.add(classRef.className);
+								}
 							});
 						});
 						return runtime.findNext(this, context);
@@ -115,7 +133,18 @@ export default _hyperscript => {
 					op: function (context, to, attrRef) {
 						runtime.nullCheck(to, toExpr);
 						runtime.implicitLoop(to, function (target) {
-							target.setAttribute(attributeRef.name, attributeRef.value);
+							if (when) {
+								context['result'] = target;
+								let whenResult = runtime.evaluateNoPromise(when, context);
+								if (whenResult) {
+									target.setAttribute(attributeRef.name, attributeRef.value);
+								} else {
+									target.removeAttribute(attributeRef.name);
+								}
+								context['result'] = null;
+							} else {
+								target.setAttribute(attributeRef.name, attributeRef.value);
+							}
 						});
 						return runtime.findNext(this, context);
 					},
@@ -215,18 +244,20 @@ export default _hyperscript => {
 			if (tokens.matchToken("from")) {
 				var fromExpr = parser.requireElement("expression", tokens);
 			} else {
-				var fromExpr = parser.requireElement("implicitMeTarget", tokens);
+				if (elementExpr == null) {
+					var fromExpr = parser.requireElement("implicitMeTarget", tokens);
+				}
 			}
 
 			if (elementExpr) {
 				return {
 					elementExpr: elementExpr,
 					from: fromExpr,
-					args: [elementExpr],
-					op: function (context, element) {
+					args: [elementExpr, fromExpr],
+					op: function (context, element, from) {
 						runtime.nullCheck(element, elementExpr);
 						runtime.implicitLoop(element, function (target) {
-							if (target.parentElement) {
+							if (target.parentElement && (from == null || from.contains(target))) {
 								target.parentElement.removeChild(target);
 							}
 						});
@@ -997,15 +1028,22 @@ export default _hyperscript => {
 				to: to,
 				args: [to],
 				op: function (ctx, to) {
-					if (to == null || !(to instanceof Element)) {
+					if (to == null) {
 						return null;
 					} else {
-						if (parentSearch) {
-							var node = to.parentElement ? to.parentElement.closest(css) : null;
+						let result = [];
+						runtime.implicitLoop(to, function(to){
+							if (parentSearch) {
+								result.push(to.parentElement ? to.parentElement.closest(css) : null);
+							} else {
+								result.push(to.closest(css));
+							}
+						})
+						if (runtime.shouldAutoIterate(to)) {
+							return result;
 						} else {
-							var node = to.closest(css);
+							return result[0];
 						}
-						return node;
 					}
 				},
 				evaluate: function (context) {
@@ -1039,12 +1077,24 @@ export default _hyperscript => {
 					}
 				} else {
 					tokens.matchToken("the"); // optional the
-					var verticalPosition = tokens.matchAnyToken("top", "bottom", "middle");
+					var verticalPosition = tokens.matchAnyToken("top", "middle", "bottom");
 					var horizontalPosition = tokens.matchAnyToken("left", "center", "right");
 					if (verticalPosition || horizontalPosition) {
 						tokens.requireToken("of");
 					}
-					var target = parser.requireElement("expression", tokens);
+					var target = parser.requireElement("unaryExpression", tokens);
+
+					var plusOrMinus = tokens.matchAnyOpToken("+", "-");
+					if (plusOrMinus) {
+						tokens.pushFollow("px");
+						try {
+							var offset = parser.requireElement("expression", tokens);
+						} finally {
+							tokens.popFollow();
+						}
+					}
+					tokens.matchToken("px"); // optional px
+
 					var smoothness = tokens.matchAnyToken("smoothly", "instantly");
 
 					var scrollOptions = {};
@@ -1080,20 +1130,52 @@ export default _hyperscript => {
 
 			var goCmd = {
 				target: target,
-				args: [target],
-				op: function (ctx, to) {
+				args: [target, offset],
+				op: function (ctx, to, offset) {
 					if (back) {
 						window.history.back();
 					} else if (url) {
 						if (to) {
-							if (to.indexOf("#") === 0 && !newWindow) {
-								window.location.href = to;
+							if (newWindow) {
+								window.open(to);
 							} else {
-								window.open(to, newWindow ? "_blank" : null);
+								window.location.href = to;
 							}
 						}
 					} else {
-						runtime.forEach(to, function (target) {
+						runtime.implicitLoop(to, function (target) {
+
+							if (target === window) {
+								target = document.body;
+							}
+
+							if(plusOrMinus) {
+								// a top scroll w/ an offset of some sort
+								var boundingRect = target.getBoundingClientRect();
+								let scrollShim = document.createElement('div');
+
+								if (plusOrMinus.value === "-") {
+									var finalOffset = -offset;
+								} else {
+									var finalOffset = offset;
+								}
+
+								scrollShim.style.position = 'absolute';
+								scrollShim.style.top = (boundingRect.x + finalOffset) + "px";
+								scrollShim.style.left = (boundingRect.y + finalOffset) + "px";
+								scrollShim.style.height = (boundingRect.height + (2 * finalOffset)) + "px";
+								scrollShim.style.width = (boundingRect.width + (2 * finalOffset)) + "px";
+								scrollShim.style.zIndex = "" + Number.MIN_SAFE_INTEGER;
+								scrollShim.style.opacity = "0";
+
+								document.body.appendChild(scrollShim);
+								setTimeout(function () {
+									document.body.removeChild(scrollShim);
+								}, 100);
+
+								target = scrollShim;
+							}
+
 							target.scrollIntoView(scrollOptions);
 						});
 					}
@@ -1104,7 +1186,11 @@ export default _hyperscript => {
 		}
 	});
 
-	_hyperscript.config.conversions["Values"] = function (/** @type {Node | NodeList} */ node) {
+	_hyperscript.config.conversions.dynamicResolvers.push(function (str, node) {
+		if (!(str === "Values" || str.indexOf("Values:") === 0)) {
+			return;
+		}
+		var conversion = str.split(":")[1];
 		/** @type Object<string,string | string[]> */
 		var result = {};
 
@@ -1126,7 +1212,17 @@ export default _hyperscript => {
 			}
 		});
 
-		return result;
+		if (conversion) {
+			if (conversion === "JSON") {
+				return JSON.stringify(result);
+			} else if (conversion === "Form") {
+				return new URLSearchParams(result).toString();
+			} else {
+				throw "Unknown conversion: " + conversion;
+			}
+		} else {
+			return result;
+		}
 
 		/**
 		 * @param {HTMLInputElement} node
@@ -1192,7 +1288,7 @@ export default _hyperscript => {
 				return undefined;
 			}
 		}
-	};
+	});
 
 	_hyperscript.config.conversions["HTML"] = function (value) {
 		var toHTML = /** @returns {string}*/ function (/** @type any*/ value) {

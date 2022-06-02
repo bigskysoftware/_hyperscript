@@ -731,6 +731,9 @@ var _lexer = (function () {
 			       isIdentifierChar(currentChar())) {
 				value += consumeChar();
 			}
+			if (currentChar() === "!" && value === "beep") {
+				value += consumeChar();
+			}
 			identifier.value = value;
 			identifier.end = position;
 			return identifier;
@@ -1702,7 +1705,10 @@ var _runtime = (function () {
 	function getHyperscriptFeatures(elt) {
 		var hyperscriptFeatures = hyperscriptFeaturesMap.get(elt);
 		if (typeof hyperscriptFeatures === 'undefined') {
-			hyperscriptFeaturesMap.set(elt, hyperscriptFeatures = {});
+			if (elt) {
+				// in some rare cases, elt is null and this line crashes
+				hyperscriptFeaturesMap.set(elt, hyperscriptFeatures = {});
+			}
 		}
 		return hyperscriptFeatures;
 	}
@@ -2075,9 +2081,7 @@ var _runtime = (function () {
 				var result = [];
 				for (var component of root) {
 					var componentValue = getter(component, property);
-					if (componentValue) {
-						result.push(componentValue);
-					}
+					result.push(componentValue);
 				}
 				return result;
 			}
@@ -2271,6 +2275,7 @@ var _runtime = (function () {
 		typeCheck,
 		forEach,
 		implicitLoop,
+		shouldAutoIterate,
 		triggerEvent,
 		matchesSelector,
 		getScript,
@@ -2850,7 +2855,7 @@ var _runtime = (function () {
 
 	_parser.addIndirectExpression("of", function (parser, runtime, tokens, root) {
 		if (!tokens.matchToken("of")) return;
-		var newRoot = parser.requireElement("expression", tokens);
+		var newRoot = parser.requireElement("unaryExpression", tokens);
 		// find the urroot
 		var childOfUrRoot = null;
 		var urRoot = root;
@@ -2959,7 +2964,7 @@ var _runtime = (function () {
 
 	_parser.addIndirectExpression("inExpression", function (parser, runtime, tokens, root) {
 		if (!tokens.matchToken("in")) return;
-		var target = parser.requireElement("expression", tokens);
+		var target = parser.requireElement("unaryExpression", tokens);
 		var propertyAccess = {
 			type: "inExpression",
 			root: root,
@@ -2992,11 +2997,7 @@ var _runtime = (function () {
 						});
 					});
 				}
-				if (returnArr.length > 0) {
-					return returnArr;
-				} else {
-					return null;
-				}
+				return returnArr;
 			},
 			evaluate: function (context) {
 				return runtime.unifiedEval(this, context);
@@ -3290,10 +3291,47 @@ var _runtime = (function () {
 	});
 
 	_parser.addGrammarElement("unaryExpression", function (parser, runtime, tokens) {
+		tokens.matchToken("the"); // optional "the"
 		return parser.parseAnyOf(
-			["logicalNot", "relativePositionalExpression", "positionalExpression", "noExpression", "negativeNumber", "postfixExpression"],
+			["beepExpression", "logicalNot", "relativePositionalExpression", "positionalExpression", "noExpression", "negativeNumber", "postfixExpression"],
 			tokens
 		);
+	});
+
+	_parser.addGrammarElement("beepExpression", function (parser, runtime, tokens) {
+		if (!tokens.matchToken("beep!")) return;
+		var expression = parser.parseElement("unaryExpression", tokens);
+		if (expression) {
+			expression.booped = true;
+			var originalEvaluate = expression.evaluate;
+			expression.evaluate = function(ctx){
+				let value = originalEvaluate.apply(expression, arguments);
+				let element = ctx.me;
+				if (runtime.triggerEvent(element, "hyperscript:beep", {element, expression, value})) {
+					var typeName;
+					if (value) {
+						if (value instanceof ElementCollection){
+							typeName = "ElementCollection";
+						} else if (value.constructor) {
+							typeName = value.constructor.name;
+						} else {
+							typeName = "unknown";
+						}
+					} else {
+						typeName = "object (null)"
+					}
+					var logValue = value;
+					if (typeName === "String") {
+						logValue = '"' + logValue + '"';
+					} else if (value instanceof ElementCollection) {
+						logValue = Array.from(value);
+					}
+					console.log("///_ BEEP! The expression (" + expression.sourceFor().substr(6) + ") evaluates to:", logValue,  "of type " + typeName);
+				}
+				return value;
+			}
+			return expression;
+		}
 	});
 
 	var scanForwardQuery = function(start, root, match, wrap) {
@@ -3359,7 +3397,7 @@ var _runtime = (function () {
 		if (tokens.matchToken("from")) {
 			tokens.pushFollow("in");
 			try {
-				var from = parser.requireElement("expression", tokens);
+				var from = parser.requireElement("unaryExpression", tokens);
 			} finally {
 				tokens.popFollow();
 			}
@@ -3371,9 +3409,9 @@ var _runtime = (function () {
 		var withinElt;
 		if (tokens.matchToken("in")) {
 			inSearch = true;
-			var inElt = parser.requireElement("expression", tokens);
+			var inElt = parser.requireElement("unaryExpression", tokens);
 		} else if (tokens.matchToken("within")) {
-			withinElt = parser.requireElement("expression", tokens);
+			withinElt = parser.requireElement("unaryExpression", tokens);
 		} else {
 			withinElt = document.body;
 		}
@@ -3930,7 +3968,7 @@ var _runtime = (function () {
 			}
 
 			if (tokens.matchToken("in")) {
-				var inExpr = parser.parseAnyOf(["idRef", "queryRef", "classRef"], tokens);
+				var inExpr = parser.parseElement('unaryExpression', tokens);
 			}
 
 			if (tokens.matchToken("debounced")) {
@@ -4922,7 +4960,7 @@ var _runtime = (function () {
 		}
 
 		if (tokens.matchToken("called")) {
-			var name = tokens.requireTokenType("IDENTIFIER").value;
+			var target = parser.requireElement("symbol", tokens);
 		}
 
 		var command;
@@ -4948,7 +4986,9 @@ var _runtime = (function () {
 					}
 
 					ctx.result = result;
-					if (name) ctx[name] = result;
+					if (target){
+						runtime.setSymbol(target.name, ctx, target.scope, result);
+					}
 
 					return runtime.findNext(this, ctx);
 				},
@@ -4959,7 +4999,9 @@ var _runtime = (function () {
 				args: [expr, args],
 				op: function (ctx, expr, args) {
 					ctx.result = varargConstructor(expr, args);
-					if (name) ctx[name] = ctx.result;
+					if (target){
+						runtime.setSymbol(target.name, ctx, target.scope, ctx.result);
+					}
 
 					return runtime.findNext(this, ctx);
 				},
@@ -5404,7 +5446,6 @@ var _runtime = (function () {
             parser.raiseParseError(tokens, "Command `continue` cannot be used outside of a `repeat` loop.")
           }
           if (parent.loop != undefined) {
-			  console.log(parent);
 			  return runtime.findNext(parent.parent, context);
           }
         }
