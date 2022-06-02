@@ -70,4 +70,16 @@ describe("the remove command", function () {
 		div.classList.contains("bar").should.equal(false);
 		div.classList.contains("doh").should.equal(true);
 	});
+
+	it("can remove query refs from specific things", function () {
+		var div = make("<div><div id='d1' _='on click remove <p/> from me'><p>foo</p>bar</div><p>doh</p></div>");
+		var d1 = byId('d1');
+		div.innerHTML.includes("foo").should.equal(true);
+		div.innerHTML.includes("bar").should.equal(true);
+		div.innerHTML.includes("doh").should.equal(true);
+		d1.click();
+		div.innerHTML.includes("foo").should.equal(false);
+		div.innerHTML.includes("bar").should.equal(true);
+		div.innerHTML.includes("doh").should.equal(true);
+	});
 });

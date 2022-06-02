@@ -80,6 +80,14 @@ Community news: [This Week in HTMX](https://thisweek.htmx.org)
 
 </div>
 
+<div id="links">
+
+[Companion of **htmx**](https://htmx.org) |
+[**Comparison** with VanillaJS & jQuery](/comparison) |
+[Read the **docs**](/docs) |
+[Try it on the **playground**](/playground) |
+[Check out the **cheatsheet**](https://denizaksimsek.com/wiki/en/HS%20Cheatsheet)
+
 <aside class="box warn crowded color" style="font-size: .9em; --rhythm: 1em;">
 
 hyperscript is in active development, working towards 1.0. The syntax and core

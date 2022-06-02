@@ -145,7 +145,7 @@ All hyperscript scripts are made up of these basic building blocks.
 
 ### Comments
 
-Comments in hyperscript start with the `--` character and go to the end of the line:
+Comments in hyperscript start with the `--` characters and a whitespace character (space, tab, carriage return or newline) and go to the end of the line:
   ~~~ hyperscript
   -- this is a comment
   log "Yep, that was a comment"
@@ -584,7 +584,7 @@ A small sampling is shown below:
 `[[a]] is not [[b]]`
 	Same as {%syntax "[[a]] != [[b]]"%}.
 `no [[a]]`
-	Same as {%syntax "[[a]] == null or [[a]] == undefined"%}.
+	Same as {%syntax "[[a]] == null or [[a]] == undefined or [[a.length]] == 0"%}.
 `[[element]] matches [[selector]]`
 	Does a CSS test, i.e. `if I match .selected`.
 `[[a]] exists`
@@ -727,7 +727,7 @@ conversions and, therefore, can be used with numbers stored in attributes on the
   ~~~ hyperscript
   on click
      increment @data-counter
-     if @data-counter as Integer is greater than 4
+     if @data-counter as Int is greater than 4
        add @disabled -- disable after the 5th click
   ~~~
 
@@ -1383,7 +1383,7 @@ The `put` command can be used in the following ways:
 `put [[content]] at the end of [[element]]`
 	Puts the content at the end of the element, using [`Element.append`][].
 `put [[content]] after [[element]]`
-	Puts the content in front of the element, using [`Element.after`][].
+	Puts the content after the element, using [`Element.after`][].
 {% endsyntaxes %}
 
 [`Element.before`]:  https://developer.mozilla.org/en-US/docs/Web/API/Element/before
