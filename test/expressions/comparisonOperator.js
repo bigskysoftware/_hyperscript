@@ -178,7 +178,7 @@ describe("the comparisonOperator expression", function () {
 		result.should.equal(true);
 
 		var div = make("<div class='foo'></div>");
-		var result = evalHyperScript("x matches .foo", { x: div });
+		var result = evalHyperScript("x matches .foo", { locals: { x: div } });
 		result.should.equal(true);
 
 		var div = make("<div class='foo'></div>");
@@ -186,7 +186,7 @@ describe("the comparisonOperator expression", function () {
 		result.should.equal(false);
 
 		var div = make("<div class='foo'></div>");
-		var result = evalHyperScript("x matches .bar", { x: div });
+		var result = evalHyperScript("x matches .bar", { locals: { x: div } });
 		result.should.equal(false);
 	});
 
@@ -196,7 +196,7 @@ describe("the comparisonOperator expression", function () {
 		result.should.equal(false);
 
 		var div = make("<div class='foo'></div>");
-		var result = evalHyperScript("x does not match .foo", { x: div });
+		var result = evalHyperScript("x does not match .foo", { locals: { x: div } });
 		result.should.equal(false);
 
 		var div = make("<div class='foo'></div>");
@@ -204,7 +204,7 @@ describe("the comparisonOperator expression", function () {
 		result.should.equal(true);
 
 		var div = make("<div class='foo'></div>");
-		var result = evalHyperScript("x does not match .bar", { x: div });
+		var result = evalHyperScript("x does not match .bar", { locals: { x: div } });
 		result.should.equal(true);
 	});
 
@@ -230,25 +230,25 @@ describe("the comparisonOperator expression", function () {
 
 		var result = evalHyperScript("I contain that", {
 			me: outer,
-			that: inner,
+			locals: { that: inner, }
 		});
 		result.should.equal(true);
 
 		var result = evalHyperScript("I contain that", {
 			me: inner,
-			that: outer,
+			locals: { that: outer, }
 		});
 		result.should.equal(false);
 
 		var result = evalHyperScript("that contains me", {
 			me: outer,
-			that: inner,
+			locals: { that: inner, }
 		});
 		result.should.equal(false);
 
 		var result = evalHyperScript("that contains me", {
 			me: inner,
-			that: outer,
+			locals: { that: outer, }
 		});
 		result.should.equal(true);
 	});
@@ -259,13 +259,13 @@ describe("the comparisonOperator expression", function () {
 
 		var result = evalHyperScript("I contain that", {
 			me: outer,
-			that: inner,
+			locals: { that: inner, }
 		});
 		result.should.equal(true);
 
 		var result = evalHyperScript("that contains me", {
 			me: inner,
-			that: outer,
+			locals: { that: outer, }
 		});
 		result.should.equal(true);
 	});
@@ -286,26 +286,34 @@ describe("the comparisonOperator expression", function () {
 		var inner = byId("d2");
 
 		var result = evalHyperScript("foo includes foobar", {
-			foo: "foo",
-			foobar: "foobar",
+			locals: {
+				foo: "foo",
+				foobar: "foobar",
+			}
 		});
 		result.should.equal(false);
 
 		var result = evalHyperScript("foobar includes foo", {
-			foo: "foo",
-			foobar: "foobar",
+			locals: {
+				foo: "foo",
+				foobar: "foobar",
+			}
 		});
 		result.should.equal(true);
 
 		var result = evalHyperScript("foo does not include foobar", {
-			foo: "foo",
-			foobar: "foobar",
+			locals: {
+				foo: "foo",
+				foobar: "foobar",
+			}
 		});
 		result.should.equal(true);
 
 		var result = evalHyperScript("foobar does not include foo", {
-			foo: "foo",
-			foobar: "foobar",
+			locals: {
+				foo: "foo",
+				foobar: "foobar",
+			}
 		});
 		result.should.equal(false);
 
@@ -317,13 +325,13 @@ describe("the comparisonOperator expression", function () {
 
 		var result = evalHyperScript("I include that", {
 			me: outer,
-			that: inner,
+			locals: { that: inner, }
 		});
 		result.should.equal(true);
 
 		var result = evalHyperScript("that includes me", {
 			me: inner,
-			that: outer,
+			locals: { that: outer, }
 		});
 		result.should.equal(true);
 	});
@@ -345,25 +353,25 @@ describe("the comparisonOperator expression", function () {
 
 		var result = evalHyperScript("I do not contain that", {
 			me: outer,
-			that: inner,
+			locals: { that: inner, }
 		});
 		result.should.equal(false);
 
 		var result = evalHyperScript("I do not contain that", {
 			me: inner,
-			that: outer,
+			locals: { that: outer, }
 		});
 		result.should.equal(true);
 
 		var result = evalHyperScript("that does not contains me", {
 			me: outer,
-			that: inner,
+			locals: { that: inner, }
 		});
 		result.should.equal(true);
 
 		var result = evalHyperScript("that does not contains me", {
 			me: inner,
-			that: outer,
+			locals: { that: outer, }
 		});
 		result.should.equal(false);
 	});

@@ -69,7 +69,7 @@ describe("as operator", function () {
 	});
 
 	it("converts value as Object", function () {
-		var result = evalHyperScript("x as Object", { x: { foo: "bar" } });
+		var result = evalHyperScript("x as Object", { locals: { x: { foo: "bar" } } });
 		result["foo"].should.equal("bar");
 	});
 
@@ -78,7 +78,7 @@ describe("as operator", function () {
 		node.name = "test-name";
 		node.value = "test-value";
 
-		var result = evalHyperScript("x as Values", { x: node });
+		var result = evalHyperScript("x as Values", { locals: { x: node } });
 		result["test-name"].should.equal("test-value");
 	});
 
@@ -92,7 +92,7 @@ describe("as operator", function () {
                 <input name="phone" value="555-1212">
             </div>`;
 
-		var result = evalHyperScript("x as Values", { x: node });
+		var result = evalHyperScript("x as Values", { locals: { x: node } });
 		result.firstName.should.equal("John");
 		result.lastName.should.equal("Connor");
 		result.areaCode.should.equal("213");
@@ -126,7 +126,7 @@ describe("as operator", function () {
                 <input type="radio" name="gender" value="Other">
             </div>`;
 
-		var result = evalHyperScript("x as Values", { x: node });
+		var result = evalHyperScript("x as Values", { locals: { x: node } });
 		result.gender.should.equal("Male");
 	});
 
@@ -139,7 +139,7 @@ describe("as operator", function () {
                 <input type="checkbox" name="gender" value="Other" checked>
             </div>`;
 
-		var result = evalHyperScript("x as Values", { x: node });
+		var result = evalHyperScript("x as Values", { locals: { x: node } });
 		result.gender[0].should.equal("Male");
 		result.gender[1].should.equal("Female");
 		result.gender[2].should.equal("Other");
@@ -155,7 +155,7 @@ describe("as operator", function () {
                 <option value="possum">Sleepy Boi</option>
             </div>`;
 
-		var result = evalHyperScript("x as Values", { x: node });
+		var result = evalHyperScript("x as Values", { locals: { x: node } });
 		result.animal[0].should.equal("dog");
 		result.animal[1].should.equal("raccoon");
 	});
@@ -199,7 +199,7 @@ describe("as operator", function () {
         <input type="checkbox" name="gender" value="Other" checked>
         `;
 
-		var result = evalHyperScript("x as Values", { x: node });
+		var result = evalHyperScript("x as Values", { locals: { x: node } });
 		result.firstName.should.equal("John");
 		result.lastName.should.equal("Connor");
 		result.phone.should.equal("555-1212");
@@ -218,7 +218,7 @@ describe("as operator", function () {
 		d1.id = "myDiv";
 		d1.innerText = "With Text";
 
-		var result = evalHyperScript("d as HTML", { d: d1 });
+		var result = evalHyperScript("d as HTML", { locals: { d: d1 } });
 		result.should.equal(`<div id="myDiv">With Text</div>`);
 	});
 
@@ -245,7 +245,7 @@ describe("as operator", function () {
 		}
 
 		var result = evalHyperScript("nodeList as HTML", {
-			nodeList: fragment.childNodes,
+			locals: { nodeList: fragment.childNodes, }
 		});
 		result.should.equal(`<div id="first">With Text</div><span id="second"></span><i id="third"></i>`);
 	});
@@ -253,21 +253,21 @@ describe("as operator", function () {
 	it("converts an array into HTML", function () {
 		var d1 = ["this-", "is-", "html"];
 
-		var result = evalHyperScript("d as HTML", { d: d1 });
+		var result = evalHyperScript("d as HTML", { locals: { d: d1 } });
 		result.should.equal(`this-is-html`);
 	});
 
 	it("converts numbers things 'HTML'", function () {
 		var value = 123;
 
-		var result = evalHyperScript("value as HTML", { value: value });
+		var result = evalHyperScript("value as HTML", { locals: { value: value } });
 		result.should.equal("123");
 	});
 
 	it("converts strings into fragments", function () {
 		var value = "<p></p>";
 
-		var result = evalHyperScript("value as Fragment", { value: value });
+		var result = evalHyperScript("value as Fragment", { locals: { value: value } });
 		result.childElementCount.should.equal(1);
 		result.firstChild.tagName.should.equal("P");
 	});
@@ -275,7 +275,7 @@ describe("as operator", function () {
 	it("converts elements into fragments", function () {
 		var value = document.createElement("p");
 
-		var result = evalHyperScript("value as Fragment", { value: value });
+		var result = evalHyperScript("value as Fragment", { locals: { value: value } });
 		result.childElementCount.should.equal(1);
 		result.firstChild.tagName.should.equal("P");
 	});
@@ -283,7 +283,7 @@ describe("as operator", function () {
 	it("converts arrays into fragments", function () {
 		var value = [document.createElement("p"), "<p></p>"];
 
-		var result = evalHyperScript("value as Fragment", { value: value });
+		var result = evalHyperScript("value as Fragment", { locals: { value: value } });
 		result.childElementCount.should.equal(2);
 		result.firstChild.tagName.should.equal("P");
 		result.lastChild.tagName.should.equal("P");
@@ -321,7 +321,7 @@ describe("as operator", function () {
                 <input name="phone" value="555-1212">
             </div>`;
 
-		var result = evalHyperScript("x as Values:JSON", { x: node });
+		var result = evalHyperScript("x as Values:JSON", { locals: { x: node } });
 		result.should.equal('{"firstName":"John","lastName":"Connor","areaCode":"213","phone":"555-1212"}');
 	});
 
@@ -335,7 +335,7 @@ describe("as operator", function () {
                 <input name="phone" value="555-1212">
             </div>`;
 
-		var result = evalHyperScript("x as Values:Form", { x: node });
+		var result = evalHyperScript("x as Values:Form", { locals: { x: node } });
 		result.should.equal('firstName=John&lastName=Connor&areaCode=213&phone=555-1212');
 	});
 

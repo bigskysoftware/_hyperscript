@@ -2,7 +2,7 @@
 function compileTemplate(template) {
 	return template.replace(/(?:^|\n)([^@]*)@?/gm, function (match, p1) {
 		var templateStr = (" " + p1).replace(/([^\\])\$\{/g, "$1$${escape html ").substring(1);
-		return "\ncall __ht_template_result.push(`" + templateStr + "`)\n";
+		return "\ncall meta.__ht_template_result.push(`" + templateStr + "`)\n";
 	});
 }
 
@@ -13,7 +13,9 @@ export default _hyperscript => {
 
 	function renderTemplate(template, ctx) {
 		var buf = [];
-		_hyperscript.evaluate(template, Object.assign({ __ht_template_result: buf }, ctx));
+		const renderCtx = Object.assign({}, ctx);
+		renderCtx.meta = Object.assign({ __ht_template_result: buf }, ctx.meta);
+		_hyperscript.evaluate(template, renderCtx);
 		return buf.join("");
 	}
 
@@ -28,7 +30,9 @@ export default _hyperscript => {
 			args: [template_, templateArgs],
 			op: function (ctx, template, templateArgs) {
 				if (!(template instanceof Element)) throw new Error(template_.sourceFor() + " is not an element");
-				ctx.result = renderTemplate(compileTemplate(template.innerHTML), templateArgs);
+				const context = _hyperscript.internals.runtime.makeContext()
+				context.locals = templateArgs;
+				ctx.result = renderTemplate(compileTemplate(template.innerHTML), context);
 				return runtime.findNext(this, ctx);
 			},
 		};

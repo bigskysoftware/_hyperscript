@@ -108,14 +108,14 @@ export default _hyperscript => {
 						runtime.forEach(classRefs, function (classRef) {
 							runtime.implicitLoop(to, function (target) {
 								if (when) {
-									context['result'] = target;
+									context.result = target;
 									let whenResult = runtime.evaluateNoPromise(when, context);
 									if (whenResult) {
 										if (target instanceof Element) target.classList.add(classRef.className);
 									} else {
 										if (target instanceof Element) target.classList.remove(classRef.className);
 									}
-									context['result'] = null;
+									context.result = null;
 								} else {
 									if (target instanceof Element) target.classList.add(classRef.className);
 								}
@@ -134,14 +134,14 @@ export default _hyperscript => {
 						runtime.nullCheck(to, toExpr);
 						runtime.implicitLoop(to, function (target) {
 							if (when) {
-								context['result'] = target;
+								context.result = target;
 								let whenResult = runtime.evaluateNoPromise(when, context);
 								if (whenResult) {
 									target.setAttribute(attributeRef.name, attributeRef.value);
 								} else {
 									target.removeAttribute(attributeRef.name);
 								}
-								context['result'] = null;
+								context.result = null;
 							} else {
 								target.setAttribute(attributeRef.name, attributeRef.value);
 							}
@@ -566,14 +566,14 @@ export default _hyperscript => {
 					runtime.nullCheck(target, targetExpr);
 					runtime.implicitLoop(target, function (elt) {
 						if (when) {
-							ctx['result'] = elt;
+							ctx.result = elt;
 							let whenResult = runtime.evaluateNoPromise(when, ctx);
 							if (whenResult) {
 								hideShowStrategy("show", elt, arg);
 							} else {
 								hideShowStrategy("hide", elt);
 							}
-							ctx['result'] = null;
+							ctx.result = null;
 						} else {
 							hideShowStrategy("show", elt, arg);
 						}
@@ -984,7 +984,7 @@ export default _hyperscript => {
 				};
 
 				runtime.forEach(propsToMeasure, function (prop) {
-					if (prop in ctx.result) ctx[prop] = ctx.result[prop];
+					if (prop in ctx.result) ctx.locals[prop] = ctx.result[prop];
 					else throw "No such measurement as " + prop;
 				});
 
