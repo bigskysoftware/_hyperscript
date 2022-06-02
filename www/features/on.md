@@ -7,8 +7,8 @@ is responding to the event.
 ### Syntax
 
 ```ebnf
-on [every] <event-name>[(<param-list>)][\[<filter>\]] <count> [<debounce> | <throttle>]
-   { or [every] <event-name>[(<param-list>)][\[<filter>\]] <count> }
+on [every] <event-name>[(<param-list>)][\[<filter>\]] [<count>] [from <expr>] [<debounce> | <throttle>]
+   { or [every] <event-name>[(<param-list>)][\[<filter>\]] [<count>] [from <expr>] [<debounce> | <throttle>] }
     [queue (all | first | last | none)]
     {<command>}
 [end]
@@ -34,6 +34,10 @@ The optional `count` is a count filter with a value of either a specific number,
   on click 2 to 10
   on click 11 and on
 ```
+
+You can then optionally listen to an event from another element using the `from <expr>` syntax, including the special
+value `elsewhere`, which will listen for the event from elsewhere in the DOM.  (This is useful if you want "click-away to
+close" behavior.)
 
 Finally an event can specify a `debounced at` or `throttled at` value to debounce or throttle the events.
 
@@ -96,7 +100,7 @@ init
 <button id="inc">Increment</button>
 ```
 
-### <a name="queueing"></a>[Event Queuing](#queueing)
+### Event Queuing
 
 You can control the event queuing behavior of an event handler by using the `every` and `queue` keyword.
 
@@ -111,9 +115,9 @@ If you postfix the event with `queue` you may pick from one of four strategies:
 - `first` - The first event that arrives will be queued, all others will be dropped
 - `last` - The last event that arrives will be queued, all others will be dropped
 
-`queued last` is the default behavior
+`queue last` is the default behavior
 
-### <a name="exceptions"></a>[Exceptions](#exceptions)
+### Exceptions
 
 If an exception occurs during an event handler, the `exception` event will be triggered on the element, and may
 be handled as a normal event:
@@ -127,7 +131,7 @@ be handled as a normal event:
 </div>
 ```
 
-#### <a name="mutation"></a>[Mutation Events](#mutation)
+#### Mutation Events
 
 Hyperscript includes a few synthetic events that make use of more complex APIs. For example, you can listen for
 mutations on an element with the `on mutation` form. This will use the [Mutation Observer](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver)
@@ -140,7 +144,7 @@ API, but will act more like a regular event handler.
 This div will listen for mutations of the `foo` attribute on this div and, when one occurs, will put the value
 "Mutated" into the element.
 
-#### <a name="intersection"></a>[Intersection Events](#intersection)
+#### Intersection Events
 
 Another synthetic event is the `intersection` event that uses the [Intersection Observer](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API)
 API. Again, hyperscript makes this API feel more event-driven:

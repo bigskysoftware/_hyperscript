@@ -15,7 +15,7 @@ Note: if you want the socket feature, you must either use the "Whole 9 Yards" re
 <br/>
 
 - `socket-name` is a name for the socket. This is available in the current hypertext scope and exposes additional data about the browser [WebSocket](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API) object.
-- `socket-url` is the address that the socket is connected to.
+- `socket-url` is the address that the socket is connected to. Schemes like ws or wss can optionally be specified (like in `socket MySocket ws://myserver.com/example`). If not specified, hyperscript defaults to add the location's scheme-type, host and port (like in `socket MySocket /example`).
 - `with timeout <time expr>` allows you to set a default timeout for [RPC calls](#rpc).
 - `on message` is an optional message handler body that can be run when messages are received. The `message` symbol
   will be set to the message value. The optional `as json` modifier will convert the message to json before running
@@ -44,7 +44,7 @@ You can send messages to the socket by using the normal [`send`](/commands/send)
     send myMessage(foo: "bar", doh: 42) to MySocket
 ```
 
-### <a name='rpc'></a>[RPC](#rpc)
+### RPC
 
 Hyperscript provides a simple RPC mechanism layered on top of websockets. Given the socket definiton above, you can
 make the following call in hyperscript:

@@ -27,4 +27,11 @@ describe("propertyAccess", function () {
 		});
 		result.should.equal("foo");
 	});
+
+	it("works properly w/ boolean properties", function () {
+		make("<input class='cb' type='checkbox' checked='checked'/> <input class='cb' type='checkbox'/> ");
+		let result = evalHyperScript(".cb.checked");
+		result.should.deep.equal([true, false]);
+	});
+
 });

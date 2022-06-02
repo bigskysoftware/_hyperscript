@@ -17,13 +17,18 @@ var globalScope = globalThis;
 //====================================================================
 
 class ElementCollection {
-	constructor(css, relativeToElement) {
+	constructor(css, relativeToElement, escape) {
 		this._css = css;
 		this.relativeToElement = relativeToElement;
+		this.escape = escape;
 	}
 
 	get css() {
-		return _runtime.escapeSelector(this._css);
+		if (this.escape) {
+			return _runtime.escapeSelector(this._css);
+		} else {
+			return this._css;
+		}
 	}
 
 	get className() {
@@ -43,10 +48,18 @@ class ElementCollection {
 		return false;
 	}
 
+	get length() {
+		return this.selectMatches().length;
+	}
+
 	[Symbol.iterator]() {
-		return _runtime.getRootNode(this.relativeToElement)
-			.querySelectorAll(this.css)
-			[Symbol.iterator]();
+		let query = this.selectMatches();
+		return query [Symbol.iterator]();
+	}
+
+	selectMatches() {
+		let query = _runtime.getRootNode(this.relativeToElement).querySelectorAll(this.css);
+		return query;
 	}
 }
 
@@ -299,6 +312,10 @@ var _lexer = (function () {
 			}
 		}
 
+		function peekToken(value, peek, type) {
+			return tokens[peek] && tokens[peek].value === value && tokens[peek].type === type
+		}
+
 		/**
 		 * @param {string} value
 		 * @param {string} [type]
@@ -460,6 +477,7 @@ var _lexer = (function () {
 			matchTokenType: matchTokenType,
 			requireTokenType: requireTokenType,
 			consumeToken: consumeToken,
+			peekToken: peekToken,
 			matchToken: matchToken,
 			requireToken: requireToken,
 			list: tokens,
@@ -538,6 +556,8 @@ var _lexer = (function () {
 					tokens.push(consumeAttributeReference());
 				} else if (currentChar() === "@") {
 					tokens.push(consumeShortAttributeReference());
+				} else if (currentChar() === "*" && isAlpha(nextChar())) {
+					tokens.push(consumeStyleReference());
 				} else if (isAlpha(currentChar()) || (!inTemplate() && isIdentifierChar(currentChar()))) {
 					tokens.push(consumeIdentifier());
 				} else if (isNumeric(currentChar())) {
@@ -659,6 +679,17 @@ var _lexer = (function () {
 			return attributeRef;
 		}
 
+		function consumeStyleReference() {
+			var styleRef = makeToken("STYLE_REF");
+			var value = consumeChar();
+			while (isAlpha(currentChar()) || currentChar() === "-") {
+				value += consumeChar();
+			}
+			styleRef.value = value;
+			styleRef.end = position;
+			return styleRef;
+		}
+
 		/**
 		 * @returns Token
 		 */
@@ -692,7 +723,12 @@ var _lexer = (function () {
 		function consumeIdentifier() {
 			var identifier = makeToken("IDENTIFIER");
 			var value = consumeChar();
-			while (isAlpha(currentChar()) || isIdentifierChar(currentChar())) {
+			while (isAlpha(currentChar()) ||
+			       isNumeric(currentChar()) ||
+			       isIdentifierChar(currentChar())) {
+				value += consumeChar();
+			}
+			if (currentChar() === "!" && value === "beep") {
 				value += consumeChar();
 			}
 			identifier.value = value;
@@ -744,9 +780,26 @@ var _lexer = (function () {
 			var value = "";
 			while (currentChar() && currentChar() !== startChar) {
 				if (currentChar() === "\\") {
-					consumeChar(); // consume escape char and move on
+					consumeChar(); // consume escape char and get the next one
+					let nextChar = consumeChar();
+					if (nextChar === "b") {
+						value += "\b";
+					} else if (nextChar === "f") {
+						value += "\f";
+					} else if (nextChar === "n") {
+						value += "\n";
+					} else if (nextChar === "r") {
+						value += "\r";
+					} else if (nextChar === "t") {
+						value += "\t";
+					} else if (nextChar === "v") {
+						value += "\v";
+					} else {
+						value += nextChar;
+					}
+				} else {
+					value += consumeChar();
 				}
-				value += consumeChar();
 			}
 			if (currentChar() !== startChar) {
 				throw Error("Unterminated string at " + positionString(string));
@@ -951,6 +1004,7 @@ var _parser = (function () {
 		var featureDefinitionWrapper = function (parser, runtime, tokens) {
 			var featureElement = definition(parser, runtime, tokens);
 			if (featureElement) {
+				featureElement.isFeature = true;
 				featureElement.keyword = keyword;
 				featureElement.type = featureGrammarType;
 				return featureElement;
@@ -1005,8 +1059,8 @@ var _parser = (function () {
 		let commandElement;
 		if (commandDefinition) {
 			commandElement = commandDefinition(parser, runtime, tokens);
-		} else if (tokens.currentToken().type === "IDENTIFIER" && tokens.token(1).value === "(") {
-			commandElement = parser.requireElement("pseudoCommand", tokens);
+		} else if (tokens.currentToken().type === "IDENTIFIER") {
+			commandElement = parser.parseElement("pseudoCommand", tokens);
 		}
 		if (commandElement) {
 			return parser.parseElement("indirectStatement", tokens, commandElement);
@@ -1126,8 +1180,12 @@ var _parser = (function () {
 	 * @param {GrammarElement} parent
 	 */
 	function setParent(elt, parent) {
-		if (elt) {
+		if (typeof elt === 'object') {
 			elt.parent = parent;
+			if (typeof parent === 'object') {
+				parent.children = (parent.children || new Set());
+				parent.children.add(elt)
+			}
 			setParent(elt.next, parent);
 		}
 	}
@@ -1197,23 +1255,50 @@ var _parser = (function () {
 		return returnArr;
 	}
 
+	/**
+	 * @param {GrammarElement} commandList
+	 */
+	function ensureTerminated(commandList) {
+		var implicitReturn = {
+			type: "implicitReturn",
+			op: function (context) {
+				context.meta.returned = true;
+				if (context.meta.resolve) {
+					context.meta.resolve();
+				}
+				return _runtime.HALT;
+			},
+			execute: function (ctx) {
+				// do nothing
+			},
+		};
+
+		var end = commandList;
+		while (end.next) {
+			end = end.next;
+		}
+		end.next = implicitReturn;
+	}
+
+
 	// parser API
 	return {
-		setParent: setParent,
-		requireElement: requireElement,
-		parseElement: parseElement,
-		featureStart: featureStart,
-		commandStart: commandStart,
-		commandBoundary: commandBoundary,
-		parseAnyOf: parseAnyOf,
-		parseHyperScript: parseHyperScript,
-		raiseParseError: raiseParseError,
-		addGrammarElement: addGrammarElement,
-		addCommand: addCommand,
-		addFeature: addFeature,
-		addLeafExpression: addLeafExpression,
-		addIndirectExpression: addIndirectExpression,
-		parseStringTemplate: parseStringTemplate,
+		setParent,
+		requireElement,
+		parseElement,
+		featureStart,
+		commandStart,
+		commandBoundary,
+		parseAnyOf,
+		parseHyperScript,
+		raiseParseError,
+		addGrammarElement,
+		addCommand,
+		addFeature,
+		addLeafExpression,
+		addIndirectExpression,
+		parseStringTemplate,
+		ensureTerminated,
 	};
 })();
 
@@ -1222,7 +1307,16 @@ var _parser = (function () {
 //====================================================================
 
 var CONVERSIONS = {
-	dynamicResolvers: /** @type DynamicConversionFunction[] */ [],
+	dynamicResolvers: /** @type DynamicConversionFunction[] */ [
+		function(str, value){
+			if (str === "Fixed") {
+				return Number(value).toFixed();
+			} else if (str.indexOf("Fixed:") === 0) {
+				let num = str.split(":")[1];
+				return Number(value).toFixed(parseInt(num));
+			}
+		}
+	],
 	String: function (val) {
 		if (val.toString) {
 			return val.toString();
@@ -1237,7 +1331,6 @@ var CONVERSIONS = {
 		return parseFloat(val);
 	},
 	Number: function (val) {
-		console.log(val);
 		return Number(val);
 	},
 	Date: function (val) {
@@ -1304,11 +1397,12 @@ var _runtime = (function () {
 	 * @param {Element} elt
 	 * @param {string} eventName
 	 * @param {Object} [detail]
+	 * @param {Element} sender
 	 * @returns {boolean}
 	 */
-	function triggerEvent(elt, eventName, detail) {
+	function triggerEvent(elt, eventName, detail, sender) {
 		detail = detail || {};
-		detail["sentBy"] = elt;
+		detail["sender"] = sender;
 		var event = makeEvent(eventName, detail);
 		var eventResult = elt.dispatchEvent(event);
 		return eventResult;
@@ -1322,7 +1416,8 @@ var _runtime = (function () {
 	 * @returns {value is Array | NodeList}
 	 */
 	function isArrayLike(value) {
-		return Array.isArray(value) || (typeof NodeList !== 'undefined' && value instanceof NodeList);
+		return Array.isArray(value) ||
+			(typeof NodeList !== 'undefined' && (value instanceof NodeList || value instanceof HTMLCollection));
 	}
 
 	/**
@@ -1350,7 +1445,8 @@ var _runtime = (function () {
 	 * @returns {value is any[] | NodeList | ElementCollection}
 	 */
 	function shouldAutoIterate(value) {
-		return value instanceof ElementCollection || isArrayLike(value);
+		return  value instanceof ElementCollection ||
+			   isArrayLike(value);
 	}
 
 	/**
@@ -1396,39 +1492,14 @@ var _runtime = (function () {
 		}
 	}
 
-	var ARRAY_SENTINEL = { array_sentinel: true };
-
-	function linearize(args) {
+	function wrapArrays(args) {
 		var arr = [];
 		for (var i = 0; i < args.length; i++) {
 			var arg = args[i];
 			if (Array.isArray(arg)) {
-				arr.push(ARRAY_SENTINEL);
-				for (var j = 0; j < arg.length; j++) {
-					arr.push(arg[j]);
-				}
-				arr.push(ARRAY_SENTINEL);
+				arr.push(Promise.all(arg));
 			} else {
 				arr.push(arg);
-			}
-		}
-		return arr;
-	}
-
-	function delinearize(values) {
-		var arr = [];
-		for (var i = 0; i < values.length; i++) {
-			var value = values[i];
-			if (value === ARRAY_SENTINEL) {
-				value = values[++i];
-				var valueArray = [];
-				arr.push(valueArray);
-				while (value !== ARRAY_SENTINEL) {
-					valueArray.push(value);
-					value = values[++i];
-				}
-			} else {
-				arr.push(value);
 			}
 		}
 		return arr;
@@ -1462,17 +1533,20 @@ var _runtime = (function () {
 			try {
 				var next = unifiedEval(command, ctx);
 			} catch (e) {
-				_runtime.registerHyperTrace(ctx, e);
-				if (ctx.meta.errorHandler && !ctx.meta.handlingError) {
-					ctx.meta.handlingError = true;
-					ctx[ctx.meta.errorSymmbol] = e;
-					command = ctx.meta.errorHandler;
-					continue;
-				} else if (ctx.meta.reject) {
-					ctx.meta.reject(e);
+				if (ctx.meta.handlingFinally) {
+					console.error(" Exception in finally block: ", e);
 					next = HALT;
 				} else {
-					throw e;
+					_runtime.registerHyperTrace(ctx, e);
+					if (ctx.meta.errorHandler && !ctx.meta.handlingError) {
+						ctx.meta.handlingError = true;
+						ctx[ctx.meta.errorSymbol] = e;
+						command = ctx.meta.errorHandler;
+						continue;
+					} else  {
+						ctx.meta.currentException = e;
+						next = HALT;
+					}
 				}
 			}
 			if (next == null) {
@@ -1482,21 +1556,32 @@ var _runtime = (function () {
 				next.then(function (resolvedNext) {
 					unifiedExec(resolvedNext, ctx);
 				}).catch(function (reason) {
-					_runtime.registerHyperTrace(ctx, reason);
-					if (ctx.meta.errorHandler && !ctx.meta.handlingError) {
-						ctx.meta.handlingError = true;
-						ctx[ctx.meta.errorSymmbol] = reason;
-						unifiedExec(ctx.meta.errorHandler, ctx);
-					} else if (ctx.meta.reject) {
-						ctx.meta.reject(reason);
-					} else {
-						throw reason;
-					}
+					unifiedExec({ // Anonymous command to simply throw the exception
+						op: function(){
+							throw reason;
+						}
+					}, ctx);
 				});
 				return;
 			} else if (next === HALT) {
-				// done
-				return;
+				if (ctx.meta.finallyHandler && !ctx.meta.handlingFinally) {
+					ctx.meta.handlingFinally = true;
+					command = ctx.meta.finallyHandler;
+				} else {
+					if (ctx.meta.onHalt) {
+						ctx.meta.onHalt();
+					}
+					if (ctx.meta.currentException) {
+						if (ctx.meta.reject) {
+							ctx.meta.reject(ctx.meta.currentException);
+							return;
+						} else {
+							throw ctx.meta.currentException;
+						}
+					} else {
+						return;
+					}
+				}
 			} else {
 				command = next; // move to the next command
 			}
@@ -1551,10 +1636,9 @@ var _runtime = (function () {
 		}
 		if (async) {
 			return new Promise(function (resolve, reject) {
-				var linearized = linearize(args);
-				Promise.all(linearized)
+				args = wrapArrays(args);
+				Promise.all(args)
 					.then(function (values) {
-						values = delinearize(values);
 						if (wrappedAsyncs) {
 							unwrapAsyncs(values);
 						}
@@ -1566,15 +1650,7 @@ var _runtime = (function () {
 						}
 					})
 					.catch(function (reason) {
-						if (ctx.meta.errorHandler && !ctx.meta.handlingError) {
-							ctx.meta.handlingError = true;
-							ctx[ctx.meta.errorSymmbol] = reason;
-							unifiedExec(ctx.meta.errorHandler, ctx);
-						} else if (ctx.meta.reject) {
-							ctx.meta.reject(reason);
-						} else {
-							// TODO: no meta context to reject with, trigger event?
-						}
+						reject(reason);
 					});
 			});
 		} else {
@@ -1626,7 +1702,10 @@ var _runtime = (function () {
 	function getHyperscriptFeatures(elt) {
 		var hyperscriptFeatures = hyperscriptFeaturesMap.get(elt);
 		if (typeof hyperscriptFeatures === 'undefined') {
-			hyperscriptFeaturesMap.set(elt, hyperscriptFeatures = {});
+			if (elt) {
+				// in some rare cases, elt is null and this line crashes
+				hyperscriptFeaturesMap.set(elt, hyperscriptFeatures = {});
+			}
 		}
 		return hyperscriptFeatures;
 	}
@@ -1664,6 +1743,7 @@ var _runtime = (function () {
 			event: event,
 			target: event ? event.target : null,
 			detail: event ? event.detail : null,
+			sender: event ? event.detail ? event.detail.sender : null : null,
 			body: "document" in globalScope ? document.body : null,
 		};
 		ctx.meta.ctx = ctx;
@@ -1722,25 +1802,26 @@ var _runtime = (function () {
 		var tokens = _lexer.tokenize(src);
 		if (_parser.commandStart(tokens.currentToken())) {
 			var commandList = _parser.requireElement("commandList", tokens);
-			var last = commandList;
-			while (last.next) {
-				last = last.next;
-			}
-			last.next = {
-				op: function () {
-					return HALT;
-				},
-			};
+			if (tokens.hasMore()) _parser.raiseParseError(tokens);
+			_parser.ensureTerminated(commandList);
 			return commandList;
 		} else if (_parser.featureStart(tokens.currentToken())) {
 			var hyperscript = _parser.requireElement("hyperscript", tokens);
+			if (tokens.hasMore()) _parser.raiseParseError(tokens);
 			return hyperscript;
 		} else {
 			var expression = _parser.requireElement("expression", tokens);
+			if (tokens.hasMore()) _parser.raiseParseError(tokens);
 			return expression;
 		}
 	}
 
+	/**
+	 *
+	 * @param {GrammarElement} elt
+	 * @param {Context} ctx
+	 * @returns {any}
+	 */
 	function evaluateNoPromise(elt, ctx) {
 		let result = elt.evaluate(ctx);
 		if (result.next) {
@@ -1985,9 +2066,9 @@ var _runtime = (function () {
 	* @param {boolean} attribute
 	* @returns {any}
 	*/
-	function resolveProperty(root, property, attribute) {
+	function flatGet(root, property, getter) {
 		if (root != null) {
-			var val = attribute && root.getAttribute ? root.getAttribute(property) : root[property];
+			var val = getter(root, property);
 			if (typeof val !== "undefined") {
 				return val;
 			}
@@ -1996,14 +2077,40 @@ var _runtime = (function () {
 				// flat map
 				var result = [];
 				for (var component of root) {
-					var componentValue = attribute ? component.getAttribute(property) : component[property];
-					if (componentValue) {
-						result.push(componentValue);
-					}
+					var componentValue = getter(component, property);
+					result.push(componentValue);
 				}
 				return result;
 			}
 		}
+	}
+
+	function resolveProperty(root, property) {
+		return flatGet(root, property, (root, property) => root[property] )
+	}
+
+	function resolveAttribute(root, property) {
+		return flatGet(root, property, (root, property) => root.getAttribute && root.getAttribute(property) )
+	}
+
+	/**
+	 *
+	 * @param {Object<string, any>} root
+	 * @param {string} property
+	 * @returns {string}
+	 */
+	function resolveStyle(root, property) {
+		return flatGet(root, property, (root, property) => root.style && root.style[property] )
+	}
+
+	/**
+	 *
+	 * @param {Object<string, any>} root
+	 * @param {string} property
+	 * @returns {string}
+	 */
+	function resolveComputedStyle(root, property) {
+		return flatGet(root, property, (root, property) => getComputedStyle(root).getPropertyValue(property) )
 	}
 
 	/**
@@ -2095,7 +2202,7 @@ var _runtime = (function () {
 	*/
 	function nullCheck(value, elt) {
 		if (value == null) {
-			throw new Error(elt.sourceFor() + " is null");
+			throw new Error("'" + elt.sourceFor() + "' is null");
 		}
 	}
 
@@ -2108,13 +2215,52 @@ var _runtime = (function () {
 	}
 
 	/**
+	* @param {any} value
+	* @returns {boolean}
+	*/
+	function doesExist(value) {
+		if(value == null){
+			return false;
+		}
+		if (shouldAutoIterate(value)) {
+			for (const elt of value) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
 	* @param {Node} node
 	* @returns {Document|ShadowRoot}
 	*/
 	function getRootNode(node) {
-		var rv = node.getRootNode();
-		if (rv instanceof Document || rv instanceof ShadowRoot) return rv;
-		else return document;
+		if (node && node instanceof Node) {
+			var rv = node.getRootNode();
+			if (rv instanceof Document || rv instanceof ShadowRoot) return rv;
+		}
+		return document;
+	}
+
+	/**
+	 *
+	 * @param {Element} elt
+	 * @param {GrammarElement} onFeature
+	 * @returns {EventQueue}
+	 */
+	function getEventQueueFor(elt, onFeature) {
+		let internalData = getInternalData(elt);
+		var eventQueuesForElt = internalData.eventQueues;
+		if (eventQueuesForElt == null) {
+			eventQueuesForElt = new Map();
+			internalData.eventQueues = eventQueuesForElt;
+		}
+		var eventQueueForFeature = eventQueuesForElt.get(onFeature);
+		if (eventQueueForFeature == null) {
+			eventQueueForFeature = {queue:[], executing:false};
+			eventQueuesForElt.set(onFeature, eventQueueForFeature);
+		}
+		return eventQueueForFeature;
 	}
 
 	/** @type string | null */
@@ -2126,6 +2272,7 @@ var _runtime = (function () {
 		typeCheck,
 		forEach,
 		implicitLoop,
+		shouldAutoIterate,
 		triggerEvent,
 		matchesSelector,
 		getScript,
@@ -2142,6 +2289,9 @@ var _runtime = (function () {
 		convertValue,
 		unifiedExec,
 		resolveProperty,
+		resolveAttribute,
+		resolveStyle,
+		resolveComputedStyle,
 		assignToNamespace,
 		registerHyperTrace,
 		getHyperTrace,
@@ -2150,7 +2300,9 @@ var _runtime = (function () {
 		escapeSelector,
 		nullCheck,
 		isEmpty,
+		doesExist,
 		getRootNode,
+		getEventQueueFor,
 		hyperscriptUrl,
 		HALT,
 	};
@@ -2289,7 +2441,7 @@ var _runtime = (function () {
 				type: "classRefTemplate",
 				args: [innerExpression],
 				op: function (context, arg) {
-					return new ElementCollection("." + arg, context.me)
+					return new ElementCollection("." + arg, context.me, true)
 				},
 				evaluate: function (context) {
 					return runtime.unifiedEval(this, context);
@@ -2301,7 +2453,7 @@ var _runtime = (function () {
 				type: "classRef",
 				css: css,
 				evaluate: function (context) {
-					return new ElementCollection(css, context.me)
+					return new ElementCollection(css, context.me, true)
 				},
 			};
 		}
@@ -2405,6 +2557,42 @@ var _runtime = (function () {
 				return runtime.unifiedEval(this, context);
 			},
 		};
+	});
+
+	_parser.addLeafExpression("styleRef", function (parser, runtime, tokens) {
+		var styleRef = tokens.matchTokenType("STYLE_REF");
+		if (!styleRef) return;
+		var styleProp = styleRef.value.substr(1);
+		if (styleProp.startsWith("computed-")) {
+			styleProp = styleProp.substr("computed-".length);
+			return {
+				type: "computedStyleRef",
+				name: styleProp,
+				op: function (context) {
+					var target = context.beingTold || context.me;
+					if (target) {
+						return runtime.resolveComputedStyle(target, styleProp);
+					}
+				},
+				evaluate: function (context) {
+					return runtime.unifiedEval(this, context);
+				},
+			};
+		} else {
+			return {
+				type: "styleRef",
+				name: styleProp,
+				op: function (context) {
+					var target = context.beingTold || context.me;
+					if (target) {
+						return runtime.resolveStyle(target, styleProp);
+					}
+				},
+				evaluate: function (context) {
+					return runtime.unifiedEval(this, context);
+				},
+			};
+		}
 	});
 
 	_parser.addGrammarElement("objectKey", function (parser, runtime, tokens) {
@@ -2643,28 +2831,6 @@ var _runtime = (function () {
 		};
 	});
 
-	_parser.addGrammarElement("timeExpression", function (parser, runtime, tokens) {
-		var time = parser.requireElement("expression", tokens);
-		var factor = 1;
-		if (tokens.matchToken("s") || tokens.matchToken("seconds")) {
-			factor = 1000;
-		} else if (tokens.matchToken("ms") || tokens.matchToken("milliseconds")) {
-			// do nothing
-		}
-		return {
-			type: "timeExpression",
-			time: time,
-			factor: factor,
-			args: [time],
-			op: function (_context, val) {
-				return val * factor;
-			},
-			evaluate: function (context) {
-				return runtime.unifiedEval(this, context);
-			},
-		};
-	});
-
 	_parser.addIndirectExpression("propertyAccess", function (parser, runtime, tokens, root) {
 		if (!tokens.matchOpToken(".")) return;
 		var prop = tokens.requireTokenType("IDENTIFIER");
@@ -2674,7 +2840,7 @@ var _runtime = (function () {
 			prop: prop,
 			args: [root],
 			op: function (_context, rootVal) {
-				var value = runtime.resolveProperty(rootVal, prop.value, false);
+				var value = runtime.resolveProperty(rootVal, prop.value);
 				return value;
 			},
 			evaluate: function (context) {
@@ -2686,7 +2852,7 @@ var _runtime = (function () {
 
 	_parser.addIndirectExpression("of", function (parser, runtime, tokens, root) {
 		if (!tokens.matchToken("of")) return;
-		var newRoot = parser.requireElement("expression", tokens);
+		var newRoot = parser.requireElement("unaryExpression", tokens);
 		// find the urroot
 		var childOfUrRoot = null;
 		var urRoot = root;
@@ -2694,20 +2860,35 @@ var _runtime = (function () {
 			childOfUrRoot = urRoot;
 			urRoot = urRoot.root;
 		}
-		if (urRoot.type !== "symbol" && urRoot.type !== "attributeRef") {
+		if (urRoot.type !== "symbol" && urRoot.type !== "attributeRef" && urRoot.type !== "styleRef" && urRoot.type !== "computedStyleRef") {
 			parser.raiseParseError(tokens, "Cannot take a property of a non-symbol: " + urRoot.type);
 		}
 		var attribute = urRoot.type === "attributeRef";
+		var style = urRoot.type === "styleRef" || urRoot.type === "computedStyleRef";
+		if (attribute || style) {
+			var attributeElt = urRoot
+		}
 		var prop = urRoot.name;
+
 		var propertyAccess = {
 			type: "ofExpression",
 			prop: urRoot.token,
 			root: newRoot,
-			attribute: attribute,
+			attribute: attributeElt,
 			expression: root,
 			args: [newRoot],
 			op: function (context, rootVal) {
-				return runtime.resolveProperty(rootVal, prop, attribute);
+				if (attribute) {
+					return runtime.resolveAttribute(rootVal, prop);
+				} else if (style) {
+					if (urRoot.type === "computedStyleRef") {
+						return runtime.resolveComputedStyle(rootVal, prop);
+					} else {
+						return runtime.resolveStyle(rootVal, prop);
+					}
+				} else {
+					return runtime.resolveProperty(rootVal, prop);
+				}
 			},
 			evaluate: function (context) {
 				return runtime.unifiedEval(this, context);
@@ -2736,27 +2917,37 @@ var _runtime = (function () {
 			apostrophe ||
 			(root.type === "symbol" &&
 				(root.name === "my" || root.name === "its" || root.name === "your") &&
-				tokens.currentToken().type === "IDENTIFIER")
+				(tokens.currentToken().type === "IDENTIFIER" || tokens.currentToken().type === "ATTRIBUTE_REF" || tokens.currentToken().type === "STYLE_REF"))
 		) {
 			if (apostrophe) {
 				tokens.requireToken("s");
 			}
 			var attribute = parser.parseElement("attributeRef", tokens);
 			if (attribute == null) {
-				var prop = tokens.requireTokenType("IDENTIFIER");
+				var style = parser.parseElement("styleRef", tokens);
+				if (style == null) {
+					var prop = tokens.requireTokenType("IDENTIFIER");
+				}
 			}
 			var propertyAccess = {
 				type: "possessive",
 				root: root,
-				attribute: attribute,
+				attribute: attribute || style,
 				prop: prop,
 				args: [root],
 				op: function (context, rootVal) {
 					if (attribute) {
 						// @ts-ignore
-						var value = runtime.resolveProperty(rootVal, attribute.name, true);
+						var value = runtime.resolveAttribute(rootVal, attribute.name);
+					} else if (style) {
+						// @ts-ignore
+						if (style.type === 'computedStyleRef') {
+							var value = runtime.resolveComputedStyle(rootVal, style.name);
+						} else {
+							var value = runtime.resolveStyle(rootVal, style.name);
+						}
 					} else {
-						var value = runtime.resolveProperty(rootVal, prop.value, false);
+						var value = runtime.resolveProperty(rootVal, prop.value);
 					}
 					return value;
 				},
@@ -2770,37 +2961,40 @@ var _runtime = (function () {
 
 	_parser.addIndirectExpression("inExpression", function (parser, runtime, tokens, root) {
 		if (!tokens.matchToken("in")) return;
-		if ((root.type !== "idRef" && root.type === "queryRef") || root.type === "classRef") {
-			var query = true;
-		}
-		var target = parser.requireElement("expression", tokens);
+		var target = parser.requireElement("unaryExpression", tokens);
 		var propertyAccess = {
 			type: "inExpression",
 			root: root,
-			args: [query ? null : root, target],
+			args: [root, target],
 			op: function (context, rootVal, target) {
 				var returnArr = [];
-				if (query) {
-					runtime.forEach(target, function (targetElt) {
-						var results = targetElt.querySelectorAll(root.css);
+				if (rootVal.css) {
+					runtime.implicitLoop(target, function (targetElt) {
+						var results = targetElt.querySelectorAll(rootVal.css);
 						for (var i = 0; i < results.length; i++) {
 							returnArr.push(results[i]);
 						}
 					});
+				} else if (rootVal instanceof Element) {
+					var within = false;
+					runtime.implicitLoop(target, function (targetElt) {
+						if (targetElt.contains(rootVal)) {
+							within = true;
+						}
+					});
+					if(within) {
+						return rootVal;
+					}
 				} else {
-					runtime.forEach(rootVal, function (rootElt) {
-						runtime.forEach(target, function (targetElt) {
+					runtime.implicitLoop(rootVal, function (rootElt) {
+						runtime.implicitLoop(target, function (targetElt) {
 							if (rootElt === targetElt) {
 								returnArr.push(rootElt);
 							}
 						});
 					});
 				}
-				if (returnArr.length > 0) {
-					return returnArr;
-				} else {
-					return null;
-				}
+				return returnArr;
 			},
 			evaluate: function (context) {
 				return runtime.unifiedEval(this, context);
@@ -2888,7 +3082,7 @@ var _runtime = (function () {
 			args: [root],
 			op: function (_ctx, rootVal) {
 				// @ts-ignore
-				var value = runtime.resolveProperty(rootVal, attribute.name, true);
+				var value = runtime.resolveAttribute(rootVal, attribute.name);
 				return value;
 			},
 			evaluate: function (context) {
@@ -2924,14 +3118,24 @@ var _runtime = (function () {
 		var arrayIndex = {
 			type: "arrayIndex",
 			root: root,
+			prop: firstIndex,
 			firstIndex: firstIndex,
 			secondIndex: secondIndex,
 			args: [root, firstIndex, secondIndex],
 			op: function (_ctx, root, firstIndex, secondIndex) {
+				if (root == null) {
+					return null;
+				}
 				if (andBefore) {
+					if (firstIndex < 0) {
+						firstIndex = root.length + firstIndex;
+					}
 					return root.slice(0, firstIndex + 1); // returns all items from beginning to firstIndex (inclusive)
 				} else if (andAfter) {
 					if (secondIndex != null) {
+						if (secondIndex < 0) {
+							secondIndex = root.length + secondIndex;
+						}
 						return root.slice(firstIndex, secondIndex + 1); // returns all items from firstIndex to secondIndex (inclusive)
 					} else {
 						return root.slice(firstIndex); // returns from firstIndex to end of array
@@ -2948,8 +3152,52 @@ var _runtime = (function () {
 		return _parser.parseElement("indirectExpression", tokens, arrayIndex);
 	});
 
+	// taken from https://drafts.csswg.org/css-values-4/#relative-length
+	//        and https://drafts.csswg.org/css-values-4/#absolute-length
+	//        (NB: we do not support `in` dues to conflicts w/ the hyperscript grammar)
+	var STRING_POSTFIXES = [
+		'em', 'ex', 'cap', 'ch', 'ic', 'rem', 'lh', 'rlh', 'vw', 'vh', 'vi', 'vb', 'vmin', 'vmax',
+		'cm', 'mm', 'Q', 'pc', 'pt', 'px'
+	];
 	_parser.addGrammarElement("postfixExpression", function (parser, runtime, tokens) {
 		var root = parser.parseElement("primaryExpression", tokens);
+
+		let stringPosfix = tokens.matchAnyToken.apply(tokens, STRING_POSTFIXES) || tokens.matchOpToken("%");
+		if (stringPosfix) {
+			return {
+				type: "stringPostfix",
+				postfix: stringPosfix.value,
+				args: [root],
+				op: function (context, val) {
+					return "" + val + stringPosfix.value;
+				},
+				evaluate: function (context) {
+					return runtime.unifiedEval(this, context);
+				},
+			};
+		}
+
+		var timeFactor = null;
+		if (tokens.matchToken("s") || tokens.matchToken("seconds")) {
+			timeFactor = 1000;
+		} else if (tokens.matchToken("ms") || tokens.matchToken("milliseconds")) {
+			timeFactor = 1;
+		}
+		if (timeFactor) {
+			return {
+				type: "timeExpression",
+				time: root,
+				factor: timeFactor,
+				args: [root],
+				op: function (_context, val) {
+					return val * timeFactor;
+				},
+				evaluate: function (context) {
+					return runtime.unifiedEval(this, context);
+				},
+			};
+		}
+
 		if (tokens.matchOpToken(":")) {
 			var typeName = tokens.requireTokenType("IDENTIFIER");
 			var nullOk = !tokens.matchOpToken("!");
@@ -3007,6 +3255,22 @@ var _runtime = (function () {
 		};
 	});
 
+	_parser.addLeafExpression("some", function (parser, runtime, tokens) {
+		if (!tokens.matchToken("some")) return;
+		var root = parser.requireElement("expression", tokens);
+		return {
+			type: "noExpression",
+			root: root,
+			args: [root],
+			op: function (_context, val) {
+				return !runtime.isEmpty(val);
+			},
+			evaluate(context) {
+				return runtime.unifiedEval(this, context);
+			},
+		};
+	});
+
 	_parser.addGrammarElement("negativeNumber", function (parser, runtime, tokens) {
 		if (!tokens.matchOpToken("-")) return;
 		var root = parser.requireElement("unaryExpression", tokens);
@@ -3024,10 +3288,47 @@ var _runtime = (function () {
 	});
 
 	_parser.addGrammarElement("unaryExpression", function (parser, runtime, tokens) {
+		tokens.matchToken("the"); // optional "the"
 		return parser.parseAnyOf(
-			["logicalNot", "relativePositionalExpression", "positionalExpression", "noExpression", "negativeNumber", "postfixExpression"],
+			["beepExpression", "logicalNot", "relativePositionalExpression", "positionalExpression", "noExpression", "negativeNumber", "postfixExpression"],
 			tokens
 		);
+	});
+
+	_parser.addGrammarElement("beepExpression", function (parser, runtime, tokens) {
+		if (!tokens.matchToken("beep!")) return;
+		var expression = parser.parseElement("unaryExpression", tokens);
+		if (expression) {
+			expression.booped = true;
+			var originalEvaluate = expression.evaluate;
+			expression.evaluate = function(ctx){
+				let value = originalEvaluate.apply(expression, arguments);
+				let element = ctx.me;
+				if (runtime.triggerEvent(element, "hyperscript:beep", {element, expression, value})) {
+					var typeName;
+					if (value) {
+						if (value instanceof ElementCollection){
+							typeName = "ElementCollection";
+						} else if (value.constructor) {
+							typeName = value.constructor.name;
+						} else {
+							typeName = "unknown";
+						}
+					} else {
+						typeName = "object (null)"
+					}
+					var logValue = value;
+					if (typeName === "String") {
+						logValue = '"' + logValue + '"';
+					} else if (value instanceof ElementCollection) {
+						logValue = Array.from(value);
+					}
+					console.log("///_ BEEP! The expression (" + expression.sourceFor().substr(6) + ") evaluates to:", logValue,  "of type " + typeName);
+				}
+				return value;
+			}
+			return expression;
+		}
 	});
 
 	var scanForwardQuery = function(start, root, match, wrap) {
@@ -3093,7 +3394,7 @@ var _runtime = (function () {
 		if (tokens.matchToken("from")) {
 			tokens.pushFollow("in");
 			try {
-				var from = parser.requireElement("expression", tokens);
+				var from = parser.requireElement("unaryExpression", tokens);
 			} finally {
 				tokens.popFollow();
 			}
@@ -3105,9 +3406,9 @@ var _runtime = (function () {
 		var withinElt;
 		if (tokens.matchToken("in")) {
 			inSearch = true;
-			var inElt = parser.requireElement("expression", tokens);
+			var inElt = parser.requireElement("unaryExpression", tokens);
 		} else if (tokens.matchToken("within")) {
-			withinElt = parser.requireElement("expression", tokens);
+			withinElt = parser.requireElement("unaryExpression", tokens);
 		} else {
 			withinElt = document.body;
 		}
@@ -3308,6 +3609,9 @@ var _runtime = (function () {
 				} else {
 					operator = "==";
 				}
+			} else if (tokens.matchToken("exist") || tokens.matchToken("exists")) {
+				operator = "exist";
+				hasRightValue = false;
 			} else if (tokens.matchToken("matches") || tokens.matchToken("match")) {
 				operator = "match";
 			} else if (tokens.matchToken("contains") || tokens.matchToken("contain")) {
@@ -3320,6 +3624,9 @@ var _runtime = (function () {
 					operator = "not match";
 				} else if (tokens.matchToken("contains") || tokens.matchToken("contain")) {
 					operator = "not contain";
+				} else if (tokens.matchToken("exist") || tokens.matchToken("exist")) {
+					operator = "not exist";
+					hasRightValue = false;
 				} else if (tokens.matchToken("include")) {
 					operator = "not include";
 				} else {
@@ -3394,6 +3701,10 @@ var _runtime = (function () {
 						return runtime.isEmpty(lhsVal);
 					} else if (operator === "not empty") {
 						return !runtime.isEmpty(lhsVal);
+					} else if (operator === "exist") {
+						return runtime.doesExist(lhsVal);
+					} else if (operator === "not exist") {
+						return !runtime.doesExist(lhsVal);
 					} else if (operator === "a") {
 						return runtime.typeCheck(lhsVal, typeName.value, nullOk);
 					} else if (operator === "not a") {
@@ -3487,6 +3798,8 @@ var _runtime = (function () {
 			expr.type === "propertyAccess" ||
 			expr.type === "attributeRefAccess" ||
 			expr.type === "attributeRef" ||
+			expr.type === "styleRef" ||
+			expr.type === "arrayIndex" ||
 			expr.type === "possessive")
 		) {
 			return expr;
@@ -3652,17 +3965,17 @@ var _runtime = (function () {
 			}
 
 			if (tokens.matchToken("in")) {
-				var inExpr = parser.parseAnyOf(["idRef", "queryRef", "classRef"], tokens);
+				var inExpr = parser.parseElement('unaryExpression', tokens);
 			}
 
 			if (tokens.matchToken("debounced")) {
 				tokens.requireToken("at");
-				var timeExpr = parser.requireElement("timeExpression", tokens);
+				var timeExpr = parser.requireElement("expression", tokens);
 				// @ts-ignore
 				var debounceTime = timeExpr.evaluate({}); // OK No promise TODO make a literal time expr
 			} else if (tokens.matchToken("throttled")) {
 				tokens.requireToken("at");
-				var timeExpr = parser.requireElement("timeExpression", tokens);
+				var timeExpr = parser.requireElement("expression", tokens);
 				// @ts-ignore
 				var throttleTime = timeExpr.evaluate({}); // OK No promise TODO make a literal time expr
 			}
@@ -3688,7 +4001,6 @@ var _runtime = (function () {
 			});
 		} while (tokens.matchToken("or"));
 
-		var queue = [];
 		var queueLast = true;
 		if (!every) {
 			if (tokens.matchToken("queue")) {
@@ -3705,31 +4017,18 @@ var _runtime = (function () {
 			}
 		}
 
-		var commandList = parser.parseElement("commandList", tokens);
+		var start = parser.requireElement("commandList", tokens);
+		parser.ensureTerminated(start);
 
-		var implicitReturn = {
-			type: "implicitReturn",
-			op: function (context) {
-				// automatically resolve at the end of an event handler if nothing else does
-				context.meta.resolve();
-				return runtime.HALT;
-			},
-			execute: function (ctx) {
-				// do nothing
-			},
-		};
+		if (tokens.matchToken("catch")) {
+			var errorSymbol = tokens.requireTokenType("IDENTIFIER").value;
+			var errorHandler = parser.requireElement("commandList", tokens);
+			parser.ensureTerminated(errorHandler);
+		}
 
-		if (commandList) {
-			/** @type {GrammarElement} */
-			var start = commandList;
-
-			var end = start;
-			while (end.next) {
-				end = end.next;
-			}
-			end.next = implicitReturn;
-		} else {
-			start = implicitReturn;
+		if (tokens.matchToken("finally")) {
+			var finallyHandler = parser.requireElement("commandList", tokens);
+			parser.ensureTerminated(finallyHandler);
 		}
 
 		var onFeature = {
@@ -3737,25 +4036,26 @@ var _runtime = (function () {
 			events: events,
 			start: start,
 			every: every,
-			executing: false,
 			execCount: 0,
-			queue: queue,
+			errorHandler: errorHandler,
+			errorSymbol: errorSymbol,
 			execute: function (/** @type {Context} */ ctx) {
-				if (this.executing && every === false) {
-					if (queueNone || (queueFirst && queue.length > 0)) {
+				let eventQueueInfo = runtime.getEventQueueFor(ctx.me, onFeature);
+				if (eventQueueInfo.executing && every === false) {
+					if (queueNone || (queueFirst && eventQueueInfo.queue.length > 0)) {
 						return;
 					}
 					if (queueLast) {
-						onFeature.queue.length = 0;
+						eventQueueInfo.queue.length = 0;
 					}
-					onFeature.queue.push(ctx);
+					eventQueueInfo.queue.push(ctx);
 					return;
 				}
 				onFeature.execCount++;
-				this.executing = true;
-				ctx.meta.resolve = function () {
-					onFeature.executing = false;
-					var queued = onFeature.queue.shift();
+				eventQueueInfo.executing = true;
+				ctx.meta.onHalt = function () {
+					eventQueueInfo.executing = false;
+					var queued = eventQueueInfo.queue.shift();
 					if (queued) {
 						setTimeout(function () {
 							onFeature.execute(queued);
@@ -3771,13 +4071,6 @@ var _runtime = (function () {
 					runtime.triggerEvent(ctx.me, "exception", {
 						error: err,
 					});
-					onFeature.executing = false;
-					var queued = onFeature.queue.shift();
-					if (queued) {
-						setTimeout(function () {
-							onFeature.execute(queued);
-						}, 1);
-					}
 				};
 				start.execute(ctx);
 			},
@@ -3791,14 +4084,13 @@ var _runtime = (function () {
 					} else {
 						targets = [elt];
 					}
-					runtime.forEach(targets, function (target) {
+					runtime.implicitLoop(targets, function (target) {
 						// OK NO PROMISE
 
 						var eventName = eventSpec.on;
 						if (eventSpec.mutationSpec) {
 							eventName = "hyperscript:mutation";
 							const observer = new MutationObserver(function (mutationList, observer) {
-								console.log(target, mutationList);
 								if (!onFeature.executing) {
 									_runtime.triggerEvent(target, eventName, {
 										mutationList: mutationList,
@@ -3842,9 +4134,18 @@ var _runtime = (function () {
 
 							// establish context
 							for (const arg of eventSpec.args) {
-								ctx[arg.value] =
-									ctx.event[arg.value] || ('detail' in ctx.event ? ctx.event['detail'][arg.value] : null);
+								let eventValue = ctx.event[arg.value];
+								if (eventValue !== undefined) {
+									ctx[arg.value] = eventValue;
+								} else if ('detail' in ctx.event) {
+									ctx[arg.value] = ctx.event['detail'][arg.value];
+								}
 							}
+
+							// install error handler if any
+							ctx.meta.errorHandler = errorHandler;
+							ctx.meta.errorSymbol = errorSymbol;
+							ctx.meta.finallyHandler = finallyHandler;
 
 							// apply filter
 							if (eventSpec.filter) {
@@ -3950,10 +4251,17 @@ var _runtime = (function () {
 		}
 
 		var start = parser.requireElement("commandList", tokens);
+
 		if (tokens.matchToken("catch")) {
 			var errorSymbol = tokens.requireTokenType("IDENTIFIER").value;
 			var errorHandler = parser.parseElement("commandList", tokens);
 		}
+
+		if (tokens.matchToken("finally")) {
+			var finallyHandler = parser.requireElement("commandList", tokens);
+			parser.ensureTerminated(finallyHandler);
+		}
+
 		var functionFeature = {
 			displayName:
 				funcName +
@@ -3969,6 +4277,7 @@ var _runtime = (function () {
 			start: start,
 			errorHandler: errorHandler,
 			errorSymbol: errorSymbol,
+			finallyHandler: finallyHandler,
 			install: function (target, source) {
 				var func = function () {
 					// null, worker
@@ -3976,7 +4285,8 @@ var _runtime = (function () {
 
 					// install error handler if any
 					ctx.meta.errorHandler = errorHandler;
-					ctx.meta.errorSymmbol = errorSymbol;
+					ctx.meta.errorSymbol = errorSymbol;
+					ctx.meta.finallyHandler = finallyHandler;
 
 					for (var i = 0; i < args.length; i++) {
 						var name = args[i];
@@ -4010,38 +4320,11 @@ var _runtime = (function () {
 			},
 		};
 
-		var implicitReturn = {
-			type: "implicitReturn",
-			op: function (context) {
-				// automatically return at the end of the function if nothing else does
-				context.meta.returned = true;
-				if (context.meta.resolve) {
-					context.meta.resolve();
-				}
-				return runtime.HALT;
-			},
-			execute: function (context) {
-				// do nothing
-			},
-		};
-		// terminate body
-		if (start) {
-			var end = start;
-			while (end.next) {
-				end = end.next;
-			}
-			end.next = implicitReturn;
-		} else {
-			functionFeature.start = implicitReturn;
-		}
+		parser.ensureTerminated(start);
 
-		// terminate error handler
+		// terminate error handler if any
 		if (errorHandler) {
-			var end = errorHandler;
-			while (end.next) {
-				end = end.next;
-			}
-			end.next = implicitReturn;
+			parser.ensureTerminated(errorHandler);
 		}
 
 		parser.setParent(start, functionFeature);
@@ -4050,16 +4333,6 @@ var _runtime = (function () {
 
 	_parser.addFeature("set", function (parser, runtime, tokens) {
 		let setCmd = parser.parseElement("setCommand", tokens);
-
-		var implicitReturn = {
-			type: "implicitReturn",
-			op: function (context) {
-				return runtime.HALT;
-			},
-			execute: function (context) {
-			},
-		};
-
 		if (setCmd) {
 			if (setCmd.target.scope !== "element") {
 				parser.raiseParseError(tokens, "variables declared at the feature level must be element scoped.");
@@ -4070,7 +4343,7 @@ var _runtime = (function () {
 					setCmd && setCmd.execute(runtime.makeContext(target, setFeature, target, null));
 				},
 			};
-			setCmd.next = implicitReturn;
+			parser.ensureTerminated(setCmd);
 			return setFeature;
 		}
 	});
@@ -4078,7 +4351,7 @@ var _runtime = (function () {
 	_parser.addFeature("init", function (parser, runtime, tokens) {
 		if (!tokens.matchToken("init")) return;
 
-		var start = parser.parseElement("commandList", tokens);
+		var start = parser.requireElement("commandList", tokens);
 		var initFeature = {
 			start: start,
 			install: function (target, source) {
@@ -4088,25 +4361,8 @@ var _runtime = (function () {
 			},
 		};
 
-		var implicitReturn = {
-			type: "implicitReturn",
-			op: function (context) {
-				return runtime.HALT;
-			},
-			execute: function (context) {
-				// do nothing
-			},
-		};
 		// terminate body
-		if (start) {
-			var end = start;
-			while (end.next) {
-				end = end.next;
-			}
-			end.next = implicitReturn;
-		} else {
-			initFeature.start = implicitReturn;
-		}
+		parser.ensureTerminated(start);
 		parser.setParent(start, initFeature);
 		return initFeature;
 	});
@@ -4322,6 +4578,7 @@ var _runtime = (function () {
 				return runtime.findNext(this, context);
 			},
 		};
+		parser.setParent(body, command);
 		return command;
 	});
 
@@ -4383,7 +4640,7 @@ var _runtime = (function () {
 				var lookahead = tokens.token(0);
 				if (lookahead.type === 'NUMBER' || lookahead.type === 'L_PAREN') {
 					events.push({
-						time: parser.requireElement('timeExpression', tokens).evaluate() // TODO: do we want to allow async here?
+						time: parser.requireElement('expression', tokens).evaluate() // TODO: do we want to allow async here?
 					})
 				} else {
 					events.push({
@@ -4411,17 +4668,22 @@ var _runtime = (function () {
 						for (const eventInfo of events) {
 							var listener = (event) => {
 								context.result = event;
-								for (const arg of eventInfo.args) {
-									context[arg.value] =
-										event[arg.value] || (event.detail ? event.detail[arg.value] : null);
+								if (eventInfo.args) {
+									for (const arg of eventInfo.args) {
+										context[arg.value] =
+											event[arg.value] || (event.detail ? event.detail[arg.value] : null);
+									}
 								}
 								if (!resolved) {
 									resolved = true;
 									resolve(runtime.findNext(this, context));
 								}
 							};
-							if (eventInfo.name) target.addEventListener(eventInfo.name, listener, { once: true });
-							else if (eventInfo.time) setTimeout(listener, eventInfo.time, eventInfo.time)
+							if (eventInfo.name){
+								target.addEventListener(eventInfo.name, listener, {once: true});
+							} else if (eventInfo.time != null) {
+								setTimeout(listener, eventInfo.time, eventInfo.time)
+							}
 						}
 					});
 				},
@@ -4433,7 +4695,7 @@ var _runtime = (function () {
 				tokens.requireToken("tick");
 				time = 0;
 			} else {
-				time = _parser.requireElement("timeExpression", tokens);
+				time = _parser.requireElement("expression", tokens);
 			}
 
 			command = {
@@ -4464,7 +4726,7 @@ var _runtime = (function () {
 			var separator = tokens.matchOpToken(".") || tokens.matchOpToken(":");
 			if (separator) {
 				do {
-					path.push(tokens.requireTokenType("IDENTIFIER").value);
+					path.push(tokens.requireTokenType("IDENTIFIER", "NUMBER").value);
 				} while (tokens.matchOpToken(separator.value));
 			}
 
@@ -4498,19 +4760,20 @@ var _runtime = (function () {
 		var details = parser.parseElement("namedArgumentList", tokens);
 		if ((cmdType === "send" && tokens.matchToken("to")) ||
 			(cmdType === "trigger" && tokens.matchToken("on"))) {
-			var to = parser.requireElement("expression", tokens);
+			var toExpr = parser.requireElement("expression", tokens);
 		} else {
-			var to = parser.requireElement("implicitMeTarget", tokens);
+			var toExpr = parser.requireElement("implicitMeTarget", tokens);
 		}
 
 		var sendCmd = {
 			eventName: eventName,
 			details: details,
-			to: to,
-			args: [to, eventName, details],
+			to: toExpr,
+			args: [toExpr, eventName, details],
 			op: function (context, to, eventName, details) {
+				runtime.nullCheck(to, toExpr);
 				runtime.forEach(to, function (target) {
-					runtime.triggerEvent(target, eventName, details ? details : {});
+					runtime.triggerEvent(target, eventName, details, context.me);
 				});
 				return runtime.findNext(sendCmd, context);
 			},
@@ -4545,15 +4808,13 @@ var _runtime = (function () {
 			op: function (context, value) {
 				var resolve = context.meta.resolve;
 				context.meta.returned = true;
+				context.meta.returnValue = value;
 				if (resolve) {
 					if (value) {
 						resolve(value);
 					} else {
 						resolve();
 					}
-				} else {
-					context.meta.returned = true;
-					context.meta.returnValue = value;
 				}
 				return runtime.HALT;
 			},
@@ -4650,13 +4911,7 @@ var _runtime = (function () {
 			args: [expr],
 			op: function (ctx, expr) {
 				runtime.registerHyperTrace(ctx, expr);
-				var reject = ctx.meta && ctx.meta.reject;
-				if (reject) {
-					reject(expr);
-					return runtime.HALT;
-				} else {
-					throw expr;
-				}
+				throw expr;
 			},
 		};
 		return throwCmd;
@@ -4702,7 +4957,7 @@ var _runtime = (function () {
 		}
 
 		if (tokens.matchToken("called")) {
-			var name = tokens.requireTokenType("IDENTIFIER").value;
+			var target = parser.requireElement("symbol", tokens);
 		}
 
 		var command;
@@ -4728,7 +4983,9 @@ var _runtime = (function () {
 					}
 
 					ctx.result = result;
-					if (name) ctx[name] = result;
+					if (target){
+						runtime.setSymbol(target.name, ctx, target.scope, result);
+					}
 
 					return runtime.findNext(this, ctx);
 				},
@@ -4739,7 +4996,9 @@ var _runtime = (function () {
 				args: [expr, args],
 				op: function (ctx, expr, args) {
 					ctx.result = varargConstructor(expr, args);
-					if (name) ctx[name] = ctx.result;
+					if (target){
+						runtime.setSymbol(target.name, ctx, target.scope, ctx.result);
+					}
 
 					return runtime.findNext(this, ctx);
 				},
@@ -4750,46 +5009,68 @@ var _runtime = (function () {
 
 	_parser.addGrammarElement("pseudoCommand", function (parser, runtime, tokens) {
 
-		try {
-			var expr = parser.requireElement("primaryExpression", tokens);
-		} finally {
-			tokens.popFollow();
-		}
-		if (expr.type !== "functionCall" && expr.root.type !== "symbol" && expr.root.root != null) {
-			parser.raiseParseError(tokens, "Implicit function calls must start with a simple function");
+		let lookAhead = tokens.token(1);
+		if (!(lookAhead && lookAhead.op && (lookAhead.value === '.' || lookAhead.value === "("))) {
+			return null;
 		}
 
-		var functionName = expr.root.name;
+		var expr = parser.requireElement("primaryExpression", tokens);
 
-		if (tokens.matchAnyToken("the", "to", "on", "with", "into", "from", "at")) {
-			var target = parser.requireElement("expression", tokens);
-		} else if (tokens.matchToken("me")) {
-			var target = parser.requireElement("implicitMeTarget", tokens);
+		var rootRoot = expr.root;
+		var root = expr;
+		while (rootRoot.root != null) {
+			root = root.root;
+			rootRoot = rootRoot.root;
 		}
-		var functionArgs = expr.argExressions;
+
+		if (expr.type !== "functionCall") {
+			parser.raiseParseError(tokens, "Pseudo-commands must be function calls");
+		}
+
+		if (root.type === "functionCall" && root.root.root == null) {
+			if (tokens.matchAnyToken("the", "to", "on", "with", "into", "from", "at")) {
+				var realRoot = parser.requireElement("expression", tokens);
+			} else if (tokens.matchToken("me")) {
+				var realRoot = parser.requireElement("implicitMeTarget", tokens);
+			}
+		}
 
 		/** @type {GrammarElement} */
-		var pseudoCommand = {
-			type: "pseudoCommand",
-			expr: expr,
-			args: [target, functionArgs],
-			op: function (context, target, args) {
-				if (target) {
-					var func = target[functionName];
-				} else {
-					var func = runtime.resolveSymbol(functionName, context);
-				}
-				if (func.hyperfunc) {
-					args.push(context);
-				}
-				var result = func.apply(target, args);
-				context.result = result;
-				return runtime.findNext(pseudoCommand, context);
-			},
-			execute: function (context) {
-				return runtime.unifiedExec(this, context);
-			},
-		};
+
+		if(realRoot){
+			var pseudoCommand = {
+				type: "pseudoCommand",
+				root: realRoot,
+				argExressions: root.argExressions,
+				args: [realRoot, root.argExressions],
+				op: function (context, rootRoot, args) {
+					runtime.nullCheck(rootRoot, realRoot);
+					var func = rootRoot[root.root.name];
+					runtime.nullCheck(func, root);
+					if (func.hyperfunc) {
+						args.push(context);
+					}
+					context.result = func.apply(rootRoot, args);
+					return runtime.findNext(pseudoCommand, context);
+				},
+				execute: function (context) {
+					return runtime.unifiedExec(this, context);
+				},
+			}
+		} else {
+			var pseudoCommand = {
+				type: "pseudoCommand",
+				expr: expr,
+				args: [expr],
+				op: function (context, result) {
+					context.result = result;
+					return runtime.findNext(pseudoCommand, context);
+				},
+				execute: function (context) {
+					return runtime.unifiedExec(this, context);
+				},
+			};
+		}
 
 		return pseudoCommand;
 	});
@@ -4803,23 +5084,30 @@ var _runtime = (function () {
 	* @returns
 	*/
 	var makeSetter = function (parser, runtime, tokens, target, value) {
+
 		var symbolWrite = target.type === "symbol";
 		var attributeWrite = target.type === "attributeRef";
-		if (!attributeWrite && !symbolWrite && target.root == null) {
+		var styleWrite = target.type === "styleRef";
+		var arrayWrite = target.type === "arrayIndex";
+
+		if (!(attributeWrite || styleWrite || symbolWrite) && target.root == null) {
 			parser.raiseParseError(tokens, "Can only put directly into symbols, not references");
 		}
 
-		var root = null;
+		var rootElt = null;
 		var prop = null;
 		if (symbolWrite) {
-			// root is null
-		} else if (attributeWrite) {
-			root = parser.requireElement("implicitMeTarget", tokens);
+			// rootElt is null
+		} else if (attributeWrite || styleWrite) {
+			rootElt = parser.requireElement("implicitMeTarget", tokens);
 			var attribute = target;
+		} else if(arrayWrite) {
+			prop = target.firstIndex;
+			rootElt = target.root;
 		} else {
 			prop = target.prop ? target.prop.value : null;
 			var attribute = target.attribute;
-			root = target.root;
+			rootElt = target.root;
 		}
 
 		/** @type {GrammarElement} */
@@ -4827,22 +5115,31 @@ var _runtime = (function () {
 			target: target,
 			symbolWrite: symbolWrite,
 			value: value,
-			args: [root, value],
-			op: function (context, root, valueToSet) {
+			args: [rootElt, prop, value],
+			op: function (context, root, prop, valueToSet) {
 				if (symbolWrite) {
 					runtime.setSymbol(target.name, context, target.scope, valueToSet);
 				} else {
-					runtime.implicitLoop(root, function (elt) {
-						if (attribute) {
-							if (valueToSet == null) {
-								elt.removeAttribute(attribute.name);
+					runtime.nullCheck(root, rootElt);
+					if (arrayWrite) {
+						root[prop] = valueToSet;
+					} else {
+						runtime.implicitLoop(root, function (elt) {
+							if (attribute) {
+								if (attribute.type === "attributeRef") {
+									if (valueToSet == null) {
+										elt.removeAttribute(attribute.name);
+									} else {
+										elt.setAttribute(attribute.name, valueToSet);
+									}
+								} else {
+									elt.style[attribute.name] = valueToSet;
+								}
 							} else {
-								elt.setAttribute(attribute.name, valueToSet);
+								elt[prop] = valueToSet;
 							}
-						} else {
-							elt[prop] = valueToSet;
-						}
-					});
+						});
+					}
 				}
 				return runtime.findNext(this, context);
 			},
@@ -4962,12 +5259,15 @@ var _runtime = (function () {
 			} else {
 				var whileExpr = parser.requireElement("expression", tokens);
 			}
-		} else if (tokens.matchTokenType("NUMBER")) {
-			var times = parseFloat(innerStartToken.value);
-			tokens.requireToken("times");
 		} else {
-			tokens.matchToken("forever"); // consume optional forever
-			var forever = true;
+			if (!parser.commandBoundary(tokens.currentToken()) &&
+			    tokens.currentToken().value !== 'forever') {
+				var times = parser.requireElement("expression", tokens);
+				tokens.requireToken("times");
+			} else {
+				tokens.matchToken("forever"); // consume optional forever
+				var forever = true;
+			}
 		}
 
 		if (tokens.matchToken("index")) {
@@ -5021,8 +5321,8 @@ var _runtime = (function () {
 				return this;
 			},
 			loop: loop,
-			args: [whileExpr],
-			op: function (context, whileValue) {
+			args: [whileExpr, times],
+			op: function (context, whileValue, times) {
 				var iteratorInfo = context.meta.iterators[slot];
 				var keepLooping = false;
 				var loopVal = null;
@@ -5037,7 +5337,7 @@ var _runtime = (function () {
 				} else if (whileExpr) {
 					keepLooping = whileValue;
 				} else if (times) {
-					keepLooping = iteratorInfo.index < this.times;
+					keepLooping = iteratorInfo.index < times;
 				} else {
 					var nextValFromIterator = iteratorInfo.iterator.next();
 					keepLooping = !nextValFromIterator.done;
@@ -5129,54 +5429,83 @@ var _runtime = (function () {
     return command;
   });
 
+  _parser.addCommand("break", function (parser, runtime, tokens) {
+
+    if (!tokens.matchToken("break")) return;
+
+    var command = {
+      op: function (context) {
+
+        // scan for the closest repeat statement
+        for (var parent = this.parent ; true ; parent = parent.parent) {
+
+          if (parent == undefined) {
+            parser.raiseParseError(tokens, "Command `continue` cannot be used outside of a `repeat` loop.")
+          }
+          if (parent.loop != undefined) {
+			  return runtime.findNext(parent.parent, context);
+          }
+        }
+      }
+    };
+    return command;
+  });
+
 	_parser.addGrammarElement("stringLike", function (parser, runtime, tokens) {
 		return _parser.parseAnyOf(["string", "nakedString"], tokens);
 	});
 
 	_parser.addCommand("append", function (parser, runtime, tokens) {
 		if (!tokens.matchToken("append")) return;
-		var target = null;
-		var prop = null;
+		var targetExpr = null;
 
 		var value = parser.requireElement("expression", tokens);
 
+		var implicitResultSymbol = {
+			type: "symbol",
+			evaluate: function (context) {
+				return runtime.resolveSymbol("result", context);
+			},
+		};
+
 		if (tokens.matchToken("to")) {
-			target = parser.requireElement("expression", tokens);
+			targetExpr = parser.requireElement("expression", tokens);
+		} else {
+			targetExpr = implicitResultSymbol;
 		}
 
-		if (target == null) {
-			prop = "result";
-		} else if (target.type === "symbol") {
-			prop = target.name;
-		} else if (target.type === "propertyAccess") {
-			prop = target.prop.value;
-		} else {
-			throw "Unable to append to " + target.type;
+		var setter = null;
+		if (targetExpr.type === "symbol" || targetExpr.type === "attributeRef" || targetExpr.root != null) {
+			setter = makeSetter(parser, runtime, tokens, targetExpr, implicitResultSymbol);
 		}
 
 		var command = {
 			value: value,
-			target: target,
-			args: [value],
-			op: function (context, value) {
-				if (Array.isArray(context[prop])) {
-					context[prop].push(value);
-				} else if (context[prop] instanceof Element) {
-					if (typeof value == "string") {
-						context[prop].innerHTML += value;
-					} else {
-						throw "Don't know how to append non-strings to an HTML Element yet.";
-					}
+			target: targetExpr,
+			args: [targetExpr, value],
+			op: function (context, target, value) {
+				if (Array.isArray(target)) {
+					target.push(value);
+					return runtime.findNext(this, context);
+				} else if (target instanceof Element) {
+					target.innerHTML += value;
+					return runtime.findNext(this, context);
+				} else if(setter) {
+					context.result = (target || "") + value;
+					return setter;
 				} else {
-					context[prop] += value;
+					throw Error("Unable to append a value!")
 				}
-
-				return runtime.findNext(this, context);
 			},
 			execute: function (context) {
 				return runtime.unifiedExec(this, context/*, value, target*/);
 			},
 		};
+
+		if (setter != null) {
+			setter.parent = command;
+		}
+
 		return command;
 	});
 
@@ -5192,23 +5521,23 @@ var _runtime = (function () {
 			amount = parser.requireElement("expression", tokens);
 		}
 
-		var command = {
+		var implicitIncrementOp = {
+			type: "implicitIncrementOp",
 			target: target,
 			args: [target, amount],
 			op: function (context, targetValue, amount) {
 				targetValue = targetValue ? parseFloat(targetValue) : 0;
 				amount = amount ? parseFloat(amount) : 1;
 				var newValue = targetValue + amount;
-				var setter = makeSetter(parser, runtime, tokens, target, newValue);
 				context.result = newValue;
-				setter.parent = this;
-				return setter;
+				return newValue;
 			},
-			execute: function (context) {
-				return runtime.unifiedExec(this, context/* , target, amount */);
-			},
+			evaluate: function (context) {
+				return runtime.unifiedEval(this, context);
+			}
 		};
-		return command;
+
+		return makeSetter(parser, runtime, tokens, target, implicitIncrementOp);
 	});
 
 	_parser.addCommand("decrement", function (parser, runtime, tokens) {
@@ -5223,51 +5552,63 @@ var _runtime = (function () {
 			amount = parser.requireElement("expression", tokens);
 		}
 
-		var command = {
+		var implicitDecrementOp = {
+			type: "implicitDecrementOp",
 			target: target,
 			args: [target, amount],
 			op: function (context, targetValue, amount) {
 				targetValue = targetValue ? parseFloat(targetValue) : 0;
 				amount = amount ? parseFloat(amount) : 1;
 				var newValue = targetValue - amount;
-				var setter = makeSetter(parser, runtime, tokens, target, newValue);
 				context.result = newValue;
-				setter.parent = this;
-				return setter;
+				return newValue;
 			},
-			execute: function (context) {
-				return runtime.unifiedExec(this, context/*, target, amount*/);
-			},
+			evaluate: function (context) {
+				return runtime.unifiedEval(this, context);
+			}
 		};
-		return command;
+
+		return makeSetter(parser, runtime, tokens, target, implicitDecrementOp);
 	});
+
+	function parseConversionInfo(tokens, parser) {
+		var type = "text";
+		var conversion;
+		tokens.matchToken("a") || tokens.matchToken("an");
+		if (tokens.matchToken("json") || tokens.matchToken("Object")) {
+			type = "json";
+		} else if (tokens.matchToken("response")) {
+			type = "response";
+		} else if (tokens.matchToken("html")) {
+			type = "html";
+		} else if (tokens.matchToken("text")) {
+			// default, ignore
+		} else {
+			conversion = parser.requireElement("dotOrColonPath", tokens).evaluate();
+		}
+		return {type, conversion};
+	}
 
 	_parser.addCommand("fetch", function (parser, runtime, tokens) {
 		if (!tokens.matchToken("fetch")) return;
 		var url = parser.requireElement("stringLike", tokens);
 
-		if (tokens.matchToken("with")) {
+		if (tokens.matchToken("as")) {
+			var conversionInfo = parseConversionInfo(tokens, parser);
+		}
+
+		if (tokens.matchToken("with") && tokens.currentToken().value !== "{") {
 			var args = parser.parseElement("nakedNamedArgumentList", tokens);
 		} else {
 			var args = parser.parseElement("objectLiteral", tokens);
 		}
 
-		var type = "text";
-		var conversion;
-		if (tokens.matchToken("as")) {
-			tokens.matchToken("a") || tokens.matchToken("an");
-			if (tokens.matchToken("json") || tokens.matchToken("Object")) {
-				type = "json";
-			} else if (tokens.matchToken("response")) {
-				type = "response";
-			} else if (tokens.matchToken("html")) {
-				type = "html";
-			} else if (tokens.matchToken("text")) {
-				// default, ignore
-			} else {
-				conversion = parser.requireElement("dotOrColonPath", tokens).evaluate();
-			}
+		if (conversionInfo == null && tokens.matchToken("as")) {
+			conversionInfo = parseConversionInfo(tokens, parser);
 		}
+
+		var type = conversionInfo ? conversionInfo.type : "text";
+		var conversion = conversionInfo ? conversionInfo.conversion : null
 
 		/** @type {GrammarElement} */
 		var fetchCmd = {
@@ -5276,18 +5617,41 @@ var _runtime = (function () {
 			args: [url, args],
 			op: function (context, url, args) {
 				var detail = args || {};
-				detail["sentBy"] = context.me;
+				detail["sender"] = context.me;
+				detail["headers"] = detail["headers"] || {}
+				var abortController = new AbortController();
+				let abortListener = context.me.addEventListener('fetch:abort', function(){
+					abortController.abort();
+				}, {once: true});
+				detail['signal'] = abortController.signal;
 				runtime.triggerEvent(context.me, "hyperscript:beforeFetch", detail);
+				runtime.triggerEvent(context.me, "fetch:beforeRequest", detail);
 				args = detail;
+				var finished = false;
+				if (args.timeout) {
+					setTimeout(function () {
+						if (!finished) {
+							abortController.abort();
+						}
+					}, args.timeout);
+				}
 				return fetch(url, args)
 					.then(function (resp) {
+						let resultDetails = {response:resp};
+						runtime.triggerEvent(context.me, "fetch:afterResponse", resultDetails);
+						resp = resultDetails.response;
+
 						if (type === "response") {
 							context.result = resp;
+							runtime.triggerEvent(context.me, "fetch:afterRequest", {result:resp});
+							finished = true;
 							return runtime.findNext(fetchCmd, context);
 						}
 						if (type === "json") {
 							return resp.json().then(function (result) {
 								context.result = result;
+								runtime.triggerEvent(context.me, "fetch:afterRequest", {result});
+								finished = true;
 								return runtime.findNext(fetchCmd, context);
 							});
 						}
@@ -5297,6 +5661,8 @@ var _runtime = (function () {
 							if (type === "html") result = runtime.convertValue(result, "Fragment");
 
 							context.result = result;
+							runtime.triggerEvent(context.me, "fetch:afterRequest", {result});
+							finished = true;
 							return runtime.findNext(fetchCmd, context);
 						});
 					})
@@ -5305,6 +5671,8 @@ var _runtime = (function () {
 							reason: reason,
 						});
 						throw reason;
+					}).finally(function(){
+						context.me.removeEventListener('fetch:abort', abortListener);
 					});
 			},
 		};
@@ -5344,24 +5712,27 @@ if ("document" in globalScope) {
 	/** @type {HTMLScriptElement[]} */
 	var scripts = Array.from(document.querySelectorAll("script[type='text/hyperscript'][src]"))
 	Promise.all(
-		scripts.map(function (script) {
-			return fetch(script.src)
-				.then(function (res) {
-					return res.text();
-				})
-				.then(function (code) {
-					return _runtime.evaluate(code);
-				});
+			scripts.map(function (script) {
+				return fetch(script.src)
+					.then(function (res) {
+						return res.text();
+					});
+			})
+		)
+		.then(function (script_values) {
+			// forEach instead of map, since the return value of .evaluate is not used by the then
+			return script_values.forEach(_runtime.evaluate);
 		})
-	).then(function () {
-		ready(function () {
-			mergeMetaConfig();
-			_runtime.processNode(document.documentElement);
-			document.addEventListener("htmx:load", function (/** @type {CustomEvent} */ evt) {
-				_runtime.processNode(evt.detail.elt);
+		.then(function () {
+			ready(function () {
+				mergeMetaConfig();
+				_runtime.processNode(document.documentElement);
+				document.addEventListener("htmx:load", function (/** @type {CustomEvent} */ evt) {
+
+					_runtime.processNode(evt.detail.elt);
+				});
 			});
 		});
-	});
 }
 
 //====================================================================

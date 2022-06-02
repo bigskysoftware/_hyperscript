@@ -1,11 +1,12 @@
 ---
 title: ///_hyperscript
 ---
-
+<!doctype html>
 <html lang="en">
 <head>
     <title>{{ title }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://the.missing.style"/>
     <link rel="stylesheet" href="/css/site.css"/>
     <link rel="stylesheet" href="/css/prism-htmx.css"/>
     <script src="https://unpkg.com/prismjs@1.25.0/components/prism-core.min.js"></script>
@@ -13,7 +14,7 @@ title: ///_hyperscript
     <script src="https://unpkg.com/prismjs@1.25.0/components/prism-markup.min.js"></script>
     <script src="https://unpkg.com/prismjs@1.25.0/components/prism-clike.min.js"></script>
     <script src="https://unpkg.com/prismjs@1.25.0/components/prism-javascript.min.js"></script>
-    <script src="/js/prism-hyperscript.js"></script>
+    <script src="https://unpkg.com/prism-hyperscript@1.0.5/prism-hyperscript.js"></script>
     <script src="/js/_hyperscript_w9y.min.js"></script>
 </head>
 <body>
@@ -21,7 +22,7 @@ title: ///_hyperscript
     <div class="c">
         <div class="menu">
             <div class="logo-wrapper">
-                <a href="/"><img height="36px" src="/img/light_logo.png"></a>
+                <a href="/"><a href="/"><img alt="///_hyperscript" src="/img/transparent_logo.png"></a>
                 <svg onclick="document.getElementById('nav').classList.toggle('show')" class="hamburger" viewBox="0 0 100 80" width="25" height="25" style="margin-bottom:-5px">
                     <rect width="100" height="20" style="fill:rgb(52, 101, 164)" rx="10"></rect>
                     <rect y="30" width="100" height="20" style="fill:rgb(52, 101, 164)" rx="10"></rect>
@@ -48,6 +49,12 @@ title: ///_hyperscript
                         </div>
                         <div>
                             <a href="https://github.com/sponsors/bigskysoftware?o=esb">sponsor</a>
+                        </div>
+                        <div>
+                            <form action="https://google.com/search">
+                                <input type="hidden" name="q" value="site:hyperscript.org" />
+                                <input type="text" name="q" placeholder="🔍️" />
+                            </form>
                         </div>
                     </div>
                     <div class="github-stars">

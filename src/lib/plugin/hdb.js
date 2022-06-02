@@ -9,6 +9,8 @@ export default _hyperscript => {
 		this.cmd = breakpoint;
 		this._hyperscript = _hyperscript;
 
+		this.cmdMap = [];
+
 		this.bus = new EventTarget();
 	} // See below for methods
 
@@ -93,14 +95,17 @@ export default _hyperscript => {
 	};
 
 	HDB.prototype.skipTo = function (toCmd) {
-		this.cmd = toCmd
+		this.cmd = toCmd.cmd
 		this.bus.dispatchEvent(new Event("skip"));
 	}
 
 	HDB.prototype.rewrite = function (command, newCode) {
-		const parent = command.parent
-		let prev = parent.start
-		while (prev.next !== command) prev = prev.next
+		console.log('##', command)
+		const parent = command.cmd.parent
+		let prev
+		for (prev of parent.children) {
+			if (prev.next === command.cmd) break;
+		}
 		const next = command.next
 
 		const tok = _hyperscript.internals.lexer.tokenize(newCode)
@@ -125,11 +130,22 @@ export default _hyperscript => {
 		console.log("[hdb] current command: " + cmdSource)
 	}
 
+	HDB.prototype.traverse = function (ge) {
+		const rv = [];
+
+		(function recurse (ge) {
+			rv.push(ge);
+			if ('children' in ge) for (const child of ge.children) recurse(child);
+		})(ge);
+
+		return rv;
+	}
+
 	var ui = `
 <div class="hdb" _="
-	on load trigger update 
-	on step from hdb.bus trigger update
-	on skip from hdb.bus trigger update
+	on load trigger update end
+	on step from hdb.bus trigger update end
+	on skip from hdb.bus trigger update end
 	on continue from hdb.bus log 'done' then remove me.getRootNode().host">
 
 	<script type="text/hyperscript">
@@ -144,29 +160,42 @@ export default _hyperscript => {
 		return it
 	end
 
-	def highlightDebugCode
-		set rv to []
-		set hdb.uiCommandMap to []
-		set cmd to hdb.cmd.parent.start
-		append escapeHTML(hdb.cmd.programSource.substring(0, cmd.startToken.start)) to rv
-		repeat until cmd.halt_flag or cmd.type is 'implicitReturn'
-			push(cmd) on hdb.uiCommandMap
-			set cmdNo to hdb.uiCommandMap's length-1
-			if global HYPERSCRIPT_HDB_EXPERIMENTAL
-				append \`<button class="skip" data-cmd="\${cmdNo}">skip</button>\` to rv
-				append \`<button class="rewrite" data-cmd="\${cmdNo}">rewrite</button>\` to rv
-			end
-			set src to escapeHTML(cmd.sourceFor())
-			if cmd is hdb.cmd
-				append '<u class="current"><span data-cmd="' + cmdNo + '">' + src + '</span></u>' to rv
-			else
-				append '<span data-cmd="' + cmdNo + '">' + src + '</span>' to rv
-			end
-			append escapeHTML(hdb.cmd.programSource.substring(cmd.endToken.end, cmd.next.startToken.start)) to rv
-			set cmd to cmd.next
+	def makeCommandWidget(i)
+		get \`<span data-cmd=\${i}><button class=skip data-cmd=\${i}>&rdca;</button>\`
+		if hdb.EXPERIMENTAL
+			append \`<button class=rewrite data-cmd=\${i}>Rewrite</button></span>\`
 		end
-		return rv.join('')
-		-- set start to hdb.cmd.startToken.start
+		return it
+	end
+
+	def renderCode
+		set hdb.cmdMap to []
+		set src to hdb.cmd.programSource
+
+		-- Find feature
+		set feat to hdb.cmd
+		repeat until no feat.parent or feat.isFeature set feat to feat.parent end
+
+		-- Traverse, finding starts
+		for cmd in hdb.traverse(feat)
+			if no cmd.startToken continue end
+			append {
+				index: cmd.startToken.start,
+				widget: makeCommandWidget(hdb.cmdMap.length),
+				cmd: cmd
+			} to hdb.cmdMap
+		end
+
+		set rv to src.slice(0, hdb.cmdMap[0].index)
+		for obj in hdb.cmdMap index i
+			if obj.cmd is hdb.cmd
+				append obj.widget + '<u class=current>' +
+					escapeHTML(src.slice(obj.index, hdb.cmdMap[i+1].index)) + '</u>' to rv
+			else
+				append obj.widget + escapeHTML(src.slice(obj.index, hdb.cmdMap[i+1].index)) to rv
+			end
+		end
+		return rv
 	end
 
 	def truncate(str, len)
@@ -233,7 +262,7 @@ export default _hyperscript => {
 		<div class="code-container">
 			<pre class="code language-hyperscript" _="
 				on update from .hdb if hdb.cmd.programSource
-			    	put highlightDebugCode() into me
+			    	put renderCode() into me
 			    	if Prism
 			    		call Prism.highlightAllUnder(me)
 			    	end
@@ -243,7 +272,7 @@ export default _hyperscript => {
 				on click
 					if target matches .skip
 						get (target's @data-cmd) as Int
-						call hdb.skipTo(hdb.uiCommandMap[result])
+						call hdb.skipTo(hdb.cmdMap[result])
 					end
 					if target matches .rewrite
 						set cmdNo to (target's @data-cmd) as Int
@@ -255,8 +284,7 @@ export default _hyperscript => {
 				on submit
 					halt the event
 					get (closest @data-cmd to target) as Int
-					log 'cmd no', it
-					call hdb.rewrite(hdb.uiCommandMap[result], #cmd's value)
+					call hdb.rewrite(hdb.cmdMap[result], #cmd's value)
 				end
 			"><code></code></pre>
 		</div>
@@ -277,7 +305,7 @@ export default _hyperscript => {
 				go to bottom of the entry
 				put escapeHTML(input) into .input in the entry
 				if no output
-					call _hyperscript.internals.runtime.parse(input)
+					call hdb._hyperscript.parse(input)
 					if its execute is not undefined then call its execute(hdb.ctx)
 					else call its evaluate(hdb.ctx)
 					end
@@ -421,6 +449,25 @@ export default _hyperscript => {
 	.current {
 		font-weight: bold;
 		background: #abf;
+	}
+
+	.skip {
+		padding: 0;
+		margin: 2px;
+		border: 1px solid #3465a4;
+		border-radius: 50%;
+		color: #3465a4;
+		background: none;
+		font-weight: bold;
+		font-size: 1.2em;
+		width: calc(2ch / 1.2 - 4px);
+		height: calc(2ch / 1.2 - 4px);
+		line-height: 0.6;
+	}
+
+	.skip:hover {
+		background: #3465a4;
+		color: #bdf;
 	}
 
 	#console {

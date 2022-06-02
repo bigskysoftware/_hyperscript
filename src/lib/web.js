@@ -11,15 +11,16 @@ export default _hyperscript => {
 	_hyperscript.addCommand("settle", function (parser, runtime, tokens) {
 		if (tokens.matchToken("settle")) {
 			if (!parser.commandBoundary(tokens.currentToken())) {
-				var on = parser.requireElement("expression", tokens);
+				var onExpr = parser.requireElement("expression", tokens);
 			} else {
-				var on = parser.requireElement("implicitMeTarget", tokens);
+				var onExpr = parser.requireElement("implicitMeTarget", tokens);
 			}
 
 			var settleCommand = {
 				type: "settleCmd",
-				args: [on],
+				args: [onExpr],
 				op: function (context, on) {
+					runtime.nullCheck(on, onExpr);
 					var resolve = null;
 					var resolved = false;
 					var transitionStarted = false;
@@ -85,20 +86,39 @@ export default _hyperscript => {
 			}
 
 			if (tokens.matchToken("to")) {
-				var to = parser.requireElement("expression", tokens);
+				var toExpr = parser.requireElement("expression", tokens);
 			} else {
-				var to = parser.parseElement("implicitMeTarget", tokens);
+				var toExpr = parser.requireElement("implicitMeTarget", tokens);
+			}
+
+			if (tokens.matchToken("when")) {
+				if (cssDeclaration) {
+					parser.raiseParseError(tokens, "Only class and properties are supported with a when clause")
+				}
+				var when = parser.requireElement("expression", tokens);
 			}
 
 			if (classRefs) {
 				return {
 					classRefs: classRefs,
-					to: to,
-					args: [to, classRefs],
+					to: toExpr,
+					args: [toExpr, classRefs],
 					op: function (context, to, classRefs) {
+						runtime.nullCheck(to, toExpr);
 						runtime.forEach(classRefs, function (classRef) {
 							runtime.implicitLoop(to, function (target) {
-								if (target instanceof Element) target.classList.add(classRef.className);
+								if (when) {
+									context['result'] = target;
+									let whenResult = runtime.evaluateNoPromise(when, context);
+									if (whenResult) {
+										if (target instanceof Element) target.classList.add(classRef.className);
+									} else {
+										if (target instanceof Element) target.classList.remove(classRef.className);
+									}
+									context['result'] = null;
+								} else {
+									if (target instanceof Element) target.classList.add(classRef.className);
+								}
 							});
 						});
 						return runtime.findNext(this, context);
@@ -108,11 +128,23 @@ export default _hyperscript => {
 				return {
 					type: "addCmd",
 					attributeRef: attributeRef,
-					to: to,
-					args: [to],
+					to: toExpr,
+					args: [toExpr],
 					op: function (context, to, attrRef) {
+						runtime.nullCheck(to, toExpr);
 						runtime.implicitLoop(to, function (target) {
-							target.setAttribute(attributeRef.name, attributeRef.value);
+							if (when) {
+								context['result'] = target;
+								let whenResult = runtime.evaluateNoPromise(when, context);
+								if (whenResult) {
+									target.setAttribute(attributeRef.name, attributeRef.value);
+								} else {
+									target.removeAttribute(attributeRef.name);
+								}
+								context['result'] = null;
+							} else {
+								target.setAttribute(attributeRef.name, attributeRef.value);
+							}
 						});
 						return runtime.findNext(this, context);
 					},
@@ -124,9 +156,10 @@ export default _hyperscript => {
 				return {
 					type: "addCmd",
 					cssDeclaration: cssDeclaration,
-					to: to,
-					args: [to, cssDeclaration],
+					to: toExpr,
+					args: [toExpr, cssDeclaration],
 					op: function (context, to, css) {
+						runtime.nullCheck(to, toExpr);
 						runtime.implicitLoop(to, function (target) {
 							target.style.cssText += css;
 						});
@@ -209,19 +242,22 @@ export default _hyperscript => {
 			}
 
 			if (tokens.matchToken("from")) {
-				var from = parser.requireElement("expression", tokens);
+				var fromExpr = parser.requireElement("expression", tokens);
 			} else {
-				var from = parser.requireElement("implicitMeTarget", tokens);
+				if (elementExpr == null) {
+					var fromExpr = parser.requireElement("implicitMeTarget", tokens);
+				}
 			}
 
 			if (elementExpr) {
 				return {
 					elementExpr: elementExpr,
-					from: from,
-					args: [elementExpr],
-					op: function (context, element) {
+					from: fromExpr,
+					args: [elementExpr, fromExpr],
+					op: function (context, element, from) {
+						runtime.nullCheck(element, elementExpr);
 						runtime.implicitLoop(element, function (target) {
-							if (target.parentElement) {
+							if (target.parentElement && (from == null || from.contains(target))) {
 								target.parentElement.removeChild(target);
 							}
 						});
@@ -233,9 +269,10 @@ export default _hyperscript => {
 					classRefs: classRefs,
 					attributeRef: attributeRef,
 					elementExpr: elementExpr,
-					from: from,
-					args: [classRefs, from],
+					from: fromExpr,
+					args: [classRefs, fromExpr],
 					op: function (context, classRefs, from) {
+						runtime.nullCheck(from, fromExpr);
 						if (classRefs) {
 							runtime.forEach(classRefs, function (classRef) {
 								runtime.implicitLoop(from, function (target) {
@@ -256,7 +293,23 @@ export default _hyperscript => {
 
 	_hyperscript.addCommand("toggle", function (parser, runtime, tokens) {
 		if (tokens.matchToken("toggle")) {
-			if (tokens.matchToken("between")) {
+			tokens.matchAnyToken("the", "my");
+			if (tokens.currentToken().type === "STYLE_REF") {
+				let styleRef = tokens.consumeToken();
+				var name = styleRef.value.substr(1);
+				var visibility = true;
+				var hideShowStrategy = resolveStrategy(parser, tokens, name);
+				if (tokens.matchToken("of")) {
+					tokens.pushFollow("with");
+					try {
+						var onExpr = parser.requireElement("expression", tokens);
+					} finally {
+						tokens.popFollow();
+					}
+				} else {
+					var onExpr = parser.requireElement("implicitMeTarget", tokens);
+				}
+			} else if (tokens.matchToken("between")) {
 				var between = true;
 				var classRef = parser.parseElement("classRef", tokens);
 				tokens.requireToken("and");
@@ -277,14 +330,16 @@ export default _hyperscript => {
 				}
 			}
 
-			if (tokens.matchToken("on")) {
-				var on = parser.requireElement("expression", tokens);
-			} else {
-				var on = parser.requireElement("implicitMeTarget", tokens);
+			if (visibility !== true) {
+				if (tokens.matchToken("on")) {
+					var onExpr = parser.requireElement("expression", tokens);
+				} else {
+					var onExpr = parser.requireElement("implicitMeTarget", tokens);
+				}
 			}
 
 			if (tokens.matchToken("for")) {
-				var time = parser.requireElement("timeExpression", tokens);
+				var time = parser.requireElement("expression", tokens);
 			} else if (tokens.matchToken("until")) {
 				var evt = parser.requireElement("dotOrColonPath", tokens, "Expected event name");
 				if (tokens.matchToken("from")) {
@@ -297,12 +352,17 @@ export default _hyperscript => {
 				classRef2: classRef2,
 				classRefs: classRefs,
 				attributeRef: attributeRef,
-				on: on,
+				on: onExpr,
 				time: time,
 				evt: evt,
 				from: from,
 				toggle: function (on, classRef, classRef2, classRefs) {
-					if (between) {
+					runtime.nullCheck(on, onExpr);
+					if (visibility) {
+						runtime.implicitLoop(on, function (target) {
+							hideShowStrategy("toggle", target);
+						});
+					} else if (between) {
 						runtime.implicitLoop(on, function (target) {
 							if (target.classList.contains(classRef.className)) {
 								target.classList.remove(classRef.className);
@@ -328,7 +388,7 @@ export default _hyperscript => {
 						});
 					}
 				},
-				args: [on, time, evt, from, classRef, classRef2, classRefs],
+				args: [onExpr, time, evt, from, classRef, classRef2, classRefs],
 				op: function (context, on, time, evt, from, classRef, classRef2, classRefs) {
 					if (time) {
 						return new Promise(function (resolve) {
@@ -365,6 +425,12 @@ export default _hyperscript => {
 		display: function (op, element, arg) {
 			if (arg) {
 				element.style.display = arg;
+			} else if (op === "toggle") {
+				if (getComputedStyle(element).display === "none") {
+					HIDE_SHOW_STRATEGIES.display("show", element, arg);
+				} else {
+					HIDE_SHOW_STRATEGIES.display("hide", element, arg);
+				}
 			} else if (op === "hide") {
 				const internalData = _hyperscript.internals.runtime.getInternalData(element);
 				if (internalData.originalDisplay == null) {
@@ -383,6 +449,12 @@ export default _hyperscript => {
 		visibility: function (op, element, arg) {
 			if (arg) {
 				element.style.visibility = arg;
+			} else if (op === "toggle") {
+				if (getComputedStyle(element).visibility === "hidden") {
+					HIDE_SHOW_STRATEGIES.visibility("show", element, arg);
+				} else {
+					HIDE_SHOW_STRATEGIES.visibility("hide", element, arg);
+				}
 			} else if (op === "hide") {
 				element.style.visibility = "hidden";
 			} else {
@@ -392,6 +464,12 @@ export default _hyperscript => {
 		opacity: function (op, element, arg) {
 			if (arg) {
 				element.style.opacity = arg;
+			} else if (op === "toggle") {
+				if (getComputedStyle(element).opacity === "0") {
+					HIDE_SHOW_STRATEGIES.opacity("show", element, arg);
+				} else {
+					HIDE_SHOW_STRATEGIES.opacity("hide", element, arg);
+				}
 			} else if (op === "hide") {
 				element.style.opacity = "0";
 			} else {
@@ -427,18 +505,22 @@ export default _hyperscript => {
 
 	_hyperscript.addCommand("hide", function (parser, runtime, tokens) {
 		if (tokens.matchToken("hide")) {
-			var target = parseShowHideTarget(parser, runtime, tokens);
+			var targetExpr = parseShowHideTarget(parser, runtime, tokens);
 
 			var name = null;
 			if (tokens.matchToken("with")) {
-				name = tokens.requireTokenType("IDENTIFIER").value;
+				name = tokens.requireTokenType("IDENTIFIER", "STYLE_REF").value;
+				if (name.indexOf("*") === 0) {
+					name = name.substr(1);
+				}
 			}
 			var hideShowStrategy = resolveStrategy(parser, tokens, name);
 
 			return {
-				target: target,
-				args: [target],
+				target: targetExpr,
+				args: [targetExpr],
 				op: function (ctx, target) {
+					runtime.nullCheck(target, targetExpr);
 					runtime.implicitLoop(target, function (elt) {
 						hideShowStrategy("hide", elt);
 					});
@@ -450,11 +532,14 @@ export default _hyperscript => {
 
 	_hyperscript.addCommand("show", function (parser, runtime, tokens) {
 		if (tokens.matchToken("show")) {
-			var target = parseShowHideTarget(parser, runtime, tokens);
+			var targetExpr = parseShowHideTarget(parser, runtime, tokens);
 
 			var name = null;
 			if (tokens.matchToken("with")) {
-				name = tokens.requireTokenType("IDENTIFIER").value;
+				name = tokens.requireTokenType("IDENTIFIER", "STYLE_REF").value;
+				if (name.indexOf("*") === 0) {
+					name = name.substr(1);
+				}
 			}
 			var arg = null;
 			if (tokens.matchOpToken(":")) {
@@ -474,10 +559,11 @@ export default _hyperscript => {
 			var hideShowStrategy = resolveStrategy(parser, tokens, name);
 
 			return {
-				target: target,
+				target: targetExpr,
 				when: when,
-				args: [target],
+				args: [targetExpr],
 				op: function (ctx, target) {
+					runtime.nullCheck(target, targetExpr);
 					runtime.implicitLoop(target, function (elt) {
 						if (when) {
 							ctx['result'] = elt;
@@ -500,26 +586,28 @@ export default _hyperscript => {
 
 	_hyperscript.addCommand("take", function (parser, runtime, tokens) {
 		if (tokens.matchToken("take")) {
-			var classRef = parser.parseElement("classRef", tokens);
+			var classRef = parser.requireElement("classRef", tokens);
 
 			if (tokens.matchToken("from")) {
-				var from = parser.requireElement("expression", tokens);
+				var fromExpr = parser.requireElement("expression", tokens);
 			} else {
-				var from = classRef;
+				var fromExpr = classRef;
 			}
 
 			if (tokens.matchToken("for")) {
-				var forElt = parser.requireElement("expression", tokens);
+				var forExpr = parser.requireElement("expression", tokens);
 			} else {
-				var forElt = parser.requireElement("implicitMeTarget", tokens);
+				var forExpr = parser.requireElement("implicitMeTarget", tokens);
 			}
 
 			var takeCmd = {
 				classRef: classRef,
-				from: from,
-				forElt: forElt,
-				args: [classRef, from, forElt],
+				from: fromExpr,
+				forElt: forExpr,
+				args: [classRef, fromExpr, forExpr],
 				op: function (context, eltColl, from, forElt) {
+					runtime.nullCheck(from, fromExpr);
+					runtime.nullCheck(forElt, forExpr);
 					var clazz = eltColl.className;
 					runtime.implicitLoop(from, function (target) {
 						target.classList.remove(clazz);
@@ -535,7 +623,7 @@ export default _hyperscript => {
 	});
 
 	function putInto(runtime, context, prop, valueToPut) {
-		if (prop) {
+		if (prop != null) {
 			var value = runtime.resolveSymbol(prop, context);
 		} else {
 			var value = context;
@@ -544,7 +632,7 @@ export default _hyperscript => {
 			while (value.firstChild) value.removeChild(value.firstChild);
 			value.append(_hyperscript.internals.runtime.convertValue(valueToPut, "Fragment"));
 		} else {
-			if (prop) {
+			if (prop != null) {
 				runtime.setSymbol(prop, context, null, valueToPut);
 			} else {
 				throw "Don't know how to put a value into " + typeof context;
@@ -571,10 +659,16 @@ export default _hyperscript => {
 
 			var operation = operationToken.value;
 
+			var arrayIndex = false;
 			var symbolWrite = false;
 			var rootExpr = null;
 			var prop = null;
-			if (target.prop && target.root && operation === "into") {
+
+			if (target.type === "arrayIndex" && operation === "into") {
+				arrayIndex = true;
+				prop = target.prop;
+				rootExpr = target.root;
+			}  else if (target.prop && target.root && operation === "into") {
 				prop = target.prop.value;
 				rootExpr = target.root;
 			} else if (target.type === "symbol" && operation === "into") {
@@ -584,8 +678,13 @@ export default _hyperscript => {
 				var attributeWrite = true;
 				prop = target.name;
 				rootExpr = parser.requireElement("implicitMeTarget", tokens);
+			} else if (target.type === "styleRef" && operation === "into") {
+				var styleWrite = true;
+				prop = target.name;
+				rootExpr = parser.requireElement("implicitMeTarget", tokens);
 			} else if (target.attribute && operation === "into") {
-				var attributeWrite = true;
+				var attributeWrite = target.attribute.type === "attributeRef";
+				var styleWrite = target.attribute.type === "styleRef";
 				prop = target.attribute.name;
 				rootExpr = target.root;
 			} else {
@@ -597,16 +696,23 @@ export default _hyperscript => {
 				operation: operation,
 				symbolWrite: symbolWrite,
 				value: value,
-				args: [rootExpr, value],
-				op: function (context, root, valueToPut) {
+				args: [rootExpr, prop, value],
+				op: function (context, root, prop, valueToPut) {
 					if (symbolWrite) {
 						putInto(runtime, context, prop, valueToPut);
 					} else {
+						runtime.nullCheck(root, rootExpr);
 						if (operation === "into") {
 							if (attributeWrite) {
 								runtime.implicitLoop(root, function (elt) {
 									elt.setAttribute(prop, valueToPut);
 								});
+							} else if (styleWrite) {
+								runtime.implicitLoop(root, function (elt) {
+									elt.style[prop] = valueToPut;
+								});
+							} else if (arrayIndex) {
+								root[prop] = valueToPut;
 							} else {
 								runtime.implicitLoop(root, function (elt) {
 									putInto(runtime, elt, prop, valueToPut);
@@ -624,16 +730,14 @@ export default _hyperscript => {
 									? Element.prototype.append
 									: Element.prototype.append; // unreachable
 
-							if (root) {
-								runtime.implicitLoop(root, function (elt) {
-									op.call(
-										elt,
-										valueToPut instanceof Node
-											? valueToPut
-											: runtime.convertValue(valueToPut, "Fragment")
-									);
-								});
-							}
+							runtime.implicitLoop(root, function (elt) {
+								op.call(
+									elt,
+									valueToPut instanceof Node
+										? valueToPut
+										: runtime.convertValue(valueToPut, "Fragment")
+								);
+							});
 						}
 					}
 					return runtime.findNext(this, context);
@@ -682,7 +786,7 @@ export default _hyperscript => {
 
 	_hyperscript.addCommand("transition", function (parser, runtime, tokens) {
 		if (tokens.matchToken("transition")) {
-			var targets = parsePseudopossessiveTarget(parser, runtime, tokens);
+			var targetsExpr = parsePseudopossessiveTarget(parser, runtime, tokens);
 
 			var properties = [];
 			var from = [];
@@ -693,27 +797,48 @@ export default _hyperscript => {
 				currentToken.value !== "over" &&
 				currentToken.value !== "using"
 			) {
-				properties.push(parser.requireElement("stringLike", tokens));
+				if (tokens.currentToken().type === "STYLE_REF") {
+					let styleRef = tokens.consumeToken();
+					let styleProp = styleRef.value.substr(1);
+					properties.push({
+						type: "styleRefValue",
+						evaluate: function () {
+							return styleProp;
+						},
+					});
+				} else {
+					properties.push(parser.requireElement("stringLike", tokens));
+				}
 
 				if (tokens.matchToken("from")) {
-					from.push(parser.requireElement("stringLike", tokens));
+					from.push(parser.requireElement("expression", tokens));
 				} else {
 					from.push(null);
 				}
 				tokens.requireToken("to");
-				to.push(parser.requireElement("stringLike", tokens));
+				if (tokens.matchToken("initial")) {
+					to.push({
+						type: "initial_literal",
+						evaluate : function(){
+							return "initial";
+						}
+					});
+				} else {
+					to.push(parser.requireElement("expression", tokens));
+				}
 				currentToken = tokens.currentToken();
 			}
 			if (tokens.matchToken("over")) {
-				var over = parser.requireElement("timeExpression", tokens);
+				var over = parser.requireElement("expression", tokens);
 			} else if (tokens.matchToken("using")) {
 				var using = parser.requireElement("expression", tokens);
 			}
 
 			var transition = {
 				to: to,
-				args: [targets, properties, from, to, using, over],
+				args: [targetsExpr, properties, from, to, using, over],
 				op: function (context, targets, properties, from, to, using, over) {
+					runtime.nullCheck(targets, targetsExpr);
 					var promises = [];
 					runtime.implicitLoop(targets, function (target) {
 						var promise = new Promise(function (resolve, reject) {
@@ -814,7 +939,7 @@ export default _hyperscript => {
 	_hyperscript.addCommand("measure", function (parser, runtime, tokens) {
 		if (!tokens.matchToken("measure")) return;
 
-		var target = parsePseudopossessiveTarget(parser, runtime, tokens);
+		var targetExpr = parsePseudopossessiveTarget(parser, runtime, tokens);
 
 		var propsToMeasure = [];
 		if (!parser.commandBoundary(tokens.currentToken()))
@@ -824,8 +949,9 @@ export default _hyperscript => {
 
 		return {
 			properties: propsToMeasure,
-			args: [target],
+			args: [targetExpr],
 			op: function (ctx, target) {
+				runtime.nullCheck(target, targetExpr);
 				if (0 in target) target = target[0]; // not measuring multiple elts
 				var rect = target.getBoundingClientRect();
 				var scroll = {
@@ -875,12 +1001,12 @@ export default _hyperscript => {
 
 			var css = null;
 			if (tokens.currentToken().type === "ATTRIBUTE_REF") {
-				var attributeRef = parser.parseElement("attributeRefAccess", tokens, null);
+				var attributeRef = parser.requireElement("attributeRefAccess", tokens, null);
 				css = "[" + attributeRef.attribute.name + "]";
 			}
 
 			if (css == null) {
-				var expr = parser.parseElement("expression", tokens);
+				var expr = parser.requireElement("expression", tokens);
 				if (expr.css == null) {
 					parser.raiseParseError(tokens, "Expected a CSS expression");
 				} else {
@@ -902,15 +1028,22 @@ export default _hyperscript => {
 				to: to,
 				args: [to],
 				op: function (ctx, to) {
-					if (to == null || !(to instanceof Element)) {
+					if (to == null) {
 						return null;
 					} else {
-						if (parentSearch) {
-							var node = to.parentElement ? to.parentElement.closest(css) : null;
+						let result = [];
+						runtime.implicitLoop(to, function(to){
+							if (parentSearch) {
+								result.push(to.parentElement ? to.parentElement.closest(css) : null);
+							} else {
+								result.push(to.closest(css));
+							}
+						})
+						if (runtime.shouldAutoIterate(to)) {
+							return result;
 						} else {
-							var node = to.closest(css);
+							return result[0];
 						}
-						return node;
 					}
 				},
 				evaluate: function (context) {
@@ -944,12 +1077,24 @@ export default _hyperscript => {
 					}
 				} else {
 					tokens.matchToken("the"); // optional the
-					var verticalPosition = tokens.matchAnyToken("top", "bottom", "middle");
+					var verticalPosition = tokens.matchAnyToken("top", "middle", "bottom");
 					var horizontalPosition = tokens.matchAnyToken("left", "center", "right");
 					if (verticalPosition || horizontalPosition) {
 						tokens.requireToken("of");
 					}
-					var target = parser.requireElement("expression", tokens);
+					var target = parser.requireElement("unaryExpression", tokens);
+
+					var plusOrMinus = tokens.matchAnyOpToken("+", "-");
+					if (plusOrMinus) {
+						tokens.pushFollow("px");
+						try {
+							var offset = parser.requireElement("expression", tokens);
+						} finally {
+							tokens.popFollow();
+						}
+					}
+					tokens.matchToken("px"); // optional px
+
 					var smoothness = tokens.matchAnyToken("smoothly", "instantly");
 
 					var scrollOptions = {};
@@ -985,31 +1130,67 @@ export default _hyperscript => {
 
 			var goCmd = {
 				target: target,
-				args: [target],
-				op: function (ctx, to) {
+				args: [target, offset],
+				op: function (ctx, to, offset) {
 					if (back) {
 						window.history.back();
 					} else if (url) {
 						if (to) {
-							if (to.indexOf("#") === 0 && !newWindow) {
-								window.location.href = to;
+							if (newWindow) {
+								window.open(to);
 							} else {
-								window.open(to, newWindow ? "_blank" : null);
+								window.location.href = to;
 							}
 						}
 					} else {
-						runtime.forEach(to, function (target) {
+						runtime.implicitLoop(to, function (target) {
+
+							if (target === window) {
+								target = document.body;
+							}
+
+							if(plusOrMinus) {
+								// a top scroll w/ an offset of some sort
+								var boundingRect = target.getBoundingClientRect();
+								let scrollShim = document.createElement('div');
+
+								if (plusOrMinus.value === "-") {
+									var finalOffset = -offset;
+								} else {
+									var finalOffset = offset;
+								}
+
+								scrollShim.style.position = 'absolute';
+								scrollShim.style.top = (boundingRect.x + finalOffset) + "px";
+								scrollShim.style.left = (boundingRect.y + finalOffset) + "px";
+								scrollShim.style.height = (boundingRect.height + (2 * finalOffset)) + "px";
+								scrollShim.style.width = (boundingRect.width + (2 * finalOffset)) + "px";
+								scrollShim.style.zIndex = "" + Number.MIN_SAFE_INTEGER;
+								scrollShim.style.opacity = "0";
+
+								document.body.appendChild(scrollShim);
+								setTimeout(function () {
+									document.body.removeChild(scrollShim);
+								}, 100);
+
+								target = scrollShim;
+							}
+
 							target.scrollIntoView(scrollOptions);
 						});
 					}
-					return runtime.findNext(goCmd);
+					return runtime.findNext(goCmd, ctx);
 				},
 			};
 			return goCmd;
 		}
 	});
 
-	_hyperscript.config.conversions["Values"] = function (/** @type {Node | NodeList} */ node) {
+	_hyperscript.config.conversions.dynamicResolvers.push(function (str, node) {
+		if (!(str === "Values" || str.indexOf("Values:") === 0)) {
+			return;
+		}
+		var conversion = str.split(":")[1];
 		/** @type Object<string,string | string[]> */
 		var result = {};
 
@@ -1031,7 +1212,17 @@ export default _hyperscript => {
 			}
 		});
 
-		return result;
+		if (conversion) {
+			if (conversion === "JSON") {
+				return JSON.stringify(result);
+			} else if (conversion === "Form") {
+				return new URLSearchParams(result).toString();
+			} else {
+				throw "Unknown conversion: " + conversion;
+			}
+		} else {
+			return result;
+		}
 
 		/**
 		 * @param {HTMLInputElement} node
@@ -1097,7 +1288,7 @@ export default _hyperscript => {
 				return undefined;
 			}
 		}
-	};
+	});
 
 	_hyperscript.config.conversions["HTML"] = function (value) {
 		var toHTML = /** @returns {string}*/ function (/** @type any*/ value) {
