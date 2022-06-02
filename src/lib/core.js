@@ -16,11 +16,14 @@ var globalScope = globalThis;
 // Standard library
 //====================================================================
 
+var shouldAutoIterateSymbol = Symbol()
+
 class ElementCollection {
 	constructor(css, relativeToElement, escape) {
 		this._css = css;
 		this.relativeToElement = relativeToElement;
 		this.escape = escape;
+		this[shouldAutoIterateSymbol] = true;
 	}
 
 	get css() {
@@ -1445,7 +1448,7 @@ var _runtime = (function () {
 	 * @returns {value is any[] | NodeList | ElementCollection}
 	 */
 	function shouldAutoIterate(value) {
-		return  value instanceof ElementCollection ||
+		return  value[shouldAutoIterateSymbol] ||
 			   isArrayLike(value);
 	}
 
@@ -5507,6 +5510,118 @@ var _runtime = (function () {
 		}
 
 		return command;
+	});
+
+	function parsePickRange(parser, runtime, tokens) {
+	    tokens.matchToken("at") || tokens.matchToken("from");
+	    const rv = { includeStart: true, includeEnd: false }
+
+	    rv.from = tokens.matchToken("start") ? 0 : parser.requireElement("expression", tokens)
+
+	    if (tokens.matchToken("to") || tokens.matchOpToken("..")) {
+	      if (tokens.matchToken("end")) {
+	        rv.toEnd = true;
+	      } else {
+  	      rv.to = parser.requireElement("expression", tokens);
+  	    }
+	    }
+
+	    if (tokens.matchToken("inclusive")) range.includeEnd = true;
+	    else if (tokens.matchToken("exclusive")) range.includeStart = false;
+
+	    return rv;
+	}
+
+	class RegExpIterator {
+	  constructor(re, str) {
+	    this.re = re;
+	    this.str = str;
+	  }
+
+	  next() {
+	    const match = this.re.exec(this.str);
+	    if (match === null) return { done: true };
+	    else return { value: match };
+	  }
+	}
+
+	class RegExpIterable {
+	  constructor(re, flags, str) {
+	    this.re = re;
+	    this.flags = flags;
+	    this.str = str;
+	  }
+
+	  [Symbol.iterator]() {
+	    return new RegExpIterator(new RegExp(this.re, this.flags), this.str);
+	  }
+	}
+
+	_parser.addCommand("pick", (parser, runtime, tokens) => {
+	  if (!tokens.matchToken("pick")) return;
+
+	  tokens.matchToken("the");
+
+	  if (tokens.matchToken("item") || tokens.matchToken("items")
+	   || tokens.matchToken("character") || tokens.matchToken("characters")) {
+	    const range = parsePickRange(parser, runtime, tokens);
+
+	    tokens.requireToken("from");
+	    const root = parser.requireElement("expression", tokens);
+
+	    return {
+	      args: [root, range.from, range.to],
+	      op(ctx, root, from, to) {
+	        if (range.toEnd) to = root.length;
+	        if (!range.includeStart) from++;
+	        if (range.includeEnd) to++;
+	        if (to == null || to == undefined) to = from + 1;
+	        ctx.result = root.slice(from, to);
+	        return runtime.findNext(this, ctx);
+	      }
+	    }
+	  }
+
+	  if (tokens.matchToken("match")) {
+	    tokens.matchToken("of");
+	    const re = parser.parseElement("expression", tokens);
+	    const flags = ""
+	    if (tokens.matchOpToken("|")) {
+	      flags = tokens.matchToken("identifier").value;
+	    }
+
+	    tokens.requireToken("from");
+	    const root = parser.parseElement("expression", tokens);
+
+	    return {
+	      args: [root, re],
+	      op(ctx, root, re) {
+	        ctx.result = new RegExp(re, flags).exec(root);
+	        return runtime.findNext(this, ctx);
+	      }
+	    }
+	  }
+
+	  if (tokens.matchToken("matches")) {
+	    tokens.matchToken("of");
+	    const re = parser.parseElement("expression", tokens);
+	    const flags = "gu"
+	    if (tokens.matchOpToken("|")) {
+	      flags = 'g' + tokens.matchToken("identifier").value.replace('g', '');
+	    }
+	    console.log('flags', flags)
+
+	    tokens.requireToken("from");
+	    const root = parser.parseElement("expression", tokens);
+
+	    return {
+	      args: [root, re],
+	      op(ctx, root, re) {
+	        ctx.result = new RegExpIterable(re, flags, root);
+	        return runtime.findNext(this, ctx);
+	      }
+	    }
+	  }
 	});
 
 	_parser.addCommand("increment", function (parser, runtime, tokens) {
