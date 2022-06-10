@@ -1,7 +1,7 @@
 describe("the measure command", function () {
 	it("can measure me", function () {
 		var div = make(
-			"<div style='position: fixed; top: 89' _='on click " +
+			"<div style='all: initial; position: fixed; top: 89px' _='on click " +
 				"  measure me then set window.measurement to it'></div> "
 		);
 		div.click();
@@ -10,7 +10,7 @@ describe("the measure command", function () {
 	});
 
 	it("can measure another element", function () {
-		var div = make("<div id='other' style='position: fixed; top: 89'></div>");
+		var div = make("<div id='other' style='all: initial; position: fixed; top: 89px'></div>");
 		var measure = make("<div _='on click measure #other then set window.measurement to it'></div> ");
 		measure.click();
 		window.measurement.should.have.property("top", 89);
