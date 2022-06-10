@@ -2,6 +2,9 @@
 /// This module provides the EventSource (SSE) feature for hyperscript
 ///=========================================================================
 
+/// <reference path="./_hyperscript.js" />
+/// <reference path="./eventsource.d.ts" />
+
 
 (function (self, factory) {
 	const plugin = factory(self)
@@ -13,7 +16,7 @@
 	}
 })(typeof self !== 'undefined' ? self : this, self => {
 	/**
-	 * @param {HyperscriptObject} _hyperscript
+	 * @param {import("./_hyperscript.js").Hyperscript} _hyperscript
 	 */
 	return _hyperscript => {
 		_hyperscript.addFeature("eventsource", function (parser, runtime, tokens) {

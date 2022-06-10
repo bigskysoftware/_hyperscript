@@ -1,6 +1,10 @@
 
-
 'use strict';
+
+/**
+ * @typedef {Object} Hyperscript
+ */
+
 (function (self, factory) {
     const _hyperscript = factory(self)
 
@@ -13,13 +17,16 @@
 })(typeof self !== 'undefined' ? self : this, (globalScope) => {
 
     /**
+     * @type {Object}
+     * @property {DynamicConverter[]} dynamicResolvers
+     * 
      * @callback DynamicConverter
      * @param {String} str
      * @param {*} value
      * @returns {*}
      */
     const conversions = {
-        /** @type {DynamicConverter[]} */ dynamicResolvers: [
+        dynamicResolvers: [
             function(str, value){
                 if (str === "Fixed") {
                     return Number(value).toFixed();
@@ -61,7 +68,7 @@
             if (typeof val === "string") {
                 return JSON.parse(val);
             } else {
-                return mergeObjects({}, val);
+                return Object.assign({}, val);
             }
         },
     }
@@ -883,6 +890,26 @@
      * @param {Tokens} tokens
      * @param {*} root
      * @returns {ASTNode | undefined}
+     * 
+     * @typedef {Object} ASTNode
+     * @member {boolean} isFeature 
+     * @member {string} type 
+     * @member {any[]} args 
+     * @member {(this: ASTNode, ctx:Context, root:any, ...args:any) => any} op 
+     * @member {(this: ASTNode, context?:Context) => any} evaluate 
+     * @member {ASTNode} parent 
+     * @member {Set<ASTNode>} children 
+     * @member {ASTNode} root 
+     * @member {String} keyword 
+     * @member {Token} endToken 
+     * @member {ASTNode} next 
+     * @member {(context:Context) => ASTNode} resolveNext 
+     * @member {EventSource} eventSource 
+     * @member {(this: ASTNode) => void} install 
+     * @member {(this: ASTNode, context:Context) => void} execute 
+     * @member {(this: ASTNode, target: object, source: object, args?: Object) => void} apply
+     * 
+     * 
      */
 
     class Parser {
@@ -1672,7 +1699,7 @@
         */
         addFeatures(owner, ctx) {
             if (owner) {
-                mergeObjects(ctx.locals, this.getHyperscriptFeatures(owner));
+                Object.assign(ctx.locals, this.getHyperscriptFeatures(owner));
                 this.addFeatures(owner.parentElement, ctx);
             }
         }
@@ -1782,7 +1809,7 @@
             var body = 'document' in globalScope
                 ? globalScope.document.body
                 : new HyperscriptModule(args && args.module);
-            ctx = mergeObjects(this.makeContext(body, null, body, null), ctx || {});
+            ctx = Object.assign(this.makeContext(body, null, body, null), ctx || {});
             var element = this.parse(src);
             if (element.execute) {
                 element.execute(ctx);
@@ -2313,26 +2340,6 @@
     }
 
     const shouldAutoIterateSymbol = Symbol()
-
-    /**
-     * mergeObjects combines the keys from obj2 into obj2, then returns obj1
-     *
-     * @template T1
-     * @template T2
-     * @param {T1} obj1
-     * @param {T2} obj2
-     * @returns {T1 & T2}
-     */
-    function mergeObjects(obj1, obj2) {
-        for (var key in obj2) {
-            if (obj2.hasOwnProperty(key)) {
-                // @ts-ignore
-                obj1[key] = obj2[key];
-            }
-        }
-        // @ts-ignore
-        return obj1;
-    }
 
     function getOrInitObject(root, prop) {
         var value = root[prop];
@@ -4181,7 +4188,7 @@
                                         var detail = {
                                             observer: observer,
                                         };
-                                        detail = mergeObjects(detail, entry);
+                                        detail = Object.assign(detail, entry);
                                         detail["intersecting"] = entry.isIntersecting;
                                         runtime.triggerEvent(target, eventName, detail);
                                     }
@@ -4577,7 +4584,7 @@
                 function: func,
                 exposedFunctionNames: jsBody.exposedFunctionNames,
                 install: function () {
-                    mergeObjects(globalScope, func());
+                    Object.assign(globalScope, func());
                 },
             };
         });
@@ -5260,7 +5267,7 @@
                     target: target,
                     args: [obj, target],
                     op: function (ctx, obj, target) {
-                        mergeObjects(target, obj);
+                        Object.assign(target, obj);
                         return runtime.findNext(this, ctx);
                     },
                 };
@@ -6354,7 +6361,7 @@
             var configDefault = config.defaultHideShowStrategy;
             var strategies = HIDE_SHOW_STRATEGIES;
             if (config.hideShowStrategies) {
-                strategies = mergeObjects(strategies, config.hideShowStrategies); // merge in user provided strategies
+                strategies = Object.assign(strategies, config.hideShowStrategies); // merge in user provided strategies
             }
             name = name || configDefault || "display";
             var value = strategies[name];
@@ -7213,7 +7220,7 @@
      * @param {string} src 
      * @param {Partial<Context>} [ctx]
      */
-    function _hyperscript(src, ctx) {
+    function run(src, ctx) {
         return runtime_.evaluate(src, ctx)
     }
 
@@ -7258,13 +7265,50 @@
         function mergeMetaConfig() {
             var metaConfig = getMetaConfig();
             if (metaConfig) {
-                mergeObjects(config, metaConfig);
+                Object.assign(config, metaConfig);
             }
         }
     }
 
-    const a = mergeObjects(
-        _hyperscript,
+    /**
+     * @typedef {Object} HyperscriptAPI
+     * 
+     * @property {Object} config
+     * @property {string} config.attributes
+     * @property {string} config.defaultTransition
+     * @property {string} config.disableSelector
+     * @property {typeof conversions} config.conversions
+     * 
+     * @property {Object} internals
+     * @property {Lexer} internals.lexer
+     * @property {typeof Lexer} internals.Lexer
+     * @property {Parser} internals.parser
+     * @property {typeof Parser} internals.Parser
+     * @property {Runtime} internals.runtime
+     * @property {typeof Runtime} internals.Runtime
+     * 
+     * @property {typeof ElementCollection} ElementCollection
+     * 
+     * @property {(keyword: string, definition: ParseRule) => void} addFeature
+     * @property {(keyword: string, definition: ParseRule) => void} addCommand
+     * @property {(keyword: string, definition: ParseRule) => void} addLeafExpression
+     * @property {(keyword: string, definition: ParseRule) => void} addIndirectExpression
+     * 
+     * @property {(src: string, ctx?: Partial<Context>) => any} evaluate
+     * @property {(src: string) => ASTNode} parse
+     * @property {(node: Element) => void} processNode
+     * 
+     * @property {() => void} browserInit
+     * 
+     * 
+     * @typedef {HyperscriptAPI & ((src: string, ctx?: Partial<Context>) => any)} Hyperscript
+     */
+
+    /**
+     * @type {Hyperscript}
+     */
+    const _hyperscript = Object.assign(
+        run,
         {
             config,
 

@@ -145,7 +145,7 @@
 						// remove hyperscript internals
 						delete details.sender;
 						delete details._namedArgList_;
-						socket.send(JSON.stringify(mergeObjects({ type: evt.type }, details)));
+						socket.send(JSON.stringify(Object.assign({ type: evt.type }, details)));
 					},
 					rpc: rpcProxy,
 				};
