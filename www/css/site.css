@@ -90,12 +90,3 @@ body {
     border-color: #4d82c9;
     font-weight: 700;
 }
-
-
-.table-of-contents ul {
-    list-style: none;
-    padding-left: 0;
-}
-    .table-of-contents ul ul {
-        padding-left: 2em;
-    }

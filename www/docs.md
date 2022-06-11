@@ -1,33 +1,44 @@
 
 <style>
-#contents {
-  max-height: 80vh;
+
+#toc {
+  max-height: 70vh;
+  max-width: min(30ch, var(--line-length));
   overflow: scroll;
   scrollbar-width: thin;
+  margin-left: auto;
 }
-#contents summary {
-  position: sticky;
-  top: 0;
+#toc p {
+  margin: 0;
+}
+#toc h2 {
+  margin-bottom: 0;
+}
+#toc:hover h2 {
+  margin-bottom: var(--gap);
+}
+#toc ul {
+  display: none;
+}
+
+#toc:hover ul {
+  display: block;
 }
 </style>
 
+# hyperscript documentation
 
-<div class="fullbleed pad autodensity center">
+<div class="sticky ^1" style="max-height: 3em;">
+<div class="fullbleed pad">
+<nav id="toc" class="box crowded float> sticky ^1" aria-labelledby="contents-h">
 
-<div class="basicgrid colwidth-s">
-
-<nav class="dense col-1 sticky top" aria-label="Table of contents">
-<details open id="contents" class="list-of-links">
-<summary>Table of Contents</summary>
+## Contents {#contents-h .h4}
 
 [[toc]]
 
-</details>
 </nav>
-
-<div id="docs-contents" class="dense col-4 container">
-
-# hyperscript documentation
+</div>
+</div>
 
 ## Introduction
 
@@ -2158,11 +2169,3 @@ The more I looked at it, the more I thought that there was a need for a small, d
 event oriented and made DOM scripting efficient and fun.  I had programmed in [HyperTalk](https://en.wikipedia.org/wiki/HyperTalk), the scripting language for [HyperCard](https://en.wikipedia.org/wiki/HyperCard), when I was younger and remembered that it integrated events very well into the language.  So I dug up some old documentation on it and began work on hyperscript, a HyperTalk-derived scripting language for the web.
 
 And here we are.  I hope you find the language useful, or, at least, funny.  :)
-
-</div>
-
-</div>
-
-</div>
-
-</div>
