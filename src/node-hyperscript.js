@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const _hyperscript = require('../_hyperscript.js')
+const _hyperscript = require('./_hyperscript.js')
 const fs = require('fs');
 const path = require('path')
 

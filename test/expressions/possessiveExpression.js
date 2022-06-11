@@ -7,7 +7,7 @@ describe("possessiveExpression", function () {
 	});
 
 	it("can access basic properties", function () {
-		var result = evalHyperScript("foo's foo", { foo: { foo: "foo" } });
+		var result = evalHyperScript("foo's foo", { locals: { foo: { foo: "foo" } } });
 		result.should.equal("foo");
 	});
 
@@ -74,7 +74,7 @@ describe("possessiveExpression", function () {
 
 	it("can access basic attribute", function () {
 		var div = make("<div data-foo='bar'></div>");
-		var result = evalHyperScript("foo's [@data-foo]", { foo: div });
+		var result = evalHyperScript("foo's [@data-foo]", { locals: { foo: div } });
 		result.should.equal("bar");
 	});
 
@@ -93,7 +93,7 @@ describe("possessiveExpression", function () {
 	it("can set basic attributes", function () {
 		var div = make("<div data-foo='bar'></div>");
 		var result = evalHyperScript("set foo's [@data-foo] to 'blah'", {
-			foo: div,
+			locals: { foo: div, }
 		});
 		div.getAttribute("data-foo").should.equal("blah");
 	});
@@ -107,7 +107,7 @@ describe("possessiveExpression", function () {
 
 	it("can access basic style", function () {
 		var div = make("<div style='color:red'></div>");
-		var result = evalHyperScript("foo's *color", { foo: div });
+		var result = evalHyperScript("foo's *color", { locals: { foo: div } });
 		result.should.equal("red");
 	});
 
@@ -131,7 +131,7 @@ describe("possessiveExpression", function () {
 
 	it("can set basic styles", function () {
 		var div = make("<div style='color:red'></div>");
-		var result = evalHyperScript("set foo's *color to 'blue'", {foo: div});
+		var result = evalHyperScript("set foo's *color to 'blue'", { locals: { foo: div } });
 		div.style["color"].should.equal("blue");
 	});
 

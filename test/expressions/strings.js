@@ -53,7 +53,7 @@ describe("the string expression", function () {
 		};
 		var result = evalHyperScript(
 			'`<div age="${record.age}" style="color:${record.favouriteColour}">${record.name}</div>`',
-			{ record: record }
+			{ locals: { record: record } }
 		);
 		result.should.equal('<div age="21" style="color:bleaux">John Connor</div>');
 	});

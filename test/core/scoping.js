@@ -14,6 +14,17 @@ describe("scoping", function () {
 		div.getAttribute("out").should.equal("10");
 	});
 
+
+	it("locally scoped variables don't clash with built-in variables", function () {
+		var div = make(
+			"<div id='d1' _='on click repeat for meta in [1, 2, 3] set @out to meta end'></div>"
+		);
+		div.click();
+		// meta should still be the object inside context, not a number
+		// TODO: Should trying to set 'meta', 'result', etc. throw an exception?
+		div.getAttribute("out").should.equal("[object Object]");
+	});
+
 	it("locally scoped variables do not span features", function () {
 		var div = make(
 			"<div id='d1' _='on click 1 set x to 10 " +

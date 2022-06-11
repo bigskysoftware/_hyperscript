@@ -14,50 +14,14 @@
   "files": [
     "LICENSE",
     "README.md",
-    "dist/*"
+    "src/*"
   ],
-  "main": "dist/_hyperscript_web.min.js",
-  "exports": {
-    ".": {
-      "import": "./dist/_hyperscript_web.modern.js",
-      "umd": "./dist/_hyperscript_web.min.js"
-    },
-    "./worker": {
-      "import": "./dist/worker.modern.js",
-      "umd": "./dist/worker.min.js"
-    },
-    "./socket": {
-      "import": "./dist/socket.modern.js",
-      "umd": "./dist/socket.min.js"
-    },
-    "./eventsource": {
-      "import": "./dist/eventsource.modern.js",
-      "umd": "./dist/eventsource.min.js"
-    },
-    "./hdb": {
-      "import": "./dist/hdb.modern.js",
-      "umd": "./dist/eventsource.min.js"
-    },
-    "./template": {
-      "import": "./dist/hdb.modern.js",
-      "umd": "./dist/eventsource.min.js"
-    }
-  },
-  "module": "./dist/_hyperscript_web.esm.js",
-  "unpkg": "dist/_hyperscript_web.min.js",
+  "main": "src/_hyperscript.js",
   "bin": {
     "_hyperscript": "src/bin/node-hyperscript.js"
   },
   "scripts": {
-    "test": "mocha-chrome test/index.html",
-    "www": "node scripts/www.js",
-    "dist": "npm run clear && npm run copy && npm run bundle-all",
-    "clear": "rm -rf dist/*",
-    "copy": "cp -r src/* dist/",
-    "bundle-module-plugins": "microbundle src/lib/plugin/*.js -f modern",
-    "bundle-umd-plugins": "microbundle src/web/plugin/*.js -f umd",
-    "bundle-hyperscript": "microbundle src/web/*.js -f modern,umd --name _hyperscript",
-    "bundle-all": "npm run bundle-hyperscript && npm run bundle-module-plugins && npm run bundle-umd-plugins"
+    "test": "mocha-chrome test/index.html"
   },
   "repository": {
     "type": "git",
@@ -71,7 +35,6 @@
     "markdown-it-anchor": "^8.4.1",
     "markdown-it-attrs": "^4.1.3",
     "markdown-it-table-of-contents": "^0.6.0",
-    "microbundle": "^0.13.3",
     "mocha": "^7.1.1",
     "mocha-chrome": "^2.2.0",
     "sinon": "^9.0.2"
