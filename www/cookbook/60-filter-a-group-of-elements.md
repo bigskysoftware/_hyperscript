@@ -5,7 +5,7 @@ title: Filter A Group Of Elements
 You can easily filter down the visibility of a set of elements based on a condition by using the `show ... when` form
 of the [`show` command](/commands/show)
 
-```html
+{% example %}
 <input type="text" placeholder="Search Quotes..."
        _="on keyup
            if the event's key is 'Escape'
@@ -13,7 +13,7 @@ of the [`show` command](/commands/show)
              trigger keyup
            else
             show <blockquote/> in #quotes when its textContent contains my value">
-```
+{% endexample %}
 
 Here we do the search on keyup.  If the key was an escape, we reset the value of the input and rerun the event,
 which shows all quotes.
@@ -28,7 +28,7 @@ which shows all quotes.
 
 
 #### Programming Quotes
-<div id="quotes" style="height: 500px; overflow: scroll;">
+<div id="quotes" class="box" style="height: 20em; overflow: scroll;">
 
 > "Talk is cheap. Show me the code."
 >

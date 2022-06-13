@@ -26,7 +26,7 @@ describe("the attributeRef expression", function () {
 
 	it("attributeRef can be set as prop", function () {
 		var div = make("<div data-foo='red'></div>");
-		var value = _hyperscript("set x[@data-foo] to 'blue'", { x: div });
+		var value = _hyperscript("set x[@data-foo] to 'blue'", { locals: { x: div } });
 		div.getAttribute("data-foo").should.equal("blue");
 	});
 
@@ -38,13 +38,13 @@ describe("the attributeRef expression", function () {
 
 	it("attributeRef can be set indirectly", function () {
 		var div = make("<div data-foo='red'></div>");
-		var value = _hyperscript("set [@data-foo] of x to 'blue'", { x: div });
+		var value = _hyperscript("set [@data-foo] of x to 'blue'", { locals: { x: div } });
 		div.getAttribute("data-foo").should.equal("blue");
 	});
 
 	it("attributeRef can be put indirectly", function () {
 		var div = make("<div data-foo='red'></div>");
-		var value = _hyperscript("put 'blue' into x[@data-foo]", { x: div });
+		var value = _hyperscript("put 'blue' into x[@data-foo]", { locals: { x: div } });
 		div.getAttribute("data-foo").should.equal("blue");
 	});
 
@@ -74,7 +74,7 @@ describe("the attributeRef expression", function () {
 
 	it("attributeRef can be set as prop w/ short syntax", function () {
 		var div = make("<div data-foo='red'></div>");
-		var value = _hyperscript("set x@data-foo to 'blue'", { x: div });
+		var value = _hyperscript("set x@data-foo to 'blue'", { locals: { x: div } });
 		div.getAttribute("data-foo").should.equal("blue");
 	});
 
@@ -86,13 +86,13 @@ describe("the attributeRef expression", function () {
 
 	it("attributeRef can be set indirectly w/ short syntax", function () {
 		var div = make("<div data-foo='red'></div>");
-		var value = _hyperscript("set @data-foo of x to 'blue'", { x: div });
+		var value = _hyperscript("set @data-foo of x to 'blue'", { locals: { x: div } });
 		div.getAttribute("data-foo").should.equal("blue");
 	});
 
 	it("attributeRef can be put indirectly w/ short syntax", function () {
 		var div = make("<div data-foo='red'></div>");
-		var value = _hyperscript("put 'blue' into x@data-foo", { x: div });
+		var value = _hyperscript("put 'blue' into x@data-foo", { locals: { x: div } });
 		div.getAttribute("data-foo").should.equal("blue");
 	});
 

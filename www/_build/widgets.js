@@ -1,7 +1,7 @@
 
 module.exports = function (config) {
     config.addPairedShortcode('example', (content, caption) => {
-        let rv = "<figure class='example'>\n\n"
+        let rv = "<figure class='box info'>\n\n"
         if (caption) rv += `<figcaption>Example: ${caption}</figcaption>\n\n`
         else rv += `<figcaption>Example</figcaption>\n\n`
         rv += "  ~~~ html"
@@ -13,12 +13,14 @@ module.exports = function (config) {
     })
 
     function syntax(syntax) {
-        syntax = syntax.replace(/\[\[([a-zA-Z0-9\| ]*)\]\]([\*\+]?)/g, (match, p1, p2) => {
-            const vars = p1.split("|")
-            let rv = '<b>' + vars.map(v => `<var>${v}</var>`).join('|') + '</b>'
-            if (p2) rv += `<sup>${p2}</sup>`
-            return rv
-        })
+        syntax = syntax
+        .replace(/\[\[([\*\+\?])\]\]/g,
+          "<sup>$1</sup>"
+        )
+        .replace(/\[\[([a-zA-Z0-9]+)\]\]/g,
+            '<b class="syntaxvar"><var>$1</var></b>'
+        )
+
         return `<code class="syntax">${syntax}</code>`
     }
 
@@ -45,7 +47,7 @@ module.exports = function (config) {
     			buf.push(dedent(line));
     		}
     	}
-    	return `<dl class="syntaxes">${buf.join('\n')}</dl>`;
+    	return `<div class="missing-card"><dl class="syntaxes">${buf.join('\n')}</dl></div>`;
     })
 }
 

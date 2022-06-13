@@ -41,19 +41,19 @@ You may also namespace functions by giving them a dot separated namespace
 Functions may be invoked from both hyperscript or javascript. However, in javascript, an asynchronous function will
 return a promise that must be dealt with explicitly.
 
-### <a name="return"></a>[Return](#return)
+### Return
 
 Values may be returned with the `return` command. If the function is synchronous, the value will be returned as normal
 and if it is asynchronous, the promise will be resolved. The hyperscript runtime hides this difference when the
 function is invoked within hyperscript.
 
-### <a name="throw"></a>[Throw](#throw)
+### Throw
 
 Exceptions may be thrown with the `throw` command. If the function is synchronous, the exception will be thrown as normal
 and if it is asynchronous, the promise will be rejected. The hyperscript runtime hides this difference when the
 function is invoked within hyperscript.
 
-### <a name="exceptions"></a>[Exceptions](#exceptions)
+### Exceptions
 
 Hyperscript functions support a single catch block that can be used to catch exceptions that are throw synchronously
 or asynchronously
