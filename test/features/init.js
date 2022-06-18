@@ -30,4 +30,18 @@ describe("the init feature", function () {
 			done();
 		}, 10);
 	});
+
+	it("can initialize immediately", function (done) {
+		var div = make(
+			"<script type='text/hyperscript'>init set window.foo to 10" +
+			"                                init immediately set window.bar to window.foo </script>"
+		);
+		setTimeout(function () {
+			window.foo.should.equal(10);
+			should.equal(window.bar, undefined);
+			delete window.foo;
+			delete window.bar;
+			done();
+		}, 10);
+	});
 });

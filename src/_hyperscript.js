@@ -4430,14 +4430,21 @@
     
         parser.addFeature("init", function (parser, runtime, tokens) {
             if (!tokens.matchToken("init")) return;
-    
+
+            var immediately = tokens.matchToken("immediately");
+
             var start = parser.requireElement("commandList", tokens);
             var initFeature = {
                 start: start,
                 install: function (target, source) {
-                    setTimeout(function () {
+                    let handler = function () {
                         start && start.execute(runtime.makeContext(target, initFeature, target, null));
-                    }, 0);
+                    };
+                    if (immediately) {
+                        handler();
+                    } else {
+                        setTimeout(handler, 0);
+                    }
                 },
             };
     
