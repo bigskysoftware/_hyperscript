@@ -48,6 +48,12 @@ describe("the increment command", function () {
 		div.innerHTML.should.equal("6");
 	});
 
+	it("can increment by zero", function () {
+		var div = make(`<div _="on click set value to 20 then increment value by 0 then put value into me"></div>`);
+		div.click();
+		div.innerHTML.should.equal("20");
+	});
+
 	it("can increment a value multiple times", function () {
 		var div = make(`<div _="on click increment my.innerHTML"></div>`);
 		div.click();
@@ -103,4 +109,12 @@ describe("the increment command", function () {
 		div.click();
 		div.innerHTML.should.equal("-5");
 	});
+
+	it("can decrement by zero", function () {
+		var div = make(`<div _="on click set value to 20 then decrement value by 0 then put value into me"></div>`);
+		div.click();
+		div.innerHTML.should.equal("20");
+	});
+
+
 });

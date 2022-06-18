@@ -5713,23 +5713,23 @@
     
         parser.addCommand("increment", function (parser, runtime, tokens) {
             if (!tokens.matchToken("increment")) return;
-            var amount;
+            var amountExpr;
     
             // This is optional.  Defaults to "result"
             var target = parser.parseElement("assignableExpression", tokens);
     
             // This is optional. Defaults to 1.
             if (tokens.matchToken("by")) {
-                amount = parser.requireElement("expression", tokens);
+                amountExpr = parser.requireElement("expression", tokens);
             }
     
             var implicitIncrementOp = {
                 type: "implicitIncrementOp",
                 target: target,
-                args: [target, amount],
+                args: [target, amountExpr],
                 op: function (context, targetValue, amount) {
                     targetValue = targetValue ? parseFloat(targetValue) : 0;
-                    amount = amount ? parseFloat(amount) : 1;
+                    amount = amountExpr ? parseFloat(amount) : 1;
                     var newValue = targetValue + amount;
                     context.result = newValue;
                     return newValue;
@@ -5744,23 +5744,23 @@
     
         parser.addCommand("decrement", function (parser, runtime, tokens) {
             if (!tokens.matchToken("decrement")) return;
-            var amount;
+            var amountExpr;
     
             // This is optional.  Defaults to "result"
             var target = parser.parseElement("assignableExpression", tokens);
     
             // This is optional. Defaults to 1.
             if (tokens.matchToken("by")) {
-                amount = parser.requireElement("expression", tokens);
+                amountExpr = parser.requireElement("expression", tokens);
             }
     
             var implicitDecrementOp = {
                 type: "implicitDecrementOp",
                 target: target,
-                args: [target, amount],
+                args: [target, amountExpr],
                 op: function (context, targetValue, amount) {
                     targetValue = targetValue ? parseFloat(targetValue) : 0;
-                    amount = amount ? parseFloat(amount) : 1;
+                    amount = amountExpr ? parseFloat(amount) : 1;
                     var newValue = targetValue - amount;
                     context.result = newValue;
                     return newValue;
