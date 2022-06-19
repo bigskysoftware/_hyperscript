@@ -1,4 +1,6 @@
 
+button { box-sizing: content-box; min-height: var(--rhythm); }
+
 body {
     --rhythm: 1.4rem;
     --accent: #3465a4;
