@@ -5,21 +5,15 @@
 
 an easy & approachable language designed for modern front-end web development {.lede}
 
-<div id="sample" class="box f-switch colwidth-m justify-content:center">
+<div id="sample" class="box f-switch colwidth-l justify-content:center align-items:center">
 
-<div id=snippet class="grow-2">
-
-```hyperscript
-writeText(the #snippet's innerText)
+<pre class="grow-2"><code class=language-hyperscript>writeText(the #snippet's innerText)
   into the navigator's clipboard
 put 'copied!' into me
 wait 1s
-put 'copy' into me
-```
+put 'copy' into me</code></pre>
 
-</div>
-
------- {.grow-0}
+------ {.grow-0 .align-self:stretch style="justify-self:center"}
 
 see it in action: <button class="btn primary" _="on click
 writeText(the #snippet's innerText) into the navigator's clipboard
@@ -28,6 +22,7 @@ wait 1s
 put 'copy' into me">
 copy
 </button>
+{.textcenter}
 
 </div>
 </div>
