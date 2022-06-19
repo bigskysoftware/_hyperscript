@@ -44,7 +44,7 @@
 </div>
 </header>
 
-<div id="docs-content" style="display: flow-root; max-width: calc(100vw - 24ch - 2 * var(--gap))">
+<div id="docs-content" style="display: flow-root; max-width: calc(100vw - 24ch - 3 * var(--gap))">
 
 
 ## Introduction
