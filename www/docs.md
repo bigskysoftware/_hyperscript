@@ -1,44 +1,51 @@
 
 <style>
+@media (min-width: 100ch) {
+  #toc-wrapper {
+    float: left;
+    position: sticky;
+    top: var(--gap);
+    border: none;
+    margin: 0;
+  }
+  #toc {
+    
+    overflow: auto;
+    max-height: 80vh;
+    max-width: 24ch;
+    
+    margin-inline-end: var(--gap);
+    margin-inline-start: calc(var(--gap) - var(--gutter-width));
+  }
 
-#toc {
-  max-height: 70vh;
-  max-width: min(30ch, var(--line-length));
-  overflow: scroll;
-  scrollbar-width: thin;
-  margin-left: auto;
-}
-#toc p {
-  margin: 0;
-}
-#toc h2 {
-  margin-bottom: 0;
-}
-#toc:hover h2 {
-  margin-bottom: var(--gap);
-}
-#toc ul {
-  display: none;
+  #skip-to-content {
+    display: none;
+  }
 }
 
-#toc:hover ul {
-  display: block;
+#docs-content:target {
+  outline: none;
 }
 </style>
 
-# hyperscript documentation
 
-<div class="sticky ^1" style="max-height: 3em;">
-<div class="fullbleed pad">
-<nav id="toc" class="box crowded float> sticky ^1" aria-labelledby="contents-h">
+<header id="toc-wrapper" aria-labelledby="contents-h">
+<div id=toc class=box>
 
-## Contents {#contents-h .h4}
+# _hyperscript <sub-title>documentation</sub-title> {.h2}
+
+[Skip to content](#docs-content){#skip-to-content}
+
+<nav aria-label="Table of contents">
 
 [[toc]]
 
 </nav>
 </div>
-</div>
+</header>
+
+<div id="docs-content" style="display: flow-root; max-width: calc(100vw - 24ch - 2 * var(--gap))">
+
 
 ## Introduction
 
