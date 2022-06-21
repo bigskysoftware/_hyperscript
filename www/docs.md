@@ -18,6 +18,11 @@
     margin-inline-start: calc(var(--gap) - var(--gutter-width));
   }
 
+  #docs-content {
+    display: flow-root;
+    max-width: calc(100vw - 24ch - 3 * var(--gap));
+  }
+
   #skip-to-content {
     display: none;
   }
@@ -44,7 +49,7 @@
 </div>
 </header>
 
-<div id="docs-content" style="display: flow-root; max-width: calc(100vw - 24ch - 3 * var(--gap))">
+<div id="docs-content">
 
 
 ## Introduction

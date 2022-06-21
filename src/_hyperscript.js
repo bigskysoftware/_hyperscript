@@ -1,6 +1,3 @@
-
-'use strict';
-
 /**
  * @typedef {Object} Hyperscript
  */
@@ -15,6 +12,8 @@
         if ('document' in self) self['_hyperscript'].browserInit()
     }
 })(typeof self !== 'undefined' ? self : this, (globalScope) => {
+
+    'use strict';
 
     /**
      * @type {Object}
