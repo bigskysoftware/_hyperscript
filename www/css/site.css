@@ -33,6 +33,15 @@ body {
     }
 }
 
+.search-box {
+    width: 3em;
+    transition: width .2s ease-in-out;
+}
+
+.search-box:focus {
+    width: 15em;
+}
+
 /* Content */
 
 .header-anchor {
