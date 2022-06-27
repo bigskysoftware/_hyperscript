@@ -501,9 +501,9 @@ You can use the `first`, `last` and `random` keywords, discussed [below](#positi
 
   ~~~ hyperscript
   set myArr to [1, 2, 3]
-  log the first of myArr[0]  -- logs "1"
-  log the last of myArr[0]   -- logs "3"
-  log random in myArr[0]     -- logs a random element from the array
+  log the first of myArr  -- logs "1"
+  log the last of myArr   -- logs "3"
+  log random in myArr     -- logs a random element from the array
   ~~~
 
 ##### <a name="closures"></a> [Closures](#closures)
