@@ -216,5 +216,59 @@ describe("the put command", function () {
 		d1.style.color.should.equal("red");
 	});
 
+	it("properly processes hyperscript in new content in a symbol write", function() {
+		var div = make("<div _='on click put \"<button id=\\\"b1\\\" _=\\\"on click put 42 into me\\\">40</button>\" into me'></div>")
+		div.click();
+		let button = byId("b1");
+		button.innerHTML.should.equal("40");
+		button.click();
+		button.innerHTML.should.equal("42");
+	})
+
+	it("properly processes hyperscript in new content in a element target", function() {
+		var div = make("<div id='d1' _='on click put \"<button id=\\\"b1\\\" _=\\\"on click put 42 into me\\\">40</button>\" into <div#d1/>'></div>")
+		div.click();
+		let button = byId("b1");
+		button.innerHTML.should.equal("40");
+		button.click();
+		button.innerHTML.should.equal("42");
+	})
+
+	it("properly processes hyperscript in before", function() {
+		var div = make("<div id='d1' _='on click put \"<button id=\\\"b1\\\" _=\\\"on click put 42 into me\\\">40</button>\" before me'></div>")
+		div.click();
+		let button = byId("b1");
+		button.innerHTML.should.equal("40");
+		button.click();
+		button.innerHTML.should.equal("42");
+	})
+
+	it("properly processes hyperscript at start of", function() {
+		var div = make("<div id='d1' _='on click put \"<button id=\\\"b1\\\" _=\\\"on click put 42 into me\\\">40</button>\" at the start of me'></div>")
+		div.click();
+		let button = byId("b1");
+		button.innerHTML.should.equal("40");
+		button.click();
+		button.innerHTML.should.equal("42");
+	})
+
+	it("properly processes hyperscript at end of", function() {
+		var div = make("<div id='d1' _='on click put \"<button id=\\\"b1\\\" _=\\\"on click put 42 into me\\\">40</button>\" at the end of me'></div>")
+		div.click();
+		let button = byId("b1");
+		button.innerHTML.should.equal("40");
+		button.click();
+		button.innerHTML.should.equal("42");
+	})
+
+	it("properly processes hyperscript after", function() {
+		var div = make("<div id='d1' _='on click put \"<button id=\\\"b1\\\" _=\\\"on click put 42 into me\\\">40</button>\" after me'></div>")
+		div.click();
+		let button = byId("b1");
+		button.innerHTML.should.equal("40");
+		button.click();
+		button.innerHTML.should.equal("42");
+	})
+
 
 });

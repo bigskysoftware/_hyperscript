@@ -6506,6 +6506,7 @@
             if (value instanceof Element || value instanceof HTMLDocument) {
                 while (value.firstChild) value.removeChild(value.firstChild);
                 value.append(parser.runtime.convertValue(valueToPut, "Fragment"));
+                runtime.processNode(value);
             } else {
                 if (prop != null) {
                     runtime.setSymbol(prop, context, null, valueToPut);
@@ -6612,6 +6613,12 @@
                                             ? valueToPut
                                             : runtime.convertValue(valueToPut, "Fragment")
                                     );
+                                    // process any new content
+                                    if (elt.parentElement) {
+                                        runtime.processNode(elt.parentElement);
+                                    } else {
+                                        runtime.processNode(elt);
+                                    }
                                 });
                             }
                         }
