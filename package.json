@@ -5,7 +5,7 @@
     "scripting",
     "HTML"
   ],
-  "version": "0.9.5",
+  "version": "0.9.6",
   "homepage": "https://hyperscript.org/",
   "bugs": {
     "url": "https://github.com/bigskysoftware/_hyperscript/issues"
@@ -16,12 +16,15 @@
     "README.md",
     "src/*"
   ],
-  "main": "src/_hyperscript.js",
+  "main": "dist/_hyperscript.js",
   "bin": {
     "_hyperscript": "src/bin/node-hyperscript.js"
   },
   "scripts": {
-    "test": "mocha-chrome test/index.html"
+    "test": "mocha-chrome test/index.html",
+    "dist": "cp -r src/* dist/ && npm run-script terser && gzip -k -f dist/_hyperscript.min.js > dist/_hyperscript.min.js.gz && exit",
+    "www": "node scripts/www.js",
+    "terser": "terser dist/_hyperscript.js > dist/_hyperscript.min.js"
   },
   "repository": {
     "type": "git",
@@ -40,6 +43,7 @@
     "sinon": "^9.0.2"
   },
   "dependencies": {
-    "markdown-it-deflist": "^2.1.0"
+    "markdown-it-deflist": "^2.1.0",
+    "terser": "^5.14.1"
   }
 }
