@@ -24,7 +24,7 @@
     "test": "mocha-chrome test/index.html",
     "dist": "cp -r src/* dist/ && npm run-script terser && gzip -k -f dist/_hyperscript.min.js > dist/_hyperscript.min.js.gz && exit",
     "www": "node scripts/www.js",
-    "terser": "terser dist/_hyperscript.js > dist/_hyperscript.min.js"
+    "terser": "terser dist/_hyperscript.js > dist/_hyperscript.min.js && terser dist/hdb.js > dist/hdb.min.js"
   },
   "repository": {
     "type": "git",

@@ -11,7 +11,7 @@ fs.copySync("node_modules/sinon/pkg/sinon.js", currentReleaseRoot + "/node_modul
 fs.copySync("test/", currentReleaseRoot + "/test");
 fs.copySync("src/", currentReleaseRoot + "/src");
 fs.copySync("dist/", currentReleaseRoot + "/dist");
-fs.copySync("dist/_hyperscript_w9y.min.js", "www/js/_hyperscript_w9y.min.js");
+fs.copySync("dist/_hyperscript.min.js", "www/js/_hyperscript.min.js");
 fs.copySync("dist/hdb.min.js", "www/js/hdb.min.js");
 
 var testHTML = "<html><body style='font-family: sans-serif'><h1>HTMX TESTS</h1><ul>\n"
