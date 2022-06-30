@@ -43,6 +43,7 @@ pre code {
     padding: 0 .5ch;
     box-sizing: content-box;
     border: 1px solid #0002;
+    white-space: pre-wrap;
 }
 
 a code {

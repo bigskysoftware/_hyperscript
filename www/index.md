@@ -1,32 +1,29 @@
 
 <div id="intro-to-hyperscript">
 
-# hyperscript is an easy & approachable language designed for modern front-end web development
+# _hyperscript
 
-<div id="sample" class="basicgrid" style="align-items: stretch" _="
-  on mouseenter queue none
-    repeat until event mouseleave
-      transition #sample-tip's transform to 'translateX(-2ch)' using 'all 500ms ease-out'
-      transition #sample-tip's transform to initial            using 'all 500ms ease-in'">
+an easy & approachable language designed for modern front-end web development {.lede}
 
-<div class="box">
-<pre><code id="snippet" class="lang-hyperscript">writeText(the #snippet's innerText)
+<div id="sample" class="box f-switch colwidth-l justify-content:center align-items:center">
+
+<pre class="grow-2"><code class=language-hyperscript>writeText(the #snippet's innerText)
   into the navigator's clipboard
 put 'copied!' into me
 wait 1s
 put 'copy' into me</code></pre>
-</div>
 
-<div class="box center">
-<span id="sample-tip">see it in action &rarr;</span>
-<button class="btn primary" _="on click
+------ {.grow-0 .align-self:stretch style="justify-self:center"}
+
+see it in action: <button class="btn primary" _="on click
 writeText(the #snippet's innerText) into the navigator's clipboard
 put 'copied!' into me
 wait 1s
 put 'copy' into me">
 copy
 </button>
-</div>
+{.textcenter}
+
 </div>
 </div>
 
@@ -34,19 +31,8 @@ hyperscript makes writing event handlers and highly
 responsive user interfaces easy with a clear, DOM-oriented syntax and by transparently
  handling asynchronous behavior for you &mdash; easier than callbacks, promises, even async/await.
 
+Install: `<script src="https://unpkg.com/hyperscript.org@0.9.5"></script>`{.language-html}
 
-<div>
-
- <span id='install'>Install: <input type=text style=display:inline;width:auto readonly value='<script src="https://unpkg.com/hyperscript.org@0.9.5"></script>'>
-<button
-  _="on click
-  writeText(my previousElementSibling's value) on navigator.clipboard
-  put 'copied!' into me
-  wait 1s
-  put 'copy' into me">copy</button>
-</span>
-
-</div>
 
 ## features
 
@@ -79,14 +65,6 @@ Try it on the [**playground**](/playground)
 Community news: [This Week in HTMX](https://thisweek.htmx.org)
 
 </div>
-
-<div id="links">
-
-[Companion of **htmx**](https://htmx.org) |
-[**Comparison** with VanillaJS & jQuery](/comparison) |
-[Read the **docs**](/docs) |
-[Try it on the **playground**](/playground) |
-[Check out the **cheatsheet**](https://denizaksimsek.com/wiki/en/HS%20Cheatsheet)
 
 <aside class="box warn crowded color" style="font-size: .9em; --rhythm: 1em;">
 

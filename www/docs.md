@@ -1,33 +1,56 @@
 
 <style>
-#contents {
-  max-height: 80vh;
-  overflow: scroll;
-  scrollbar-width: thin;
+@media (min-width: 100ch) {
+  #toc-wrapper {
+    float: left;
+    position: sticky;
+    top: var(--gap);
+    border: none;
+    margin: 0;
+  }
+  #toc {
+    
+    overflow: auto;
+    max-height: 80vh;
+    max-width: 24ch;
+    
+    margin-inline-end: var(--gap);
+    margin-inline-start: calc(var(--gap) - var(--gutter-width));
+  }
+
+  #docs-content {
+    display: flow-root;
+    max-width: calc(100vw - 24ch - 3 * var(--gap));
+  }
+
+  #skip-to-content {
+    display: none;
+  }
 }
-#contents summary {
-  position: sticky;
-  top: 0;
+
+#docs-content:target {
+  outline: none;
 }
 </style>
 
 
-<div class="fullbleed pad autodensity center">
+<header id="toc-wrapper" aria-labelledby="contents-h">
+<div id=toc class=box>
 
-<div class="basicgrid colwidth-s">
+# _hyperscript <sub-title>documentation</sub-title> {.h2}
 
-<nav class="dense col-1 sticky top" aria-label="Table of contents">
-<details open id="contents" class="list-of-links">
-<summary>Table of Contents</summary>
+[Skip to content](#docs-content){#skip-to-content}
+
+<nav aria-label="Table of contents">
 
 [[toc]]
 
-</details>
 </nav>
+</div>
+</header>
 
-<div id="docs-contents" class="dense col-4 container">
+<div id="docs-content">
 
-# hyperscript documentation
 
 ## Introduction
 
@@ -517,9 +540,9 @@ You can use the `first`, `last` and `random` keywords, discussed [below](#positi
 
   ~~~ hyperscript
   set myArr to [1, 2, 3]
-  log the first of myArr[0]  -- logs "1"
-  log the last of myArr[0]   -- logs "3"
-  log random in myArr[0]     -- logs a random element from the array
+  log the first of myArr  -- logs "1"
+  log the last of myArr   -- logs "3"
+  log random in myArr     -- logs a random element from the array
   ~~~
 
 ##### Closures
@@ -2158,11 +2181,3 @@ The more I looked at it, the more I thought that there was a need for a small, d
 event oriented and made DOM scripting efficient and fun.  I had programmed in [HyperTalk](https://en.wikipedia.org/wiki/HyperTalk), the scripting language for [HyperCard](https://en.wikipedia.org/wiki/HyperCard), when I was younger and remembered that it integrated events very well into the language.  So I dug up some old documentation on it and began work on hyperscript, a HyperTalk-derived scripting language for the web.
 
 And here we are.  I hope you find the language useful, or, at least, funny.  :)
-
-</div>
-
-</div>
-
-</div>
-
-</div>

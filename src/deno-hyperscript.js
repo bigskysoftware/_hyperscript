@@ -1,30 +1,35 @@
-#!/usr/bin/env node
 
-const _hyperscript = require('../_hyperscript.js')
-const fs = require('fs');
-const path = require('path')
+const tempModule = window.module, tempExports = window.exports;
+window.module = {}, window.exports = {};
+await import('./_hyperscript.js');
+const _hyperscript = window.module.exports;
+
+export default _hyperscript;
+
+window.module = tempModule;
+window.exports = tempExports;
+
+import * as path from "https://deno.land/std@0.139.0/path/mod.ts"
 
 /**
  * File extension for _hyperscript files
  */
 const hsExt = '._hs';
 
-global.require = require; // Allow importing modules from within hyperscript
-
 /**
  * 
  * @param {String} modulePath
  */
-function run(modulePath) {
+export function run(modulePath) {
     modulePath = path.resolve(modulePath);
     const args = { module: { dir: path.dirname(modulePath), id: modulePath } }
-    return fs.promises.readFile(modulePath, { encoding: 'utf-8' })
+    return Deno.readTextFile(modulePath)
         .then(code => _hyperscript.evaluate(code, {}, args))
         .catch(e => console.error("Cannot execute file: ", e));
 }
 
-_hyperscript.addFeature('require', (parser, runtime, tokens) => {
-    if (!tokens.matchToken('require')) return;
+_hyperscript.addFeature('import', (parser, runtime, tokens) => {
+    if (!tokens.matchToken('import')) return;
     /** @type {string} */
     let id = parser.requireElement('nakedString', tokens)
         // @ts-ignore
@@ -39,19 +44,23 @@ _hyperscript.addFeature('require', (parser, runtime, tokens) => {
     }
 
     return {
-        install(target, source, args) {
+        async install(target, source, args) {
             if (id.startsWith('./') || id.startsWith('../')) {
                 id = path.join(args.module.dir, id);
             }
 
             let mod;
             if (id.endsWith(hsExt)) mod = run(id);
-            if (fs.existsSync(id + hsExt)) mod = run(id + hsExt);
-            else mod = require(id);
+            if (await resolves(Deno.stat(id + hsExt))) mod = run(id + hsExt);
+            else mod = await import(id);
             runtime.assignToNamespace(target, [], name, mod);
             //console.log(id, name, mod.toString(), target.hyperscriptFeatures);
         }
     }
 })
 
-run(process.argv[2])
+function resolves(promise) {
+    promise.then(() => true, () => false)
+}
+
+if (import.meta.main) run(Deno.args[0])
