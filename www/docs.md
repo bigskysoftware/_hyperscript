@@ -77,8 +77,8 @@ Embedding code directly on the button like this might seem strange at first, but
 of technologies that de-emphasize [Separation of Concerns](https://en.wikipedia.org/wiki/Separation_of_concerns)
 in favor of [Locality of Behavior](https://htmx.org/essays/locality-of-behaviour/).
 
-Other examples of libraries going this direction are [tailwinds](https://tailwindcss.com/),
-[AlpineJS](https://github.com/alpinejs/alpine/) and [htmx](https://htmx.org).
+Other examples of libraries going this direction are [Tailwind CSS](https://tailwindcss.com/),
+[AlpineJS](https://alpinejs.dev) and [htmx](https://htmx.org).
 
 The next thing you will notice about hyperscript is its syntax, which is very different than most programming languages
 used today. Hyperscript is part of the [xTalk](https://en.wikipedia.org/wiki/XTalk) family of scripting languages, which
