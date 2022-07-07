@@ -235,8 +235,11 @@
             }
     
             while (position < source.length) {
-                if (currentChar() === "-" && nextChar() === "-" && (Lexer.isWhitespace(charAfterThat()) || charAfterThat() === "")) {
+                if ((currentChar() === "-" && nextChar() === "-" && (Lexer.isWhitespace(nextCharAt(2)) || nextCharAt(2) === "" || nextCharAt(2) === "-"))
+                    || (currentChar() === "/" && nextChar() === "/")) {
                     consumeComment();
+                } else if (currentChar() === "/" && nextChar() === "*") {
+                    consumeCommentMultiline();
                 } else {
                     if (Lexer.isWhitespace(currentChar())) {
                         tokens.push(consumeWhitespace());
@@ -287,9 +290,9 @@
                     }
                 }
             }
-    
+
             return new Tokens(tokens, [], source);
-    
+
             /**
              * @param {string} [type]
              * @param {string} [value]
@@ -300,7 +303,7 @@
                 token.op = true;
                 return token;
             }
-    
+
             /**
              * @param {string} [type]
              * @param {string} [value]
@@ -316,14 +319,22 @@
                     line: line,
                 };
             }
-    
+
             function consumeComment() {
                 while (currentChar() && !Lexer.isNewline(currentChar())) {
                     consumeChar();
                 }
+                consumeChar(); // Consume newline
+            }
+
+            function consumeCommentMultiline() {
+                while (currentChar() && !(currentChar() === '*' && nextChar() === '/')) {
+                    consumeChar();
+                }
+                consumeChar(); // Consume "*/"
                 consumeChar();
             }
-    
+
             /**
              * @returns Token
              */
@@ -350,7 +361,7 @@
                 classRef.end = position;
                 return classRef;
             }
-    
+
             /**
              * @returns Token
              */
@@ -367,7 +378,7 @@
                 attributeRef.end = position;
                 return attributeRef;
             }
-    
+
             function consumeShortAttributeReference() {
                 var attributeRef = makeToken("ATTRIBUTE_REF");
                 var value = consumeChar();
@@ -378,7 +389,7 @@
                 attributeRef.end = position;
                 return attributeRef;
             }
-    
+
             function consumeStyleReference() {
                 var styleRef = makeToken("STYLE_REF");
                 var value = consumeChar();
@@ -389,7 +400,7 @@
                 styleRef.end = position;
                 return styleRef;
             }
-    
+
             /**
              * @returns Token
              */
@@ -416,7 +427,7 @@
                 idRef.end = position;
                 return idRef;
             }
-    
+
             /**
              * @returns Token
              */
@@ -435,7 +446,7 @@
                 identifier.end = position;
                 return identifier;
             }
-    
+
             /**
              * @returns Token
              */
@@ -455,7 +466,7 @@
                 number.end = position;
                 return number;
             }
-    
+
             /**
              * @returns Token
              */
@@ -470,7 +481,7 @@
                 op.end = position;
                 return op;
             }
-    
+
             /**
              * @returns Token
              */
@@ -511,25 +522,25 @@
                 string.template = startChar === "`";
                 return string;
             }
-    
+
             /**
              * @returns string
              */
             function currentChar() {
                 return source.charAt(position);
             }
-    
+
             /**
              * @returns string
              */
             function nextChar() {
                 return source.charAt(position + 1);
             }
-    
-            function charAfterThat() {
-                return source.charAt(position + 2);
+
+            function nextCharAt(number = 1) {
+                return source.charAt(position + number);
             }
-    
+
             /**
              * @returns string
              */
@@ -539,7 +550,7 @@
                 column++;
                 return lastToken;
             }
-    
+
             /**
              * @returns boolean
              */
@@ -555,7 +566,7 @@
                     lastToken === "]"
                 );
             }
-    
+
             /**
              * @returns Token
              */
@@ -890,32 +901,32 @@
      * @param {Tokens} tokens
      * @param {*} [root]
      * @returns {ASTNode | undefined}
-     * 
+     *
      * @typedef {Object} ASTNode
-     * @member {boolean} isFeature 
-     * @member {string} type 
-     * @member {any[]} args 
-     * @member {(this: ASTNode, ctx:Context, root:any, ...args:any) => any} op 
-     * @member {(this: ASTNode, context?:Context) => any} evaluate 
-     * @member {ASTNode} parent 
-     * @member {Set<ASTNode>} children 
-     * @member {ASTNode} root 
-     * @member {String} keyword 
-     * @member {Token} endToken 
-     * @member {ASTNode} next 
-     * @member {(context:Context) => ASTNode} resolveNext 
-     * @member {EventSource} eventSource 
-     * @member {(this: ASTNode) => void} install 
-     * @member {(this: ASTNode, context:Context) => void} execute 
+     * @member {boolean} isFeature
+     * @member {string} type
+     * @member {any[]} args
+     * @member {(this: ASTNode, ctx:Context, root:any, ...args:any) => any} op
+     * @member {(this: ASTNode, context?:Context) => any} evaluate
+     * @member {ASTNode} parent
+     * @member {Set<ASTNode>} children
+     * @member {ASTNode} root
+     * @member {String} keyword
+     * @member {Token} endToken
+     * @member {ASTNode} next
+     * @member {(context:Context) => ASTNode} resolveNext
+     * @member {EventSource} eventSource
+     * @member {(this: ASTNode) => void} install
+     * @member {(this: ASTNode, context:Context) => void} execute
      * @member {(this: ASTNode, target: object, source: object, args?: Object) => void} apply
-     * 
-     * 
+     *
+     *
      */
 
     class Parser {
         /**
-         * 
-         * @param {Runtime} runtime 
+         *
+         * @param {Runtime} runtime
          */
         constructor(runtime) {
             this.runtime = runtime
@@ -931,20 +942,20 @@
                     tokens.requireOpToken(")");
                     return featureElement;
                 }
-        
+
                 var featureDefinition = parser.FEATURES[tokens.currentToken().value || ""];
                 if (featureDefinition) {
                     return featureDefinition(parser, runtime, tokens);
                 }
             });
-        
+
             this.addGrammarElement("command", function (parser, runtime, tokens) {
                 if (tokens.matchOpToken("(")) {
                     const commandElement = parser.requireElement("command", tokens);
                     tokens.requireOpToken(")");
                     return commandElement;
                 }
-        
+
                 var commandDefinition = parser.COMMANDS[tokens.currentToken().value || ""];
                 let commandElement;
                 if (commandDefinition) {
@@ -955,10 +966,10 @@
                 if (commandElement) {
                     return parser.parseElement("indirectStatement", tokens, commandElement);
                 }
-        
+
                 return commandElement;
             });
-        
+
             this.addGrammarElement("commandList", function (parser, runtime, tokens) {
                 var cmd = parser.parseElement("command", tokens);
                 if (cmd) {
@@ -968,17 +979,17 @@
                     return cmd;
                 }
             });
-        
+
             this.addGrammarElement("leaf", function (parser, runtime, tokens) {
                 var result = parser.parseAnyOf(parser.LEAF_EXPRESSIONS, tokens);
                 // symbol is last so it doesn't consume any constants
                 if (result == null) {
                     return parser.parseElement("symbol", tokens);
                 }
-        
+
                 return result;
             });
-        
+
             this.addGrammarElement("indirectExpression", function (parser, runtime, tokens, root) {
                 for (var i = 0; i < parser.INDIRECT_EXPRESSIONS.length; i++) {
                     var indirect = parser.INDIRECT_EXPRESSIONS[i];
@@ -990,7 +1001,7 @@
                 }
                 return root;
             });
-        
+
             this.addGrammarElement("indirectStatement", function (parser, runtime, tokens, root) {
                 if (tokens.matchToken("unless")) {
                     root.endToken = tokens.lastMatch();
@@ -1014,7 +1025,7 @@
                 }
                 return root;
             });
-        
+
             this.addGrammarElement("primaryExpression", function (parser, runtime, tokens) {
                 var leaf = parser.parseElement("leaf", tokens);
                 if (leaf) {
@@ -1028,21 +1039,21 @@
             plugin(this)
             return this
         }
-    
+
         /** @type {Object<string,ParseRule>} */
         GRAMMAR = {};
-    
+
         /** @type {Object<string,ParseRule>} */
         COMMANDS = {};
-    
+
         /** @type {Object<string,ParseRule>} */
         FEATURES = {};
-        
+
         /** @type {string[]} */
         LEAF_EXPRESSIONS = [];
         /** @type {string[]} */
         INDIRECT_EXPRESSIONS = [];
-    
+
         /**
          * @param {*} parseElement
          * @param {*} start
@@ -1054,7 +1065,7 @@
             parseElement.lineFor = Tokens.lineFor;
             parseElement.programSource = tokens.source;
         }
-    
+
         /**
          * @param {string} type
          * @param {Tokens} tokens
@@ -1078,7 +1089,7 @@
                 return parseElement;
             }
         }
-    
+
         /**
          * @param {string} type
          * @param {Tokens} tokens
@@ -1092,7 +1103,7 @@
             // @ts-ignore
             return result;
         }
-    
+
         /**
          * @param {string[]} types
          * @param {Tokens} tokens
@@ -1107,7 +1118,7 @@
                 }
             }
         }
-    
+
         /**
          * @param {string} name
          * @param {ParseRule} definition
@@ -1115,7 +1126,7 @@
         addGrammarElement(name, definition) {
             this.GRAMMAR[name] = definition;
         }
-    
+
         /**
          * @param {string} keyword
          * @param {ParseRule} definition
@@ -1136,14 +1147,14 @@
             this.GRAMMAR[commandGrammarType] = commandDefinitionWrapper;
             this.COMMANDS[keyword] = commandDefinitionWrapper;
         }
-    
+
         /**
          * @param {string} keyword
          * @param {ParseRule} definition
          */
         addFeature(keyword, definition) {
             var featureGrammarType = keyword + "Feature";
-    
+
             /** @type {ParseRule} */
             var featureDefinitionWrapper = function (parser, runtime, tokens) {
                 var featureElement = definition(parser, runtime, tokens);
@@ -1157,7 +1168,7 @@
             this.GRAMMAR[featureGrammarType] = featureDefinitionWrapper;
             this.FEATURES[keyword] = featureDefinitionWrapper;
         }
-    
+
         /**
          * @param {string} name
          * @param {ParseRule} definition
@@ -1166,7 +1177,7 @@
             this.LEAF_EXPRESSIONS.push(name);
             this.addGrammarElement(name, definition);
         }
-    
+
         /**
          * @param {string} name
          * @param {ParseRule} definition
@@ -1175,7 +1186,7 @@
             this.INDIRECT_EXPRESSIONS.push(name);
             this.addGrammarElement(name, definition);
         }
-    
+
         /**
          *
          * @param {Tokens} tokens
@@ -1191,7 +1202,7 @@
                 currentToken && currentToken.line ? currentToken.column : contextLine.length - 1);
             return contextLine + "\n" + " ".repeat(offset) + "^^\n\n";
         }
-    
+
         /**
          * @param {Tokens} tokens
          * @param {string} [message]
@@ -1212,7 +1223,7 @@
         raiseParseError(tokens, message) {
             Parser.raiseParseError(tokens, message)
         }
-    
+
         /**
          * @param {Tokens} tokens
          * @returns {ASTNode}
@@ -1222,7 +1233,7 @@
             if (tokens.hasMore()) this.raiseParseError(tokens);
             if (result) return result;
         }
-    
+
         /**
          * @param {ASTNode | undefined} elt
          * @param {ASTNode} parent
@@ -1237,7 +1248,7 @@
                 this.setParent(elt.next, parent);
             }
         }
-    
+
         /**
          * @param {Token} token
          * @returns {ParseRule}
@@ -1245,7 +1256,7 @@
         commandStart(token) {
             return this.COMMANDS[token.value || ""];
         }
-    
+
         /**
          * @param {Token} token
          * @returns {ParseRule}
@@ -1253,7 +1264,7 @@
         featureStart(token) {
             return this.FEATURES[token.value || ""];
         }
-    
+
         /**
          * @param {Token} token
          * @returns {boolean}
@@ -1273,7 +1284,7 @@
             }
             return false;
         }
-    
+
         /**
          * @param {Tokens} tokens
          * @returns {(string | ASTNode)[]}
@@ -1302,7 +1313,7 @@
             returnArr.push(tokens.lastWhitespace());
             return returnArr;
         }
-    
+
         /**
          * @param {ASTNode} commandList
          */
@@ -1321,7 +1332,7 @@
                     // do nothing
                 },
             };
-    
+
             var end = commandList;
             while (end.next) {
                 end = end.next;
@@ -1332,9 +1343,9 @@
 
     class Runtime {
         /**
-         * 
-         * @param {Lexer} [lexer] 
-         * @param {Parser} [parser] 
+         *
+         * @param {Lexer} [lexer]
+         * @param {Parser} [parser]
          */
         constructor(lexer, parser) {
             this.lexer = lexer ?? new Lexer;
@@ -1343,7 +1354,7 @@
                 .use(hyperscriptWebGrammar);
             this.parser.runtime = this
         }
-        
+
         /**
          * @param {HTMLElement} elt
          * @param {string} selector
@@ -2056,7 +2067,7 @@
         * @param {string} property
         * @param {Getter} getter
         * @returns {any}
-        * 
+        *
         * @callback Getter
         * @param {Object<string,any>} root
         * @param {string} property
@@ -2243,7 +2254,7 @@
          * @param {Element} elt
          * @param {ASTNode} onFeature
          * @returns {EventQueue}
-         * 
+         *
          * @typedef {{queue:Array, executing:boolean}} EventQueue
          */
         getEventQueueFor(elt, onFeature) {
@@ -2265,7 +2276,7 @@
         // @ts-ignore
         hyperscriptUrl = "document" in globalScope ? document.currentScript.src : null;
     }
-    
+
     class Context {
         /**
         * @param {*} owner
@@ -2303,7 +2314,7 @@
             this.escape = escape;
             this[shouldAutoIterateSymbol] = true;
         }
-    
+
         get css() {
             if (this.escape) {
                 return Runtime.prototype.escapeSelector(this._css);
@@ -2311,15 +2322,15 @@
                 return this._css;
             }
         }
-    
+
         get className() {
             return this._css.substr(1);
         }
-    
+
         get id() {
             return this.className();
         }
-    
+
         contains(elt) {
             for (let element of this) {
                 if (element.contains(elt)) {
@@ -2328,16 +2339,16 @@
             }
             return false;
         }
-    
+
         get length() {
             return this.selectMatches().length;
         }
-    
+
         [Symbol.iterator]() {
             let query = this.selectMatches();
             return query [Symbol.iterator]();
         }
-    
+
         selectMatches() {
             let query = Runtime.prototype.getRootNode(this.relativeToElement).querySelectorAll(this.css);
             return query;
@@ -2394,7 +2405,7 @@
     // Grammar
 
     /**
-     * @param {Parser} parser 
+     * @param {Parser} parser
      */
     function hyperscriptCoreGrammar(parser) {
         parser.addLeafExpression("parenthesized", function (parser, _runtime, tokens) {
@@ -2409,7 +2420,7 @@
                 return expr;
             }
         });
-    
+
         parser.addLeafExpression("string", function (parser, runtime, tokens) {
             var stringToken = tokens.matchTokenType("STRING");
             if (!stringToken) return;
@@ -2445,7 +2456,7 @@
                 },
             };
         });
-    
+
         parser.addGrammarElement("nakedString", function (parser, runtime, tokens) {
             if (tokens.hasMore()) {
                 var tokenArr = tokens.consumeUntilWhitespace();
@@ -2463,7 +2474,7 @@
                 };
             }
         });
-    
+
         parser.addLeafExpression("number", function (parser, runtime, tokens) {
             var number = tokens.matchTokenType("NUMBER");
             if (!number) return;
@@ -2478,7 +2489,7 @@
                 },
             };
         });
-    
+
         parser.addLeafExpression("idRef", function (parser, runtime, tokens) {
             var elementId = tokens.matchTokenType("ID_REF");
             if (!elementId) return;
@@ -2512,13 +2523,13 @@
                 };
             }
         });
-    
+
         parser.addLeafExpression("classRef", function (parser, runtime, tokens) {
             var classRef = tokens.matchTokenType("CLASS_REF");
-    
+
             if (!classRef) return;
             if (!classRef.value) return;
-    
+
             // TODO - unify these two expression types
             if (classRef.template) {
                 var templateValue = classRef.value.substring(2);
@@ -2545,14 +2556,14 @@
                 };
             }
         });
-    
+
         class TemplatedQueryElementCollection extends ElementCollection {
             constructor(css, relativeToElement, templateParts) {
                 super(css, relativeToElement);
                 this.templateParts = templateParts;
                 this.elements = templateParts.filter(elt => elt instanceof Element);
             }
-    
+
             get css() {
                 let rv = "", i = 0
                 for (const val of this.templateParts) {
@@ -2562,7 +2573,7 @@
                 }
                 return rv;
             }
-    
+
             [Symbol.iterator]() {
                 this.elements.forEach((el, i) => el.dataset.hsQueryId = i);
                 const rv = super[Symbol.iterator]();
@@ -2570,7 +2581,7 @@
                 return rv;
             }
         }
-    
+
         parser.addLeafExpression("queryRef", function (parser, runtime, tokens) {
             var queryStart = tokens.matchOpToken("<");
             if (!queryStart) return;
@@ -2586,14 +2597,14 @@
                     }
                 })
                 .join("");
-    
+
             var template, innerTokens, args;
             if (queryValue.indexOf("$") >= 0) {
                 template = true;
                 innerTokens = Lexer.tokenize(queryValue, true);
                 args = parser.parseStringTemplate(innerTokens);
             }
-    
+
             return {
                 type: "queryRef",
                 css: queryValue,
@@ -2610,7 +2621,7 @@
                 },
             };
         });
-    
+
         parser.addLeafExpression("attributeRef", function (parser, runtime, tokens) {
             var attributeRef = tokens.matchTokenType("ATTRIBUTE_REF");
             if (!attributeRef) return;
@@ -2647,7 +2658,7 @@
                 },
             };
         });
-    
+
         parser.addLeafExpression("styleRef", function (parser, runtime, tokens) {
             var styleRef = tokens.matchTokenType("STYLE_REF");
             if (!styleRef) return;
@@ -2684,7 +2695,7 @@
                 };
             }
         });
-    
+
         parser.addGrammarElement("objectKey", function (parser, runtime, tokens) {
             var token;
             if ((token = tokens.matchTokenType("STRING"))) {
@@ -2724,7 +2735,7 @@
                 };
             }
         });
-    
+
         parser.addLeafExpression("objectLiteral", function (parser, runtime, tokens) {
             if (!tokens.matchOpToken("{")) return;
             var keyExpressions = [];
@@ -2754,7 +2765,7 @@
                 },
             };
         });
-    
+
         parser.addGrammarElement("nakedNamedArgumentList", function (parser, runtime, tokens) {
             var fields = [];
             var valueExpressions = [];
@@ -2784,14 +2795,14 @@
                 },
             };
         });
-    
+
         parser.addGrammarElement("namedArgumentList", function (parser, runtime, tokens) {
             if (!tokens.matchOpToken("(")) return;
             var elt = parser.requireElement("nakedNamedArgumentList", tokens);
             tokens.requireOpToken(")");
             return elt;
         });
-    
+
         parser.addGrammarElement("symbol", function (parser, runtime, tokens) {
             /** @scope {SymbolScope} */
             var scope = "default";
@@ -2806,7 +2817,7 @@
             } else if (tokens.matchToken("local")) {
                 scope = "local";
             }
-    
+
             // TODO better look ahead here
             let eltPrefix = tokens.matchOpToken(":");
             let identifier = tokens.matchTokenType("IDENTIFIER");
@@ -2834,7 +2845,7 @@
                 };
             }
         });
-    
+
         parser.addGrammarElement("implicitMeTarget", function (parser, runtime, tokens) {
             return {
                 type: "implicitMeTarget",
@@ -2843,7 +2854,7 @@
                 },
             };
         });
-    
+
         parser.addLeafExpression("boolean", function (parser, runtime, tokens) {
             var booleanLiteral = tokens.matchToken("true") || tokens.matchToken("false");
             if (!booleanLiteral) return;
@@ -2855,7 +2866,7 @@
                 },
             };
         });
-    
+
         parser.addLeafExpression("null", function (parser, runtime, tokens) {
             if (tokens.matchToken("null")) {
                 return {
@@ -2866,7 +2877,7 @@
                 };
             }
         });
-    
+
         parser.addLeafExpression("arrayLiteral", function (parser, runtime, tokens) {
             if (!tokens.matchOpToken("[")) return;
             var values = [];
@@ -2889,7 +2900,7 @@
                 },
             };
         });
-    
+
         parser.addLeafExpression("blockLiteral", function (parser, runtime, tokens) {
             if (!tokens.matchOpToken("\\")) return;
             var args = [];
@@ -2920,7 +2931,7 @@
                 },
             };
         });
-    
+
         parser.addIndirectExpression("propertyAccess", function (parser, runtime, tokens, root) {
             if (!tokens.matchOpToken(".")) return;
             var prop = tokens.requireTokenType("IDENTIFIER");
@@ -2939,7 +2950,7 @@
             };
             return parser.parseElement("indirectExpression", tokens, propertyAccess);
         });
-    
+
         parser.addIndirectExpression("of", function (parser, runtime, tokens, root) {
             if (!tokens.matchToken("of")) return;
             var newRoot = parser.requireElement("unaryExpression", tokens);
@@ -2959,7 +2970,7 @@
                 var attributeElt = urRoot
             }
             var prop = urRoot.name;
-    
+
             var propertyAccess = {
                 type: "ofExpression",
                 prop: urRoot.token,
@@ -2984,7 +2995,7 @@
                     return runtime.unifiedEval(this, context);
                 },
             };
-    
+
             if (urRoot.type === "attributeRef") {
                 propertyAccess.attribute = urRoot;
             }
@@ -2994,10 +3005,10 @@
             } else {
                 root = propertyAccess;
             }
-    
+
             return parser.parseElement("indirectExpression", tokens, root);
         });
-    
+
         parser.addIndirectExpression("possessive", function (parser, runtime, tokens, root) {
             if (parser.possessivesDisabled) {
                 return;
@@ -3050,7 +3061,7 @@
                 return parser.parseElement("indirectExpression", tokens, propertyAccess);
             }
         });
-    
+
         parser.addIndirectExpression("inExpression", function (parser, runtime, tokens, root) {
             if (!tokens.matchToken("in")) return;
             var target = parser.requireElement("unaryExpression", tokens);
@@ -3094,7 +3105,7 @@
             };
             return parser.parseElement("indirectExpression", tokens, propertyAccess);
         });
-    
+
         parser.addIndirectExpression("asExpression", function (parser, runtime, tokens, root) {
             if (!tokens.matchToken("as")) return;
             tokens.matchToken("a") || tokens.matchToken("an");
@@ -3112,7 +3123,7 @@
             };
             return parser.parseElement("indirectExpression", tokens, propertyAccess);
         });
-    
+
         parser.addIndirectExpression("functionCall", function (parser, runtime, tokens, root) {
             if (!tokens.matchOpToken("(")) return;
             var args = [];
@@ -3122,7 +3133,7 @@
                 } while (tokens.matchOpToken(","));
                 tokens.requireOpToken(")");
             }
-    
+
             if (root.root) {
                 var functionCall = {
                     type: "functionCall",
@@ -3163,7 +3174,7 @@
             }
             return parser.parseElement("indirectExpression", tokens, functionCall);
         });
-    
+
         parser.addIndirectExpression("attributeRefAccess", function (parser, runtime, tokens, root) {
             var attribute = parser.parseElement("attributeRef", tokens);
             if (!attribute) return;
@@ -3183,20 +3194,20 @@
             };
             return attributeAccess;
         });
-    
+
         parser.addIndirectExpression("arrayIndex", function (parser, runtime, tokens, root) {
             if (!tokens.matchOpToken("[")) return;
             var andBefore = false;
             var andAfter = false;
             var firstIndex = null;
             var secondIndex = null;
-    
+
             if (tokens.matchOpToken("..")) {
                 andBefore = true;
                 firstIndex = parser.requireElement("expression", tokens);
             } else {
                 firstIndex = parser.requireElement("expression", tokens);
-    
+
                 if (tokens.matchOpToken("..")) {
                     andAfter = true;
                     var current = tokens.currentToken();
@@ -3206,7 +3217,7 @@
                 }
             }
             tokens.requireOpToken("]");
-    
+
             var arrayIndex = {
                 type: "arrayIndex",
                 root: root,
@@ -3240,10 +3251,10 @@
                     return runtime.unifiedEval(this, context);
                 },
             };
-    
+
             return parser.parseElement("indirectExpression", tokens, arrayIndex);
         });
-    
+
         // taken from https://drafts.csswg.org/css-values-4/#relative-length
         //        and https://drafts.csswg.org/css-values-4/#absolute-length
         //        (NB: we do not support `in` dues to conflicts w/ the hyperscript grammar)
@@ -3253,7 +3264,7 @@
         ];
         parser.addGrammarElement("postfixExpression", function (parser, runtime, tokens) {
             var root = parser.parseElement("primaryExpression", tokens);
-    
+
             let stringPosfix = tokens.matchAnyToken.apply(tokens, STRING_POSTFIXES) || tokens.matchOpToken("%");
             if (stringPosfix) {
                 return {
@@ -3268,7 +3279,7 @@
                     },
                 };
             }
-    
+
             var timeFactor = null;
             if (tokens.matchToken("s") || tokens.matchToken("seconds")) {
                 timeFactor = 1000;
@@ -3289,7 +3300,7 @@
                     },
                 };
             }
-    
+
             if (tokens.matchOpToken(":")) {
                 var typeName = tokens.requireTokenType("IDENTIFIER");
                 if (!typeName.value) return;
@@ -3315,7 +3326,7 @@
                 return root;
             }
         });
-    
+
         parser.addGrammarElement("logicalNot", function (parser, runtime, tokens) {
             if (!tokens.matchToken("not")) return;
             var root = parser.requireElement("unaryExpression", tokens);
@@ -3331,7 +3342,7 @@
                 },
             };
         });
-    
+
         parser.addGrammarElement("noExpression", function (parser, runtime, tokens) {
             if (!tokens.matchToken("no")) return;
             var root = parser.requireElement("unaryExpression", tokens);
@@ -3347,7 +3358,7 @@
                 },
             };
         });
-    
+
         parser.addLeafExpression("some", function (parser, runtime, tokens) {
             if (!tokens.matchToken("some")) return;
             var root = parser.requireElement("expression", tokens);
@@ -3363,7 +3374,7 @@
                 },
             };
         });
-    
+
         parser.addGrammarElement("negativeNumber", function (parser, runtime, tokens) {
             if (!tokens.matchOpToken("-")) return;
             var root = parser.requireElement("unaryExpression", tokens);
@@ -3379,7 +3390,7 @@
                 },
             };
         });
-    
+
         parser.addGrammarElement("unaryExpression", function (parser, runtime, tokens) {
             tokens.matchToken("the"); // optional "the"
             return parser.parseAnyOf(
@@ -3387,7 +3398,7 @@
                 tokens
             );
         });
-    
+
         parser.addGrammarElement("beepExpression", function (parser, runtime, tokens) {
             if (!tokens.matchToken("beep!")) return;
             var expression = parser.parseElement("unaryExpression", tokens);
@@ -3423,7 +3434,7 @@
                 return expression;
             }
         });
-    
+
         var scanForwardQuery = function(start, root, match, wrap) {
             var results = root.querySelectorAll(match);
             for (var i = 0; i < results.length; i++) {
@@ -3436,7 +3447,7 @@
                 return results[0];
             }
         }
-    
+
         var scanBackwardsQuery = function(start, root, match, wrap) {
             var results = root.querySelectorAll(match);
             for (var i = results.length - 1; i >= 0; i--) {
@@ -3449,7 +3460,7 @@
                 return results[results.length - 1];
             }
         }
-    
+
         var scanForwardArray = function(start, array, match, wrap) {
             var matches = [];
             Runtime.prototype.forEach(array, function(elt){
@@ -3470,18 +3481,18 @@
                 }
             }
         }
-    
+
         var scanBackwardsArray = function(start, array, match, wrap) {
             return scanForwardArray(start, Array.from(array).reverse(), match, wrap);
         }
-    
+
         parser.addGrammarElement("relativePositionalExpression", function (parser, runtime, tokens) {
             var op = tokens.matchAnyToken("next", "previous");
             if (!op) return;
             var forwardSearch = op.value === "next";
-    
+
             var thing = parser.parseElement("expression", tokens);
-    
+
             if (tokens.matchToken("from")) {
                 tokens.pushFollow("in");
                 try {
@@ -3492,7 +3503,7 @@
             } else {
                 var from = parser.requireElement("implicitMeTarget", tokens);
             }
-    
+
             var inSearch = false;
             var withinElt;
             if (tokens.matchToken("in")) {
@@ -3503,13 +3514,13 @@
             } else {
                 withinElt = document.body;
             }
-    
+
             var wrapping = false;
             if (tokens.matchToken("with")) {
                 tokens.requireToken("wrapping")
                 wrapping = true;
             }
-    
+
             return {
                 type: "relativePositionalExpression",
                 from: from,
@@ -3521,12 +3532,12 @@
                 operator: op.value,
                 args: [thing, from, inElt, withinElt],
                 op: function (context, thing, from, inElt, withinElt) {
-    
+
                     var css = thing.css;
                     if (css == null) {
                         throw "Expected a CSS value";
                     }
-    
+
                     if(inSearch) {
                         if (inElt) {
                             if (forwardSearch) {
@@ -3549,9 +3560,9 @@
                     return runtime.unifiedEval(this, context);
                 },
             }
-    
+
         });
-    
+
         parser.addGrammarElement("positionalExpression", function (parser, runtime, tokens) {
             var op = tokens.matchAnyToken("first", "last", "random");
             if (!op) return;
@@ -3586,7 +3597,7 @@
                 },
             };
         });
-    
+
         parser.addGrammarElement("mathOperator", function (parser, runtime, tokens) {
             var expr = parser.parseElement("unaryExpression", tokens);
             var mathOp,
@@ -3626,11 +3637,11 @@
             }
             return expr;
         });
-    
+
         parser.addGrammarElement("mathExpression", function (parser, runtime, tokens) {
             return parser.parseAnyOf(["mathOperator", "unaryExpression"], tokens);
         });
-    
+
         function sloppyContains(src, container, value){
             if (container['contains']) {
                 return container.contains(value);
@@ -3649,14 +3660,14 @@
                 throw Error("The value of " + src.sourceFor() + " does not have a match or matches method on it");
             }
         }
-    
+
         parser.addGrammarElement("comparisonOperator", function (parser, runtime, tokens) {
             var expr = parser.parseElement("mathExpression", tokens);
             var comparisonToken = tokens.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==");
             var operator = comparisonToken ? comparisonToken.value : null;
             var hasRightValue = true; // By default, most comparisons require two values, but there are some exceptions.
             var typeCheck = false;
-    
+
             if (operator == null) {
                 if (tokens.matchToken("is") || tokens.matchToken("am")) {
                     if (tokens.matchToken("not")) {
@@ -3725,7 +3736,7 @@
                     }
                 }
             }
-    
+
             if (operator) {
                 // Do not allow chained comparisons, which is dumb
                 var typeName, nullOk, rhs
@@ -3812,11 +3823,11 @@
             }
             return expr;
         });
-    
+
         parser.addGrammarElement("comparisonExpression", function (parser, runtime, tokens) {
             return parser.parseAnyOf(["comparisonOperator", "mathExpression"], tokens);
         });
-    
+
         parser.addGrammarElement("logicalOperator", function (parser, runtime, tokens) {
             var expr = parser.parseElement("comparisonExpression", tokens);
             var logicalOp,
@@ -3850,11 +3861,11 @@
             }
             return expr;
         });
-    
+
         parser.addGrammarElement("logicalExpression", function (parser, runtime, tokens) {
             return parser.parseAnyOf(["logicalOperator", "mathExpression"], tokens);
         });
-    
+
         parser.addGrammarElement("asyncExpression", function (parser, runtime, tokens) {
             if (tokens.matchToken("async")) {
                 var value = parser.requireElement("logicalExpression", tokens);
@@ -3873,15 +3884,15 @@
                 return parser.parseElement("logicalExpression", tokens);
             }
         });
-    
+
         parser.addGrammarElement("expression", function (parser, runtime, tokens) {
             tokens.matchToken("the"); // optional the
             return parser.parseElement("asyncExpression", tokens);
         });
-    
+
         parser.addGrammarElement("assignableExpression", function (parser, runtime, tokens) {
             tokens.matchToken("the"); // optional the
-    
+
             // TODO obviously we need to generalize this as a left hand side / targetable concept
             var expr = parser.parseElement("primaryExpression", tokens);
             if (expr && (
@@ -3903,10 +3914,10 @@
             }
             return expr;
         });
-    
+
         parser.addGrammarElement("hyperscript", function (parser, runtime, tokens) {
             var features = [];
-    
+
             if (tokens.hasMore()) {
                 while (parser.featureStart(tokens.currentToken()) || tokens.currentToken().value === "(") {
                     var feature = parser.requireElement("feature", tokens);
@@ -3925,7 +3936,7 @@
                 },
             };
         });
-    
+
         var parseEventArgs = function (tokens) {
             var args = [];
             // handle argument list (look ahead 3)
@@ -3941,7 +3952,7 @@
             }
             return args;
         };
-    
+
         parser.addFeature("on", function (parser, runtime, tokens) {
             if (!tokens.matchToken("on")) return;
             var every = false;
@@ -3952,22 +3963,22 @@
             var displayName = null;
             do {
                 var on = parser.requireElement("eventName", tokens, "Expected event name");
-    
+
                 var eventName = on.evaluate(); // OK No Promise
-    
+
                 if (displayName) {
                     displayName = displayName + " or " + eventName;
                 } else {
                     displayName = "on " + eventName;
                 }
                 var args = parseEventArgs(tokens);
-    
+
                 var filter = null;
                 if (tokens.matchOpToken("[")) {
                     filter = parser.requireElement("expression", tokens);
                     tokens.requireOpToken("]");
                 }
-    
+
                 var startCount, endCount ,unbounded;
                 if (tokens.currentToken().type === "NUMBER") {
                     var startCountToken = tokens.consumeToken();
@@ -3982,7 +3993,7 @@
                         tokens.requireToken("on");
                     }
                 }
-    
+
                 var intersectionSpec, mutationSpec;
                 if (eventName === "intersection") {
                     intersectionSpec = {};
@@ -4042,7 +4053,7 @@
                         mutationSpec["childList"] = true;
                     }
                 }
-    
+
                 var from = null;
                 var elsewhere = false;
                 if (tokens.matchToken("from")) {
@@ -4059,11 +4070,11 @@
                 if (from === null && elsewhere === false && tokens.matchToken("elsewhere")) {
                     elsewhere = true;
                 }
-    
+
                 if (tokens.matchToken("in")) {
                     var inExpr = parser.parseElement('unaryExpression', tokens);
                 }
-    
+
                 if (tokens.matchToken("debounced")) {
                     tokens.requireToken("at");
                     var timeExpr = parser.requireElement("expression", tokens);
@@ -4075,7 +4086,7 @@
                     // @ts-ignore
                     var throttleTime = timeExpr.evaluate({}); // OK No promise TODO make a literal time expr
                 }
-    
+
                 events.push({
                     execCount: 0,
                     every: every,
@@ -4096,7 +4107,7 @@
                     lastExec: undefined,
                 });
             } while (tokens.matchToken("or"));
-    
+
             var queueLast = true;
             if (!every) {
                 if (tokens.matchToken("queue")) {
@@ -4112,22 +4123,22 @@
                     }
                 }
             }
-    
+
             var start = parser.requireElement("commandList", tokens);
             parser.ensureTerminated(start);
-    
+
             var errorSymbol, errorHandler;
             if (tokens.matchToken("catch")) {
                 errorSymbol = tokens.requireTokenType("IDENTIFIER").value;
                 errorHandler = parser.requireElement("commandList", tokens);
                 parser.ensureTerminated(errorHandler);
             }
-    
+
             if (tokens.matchToken("finally")) {
                 var finallyHandler = parser.requireElement("commandList", tokens);
                 parser.ensureTerminated(finallyHandler);
             }
-    
+
             var onFeature = {
                 displayName: displayName,
                 events: events,
@@ -4183,7 +4194,7 @@
                         }
                         runtime.implicitLoop(targets, function (target) {
                             // OK NO PROMISE
-    
+
                             var eventName = eventSpec.on;
                             if (eventSpec.mutationSpec) {
                                 eventName = "hyperscript:mutation";
@@ -4197,7 +4208,7 @@
                                 });
                                 observer.observe(target, eventSpec.mutationSpec);
                             }
-    
+
                             if (eventSpec.intersectionSpec) {
                                 eventName = "hyperscript:insersection";
                                 const observer = new IntersectionObserver(function (entries) {
@@ -4212,7 +4223,7 @@
                                 }, eventSpec.intersectionSpec);
                                 observer.observe(target);
                             }
-    
+
                             var addEventListener = target.addEventListener || target.on;
                             addEventListener.call(target, eventName, function listener(evt) {
                                 // OK NO PROMISE
@@ -4220,7 +4231,7 @@
                                     target.removeEventListener(eventName, listener);
                                     return;
                                 }
-    
+
                                 var ctx = runtime.makeContext(elt, onFeature, elt, evt);
                                 if (eventSpec.elsewhere && elt.contains(evt.target)) {
                                     return;
@@ -4228,7 +4239,7 @@
                                 if (eventSpec.from) {
                                     ctx.result = target;
                                 }
-    
+
                                 // establish context
                                 for (const arg of eventSpec.args) {
                                     let eventValue = ctx.event[arg.value];
@@ -4238,12 +4249,12 @@
                                         ctx.locals[arg.value] = ctx.event['detail'][arg.value];
                                     }
                                 }
-    
+
                                 // install error handler if any
                                 ctx.meta.errorHandler = errorHandler;
                                 ctx.meta.errorSymbol = errorSymbol;
                                 ctx.meta.finallyHandler = finallyHandler;
-    
+
                                 // apply filter
                                 if (eventSpec.filter) {
                                     var initialCtx = ctx.meta.context;
@@ -4259,7 +4270,7 @@
                                         ctx.meta.context = initialCtx;
                                     }
                                 }
-    
+
                                 if (eventSpec.inExpr) {
                                     var inElement = evt.target;
                                     while (true) {
@@ -4274,7 +4285,7 @@
                                         }
                                     }
                                 }
-    
+
                                 // verify counts
                                 eventSpec.execCount++;
                                 if (eventSpec.startCount) {
@@ -4293,7 +4304,7 @@
                                         return;
                                     }
                                 }
-    
+
                                 //debounce
                                 if (eventSpec.debounceTime) {
                                     if (eventSpec.debounced) {
@@ -4304,7 +4315,7 @@
                                     }, eventSpec.debounceTime);
                                     return;
                                 }
-    
+
                                 // throttle
                                 if (eventSpec.throttleTime) {
                                     if (
@@ -4316,7 +4327,7 @@
                                         eventSpec.lastExec = Date.now();
                                     }
                                 }
-    
+
                                 // apply execute
                                 onFeature.execute(ctx);
                             });
@@ -4327,14 +4338,14 @@
             parser.setParent(start, onFeature);
             return onFeature;
         });
-    
+
         parser.addFeature("def", function (parser, runtime, tokens) {
             if (!tokens.matchToken("def")) return;
             var functionName = parser.requireElement("dotOrColonPath", tokens);
             var nameVal = functionName.evaluate(); // OK
             var nameSpace = nameVal.split(".");
             var funcName = nameSpace.pop();
-    
+
             var args = [];
             if (tokens.matchOpToken("(")) {
                 if (tokens.matchOpToken(")")) {
@@ -4346,20 +4357,20 @@
                     tokens.requireOpToken(")");
                 }
             }
-    
+
             var start = parser.requireElement("commandList", tokens);
-    
+
             var errorSymbol, errorHandler;
             if (tokens.matchToken("catch")) {
                 errorSymbol = tokens.requireTokenType("IDENTIFIER").value;
                 errorHandler = parser.parseElement("commandList", tokens);
             }
-    
+
             if (tokens.matchToken("finally")) {
                 var finallyHandler = parser.requireElement("commandList", tokens);
                 parser.ensureTerminated(finallyHandler);
             }
-    
+
             var functionFeature = {
                 displayName:
                     funcName +
@@ -4380,12 +4391,12 @@
                     var func = function () {
                         // null, worker
                         var ctx = runtime.makeContext(source, functionFeature, target, null);
-    
+
                         // install error handler if any
                         ctx.meta.errorHandler = errorHandler;
                         ctx.meta.errorSymbol = errorSymbol;
                         ctx.meta.finallyHandler = finallyHandler;
-    
+
                         for (var i = 0; i < args.length; i++) {
                             var name = args[i];
                             var argumentVal = arguments[i];
@@ -4417,18 +4428,18 @@
                     runtime.assignToNamespace(target, nameSpace, funcName, func);
                 },
             };
-    
+
             parser.ensureTerminated(start);
-    
+
             // terminate error handler if any
             if (errorHandler) {
                 parser.ensureTerminated(errorHandler);
             }
-    
+
             parser.setParent(start, functionFeature);
             return functionFeature;
         });
-    
+
         parser.addFeature("set", function (parser, runtime, tokens) {
             let setCmd = parser.parseElement("setCommand", tokens);
             if (setCmd) {
@@ -4445,7 +4456,7 @@
                 return setFeature;
             }
         });
-    
+
         parser.addFeature("init", function (parser, runtime, tokens) {
             if (!tokens.matchToken("init")) return;
 
@@ -4471,7 +4482,7 @@
             parser.setParent(start, initFeature);
             return initFeature;
         });
-    
+
         parser.addFeature("worker", function (parser, runtime, tokens) {
             if (tokens.matchToken("worker")) {
                 parser.raiseParseError(
@@ -4484,13 +4495,13 @@
                 return undefined
             }
         });
-    
+
         parser.addFeature("behavior", function (parser, runtime, tokens) {
             if (!tokens.matchToken("behavior")) return;
             var path = parser.requireElement("dotOrColonPath", tokens).evaluate();
             var nameSpace = path.split(".");
             var name = nameSpace.pop();
-    
+
             var formalParams = [];
             if (tokens.matchOpToken("(") && !tokens.matchOpToken(")")) {
                 do {
@@ -4503,7 +4514,7 @@
                 var feature = hs.features[i];
                 feature.behavior = path;
             }
-    
+
             return {
                 install: function (target, source) {
                     runtime.assignToNamespace(
@@ -4522,13 +4533,13 @@
                 },
             };
         });
-    
+
         parser.addFeature("install", function (parser, runtime, tokens) {
             if (!tokens.matchToken("install")) return;
             var behaviorPath = parser.requireElement("dotOrColonPath", tokens).evaluate();
             var behaviorNamespace = behaviorPath.split(".");
             var args = parser.parseElement("namedArgumentList", tokens);
-    
+
             var installFeature;
             return (installFeature = {
                 install: function (target, source) {
@@ -4542,10 +4553,10 @@
                                     if (typeof behavior !== "object" && typeof behavior !== "function")
                                         throw new Error("No such behavior defined as " + behaviorPath);
                                 }
-    
+
                                 if (!(behavior instanceof Function))
                                     throw new Error(behaviorPath + " is not a behavior");
-    
+
                                 behavior(target, source, args);
                             },
                         },
@@ -4554,11 +4565,11 @@
                 },
             });
         });
-    
+
         parser.addGrammarElement("jsBody", function (parser, runtime, tokens) {
             var jsSourceStart = tokens.currentToken().start;
             var jsLastToken = tokens.currentToken();
-    
+
             var funcNames = [];
             var funcName = "";
             var expectFunctionDeclaration = false;
@@ -4581,18 +4592,18 @@
                 }
             }
             var jsSourceEnd = jsLastToken.end + 1;
-    
+
             return {
                 type: "jsBody",
                 exposedFunctionNames: funcNames,
                 jsSource: tokens.source.substring(jsSourceStart, jsSourceEnd),
             };
         });
-    
+
         parser.addFeature("js", function (parser, runtime, tokens) {
             if (!tokens.matchToken("js")) return;
             var jsBody = parser.requireElement("jsBody", tokens);
-    
+
             var jsSource =
                 jsBody.jsSource +
                 "\nreturn { " +
@@ -4603,7 +4614,7 @@
                     .join(",") +
                 " } ";
             var func = new Function(jsSource);
-    
+
             return {
                 jsSource: jsSource,
                 function: func,
@@ -4613,7 +4624,7 @@
                 },
             };
         });
-    
+
         parser.addCommand("js", function (parser, runtime, tokens) {
             if (!tokens.matchToken("js")) return;
             // Parse inputs
@@ -4629,12 +4640,12 @@
                     tokens.requireOpToken(")");
                 }
             }
-    
+
             var jsBody = parser.requireElement("jsBody", tokens);
             tokens.matchToken("end");
-    
+
             var func = varargConstructor(Function, inputs.concat([jsBody.jsSource]));
-    
+
             var command = {
                 jsSource: jsBody.jsSource,
                 function: func,
@@ -4660,17 +4671,17 @@
             };
             return command;
         });
-    
+
         parser.addCommand("async", function (parser, runtime, tokens) {
             if (!tokens.matchToken("async")) return;
             if (tokens.matchToken("do")) {
                 var body = parser.requireElement("commandList", tokens);
-    
+
                 // Append halt
                 var end = body;
                 while (end.next) end = end.next;
                 end.next = runtime.HALT;
-    
+
                 tokens.requireToken("end");
             } else {
                 var body = parser.requireElement("command", tokens);
@@ -4687,7 +4698,7 @@
             parser.setParent(body, command);
             return command;
         });
-    
+
         parser.addCommand("tell", function (parser, runtime, tokens) {
             var startToken = tokens.currentToken();
             if (!tokens.matchToken("tell")) return;
@@ -4733,11 +4744,11 @@
             parser.setParent(body, tellCmd);
             return tellCmd;
         });
-    
+
         parser.addCommand("wait", function (parser, runtime, tokens) {
             if (!tokens.matchToken("wait")) return;
             var command;
-    
+
             // wait on event
             if (tokens.matchToken("for")) {
                 tokens.matchToken("a"); // optional "a"
@@ -4755,11 +4766,11 @@
                         });
                     }
                 } while (tokens.matchToken("or"));
-    
+
                 if (tokens.matchToken("from")) {
                     var on = parser.requireElement("expression", tokens);
                 }
-    
+
                 // wait on event
                 command = {
                     event: events,
@@ -4803,7 +4814,7 @@
                 } else {
                     time = parser.requireElement("expression", tokens);
                 }
-    
+
                 command = {
                     type: "waitCmd",
                     time: time,
@@ -4822,20 +4833,20 @@
                 return command;
             }
         });
-    
+
         // TODO  - colon path needs to eventually become part of ruby-style symbols
         parser.addGrammarElement("dotOrColonPath", function (parser, runtime, tokens) {
             var root = tokens.matchTokenType("IDENTIFIER");
             if (root) {
                 var path = [root.value];
-    
+
                 var separator = tokens.matchOpToken(".") || tokens.matchOpToken(":");
                 if (separator) {
                     do {
                         path.push(tokens.requireTokenType("IDENTIFIER", "NUMBER").value);
                     } while (tokens.matchOpToken(separator.value));
                 }
-    
+
                 return {
                     type: "dotOrColonPath",
                     path: path,
@@ -4845,8 +4856,8 @@
                 };
             }
         });
-    
-    
+
+
         parser.addGrammarElement("eventName", function (parser, runtime, tokens) {
             var token;
             if ((token = tokens.matchTokenType("STRING"))) {
@@ -4856,13 +4867,13 @@
                     },
                 };
             }
-    
+
             return parser.parseElement("dotOrColonPath", tokens);
         });
-    
+
         function parseSendCmd(cmdType, parser, runtime, tokens) {
             var eventName = parser.requireElement("eventName", tokens);
-    
+
             var details = parser.parseElement("namedArgumentList", tokens);
             if ((cmdType === "send" && tokens.matchToken("to")) ||
                 (cmdType === "trigger" && tokens.matchToken("on"))) {
@@ -4870,7 +4881,7 @@
             } else {
                 var toExpr = parser.requireElement("implicitMeTarget", tokens);
             }
-    
+
             var sendCmd = {
                 eventName: eventName,
                 details: details,
@@ -4886,19 +4897,19 @@
             };
             return sendCmd;
         }
-    
+
         parser.addCommand("trigger", function (parser, runtime, tokens) {
             if (tokens.matchToken("trigger")) {
                 return parseSendCmd("trigger", parser, runtime, tokens);
             }
         });
-    
+
         parser.addCommand("send", function (parser, runtime, tokens) {
             if (tokens.matchToken("send")) {
                 return parseSendCmd("send", parser, runtime, tokens);
             }
         });
-    
+
         var parseReturnFunction = function (parser, runtime, tokens, returnAValue) {
             if (returnAValue) {
                 if (parser.commandBoundary(tokens.currentToken())) {
@@ -4907,7 +4918,7 @@
                     var value = parser.requireElement("expression", tokens);
                 }
             }
-    
+
             var returnCmd = {
                 value: value,
                 args: [value],
@@ -4927,19 +4938,19 @@
             };
             return returnCmd;
         };
-    
+
         parser.addCommand("return", function (parser, runtime, tokens) {
             if (tokens.matchToken("return")) {
                 return parseReturnFunction(parser, runtime, tokens, true);
             }
         });
-    
+
         parser.addCommand("exit", function (parser, runtime, tokens) {
             if (tokens.matchToken("exit")) {
                 return parseReturnFunction(parser, runtime, tokens, false);
             }
         });
-    
+
         parser.addCommand("halt", function (parser, runtime, tokens) {
             if (tokens.matchToken("halt")) {
                 if (tokens.matchToken("the")) {
@@ -4956,7 +4967,7 @@
                     var haltDefault = true;
                 }
                 var exit = parseReturnFunction(parser, runtime, tokens, false);
-    
+
                 var haltCmd = {
                     keepExecuting: true,
                     bubbling: bubbling,
@@ -4983,7 +4994,7 @@
                 return haltCmd;
             }
         });
-    
+
         parser.addCommand("log", function (parser, runtime, tokens) {
             if (!tokens.matchToken("log")) return;
             var exprs = [parser.parseElement("expression", tokens)];
@@ -5008,7 +5019,7 @@
             };
             return logCmd;
         });
-    
+
         parser.addCommand("throw", function (parser, runtime, tokens) {
             if (!tokens.matchToken("throw")) return;
             var expr = parser.requireElement("expression", tokens);
@@ -5022,7 +5033,7 @@
             };
             return throwCmd;
         });
-    
+
         var parseCallOrGet = function (parser, runtime, tokens) {
             var expr = parser.requireElement("expression", tokens);
             var callCmd = {
@@ -5048,24 +5059,24 @@
                 return parseCallOrGet(parser, runtime, tokens);
             }
         });
-    
+
         parser.addCommand("make", function (parser, runtime, tokens) {
             if (!tokens.matchToken("make")) return;
             tokens.matchToken("a") || tokens.matchToken("an");
-    
+
             var expr = parser.requireElement("expression", tokens);
-    
+
             var args = [];
             if (expr.type !== "queryRef" && tokens.matchToken("from")) {
                 do {
                     args.push(parser.requireElement("expression", tokens));
                 } while (tokens.matchOpToken(","));
             }
-    
+
             if (tokens.matchToken("called")) {
                 var target = parser.requireElement("symbol", tokens);
             }
-    
+
             var command;
             if (expr.type === "queryRef") {
                 command = {
@@ -5080,19 +5091,19 @@
                             else if (match[1] === "#") id = match[2].trim();
                             else classes.push(match[2].trim());
                         }
-    
+
                         var result = document.createElement(tagname);
                         if (id !== undefined) result.id = id;
                         for (var i = 0; i < classes.length; i++) {
                             var cls = classes[i];
                             result.classList.add(cls)
                         }
-    
+
                         ctx.result = result;
                         if (target){
                             runtime.setSymbol(target.name, ctx, target.scope, result);
                         }
-    
+
                         return runtime.findNext(this, ctx);
                     },
                 };
@@ -5105,34 +5116,34 @@
                         if (target){
                             runtime.setSymbol(target.name, ctx, target.scope, ctx.result);
                         }
-    
+
                         return runtime.findNext(this, ctx);
                     },
                 };
                 return command;
             }
         });
-    
+
         parser.addGrammarElement("pseudoCommand", function (parser, runtime, tokens) {
-    
+
             let lookAhead = tokens.token(1);
             if (!(lookAhead && lookAhead.op && (lookAhead.value === '.' || lookAhead.value === "("))) {
                 return null;
             }
-    
+
             var expr = parser.requireElement("primaryExpression", tokens);
-    
+
             var rootRoot = expr.root;
             var root = expr;
             while (rootRoot.root != null) {
                 root = root.root;
                 rootRoot = rootRoot.root;
             }
-    
+
             if (expr.type !== "functionCall") {
                 parser.raiseParseError(tokens, "Pseudo-commands must be function calls");
             }
-    
+
             if (root.type === "functionCall" && root.root.root == null) {
                 if (tokens.matchAnyToken("the", "to", "on", "with", "into", "from", "at")) {
                     var realRoot = parser.requireElement("expression", tokens);
@@ -5140,9 +5151,9 @@
                     var realRoot = parser.requireElement("implicitMeTarget", tokens);
                 }
             }
-    
+
             /** @type {ASTNode} */
-    
+
             var pseudoCommand
             if(realRoot){
                 pseudoCommand = {
@@ -5178,10 +5189,10 @@
                     },
                 };
             }
-    
+
             return pseudoCommand;
         });
-    
+
         /**
         * @param {Parser} parser
         * @param {Runtime} runtime
@@ -5191,16 +5202,16 @@
         * @returns
         */
         var makeSetter = function (parser, runtime, tokens, target, value) {
-    
+
             var symbolWrite = target.type === "symbol";
             var attributeWrite = target.type === "attributeRef";
             var styleWrite = target.type === "styleRef";
             var arrayWrite = target.type === "arrayIndex";
-    
+
             if (!(attributeWrite || styleWrite || symbolWrite) && target.root == null) {
                 parser.raiseParseError(tokens, "Can only put directly into symbols, not references");
             }
-    
+
             var rootElt = null;
             var prop = null;
             if (symbolWrite) {
@@ -5216,7 +5227,7 @@
                 var attribute = target.attribute;
                 rootElt = target.root;
             }
-    
+
             /** @type {ASTNode} */
             var setCmd = {
                 target: target,
@@ -5253,14 +5264,14 @@
             };
             return setCmd;
         };
-    
+
         parser.addCommand("default", function (parser, runtime, tokens) {
             if (!tokens.matchToken("default")) return;
             var target = parser.requireElement("assignableExpression", tokens);
             tokens.requireToken("to");
-    
+
             var value = parser.requireElement("expression", tokens);
-    
+
             /** @type {ASTNode} */
             var setter = makeSetter(parser, runtime, tokens, target, value);
             var defaultCmd = {
@@ -5279,14 +5290,14 @@
             setter.parent = defaultCmd;
             return defaultCmd;
         });
-    
+
         parser.addCommand("set", function (parser, runtime, tokens) {
             if (!tokens.matchToken("set")) return;
             if (tokens.currentToken().type === "L_BRACE") {
                 var obj = parser.requireElement("objectLiteral", tokens);
                 tokens.requireToken("on");
                 var target = parser.requireElement("expression", tokens);
-    
+
                 var command = {
                     objectLiteral: obj,
                     target: target,
@@ -5298,7 +5309,7 @@
                 };
                 return command;
             }
-    
+
             try {
                 tokens.pushFollow("to");
                 var target = parser.requireElement("assignableExpression", tokens);
@@ -5309,7 +5320,7 @@
             var value = parser.requireElement("expression", tokens);
             return makeSetter(parser, runtime, tokens, target, value);
         });
-    
+
         parser.addCommand("if", function (parser, runtime, tokens) {
             if (!tokens.matchToken("if")) return;
             var expr = parser.requireElement("expression", tokens);
@@ -5321,7 +5332,7 @@
             if (tokens.hasMore()) {
                 tokens.requireToken("end");
             }
-    
+
             /** @type {ASTNode} */
             var ifCmd = {
                 expr: expr,
@@ -5342,7 +5353,7 @@
             parser.setParent(falseBranch, ifCmd);
             return ifCmd;
         });
-    
+
         var parseRepeatExpression = function (parser, tokens, runtime, startedWithForToken) {
             var innerStartToken = tokens.currentToken();
             var identifier;
@@ -5376,12 +5387,12 @@
                     var forever = true;
                 }
             }
-    
+
             if (tokens.matchToken("index")) {
                 var identifierToken = tokens.requireTokenType("IDENTIFIER");
                 var indexIdentifier = identifierToken.value;
             }
-    
+
             var loop = parser.parseElement("commandList", tokens);
             if (loop && evt) {
                 // if this is an event based loop, wait a tick at the end of the loop so that
@@ -5405,14 +5416,14 @@
             if (tokens.hasMore()) {
                 tokens.requireToken("end");
             }
-    
+
             if (identifier == null) {
                 identifier = "_implicit_repeat_" + innerStartToken.start;
                 var slot = identifier;
             } else {
                 var slot = identifier + "_" + innerStartToken.start;
             }
-    
+
             var repeatCmd = {
                 identifier: identifier,
                 indexIdentifier: indexIdentifier,
@@ -5450,7 +5461,7 @@
                         keepLooping = !nextValFromIterator.done;
                         loopVal = nextValFromIterator.value;
                     }
-    
+
                     if (keepLooping) {
                         if (iteratorInfo.value) {
                             context.result = context.locals[identifier] = loopVal;
@@ -5501,29 +5512,29 @@
             parser.setParent(repeatCmd, repeatInit);
             return repeatInit;
         };
-    
+
         parser.addCommand("repeat", function (parser, runtime, tokens) {
             if (tokens.matchToken("repeat")) {
                 return parseRepeatExpression(parser, tokens, runtime, false);
             }
         });
-    
+
         parser.addCommand("for", function (parser, runtime, tokens) {
             if (tokens.matchToken("for")) {
                 return parseRepeatExpression(parser, tokens, runtime, true);
             }
         });
-    
+
       parser.addCommand("continue", function (parser, runtime, tokens) {
-    
+
         if (!tokens.matchToken("continue")) return;
-    
+
         var command = {
           op: function (context) {
-    
+
             // scan for the closest repeat statement
             for (var parent = this.parent ; true ; parent = parent.parent) {
-    
+
               if (parent == undefined) {
                 parser.raiseParseError(tokens, "Command `continue` cannot be used outside of a `repeat` loop.")
               }
@@ -5535,17 +5546,17 @@
         };
         return command;
       });
-    
+
       parser.addCommand("break", function (parser, runtime, tokens) {
-    
+
         if (!tokens.matchToken("break")) return;
-    
+
         var command = {
           op: function (context) {
-    
+
             // scan for the closest repeat statement
             for (var parent = this.parent ; true ; parent = parent.parent) {
-    
+
               if (parent == undefined) {
                 parser.raiseParseError(tokens, "Command `continue` cannot be used outside of a `repeat` loop.")
               }
@@ -5557,17 +5568,17 @@
         };
         return command;
       });
-    
+
         parser.addGrammarElement("stringLike", function (parser, runtime, tokens) {
             return parser.parseAnyOf(["string", "nakedString"], tokens);
         });
-    
+
         parser.addCommand("append", function (parser, runtime, tokens) {
             if (!tokens.matchToken("append")) return;
             var targetExpr = null;
-    
+
             var value = parser.requireElement("expression", tokens);
-    
+
             /** @type {ASTNode} */
             var implicitResultSymbol = {
                 type: "symbol",
@@ -5575,18 +5586,18 @@
                     return runtime.resolveSymbol("result", context);
                 },
             };
-    
+
             if (tokens.matchToken("to")) {
                 targetExpr = parser.requireElement("expression", tokens);
             } else {
                 targetExpr = implicitResultSymbol;
             }
-    
+
             var setter = null;
             if (targetExpr.type === "symbol" || targetExpr.type === "attributeRef" || targetExpr.root != null) {
                 setter = makeSetter(parser, runtime, tokens, targetExpr, implicitResultSymbol);
             }
-    
+
             var command = {
                 value: value,
                 target: targetExpr,
@@ -5609,20 +5620,20 @@
                     return runtime.unifiedExec(this, context/*, value, target*/);
                 },
             };
-    
+
             if (setter != null) {
                 setter.parent = command;
             }
-    
+
             return command;
         });
-    
+
         function parsePickRange(parser, runtime, tokens) {
             tokens.matchToken("at") || tokens.matchToken("from");
             const rv = { includeStart: true, includeEnd: false }
-    
+
             rv.from = tokens.matchToken("start") ? 0 : parser.requireElement("expression", tokens)
-    
+
             if (tokens.matchToken("to") || tokens.matchOpToken("..")) {
               if (tokens.matchToken("end")) {
                 rv.toEnd = true;
@@ -5630,50 +5641,50 @@
                 rv.to = parser.requireElement("expression", tokens);
               }
             }
-    
+
             if (tokens.matchToken("inclusive")) rv.includeEnd = true;
             else if (tokens.matchToken("exclusive")) rv.includeStart = false;
-    
+
             return rv;
         }
-    
+
         class RegExpIterator {
           constructor(re, str) {
             this.re = re;
             this.str = str;
           }
-    
+
           next() {
             const match = this.re.exec(this.str);
             if (match === null) return { done: true };
             else return { value: match };
           }
         }
-    
+
         class RegExpIterable {
           constructor(re, flags, str) {
             this.re = re;
             this.flags = flags;
             this.str = str;
           }
-    
+
           [Symbol.iterator]() {
             return new RegExpIterator(new RegExp(this.re, this.flags), this.str);
           }
         }
-    
+
         parser.addCommand("pick", (parser, runtime, tokens) => {
           if (!tokens.matchToken("pick")) return;
-    
+
           tokens.matchToken("the");
-    
+
           if (tokens.matchToken("item") || tokens.matchToken("items")
            || tokens.matchToken("character") || tokens.matchToken("characters")) {
             const range = parsePickRange(parser, runtime, tokens);
-    
+
             tokens.requireToken("from");
             const root = parser.requireElement("expression", tokens);
-    
+
             return {
               args: [root, range.from, range.to],
               op(ctx, root, from, to) {
@@ -5686,7 +5697,7 @@
               }
             }
           }
-    
+
           if (tokens.matchToken("match")) {
             tokens.matchToken("of");
             const re = parser.parseElement("expression", tokens);
@@ -5694,10 +5705,10 @@
             if (tokens.matchOpToken("|")) {
               flags = tokens.requireToken("identifier").value;
             }
-    
+
             tokens.requireToken("from");
             const root = parser.parseElement("expression", tokens);
-    
+
             return {
               args: [root, re],
               op(ctx, root, re) {
@@ -5706,7 +5717,7 @@
               }
             }
           }
-    
+
           if (tokens.matchToken("matches")) {
             tokens.matchToken("of");
             const re = parser.parseElement("expression", tokens);
@@ -5715,10 +5726,10 @@
               flags = 'g' + tokens.requireToken("identifier").value.replace('g', '');
             }
             console.log('flags', flags)
-    
+
             tokens.requireToken("from");
             const root = parser.parseElement("expression", tokens);
-    
+
             return {
               args: [root, re],
               op(ctx, root, re) {
@@ -5756,7 +5767,7 @@
                     return runtime.unifiedEval(this, context);
                 }
             };
-    
+
             return makeSetter(parser, runtime, tokens, target, implicitIncrementOp);
         });
     
@@ -5787,10 +5798,10 @@
                     return runtime.unifiedEval(this, context);
                 }
             };
-    
+
             return makeSetter(parser, runtime, tokens, target, implicitDecrementOp);
         });
-    
+
         function parseConversionInfo(tokens, parser) {
             var type = "text";
             var conversion;
@@ -5808,28 +5819,28 @@
             }
             return {type, conversion};
         }
-    
+
         parser.addCommand("fetch", function (parser, runtime, tokens) {
             if (!tokens.matchToken("fetch")) return;
             var url = parser.requireElement("stringLike", tokens);
-    
+
             if (tokens.matchToken("as")) {
                 var conversionInfo = parseConversionInfo(tokens, parser);
             }
-    
+
             if (tokens.matchToken("with") && tokens.currentToken().value !== "{") {
                 var args = parser.parseElement("nakedNamedArgumentList", tokens);
             } else {
                 var args = parser.parseElement("objectLiteral", tokens);
             }
-    
+
             if (conversionInfo == null && tokens.matchToken("as")) {
                 conversionInfo = parseConversionInfo(tokens, parser);
             }
-    
+
             var type = conversionInfo ? conversionInfo.type : "text";
             var conversion = conversionInfo ? conversionInfo.conversion : null
-    
+
             /** @type {ASTNode} */
             var fetchCmd = {
                 url: url,
@@ -5860,7 +5871,7 @@
                             let resultDetails = {response:resp};
                             runtime.triggerEvent(context.me, "fetch:afterResponse", resultDetails);
                             resp = resultDetails.response;
-    
+
                             if (type === "response") {
                                 context.result = resp;
                                 runtime.triggerEvent(context.me, "fetch:afterRequest", {result:resp});
@@ -5877,9 +5888,9 @@
                             }
                             return resp.text().then(function (result) {
                                 if (conversion) result = runtime.convertValue(result, conversion);
-    
+
                                 if (type === "html") result = runtime.convertValue(result, "Fragment");
-    
+
                                 context.result = result;
                                 runtime.triggerEvent(context.me, "fetch:afterRequest", {result});
                                 finished = true;
@@ -5908,7 +5919,7 @@
                 } else {
                     var onExpr = parser.requireElement("implicitMeTarget", tokens);
                 }
-    
+
                 var settleCommand = {
                     type: "settleCmd",
                     args: [onExpr],
@@ -5917,11 +5928,11 @@
                         var resolve = null;
                         var resolved = false;
                         var transitionStarted = false;
-    
+
                         var promise = new Promise(function (r) {
                             resolve = r;
                         });
-    
+
                         // listen for a transition begin
                         on.addEventListener(
                             "transitionstart",
@@ -5930,14 +5941,14 @@
                             },
                             { once: true }
                         );
-    
+
                         // if no transition begins in 500ms, cancel
                         setTimeout(function () {
                             if (!transitionStarted && !resolved) {
                                 resolve(runtime.findNext(settleCommand, context));
                             }
                         }, 500);
-    
+
                         // continue on a transition emd
                         on.addEventListener(
                             "transitionend",
@@ -5957,7 +5968,7 @@
                 return settleCommand;
             }
         });
-    
+
         parser.addCommand("add", function (parser, runtime, tokens) {
             if (tokens.matchToken("add")) {
                 var classRef = parser.parseElement("classRef", tokens);
@@ -5977,20 +5988,20 @@
                         classRefs.push(classRef);
                     }
                 }
-    
+
                 if (tokens.matchToken("to")) {
                     var toExpr = parser.requireElement("expression", tokens);
                 } else {
                     var toExpr = parser.requireElement("implicitMeTarget", tokens);
                 }
-    
+
                 if (tokens.matchToken("when")) {
                     if (cssDeclaration) {
                         parser.raiseParseError(tokens, "Only class and properties are supported with a when clause")
                     }
                     var when = parser.requireElement("expression", tokens);
                 }
-    
+
                 if (classRefs) {
                     return {
                         classRefs: classRefs,
@@ -6065,13 +6076,13 @@
                 }
             }
         });
-    
+
         parser.addGrammarElement("styleLiteral", function (parser, runtime, tokens) {
             if (!tokens.matchOpToken("{")) return;
-    
+
             var stringParts = [""]
             var exprs = []
-    
+
             while (tokens.hasMore()) {
                 if (tokens.matchOpToken("\\")) {
                     tokens.consumeToken();
@@ -6081,28 +6092,28 @@
                     var opencurly = tokens.matchOpToken("{");
                     var expr = parser.parseElement("expression", tokens);
                     if (opencurly) tokens.requireOpToken("}");
-    
+
                     exprs.push(expr)
                     stringParts.push("")
                 } else {
                     var tok = tokens.consumeToken();
                     stringParts[stringParts.length-1] += tokens.source.substring(tok.start, tok.end);
                 }
-    
+
                 stringParts[stringParts.length-1] += tokens.lastWhitespace();
             }
-    
+
             return {
                 type: "styleLiteral",
                 args: [exprs],
                 op: function (ctx, exprs) {
                     var rv = "";
-    
+
                     stringParts.forEach(function (part, idx) {
                         rv += part;
                         if (idx in exprs) rv += exprs[idx];
                     });
-    
+
                     return rv;
                 },
                 evaluate: function(ctx) {
@@ -6110,7 +6121,7 @@
                 }
             }
         })
-    
+
         parser.addCommand("remove", function (parser, runtime, tokens) {
             if (tokens.matchToken("remove")) {
                 var classRef = parser.parseElement("classRef", tokens);
@@ -6133,7 +6144,7 @@
                         classRefs.push(classRef);
                     }
                 }
-    
+
                 if (tokens.matchToken("from")) {
                     var fromExpr = parser.requireElement("expression", tokens);
                 } else {
@@ -6141,7 +6152,7 @@
                         var fromExpr = parser.requireElement("implicitMeTarget", tokens);
                     }
                 }
-    
+
                 if (elementExpr) {
                     return {
                         elementExpr: elementExpr,
@@ -6183,7 +6194,7 @@
                 }
             }
         });
-    
+
         parser.addCommand("toggle", function (parser, runtime, tokens) {
             if (tokens.matchToken("toggle")) {
                 tokens.matchAnyToken("the", "my");
@@ -6222,7 +6233,7 @@
                         }
                     }
                 }
-    
+
                 if (visibility !== true) {
                     if (tokens.matchToken("on")) {
                         var onExpr = parser.requireElement("expression", tokens);
@@ -6230,7 +6241,7 @@
                         var onExpr = parser.requireElement("implicitMeTarget", tokens);
                     }
                 }
-    
+
                 if (tokens.matchToken("for")) {
                     var time = parser.requireElement("expression", tokens);
                 } else if (tokens.matchToken("until")) {
@@ -6239,7 +6250,7 @@
                         var from = parser.requireElement("expression", tokens);
                     }
                 }
-    
+
                 var toggleCmd = {
                     classRef: classRef,
                     classRef2: classRef2,
@@ -6313,7 +6324,7 @@
                 return toggleCmd;
             }
         });
-    
+
         var HIDE_SHOW_STRATEGIES = {
             display: function (op, element, arg) {
                 if (arg) {
@@ -6370,7 +6381,7 @@
                 }
             },
         };
-    
+
         var parseShowHideTarget = function (parser, runtime, tokens) {
             var target;
             var currentTokenValue = tokens.currentToken();
@@ -6381,7 +6392,7 @@
             }
             return target;
         };
-    
+
         var resolveStrategy = function (parser, tokens, name) {
             var configDefault = config.defaultHideShowStrategy;
             var strategies = HIDE_SHOW_STRATEGIES;
@@ -6395,11 +6406,11 @@
             }
             return value;
         };
-    
+
         parser.addCommand("hide", function (parser, runtime, tokens) {
             if (tokens.matchToken("hide")) {
                 var targetExpr = parseShowHideTarget(parser, runtime, tokens);
-    
+
                 var name = null;
                 if (tokens.matchToken("with")) {
                     name = tokens.requireTokenType("IDENTIFIER", "STYLE_REF").value;
@@ -6408,7 +6419,7 @@
                     }
                 }
                 var hideShowStrategy = resolveStrategy(parser, tokens, name);
-    
+
                 return {
                     target: targetExpr,
                     args: [targetExpr],
@@ -6422,11 +6433,11 @@
                 };
             }
         });
-    
+
         parser.addCommand("show", function (parser, runtime, tokens) {
             if (tokens.matchToken("show")) {
                 var targetExpr = parseShowHideTarget(parser, runtime, tokens);
-    
+
                 var name = null;
                 if (tokens.matchToken("with")) {
                     name = tokens.requireTokenType("IDENTIFIER", "STYLE_REF").value;
@@ -6444,13 +6455,13 @@
                         })
                         .join("");
                 }
-    
+
                 if (tokens.matchToken("when")) {
                     var when = parser.requireElement("expression", tokens);
                 }
-    
+
                 var hideShowStrategy = resolveStrategy(parser, tokens, name);
-    
+
                 return {
                     target: targetExpr,
                     when: when,
@@ -6476,23 +6487,23 @@
                 };
             }
         });
-    
+
         parser.addCommand("take", function (parser, runtime, tokens) {
             if (tokens.matchToken("take")) {
                 var classRef = parser.requireElement("classRef", tokens);
-    
+
                 if (tokens.matchToken("from")) {
                     var fromExpr = parser.requireElement("expression", tokens);
                 } else {
                     var fromExpr = classRef;
                 }
-    
+
                 if (tokens.matchToken("for")) {
                     var forExpr = parser.requireElement("expression", tokens);
                 } else {
                     var forExpr = parser.requireElement("implicitMeTarget", tokens);
                 }
-    
+
                 var takeCmd = {
                     classRef: classRef,
                     from: fromExpr,
@@ -6514,7 +6525,7 @@
                 return takeCmd;
             }
         });
-    
+
         function putInto(runtime, context, prop, valueToPut) {
             if (prop != null) {
                 var value = runtime.resolveSymbol(prop, context);
@@ -6533,31 +6544,31 @@
                 }
             }
         }
-    
+
         parser.addCommand("put", function (parser, runtime, tokens) {
             if (tokens.matchToken("put")) {
                 var value = parser.requireElement("expression", tokens);
-    
+
                 var operationToken = tokens.matchAnyToken("into", "before", "after");
-    
+
                 if (operationToken == null && tokens.matchToken("at")) {
                     tokens.matchToken("the"); // optional "the"
                     operationToken = tokens.matchAnyToken("start", "end");
                     tokens.requireToken("of");
                 }
-    
+
                 if (operationToken == null) {
                     parser.raiseParseError(tokens, "Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
                 }
                 var target = parser.requireElement("expression", tokens);
-    
+
                 var operation = operationToken.value;
-    
+
                 var arrayIndex = false;
                 var symbolWrite = false;
                 var rootExpr = null;
                 var prop = null;
-    
+
                 if (target.type === "arrayIndex" && operation === "into") {
                     arrayIndex = true;
                     prop = target.prop;
@@ -6584,7 +6595,7 @@
                 } else {
                     rootExpr = target;
                 }
-    
+
                 var putCmd = {
                     target: target,
                     operation: operation,
@@ -6623,7 +6634,7 @@
                                         : operation === "end"
                                         ? Element.prototype.append
                                         : Element.prototype.append; // unreachable
-    
+
                                 runtime.implicitLoop(root, function (elt) {
                                     op.call(
                                         elt,
@@ -6646,7 +6657,7 @@
                 return putCmd;
             }
         });
-    
+
         function parsePseudopossessiveTarget(parser, runtime, tokens) {
             var targets;
             if (
@@ -6683,11 +6694,11 @@
             }
             return targets;
         }
-    
+
         parser.addCommand("transition", function (parser, runtime, tokens) {
             if (tokens.matchToken("transition")) {
                 var targetsExpr = parsePseudopossessiveTarget(parser, runtime, tokens);
-    
+
                 var properties = [];
                 var from = [];
                 var to = [];
@@ -6709,7 +6720,7 @@
                     } else {
                         properties.push(parser.requireElement("stringLike", tokens));
                     }
-    
+
                     if (tokens.matchToken("from")) {
                         from.push(parser.requireElement("expression", tokens));
                     } else {
@@ -6733,7 +6744,7 @@
                 } else if (tokens.matchToken("using")) {
                     var using = parser.requireElement("expression", tokens);
                 }
-    
+
                 var transition = {
                     to: to,
                     args: [targetsExpr, properties, from, to, using, over],
@@ -6752,19 +6763,19 @@
                                 }
                                 var internalData = runtime.getInternalData(target);
                                 var computedStyles = getComputedStyle(target);
-    
+
                                 var initialStyles = {};
                                 for (var i = 0; i < computedStyles.length; i++) {
                                     var name = computedStyles[i];
                                     var initialValue = computedStyles[name];
                                     initialStyles[name] = initialValue;
                                 }
-    
+
                                 // store intitial values
                                 if (!internalData.initalStyles) {
                                     internalData.initalStyles = initialStyles;
                                 }
-    
+
                                 for (var i = 0; i < properties.length; i++) {
                                     var property = properties[i];
                                     var fromVal = from[i];
@@ -6775,10 +6786,10 @@
                                     }
                                 }
                                 //console.log("transition started", transition);
-    
+
                                 var transitionStarted = false;
                                 var resolved = false;
-    
+
                                 target.addEventListener(
                                     "transitionend",
                                     function () {
@@ -6791,7 +6802,7 @@
                                     },
                                     { once: true }
                                 );
-    
+
                                 target.addEventListener(
                                     "transitionstart",
                                     function () {
@@ -6799,7 +6810,7 @@
                                     },
                                     { once: true }
                                 );
-    
+
                                 // it no transition has started in 100ms, continue
                                 setTimeout(function () {
                                     if (!resolved && !transitionStarted) {
@@ -6809,7 +6820,7 @@
                                         resolve();
                                     }
                                 }, 100);
-    
+
                                 setTimeout(function () {
                                     var autoProps = [];
                                     for (var i = 0; i < properties.length; i++) {
@@ -6835,18 +6846,18 @@
                 return transition;
             }
         });
-    
+
         parser.addCommand("measure", function (parser, runtime, tokens) {
             if (!tokens.matchToken("measure")) return;
-    
+
             var targetExpr = parsePseudopossessiveTarget(parser, runtime, tokens);
-    
+
             var propsToMeasure = [];
             if (!parser.commandBoundary(tokens.currentToken()))
                 do {
                     propsToMeasure.push(tokens.matchTokenType("IDENTIFIER").value);
                 } while (tokens.matchOpToken(","));
-    
+
             return {
                 properties: propsToMeasure,
                 args: [targetExpr],
@@ -6862,7 +6873,7 @@
                         height: target.scrollHeight,
                         width: target.scrollWidth,
                     };
-    
+
                     ctx.result = {
                         x: rect.x,
                         y: rect.y,
@@ -6873,7 +6884,7 @@
                         width: rect.width,
                         height: rect.height,
                         bounds: rect,
-    
+
                         scrollLeft: scroll.left,
                         scrollTop: scroll.top,
                         scrollLeftMax: scroll.leftMax,
@@ -6882,29 +6893,29 @@
                         scrollHeight: scroll.height,
                         scroll: scroll,
                     };
-    
+
                     runtime.forEach(propsToMeasure, function (prop) {
                         if (prop in ctx.result) ctx.locals[prop] = ctx.result[prop];
                         else throw "No such measurement as " + prop;
                     });
-    
+
                     return runtime.findNext(this, ctx);
                 },
             };
         });
-    
+
         parser.addLeafExpression("closestExpr", function (parser, runtime, tokens) {
             if (tokens.matchToken("closest")) {
                 if (tokens.matchToken("parent")) {
                     var parentSearch = true;
                 }
-    
+
                 var css = null;
                 if (tokens.currentToken().type === "ATTRIBUTE_REF") {
                     var attributeRef = parser.requireElement("attributeRefAccess", tokens, null);
                     css = "[" + attributeRef.attribute.name + "]";
                 }
-    
+
                 if (css == null) {
                     var expr = parser.requireElement("expression", tokens);
                     if (expr.css == null) {
@@ -6913,13 +6924,13 @@
                         css = expr.css;
                     }
                 }
-    
+
                 if (tokens.matchToken("to")) {
                     var to = parser.parseElement("expression", tokens);
                 } else {
                     var to = parser.parseElement("implicitMeTarget", tokens);
                 }
-    
+
                 var closestExpr = {
                     type: "closestExpr",
                     parentSearch: parentSearch,
@@ -6950,7 +6961,7 @@
                         return runtime.unifiedEval(this, context);
                     },
                 };
-    
+
                 if (attributeRef) {
                     attributeRef.root = closestExpr;
                     attributeRef.args = [closestExpr];
@@ -6960,7 +6971,7 @@
                 }
             }
         });
-    
+
         parser.addCommand("go", function (parser, runtime, tokens) {
             if (tokens.matchToken("go")) {
                 if (tokens.matchToken("back")) {
@@ -6983,7 +6994,7 @@
                             tokens.requireToken("of");
                         }
                         var target = parser.requireElement("unaryExpression", tokens);
-    
+
                         var plusOrMinus = tokens.matchAnyOpToken("+", "-");
                         if (plusOrMinus) {
                             tokens.pushFollow("px");
@@ -6994,9 +7005,9 @@
                             }
                         }
                         tokens.matchToken("px"); // optional px
-    
+
                         var smoothness = tokens.matchAnyToken("smoothly", "instantly");
-    
+
                         var scrollOptions = {};
                         if (verticalPosition) {
                             if (verticalPosition.value === "top") {
@@ -7007,7 +7018,7 @@
                                 scrollOptions.block = "center";
                             }
                         }
-    
+
                         if (horizontalPosition) {
                             if (horizontalPosition.value === "left") {
                                 scrollOptions.inline = "start";
@@ -7017,7 +7028,7 @@
                                 scrollOptions.inline = "end";
                             }
                         }
-    
+
                         if (smoothness) {
                             if (smoothness.value === "smoothly") {
                                 scrollOptions.behavior = "smooth";
@@ -7027,7 +7038,7 @@
                         }
                     }
                 }
-    
+
                 var goCmd = {
                     target: target,
                     args: [target, offset],
@@ -7044,22 +7055,22 @@
                             }
                         } else {
                             runtime.implicitLoop(to, function (target) {
-    
+
                                 if (target === window) {
                                     target = document.body;
                                 }
-    
+
                                 if(plusOrMinus) {
                                     // a top scroll w/ an offset of some sort
                                     var boundingRect = target.getBoundingClientRect();
                                     let scrollShim = document.createElement('div');
-    
+
                                     if (plusOrMinus.value === "-") {
                                         var finalOffset = -offset;
                                     } else {
                                         var finalOffset = - -offset;
                                     }
-    
+
                                     scrollShim.style.position = 'absolute';
                                     scrollShim.style.top = (boundingRect.x + finalOffset) + "px";
                                     scrollShim.style.left = (boundingRect.y + finalOffset) + "px";
@@ -7067,15 +7078,15 @@
                                     scrollShim.style.width = (boundingRect.width + (2 * finalOffset)) + "px";
                                     scrollShim.style.zIndex = "" + Number.MIN_SAFE_INTEGER;
                                     scrollShim.style.opacity = "0";
-    
+
                                     document.body.appendChild(scrollShim);
                                     setTimeout(function () {
                                         document.body.removeChild(scrollShim);
                                     }, 100);
-    
+
                                     target = scrollShim;
                                 }
-    
+
                                 target.scrollIntoView(scrollOptions);
                             });
                         }
@@ -7085,7 +7096,7 @@
                 return goCmd;
             }
         });
-    
+
         config.conversions.dynamicResolvers.push(function (str, node) {
             if (!(str === "Values" || str.indexOf("Values:") === 0)) {
                 return;
@@ -7093,18 +7104,18 @@
             var conversion = str.split(":")[1];
             /** @type Object<string,string | string[]> */
             var result = {};
-    
+
             var implicitLoop = parser.runtime.implicitLoop.bind(parser.runtime);
-    
+
             implicitLoop(node, function (/** @type HTMLInputElement */ node) {
                 // Try to get a value directly from this node
                 var input = getInputInfo(node);
-    
+
                 if (input !== undefined) {
                     result[input.name] = input.value;
                     return;
                 }
-    
+
                 // Otherwise, try to query all child elements of this node that *should* contain values.
                 if (node.querySelectorAll != undefined) {
                     /** @type {NodeListOf<HTMLInputElement>} */
@@ -7112,7 +7123,7 @@
                     children.forEach(appendValue);
                 }
             });
-    
+
             if (conversion) {
                 if (conversion === "JSON") {
                     return JSON.stringify(result);
@@ -7126,29 +7137,29 @@
             } else {
                 return result;
             }
-    
+
             /**
              * @param {HTMLInputElement} node
              */
             function appendValue(node) {
                 var info = getInputInfo(node);
-    
+
                 if (info == undefined) {
                     return;
                 }
-    
+
                 // If there is no value already stored in this space.
                 if (result[info.name] == undefined) {
                     result[info.name] = info.value;
                     return;
                 }
-    
+
                 if (Array.isArray(result[info.name]) && Array.isArray(info.value)) {
                     result[info.name] = [].concat(result[info.name], info.value);
                     return;
                 }
             }
-    
+
             /**
              * @param {HTMLInputElement} node
              * @returns {{name:string, value:string | string[]} | undefined}
@@ -7160,15 +7171,15 @@
                         name: node.name,
                         value: node.value,
                     };
-    
+
                     if (result.name == undefined || result.value == undefined) {
                         return undefined;
                     }
-    
+
                     if (node.type == "radio" && node.checked == false) {
                         return undefined;
                     }
-    
+
                     if (node.type == "checkbox") {
                         if (node.checked == false) {
                             result.value = undefined;
@@ -7176,11 +7187,11 @@
                             result.value = [result.value];
                         }
                     }
-    
+
                     if (node.type == "select-multiple") {
                         /** @type {NodeListOf<HTMLSelectElement>} */
                         var selected = node.querySelectorAll("option[selected]");
-    
+
                         result.value = [];
                         for (var index = 0; index < selected.length; index++) {
                             result.value.push(selected[index].value);
@@ -7192,7 +7203,7 @@
                 }
             }
         });
-    
+
         config.conversions["HTML"] = function (value) {
             var toHTML = /** @returns {string}*/ function (/** @type any*/ value) {
                 if (value instanceof Array) {
@@ -7202,11 +7213,11 @@
                         })
                         .join("");
                 }
-    
+
                 if (value instanceof HTMLElement) {
                     return value.outerHTML;
                 }
-    
+
                 if (value instanceof NodeList) {
                     var result = "";
                     for (var i = 0; i < value.length; i++) {
@@ -7217,17 +7228,17 @@
                     }
                     return result;
                 }
-    
+
                 if (value.toString) {
                     return value.toString();
                 }
-    
+
                 return "";
             };
-    
+
             return toHTML(value);
         };
-    
+
         config.conversions["Fragment"] = function (val) {
             var frag = document.createDocumentFragment();
             parser.runtime.implicitLoop(val, function (val) {
@@ -7241,15 +7252,15 @@
             return frag;
         };
     }
-    
+
 
     // Public API
 
     const runtime_ = new Runtime(), lexer_ = runtime_.lexer, parser_ = runtime_.parser
 
     /**
-     * 
-     * @param {string} src 
+     *
+     * @param {string} src
      * @param {Partial<Context>} [ctx]
      */
     function run(src, ctx) {
@@ -7260,15 +7271,15 @@
         /** @type {HTMLScriptElement[]} */
         var scripts = Array.from(globalScope.document.querySelectorAll("script[type='text/hyperscript'][src]"))
         Promise.all(
-			scripts.map(function (script) {
-				return fetch(script.src)
-					.then(function (res) {
-						return res.text();
-					});
-			})
-		)
-		.then(script_values => script_values.forEach(sc => _hyperscript(sc)))
-		.then(() => ready(function () {
+            scripts.map(function (script) {
+                return fetch(script.src)
+                    .then(function (res) {
+                        return res.text();
+                    });
+            })
+        )
+        .then(script_values => script_values.forEach(sc => _hyperscript(sc)))
+        .then(() => ready(function () {
             mergeMetaConfig();
             runtime_.processNode(document.documentElement);
             globalScope.document.addEventListener("htmx:load", function (/** @type {CustomEvent} */ evt) {
@@ -7293,7 +7304,7 @@
                 return null;
             }
         }
-        
+
         function mergeMetaConfig() {
             var metaConfig = getMetaConfig();
             if (metaConfig) {
@@ -7304,13 +7315,13 @@
 
     /**
      * @typedef {Object} HyperscriptAPI
-     * 
+     *
      * @property {Object} config
      * @property {string} config.attributes
      * @property {string} config.defaultTransition
      * @property {string} config.disableSelector
      * @property {typeof conversions} config.conversions
-     * 
+     *
      * @property {Object} internals
      * @property {Lexer} internals.lexer
      * @property {typeof Lexer} internals.Lexer
@@ -7318,21 +7329,21 @@
      * @property {typeof Parser} internals.Parser
      * @property {Runtime} internals.runtime
      * @property {typeof Runtime} internals.Runtime
-     * 
+     *
      * @property {typeof ElementCollection} ElementCollection
-     * 
+     *
      * @property {(keyword: string, definition: ParseRule) => void} addFeature
      * @property {(keyword: string, definition: ParseRule) => void} addCommand
      * @property {(keyword: string, definition: ParseRule) => void} addLeafExpression
      * @property {(keyword: string, definition: ParseRule) => void} addIndirectExpression
-     * 
+     *
      * @property {(src: string, ctx?: Partial<Context>) => any} evaluate
      * @property {(src: string) => ASTNode} parse
      * @property {(node: Element) => void} processNode
-     * 
+     *
      * @property {() => void} browserInit
-     * 
-     * 
+     *
+     *
      * @typedef {HyperscriptAPI & ((src: string, ctx?: Partial<Context>) => any)} Hyperscript
      */
 
