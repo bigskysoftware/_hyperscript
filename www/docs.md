@@ -375,7 +375,7 @@ Another funny thing you might have noticed is the appearnce of `the` in this scr
 
 `the` is whitespace before any expression in hyperscript and can be used to make your code read more nicely.
 
-For example, if we wanted to use `result` rather than it, we would writ it `the result` instead, which reads more nicely:
+For example, if we wanted to use `result` rather than it, we would write `the result` instead, which reads more nicely:
 
 {% example "The" %}
 <button _="on click increment :x then put the result into the next <output/>">
