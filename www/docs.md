@@ -1829,10 +1829,39 @@ Hyperscript is directly integrated with Javascript, providing ways to use them s
 
 Any Javascript function may be called directly from Hyperscript. See: [calling functions](#calling-functions).
 
+  ~~~ html
+  <button _="on click call alert('Hello from Javascript!')">
+    Click me.
+  </button>
+  ~~~
+
 ### Inline Javascript {#js-inline}
 
-Inline Javascript may be defined using the [`js` keyword](/features/js). You might do this for performance reasons,
-since the Hyperscript runtime is more focused on flexibility, rather than performance.
+Inline Javascript may be defined using the [`js` keyword](/features/js).
+
+  ~~~ html
+  <div _="init js alert('Hello from Javascript!') end"></div>
+  ~~~
+
+Return values are supported.
+
+  ~~~ html
+  <button _="on click js return 'Success!' end then put it into my.innerHTML">
+   Click me.
+  </button>
+  ~~~
+
+Parameters are supported.
+
+  ~~~ html
+  <button _="on click set foo to 1 js(foo) alert('Adding 1 to foo: '+(foo+1)) end">
+   Click me.
+  </button>
+  ~~~
+
+Javascript at the top-level may be defined using the same [`js` command](/commands/js), exposing it to the global scope.
+
+You may use inline Javascript for performance reasons, since the Hyperscript runtime is more focused on flexibility, rather than performance.
 
 This feature is useful in [workers](#workers), when you want to pass javascript across to the worker's
 implementation:
@@ -1851,9 +1880,6 @@ implementation:
     end
   </script>
   ~~~
-
-Note that there is also a way to include [inline javascript](/commands/js)
-directly within a hyperscript body, for local optimizations.
 
 ## Advanced Features {#advanced-features}
 
