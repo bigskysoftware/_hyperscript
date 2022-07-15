@@ -9,20 +9,18 @@
     margin: 0;
   }
   #toc {
-    
     overflow: auto;
     max-height: 80vh;
-    max-width: 24ch;
-    
     margin-inline-end: var(--gap);
     margin-inline-start: calc(var(--gap) - var(--gutter-width));
   }
-
+  #toc sub-title {
+    display: inline-block;
+  }
   #docs-content {
     display: flow-root;
     max-width: calc(100vw - 24ch - 3 * var(--gap));
   }
-
   #skip-to-content {
     display: none;
   }
