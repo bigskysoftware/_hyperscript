@@ -30,15 +30,70 @@ describe("the _hyperscript parser", function () {
 				"def foo() -- this is another comment\n" +
 				'  return "foo"\n' +
 				"end -- end with a comment" +
+				"--- this is a comment\n" +
+				"----this is a comment----\n" +
+				"def bar() ---this is another comment\n" +
+				'  return "bar"\n' +
+				"end --- end with a comment" +
+				"</script>"
+		);
+		foo().should.equal("foo");
+		bar().should.equal("bar");
+		delete window.foo;
+		delete window.bar;
+	});
+
+	it("can have comments in attributes", function () {
+		var div = make(
+			"<div _='on click put \"clicked\" into my.innerHTML -- put some content into the div...'></div>"
+		);
+		div.click();
+		div.innerText.should.equal("clicked");
+		var div = make(
+			"<div _='on click put \"clicked\" into my.innerHTML ---put some content into the div...'></div>"
+		);
+		div.click();
+		div.innerText.should.equal("clicked");
+	});
+
+	it("can have alternate comments in scripts", function () {
+		var script = make(
+			"<script type='text/hyperscript'>" +
+				"// this is a comment\n" +
+				"def foo() // this is another comment\n" +
+				'  return "foo"\n' +
+				"end // end with a comment" +
 				"</script>"
 		);
 		foo().should.equal("foo");
 		delete window.foo;
 	});
 
-	it("can have comments in attributes", function () {
+	it("can have alternate comments in attributes", function () {
 		var div = make(
-			"<div _='on click put \"clicked\" into my.innerHTML -- put some content into the div...'></div>"
+			"<div _='on click put \"clicked\" into my.innerHTML // put some content into the div...'></div>"
+		);
+		div.click();
+		div.innerText.should.equal("clicked");
+	});
+
+	it("can have alternate multiline comments in scripts", function () {
+		var script = make(
+			"<script type='text/hyperscript'>" +
+				"/* this is a comment\n" +
+				"this is still a comment */\n" +
+				"def foo() /* this is another comment */\n" +
+				'  return "foo"\n' +
+				"end /* end with a multiline comment \n */" +
+				"</script>"
+		);
+		foo().should.equal("foo");
+		delete window.foo;
+	});
+
+	it("can have multiline comments in attributes", function () {
+		var div = make(
+			"<div _='on click put \"clicked\" into my.innerHTML /* put some content\n into the div... */'></div>"
 		);
 		div.click();
 		div.innerText.should.equal("clicked");
