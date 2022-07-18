@@ -747,4 +747,17 @@ describe("the on feature", function () {
 		btn.innerHTML.should.equal("success");
 	});
 
+	it("can ignore when target doesn't exist", function () {
+		var div = make(
+			"<div id='#d1' _=' " +
+			"	on click from #doesntExist " +
+			"		throw \"bar\" " +
+			"	on click " +
+			"		put \"clicked\" into me" +
+			"	'></div>"
+		);
+		div.click();
+		div.innerHTML.should.equal("clicked");
+	});
+
 });
