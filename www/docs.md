@@ -102,6 +102,7 @@ Some other hypserscript resources you may want to check out are:
  * The [cookbook](/cookbook) for existing hyperscripts you can start using and modifying for your own needs.
  * The [VanillaJS/jQuery/hyperscript comparison](/comparison), which shows the differences between vanillajs, jQuery
    and hyperscript implementations of various common UI patterns
+ * Syntax highlighting for [VSCode](https://marketplace.visualstudio.com/items?itemName=dz4k.vscode-hyperscript-org) or [Sublime](https://packagecontrol.io/packages/Hyperscript)
 
 OK, let's get started with hyperscript!
 
