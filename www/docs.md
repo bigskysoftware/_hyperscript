@@ -9,20 +9,18 @@
     margin: 0;
   }
   #toc {
-    
     overflow: auto;
     max-height: 80vh;
-    max-width: 24ch;
-    
     margin-inline-end: var(--gap);
     margin-inline-start: calc(var(--gap) - var(--gutter-width));
   }
-
+  #toc sub-title {
+    display: inline-block;
+  }
   #docs-content {
     display: flow-root;
     max-width: calc(100vw - 24ch - 3 * var(--gap));
   }
-
   #skip-to-content {
     display: none;
   }
@@ -104,6 +102,7 @@ Some other hypserscript resources you may want to check out are:
  * The [cookbook](/cookbook) for existing hyperscripts you can start using and modifying for your own needs.
  * The [VanillaJS/jQuery/hyperscript comparison](/comparison), which shows the differences between vanillajs, jQuery
    and hyperscript implementations of various common UI patterns
+ * Syntax highlighting for [VSCode](https://marketplace.visualstudio.com/items?itemName=dz4k.vscode-hyperscript-org) or [Sublime](https://packagecontrol.io/packages/Hyperscript)
 
 OK, let's get started with hyperscript!
 
@@ -174,7 +173,7 @@ Comments in hyperscript start with the `--` characters and a whitespace characte
   log "Yep, that was a comment"
   ~~~
 
-There is no multi-line comment syntax.
+To ease migrations to hyperscript, `//` and `/* ... */` comments are supported.
 
 ### Separators
 
@@ -1817,6 +1816,70 @@ So, if you wanted to invoke a method that returns a promise, say `returnsAPromis
 Hyperscript will immediately put the value "I called it..." into the next output element, even if the result
 from `returnsAPromise()` has not yet resolved.
 
+## Using Javascript {#js-migration}
+
+Hyperscript is directly integrated with Javascript, providing ways to use them side by side and migrate with ease.
+
+### Shared Comment Syntax {#js-comments}
+
+`//` and `/* ... */` comments are supported, and ideal for migrating lines of code from Javascript to Hyperscript "in-place". The multi-line comment may be used to "block out" code and write documentation comments.
+
+### Calling Javascript {#js-call}
+
+Any Javascript function may be called directly from Hyperscript. See: [calling functions](#calling-functions).
+
+  ~~~ html
+  <button _="on click call alert('Hello from Javascript!')">
+    Click me.
+  </button>
+  ~~~
+
+### Inline Javascript {#js-inline}
+
+Inline Javascript may be defined using the [`js` keyword](/features/js).
+
+  ~~~ html
+  <div _="init js alert('Hello from Javascript!') end"></div>
+  ~~~
+
+Return values are supported.
+
+  ~~~ html
+  <button _="on click js return 'Success!' end then put it into my.innerHTML">
+   Click me.
+  </button>
+  ~~~
+
+Parameters are supported.
+
+  ~~~ html
+  <button _="on click set foo to 1 js(foo) alert('Adding 1 to foo: '+(foo+1)) end">
+   Click me.
+  </button>
+  ~~~
+
+Javascript at the top-level may be defined using the same [`js` command](/commands/js), exposing it to the global scope.
+
+You may use inline Javascript for performance reasons, since the Hyperscript runtime is more focused on flexibility, rather than performance.
+
+This feature is useful in [workers](#workers), when you want to pass javascript across to the worker's
+implementation:
+
+  ~~~ html
+  <script type="text/hyperscript">
+    worker CoinMiner
+      js
+        function mineNext() {
+          // a javascript implementation...
+        }
+      end
+      def nextCoin()
+        return mineNext()
+      end
+    end
+  </script>
+  ~~~
+
 ## Advanced Features {#advanced-features}
 
 We have covered the basics (and not-so-basics) of hyperscript.  Now we come to the more advanced
@@ -1934,32 +1997,6 @@ Here is an example event source in hyperscript:
 
 This event source will put all `message` events in to the `#div` and will log when an `open` event occurs.
 This feature also publishes events, too, so you can listen for Server Sent Events from other parts of your code.
-
-### Inline JS {#js}
-
-Inline javascript may be defined using the [`js` keyword](/features/js). You might do this for performance reasons,
-since the hyperscript runtime is more focused on flexibility, rather than performance.
-
-This feature is useful in [workers](#workers), when you want to pass javascript across to the worker's
-implementation:
-
-  ~~~ html
-  <script type="text/hyperscript">
-    worker CoinMiner
-      js
-        function mineNext() {
-          // a javascript implementation...
-        }
-      end
-      def nextCoin()
-        return mineNext()
-      end
-    end
-  </script>
-  ~~~
-
-Note that there is also a way to include [inline javascript](/commands/js)
-directly within a hyperscript body, for local optimizations.
 
 ## Debugging {#debugging}
 
