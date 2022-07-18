@@ -173,7 +173,7 @@ Comments in hyperscript start with the `--` characters and a whitespace characte
   log "Yep, that was a comment"
   ~~~
 
-There is no multi-line comment syntax.
+To ease migrations to hyperscript, `//` and `/* ... */` comments are supported.
 
 ### Separators
 
