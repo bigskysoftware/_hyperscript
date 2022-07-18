@@ -14,7 +14,7 @@ fs.copySync("dist/", currentReleaseRoot + "/dist");
 fs.copySync("dist/_hyperscript.min.js", "www/js/_hyperscript.min.js");
 fs.copySync("dist/hdb.min.js", "www/js/hdb.min.js");
 
-var testHTML = "<html><body style='font-family: sans-serif'><h1>HTMX TESTS</h1><ul>\n"
+var testHTML = "<html><body style='font-family: sans-serif'><h1>Hyperscript RELEASE TESTS</h1><ul>\n"
 fs.readdirSync(testRoot).reverse().forEach(function(file){
     if (file !== "index.html") {
         testHTML += "<li><a href='/test/" + file + "/test'>" + file + "</a>\n";

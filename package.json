@@ -5,7 +5,7 @@
     "scripting",
     "HTML"
   ],
-  "version": "0.9.6",
+  "version": "0.9.7",
   "homepage": "https://hyperscript.org/",
   "bugs": {
     "url": "https://github.com/bigskysoftware/_hyperscript/issues"
@@ -16,7 +16,7 @@
     "README.md",
     "src/*"
   ],
-  "main": "dist/_hyperscript.js",
+  "main": "dist/_hyperscript.min.js",
   "bin": {
     "_hyperscript": "src/bin/node-hyperscript.js"
   },
@@ -24,7 +24,7 @@
     "test": "mocha-chrome test/index.html",
     "dist": "cp -r src/* dist/ && npm run-script terser && gzip -k -f dist/_hyperscript.min.js > dist/_hyperscript.min.js.gz && exit",
     "www": "node scripts/www.js",
-    "terser": "terser dist/_hyperscript.js > dist/_hyperscript.min.js && terser dist/hdb.js > dist/hdb.min.js"
+    "terser": "terser -m eval dist/_hyperscript.js > dist/_hyperscript.min.js && terser -m eval dist/hdb.js > dist/hdb.min.js"
   },
   "repository": {
     "type": "git",
