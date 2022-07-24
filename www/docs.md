@@ -12,7 +12,6 @@
   #toc {
     overflow: auto;
     max-height: 100vh;
-    max-width: 24ch;
     margin-inline-end: var(--gap);
     margin-inline-start: calc(var(--gap) - var(--gutter-width));
   }
