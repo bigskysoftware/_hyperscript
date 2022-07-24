@@ -4,13 +4,14 @@
   #toc-wrapper {
     float: left;
     position: sticky;
-    top: var(--gap);
+    top: 0;
     border: none;
     margin: 0;
   }
+
   #toc {
     overflow: auto;
-    max-height: 80vh;
+    max-height: 100vh;
     margin-inline-end: var(--gap);
     margin-inline-start: calc(var(--gap) - var(--gutter-width));
   }
@@ -33,7 +34,7 @@
 
 
 <header id="toc-wrapper" aria-labelledby="contents-h">
-<div id=toc class=box>
+<div id=toc>
 
 # _hyperscript <sub-title>documentation</sub-title> {.h2}
 
