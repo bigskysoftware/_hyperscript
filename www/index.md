@@ -31,7 +31,7 @@ hyperscript makes writing event handlers and highly
 responsive user interfaces easy with a clear, DOM-oriented syntax and by transparently
  handling asynchronous behavior for you &mdash; easier than callbacks, promises, even async/await.
 
-Install: `<script src="https://unpkg.com/hyperscript.org@0.9.5"></script>`{.language-html}
+Install: `<script src="https://unpkg.com/hyperscript.org@0.9.7"></script>`{.language-html}
 
 
 ## features

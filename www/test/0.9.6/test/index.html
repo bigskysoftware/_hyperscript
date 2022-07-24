@@ -1,3 +1,4 @@
+<!doctype html>
 <html lang="en">
 	<head>
 		<meta charset="utf-8" />
@@ -28,21 +29,22 @@
 		</ul>
 
 		<h2>Mocha Test Suite</h2>
-		<a href="dev.html">[RUN ALL]</a>
+		<a href="index.html">[RUN ALL]</a>
 
 		<script src="../node_modules/chai/chai.js"></script>
 		<script src="../node_modules/mocha/mocha.js"></script>
 		<script src="../node_modules/sinon/pkg/sinon.js"></script>
+		<script src="../src/_hyperscript.js"></script>
+		<script src="../src/worker.js"></script>
+		<script src="../src/socket.js"></script>
+		<script src="../src/template.js"></script>
+		<script src="../src/hdb.js"></script>
+
 		<script class="mocha-init">
 			mocha.setup("bdd");
 			mocha.checkLeaks();
 			should = chai.should();
 			assert = chai.assert;
-
-			var _hyperscript;
-			before(async function() {
-				_hyperscript = (await import('../src/web/_hyperscript_w9y.js')).default
-			})
 		</script>
 
 		<script src="util/util.js"></script>
@@ -61,11 +63,12 @@
 		<!-- features -->
 		<script src="features/on.js"></script>
 		<script src="features/def.js"></script>
-<!--		<script src="features/worker.js"></script>-->
+		<script src="features/worker.js"></script>
 		<script src="features/behavior.js"></script>
 		<script src="features/js.js"></script>
 		<script src="features/init.js"></script>
 		<script src="features/set.js"></script>
+		<script src="features/socket.js"></script>
 
 		<!-- commands -->
 		<script src="commands/add.js"></script>
@@ -89,10 +92,11 @@
 		<script src="commands/if.js"></script>
 		<script src="commands/repeat.js"></script>
 		<script src="commands/fetch.js"></script>
-<!--		<script src="commands/throw.js"></script>-->
+		<script src="commands/throw.js"></script>
 		<script src="commands/js.js"></script>
 		<script src="commands/transition.js"></script>
 		<script src="commands/measure.js"></script>
+		<script src="commands/pick.js"></script>
 		<script src="commands/tell.js"></script>
 		<script src="commands/settle.js"></script>
 		<script src="commands/unlessModifier.js"></script>
@@ -109,7 +113,6 @@
 		<script src="expressions/classRef.js"></script>
 		<script src="expressions/closest.js"></script>
 		<script src="expressions/attributeRef.js"></script>
-		<script src="expressions/styleRef.js"></script>
 		<script src="expressions/symbol.js"></script>
 		<script src="expressions/objectLiteral.js"></script>
 		<script src="expressions/boolean.js"></script>
@@ -118,6 +121,7 @@
 		<script src="expressions/blockLiteral.js"></script>
 		<script src="expressions/not.js"></script>
 		<script src="expressions/no.js"></script>
+		<script src="expressions/some.js"></script>
 		<script src="expressions/in.js"></script>
 		<script src="expressions/mathOperator.js"></script>
 		<script src="expressions/logicalOperator.js"></script>
