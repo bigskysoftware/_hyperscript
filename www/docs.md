@@ -108,7 +108,7 @@ OK, let's get started with hyperscript!
 
 ## Install & Quick Start {#install}
 
-Hyperscript is a dependency-free javascript library that can be included in a web page without any build step:
+Hyperscript is a dependency-free JavaScript library that can be included in a web page without any build step:
 
   ~~~ html
   <script src="https://unpkg.com/hyperscript.org@0.9.7"></script>
@@ -177,7 +177,7 @@ To ease migrations to hyperscript, `//` and `/* ... */` comments are supported.
 
 ### Separators
 
-Multiple commands may be optionally separated with a `then`, which acts like a semi-colon in javascript:
+Multiple commands may be optionally separated with a `then`, which acts like a semi-colon in JavaScript:
 
   ~~~ hyperscript
   log "Hello" then log "World"
@@ -222,7 +222,7 @@ In practice, `end` is used only when necessary, in order to keep scripts small a
 
 ### Expressions
 
-Many expressions in hyperscript will be familiar to developers and are based on expressions available in javascript:
+Many expressions in hyperscript will be familiar to developers and are based on expressions available in JavaScript:
 
 * Number literals - `1.1`
 * String literals = `"hello world"`
@@ -266,7 +266,7 @@ hyperscript has three different variable scopes: `local`, `element`, and `global
 * Element variables are scoped to the element they are declared on, but shared across all features on that element
 * Local scoped variables are scoped to the currently executing feature
 
-Note that hyperscript has a flat local scope, similar to javascript's `var` statement.
+Note that hyperscript has a flat local scope, similar to JavaScript's `var` statement.
 
 #### Variable Names & Scoping {#names_and_scoping}
 
@@ -303,7 +303,7 @@ You may also use scope modifiers to give symbols particular scopes:
   ~~~ hyperscript
   set global myGlobal to true
   ~~~
-* A variable with a `element` prefix is element-scoped
+* A variable with an `element` prefix is element-scoped
   ~~~ hyperscript
   set element myElementVar to true
   ~~~
@@ -370,7 +370,7 @@ It may be equivalent, but it doesn't read as nicely does it?
 
 That's why hyperscript supports the `it` symbol as well.
 
-Another funny thing you might have noticed is the appearnce of `the` in this script.
+Another funny thing you might have noticed is the appearance of `the` in this script.
 
 `the` is whitespace before any expression in hyperscript and can be used to make your code read more nicely.
 
@@ -431,14 +431,14 @@ Simplicity itself.
 
 Hyperscript is not an object-oriented language: it is, rather, event-oriented.  However it still allows you to work with
 objects in an easy and convenient manner, which facilitates interoperability with all the functionality of JavaScript,
-including the DOM APIs, javascript libraries and so on.
+including the DOM APIs, JavaScript libraries and so on.
 
 Here is how you can work with objects in hyperscript:
 
 #### Properties
 
 Hyperscript offers a few different ways to access properties of objects.  The first two should be familiar
-to javascript developers:
+to JavaScript developers:
 
   ~~~ hyperscript
   set x to {name : "Joe", age: 35}    -- create an object with some properties
@@ -474,13 +474,13 @@ The `of` operator flips the order of the property & the element that the propert
 clarify your code.
 
 Which of these options you choose for property access is up to you.  We recommend the possessive form in
-most cases as being the most "hyperscripty", with the `of` form being chosen when it helps clarify some code by
+most cases as being the most "hyperscripty", with the `of` form being chosen when it helps to clarify some code by
 putting the final property at the front of the expression.
 
 ##### Flat Mapping
 
-Inspired by [jQuery](https://jquery.org), another feature of property access in hyperscript is that, when a property is access on an
-Array-like object, it will [flat-map](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flatMap)
+Inspired by [jQuery](https://jquery.org), another feature of property access in hyperscript is that, when a property of an
+Array-like object is accessed, it will [flat-map](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flatMap)
 the results to a single, linear array of that property applied to all values within the array.
 
   ~~~ hyperscript
@@ -528,7 +528,7 @@ You can also use [`query literals`](/expressions/query_references), discussed [b
 
 #### Arrays
 
-Hyperscript arrays work very similarly to Javascript arrays:
+Hyperscript arrays work very similarly to JavaScript arrays:
 
   ~~~ hyperscript
   set myArr to [1, 2, 3]
@@ -546,8 +546,8 @@ You can use the `first`, `last` and `random` keywords, discussed [below](#positi
 
 ##### Closures
 
-Hyperscript does not encourage the use of closures or callbacks nearly as much  Javascript.  Rather, it uses
-[async transparency](#async) to handle many of the situations in which Javascript would use them.
+Hyperscript does not encourage the use of closures or callbacks nearly as much as JavaScript.  Rather, it uses
+[async transparency](#async) to handle many of the situations in which JavaScript would use them.
 
 However, there is one area where closures provide a lot of value in hyperscript: data structure manipulation.  The
 hyperscript syntax for closures is inspired by [haskell](https://www.haskell.org/), starting with a `\` character,
@@ -561,7 +561,7 @@ then the arguments, then an arrow `->`, followed by an expression:
 
 ### Control Flow
 
-Conditional control flow in hyperscript is done with the the [if command](/commands/if).  The conditional expression
+Conditional control flow in hyperscript is done with the [if command](/commands/if).  The conditional expression
 in an if statement is not parenthesized. Hyperscript uses `end` rather than curly-braces to delimit the conditional body.
 
 The else-branch can use either the `else` keyword or the `otherwise` keyword.
@@ -578,7 +578,7 @@ The else-branch can use either the `else` keyword or the `otherwise` keyword.
 <output>--</output>
 {% endexample %}
 
-As mentioned in the introduction, `end` is often omitted when it isn't needed in order to make script smaller:
+As mentioned in the introduction, `end` is often omitted when it isn't needed in order to make scripts smaller:
 
   ~~~ html
   <button _="on click increment :x
@@ -595,7 +595,7 @@ You can chain `if/else` commands together in the usual manner.
 
 #### Comparisons & Logical Operators
 
-In addition to the usual comparison operators from javascript, such as `==` and `!=`, hyperscript
+In addition to the usual comparison operators from JavaScript, such as `==` and `!=`, hyperscript
 supports [a rich set of natural language style comparisons](/expressions/comparison-operator) for use in `if` commands:
 
 A small sampling is shown below:
@@ -763,7 +763,7 @@ Hyperscript supports strings that use either a single quotes or double quotes:
   set helloWorld to hello + " " + world
   ~~~
 
-and also supports javascript style template strings:
+and also supports JavaScript style template strings:
 
   ~~~ hyperscript
   set helloWorld to `${hello} ${world}`
@@ -903,7 +903,7 @@ This is useful in cases where you want to make sure you get the handler logic fo
 
 ##### The Queue Modifier {#on_queue}
 
-The `every` keyword is a prefix to the event name, but for other queuing options, you use postfix the event name
+The `every` keyword is a prefix to the event name, but for other queuing options, you postfix the event name
 with the `queue` keyword.
 
 You may pick from one of four strategies:
@@ -1009,7 +1009,7 @@ event-driven code without a lot of fuss.
 
 #### Synthetic Events
 
-hyperscript includes a few synthetic events that make it easier to use more complex APIs in javascript.
+hyperscript includes a few synthetic events that make it easier to use more complex APIs in JavaScript.
 
 ##### Mutation Events {#mutation}
 
@@ -1098,7 +1098,7 @@ When loaded in this manner, the script tags **must** appear before loading hyper
   <script src="https://unpkg.com/hyperscript.org"></script>
   ~~~
 
-Hyperscript is fully interoperable with javascript, and global hyperscript functions can be called from javascript as well
+Hyperscript is fully interoperable with JavaScript, and global hyperscript functions can be called from JavaScript as well
 as vice-versa:
 
   ~~~ js
@@ -1133,7 +1133,7 @@ functions into a specific namespace, rather than polluting the global namespace:
     end
   </script>
   <script>
-    console.log(utils.increment(41)); // access it from javascript
+    console.log(utils.increment(41)); // access it from JavaScript
   </script>
   ~~~
 
@@ -1279,7 +1279,7 @@ This allows you to look up elements based on a variable rather than a fixed valu
 
 All these langauge constructs make it very easy to work with the DOM in a concise, enjoyable manner.
 
-Compare the following javascript:
+Compare the following JavaScript:
 
   ~~~ js
   document.querySelector('#example-btn')
@@ -1664,7 +1664,7 @@ You can also use it to navigate to another web page entirely:
 One of the most distinctive features of hyperscript is that it is "async transparent".  What that means is that,
 for the most part, you, the script writer, do not need to worry about asynchronous behavior.  In the [`fetch`](#fetch)
 section, for example, we did not need to use a `.then()` callback or an `await` keyword, as you would need to
-in javascript: we simply fetched the data and then inserted it into the DOM.
+in JavaScript: we simply fetched the data and then inserted it into the DOM.
 
 To make this happen, the hyperscript runtime handles [Promises](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) under the covers for you, resolving them internally, so that
 asynchronous behavior simply looks linear.
@@ -1677,7 +1677,7 @@ Furthermore, this infrastructure allows hyperscript to work extremely effectivel
 
 ### Waiting {#wait}
 
-In javascript, if you want to wait some amount of time, you can use the venerable `setTimeout()` function:
+In JavaScript, if you want to wait some amount of time, you can use the venerable `setTimeout()` function:
 
   ~~~ javascript
   console.log("Start...")
@@ -1688,7 +1688,7 @@ In javascript, if you want to wait some amount of time, you can use the venerabl
 
 This code will print `"Start"` to the console and then, after a second (1000 milliseconds) it will print `"Finish"`.
 
-To accomplish this in javascript requires a closure, which acts as a callback.  Unfortunately this API is awkward,
+To accomplish this in JavaScript requires a closure, which acts as a callback.  Unfortunately this API is awkward,
 containing a lot of syntactic noise and placing crucial information, how long the delay is, at the end.  As this
 logic becomes more complex, that delay infomation gets further and further away from where, syntactically, the delay
 starts.
@@ -1755,7 +1755,7 @@ on the timeout, setting the `result` to `null`, so `the result's type` will be n
 
 ### Toggling {#toggling}
 
-Previously we looked at the `toggle` command.  It turns out that it, to, can work with events:
+Previously we looked at the `toggle` command.  It turns out that it, too, can work with events:
 
 {% example "Waiting On Events With A Timeout" %}
 <div _="on mouseenter toggle .red until mouseleave">
@@ -1816,30 +1816,30 @@ So, if you wanted to invoke a method that returns a promise, say `returnsAPromis
 Hyperscript will immediately put the value "I called it..." into the next output element, even if the result
 from `returnsAPromise()` has not yet resolved.
 
-## Using Javascript {#js-migration}
+## Using JavaScript {#js-migration}
 
-Hyperscript is directly integrated with Javascript, providing ways to use them side by side and migrate with ease.
+Hyperscript is directly integrated with JavaScript, providing ways to use them side by side and migrate with ease.
 
 ### Shared Comment Syntax {#js-comments}
 
-`//` and `/* ... */` comments are supported, and ideal for migrating lines of code from Javascript to Hyperscript "in-place". The multi-line comment may be used to "block out" code and write documentation comments.
+`//` and `/* ... */` comments are supported, and ideal for migrating lines of code from JavaScript to Hyperscript "in-place". The multi-line comment may be used to "block out" code and write documentation comments.
 
-### Calling Javascript {#js-call}
+### Calling JavaScript {#js-call}
 
-Any Javascript function may be called directly from Hyperscript. See: [calling functions](#calling-functions).
+Any JavaScript function may be called directly from Hyperscript. See: [calling functions](#calling-functions).
 
   ~~~ html
-  <button _="on click call alert('Hello from Javascript!')">
+  <button _="on click call alert('Hello from JavaScript!')">
     Click me.
   </button>
   ~~~
 
-### Inline Javascript {#js-inline}
+### Inline JavaScript {#js-inline}
 
-Inline Javascript may be defined using the [`js` keyword](/features/js).
+Inline JavaScript may be defined using the [`js` keyword](/features/js).
 
   ~~~ html
-  <div _="init js alert('Hello from Javascript!') end"></div>
+  <div _="init js alert('Hello from JavaScript!') end"></div>
   ~~~
 
 Return values are supported.
@@ -1858,11 +1858,11 @@ Parameters are supported.
   </button>
   ~~~
 
-Javascript at the top-level may be defined using the same [`js` command](/commands/js), exposing it to the global scope.
+JavaScript at the top-level may be defined using the same [`js` command](/commands/js), exposing it to the global scope.
 
-You may use inline Javascript for performance reasons, since the Hyperscript runtime is more focused on flexibility, rather than performance.
+You may use inline JavaScript for performance reasons, since the Hyperscript runtime is more focused on flexibility, rather than performance.
 
-This feature is useful in [workers](#workers), when you want to pass javascript across to the worker's
+This feature is useful in [workers](#workers), when you want to pass JavaScript across to the worker's
 implementation:
 
   ~~~ html
@@ -1870,7 +1870,7 @@ implementation:
     worker CoinMiner
       js
         function mineNext() {
-          // a javascript implementation...
+          // a JavaScript implementation...
         }
       end
       def nextCoin()
@@ -1939,7 +1939,7 @@ with the worker via function calls, passing data back and forth in the normal ma
 
 This makes it very easy to define and work with web workers.
 
-Note that you can use the inline js feature discussed next if you want to use javascript in your worker. You might
+Note that you can use the inline js feature discussed next if you want to use JavaScript in your worker. You might
 want to do this if you need better performance on calculations than hyperscript provides, for example.
 
 ### Web Sockets {#sockets}
