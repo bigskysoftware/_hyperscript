@@ -13,7 +13,7 @@ end
 
 ### Description
 
-The `async` command you to execute a command of a block of commands asynchronously (they will not block hyperscript from continuing
+The `async` command you to execute a command or a block of commands asynchronously (they will not block hyperscript from continuing
 even if they return a promise)
 
 ### Examples
