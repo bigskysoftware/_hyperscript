@@ -4,13 +4,13 @@
 ### Syntax
 
 ```ebnf
- send <event-name>[(<named arguments)] [to <expression>]
- trigger <event-name>[(<named arguments)] [on <expression>]
+ send <event-name>[(<named arguments>)] [to <expression>]
+ trigger <event-name>[(<named arguments>)] [on <expression>]
 ```
 
 ### Description
 
-The `send` command sends an event to the given target. Arguments can optionally provided in a named argument list
+The `send` command sends an event to the given target. Arguments can optionally be provided in a named argument list
 and will be passed in the `event.detail` object.
 
 You can alternatively use the equivalent `trigger` syntax.
