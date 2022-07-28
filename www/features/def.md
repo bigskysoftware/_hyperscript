@@ -8,6 +8,8 @@ def <function name>(<parameter list>)
   {<command>}
 [catch <identifier>
   {<command>}]
+[finally
+  {<command>}]
 end
 ```
 
