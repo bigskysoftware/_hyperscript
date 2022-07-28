@@ -76,7 +76,7 @@ or asynchronously
 Both functions and event handlers also support a `finally` block to ensure that some cleanup code is executed:
 
 ```hyperscript
-  def loadExample
+  def loadExample ()
     add @disabled to me
     fetch /example
     put the result after me
