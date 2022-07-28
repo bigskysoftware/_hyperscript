@@ -7,7 +7,7 @@
 
 `js[(<param-list>)] <js-body> end`
 
-- `param-list` is a comma separated list of identifiers, which are \_hyperscript variables that this JavaScript code will have access to
+- `param-list` is a comma separated list of identifiers, which are \_hyperscript variables whose values will be passed to this JavaScript code and become available there under their original name
 - `js-body` is some JavaScript code whose return value will be the result of this command (what `it` refers to in the next command).
 
 ### Description
