@@ -70,3 +70,19 @@ or asynchronously
   end
 </script>
 ```
+
+### Finally Blocks
+
+Both functions and event handlers also support a `finally` block to ensure that some cleanup code is executed:
+
+```hyperscript
+  def loadExample
+    add @disabled to me
+    fetch /example
+    put the result after me
+  finally
+    remove @disabled from me
+  end
+```
+
+In this code we ensure that the `disabled` property is removed from the current element.
