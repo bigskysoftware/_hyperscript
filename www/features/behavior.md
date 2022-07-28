@@ -7,7 +7,6 @@
 behavior <name>(<parameter list>)
   {<hyperscript>}
 end
-</script>
 ```
 
 ```ebnf
