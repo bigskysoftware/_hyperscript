@@ -4,7 +4,7 @@
 ### Syntax
 
 ```ebnf
-fetch <stringLike> [ as [ a | an ]( json | Object | text | response ) ] [<object literal> | 'with' <naked named arguments>]
+fetch <stringLike> [ as [ a | an ]( json | Object | html | response ) ] [<object literal> | 'with' <naked named arguments>]
 ```
 
 ### Description

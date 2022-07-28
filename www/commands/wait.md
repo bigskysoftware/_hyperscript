@@ -24,7 +24,7 @@ In the `wait <time-expr>` form, it waits the given amount of time, which can be 
 - `1 s` - 1000 milliseconds
 - `1 seconds` - 1000 milliseconds
 
-You can also mix timeouts and delays, which can be useful to avoid waiting forever for an event:
+You can also mix timeouts and events, which can be useful to avoid waiting forever for an event:
 
 ```hyperscript
 -- Fail if the thing doesn't load after 1s.

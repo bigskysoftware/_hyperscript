@@ -7,7 +7,6 @@
 behavior <name>(<parameter list>)
   {<hyperscript>}
 end
-</script>
 ```
 
 ```ebnf
@@ -41,7 +40,7 @@ To remedy this, you can define a _behavior_:
      talks. This is what the industry is like, right? -->
 
 ```html
-  <script type="text/hyperscript">
+<script type="text/hyperscript">
   behavior Removable
     on click
       remove me
@@ -103,7 +102,7 @@ Now our Removable™ innovation is reusable!
 
 ##### Ordering
 
-Behaviors must be defined before they are "installed," if defined _locally_. If behaviors are loaded _remotely_ they must appear before loading hyperscript, but they can be loaded after they are "installed".
+Behaviors must be defined before they are "installed," if defined _locally_. If behaviors are loaded _remotely_ this has to be done before loading hyperscript.
 
 ```html
 <script type="text/hyperscript" src="/behaviors._hs"></script>
