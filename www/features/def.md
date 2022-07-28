@@ -57,7 +57,7 @@ function is invoked within hyperscript.
 
 ### Exceptions
 
-Hyperscript functions support a single catch block that can be used to catch exceptions that are throw synchronously
+Hyperscript functions support a single catch block that can be used to catch exceptions that are thrown synchronously
 or asynchronously
 
 ```html
