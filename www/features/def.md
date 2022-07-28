@@ -13,8 +13,8 @@ def <function name>(<parameter list>)
 end
 ```
 
-The `def` keyword allows you to define functions in hyperscript. It consists of a function name, a paramter list
-and a body, with an optional catch block.
+The `def` keyword allows you to define functions in hyperscript. It consists of a function name, a parameter list
+and a body with an optional `catch` and/or an optional `finally` block.
 
 The body of the function is a list of [commands](/docs#commands), optionally separated by the `then` keyword.
 
