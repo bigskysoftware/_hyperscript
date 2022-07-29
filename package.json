@@ -5,7 +5,7 @@
   "type": "module",
   "main": "./dist/_hyperscript.js",
   "files": [
-    "./dist"
+    "dist"
   ],
   "bin": {
     "_hyperscript": "src/bin/node-hyperscript.js"
