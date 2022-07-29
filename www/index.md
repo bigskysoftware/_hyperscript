@@ -16,7 +16,7 @@ put 'copy' into me</code></pre>
 ------ {.grow-0 .align-self:stretch style="justify-self:center"}
 
 see it in action: <button class="btn primary" _="on click
-writeText(the #snippet's innerText) into the navigator's clipboard
+writeText(the #sample's innerText) into the navigator's clipboard
 put 'copied!' into me
 wait 1s
 put 'copy' into me">
