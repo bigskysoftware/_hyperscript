@@ -167,7 +167,6 @@ var __values = (this && this.__values) || function(o) {
         };
         /**
          * @param {string} c
-         * @param {boolean} [dollarIsOp]
          * @returns boolean
          */
         Lexer.isIdentifierChar = function (c) {
@@ -204,7 +203,6 @@ var __values = (this && this.__values) || function(o) {
          * @returns {Tokens}
          */
         Lexer.tokenize = function (string, template) {
-            if (template === void 0) { template = undefined; }
             var tokens = /** @type {Token[]}*/ [];
             var source = string;
             var position = 0;
@@ -289,8 +287,6 @@ var __values = (this && this.__values) || function(o) {
              * @returns {Token}
              */
             function makeOpToken(type, value) {
-                if (type === void 0) { type = undefined; }
-                if (value === void 0) { value = undefined; }
                 var token = makeToken(type, value);
                 token.op = true;
                 return token;
@@ -301,7 +297,6 @@ var __values = (this && this.__values) || function(o) {
              * @returns {Token}
              */
             function makeToken(type, value) {
-                if (value === void 0) { value = undefined; }
                 return {
                     type: type,
                     value: value || "",
@@ -577,7 +572,6 @@ var __values = (this && this.__values) || function(o) {
          * @returns {Tokens}
          */
         Lexer.prototype.tokenize = function (string, template) {
-            if (template === void 0) { template = undefined; }
             return Lexer.tokenize(string, template);
         };
         Lexer.OP_TABLE = {
@@ -616,17 +610,6 @@ var __values = (this && this.__values) || function(o) {
         };
         return Lexer;
     }());
-    /**
-     * @typedef {Object} Token
-     * @property {string} [type]
-     * @property {string} value
-     * @property {number} [start]
-     * @property {number} [end]
-     * @property {number} [column]
-     * @property {number} [line]
-     * @property {boolean} [op] `true` if this token represents an operator
-     * @property {boolean} [template] `true` if this token is a template, for class refs, id refs, strings
-     */
     var Tokens = /** @class */ (function () {
         function Tokens(tokens, consumed, source) {
             /** @type Token | null */
@@ -676,7 +659,7 @@ var __values = (this && this.__values) || function(o) {
          * @param {string} [op3]
          * @returns {Token | void}
          */
-        Tokens.prototype.matchAnyOpToken = function (op1, op2, op3) {
+        Tokens.prototype.matchAnyOpToken = function ( /* op1:string, op2:string, op3:string */) {
             for (var i = 0; i < arguments.length; i++) {
                 var opToken = arguments[i];
                 var match = this.matchOpToken(opToken);
@@ -691,7 +674,7 @@ var __values = (this && this.__values) || function(o) {
          * @param {string} [op3]
          * @returns {Token | void}
          */
-        Tokens.prototype.matchAnyToken = function (op1, op2, op3) {
+        Tokens.prototype.matchAnyToken = function ( /* op1:string, op2:string, op3:string */) {
             for (var i = 0; i < arguments.length; i++) {
                 var opToken = arguments[i];
                 var match = this.matchToken(opToken);
@@ -915,8 +898,6 @@ var __values = (this && this.__values) || function(o) {
      * @member {(this: ASTNode) => void} install
      * @member {(this: ASTNode, context:Context) => void} execute
      * @member {(this: ASTNode, target: object, source: object, args?: Object) => void} apply
-     *
-     *
      */
     var Parser = /** @class */ (function () {
         /**
