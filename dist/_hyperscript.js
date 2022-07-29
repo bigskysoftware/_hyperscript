@@ -873,32 +873,6 @@ var __values = (this && this.__values) || function(o) {
         };
         return Tokens;
     }());
-    /**
-     * @callback ParseRule
-     * @param {Parser} parser
-     * @param {Runtime} runtime
-     * @param {Tokens} tokens
-     * @param {*} [root]
-     * @returns {ASTNode | undefined}
-     *
-     * @typedef {Object} ASTNode
-     * @member {boolean} isFeature
-     * @member {string} type
-     * @member {any[]} args
-     * @member {(this: ASTNode, ctx:Context, root:any, ...args:any) => any} op
-     * @member {(this: ASTNode, context?:Context) => any} evaluate
-     * @member {ASTNode} parent
-     * @member {Set<ASTNode>} children
-     * @member {ASTNode} root
-     * @member {String} keyword
-     * @member {Token} endToken
-     * @member {ASTNode} next
-     * @member {(context:Context) => ASTNode} resolveNext
-     * @member {EventSource} eventSource
-     * @member {(this: ASTNode) => void} install
-     * @member {(this: ASTNode, context:Context) => void} execute
-     * @member {(this: ASTNode, target: object, source: object, args?: Object) => void} apply
-     */
     var Parser = /** @class */ (function () {
         /**
          *
@@ -1033,7 +1007,6 @@ var __values = (this && this.__values) || function(o) {
          * @returns {ASTNode}
          */
         Parser.prototype.parseElement = function (type, tokens, root) {
-            if (root === void 0) { root = undefined; }
             var elementDefinition = this.GRAMMAR[type];
             if (elementDefinition) {
                 var start = tokens.currentToken();
@@ -1058,8 +1031,6 @@ var __values = (this && this.__values) || function(o) {
          * @returns {ASTNode}
          */
         Parser.prototype.requireElement = function (type, tokens, message, root) {
-            if (message === void 0) { message = undefined; }
-            if (root === void 0) { root = undefined; }
             var result = this.parseElement(type, tokens, root);
             if (!result)
                 Parser.raiseParseError(tokens, message || "Expected " + type);
@@ -1162,7 +1133,6 @@ var __values = (this && this.__values) || function(o) {
          * @returns {never}
          */
         Parser.raiseParseError = function (tokens, message) {
-            if (message === void 0) { message = undefined; }
             message =
                 (message || "Unexpected Token : " + tokens.currentToken().value) + "\n\n" + Parser.createParserContext(tokens);
             var error = new Error(message);
@@ -1174,7 +1144,6 @@ var __values = (this && this.__values) || function(o) {
          * @param {string} [message]
          */
         Parser.prototype.raiseParseError = function (tokens, message) {
-            if (message === void 0) { message = undefined; }
             Parser.raiseParseError(tokens, message);
         };
         /**
@@ -1296,8 +1265,6 @@ var __values = (this && this.__values) || function(o) {
          * @param {Parser} [parser]
          */
         function Runtime(lexer, parser) {
-            if (lexer === void 0) { lexer = undefined; }
-            if (parser === void 0) { parser = undefined; }
             this.HALT = Runtime.HALT;
             /**
              * @type {string[] | null}
@@ -1354,7 +1321,6 @@ var __values = (this && this.__values) || function(o) {
          * @returns {boolean}
          */
         Runtime.prototype.triggerEvent = function (elt, eventName, detail, sender) {
-            if (sender === void 0) { sender = undefined; }
             detail = detail || {};
             detail["sender"] = sender;
             var event = this.makeEvent(eventName, detail);
@@ -1692,7 +1658,7 @@ var __values = (this && this.__values) || function(o) {
             return hyperscriptFeatures;
         };
         /**
-        * @param {Object} owner
+        * @param {Element} owner
         * @param {Context} ctx
         */
         Runtime.prototype.addFeatures = function (owner, ctx) {
