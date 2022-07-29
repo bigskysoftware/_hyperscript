@@ -1,6 +1,6 @@
 {
   "name": "hyperscript-experimental",
-  "version": "0.9.8",
+  "version": "0.9.9",
   "description": "a small scripting language for the web",
   "type": "module",
   "main": "./dist/_hyperscript.js",
