@@ -1845,15 +1845,15 @@
       * @param {Object} [args]
       * @returns {any}
       */
-      evaluate(src, ctx?:Context, args = undefined) {
+      evaluate (src:string, ctx?:Context, args?:any):any {
           class HyperscriptModule extends EventTarget {
             public module:any 
 
-              constructor(mod) {
+              constructor (mod) {
                   super();
                   this.module = mod;
               }
-              toString() {
+              toString ():string {
                   return this.module.id;
               }
           }
@@ -1872,16 +1872,12 @@
           } else {
               return element.evaluate(ctx);
           }
-
-          function makeModule() {
-              return {}
-          }
       }
 
       /**
       * @param {HTMLElement} elt
       */
-      processNode(elt) {
+      processNode (elt:HTMLElement):void {
           var selector = this.getScriptSelector();
           if (this.matchesSelector(elt, selector)) {
               this.initElement(elt, elt);
@@ -1900,7 +1896,7 @@
       * @param {Element} elt
       * @param {Element} [target]
       */
-      initElement(elt, target) {
+      initElement (elt:Element, target:Element):void {
           if (elt.closest && elt.closest(config.disableSelector)) {
               return;
           }
@@ -1943,7 +1939,7 @@
       * @param {Element} elt
       * @returns {Object}
       */
-      getInternalData(elt) {
+      getInternalData (elt:Element):any {
           var internalData = this.internalDataMap.get(elt);
           if (typeof internalData === 'undefined') {
               this.internalDataMap.set(elt, internalData = {});
@@ -1957,7 +1953,7 @@
       * @param {boolean} [nullOk]
       * @returns {boolean}
       */
-      typeCheck(value, typeString, nullOk) {
+      typeCheck (value:any, typeString:string, nullOk:boolean):boolean {
           if (value == null && nullOk) {
               return true;
           }
@@ -1965,7 +1961,7 @@
           return typeName === typeString;
       }
 
-      getElementScope(context) {
+      getElementScope (context:Context):any {
           var elt = context.meta && context.meta.owner;
           if (elt) {
               var internalData = this.getInternalData(elt);
@@ -1984,7 +1980,7 @@
       * @param {string} str
       * @returns {boolean}
       */
-      isReservedWord(str) {
+      isReservedWord (str:string):boolean {
           return ["meta", "it", "result", "locals", "event", "target", "detail", "sender", "body"].includes(str)
       }
 
@@ -1992,7 +1988,7 @@
       * @param {any} context
       * @returns {boolean}
       */
-      isHyperscriptContext(context) {
+      isHyperscriptContext (context:any):boolean {
           return context instanceof Context;
       }
 
@@ -2001,7 +1997,7 @@
       * @param {Context} context
       * @returns {any}
       */
-      resolveSymbol(str, context, type) {
+      resolveSymbol (str:string, context:Context, type:string):any {
           if (str === "me" || str === "my" || str === "I") {
               return context.me;
           }
@@ -2050,7 +2046,7 @@
           }
       }
 
-      setSymbol(str, context, type, value) {
+      setSymbol (str:string, context:Context, type:string, value:any):void {
           if (type === "global") {
               globalScope[str] = value;
           } else if (type === "element") {
@@ -2086,7 +2082,7 @@
       * @param {Context} context
       * @returns {undefined | ASTNode}
       */
-      findNext(command, context) {
+      findNext (command:ASTNode, context:Context):undefined | ASTNode {
           if (command) {
               if (command.resolveNext) {
                   return command.resolveNext(context);
