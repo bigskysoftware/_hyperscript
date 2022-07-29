@@ -9,7 +9,7 @@
   },
   "scripts": {
     "test": "mocha-chrome test/index.html",
-    "build": "rimraf dist && rollup -c rollup.config.js && tsc && mv src/*.d.ts dist && cp src/*.js dist && rm src/_hyperscript.js && npm run-script terser && gzip -k -f dist/_hyperscript.min.js > dist/_hyperscript.min.js.gz",
+    "build": "rimraf dist && rollup -c rollup.config.js && tsc && cp src/*.d.ts dist && rm src/_hyperscript.d.ts && cp src/*.js dist && rm src/_hyperscript.js && npm run-script terser && gzip -k -f dist/_hyperscript.min.js > dist/_hyperscript.min.js.gz && rm -R dist/src",
     "www": "node scripts/www.js",
     "terser": "terser -m eval dist/_hyperscript.js > dist/_hyperscript.min.js && terser -m eval dist/hdb.js > dist/hdb.min.js"
   },
