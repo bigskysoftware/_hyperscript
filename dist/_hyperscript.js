@@ -1757,7 +1757,6 @@ var __values = (this && this.__values) || function(o) {
         * @returns {any}
         */
         Runtime.prototype.evaluate = function (src, ctx, args) {
-            if (args === void 0) { args = undefined; }
             var HyperscriptModule = /** @class */ (function (_super) {
                 __extends(HyperscriptModule, _super);
                 function HyperscriptModule(mod) {
@@ -1785,9 +1784,6 @@ var __values = (this && this.__values) || function(o) {
             }
             else {
                 return element.evaluate(ctx);
-            }
-            function makeModule() {
-                return {};
             }
         };
         /**
