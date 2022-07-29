@@ -4,6 +4,7 @@
   "description": "a small scripting language for the web",
   "type": "module",
   "main": "./dist/_hyperscript.js",
+  "files": ["./dist"],
   "bin": {
     "_hyperscript": "src/bin/node-hyperscript.js"
   },
