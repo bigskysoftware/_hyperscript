@@ -7,7 +7,7 @@ an easy & approachable language designed for modern front-end web development {.
 
 <div id="sample" class="box f-switch colwidth-l justify-content:center align-items:center">
 
-<pre class="grow-2"><code class=language-hyperscript>writeText(the #snippet's innerText)
+<pre class="grow-2"><code class=language-hyperscript>writeText(the #sample's innerText)
   into the navigator's clipboard
 put 'copied!' into me
 wait 1s
