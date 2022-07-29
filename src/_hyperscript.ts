@@ -912,7 +912,11 @@
    * @param {Tokens} tokens
    * @param {*} [root]
    * @returns {ASTNode | undefined}
-   *
+   */
+
+  type ParseRule = (parser:Parser, runtime:Runtime, tokens:Tokens, root?:any) => ASTNode | undefined
+
+  /**
    * @typedef {Object} ASTNode
    * @member {boolean} isFeature
    * @member {string} type
@@ -932,16 +936,30 @@
    * @member {(this: ASTNode, target: object, source: object, args?: Object) => void} apply
    */
 
+  type ASTNode = {
+    isFeature?:boolean,
+    type?:string, args?:any[],
+    op:(this: ASTNode, ctx:Context, root:any, ...args:any) => any,
+    evaluate?:(this:ASTNode, context?:Context) => any,
+    parent?:ASTNode, children?:Set<ASTNode>, root?:ASTNode,
+    keyword?:string, endToken?:Token,
+    next?:ASTNode, resolveNext?:(context:Context) => ASTNode,
+    eventSource?:EventSource,
+    install?:(this:ASTNode) => void,
+    execute?:(this:ASTNode, context:Context) => void,
+    apply?:(this:ASTNode, target:object, source:object, args?:Object) => void
+  }
+
   class Parser {
     public parser:Parser
-    public runtime:any
-    public possessivesDisabled
+    public runtime:Runtime
+    public possessivesDisabled:boolean
 
       /**
        *
        * @param {Runtime} runtime
        */
-      constructor(runtime) {
+      constructor (runtime:Runtime) {
           this.runtime = runtime
 
           this.possessivesDisabled = false
@@ -949,7 +967,7 @@
           /* ============================================================================================ */
           /* Core hyperscript Grammar Elements                                                            */
           /* ============================================================================================ */
-          this.addGrammarElement("feature", function (parser, runtime, tokens) {
+          this.addGrammarElement("feature", function (parser:Parser, runtime:Runtime, tokens:Tokens):ASTNode {
               if (tokens.matchOpToken("(")) {
                   var featureElement = parser.requireElement("feature", tokens);
                   tokens.requireOpToken(")");
@@ -962,7 +980,7 @@
               }
           });
 
-          this.addGrammarElement("command", function (parser, runtime, tokens) {
+          this.addGrammarElement("command", function (parser:Parser, runtime:Runtime, tokens:Tokens):ASTNode {
               if (tokens.matchOpToken("(")) {
                   const commandElement = parser.requireElement("command", tokens);
                   tokens.requireOpToken(")");
@@ -983,7 +1001,7 @@
               return commandElement;
           });
 
-          this.addGrammarElement("commandList", function (parser, runtime, tokens) {
+          this.addGrammarElement("commandList", function (parser:Parser, runtime:Runtime, tokens:Tokens):ASTNode {
               var cmd = parser.parseElement("command", tokens);
               if (cmd) {
                   tokens.matchToken("then");
@@ -993,7 +1011,7 @@
               }
           });
 
-          this.addGrammarElement("leaf", function (parser, runtime, tokens) {
+          this.addGrammarElement("leaf", function (parser:Parser, runtime:Runtime, tokens:Tokens):ASTNode {
               var result = parser.parseAnyOf(parser.LEAF_EXPRESSIONS, tokens);
               // symbol is last so it doesn't consume any constants
               if (result == null) {
@@ -1003,7 +1021,7 @@
               return result;
           });
 
-          this.addGrammarElement("indirectExpression", function (parser, runtime, tokens, root) {
+          this.addGrammarElement("indirectExpression", function (parser:Parser, runtime:Runtime, tokens:Tokens, root:ASTNode):ASTNode {
               for (var i = 0; i < parser.INDIRECT_EXPRESSIONS.length; i++) {
                   var indirect = parser.INDIRECT_EXPRESSIONS[i];
                   root.endToken = tokens.lastMatch();
@@ -1015,7 +1033,7 @@
               return root;
           });
 
-          this.addGrammarElement("indirectStatement", function (parser, runtime, tokens, root) {
+          this.addGrammarElement("indirectStatement", function (parser:Parser, runtime:Runtime, tokens:Tokens, root:ASTNode):ASTNode {
               if (tokens.matchToken("unless")) {
                   root.endToken = tokens.lastMatch();
                   var conditional = parser.requireElement("expression", tokens);
@@ -1039,7 +1057,7 @@
               return root;
           });
 
-          this.addGrammarElement("primaryExpression", function (parser, runtime, tokens) {
+          this.addGrammarElement("primaryExpression", function (parser:Parser, runtime:Runtime, tokens:Tokens):ASTNode {
               var leaf = parser.parseElement("leaf", tokens);
               if (leaf) {
                   return parser.parseElement("indirectExpression", tokens, leaf);
@@ -1048,31 +1066,31 @@
           });
       }
 
-      use(plugin) {
+      use (plugin):this {
           plugin(this)
           return this
       }
 
       /** @type {Object<string,ParseRule>} */
-      GRAMMAR = {};
+      GRAMMAR:{ [Key:string]:ParseRule } = {};
 
       /** @type {Object<string,ParseRule>} */
-      COMMANDS = {};
+      COMMANDS:{ [Key:string]:ParseRule } = {};
 
       /** @type {Object<string,ParseRule>} */
-      FEATURES = {};
+      FEATURES:{ [Key:string]:ParseRule } = {};
 
       /** @type {string[]} */
-      LEAF_EXPRESSIONS = [];
+      LEAF_EXPRESSIONS:string[] = [];
       /** @type {string[]} */
-      INDIRECT_EXPRESSIONS = [];
+      INDIRECT_EXPRESSIONS:string[] = [];
 
       /**
        * @param {*} parseElement
        * @param {*} start
        * @param {Tokens} tokens
        */
-      initElt(parseElement, start, tokens) {
+      initElt (parseElement:any, start:any, tokens:Tokens):void {
           parseElement.startToken = start;
           parseElement.sourceFor = Tokens.sourceFor;
           parseElement.lineFor = Tokens.lineFor;
@@ -1085,7 +1103,7 @@
        * @param {ASTNode?} root
        * @returns {ASTNode}
        */
-      parseElement(type, tokens, root = undefined) {
+      parseElement (type:string, tokens:Tokens, root?:ASTNode):ASTNode {
           var elementDefinition = this.GRAMMAR[type];
           if (elementDefinition) {
               var start = tokens.currentToken();
@@ -1110,7 +1128,7 @@
        * @param {*} [root]
        * @returns {ASTNode}
        */
-      requireElement(type, tokens, message = undefined, root = undefined) {
+      requireElement (type:string, tokens:Tokens, message?:string, root?:any):ASTNode {
           var result = this.parseElement(type, tokens, root);
           if (!result) Parser.raiseParseError(tokens, message || "Expected " + type);
           // @ts-ignore
@@ -1122,7 +1140,7 @@
        * @param {Tokens} tokens
        * @returns {ASTNode}
        */
-      parseAnyOf(types, tokens) {
+      parseAnyOf (types:string[], tokens:Tokens):ASTNode {
           for (var i = 0; i < types.length; i++) {
               var type = types[i];
               var expression = this.parseElement(type, tokens);
@@ -1136,7 +1154,7 @@
        * @param {string} name
        * @param {ParseRule} definition
        */
-      addGrammarElement(name, definition) {
+      addGrammarElement (name:string, definition:ParseRule):void {
           this.GRAMMAR[name] = definition;
       }
 
@@ -1144,7 +1162,7 @@
        * @param {string} keyword
        * @param {ParseRule} definition
        */
-      addCommand(keyword, definition) {
+      addCommand (keyword:string, definition:ParseRule):void {
           var commandGrammarType = keyword + "Command";
           var commandDefinitionWrapper = function (parser, runtime, tokens) {
               const commandElement = definition(parser, runtime, tokens);
@@ -1165,7 +1183,7 @@
        * @param {string} keyword
        * @param {ParseRule} definition
        */
-      addFeature(keyword, definition) {
+      addFeature (keyword:string, definition:ParseRule):void {
           var featureGrammarType = keyword + "Feature";
 
           /** @type {ParseRule} */
@@ -1186,7 +1204,7 @@
        * @param {string} name
        * @param {ParseRule} definition
        */
-      addLeafExpression(name, definition) {
+      addLeafExpression (name:string, definition:ParseRule):void {
           this.LEAF_EXPRESSIONS.push(name);
           this.addGrammarElement(name, definition);
       }
@@ -1195,7 +1213,7 @@
        * @param {string} name
        * @param {ParseRule} definition
        */
-      addIndirectExpression(name, definition) {
+      addIndirectExpression (name:string, definition:ParseRule):void {
           this.INDIRECT_EXPRESSIONS.push(name);
           this.addGrammarElement(name, definition);
       }
@@ -1205,7 +1223,7 @@
        * @param {Tokens} tokens
        * @returns string
        */
-      static createParserContext(tokens) {
+      static createParserContext (tokens:Tokens):string {
           var currentToken = tokens.currentToken();
           var source = tokens.source;
           var lines = source.split("\n");
@@ -1221,7 +1239,7 @@
        * @param {string} [message]
        * @returns {never}
        */
-      static raiseParseError(tokens, message = undefined) {
+      static raiseParseError (tokens:Tokens, message?:string):never {
           message =
               (message || "Unexpected Token : " + tokens.currentToken().value) + "\n\n" + Parser.createParserContext(tokens);
           var error = new Error(message);
@@ -1233,7 +1251,7 @@
        * @param {Tokens} tokens
        * @param {string} [message]
        */
-      raiseParseError(tokens, message = undefined) {
+      raiseParseError (tokens:Tokens, message?:string):void {
           Parser.raiseParseError(tokens, message)
       }
 
@@ -1241,7 +1259,7 @@
        * @param {Tokens} tokens
        * @returns {ASTNode}
        */
-      parseHyperScript(tokens) {
+      parseHyperScript (tokens:Tokens):ASTNode {
           var result = this.parseElement("hyperscript", tokens);
           if (tokens.hasMore()) this.raiseParseError(tokens);
           if (result) return result;
@@ -1251,7 +1269,7 @@
        * @param {ASTNode | undefined} elt
        * @param {ASTNode} parent
        */
-      setParent(elt, parent) {
+      setParent (elt:ASTNode | undefined, parent:ASTNode):void {
           if (typeof elt === 'object') {
               elt.parent = parent;
               if (typeof parent === 'object') {
@@ -1266,7 +1284,7 @@
        * @param {Token} token
        * @returns {ParseRule}
        */
-      commandStart(token) {
+      commandStart (token:Token):ParseRule {
           return this.COMMANDS[token.value || ""];
       }
 
@@ -1274,7 +1292,7 @@
        * @param {Token} token
        * @returns {ParseRule}
        */
-      featureStart(token) {
+      featureStart (token:Token):ParseRule {
           return this.FEATURES[token.value || ""];
       }
 
@@ -1282,7 +1300,7 @@
        * @param {Token} token
        * @returns {boolean}
        */
-      commandBoundary(token) {
+      commandBoundary (token:Token):boolean {
           if (
               token.value == "end" ||
               token.value == "then" ||
@@ -1302,9 +1320,9 @@
        * @param {Tokens} tokens
        * @returns {(string | ASTNode)[]}
        */
-      parseStringTemplate(tokens) {
+      parseStringTemplate (tokens:Tokens):(string|ASTNode)[] {
           /** @type {(string | ASTNode)[]} */
-          var returnArr = [""];
+          var returnArr:(string | ASTNode)[] = [""];
           do {
               returnArr.push(tokens.lastWhitespace());
               if (tokens.currentToken().value === "$") {
@@ -1330,7 +1348,7 @@
       /**
        * @param {ASTNode} commandList
        */
-      ensureTerminated(commandList) {
+      ensureTerminated (commandList:ASTNode):void {
           const runtime = this.runtime
           var implicitReturn = {
               type: "implicitReturn",
@@ -1363,7 +1381,7 @@
        * @param {Lexer} [lexer]
        * @param {Parser} [parser]
        */
-      constructor(lexer = undefined, parser = undefined) {
+      constructor(lexer?:Lexer, parser?:Parser) {
           this.lexer = lexer ?? new Lexer;
           this.parser = parser ?? new Parser(this)
               .use(hyperscriptCoreGrammar)
@@ -1376,7 +1394,7 @@
        * @param {string} selector
        * @returns boolean
        */
-      matchesSelector(elt, selector) {
+      matchesSelector(elt:HTMLElement, selector:string):boolean {
           // noinspection JSUnresolvedVariable
           var matchesFunction =
               // @ts-ignore
@@ -1389,7 +1407,7 @@
        * @param {Object} [detail]
        * @returns {Event}
        */
-      makeEvent(eventName, detail) {
+      makeEvent(eventName:string, detail?:object):Event {
           var evt;
           if (globalScope.Event && typeof globalScope.Event === "function") {
               evt = new Event(eventName, {
@@ -1411,7 +1429,7 @@
        * @param {Element} [sender]
        * @returns {boolean}
        */
-      triggerEvent(elt, eventName, detail, sender = undefined) {
+      triggerEvent(elt:Element, eventName:string, detail?:object, sender?:Element):boolean {
           detail = detail || {};
           detail["sender"] = sender;
           var event = this.makeEvent(eventName, detail);
@@ -1426,7 +1444,7 @@
        * @param {any} value
        * @returns {value is Array | NodeList}
        */
-      isArrayLike(value) {
+      isArrayLike (value:any):boolean {
           return Array.isArray(value) ||
               (typeof NodeList !== 'undefined' && (value instanceof NodeList || value instanceof HTMLCollection));
       }
@@ -1438,7 +1456,7 @@
        * @param {any} value
        * @returns {value is Iterable}
        */
-      isIterable(value) {
+      isIterable (value:any):boolean {
           return typeof value === 'object'
               && Symbol.iterator in value
               && typeof value[Symbol.iterator] === 'function';
@@ -1455,7 +1473,7 @@
        * @param {any} value
        * @returns {value is (any[] | ElementCollection)}
        */
-      shouldAutoIterate(value) {
+      shouldAutoIterate (value:any):boolean {
           return value != null && value[shouldAutoIterateSymbol] ||
               this.isArrayLike(value);
       }
@@ -1469,7 +1487,7 @@
        * @param {T | Iterable<T>} value
        * @param {(item: T) => void} func
        */
-      forEach(value, func) {
+      forEach (value:any, func:any):void {
           if (value == null) {
               // do nothing
           } else if (this.isIterable(value)) {
@@ -1495,7 +1513,7 @@
        * @param {ElementCollection | T | T[]} value
        * @param {(item: T) => void} func
        */
-      implicitLoop(value, func) {
+      implicitLoop (value:any, func:any):void {
           if (this.shouldAutoIterate(value)) {
               for (const x of value) func(x);
           } else {
@@ -1503,7 +1521,7 @@
           }
       }
 
-      wrapArrays(args) {
+      wrapArrays (args:any[]):any[] {
           var arr = [];
           for (var i = 0; i < args.length; i++) {
               var arg = args[i];
@@ -1516,7 +1534,7 @@
           return arr;
       }
 
-      unwrapAsyncs(values) {
+      unwrapAsyncs (values:any[]):void {
           for (var i = 0; i < values.length; i++) {
               var value = values[i];
               if (value.asyncWrapper) {
@@ -1533,14 +1551,14 @@
           }
       }
 
-      static HALT = {};
+      static HALT:{} = {};
       HALT = Runtime.HALT;
 
       /**
        * @param {ASTNode} command
        * @param {Context} ctx
        */
-      unifiedExec(command, ctx) {
+      unifiedExec (command:ASTNode, ctx:Context):void {
           while (true) {
               try {
                   var next = this.unifiedEval(command, ctx);
@@ -1605,11 +1623,11 @@
       * @param {Context} ctx
       * @returns {*}
       */
-      unifiedEval(parseElement, ctx) {
+      unifiedEval(parseElement:any, ctx:Context):any {
           /** @type any[] */
-          var args = [ctx];
-          var async = false;
-          var wrappedAsyncs = false;
+          var args:any[] = [ctx];
+          var async:boolean = false;
+          var wrappedAsyncs:boolean = false;
 
           if (parseElement.args) {
               for (var i = 0; i < parseElement.args.length; i++) {
@@ -1676,7 +1694,7 @@
       /**
        * @type {string[] | null}
        */
-      _scriptAttrs = null;
+      _scriptAttrs:string[] | null = null;
 
       /**
       * getAttributes returns the attribute name(s) to use when
@@ -1684,7 +1702,7 @@
       * has been configured, it defaults to config.attributes
       * @returns string[]
       */
-      getScriptAttributes() {
+      getScriptAttributes ():string[] {
           if (this._scriptAttrs == null) {
               this._scriptAttrs = config.attributes.replace(/ /g, "").split(",");
           }
@@ -1695,7 +1713,7 @@
       * @param {Element} elt
       * @returns {string | null}
       */
-      getScript(elt) {
+      getScript (elt:Element):string | null {
           for (var i = 0; i < this.getScriptAttributes().length; i++) {
               var scriptAttribute = this.getScriptAttributes()[i];
               if (elt.hasAttribute && elt.hasAttribute(scriptAttribute)) {
@@ -1714,7 +1732,7 @@
       * @param {*} elt
       * @returns {Object}
       */
-      getHyperscriptFeatures(elt) {
+      getHyperscriptFeatures (elt:any):Object {
           var hyperscriptFeatures = this.hyperscriptFeaturesMap.get(elt);
           if (typeof hyperscriptFeatures === 'undefined') {
               if (elt) {
@@ -1726,10 +1744,10 @@
       }
 
       /**
-      * @param {Object} owner
+      * @param {Element} owner
       * @param {Context} ctx
       */
-      addFeatures(owner, ctx) {
+      addFeatures(owner:Element, ctx:Context):void {
           if (owner) {
               Object.assign(ctx.locals, this.getHyperscriptFeatures(owner));
               this.addFeatures(owner.parentElement, ctx);
@@ -1743,14 +1761,14 @@
       * @param {*} event
       * @returns {Context}
       */
-      makeContext(owner, feature, hyperscriptTarget, event):Context {
+      makeContext (owner:any, feature:any, hyperscriptTarget:any, event:any):Context {
           return new Context(owner, feature, hyperscriptTarget, event, this)
       }
 
       /**
       * @returns string
       */
-      getScriptSelector() {
+      getScriptSelector ():string {
           return this.getScriptAttributes()
               .map(function (attribute) {
                   return "[" + attribute + "]";
@@ -1763,7 +1781,7 @@
       * @param {string} type
       * @returns {any}
       */
-      convertValue(value, type) {
+      convertValue (value:any, type:string):any {
           var dynamicResolvers = conversions.dynamicResolvers;
           for (var i = 0; i < dynamicResolvers.length; i++) {
               var dynamicResolver = dynamicResolvers[i];
@@ -1788,7 +1806,7 @@
       * @param {string} src
       * @returns {ASTNode}
       */
-      parse(src) {
+      parse (src:string):ASTNode {
           const lexer = this.lexer, parser = this.parser
           var tokens = lexer.tokenize(src);
           if (this.parser.commandStart(tokens.currentToken())) {
@@ -1813,7 +1831,7 @@
        * @param {Context} ctx
        * @returns {any}
        */
-      evaluateNoPromise(elt, ctx) {
+      evaluateNoPromise (elt:ASTNode, ctx:Context):any {
           let result = elt.evaluate(ctx);
           if (result.next) {
               throw new Error(Tokens.sourceFor.call(elt) + " returned a Promise in a context that they are not allowed.");
