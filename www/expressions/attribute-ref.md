@@ -3,7 +3,7 @@
 
 ### Syntax
 
-`[<name>[=<value>]]`
+`[@<name>[=<value>]]`
 
 ### Description
 
