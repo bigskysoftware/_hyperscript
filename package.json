@@ -3,7 +3,7 @@
   "version": "0.9.8",
   "description": "a small scripting language for the web",
   "type": "module",
-  "main": "./_hyperscript.js",
+  "main": "./dist/_hyperscript.js",
   "bin": {
     "_hyperscript": "src/bin/node-hyperscript.js"
   },
