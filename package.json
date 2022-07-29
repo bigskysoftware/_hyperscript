@@ -1,10 +1,12 @@
 {
   "name": "hyperscript-experimental",
-  "version": "0.9.9",
+  "version": "0.9.10",
   "description": "a small scripting language for the web",
   "type": "module",
   "main": "./dist/_hyperscript.js",
-  "files": ["./dist"],
+  "files": [
+    "./dist"
+  ],
   "bin": {
     "_hyperscript": "src/bin/node-hyperscript.js"
   },
