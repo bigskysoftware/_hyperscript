@@ -26,7 +26,7 @@
    */
   const conversions = {
       dynamicResolvers: [
-          function(str, value):any {
+          function (str:string, value:any):any {
               if (str === "Fixed") {
                   return Number(value).toFixed();
               } else if (str.indexOf("Fixed:") === 0) {
@@ -35,32 +35,32 @@
               }
           }
       ],
-      String: function (val) {
+      String: function (val:any):string {
           if (val.toString) {
               return val.toString();
           } else {
               return "" + val;
           }
       },
-      Int: function (val) {
+      Int: function (val:any):number {
           return parseInt(val);
       },
-      Float: function (val) {
+      Float: function (val:any):number {
           return parseFloat(val);
       },
-      Number: function (val) {
+      Number: function (val:any):number {
           return Number(val);
       },
-      Date: function (val) {
+      Date: function (val:any):Date {
           return new Date(val);
       },
-      Array: function (val) {
+      Array: function (val:any):any[] {
           return Array.from(val);
       },
-      JSON: function (val) {
+      JSON: function (val:any):string {
           return JSON.stringify(val);
       },
-      Object: function (val) {
+      Object: function (val:any):any {
           if (val instanceof String) {
               val = val.toString();
           }
@@ -81,9 +81,21 @@
       conversions,
   }
 
-  type token = {
-    type:any, value:string,
-    start:number, end:number, column:number, line:number,
+  /**
+   * @typedef {Object} Token
+   * @property {string} [type]
+   * @property {string} value
+   * @property {number} [start]
+   * @property {number} [end]
+   * @property {number} [column]
+   * @property {number} [line]
+   * @property {boolean} [op] `true` if this token represents an operator
+   * @property {boolean} [template] `true` if this token is a template, for class refs, id refs, strings
+   */
+
+  type Token = {
+    type?:string, value:string,
+    start?:number, end?:number, column?:number, line?:number,
     op?:boolean, template?:boolean,
   }
 
@@ -128,7 +140,7 @@
        * @param {string} c
        * @returns boolean
        */
-      static isValidCSSClassChar(c) {
+      static isValidCSSClassChar(c:string):boolean {
           return Lexer.isAlpha(c) || Lexer.isNumeric(c) || c === "-" || c === "_" || c === ":";
       }
   
@@ -137,7 +149,7 @@
        * @param {string} c
        * @returns boolean
        */
-      static isValidCSSIDChar(c) {
+      static isValidCSSIDChar(c:string):boolean {
           return Lexer.isAlpha(c) || Lexer.isNumeric(c) || c === "-" || c === "_" || c === ":";
       }
   
@@ -146,7 +158,7 @@
        * @param {string} c
        * @returns boolean
        */
-      static isWhitespace(c) {
+      static isWhitespace(c:string):boolean {
           return c === " " || c === "\t" || Lexer.isNewline(c);
       }
   
@@ -155,7 +167,7 @@
        * @param {Token} token
        * @returns string
        */
-      static positionString(token) {
+      static positionString(token:Token):string {
           return "[Line: " + token.line + ", Column: " + token.column + "]";
       }
   
@@ -164,7 +176,7 @@
        * @param {string} c
        * @returns boolean
        */
-      static isNewline(c) {
+      static isNewline(c:string):boolean {
           return c === "\r" || c === "\n";
       }
   
@@ -173,7 +185,7 @@
        * @param {string} c
        * @returns boolean
        */
-      static isNumeric(c) {
+      static isNumeric(c:string):boolean {
           return c >= "0" && c <= "9";
       }
   
@@ -182,16 +194,15 @@
        * @param {string} c
        * @returns boolean
        */
-      static isAlpha(c) {
+      static isAlpha(c:string):boolean {
           return (c >= "a" && c <= "z") || (c >= "A" && c <= "Z");
       }
   
       /**
        * @param {string} c
-       * @param {boolean} [dollarIsOp]
        * @returns boolean
        */
-      static isIdentifierChar(c) {
+      static isIdentifierChar(c:string):boolean {
           return c === "_" || c === "$";
       }
   
@@ -199,7 +210,7 @@
        * @param {string} c
        * @returns boolean
        */
-      static isReservedChar(c) {
+      static isReservedChar(c:string):boolean {
           return c === "`" || c === "^";
       }
   
@@ -207,7 +218,7 @@
        * @param {Token[]} tokens
        * @returns {boolean}
        */
-      static isValidSingleQuoteStringStart(tokens) {
+      static isValidSingleQuoteStringStart(tokens:Token[]):boolean {
           if (tokens.length > 0) {
               var previousToken = tokens[tokens.length - 1];
               if (
@@ -229,7 +240,7 @@
        * @param {boolean} [template]
        * @returns {Tokens}
        */
-      static tokenize(string, template = undefined) {
+      static tokenize(string:string, template?:boolean):Tokens {
           var tokens = /** @type {Token[]}*/ [];
           var source = string;
           var position = 0;
@@ -238,7 +249,7 @@
           var lastToken = "<START>";
           var templateBraceCount = 0;
   
-          function inTemplate() {
+          function inTemplate ():boolean {
               return template && templateBraceCount === 0;
           }
   
@@ -306,7 +317,7 @@
            * @param {string} [value]
            * @returns {Token}
            */
-          function makeOpToken(type = undefined, value = undefined):token {
+          function makeOpToken(type?:string, value?:string):Token {
               var token = makeToken(type, value);
               token.op = true;
               return token;
@@ -317,7 +328,7 @@
            * @param {string} [value]
            * @returns {Token}
            */
-          function makeToken(type, value = undefined):token {
+          function makeToken(type:string, value?:string):Token {
               return {
                   type: type,
                   value: value || "",
@@ -328,14 +339,14 @@
               };
           }
 
-          function consumeComment() {
+          function consumeComment ():void {
               while (currentChar() && !Lexer.isNewline(currentChar())) {
                   consumeChar();
               }
               consumeChar(); // Consume newline
           }
 
-          function consumeCommentMultiline() {
+          function consumeCommentMultiline ():void {
               while (currentChar() && !(currentChar() === '*' && nextChar() === '/')) {
                   consumeChar();
               }
@@ -346,7 +357,7 @@
           /**
            * @returns Token
            */
-          function consumeClassReference() {
+          function consumeClassReference ():Token {
               var classRef = makeToken("CLASS_REF");
               var value = consumeChar();
               if (currentChar() === "{") {
@@ -373,7 +384,7 @@
           /**
            * @returns Token
            */
-          function consumeAttributeReference() {
+          function consumeAttributeReference ():Token {
               var attributeRef = makeToken("ATTRIBUTE_REF");
               var value = consumeChar();
               while (position < source.length && currentChar() !== "]") {
@@ -387,7 +398,7 @@
               return attributeRef;
           }
 
-          function consumeShortAttributeReference() {
+          function consumeShortAttributeReference ():Token {
               var attributeRef = makeToken("ATTRIBUTE_REF");
               var value = consumeChar();
               while (Lexer.isValidCSSIDChar(currentChar())) {
@@ -398,7 +409,7 @@
               return attributeRef;
           }
 
-          function consumeStyleReference() {
+          function consumeStyleReference ():Token {
               var styleRef = makeToken("STYLE_REF");
               var value = consumeChar();
               while (Lexer.isAlpha(currentChar()) || currentChar() === "-") {
@@ -412,7 +423,7 @@
           /**
            * @returns Token
            */
-          function consumeIdReference() {
+          function consumeIdReference ():Token {
               var idRef = makeToken("ID_REF");
               var value = consumeChar();
               if (currentChar() === "{") {
@@ -439,7 +450,7 @@
           /**
            * @returns Token
            */
-          function consumeIdentifier() {
+          function consumeIdentifier ():Token {
               var identifier = makeToken("IDENTIFIER");
               var value = consumeChar();
               while (Lexer.isAlpha(currentChar()) ||
@@ -458,7 +469,7 @@
           /**
            * @returns Token
            */
-          function consumeNumber() {
+          function consumeNumber ():Token {
               var number = makeToken("NUMBER");
               var value = consumeChar();
               while (Lexer.isNumeric(currentChar())) {
@@ -478,7 +489,7 @@
           /**
            * @returns Token
            */
-          function consumeOp() {
+          function consumeOp ():Token {
               var op = makeOpToken();
               var value = consumeChar(); // consume leading char
               while (currentChar() && Lexer.OP_TABLE[value + currentChar()]) {
@@ -493,7 +504,7 @@
           /**
            * @returns Token
            */
-          function consumeString() {
+          function consumeString ():Token {
               var string = makeToken("STRING");
               var startChar = consumeChar(); // consume leading quote
               var value = "";
@@ -534,25 +545,25 @@
           /**
            * @returns string
            */
-          function currentChar() {
+          function currentChar ():string {
               return source.charAt(position);
           }
 
           /**
            * @returns string
            */
-          function nextChar() {
+          function nextChar ():string {
               return source.charAt(position + 1);
           }
 
-          function nextCharAt(number = 1) {
+          function nextCharAt (number:number = 1) {
               return source.charAt(position + number);
           }
 
           /**
            * @returns string
            */
-          function consumeChar() {
+          function consumeChar ():string {
               lastToken = currentChar();
               position++;
               column++;
@@ -562,7 +573,7 @@
           /**
            * @returns boolean
            */
-          function possiblePrecedingSymbol() {
+          function possiblePrecedingSymbol ():boolean {
               return (
                   Lexer.isAlpha(lastToken) ||
                   Lexer.isNumeric(lastToken) ||
@@ -578,7 +589,7 @@
           /**
            * @returns Token
            */
-          function consumeWhitespace() {
+          function consumeWhitespace ():Token {
               var whitespace = makeToken("WHITESPACE");
               var value = "";
               while (currentChar() && Lexer.isWhitespace(currentChar())) {
@@ -599,25 +610,13 @@
        * @param {boolean} [template]
        * @returns {Tokens}
        */
-      tokenize(string, template = undefined) {
+      tokenize (string:string, template?:boolean):Tokens {
           return Lexer.tokenize(string, template)
       }
   }
 
-  /**
-   * @typedef {Object} Token
-   * @property {string} [type]
-   * @property {string} value
-   * @property {number} [start]
-   * @property {number} [end]
-   * @property {number} [column]
-   * @property {number} [line]
-   * @property {boolean} [op] `true` if this token represents an operator
-   * @property {boolean} [template] `true` if this token is a template, for class refs, id refs, strings
-   */
-
   class Tokens {
-    public tokens:any
+    public tokens:Token[]
     public consumed:any[]
     public source:any
 
@@ -626,17 +625,17 @@
           this.consumed = consumed
           this.source = source
 
-          this.consumeWhitespace(); // consume initial whitespace
+          this.consumeWhitespace (); // consume initial whitespace
       }
 
-      get list() {
+      get list () {
           return this.tokens
       }
 
       /** @type Token | null */
-      _lastConsumed = null;
+      _lastConsumed:Token | null = null;
 
-      consumeWhitespace() {
+      consumeWhitespace ():void {
           while (this.token(0, true).type === "WHITESPACE") {
               this.consumed.push(this.tokens.shift());
           }
@@ -647,7 +646,7 @@
        * @param {*} error
        * @returns {never}
        */
-      raiseError(tokens, error) {
+      raiseError (tokens:Tokens, error:any):void {
           Parser.raiseParseError(tokens, error);
       }
 
@@ -655,7 +654,7 @@
        * @param {string} value
        * @returns {Token}
        */
-      requireOpToken(value) {
+      requireOpToken (value:string):Token {
           var token = this.matchOpToken(value);
           if (token) {
               return token;
@@ -670,7 +669,7 @@
        * @param {string} [op3]
        * @returns {Token | void}
        */
-      matchAnyOpToken(op1, op2, op3) {
+      matchAnyOpToken (/* op1:string, op2:string, op3:string */):Token|undefined {
           for (var i = 0; i < arguments.length; i++) {
               var opToken = arguments[i];
               var match = this.matchOpToken(opToken);
@@ -686,7 +685,7 @@
        * @param {string} [op3]
        * @returns {Token | void}
        */
-      matchAnyToken(op1, op2, op3) {
+      matchAnyToken (/* op1:string, op2:string, op3:string */):Token|undefined {
           for (var i = 0; i < arguments.length; i++) {
               var opToken = arguments[i];
               var match = this.matchToken(opToken);
@@ -700,7 +699,7 @@
        * @param {string} value
        * @returns {Token | void}
        */
-      matchOpToken(value) {
+      matchOpToken (value:string):Token|undefined {
           if (this.currentToken() && this.currentToken().op && this.currentToken().value === value) {
               return this.consumeToken();
           }
@@ -713,7 +712,7 @@
        * @param {string} [type4]
        * @returns {Token}
        */
-      requireTokenType(type1, type2, type3, type4) {
+      requireTokenType (type1:string, type2:string, type3:string, type4:string):Token {
           var token = this.matchTokenType(type1, type2, type3, type4);
           if (token) {
               return token;
@@ -729,7 +728,7 @@
        * @param {string} [type4]
        * @returns {Token | void}
        */
-      matchTokenType(type1, type2, type3, type4) {
+      matchTokenType (type1:string, type2:string, type3:string, type4:string):Token {
           if (
               this.currentToken() &&
               this.currentToken().type &&
@@ -744,7 +743,7 @@
        * @param {string} [type]
        * @returns {Token}
        */
-      requireToken(value, type) {
+      requireToken(value:string, type:string):Token {
           var token = this.matchToken(value, type);
           if (token) {
               return token;
@@ -753,7 +752,7 @@
           }
       }
 
-      peekToken(value, peek, type) {
+      peekToken (value:string, peek:string, type:string):boolean {
           return this.tokens[peek] && this.tokens[peek].value === value && this.tokens[peek].type === type
       }
 
@@ -762,7 +761,7 @@
        * @param {string} [type]
        * @returns {Token | void}
        */
-      matchToken(value, type = 'IDENTIFIER') {
+      matchToken(value:string, type:string = 'IDENTIFIER'):Token | undefined {
           if (this.follows.indexOf(value) !== -1) {
               return; // disallowed token here
           }
@@ -775,7 +774,7 @@
       /**
        * @returns {Token}
        */
-      consumeToken() {
+      consumeToken ():Token {
           var match = this.tokens.shift();
           this.consumed.push(match);
           this._lastConsumed = match;
@@ -788,7 +787,7 @@
        * @param {string | null} [type]
        * @returns {Token[]}
        */
-      consumeUntil(value, type) {
+      consumeUntil (value:string | null, type:string | null):Token[] {
           /** @type Token[] */
           var tokenList = [];
           var currentToken = this.token(0, true);
@@ -810,7 +809,7 @@
       /**
        * @returns {string}
        */
-      lastWhitespace() {
+      lastWhitespace ():string {
           if (this.consumed[this.consumed.length - 1] && this.consumed[this.consumed.length - 1].type === "WHITESPACE") {
               return this.consumed[this.consumed.length - 1].value;
           } else {
@@ -818,14 +817,14 @@
           }
       }
 
-      consumeUntilWhitespace() {
+      consumeUntilWhitespace ():Token[] {
           return this.consumeUntil(null, "WHITESPACE");
       }
 
       /**
        * @returns {boolean}
        */
-      hasMore() {
+      hasMore ():boolean {
           return this.tokens.length > 0;
       }
 
@@ -834,7 +833,7 @@
        * @param {boolean} [dontIgnoreWhitespace]
        * @returns {Token}
        */
-      token(n, dontIgnoreWhitespace = false) {
+      token(n:number, dontIgnoreWhitespace:boolean = false):Token {
           var /**@type {Token}*/ token;
           var i = 0;
           do {
@@ -853,55 +852,55 @@
               return {
                   type: "EOF",
                   value: "<<<EOF>>>",
-              };
+              } as Token;
           }
       }
 
       /**
        * @returns {Token}
        */
-      currentToken() {
+      currentToken ():Token {
           return this.token(0);
       }
 
       /**
        * @returns {Token | null}
        */
-      lastMatch() {
+      lastMatch ():Token | null {
           return this._lastConsumed;
       }
 
       /**
        * @returns {string}
        */
-      static sourceFor = function () {
+      static sourceFor = function ():string {
           return this.programSource.substring(this.startToken.start, this.endToken.end);
       }
 
       /**
        * @returns {string}
        */
-      static lineFor = function () {
+      static lineFor = function ():string {
           return this.programSource.split("\n")[this.startToken.line - 1];
       }
 
       follows = [];
 
-      pushFollow(str) {
+      pushFollow (str):void {
           this.follows.push(str);
       }
 
-      popFollow() {
+      popFollow ():void {
           this.follows.pop();
       }
 
-      clearFollows() {
+      clearFollows ():any[] {
           var tmp = this.follows;
           this.follows = [];
           return tmp;
       }
 
-      restoreFollows(f) {
+      restoreFollows (f:any[]):void {
           this.follows = f;
       }
   }
@@ -931,8 +930,6 @@
    * @member {(this: ASTNode) => void} install
    * @member {(this: ASTNode, context:Context) => void} execute
    * @member {(this: ASTNode, target: object, source: object, args?: Object) => void} apply
-   *
-   *
    */
 
   class Parser {
