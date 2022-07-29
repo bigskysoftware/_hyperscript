@@ -3,7 +3,7 @@
   "version": "0.9.11",
   "description": "a small scripting language for the web",
   "type": "module",
-  "main": "./dist/_hyperscript.js",
+  "main": "dist/_hyperscript.js",
   "files": [
     "dist"
   ],
