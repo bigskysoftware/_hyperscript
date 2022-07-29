@@ -40,4 +40,5 @@ it is a companion project of <https://htmx.org>
 * please include test cases in [`/test`](https://github.com/bigskysoftware/_hyperscript/tree/dev/test) and docs in [`/www`](https://github.com/bigskysoftware/_hyperscript/tree/dev/www)
   * you can run the test suite by viewing `test/index.html` in a browser.
 * development pull requests should be against the `dev` branch, docs fixes can be made directly against `master`
-* you can build _hyperscript as shown: `npm run dist`. building is not necessary during development to run tests.
+* you can build _hyperscript as shown: `npm run dist`. Building is not necessary during development to run tests.
+* documentation can be built using `npm run www`
