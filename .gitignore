@@ -5,3 +5,6 @@ _site
 .DS_Store
 *~
 *.icloud
+
+.DS_Store
+package-lock.json
