@@ -1273,8 +1273,7 @@ var __values = (this && this.__values) || function(o) {
             this.hyperscriptFeaturesMap = new WeakMap;
             this.internalDataMap = new WeakMap;
             /** @type string | null */
-            // @ts-ignore
-            this.hyperscriptUrl = "document" in globalScope ? document.currentScript.src : null;
+            this.hyperscriptUrl = "document" in globalScope ? document.currentScript['src'] : null;
             this.lexer = lexer !== null && lexer !== void 0 ? lexer : new Lexer;
             this.parser = parser !== null && parser !== void 0 ? parser : new Parser(this)
                 .use(hyperscriptCoreGrammar)
@@ -2204,8 +2203,6 @@ var __values = (this && this.__values) || function(o) {
          * @param {Element} elt
          * @param {ASTNode} onFeature
          * @returns {EventQueue}
-         *
-         * @typedef {{queue:Array, executing:boolean}} EventQueue
          */
         Runtime.prototype.getEventQueueFor = function (elt, onFeature) {
             var internalData = this.getInternalData(elt);
@@ -2247,8 +2244,8 @@ var __values = (this && this.__values) || function(o) {
             this.result = undefined;
             this.event = event;
             this.target = event ? event.target : null;
-            this.detail = event ? event.detail : null;
-            this.sender = event ? event.detail ? event.detail.sender : null : null;
+            this.detail = event ? event['detail'] : null;
+            this.sender = event ? event['detail'] ? event['detail'].sender : null : null;
             this.body = "document" in globalScope ? document.body : null;
             runtime.addFeatures(owner, this);
         }
@@ -2256,7 +2253,6 @@ var __values = (this && this.__values) || function(o) {
     }());
     var ElementCollection = /** @class */ (function () {
         function ElementCollection(css, relativeToElement, escape) {
-            if (escape === void 0) { escape = undefined; }
             this._css = css;
             this.relativeToElement = relativeToElement;
             this.escape = escape;
@@ -2277,13 +2273,6 @@ var __values = (this && this.__values) || function(o) {
         Object.defineProperty(ElementCollection.prototype, "className", {
             get: function () {
                 return this._css.substr(1);
-            },
-            enumerable: false,
-            configurable: true
-        });
-        Object.defineProperty(ElementCollection.prototype, "id", {
-            get: function () {
-                return this.className();
             },
             enumerable: false,
             configurable: true
