@@ -1372,6 +1372,12 @@
       }
   }
 
+/**
+ * @typedef {{queue:Array, executing:boolean}} EventQueue
+ */
+
+  type EventQueue = { queue:any[], executing:boolean }
+
   class Runtime {
     public lexer:Lexer
     public parser:Parser
@@ -2104,7 +2110,7 @@
       * @param {Object<string,any>} root
       * @param {string} property
       */
-      flatGet(root, property, getter) {
+      flatGet (root:any, property:string, getter:(root:any,property:string) => any):any {
           if (root != null) {
               var val = getter(root, property);
               if (typeof val !== "undefined") {
@@ -2123,11 +2129,11 @@
           }
       }
 
-      resolveProperty(root, property) {
+      resolveProperty (root:Element, property:string):any {
           return this.flatGet(root, property, (root, property) => root[property] )
       }
 
-      resolveAttribute(root, property) {
+      resolveAttribute (root:Element, property:string):any {
           return this.flatGet(root, property, (root, property) => root.getAttribute && root.getAttribute(property) )
       }
 
@@ -2137,7 +2143,7 @@
        * @param {string} property
        * @returns {string}
        */
-      resolveStyle(root, property) {
+      resolveStyle (root:Element, property:string):string {
           return this.flatGet(root, property, (root, property) => root.style && root.style[property] )
       }
 
@@ -2147,7 +2153,7 @@
        * @param {string} property
        * @returns {string}
        */
-      resolveComputedStyle(root, property) {
+      resolveComputedStyle (root:Element, property:string):string {
           return this.flatGet(root, property, (root, property) => getComputedStyle(
               /** @type {Element} */ (root)).getPropertyValue(property) )
       }
@@ -2158,14 +2164,14 @@
       * @param {string} name
       * @param {any} value
       */
-      assignToNamespace(elt, nameSpace, name, value) {
+      assignToNamespace (elt:Element, nameSpace:string[], name:string, value:any):void {
           let root
           if (typeof document !== "undefined" && elt === document.body) {
               root = globalScope;
           } else {
               root = this.getHyperscriptFeatures(elt);
           }
-          var propertyName;
+          var propertyName:string;
           while ((propertyName = nameSpace.shift()) !== undefined) {
               var newRoot = root[propertyName];
               if (newRoot == null) {
@@ -2178,9 +2184,9 @@
           root[name] = value;
       }
 
-      getHyperTrace(ctx, thrown) {
-          var trace = [];
-          var root = ctx;
+      getHyperTrace (ctx:Context, thrown:any):any {
+          var trace:any[] = [];
+          var root:Context = ctx;
           while (root.meta.caller) {
               root = root.meta.caller;
           }
@@ -2189,9 +2195,9 @@
           }
       }
 
-      registerHyperTrace(ctx, thrown) {
-          var trace = [];
-          var root = null;
+      registerHyperTrace (ctx:Context, thrown:any):void {
+          var trace:any[] = [];
+          var root:Context = null;
           while (ctx != null) {
               trace.push(ctx);
               root = ctx;
@@ -2229,7 +2235,7 @@
       * @param {string} str
       * @returns {string}
       */
-      escapeSelector(str) {
+      escapeSelector (str:string):string {
           return str.replace(/:/g, function (str) {
               return "\\" + str;
           });
@@ -2239,7 +2245,7 @@
       * @param {any} value
       * @param {*} elt
       */
-      nullCheck(value, elt) {
+      nullCheck (value:any, elt:any):void {
           if (value == null) {
               throw new Error("'" + elt.sourceFor() + "' is null");
           }
@@ -2249,7 +2255,7 @@
       * @param {any} value
       * @returns {boolean}
       */
-      isEmpty(value) {
+      isEmpty (value:any):boolean {
           return value == undefined || value.length === 0;
       }
 
@@ -2257,7 +2263,7 @@
       * @param {any} value
       * @returns {boolean}
       */
-      doesExist(value) {
+      doesExist (value:any):boolean {
           if(value == null){
               return false;
           }
@@ -2273,7 +2279,7 @@
       * @param {Node} node
       * @returns {Document|ShadowRoot}
       */
-      getRootNode(node) {
+      getRootNode (node:Node):Document|ShadowRoot {
           if (node && node instanceof Node) {
               var rv = node.getRootNode();
               if (rv instanceof Document || rv instanceof ShadowRoot) return rv;
@@ -2286,10 +2292,8 @@
        * @param {Element} elt
        * @param {ASTNode} onFeature
        * @returns {EventQueue}
-       *
-       * @typedef {{queue:Array, executing:boolean}} EventQueue
        */
-      getEventQueueFor(elt, onFeature) {
+      getEventQueueFor (elt:Element, onFeature:ASTNode):EventQueue {
           let internalData = this.getInternalData(elt);
           var eventQueuesForElt = internalData.eventQueues;
           if (eventQueuesForElt == null) {
@@ -2305,8 +2309,8 @@
       }
 
       /** @type string | null */
-      // @ts-ignore
-      hyperscriptUrl = "document" in globalScope ? document.currentScript.src : null;
+      
+      hyperscriptUrl:string|null = "document" in globalScope ? document.currentScript['src'] : null;
   }
 
   class Context {
@@ -2315,11 +2319,11 @@
     public me:any
     public you:any 
     public result:any 
-    public event:any
-    public target:any
+    public event:Event
+    public target:EventTarget
     public detail:any
     public sender:any
-    public body:any
+    public body:HTMLElement | null
 
       /**
       * @param {*} owner
@@ -2327,7 +2331,7 @@
       * @param {*} hyperscriptTarget
       * @param {*} event
       */
-      constructor(owner, feature, hyperscriptTarget, event, runtime) {
+      constructor (owner:any, feature:any, hyperscriptTarget:any, event:Event, runtime:Runtime) {
           this.meta = {
               parser: runtime.parser,
               lexer: runtime.lexer,
@@ -2343,26 +2347,26 @@
           this.result = undefined
           this.event = event;
           this.target = event ? event.target : null;
-          this.detail = event ? event.detail : null;
-          this.sender = event ? event.detail ? event.detail.sender : null : null;
+          this.detail = event ? event['detail'] : null;
+          this.sender = event ? event['detail'] ? event['detail'].sender : null : null;
           this.body = "document" in globalScope ? document.body : null;
           runtime.addFeatures(owner, this);
       }
   }
 
   class ElementCollection {
-    public _css:any
-    public relativeToElement:any
+    public _css:string
+    public relativeToElement:Element
     public escape:any
 
-      constructor(css, relativeToElement, escape = undefined) {
+      constructor (css:string, relativeToElement:Element, escape?:any) {
           this._css = css;
           this.relativeToElement = relativeToElement;
           this.escape = escape;
           this[shouldAutoIterateSymbol] = true;
       }
 
-      get css() {
+      get css () {
           if (this.escape) {
               return Runtime.prototype.escapeSelector(this._css);
           } else {
@@ -2370,15 +2374,11 @@
           }
       }
 
-      get className() {
+      get className () {
           return this._css.substr(1);
       }
 
-      get id() {
-          return this.className();
-      }
-
-      contains(elt) {
+      contains (elt) {
           for (let element of this) {
               if (element.contains(elt)) {
                   return true;
@@ -2387,7 +2387,7 @@
           return false;
       }
 
-      get length() {
+      get length () {
           return this.selectMatches().length;
       }
 
@@ -2396,7 +2396,7 @@
           return query [Symbol.iterator]();
       }
 
-      selectMatches() {
+      selectMatches () {
           let query = Runtime.prototype.getRootNode(this.relativeToElement).querySelectorAll(this.css);
           return query;
       }
@@ -2404,7 +2404,7 @@
 
   const shouldAutoIterateSymbol = Symbol()
 
-  function getOrInitObject(root, prop) {
+  function getOrInitObject (root:any, prop:any):any {
       var value = root[prop];
       if (value) {
           return value;
@@ -2422,7 +2422,7 @@
    * @param {string} jString
    * @returns any
    */
-  function parseJSON(jString) {
+  function parseJSON (jString:string):any {
       try {
           return JSON.parse(jString);
       } catch (error) {
@@ -2436,7 +2436,7 @@
    * value, but msg should commonly be a simple string.
    * @param {*} msg
    */
-  function logError(msg) {
+  function logError (msg:any):void {
       if (console.error) {
           console.error(msg);
       } else if (console.log) {
@@ -2445,7 +2445,7 @@
   }
 
   // TODO: JSDoc description of what's happening here
-  function varargConstructor(Cls, args) {
+  function varargConstructor (Cls:any, args:any[]):any {
       return new (Cls.bind.apply(Cls, [Cls].concat(args)))();
   }
 
@@ -2454,7 +2454,7 @@
   /**
    * @param {Parser} parser
    */
-  function hyperscriptCoreGrammar(parser) {
+  function hyperscriptCoreGrammar (parser):void {
       parser.addLeafExpression("parenthesized", function (parser, _runtime, tokens) {
           if (tokens.matchOpToken("(")) {
               var follows = tokens.clearFollows();
