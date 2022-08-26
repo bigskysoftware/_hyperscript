@@ -14,7 +14,8 @@
   "files": [
     "LICENSE",
     "README.md",
-    "src/*"
+    "src/*",
+    "dist/*"
   ],
   "main": "dist/_hyperscript.min.js",
   "bin": {
