@@ -13,6 +13,26 @@ describe("the _hyperscript tokenizer", function () {
 		token.type.should.equal("NUMBER");
 		tokens.hasMore().should.equal(false);
 
+		var tokens = lexer.tokenize("1e6");
+		var token = tokens.consumeToken();
+		token.type.should.equal("NUMBER");
+		tokens.hasMore().should.equal(false);
+
+		var tokens = lexer.tokenize("1e-6");
+		var token = tokens.consumeToken();
+		token.type.should.equal("NUMBER");
+		tokens.hasMore().should.equal(false);
+
+		var tokens = lexer.tokenize("1.1e6");
+		var token = tokens.consumeToken();
+		token.type.should.equal("NUMBER");
+		tokens.hasMore().should.equal(false);
+
+		var tokens = lexer.tokenize("1.1e-6");
+		var token = tokens.consumeToken();
+		token.type.should.equal("NUMBER");
+		tokens.hasMore().should.equal(false);
+
 		var token = lexer.tokenize(".a").consumeToken();
 		token.type.should.equal("CLASS_REF");
 
@@ -204,6 +224,22 @@ describe("the _hyperscript tokenizer", function () {
 		var token = lexer.tokenize("1234567890.1234567890").consumeToken();
 		token.type.should.equal("NUMBER");
 		token.value.should.equal("1234567890.1234567890");
+
+		var token = lexer.tokenize("1e6").consumeToken();
+		token.type.should.equal("NUMBER");
+		token.value.should.equal("1e6");
+
+		var token = lexer.tokenize("1e-6").consumeToken();
+		token.type.should.equal("NUMBER");
+		token.value.should.equal("1e-6");
+
+		var token = lexer.tokenize("1.1e6").consumeToken();
+		token.type.should.equal("NUMBER");
+		token.value.should.equal("1.1e6");
+
+		var token = lexer.tokenize("1.1e-6").consumeToken();
+		token.type.should.equal("NUMBER");
+		token.value.should.equal("1.1e-6");
 
 		var tokens = lexer.tokenize("1.1.1").list;
 		tokens[0].type.should.equal("NUMBER");
