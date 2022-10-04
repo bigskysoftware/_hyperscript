@@ -236,9 +236,9 @@
     
             while (position < source.length) {
                 if ((currentChar() === "-" && nextChar() === "-" && (Lexer.isWhitespace(nextCharAt(2)) || nextCharAt(2) === "" || nextCharAt(2) === "-"))
-                    || (currentChar() === "/" && nextChar() === "/" && (Lexer.isWhitespace(nextCharAt(2)) || nextCharAt(2) === "" || nextCharAt(2) === "/"))) {
+                    || (currentChar() === "/" && nextChar() === "/")) {
                     consumeComment();
-                } else if (currentChar() === "/" && nextChar() === "*" && (Lexer.isWhitespace(nextCharAt(2)) || nextCharAt(2) === "" || nextCharAt(2) === "*")) {
+                } else if (currentChar() === "/" && nextChar() === "*") {
                     consumeCommentMultiline();
                 } else {
                     if (Lexer.isWhitespace(currentChar())) {
