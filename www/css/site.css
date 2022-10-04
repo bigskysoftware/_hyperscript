@@ -1,13 +1,14 @@
-body {
+:root {
+    font-size: 110%;
     --rhythm: 1.4rem;
+    --line-length: 90ch;
     --accent: #3465a4;
     --muted-accent: #3d72d7;
-    --colorful-bg: #eaf7ff;
+    --mono-font: "Source Code Pro", "Consolas", monospace, monospace;
 }
 
-.full-width {
-    margin-left: calc(50% - 50vw);
-    margin-right: calc(50% - 50vw);
+pre, code {
+    font-size: inherit;
 }
 
 .logo:hover {
