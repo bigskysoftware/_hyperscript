@@ -76,6 +76,7 @@
         attributes: "_, script, data-script",
         defaultTransition: "all 500ms ease-in",
         disableSelector: "[disable-scripting], [data-disable-scripting]",
+        hideShowStrategies: {},
         conversions,
     }
 
@@ -6207,7 +6208,7 @@
                     let styleRef = tokens.consumeToken();
                     var name = styleRef.value.substr(1);
                     var visibility = true;
-                    var hideShowStrategy = resolveStrategy(parser, tokens, name);
+                    var hideShowStrategy = resolveHideShowStrategy(parser, tokens, name);
                     if (tokens.matchToken("of")) {
                         tokens.pushFollow("with");
                         try {
@@ -6398,7 +6399,7 @@
             return target;
         };
 
-        var resolveStrategy = function (parser, tokens, name) {
+        var resolveHideShowStrategy = function (parser, tokens, name) {
             var configDefault = config.defaultHideShowStrategy;
             var strategies = HIDE_SHOW_STRATEGIES;
             if (config.hideShowStrategies) {
@@ -6423,7 +6424,7 @@
                         name = name.substr(1);
                     }
                 }
-                var hideShowStrategy = resolveStrategy(parser, tokens, name);
+                var hideShowStrategy = resolveHideShowStrategy(parser, tokens, name);
 
                 return {
                     target: targetExpr,
@@ -6465,7 +6466,7 @@
                     var when = parser.requireElement("expression", tokens);
                 }
 
-                var hideShowStrategy = resolveStrategy(parser, tokens, name);
+                var hideShowStrategy = resolveHideShowStrategy(parser, tokens, name);
 
                 return {
                     target: targetExpr,
