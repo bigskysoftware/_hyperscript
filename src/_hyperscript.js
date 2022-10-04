@@ -454,12 +454,35 @@
             function consumeNumber() {
                 var number = makeToken("NUMBER");
                 var value = consumeChar();
+
+                // given possible XXX.YYY(e|E)[-]ZZZ consume XXX
                 while (Lexer.isNumeric(currentChar())) {
                     value += consumeChar();
                 }
+
+                // consume .YYY
                 if (currentChar() === "." && Lexer.isNumeric(nextChar())) {
                     value += consumeChar();
                 }
+                while (Lexer.isNumeric(currentChar())) {
+                    value += consumeChar();
+                }
+
+                // consume (e|E)[-]
+                if (currentChar() === "e" || currentChar() === "E") {
+                    // possible scientific notation, e.g. 1e6 or 1e-6
+                    if (Lexer.isNumeric(nextChar())) {
+                        // e.g. 1e6
+                        value += consumeChar();
+                    } else if (nextChar() === "-") {
+                        // e.g. 1e-6
+                        value += consumeChar();
+                        // consume the - as well since otherwise we would stop on the next loop
+                        value += consumeChar();
+                    }
+                }
+
+                // consume ZZZ
                 while (Lexer.isNumeric(currentChar())) {
                     value += consumeChar();
                 }
