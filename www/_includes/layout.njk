@@ -5,8 +5,9 @@ title: ///_hyperscript
 <html lang="en">
 <head>
     <title>{{ title }}</title>
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://the.missing.style"/>
+    <link rel="stylesheet" href="https://the.missing.style/v0.0.1/missing.min.css"/>
     <link rel="stylesheet" href="/css/site.css"/>
     <link rel="stylesheet" href="/css/prism-htmx.css"/>
     <script src="https://unpkg.com/prismjs@1.25.0/components/prism-core.min.js"></script>
@@ -14,7 +15,7 @@ title: ///_hyperscript
     <script src="https://unpkg.com/prismjs@1.25.0/components/prism-markup.min.js"></script>
     <script src="https://unpkg.com/prismjs@1.25.0/components/prism-clike.min.js"></script>
     <script src="https://unpkg.com/prismjs@1.25.0/components/prism-javascript.min.js"></script>
-    <script src="https://unpkg.com/prism-hyperscript@1.0.5/prism-hyperscript.js"></script>
+    <script src="https://unpkg.com/prism-hyperscript@1.1.1/prism-hyperscript.js"></script>
     <script src="/js/_hyperscript_w9y.min.js"></script>
 </head>
 <body>
@@ -31,8 +32,12 @@ title: ///_hyperscript
             <li><a href="/cookbook/">cookbook</a>
             <li><a href="/talk/">talk</a>
             <li><a href="https://github.com/sponsors/bigskysoftware?o=esb">sponsor</a>
+            <li><form action="https://google.com/search">
+                <input type="hidden" name="q" value="site:hyperscript.org" />
+                <label><v-h>Search</v-h><input type="text" name="q" placeholder="🔍️" class="search-box" /></label>
+            </form>
             <li><a href="https://github.com/bigskysoftware/_hyperscript">github</a>
-            <li><iframe src="https://ghbtns.com/github-btn.html?user=bigskysoftware&repo=_hyperscript&type=star&count=true" frameborder="0" scrolling="0" class="github-stars" style="width:150px;height:20px;margin:auto" title="Star htmx on GitHub"></iframe>
+            <li><iframe src="https://ghbtns.com/github-btn.html?user=bigskysoftware&repo=_hyperscript&type=star&count=true" frameborder="0" scrolling="0" class="github-stars" style="width:85px;height:20px;margin:auto" title="Star htmx on GitHub"></iframe>
         </ul>
     </nav>
 </header>

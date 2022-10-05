@@ -9,7 +9,7 @@ break
 
 ### Description
 
-The `break` command works inside any `repeat` block.  It exits the breaks out of the iteration of the loop.
+The `break` command works inside any `repeat` block.  It exits the loop.
 
 ### Example
 

@@ -1,24 +1,18 @@
 
-## hyperscript Talk
-
-Chat
-:   [htmx & hyperscript discord server](https://htmx.org/discord)
-
-Features & Bug Reports
-:   [https://github.com/bigskysoftware/_hyperscript/issues](https://github.com/bigskysoftware/_hyperscript/issues)
-
-Social
-:   [@htmx_org on Twitter](https://twitter.com/htmx_org)
-
-Sponsor
-:   <iframe src="https://github.com/sponsors/bigskysoftware/card" title="Sponsor bigskysoftware" height="225" width="600" style="border: 0;"></iframe>
+# hyperscript talk
 
 
-## Announcements
+[htmx & hyperscript discord server](https://htmx.org/discord)
+[issue tracker](https://github.com/bigskysoftware/_hyperscript/issues)
+[twitter: @htmx_org](https://twitter.com/htmx_org) <iframe src="https://github.com/sponsors/bigskysoftware/button" title="Sponsor bigskysoftware" style="border: 0; height: 32px; width: 6em"></iframe>
+{.tool-bar}
 
-<ul> 
+
+## announcements
+
+<ul role="list" class="list-of-links"> 
 {%- for post in collections.post reversed -%}
-  <li><a href="{{ post.url  }}">{{ post.date | date: "%Y-%m-%d"}} - {{ post.data.title }} </a>🔥🔥</li>
+  <li><p><time>{{ post.date | date: "%Y-%m-%d"}}</time>&emsp;<a href="{{ post.url }}">{{ post.data.title }} </a></li>
 {%- endfor -%}
 </ul>
 

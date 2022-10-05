@@ -3,7 +3,7 @@ layout: layout.njk
 title: ///_hyperscript
 ---
 
-## The `me/myself/my` Reference
+## The `me/my` Reference
 
 ### Syntax
 
@@ -14,8 +14,6 @@ title: ///_hyperscript
 ### Description
 
 Most hyperscript features run within the context of an HTML element.  For example, `<div _="on click ...">` is an [event handler](/features/on) that runs in the context of the `<div>` that contains it.  Within these scripts, you can use the `me` expression as a link back to their associated HTML element.
-
-You can also use `myself` if that is more readable in English.
 
 For [possessive expressions](/expressions/possessive), `my` will also work, as in `my property` instead of `me.property`.
 

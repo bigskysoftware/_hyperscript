@@ -1,8 +1,8 @@
-
 body {
     --rhythm: 1.4rem;
     --accent: #3465a4;
     --muted-accent: #3d72d7;
+    --colorful-bg: #eaf7ff;
 }
 
 .full-width {
@@ -32,6 +32,15 @@ body {
     .no-mobile {
         display: none !important;
     }
+}
+
+.search-box {
+    width: 3em;
+    transition: width .2s ease-in-out;
+}
+
+.search-box:focus {
+    width: 15em;
 }
 
 /* Content */
@@ -90,12 +99,3 @@ body {
     border-color: #4d82c9;
     font-weight: 700;
 }
-
-
-.table-of-contents ul {
-    list-style: none;
-    padding-left: 0;
-}
-    .table-of-contents ul ul {
-        padding-left: 2em;
-    }

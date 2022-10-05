@@ -4,7 +4,7 @@
 ### Syntax
 
 ```ebnf
-transition [<transition target>]
+transition [[element] <transition target>]
   {<property name> [from <string>} to <string>}
 [over <time expression> | using <expression>]
 ```

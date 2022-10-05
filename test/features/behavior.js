@@ -73,4 +73,29 @@ describe("the behavior feature", function () {
 		}, 10);
 	});
 
+	it("can declare variables in init blocks", function (done) {
+		var behavior = make(
+			`<script type=text/hyperscript>
+				behavior Behave
+					init
+						set element's foo to 1
+						set element's bar to {}
+					end
+					on click
+						increment element's foo
+						set element's bar["count"] to element's foo
+						put element's bar["count"] into me
+					end
+				end
+			</script>
+			`);
+		var div = make("<div _='install Behave'></div>");
+		div.textContent.should.equal("");
+		div.click();
+		div.textContent.should.equal("2");
+		div.click();
+		div.textContent.should.equal("3");
+		delete window.Behave;
+	});
+
 });

@@ -8,11 +8,13 @@ def <function name>(<parameter list>)
   {<command>}
 [catch <identifier>
   {<command>}]
+[finally
+  {<command>}]
 end
 ```
 
-The `def` keyword allows you to define functions in hyperscript. It consists of a function name, a paramter list
-and a body, with an optional catch block.
+The `def` keyword allows you to define functions in hyperscript. It consists of a function name, a parameter list
+and a body with an optional `catch` and/or an optional `finally` block.
 
 The body of the function is a list of [commands](/docs#commands), optionally separated by the `then` keyword.
 
@@ -55,7 +57,7 @@ function is invoked within hyperscript.
 
 ### Exceptions
 
-Hyperscript functions support a single catch block that can be used to catch exceptions that are throw synchronously
+Hyperscript functions support a single catch block that can be used to catch exceptions that are thrown synchronously
 or asynchronously
 
 ```html
@@ -68,3 +70,19 @@ or asynchronously
   end
 </script>
 ```
+
+### Finally Blocks
+
+Both functions and event handlers also support a `finally` block to ensure that some cleanup code is executed:
+
+```hyperscript
+  def loadExample ()
+    add @disabled to me
+    fetch /example
+    put the result after me
+  finally
+    remove @disabled from me
+  end
+```
+
+In this code we ensure that the `disabled` property is removed from the current element.

@@ -15,6 +15,8 @@
 
 ## Commands
 
+See also [pseudo-commands](/commands/pseudo-commands/).
+
 {% include commands_table.md %}
 
 ## Expressions

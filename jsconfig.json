@@ -1,0 +1,10 @@
+{
+    "compilerOptions": {
+        "strict": false,
+        "checkJs": true,
+        "target": "ES2015",
+        "module": "umd"
+    },
+    "include": ["src/*"],
+    "exclude": ["node_modules"]
+}

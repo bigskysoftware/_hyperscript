@@ -11,6 +11,9 @@ put <expression> (into | before | at [the] start of | at [the] end of | after)  
 
 The `put` command allows you to insert content into a variable, property or the DOM.
 
+Content that is added to the DOM via the `put` command targeting DOM will have any hyperscript content within it
+initialized without needing to call `processNode()`.
+
 ### Examples
 
 ```html

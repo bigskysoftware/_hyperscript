@@ -1,9 +1,9 @@
 
 module.exports = function (config) {
     config.addPairedShortcode('example', (content, caption) => {
-        let rv = "<figure class='box info'>\n\n"
-        if (caption) rv += `<figcaption>Example: ${caption}</figcaption>\n\n`
-        else rv += `<figcaption>Example</figcaption>\n\n`
+        let rv = "<figure class='box'>\n\n"
+        if (caption) rv += `<figcaption class="allcaps" >Example: ${caption}</figcaption>\n\n`
+        else rv += `<figcaption class="allcaps">Example</figcaption>\n\n`
         rv += "  ~~~ html"
         rv += content
         rv += "~~~\n\n"
@@ -13,12 +13,14 @@ module.exports = function (config) {
     })
 
     function syntax(syntax) {
-        syntax = syntax.replace(/\[\[([a-zA-Z0-9\| ]*)\]\]([\*\+]?)/g, (match, p1, p2) => {
-            const vars = p1.split("|")
-            let rv = '<b>' + vars.map(v => `<var>${v}</var>`).join('|') + '</b>'
-            if (p2) rv += `<sup>${p2}</sup>`
-            return rv
-        })
+        syntax = syntax
+        .replace(/\[\[([\*\+\?])\]\]/g,
+          "<sup>$1</sup>"
+        )
+        .replace(/\[\[([a-zA-Z0-9]+)\]\]/g,
+            '<b class="syntaxvar"><var>$1</var></b>'
+        )
+
         return `<code class="syntax">${syntax}</code>`
     }
 
