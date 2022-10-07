@@ -11,6 +11,13 @@ pre, code {
     font-size: inherit;
 }
 
+ul, ol {
+    margin-inline-start: .5em;
+}
+ul {
+    list-style-type: disc;
+}
+
 .logo:hover {
     cursor: pointer;
 }
