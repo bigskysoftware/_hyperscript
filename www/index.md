@@ -3,14 +3,17 @@
   #features-list {
     display: grid;
     grid-template-columns: 1fr;
-    gap: var(--gap);
-    place-items: center;
+    gap: 0 var(--gap);
+    margin: var(--gap) 0;
   }
   @media (min-width: 60ch) {
     #features-list {
       max-width: 100%;
       grid-template-columns: 1fr 1fr;
     }
+  }
+  #features-list h2 {
+    grid-column: 1 / -1;
   }
   #features-list pre {
     white-space: pre-wrap;
@@ -21,9 +24,9 @@
 
 <div>
 
-# The language of interaction.
+# Scripting for hypertext
 
-HTML gets the scripting language it deserves, with advanced event handling features and concise DOM manipulation.
+HTML gets the language it deserves, with advanced event handling features and concise DOM manipulation.
 _hyperscript has a simple goal: **make websites written in plain-old markup a joy to use.**
 
 Install: `<script src="https://unpkg.com/hyperscript.org@0.9.7"></script>`{.language-html}
@@ -67,40 +70,34 @@ Try more examples in the [**playground**](/playground)
 
 <div id="features-list" style="">
 
+## A unique approach to websites
+
+<div>
+
 Listen to and dispatch events with ease.
 [Filter](/docs/#event_filters), [queue](/docs/#event_queueing) or debounce them.
 You can even have control flow based on events.
-<br>**&rarr; In action:**{.info .color}
+
+**In action &rarr;**{.info .color}
 [Disable a button during an htmx request](/cookbook/#40-disable-btn-during-request),
 [Drag-and-drop elements](/cookbook/#70-drag-n-drop),
 [Event filter](/cookbook/#80-event-filtering)
+
+</div>
 
 ~~~hyperscript
 on input debounced at 15s
   send updated to form
 ~~~
 
-**The [xTalk](https://en.wikipedia.org/wiki/XTalk) syntax**
-(remember [HyperCard](https://hypercard.org/HyperTalk%20Reference%202.4.pdf)?)
-of _hyperscript is designed with the DOM as first priority.
-[CSS selector literals](/expressions/#css) and [positional operators](/docs/#in) make it a breeze to access elements.
-Simple [commands](/reference/#commands) backed by modern DOM APIs.
-<br>**&rarr; In action:**{.info .color}
-[Filter A Group Of Elements](/cookbook/#60-filter-a-group-of-elements),
-[Filter table rows](/cookbook/#90-filter-table-rows),
-[Disable all Buttons During an htmx Request](/cookbook/#50-disable-btn-during-request-all)
-
-~~~hyperscript
-tell <details /> in .article
-  set you.open to false
-~~~
+## Progressive enhancement
 
 <div>
 
 _hyperscript excels in **enhancing existing HTML.**
 Where frameworks demand full control over every step,
 _hyperscript stays low-level to give you full control.
-This means no reactivity or data binding --- respond to user interactions, not data flow.
+This means no reactivity or data binding &mdash; respond to user interactions, not data flow.
 
 **No more jQuery soup**. _hyperscript can be written [directly in HTML](), and stays readable when it is.
 Organize your app by features, not languages. Achieve [locality](https://htmx.org/essays/locality-of-behaviour/).
@@ -113,7 +110,30 @@ If you do need to factor out your _hyperscript, you can use [behaviors](/docs/#b
   dragHandle: .titlebar)">
 ~~~
 
-**Async-transparency** means _hyperscript makes asynchronous code as easy as synchronous ---
+## Remember [HyperCard](https://hypercard.org/HyperTalk%20Reference%202.4.pdf)?
+
+<div>
+
+**The [xTalk](https://en.wikipedia.org/wiki/XTalk) syntax**
+of _hyperscript is designed with the DOM as first priority.
+[CSS selector literals](/expressions/#css) and [positional operators](/docs/#in) make it a breeze to access elements.
+Simple [commands](/reference/#commands) backed by modern DOM APIs.
+
+**In action &rarr;**{.info .color}
+[Filter A Group Of Elements](/cookbook/#60-filter-a-group-of-elements),
+[Filter table rows](/cookbook/#90-filter-table-rows),
+[Disable all Buttons During an htmx Request](/cookbook/#50-disable-btn-during-request-all)
+
+</div>
+
+~~~hyperscript
+tell <details /> in .article
+  set you.open to false
+~~~
+
+## Programming on easy mode
+
+**Async-transparency** means _hyperscript makes asynchronous code as easy as synchronous &mdash;
 even easier than Promises or async/await.
 All the non-blocking goodness, without the [red/blue functions](https://journal.stuffwithstuff.com/2015/02/01/what-color-is-your-function/).
 
