@@ -11,7 +11,7 @@ We are pleased to present the [0.9.7 release](https://unpkg.com/browse/hyperscri
 
 ### Changes
 
-* JavaScript-style comments are snow supported
+* JavaScript-style comments are now supported
 * Non-existent `from` clauses do not cause exceptions in `on` features
 * The JavaScript minifier, [terser](https://github.com/terser/terser), was properly configured to minimize the total size
   of hyperscript.

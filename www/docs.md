@@ -177,6 +177,15 @@ In the script above:
 
 All hyperscript scripts are made up of these basic building blocks.
 
+It's worth mentioning that, if you prefer, you can use `script` or `data-script` 
+instead of `_` when using hyperscript:
+
+{% example %}
+<button script="on click toggle .red on me">
+  Click Me
+</button>
+{% endexample %}
+
 ### Comments
 
 Comments in hyperscript start with the `--` characters and a whitespace character (space, tab, carriage return or newline) and go to the end of the line:
