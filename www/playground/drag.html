@@ -12,7 +12,7 @@
           repeat until event pointerup from document
             wait for pointermove(pageX, pageY) or
                      pointerup(pageX, pageY) from document
-            add { left: `${pageX - xoff}px`, top: `${pageY - yoff}px` }
+            add { left: ${pageX - xoff}px; top: ${pageY - yoff}px; }
           end
           transition margin-top to 0
               box-shadow to '0 0 0 0'
