@@ -41,4 +41,10 @@ describe("the classRef expression", function () {
 		Array.from(value)[0].should.equal(div);
 	});
 
+	it("leading minus class ref works", function () {
+        var div = make("<div class='-c1'></div>");
+        var value = evalHyperScript(".-c1");
+        Array.from(value)[0].should.equal(div);
+    });
+
 });

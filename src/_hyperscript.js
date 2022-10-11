@@ -247,7 +247,7 @@
                     } else if (
                         !possiblePrecedingSymbol() &&
                         currentChar() === "." &&
-                        (Lexer.isAlpha(nextChar()) || nextChar() === "{")
+                        (Lexer.isAlpha(nextChar()) || nextChar() === "{" || nextChar() === "-")
                     ) {
                         tokens.push(consumeClassReference());
                     } else if (
