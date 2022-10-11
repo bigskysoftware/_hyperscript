@@ -63,4 +63,4 @@ worker MyWorker
 
 `this` inside a `js` block is the global scope (`window`, or `self` in workers).
 
-{% include js_end.md %}
+{% include "js_end.md" %}
