@@ -14,7 +14,8 @@
   "files": [
     "LICENSE",
     "README.md",
-    "src/*"
+    "src/*",
+    "dist/*"
   ],
   "main": "dist/_hyperscript.min.js",
   "bin": {
@@ -31,7 +32,7 @@
     "url": "git+https://github.com/bigskysoftware/_hyperscript.git"
   },
   "devDependencies": {
-    "@11ty/eleventy": "^0.10.0",
+    "@11ty/eleventy": "^1.0.2",
     "chai": "^4.2.0",
     "fs-extra": "^9.0.0",
     "markdown-it": "^12.3.2",
