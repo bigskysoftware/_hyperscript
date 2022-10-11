@@ -70,7 +70,7 @@ Try more examples in the [**playground**](/playground)
 
 <div id="features-list" style="">
 
-## A unique approach to websites
+## A language for interaction
 
 <div>
 
