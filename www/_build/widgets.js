@@ -47,7 +47,7 @@ module.exports = function (config) {
     			buf.push(dedent(line));
     		}
     	}
-    	return `<div class="missing-card"><dl class="syntaxes">${buf.join('\n')}</dl></div>`;
+    	return `<div class="box"><dl class="syntaxes">${buf.join('\n')}</dl></div>`;
     })
 }
 
