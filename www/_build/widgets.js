@@ -17,8 +17,8 @@ module.exports = function (config) {
         .replace(/\[\[([\*\+\?])\]\]/g,
           "<sup>$1</sup>"
         )
-        .replace(/\[\[([a-zA-Z0-9]+)\]\]/g,
-            '<b class="syntaxvar"><var>$1</var></b>'
+        .replace(/\[\[([a-zA-Z0-9 ]+)\]\]/g,
+            '<b class="chip syntaxvar"><var>$1</var></b>'
         )
 
         return `<code class="syntax">${syntax}</code>`
