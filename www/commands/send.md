@@ -26,7 +26,7 @@ You can alternatively use the equivalent `trigger` syntax.
   Check the console for the answer...
 </div>
 
-<div _="on click trigger doIt(answer:42)
+<div _="on click trigger doIt(answer:42) end
         on doIt(answer) log `The answer is $answer`">
   Click Me!
 </div>
