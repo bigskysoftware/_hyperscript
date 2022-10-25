@@ -2298,7 +2298,7 @@
 
         /** @type string | null */
         // @ts-ignore
-        hyperscriptUrl = "document" in globalScope ? document.currentScript.src : null;
+        hyperscriptUrl = "document" in globalScope && document.currentScript ? document.currentScript.src : null;
     }
 
     class Context {
