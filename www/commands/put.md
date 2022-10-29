@@ -1,3 +1,6 @@
+---
+title: put - ///_hyperscript
+---
 
 ## The `put` Command
 

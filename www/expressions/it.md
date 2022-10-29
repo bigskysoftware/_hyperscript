@@ -1,6 +1,6 @@
 ---
 layout: layout.njk
-title: ///_hyperscript
+title: it/result - ///_hyperscript
 ---
 
 ## The `it/result` Variable

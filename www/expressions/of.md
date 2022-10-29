@@ -1,3 +1,6 @@
+---
+title: of - ///_hyperscript
+---
 
 ## The `of` Expression
 

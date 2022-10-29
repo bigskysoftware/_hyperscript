@@ -1,3 +1,6 @@
+---
+title: toggle - ///_hyperscript
+---
 
 ## The `toggle` Command
 

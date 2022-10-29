@@ -1,3 +1,6 @@
+---
+title: call - ///_hyperscript
+---
 
 ## The `call` Command
 

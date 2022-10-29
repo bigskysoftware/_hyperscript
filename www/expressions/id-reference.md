@@ -1,3 +1,6 @@
+---
+title: id reference - ///_hyperscript
+---
 
 ## The `id reference` Expression
 

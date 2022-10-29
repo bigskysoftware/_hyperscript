@@ -1,3 +1,6 @@
+---
+title: pseudo-commands - ///_hyperscript
+---
 
 ## Pseudo-Commands
 
@@ -29,7 +32,7 @@ Consider the `refresh()` method found on `window.location`. In hyperscript, you 
 
 ### Caveats
 
-**A function defined with the same name as a hyperscript command cannot be called as a pseudo-command.** 
+**A function defined with the same name as a hyperscript command cannot be called as a pseudo-command.**
 
 Built-in commands can be called with or without parentheses grouping the single object the command works on. If a function has the same name as a command but takes more than a single parameter, the hyperscript parser will not see the call to the function as a pseudo-command, but will see the additional parameters in the function call as a parse error for the built-in command.
 
@@ -67,7 +70,7 @@ The `increment` and `decrement` commands can take a "by X" expression to modify 
 <button _="on click increment :x by 2 then put it into the next <output/>">
   increment :x by 2
 </button>
-<output></output>    
+<output></output>
 ```
 
 This shows that the parens work with a "by" expression as well:

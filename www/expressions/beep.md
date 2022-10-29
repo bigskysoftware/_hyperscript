@@ -1,6 +1,6 @@
 ---
 layout: layout.njk
-title: ///_hyperscript
+title: beep - ///_hyperscript
 ---
 
 ## The `beep!` Expression

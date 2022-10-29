@@ -1,3 +1,6 @@
+---
+title: decrement - ///_hyperscript
+---
 
 ## The `decrement` Command
 

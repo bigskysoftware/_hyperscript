@@ -1,3 +1,6 @@
+---
+title: make - ///_hyperscript
+---
 
 ## The `make` command
 

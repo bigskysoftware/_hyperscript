@@ -1,3 +1,6 @@
+---
+title: socket - ///_hyperscript
+---
 
 ## The `socket` feature
 

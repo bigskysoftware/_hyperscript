@@ -1,3 +1,6 @@
+---
+title: set - ///_hyperscript
+---
 
 ## The `set` Command
 

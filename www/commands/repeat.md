@@ -1,3 +1,6 @@
+---
+title: repeat - ///_hyperscript
+---
 
 ## The `repeat` Command
 

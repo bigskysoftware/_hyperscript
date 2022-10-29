@@ -1,3 +1,6 @@
+---
+title: halt - ///_hyperscript
+---
 
 ## The `halt` Command
 

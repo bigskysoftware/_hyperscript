@@ -1,3 +1,6 @@
+---
+title: time - ///_hyperscript
+---
 
 ## The `time` Expression
 

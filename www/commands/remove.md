@@ -1,3 +1,6 @@
+---
+title: remove - ///_hyperscript
+---
 
 ## The `remove` Command
 

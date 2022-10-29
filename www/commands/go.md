@@ -1,3 +1,6 @@
+---
+title: go - ///_hyperscript
+---
 
 ## The `go` Command
 

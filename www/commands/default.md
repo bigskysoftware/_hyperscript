@@ -1,3 +1,6 @@
+---
+title: default - ///_hyperscript
+---
 
 ## The `default` Command
 

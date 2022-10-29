@@ -1,3 +1,6 @@
+---
+title: block literal - ///_hyperscript
+---
 
 ## The `block literal` Expression
 

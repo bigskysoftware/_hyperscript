@@ -1,3 +1,6 @@
+---
+title: throw - ///_hyperscript
+---
 
 ## The `throw` Command
 
