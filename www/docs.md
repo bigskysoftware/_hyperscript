@@ -571,7 +571,7 @@ then the arguments, then an arrow `->`, followed by an expression:
 
 ### Control Flow
 
-Conditional control flow in hyperscript is done with the [if command](/commands/if).  The conditional expression
+Conditional control flow in hyperscript is done with the [if command](/commands/if) or the `unless` modifier.  The conditional expression
 in an if statement is not parenthesized. Hyperscript uses `end` rather than curly-braces to delimit the conditional body.
 
 The else-branch can use either the `else` keyword or the `otherwise` keyword.
@@ -602,6 +602,36 @@ As mentioned in the introduction, `end` is often omitted when it isn't needed in
   ~~~
 
 You can chain `if/else` commands together in the usual manner.
+
+All commands also support an `unless` modifier to conditionally execute them.
+This allows for a very succinct way of expressing branching logic.
+
+  ~~~ html
+  <button _="on click set error to functionCouldReturnError()
+                log error unless no error">
+    Log Result
+  </button>
+  ~~~
+
+See in the following example how the `.bordered` class is used to alter the behaviour of the second button.
+
+{% example '"unless" modifier' %}
+<button _="on click toggle .bordered on #second-button">
+  Toggle Next Border
+</button>
+<button id="second-button"
+          _="on click toggle .red unless I match .bordered">
+  Toggle My Background
+</button>
+{% endexample %}
+
+<style>
+  .bordered {
+    border-width: thick;
+    border-color: green;
+    border-style: solid;
+  }
+</style>
 
 #### Comparisons & Logical Operators
 
@@ -640,7 +670,7 @@ Using these natural language alternatives allows you to write very readable scri
 Comparisons can be combined via the `and`, `or` and `not` expressions in the usual manner:
 
   ~~~ hyperscript
-  if I am <:checked/> and the closest <form/> is <:focused/>
+  if I am <:checked/> and the closest <form/> is <:focus/>
     add .highlight to the closest <form/>
   ~~~
 
