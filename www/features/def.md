@@ -1,3 +1,6 @@
+---
+title: def - ///_hyperscript
+---
 
 ## The `def` Feature
 

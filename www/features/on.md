@@ -1,3 +1,6 @@
+---
+title: on - ///_hyperscript
+---
 
 ## The `event handler` Feature
 

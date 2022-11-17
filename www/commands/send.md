@@ -1,3 +1,6 @@
+---
+title: send - ///_hyperscript
+---
 
 ## The `send`/`trigger` Command
 

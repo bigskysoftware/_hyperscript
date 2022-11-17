@@ -1,3 +1,6 @@
+---
+title: worker - ///_hyperscript
+---
 
 ## The `worker` feature
 

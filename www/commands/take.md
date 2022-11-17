@@ -1,3 +1,6 @@
+---
+title: take - ///_hyperscript
+---
 
 ## The `take` Command
 

@@ -1,3 +1,6 @@
+---
+title: attribute reference - ///_hyperscript
+---
 
 ## The `attribute reference` Expression
 

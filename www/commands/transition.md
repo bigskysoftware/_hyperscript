@@ -1,3 +1,6 @@
+---
+title: transition - ///_hyperscript
+---
 
 ## The `transition` Command
 

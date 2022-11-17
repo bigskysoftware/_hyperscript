@@ -1,3 +1,6 @@
+---
+title: closest - ///_hyperscript
+---
 
 ## The `closest` Expression
 

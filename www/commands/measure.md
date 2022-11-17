@@ -1,3 +1,6 @@
+---
+title: measure - ///_hyperscript
+---
 
 ## The `measure` Command
 

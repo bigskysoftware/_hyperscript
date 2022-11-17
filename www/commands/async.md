@@ -1,3 +1,6 @@
+---
+title: async - ///_hyperscript
+---
 
 ## The `async` Command
 

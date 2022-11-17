@@ -1,3 +1,6 @@
+---
+title: behavior - ///_hyperscript
+---
 
 ## The `behavior` feature
 

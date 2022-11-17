@@ -1,3 +1,6 @@
+---
+title: continue - ///_hyperscript
+---
 
 ## The `continue` Command
 

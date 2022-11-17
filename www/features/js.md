@@ -1,3 +1,6 @@
+---
+title: js - ///_hyperscript
+---
 
 ## The `js` Feature (top-level)
 

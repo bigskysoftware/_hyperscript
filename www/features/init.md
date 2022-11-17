@@ -1,3 +1,6 @@
+---
+title: init - ///_hyperscript
+---
 
 ## The `init` Feature
 

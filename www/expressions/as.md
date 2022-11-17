@@ -1,3 +1,6 @@
+---
+title: as - ///_hyperscript
+---
 
 ## The `as` Expression
 
