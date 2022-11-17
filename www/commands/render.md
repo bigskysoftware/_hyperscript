@@ -1,3 +1,6 @@
+---
+title: render - ///_hyperscript
+---
 
 ## The `render` command
 

@@ -1,3 +1,6 @@
+---
+title: comparison operator - ///_hyperscript
+---
 
 ## The `comparison operator` Expression
 

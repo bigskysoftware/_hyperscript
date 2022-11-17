@@ -1,3 +1,6 @@
+---
+title: hide - ///_hyperscript
+---
 
 ## The `hide` Command
 

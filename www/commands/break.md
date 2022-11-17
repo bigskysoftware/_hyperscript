@@ -1,3 +1,6 @@
+---
+title: break - ///_hyperscript
+---
 
 ## The `break` Command
 

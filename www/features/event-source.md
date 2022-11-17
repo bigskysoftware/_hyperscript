@@ -1,3 +1,6 @@
+---
+title: eventsource - ///_hyperscript
+---
 
 ## The `eventsource` feature
 

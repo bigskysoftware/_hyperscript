@@ -1,6 +1,5 @@
 ---
-layout: layout.njk
-title: ///_hyperscript
+title: you/yourself/your - ///_hyperscript
 ---
 
 ## The `you/yourself/your` Reference

@@ -1,3 +1,6 @@
+---
+title: show - ///_hyperscript
+---
 
 ## The `show` Command
 

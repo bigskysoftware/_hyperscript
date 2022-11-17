@@ -1,3 +1,6 @@
+---
+title: class reference - ///_hyperscript
+---
 
 ## The `class reference` Expression
 

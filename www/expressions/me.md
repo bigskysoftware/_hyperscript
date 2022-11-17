@@ -1,6 +1,5 @@
 ---
-layout: layout.njk
-title: ///_hyperscript
+title: me/my - ///_hyperscript
 ---
 
 ## The `me/my` Reference
@@ -30,8 +29,8 @@ This uses the [put command](/commands/put) to update the contents of the associa
 This uses a [possessive expression](/expressions/possessive) and an [attribute reference](/expressions/attribute-ref) to display a custom message.
 
 ```html
-<span 
-    data-script="on mouseover alert my @data-message" 
+<span
+    data-script="on mouseover alert my @data-message"
     data-message="Keep Out!">
     Hover Over Me...
 </span>

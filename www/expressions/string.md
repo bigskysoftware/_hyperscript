@@ -1,3 +1,6 @@
+---
+title: string - ///_hyperscript
+---
 
 ## The `string` Expression
 

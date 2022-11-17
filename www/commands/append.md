@@ -1,3 +1,6 @@
+---
+title: append - ///_hyperscript
+---
 
 ## The `append` Command
 

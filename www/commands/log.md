@@ -1,3 +1,6 @@
+---
+title: log - ///_hyperscript
+---
 
 ## The `log` Command
 

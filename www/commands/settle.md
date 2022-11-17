@@ -1,3 +1,6 @@
+---
+title: settle - ///_hyperscript
+---
 
 ## The `settle` Command
 
@@ -28,7 +31,7 @@ transition will occur.
 </style>
 <div
   id="pulsar"
-  _="on load repeat 6 times 
+  _="on load repeat 6 times
                 toggle .red then settle"
 >
   You thought the blink tag was dead?

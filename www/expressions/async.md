@@ -1,5 +1,8 @@
+---
+title: async - ///_hyperscript
+---
 
-## The `attribute reference` Expression
+## The `async` Expression
 
 ### Syntax
 

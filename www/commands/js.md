@@ -1,3 +1,6 @@
+---
+title: js - ///_hyperscript
+---
 
 ## The `js` Command (inline)
 
@@ -16,7 +19,7 @@ The `js` command can be used to embed JavaScript code inline in \_hyperscript, a
 
 ```html
 <button
-  _="on click 
+  _="on click
            js
                if ('clipboard' in window.navigator) {
                	 return navigator.clipboard.readText()
@@ -34,8 +37,8 @@ If the `js` block needs to use variables from the surrounding \_hyperscript code
 
 ```html
 <button
-  _="on click 
-           set text to #input.value  
+  _="on click
+           set text to #input.value
            js(me, text)
                if ('clipboard' in window.navigator) {
                	 return navigator.clipboard.writeText(text)

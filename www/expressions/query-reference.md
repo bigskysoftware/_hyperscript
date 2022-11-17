@@ -1,3 +1,6 @@
+---
+title: query reference - ///_hyperscript
+---
 
 ## The `query reference` Expression
 

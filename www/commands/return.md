@@ -1,3 +1,6 @@
+---
+title: return - ///_hyperscript
+---
 
 ## The `return` Command
 

@@ -1,3 +1,6 @@
+---
+title: pick - ///_hyperscript
+---
 
 ## The `pick` Command
 

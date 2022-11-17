@@ -1,3 +1,6 @@
+---
+title: tell - ///_hyperscript
+---
 
 ## The `tell` Command
 

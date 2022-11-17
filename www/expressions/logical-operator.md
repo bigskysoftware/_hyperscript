@@ -1,3 +1,6 @@
+---
+title: logical operator - ///_hyperscript
+---
 
 ## The `logical operator` Expression
 
@@ -17,8 +20,8 @@ Note that all logical operators have the same precedence, but if multiple distin
 
 ```html
 <div
-  _="on click 
-          if I do not match .active and I do not contain .active 
+  _="on click
+          if I do not match .active and I do not contain .active
             add .active"
 >
   Activate Me

@@ -1,3 +1,6 @@
+---
+title: increment - ///_hyperscript
+---
 
 ## The `increment` Command
 

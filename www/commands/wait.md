@@ -1,3 +1,6 @@
+---
+title: wait - ///_hyperscript
+---
 
 ## The `wait` Command
 
@@ -28,7 +31,7 @@ You can also mix timeouts and events, which can be useful to avoid waiting forev
 
 ```hyperscript
 -- Fail if the thing doesn't load after 1s.
-wait for load or 1s 
+wait for load or 1s
 if the result is not an Event
   throw 'Took too long to load.'
 end
