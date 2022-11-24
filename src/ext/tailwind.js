@@ -1,41 +1,42 @@
-_hyperscript.config.hideShowStrategies.twDisplay = function (op, element, arg) {
-    if (op === "toggle") {
-        if (element.classList.contains("hidden")) {
-            HIDE_SHOW_STRATEGIES.tailwindcss("show", element, arg);
+_hyperscript.config.hideShowStrategies = {
+    twDisplay: function (op, element, arg) {
+        if (op === "toggle") {
+            if (element.classList.contains("hidden")) {
+                _hyperscript.config.hideShowStrategies.twDisplay("show", element, arg);
+            } else {
+                _hyperscript.config.hideShowStrategies.twDisplay("hide", element, arg);
+            }
+        } else if (op === "hide") {
+            element.classList.add('hidden');
         } else {
-            HIDE_SHOW_STRATEGIES.tailwindcss("hide", element, arg);
+            element.classList.remove('hidden');
         }
-    } else if (op === "hide") {
-        element.classList.add('hidden');
-    } else {
-        element.classList.remove('hidden');
-    }
-}
+    },
 
-_hyperscript.config.hideShowStrategies.twVisibility = function (op, element, arg) {
-    if (op === "toggle") {
-        if (element.classList.contains("invisible")) {
-            HIDE_SHOW_STRATEGIES.tailwindcss("show", element, arg);
+    twVisibility: function (op, element, arg) {
+        if (op === "toggle") {
+            if (element.classList.contains("invisible")) {
+                _hyperscript.config.hideShowStrategies.twVisibility("show", element, arg);
+            } else {
+                _hyperscript.config.hideShowStrategies.twVisibility("hide", element, arg);
+            }
+        } else if (op === "hide") {
+            element.classList.add('invisible');
         } else {
-            HIDE_SHOW_STRATEGIES.tailwindcss("hide", element, arg);
+            element.classList.remove('invisible');
         }
-    } else if (op === "hide") {
-        element.classList.add('invisible');
-    } else {
-        element.classList.remove('invisible');
-    }
-}
-
-_hyperscript.config.hideShowStrategies.twOpacity = function (op, element, arg) {
-    if (op === "toggle") {
-        if (element.classList.contains("opacity-0")) {
-            HIDE_SHOW_STRATEGIES.tailwindcss("show", element, arg);
+    },
+    twOpacity: function (op, element, arg) {
+        if (op === "toggle") {
+            if (element.classList.contains("opacity-0")) {
+                _hyperscript.config.hideShowStrategies.twOpacity("show", element, arg);
+            } else {
+                _hyperscript.config.hideShowStrategies.twOpacity("hide", element, arg);
+            }
+        } else if (op === "hide") {
+            element.classList.add('opacity-0');
         } else {
-            HIDE_SHOW_STRATEGIES.tailwindcss("hide", element, arg);
+            element.classList.remove('opacity-0');
         }
-    } else if (op === "hide") {
-        element.classList.add('opacity-0');
-    } else {
-        element.classList.remove('opacity-0');
     }
-}
+};

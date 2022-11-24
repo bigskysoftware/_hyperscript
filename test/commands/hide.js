@@ -85,27 +85,6 @@ describe("the hide command", function () {
 		getComputedStyle(div).visibility.should.equal("hidden");
 	});
 
-	it("can hide element, with tailwindcss hidden class", function () {
-		var div = make("<div _='on click hide me with twDisplay'></div>");
-		div.classList.contains("hidden").should.equal(false);
-		div.click();
-		div.classList.contains("hidden").should.equal(true);
-	});
-
-	it("can hide element, with tailwindcss invisible class", function () {
-		var div = make("<div _='on click hide me with twVisibility'></div>");
-		div.classList.contains("invisible").should.equal(false);
-		div.click();
-		div.classList.contains("invisible").should.equal(true);
-	});
-
-	it("can hide element, with tailwindcss opacity-0 class", function () {
-		var div = make("<div _='on click hide me with twOpacity'></div>");
-		div.classList.contains("opacity-0").should.equal(false);
-		div.click();
-		div.classList.contains("opacity-0").should.equal(true);
-	});
-
 	it("can hide other elements", function () {
 		var hideme = make("<div class=hideme></div>");
 		var div = make("<div _='on click hide .hideme'></div>");
