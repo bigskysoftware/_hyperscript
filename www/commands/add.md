@@ -31,6 +31,8 @@ in `target`.  Note that this clause only works with classes and properties.
 
 <button _="on click add [@disabled=disabled]">Disable Me!</button>
 
+<button _="on click add [@disabled=]">Disable Me Again!</button>
+
 <input
   type="color"
   _="on change add { '--accent-color': my.value } to document.body"
