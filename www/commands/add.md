@@ -29,13 +29,13 @@ in `target`.  Note that this clause only works with classes and properties.
 
 <div _="on click add .clacked to #another-div">Click Me!</div>
 
-<button _="on click add @disabled='true'">Disable Me!</button>
+<button _="on click add [@disabled=disabled]">Disable Me!</button>
 
 <input
   type="color"
   _="on change add { '--accent-color': my.value } to document.body"
 />
 
-<button _="on click add @disabled='true' to <button/> when it is not me">Disable Other Buttons</button>
+<button _="on click add [@disabled=disabled] to <button/> when it is not me">Disable Other Buttons</button>
 
 ```
