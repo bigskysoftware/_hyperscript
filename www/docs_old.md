@@ -836,7 +836,7 @@ Note that all commands may be followed by an `unless <expr>` that makes the comm
 
 Below is a table of all commands available by default in the hyperscript language:
 
-{% include commands_table.md %}
+{% include "commands_table.md" %}
 
 Below, we will discuss some of the more commonly used commands.
 

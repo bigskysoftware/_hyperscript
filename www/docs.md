@@ -1,7 +1,17 @@
 
 <style>
-@media (min-width: 100ch) {
+:root {
+  --line-length: 100ch;
+}
+#toc sub-title {
+  display: inline-block;
+}
+#toc li {
+  margin: calc(.5*var(--gap));
+}
+@media (min-width: 120ch) {
   #toc-wrapper {
+    font-size: .9em;
     float: left;
     position: sticky;
     top: 0;
@@ -13,10 +23,11 @@
     overflow: auto;
     max-height: 100vh;
     margin-inline-end: var(--gap);
-    margin-inline-start: calc(var(--gap) - var(--gutter-width));
+    margin-inline-start: calc(2*var(--gap) - var(--gutter-width));
   }
-  #toc sub-title {
-    display: inline-block;
+
+  #toc li {
+    margin: calc(.25*var(--gap));
   }
   #docs-content {
     display: flow-root;

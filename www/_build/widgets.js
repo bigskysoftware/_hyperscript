@@ -17,8 +17,8 @@ module.exports = function (config) {
         .replace(/\[\[([\*\+\?])\]\]/g,
           "<sup>$1</sup>"
         )
-        .replace(/\[\[([a-zA-Z0-9]+)\]\]/g,
-            '<b class="syntaxvar"><var>$1</var></b>'
+        .replace(/\[\[([a-zA-Z0-9 ]+)\]\]/g,
+            '<b class="chip syntaxvar"><var>$1</var></b>'
         )
 
         return `<code class="syntax">${syntax}</code>`
@@ -47,7 +47,7 @@ module.exports = function (config) {
     			buf.push(dedent(line));
     		}
     	}
-    	return `<div class="missing-card"><dl class="syntaxes">${buf.join('\n')}</dl></div>`;
+    	return `<div class="box"><dl class="syntaxes">${buf.join('\n')}</dl></div>`;
     })
 }
 

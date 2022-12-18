@@ -1,13 +1,21 @@
-body {
+:root {
+    font-size: 110%;
     --rhythm: 1.4rem;
+    --line-length: 90ch;
     --accent: #3465a4;
     --muted-accent: #3d72d7;
-    --colorful-bg: #eaf7ff;
+    --mono-font: "Source Code Pro", "Consolas", monospace, monospace;
 }
 
-.full-width {
-    margin-left: calc(50% - 50vw);
-    margin-right: calc(50% - 50vw);
+pre, code {
+    font-size: inherit;
+}
+
+ul, ol {
+    margin-inline-start: .5em;
+}
+ul {
+    list-style-type: disc;
 }
 
 .logo:hover {
@@ -60,13 +68,12 @@ body {
     }
 
 .syntax b {
-    background: var(--bg-3);
-    color: var(--accent);
-    border: 1px solid var(--bg-4);
+    color: var(--info-fg);
     font-family: var(--main-font);
+    line-height: 1.2em;
     font-weight: normal;
-    padding: 0 .5em;
-    border-radius: .5em;
+    padding: 0 .4em;
+    display: inline-block;
 }
 
 .syntax sup {
@@ -85,17 +92,12 @@ body {
     color: #3465a4;
 }
 
-.syntaxes dt {
-    margin-left: -2em;
-}
 
 .syntaxes dd {
-    margin-left: 0em;
-	margin-top: -.8em;
+    margin-block-start: calc(0px - var(--gap));
 }
 
 .syntaxes dt code {
-    background-color: white;
-    border-color: #4d82c9;
     font-weight: 700;
+    margin-inline-end: 2ch;
 }

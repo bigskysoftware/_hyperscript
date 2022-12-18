@@ -74,11 +74,13 @@ describe("the _hyperscript tokenizer", function () {
 		lexer.tokenize("----\n---asdf").list.length.should.equal(0);
 		lexer.tokenize("----asdf----").list.length.should.equal(0);
 		lexer.tokenize("---\nasdf---").list.length.should.equal(1);
-		lexer.tokenize("//asdf").list.length.should.equal(0);
+		lexer.tokenize("// asdf").list.length.should.equal(0);
+		lexer.tokenize("///asdf").list.length.should.equal(0);
 		lexer.tokenize("asdf//").list.length.should.equal(1);
 		lexer.tokenize("asdf\n//").list.length.should.equal(2);
 		lexer.tokenize("/**/asdf").list.length.should.equal(1);
-		lexer.tokenize("/*asdf*/").list.length.should.equal(0);
+		lexer.tokenize("/* asdf */").list.length.should.equal(0);
+		lexer.tokenize("/**asdf**/").list.length.should.equal(0);
 		lexer.tokenize("/*\nasdf\n*/").list.length.should.equal(0);
 		lexer.tokenize("asdf/*\n*/").list.length.should.equal(1);
 	});

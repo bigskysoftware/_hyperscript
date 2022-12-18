@@ -22,7 +22,7 @@ toggle [the | my] ('*opacity' | '*visibility' | '*display')
 
 The `toggle` command allows you to toggle:
 
- * A class or set of classes (via a [class ref](/expresssions/class-reference))
+ * A class or set of classes (via a [class ref](/expressions/class-reference))
 
 * An attribute (via an [attribute ref](/expressions/attribute-ref))
 
