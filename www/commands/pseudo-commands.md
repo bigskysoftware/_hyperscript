@@ -18,11 +18,11 @@ looked up on the value returned by the expression and executed.
 
 ### Examples
 
-Consider the `refresh()` method found on `window.location`. In hyperscript, you can use it as a pseudo-command like so:
+Consider the `reload()` method found on `window.location`. In hyperscript, you can use it as a pseudo-command like so:
 
 ```html
-<button _="on click refresh() the location of the window">
-  Refresh the Location
+<button _="on click reload() the location of the window">
+  Reload the Location
 </button>
 
 <button _="on click setAttribute('foo', 'bar') on me">
