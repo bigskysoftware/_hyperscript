@@ -131,6 +131,24 @@ describe("the on feature", function () {
 		div.innerText.should.equal("");
 	});
 
+	it("can refer to event detail properties directly in filter", function () {
+		var div = make(
+			"<div _='on example[foo] increment @count then put it into me'></div>"
+		);
+		let event = new Event('example');
+		event.detail = {"foo": true}
+		div.dispatchEvent(event);
+		div.innerText.should.equal("1");
+
+		event.detail = {"foo": false}
+		div.dispatchEvent(event);
+		div.innerText.should.equal("1");
+
+		event.detail = {"foo": true}
+		div.dispatchEvent(event);
+		div.innerText.should.equal("2");
+	});
+
 	it("can click after a positive event filter", function () {
 		var div = make("<div _='on foo(bar)[bar] put \"triggered\" into my.innerHTML'></div>");
 		div.dispatchEvent(new CustomEvent("foo", { detail: { bar: false } }));

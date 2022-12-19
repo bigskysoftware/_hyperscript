@@ -2013,6 +2013,13 @@
                         if (typeof fromMetaContext !== "undefined") {
                             return fromMetaContext;
                         }
+                        // resolve against the `detail` object in the meta context as well
+                        if (context.meta.context.detail) {
+                            fromMetaContext = context.meta.context.detail[str];
+                            if (typeof fromMetaContext !== "undefined") {
+                                return fromMetaContext;
+                            }
+                        }
                     }
                     if (this.isHyperscriptContext(context) && !this.isReservedWord(str)) {
                         // local scope
@@ -4239,7 +4246,7 @@
                             }
 
                             if (eventSpec.intersectionSpec) {
-                                eventName = "hyperscript:insersection";
+                                eventName = "hyperscript:intersection";
                                 const observer = new IntersectionObserver(function (entries) {
                                     for (const entry of entries) {
                                         var detail = {
