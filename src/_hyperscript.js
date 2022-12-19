@@ -766,6 +766,8 @@
         }
 
         peekToken(value, peek, type) {
+            peek = peek || 0;
+            type = type || "IDENTIFIER";
             return this.tokens[peek] && this.tokens[peek].value === value && this.tokens[peek].type === type
         }
 
@@ -995,12 +997,23 @@
             });
 
             this.addGrammarElement("commandList", function (parser, runtime, tokens) {
-                var cmd = parser.parseElement("command", tokens);
-                if (cmd) {
-                    tokens.matchToken("then");
-                    const next = parser.parseElement("commandList", tokens);
-                    if (next) cmd.next = next;
-                    return cmd;
+                if (tokens.hasMore()) {
+                    var cmd = parser.parseElement("command", tokens);
+                    if (cmd) {
+                        tokens.matchToken("then");
+                        const next = parser.parseElement("commandList", tokens);
+                        if (next) cmd.next = next;
+                        return cmd;
+                    }
+                }
+                return {
+                    type: "emptyCommandListCommand",
+                    op: function(context){
+                        return runtime.findNext(this, context);
+                    },
+                    execute: function (context) {
+                        return runtime.unifiedExec(this, context);
+                    }
                 }
             });
 
@@ -5362,10 +5375,12 @@
             var expr = parser.requireElement("expression", tokens);
             tokens.matchToken("then"); // optional 'then'
             var trueBranch = parser.parseElement("commandList", tokens);
+            var nestedIfStmt = false;
             if (tokens.matchToken("else") || tokens.matchToken("otherwise")) {
+                nestedIfStmt = tokens.peekToken("if");
                 var falseBranch = parser.parseElement("commandList", tokens);
             }
-            if (tokens.hasMore()) {
+            if (tokens.hasMore() && !nestedIfStmt) {
                 tokens.requireToken("end");
             }
 

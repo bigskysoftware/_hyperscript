@@ -123,4 +123,26 @@ describe("the if command", function () {
 		d1.click();
 		d1.innerHTML.should.equal("foo");
 	});
+
+	it("if properly supports nested if statements and end block", function () {
+		window.tmp = false
+		var d1 = make("<div _='on click \n" +
+			"                      if window.tmp then\n" +
+			"                        put \"foo\" into me\n" +
+			"                      else if not window.tmp then\n" +
+			"                        // do nothing\n" +
+			"                      end\n" +
+			"                  catch e\n" +
+			"                      // just here for the parsing...\n'" +
+			"</div>");
+		d1.click();
+		d1.innerHTML.should.equal("");
+
+		window.tmp = true
+		d1.click();
+		d1.innerHTML.should.equal("foo");
+
+		delete window.tmp;
+	});
+
 });
