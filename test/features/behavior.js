@@ -91,11 +91,14 @@ describe("the behavior feature", function () {
 			`);
 		var div = make("<div _='install Behave'></div>");
 		div.textContent.should.equal("");
-		div.click();
-		div.textContent.should.equal("2");
-		div.click();
-		div.textContent.should.equal("3");
-		delete window.Behave;
+		setTimeout(function () {
+			div.click();
+			div.textContent.should.equal("2");
+			div.click();
+			div.textContent.should.equal("3");
+			delete window.Behave;
+			done();
+		}, 20);
 	});
 
 });
