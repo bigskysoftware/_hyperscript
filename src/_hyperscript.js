@@ -3646,7 +3646,7 @@
             var expr = parser.parseElement("unaryExpression", tokens);
             var mathOp,
                 initialMathOp = null;
-            mathOp = tokens.matchAnyOpToken("+", "-", "*", "/", "%");
+            mathOp = tokens.matchAnyOpToken("+", "-", "*", "/") || tokens.matchToken('mod');
             while (mathOp) {
                 initialMathOp = initialMathOp || mathOp;
                 var operator = mathOp.value;
@@ -3669,7 +3669,7 @@
                             return lhsVal * rhsVal;
                         } else if (operator === "/") {
                             return lhsVal / rhsVal;
-                        } else if (operator === "%") {
+                        } else if (operator === "mod") {
                             return lhsVal % rhsVal;
                         }
                     },
@@ -3677,7 +3677,7 @@
                         return runtime.unifiedEval(this, context);
                     },
                 };
-                mathOp = tokens.matchAnyOpToken("+", "-", "*", "/", "%");
+                mathOp = tokens.matchAnyOpToken("+", "-", "*", "/") || tokens.matchToken('mod');
             }
             return expr;
         });

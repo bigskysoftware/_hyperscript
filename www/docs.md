@@ -771,7 +771,12 @@ Hyperscript supports most of the regular math operators:
   set product to x * y
   ~~~
 
-Hyperscript does not have a notion of mathematical operator precendence.  Instead, math operators must be fully
+with one exception, the modulo operator uses the keyword `mod`:
+  ~~~ hyperscript
+  set x to 10 mod 3
+  ~~~ 
+
+Hyperscript does not have a notion of mathematical operator precedence.  Instead, math operators must be fully
 parenthesized when used in combination with other math operators:
 
   ~~~ hyperscript

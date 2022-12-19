@@ -24,6 +24,11 @@ describe("the mathOperator expression", function () {
 		result.should.equal(1 / 2);
 	});
 
+	it("mod works", function () {
+		var result = evalHyperScript("3 mod 2");
+		result.should.equal(3 % 2);
+	});
+
 	it("addition works w/ more than one value", function () {
 		var result = evalHyperScript("1 + 2 + 3");
 		result.should.equal(1 + 2 + 3);

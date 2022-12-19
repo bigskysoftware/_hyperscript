@@ -54,12 +54,12 @@ See [expressions](/expressions) for an overview.
 
 Define other values just like you do in Javascript
 
-|  name | description | example
-|-------|-------------|---------
-| arrays | Javascript-style array literals | `[1, 2, 3]`
-| booleans | Javascript-style booleans | `true false`
-| math operators | Javascript-style mathematical operators | `1 + 2`
-| null | Javascript-style null | `null`
-| numbers | Javascript-style numbers | `1  3.14`
-| objects | Javascript-style object literals | `{foo:"bar", doh:42}`
-| [strings](/expressions/string) | Javascript-style strings | `"a string", 'another string'`
+|  name | description                                                                 | example
+|-------|-----------------------------------------------------------------------------|---------
+| arrays | Javascript-style array literals                                             | `[1, 2, 3]`
+| booleans | Javascript-style booleans                                                   | `true false`
+| math operators | Javascript-style mathematical operators (`mod` is a keyword in place of `%`) | `1 + 2`
+| null | Javascript-style null                                                       | `null`
+| numbers | Javascript-style numbers                                                    | `1  3.14`
+| objects | Javascript-style object literals                                            | `{foo:"bar", doh:42}`
+| [strings](/expressions/string) | Javascript-style strings                                                    | `"a string", 'another string'`
