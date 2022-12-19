@@ -185,4 +185,13 @@ describe("the set command", function () {
 		d1.style.color.should.equal("red");
 	});
 
+	it("handles set url regression properly", function () {
+		var d1 = make("<div _='" +
+			"on click set trackingcode to `foo`" +
+			"         set pdfurl to `https://yyy.xxxxxx.com/path/out/${trackingcode}.pdf`" +
+			"         put pdfurl into me'>lolwat</div>");
+		d1.click();
+		d1.innerText.should.equal("https://yyy.xxxxxx.com/path/out/foo.pdf");
+	});
+
 });

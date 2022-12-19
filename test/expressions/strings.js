@@ -57,4 +57,9 @@ describe("the string expression", function () {
 		);
 		result.should.equal('<div age="21" style="color:bleaux">John Connor</div>');
 	});
+
+	it("should handle back slashes in non-template content", function () {
+		var result = evalHyperScript("`https://${foo}`", {locals:{foo:'bar'}});
+		result.should.equal('https://bar');
+	});
 });
