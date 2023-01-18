@@ -8,7 +8,7 @@ You can filter rows from a table:
 <table>
   <thead><tr><th><input _="on input
    show <tbody>tr/> in closest <table/>
-     when it's textContent.toLowerCase() contains my value.toLowerCase()
+     when its textContent.toLowerCase() contains my value.toLowerCase()
   "/></th></tr></thead>
   <tbody style="height:10em;display:block;overflow-y:scroll">
     <tr><td>Foo Bar</td><td>Item 1</td></tr>
@@ -29,7 +29,7 @@ rest of the page during filtering.
 <table>
   <thead><tr><th><input _="on input
    show <tbody>tr/> in closest <table/>
-     when it's textContent.toLowerCase() contains my value.toLowerCase()
+     when its textContent.toLowerCase() contains my value.toLowerCase()
   "/></th></tr></thead>
   <tbody style="height:10em;display:block;overflow-y:scroll">
     <tr><td>Foo Bar</td><td>Item 1</td></tr>
