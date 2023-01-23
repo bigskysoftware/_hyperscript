@@ -24,6 +24,24 @@ describe("the attributeRef expression", function () {
 		div.getAttribute("data-foo").should.equal("blue");
 	});
 
+	it("attributeRef can have value used in add commands", function () {
+		var div = make("<div _='on click add [@data-foo=blue]' data-foo='red'></div>");
+		div.click();
+		div.getAttribute("data-foo").should.equal("blue");
+	});
+
+	it("attributeRef can have value in quotes used in add commands", function () {
+		var div = make("<div _='on click add [@data-foo=\"blue\"]' data-foo='red'></div>");
+		div.click();
+		div.getAttribute("data-foo").should.equal("blue");
+	});
+
+	it("attributeRef can have value in quotes with spaces used in add commands", function () {
+		var div = make("<div _='on click add [@data-foo=\"blue green\"]' data-foo='red'></div>");
+		div.click();
+		div.getAttribute("data-foo").should.equal("blue green");
+	});
+
 	it("attributeRef can be set as prop", function () {
 		var div = make("<div data-foo='red'></div>");
 		var value = _hyperscript("set x[@data-foo] to 'blue'", { locals: { x: div } });
@@ -101,4 +119,24 @@ describe("the attributeRef expression", function () {
 		div.click();
 		div.getAttribute("data-foo").should.equal("blue");
 	});
+
+	it("attributeRef can have value used in add commands w/ short syntax", function () {
+		var div = make("<div _='on click add @data-foo=blue' data-foo='red'></div>");
+		div.click();
+		div.getAttribute("data-foo").should.equal("blue");
+	});
+
+	it("attributeRef can have value in quotes used in add commands w/ short syntax", function () {
+		var div = make("<div _='on click add @data-foo=\"blue\"' data-foo='red'></div>");
+		div.click();
+		div.getAttribute("data-foo").should.equal("blue");
+	});
+
+	it("attributeRef can have value in quotes with spaces used in add commands w/ short syntax", function () {
+		var div = make("<div _='on click add @data-foo=\"blue green\"' data-foo='red'></div>");
+		div.click();
+		div.getAttribute("data-foo").should.equal("blue green");
+	});
+
+
 });

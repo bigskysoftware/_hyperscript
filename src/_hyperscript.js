@@ -386,6 +386,18 @@
                 while (Lexer.isValidCSSIDChar(currentChar())) {
                     value += consumeChar();
                 }
+                if (currentChar() === '=') {
+                    value += consumeChar();
+                    if (currentChar() === '"' || currentChar() === "'") {
+                        let stringValue = consumeString();
+                        value += stringValue.value;
+                    } else if(Lexer.isAlpha(currentChar()) ||
+                        Lexer.isNumeric(currentChar()) ||
+                        Lexer.isIdentifierChar(currentChar())) {
+                        let id = consumeIdentifier();
+                        value += id.value;
+                    }
+                }
                 attributeRef.value = value;
                 attributeRef.end = position;
                 return attributeRef;
