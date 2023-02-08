@@ -2289,8 +2289,9 @@
                 for (const elt of value) {
                     return true;
                 }
+                return false;
             }
-            return false;
+            return true;
         }
 
         /**

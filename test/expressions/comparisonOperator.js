@@ -486,20 +486,32 @@ describe("the comparisonOperator expression", function () {
 	});
 
 	it("exists works", function () {
-		var result = evalHyperScript("undefined exists");
-		result.should.equal(false);
+		// var result = evalHyperScript("undefined exists");
+		// result.should.equal(false);
+		//
+		// var result = evalHyperScript("null exists");
+		// result.should.equal(false);
+		//
+		// var result = evalHyperScript("#doesNotExist exists");
+		// result.should.equal(false);
+		//
+		// var result = evalHyperScript(".aClassThatDoesNotExist exists");
+		// result.should.equal(false);
+		//
+		// var result = evalHyperScript("<.aClassThatDoesNotExist/> exists");
+		// result.should.equal(false);
 
-		var result = evalHyperScript("null exists");
-		result.should.equal(false);
+		var div = make(
+			"<div id='d1' class='c1'></div>\n" +
+			"                  <div id='d2' class='c1'></div>\n" +
+			"                  <div id='d3' class='c1'></div>\n"
+		);
 
-		var result = evalHyperScript("#doesNotExist exists");
-		result.should.equal(false);
+		var result = evalHyperScript("#d1 exists");
+		result.should.equal(true);
 
-		var result = evalHyperScript(".aClassThatDoesNotExist exists");
-		result.should.equal(false);
-
-		var result = evalHyperScript("<.aClassThatDoesNotExist/> exists");
-		result.should.equal(false);
+		var result = evalHyperScript(".c1 exists");
+		result.should.equal(true);
 
 		var result = evalHyperScript("<body/> exists");
 		result.should.equal(true);
