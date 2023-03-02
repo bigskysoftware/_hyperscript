@@ -4117,7 +4117,12 @@
                     if (tokens.matchToken("elsewhere")) {
                         elsewhere = true;
                     } else {
-                        from = parser.parseElement("expression", tokens);
+                        tokens.pushFollow("or");
+                        try {
+                            from = parser.requireElement("expression", tokens)
+                        } finally {
+                            tokens.popFollow();
+                        }
                         if (!from) {
                             parser.raiseParseError(tokens, 'Expected either target value or "elsewhere".');
                         }
@@ -4134,12 +4139,12 @@
 
                 if (tokens.matchToken("debounced")) {
                     tokens.requireToken("at");
-                    var timeExpr = parser.requireElement("expression", tokens);
+                    var timeExpr = parser.requireElement("unaryExpression", tokens);
                     // @ts-ignore
                     var debounceTime = timeExpr.evaluate({}); // OK No promise TODO make a literal time expr
                 } else if (tokens.matchToken("throttled")) {
                     tokens.requireToken("at");
-                    var timeExpr = parser.requireElement("expression", tokens);
+                    var timeExpr = parser.requireElement("unaryExpression", tokens);
                     // @ts-ignore
                     var throttleTime = timeExpr.evaluate({}); // OK No promise TODO make a literal time expr
                 }

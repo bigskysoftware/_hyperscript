@@ -778,4 +778,20 @@ describe("the on feature", function () {
 		div.innerHTML.should.equal("clicked");
 	});
 
+	it("can handle an or after a from clause", function () {
+		var d1 = make("<div id='d1'></div>");
+		var d2 = make("<div id='d2'></div>");
+		var div = make(
+			"<div _=' " +
+			"	on click from #d1 or click from #d2 " +
+			"		 increment @count then put @count into me" +
+			"	'></div>"
+		);
+		d1.click();
+		div.innerHTML.should.equal("1");
+		d2.click();
+		div.innerHTML.should.equal("2");
+
+	});
+
 });
