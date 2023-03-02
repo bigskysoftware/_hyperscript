@@ -29,7 +29,7 @@
 HTML gets the language it deserves, with advanced event handling features and concise DOM manipulation.
 _hyperscript has a simple goal: **make websites written in plain-old markup a joy to use.**
 
-Install: `<script src="https://unpkg.com/hyperscript.org@0.9.7"></script>`{.language-html style="line-break:anywhere"}
+Install: `<script src="https://unpkg.com/hyperscript.org@0.9.8"></script>`{.language-html style="line-break:anywhere"}
 
 <strong><a class="<button>" style="font-size:1em" href="/docs">Go to the docs</a></strong>
 
