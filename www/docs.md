@@ -893,7 +893,7 @@ Finally, you can use the [`pseudo-command`](/commands/pseudo-commands)` syntax, 
 name first on the line in a method call, to improve readability in some cases:
 
   ~~~ hyperscript
-  refresh() the location of the window
+  reload() the location of the window
   writeText('evil') into the navigator's clipboard
   reset() the #contact-form
   ~~~

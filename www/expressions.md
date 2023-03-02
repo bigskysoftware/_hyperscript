@@ -331,16 +331,16 @@ since milliseconds is the normal interpretation for things like `setTimeout()`, 
 The [`of`](/expressions/of) expression allows you to reverse the normal object oriented syntax and write logic in more natural english
 
 ```html
-  <button _="on click call window.location.refresh()">
-    Refresh the Location
+  <button _="on click call window.location.reload()">
+    Reload the Location
   </button>
 ```
 
 Can be rewritten like this:
 
 ```html
-  <button _="on click refresh() the location of the window">
-    Refresh the Location
+  <button _="on click reload() the location of the window">
+    Reload the Location
   </button>
 ```
 

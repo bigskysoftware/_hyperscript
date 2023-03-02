@@ -4,7 +4,7 @@
 | [append](/commands/append)         | Appends a value to a string, array or HTML Element                            | `append "value" to myString`                                                            |
 | [async](/commands/async)           | Runs commands asynchronously                                                  | `async fetch /example`                                                                  |
 | [break](/commands/break)           | Breaks out of the current loop                                                | `repeat 3 times break end`                                                           |
-| [call/get](/commands/call)         | Evaluates an expression (e.g. a Javascript Function)                          | `call alert('yep, you can call javascript!)` <br/><br/> `get prompt('Enter your name')` |
+| [call/get](/commands/call)         | Evaluates an expression (e.g. a Javascript Function)                          | `call alert('yep, you can call javascript!')` <br/><br/> `get prompt('Enter your name')` |
 | [continue](/commands/continue)     | Skips the remainder of a loop and continues at the top of the next iteration. | `repeat 3 times continue end`                                                           |
 | [decrement](/commands/decrement)   | Subtracts a value to a variable, property, or attribute                       | `decrement counter`                                                                     |
 | [fetch](/commands/fetch)           | Send a fetch request                                                          | `fetch /demo then put it into my.innerHTML`                                             |
@@ -16,6 +16,7 @@
 | [js](/commands/js)                 | Embeds javascript                                                             | `js alert('this is javascript'); end`                                                   |
 | [log](/commands/log)               | Logs a given expression to the console, if possible                           | `log me`                                                                                |
 | [make](/commands/make)             | Creates a class instance or DOM element                                       | `make a Set from a, b. c`, `make a <p/> called para`                                    |
+| [pick](/commands/pick)             | Selects items from arrays, strings and regex match results                    | `pick match of "(\w+)" from str`                                                         |
 | [put](/commands/put)               | Puts a value into a given variable or property                                | `put "cool!" into me`                                                         |
 | [remove](/commands/remove)         | Removes content                                                               | `log "bye, bye" then remove me`                                                         |
 | [repeat](/commands/repeat)         | Iterates                                                                      | `repeat for x in [1, 2, 3] log x end`                                                   |
