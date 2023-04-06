@@ -4956,7 +4956,7 @@
                 args: [toExpr, eventName, details],
                 op: function (context, to, eventName, details) {
                     runtime.nullCheck(to, toExpr);
-                    runtime.forEach(to, function (target) {
+                    runtime.implicitLoop(to, function (target) {
                         runtime.triggerEvent(target, eventName, details, context.me);
                     });
                     return runtime.findNext(sendCmd, context);
