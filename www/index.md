@@ -88,7 +88,7 @@ on pointerdown
 
 <div>
 
-**Easiest event syntax.** Send, recieve, chain events together. [Filter](/docs/#event_filters), [queue](/docs/#event_queueing) or [debounce](/comparison/#debounced-input) events.
+**Easily send and recieve events.** Chain events together. [Filter](/docs/#event_filters), [queue](/docs/#event_queueing) or [debounce](/comparison/#debounced-input) events.
 
 In action ➡️
 [Disable a button during an htmx request](/cookbook/#40-disable-btn-during-request),
