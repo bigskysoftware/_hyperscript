@@ -20,18 +20,13 @@
   }
 </style>
 
-<div id="intro-to-hyperscript" class="f-switch align-items:center" style="--col-width: 60ch; border-block-end: 1px solid var(--faded-fg);">
+<div id="intro-to-hyperscript" class="f-switch align-items:center" style="--col-width: 60ch;">
 
 <div>
 
-# Scripting for hypertext
+# Easy & approachable development for modern web front-ends
 
-HTML gets the language it deserves, with advanced event handling features and concise DOM manipulation.
-_hyperscript has a simple goal: **make websites written in plain-old markup a joy to use.**
-
-Install: `<script src="https://unpkg.com/hyperscript.org@0.9.8"></script>`{.language-html style="line-break:anywhere"}
-
-<strong><a class="<button>" style="font-size:1em" href="/docs">Go to the docs</a></strong>
+Enhance HTML with concise DOM, event and async features. **Make writing interactive HTML a joy.**
 
 </div>
 
@@ -39,7 +34,7 @@ Install: `<script src="https://unpkg.com/hyperscript.org@0.9.8"></script>`{.lang
 
 <figure>
 
-~~~ hyperscript
+~~~hyperscript
 on pointerdown
   repeat until event pointerup
     set rand to Math.random() * 255
@@ -59,115 +54,129 @@ on pointerdown
     transition *background-color
             to `hsl($rand 100% 90%)`
           over 250ms
-  end">Try me: press and hold</button></strong>
+  end">Try me: press and hold</button></span>
+</div>
 
-Try more examples in the [**playground**](/playground)
-{style="font-size:1rem; text-align: center"}
+
+<div style="flex-basis: 100%; text-align: center;"><span id="install"><strong>Install:</strong> <code style="border: 2px dotted #00000055; margin: 0 10px; padding: 4px 6px; border-radius: 4px">&lt;script src="https://unpkg.com/hyperscript.org@0.9.8"&gt;&lt;/script&gt;</code>
+<button style="font:inherit;font-size:.8em;background:#3465a4;color:white;border:none;padding: 0 .4em; border-radius: .4em" _="on click
+  writeText(my previousElementSibling's innerText) on navigator.clipboard
+  put 'copied!' into me
+  wait 1s
+  put 'copy' into me">copy</button>
+</span>
 
 </div>
+
+</div>
+
+<div style="text-align:center;">
+
+[Companion of **htmx**](https://htmx.org/)
+|
+[**Comparison** with Vanilla JS & jQuery](/comparison/)
+|
+[Check out the **cheatsheet**](/img/hyperscript-cheatsheet.pdf)
+
+
 </div>
 
 
 <div id="features-list" style="">
 
-## A language for interaction
+## Events are first class citizens
 
 <div>
 
-Listen to and dispatch events with ease.
-[Filter](/docs/#event_filters), [queue](/docs/#event_queueing) or debounce them.
-You can even have control flow based on events.
+**Easiest event syntax.** Send, recieve, chain events together. [Filter](/docs/#event_filters), [queue](/docs/#event_queueing) or [debounce](/comparison/#debounced-input) events.
 
-**In action &rarr;**{.info .color}
+In action ➡️
 [Disable a button during an htmx request](/cookbook/#40-disable-btn-during-request),
 [Drag-and-drop elements](/cookbook/#70-drag-n-drop),
 [Event filter](/cookbook/#80-event-filtering)
 
 </div>
 
-~~~hyperscript
-on input debounced at 15s
-  send updated to form
+~~~html
+<button _="on click send hello to <form />">Send</button>
+
+<form _="on hello alert('got event')">
 ~~~
 
-## Progressive enhancement
+## Be async with no extra code
 
 <div>
 
-_hyperscript excels in **enhancing existing HTML.**
-Where frameworks demand full control over every step,
-_hyperscript stays low-level to give you full control.
-This means no reactivity or data binding &mdash; respond to user interactions, not data flow.
+Highly interactive user experiences **without promises, async / await or callback hell**.
 
-**No more jQuery soup**. _hyperscript can be written [directly in HTML](), and stays readable when it is.
-Organize your app by features, not languages. Achieve [locality](https://htmx.org/essays/locality-of-behaviour/).
-If you do need to factor out your _hyperscript, you can use [behaviors](/docs/#behaviors).
+**_hyperscript** transparently handles asynchronous behavior for you.
+
 
 </div>
 
 ~~~html
-<div _="install Draggable(
-  dragHandle: .titlebar)">
+<div _="on click wait 5s send hello to .target">
+
+<div _="init fetch https://stuff as json then put result into me">Using fetch() API...</div>
+~~~
+
+## Enhance existing HTML
+
+<div>
+
+**_hyperscript** works [side by side with existing javascript](/docs/#js-migration). **You choose what and when to enhance.**
+
+Use [locality of behaviour](https://htmx.org/essays/locality-of-behaviour/), or external [behaviors](/docs/#behaviors).
+
+_hyperscript has a super-easy way to write [web workers](/docs#workers).
+
+</div>
+
+~~~html
+<div _="init js alert('Hello from JavaScript!') end"></div>
+
+<div _="init js(haystack) return /needle/gi.exec(haystack) end">
+
+<div _="install Draggable(dragHandle: .titlebar)">
 ~~~
 
 ## Remember [HyperCard](https://hypercard.org/HyperTalk%20Reference%202.4.pdf)?
 
 <div>
 
-**The [xTalk](https://en.wikipedia.org/wiki/XTalk) syntax**
-of _hyperscript is designed with the DOM as first priority.
+An [xTalk](https://en.wikipedia.org/wiki/HyperTalk#Descendants_of_HyperTalk) syntax inspired by HyperTalk, AppleScript, but with first class DOM interaction.
+
 [CSS selector literals](/expressions/#css) and [positional operators](/docs/#in) make it a breeze to access elements.
 Simple [commands](/reference/#commands) backed by modern DOM APIs.
 
-**In action &rarr;**{.info .color}
+In action ➡️
 [Filter A Group Of Elements](/cookbook/#60-filter-a-group-of-elements),
 [Filter table rows](/cookbook/#90-filter-table-rows),
 [Disable all Buttons During an htmx Request](/cookbook/#50-disable-btn-during-request-all)
 
 </div>
 
-~~~hyperscript
-tell <details /> in .article
-  set you.open to false
+~~~html
+<div _="on click tell <p/> in me add .highlight">
+
+<div _="tell <details /> in .article set you.open to false">
 ~~~
 
-## Programming on easy mode
+## Debugging and extending
 
-**Async-transparency** means _hyperscript makes asynchronous code as easy as synchronous &mdash;
-even easier than Promises or async/await.
-All the non-blocking goodness, without the [red/blue functions](https://journal.stuffwithstuff.com/2015/02/01/what-color-is-your-function/).
-
+**Graphically [debug](/docs#debugging)** and step through code as it runs.
 
 ~~~hyperscript
-fetch /words.json as json
-set acceptedWords to the result
+on click breakpoint
 ~~~
 
-**Fully interoperable** with JavaScript, _hyperscript makes the perfect glue language for libraries.
-It also has a super-easy way to write [web workers](/docs#workers), if that's your thing.
+**_hyperscript** is natively **[extensible](/docs/#extending)**.
+Add new commands or expressions using vanilla javascript.
 
-~~~hyperscript
-js(haystack)
-  return /needle/gi.exec(haystack)
-end
-~~~
-
-There is a **graphical [debugger](/docs#debugging)** to inspect your code as it runs.
-Jump back and forth and bend time to your whim to iron out tricky UI glitches.
-
-~~~hyperscript
-on click
-  breakpoint
-~~~
-
-The whole language is written to be **[extensible](/docs/#extending)**.
-You can add new commands or expressions using nothing more than good-old JavaScript.
-
-
-~~~js
+~~~javascript
 _hyperscript.addCommand(
   "foo",
-  (parser, rt, tokens) => ...
+  (parser, rt, tokens) => ...)
 ~~~
 
 </div>
