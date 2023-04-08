@@ -24,7 +24,7 @@
 
 <div>
 
-# Easy & approachable development for modern web front-ends
+# An easy & approachable language for modern web front-ends
 
 Enhance HTML with concise DOM, event and async features. **Make writing interactive HTML a joy.**
 
@@ -120,7 +120,7 @@ Highly interactive user experiences **without promises, async / await or callbac
 <div _="init fetch https://stuff as json then put result into me">Using fetch() API...</div>
 ~~~
 
-## Enhance existing HTML
+## Enhance existing code
 
 <div>
 
@@ -144,10 +144,9 @@ _hyperscript has a super-easy way to write [web workers](/docs#workers).
 
 <div>
 
-An [xTalk](https://en.wikipedia.org/wiki/HyperTalk#Descendants_of_HyperTalk) syntax inspired by HyperTalk, AppleScript, but with first class DOM interaction.
+**An [xTalk](https://en.wikipedia.org/wiki/HyperTalk#Descendants_of_HyperTalk) syntax inspired by HyperTalk, AppleScript; natively inside your browser.**
 
-[CSS selector literals](/expressions/#css) and [positional operators](/docs/#in) make it a breeze to access elements.
-Simple [commands](/reference/#commands) backed by modern DOM APIs.
+[CSS selector literals](/expressions/#css) and [positional operators](/docs/#in) make it a breeze to access DOM elements. Simple [commands](/reference/#commands) backed by modern browser API's.
 
 In action ➡️
 [Filter A Group Of Elements](/cookbook/#60-filter-a-group-of-elements),
