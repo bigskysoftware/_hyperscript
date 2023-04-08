@@ -5,6 +5,7 @@
     --accent: #3465a4;
     --muted-accent: #3d72d7;
     --mono-font: "Source Code Pro", "Consolas", monospace, monospace;
+    --gap:10px;
 }
 
 pre, code {
@@ -100,4 +101,8 @@ ul {
 .syntaxes dt code {
     font-weight: 700;
     margin-inline-end: 2ch;
+}
+
+.f-switch {
+    gap: 10px var(--gap);
 }
