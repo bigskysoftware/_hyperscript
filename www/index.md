@@ -32,38 +32,34 @@ Enhance HTML with concise DOM, event and async features. **Make writing interact
 
 <div style="width: max-content; max-width: 100%; margin: auto">
 
-<figure>
-
 ~~~hyperscript
 on pointerdown
   repeat until event pointerup
     set rand to Math.random() * 255
     transition
       *background-color
-      to `hsl($rand 100% 90%)`
+      to `hsl($rand 80% 30%)`
       over 250ms
   end
 ~~~
 
-</figure>
-
-<span class="center" style="margin-top: calc(-1.5*var(--gap))"><button class="crowded padding padding-block allcaps" _="
+<span class="center" style="margin-top: calc(-1.5*var(--gap))"><button class="special" _="
 on pointerdown
   repeat until event pointerup
     set rand to Math.random() * 255
     transition *background-color
-            to `hsl($rand 100% 90%)`
+            to `hsl($rand 80% 30%)`
           over 250ms
-  end">Try me: press and hold</button></span>
+  end">Try me! Press and hold</button></span>
 </div>
 
 
-<div style="flex-basis: 100%; text-align: center;"><span id="install"><strong>Install:</strong> <code style="border: 2px dotted #00000055; margin: 0 10px; padding: 4px 6px; border-radius: 4px">&lt;script src="https://unpkg.com/hyperscript.org@0.9.8"&gt;&lt;/script&gt;</code>
-<button style="font:inherit;font-size:.8em;background:#3465a4;color:white;border:none;padding: 0 .4em; border-radius: .4em" _="on click
+<div style="flex-basis: 100%; text-align: center;"><span id="install"><strong>Install:</strong> <code style="border: 2px dotted #00000055; margin: 0 10px; padding: 5px 8px; border-radius: 4px; line-break: anywhere; line-height: 2rem;">&lt;script src="https://unpkg.com/hyperscript.org@0.9.8"&gt;&lt;/script&gt;</code>
+<button style="" _="on click
   writeText(my previousElementSibling's innerText) on navigator.clipboard
-  put 'copied!' into me
+  put '🎉 Copied!' into me
   wait 1s
-  put 'copy' into me">copy</button>
+  put '✂️ Copy' into me">✂️ Copy</button>
 </span>
 
 </div>
@@ -98,7 +94,7 @@ In action ➡️
 </div>
 
 ~~~html
-<button _="on click send hello to <form />">Send</button>
+<button _="on click send hello to <form /> "> Send </button>
 
 <form _="on hello alert('got event')">
 ~~~
@@ -135,7 +131,7 @@ _hyperscript has a super-easy way to write [web workers](/docs#workers).
 ~~~html
 <div _="init js alert('Hello from JavaScript!') end"></div>
 
-<div _="init js(haystack) return /needle/gi.exec(haystack) end">
+<div _="on click js(foo) alert('Adding 1 to foo: '+(foo+1)) end">
 
 <div _="install Draggable(dragHandle: .titlebar)">
 ~~~
@@ -158,7 +154,7 @@ In action ➡️
 ~~~html
 <div _="on click tell <p/> in me add .highlight">
 
-<div _="tell <details /> in .article set you.open to false">
+<div _="on articleClose tell <details /> in .article set you.open to false">
 ~~~
 
 ## Debugging and extending
