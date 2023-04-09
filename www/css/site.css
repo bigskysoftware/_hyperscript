@@ -128,19 +128,18 @@ pre:has(code) {
 
 button {
     cursor: pointer;
-    font:inherit;
-    font-size:.8rem;
-    background:#3465a4;
-    color:white;
-    border:none;
+    font: inherit;
+    font-size: 0.8rem;
+    background: #3465a4;
+    color: #fff;
+    border: none;
     padding: 0.25em 0.5em;
     border-radius: 8px;
     font-weight: bold;
-
 }
 
 button.special {
-    font-size:1.1rem;
+    font-size: 1.1rem;
 }
 
 html figure, .box, aside, details, dialog {
