@@ -116,6 +116,7 @@ pre.language-javascript {
     background: #00009909;
     padding: 0.4rem 0.8rem;
     border-radius: 8px;
+    align-self: flex-start;
 }
 /* This block can be removed once Firefox supports :has See: https://caniuse.com/css-has */
 
@@ -124,6 +125,7 @@ pre:has(code) {
     background: #00009909;
     padding: 0.4rem 0.8rem;
     border-radius: 8px;
+    align-self: flex-start;
 }
 
 button {

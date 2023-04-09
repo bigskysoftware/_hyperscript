@@ -43,7 +43,7 @@ on pointerdown
   end
 ~~~
 
-<span class="center" style="margin-top: calc(-1.5*var(--gap))"><button class="special" _="
+<span class="center" style="margin-top: calc(-1.4*var(--gap))"><button class="special" _="
 on pointerdown
   repeat until event pointerup
     set rand to Math.random() * 255
