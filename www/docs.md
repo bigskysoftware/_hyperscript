@@ -873,7 +873,7 @@ You can also [add your own conversions](/expressions/as) to the language as well
 ### Calling Functions {#calling-functions}
 
 There are many ways to invoke functions in hyperscript.  Two commands let you invoke a function and automatically
-assign the result to the `result` variable: [`call`](/commands/call) and [`get`](/commands/get):
+assign the result to the `result` variable: [`call` and `get`](/commands/call):
 
   ~~~ hyperscript
   call alert('hello world!')
