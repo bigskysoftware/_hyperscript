@@ -18,7 +18,7 @@ it will use the current element.
 ```html
 <div _="on click add .clicked to the closest <section/>">...</div>
 
-<div _="on click add .clicked to the closest div to the parentElement of me">
+<div _="on click add .clicked to the closest <div/> to the parentElement of me">
   ...
 </div>
 ```
