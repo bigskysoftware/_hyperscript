@@ -1667,7 +1667,7 @@ servers.
 
 Broadly, we recommend that approach: you stay firmly within the original REST-ful model of the web, keeping things
 simple and consistent, and you can use hyperscript for small bits of front end functionality.  htmx and hyperscript
-integrate seamlessly, so any hyperscript you return to htmx will be automatically initialized without any additionl
+integrate seamlessly, so any hyperscript you return to htmx will be automatically initialized without any additional
 work on your part.
 
 ### Fetch {#fetch}
