@@ -6559,7 +6559,21 @@
 
         parser.addCommand("take", function (parser, runtime, tokens) {
             if (tokens.matchToken("take")) {
-                var classRef = parser.requireElement("classRef", tokens);
+                var classRef = parser.parseElement("classRef", tokens);
+
+                var attributeRef = null;
+                var replacementValue = null;
+
+                if (classRef == null) {
+                    attributeRef = parser.parseElement("attributeRef", tokens);
+                    if (attributeRef == null) {
+                        parser.raiseParseError(tokens, "Expected either a class reference or attribute expression");
+                    }
+
+                    if (tokens.matchToken("with")) {
+                        replacementValue = parser.requireElement("expression", tokens);
+                    }
+                }
 
                 if (tokens.matchToken("from")) {
                     var fromExpr = parser.requireElement("expression", tokens);
@@ -6573,25 +6587,50 @@
                     var forExpr = parser.requireElement("implicitMeTarget", tokens);
                 }
 
-                var takeCmd = {
-                    classRef: classRef,
-                    from: fromExpr,
-                    forElt: forExpr,
-                    args: [classRef, fromExpr, forExpr],
-                    op: function (context, eltColl, from, forElt) {
-                        runtime.nullCheck(from, fromExpr);
-                        runtime.nullCheck(forElt, forExpr);
-                        var clazz = eltColl.className;
-                        runtime.implicitLoop(from, function (target) {
-                            target.classList.remove(clazz);
-                        });
-                        runtime.implicitLoop(forElt, function (target) {
-                            target.classList.add(clazz);
-                        });
-                        return runtime.findNext(this, context);
-                    },
-                };
-                return takeCmd;
+                if (classRef) {
+                    var takeCmd = {
+                        classRef: classRef,
+                        from: fromExpr,
+                        forElt: forExpr,
+                        args: [classRef, fromExpr, forExpr],
+                        op: function (context, eltColl, from, forElt) {
+                            runtime.nullCheck(from, fromExpr);
+                            runtime.nullCheck(forElt, forExpr);
+                            var clazz = eltColl.className;
+                            runtime.implicitLoop(from, function (target) {
+                                target.classList.remove(clazz);
+                            });
+                            runtime.implicitLoop(forElt, function (target) {
+                                target.classList.add(clazz);
+                            });
+                            return runtime.findNext(this, context);
+                        },
+                    };
+                    return takeCmd;
+                } else {
+                    var takeCmd = {
+                        attributeRef: attributeRef,
+                        from: fromExpr,
+                        forElt: forExpr,
+                        args: [fromExpr, forExpr, replacementValue],
+                        op: function (context, from, forElt, replacementValue) {
+                            runtime.nullCheck(from, fromExpr);
+                            runtime.nullCheck(forElt, forExpr);
+                            runtime.implicitLoop(from, function (target) {
+                                if (!replacementValue) {
+                                    target.removeAttribute(attributeRef.name);
+                                } else {
+                                    target.setAttribute(attributeRef.name, replacementValue)
+                                }
+                            });
+                            runtime.implicitLoop(forElt, function (target) {
+                                target.setAttribute(attributeRef.name, attributeRef.value || "")
+                            });
+                            return runtime.findNext(this, context);
+                        },
+                    };
+                    return takeCmd;
+                }
             }
         });
 
