@@ -44,7 +44,7 @@ If you provide an `until <event name>` the class or attribute will be toggled un
 
 <div _="on click toggle .toggled on #another-div">Toggle Another Div!</div>
 
-<button _="on click toggle [disabled='true']">Toggle Disabled!</button>
+<button _="on click toggle [@disabled='true']">Toggle Disabled!</button>
 
 <div _="on click toggle .toggled for 2s">Toggle for 2 seconds</div>
 
