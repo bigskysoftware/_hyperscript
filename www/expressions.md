@@ -1,5 +1,5 @@
 
-<div class="basicgrid fullbleed pad col-width-l">
+<div class="basicgrid pad col-width-l">
 <div class="col-1">
 
 **Contents**
@@ -410,6 +410,9 @@ The `cookies` symbol is an automatically available symbol in all contexts that p
 ```hyperscript
   set cookies.myCookie to 'foo'     # sets the cooke 'myCookie' to the value true, forever
   set cookies['myCookie'] to 'bar'  # updates the previous cookies value
+  set cookies['myCookie'] to 
+    {value: 'doh', 
+     expires: maxAge:6000}          # set value and make it expire in 6000 seconds or 100 minutes 
   cookies.clear('myCookie')         # clears the given cookie
   cookies.clearAll()                # clears all cookies
   cookies.length                    # returns the number of cookies

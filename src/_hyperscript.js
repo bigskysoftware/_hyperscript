@@ -2389,6 +2389,9 @@
                 finalValue += ";samesite=lax"
             } else {
                 finalValue = encodeURIComponent(value.value);
+                if (value.expires) {
+                    finalValue+=";expires=" + value.maxAge;
+                }
                 if (value.maxAge) {
                     finalValue+=";max-age=" + value.maxAge;
                 }
