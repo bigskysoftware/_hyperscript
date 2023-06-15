@@ -430,8 +430,6 @@ Here is a table of available symbols:
 	the detail of the event that triggered the current handler, if any
 `sender`
 	the element that sent the current event, if any
-`cookies`
-	a convenient mechanism for accessing cookies in hyperscript
 {% endsyntaxes %}
 
 Note that the `target` is the element that the event *originally* occurred on.
