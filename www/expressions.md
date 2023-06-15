@@ -402,6 +402,21 @@ DOM tree
 </div>
 ```
 
+## The Cookies Symbol
+
+The `cookies` symbol is an automatically available symbol in all contexts that presents a 
+[localStorage](https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage)-like API for accessing cookies:
+
+```hyperscript
+  set cookies.myCookie to 'foo'     # sets the cooke 'myCookie' to the value true, forever
+  set cookies['myCookie'] to 'bar'  # updates the previous cookies value
+  cookies.clear('myCookie')         # clears the given cookie
+  cookies.clearAll()                # clears all cookies
+  cookies.length                    # returns the number of cookies
+  cookies[0]                        # returns the first cookie as a {name:<name>, value:<value>} struct
+  for c in cookies ... end          # iterates over all cookies as {name:<name>, value:<value>} structs
+```
+
 </div>
 
 </div>

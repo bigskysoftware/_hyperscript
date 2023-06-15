@@ -13,6 +13,31 @@
 		<em>Work Area</em>
 
 		<hr />
+	<button _="on click fetch 'https://jsonplaceholder.typicode.com/posts' as Object
+	              log it
+                  for x in it
+                    log x">
+		Fetch
+	</button>
+
+		<hr />
+
+	<select _="
+  on change
+    log 'change'
+  end
+  on load
+    log 'trigger'
+    trigger change
+  end
+"
+	>
+		<option value="1">One</option>
+		<option value="2">Two</option>
+		<option value="3">Three</option>
+	</select>
+
+		<hr />
 
 	<button _="on click add @foo='bar doh' to me">
 		Add @foo
