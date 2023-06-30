@@ -25,7 +25,7 @@ The API of the `cookies` symbol is as follows:
 | cookies.length               | returns the total number of cookies                           | `log cookies.length`          |
 | cookies[<number>]            | returns the nth cookie                                        | `log cookies[0]`              |
 | cookies.clear(<cookie name>) | clears a given cookie                                         | `cookies.clear('foo')`        |
-| cookies.clearAll()           | clears all cookies                                            | `cookies.clear('foo')`        |
+| cookies.clearAll()           | clears all cookies                                            | `cookies.clearAll()`     |
 
 In addition to this, the `cookies` symbol can be iterated over:
 
