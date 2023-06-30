@@ -11,7 +11,7 @@ We are pleased to present the [0.9.9 release](https://unpkg.com/browse/hyperscri
 
 ### Changes
 
-* A new [cookie API](/expressions/cookes) was added
+* A new [cookie API](/expressions/cookies) was added
 * The `beep!` print-debug tool can now be used [as a command](/commands/beep)
 * The [comparison expression](/expressions/comparison-operator) now supports additional syntax:
   * `is equal to`
