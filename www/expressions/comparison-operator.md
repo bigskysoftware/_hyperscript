@@ -18,7 +18,13 @@ title: comparison operator - ///_hyperscript
 <expr> == <expr>
 <expr> === <expr>
 <expr> is <expr>
+<expr> is equal to <expr>
+<expr> is really equal to <expr>
 <expr> is not <expr>
+<expr> is not equal to <expr>
+<expr> is not really equal to <expr>
+<expr> equals <expr>
+<expr> really equals <expr>
 <expr> is empty
 <expr> is not empty
 I match <expr>
@@ -44,6 +50,8 @@ I do not include <expr>
 ### Description
 
 Many comparison operators are similar to comparison operators in javascript. In addition to the usual comparison operators, hyperscript includes the english terms `is` and `is not` for `==` and `!=` respectively.
+
+The `really` modifier switches a comparison to use `===` or `!==`, depending on what it modifies.
 
 Hyperscript also includes four additional operations, `match`, `contain`, `include`, `exists` and various syntaxes depending on what is being tested against. `match` will test if the left hand side matches the CSS query or Regular Expression string.  `contains` will test if the left hand side contains OR includes the right hand side (invoking `contains()` or `includes()`).  `includes` is identical to `contains`.  `exist` test if the left hand side
 is not null and, if it is a collection of elements, it contains any elements.

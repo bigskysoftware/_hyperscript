@@ -3818,7 +3818,15 @@
                             operator = "not empty";
                             hasRightValue = false;
                         } else {
-                            operator = "!=";
+                            if (tokens.matchToken("really")) {
+                                operator = "!==";
+                            } else {
+                                operator = "!=";
+                            }
+                            // consume additional optional syntax
+                            if (tokens.matchToken("equal")) {
+                                tokens.matchToken("to");
+                            }
                         }
                     } else if (tokens.matchToken("in")) {
                         operator = "in";
@@ -3847,8 +3855,20 @@
                             operator = ">";
                         }
                     } else {
-                        operator = "==";
+                        if (tokens.matchToken("really")) {
+                            operator = "===";
+                        } else {
+                            operator = "==";
+                        }
+                        if (tokens.matchToken("equal")) {
+                            tokens.matchToken("to");
+                        }
                     }
+                } else if (tokens.matchToken("equals")) {
+                    operator = "==";
+                } else if (tokens.matchToken("really")) {
+                    tokens.requireToken("equals")
+                    operator = "===";
                 } else if (tokens.matchToken("exist") || tokens.matchToken("exists")) {
                     operator = "exist";
                     hasRightValue = false;
@@ -3901,6 +3921,11 @@
                             return lhsVal == rhsVal;
                         } else if (operator === "!=") {
                             return lhsVal != rhsVal;
+                        }
+                        if (operator === "===") {
+                            return lhsVal === rhsVal;
+                        } else if (operator === "!==") {
+                            return lhsVal !== rhsVal;
                         }
                         if (operator === "match") {
                             return lhsVal != null && sloppyMatches(lhs, lhsVal, rhsVal);

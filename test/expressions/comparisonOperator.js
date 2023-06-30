@@ -105,6 +105,53 @@ describe("the comparisonOperator expression", function () {
 		result.should.equal(true);
 	});
 
+	it("equals works", function () {
+		var result = evalHyperScript("1 equals 2");
+		result.should.equal(false);
+
+		var result = evalHyperScript("2 equals 1");
+		result.should.equal(false);
+
+		var result = evalHyperScript("2 equals 2");
+		result.should.equal(true);
+	});
+
+	it("is equal to works", function () {
+		var result = evalHyperScript("1 is equal to 2");
+		result.should.equal(false);
+
+		var result = evalHyperScript("2 is equal to 1");
+		result.should.equal(false);
+
+		var result = evalHyperScript("2 is equal to 2");
+		result.should.equal(true);
+	});
+
+	it("is really equal to works", function () {
+		var result = evalHyperScript("1 is really equal to 2");
+		result.should.equal(false);
+
+		var result = evalHyperScript("2 is really equal to 1");
+		result.should.equal(false);
+
+		var result = evalHyperScript("2 is really equal to '2'");
+		result.should.equal(false);
+
+		var result = evalHyperScript("2 is really equal to 2");
+		result.should.equal(true);
+	});
+
+	it("really equals works", function () {
+		var result = evalHyperScript("1 really equals 2");
+		result.should.equal(false);
+
+		var result = evalHyperScript("2 really equals 1");
+		result.should.equal(false);
+
+		var result = evalHyperScript("2 really equals 2");
+		result.should.equal(true);
+	});
+
 	it("is not works", function () {
 		var result = evalHyperScript("1 is not 2");
 		result.should.equal(true);
@@ -113,6 +160,31 @@ describe("the comparisonOperator expression", function () {
 		result.should.equal(true);
 
 		var result = evalHyperScript("2 is not 2");
+		result.should.equal(false);
+	});
+
+	it("is not equal to works", function () {
+		var result = evalHyperScript("1 is not equal to 2");
+		result.should.equal(true);
+
+		var result = evalHyperScript("2 is not equal to 1");
+		result.should.equal(true);
+
+		var result = evalHyperScript("2 is not equal to 2");
+		result.should.equal(false);
+	});
+
+	it("is not really equal to works", function () {
+		var result = evalHyperScript("1 is not really equal to 2");
+		result.should.equal(true);
+
+		var result = evalHyperScript("2 is not really equal to 1");
+		result.should.equal(true);
+
+		var result = evalHyperScript("2 is not really equal to '2'");
+		result.should.equal(true);
+
+		var result = evalHyperScript("2 is not really equal to 2");
 		result.should.equal(false);
 	});
 
