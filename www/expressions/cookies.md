@@ -14,7 +14,7 @@ title: cookies - ///_hyperscript
 
 The cookies symbol is not a proper expression, but rather a value assigned, by default, to the `cookies` symbol.  This
 value presents a better API than the standard [`document.cookie`](https://developer.mozilla.org/en-US/docs/web/api/document/cookie)
-API, making it cookies work more like [`window.localStorage`](https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage)
+API, making cookies work more like [`window.localStorage`](https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage)
 
 The API of the `cookies` symbol is as follows:
 
