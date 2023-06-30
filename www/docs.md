@@ -2151,6 +2151,8 @@ And things work as expected.
 As you can see, `beep!` allows us to do much more sophisticated print debugging, while not disrupting code nearly as
 drastically as traditional print debugging would require.
 
+You can also use `beep!` [as a command](/commands/beep) to assist in your debugging.
+
 ### HDB - The Hyperscript Debugger
 
 An even more sophisticated debugging technique is to use [hdb](/hdb), the Hyperscript Debugger, which allows you to

@@ -2329,6 +2329,31 @@
             return eventQueueForFeature;
         }
 
+        beepValueToConsole(element, expression, value) {
+            if (this.triggerEvent(element, "hyperscript:beep", {element, expression, value})) {
+                var typeName;
+                if (value) {
+                    if (value instanceof ElementCollection) {
+                        typeName = "ElementCollection";
+                    } else if (value.constructor) {
+                        typeName = value.constructor.name;
+                    } else {
+                        typeName = "unknown";
+                    }
+                } else {
+                    typeName = "object (null)"
+                }
+                var logValue = value;
+                if (typeName === "String") {
+                    logValue = '"' + logValue + '"';
+                } else if (value instanceof ElementCollection) {
+                    logValue = Array.from(value);
+                }
+                console.log("///_ BEEP! The expression (" + Tokens.sourceFor.call(expression).replace("beep! ", "") + ") evaluates to:", logValue, "of type " + typeName);
+            }
+        }
+
+
         /** @type string | null */
         // @ts-ignore
         hyperscriptUrl = "document" in globalScope && document.currentScript ? document.currentScript.src : null;
@@ -3546,27 +3571,7 @@
                 expression.evaluate = function(ctx){
                     let value = originalEvaluate.apply(expression, arguments);
                     let element = ctx.me;
-                    if (runtime.triggerEvent(element, "hyperscript:beep", {element, expression, value})) {
-                        var typeName;
-                        if (value) {
-                            if (value instanceof ElementCollection){
-                                typeName = "ElementCollection";
-                            } else if (value.constructor) {
-                                typeName = value.constructor.name;
-                            } else {
-                                typeName = "unknown";
-                            }
-                        } else {
-                            typeName = "object (null)"
-                        }
-                        var logValue = value;
-                        if (typeName === "String") {
-                            logValue = '"' + logValue + '"';
-                        } else if (value instanceof ElementCollection) {
-                            logValue = Array.from(value);
-                        }
-                        console.log("///_ BEEP! The expression (" + Tokens.sourceFor.call(expression).substr(6) + ") evaluates to:", logValue,  "of type " + typeName);
-                    }
+                    runtime.beepValueToConsole(element, expression, value);
                     return value;
                 }
                 return expression;
@@ -3629,7 +3634,7 @@
             if (!op) return;
             var forwardSearch = op.value === "next";
 
-            var thing = parser.parseElement("expression", tokens);
+            var thingElt = parser.parseElement("expression", tokens);
 
             if (tokens.matchToken("from")) {
                 tokens.pushFollow("in");
@@ -3668,12 +3673,12 @@
                 inElt: inElt,
                 withinElt: withinElt,
                 operator: op.value,
-                args: [thing, from, inElt, withinElt],
+                args: [thingElt, from, inElt, withinElt],
                 op: function (context, thing, from, inElt, withinElt) {
 
                     var css = thing.css;
                     if (css == null) {
-                        throw "Expected a CSS value";
+                        throw "Expected a CSS value to be returned by " + Tokens.sourceFor.apply(thingElt);
                     }
 
                     if(inSearch) {
@@ -5191,6 +5196,27 @@
                 },
             };
             return logCmd;
+        });
+
+        parser.addCommand("beep!", function (parser, runtime, tokens) {
+            if (!tokens.matchToken("beep!")) return;
+            var exprs = [parser.parseElement("expression", tokens)];
+            while (tokens.matchOpToken(",")) {
+                exprs.push(parser.requireElement("expression", tokens));
+            }
+            var beepCmd = {
+                exprs: exprs,
+                args: [exprs],
+                op: function (ctx, values) {
+                    for (let i = 0; i < exprs.length; i++) {
+                        const expr = exprs[i];
+                        const val = values[i];
+                        runtime.beepValueToConsole(ctx.me, expr, val);
+                    }
+                    return runtime.findNext(this, ctx);
+                },
+            };
+            return beepCmd;
         });
 
         parser.addCommand("throw", function (parser, runtime, tokens) {

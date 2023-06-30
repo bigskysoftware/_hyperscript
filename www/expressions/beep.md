@@ -13,7 +13,7 @@ title: beep - ///_hyperscript
 
 ### Description
 
-The `beep!` command allows you to debug a partial expression value, logging its value to the console and otherwise
+The `beep!` expression allows you to debug a partial expression value, logging its value to the console and otherwise
 acting like an identity function: it simply returns the inner value it logs.  This allows you to insert a `beep!`
 into an expression without disrupting its evaluation.
 
