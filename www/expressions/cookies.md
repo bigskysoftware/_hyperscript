@@ -51,5 +51,7 @@ The attributes of the the javascript object will be interpreted as follows:
 ### Examples
 
 ```html
-<div _="on click wait 2s then log 'hello world'">Hello World!</div>
+<button _="on click set cookies.hello to 'world'">
+    Set the cookie 'hello' to 'world'!
+</button>
 ```
