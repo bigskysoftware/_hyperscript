@@ -2433,7 +2433,7 @@
                     finalValue+=";secure=" + value.path;
                 }
             }
-            document.cookie= prop + "=" + value;
+            document.cookie= prop + "=" + finalValue;
             return true;
         }
     })
