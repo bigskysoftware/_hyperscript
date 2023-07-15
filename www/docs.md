@@ -1333,7 +1333,7 @@ This allows you to look up elements based on a variable rather than a fixed valu
   remove <#{elementType}.hidden/>
   ~~~
 
-All these langauge constructs make it very easy to work with the DOM in a concise, enjoyable manner.
+All these language constructs make it very easy to work with the DOM in a concise, enjoyable manner.
 
 Compare the following JavaScript:
 
@@ -1746,7 +1746,7 @@ This code will print `"Start"` to the console and then, after a second (1000 mil
 
 To accomplish this in JavaScript requires a closure, which acts as a callback.  Unfortunately this API is awkward,
 containing a lot of syntactic noise and placing crucial information, how long the delay is, at the end.  As this
-logic becomes more complex, that delay infomation gets further and further away from where, syntactically, the delay
+logic becomes more complex, that delay information gets further and further away from where, syntactically, the delay
 starts.
 
 Contrast that with the equivalent hyperscript, which uses the [`wait` command](/commands/wait):
@@ -2261,7 +2261,7 @@ while still providing additional safety if your HTML-escaping discipline fails.
 
 The initial motivation for hyperscript came when I ported [intercooler.js](https://intercoolerjs.org) to
 htmx.  Intercooler had a feature, [`ic-action`](https://intercoolerjs.org/attributes/ic-action.html) that
-allowed for some simple client-side interactions.  One of my goals with htmx was to remove non-core fuctionality
+allowed for some simple client-side interactions.  One of my goals with htmx was to remove non-core functionality
 from intercooler, and really focus it in on the hypermedia-exchange concept, so `ic-action` didn't make the
 cut.
 

@@ -153,7 +153,7 @@
         }
     
         /**
-         * isNewline returns `true` if the provided character is a carrage return or newline
+         * isNewline returns `true` if the provided character is a carriage return or newline
          * @param {string} c
          * @returns boolean
          */
@@ -4527,7 +4527,7 @@
             var args = [];
             if (tokens.matchOpToken("(")) {
                 if (tokens.matchOpToken(")")) {
-                    // emtpy args list
+                    // empty args list
                 } else {
                     do {
                         args.push(tokens.requireTokenType("IDENTIFIER"));
@@ -7011,9 +7011,9 @@
                                     initialStyles[name] = initialValue;
                                 }
 
-                                // store intitial values
-                                if (!internalData.initalStyles) {
-                                    internalData.initalStyles = initialStyles;
+                                // store initial values
+                                if (!internalData.initialStyles) {
+                                    internalData.initialStyles = initialStyles;
                                 }
 
                                 for (var i = 0; i < properties.length; i++) {
@@ -7067,7 +7067,7 @@
                                         var property = properties[i];
                                         var toVal = to[i];
                                         if (toVal === "initial") {
-                                            var propertyValue = internalData.initalStyles[property];
+                                            var propertyValue = internalData.initialStyles[property];
                                             target.style[property] = propertyValue;
                                         } else {
                                             target.style[property] = toVal;

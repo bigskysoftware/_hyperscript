@@ -51,7 +51,7 @@ I'm pleased to announce the [0.0.8 release](https://unpkg.com/browse/hyperscript
     transition my opacity to 0
     transition the div's opacity to 0
   ```
-- The `transition` command now supports an alternate `over` syntax for specifying the length of the transtion:
+- The `transition` command now supports an alternate `over` syntax for specifying the length of the transition:
 
   ```
     transition my opacity to 0 over 2s

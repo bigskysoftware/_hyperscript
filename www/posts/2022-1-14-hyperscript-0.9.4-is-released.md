@@ -16,13 +16,13 @@ of hyperscript.
 * **BREAKING**: the [`transition`](/commands/transition) command no longer supports "naked" strings for style
   values.  This means that code like this must be changed:
   ```hyperscript
-    transtion my color to red   -- Old syntax
-    transtion my color to "red" -- New syntax
+    transition my color to red   -- Old syntax
+    transition my color to "red" -- New syntax
   ```
   However, with the addition of general measurement literals to the language, mentioned below, many transitions
   will not need to be changed:
   ```hyperscript
-    transtion my width to 100%   -- Works because `100%` is a valid, general expression now
+    transition my width to 100%   -- Works because `100%` is a valid, general expression now
   ```
   If you have questions or need help, please jump on the [htmx discord](https://htmx.org/discord) for help
 * [style literals](/docs#dom-literals) are now available, making it easier to refer to style properties

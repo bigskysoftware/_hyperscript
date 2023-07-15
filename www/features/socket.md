@@ -49,7 +49,7 @@ You can send messages to the socket by using the normal [`send`](/commands/send)
 
 ### RPC
 
-Hyperscript provides a simple RPC mechanism layered on top of websockets. Given the socket definiton above, you can
+Hyperscript provides a simple RPC mechanism layered on top of websockets. Given the socket definition above, you can
 make the following call in hyperscript:
 
 ```html
@@ -83,7 +83,7 @@ of the following format:
 { "iid": "185795d2-84ca-11eb-8dcd-0242ac130003", "return": 42 }
 ```
 
-The invocation id must match the original invocation id sent by the client. If an exception occured this can be
+The invocation id must match the original invocation id sent by the client. If an exception occurred this can be
 sent like so:
 
 ```json

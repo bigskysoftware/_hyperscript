@@ -31,7 +31,7 @@ describe("the throw command", function () {
 		delete window.foo;
 	});
 
-	it("async exceptions propogate properly", function (done) {
+	it("async exceptions propagate properly", function (done) {
 		var script = make(
 			"<script type='text/hyperscript'>" +
 				"def foo() " +
@@ -51,7 +51,7 @@ describe("the throw command", function () {
 		});
 	});
 
-	it("async exceptions as throws propogate properly", function (done) {
+	it("async exceptions as throws propagate properly", function (done) {
 		window.bar = function () {
 			throw "foo";
 		};

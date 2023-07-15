@@ -13,7 +13,7 @@ release out the door by providing code, discussion and moral support. Thank you 
 
 #### Changes
 
-This release involved a massive refactor of the hyperscript runtime to fully support [async transparancy](/docs#async).  
+This release involved a massive refactor of the hyperscript runtime to fully support [async transparency](/docs#async).  
 The runtime was moved back to being interpreted from being transpiled into javascript, which allows for this
 innovative language feature and that has set the stage for a number of interesting features in the future.
 

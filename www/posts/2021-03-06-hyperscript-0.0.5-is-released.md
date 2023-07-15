@@ -32,7 +32,7 @@ to the language.
 
   ```text
     def example()
-      call throwsAnExcetion()
+      call throwsAnException()
     catch e
       log e
       return "bad stuff happened..."
@@ -69,7 +69,7 @@ to the language.
   if elt matches <:focus/> log "Focused!"
   ```
 
-- Hyperscript now supports `I` as an alias for `me` and alterative forms of the comparison operators for it:
+- Hyperscript now supports `I` as an alias for `me` and alternative forms of the comparison operators for it:
 
   ```text
   I match .foo

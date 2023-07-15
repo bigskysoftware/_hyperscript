@@ -1,4 +1,4 @@
-describe("_hyperscript boostrapping", function () {
+describe("_hyperscript bootstrapping", function () {
 	beforeEach(function () {
 		clearWorkArea();
 	});

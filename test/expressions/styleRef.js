@@ -83,7 +83,7 @@ describe("the styleRef expression", function () {
 	});
 
 
-	it("calulated possessive style ref works", function () {
+	it("calculated possessive style ref works", function () {
 		var div = make("<div style='color: red; text-align: center; width: 10px'></div>");
 
 		var value = _hyperscript("my *computed-color", { me: div });

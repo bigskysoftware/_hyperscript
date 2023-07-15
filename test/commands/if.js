@@ -78,7 +78,7 @@ describe("the if command", function () {
 		d1.innerHTML.should.equal("foo");
 	});
 
-	it("tripple else if branch works with end", function () {
+	it("triple else if branch works with end", function () {
 		var d1 = make(
 			"<div _='on click if false " +
 				"                                  else if false" +
