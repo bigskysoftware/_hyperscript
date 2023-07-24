@@ -17,7 +17,8 @@ You can drag and drop elements by listening to drag events and using the `dataTr
     then set the target's style.background to 'lightgray'
   on dragleave or drop set the target's style.background to ''
   on drop get event.dataTransfer.getData('text/plain')
-    then put it into the next <output/>">Drop Area
+    then put it into the next <output/>
+    halt the event's bubbling">Drop Area
 &nbsp;
 &nbsp;
 &nbsp;
@@ -26,6 +27,9 @@ Result: <output></output>
 ```
 
 When a drag starts, we set the value of the dataTransfer object. When the drag goes over a [valid drop zone](https://developer.mozilla.org/en-US/docs/Web/API/HTML_Drag_and_Drop_API#define_a_drop_zone) we set the background. When leaving a drop zone or after a drop we reset the background. Upon a drop we recover the original value and display it.
+
+In some cases it is necessary to prevent the event's bubbling.
+A drop event, for example, can trigger a search of the dropped string in browsers. A dragstart event, when nested, may result in unexpected data overwrites.
 
 <p _="on dragstart call event.dataTransfer.setData('text/plain',target.textContent)">
   <button class="btn primary" draggable=true>DRAG ME</button>
@@ -37,7 +41,8 @@ When a drag starts, we set the value of the dataTransfer object. When the drag g
     then set the target's style.background to 'lightgray'
   on dragleave or drop set the target's style.background to ''
   on drop get event.dataTransfer.getData('text/plain')
-    then put it into the next <output/>">Drop Area
+    then put it into the next <output/>
+    halt the event's bubbling">Drop Area
 &nbsp;
 &nbsp;
 &nbsp;
