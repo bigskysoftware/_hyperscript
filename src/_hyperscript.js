@@ -780,7 +780,9 @@
         peekToken(value, peek, type) {
             peek = peek || 0;
             type = type || "IDENTIFIER";
-            return this.tokens[peek] && this.tokens[peek].value === value && this.tokens[peek].type === type
+            if(this.tokens[peek] && this.tokens[peek].value === value && this.tokens[peek].type === type){
+                return this.tokens[peek];
+            }
         }
 
         /**
@@ -5526,9 +5528,15 @@
             tokens.matchToken("then"); // optional 'then'
             var trueBranch = parser.parseElement("commandList", tokens);
             var nestedIfStmt = false;
-            if (tokens.matchToken("else") || tokens.matchToken("otherwise")) {
-                nestedIfStmt = tokens.peekToken("if");
-                var falseBranch = parser.parseElement("commandList", tokens);
+            let elseToken = tokens.matchToken("else") || tokens.matchToken("otherwise");
+            if (elseToken) {
+                let elseIfIfToken = tokens.peekToken("if");
+                nestedIfStmt = elseIfIfToken != null && elseIfIfToken.line === elseToken.line;
+                if (nestedIfStmt) {
+                    var falseBranch = parser.parseElement("command", tokens);
+                } else {
+                    var falseBranch = parser.parseElement("commandList", tokens);
+                }
             }
             if (tokens.hasMore() && !nestedIfStmt) {
                 tokens.requireToken("end");

@@ -145,4 +145,26 @@ describe("the if command", function () {
 		delete window.tmp;
 	});
 
+	it("if on new line does not join w/ else", function () {
+		window.tmp = false
+		var d1 = make("<div _='on click \n" +
+			"                      if window.tmp then\n" +
+			"                      else\n" +
+			"                        if window.tmp then" +
+			"                        end\n" +
+			"                        put \"foo\" into me\n" +
+			"                      end\n" +
+			"                  '" +
+			"</div>");
+		d1.click();
+		d1.innerHTML.should.equal("foo");
+
+		window.tmp = true
+		d1.innerHTML = "";
+		d1.click();
+		d1.innerHTML.should.equal("");
+
+		delete window.tmp;
+	});
+
 });
