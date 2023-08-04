@@ -14,6 +14,18 @@ title: if - ///_hyperscript
 
 The `if` command provides the standard if-statement control flow.
 
+Note that a leading `if` on a separate line from an `else` statement will be treated as a nested if within the else:
+
+```hyperscriptr
+...
+else
+  if false   -- does not bind to the else on the previous line as an "else if"
+    log 'foo'
+  end
+  log 'bar'
+end
+```
+
 ### Examples
 
 ```html
