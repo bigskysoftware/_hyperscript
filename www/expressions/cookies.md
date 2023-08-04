@@ -14,7 +14,7 @@ title: cookies - ///_hyperscript
 
 The cookies symbol is not a proper expression, but rather a value assigned, by default, to the `cookies` symbol.  This
 value presents a better API than the standard [`document.cookie`](https://developer.mozilla.org/en-US/docs/web/api/document/cookie)
-API, making it cookies work more like [`window.localStorage`](https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage)
+API, making cookies work more like [`window.localStorage`](https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage)
 
 The API of the `cookies` symbol is as follows:
 
@@ -25,7 +25,7 @@ The API of the `cookies` symbol is as follows:
 | cookies.length               | returns the total number of cookies                           | `log cookies.length`          |
 | cookies[<number>]            | returns the nth cookie                                        | `log cookies[0]`              |
 | cookies.clear(<cookie name>) | clears a given cookie                                         | `cookies.clear('foo')`        |
-| cookies.clearAll()           | clears all cookies                                            | `cookies.clear('foo')`        |
+| cookies.clearAll()           | clears all cookies                                            | `cookies.clearAll()`     |
 
 In addition to this, the `cookies` symbol can be iterated over:
 
@@ -51,5 +51,7 @@ The attributes of the the javascript object will be interpreted as follows:
 ### Examples
 
 ```html
-<div _="on click wait 2s then log 'hello world'">Hello World!</div>
+<button _="on click set cookies.hello to 'world'">
+    Set the cookie 'hello' to 'world'!
+</button>
 ```
