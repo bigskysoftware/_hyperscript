@@ -123,7 +123,7 @@ OK, let's get started with hyperscript!
 Hyperscript is a dependency-free JavaScript library that can be included in a web page without any build step:
 
   ~~~ html
-  <script src="https://unpkg.com/hyperscript.org@0.9.9"></script>
+  <script src="https://unpkg.com/hyperscript.org@0.9.10"></script>
   ~~~
 
 After you've done this, you can begin adding hyperscript to elements:
