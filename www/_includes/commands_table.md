@@ -3,7 +3,7 @@
 | [add](/commands/add)               | Adds content to a given target                                                | `add .myClass to me`                                                                    |
 | [append](/commands/append)         | Appends a value to a string, array or HTML Element                            | `append "value" to myString`                                                            |
 | [async](/commands/async)           | Runs commands asynchronously                                                  | `async fetch /example`                                                                  |
-| [beep](/commands/beep)             | Debug printing                                                                | `repeat 3 times break end`                                                           |
+| [beep](/commands/beep)             | Debug printing                                                                | `beep! <.foo/>`                                                           |
 | [break](/commands/break)           | Breaks out of the current loop                                                | `repeat 3 times break end`                                                           |
 | [call/get](/commands/call)         | Evaluates an expression (e.g. a Javascript Function)                          | `call alert('yep, you can call javascript!')` <br/><br/> `get prompt('Enter your name')` |
 | [continue](/commands/continue)     | Skips the remainder of a loop and continues at the top of the next iteration. | `repeat 3 times continue end`                                                           |
