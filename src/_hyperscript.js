@@ -1880,7 +1880,11 @@
             var element = this.parse(src);
             if (element.execute) {
                 element.execute(ctx);
-                return ctx.result;
+                if(typeof ctx.meta.returnValue !== 'undefined'){
+                    return ctx.meta.returnValue;
+                } else {
+                    return ctx.result;
+                }
             } else if (element.apply) {
                 element.apply(body, body, args);
                 return this.getHyperscriptFeatures(body);

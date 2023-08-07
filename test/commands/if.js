@@ -167,4 +167,42 @@ describe("the if command", function () {
 		delete window.tmp;
 	});
 
+	it("passes the sieve test", function(){
+		var str =
+			"if x is less than 10\n" +
+			"  if x is less than 3\n" +
+			"    if x is less than 2\n" +
+			"      return 1\n" +
+			"    else\n" +
+			"      return 2\n" +
+			"    end\n" +
+			"  else if x is less than 4\n" +
+			"      return 3\n" +
+			"  else if x is 4\n" +
+			"    return 4\n" +
+			"  else\n" +
+			"    if x is 5\n" +
+			"       return 5\n" +
+			"    else\n" +
+			"       return 6\n" +
+			"    end\n" +
+			"  end\n" +
+			"else\n" +
+			"  return 10\n" +
+			"end"
+
+		evalHyperScript(str, {locals: {x: 1}}).should.equal(1);
+		evalHyperScript(str, {locals: {x: 2}}).should.equal(2);
+		evalHyperScript(str, {locals: {x: 3}}).should.equal(3);
+		evalHyperScript(str, {locals: {x: 4}}).should.equal(4);
+		evalHyperScript(str, {locals: {x: 5}}).should.equal(5);
+		evalHyperScript(str, {locals: {x: 6}}).should.equal(6);
+		evalHyperScript(str, {locals: {x: 6}}).should.equal(6);
+		evalHyperScript(str, {locals: {x: 7}}).should.equal(6);
+		evalHyperScript(str, {locals: {x: 8}}).should.equal(6);
+		evalHyperScript(str, {locals: {x: 9}}).should.equal(6);
+		evalHyperScript(str, {locals: {x: 10}}).should.equal(10);
+		evalHyperScript(str, {locals: {x: 11}}).should.equal(10);
+	});
+
 });
