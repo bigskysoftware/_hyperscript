@@ -81,7 +81,7 @@
     }
 
     class Lexer {
-        static OP_TABLE = {
+        OP_TABLE = {
             "+": "PLUS",
             "-": "MINUS",
             "*": "MULTIPLY",
