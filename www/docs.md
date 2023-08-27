@@ -1296,7 +1296,7 @@ Here is a table of the DOM literals:
 `0%`
 `[[expression]] px`
 	A <dfn>measurement literal</dfn> is an expression followed by a CSS unit, and it appends the unit as a string. So, the
-	above expressions are the same as `"1px"`, `"0%"` and {%syntax "&#96;${[[expression]]}px&#96;"%}.
+	above expressions are the same as `"1em"`, `"0%"` and {%syntax "&#96;${[[expression]]}px&#96;"%}.
 {% endsyntaxes%}
 
 Here are a few examples of these literals in action:
