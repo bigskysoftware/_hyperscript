@@ -541,6 +541,12 @@
                             value += "\t";
                         } else if (nextChar === "v") {
                             value += "\v";
+                        } else if (nextChar === "x") {
+                            const hex = consumeHexEscape();
+                            if (Number.isNaN(hex)) {
+                                throw Error("Invalid hexadecimal escape at " + Lexer.positionString(string));
+                            }
+                            value += String.fromCharCode(hex);
                         } else {
                             value += nextChar;
                         }
@@ -557,6 +563,23 @@
                 string.end = position;
                 string.template = startChar === "`";
                 return string;
+            }
+
+            /**
+             * @returns number
+             */
+            function consumeHexEscape() {
+                const BASE = 16;
+                if (!currentChar()) {
+                    return NaN;
+                }
+                let result = BASE * Number.parseInt(consumeChar(), BASE);
+                if (!currentChar()) {
+                    return NaN;
+                }
+                result += Number.parseInt(consumeChar(), BASE);
+
+                return result;
             }
 
             /**
