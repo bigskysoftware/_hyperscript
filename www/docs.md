@@ -125,6 +125,10 @@ Hyperscript is a dependency-free JavaScript library that can be included in a we
   ~~~ html
   <script src="https://unpkg.com/hyperscript.org@0.9.11"></script>
   ~~~
+It can also be installed via NPM:
+~~~ bash
+npm install hyperscript.org
+~~~
 
 After you've done this, you can begin adding hyperscript to elements:
 
