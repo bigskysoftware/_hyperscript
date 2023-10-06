@@ -32,11 +32,13 @@ between a browser client and a server. Hyperscript provides a simple way to crea
 
 Here is a simple web socket declaration in hyperscript:
 
-```hyperscript
-socket MySocket ws://myserver.com/example
-  on message as json
-    log message
-end
+```html
+<script type="text/hyperscript">
+  socket MySocket ws://myserver.com/example
+    on message as json
+      log message
+  end
+</script>
 ```
 
 This socket will log all messages that it receives as a parsed JSON object.
