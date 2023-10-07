@@ -7256,7 +7256,11 @@
 
                         var smoothness = tokens.matchAnyToken("smoothly", "instantly");
 
-                        var scrollOptions = {};
+                        var scrollOptions = {
+                            block: "start",
+                            inline: "nearest"
+                        };
+
                         if (verticalPosition) {
                             if (verticalPosition.value === "top") {
                                 scrollOptions.block = "start";
@@ -7309,21 +7313,22 @@
                                 }
 
                                 if(plusOrMinus) {
-                                    // a top scroll w/ an offset of some sort
-                                    var boundingRect = target.getBoundingClientRect();
-                                    let scrollShim = document.createElement('div');
+                                    // a scroll w/ an offset of some sort
+                                    let boundingRect = target.getBoundingClientRect();
 
-                                    if (plusOrMinus.value === "-") {
-                                        var finalOffset = -offset;
-                                    } else {
-                                        var finalOffset = - -offset;
-                                    }
+                                    let scrollShim = document.createElement("div");
 
-                                    scrollShim.style.position = 'absolute';
-                                    scrollShim.style.top = (boundingRect.x + finalOffset) + "px";
-                                    scrollShim.style.left = (boundingRect.y + finalOffset) + "px";
-                                    scrollShim.style.height = (boundingRect.height + (2 * finalOffset)) + "px";
-                                    scrollShim.style.width = (boundingRect.width + (2 * finalOffset)) + "px";
+                                    let actualOffset = plusOrMinus.value === "+" ? offset : offset * -1;
+
+                                    let offsetX = scrollOptions.inline == "start" || scrollOptions.inline == "end" ? actualOffset : 0;
+
+                                    let offsetY = scrollOptions.block == "start" || scrollOptions.block == "end" ? actualOffset : 0;
+
+                                    scrollShim.style.position = "absolute";
+                                    scrollShim.style.top = (boundingRect.top + window.scrollY + offsetY) + "px";
+                                    scrollShim.style.left = (boundingRect.left + window.scrollX + offsetX) + "px";
+                                    scrollShim.style.height = boundingRect.height + "px";
+                                    scrollShim.style.width = boundingRect.width + "px";
                                     scrollShim.style.zIndex = "" + Number.MIN_SAFE_INTEGER;
                                     scrollShim.style.opacity = "0";
 
