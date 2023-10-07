@@ -180,13 +180,13 @@
 						var context = runtime.makeContext(socketObject, socketFeature, socketObject);
 						if (jsonMessages) {
 							if (dataAsJson) {
-								context.message = dataAsJson;
+								context.locals.message = dataAsJson;
 								context.result = dataAsJson;
 							} else {
 								throw "Received non-JSON message from socket: " + data;
 							}
 						} else {
-							context.message = data;
+							context.locals.message = data;
 							context.result = data;
 						}
 						messageHandler.execute(context);
