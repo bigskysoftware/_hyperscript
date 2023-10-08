@@ -889,7 +889,7 @@ You can also invoke functions as stand-alone commands:
   log it
   ~~~
 
-Finally, you can use the [`pseudo-command`](/commands/pseudo-commands)` syntax, which allows you to put the method
+Finally, you can use the [`pseudo-command`](/commands/pseudo-commands) syntax, which allows you to put the method
 name first on the line in a method call, to improve readability in some cases:
 
   ~~~ hyperscript
@@ -1296,7 +1296,7 @@ Here is a table of the DOM literals:
 `0%`
 `[[expression]] px`
 	A <dfn>measurement literal</dfn> is an expression followed by a CSS unit, and it appends the unit as a string. So, the
-	above expressions are the same as `"1px"`, `"0%"` and {%syntax "&#96;${[[expression]]}px&#96;"%}.
+	above expressions are the same as `"1em"`, `"0%"` and {%syntax "&#96;${[[expression]]}px&#96;"%}.
 {% endsyntaxes%}
 
 Here are a few examples of these literals in action:
@@ -2106,7 +2106,7 @@ Here we have added a `beep!` just before the `<div.hilight/>` expression.  Now w
 we will see the following in the console:
 
 ```
-///_ BEEP! The expression 'the <div.foo/>' evaluates to: ElementCollection {_css: "div.hilight", ...} of type ElementCollection
+///_ BEEP! The expression (<div.hilight/>) evaluates to: [div.hilight] of type ElementCollection
 ```
 
 You can see the expressions source, it's value (which you can right click on and assign to a temporary value to work
