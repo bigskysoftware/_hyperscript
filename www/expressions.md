@@ -89,7 +89,7 @@ This example will put "Clicked" into every div on the page!
 
 This example will put "Clicked" into every div that does not have the `example` class on it.
 
-We can also refer to `<html/`, `<body/>`, or even `<:root>`:
+We can also refer to `<html/>`, `<body/>`, or even `<:root>`:
 
 ```html
 <button _="on click toggle @data-theme='light' on <:root/>">Dark/Light</button>
