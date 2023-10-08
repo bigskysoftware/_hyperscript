@@ -11,7 +11,7 @@ We are pleased to present the [0.9.6 release](https://unpkg.com/browse/hyperscri
 
 ### Changes
 
-* Added the `immediately` clause to the [`init`](/features/init) feature, so you can run code immediately on intialization
+* Added the `immediately` clause to the [`init`](/features/init) feature, so you can run code immediately on initialization
 * Hyperscript in content added by the `put` command will be automatically initialized (no need to call `_hyperscript.processNode()`
   now!)
 * Hyperscript has been moved back to a single file with no build step.  Thank you Deniz!

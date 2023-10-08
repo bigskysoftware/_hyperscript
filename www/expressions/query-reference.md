@@ -10,7 +10,7 @@ title: query reference - ///_hyperscript
 
 ### Description
 
-The query reference expression allows you to embed arbitary [CSS selectors](https://www.w3schools.com/cssref/css_selectors.asp) in hyperscript. It will evaluate to all matching elements.
+The query reference expression allows you to embed arbitrary [CSS selectors](https://www.w3schools.com/cssref/css_selectors.asp) in hyperscript. It will evaluate to all matching elements.
 
 ### Examples
 

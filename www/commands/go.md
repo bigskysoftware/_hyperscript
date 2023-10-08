@@ -16,7 +16,7 @@ title: go - ///_hyperscript
 
 The `go` command allows you navigate on the page with various forms
 
-`go to url <stringLike>` will navigate to the given URL. If the url starts with an achor `#` it will instead update
+`go to url <stringLike>` will navigate to the given URL. If the url starts with an anchor `#` it will instead update
 the windows href.
 
 `go to <modifiers> elt` will scroll the element into view on the current page. You can pick the top, bottom, left, etc.

@@ -171,7 +171,7 @@ that you should use this particular UX pattern, but rather to show how async tra
 
 The syntax of hyperscript is very different syntax than most programming languages used today. It is based on an older
 and somewhat obscure (today) family of programming languages that originated in [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf)
-and that used a more natural language than the more familiar Algol-dervived languages we typically use today.
+and that used a more natural language than the more familiar Algol-derived languages we typically use today.
 
 This unusual syntax has advantages, once you get over the initial hump:
 
@@ -355,7 +355,7 @@ Note that hyperscript has a flat local scope, similar to javascripts `var` state
 
 #### <a name=scope-examples></a> [Scoping Examples](#scope-examples)
 
-Below are some scoping examles in hyperscript
+Below are some scoping examples in hyperscript
 
 #### <a name=local-scope></a> [Local Scope](#local-scope)
 
@@ -824,7 +824,7 @@ directly within a hyperscript body, for local optimizations.
 
 ## <a name="commands"></a>[Commands](#commands)
 
-Commands are the statements of the hyperscript langauge, and make up the bodies of functions, event handlers and so on.
+Commands are the statements of the hyperscript language, and make up the bodies of functions, event handlers and so on.
 
 In hyperscript, (almost) all commands start with a term, such as `add`, `remove` or `fetch`.
 
@@ -1416,7 +1416,7 @@ Each of these can be used to refer to various elements in or attributes on those
   add .disabled to #myDiv
   for tab in <div.tabs/>
     add .highlight to tab
-    set @highligted of the tab to true
+    set @highlighted of the tab to true
   end
 ```
 

@@ -27,7 +27,7 @@ You can specify a new value to be assigned instead via `with` clause (in this ca
   <a class="tab">Tab 3</a>
 </div>
 
-<div _="on click take [@aria-curent=page] from .step for event.target">
+<div _="on click take [@aria-current=page] from .step for event.target">
   <a class="step">Step 1</a>
   <a class="step">Step 2</a>
   <a class="step">Step 3</a>

@@ -30,7 +30,7 @@ describe("the tell command", function () {
 		div2.classList.contains("foo").should.equal(false);
 	});
 
-	it("does not overwrite the me symobl", function () {
+	it("does not overwrite the me symbol", function () {
 		make(
 			"<div id='d1' _='on click " +
 				"                          add .foo " +

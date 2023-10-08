@@ -372,7 +372,7 @@ describe("the _hyperscript tokenizer", function () {
 		tokenize.token(4).value.should.equal("<<<EOF>>>");
 	});
 
-	it("handles template boostrap properly", function () {
+	it("handles template bootstrap properly", function () {
 		var lexer = _hyperscript.internals.lexer;
 		var tokenize = lexer.tokenize('"', true);
 		tokenize.token(0).value.should.equal('"');

@@ -170,7 +170,7 @@ describe("the fetch command", function () {
 		}, 50);
 	});
 
-	it("can do a simple post alt syntax wihtout curlies", function (done) {
+	it("can do a simple post alt syntax without curlies", function (done) {
 		window.fetch.returns(
 			Promise.resolve(
 				new window.Response("yay", {

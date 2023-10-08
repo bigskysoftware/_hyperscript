@@ -31,7 +31,7 @@ I'm pleased to announce the [0.0.9 release](https://unpkg.com/browse/hyperscript
 
 - The [event handler](/features/on#mutation) added support for the synthetic `mutation` event, based on `MutationObservers`
 
-- The [event handler](/features/on#intersection) added support for the synthetic `instersection` event, based on `IntersectionObservers`
+- The [event handler](/features/on#intersection) added support for the synthetic `intersection` event, based on `IntersectionObservers`
 
 - The [closest expression](/expressions#closest) added support getting and setting attribute values directly
 

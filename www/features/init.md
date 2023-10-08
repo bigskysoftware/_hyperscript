@@ -13,7 +13,7 @@ end
 ```
 
 The `init` keyword allows you to run some hyperscript when an element initializes.  By default, it will execute after
-all features have been evaluated.  If you add the `immedately` modifier, it will run immediately, which can be useful
+all features have been evaluated.  If you add the `immediately` modifier, it will run immediately, which can be useful
 from a timing perspective, but note that features defined after the `init` (e.g. functions) will not be available.
 
 ```html

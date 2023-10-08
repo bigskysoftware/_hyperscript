@@ -36,7 +36,7 @@ You can enter any _hyperscript expression, click "Go" (or press Enter) and its v
 
 ### Code view
 
-This section shows the code that's currently executing. The command that's currrently being executed is highlighted (when you first open the panel, this will be the `breakpoint` command). By clicking the <kbd>Step Over</kbd> button in the top toolbar, you can execute this command and move on to the next. When you're finished with debugging, or want to move on to the next breakpoint, press <kbd>Continue</kbd> to continue executing the remaining code normally.
+This section shows the code that's currently executing. The command that's currently being executed is highlighted (when you first open the panel, this will be the `breakpoint` command). By clicking the <kbd>Step Over</kbd> button in the top toolbar, you can execute this command and move on to the next. When you're finished with debugging, or want to move on to the next breakpoint, press <kbd>Continue</kbd> to continue executing the remaining code normally.
 
 !["Debugging f_c()" -- we see the code for f_c, with f_b and f_a below](/img/hdb-code.png)
 

@@ -11,7 +11,7 @@
 | [init](/features/init) | Initialization logic to be run when the code is first loaded
 | [on](/features/on) | Creates an event listener | `on click log "clicked!"`
 | [socket](/features/socket) | Create a Web Socket
-| [worker](/features/worker) | Create a Web Worker for asynchrnous work
+| [worker](/features/worker) | Create a Web Worker for asynchronous work
 
 ## Commands
 

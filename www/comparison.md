@@ -12,7 +12,7 @@ In general, the VanillaJS version will be the most awkward. Many examples shown 
 The jQuery version will be better, but will separate the logic from the
 element in question.  This is considered good practice by some people, in the name of [separation of concerns][], but it violates [locality of behavior](https://htmx.org/essays/locality-of-behaviour/), which we feel is usually more important for system maintainability.  (If you've ever had to hunt for an obscure event handler in jQuery, you know what we mean.)  
 
-Both the VanillaJS and JQuery verisons will often require callbacks, making for awkward expression of logic that is straight-forward and linear in hyperscript.  This becomes especially pronounced in more complex promise or callback chains.
+Both the VanillaJS and JQuery versions will often require callbacks, making for awkward expression of logic that is straight-forward and linear in hyperscript.  This becomes especially pronounced in more complex promise or callback chains.
 
 [separation of concerns]: https://en.wikipedia.org/wiki/Separation_of_concerns
 ## Comparisons
