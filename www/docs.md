@@ -2106,7 +2106,7 @@ Here we have added a `beep!` just before the `<div.hilight/>` expression.  Now w
 we will see the following in the console:
 
 ```
-///_ BEEP! The expression 'the <div.foo/>' evaluates to: ElementCollection {_css: "div.hilight", ...} of type ElementCollection
+///_ BEEP! The expression (<div.hilight/>) evaluates to: [div.hilight] of type ElementCollection
 ```
 
 You can see the expressions source, it's value (which you can right click on and assign to a temporary value to work
