@@ -89,6 +89,26 @@ This example will put "Clicked" into every div on the page!
 
 This example will put "Clicked" into every div that does not have the `example` class on it.
 
+We can also refer to `<html/>`, `<body/>`, or even `<:root>`:
+
+```html
+<button _="on click toggle @data-theme='light' on <:root/>">Dark/Light</button>
+```
+
+This example will toggle the `data-theme='light'` property on `:root` so we can toggle css-variable values as follows:
+
+```css
+:root {
+  --bg-color: black;
+  --text-color: white;
+}
+
+:root[data-theme='light'] {
+  --bg-color: white;
+  --text-color: black;
+}
+```
+
 ### Attribute Literals
 
 Finally, you can refer to an attribute with two syntaxes:
