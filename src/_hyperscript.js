@@ -18,7 +18,7 @@
     /**
      * @type {Object}
      * @property {DynamicConverter[]} dynamicResolvers
-     * 
+     *
      * @callback DynamicConverter
      * @param {String} str
      * @param {*} value
@@ -81,7 +81,7 @@
     }
 
     class Lexer {
-        OP_TABLE = {
+        static OP_TABLE = {
             "+": "PLUS",
             "-": "MINUS",
             "*": "MULTIPLY",
@@ -115,7 +115,7 @@
             "]": "R_BRACKET",
             "=": "EQUALS",
         };
-    
+
         /**
          * isValidCSSClassChar returns `true` if the provided character is valid in a CSS class.
          * @param {string} c
@@ -124,7 +124,7 @@
         static isValidCSSClassChar(c) {
             return Lexer.isAlpha(c) || Lexer.isNumeric(c) || c === "-" || c === "_" || c === ":";
         }
-    
+
         /**
          * isValidCSSIDChar returns `true` if the provided character is valid in a CSS ID
          * @param {string} c
@@ -133,7 +133,7 @@
         static isValidCSSIDChar(c) {
             return Lexer.isAlpha(c) || Lexer.isNumeric(c) || c === "-" || c === "_" || c === ":";
         }
-    
+
         /**
          * isWhitespace returns `true` if the provided character is whitespace.
          * @param {string} c
@@ -142,7 +142,7 @@
         static isWhitespace(c) {
             return c === " " || c === "\t" || Lexer.isNewline(c);
         }
-    
+
         /**
          * positionString returns a string representation of a Token's line and column details.
          * @param {Token} token
@@ -151,7 +151,7 @@
         static positionString(token) {
             return "[Line: " + token.line + ", Column: " + token.column + "]";
         }
-    
+
         /**
          * isNewline returns `true` if the provided character is a carriage return or newline
          * @param {string} c
@@ -160,7 +160,7 @@
         static isNewline(c) {
             return c === "\r" || c === "\n";
         }
-    
+
         /**
          * isNumeric returns `true` if the provided character is a number (0-9)
          * @param {string} c
@@ -169,7 +169,7 @@
         static isNumeric(c) {
             return c >= "0" && c <= "9";
         }
-    
+
         /**
          * isAlpha returns `true` if the provided character is a letter in the alphabet
          * @param {string} c
@@ -178,7 +178,7 @@
         static isAlpha(c) {
             return (c >= "a" && c <= "z") || (c >= "A" && c <= "Z");
         }
-    
+
         /**
          * @param {string} c
          * @param {boolean} [dollarIsOp]
@@ -187,7 +187,7 @@
         static isIdentifierChar(c, dollarIsOp) {
             return c === "_" || c === "$";
         }
-    
+
         /**
          * @param {string} c
          * @returns boolean
@@ -195,7 +195,7 @@
         static isReservedChar(c) {
             return c === "`" || c === "^";
         }
-    
+
         /**
          * @param {Token[]} tokens
          * @returns {boolean}
@@ -216,7 +216,7 @@
             }
             return true;
         }
-    
+
         /**
          * @param {string} string
          * @param {boolean} [template]
@@ -230,11 +230,11 @@
             var line = 1;
             var lastToken = "<START>";
             var templateBraceCount = 0;
-    
+
             function inTemplate() {
                 return template && templateBraceCount === 0;
             }
-    
+
             while (position < source.length) {
                 if ((currentChar() === "-" && nextChar() === "-" && (Lexer.isWhitespace(nextCharAt(2)) || nextCharAt(2) === "" || nextCharAt(2) === "-"))
                     || (currentChar() === "/" && nextChar() === "/" && (Lexer.isWhitespace(nextCharAt(2)) || nextCharAt(2) === "" || nextCharAt(2) === "/"))) {
@@ -4379,7 +4379,7 @@
                               console.warn("'%s' feature ignored because target does not exists:", displayName, elt);
                               return;
                             }
-                            
+
                             if (eventSpec.mutationSpec) {
                                 eventName = "hyperscript:mutation";
                                 const observer = new MutationObserver(function (mutationList, observer) {
@@ -4660,7 +4660,7 @@
                     }
                 },
             };
-    
+
             // terminate body
             parser.ensureTerminated(start);
             parser.setParent(start, initFeature);
@@ -5952,19 +5952,19 @@
             }
           }
         });
-    
+
         parser.addCommand("increment", function (parser, runtime, tokens) {
             if (!tokens.matchToken("increment")) return;
             var amountExpr;
-    
+
             // This is optional.  Defaults to "result"
             var target = parser.parseElement("assignableExpression", tokens);
-    
+
             // This is optional. Defaults to 1.
             if (tokens.matchToken("by")) {
                 amountExpr = parser.requireElement("expression", tokens);
             }
-    
+
             var implicitIncrementOp = {
                 type: "implicitIncrementOp",
                 target: target,
@@ -5983,19 +5983,19 @@
 
             return makeSetter(parser, runtime, tokens, target, implicitIncrementOp);
         });
-    
+
         parser.addCommand("decrement", function (parser, runtime, tokens) {
             if (!tokens.matchToken("decrement")) return;
             var amountExpr;
-    
+
             // This is optional.  Defaults to "result"
             var target = parser.parseElement("assignableExpression", tokens);
-    
+
             // This is optional. Defaults to 1.
             if (tokens.matchToken("by")) {
                 amountExpr = parser.requireElement("expression", tokens);
             }
-    
+
             var implicitDecrementOp = {
                 type: "implicitDecrementOp",
                 target: target,
