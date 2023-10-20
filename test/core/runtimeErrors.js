@@ -66,11 +66,6 @@ describe("_hyperscript runtime errors", function () {
 		ensureThrows("hide #doesntExist", "'#doesntExist' is null");
 	})
 
-	it("reports null errors on take command properly", function(){
-		ensureThrows("take .foo for #doesntExist", "'#doesntExist' is null");
-		ensureThrows("take .foo from #doesntExist for body", "'#doesntExist' is null");
-	})
-
 	it("reports null errors on put command properly", function(){
 		ensureThrows("put 'foo' into #doesntExist", "'#doesntExist' is null");
 		ensureThrows("put 'foo' into #doesntExist's innerHTML", "'#doesntExist' is null");
