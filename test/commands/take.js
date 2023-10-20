@@ -151,4 +151,44 @@ describe("the take command", function () {
 		d2.getAttribute("data-foo").should.equal("");
 		assert.isNull(d3.getAttribute("data-foo"))
 	});
+
+	it("can take multiple classes from other elements", function () {
+		var d1 = make("<div class='div foo'></div>");
+		var d2 = make("<div class='div' _='on click take .foo .bar'></div>");
+		var d3 = make("<div class='div bar'></div>");
+		d1.classList.contains("foo").should.equal(true);
+		d2.classList.contains("foo").should.equal(false);
+		d3.classList.contains("foo").should.equal(false);
+		d1.classList.contains("bar").should.equal(false);
+		d2.classList.contains("bar").should.equal(false);
+		d3.classList.contains("bar").should.equal(true);
+		d2.click();
+		d1.classList.contains("foo").should.equal(false);
+		d2.classList.contains("foo").should.equal(true);
+		d3.classList.contains("foo").should.equal(false);
+		d1.classList.contains("bar").should.equal(false);
+		d2.classList.contains("bar").should.equal(true);
+		d3.classList.contains("bar").should.equal(false);
+	});
+
+	it("can take multiple classes from specific element", function () {
+		var d1 = make("<div class='div1 foo bar'></div>");
+		var d2 = make("<div class='div' _='on click take .foo .bar from .div1'></div>");
+		var d3 = make("<div class='div bar'></div>");
+		d1.classList.contains("foo").should.equal(true);
+		d2.classList.contains("foo").should.equal(false);
+		d3.classList.contains("foo").should.equal(false);
+		d1.classList.contains("bar").should.equal(true);
+		d2.classList.contains("bar").should.equal(false);
+		d3.classList.contains("bar").should.equal(true);
+		d2.click();
+		d1.classList.contains("foo").should.equal(false);
+		d2.classList.contains("foo").should.equal(true);
+		d3.classList.contains("foo").should.equal(false);
+		d1.classList.contains("bar").should.equal(false);
+		d2.classList.contains("bar").should.equal(true);
+		d3.classList.contains("bar").should.equal(true);
+	});
+
+
 });

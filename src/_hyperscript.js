@@ -6703,12 +6703,17 @@
 
         parser.addCommand("take", function (parser, runtime, tokens) {
             if (tokens.matchToken("take")) {
-                var classRef = parser.parseElement("classRef", tokens);
+                let classRef = null;
+                let classRefs = [];
+                while ((classRef = parser.parseElement("classRef", tokens))) {
+                    classRefs.push(classRef);
+                }
 
                 var attributeRef = null;
                 var replacementValue = null;
 
-                if (classRef == null) {
+                let weAreTakingClasses = classRefs.length > 0;
+                if (!weAreTakingClasses) {
                     attributeRef = parser.parseElement("attributeRef", tokens);
                     if (attributeRef == null) {
                         parser.raiseParseError(tokens, "Expected either a class reference or attribute expression");
@@ -6721,8 +6726,6 @@
 
                 if (tokens.matchToken("from")) {
                     var fromExpr = parser.requireElement("expression", tokens);
-                } else {
-                    var fromExpr = classRef;
                 }
 
                 if (tokens.matchToken("for")) {
@@ -6731,22 +6734,29 @@
                     var forExpr = parser.requireElement("implicitMeTarget", tokens);
                 }
 
-                if (classRef) {
+                if (weAreTakingClasses) {
                     var takeCmd = {
-                        classRef: classRef,
+                        classRefs: classRefs,
                         from: fromExpr,
                         forElt: forExpr,
-                        args: [classRef, fromExpr, forExpr],
-                        op: function (context, eltColl, from, forElt) {
-                            runtime.nullCheck(from, fromExpr);
+                        args: [classRefs, fromExpr, forExpr],
+                        op: function (context, classRefs, from, forElt) {
                             runtime.nullCheck(forElt, forExpr);
-                            var clazz = eltColl.className;
-                            runtime.implicitLoop(from, function (target) {
-                                target.classList.remove(clazz);
-                            });
-                            runtime.implicitLoop(forElt, function (target) {
-                                target.classList.add(clazz);
-                            });
+                            runtime.implicitLoop(classRefs, function(classRef){
+                                var clazz = classRef.className;
+                                if (from) {
+                                    runtime.implicitLoop(from, function (target) {
+                                        target.classList.remove(clazz);
+                                    });
+                                } else {
+                                    runtime.implicitLoop(classRef, function (target) {
+                                        target.classList.remove(clazz);
+                                    });
+                                }
+                                runtime.implicitLoop(forElt, function (target) {
+                                    target.classList.add(clazz);
+                                });
+                            })
                             return runtime.findNext(this, context);
                         },
                     };

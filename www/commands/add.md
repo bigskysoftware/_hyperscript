@@ -7,7 +7,7 @@ title: add - ///_hyperscript
 ### Syntax
 
 ```ebnf
-add <class-ref or attribute-ref or object-literal> [to <target-expression>] [where <expr>]
+add <class-ref+ or attribute-ref or object-literal> [to <target-expression>] [where <expr>]
 ```
 
 ### Description
