@@ -2547,6 +2547,9 @@
         }
     }
 
+    /**
+     * @type {symbol}
+     */
     const shouldAutoIterateSymbol = Symbol()
 
     function getOrInitObject(root, prop) {

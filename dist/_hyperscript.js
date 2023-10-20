@@ -18,7 +18,7 @@
     /**
      * @type {Object}
      * @property {DynamicConverter[]} dynamicResolvers
-     * 
+     *
      * @callback DynamicConverter
      * @param {String} str
      * @param {*} value
@@ -115,7 +115,7 @@
             "]": "R_BRACKET",
             "=": "EQUALS",
         };
-    
+
         /**
          * isValidCSSClassChar returns `true` if the provided character is valid in a CSS class.
          * @param {string} c
@@ -124,7 +124,7 @@
         static isValidCSSClassChar(c) {
             return Lexer.isAlpha(c) || Lexer.isNumeric(c) || c === "-" || c === "_" || c === ":";
         }
-    
+
         /**
          * isValidCSSIDChar returns `true` if the provided character is valid in a CSS ID
          * @param {string} c
@@ -133,7 +133,7 @@
         static isValidCSSIDChar(c) {
             return Lexer.isAlpha(c) || Lexer.isNumeric(c) || c === "-" || c === "_" || c === ":";
         }
-    
+
         /**
          * isWhitespace returns `true` if the provided character is whitespace.
          * @param {string} c
@@ -142,7 +142,7 @@
         static isWhitespace(c) {
             return c === " " || c === "\t" || Lexer.isNewline(c);
         }
-    
+
         /**
          * positionString returns a string representation of a Token's line and column details.
          * @param {Token} token
@@ -151,16 +151,16 @@
         static positionString(token) {
             return "[Line: " + token.line + ", Column: " + token.column + "]";
         }
-    
+
         /**
-         * isNewline returns `true` if the provided character is a carrage return or newline
+         * isNewline returns `true` if the provided character is a carriage return or newline
          * @param {string} c
          * @returns boolean
          */
         static isNewline(c) {
             return c === "\r" || c === "\n";
         }
-    
+
         /**
          * isNumeric returns `true` if the provided character is a number (0-9)
          * @param {string} c
@@ -169,7 +169,7 @@
         static isNumeric(c) {
             return c >= "0" && c <= "9";
         }
-    
+
         /**
          * isAlpha returns `true` if the provided character is a letter in the alphabet
          * @param {string} c
@@ -178,7 +178,7 @@
         static isAlpha(c) {
             return (c >= "a" && c <= "z") || (c >= "A" && c <= "Z");
         }
-    
+
         /**
          * @param {string} c
          * @param {boolean} [dollarIsOp]
@@ -187,7 +187,7 @@
         static isIdentifierChar(c, dollarIsOp) {
             return c === "_" || c === "$";
         }
-    
+
         /**
          * @param {string} c
          * @returns boolean
@@ -195,7 +195,7 @@
         static isReservedChar(c) {
             return c === "`" || c === "^";
         }
-    
+
         /**
          * @param {Token[]} tokens
          * @returns {boolean}
@@ -216,7 +216,7 @@
             }
             return true;
         }
-    
+
         /**
          * @param {string} string
          * @param {boolean} [template]
@@ -230,11 +230,11 @@
             var line = 1;
             var lastToken = "<START>";
             var templateBraceCount = 0;
-    
+
             function inTemplate() {
                 return template && templateBraceCount === 0;
             }
-    
+
             while (position < source.length) {
                 if ((currentChar() === "-" && nextChar() === "-" && (Lexer.isWhitespace(nextCharAt(2)) || nextCharAt(2) === "" || nextCharAt(2) === "-"))
                     || (currentChar() === "/" && nextChar() === "/" && (Lexer.isWhitespace(nextCharAt(2)) || nextCharAt(2) === "" || nextCharAt(2) === "/"))) {
@@ -541,6 +541,12 @@
                             value += "\t";
                         } else if (nextChar === "v") {
                             value += "\v";
+                        } else if (nextChar === "x") {
+                            const hex = consumeHexEscape();
+                            if (Number.isNaN(hex)) {
+                                throw Error("Invalid hexadecimal escape at " + Lexer.positionString(string));
+                            }
+                            value += String.fromCharCode(hex);
                         } else {
                             value += nextChar;
                         }
@@ -557,6 +563,23 @@
                 string.end = position;
                 string.template = startChar === "`";
                 return string;
+            }
+
+            /**
+             * @returns number
+             */
+            function consumeHexEscape() {
+                const BASE = 16;
+                if (!currentChar()) {
+                    return NaN;
+                }
+                let result = BASE * Number.parseInt(consumeChar(), BASE);
+                if (!currentChar()) {
+                    return NaN;
+                }
+                result += Number.parseInt(consumeChar(), BASE);
+
+                return result;
             }
 
             /**
@@ -1880,7 +1903,11 @@
             var element = this.parse(src);
             if (element.execute) {
                 element.execute(ctx);
-                return ctx.result;
+                if(typeof ctx.meta.returnValue !== 'undefined'){
+                    return ctx.meta.returnValue;
+                } else {
+                    return ctx.result;
+                }
             } else if (element.apply) {
                 element.apply(body, body, args);
                 return this.getHyperscriptFeatures(body);
@@ -2520,6 +2547,9 @@
         }
     }
 
+    /**
+     * @type {symbol}
+     */
     const shouldAutoIterateSymbol = Symbol()
 
     function getOrInitObject(root, prop) {
@@ -4375,7 +4405,7 @@
                               console.warn("'%s' feature ignored because target does not exists:", displayName, elt);
                               return;
                             }
-                            
+
                             if (eventSpec.mutationSpec) {
                                 eventName = "hyperscript:mutation";
                                 const observer = new MutationObserver(function (mutationList, observer) {
@@ -4529,7 +4559,7 @@
             var args = [];
             if (tokens.matchOpToken("(")) {
                 if (tokens.matchOpToken(")")) {
-                    // emtpy args list
+                    // empty args list
                 } else {
                     do {
                         args.push(tokens.requireTokenType("IDENTIFIER"));
@@ -4656,7 +4686,7 @@
                     }
                 },
             };
-    
+
             // terminate body
             parser.ensureTerminated(start);
             parser.setParent(start, initFeature);
@@ -5948,19 +5978,19 @@
             }
           }
         });
-    
+
         parser.addCommand("increment", function (parser, runtime, tokens) {
             if (!tokens.matchToken("increment")) return;
             var amountExpr;
-    
+
             // This is optional.  Defaults to "result"
             var target = parser.parseElement("assignableExpression", tokens);
-    
+
             // This is optional. Defaults to 1.
             if (tokens.matchToken("by")) {
                 amountExpr = parser.requireElement("expression", tokens);
             }
-    
+
             var implicitIncrementOp = {
                 type: "implicitIncrementOp",
                 target: target,
@@ -5979,19 +6009,19 @@
 
             return makeSetter(parser, runtime, tokens, target, implicitIncrementOp);
         });
-    
+
         parser.addCommand("decrement", function (parser, runtime, tokens) {
             if (!tokens.matchToken("decrement")) return;
             var amountExpr;
-    
+
             // This is optional.  Defaults to "result"
             var target = parser.parseElement("assignableExpression", tokens);
-    
+
             // This is optional. Defaults to 1.
             if (tokens.matchToken("by")) {
                 amountExpr = parser.requireElement("expression", tokens);
             }
-    
+
             var implicitDecrementOp = {
                 type: "implicitDecrementOp",
                 target: target,
@@ -6699,12 +6729,17 @@
 
         parser.addCommand("take", function (parser, runtime, tokens) {
             if (tokens.matchToken("take")) {
-                var classRef = parser.parseElement("classRef", tokens);
+                let classRef = null;
+                let classRefs = [];
+                while ((classRef = parser.parseElement("classRef", tokens))) {
+                    classRefs.push(classRef);
+                }
 
                 var attributeRef = null;
                 var replacementValue = null;
 
-                if (classRef == null) {
+                let weAreTakingClasses = classRefs.length > 0;
+                if (!weAreTakingClasses) {
                     attributeRef = parser.parseElement("attributeRef", tokens);
                     if (attributeRef == null) {
                         parser.raiseParseError(tokens, "Expected either a class reference or attribute expression");
@@ -6717,8 +6752,6 @@
 
                 if (tokens.matchToken("from")) {
                     var fromExpr = parser.requireElement("expression", tokens);
-                } else {
-                    var fromExpr = classRef;
                 }
 
                 if (tokens.matchToken("for")) {
@@ -6727,22 +6760,29 @@
                     var forExpr = parser.requireElement("implicitMeTarget", tokens);
                 }
 
-                if (classRef) {
+                if (weAreTakingClasses) {
                     var takeCmd = {
-                        classRef: classRef,
+                        classRefs: classRefs,
                         from: fromExpr,
                         forElt: forExpr,
-                        args: [classRef, fromExpr, forExpr],
-                        op: function (context, eltColl, from, forElt) {
-                            runtime.nullCheck(from, fromExpr);
+                        args: [classRefs, fromExpr, forExpr],
+                        op: function (context, classRefs, from, forElt) {
                             runtime.nullCheck(forElt, forExpr);
-                            var clazz = eltColl.className;
-                            runtime.implicitLoop(from, function (target) {
-                                target.classList.remove(clazz);
-                            });
-                            runtime.implicitLoop(forElt, function (target) {
-                                target.classList.add(clazz);
-                            });
+                            runtime.implicitLoop(classRefs, function(classRef){
+                                var clazz = classRef.className;
+                                if (from) {
+                                    runtime.implicitLoop(from, function (target) {
+                                        target.classList.remove(clazz);
+                                    });
+                                } else {
+                                    runtime.implicitLoop(classRef, function (target) {
+                                        target.classList.remove(clazz);
+                                    });
+                                }
+                                runtime.implicitLoop(forElt, function (target) {
+                                    target.classList.add(clazz);
+                                });
+                            })
                             return runtime.findNext(this, context);
                         },
                     };
@@ -7019,9 +7059,9 @@
                                     initialStyles[name] = initialValue;
                                 }
 
-                                // store intitial values
-                                if (!internalData.initalStyles) {
-                                    internalData.initalStyles = initialStyles;
+                                // store initial values
+                                if (!internalData.initialStyles) {
+                                    internalData.initialStyles = initialStyles;
                                 }
 
                                 for (var i = 0; i < properties.length; i++) {
@@ -7075,7 +7115,7 @@
                                         var property = properties[i];
                                         var toVal = to[i];
                                         if (toVal === "initial") {
-                                            var propertyValue = internalData.initalStyles[property];
+                                            var propertyValue = internalData.initialStyles[property];
                                             target.style[property] = propertyValue;
                                         } else {
                                             target.style[property] = toVal;
@@ -7256,7 +7296,11 @@
 
                         var smoothness = tokens.matchAnyToken("smoothly", "instantly");
 
-                        var scrollOptions = {};
+                        var scrollOptions = {
+                            block: "start",
+                            inline: "nearest"
+                        };
+
                         if (verticalPosition) {
                             if (verticalPosition.value === "top") {
                                 scrollOptions.block = "start";
@@ -7309,21 +7353,22 @@
                                 }
 
                                 if(plusOrMinus) {
-                                    // a top scroll w/ an offset of some sort
-                                    var boundingRect = target.getBoundingClientRect();
-                                    let scrollShim = document.createElement('div');
+                                    // a scroll w/ an offset of some sort
+                                    let boundingRect = target.getBoundingClientRect();
 
-                                    if (plusOrMinus.value === "-") {
-                                        var finalOffset = -offset;
-                                    } else {
-                                        var finalOffset = - -offset;
-                                    }
+                                    let scrollShim = document.createElement("div");
 
-                                    scrollShim.style.position = 'absolute';
-                                    scrollShim.style.top = (boundingRect.x + finalOffset) + "px";
-                                    scrollShim.style.left = (boundingRect.y + finalOffset) + "px";
-                                    scrollShim.style.height = (boundingRect.height + (2 * finalOffset)) + "px";
-                                    scrollShim.style.width = (boundingRect.width + (2 * finalOffset)) + "px";
+                                    let actualOffset = plusOrMinus.value === "+" ? offset : offset * -1;
+
+                                    let offsetX = scrollOptions.inline == "start" || scrollOptions.inline == "end" ? actualOffset : 0;
+
+                                    let offsetY = scrollOptions.block == "start" || scrollOptions.block == "end" ? actualOffset : 0;
+
+                                    scrollShim.style.position = "absolute";
+                                    scrollShim.style.top = (boundingRect.top + window.scrollY + offsetY) + "px";
+                                    scrollShim.style.left = (boundingRect.left + window.scrollX + offsetX) + "px";
+                                    scrollShim.style.height = boundingRect.height + "px";
+                                    scrollShim.style.width = boundingRect.width + "px";
                                     scrollShim.style.zIndex = "" + Number.MIN_SAFE_INTEGER;
                                     scrollShim.style.opacity = "0";
 
@@ -7619,7 +7664,7 @@
             evaluate:    runtime_.evaluate.bind(runtime_),
             parse:       runtime_.parse.bind(runtime_),
             processNode: runtime_.processNode.bind(runtime_),
-
+            version: "0.9.12",
             browserInit,
         }
     )
