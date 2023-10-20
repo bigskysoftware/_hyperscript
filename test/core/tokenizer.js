@@ -315,6 +315,42 @@ describe("the _hyperscript tokenizer", function () {
 		token.value.should.equal("\v");
 	});
 
+	it("handles hex escapes properly", function () {
+		var lexer = _hyperscript.internals.lexer;
+		var token = lexer.tokenize('"\\x1f"').consumeToken();
+		token.value.should.equal("\x1f");
+
+		token = lexer.tokenize('"\\x41"').consumeToken();
+		token.value.should.equal("A");
+
+		token = lexer.tokenize('"\\x41\\x61"').consumeToken();
+		token.value.should.equal("Aa");
+
+		try {
+			lexer.tokenize('"\\x"').consumeToken();
+		} catch (e) {
+			e.message.indexOf("Invalid hexadecimal escape").should.equal(0);
+		}
+
+		try {
+			lexer.tokenize('"\\xGG"').consumeToken();
+		} catch (e) {
+			e.message.indexOf("Invalid hexadecimal escape").should.equal(0);
+		}
+
+		try {
+			lexer.tokenize('"\\1H"').consumeToken();
+		} catch (e) {
+			e.message.indexOf("Invalid hexadecimal escape").should.equal(0);
+		}
+
+		try {
+			lexer.tokenize('"\\x4"').consumeToken();
+		} catch (e) {
+			e.message.indexOf("Invalid hexadecimal escape").should.equal(0);
+		}
+	});
+
 	it("handles strings properly 2", function () {
 		var lexer = _hyperscript.internals.lexer;
 		var token = lexer.tokenize("'foo'").consumeToken();
