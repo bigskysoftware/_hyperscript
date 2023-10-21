@@ -19,6 +19,9 @@ By default, the following strategies are available:
 - `display` - toggle display between `none` and `block`
 - `visibility` - toggle visibility between `hidden` and `visible`
 - `opacity` - toggle opacity between `0` and `1`
+- `twDisplay` - add / remove `hidden` css class [Tailwind documentation](https://tailwindcss.com/docs/display#hidden)
+- `twVisibility` - add / remove `invisible` css class [Tailwind documentation](https://tailwindcss.com/docs/visibility#making-elements-invisible)
+- `twOpacity` - add / remove `opacity-0` css class [Tailwind documentation](https://tailwindcss.com/docs/opacity)
 
 You can change the default hide/show strategy by setting `_hyperscript.config.defaultHideShowStrategy`
 
