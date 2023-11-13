@@ -1426,6 +1426,31 @@ First, let's just set the `innerHTML` of an element to a string:
 </button>
 {% endexample %}
 
+Set the value of an input:
+
+{% example "Setting input values" %}
+<button _="on click set #some-input-id@value to '10'">
+Click Me
+</button>
+<input id="some-input-id">
+
+{% endexample %}
+
+Clearing inputs
+
+{% example "Clearing inputs with tell command" %}
+<button _="on click tell <input/> in #some-inputs set @value to ''">
+Click Me
+</button>
+
+<div id="some-inputs">
+    <input value="12"/>
+    <input value="hello"/>
+    <input value="true"/>
+</div>
+
+{% endexample %}
+
 Using the `put` command would look like this:
 
 {% example 'Setting properties with "put"' %}
