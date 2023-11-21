@@ -4,6 +4,13 @@ title: render - ///_hyperscript
 
 ## The `render` command
 
+### Installing
+
+Note: if you want the template command, you must include the /dist/template.js file in addition to the hyperscript script
+  ~~~ html
+  <script src="https://unpkg.com/hyperscript.org@0.9.12/dist/template.js"></script>
+  ~~~
+
 ### Syntax
 
 `render <template> with (<arg list>)`
