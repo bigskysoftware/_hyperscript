@@ -1555,7 +1555,15 @@
          */
         implicitLoop(value, func) {
             if (this.shouldAutoIterate(value)) {
-                for (const x of value) func(x);
+                for (const x of value) {
+                    if (typeof NodeList !== 'undefined' && (value instanceof NodeList || value instanceof HTMLCollection)) {
+                        for (const y of x) {
+                            func(y);
+                        }
+                    } else {
+                        func(x);
+                    }
+                }
             } else {
                 func(value);
             }
