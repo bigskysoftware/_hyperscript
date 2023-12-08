@@ -119,7 +119,7 @@ var _lexer = (function () {
 	}
 
 	/**
-	 * isNewline returns `true` if the provided character is a carrage return or newline
+	 * isNewline returns `true` if the provided character is a carriage return or newline
 	 * @param {string} c
 	 * @returns boolean
 	 */
@@ -3886,7 +3886,7 @@ var _runtime = (function () {
 		var args = [];
 		if (tokens.matchOpToken("(")) {
 			if (tokens.matchOpToken(")")) {
-				// emtpy args list
+				// empty args list
 			} else {
 				do {
 					args.push(tokens.requireTokenType("IDENTIFIER"));
