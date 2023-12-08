@@ -709,7 +709,7 @@ export default _hyperscript => {
 								initialStyles[name] = initialValue;
 							}
 
-							// store intitial values
+							// store initial values
 							if (!internalData.initalStyles) {
 								internalData.initalStyles = initialStyles;
 							}
