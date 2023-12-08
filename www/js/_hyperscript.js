@@ -2274,7 +2274,7 @@
                         var args = [];
                         if (tokens.matchOpToken("(")) {
                             if (tokens.matchOpToken(")")) {
-                                // emtpy args list
+                                // empty args list
                             } else {
                                 do {
                                     args.push(tokens.requireTokenType('IDENTIFIER'));
@@ -3484,7 +3484,7 @@
                                             initialStyles[name] = initialValue;
                                         }
 
-                                        // store intitial values
+                                        // store initial values
                                         if (!internalData.initalStyles) {
                                             internalData.initalStyles = initialStyles;
                                         }
