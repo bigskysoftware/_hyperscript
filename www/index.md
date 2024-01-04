@@ -37,7 +37,7 @@ Enhance HTML with concise DOM, event and async features. **Make writing interact
 ~~~hyperscript
 on pointerdown
   repeat until event pointerup
-    set rand to Math.random() * 255
+    set rand to Math.random() * 360
     transition
       *background-color
       to `hsl($rand 100% 90%)`
@@ -50,7 +50,7 @@ on pointerdown
 <span class="center" style="margin-top: calc(-1.5*var(--gap))"><button class="crowded padding padding-block allcaps" _="
 on pointerdown
   repeat until event pointerup
-    set rand to Math.random() * 255
+    set rand to Math.random() * 360
     transition *background-color
             to `hsl($rand 100% 90%)`
           over 250ms
