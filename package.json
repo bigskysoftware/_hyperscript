@@ -20,7 +20,7 @@
   "main": "dist/_hyperscript.min.js",
   "types": "dist/_hyperscript.d.ts",
   "bin": {
-    "_hyperscript": "src/bin/node-hyperscript.js"
+    "_hyperscript": "src/node-hyperscript.js"
   },
   "scripts": {
     "test": "mocha-chrome test/index.html",
