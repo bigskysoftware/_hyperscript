@@ -54,7 +54,7 @@ The transition command provides a special value, `initial` that can be used. Whe
 occurs on an element it will snapshot the original value of that style property and keep it for future
 reference via the `initial` keyword.
 
-Note that this command is asynchronous and will block until the transition ends.
+Note that this command is synchronous and will block until the transition ends.
 
 ### Examples
 
