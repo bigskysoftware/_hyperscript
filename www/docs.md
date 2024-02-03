@@ -1813,7 +1813,7 @@ on the timeout, setting the `result` to `null`, so `the result's type` will be n
 
 Previously we looked at the `toggle` command.  It turns out that it, too, can work with events:
 
-{% example "Waiting On Events With A Timeout" %}
+{% example "Toggle A Class With Events" %}
 <div _="on mouseenter toggle .red until mouseleave">
   Mouse Over Me To Turn Me Red!
 </div>
