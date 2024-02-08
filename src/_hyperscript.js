@@ -4268,7 +4268,10 @@
                         } while (tokens.matchToken("and"));
                     }
                 } else if (eventName === "mutation") {
-                    mutationSpec = {};
+                    mutationSpec = {
+                      attributeOldValue: true,
+                      characterDataOldValue: true,
+                    };
                     if (tokens.matchToken("of")) {
                         do {
                             if (tokens.matchToken("anything")) {
@@ -4280,12 +4283,10 @@
                                 mutationSpec["childList"] = true;
                             } else if (tokens.matchToken("attributes")) {
                                 mutationSpec["attributes"] = true;
-                                mutationSpec["attributeOldValue"] = true;
                             } else if (tokens.matchToken("subtree")) {
                                 mutationSpec["subtree"] = true;
                             } else if (tokens.matchToken("characterData")) {
                                 mutationSpec["characterData"] = true;
-                                mutationSpec["characterDataOldValue"] = true;
                             } else if (tokens.currentToken().type === "ATTRIBUTE_REF") {
                                 var attribute = tokens.consumeToken();
                                 if (mutationSpec["attributeFilter"] == null) {
