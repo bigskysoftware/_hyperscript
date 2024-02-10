@@ -82,7 +82,7 @@ to the language.
 
   ```html
   <div
-    _="on mouseenter or touchbegin fetch /content then put it into my.innerHTML"
+    _="on mouseenter or touchstart fetch /content then put it into my.innerHTML"
   >
     Fetch it...
   </div>

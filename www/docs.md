@@ -541,7 +541,7 @@ If you wish to assign an identifier to the new object you can use the ` called `
   log myURL
   ~~~
 
-You can also use [`query literals`](/expressions/query_references), discussed [below](#dom_literals), to create new HTML content:
+You can also use [`query literals`](/expressions/#query-literals), discussed [below](#dom-literals), to create new HTML content:
 
   ~~~ hyperscript
   make an <a.navlink/> then put it after me
