@@ -4961,7 +4961,7 @@
 
             // wait on event
             if (tokens.matchToken("for")) {
-                tokens.matchToken("a"); // optional "a"
+                tokens.matchToken("a") || tokens.matchToken("an"); // optional "a" or "an"
                 var events = [];
                 do {
                     var lookahead = tokens.token(0);
