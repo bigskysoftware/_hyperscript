@@ -1330,7 +1330,7 @@ This allows you to look up elements based on a variable rather than a fixed valu
 
   -- removes all divs w/ class .hidden on them from the DOM
   set elementType to 'div'
-  remove <#{elementType}.hidden/>
+  remove <${elementType}.hidden/>
   ~~~
 
 All these language constructs make it very easy to work with the DOM in a concise, enjoyable manner.
