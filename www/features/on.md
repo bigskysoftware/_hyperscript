@@ -54,7 +54,7 @@ Finally an event can specify a `debounced at` or `throttled at` value to debounc
 Events can be repeated separated by an `or` to assign one handler to multiple events:
 
 ```html
-<div _="on click or touchbegin fetch /example then put it into my innerHTML">
+<div _="on click or touchstart fetch /example then put it into my innerHTML">
   Fetch it...
 </div>
 ```
