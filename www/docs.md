@@ -126,6 +126,14 @@ Hyperscript is a dependency-free JavaScript library that can be included in a we
   <script src="https://unpkg.com/hyperscript.org@0.9.12"></script>
   ~~~
 
+If you are using a build step:
+
+  ~~~ js
+  import _hyperscript from 'hyperscript.org';
+
+  _hyperscript.browserInit();
+  ~~~
+
 After you've done this, you can begin adding hyperscript to elements:
 
   ~~~ html
