@@ -733,6 +733,7 @@ It supports a large number of variants, including a short hand `for` version:
 
   -- you may use the index clause on any of the above
   -- to bind the loop index to a given symbol
+  -- you may use any of "index", "by", or "indexed by"
   for x in [1, 2, 3] index i
     log i, "is", x
   end
