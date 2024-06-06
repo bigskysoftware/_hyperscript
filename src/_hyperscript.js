@@ -5942,7 +5942,7 @@
             const re = parser.parseElement("expression", tokens);
             let flags = ""
             if (tokens.matchOpToken("|")) {
-              flags = tokens.requireToken("identifier").value;
+              flags = tokens.requireTokenType("IDENTIFIER").value;
             }
 
             tokens.requireToken("from");
@@ -5962,9 +5962,8 @@
             const re = parser.parseElement("expression", tokens);
             let flags = "gu"
             if (tokens.matchOpToken("|")) {
-              flags = 'g' + tokens.requireToken("identifier").value.replace('g', '');
+              flags = 'g' + tokens.requireTokenType("IDENTIFIER").value.replace('g', '');
             }
-            console.log('flags', flags)
 
             tokens.requireToken("from");
             const root = parser.parseElement("expression", tokens);
