@@ -42,13 +42,13 @@ If you provide an `until <event name>` the class or attribute will be toggled un
 ```html
 <button _="on click toggle .toggled">Toggle Me!</button>
 
-<div _="on click toggle .toggled on #another-div">Toggle Another Div!</div>
+<div _="on click toggle .toggled of #another-div">Toggle Another Div!</div>
 
 <button _="on click toggle [@disabled='true']">Toggle Disabled!</button>
 
 <div _="on click toggle .toggled for 2s">Toggle for 2 seconds</div>
 
-<div _="on mouseenter toggle .visible on #help until mouseleave">
+<div _="on mouseenter toggle .visible of #help until mouseleave">
   Mouse Over Me!
 </div>
 <div id="help">I'm a helpful message!</div>
@@ -57,7 +57,7 @@ If you provide an `until <event name>` the class or attribute will be toggled un
   Toggle Me!
 </button>
 
-<button _="on click toggle *display on the next <div/>">
+<button _="on click toggle *display of the next <div/>">
   Toggle Me!
 </button>
 ```
