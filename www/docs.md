@@ -1044,7 +1044,7 @@ You may also use the [`exit`](/commands/halt) command to exit a function, discus
 #### Sending Events {#sending-events}
 
 hyperscript not only makes it easy to respond to events, but also makes it very easy to send events to other elements
-using the [`send`](/commands/send) and [`trigger`](/commands/trigger) commands.  Both commands do the same thing:
+using the [`send`](/commands/send) and [`trigger`](/commands/send) commands.  Both commands do the same thing:
 sending an event to an element (possibly the current element!) to handle.
 
 Here are a few examples:
