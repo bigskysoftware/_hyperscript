@@ -1039,7 +1039,7 @@ the event from bubbling, but continue on in the event handler:
   </script>
   ~~~
 
-You may also use the [`exit`](/commands/exit) command to exit a function, discussed below.
+You may also use the [`exit`](/commands/halt) command to exit a function, discussed below.
 
 #### Sending Events {#sending-events}
 
@@ -1183,7 +1183,7 @@ Hyperscript functions can take parameters and return values in the expected way:
   ~~~
 
 You may exit a function using [`return`](/commands/return) if you wish to return a value or
- [`exit`](/commands/exit) if you do not want to return a value.
+ [`exit`](/commands/halt) if you do not want to return a value.
 
 #### Namespacing {#function_namespacing}
 
