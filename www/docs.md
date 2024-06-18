@@ -2011,7 +2011,7 @@ want to do this if you need better performance on calculations than hyperscript 
 [Web Sockets](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API) allow for two-way communication with
 a web server, and are becoming increasingly popular for building web applications. Hyperscript provides a simple way to
 create them, as well as a simple [Remote Procedure Call (RPC)](https://en.wikipedia.org/wiki/Remote_procedure_call) mechanism
-layered on top of them, by using the [`socket` keyword](/features/sockets).
+layered on top of them, by using the [`socket` keyword](/features/socket).
 
 Here is a simple web socket declaration in hyperscript:
 
