@@ -1356,7 +1356,7 @@ with the corresponding hyperscript:
 
   ~~~ hyperscript
   on click from #example-btn
-    remove .elements-to-remove
+    remove <.elements-to-remove/>
   ~~~
 
 You can see how the support for CSS literals directly in hyperscript makes for a much cleaner script, allowing us
