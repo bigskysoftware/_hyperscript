@@ -57,7 +57,7 @@ If you provide an `until <event name>` the class or attribute will be toggled un
   Toggle Me!
 </button>
 
-<button _="on click toggle *display on the next <div/>">
+<button _="on click toggle *display of the next <div/>">
   Toggle Me!
 </button>
 ```
