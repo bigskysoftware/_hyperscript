@@ -10,7 +10,7 @@ title: string - ///_hyperscript
   set x to "foo" -- double quotes
   set y to 'bar' -- single quotes
   set foobar to `$foo$bar` -- template strings (back ticks) using "$"
-  set hello to `hello ${name} -- template strings using "${}"
+  set hello to `hello ${name}` -- template strings using "${}"
 ```
 
 ### Description
