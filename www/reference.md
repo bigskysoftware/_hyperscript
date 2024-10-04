@@ -41,7 +41,7 @@ See [expressions](/expressions) for an overview.
 | [positional expressions](/expressions/positional)                    | Get a positional value out of an array-like object | `first from <div/>`
 | [possessive expressions](/expressions/possessive)                    | Get a property or attribute from an element        | `the window's location`
 | [time expression](/expressions/time-expression)                      | A time expression                                  | `200ms`
-| [cookies symbol](/expressions/cookies)                               | A symbol for accessing cookies                     | `cookes['My-Cookie']`
+| [cookies symbol](/expressions/cookies)                               | A symbol for accessing cookies                     | `cookies['My-Cookie']`
 
 ## Magic Values
 
