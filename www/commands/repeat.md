@@ -75,7 +75,7 @@ Here are examples of all the above forms:
     put "Fun " before end of #div.innerHTML
   end
 
-  -- iterate five times
+  -- iterate forever
   repeat forever
     toggle .throb on #div
     wait 1s
