@@ -34,7 +34,7 @@
     "url": "git+https://github.com/bigskysoftware/_hyperscript.git"
   },
   "devDependencies": {
-    "@11ty/eleventy": "^1.0.2",
+    "@11ty/eleventy": "^3.0.0",
     "chai": "^4.2.0",
     "fs-extra": "^9.0.0",
     "markdown-it": "^12.3.2",
