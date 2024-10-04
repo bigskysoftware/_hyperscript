@@ -7,7 +7,7 @@
 | [def](/features/def) | Defines a function | [see details...](/features/def)
 | [eventsource](/features/event-source) | Subscribe to Server Sent Events (SSE)
 | [js](/features/js) | Embed JavaScript code at the top level | [see details...](/features/js)
-| [set](/features/set) | Defines a new [element-scoped]((/docs#variables_and_scope)) variable
+| [set](/features/set) | Defines a new [element-scoped](/docs#names_and_scoping) variable
 | [init](/features/init) | Initialization logic to be run when the code is first loaded
 | [on](/features/on) | Creates an event listener | `on click log "clicked!"`
 | [socket](/features/socket) | Create a Web Socket
