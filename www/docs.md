@@ -1582,7 +1582,7 @@ using a `when` clause:
 
 {% example "Filter elements with `show ... when`" %}
 <input _="on keyup show <li/> in #color-list
-                     when it's innerHTML contains my value">
+                     when its innerHTML contains my value">
 <ul id="color-list">
   <li>Red</li>
   <li>Blue</li>
@@ -1985,7 +1985,7 @@ For a better example of a behavior, check out [Draggable.\_hs](https://gist.gith
 [WebWorkers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers) can be defined
 inline in hyperscript by using the [`worker` keyword](/features/worker).
 
-The worker does not share a namespace with other code, it is in it's own isolated sandbox. However, you may interact
+The worker does not share a namespace with other code, it is in its own isolated sandbox. However, you may interact
 with the worker via function calls, passing data back and forth in the normal manner.
 
   ~~~ html
@@ -2117,7 +2117,7 @@ we will see the following in the console:
 ///_ BEEP! The expression (<div.hilight/>) evaluates to: [div.hilight] of type ElementCollection
 ```
 
-You can see the expressions source, it's value (which you can right click on and assign to a temporary value to work
+You can see the expressions source, its value (which you can right click on and assign to a temporary value to work
 with in most browsers) as well as the type of the value.  All of this had no effect on the evaluation of the expression
 or statement.
 
