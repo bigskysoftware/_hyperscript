@@ -442,4 +442,13 @@ describe("the _hyperscript tokenizer", function () {
 		var tokenize = lexer.tokenize('"', true);
 		tokenize.token(0).value.should.equal('"');
 	});
+
+	it("string interpolation isnt surprising", function () {
+		clearWorkArea();
+		var div = make( '<div _="on click set x to 42 then put `test\\${x} test ${x} test\\$x test $x test \\$x test \\${x} test$x test_$x test_${x} test-$x test.$x` into my.innerHTML"></div>');
+		div.click();
+		div.innerHTML.should.equal("test${x} test 42 test$x test 42 test $x test ${x} test42 test_42 test_42 test-42 test.42");
+		clearWorkArea();
+	});
+
 });
