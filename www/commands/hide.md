@@ -33,3 +33,24 @@ You can add new hide/show strategies by setting new values into the `_hyperscrip
 
 <div _="on click hide #anotherDiv">Hide Another Div!</div>
 ```
+
+
+### Tailwind CSS extensions
+
+In case you are using Tailwind CSS, you may want to use their utility classes.
+
+You will have to set `_hyperscript.config.defaultHideShowStrategy` to one of this options :
+
+- `twDisplay` - add class `hidden` [Display - Tailwind](https://tailwindcss.com/docs/display#hidden)
+- `twVisibility` - add class `invisible` [Visibility - Tailwind](https://tailwindcss.com/docs/visibility#making-elements-invisible)
+- `twOpacity` - add class `opacity-0` [Opacity - Tailwind](https://tailwindcss.com/docs/opacity)
+
+### Examples
+
+```html
+<div _="on click hide">Hide Me!</div>
+
+<div _="on click hide with twOpacity">Hide Me With Opacity!</div>
+
+<div _="on click hide #anotherDiv">Hide Another Div!</div>
+```

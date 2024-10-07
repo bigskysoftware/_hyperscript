@@ -55,3 +55,37 @@ in `target`
           show <p/> in #quotes when its textContent contains my value">
 
 ```
+
+### Tailwind CSS extensions
+
+In case you are using Tailwind CSS, you may want to use their utility classes.
+
+You will have to set `_hyperscript.config.defaultHideShowStrategy` to one of this options :
+
+- `twDisplay` - remove class `hidden` [Display - Tailwind](https://tailwindcss.com/docs/display#hidden)
+- `twVisibility` - remove class `invisible` [Visibility - Tailwind](https://tailwindcss.com/docs/visibility#making-elements-invisible)
+- `twOpacity` - remove class `opacity-0` [Opacity - Tailwind](https://tailwindcss.com/docs/opacity)
+
+### Examples
+
+### Examples
+
+```html
+<div _="on load wait 2s then show">I'll show after a few seconds!</div>
+
+<div _="on load wait 2s then show:inline">
+  I'll show inline after a few seconds!
+</div>
+
+<div _="on load wait 2s then show with *twOpacity">
+  I'll show after a few seconds with Tailwind CSS opacity!
+</div>
+
+<div _="on click show #anotherDiv">Show Another Div!</div>
+
+<!-- on every keyup show all elements in #quotes that match the inputs value -->
+<input type="text" placeholder="Search..."
+     _="on keyup
+          show <p/> in #quotes when its textContent contains my value">
+
+```
