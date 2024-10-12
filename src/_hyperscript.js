@@ -1479,14 +1479,14 @@
 
         /**
          * isArrayLike returns `true` if the provided value is an array or
-         * a NodeList (which is close enough to being an array for our purposes).
+         * something close enough to being an array for our purposes.
          *
          * @param {any} value
-         * @returns {value is Array | NodeList}
+         * @returns {value is Array | NodeList | HTMLCollection | FileList}
          */
         isArrayLike(value) {
             return Array.isArray(value) ||
-                (typeof NodeList !== 'undefined' && (value instanceof NodeList || value instanceof HTMLCollection));
+                (typeof NodeList !== 'undefined' && (value instanceof NodeList || value instanceof HTMLCollection || value instanceof FileList));
         }
 
         /**
