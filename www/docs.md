@@ -1039,12 +1039,12 @@ the event from bubbling, but continue on in the event handler:
   </script>
   ~~~
 
-You may also use the [`exit`](/commands/exit) command to exit a function, discussed below.
+You may also use the [`exit`](/commands/halt) command to exit a function, discussed below.
 
 #### Sending Events {#sending-events}
 
 hyperscript not only makes it easy to respond to events, but also makes it very easy to send events to other elements
-using the [`send`](/commands/send) and [`trigger`](/commands/trigger) commands.  Both commands do the same thing:
+using the [`send`](/commands/send) and [`trigger`](/commands/send) commands.  Both commands do the same thing:
 sending an event to an element (possibly the current element!) to handle.
 
 Here are a few examples:
@@ -1183,7 +1183,7 @@ Hyperscript functions can take parameters and return values in the expected way:
   ~~~
 
 You may exit a function using [`return`](/commands/return) if you wish to return a value or
- [`exit`](/commands/exit) if you do not want to return a value.
+ [`exit`](/commands/halt) if you do not want to return a value.
 
 #### Namespacing {#function_namespacing}
 
@@ -1338,7 +1338,7 @@ This allows you to look up elements based on a variable rather than a fixed valu
 
   -- removes all divs w/ class .hidden on them from the DOM
   set elementType to 'div'
-  remove <#{elementType}.hidden/>
+  remove <${elementType}.hidden/>
   ~~~
 
 All these language constructs make it very easy to work with the DOM in a concise, enjoyable manner.
@@ -1582,7 +1582,7 @@ using a `when` clause:
 
 {% example "Filter elements with `show ... when`" %}
 <input _="on keyup show <li/> in #color-list
-                     when it's innerHTML contains my value">
+                     when its innerHTML contains my value">
 <ul id="color-list">
   <li>Red</li>
   <li>Blue</li>
@@ -1821,7 +1821,7 @@ on the timeout, setting the `result` to `null`, so `the result's type` will be n
 
 Previously we looked at the `toggle` command.  It turns out that it, too, can work with events:
 
-{% example "Waiting On Events With A Timeout" %}
+{% example "Toggle A Class With Events" %}
 <div _="on mouseenter toggle .red until mouseleave">
   Mouse Over Me To Turn Me Red!
 </div>
@@ -1985,7 +1985,7 @@ For a better example of a behavior, check out [Draggable.\_hs](https://gist.gith
 [WebWorkers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers) can be defined
 inline in hyperscript by using the [`worker` keyword](/features/worker).
 
-The worker does not share a namespace with other code, it is in it's own isolated sandbox. However, you may interact
+The worker does not share a namespace with other code, it is in its own isolated sandbox. However, you may interact
 with the worker via function calls, passing data back and forth in the normal manner.
 
   ~~~ html
@@ -2011,7 +2011,7 @@ want to do this if you need better performance on calculations than hyperscript 
 [Web Sockets](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API) allow for two-way communication with
 a web server, and are becoming increasingly popular for building web applications. Hyperscript provides a simple way to
 create them, as well as a simple [Remote Procedure Call (RPC)](https://en.wikipedia.org/wiki/Remote_procedure_call) mechanism
-layered on top of them, by using the [`socket` keyword](/features/sockets).
+layered on top of them, by using the [`socket` keyword](/features/socket).
 
 Here is a simple web socket declaration in hyperscript:
 
@@ -2117,7 +2117,7 @@ we will see the following in the console:
 ///_ BEEP! The expression (<div.hilight/>) evaluates to: [div.hilight] of type ElementCollection
 ```
 
-You can see the expressions source, it's value (which you can right click on and assign to a temporary value to work
+You can see the expressions source, its value (which you can right click on and assign to a temporary value to work
 with in most browsers) as well as the type of the value.  All of this had no effect on the evaluation of the expression
 or statement.
 

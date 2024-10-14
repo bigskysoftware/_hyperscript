@@ -1453,6 +1453,7 @@
                 evt = new Event(eventName, {
                     bubbles: true,
                     cancelable: true,
+                    composed: true,
                 });
                 evt['detail'] = detail;
             } else {

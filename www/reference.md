@@ -7,7 +7,7 @@
 | [def](/features/def) | Defines a function | [see details...](/features/def)
 | [eventsource](/features/event-source) | Subscribe to Server Sent Events (SSE)
 | [js](/features/js) | Embed JavaScript code at the top level | [see details...](/features/js)
-| [set](/features/set) | Defines a new [element-scoped]((/docs#variables_and_scope)) variable
+| [set](/features/set) | Defines a new [element-scoped](/docs#names_and_scoping) variable
 | [init](/features/init) | Initialization logic to be run when the code is first loaded
 | [on](/features/on) | Creates an event listener | `on click log "clicked!"`
 | [socket](/features/socket) | Create a Web Socket
@@ -41,7 +41,7 @@ See [expressions](/expressions) for an overview.
 | [positional expressions](/expressions/positional)                    | Get a positional value out of an array-like object | `first from <div/>`
 | [possessive expressions](/expressions/possessive)                    | Get a property or attribute from an element        | `the window's location`
 | [time expression](/expressions/time-expression)                      | A time expression                                  | `200ms`
-| [cookies symbol](/expressions/cookies)                               | A symbol for accessing cookies                     | `cookes['My-Cookie']`
+| [cookies symbol](/expressions/cookies)                               | A symbol for accessing cookies                     | `cookies['My-Cookie']`
 
 ## Magic Values
 
