@@ -58,7 +58,7 @@ on pointerdown
 </div>
 
 
-<div style="flex-basis: 100%; text-align: center;"><span id="install"><strong>Install:</strong> <code style="border: 2px dotted #00000055; margin: 0 10px; padding: 4px 6px; border-radius: 4px">&lt;script src="https://unpkg.com/hyperscript.org@0.9.12"&gt;&lt;/script&gt;</code>
+<div style="flex-basis: 100%; text-align: center;"><span id="install"><strong>Install:</strong> <code style="border: 2px dotted #00000055; margin: 0 10px; padding: 4px 6px; border-radius: 4px">&lt;script src="https://unpkg.com/hyperscript.org@0.9.13"&gt;&lt;/script&gt;</code>
 <button style="font:inherit;font-size:.8em;background:#3465a4;color:white;border:none;padding: 0 .4em; border-radius: .4em" _="on click
   writeText(my previousElementSibling's innerText) on navigator.clipboard
   put 'copied!' into me

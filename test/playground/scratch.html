@@ -12,6 +12,28 @@
 
 		<em>Work Area</em>
 
+	<br/><br/>
+
+	<div _="on mousedown
+	  log 'starting'
+      set elapsed to 0
+      repeat until event pointerup
+		  if elapsed < 100
+			wait 1s
+			log 'waited'
+			set elapsed to elapsed + 10
+			continue
+		  end
+		  log 'breaking'
+		  break
+      end
+      log 'done'
+      ">
+		Click Me
+	</div>
+	<output>--</output>
+
+
 		<hr />
 	<button _="on click fetch 'https://jsonplaceholder.typicode.com/posts' as Object
 	              log it
