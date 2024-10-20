@@ -46,6 +46,15 @@ describe("the toggle command", function () {
 		div.hasAttribute("foo").should.equal(false);
 	});
 
+	it("can toggle non-class attributes on selects", function () {
+		var select = make("<select _='on click toggle [@foo=\"bar\"]'></select>");
+		select.hasAttribute("foo").should.equal(false);
+		select.click();
+		select.getAttribute("foo").should.equal("bar");
+		select.click();
+		select.hasAttribute("foo").should.equal(false);
+	});
+
 	it("can toggle for a fixed amount of time", function (done) {
 		var div = make("<div _='on click toggle .foo for 10ms'></div>");
 		div.classList.contains("foo").should.equal(false);

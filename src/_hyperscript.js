@@ -6523,7 +6523,7 @@
                                 });
                             });
                         } else {
-                            runtime.forEach(on, function (target) {
+                            runtime.implicitLoop(on, function (target) {
                                 if (target.hasAttribute(attributeRef.name)) {
                                     target.removeAttribute(attributeRef.name);
                                 } else {
@@ -7031,12 +7031,12 @@
                 if (tokens.matchToken("over")) {
                     var over = parser.requireElement("expression", tokens);
                 } else if (tokens.matchToken("using")) {
-                    var using = parser.requireElement("expression", tokens);
+                    var usingExpr = parser.requireElement("expression", tokens);
                 }
 
                 var transition = {
                     to: to,
-                    args: [targetsExpr, properties, from, to, using, over],
+                    args: [targetsExpr, properties, from, to, usingExpr, over],
                     op: function (context, targets, properties, from, to, using, over) {
                         runtime.nullCheck(targets, targetsExpr);
                         var promises = [];
