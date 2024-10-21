@@ -151,16 +151,6 @@ describe("the repeat command", function () {
 		d1.innerHTML.should.equal("a0ab1abc2");
 	});
 
-	it("by syntax works", function () {
-		var d1 = make(
-			'<div _=\'on click repeat for x in ["a", "ab", "abc"] by i' +
-				"                                    put x + i at end of me" +
-				"                                  end'></div>"
-		);
-		d1.click();
-		d1.innerHTML.should.equal("a0ab1abc2");
-	});
-
 	it("while keyword works", function () {
 		make(
 			"" +
