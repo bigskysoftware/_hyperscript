@@ -5669,6 +5669,10 @@
             if (tokens.matchToken("index")) {
                 var identifierToken = tokens.requireTokenType("IDENTIFIER");
                 var indexIdentifier = identifierToken.value;
+            } else if (tokens.matchToken("indexed")) {
+                tokens.requireToken("by");
+                var identifierToken = tokens.requireTokenType("IDENTIFIER");
+                var indexIdentifier = identifierToken.value;
             }
 
             var loop = parser.parseElement("commandList", tokens);
