@@ -20,7 +20,7 @@ Note: if you want the event source feature, you must either use the "Whole 9 Yar
 
 ### Description
 
-[Server Sent Events](https://en.wikipedia.org/wiki/Server-sent_events) are a simple way for your web server to push information directly to your clients that is [supported by all modern browsers](https://caniuse.com/eventsource). They provide real-time, uni-directional communication from your server to a browser. Server Sent Events cannot sent information back to your server. If you need two-way communication, consider implementing[WebSockets](/features/socket/) instead.
+[Server Sent Events](https://en.wikipedia.org/wiki/Server-sent_events) are a simple way for your web server to push information directly to your clients that is [supported by all modern browsers](https://caniuse.com/eventsource). They provide real-time, uni-directional communication from your server to a browser. Server Sent Events cannot sent information back to your server. If you need two-way communication, consider implementing [WebSockets](/features/socket/) instead.
 
 SSE connections can require substantial work to set up and maintain. For example, browsers are supposed to reconnect to a failed SSE stream automatically, but their behavior differs. Hyperscript manages everything for you, and reconnects connections that have failed, so your code only has to handle incoming messages.
 
