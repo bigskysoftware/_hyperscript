@@ -3887,7 +3887,7 @@
                     if (tokens.matchToken("not")) {
                         if (tokens.matchToken("in")) {
                             operator = "not in";
-                        } else if (tokens.matchToken("a")) {
+                        } else if (tokens.matchToken("a") || tokens.matchToken("an")) {
                             operator = "not a";
                             typeCheck = true;
                         } else if (tokens.matchToken("empty")) {
@@ -3906,7 +3906,7 @@
                         }
                     } else if (tokens.matchToken("in")) {
                         operator = "in";
-                    } else if (tokens.matchToken("a")) {
+                    } else if (tokens.matchToken("a") || tokens.matchToken("an")) {
                         operator = "a";
                         typeCheck = true;
                     } else if (tokens.matchToken("empty")) {

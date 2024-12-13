@@ -513,6 +513,28 @@ describe("the comparisonOperator expression", function () {
 		result.should.equal(false);
 	});
 
+	it("is an works", function () {
+		var result = evalHyperScript("null is an String");
+		result.should.equal(true);
+
+		var result = evalHyperScript("null is an String!");
+		result.should.equal(false);
+
+		var result = evalHyperScript("'' is an String!");
+		result.should.equal(true);
+	});
+
+	it("is not an works", function () {
+		var result = evalHyperScript("null is not an String");
+		result.should.equal(false);
+
+		var result = evalHyperScript("null is not an String!");
+		result.should.equal(true);
+
+		var result = evalHyperScript("'' is not an String!");
+		result.should.equal(false);
+	});
+
 	it("english less than works", function () {
 		var result = evalHyperScript("1 is less than 2");
 		result.should.equal(true);
