@@ -5885,7 +5885,8 @@
                         target.push(value);
                         return runtime.findNext(this, context);
                     } else if (target instanceof Element) {
-                        target.innerHTML += value;
+                        target.insertAdjacentHTML("beforeend", value); // insert at end, preserving existing content
+                        runtime.processNode(target);                   // process parent so any new content i
                         return runtime.findNext(this, context);
                     } else if(setter) {
                         context.result = (target || "") + value;

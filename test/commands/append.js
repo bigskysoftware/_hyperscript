@@ -3,7 +3,6 @@ describe("the append command", function () {
 		clearWorkArea();
 	});
 	afterEach(function () {
-		clearWorkArea();
 	});
 
 	it("can append a string to another string", function () {
@@ -71,6 +70,21 @@ describe("the append command", function () {
         var div = make(`<div id="id" _="on click append 'bar' then append it to me"></div>`);
         div.click();
 		div.innerHTML.should.equal("bar");
+    })
+
+    it("append preserves existing content rather than overwriting it", function () {
+		var div = make(`<div _="on click append '<a>New Content</a>' to me"><button id="btn1">Click Me</button></div>`);
+		let btn = byId('btn1');
+		var clicks = 0;
+		btn.addEventListener('click', function() {
+			clicks++;
+		})
+        btn.click();
+		clicks.should.equal(1);
+		div.click();
+		div.innerHTML.should.contain("New Content");
+		btn.click();
+		btn.parentNode.should.equal(div);
     })
 
 });
