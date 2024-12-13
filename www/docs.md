@@ -438,6 +438,8 @@ Here is a table of available symbols:
 	the detail of the event that triggered the current handler, if any
 `sender`
 	the element that sent the current event, if any
+`cookies`
+    an [api](/expressions/cookies) to access cookies
 {% endsyntaxes %}
 
 Note that the `target` is the element that the event *originally* occurred on.
@@ -445,6 +447,8 @@ Note that the `target` is the element that the event *originally* occurred on.
 Event handlers, discussed [below](#on), may be placed on parent elements to take advantage
 of [event bubbling](https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Building_blocks/Events#event_bubbling_and_capture)
 which can reduce redundancy in code.
+
+Note that JavaScript global symbols such as `window` & `localStorage` are also available.
 
 ### Logging To The Console
 
