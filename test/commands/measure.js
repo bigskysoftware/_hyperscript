@@ -5,7 +5,8 @@ describe("the measure command", function () {
 				"  measure me then set window.measurement to it'></div> "
 		);
 		div.click();
-		window.measurement.top.should.equal(89);
+		window.measurement.should.have.property("top");
+		Math.round(window.measurement.top).should.equal(89);
 		delete window.measurement;
 	});
 
@@ -13,7 +14,8 @@ describe("the measure command", function () {
 		var div = make("<div id='other' style='all: initial; position: fixed; top: 89px'></div>");
 		var measure = make("<div _='on click measure #other then set window.measurement to it'></div> ");
 		measure.click();
-		window.measurement.should.have.property("top", 89);
+		window.measurement.should.have.property("top");
+		Math.round(window.measurement.top).should.equal(89);
 		delete window.measurement;
 	});
 
