@@ -24,7 +24,7 @@ You can alternatively use the equivalent `trigger` syntax.
 <div _="on click send doIt(answer:42) to #div1">Send an event</div>
 <div
   id="div1"
-  _="on doIt(answer) put 'The answer is $answer' into my.innerHTML"
+  _="on doIt(answer) put `The answer is $answer` into my.innerHTML"
 >
   Check the console for the answer...
 </div>
