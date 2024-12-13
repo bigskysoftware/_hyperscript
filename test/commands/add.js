@@ -117,5 +117,14 @@ describe("the add command", function () {
 		div3.hasAttribute("rey").should.equal(true);
 	});
 
+	it("can add to an HTMLCollection", function () {
+		var div1 = make("<div _='on click add .foo to the children of #bar'></div>");
+		var div2 = make("<div id='bar'><div id='c1'></div><div id='c2'></div></div>");
+		byId("c1").classList.contains("foo").should.equal(false);
+		byId("c2").classList.contains("foo").should.equal(false);
+		div1.click();
+		byId("c1").classList.contains("foo").should.equal(true);
+		byId("c2").classList.contains("foo").should.equal(true);
+	});
 
 });
