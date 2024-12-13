@@ -2981,7 +2981,7 @@
                     var value = parser.requireElement("expression", tokens);
                     valueExpressions.push(value);
                     keyExpressions.push(name);
-                } while (tokens.matchOpToken(","));
+                } while (tokens.matchOpToken(",") && !tokens.peekToken("}", 0, 'R_BRACE'));
                 tokens.requireOpToken("}");
             }
             return {
