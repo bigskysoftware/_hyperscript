@@ -7613,6 +7613,9 @@
         .then(() => ready(function () {
             mergeMetaConfig();
             runtime_.processNode(document.documentElement);
+
+            document.dispatchEvent(new Event("hyperscript:ready"));
+
             globalScope.document.addEventListener("htmx:load", function (/** @type {CustomEvent} */ evt) {
                 runtime_.processNode(evt.detail.elt);
             });
