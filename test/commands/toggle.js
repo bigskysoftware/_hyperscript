@@ -91,6 +91,15 @@ describe("the toggle command", function () {
 		div.classList.contains("bar").should.equal(false);
 	});
 
+  it("can toggle between two attribute values", function () {
+    var div = make("<div _='on click toggle @aria-selected between \"true\" and \"false\"'></div>");
+    div.getAttribute("aria-selected").should.equal(null);
+    div.click();
+    div.getAttribute("aria-selected").should.equal("true");
+    div.click();
+    div.getAttribute("aria-selected").should.equal("false");
+  });
+
 	it("can toggle multiple class refs", function () {
 		var div = make("<div class='bar' _='on click toggle .foo .bar'></div>");
 		div.classList.contains("foo").should.equal(false);
