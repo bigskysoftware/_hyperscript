@@ -36,7 +36,7 @@ Enhance HTML with concise DOM, event and async features. **Make writing interact
 
 ~~~hyperscript
 on pointerdown
-  repeat until event from the document
+  repeat until event pointerup from the document
     set rand to Math.random() * 360
     transition
       *background-color
