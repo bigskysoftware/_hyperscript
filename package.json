@@ -5,7 +5,7 @@
     "scripting",
     "HTML"
   ],
-  "version": "0.9.13",
+  "version": "1.0.0-rc1",
   "homepage": "https://hyperscript.org/",
   "bugs": {
     "url": "https://github.com/bigskysoftware/_hyperscript/issues"
@@ -20,7 +20,7 @@
   "main": "dist/_hyperscript.min.js",
   "types": "dist/_hyperscript.d.ts",
   "bin": {
-    "_hyperscript": "src/bin/node-hyperscript.js"
+    "_hyperscript": "src/node-hyperscript.js"
   },
   "scripts": {
     "test": "mocha-chrome test/index.html",
