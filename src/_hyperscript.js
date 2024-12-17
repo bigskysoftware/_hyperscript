@@ -356,7 +356,10 @@
                         value += consumeChar(); // consume final curly
                     }
                 } else {
-                    while (Lexer.isValidCSSClassChar(currentChar())) {
+                    while (Lexer.isValidCSSClassChar(currentChar()) || currentChar() === "\\") {
+                        if (currentChar() === "\\") {
+                            consumeChar();
+                        }
                         value += consumeChar();
                     }
                 }
@@ -2322,7 +2325,7 @@
         * @returns {string}
         */
         escapeSelector(str) {
-            return str.replace(/:/g, function (str) {
+            return str.replace(/[:&()\[\]\/]/g, function (str) {
                 return "\\" + str;
             });
         }

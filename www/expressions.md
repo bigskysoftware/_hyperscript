@@ -47,7 +47,7 @@ main expression types:
 You can refer to an element by ID directly in hyperscript as follows:
 
 ```html
-<div _="on click put 'Clicked!' into #example.innerHTML">Click Me</div>
+<button _="on click put 'Clicked!' into #example.innerHTML">Click Me</button>
 <div id="example"></div>
 ```
 
@@ -59,7 +59,7 @@ The `#example` is an ID literal and will evaluate to the element with the given 
 You can refer to a group of elements by class directly in hyperscript as follows:
 
 ```html
-<div _="on click put 'Clicked!' into .example.innerHTML">Click Me</div>
+<button _="on click put 'Clicked!' into .example.innerHTML">Click Me</button>
 <div class="example"></div>
 <div class="example"></div>
 ```
@@ -67,6 +67,19 @@ You can refer to a group of elements by class directly in hyperscript as follows
 The `#example` is an ID literal and will evaluate all the elements with the class `example` on them.  Here we put some
 text into their `innerHTML` when the top div is clicked.  Note that the [put command](/commands/put) can work with
 collections as well as single values, so it can put the given value into all the returned elements.
+
+If you want to use non-standard characters in a class name you can escape them using the backslash `\` character.  For
+example, consider the complex tailwinds class (`group-[:nth-of-type(3)_&]:block`)[https://tailwindcss.com/docs/hover-focus-and-other-states#arbitrary-groups].
+In this class the following characters are non-standard: `[]()&`.  Another common caracter in tailwinds classes is the
+forward slash `/`.
+
+Therefore, to express this class in hyperscript you would write the following:
+
+```html
+<button _="on click toggle .group-\[:nth-of-type\(3\)_\&\]:block">
+   Toggle Tailwinds Class
+</button>
+```
 
 ### Query Literals
 

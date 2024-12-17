@@ -47,4 +47,16 @@ describe("the classRef expression", function () {
         Array.from(value)[0].should.equal(div);
     });
 
+	it("slashes in class references work", function () {
+        var div = make("<div class='-c1/22'></div>");
+        var value = evalHyperScript(".-c1\\/22");
+        Array.from(value)[0].should.equal(div);
+    });
+
+	it("tailwind insanity in class references work", function () {
+        var div = make("<div class='group-[:nth-of-type(3)_&]:block'></div>");
+        var value = evalHyperScript(".group-\\[:nth-of-type\\(3\\)_\\&\\]:block");
+        Array.from(value)[0].should.equal(div);
+    });
+
 });
