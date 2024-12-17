@@ -1878,7 +1878,7 @@ tell the runtime _not_ to synchronize on a value.
 So, if you wanted to invoke a method that returns a promise, say `returnsAPromise()` but not wait on it to return, you write code like this:
 
   ~~~ html
-  <button _="on click call async returnsAPromise() put 'I called it...' into the next <output/>">
+  <button _="on click async call returnsAPromise() put 'I called it...' into the next <output/>">
     Get The Answer...
   </button>
   ~~~
