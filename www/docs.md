@@ -157,11 +157,8 @@ Features defined in script tags will apply to the `body`.
 
 Hyperscript has an open, pluggable grammar & some advanced features do not ship by default (e.g. [workers](#workers)).
 
-To use a feature like workers you can either:
-
-* install the extension directly by including `/dist/workers.js` after you include hyperscript
-* use the "Whole 9 Yards" version of hyperscript, which includes everything by default and can be
-  found at `/dist/hyperscript_w9y.js`
+To use a feature like workers you can install the extension directly by including `/dist/workers.js` after you 
+include hyperscript.
 
 ## Language Basics {#basics}
 
