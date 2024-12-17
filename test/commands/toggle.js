@@ -186,4 +186,14 @@ describe("the toggle command", function () {
 		div.click();
 		getComputedStyle(div2).visibility.should.equal("visible");
 	});
+
+	it("can toggle crazy tailwinds class ref on a single form", function () {
+		var form = make("<form _='on click toggle .group-\\[:nth-of-type\\(3\\)_\\&\\]:block'></form>");
+		form.classList.contains("group-[:nth-of-type(3)_&]:block").should.equal(false);
+		form.click();
+		console.log(form, form.classList);
+		form.classList.contains("group-[:nth-of-type(3)_&]:block").should.equal(true);
+		form.click();
+		form.classList.contains("group-[:nth-of-type(3)_&]:block").should.equal(false);
+	});
 });
