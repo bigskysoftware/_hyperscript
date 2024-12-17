@@ -98,4 +98,10 @@ describe("the queryRef expression", function () {
 		Array.from(value).length.should.equal(1);
 	});
 
+	it("queryRefs support tildes properly", function () {
+		var b = make("<div title='little flower'></div>");
+		var value = evalHyperScript("<[title~=\"flower\"]/>");
+		Array.from(value).length.should.equal(1);
+	});
+
 });

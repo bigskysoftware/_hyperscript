@@ -114,6 +114,7 @@
             "[": "L_BRACKET",
             "]": "R_BRACKET",
             "=": "EQUALS",
+            "~": "TILDE",
         };
 
         /**
