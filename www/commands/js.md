@@ -42,7 +42,7 @@ If the `js` block needs to use variables from the surrounding \_hyperscript code
            js(me, text)
                if ('clipboard' in window.navigator) {
                	 return navigator.clipboard.writeText(text)
-               	   .then(() => 'Copied');
+               	   .then(() => 'Copied')
                	   .catch(() => me.parentElement.remove(me))
                }
            end
