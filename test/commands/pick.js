@@ -116,4 +116,13 @@ describe("the pick command", () => {
     [...window.test].should.deep.equal([["32"], ["12"], ["149"]]);
     delete window.test;
   })
+
+  it("can pick a single regex match w/ a flag", () => {
+    evalHyperScript(String.raw`
+      pick match of "t.e" | i from haystack
+      set window.test to it`, { locals: { haystack } });
+    [...window.test].should.deep.equal(["The"]);
+    delete window.test;
+  })
+
 })
