@@ -139,6 +139,24 @@ describe("_hyperscript regressions", function () {
 		delete window.select2;
 	});
 
+	it("properly interpolates values", function () {
+		var btn = make("<button _='on click" +
+			"                        set count to 1 " +
+			"                        set optName to `options_${count}_value`" +
+			"                        put optName into me'></button>")
+		btn.click();
+		btn.innerText.should.equal("options_1_value");
+	})
+
+	it("properly interpolates values 2", function () {
+		var btn = make("<button _='on click" +
+			"                        set trackingcode to `AB123456789KK` " +
+			"                        set pdfurl to `https://yyy.xxxxxx.com/path/out/${trackingcode}.pdf`" +
+			"                        put pdfurl into me'></button>")
+		btn.click();
+		btn.innerText.should.equal("https://yyy.xxxxxx.com/path/out/AB123456789KK.pdf");
+	})
+
 	it("listen for event on form", function () {
 		var form = make("<form>" +
 			"  <button id='b1' _='on click from closest <form/> put \"clicked\" into me'>Button</button>" +
