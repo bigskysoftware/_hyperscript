@@ -20,14 +20,14 @@ it is a companion project of <https://htmx.org>
 </button>
 
 
-<div hs="on mouseOver toggle mouse-over on #foo">
+<div _="on mouseOver toggle mouse-over on #foo">
 </div>
 
-<div data-hs="on click call aJavascriptFunction() then
-              wait 10s then
-              call anotherJavascriptFunction()">
+<button _="on click call aJavascriptFunction() then
+           wait 10s then
+           call anotherJavascriptFunction()">
            Do some stuff
-</div>
+</button>
 ```
 
 ## website & docs
