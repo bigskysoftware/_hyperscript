@@ -5893,7 +5893,11 @@
                         target.push(value);
                         return runtime.findNext(this, context);
                     } else if (target instanceof Element) {
-                        target.insertAdjacentHTML("beforeend", value); // insert at end, preserving existing content
+                        if (value instanceof Element) {
+                            target.insertAdjacentElement("beforeend", value); // insert at end, preserving existing content
+                        } else {
+                            target.insertAdjacentHTML("beforeend", value); // insert at end, preserving existing content
+                        }
                         runtime.processNode(target);                   // process parent so any new content i
                         return runtime.findNext(this, context);
                     } else if(setter) {

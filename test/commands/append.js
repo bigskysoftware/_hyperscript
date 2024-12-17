@@ -97,4 +97,11 @@ describe("the append command", function () {
 		delete window.temp;
     })
 
+    it("new DOM content added by append will be live", function () {
+		var div = make(`<div _="on click make a <span.topping/> then append it to me"></div>`);
+		div.click();
+		let span = div.querySelector(".topping");
+		span.classList.contains("topping").should.equal(true);
+    })
+
 });
