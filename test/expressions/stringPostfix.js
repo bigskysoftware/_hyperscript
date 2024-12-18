@@ -8,6 +8,9 @@ describe("the string postfix expression", function () {
 		var result = evalHyperScript("1px");
 		result.should.equal("1px");
 
+		var result = evalHyperScript("-1px");
+		result.should.equal("-1px");
+
 		var result = evalHyperScript("100%");
 		result.should.equal("100%");
 	});

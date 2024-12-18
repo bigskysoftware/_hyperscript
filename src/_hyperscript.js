@@ -3501,7 +3501,7 @@
             'cm', 'mm', 'Q', 'pc', 'pt', 'px'
         ];
         parser.addGrammarElement("postfixExpression", function (parser, runtime, tokens) {
-            var root = parser.parseElement("primaryExpression", tokens);
+            var root = parser.parseElement("negativeNumber", tokens);
 
             let stringPosfix = tokens.matchAnyToken.apply(tokens, STRING_POSTFIXES) || tokens.matchOpToken("%");
             if (stringPosfix) {
@@ -3614,25 +3614,28 @@
         });
 
         parser.addGrammarElement("negativeNumber", function (parser, runtime, tokens) {
-            if (!tokens.matchOpToken("-")) return;
-            var root = parser.requireElement("unaryExpression", tokens);
-            return {
-                type: "negativeNumber",
-                root: root,
-                args: [root],
-                op: function (context, value) {
-                    return -1 * value;
-                },
-                evaluate: function (context) {
-                    return runtime.unifiedEval(this, context);
-                },
-            };
+            if (tokens.matchOpToken("-")) {
+                var root = parser.requireElement("negativeNumber", tokens);
+                return {
+                    type: "negativeNumber",
+                    root: root,
+                    args: [root],
+                    op: function (context, value) {
+                        return -1 * value;
+                    },
+                    evaluate: function (context) {
+                        return runtime.unifiedEval(this, context);
+                    },
+                };
+            } else {
+                return parser.requireElement("primaryExpression", tokens);
+            }
         });
 
         parser.addGrammarElement("unaryExpression", function (parser, runtime, tokens) {
             tokens.matchToken("the"); // optional "the"
             return parser.parseAnyOf(
-                ["beepExpression", "logicalNot", "relativePositionalExpression", "positionalExpression", "noExpression", "negativeNumber", "postfixExpression"],
+                ["beepExpression", "logicalNot", "relativePositionalExpression", "positionalExpression", "noExpression", "postfixExpression"],
                 tokens
             );
         });
