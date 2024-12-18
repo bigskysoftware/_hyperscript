@@ -270,5 +270,11 @@ describe("the put command", function () {
 		button.innerHTML.should.equal("42");
 	})
 
+	it("is null tolerant", function () {
+		var d1 = make("<div class='divs' _='on click put \"red\" into #a-bad-id-that-does-not-exist'></div>");
+		d1.click();
+	});
+
+
 
 });
