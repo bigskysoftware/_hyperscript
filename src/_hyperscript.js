@@ -1704,10 +1704,10 @@
         /**
         * @param {*} parseElement
         * @param {Context} ctx
-        * @param {Boolean} shortCircuit
+        * @param {Boolean} shortCircuitOnValue
         * @returns {*}
         */
-        unifiedEval(parseElement, ctx, shortCircuit) {
+        unifiedEval(parseElement, ctx, shortCircuitOnValue) {
             /** @type any[] */
             var args = [ctx];
             var async = false;
@@ -1743,8 +1743,14 @@
                             }
                         }
                         args.push(value);
-                        if (shortCircuit && !value) {
-                            break;
+                        if (value) {
+                            if (shortCircuitOnValue === true) {
+                                break;
+                            }
+                        } else {
+                            if (shortCircuitOnValue === false) {
+                                break;
+                            }
                         }
                     } else {
                         args.push(argument);
@@ -4104,7 +4110,7 @@
                         }
                     },
                     evaluate: function (context) {
-                        return runtime.unifiedEval(this, context, operator === "and");
+                        return runtime.unifiedEval(this, context, operator === "or");
                     },
                 };
                 logicalOp = tokens.matchToken("and") || tokens.matchToken("or");

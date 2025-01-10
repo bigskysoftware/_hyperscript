@@ -35,5 +35,16 @@ describe("the logicalOperator expression", function () {
 		func2Called.should.equal(false);
 	});
 
+	it("should short circuit with or expression", function () {
+		var func1Called = false;
+		var func1 = () => {func1Called = true; return true;}
+		var func2Called = false;
+		var func2 = () => {func2Called = true; return true;}
+		var result = evalHyperScript("func1() or func2()", {locals: {func1, func2}});
+		result.should.equal(true);
+		func1Called.should.equal(true);
+		func2Called.should.equal(false);
+	});
+
 
 });
