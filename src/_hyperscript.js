@@ -96,7 +96,7 @@
             "?": "QUESTION",
             "#": "POUND",
             "&": "AMPERSAND",
-            $: "DOLLAR",
+            "$": "DOLLAR",
             ";": "SEMI",
             ",": "COMMA",
             "(": "L_PAREN",
@@ -2847,7 +2847,7 @@
                 .join("");
 
             var template, innerTokens, args;
-            if (queryValue.indexOf("$") >= 0) {
+            if (/\$[^=]/.test(queryValue)) {
                 template = true;
                 innerTokens = Lexer.tokenize(queryValue, true);
                 args = parser.parseStringTemplate(innerTokens);
