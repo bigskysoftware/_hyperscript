@@ -7731,7 +7731,7 @@
             evaluate:    runtime_.evaluate.bind(runtime_),
             parse:       runtime_.parse.bind(runtime_),
             processNode: runtime_.processNode.bind(runtime_),
-            version: "0.9.13",
+            version: "0.9.14",
             browserInit,
         }
     )

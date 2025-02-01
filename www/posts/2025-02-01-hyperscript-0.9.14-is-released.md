@@ -1,13 +1,13 @@
 ---
 layout: layout.njk
 tags: post
-title: hyperscript 1.0.0-rc1 has been released!
+title: hyperscript 0.9.14 has been released!
 date: 2024-10-20
 ---
 
-## hyperscript 1.0.0-rc1 Release
+## hyperscript 0.9.14 Release
 
-We are pleased to present the [1.0.0-rc1 release](https://unpkg.com/browse/hyperscript.org@1.0.0-rc1/) of hyperscript,
+We are pleased to present the [0.9.14 release](https://unpkg.com/browse/hyperscript.org@0.9.14/) of hyperscript,
 the first release candidate of hyperscript 1.0.
 
 ### Changes
