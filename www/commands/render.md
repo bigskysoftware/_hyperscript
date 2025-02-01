@@ -8,7 +8,7 @@ title: render - ///_hyperscript
 
 Note: if you want the template command, you must include the /dist/template.js file in addition to the hyperscript script
   ~~~ html
-  <script src="https://unpkg.com/hyperscript.org@0.9.13/dist/template.js"></script>
+  <script src="https://unpkg.com/hyperscript.org@0.9.14/dist/template.js"></script>
   ~~~
 
 ### Syntax
