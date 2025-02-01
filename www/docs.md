@@ -694,6 +694,26 @@ Comparisons can be combined via the `and`, `or` and `not` expressions in the usu
     add .highlight to the closest <form/>
   ~~~
 
+Note that `and` and `or` will short circuit in the normal manner:
+
+  ~~~ hyperscript
+  if false and foo() # foo() will not execute
+  ~~~
+
+with one important caveat: if the first expression returns a Promise rather than a synchronous value, it will be interpreted
+as truthy:
+
+  ~~~ hyperscript
+  if returnsPromise() and foo() # foo() will execute, even if the promise resolves to false
+  ~~~
+
+To work around this, you can move the promise-based value out to a separate statement:
+
+  ~~~ hyperscript
+  get returnsPromise()
+  if the result and foo() # foo() will not execute if promise resolves to false
+  ~~~
+
 #### Loops {#loops}
 
 The [repeat command](/commands/repeat) is the looping mechanism in hyperscript.
