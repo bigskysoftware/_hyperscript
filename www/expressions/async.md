@@ -20,7 +20,7 @@ an expression. To do so, you can use the `async` keyword.
 ### Examples
 
 ```html
-<button _="on click call async generatePromise() ">
+<button _="on click async call generatePromise() ">
   Generate a promise but don't block
 </button>
 ```

@@ -96,7 +96,7 @@
             "?": "QUESTION",
             "#": "POUND",
             "&": "AMPERSAND",
-            $: "DOLLAR",
+            "$": "DOLLAR",
             ";": "SEMI",
             ",": "COMMA",
             "(": "L_PAREN",
@@ -114,6 +114,7 @@
             "[": "L_BRACKET",
             "]": "R_BRACKET",
             "=": "EQUALS",
+            "~": "TILDE",
         };
 
         /**
@@ -1703,9 +1704,10 @@
         /**
         * @param {*} parseElement
         * @param {Context} ctx
+        * @param {Boolean} shortCircuitOnValue
         * @returns {*}
         */
-        unifiedEval(parseElement, ctx) {
+        unifiedEval(parseElement, ctx, shortCircuitOnValue) {
             /** @type any[] */
             var args = [ctx];
             var async = false;
@@ -1741,6 +1743,15 @@
                             }
                         }
                         args.push(value);
+                        if (value) {
+                            if (shortCircuitOnValue === true) {
+                                break;
+                            }
+                        } else {
+                            if (shortCircuitOnValue === false) {
+                                break;
+                            }
+                        }
                     } else {
                         args.push(argument);
                     }
@@ -2836,7 +2847,7 @@
                 .join("");
 
             var template, innerTokens, args;
-            if (queryValue.indexOf("$") >= 0) {
+            if (/\$[^=]/.test(queryValue)) {
                 template = true;
                 innerTokens = Lexer.tokenize(queryValue, true);
                 args = parser.parseStringTemplate(innerTokens);
@@ -3500,7 +3511,7 @@
             'cm', 'mm', 'Q', 'pc', 'pt', 'px'
         ];
         parser.addGrammarElement("postfixExpression", function (parser, runtime, tokens) {
-            var root = parser.parseElement("primaryExpression", tokens);
+            var root = parser.parseElement("negativeNumber", tokens);
 
             let stringPosfix = tokens.matchAnyToken.apply(tokens, STRING_POSTFIXES) || tokens.matchOpToken("%");
             if (stringPosfix) {
@@ -3613,25 +3624,28 @@
         });
 
         parser.addGrammarElement("negativeNumber", function (parser, runtime, tokens) {
-            if (!tokens.matchOpToken("-")) return;
-            var root = parser.requireElement("unaryExpression", tokens);
-            return {
-                type: "negativeNumber",
-                root: root,
-                args: [root],
-                op: function (context, value) {
-                    return -1 * value;
-                },
-                evaluate: function (context) {
-                    return runtime.unifiedEval(this, context);
-                },
-            };
+            if (tokens.matchOpToken("-")) {
+                var root = parser.requireElement("negativeNumber", tokens);
+                return {
+                    type: "negativeNumber",
+                    root: root,
+                    args: [root],
+                    op: function (context, value) {
+                        return -1 * value;
+                    },
+                    evaluate: function (context) {
+                        return runtime.unifiedEval(this, context);
+                    },
+                };
+            } else {
+                return parser.requireElement("primaryExpression", tokens);
+            }
         });
 
         parser.addGrammarElement("unaryExpression", function (parser, runtime, tokens) {
             tokens.matchToken("the"); // optional "the"
             return parser.parseAnyOf(
-                ["beepExpression", "logicalNot", "relativePositionalExpression", "positionalExpression", "noExpression", "negativeNumber", "postfixExpression"],
+                ["beepExpression", "logicalNot", "relativePositionalExpression", "positionalExpression", "noExpression", "postfixExpression"],
                 tokens
             );
         });
@@ -4096,7 +4110,7 @@
                         }
                     },
                     evaluate: function (context) {
-                        return runtime.unifiedEval(this, context);
+                        return runtime.unifiedEval(this, context, operator === "or");
                     },
                 };
                 logicalOp = tokens.matchToken("and") || tokens.matchToken("or");
@@ -5672,6 +5686,10 @@
             if (tokens.matchToken("index")) {
                 var identifierToken = tokens.requireTokenType("IDENTIFIER");
                 var indexIdentifier = identifierToken.value;
+            } else if (tokens.matchToken("indexed")) {
+                tokens.requireToken("by");
+                var identifierToken = tokens.requireTokenType("IDENTIFIER");
+                var indexIdentifier = identifierToken.value;
             }
 
             var loop = parser.parseElement("commandList", tokens);
@@ -5888,7 +5906,11 @@
                         target.push(value);
                         return runtime.findNext(this, context);
                     } else if (target instanceof Element) {
-                        target.insertAdjacentHTML("beforeend", value); // insert at end, preserving existing content
+                        if (value instanceof Element) {
+                            target.insertAdjacentElement("beforeend", value); // insert at end, preserving existing content
+                        } else {
+                            target.insertAdjacentHTML("beforeend", value); // insert at end, preserving existing content
+                        }
                         runtime.processNode(target);                   // process parent so any new content i
                         return runtime.findNext(this, context);
                     } else if(setter) {
@@ -7709,7 +7731,7 @@
             evaluate:    runtime_.evaluate.bind(runtime_),
             parse:       runtime_.parse.bind(runtime_),
             processNode: runtime_.processNode.bind(runtime_),
-            version: "0.9.13",
+            version: "0.9.14",
             browserInit,
         }
     )

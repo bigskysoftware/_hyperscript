@@ -157,11 +157,8 @@ Features defined in script tags will apply to the `body`.
 
 Hyperscript has an open, pluggable grammar & some advanced features do not ship by default (e.g. [workers](#workers)).
 
-To use a feature like workers you can either:
-
-* install the extension directly by including `/dist/workers.js` after you include hyperscript
-* use the "Whole 9 Yards" version of hyperscript, which includes everything by default and can be
-  found at `/dist/hyperscript_w9y.js`
+To use a feature like workers you can install the extension directly by including `/dist/workers.js` after you 
+include hyperscript.
 
 ## Language Basics {#basics}
 
@@ -697,6 +694,26 @@ Comparisons can be combined via the `and`, `or` and `not` expressions in the usu
     add .highlight to the closest <form/>
   ~~~
 
+Note that `and` and `or` will short circuit in the normal manner:
+
+  ~~~ hyperscript
+  if false and foo() # foo() will not execute
+  ~~~
+
+with one important caveat: if the first expression returns a Promise rather than a synchronous value, it will be interpreted
+as truthy:
+
+  ~~~ hyperscript
+  if returnsPromise() and foo() # foo() will execute, even if the promise resolves to false
+  ~~~
+
+To work around this, you can move the promise-based value out to a separate statement:
+
+  ~~~ hyperscript
+  get returnsPromise()
+  if the result and foo() # foo() will not execute if promise resolves to false
+  ~~~
+
 #### Loops {#loops}
 
 The [repeat command](/commands/repeat) is the looping mechanism in hyperscript.
@@ -737,6 +754,8 @@ It supports a large number of variants, including a short hand `for` version:
 
   -- you may use the index clause on any of the above
   -- to bind the loop index to a given symbol
+  -- an index clause is any of "index", or "indexed by"
+  -- followed by a variable name
   for x in [1, 2, 3] index i
     log i, "is", x
   end
@@ -1876,7 +1895,7 @@ tell the runtime _not_ to synchronize on a value.
 So, if you wanted to invoke a method that returns a promise, say `returnsAPromise()` but not wait on it to return, you write code like this:
 
   ~~~ html
-  <button _="on click call async returnsAPromise() put 'I called it...' into the next <output/>">
+  <button _="on click async call returnsAPromise() put 'I called it...' into the next <output/>">
     Get The Answer...
   </button>
   ~~~

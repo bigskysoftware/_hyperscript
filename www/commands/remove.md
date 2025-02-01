@@ -30,5 +30,6 @@ a class or property from an element node.
   Remove Class From Another Div!
 </div>
 
-<button _="on click remove [disabled]">Un-Disable Me!</button>
+<button _="on click remove @disabled from the next <button/>">Un-Disable The Next Button</button>
+<button _="on click call alert('world')" disabled>Hello!</button>
 ```

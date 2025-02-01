@@ -36,25 +36,28 @@ Enhance HTML with concise DOM, event and async features. **Make writing interact
 
 ~~~hyperscript
 on pointerdown
-  repeat until event pointerup
+  repeat until event pointerup from the document
     set rand to Math.random() * 360
     transition
       *background-color
       to `hsl($rand 100% 90%)`
       over 250ms
   end
+  transition *background-color to initial
 ~~~
 
 </figure>
 
-<span class="center" style="margin-top: calc(-1.5*var(--gap))"><button class="crowded padding padding-block allcaps" _="
-on pointerdown
-  repeat until event pointerup
-    set rand to Math.random() * 360
-    transition *background-color
-            to `hsl($rand 100% 90%)`
-          over 250ms
-  end">Try me: press and hold</button></span>
+<span class="center" style="margin-top: calc(-1.5*var(--gap))"><button class="crowded padding padding-block allcaps" 
+       _="on pointerdown
+              repeat until event pointerup from the document
+                set rand to Math.random() * 360
+                transition *background-color
+                        to `hsl($rand 100% 90%)`
+                      over 250ms
+              end
+              transition *background-color to initial">
+Try me: press and hold</button></span>
 </div>
 
 
