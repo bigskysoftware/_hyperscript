@@ -2220,7 +2220,7 @@ was "foo":
   _hyperscript.addCommand('foo', function(parser, runtime, tokens) {
 
     // A foo command  must start with "foo".
-    if(!tokens.match('foo')) return
+    if(!tokens.matchToken('foo')) return
 
     // Parse an expression.
     const expr = parser.requireElement('expression', tokens);
