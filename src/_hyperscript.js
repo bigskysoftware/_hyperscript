@@ -7472,7 +7472,6 @@
                     }
                 }
 
-                    console.log(elementExpr)
 
                 return {
                     elementExpr: elementExpr,
