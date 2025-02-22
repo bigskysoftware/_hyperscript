@@ -7,7 +7,7 @@ title: clear - ///_hyperscript
 ### Syntax
 
 ```ebnf
-clear <expression> [from <expression>]
+clear <expression> [in <expression>]
 ```
 
 ### Description
@@ -27,6 +27,13 @@ The `clear` command allows you to clear an element's children or content.
 
 <div _="on click clear #another-div">
   Clear Another Div!
+</div>
+
+<div _="on click clear .foo in #another-div">
+  Clear An Element In Another Div
+</div>
+<div id="another-div">
+  Clear <span class="foo">This</span> Element!
 </div>
 
 ```
