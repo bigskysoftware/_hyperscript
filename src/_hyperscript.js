@@ -7456,16 +7456,12 @@
 
         parser.addCommand("clear", function (parser, runtime, tokens) {
             if (tokens.matchToken("clear")) {
-                var elementExpr = null;
-                var attributeRef = parser.parseElement("attributeRef", tokens);
-                if (attributeRef == null) {
-                    elementExpr = parser.parseElement("expression", tokens);
-                    if (elementExpr == null) {
-                        parser.raiseParseError(
-                            tokens,
-                            "Expected either an attribute expression or value expression"
-                        );
-                    }
+                var elementExpr = parser.parseElement("expression", tokens);
+                if (elementExpr == null) {
+                    parser.raiseParseError(
+                        tokens,
+                        "Expected either an attribute expression or value expression"
+                    );
                 }
 
                 if (tokens.matchToken("from")) {
@@ -7476,6 +7472,8 @@
                     }
                 }
 
+                    console.log(elementExpr)
+
                 return {
                     elementExpr: elementExpr,
                     from: fromExpr,
@@ -7485,8 +7483,9 @@
                         runtime.implicitLoop(element, function (target) {
                             if (target === element) {
                                 target.replaceChildren()
-                            } else if (target.parentElement && (from == null || from.contains(target))) {
-                                target.parentElement.removeChild(target)
+                            } else if (target.parentElement && target.parentElement === element.relativeToElement
+                                    && (from == null || from.contains(target))) {
+                                target.replaceChildren()
                             }
                         });
                         return runtime.findNext(this, context);
