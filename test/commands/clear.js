@@ -47,12 +47,12 @@ describe("the clear command", function () {
 	it("can clear query refs from specific things", function () {
 		var div = make("<div><div id='d1' _='on click clear <p/>'><p>foo</p>bar</div><p>doh</p></div>");
 		var d1 = byId('d1');
-		div.innerHTML.includes("<p>foo</p>").should.equal(true);
+		div.innerHTML.includes("foo").should.equal(true);
 		div.innerHTML.includes("bar").should.equal(true);
-		div.innerHTML.includes("<p>doh</p>").should.equal(true);
+		div.innerHTML.includes("doh").should.equal(true);
 		d1.click();
-		div.innerHTML.includes("<p>foo</p>").should.equal(false);
+		div.innerHTML.includes("foo").should.equal(false);
 		div.innerHTML.includes("bar").should.equal(true);
-		div.innerHTML.includes("<p>doh</p>").should.equal(true);
+		div.innerHTML.includes("doh").should.equal(true);
 	});
 });
