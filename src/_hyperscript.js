@@ -7454,6 +7454,47 @@
             }
         });
 
+        parser.addCommand("clear", function (parser, runtime, tokens) {
+            if (tokens.matchToken("clear")) {
+                var elementExpr = null;
+                var attributeRef = parser.parseElement("attributeRef", tokens);
+                if (attributeRef == null) {
+                    elementExpr = parser.parseElement("expression", tokens);
+                    if (elementExpr == null) {
+                        parser.raiseParseError(
+                            tokens,
+                            "Expected either an attribute expression or value expression"
+                        );
+                    }
+                }
+
+                if (tokens.matchToken("from")) {
+                    var fromExpr = parser.requireElement("expression", tokens);
+                } else {
+                    if (elementExpr == null) {
+                        var fromExpr = parser.requireElement("implicitMeTarget", tokens);
+                    }
+                }
+
+                return {
+                    elementExpr: elementExpr,
+                    from: fromExpr,
+                    args: [elementExpr, fromExpr],
+                    op: function (context, element, from) {
+                        runtime.nullCheck(element, elementExpr);
+                        runtime.implicitLoop(element, function (target) {
+                            if (target === element) {
+                                target.replaceChildren()
+                            } else if (target.parentElement && (from == null || from.contains(target))) {
+                                target.parentElement.removeChild(target)
+                            }
+                        });
+                        return runtime.findNext(this, context);
+                    },
+                };
+            }
+        });
+
         config.conversions.dynamicResolvers.push(function (str, node) {
             if (!(str === "Values" || str.indexOf("Values:") === 0)) {
                 return;
