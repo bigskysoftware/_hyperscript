@@ -7464,26 +7464,26 @@
                     );
                 }
 
-                if (tokens.matchToken("from")) {
-                    var fromExpr = parser.requireElement("expression", tokens);
+                if (tokens.matchToken("in")) {
+                    var inExpr = parser.requireElement("expression", tokens);
                 } else {
                     if (elementExpr == null) {
-                        var fromExpr = parser.requireElement("implicitMeTarget", tokens);
+                        var inExpr = parser.requireElement("implicitMeTarget", tokens);
                     }
                 }
 
-
                 return {
                     elementExpr: elementExpr,
-                    from: fromExpr,
-                    args: [elementExpr, fromExpr],
-                    op: function (context, element, from) {
+                    in: inExpr,
+                    args: [elementExpr, inExpr],
+                    op: function (context, element, inside) {
                         runtime.nullCheck(element, elementExpr);
                         runtime.implicitLoop(element, function (target) {
                             if (target === element) {
                                 target.replaceChildren()
+                            // FIXME: this actually won't work if we're targeting another element than ourselves
                             } else if (target.parentElement && target.parentElement === element.relativeToElement
-                                    && (from == null || from.contains(target))) {
+                                    && (inside == null || inside.contains(target))) {
                                 target.replaceChildren()
                             }
                         });
