@@ -44,7 +44,7 @@ describe("the clear command", function () {
         div.childElementCount.should.equal(0)
 	});
 
-	it("can clear query refs from specific things", function () {
+	it("can clear specific things", function () {
 		var div = make("<div><div id='d1' _='on click clear <p/>'><p>foo</p>bar</div><p>doh</p></div>");
 		var d1 = byId('d1');
 		div.innerHTML.includes("foo").should.equal(true);
