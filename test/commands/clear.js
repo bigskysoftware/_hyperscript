@@ -76,4 +76,8 @@ describe("the clear command", function () {
     it("can clear an element that has a clear() method", function () {
         // TODO:
     })
+
+    it("can clear arrays", function() {
+        // TODO:
+    })
 });
