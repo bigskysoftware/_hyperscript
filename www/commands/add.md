@@ -36,4 +36,6 @@ in `target`.  Note that this clause only works with classes and properties.
 
 <button _="on click add [@disabled='true'] to <button/> when it is not me">Disable Other Buttons</button>
 
+<button _"on click add .{'-foo-bar'} to #that">Add Class With A Dash Prefix!</button>
+
 ```
