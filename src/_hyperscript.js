@@ -7456,17 +7456,19 @@
 
         parser.addCommand("clear", function (parser, runtime, tokens) {
             if (tokens.matchToken("clear")) {
-                var elementExpr = parser.parseElement("expression", tokens);
-                if (elementExpr == null) {
-                    parser.raiseParseError(
-                        tokens,
-                        "Expected either an attribute expression or value expression"
-                    );
+                var classRef = parser.parseElement("classRef", tokens);
+                var elementExpr = null;
+                if (classRef != null) {
+                    var classRefs = [classRef];
+                    while ((classRef = parser.parseElement("classRef", tokens))) {
+                        classRefs.push(classRef);
+                    }
                 }
 
                 if (tokens.matchToken("in")) {
                     var inExpr = parser.requireElement("expression", tokens);
                 } else {
+                    elementExpr = parser.requireElement("expression", tokens);
                     if (elementExpr == null) {
                         var inExpr = parser.requireElement("implicitMeTarget", tokens);
                     }
@@ -7479,12 +7481,20 @@
                     op: function (context, element, inside) {
                         runtime.nullCheck(element, elementExpr);
                         runtime.implicitLoop(element, function (target) {
-                            if (target === element) {
-                                target.replaceChildren()
-                            // FIXME: this actually won't work if we're targeting another element than ourselves
-                            } else if (target.parentElement && target.parentElement === element.relativeToElement
-                                    && (inside == null || inside.contains(target))) {
-                                target.replaceChildren()
+                            if (Array.isArray(target)) {
+                                target.length = 0;
+                            } else if (Object.hasOwn(target, "clear")) {
+                                target.clear();
+                            } else {
+                                if (target === element) {
+                                    target.replaceChildren();
+                                } else if (target.parentElement) {
+                                    if (inside == null && target.parentElement === element.relativeToElement) {
+                                        target.replaceChildren();
+                                    } else if (inside != null && inside.contains(target)) {
+                                        target.replaceChildren();
+                                    }
+                                }
                             }
                         });
                         return runtime.findNext(this, context);
