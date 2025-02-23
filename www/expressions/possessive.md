@@ -30,6 +30,6 @@ The possessive expression can also be used to get and set attributes of an eleme
 >
 </div>
 <button _"on click put #foo's @data-demo into me">
-  Replace Me w/ Attribute Data
+  Replace Me w/ Foo's Attribute Data
 </button>
 ```
