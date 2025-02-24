@@ -7468,7 +7468,7 @@
                 if (tokens.matchToken("in")) {
                     var inExpr = parser.requireElement("expression", tokens);
                 } else {
-                    elementExpr = parser.requireElement("expression", tokens);
+                    elementExpr = parser.parseElement("expression", tokens);
                     if (elementExpr == null) {
                         var inExpr = parser.requireElement("implicitMeTarget", tokens);
                     }
@@ -7485,6 +7485,8 @@
                                 target.length = 0;
                             } else if (Object.hasOwn(target, "clear")) {
                                 target.clear();
+                            } else if (target.value != null) {
+                                target.value = "";
                             } else {
                                 if (target === element) {
                                     target.replaceChildren();

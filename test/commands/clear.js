@@ -75,9 +75,19 @@ describe("the clear command", function () {
 
     it("can clear an element that has a clear() method", function () {
         // TODO:
+        assert.equal(true, false)
     })
 
     it("can clear arrays", function() {
         // TODO:
+        assert.equal(true, false)
+    })
+
+    it("can clear text inputs", function() {
+        var input = make("<input id='that' value='foo' />")
+        var btn = make("<button _='on click clear #that'></button>")
+        input.value.should.equal("foo")
+        btn.click()
+        input.value.should.equal("")
     })
 });
