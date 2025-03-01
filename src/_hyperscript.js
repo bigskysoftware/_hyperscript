@@ -2094,6 +2094,7 @@
         /**
         * @param {string} str
         * @param {Context} context
+        * @param {string} type
         * @returns {any}
         */
         resolveSymbol(str, context, type) {
@@ -7456,49 +7457,32 @@
 
         parser.addCommand("clear", function (parser, runtime, tokens) {
             if (tokens.matchToken("clear")) {
-                var classRef = parser.parseElement("classRef", tokens);
-                var elementExpr = null;
-                if (classRef != null) {
-                    var classRefs = [classRef];
-                    while ((classRef = parser.parseElement("classRef", tokens))) {
-                        classRefs.push(classRef);
-                    }
-                }
-
-                if (tokens.matchToken("in")) {
-                    var inExpr = parser.requireElement("expression", tokens);
+                if (parser.commandBoundary(tokens.currentToken())) {
+                    var elementExpr = parser.requireElement("implicitMeTarget", tokens);
                 } else {
-                    elementExpr = parser.parseElement("expression", tokens);
-                    if (elementExpr == null) {
-                        var inExpr = parser.requireElement("implicitMeTarget", tokens);
-                    }
+                    var elementExpr = parser.requireElement("expression", tokens);
                 }
 
                 return {
                     elementExpr: elementExpr,
-                    in: inExpr,
-                    args: [elementExpr, inExpr],
-                    op: function (context, element, inside) {
-                        runtime.nullCheck(element, elementExpr);
-                        runtime.implicitLoop(element, function (target) {
-                            if (Array.isArray(target)) {
-                                target.length = 0;
-                            } else if (Object.hasOwn(target, "clear")) {
-                                target.clear();
-                            } else if (target.value != null) {
-                                target.value = "";
-                            } else {
-                                if (target === element) {
-                                    target.replaceChildren();
+                    args: [elementExpr],
+                    op: function (context, element) {
+                        if (element != null)  {
+                            runtime.implicitLoop(element, function (target) {
+                                if (Array.isArray(element) && elementExpr.endToken.type === "IDENTIFIER") {
+                                console.log("element:", element)
+                                    element.length = 0;
+                                } else if (target?.clear) {
+                                    target.clear();
+                                } else if (target?.value != null) {
+                                    target.value = "";
+                                } else if (target === element) {
+                                        target.replaceChildren();
                                 } else if (target.parentElement) {
-                                    if (inside == null && target.parentElement === element.relativeToElement) {
                                         target.replaceChildren();
-                                    } else if (inside != null && inside.contains(target)) {
-                                        target.replaceChildren();
-                                    }
                                 }
-                            }
-                        });
+                            });
+                        }
                         return runtime.findNext(this, context);
                     },
                 };

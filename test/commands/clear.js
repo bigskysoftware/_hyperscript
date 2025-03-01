@@ -43,7 +43,6 @@ describe("the clear command", function () {
         div.innerHTML.should.equal("<p>foo</p><p class=\"target\"></p>")
     })
 
-    // FIXME:
     it("can clear elements by class name in other elements", function () {
 		var div = make("<div _='on click clear .target in #that'></div>");
 		var div2 = make("<div id='that'><p>foo</p><p class='target'>bar</p></div>");
@@ -74,13 +73,18 @@ describe("the clear command", function () {
 	});
 
     it("can clear an element that has a clear() method", function () {
-        // TODO:
-        assert.equal(true, false)
+        var _ = make("<script>_hyperscript.config.conversions['Set'] = function (val) { return new Set(val)}</script>")
+        var btn = make("<button _='on click set foo to [1, 2, 3] as Set then clear foo then put foo as Array into me'>Hello</button>")
+        btn.innerText.should.equal("Hello")
+        btn.click()
+        btn.innerText.should.equal("")
     })
 
     it("can clear arrays", function() {
-        // TODO:
-        assert.equal(true, false)
+        var btn = make("<button _='on click set foo to [1, 2, 3] then clear foo then put foo into me'>Hello</button>")
+        btn.innerText.should.equal("Hello")
+        btn.click()
+        btn.innerText.should.equal("")
     })
 
     it("can clear text inputs", function() {
@@ -91,3 +95,5 @@ describe("the clear command", function () {
         input.value.should.equal("")
     })
 });
+
+// TODO: add null safe check
