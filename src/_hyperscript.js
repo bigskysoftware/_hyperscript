@@ -7185,7 +7185,6 @@
                                         } else {
                                             target.style[property] = toVal;
                                         }
-                                        //console.log("set", property, "to", target.style[property], "on", target, "value passed in : ", toVal);
                                     }
                                 }, 0);
                             });
