@@ -7470,7 +7470,6 @@
                         if (element != null)  {
                             runtime.implicitLoop(element, function (target) {
                                 if (Array.isArray(element) && elementExpr.endToken.type === "IDENTIFIER") {
-                                console.log("element:", element)
                                     element.length = 0;
                                 } else if (target?.clear) {
                                     target.clear();

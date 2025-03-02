@@ -48,7 +48,6 @@ describe("the clear command", function () {
 		var div2 = make("<div id='that'><p>foo</p><p class='target'>bar</p></div>");
         div2.innerHTML.should.equal("<p>foo</p><p class=\"target\">bar</p>")
 		div.click();
-        console.log(div2.innerHTML)
         div2.innerHTML.should.equal("<p>foo</p><p class=\"target\"></p>")
     })
 
@@ -95,5 +94,3 @@ describe("the clear command", function () {
         input.value.should.equal("")
     })
 });
-
-// TODO: add null safe check
