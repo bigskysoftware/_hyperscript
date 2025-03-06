@@ -68,6 +68,19 @@ describe("the clear command", function () {
 		d1.click();
 		div.innerHTML.includes("foo").should.equal(false);
 		div.innerHTML.includes("bar").should.equal(true);
+		div.innerHTML.includes("doh").should.equal(false);
+	});
+
+
+	it("can clear specific things by tag in itself", function () {
+		var div = make("<div><div id='d1' _='on click clear <p/> in me'><p>foo</p>bar</div><p>doh</p></div>");
+		var d1 = byId('d1');
+		div.innerHTML.includes("foo").should.equal(true);
+		div.innerHTML.includes("bar").should.equal(true);
+		div.innerHTML.includes("doh").should.equal(true);
+		d1.click();
+		div.innerHTML.includes("foo").should.equal(false);
+		div.innerHTML.includes("bar").should.equal(true);
 		div.innerHTML.includes("doh").should.equal(true);
 	});
 
