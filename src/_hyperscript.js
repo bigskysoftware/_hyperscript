@@ -7456,7 +7456,9 @@
 
         parser.addCommand("clear", function (parser, runtime, tokens) {
             if (tokens.matchToken("clear")) {
-                if (parser.commandBoundary(tokens.currentToken())) {
+                var currentToken = tokens.currentToken()
+
+                if (parser.commandBoundary(currentToken)) {
                     var elementExpr = parser.requireElement("implicitMeTarget", tokens);
                 } else {
                     var elementExpr = parser.requireElement("expression", tokens);
