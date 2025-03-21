@@ -2094,6 +2094,7 @@
         /**
         * @param {string} str
         * @param {Context} context
+        * @param {string} type
         * @returns {any}
         */
         resolveSymbol(str, context, type) {
@@ -7184,7 +7185,6 @@
                                         } else {
                                             target.style[property] = toVal;
                                         }
-                                        //console.log("set", property, "to", target.style[property], "on", target, "value passed in : ", toVal);
                                     }
                                 }, 0);
                             });
@@ -7451,6 +7451,43 @@
                     },
                 };
                 return goCmd;
+            }
+        });
+
+        parser.addCommand("clear", function (parser, runtime, tokens) {
+            if (tokens.matchToken("clear")) {
+                var currentToken = tokens.currentToken()
+
+                if (parser.commandBoundary(currentToken)) {
+                    var elementExpr = parser.requireElement("implicitMeTarget", tokens);
+                } else {
+                    var elementExpr = parser.requireElement("expression", tokens);
+                }
+
+                return {
+                    elementExpr: elementExpr,
+                    args: [elementExpr],
+                    op: function (context, element) {
+                        if (element != null)  {
+                            runtime.implicitLoop(element, function (target) {
+                                if (Array.isArray(element) && elementExpr.endToken.type === "IDENTIFIER") {
+                                    element.length = 0;
+                                } else if (target?.clear) {
+                                    target.clear();
+                                } else if (target?.reset) {
+                                    target.reset();
+                                } else if (target?.value != null) {
+                                    target.value = "";
+                                } else if (target === element) {
+                                    target.replaceChildren();
+                                } else if (target.parentElement) {
+                                        target.replaceChildren();
+                                }
+                            });
+                        }
+                        return runtime.findNext(this, context);
+                    },
+                };
             }
         });
 
