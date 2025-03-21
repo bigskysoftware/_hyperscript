@@ -7472,10 +7472,12 @@
                                     element.length = 0;
                                 } else if (target?.clear) {
                                     target.clear();
+                                } else if (target?.reset) {
+                                    target.reset();
                                 } else if (target?.value != null) {
                                     target.value = "";
                                 } else if (target === element) {
-                                        target.replaceChildren();
+                                    target.replaceChildren();
                                 } else if (target.parentElement) {
                                         target.replaceChildren();
                                 }

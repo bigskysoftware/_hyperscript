@@ -105,5 +105,13 @@ describe("the clear command", function () {
         input.value.should.equal("foo")
         btn.click()
         input.value.should.equal("")
+
+    it("can clear forms", function() {
+        var form = make("<form id='foo'><input type='text' name='input' value=''/></form>");
+        var btn = make("<button _='on click clear #foo'></button>");
+        form.children[0].value = "bar";
+        form.children[0].value.should.equal("bar");
+        btn.click();
+        form.children[0].value.should.equal("");
     })
 });
