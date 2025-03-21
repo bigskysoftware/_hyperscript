@@ -59,13 +59,13 @@ describe("the clear command", function () {
         div.childElementCount.should.equal(0)
 	});
 
-	it("can clear specific things by tag", function () {
-		var div = make("<div><div id='d1' _='on click clear <p/>'><p>foo</p>bar</div><p>doh</p></div>");
-		var d1 = byId('d1');
+	it("can clear specific things by tag in other elements", function () {
+		var div = make("<div><div id='that'><p>foo</p>bar</div><p>doh</p></div>");
+		var div2 = make("<div _='on click clear <p/> in #that'></div>");
 		div.innerHTML.includes("foo").should.equal(true);
 		div.innerHTML.includes("bar").should.equal(true);
 		div.innerHTML.includes("doh").should.equal(true);
-		d1.click();
+		div2.click();
 		div.innerHTML.includes("foo").should.equal(false);
 		div.innerHTML.includes("bar").should.equal(true);
 		div.innerHTML.includes("doh").should.equal(false);
@@ -85,26 +85,27 @@ describe("the clear command", function () {
 	});
 
     it("can clear an element that has a clear() method", function () {
-        var _ = make("<script>_hyperscript.config.conversions['Set'] = function (val) { return new Set(val)}</script>")
-        var btn = make("<button _='on click set foo to [1, 2, 3] as Set then clear foo then put foo as Array into me'>Hello</button>")
-        btn.innerText.should.equal("Hello")
-        btn.click()
-        btn.innerText.should.equal("")
+        var _ = make("<script>_hyperscript.config.conversions['Set'] = function (val) { return new Set(val)}</script>");
+        var btn = make("<button _='on click set foo to [1, 2, 3] as Set then clear foo then put foo as Array into me'>Hello</button>");
+        btn.innerText.should.equal("Hello");
+        btn.click();
+        btn.innerText.should.equal("");
     })
 
     it("can clear arrays", function() {
-        var btn = make("<button _='on click set foo to [1, 2, 3] then clear foo then put foo into me'>Hello</button>")
-        btn.innerText.should.equal("Hello")
-        btn.click()
-        btn.innerText.should.equal("")
+        var btn = make("<button _='on click set foo to [1, 2, 3] then clear foo then put foo into me'>Hello</button>");
+        btn.innerText.should.equal("Hello");
+        btn.click();
+        btn.innerText.should.equal("");
     })
 
     it("can clear text inputs", function() {
-        var input = make("<input id='that' value='foo' />")
-        var btn = make("<button _='on click clear #that'></button>")
-        input.value.should.equal("foo")
-        btn.click()
-        input.value.should.equal("")
+        var input = make("<input id='that' value='foo' />");
+        var btn = make("<button _='on click clear #that'></button>");
+        input.value.should.equal("foo");
+        btn.click();
+        input.value.should.equal("");
+    })
 
     it("can clear forms", function() {
         var form = make("<form id='foo'><input type='text' name='input' value=''/></form>");
