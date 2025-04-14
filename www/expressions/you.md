@@ -14,11 +14,11 @@ title: you/yourself/your - ///_hyperscript
 
 The `you` reference is available within the [tell command](/commands/tell) as a reference to current node being acted upon.
 
-Most hyperscript features run within the context of an HTML element.  For example, `<div _="on click ...">` is an [event handler](/features/on) that runs in the context of the `<div>` that contains it.  Within these scripts, you can use the `me` expression as a link back to their associated HTML element.
+Most hyperscript features run within the context of an HTML element.  For example, `<div _="on click ...">` is an [event handler](/features/on) that runs in the context of the `<div>` that contains it.  Within these scripts, you can use the `you` expression as a link back to their associated HTML element.
 
 If it makes the code more readable in English, `yourself` can be used as an alias.
 
-For [possessive expressions](/expressions/possessive), `your` will also work, as in `my property` instead of `me.property`.
+For [possessive expressions](/expressions/possessive), `your` will also work, as in `your property` instead of `you.property`.
 
 ### Examples
 
