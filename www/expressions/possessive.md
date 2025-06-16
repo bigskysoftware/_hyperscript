@@ -25,9 +25,11 @@ The possessive expression can also be used to get and set attributes of an eleme
   Go to Duck Duck Go
 </div>
 <div
+  id="foo"
   data-demo="Here is some data..."
-  _="on click put my attribute data-demo into me"
 >
-  Replace Me w/ Attribute Data
 </div>
+<button _"on click put #foo's @data-demo into me">
+  Replace Me w/ Foo's Attribute Data
+</button>
 ```

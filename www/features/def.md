@@ -25,9 +25,9 @@ Functions are typically placed in script tags:
 
 ```html
 <script type="text/hyperscript">
-  def delayTheAnswer()
+  def delayTheAnswer(i)
     wait 2s
-    return 42
+    return i
   end
 </script>
 ```
