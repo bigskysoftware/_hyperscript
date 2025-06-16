@@ -7,7 +7,7 @@ title: show - ///_hyperscript
 ### Syntax
 
 ```ebnf
-show [target] [with <hide-show-strategy>[: <argument>]] [where <expr>]
+show [target] [with <hide-show-strategy>[: <argument>]] [when <expr>]
 ```
 
 ### Description
@@ -29,7 +29,7 @@ You can add new hide/show strategies by setting the `hyperscript.config.hideShow
 Note that the `display` strategy can take an argument to specify the type of display to use when showing. The default
 is `block`
 
-The `where` clause allows you filter what elements are shown in the `target`.  The expression will be evaluated for
+The `when` clause allows you filter what elements are shown in the `target`.  The expression will be evaluated for
 each element in `target` and, if the result is true, the element will be shown.  If it is false, the element will be
 hidden.  The `it` symbol will be set to the current element, allowing you to express conditions against each element
 in `target`
