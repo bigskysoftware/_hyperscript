@@ -68,7 +68,6 @@ Define other values just like you do in Javascript
 
 See also [pseudo-commands](/commands/pseudo-commands/).
 
-{% include "commands_table.md" %}
 
 ## Events
 
