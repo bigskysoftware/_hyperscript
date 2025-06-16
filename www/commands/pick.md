@@ -15,7 +15,7 @@ This command has several forms:
 
 #### Syntax
 
-{%syntax "pick items at|from[[?]] from[[?]] [[start]] to [[end]] from [[array]] inclusive|exclusive[[?]]"%}
+{%syntax "pick items at|from[[?]] from[[?]] [[start]] to [[end]] inclusive|exclusive[[?]] from [[array]]"%}
 
 {%syntax "pick item at[[?]] [...]"%}
 
@@ -30,9 +30,9 @@ return an array containing just one item.
   set arr to [10, 11, 12, 13, 14, 15]
   pick items 2 to 4 from arr
   --      it = [12, 13]
-  pick items 2 to 4 from arr inclusive
+  pick items 2 to 4 inclusive from arr
   --      it = [12, 13, 14]
-  pick items 2 to 4 from arr exclusive
+  pick items 2 to 4 exclusive from arr
   --      it = [13]
   ~~~
 
