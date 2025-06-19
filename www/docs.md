@@ -277,6 +277,7 @@ Others are a bit more exotic and, for example, make it easy to work with the DOM
 * Class References: `.tabs`
 * Query References: `<div/>`
 * Attribute References: `@count`
+* Style References: `*width`
 
 We will see how features, commands and expressions all fit together and what they can do in the coming sections.
 
