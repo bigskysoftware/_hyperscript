@@ -172,7 +172,7 @@ You can also call it from hyperscript itself
 
   ~~~ hyperscript
   call _hyperscript.processNode(#new_element_id)
-  ```
+  ~~~
 
 Elements added by the [`put`](/commands/put) command are processed automatically; no need to call this function.
 [`Htmx`](https://htmx.org) does the same for all processed fragments.
