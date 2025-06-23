@@ -37,6 +37,12 @@ Here are examples of all the above forms:
     add .example to p
   end
 
+  -- you can iterate over the properties in a javascript object
+  set obj to {foo:1, bar:2}
+  for x in obj
+    log obj[x]
+  end
+
   -- iterating over an array but without an explicit variable
   -- instead the keyword it is used
   repeat in <p/>

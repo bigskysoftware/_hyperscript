@@ -5789,8 +5789,12 @@
                         eventFired: false,
                     };
                     context.meta.iterators[slot] = iteratorInfo;
-                    if (value && value[Symbol.iterator]) {
-                        iteratorInfo.iterator = value[Symbol.iterator]();
+                    if (value) {
+                        if (value[Symbol.iterator]) {
+                            iteratorInfo.iterator = value[Symbol.iterator]();
+                        } else {
+                            iteratorInfo.iterator = Object.keys(value)[Symbol.iterator]();
+                        }
                     }
                     if (evt) {
                         var target = on || context.me;

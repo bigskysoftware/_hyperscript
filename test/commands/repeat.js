@@ -306,4 +306,15 @@ describe("the repeat command", function () {
 		d1.click();
 		d1.innerHTML.should.equal("ABAB");
 	});
+
+	it("basic property for loop works", function () {
+		var d1 = make(
+			"<div _='on click set x to {foo:1, bar:2, baz:3}" +
+			"                 for prop in x " +
+			"                   put x[prop] at end of me" +
+			"                 end'></div>"
+		);
+		d1.click();
+		d1.innerHTML.should.equal("123");
+	});
 });

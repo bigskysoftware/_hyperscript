@@ -749,6 +749,12 @@ It supports a large number of variants, including a short hand `for` version:
     log x
   end
 
+  -- you can iterate over the properties in a javascript object
+  set obj to {foo:1, bar:2}
+  for x in obj
+    log obj[x]
+  end
+
   -- you may repeat without an explicit loop variable and use
   -- the implicit `it` symbol
   repeat in [1, 2, 3]
