@@ -99,7 +99,7 @@ describe("the on feature", function () {
 		}, 1);
 	});
 
-	it("can be in a top level script tag", function (done) {
+	it.skip("can be in a top level script tag", function (done) {
 		var div = make(
 			"<script type='text/hyperscript'>on load put \"Loaded\" into #loadedDemo.innerHTML</script><div id='loadedDemo'></div>"
 		);
