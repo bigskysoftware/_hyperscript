@@ -1,3 +1,4 @@
+
 /**
  * @typedef {Object} Hyperscript
  */
@@ -1704,7 +1705,7 @@
         /**
         * @param {*} parseElement
         * @param {Context} ctx
-        * @param {Boolean} shortCircuitOnValue
+        * @param {Boolean} [shortCircuitOnValue]
         * @returns {*}
         */
         unifiedEval(parseElement, ctx, shortCircuitOnValue) {
@@ -2473,6 +2474,7 @@
             } else if (prop === 'clearAll') {
                 return clearAllCookies;
             } else if (typeof prop === "string") {
+                // @ts-ignore 
                 if (!isNaN(prop)) {
                     return getCookiesAsArray()[parseInt(prop)];
 
@@ -2515,6 +2517,7 @@
                     finalValue+=";secure=" + value.path;
                 }
             }
+            // @ts-ignore
             document.cookie= prop + "=" + finalValue;
             return true;
         }
@@ -5915,6 +5918,7 @@
                         } else {
                             target.insertAdjacentHTML("beforeend", value); // insert at end, preserving existing content
                         }
+                        // @ts-ignore
                         runtime.processNode(target);                   // process parent so any new content i
                         return runtime.findNext(this, context);
                     } else if(setter) {
@@ -6856,7 +6860,7 @@
                     };
                     return takeCmd;
                 } else {
-                    var takeCmd = {
+                    var takeCmd2 = {
                         attributeRef: attributeRef,
                         from: fromExpr,
                         forElt: forExpr,
@@ -6877,7 +6881,7 @@
                             return runtime.findNext(this, context);
                         },
                     };
-                    return takeCmd;
+                    return takeCmd2;
                 }
             }
         });
