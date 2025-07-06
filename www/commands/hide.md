@@ -61,6 +61,14 @@ module.exports = {
   // ...
 }
 ```
+If you are using Tailwind CSS v4.0 and are making use of the CSS configuration, you may need to update your `style.css` file to safe list the classes you need.
+
+```css
+@source inline("hidden");
+@source inline("invisible");
+@source inline("opacity-0");
+```
+More information here : [Safelisting specific utilities - Tailwind CSS v4.0](https://tailwindcss.com/docs/detecting-classes-in-source-files#safelisting-specific-utilities).
 
 ### Examples
 
