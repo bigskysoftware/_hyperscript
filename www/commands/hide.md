@@ -56,7 +56,7 @@ module.exports = {
     // Add needed classes here
     'hidden',
     'invisible',
-    'opactity-0',
+    'opacity-0',
   ]
   // ...
 }
