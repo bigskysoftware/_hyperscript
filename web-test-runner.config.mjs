@@ -28,15 +28,7 @@ const config = {
 	<body style="padding: 20px; font-family: sans-serif">
 		<h1 style="margin-top: 40px">core.js test suite</h1>
 
-		<h2>Scratch Page</h2>
-		<ul>
-			<li>
-				<a href="playground/scratch.html">Scratch Page</a>
-			</li>
-		</ul>
-
 		<h2>Mocha Test Suite</h2>
-		<a href="index.html">[RUN ALL]</a>
 
 		<script src="node_modules/chai/chai.js"></script>
 		<script src="node_modules/sinon/pkg/sinon.js"></script>
