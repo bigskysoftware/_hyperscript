@@ -1,4 +1,4 @@
-
+// @ts-nocheck
 const tempModule = window.module, tempExports = window.exports;
 window.module = {}, window.exports = {};
 await import('./_hyperscript.js');
