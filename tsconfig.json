@@ -2,9 +2,12 @@
     "compilerOptions": {
         "strict": false,
         "checkJs": true,
-        "outDir": "dist/lib",
-        "target":"ES2015"
+        "allowJs": true,
+        "noEmit": true,
+        "lib": ["dom", "dom.iterable"],
+        "moduleResolution": "node",
+        "target": "ES2015"
     },
-    "include": ["src/lib/*", "src/bin/*", "src/lib/plugin/socket.js", "src/lib/plugin/template.js", "src/lib/plugin/worker.js", "src/lib/plugin/web.js"],
-    "exclude": ["node_modules"],
+    "include": ["src/*.js"],
+    "exclude": ["src/deno-hyperscript.js"]
 }
