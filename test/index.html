@@ -42,7 +42,15 @@
 		<script src="../src/ext/tailwind.js"></script>
 
 		<script class="mocha-init">
-			mocha.setup("bdd");
+			mocha.setup({
+				ui: "bdd",
+				rootHooks: {
+					beforeEach(done) {
+						console.log(`${this?.currentTest?.parent?.title} - ${this?.currentTest?.title}`)
+						done()
+					},
+				},
+			})
 			mocha.checkLeaks();
 			should = chai.should();
 			assert = chai.assert;
