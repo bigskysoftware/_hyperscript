@@ -6523,8 +6523,17 @@
                 } else if (tokens.matchToken("between")) {
                     var between = true;
                     var classRef = parser.parseElement("classRef", tokens);
-                    tokens.requireToken("and");
-                    var classRef2 = parser.requireElement("classRef", tokens);
+                    if (classRef != null) {
+                        tokens.requireToken("and");
+                        var classRef2 = parser.requireElement("classRef", tokens);
+                    } else {
+                        var attributeRef = parser.parseElement("attributeRef", tokens);
+                        if (attributeRef == null) {
+                            parser.raiseParseError(tokens, "Expected either a class reference or attribute expression");
+                        }
+                        tokens.requireToken("and");
+                        var attributeRef2 = parser.requireElement("attributeRef", tokens);
+                    }
                 } else {
                     var classRef = parser.parseElement("classRef", tokens);
                     var attributeRef = null;
@@ -6563,6 +6572,7 @@
                     classRef2: classRef2,
                     classRefs: classRefs,
                     attributeRef: attributeRef,
+                    attributeRef2: attributeRef2,
                     on: onExpr,
                     time: time,
                     evt: evt,
@@ -6575,12 +6585,23 @@
                             });
                         } else if (between) {
                             runtime.implicitLoop(on, function (target) {
-                                if (target.classList.contains(classRef.className)) {
-                                    target.classList.remove(classRef.className);
-                                    target.classList.add(classRef2.className);
-                                } else {
-                                    target.classList.add(classRef.className);
-                                    target.classList.remove(classRef2.className);
+                                if (classRef && classRef2) {
+                                    if (target.classList.contains(classRef.className)) {
+                                        target.classList.remove(classRef.className);
+                                        target.classList.add(classRef2.className);
+                                    } else {
+                                        target.classList.add(classRef.className);
+                                        target.classList.remove(classRef2.className);
+                                    }
+                                } else if (attributeRef && attributeRef2) {
+                                    var currentValue = target.getAttribute(attributeRef.name);
+                                    if (currentValue === attributeRef.value) {
+                                        target.setAttribute(attributeRef2.name, attributeRef2.value);
+                                        if (attributeRef.name !== attributeRef2.name) target.removeAttribute(attributeRef.name);
+                                    } else {
+                                        target.setAttribute(attributeRef.name, attributeRef.value);
+                                        if (attributeRef.name !== attributeRef2.name) target.removeAttribute(attributeRef2.name);
+                                    }
                                 }
                             });
                         } else if (classRefs) {
