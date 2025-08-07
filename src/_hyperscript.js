@@ -6521,12 +6521,13 @@
                         var onExpr = parser.requireElement("implicitMeTarget", tokens);
                     }
                 } else if (tokens.matchToken("between")) {
-                    var between = true;
                     var classRef = parser.parseElement("classRef", tokens);
                     if (classRef != null) {
+                        var betweenClass = true;
                         tokens.requireToken("and");
                         var classRef2 = parser.requireElement("classRef", tokens);
                     } else {
+                        var betweenAttr = true
                         var attributeRef = parser.parseElement("attributeRef", tokens);
                         if (attributeRef == null) {
                             parser.raiseParseError(tokens, "Expected either a class reference or attribute expression");
@@ -6583,25 +6584,25 @@
                             runtime.implicitLoop(on, function (target) {
                                 hideShowStrategy("toggle", target);
                             });
-                        } else if (between) {
+                        } else if (betweenClass) {
                             runtime.implicitLoop(on, function (target) {
-                                if (classRef && classRef2) {
-                                    if (target.classList.contains(classRef.className)) {
-                                        target.classList.remove(classRef.className);
-                                        target.classList.add(classRef2.className);
-                                    } else {
-                                        target.classList.add(classRef.className);
-                                        target.classList.remove(classRef2.className);
-                                    }
-                                } else if (attributeRef && attributeRef2) {
-                                    var currentValue = target.getAttribute(attributeRef.name);
-                                    if (currentValue === attributeRef.value) {
-                                        target.setAttribute(attributeRef2.name, attributeRef2.value);
-                                        if (attributeRef.name !== attributeRef2.name) target.removeAttribute(attributeRef.name);
-                                    } else {
-                                        target.setAttribute(attributeRef.name, attributeRef.value);
-                                        if (attributeRef.name !== attributeRef2.name) target.removeAttribute(attributeRef2.name);
-                                    }
+                                if (target.classList.contains(classRef.className)) {
+                                    target.classList.remove(classRef.className);
+                                    target.classList.add(classRef2.className);
+                                } else {
+                                    target.classList.add(classRef.className);
+                                    target.classList.remove(classRef2.className);
+                                }
+                            });
+                        } else if (betweenAttr) {
+                            runtime.implicitLoop(on, function (target) {  
+                                var currentValue = target.getAttribute(attributeRef.name);
+                                if (currentValue === attributeRef.value) {
+                                    target.setAttribute(attributeRef2.name, attributeRef2.value);
+                                    if (attributeRef.name !== attributeRef2.name) target.removeAttribute(attributeRef.name);
+                                } else {
+                                    target.setAttribute(attributeRef.name, attributeRef.value);
+                                    if (attributeRef.name !== attributeRef2.name) target.removeAttribute(attributeRef2.name);
                                 }
                             });
                         } else if (classRefs) {
