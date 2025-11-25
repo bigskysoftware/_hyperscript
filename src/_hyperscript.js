@@ -1,7 +1,3 @@
-/**
- * @typedef {Object} Hyperscript
- */
-
 (function (self, factory) {
     const _hyperscript = factory(self)
 
@@ -1216,7 +1212,6 @@
         requireElement(type, tokens, message, root) {
             var result = this.parseElement(type, tokens, root);
             if (!result) Parser.raiseParseError(tokens, message || "Expected " + type);
-            // @ts-ignore
             return result;
         }
 
@@ -1704,7 +1699,7 @@
         /**
         * @param {*} parseElement
         * @param {Context} ctx
-        * @param {Boolean} shortCircuitOnValue
+        * @param {Boolean} [shortCircuitOnValue]
         * @returns {*}
         */
         unifiedEval(parseElement, ctx, shortCircuitOnValue) {
@@ -2437,8 +2432,7 @@
 
 
         /** @type string | null */
-        // @ts-ignore
-        hyperscriptUrl = "document" in globalScope && document.currentScript ? document.currentScript.src : null;
+        hyperscriptUrl = "document" in globalScope && document.currentScript && document.currentScript instanceof HTMLScriptElement ? document.currentScript.src : null;
     }
 
 
@@ -2473,6 +2467,7 @@
             } else if (prop === 'clearAll') {
                 return clearAllCookies;
             } else if (typeof prop === "string") {
+                // @ts-ignore string works fine with isNaN
                 if (!isNaN(prop)) {
                     return getCookiesAsArray()[parseInt(prop)];
 
@@ -2515,7 +2510,7 @@
                     finalValue+=";secure=" + value.path;
                 }
             }
-            document.cookie= prop + "=" + finalValue;
+            document.cookie= String(prop) + "=" + finalValue;
             return true;
         }
     })
@@ -3288,7 +3283,6 @@
                     args: [root],
                     op: function (context, rootVal) {
                         if (attribute) {
-                            // @ts-ignore
                             var value = runtime.resolveAttribute(rootVal, attribute.name);
                         } else if (style) {
                             var value
@@ -3432,7 +3426,6 @@
                 attribute: attribute,
                 args: [root],
                 op: function (_ctx, rootVal) {
-                    // @ts-ignore
                     var value = runtime.resolveAttribute(rootVal, attribute.name);
                     return value;
                 },
@@ -4339,12 +4332,10 @@
                 if (tokens.matchToken("debounced")) {
                     tokens.requireToken("at");
                     var timeExpr = parser.requireElement("unaryExpression", tokens);
-                    // @ts-ignore
                     var debounceTime = timeExpr.evaluate({}); // OK No promise TODO make a literal time expr
                 } else if (tokens.matchToken("throttled")) {
                     tokens.requireToken("at");
                     var timeExpr = parser.requireElement("unaryExpression", tokens);
-                    // @ts-ignore
                     var throttleTime = timeExpr.evaluate({}); // OK No promise TODO make a literal time expr
                 }
 
@@ -5915,7 +5906,7 @@
                         } else {
                             target.insertAdjacentHTML("beforeend", value); // insert at end, preserving existing content
                         }
-                        runtime.processNode(target);                   // process parent so any new content i
+                        runtime.processNode(/** @type {HTMLElement} */ (target)); // process parent so any new content works
                         return runtime.findNext(this, context);
                     } else if(setter) {
                         context.result = (target || "") + value;
@@ -6856,7 +6847,7 @@
                     };
                     return takeCmd;
                 } else {
-                    var takeCmd = {
+                    var takeCmd2 = {
                         attributeRef: attributeRef,
                         from: fromExpr,
                         forElt: forExpr,
@@ -6877,7 +6868,7 @@
                             return runtime.findNext(this, context);
                         },
                     };
-                    return takeCmd;
+                    return takeCmd2;
                 }
             }
         });
@@ -7489,9 +7480,8 @@
                 if (conversion === "JSON") {
                     return JSON.stringify(result);
                 } else if (conversion === "Form") {
-                    /** @ts-ignore */
                     // TODO: does this work with multiple inputs of the same name?
-                    return new URLSearchParams(result).toString();
+                    return new URLSearchParams(/** @type {Record<string, string>} */ (result)).toString();
                 } else {
                     throw "Unknown conversion: " + conversion;
                 }
@@ -7701,7 +7691,7 @@
      * @property {(keyword: string, definition: ParseRule) => void} addLeafExpression
      * @property {(keyword: string, definition: ParseRule) => void} addIndirectExpression
      *
-     * @property {(src: string, ctx?: Partial<Context>) => any} evaluate
+     * @property {(src: string, ctx?: Partial<Context>, args?: Object) => any} evaluate
      * @property {(src: string) => ASTNode} parse
      * @property {(node: Element) => void} processNode
      *

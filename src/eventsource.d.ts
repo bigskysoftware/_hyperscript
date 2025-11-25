@@ -18,6 +18,6 @@ interface EventSourceStub {
 
 interface EventListenerEntry {
     type: string
-    handler: EventHandlerNonNull
+    handler: (event: Event) => void
     options?: any
 }

@@ -101,8 +101,10 @@ describe("the on feature", function () {
 
 	it("can be in a top level script tag", function (done) {
 		var div = make(
-			"<script type='text/hyperscript'>on load put \"Loaded\" into #loadedDemo.innerHTML</script><div id='loadedDemo'></div>"
+			"<script type='text/hyperscript'>on customEvent put \"Loaded\" into #loadedDemo.innerHTML</script><div id='loadedDemo'></div>"
 		);
+		let event = new Event('customEvent', {bubbles: true});
+		div.dispatchEvent(event);
 		setTimeout(function () {
 			byId("loadedDemo").innerText.should.equal("Loaded");
 			done();

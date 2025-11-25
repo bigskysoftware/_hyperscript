@@ -4,7 +4,7 @@
 	if (typeof exports === 'object' && typeof exports['nodeName'] !== 'string') {
 		module.exports = plugin
 	} else {
-		if ('_hyperscript' in self) self._hyperscript.use(plugin)
+		if ('_hyperscript' in self) /** @type {import('../dist/_hyperscript').Hyperscript} */ (self._hyperscript).use(plugin)
 	}
 })(typeof self !== 'undefined' ? self : this, self => {
 
@@ -16,7 +16,7 @@
 	}
 
 	/**
-	 * @param {HyperscriptObject} _hyperscript
+	 * @param {import('../dist/_hyperscript').Hyperscript} _hyperscript
 	 */
 	return _hyperscript => {
 
