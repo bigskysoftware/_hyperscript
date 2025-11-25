@@ -12,11 +12,11 @@
 	if (typeof exports === 'object' && typeof exports['nodeName'] !== 'string') {
 		module.exports = plugin
 	} else {
-		if ('_hyperscript' in self) self._hyperscript.use(plugin)
+		if ('_hyperscript' in self) /** @type {import('../dist/_hyperscript').Hyperscript} */ (self._hyperscript).use(plugin)
 	}
 })(typeof self !== 'undefined' ? self : this, self => {
 	/**
-	 * @param {import("./_hyperscript.js").Hyperscript} _hyperscript
+	 * @param {import('../dist/_hyperscript').Hyperscript} _hyperscript
 	 */
 	return _hyperscript => {
 		_hyperscript.addFeature("eventsource", function (parser, runtime, tokens) {
@@ -171,7 +171,7 @@
 				 *
 				 * @param {string} encoding
 				 * @param {*} commandList
-				 * @returns {EventHandlerNonNull}
+				 * @returns {(event: Event) => void}
 				 */
 				function makeHandler(encoding, commandList) {
 					return function (evt) {
@@ -218,10 +218,10 @@
 
 					commandList.next = {
 						type: "implicitReturn",
-						op: function (/** @type {Context} */ _context) {
+						op: function (/** @type {any} */ _context) {
 							return runtime.HALT;
 						},
-						execute: function (/** @type {Context} */ _context) {
+						execute: function (/** @type {any} */ _context) {
 							// do nothing
 						},
 					};
