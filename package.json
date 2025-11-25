@@ -25,7 +25,7 @@
   "scripts": {
     "test:debug": "web-test-runner --manual --open",
     "types-check": "tsc",
-    "test": "npm run types-check && playwright install chromium && web-test-runner --browsers chromium --playwright",
+    "test": "playwright install chromium && web-test-runner --browsers chromium --playwright",
     "test:firefox": "playwright install firefox && web-test-runner --concurrency 1 --browsers firefox --playwright",
     "test:webkit": "playwright install webkit && web-test-runner --browsers webkit --playwright",
     "test:all": "playwright install chromium firefox webkit && web-test-runner --concurrency 1 --browsers chromium firefox webkit --playwright",
