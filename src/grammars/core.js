@@ -760,7 +760,7 @@ export default function hyperscriptCoreGrammar(parser) {
                 attribute: attribute,
                 args: [root],
                 op: function (_ctx, rootVal) {
-                    var value = context.meta.runtime.resolveAttribute(rootVal, attribute.name);
+                    var value = _ctx.meta.runtime.resolveAttribute(rootVal, attribute.name);
                     return value;
                 },
                 evaluate: function (context) {
