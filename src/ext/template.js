@@ -1,24 +1,14 @@
-(function (self, factory) {
-	const plugin = factory(self)
-
-	if (typeof exports === 'object' && typeof exports['nodeName'] !== 'string') {
-		module.exports = plugin
-	} else {
-		if ('_hyperscript' in self) /** @type {import('../dist/_hyperscript').Hyperscript} */ (self._hyperscript).use(plugin)
-	}
-})(typeof self !== 'undefined' ? self : this, self => {
-
-	function compileTemplate(template) {
+function compileTemplate(template) {
 		return template.replace(/(?:^|\n)([^@]*)@?/gm, function (match, p1) {
 			var templateStr = (" " + p1).replace(/([^\\])\$\{/g, "$1$${escape html ").substring(1);
 			return "\ncall meta.__ht_template_result.push(`" + templateStr + "`)\n";
 		});
 	}
 
-	/**
-	 * @param {import('../dist/_hyperscript').Hyperscript} _hyperscript
-	 */
-	return _hyperscript => {
+/**
+ * @param {import('../dist/_hyperscript').Hyperscript} _hyperscript
+ */
+export default function templatePlugin(_hyperscript) {
 
 		function renderTemplate(template, ctx) {
 			var buf = [];
@@ -28,7 +18,7 @@
 			return buf.join("");
 		}
 
-		_hyperscript.addCommand("render", function (parser, runtime, tokens) {
+		_hyperscript.addCommand("render", function (parser, tokens) {
 			if (!tokens.matchToken("render")) return;
 			var template_ = parser.requireElement("expression", tokens);
 			var templateArgs = {};
@@ -56,7 +46,7 @@
 				.replace(/\x27/g, "&#039;");
 		}
 
-		_hyperscript.addLeafExpression("escape", function (parser, runtime, tokens) {
+		_hyperscript.addLeafExpression("escape", function (parser, tokens) {
 			if (!tokens.matchToken("escape")) return;
 			var escapeType = tokens.matchTokenType("IDENTIFIER").value;
 
@@ -82,5 +72,9 @@
 				},
 			};
 		});
-	}
-})
+}
+
+// Auto-register when imported
+if (typeof self !== 'undefined' && self._hyperscript) {
+	self._hyperscript.use(templatePlugin);
+}

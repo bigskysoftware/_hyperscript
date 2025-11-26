@@ -17,21 +17,35 @@
     "src/*",
     "dist/*"
   ],
-  "main": "dist/_hyperscript.min.js",
+  "type": "module",
+  "main": "dist/_hyperscript.js",
+  "module": "dist/_hyperscript.js",
   "types": "dist/_hyperscript.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/_hyperscript.d.ts",
+      "default": "./dist/_hyperscript.js"
+    }
+  },
   "bin": {
-    "_hyperscript": "src/node-hyperscript.js"
+    "_hyperscript": "src/platform/node-hyperscript.js"
   },
   "scripts": {
+    "build:bundle": "node build.config.mjs",
+    "build:copy-ext": "cp src/ext/*.js dist/ext/",
+    "build:minify": "terser -m eval dist/_hyperscript.js > dist/_hyperscript.min.js",
+    "build:typings": "npx tsc --declaration dist/_hyperscript.js --allowJs --emitDeclarationOnly --skipLibCheck",
+    "build:compress": "gzip -k -f dist/_hyperscript.min.js",
+    "build": "npm run build:bundle && npm run build:copy-ext && npm run build:minify && npm run build:typings && npm run build:compress",
+    "dev": "node build.config.mjs --watch",
     "test:debug": "web-test-runner --manual --open",
     "types-check": "tsc",
-    "test": "playwright install chromium && web-test-runner --browsers chromium --playwright",
-    "test:firefox": "playwright install firefox && web-test-runner --concurrency 1 --browsers firefox --playwright",
-    "test:webkit": "playwright install webkit && web-test-runner --browsers webkit --playwright",
-    "test:all": "playwright install chromium firefox webkit && web-test-runner --concurrency 1 --browsers chromium firefox webkit --playwright",
-    "dist": "cp -r src/* dist/ && npm run-script terser && npm run-script typings && gzip -k -f dist/_hyperscript.min.js > dist/_hyperscript.min.js.gz && exit",
-    "typings": "npx tsc --declaration dist/_hyperscript.js --allowJs --emitDeclarationOnly --skipLibCheck",
+    "test": "npm run build:bundle && playwright install chromium && web-test-runner --browsers chromium --playwright",
+    "test:firefox": "npm run build:bundle && playwright install firefox && web-test-runner --concurrency 1 --browsers firefox --playwright",
+    "test:webkit": "npm run build:bundle && playwright install webkit && web-test-runner --browsers webkit --playwright",
+    "test:all": "npm run build:bundle && playwright install chromium firefox webkit && web-test-runner --concurrency 1 --browsers chromium firefox webkit --playwright",
     "www": "node scripts/www.js",
+    "dist": "npm run build",
     "terser": "terser -m eval dist/_hyperscript.js > dist/_hyperscript.min.js && terser -m eval dist/hdb.js > dist/hdb.min.js"
   },
   "repository": {
@@ -43,6 +57,7 @@
     "@web/test-runner": "^0.20.2",
     "@web/test-runner-playwright": "^0.11.1",
     "chai": "^4.5.0",
+    "esbuild": "^0.27.0",
     "fs-extra": "^9.1.0",
     "markdown-it": "^12.3.2",
     "markdown-it-anchor": "^8.4.1",

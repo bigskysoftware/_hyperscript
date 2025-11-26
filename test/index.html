@@ -34,12 +34,24 @@
 		<script src="../node_modules/chai/chai.js"></script>
 		<script src="../node_modules/mocha/mocha.js"></script>
 		<script src="../node_modules/sinon/pkg/sinon.js"></script>
-		<script src="../src/_hyperscript.js"></script>
-		<script src="../src/worker.js"></script>
-		<script src="../src/socket.js"></script>
-		<script src="../src/template.js"></script>
-		<script src="../src/hdb.js"></script>
-		<script src="../src/ext/tailwind.js"></script>
+		<script type="module">
+			import _hyperscript from '../src/_hyperscript.js';
+
+			// Set on global for tests
+			self._hyperscript = _hyperscript;
+			console.log('✓ _hyperscript loaded as ES module');
+
+			// Load extensions as modules
+			await import('../src/ext/worker.js');
+			await import('../src/ext/socket.js');
+			await import('../src/ext/template.js');
+			await import('../src/ext/hdb.js');
+			await import('../src/ext/tailwind.js');
+
+			// Signal that _hyperscript is ready
+			window.hyperscriptReady = true;
+			window.dispatchEvent(new Event('hyperscript-loaded'));
+		</script>
 
 		<script class="mocha-init">
 			mocha.setup({
@@ -156,7 +168,14 @@
 		<div id="mocha"></div>
 
 		<script class="mocha-exec">
-			mocha.run();
+			// Wait for _hyperscript module to load before running tests
+			if (window.hyperscriptReady) {
+				mocha.run();
+			} else {
+				window.addEventListener('hyperscript-loaded', function() {
+					mocha.run();
+				});
+			}
 		</script>
 		<em>Work Area</em>
 		<hr />

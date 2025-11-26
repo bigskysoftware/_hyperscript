@@ -4,18 +4,8 @@
 
 'use strict';
 
-(function (self, factory) {
-	const plugin = factory(self)
-
-	if (typeof exports === 'object' && typeof exports['nodeName'] !== 'string') {
-		module.exports = plugin
-	} else {
-		if ('_hyperscript' in self) /** @type {import('../dist/_hyperscript').Hyperscript} */ (self._hyperscript).use(plugin)
-    }
-})(typeof self !== 'undefined' ? self : this, self => {
-
-	return (_hyperscript) => {
-		var invocationIdCounter = 0;
+export default function workerPlugin(_hyperscript) {
+	var invocationIdCounter = 0;
 
 		var workerFunc = function (self) {
 			self.onmessage = function (e) {
@@ -67,7 +57,7 @@
 		var blob = new Blob([workerCode], { type: "text/javascript" });
 		var workerUri = URL.createObjectURL(blob);
 
-		_hyperscript.addFeature("worker", function (parser, runtime, tokens) {
+		_hyperscript.addFeature("worker", function (parser, tokens) {
 			if (tokens.matchToken("worker")) {
 				var name = parser.requireElement("dotOrColonPath", tokens);
 				var qualifiedName = name.evaluate();
@@ -116,7 +106,7 @@
 
 				worker.postMessage({
 					type: "init",
-					_hyperscript: runtime.hyperscriptUrl,
+					_hyperscript: _hyperscript.internals.runtime.hyperscriptUrl || document.currentScript?.src || '/dist/_hyperscript.js',
 					extraScripts: extraScripts,
 					tokens: bodyTokens,
 					source: tokens.source,
@@ -162,11 +152,15 @@
 				return {
 					name: workerName,
 					worker: worker,
-					install: function (target) {
+					install: function (target, source, args, runtime) {
 						runtime.assignToNamespace(target, nameSpace, workerName, stubs);
 					},
 				};
 			}
 		});
-	}
-})
+}
+
+// Auto-register when imported
+if (typeof self !== 'undefined' && self._hyperscript) {
+	self._hyperscript.use(workerPlugin);
+}

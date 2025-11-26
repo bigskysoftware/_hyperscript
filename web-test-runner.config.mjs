@@ -32,12 +32,22 @@ const config = {
 
 		<script src="node_modules/chai/chai.js"></script>
 		<script src="node_modules/sinon/pkg/sinon.js"></script>
-		<script src="src/_hyperscript.js"></script>
-		<script src="src/worker.js"></script>
-		<script src="src/socket.js"></script>
-		<script src="src/template.js"></script>
-		<script src="src/hdb.js"></script>
-		<script src="src/ext/tailwind.js"></script>
+		<script type="module">
+			import _hyperscript from '../dist/_hyperscript.js';
+
+			// Set on global for tests
+			self._hyperscript = _hyperscript;
+			console.log('✓ _hyperscript loaded as ES module');
+
+			// Load extensions as modules
+			await import('../src/ext/worker.js');
+			await import('../src/ext/socket.js');
+			await import('../src/ext/template.js');
+			await import('../src/ext/hdb.js');
+			await import('../src/ext/tailwind.js');
+		</script>
+
+		<script type="module" src="${testFramework}"></script>
 
 		<script class="mocha-init">
 			should = chai.should();
@@ -45,8 +55,6 @@ const config = {
 		</script>
 
 		<script src="test/util/util.js"></script>
-
-        <script type="module" src="${testFramework}"></script>
 
 		<!-- extensions -->
 		<script src="test/ext/tailwind.js"></script>
@@ -63,10 +71,10 @@ const config = {
 </html>
 `,
 
-  nodeResolve: true,
+  nodeResolve: false,
   coverage: true,
   coverageConfig: {
-    include: ['src/_hyperscript.js','src/hdb.js','src/socket.js','src/template.js','src/worker.js']
+    include: ['dist/_hyperscript.js','src/ext/hdb.js','src/ext/socket.js','src/ext/template.js','src/ext/worker.js']
   },
   files: [
     'test/commands/**/*.js',

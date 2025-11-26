@@ -1,15 +1,5 @@
 
-(function (self, factory) {
-	const plugin = factory(self)
-
-	if (typeof exports === 'object' && typeof exports['nodeName'] !== 'string') {
-		module.exports = plugin
-	} else {
-		if ('_hyperscript' in self) /** @type {import('../dist/_hyperscript').Hyperscript} */ (self._hyperscript).use(plugin)
-	}
-})(typeof self !== 'undefined' ? self : this, self => {
-
-	function genUUID() {
+function genUUID() {
 		return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
 			var r = (Math.random() * 16) | 0,
 				v = c == "x" ? r : (r & 0x3) | 0x8;
@@ -35,10 +25,10 @@
 		return new WebSocket(parsedUrl);
 	}
 
-	/**
-	 * @param {import('../dist/_hyperscript').Hyperscript} _hyperscript
-	 */
-	return _hyperscript => {
+/**
+ * @param {import('../dist/_hyperscript').Hyperscript} _hyperscript
+ */
+export default function socketPlugin(_hyperscript) {
 
 		/** @type {(string | symbol)[]} */
 		var PROXY_BLACKLIST = ["then", "catch", "length", "asyncWrapper", "toJSON"];
@@ -201,5 +191,9 @@
 				return socketFeature;
 			}
 		});
-	}
-})
+}
+
+// Auto-register when imported
+if (typeof self !== 'undefined' && self._hyperscript) {
+	self._hyperscript.use(socketPlugin);
+}

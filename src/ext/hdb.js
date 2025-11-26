@@ -1,13 +1,4 @@
-(function (self, factory) {
-	const plugin = factory(self)
-
-	if (typeof exports === 'object' && typeof exports['nodeName'] !== 'string') {
-		module.exports = plugin
-	} else {
-		if ('_hyperscript' in self) /** @type {import('../dist/_hyperscript').Hyperscript} */ (self._hyperscript).use(plugin)
-	}
-})(typeof self !== 'undefined' ? self : this, self => {
-	return _hyperscript => {
+export default function hdbPlugin(_hyperscript) {
 		function HDB(ctx, runtime, breakpoint) {
 			this.ctx = ctx;
 			this.runtime = runtime;
@@ -19,14 +10,14 @@
 			this.bus = new EventTarget();
 		} // See below for methods
 
-		_hyperscript.addCommand("breakpoint", function (parser, runtime, tokens) {
+		_hyperscript.addCommand("breakpoint", function (parser, tokens) {
 			if (!tokens.matchToken("breakpoint")) return;
 
 			var hdb;
 
 			return {
 				op: function (ctx) {
-					globalThis.hdb = hdb = new HDB(ctx, runtime, this);
+					globalThis.hdb = hdb = new HDB(ctx, ctx.meta.runtime, this);
 					try {
 						return hdb.break(ctx);
 					} catch (e) {
@@ -526,5 +517,9 @@
 			document.body.appendChild(node);
 			_hyperscript.processNode(shadow.querySelector(".hdb"));
 		};
-	}
-})
+}
+
+// Auto-register when imported
+if (typeof self !== 'undefined' && self._hyperscript) {
+	self._hyperscript.use(hdbPlugin);
+}
