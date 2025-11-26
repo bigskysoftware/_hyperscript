@@ -883,7 +883,7 @@ var Context = class {
   * @param {*} hyperscriptTarget
   * @param {*} event
   */
-  constructor(owner, feature, hyperscriptTarget, event, runtime, globalScope3) {
+  constructor(owner, feature, hyperscriptTarget, event, runtime, globalScope2) {
     this.meta = {
       runtime,
       owner,
@@ -900,7 +900,7 @@ var Context = class {
     this.target = event ? event.target : null;
     this.detail = event ? event.detail : null;
     this.sender = event ? event.detail ? event.detail.sender : null : null;
-    this.body = "document" in globalScope3 ? document.body : null;
+    this.body = "document" in globalScope2 ? document.body : null;
     runtime.addFeatures(owner, this);
   }
 };
@@ -982,6 +982,27 @@ var TemplatedQueryElementCollection = class extends ElementCollection {
     return rv;
   }
 };
+var RegExpIterator = class {
+  constructor(re, str) {
+    this.re = re;
+    this.str = str;
+  }
+  next() {
+    const match = this.re.exec(this.str);
+    if (match === null) return { done: true };
+    else return { value: match };
+  }
+};
+var RegExpIterable = class {
+  constructor(re, flags, str) {
+    this.re = re;
+    this.flags = flags;
+    this.str = str;
+  }
+  [Symbol.iterator]() {
+    return new RegExpIterator(new RegExp(this.re, this.flags), this.str);
+  }
+};
 
 // src/core/runtime.js
 var _Runtime = class _Runtime {
@@ -989,7 +1010,7 @@ var _Runtime = class _Runtime {
    *
    * @param {Object} globalScope
    */
-  constructor(globalScope3) {
+  constructor(globalScope2) {
     __publicField(this, "HALT", _Runtime.HALT);
     /**
      * @type {string[] | null}
@@ -997,7 +1018,7 @@ var _Runtime = class _Runtime {
     __publicField(this, "_scriptAttrs", null);
     __publicField(this, "hyperscriptFeaturesMap", /* @__PURE__ */ new WeakMap());
     __publicField(this, "internalDataMap", /* @__PURE__ */ new WeakMap());
-    this.globalScope = globalScope3;
+    this.globalScope = globalScope2;
   }
   /**
    * @param {HTMLElement} elt
@@ -3118,11 +3139,11 @@ function hyperscriptCoreGrammar(parser) {
   };
   var scanForwardArray = function(start, array, match, wrap) {
     var matches = [];
-    context.meta.runtime.forEach(array, function(elt2) {
-      if (elt2.matches(match) || elt2 === start) {
-        matches.push(elt2);
+    for (elt of array) {
+      if (elt.matches(match) || elt === start) {
+        matches.push(elt);
       }
-    });
+    }
     for (var i = 0; i < matches.length - 1; i++) {
       var elt = matches[i];
       if (elt === start) {
@@ -4197,7 +4218,7 @@ function hyperscriptCoreGrammar(parser) {
         inputs.forEach(function(input) {
           args.push(context2.meta.runtime.resolveSymbol(input, context2, "default"));
         });
-        var result = func.apply(globalScope, args);
+        var result = func.apply(context2.meta.runtime.globalScope, args);
         if (result && typeof result.then === "function") {
           return new Promise(function(resolve) {
             result.then(function(actualResult) {
@@ -5148,7 +5169,7 @@ function hyperscriptCoreGrammar(parser) {
         args: [root, re],
         op(ctx, root2, re2) {
           ctx.result = new RegExp(re2, flags).exec(root2);
-          return context.meta.runtime.findNext(this, ctx);
+          return ctx.meta.runtime.findNext(this, ctx);
         }
       };
     }
@@ -5165,7 +5186,7 @@ function hyperscriptCoreGrammar(parser) {
         args: [root, re],
         op(ctx, root2, re2) {
           ctx.result = new RegExpIterable(re2, flags, root2);
-          return context.meta.runtime.findNext(this, ctx);
+          return ctx.meta.runtime.findNext(this, ctx);
         }
       };
     }
@@ -5942,10 +5963,10 @@ function hyperscriptWebGrammar(parser) {
       value.append(parser.runtime.convertValue(valueToPut, "Fragment"));
       context2.meta.runtime.processNode(value);
     } else {
-      if (prop != null) {
+      if (root == null) {
         context2.meta.runtime.setSymbol(prop, context2, null, valueToPut);
       } else {
-        throw "Don't know how to put a value into " + typeof context2;
+        root[prop] = valueToPut;
       }
     }
   }
@@ -6211,7 +6232,7 @@ function hyperscriptWebGrammar(parser) {
       properties: propsToMeasure,
       args: [targetExpr],
       op: function(ctx, target) {
-        context.meta.runtime.nullCheck(target, targetExpr);
+        ctx.meta.runtime.nullCheck(target, targetExpr);
         if (0 in target) target = target[0];
         var rect = target.getBoundingClientRect();
         var scroll = {
@@ -6240,11 +6261,11 @@ function hyperscriptWebGrammar(parser) {
           scrollHeight: scroll.height,
           scroll
         };
-        context.meta.runtime.forEach(propsToMeasure, function(prop) {
+        ctx.meta.runtime.forEach(propsToMeasure, function(prop) {
           if (prop in ctx.result) ctx.locals[prop] = ctx.result[prop];
           else throw "No such measurement as " + prop;
         });
-        return context.meta.runtime.findNext(this, ctx);
+        return ctx.meta.runtime.findNext(this, ctx);
       }
     };
   });
@@ -6544,7 +6565,7 @@ function hyperscriptWebGrammar(parser) {
 }
 
 // src/_hyperscript.js
-var globalScope2 = typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : void 0;
+var globalScope = typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : void 0;
 function getCookiesAsArray2() {
   let cookiesAsArray = document.cookie.split("; ").map((cookieEntry) => {
     let strings = cookieEntry.split("=");
@@ -6630,7 +6651,7 @@ function logError(msg) {
   }
 }
 var lexer_ = new Lexer();
-var runtime_ = new Runtime(globalScope2);
+var runtime_ = new Runtime(globalScope);
 var parser_ = new Parser();
 parser_.runtime = runtime_;
 hyperscriptCoreGrammar(parser_);
@@ -6649,7 +6670,7 @@ function evaluate(src, ctx, args) {
       return this.module.id;
     }
   }
-  var body = "document" in globalScope2 ? globalScope2.document.body : new HyperscriptModule(args && args.module);
+  var body = "document" in globalScope ? globalScope.document.body : new HyperscriptModule(args && args.module);
   ctx = Object.assign(runtime_.makeContext(body, null, body, null), ctx || {});
   var element = parser_.parse(lexer_, src);
   if (element.execute) {
@@ -6720,7 +6741,7 @@ function run(src, ctx) {
   return evaluate(src, ctx);
 }
 function browserInit() {
-  var scripts = Array.from(globalScope2.document.querySelectorAll("script[type='text/hyperscript'][src]"));
+  var scripts = Array.from(globalScope.document.querySelectorAll("script[type='text/hyperscript'][src]"));
   Promise.all(
     scripts.map(function(script) {
       return fetch(script.src).then(function(res) {
@@ -6731,7 +6752,7 @@ function browserInit() {
     mergeMetaConfig();
     processNode(document.documentElement);
     document.dispatchEvent(new Event("hyperscript:ready"));
-    globalScope2.document.addEventListener("htmx:load", function(evt) {
+    globalScope.document.addEventListener("htmx:load", function(evt) {
       processNode(evt.detail.elt);
     });
   }));
