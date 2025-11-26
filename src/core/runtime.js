@@ -1,7 +1,7 @@
 // Runtime - Execution engine for _hyperscript
 import { config, conversions } from './config.js';
 import { Context, getOrInitObject } from './helpers.js';
-import { shouldAutoIterateSymbol } from './util.js';
+import {ElementCollection, shouldAutoIterateSymbol} from './util.js';
 import { Tokens } from './tokens.js';
 
 export class Runtime {

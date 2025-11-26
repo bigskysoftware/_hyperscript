@@ -213,7 +213,7 @@ export default function hyperscriptWebGrammar(parser) {
                     return rv;
                 },
                 evaluate: function(ctx) {
-                    return context.meta.runtime.unifiedEval(this, ctx);
+                    return ctx.meta.runtime.unifiedEval(this, ctx);
                 }
             }
         })
@@ -392,7 +392,7 @@ export default function hyperscriptWebGrammar(parser) {
                     op: function (context, on, time, evt, from, classRef, classRef2, classRefs) {
                         if (time) {
                             return new Promise(function (resolve) {
-                                toggleCmd.toggle(on, classRef, classRef2, classRefs);
+                                toggleCmd.toggle(context, on, classRef, classRef2, classRefs);
                                 setTimeout(function () {
                                     toggleCmd.toggle(context, on, classRef, classRef2, classRefs);
                                     resolve(context.meta.runtime.findNext(toggleCmd, context));
@@ -409,7 +409,7 @@ export default function hyperscriptWebGrammar(parser) {
                                     },
                                     { once: true }
                                 );
-                                toggleCmd.toggle(on, classRef, classRef2, classRefs);
+                                toggleCmd.toggle(context, on, classRef, classRef2, classRefs);
                             });
                         } else {
                             this.toggle(context, on, classRef, classRef2, classRefs);
@@ -520,11 +520,11 @@ export default function hyperscriptWebGrammar(parser) {
                     target: targetExpr,
                     args: [targetExpr],
                     op: function (ctx, target) {
-                        context.meta.runtime.nullCheck(target, targetExpr);
-                        context.meta.runtime.implicitLoop(target, function (elt) {
+                        ctx.meta.runtime.nullCheck(target, targetExpr);
+                        ctx.meta.runtime.implicitLoop(target, function (elt) {
                             hideShowStrategy("hide", elt);
                         });
-                        return context.meta.runtime.findNext(this, ctx);
+                        return ctx.meta.runtime.findNext(this, ctx);
                     },
                 };
             }
@@ -563,11 +563,11 @@ export default function hyperscriptWebGrammar(parser) {
                     when: when,
                     args: [targetExpr],
                     op: function (ctx, target) {
-                        context.meta.runtime.nullCheck(target, targetExpr);
-                        context.meta.runtime.implicitLoop(target, function (elt) {
+                        ctx.meta.runtime.nullCheck(target, targetExpr);
+                        ctx.meta.runtime.implicitLoop(target, function (elt) {
                             if (when) {
                                 ctx.result = elt;
-                                let whenResult = context.meta.runtime.evaluateNoPromise(when, ctx);
+                                let whenResult = ctx.meta.runtime.evaluateNoPromise(when, ctx);
                                 if (whenResult) {
                                     hideShowStrategy("show", elt, arg);
                                 } else {
@@ -578,7 +578,7 @@ export default function hyperscriptWebGrammar(parser) {
                                 hideShowStrategy("show", elt, arg);
                             }
                         });
-                        return context.meta.runtime.findNext(this, ctx);
+                        return ctx.meta.runtime.findNext(this, ctx);
                     },
                 };
             }
@@ -672,7 +672,7 @@ export default function hyperscriptWebGrammar(parser) {
         });
 
         function putInto(context, root, prop, valueToPut) {
-            if (prop != null) {
+            if (root == null) {
                 var value = context.meta.runtime.resolveSymbol(prop, context);
             } else {
                 var value = root;
@@ -1088,14 +1088,14 @@ export default function hyperscriptWebGrammar(parser) {
                             return null;
                         } else {
                             let result = [];
-                            context.meta.runtime.implicitLoop(to, function(to){
+                            ctx.meta.runtime.implicitLoop(to, function(to){
                                 if (parentSearch) {
                                     result.push(to.parentElement ? to.parentElement.closest(css) : null);
                                 } else {
                                     result.push(to.closest(css));
                                 }
                             })
-                            if (context.meta.runtime.shouldAutoIterate(to)) {
+                            if (ctx.meta.runtime.shouldAutoIterate(to)) {
                                 return result;
                             } else {
                                 return result[0];

@@ -517,7 +517,7 @@ export default function hyperscriptCoreGrammar(parser) {
                 root: root,
                 prop: prop,
                 args: [root],
-                op: function (_context, rootVal) {
+                op: function (context, rootVal) {
                     var value = context.meta.runtime.resolveProperty(rootVal, prop.value);
                     return value;
                 },
@@ -867,7 +867,7 @@ export default function hyperscriptCoreGrammar(parser) {
                     time: root,
                     factor: timeFactor,
                     args: [root],
-                    op: function (_context, val) {
+                    op: function (context, val) {
                         return val * timeFactor;
                     },
                     evaluate: function (context) {
@@ -925,7 +925,7 @@ export default function hyperscriptCoreGrammar(parser) {
                 type: "noExpression",
                 root: root,
                 args: [root],
-                op: function (_context, val) {
+                op: function (context, val) {
                     return context.meta.runtime.isEmpty(val);
                 },
                 evaluate: function (context) {
@@ -941,7 +941,7 @@ export default function hyperscriptCoreGrammar(parser) {
                 type: "noExpression",
                 root: root,
                 args: [root],
-                op: function (_context, val) {
+                op: function (context, val) {
                     return !context.meta.runtime.isEmpty(val);
                 },
                 evaluate(context) {
@@ -986,7 +986,7 @@ export default function hyperscriptCoreGrammar(parser) {
                 expression.evaluate = function(ctx){
                     let value = originalEvaluate.apply(expression, arguments);
                     let element = ctx.me;
-                    context.meta.runtime.beepValueToConsole(element, expression, value);
+                    ctx.meta.runtime.beepValueToConsole(element, expression, value);
                     return value;
                 }
                 return expression;
@@ -2017,7 +2017,7 @@ export default function hyperscriptCoreGrammar(parser) {
                     };
                     func.hyperfunc = true;
                     func.hypername = nameVal;
-                    context.meta.runtime.assignToNamespace(target, nameSpace, funcName, func);
+                    runtime.assignToNamespace(target, nameSpace, funcName, func);
                 },
             };
 
@@ -3304,7 +3304,7 @@ export default function hyperscriptCoreGrammar(parser) {
                 if (range.includeEnd) to++;
                 if (to == null || to == undefined) to = from + 1;
                 ctx.result = root.slice(from, to);
-                return context.meta.runtime.findNext(this, ctx);
+                return ctx.meta.runtime.findNext(this, ctx);
               }
             }
           }
