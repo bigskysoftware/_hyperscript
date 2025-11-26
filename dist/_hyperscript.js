@@ -920,7 +920,7 @@ function varargConstructor(Cls, args) {
 
 // src/core/util.js
 var shouldAutoIterateSymbol = Symbol();
-var ElementCollection2 = class _ElementCollection {
+var ElementCollection = class _ElementCollection {
   constructor(css, relativeToElement, escape) {
     this._css = css;
     this.relativeToElement = relativeToElement;
@@ -960,7 +960,7 @@ var ElementCollection2 = class _ElementCollection {
     return query;
   }
 };
-var TemplatedQueryElementCollection = class extends ElementCollection2 {
+var TemplatedQueryElementCollection = class extends ElementCollection {
   constructor(css, relativeToElement, templateParts) {
     super(css, relativeToElement);
     this.templateParts = templateParts;
@@ -2283,7 +2283,7 @@ function hyperscriptCoreGrammar(parser) {
         type: "classRefTemplate",
         args: [innerExpression],
         op: function(context2, arg) {
-          return new ElementCollection2("." + arg, context2.me, true);
+          return new ElementCollection("." + arg, context2.me, true);
         },
         evaluate: function(context2) {
           return context2.meta.runtime.unifiedEval(this, context2);
@@ -2295,7 +2295,7 @@ function hyperscriptCoreGrammar(parser) {
         type: "classRef",
         css,
         evaluate: function(context2) {
-          return new ElementCollection2(css, context2.me, true);
+          return new ElementCollection(css, context2.me, true);
         }
       };
     }
@@ -2327,7 +2327,7 @@ function hyperscriptCoreGrammar(parser) {
         if (template) {
           return new TemplatedQueryElementCollection(queryValue, context2.me, args2);
         } else {
-          return new ElementCollection2(queryValue, context2.me);
+          return new ElementCollection(queryValue, context2.me);
         }
       },
       evaluate: function(context2) {
@@ -2634,8 +2634,8 @@ function hyperscriptCoreGrammar(parser) {
       root,
       prop,
       args: [root],
-      op: function(_context, rootVal) {
-        var value = context.meta.runtime.resolveProperty(rootVal, prop.value);
+      op: function(context2, rootVal) {
+        var value = context2.meta.runtime.resolveProperty(rootVal, prop.value);
         return value;
       },
       evaluate: function(context2) {
@@ -2860,7 +2860,7 @@ function hyperscriptCoreGrammar(parser) {
       attribute,
       args: [root],
       op: function(_ctx, rootVal) {
-        var value = context.meta.runtime.resolveAttribute(rootVal, attribute.name);
+        var value = _ctx.meta.runtime.resolveAttribute(rootVal, attribute.name);
         return value;
       },
       evaluate: function(context2) {
@@ -2974,7 +2974,7 @@ function hyperscriptCoreGrammar(parser) {
         time: root,
         factor: timeFactor,
         args: [root],
-        op: function(_context, val) {
+        op: function(context2, val) {
           return val * timeFactor;
         },
         evaluate: function(context2) {
@@ -3029,8 +3029,8 @@ function hyperscriptCoreGrammar(parser) {
       type: "noExpression",
       root,
       args: [root],
-      op: function(_context, val) {
-        return context.meta.runtime.isEmpty(val);
+      op: function(context2, val) {
+        return context2.meta.runtime.isEmpty(val);
       },
       evaluate: function(context2) {
         return context2.meta.runtime.unifiedEval(this, context2);
@@ -3044,8 +3044,8 @@ function hyperscriptCoreGrammar(parser) {
       type: "noExpression",
       root,
       args: [root],
-      op: function(_context, val) {
-        return !context.meta.runtime.isEmpty(val);
+      op: function(context2, val) {
+        return !context2.meta.runtime.isEmpty(val);
       },
       evaluate(context2) {
         return context2.meta.runtime.unifiedEval(this, context2);
@@ -3086,7 +3086,7 @@ function hyperscriptCoreGrammar(parser) {
       expression.evaluate = function(ctx) {
         let value = originalEvaluate.apply(expression, arguments);
         let element = ctx.me;
-        context.meta.runtime.beepValueToConsole(element, expression, value);
+        ctx.meta.runtime.beepValueToConsole(element, expression, value);
         return value;
       };
       return expression;
@@ -3794,6 +3794,7 @@ function hyperscriptCoreGrammar(parser) {
         };
         ctx.meta.reject = function(err) {
           console.error(err.message ? err.message : err);
+          console.error(err.stack);
           var hypertrace = ctx.meta.runtime.getHyperTrace(ctx, err);
           if (hypertrace) {
             hypertrace.print();
@@ -4005,7 +4006,7 @@ function hyperscriptCoreGrammar(parser) {
         };
         func.hyperfunc = true;
         func.hypername = nameVal;
-        context.meta.runtime.assignToNamespace(target, nameSpace, funcName, func);
+        runtime.assignToNamespace(target, nameSpace, funcName, func);
       }
     };
     parser2.ensureTerminated(start);
@@ -5130,7 +5131,7 @@ function hyperscriptCoreGrammar(parser) {
           if (range.includeEnd) to++;
           if (to == null || to == void 0) to = from + 1;
           ctx.result = root2.slice(from, to);
-          return context.meta.runtime.findNext(this, ctx);
+          return ctx.meta.runtime.findNext(this, ctx);
         }
       };
     }
@@ -5500,7 +5501,7 @@ function hyperscriptWebGrammar(parser) {
         return rv;
       },
       evaluate: function(ctx) {
-        return context.meta.runtime.unifiedEval(this, ctx);
+        return ctx.meta.runtime.unifiedEval(this, ctx);
       }
     };
   });
@@ -5636,14 +5637,14 @@ function hyperscriptWebGrammar(parser) {
         time,
         evt,
         from,
-        toggle: function(on, classRef3, classRef22, classRefs2) {
-          context.meta.runtime.nullCheck(on, onExpr);
+        toggle: function(context2, on, classRef3, classRef22, classRefs2) {
+          context2.meta.runtime.nullCheck(on, onExpr);
           if (visibility) {
-            context.meta.runtime.implicitLoop(on, function(target) {
+            context2.meta.runtime.implicitLoop(on, function(target) {
               hideShowStrategy("toggle", target);
             });
           } else if (between) {
-            context.meta.runtime.implicitLoop(on, function(target) {
+            context2.meta.runtime.implicitLoop(on, function(target) {
               if (target.classList.contains(classRef3.className)) {
                 target.classList.remove(classRef3.className);
                 target.classList.add(classRef22.className);
@@ -5653,13 +5654,13 @@ function hyperscriptWebGrammar(parser) {
               }
             });
           } else if (classRefs2) {
-            context.meta.runtime.forEach(classRefs2, function(classRef4) {
-              context.meta.runtime.implicitLoop(on, function(target) {
+            context2.meta.runtime.forEach(classRefs2, function(classRef4) {
+              context2.meta.runtime.implicitLoop(on, function(target) {
                 target.classList.toggle(classRef4.className);
               });
             });
           } else {
-            context.meta.runtime.implicitLoop(on, function(target) {
+            context2.meta.runtime.implicitLoop(on, function(target) {
               if (target.hasAttribute(attributeRef.name)) {
                 target.removeAttribute(attributeRef.name);
               } else {
@@ -5672,9 +5673,9 @@ function hyperscriptWebGrammar(parser) {
         op: function(context2, on, time2, evt2, from2, classRef3, classRef22, classRefs2) {
           if (time2) {
             return new Promise(function(resolve) {
-              toggleCmd.toggle(on, classRef3, classRef22, classRefs2);
+              toggleCmd.toggle(context2, on, classRef3, classRef22, classRefs2);
               setTimeout(function() {
-                toggleCmd.toggle(on, classRef3, classRef22, classRefs2);
+                toggleCmd.toggle(context2, on, classRef3, classRef22, classRefs2);
                 resolve(context2.meta.runtime.findNext(toggleCmd, context2));
               }, time2);
             });
@@ -5684,15 +5685,15 @@ function hyperscriptWebGrammar(parser) {
               target.addEventListener(
                 evt2,
                 function() {
-                  toggleCmd.toggle(on, classRef3, classRef22, classRefs2);
+                  toggleCmd.toggle(context2, on, classRef3, classRef22, classRefs2);
                   resolve(context2.meta.runtime.findNext(toggleCmd, context2));
                 },
                 { once: true }
               );
-              toggleCmd.toggle(on, classRef3, classRef22, classRefs2);
+              toggleCmd.toggle(context2, on, classRef3, classRef22, classRefs2);
             });
           } else {
-            this.toggle(on, classRef3, classRef22, classRefs2);
+            this.toggle(context2, on, classRef3, classRef22, classRefs2);
             return context2.meta.runtime.findNext(toggleCmd, context2);
           }
         }
@@ -5794,11 +5795,11 @@ function hyperscriptWebGrammar(parser) {
         target: targetExpr,
         args: [targetExpr],
         op: function(ctx, target) {
-          context.meta.runtime.nullCheck(target, targetExpr);
-          context.meta.runtime.implicitLoop(target, function(elt) {
+          ctx.meta.runtime.nullCheck(target, targetExpr);
+          ctx.meta.runtime.implicitLoop(target, function(elt) {
             hideShowStrategy("hide", elt);
           });
-          return context.meta.runtime.findNext(this, ctx);
+          return ctx.meta.runtime.findNext(this, ctx);
         }
       };
     }
@@ -5830,11 +5831,11 @@ function hyperscriptWebGrammar(parser) {
         when,
         args: [targetExpr],
         op: function(ctx, target) {
-          context.meta.runtime.nullCheck(target, targetExpr);
-          context.meta.runtime.implicitLoop(target, function(elt) {
+          ctx.meta.runtime.nullCheck(target, targetExpr);
+          ctx.meta.runtime.implicitLoop(target, function(elt) {
             if (when) {
               ctx.result = elt;
-              let whenResult = context.meta.runtime.evaluateNoPromise(when, ctx);
+              let whenResult = ctx.meta.runtime.evaluateNoPromise(when, ctx);
               if (whenResult) {
                 hideShowStrategy("show", elt, arg);
               } else {
@@ -5845,7 +5846,7 @@ function hyperscriptWebGrammar(parser) {
               hideShowStrategy("show", elt, arg);
             }
           });
-          return context.meta.runtime.findNext(this, ctx);
+          return ctx.meta.runtime.findNext(this, ctx);
         }
       };
     }
@@ -5930,11 +5931,11 @@ function hyperscriptWebGrammar(parser) {
       }
     }
   });
-  function putInto(context2, prop, valueToPut) {
-    if (prop != null) {
+  function putInto(context2, root, prop, valueToPut) {
+    if (root == null) {
       var value = context2.meta.runtime.resolveSymbol(prop, context2);
     } else {
-      var value = context2;
+      var value = root;
     }
     if (value instanceof Element || value instanceof HTMLDocument) {
       while (value.firstChild) value.removeChild(value.firstChild);
@@ -6000,7 +6001,7 @@ function hyperscriptWebGrammar(parser) {
         args: [rootExpr, prop, value],
         op: function(context2, root, prop2, valueToPut) {
           if (symbolWrite) {
-            putInto(context2, prop2, valueToPut);
+            putInto(context2, root, prop2, valueToPut);
           } else {
             context2.meta.runtime.nullCheck(root, rootExpr);
             if (operation === "into") {
@@ -6016,7 +6017,7 @@ function hyperscriptWebGrammar(parser) {
                 root[prop2] = valueToPut;
               } else {
                 context2.meta.runtime.implicitLoop(root, function(elt) {
-                  putInto(elt, prop2, valueToPut);
+                  putInto(context2, elt, prop2, valueToPut);
                 });
               }
             } else {
@@ -6282,14 +6283,14 @@ function hyperscriptWebGrammar(parser) {
             return null;
           } else {
             let result = [];
-            context.meta.runtime.implicitLoop(to2, function(to3) {
+            ctx.meta.runtime.implicitLoop(to2, function(to3) {
               if (parentSearch) {
                 result.push(to3.parentElement ? to3.parentElement.closest(css) : null);
               } else {
                 result.push(to3.closest(css));
               }
             });
-            if (context.meta.runtime.shouldAutoIterate(to2)) {
+            if (ctx.meta.runtime.shouldAutoIterate(to2)) {
               return result;
             } else {
               return result[0];
@@ -6544,60 +6545,6 @@ function hyperscriptWebGrammar(parser) {
 
 // src/_hyperscript.js
 var globalScope2 = typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : void 0;
-var conversions2 = {
-  dynamicResolvers: [
-    function(str, value) {
-      if (str === "Fixed") {
-        return Number(value).toFixed();
-      } else if (str.indexOf("Fixed:") === 0) {
-        let num = str.split(":")[1];
-        return Number(value).toFixed(parseInt(num));
-      }
-    }
-  ],
-  String: function(val) {
-    if (val.toString) {
-      return val.toString();
-    } else {
-      return "" + val;
-    }
-  },
-  Int: function(val) {
-    return parseInt(val);
-  },
-  Float: function(val) {
-    return parseFloat(val);
-  },
-  Number: function(val) {
-    return Number(val);
-  },
-  Date: function(val) {
-    return new Date(val);
-  },
-  Array: function(val) {
-    return Array.from(val);
-  },
-  JSON: function(val) {
-    return JSON.stringify(val);
-  },
-  Object: function(val) {
-    if (val instanceof String) {
-      val = val.toString();
-    }
-    if (typeof val === "string") {
-      return JSON.parse(val);
-    } else {
-      return Object.assign({}, val);
-    }
-  }
-};
-var config2 = {
-  attributes: "_, script, data-script",
-  defaultTransition: "all 500ms ease-in",
-  disableSelector: "[disable-scripting], [data-disable-scripting]",
-  hideShowStrategies: {},
-  conversions: conversions2
-};
 function getCookiesAsArray2() {
   let cookiesAsArray = document.cookie.split("; ").map((cookieEntry) => {
     let strings = cookieEntry.split("=");
@@ -6689,7 +6636,7 @@ parser_.runtime = runtime_;
 hyperscriptCoreGrammar(parser_);
 hyperscriptWebGrammar(parser_);
 Tokens2._parserRaiseError = Parser.raiseParseError;
-ElementCollection2._runtime = runtime_;
+ElementCollection._runtime = runtime_;
 var processNode;
 var initElement;
 function evaluate(src, ctx, args) {
@@ -6720,7 +6667,7 @@ function evaluate(src, ctx, args) {
   }
 }
 initElement = function(elt, target) {
-  if (elt.closest && elt.closest(config2.disableSelector)) {
+  if (elt.closest && elt.closest(config.disableSelector)) {
     return;
   }
   var internalData = runtime_.getInternalData(elt);
@@ -6806,14 +6753,14 @@ function browserInit() {
   function mergeMetaConfig() {
     var metaConfig = getMetaConfig();
     if (metaConfig) {
-      Object.assign(config2, metaConfig);
+      Object.assign(config, metaConfig);
     }
   }
 }
 var _hyperscript = Object.assign(
   run,
   {
-    config: config2,
+    config,
     use(plugin) {
       plugin(_hyperscript);
     },
@@ -6826,7 +6773,7 @@ var _hyperscript = Object.assign(
       Parser,
       Runtime
     },
-    ElementCollection: ElementCollection2,
+    ElementCollection,
     addFeature: parser_.addFeature.bind(parser_),
     addCommand: parser_.addCommand.bind(parser_),
     addLeafExpression: parser_.addLeafExpression.bind(parser_),

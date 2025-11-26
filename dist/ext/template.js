@@ -18,7 +18,7 @@ export default function templatePlugin(_hyperscript) {
 			return buf.join("");
 		}
 
-		_hyperscript.addCommand("render", function (parser, runtime, tokens) {
+		_hyperscript.addCommand("render", function (parser, tokens) {
 			if (!tokens.matchToken("render")) return;
 			var template_ = parser.requireElement("expression", tokens);
 			var templateArgs = {};
@@ -46,7 +46,7 @@ export default function templatePlugin(_hyperscript) {
 				.replace(/\x27/g, "&#039;");
 		}
 
-		_hyperscript.addLeafExpression("escape", function (parser, runtime, tokens) {
+		_hyperscript.addLeafExpression("escape", function (parser, tokens) {
 			if (!tokens.matchToken("escape")) return;
 			var escapeType = tokens.matchTokenType("IDENTIFIER").value;
 

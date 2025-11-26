@@ -57,7 +57,7 @@ export default function workerPlugin(_hyperscript) {
 		var blob = new Blob([workerCode], { type: "text/javascript" });
 		var workerUri = URL.createObjectURL(blob);
 
-		_hyperscript.addFeature("worker", function (parser, runtime, tokens) {
+		_hyperscript.addFeature("worker", function (parser, tokens) {
 			if (tokens.matchToken("worker")) {
 				var name = parser.requireElement("dotOrColonPath", tokens);
 				var qualifiedName = name.evaluate();
@@ -106,7 +106,7 @@ export default function workerPlugin(_hyperscript) {
 
 				worker.postMessage({
 					type: "init",
-					_hyperscript: runtime.hyperscriptUrl,
+					_hyperscript: _hyperscript.internals.runtime.hyperscriptUrl || document.currentScript?.src || '/dist/_hyperscript.js',
 					extraScripts: extraScripts,
 					tokens: bodyTokens,
 					source: tokens.source,
@@ -152,7 +152,7 @@ export default function workerPlugin(_hyperscript) {
 				return {
 					name: workerName,
 					worker: worker,
-					install: function (target) {
+					install: function (target, source, args, runtime) {
 						runtime.assignToNamespace(target, nameSpace, workerName, stubs);
 					},
 				};

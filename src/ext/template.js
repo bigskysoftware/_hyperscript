@@ -32,7 +32,7 @@ export default function templatePlugin(_hyperscript) {
 					const context = _hyperscript.internals.runtime.makeContext()
 					context.locals = templateArgs;
 					ctx.result = renderTemplate(compileTemplate(template.innerHTML), context);
-					return runtime.findNext(this, ctx);
+					return ctx.meta.runtime.findNext(this, ctx);
 				},
 			};
 		});
@@ -68,7 +68,7 @@ export default function templatePlugin(_hyperscript) {
 					}
 				},
 				evaluate: function (ctx) {
-					return runtime.unifiedEval(this, ctx);
+					return ctx.meta.runtime.unifiedEval(this, ctx);
 				},
 			};
 		});

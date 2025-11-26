@@ -7,80 +7,11 @@ import { Tokens } from './core/tokens.js';
 import { Parser } from './core/parser.js';
 import { Runtime } from './core/runtime.js';
 import { ElementCollection, TemplatedQueryElementCollection, RegExpIterator, RegExpIterable, shouldAutoIterateSymbol } from './core/util.js';
+import { config, conversions } from './core/config.js';
 import hyperscriptCoreGrammar from './grammars/core.js';
 import hyperscriptWebGrammar from './grammars/web.js';
 
 const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'undefined' ? global : this);
-
-    /**
-     * @type {Object}
-     * @property {DynamicConverter[]} dynamicResolvers
-     *
-     * @callback DynamicConverter
-     * @param {String} str
-     * @param {*} value
-     * @returns {*}
-     */
-    const conversions = {
-        dynamicResolvers: [
-            function(str, value){
-                if (str === "Fixed") {
-                    return Number(value).toFixed();
-                } else if (str.indexOf("Fixed:") === 0) {
-                    let num = str.split(":")[1];
-                    return Number(value).toFixed(parseInt(num));
-                }
-            }
-        ],
-        String: function (val) {
-            if (val.toString) {
-                return val.toString();
-            } else {
-                return "" + val;
-            }
-        },
-        Int: function (val) {
-            return parseInt(val);
-        },
-        Float: function (val) {
-            return parseFloat(val);
-        },
-        Number: function (val) {
-            return Number(val);
-        },
-        Date: function (val) {
-            return new Date(val);
-        },
-        Array: function (val) {
-            return Array.from(val);
-        },
-        JSON: function (val) {
-            return JSON.stringify(val);
-        },
-        Object: function (val) {
-            if (val instanceof String) {
-                val = val.toString();
-            }
-            if (typeof val === "string") {
-                return JSON.parse(val);
-            } else {
-                return Object.assign({}, val);
-            }
-        },
-    }
-
-    const config = {
-        attributes: "_, script, data-script",
-        defaultTransition: "all 500ms ease-in",
-        disableSelector: "[disable-scripting], [data-disable-scripting]",
-        hideShowStrategies: {},
-        conversions,
-    }
-
-    // Lexer class now imported from ./core/lexer.js
-    // Tokens class is now imported from ./core/tokens.js
-    // Parser class is now imported from ./core/parser.js
-    // Runtime class is now imported from ./core/runtime.js
 
     function getCookiesAsArray() {
         let cookiesAsArray = document.cookie

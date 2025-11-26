@@ -1,3 +1,4 @@
+import { Runtime } from '../core/runtime.js';
 
 function genUUID() {
 		return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
@@ -33,7 +34,7 @@ export default function socketPlugin(_hyperscript) {
 		/** @type {(string | symbol)[]} */
 		var PROXY_BLACKLIST = ["then", "catch", "length", "asyncWrapper", "toJSON"];
 
-		_hyperscript.addFeature("socket", function (parser, runtime, tokens) {
+		_hyperscript.addFeature("socket", function (parser, tokens) {
 			function getProxy(timeout) {
 				return new Proxy(
 					{},
@@ -110,7 +111,7 @@ export default function socketPlugin(_hyperscript) {
 					var implicitReturn = {
 						type: "implicitReturn",
 						op: function (context) {
-							return runtime.HALT;
+							return Runtime.HALT;
 						},
 						execute: function (context) {
 							// do nothing
@@ -143,7 +144,7 @@ export default function socketPlugin(_hyperscript) {
 				var socketFeature = {
 					name: socketName,
 					socket: socketObject,
-					install: function (target) {
+					install: function (target, source, args, runtime) {
 						runtime.assignToNamespace(target, nameSpace, socketName, socketObject);
 					},
 				};
@@ -167,7 +168,7 @@ export default function socketPlugin(_hyperscript) {
 					}
 
 					if (messageHandler) {
-						var context = runtime.makeContext(socketObject, socketFeature, socketObject);
+						var context = _hyperscript.internals.runtime.makeContext(socketObject, socketFeature, socketObject);
 						if (jsonMessages) {
 							if (dataAsJson) {
 								context.locals.message = dataAsJson;

@@ -250,7 +250,18 @@ declare var hyperscript_default: typeof run & {
              * @param {any} value
              * @returns {value is (any[] | ElementCollection)}
              */
-            shouldAutoIterate(value: any): value is (any[] | ElementCollection);
+            shouldAutoIterate(value: any): value is (any[] | {
+                _css: any;
+                relativeToElement: any;
+                escape: any;
+                readonly css: any;
+                readonly className: any;
+                readonly id: any;
+                contains(elt: any): boolean;
+                readonly length: number;
+                selectMatches(): NodeListOf<any>;
+                [Symbol.iterator](): any;
+            });
             /**
              * forEach executes the provided `func` on every item in the `value` array.
              * if `value` is a single item (and not an array) then `func` is simply called
@@ -271,7 +282,18 @@ declare var hyperscript_default: typeof run & {
              * @param {ElementCollection | T | T[]} value
              * @param {(item: T) => void} func
              */
-            implicitLoop<T>(value: ElementCollection | T | T[], func: (item: T) => void): void;
+            implicitLoop<T>(value: {
+                _css: any;
+                relativeToElement: any;
+                escape: any;
+                readonly css: any;
+                readonly className: any;
+                readonly id: any;
+                contains(elt: any): boolean;
+                readonly length: number;
+                selectMatches(): NodeListOf<any>;
+                [Symbol.iterator](): any;
+            } | T | T[], func: (item: T) => void): void;
             wrapArrays(args: any): any[];
             unwrapAsyncs(values: any): void;
             /**
@@ -958,7 +980,18 @@ declare var hyperscript_default: typeof run & {
                  * @param {any} value
                  * @returns {value is (any[] | ElementCollection)}
                  */
-                shouldAutoIterate(value: any): value is (any[] | ElementCollection);
+                shouldAutoIterate(value: any): value is (any[] | {
+                    _css: any;
+                    relativeToElement: any;
+                    escape: any;
+                    readonly css: any;
+                    readonly className: any;
+                    readonly id: any;
+                    contains(elt: any): boolean;
+                    readonly length: number;
+                    selectMatches(): NodeListOf<any>;
+                    [Symbol.iterator](): any;
+                });
                 /**
                  * forEach executes the provided `func` on every item in the `value` array.
                  * if `value` is a single item (and not an array) then `func` is simply called
@@ -979,7 +1012,18 @@ declare var hyperscript_default: typeof run & {
                  * @param {ElementCollection | T | T[]} value
                  * @param {(item: T) => void} func
                  */
-                implicitLoop<T>(value: ElementCollection | T | T[], func: (item: T) => void): void;
+                implicitLoop<T>(value: {
+                    _css: any;
+                    relativeToElement: any;
+                    escape: any;
+                    readonly css: any;
+                    readonly className: any;
+                    readonly id: any;
+                    contains(elt: any): boolean;
+                    readonly length: number;
+                    selectMatches(): NodeListOf<any>;
+                    [Symbol.iterator](): any;
+                } | T | T[], func: (item: T) => void): void;
                 wrapArrays(args: any): any[];
                 unwrapAsyncs(values: any): void;
                 /**
@@ -1310,7 +1354,18 @@ declare var hyperscript_default: typeof run & {
              * @param {any} value
              * @returns {value is (any[] | ElementCollection)}
              */
-            shouldAutoIterate(value: any): value is (any[] | ElementCollection);
+            shouldAutoIterate(value: any): value is (any[] | {
+                _css: any;
+                relativeToElement: any;
+                escape: any;
+                readonly css: any;
+                readonly className: any;
+                readonly id: any;
+                contains(elt: any): boolean;
+                readonly length: number;
+                selectMatches(): NodeListOf<any>;
+                [Symbol.iterator](): any;
+            });
             /**
              * forEach executes the provided `func` on every item in the `value` array.
              * if `value` is a single item (and not an array) then `func` is simply called
@@ -1331,7 +1386,18 @@ declare var hyperscript_default: typeof run & {
              * @param {ElementCollection | T | T[]} value
              * @param {(item: T) => void} func
              */
-            implicitLoop<T>(value: ElementCollection | T | T[], func: (item: T) => void): void;
+            implicitLoop<T>(value: {
+                _css: any;
+                relativeToElement: any;
+                escape: any;
+                readonly css: any;
+                readonly className: any;
+                readonly id: any;
+                contains(elt: any): boolean;
+                readonly length: number;
+                selectMatches(): NodeListOf<any>;
+                [Symbol.iterator](): any;
+            } | T | T[], func: (item: T) => void): void;
             wrapArrays(args: any): any[];
             unwrapAsyncs(values: any): void;
             /**
@@ -1862,7 +1928,18 @@ declare var browser_default: typeof run & {
              * @param {any} value
              * @returns {value is (any[] | ElementCollection)}
              */
-            shouldAutoIterate(value: any): value is (any[] | ElementCollection);
+            shouldAutoIterate(value: any): value is (any[] | {
+                _css: any;
+                relativeToElement: any;
+                escape: any;
+                readonly css: any;
+                readonly className: any;
+                readonly id: any;
+                contains(elt: any): boolean;
+                readonly length: number;
+                selectMatches(): NodeListOf<any>;
+                [Symbol.iterator](): any;
+            });
             /**
              * forEach executes the provided `func` on every item in the `value` array.
              * if `value` is a single item (and not an array) then `func` is simply called
@@ -1883,7 +1960,18 @@ declare var browser_default: typeof run & {
              * @param {ElementCollection | T | T[]} value
              * @param {(item: T) => void} func
              */
-            implicitLoop<T>(value: ElementCollection | T | T[], func: (item: T) => void): void;
+            implicitLoop<T>(value: {
+                _css: any;
+                relativeToElement: any;
+                escape: any;
+                readonly css: any;
+                readonly className: any;
+                readonly id: any;
+                contains(elt: any): boolean;
+                readonly length: number;
+                selectMatches(): NodeListOf<any>;
+                [Symbol.iterator](): any;
+            } | T | T[], func: (item: T) => void): void;
             wrapArrays(args: any): any[];
             unwrapAsyncs(values: any): void;
             /**
@@ -2570,7 +2658,18 @@ declare var browser_default: typeof run & {
                  * @param {any} value
                  * @returns {value is (any[] | ElementCollection)}
                  */
-                shouldAutoIterate(value: any): value is (any[] | ElementCollection);
+                shouldAutoIterate(value: any): value is (any[] | {
+                    _css: any;
+                    relativeToElement: any;
+                    escape: any;
+                    readonly css: any;
+                    readonly className: any;
+                    readonly id: any;
+                    contains(elt: any): boolean;
+                    readonly length: number;
+                    selectMatches(): NodeListOf<any>;
+                    [Symbol.iterator](): any;
+                });
                 /**
                  * forEach executes the provided `func` on every item in the `value` array.
                  * if `value` is a single item (and not an array) then `func` is simply called
@@ -2591,7 +2690,18 @@ declare var browser_default: typeof run & {
                  * @param {ElementCollection | T | T[]} value
                  * @param {(item: T) => void} func
                  */
-                implicitLoop<T>(value: ElementCollection | T | T[], func: (item: T) => void): void;
+                implicitLoop<T>(value: {
+                    _css: any;
+                    relativeToElement: any;
+                    escape: any;
+                    readonly css: any;
+                    readonly className: any;
+                    readonly id: any;
+                    contains(elt: any): boolean;
+                    readonly length: number;
+                    selectMatches(): NodeListOf<any>;
+                    [Symbol.iterator](): any;
+                } | T | T[], func: (item: T) => void): void;
                 wrapArrays(args: any): any[];
                 unwrapAsyncs(values: any): void;
                 /**
@@ -2922,7 +3032,18 @@ declare var browser_default: typeof run & {
              * @param {any} value
              * @returns {value is (any[] | ElementCollection)}
              */
-            shouldAutoIterate(value: any): value is (any[] | ElementCollection);
+            shouldAutoIterate(value: any): value is (any[] | {
+                _css: any;
+                relativeToElement: any;
+                escape: any;
+                readonly css: any;
+                readonly className: any;
+                readonly id: any;
+                contains(elt: any): boolean;
+                readonly length: number;
+                selectMatches(): NodeListOf<any>;
+                [Symbol.iterator](): any;
+            });
             /**
              * forEach executes the provided `func` on every item in the `value` array.
              * if `value` is a single item (and not an array) then `func` is simply called
@@ -2943,7 +3064,18 @@ declare var browser_default: typeof run & {
              * @param {ElementCollection | T | T[]} value
              * @param {(item: T) => void} func
              */
-            implicitLoop<T>(value: ElementCollection | T | T[], func: (item: T) => void): void;
+            implicitLoop<T>(value: {
+                _css: any;
+                relativeToElement: any;
+                escape: any;
+                readonly css: any;
+                readonly className: any;
+                readonly id: any;
+                contains(elt: any): boolean;
+                readonly length: number;
+                selectMatches(): NodeListOf<any>;
+                [Symbol.iterator](): any;
+            } | T | T[], func: (item: T) => void): void;
             wrapArrays(args: any): any[];
             unwrapAsyncs(values: any): void;
             /**

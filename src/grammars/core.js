@@ -1,7 +1,7 @@
 // Core grammar for _hyperscript
 import { Lexer } from '../core/lexer.js';
 import { Runtime } from '../core/runtime.js';
-import { ElementCollection, TemplatedQueryElementCollection } from '../core/util.js';
+import {ElementCollection, RegExpIterable, TemplatedQueryElementCollection} from '../core/util.js';
 import { getOrInitObject, varargConstructor } from '../core/helpers.js';
 
 /**
@@ -1021,11 +1021,11 @@ export default function hyperscriptCoreGrammar(parser) {
 
         var scanForwardArray = function(start, array, match, wrap) {
             var matches = [];
-            context.meta.runtime.forEach(array, function(elt){
+            for(elt of array){
                 if (elt.matches(match) || elt === start) {
                     matches.push(elt);
                 }
-            })
+            }
             for (var i = 0; i < matches.length - 1; i++) {
                 var elt = matches[i];
                 if (elt === start) {
@@ -2247,7 +2247,7 @@ export default function hyperscriptCoreGrammar(parser) {
                     inputs.forEach(function (input) {
                         args.push(context.meta.runtime.resolveSymbol(input, context, 'default'));
                     });
-                    var result = func.apply(globalScope, args);
+                    var result = func.apply(context.meta.runtime.globalScope, args);
                     if (result && typeof result.then === "function") {
                         return new Promise(function (resolve) {
                             result.then(function (actualResult) {
@@ -3324,7 +3324,7 @@ export default function hyperscriptCoreGrammar(parser) {
               args: [root, re],
               op(ctx, root, re) {
                 ctx.result = new RegExp(re, flags).exec(root);
-                return context.meta.runtime.findNext(this, ctx);
+                return ctx.meta.runtime.findNext(this, ctx);
               }
             }
           }
@@ -3344,7 +3344,7 @@ export default function hyperscriptCoreGrammar(parser) {
               args: [root, re],
               op(ctx, root, re) {
                 ctx.result = new RegExpIterable(re, flags, root);
-                return context.meta.runtime.findNext(this, ctx);
+                return ctx.meta.runtime.findNext(this, ctx);
               }
             }
           }

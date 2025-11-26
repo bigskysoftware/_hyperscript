@@ -10,14 +10,14 @@ export default function hdbPlugin(_hyperscript) {
 			this.bus = new EventTarget();
 		} // See below for methods
 
-		_hyperscript.addCommand("breakpoint", function (parser, runtime, tokens) {
+		_hyperscript.addCommand("breakpoint", function (parser, tokens) {
 			if (!tokens.matchToken("breakpoint")) return;
 
 			var hdb;
 
 			return {
 				op: function (ctx) {
-					globalThis.hdb = hdb = new HDB(ctx, runtime, this);
+					globalThis.hdb = hdb = new HDB(ctx, ctx.meta.runtime, this);
 					try {
 						return hdb.break(ctx);
 					} catch (e) {

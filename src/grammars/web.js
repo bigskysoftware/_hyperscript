@@ -682,10 +682,10 @@ export default function hyperscriptWebGrammar(parser) {
                 value.append(parser.runtime.convertValue(valueToPut, "Fragment"));
                 context.meta.runtime.processNode(value);
             } else {
-                if (prop != null) {
+                if (root == null) {
                     context.meta.runtime.setSymbol(prop, context, null, valueToPut);
                 } else {
-                    throw "Don't know how to put a value into " + typeof context;
+                    root[prop] = valueToPut
                 }
             }
         }
@@ -1007,7 +1007,7 @@ export default function hyperscriptWebGrammar(parser) {
                 properties: propsToMeasure,
                 args: [targetExpr],
                 op: function (ctx, target) {
-                    context.meta.runtime.nullCheck(target, targetExpr);
+                    ctx.meta.runtime.nullCheck(target, targetExpr);
                     if (0 in target) target = target[0]; // not measuring multiple elts
                     var rect = target.getBoundingClientRect();
                     var scroll = {
@@ -1039,12 +1039,12 @@ export default function hyperscriptWebGrammar(parser) {
                         scroll: scroll,
                     };
 
-                    context.meta.runtime.forEach(propsToMeasure, function (prop) {
+                    ctx.meta.runtime.forEach(propsToMeasure, function (prop) {
                         if (prop in ctx.result) ctx.locals[prop] = ctx.result[prop];
                         else throw "No such measurement as " + prop;
                     });
 
-                    return context.meta.runtime.findNext(this, ctx);
+                    return ctx.meta.runtime.findNext(this, ctx);
                 },
             };
         });
