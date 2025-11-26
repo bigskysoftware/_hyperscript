@@ -6,7 +6,7 @@ import { Lexer } from './core/lexer.js';
 import { Tokens } from './core/tokens.js';
 import { Parser } from './core/parser.js';
 import { Runtime } from './core/runtime.js';
-import { ElementCollection, TemplatedQueryElementCollection, RegExpIterator, RegExpIterable, shouldAutoIterateSymbol } from './core/util.js';
+import { ElementCollection } from './core/util.js';
 import { config, conversions } from './core/config.js';
 import hyperscriptCoreGrammar from './grammars/core.js';
 import hyperscriptWebGrammar from './grammars/web.js';
@@ -124,19 +124,6 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
         }
     }
 
-    // ElementCollection and shouldAutoIterateSymbol are now imported from ./core/util.js
-
-    function getOrInitObject(root, prop) {
-        var value = root[prop];
-        if (value) {
-            return value;
-        } else {
-            var newObj = {};
-            root[prop] = newObj;
-            return newObj;
-        }
-    }
-
     /**
      * parseJSON parses a JSON string into a corresponding value.  If the
      * value passed in is not valid JSON, then it logs an error and returns `null`.
@@ -166,12 +153,6 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
         }
     }
 
-    // TODO: JSDoc description of what's happening here
-    function varargConstructor(Cls, args) {
-        return new (Cls.bind.apply(Cls, [Cls].concat(args)))();
-    }
-
-    // Public API
 
     // Create lexer and runtime first
     const lexer_ = new Lexer();
