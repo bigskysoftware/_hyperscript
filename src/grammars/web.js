@@ -8,12 +8,12 @@ import { config } from '../core/config.js';
  * @param {Parser} parser
  */
 export default function hyperscriptWebGrammar(parser) {
-        parser.addCommand("settle", function (parser, tokens) {
-            if (tokens.matchToken("settle")) {
-                if (!parser.commandBoundary(tokens.currentToken())) {
-                    var onExpr = parser.requireElement("expression", tokens);
+        parser.addCommand("settle", function (helper) {
+            if (helper.matchToken("settle")) {
+                if (!helper.commandBoundary(helper.currentToken())) {
+                    var onExpr = helper.requireElement("expression");
                 } else {
-                    var onExpr = parser.requireElement("implicitMeTarget", tokens);
+                    var onExpr = helper.requireElement("implicitMeTarget");
                 }
 
                 var settleCommand = {
@@ -65,37 +65,37 @@ export default function hyperscriptWebGrammar(parser) {
             }
         });
 
-        parser.addCommand("add", function (parser, tokens) {
-            if (tokens.matchToken("add")) {
-                var classRef = parser.parseElement("classRef", tokens);
+        parser.addCommand("add", function (helper) {
+            if (helper.matchToken("add")) {
+                var classRef = helper.parseElement("classRef");
                 var attributeRef = null;
                 var cssDeclaration = null;
                 if (classRef == null) {
-                    attributeRef = parser.parseElement("attributeRef", tokens);
+                    attributeRef = helper.parseElement("attributeRef");
                     if (attributeRef == null) {
-                        cssDeclaration = parser.parseElement("styleLiteral", tokens);
+                        cssDeclaration = helper.parseElement("styleLiteral");
                         if (cssDeclaration == null) {
-                            parser.raiseParseError(tokens, "Expected either a class reference or attribute expression");
+                            helper.raiseParseError("Expected either a class reference or attribute expression");
                         }
                     }
                 } else {
                     var classRefs = [classRef];
-                    while ((classRef = parser.parseElement("classRef", tokens))) {
+                    while ((classRef = helper.parseElement("classRef"))) {
                         classRefs.push(classRef);
                     }
                 }
 
-                if (tokens.matchToken("to")) {
-                    var toExpr = parser.requireElement("expression", tokens);
+                if (helper.matchToken("to")) {
+                    var toExpr = helper.requireElement("expression");
                 } else {
-                    var toExpr = parser.requireElement("implicitMeTarget", tokens);
+                    var toExpr = helper.requireElement("implicitMeTarget");
                 }
 
-                if (tokens.matchToken("when")) {
+                if (helper.matchToken("when")) {
                     if (cssDeclaration) {
-                        parser.raiseParseError(tokens, "Only class and properties are supported with a when clause")
+                        helper.raiseParseError("Only class and properties are supported with a when clause")
                     }
-                    var when = parser.requireElement("expression", tokens);
+                    var when = helper.requireElement("expression");
                 }
 
                 if (classRefs) {
@@ -173,30 +173,30 @@ export default function hyperscriptWebGrammar(parser) {
             }
         });
 
-        parser.addGrammarElement("styleLiteral", function (parser, tokens) {
-            if (!tokens.matchOpToken("{")) return;
+        parser.addGrammarElement("styleLiteral", function (helper) {
+            if (!helper.matchOpToken("{")) return;
 
             var stringParts = [""]
             var exprs = []
 
-            while (tokens.hasMore()) {
-                if (tokens.matchOpToken("\\")) {
-                    tokens.consumeToken();
-                } else if (tokens.matchOpToken("}")) {
+            while (helper.hasMore()) {
+                if (helper.matchOpToken("\\")) {
+                    helper.consumeToken();
+                } else if (helper.matchOpToken("}")) {
                     break;
-                } else if (tokens.matchToken("$")) {
-                    var opencurly = tokens.matchOpToken("{");
-                    var expr = parser.parseElement("expression", tokens);
-                    if (opencurly) tokens.requireOpToken("}");
+                } else if (helper.matchToken("$")) {
+                    var opencurly = helper.matchOpToken("{");
+                    var expr = helper.parseElement("expression");
+                    if (opencurly) helper.requireOpToken("}");
 
                     exprs.push(expr)
                     stringParts.push("")
                 } else {
-                    var tok = tokens.consumeToken();
-                    stringParts[stringParts.length-1] += tokens.source.substring(tok.start, tok.end);
+                    var tok = helper.consumeToken();
+                    stringParts[stringParts.length-1] += helper.source.substring(tok.start, tok.end);
                 }
 
-                stringParts[stringParts.length-1] += tokens.lastWhitespace();
+                stringParts[stringParts.length-1] += helper.lastWhitespace();
             }
 
             return {
@@ -218,34 +218,33 @@ export default function hyperscriptWebGrammar(parser) {
             }
         })
 
-        parser.addCommand("remove", function (parser, tokens) {
-            if (tokens.matchToken("remove")) {
-                var classRef = parser.parseElement("classRef", tokens);
+        parser.addCommand("remove", function (helper) {
+            if (helper.matchToken("remove")) {
+                var classRef = helper.parseElement("classRef");
                 var attributeRef = null;
                 var elementExpr = null;
                 if (classRef == null) {
-                    attributeRef = parser.parseElement("attributeRef", tokens);
+                    attributeRef = helper.parseElement("attributeRef");
                     if (attributeRef == null) {
-                        elementExpr = parser.parseElement("expression", tokens);
+                        elementExpr = helper.parseElement("expression");
                         if (elementExpr == null) {
-                            parser.raiseParseError(
-                                tokens,
+                            helper.raiseParseError(
                                 "Expected either a class reference, attribute expression or value expression"
                             );
                         }
                     }
                 } else {
                     var classRefs = [classRef];
-                    while ((classRef = parser.parseElement("classRef", tokens))) {
+                    while ((classRef = helper.parseElement("classRef"))) {
                         classRefs.push(classRef);
                     }
                 }
 
-                if (tokens.matchToken("from")) {
-                    var fromExpr = parser.requireElement("expression", tokens);
+                if (helper.matchToken("from")) {
+                    var fromExpr = helper.requireElement("expression");
                 } else {
                     if (elementExpr == null) {
-                        var fromExpr = parser.requireElement("implicitMeTarget", tokens);
+                        var fromExpr = helper.requireElement("implicitMeTarget");
                     }
                 }
 
@@ -291,59 +290,59 @@ export default function hyperscriptWebGrammar(parser) {
             }
         });
 
-        parser.addCommand("toggle", function (parser, tokens) {
-            if (tokens.matchToken("toggle")) {
-                tokens.matchAnyToken("the", "my");
-                if (tokens.currentToken().type === "STYLE_REF") {
-                    let styleRef = tokens.consumeToken();
+        parser.addCommand("toggle", function (helper) {
+            if (helper.matchToken("toggle")) {
+                helper.matchAnyToken("the", "my");
+                if (helper.currentToken().type === "STYLE_REF") {
+                    let styleRef = helper.consumeToken();
                     var name = styleRef.value.substr(1);
                     var visibility = true;
-                    var hideShowStrategy = resolveHideShowStrategy(parser, tokens, name);
-                    if (tokens.matchToken("of")) {
-                        tokens.pushFollow("with");
+                    var hideShowStrategy = resolveHideShowStrategy(parser, helper, name);
+                    if (helper.matchToken("of")) {
+                        helper.pushFollow("with");
                         try {
-                            var onExpr = parser.requireElement("expression", tokens);
+                            var onExpr = helper.requireElement("expression");
                         } finally {
-                            tokens.popFollow();
+                            helper.popFollow();
                         }
                     } else {
-                        var onExpr = parser.requireElement("implicitMeTarget", tokens);
+                        var onExpr = helper.requireElement("implicitMeTarget");
                     }
-                } else if (tokens.matchToken("between")) {
+                } else if (helper.matchToken("between")) {
                     var between = true;
-                    var classRef = parser.parseElement("classRef", tokens);
-                    tokens.requireToken("and");
-                    var classRef2 = parser.requireElement("classRef", tokens);
+                    var classRef = helper.parseElement("classRef");
+                    helper.requireToken("and");
+                    var classRef2 = helper.requireElement("classRef");
                 } else {
-                    var classRef = parser.parseElement("classRef", tokens);
+                    var classRef = helper.parseElement("classRef");
                     var attributeRef = null;
                     if (classRef == null) {
-                        attributeRef = parser.parseElement("attributeRef", tokens);
+                        attributeRef = helper.parseElement("attributeRef");
                         if (attributeRef == null) {
-                            parser.raiseParseError(tokens, "Expected either a class reference or attribute expression");
+                            helper.raiseParseError("Expected either a class reference or attribute expression");
                         }
                     } else {
                         var classRefs = [classRef];
-                        while ((classRef = parser.parseElement("classRef", tokens))) {
+                        while ((classRef = helper.parseElement("classRef"))) {
                             classRefs.push(classRef);
                         }
                     }
                 }
 
                 if (visibility !== true) {
-                    if (tokens.matchToken("on")) {
-                        var onExpr = parser.requireElement("expression", tokens);
+                    if (helper.matchToken("on")) {
+                        var onExpr = helper.requireElement("expression");
                     } else {
-                        var onExpr = parser.requireElement("implicitMeTarget", tokens);
+                        var onExpr = helper.requireElement("implicitMeTarget");
                     }
                 }
 
-                if (tokens.matchToken("for")) {
-                    var time = parser.requireElement("expression", tokens);
-                } else if (tokens.matchToken("until")) {
-                    var evt = parser.requireElement("dotOrColonPath", tokens, "Expected event name");
-                    if (tokens.matchToken("from")) {
-                        var from = parser.requireElement("expression", tokens);
+                if (helper.matchToken("for")) {
+                    var time = helper.requireElement("expression");
+                } else if (helper.matchToken("until")) {
+                    var evt = helper.requireElement("dotOrColonPath", "Expected event name");
+                    if (helper.matchToken("from")) {
+                        var from = helper.requireElement("expression");
                     }
                 }
 
@@ -478,18 +477,18 @@ export default function hyperscriptWebGrammar(parser) {
             },
         };
 
-        var parseShowHideTarget = function (parser, tokens) {
+        var parseShowHideTarget = function (helper) {
             var target;
-            var currentTokenValue = tokens.currentToken();
-            if (currentTokenValue.value === "when" || currentTokenValue.value === "with" || parser.commandBoundary(currentTokenValue)) {
-                target = parser.parseElement("implicitMeTarget", tokens);
+            var currentTokenValue = helper.currentToken();
+            if (currentTokenValue.value === "when" || currentTokenValue.value === "with" || helper.commandBoundary(currentTokenValue)) {
+                target = helper.parseElement("implicitMeTarget");
             } else {
-                target = parser.parseElement("expression", tokens);
+                target = helper.parseElement("expression");
             }
             return target;
         };
 
-        var resolveHideShowStrategy = function (parser, tokens, name) {
+        var resolveHideShowStrategy = function (parser, helper, name) {
             var configDefault = config.defaultHideShowStrategy;
             var strategies = HIDE_SHOW_STRATEGIES;
             if (config.hideShowStrategies) {
@@ -498,23 +497,23 @@ export default function hyperscriptWebGrammar(parser) {
             name = name || configDefault || "display";
             var value = strategies[name];
             if (value == null) {
-                parser.raiseParseError(tokens, "Unknown show/hide strategy : " + name);
+                helper.raiseParseError("Unknown show/hide strategy : " + name);
             }
             return value;
         };
 
-        parser.addCommand("hide", function (parser, tokens) {
-            if (tokens.matchToken("hide")) {
-                var targetExpr = parseShowHideTarget(parser, tokens);
+        parser.addCommand("hide", function (helper) {
+            if (helper.matchToken("hide")) {
+                var targetExpr = parseShowHideTarget(helper);
 
                 var name = null;
-                if (tokens.matchToken("with")) {
-                    name = tokens.requireTokenType("IDENTIFIER", "STYLE_REF").value;
+                if (helper.matchToken("with")) {
+                    name = helper.requireTokenType("IDENTIFIER", "STYLE_REF").value;
                     if (name.indexOf("*") === 0) {
                         name = name.substr(1);
                     }
                 }
-                var hideShowStrategy = resolveHideShowStrategy(parser, tokens, name);
+                var hideShowStrategy = resolveHideShowStrategy(parser, helper, name);
 
                 return {
                     target: targetExpr,
@@ -530,21 +529,21 @@ export default function hyperscriptWebGrammar(parser) {
             }
         });
 
-        parser.addCommand("show", function (parser, tokens) {
-            if (tokens.matchToken("show")) {
-                var targetExpr = parseShowHideTarget(parser, tokens);
+        parser.addCommand("show", function (helper) {
+            if (helper.matchToken("show")) {
+                var targetExpr = parseShowHideTarget(helper);
 
                 var name = null;
-                if (tokens.matchToken("with")) {
-                    name = tokens.requireTokenType("IDENTIFIER", "STYLE_REF").value;
+                if (helper.matchToken("with")) {
+                    name = helper.requireTokenType("IDENTIFIER", "STYLE_REF").value;
                     if (name.indexOf("*") === 0) {
                         name = name.substr(1);
                     }
                 }
                 var arg = null;
-                if (tokens.matchOpToken(":")) {
-                    var tokenArr = tokens.consumeUntilWhitespace();
-                    tokens.matchTokenType("WHITESPACE");
+                if (helper.matchOpToken(":")) {
+                    var tokenArr = helper.consumeUntilWhitespace();
+                    helper.matchTokenType("WHITESPACE");
                     arg = tokenArr
                         .map(function (t) {
                             return t.value;
@@ -552,11 +551,11 @@ export default function hyperscriptWebGrammar(parser) {
                         .join("");
                 }
 
-                if (tokens.matchToken("when")) {
-                    var when = parser.requireElement("expression", tokens);
+                if (helper.matchToken("when")) {
+                    var when = helper.requireElement("expression");
                 }
 
-                var hideShowStrategy = resolveHideShowStrategy(parser, tokens, name);
+                var hideShowStrategy = resolveHideShowStrategy(parser, helper, name);
 
                 return {
                     target: targetExpr,
@@ -584,11 +583,11 @@ export default function hyperscriptWebGrammar(parser) {
             }
         });
 
-        parser.addCommand("take", function (parser, tokens) {
-            if (tokens.matchToken("take")) {
+        parser.addCommand("take", function (helper) {
+            if (helper.matchToken("take")) {
                 let classRef = null;
                 let classRefs = [];
-                while ((classRef = parser.parseElement("classRef", tokens))) {
+                while ((classRef = helper.parseElement("classRef"))) {
                     classRefs.push(classRef);
                 }
 
@@ -597,24 +596,24 @@ export default function hyperscriptWebGrammar(parser) {
 
                 let weAreTakingClasses = classRefs.length > 0;
                 if (!weAreTakingClasses) {
-                    attributeRef = parser.parseElement("attributeRef", tokens);
+                    attributeRef = helper.parseElement("attributeRef");
                     if (attributeRef == null) {
-                        parser.raiseParseError(tokens, "Expected either a class reference or attribute expression");
+                        helper.raiseParseError("Expected either a class reference or attribute expression");
                     }
 
-                    if (tokens.matchToken("with")) {
-                        replacementValue = parser.requireElement("expression", tokens);
+                    if (helper.matchToken("with")) {
+                        replacementValue = helper.requireElement("expression");
                     }
                 }
 
-                if (tokens.matchToken("from")) {
-                    var fromExpr = parser.requireElement("expression", tokens);
+                if (helper.matchToken("from")) {
+                    var fromExpr = helper.requireElement("expression");
                 }
 
-                if (tokens.matchToken("for")) {
-                    var forExpr = parser.requireElement("expression", tokens);
+                if (helper.matchToken("for")) {
+                    var forExpr = helper.requireElement("expression");
                 } else {
-                    var forExpr = parser.requireElement("implicitMeTarget", tokens);
+                    var forExpr = helper.requireElement("implicitMeTarget");
                 }
 
                 if (weAreTakingClasses) {
@@ -690,22 +689,22 @@ export default function hyperscriptWebGrammar(parser) {
             }
         }
 
-        parser.addCommand("put", function (parser, tokens) {
-            if (tokens.matchToken("put")) {
-                var value = parser.requireElement("expression", tokens);
+        parser.addCommand("put", function (helper) {
+            if (helper.matchToken("put")) {
+                var value = helper.requireElement("expression");
 
-                var operationToken = tokens.matchAnyToken("into", "before", "after");
+                var operationToken = helper.matchAnyToken("into", "before", "after");
 
-                if (operationToken == null && tokens.matchToken("at")) {
-                    tokens.matchToken("the"); // optional "the"
-                    operationToken = tokens.matchAnyToken("start", "end");
-                    tokens.requireToken("of");
+                if (operationToken == null && helper.matchToken("at")) {
+                    helper.matchToken("the"); // optional "the"
+                    operationToken = helper.matchAnyToken("start", "end");
+                    helper.requireToken("of");
                 }
 
                 if (operationToken == null) {
-                    parser.raiseParseError(tokens, "Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
+                    helper.raiseParseError("Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
                 }
-                var target = parser.requireElement("expression", tokens);
+                var target = helper.requireElement("expression");
 
                 var operation = operationToken.value;
 
@@ -727,11 +726,11 @@ export default function hyperscriptWebGrammar(parser) {
                 } else if (target.type === "attributeRef" && operation === "into") {
                     var attributeWrite = true;
                     prop = target.name;
-                    rootExpr = parser.requireElement("implicitMeTarget", tokens);
+                    rootExpr = helper.requireElement("implicitMeTarget");
                 } else if (target.type === "styleRef" && operation === "into") {
                     var styleWrite = true;
                     prop = target.name;
-                    rootExpr = parser.requireElement("implicitMeTarget", tokens);
+                    rootExpr = helper.requireElement("implicitMeTarget");
                 } else if (target.attribute && operation === "into") {
                     var attributeWrite = target.attribute.type === "attributeRef";
                     var styleWrite = target.attribute.type === "styleRef";
@@ -803,28 +802,28 @@ export default function hyperscriptWebGrammar(parser) {
             }
         });
 
-        function parsePseudopossessiveTarget(parser, tokens) {
+        function parsePseudopossessiveTarget(helper) {
             var targets;
             if (
-                tokens.matchToken("the") ||
-                tokens.matchToken("element") ||
-                tokens.matchToken("elements") ||
-                tokens.currentToken().type === "CLASS_REF" ||
-                tokens.currentToken().type === "ID_REF" ||
-                (tokens.currentToken().op && tokens.currentToken().value === "<")
+                helper.matchToken("the") ||
+                helper.matchToken("element") ||
+                helper.matchToken("elements") ||
+                helper.currentToken().type === "CLASS_REF" ||
+                helper.currentToken().type === "ID_REF" ||
+                (helper.currentToken().op && helper.currentToken().value === "<")
             ) {
-                parser.possessivesDisabled = true;
+                helper.possessivesDisabled = true;
                 try {
-                    targets = parser.parseElement("expression", tokens);
+                    targets = helper.parseElement("expression");
                 } finally {
-                    delete parser.possessivesDisabled;
+                    delete helper.possessivesDisabled;
                 }
                 // optional possessive
-                if (tokens.matchOpToken("'")) {
-                    tokens.requireToken("s");
+                if (helper.matchOpToken("'")) {
+                    helper.requireToken("s");
                 }
-            } else if (tokens.currentToken().type === "IDENTIFIER" && tokens.currentToken().value === "its") {
-                var identifier = tokens.matchToken("its");
+            } else if (helper.currentToken().type === "IDENTIFIER" && helper.currentToken().value === "its") {
+                var identifier = helper.matchToken("its");
                 targets = {
                     type: "pseudopossessiveIts",
                     token: identifier,
@@ -834,27 +833,27 @@ export default function hyperscriptWebGrammar(parser) {
                     },
                 };
             } else {
-                tokens.matchToken("my") || tokens.matchToken("me"); // consume optional 'my'
-                targets = parser.parseElement("implicitMeTarget", tokens);
+                helper.matchToken("my") || helper.matchToken("me"); // consume optional 'my'
+                targets = helper.parseElement("implicitMeTarget");
             }
             return targets;
         }
 
-        parser.addCommand("transition", function (parser, tokens) {
-            if (tokens.matchToken("transition")) {
-                var targetsExpr = parsePseudopossessiveTarget(parser, tokens);
+        parser.addCommand("transition", function (helper) {
+            if (helper.matchToken("transition")) {
+                var targetsExpr = parsePseudopossessiveTarget(helper);
 
                 var properties = [];
                 var from = [];
                 var to = [];
-                var currentToken = tokens.currentToken();
+                var currentToken = helper.currentToken();
                 while (
-                    !parser.commandBoundary(currentToken) &&
+                    !helper.commandBoundary(currentToken) &&
                     currentToken.value !== "over" &&
                     currentToken.value !== "using"
                 ) {
-                    if (tokens.currentToken().type === "STYLE_REF") {
-                        let styleRef = tokens.consumeToken();
+                    if (helper.currentToken().type === "STYLE_REF") {
+                        let styleRef = helper.consumeToken();
                         let styleProp = styleRef.value.substr(1);
                         properties.push({
                             type: "styleRefValue",
@@ -863,16 +862,16 @@ export default function hyperscriptWebGrammar(parser) {
                             },
                         });
                     } else {
-                        properties.push(parser.requireElement("stringLike", tokens));
+                        properties.push(helper.requireElement("stringLike"));
                     }
 
-                    if (tokens.matchToken("from")) {
-                        from.push(parser.requireElement("expression", tokens));
+                    if (helper.matchToken("from")) {
+                        from.push(helper.requireElement("expression"));
                     } else {
                         from.push(null);
                     }
-                    tokens.requireToken("to");
-                    if (tokens.matchToken("initial")) {
+                    helper.requireToken("to");
+                    if (helper.matchToken("initial")) {
                         to.push({
                             type: "initial_literal",
                             evaluate : function(){
@@ -880,14 +879,14 @@ export default function hyperscriptWebGrammar(parser) {
                             }
                         });
                     } else {
-                        to.push(parser.requireElement("expression", tokens));
+                        to.push(helper.requireElement("expression"));
                     }
-                    currentToken = tokens.currentToken();
+                    currentToken = helper.currentToken();
                 }
-                if (tokens.matchToken("over")) {
-                    var over = parser.requireElement("expression", tokens);
-                } else if (tokens.matchToken("using")) {
-                    var usingExpr = parser.requireElement("expression", tokens);
+                if (helper.matchToken("over")) {
+                    var over = helper.requireElement("expression");
+                } else if (helper.matchToken("using")) {
+                    var usingExpr = helper.requireElement("expression");
                 }
 
                 var transition = {
@@ -992,16 +991,16 @@ export default function hyperscriptWebGrammar(parser) {
             }
         });
 
-        parser.addCommand("measure", function (parser, tokens) {
-            if (!tokens.matchToken("measure")) return;
+        parser.addCommand("measure", function (helper) {
+            if (!helper.matchToken("measure")) return;
 
-            var targetExpr = parsePseudopossessiveTarget(parser, tokens);
+            var targetExpr = parsePseudopossessiveTarget(helper);
 
             var propsToMeasure = [];
-            if (!parser.commandBoundary(tokens.currentToken()))
+            if (!helper.commandBoundary(helper.currentToken()))
                 do {
-                    propsToMeasure.push(tokens.matchTokenType("IDENTIFIER").value);
-                } while (tokens.matchOpToken(","));
+                    propsToMeasure.push(helper.matchTokenType("IDENTIFIER").value);
+                } while (helper.matchOpToken(","));
 
             return {
                 properties: propsToMeasure,
@@ -1049,31 +1048,31 @@ export default function hyperscriptWebGrammar(parser) {
             };
         });
 
-        parser.addLeafExpression("closestExpr", function (parser, tokens) {
-            if (tokens.matchToken("closest")) {
-                if (tokens.matchToken("parent")) {
+        parser.addLeafExpression("closestExpr", function (helper) {
+            if (helper.matchToken("closest")) {
+                if (helper.matchToken("parent")) {
                     var parentSearch = true;
                 }
 
                 var css = null;
-                if (tokens.currentToken().type === "ATTRIBUTE_REF") {
-                    var attributeRef = parser.requireElement("attributeRefAccess", tokens, null);
+                if (helper.currentToken().type === "ATTRIBUTE_REF") {
+                    var attributeRef = helper.requireElement("attributeRefAccess", null);
                     css = "[" + attributeRef.attribute.name + "]";
                 }
 
                 if (css == null) {
-                    var expr = parser.requireElement("expression", tokens);
+                    var expr = helper.requireElement("expression");
                     if (expr.css == null) {
-                        parser.raiseParseError(tokens, "Expected a CSS expression");
+                        helper.raiseParseError("Expected a CSS expression");
                     } else {
                         css = expr.css;
                     }
                 }
 
-                if (tokens.matchToken("to")) {
-                    var to = parser.parseElement("expression", tokens);
+                if (helper.matchToken("to")) {
+                    var to = helper.parseElement("expression");
                 } else {
-                    var to = parser.parseElement("implicitMeTarget", tokens);
+                    var to = helper.parseElement("implicitMeTarget");
                 }
 
                 var closestExpr = {
@@ -1117,41 +1116,41 @@ export default function hyperscriptWebGrammar(parser) {
             }
         });
 
-        parser.addCommand("go", function (parser, tokens) {
-            if (tokens.matchToken("go")) {
-                if (tokens.matchToken("back")) {
+        parser.addCommand("go", function (helper) {
+            if (helper.matchToken("go")) {
+                if (helper.matchToken("back")) {
                     var back = true;
                 } else {
-                    tokens.matchToken("to");
-                    if (tokens.matchToken("url")) {
-                        var target = parser.requireElement("stringLike", tokens);
+                    helper.matchToken("to");
+                    if (helper.matchToken("url")) {
+                        var target = helper.requireElement("stringLike");
                         var url = true;
-                        if (tokens.matchToken("in")) {
-                            tokens.requireToken("new");
-                            tokens.requireToken("window");
+                        if (helper.matchToken("in")) {
+                            helper.requireToken("new");
+                            helper.requireToken("window");
                             var newWindow = true;
                         }
                     } else {
-                        tokens.matchToken("the"); // optional the
-                        var verticalPosition = tokens.matchAnyToken("top", "middle", "bottom");
-                        var horizontalPosition = tokens.matchAnyToken("left", "center", "right");
+                        helper.matchToken("the"); // optional the
+                        var verticalPosition = helper.matchAnyToken("top", "middle", "bottom");
+                        var horizontalPosition = helper.matchAnyToken("left", "center", "right");
                         if (verticalPosition || horizontalPosition) {
-                            tokens.requireToken("of");
+                            helper.requireToken("of");
                         }
-                        var target = parser.requireElement("unaryExpression", tokens);
+                        var target = helper.requireElement("unaryExpression");
 
-                        var plusOrMinus = tokens.matchAnyOpToken("+", "-");
+                        var plusOrMinus = helper.matchAnyOpToken("+", "-");
                         if (plusOrMinus) {
-                            tokens.pushFollow("px");
+                            helper.pushFollow("px");
                             try {
-                                var offset = parser.requireElement("expression", tokens);
+                                var offset = helper.requireElement("expression");
                             } finally {
-                                tokens.popFollow();
+                                helper.popFollow();
                             }
                         }
-                        tokens.matchToken("px"); // optional px
+                        helper.matchToken("px"); // optional px
 
-                        var smoothness = tokens.matchAnyToken("smoothly", "instantly");
+                        var smoothness = helper.matchAnyToken("smoothly", "instantly");
 
                         var scrollOptions = {
                             block: "start",

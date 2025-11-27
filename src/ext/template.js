@@ -18,12 +18,12 @@ export default function templatePlugin(_hyperscript) {
 			return buf.join("");
 		}
 
-		_hyperscript.addCommand("render", function (parser, tokens) {
-			if (!tokens.matchToken("render")) return;
-			var template_ = parser.requireElement("expression", tokens);
+		_hyperscript.addCommand("render", function (helper) {
+			if (!helper.matchToken("render")) return;
+			var template_ = helper.requireElement("expression");
 			var templateArgs = {};
-			if (tokens.matchToken("with")) {
-				templateArgs = parser.parseElement("namedArgumentList", tokens);
+			if (helper.matchToken("with")) {
+				templateArgs = helper.parseElement("nakedNamedArgumentList");
 			}
 			return {
 				args: [template_, templateArgs],
@@ -46,14 +46,14 @@ export default function templatePlugin(_hyperscript) {
 				.replace(/\x27/g, "&#039;");
 		}
 
-		_hyperscript.addLeafExpression("escape", function (parser, tokens) {
-			if (!tokens.matchToken("escape")) return;
-			var escapeType = tokens.matchTokenType("IDENTIFIER").value;
+		_hyperscript.addLeafExpression("escape", function (helper) {
+			if (!helper.matchToken("escape")) return;
+			var escapeType = helper.matchTokenType("IDENTIFIER").value;
 
 			// hidden! for use in templates
-			var unescaped = tokens.matchToken("unescaped");
+			var unescaped = helper.matchToken("unescaped");
 
-			var arg = parser.requireElement("expression", tokens);
+			var arg = helper.requireElement("expression");
 
 			return {
 				args: [arg],

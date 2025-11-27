@@ -1,6 +1,7 @@
 // Parser - AST parsing for _hyperscript
 import { Tokens } from './tokens.js';
 import { Runtime } from './runtime.js';
+import { ParserHelper } from './parser-helper.js';
 
 /**
  * @callback ParseRule
@@ -38,46 +39,46 @@ export class Parser {
         /* ============================================================================================ */
         /* Core hyperscript Grammar Elements                                                            */
         /* ============================================================================================ */
-        this.addGrammarElement("feature", function (parser, tokens) {
-            if (tokens.matchOpToken("(")) {
-                var featureElement = parser.requireElement("feature", tokens);
-                tokens.requireOpToken(")");
+        this.addGrammarElement("feature", function (helper) {
+            if (helper.matchOpToken("(")) {
+                var featureElement = helper.requireElement("feature");
+                helper.requireOpToken(")");
                 return featureElement;
             }
 
-            var featureDefinition = parser.FEATURES[tokens.currentToken().value || ""];
+            var featureDefinition = helper.FEATURES[helper.currentToken().value || ""];
             if (featureDefinition) {
-                return featureDefinition(parser, tokens);
+                return featureDefinition(helper);
             }
         });
 
-        this.addGrammarElement("command", function (parser, tokens) {
-            if (tokens.matchOpToken("(")) {
-                const commandElement = parser.requireElement("command", tokens);
-                tokens.requireOpToken(")");
+        this.addGrammarElement("command", function (helper) {
+            if (helper.matchOpToken("(")) {
+                const commandElement = helper.requireElement("command");
+                helper.requireOpToken(")");
                 return commandElement;
             }
 
-            var commandDefinition = parser.COMMANDS[tokens.currentToken().value || ""];
+            var commandDefinition = helper.COMMANDS[helper.currentToken().value || ""];
             let commandElement;
             if (commandDefinition) {
-                commandElement = commandDefinition(parser, tokens);
-            } else if (tokens.currentToken().type === "IDENTIFIER") {
-                commandElement = parser.parseElement("pseudoCommand", tokens);
+                commandElement = commandDefinition(helper);
+            } else if (helper.currentToken().type === "IDENTIFIER") {
+                commandElement = helper.parseElement("pseudoCommand");
             }
             if (commandElement) {
-                return parser.parseElement("indirectStatement", tokens, commandElement);
+                return helper.parser.parseElement("indirectStatement", helper.tokens, commandElement);
             }
 
             return commandElement;
         });
 
-        this.addGrammarElement("commandList", function (parser, tokens) {
-            if (tokens.hasMore()) {
-                var cmd = parser.parseElement("command", tokens);
+        this.addGrammarElement("commandList", function (helper) {
+            if (helper.hasMore()) {
+                var cmd = helper.parseElement("command");
                 if (cmd) {
-                    tokens.matchToken("then");
-                    const next = parser.parseElement("commandList", tokens);
+                    helper.matchToken("then");
+                    const next = helper.parseElement("commandList");
                     if (next) cmd.next = next;
                     return cmd;
                 }
@@ -93,21 +94,21 @@ export class Parser {
             }
         });
 
-        this.addGrammarElement("leaf", function (parser, tokens) {
-            var result = parser.parseAnyOf(parser.LEAF_EXPRESSIONS, tokens);
+        this.addGrammarElement("leaf", function (helper) {
+            var result = helper.parseAnyOf(helper.LEAF_EXPRESSIONS);
             // symbol is last so it doesn't consume any constants
             if (result == null) {
-                return parser.parseElement("symbol", tokens);
+                return helper.parseElement("symbol");
             }
 
             return result;
         });
 
-        this.addGrammarElement("indirectExpression", function (parser, tokens, root) {
-            for (var i = 0; i < parser.INDIRECT_EXPRESSIONS.length; i++) {
-                var indirect = parser.INDIRECT_EXPRESSIONS[i];
-                root.endToken = tokens.lastMatch();
-                var result = parser.parseElement(indirect, tokens, root);
+        this.addGrammarElement("indirectExpression", function (helper, root) {
+            for (var i = 0; i < helper.INDIRECT_EXPRESSIONS.length; i++) {
+                var indirect = helper.INDIRECT_EXPRESSIONS[i];
+                root.endToken = helper.lastMatch();
+                var result = helper.parser.parseElement(indirect, helper.tokens, root);
                 if (result) {
                     return result;
                 }
@@ -115,10 +116,10 @@ export class Parser {
             return root;
         });
 
-        this.addGrammarElement("indirectStatement", function (parser, tokens, root) {
-            if (tokens.matchToken("unless")) {
-                root.endToken = tokens.lastMatch();
-                var conditional = parser.requireElement("expression", tokens);
+        this.addGrammarElement("indirectStatement", function (helper, root) {
+            if (helper.matchToken("unless")) {
+                root.endToken = helper.lastMatch();
+                var conditional = helper.requireElement("expression");
                 var unless = {
                     type: "unlessStatementModifier",
                     args: [conditional],
@@ -139,12 +140,12 @@ export class Parser {
             return root;
         });
 
-        this.addGrammarElement("primaryExpression", function (parser, tokens) {
-            var leaf = parser.parseElement("leaf", tokens);
+        this.addGrammarElement("primaryExpression", function (helper) {
+            var leaf = helper.parseElement("leaf");
             if (leaf) {
-                return parser.parseElement("indirectExpression", tokens, leaf);
+                return helper.parser.parseElement("indirectExpression", helper.tokens, leaf);
             }
-            parser.raiseParseError(tokens, "Unexpected value: " + tokens.currentToken().value);
+            helper.raiseParseError("Unexpected value: " + helper.currentToken().value);
         });
     }
 
@@ -189,7 +190,8 @@ export class Parser {
         var elementDefinition = this.GRAMMAR[type];
         if (elementDefinition) {
             var start = tokens.currentToken();
-            var parseElement = elementDefinition(this, tokens, root);
+            var helper = new ParserHelper(this, tokens);
+            var parseElement = elementDefinition(helper, root);
             if (parseElement) {
                 this.initElt(parseElement, start, tokens);
                 parseElement.endToken = parseElement.endToken || tokens.lastMatch();
@@ -246,8 +248,8 @@ export class Parser {
      */
     addCommand(keyword, definition) {
         var commandGrammarType = keyword + "Command";
-        var commandDefinitionWrapper = function (parser, tokens) {
-            const commandElement = definition(parser, tokens);
+        var commandDefinitionWrapper = function (helper) {
+            const commandElement = definition(helper);
             if (commandElement) {
                 commandElement.type = commandGrammarType;
                 commandElement.execute = function (context) {
@@ -269,8 +271,8 @@ export class Parser {
         var featureGrammarType = keyword + "Feature";
 
         /** @type {ParseRule} */
-        var featureDefinitionWrapper = function (parser, tokens) {
-            var featureElement = definition(parser, tokens);
+        var featureDefinitionWrapper = function (helper) {
+            var featureElement = definition(helper);
             if (featureElement) {
                 featureElement.isFeature = true;
                 featureElement.keyword = keyword;
