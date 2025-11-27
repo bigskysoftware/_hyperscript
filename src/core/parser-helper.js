@@ -27,12 +27,12 @@ export class ParserHelper {
         return this.tokens.requireOpToken(value);
     }
 
-    matchAnyOpToken(op1, op2, op3) {
-        return this.tokens.matchAnyOpToken(op1, op2, op3);
+    matchAnyOpToken(...ops) {
+        return this.tokens.matchAnyOpToken(...ops);
     }
 
-    matchAnyToken(op1, op2, op3) {
-        return this.tokens.matchAnyToken(op1, op2, op3);
+    matchAnyToken(...tokens) {
+        return this.tokens.matchAnyToken(...tokens);
     }
 
     matchOpToken(value) {

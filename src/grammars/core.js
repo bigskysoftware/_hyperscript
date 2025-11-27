@@ -3256,7 +3256,7 @@ export default function hyperscriptCoreGrammar(parser) {
             return command;
         });
 
-        function parsePickRange(parser, tokens) {
+        function parsePickRange(helper) {
             helper.matchToken("at") || helper.matchToken("from");
             const rv = { includeStart: true, includeEnd: false }
 
@@ -3278,14 +3278,14 @@ export default function hyperscriptCoreGrammar(parser) {
 
         // RegExpIterator and RegExpIterable are now imported from ./core/util.js
 
-        parser.addCommand("pick", (parser, tokens) => {
+        parser.addCommand("pick", (helper) => {
           if (!helper.matchToken("pick")) return;
 
           helper.matchToken("the");
 
           if (helper.matchToken("item") || helper.matchToken("items")
            || helper.matchToken("character") || helper.matchToken("characters")) {
-            const range = parsePickRange(parser, tokens);
+            const range = parsePickRange(helper);
 
             helper.requireToken("from");
             const root = helper.requireElement("expression");
@@ -3406,7 +3406,7 @@ export default function hyperscriptCoreGrammar(parser) {
             return makeSetter(helper, target, implicitDecrementOp);
         });
 
-        function parseConversionInfo(tokens, parser) {
+        function parseConversionInfo(helper) {
             var type = "text";
             var conversion;
             helper.matchToken("a") || helper.matchToken("an");
@@ -3429,7 +3429,7 @@ export default function hyperscriptCoreGrammar(parser) {
             var url = helper.requireElement("stringLike");
 
             if (helper.matchToken("as")) {
-                var conversionInfo = parseConversionInfo(tokens, parser);
+                var conversionInfo = parseConversionInfo(helper);
             }
 
             if (helper.matchToken("with") && helper.currentToken().value !== "{") {
@@ -3439,7 +3439,7 @@ export default function hyperscriptCoreGrammar(parser) {
             }
 
             if (conversionInfo == null && helper.matchToken("as")) {
-                conversionInfo = parseConversionInfo(tokens, parser);
+                conversionInfo = parseConversionInfo(helper);
             }
 
             var type = conversionInfo ? conversionInfo.type : "text";

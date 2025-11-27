@@ -62,14 +62,12 @@ export class Tokens {
     }
 
     /**
-     * @param {string} op1
-     * @param {string} [op2]
-     * @param {string} [op3]
+     * @param {...string} ops
      * @returns {Token | void}
      */
-    matchAnyOpToken(op1, op2, op3) {
-        for (var i = 0; i < arguments.length; i++) {
-            var opToken = arguments[i];
+    matchAnyOpToken(...ops) {
+        for (var i = 0; i < ops.length; i++) {
+            var opToken = ops[i];
             var match = this.matchOpToken(opToken);
             if (match) {
                 return match;
@@ -78,14 +76,12 @@ export class Tokens {
     }
 
     /**
-     * @param {string} op1
-     * @param {string} [op2]
-     * @param {string} [op3]
+     * @param {...string} tokens
      * @returns {Token | void}
      */
-    matchAnyToken(op1, op2, op3) {
-        for (var i = 0; i < arguments.length; i++) {
-            var opToken = arguments[i];
+    matchAnyToken(...tokens) {
+        for (var i = 0; i < tokens.length; i++) {
+            var opToken = tokens[i];
             var match = this.matchToken(opToken);
             if (match) {
                 return match;
