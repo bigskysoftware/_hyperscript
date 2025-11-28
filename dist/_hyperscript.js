@@ -2552,8 +2552,79 @@ var ParenthesizedExpression = class {
     }
   }
 };
+var BlockLiteral = class _BlockLiteral {
+  constructor(args, expr) {
+    this.type = "blockLiteral";
+    this.args = args;
+    this.expr = expr;
+  }
+  /**
+   * Parse a block literal (lambda expression)
+   * @param {ParserHelper} helper
+   * @returns {BlockLiteral | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchOpToken("\\")) return;
+    var args = [];
+    var arg1 = helper.matchTokenType("IDENTIFIER");
+    if (arg1) {
+      args.push(arg1);
+      while (helper.matchOpToken(",")) {
+        args.push(helper.requireTokenType("IDENTIFIER"));
+      }
+    }
+    helper.requireOpToken("-");
+    helper.requireOpToken(">");
+    var expr = helper.requireElement("expression");
+    return new _BlockLiteral(args, expr);
+  }
+  /**
+   * Evaluate to a function
+   * @param {Context} ctx
+   * @returns {Function}
+   */
+  evaluate(ctx) {
+    var args = this.args;
+    var expr = this.expr;
+    var returnFunc = function() {
+      for (var i = 0; i < args.length; i++) {
+        ctx.locals[args[i].value] = arguments[i];
+      }
+      return expr.evaluate(ctx);
+    };
+    return returnFunc;
+  }
+};
 
 // src/parsetree/literals.js
+var NakedString = class _NakedString {
+  constructor(tokens) {
+    this.type = "nakedString";
+    this.tokens = tokens;
+  }
+  /**
+   * Parse a naked string (unquoted string until whitespace)
+   * @param {ParserHelper} helper
+   * @returns {NakedString | undefined}
+   */
+  static parse(helper) {
+    if (helper.hasMore()) {
+      var tokenArr = helper.consumeUntilWhitespace();
+      helper.matchTokenType("WHITESPACE");
+      return new _NakedString(tokenArr);
+    }
+  }
+  /**
+   * Evaluate to joined token values
+   * @param {Context} context
+   * @returns {string}
+   */
+  evaluate(context2) {
+    return this.tokens.map(function(t) {
+      return t.value;
+    }).join("");
+  }
+};
 var BooleanLiteral = class _BooleanLiteral {
   constructor(value) {
     this.type = "boolean";
@@ -2731,25 +2802,98 @@ var ArrayLiteral = class _ArrayLiteral {
   }
 };
 
+// src/parsetree/targets.js
+var ImplicitMeTarget = class _ImplicitMeTarget {
+  constructor() {
+    this.type = "implicitMeTarget";
+  }
+  /**
+   * Parse an implicit me target
+   * @param {ParserHelper} helper
+   * @returns {ImplicitMeTarget}
+   */
+  static parse(helper) {
+    return new _ImplicitMeTarget();
+  }
+  /**
+   * Evaluate to me or you from context
+   * @param {Context} context
+   * @returns {*}
+   */
+  evaluate(context2) {
+    return context2.you || context2.me;
+  }
+};
+
+// src/parsetree/existentials.js
+var NoExpression = class _NoExpression {
+  constructor(root) {
+    this.type = "noExpression";
+    this.root = root;
+    this.args = [root];
+  }
+  /**
+   * Parse a no expression
+   * @param {ParserHelper} helper
+   * @returns {NoExpression | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchToken("no")) return;
+    var root = helper.requireElement("unaryExpression");
+    return new _NoExpression(root);
+  }
+  /**
+   * Op function for no expression
+   */
+  op(context2, val) {
+    return context2.meta.runtime.isEmpty(val);
+  }
+  /**
+   * Evaluate the no expression
+   * @param {Context} context
+   * @returns {boolean}
+   */
+  evaluate(context2) {
+    return context2.meta.runtime.unifiedEval(this, context2);
+  }
+};
+var SomeExpression = class _SomeExpression {
+  constructor(root) {
+    this.type = "noExpression";
+    this.root = root;
+    this.args = [root];
+  }
+  /**
+   * Parse a some expression
+   * @param {ParserHelper} helper
+   * @returns {SomeExpression | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchToken("some")) return;
+    var root = helper.requireElement("expression");
+    return new _SomeExpression(root);
+  }
+  /**
+   * Op function for some expression
+   */
+  op(context2, val) {
+    return !context2.meta.runtime.isEmpty(val);
+  }
+  /**
+   * Evaluate the some expression
+   * @param {Context} context
+   * @returns {boolean}
+   */
+  evaluate(context2) {
+    return context2.meta.runtime.unifiedEval(this, context2);
+  }
+};
+
 // src/grammars/core.js
 function hyperscriptCoreGrammar(parser) {
   parser.addLeafExpression("parenthesized", ParenthesizedExpression.parse);
   parser.addLeafExpression("string", StringLiteral.parse);
-  parser.addGrammarElement("nakedString", function(helper) {
-    if (helper.hasMore()) {
-      var tokenArr = helper.consumeUntilWhitespace();
-      helper.matchTokenType("WHITESPACE");
-      return {
-        type: "nakedString",
-        tokens: tokenArr,
-        evaluate: function(context2) {
-          return tokenArr.map(function(t) {
-            return t.value;
-          }).join("");
-        }
-      };
-    }
-  });
+  parser.addGrammarElement("nakedString", NakedString.parse);
   parser.addLeafExpression("number", NumberLiteral.parse);
   parser.addLeafExpression("idRef", IdRef.parse);
   parser.addLeafExpression("classRef", ClassRef.parse);
@@ -2897,45 +3041,11 @@ function hyperscriptCoreGrammar(parser) {
       };
     }
   });
-  parser.addGrammarElement("implicitMeTarget", function(helper) {
-    return {
-      type: "implicitMeTarget",
-      evaluate: function(context2) {
-        return context2.you || context2.me;
-      }
-    };
-  });
+  parser.addGrammarElement("implicitMeTarget", ImplicitMeTarget.parse);
   parser.addLeafExpression("boolean", BooleanLiteral.parse);
   parser.addLeafExpression("null", NullLiteral.parse);
   parser.addLeafExpression("arrayLiteral", ArrayLiteral.parse);
-  parser.addLeafExpression("blockLiteral", function(helper) {
-    if (!helper.matchOpToken("\\")) return;
-    var args = [];
-    var arg1 = helper.matchTokenType("IDENTIFIER");
-    if (arg1) {
-      args.push(arg1);
-      while (helper.matchOpToken(",")) {
-        args.push(helper.requireTokenType("IDENTIFIER"));
-      }
-    }
-    helper.requireOpToken("-");
-    helper.requireOpToken(">");
-    var expr = helper.requireElement("expression");
-    return {
-      type: "blockLiteral",
-      args,
-      expr,
-      evaluate: function(ctx) {
-        var returnFunc = function() {
-          for (var i = 0; i < args.length; i++) {
-            ctx.locals[args[i].value] = arguments[i];
-          }
-          return expr.evaluate(ctx);
-        };
-        return returnFunc;
-      }
-    };
-  });
+  parser.addLeafExpression("blockLiteral", BlockLiteral.parse);
   parser.addIndirectExpression("propertyAccess", function(helper, root) {
     if (!helper.matchOpToken(".")) return;
     var prop = helper.requireTokenType("IDENTIFIER");
@@ -3332,36 +3442,8 @@ function hyperscriptCoreGrammar(parser) {
       }
     };
   });
-  parser.addGrammarElement("noExpression", function(helper) {
-    if (!helper.matchToken("no")) return;
-    var root = helper.requireElement("unaryExpression");
-    return {
-      type: "noExpression",
-      root,
-      args: [root],
-      op: function(context2, val) {
-        return context2.meta.runtime.isEmpty(val);
-      },
-      evaluate: function(context2) {
-        return context2.meta.runtime.unifiedEval(this, context2);
-      }
-    };
-  });
-  parser.addLeafExpression("some", function(helper) {
-    if (!helper.matchToken("some")) return;
-    var root = helper.requireElement("expression");
-    return {
-      type: "noExpression",
-      root,
-      args: [root],
-      op: function(context2, val) {
-        return !context2.meta.runtime.isEmpty(val);
-      },
-      evaluate(context2) {
-        return context2.meta.runtime.unifiedEval(this, context2);
-      }
-    };
-  });
+  parser.addGrammarElement("noExpression", NoExpression.parse);
+  parser.addLeafExpression("some", SomeExpression.parse);
   parser.addGrammarElement("negativeNumber", function(helper) {
     if (helper.matchOpToken("-")) {
       var root = helper.requireElement("negativeNumber");

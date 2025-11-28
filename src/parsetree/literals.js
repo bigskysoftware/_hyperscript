@@ -4,6 +4,45 @@
  */
 
 /**
+ * NakedString - Represents unquoted strings (consumed until whitespace)
+ *
+ * Parses: bareword text
+ * Returns: string value
+ */
+export class NakedString {
+    constructor(tokens) {
+        this.type = "nakedString";
+        this.tokens = tokens;
+    }
+
+    /**
+     * Parse a naked string (unquoted string until whitespace)
+     * @param {ParserHelper} helper
+     * @returns {NakedString | undefined}
+     */
+    static parse(helper) {
+        if (helper.hasMore()) {
+            var tokenArr = helper.consumeUntilWhitespace();
+            helper.matchTokenType("WHITESPACE");
+            return new NakedString(tokenArr);
+        }
+    }
+
+    /**
+     * Evaluate to joined token values
+     * @param {Context} context
+     * @returns {string}
+     */
+    evaluate(context) {
+        return this.tokens
+            .map(function (t) {
+                return t.value;
+            })
+            .join("");
+    }
+}
+
+/**
  * BooleanLiteral - Represents true/false keywords
  *
  * Parses: true | false
