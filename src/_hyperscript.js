@@ -6,10 +6,47 @@ import { Tokenizer, Tokens } from './core/tokenizer.js';
 import { LanguageKernel } from './core/kernel.js';
 import { Runtime, CookieJar } from './core/runtime.js';
 import { ElementCollection } from './core/runtime.js';
-import { config, conversions } from './core/config.js';
-import hyperscriptCoreGrammar from './grammars/core.js';
-import hyperscriptWebGrammar from './grammars/web.js';
+import { config, conversions, initWebConversions } from './core/config.js';
+
+// Expression imports
+import { IdRef, ClassRef, QueryRef, AttributeRef, StyleRef, StyleLiteral } from './parsetree/expressions/webliterals.js';
+import {
+    ParenthesizedExpression, BlockLiteral, NegativeNumber, LogicalNot, SymbolRef, BeepExpression,
+    PropertyAccess, OfExpression, PossessiveExpression, InExpression, AsExpression, FunctionCall,
+    AttributeRefAccess, ArrayIndex, MathOperator, MathExpression, ComparisonOperator,
+    ComparisonExpression, LogicalOperator, LogicalExpression, AsyncExpression, DotOrColonPath
+} from './parsetree/expressions/expressions.js';
+import {
+    NakedString, StringLiteral, NumberLiteral, BooleanLiteral, NullLiteral,
+    ArrayLiteral, ObjectKey, ObjectLiteral, NamedArgumentList
+} from './parsetree/expressions/literals.js';
+import { ImplicitMeTarget } from './parsetree/expressions/targets.js';
+import { NoExpression, SomeExpression } from './parsetree/expressions/existentials.js';
+import { RelativePositionalExpression, PositionalExpression, ClosestExpr } from './parsetree/expressions/positional.js';
 import { StringPostfixExpression, TimeExpression, TypeCheckExpression } from './parsetree/expressions/postfix.js';
+
+// Command imports
+import {
+    LogCommand, BeepCommand, ThrowCommand, ReturnCommand, ExitCommand, HaltCommand,
+    MakeCommand, AppendCommand, PickCommand, FetchCommand, GoCommand
+} from './parsetree/commands/basic.js';
+import { SetCommand, DefaultCommand, IncrementCommand, DecrementCommand, PutCommand } from './parsetree/commands/setters.js';
+import { WaitCommand, TriggerCommand, SendCommand, EventName } from './parsetree/commands/events.js';
+import { IfCommand, RepeatCommand, ForCommand, ContinueCommand, BreakCommand, TellCommand } from './parsetree/commands/controlflow.js';
+import { JsBody, JsCommand, AsyncCommand, CallCommand, GetCommand } from './parsetree/commands/execution.js';
+import { PseudoCommand } from './parsetree/commands/pseudoCommand.js';
+import { AddCommand, RemoveCommand, ToggleCommand, HideCommand, ShowCommand, TakeCommand, MeasureCommand } from './parsetree/commands/dom.js';
+import { SettleCommand, TransitionCommand } from './parsetree/commands/animations.js';
+
+// Feature imports
+import { SetFeature } from './parsetree/features/set.js';
+import { InitFeature } from './parsetree/features/init.js';
+import { WorkerFeature } from './parsetree/features/worker.js';
+import { BehaviorFeature } from './parsetree/features/behavior.js';
+import { InstallFeature } from './parsetree/features/install.js';
+import { JsFeature } from './parsetree/features/js.js';
+import { DefFeature } from './parsetree/features/def.js';
+import { OnFeature } from './parsetree/features/on.js';
 
 const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'undefined' ? global : this);
 
@@ -51,10 +88,131 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
     const kernel_ = new LanguageKernel();
     // Add runtime to kernel for backward compatibility with grammar code
     kernel_.runtime = runtime_;
-    hyperscriptCoreGrammar(kernel_);
-    hyperscriptWebGrammar(kernel_);
 
-    // Inline grammar elements (will eventually move to kernel)
+    // ===== Core Grammar Registration =====
+    // Expression grammar elements
+    kernel_.addLeafExpression("parenthesized", ParenthesizedExpression.parse);
+    kernel_.addLeafExpression("string", StringLiteral.parse);
+    kernel_.addGrammarElement("nakedString", NakedString.parse);
+    kernel_.addLeafExpression("number", NumberLiteral.parse);
+    kernel_.addLeafExpression("idRef", IdRef.parse);
+    kernel_.addLeafExpression("classRef", ClassRef.parse);
+    kernel_.addLeafExpression("queryRef", QueryRef.parse);
+    kernel_.addLeafExpression("attributeRef", AttributeRef.parse);
+    kernel_.addLeafExpression("styleRef", StyleRef.parse);
+    kernel_.addGrammarElement("objectKey", ObjectKey.parse);
+    kernel_.addLeafExpression("objectLiteral", ObjectLiteral.parse);
+    kernel_.addGrammarElement("nakedNamedArgumentList", NamedArgumentList.parseNaked);
+    kernel_.addGrammarElement("namedArgumentList", NamedArgumentList.parse);
+    kernel_.addGrammarElement("symbol", SymbolRef.parse);
+    kernel_.addGrammarElement("implicitMeTarget", ImplicitMeTarget.parse);
+    kernel_.addLeafExpression("boolean", BooleanLiteral.parse);
+    kernel_.addLeafExpression("null", NullLiteral.parse);
+    kernel_.addLeafExpression("arrayLiteral", ArrayLiteral.parse);
+    kernel_.addLeafExpression("blockLiteral", BlockLiteral.parse);
+    kernel_.addIndirectExpression("propertyAccess", PropertyAccess.parse);
+    kernel_.addIndirectExpression("of", OfExpression.parse);
+    kernel_.addIndirectExpression("possessive", PossessiveExpression.parse);
+    kernel_.addIndirectExpression("inExpression", InExpression.parse);
+    kernel_.addIndirectExpression("asExpression", AsExpression.parse);
+    kernel_.addIndirectExpression("functionCall", FunctionCall.parse);
+    kernel_.addIndirectExpression("attributeRefAccess", AttributeRefAccess.parse);
+    kernel_.addIndirectExpression("arrayIndex", ArrayIndex.parse);
+    kernel_.addGrammarElement("logicalNot", LogicalNot.parse);
+    kernel_.addGrammarElement("noExpression", NoExpression.parse);
+    kernel_.addLeafExpression("some", SomeExpression.parse);
+    kernel_.addGrammarElement("negativeNumber", NegativeNumber.parse);
+    kernel_.addGrammarElement("beepExpression", BeepExpression.parse);
+    kernel_.addGrammarElement("relativePositionalExpression", RelativePositionalExpression.parse);
+    kernel_.addGrammarElement("positionalExpression", PositionalExpression.parse);
+    kernel_.addGrammarElement("mathOperator", MathOperator.parse);
+    kernel_.addGrammarElement("mathExpression", MathExpression.parse);
+    kernel_.addGrammarElement("comparisonOperator", ComparisonOperator.parse);
+    kernel_.addGrammarElement("comparisonExpression", ComparisonExpression.parse);
+    kernel_.addGrammarElement("logicalOperator", LogicalOperator.parse);
+    kernel_.addGrammarElement("logicalExpression", LogicalExpression.parse);
+    kernel_.addGrammarElement("asyncExpression", AsyncExpression.parse);
+    kernel_.addGrammarElement("dotOrColonPath", DotOrColonPath.parse);
+    kernel_.addGrammarElement("eventName", EventName.parse);
+
+    // Features
+    kernel_.addFeature("on", function (parser) {
+        return OnFeature.parse(parser, kernel_);
+    });
+    kernel_.addFeature("def", function (parser) {
+        return DefFeature.parse(parser, kernel_);
+    });
+    kernel_.addFeature("set", function (parser) {
+        return SetFeature.parse(parser, kernel_);
+    });
+    kernel_.addFeature("init", function (parser) {
+        return InitFeature.parse(parser, kernel_);
+    });
+    kernel_.addFeature("worker", WorkerFeature.parse);
+    kernel_.addFeature("behavior", BehaviorFeature.parse);
+    kernel_.addFeature("install", InstallFeature.parse);
+    kernel_.addGrammarElement("jsBody", JsBody.parse);
+    kernel_.addFeature("js", JsFeature.parse);
+
+    // Commands
+    kernel_.addCommand("js", JsCommand.parse);
+    kernel_.addCommand("async", AsyncCommand.parse);
+    kernel_.addCommand("tell", TellCommand.parse);
+    kernel_.addCommand("wait", WaitCommand.parse);
+    kernel_.addCommand("trigger", TriggerCommand.parse);
+    kernel_.addCommand("send", SendCommand.parse);
+    kernel_.addCommand("return", ReturnCommand.parse);
+    kernel_.addCommand("exit", ExitCommand.parse);
+    kernel_.addCommand("halt", HaltCommand.parse);
+    kernel_.addCommand("log", LogCommand.parse);
+    kernel_.addCommand("beep!", BeepCommand.parse);
+    kernel_.addCommand("throw", ThrowCommand.parse);
+    kernel_.addCommand("call", CallCommand.parse);
+    kernel_.addCommand("get", GetCommand.parse);
+    kernel_.addCommand("make", MakeCommand.parse);
+    kernel_.addGrammarElement("pseudoCommand", PseudoCommand.parse);
+    kernel_.addCommand("default", DefaultCommand.parse);
+    kernel_.addCommand("set", SetCommand.parse);
+    kernel_.addCommand("if", IfCommand.parse);
+    kernel_.addCommand("repeat", RepeatCommand.parse);
+    kernel_.addCommand("for", ForCommand.parse);
+    kernel_.addCommand("continue", ContinueCommand.parse);
+    kernel_.addCommand("break", BreakCommand.parse);
+    kernel_.addCommand("append", AppendCommand.parse);
+    kernel_.addCommand("pick", PickCommand.parse);
+    kernel_.addCommand("increment", IncrementCommand.parse);
+    kernel_.addCommand("decrement", DecrementCommand.parse);
+    kernel_.addCommand("fetch", FetchCommand.parse);
+
+    // ===== Web Grammar Registration =====
+    kernel_.addCommand("settle", SettleCommand.parse);
+    kernel_.addCommand("add", AddCommand.parse);
+    kernel_.addGrammarElement("styleLiteral", StyleLiteral.parse);
+    kernel_.addCommand("remove", RemoveCommand.parse);
+    kernel_.addCommand("toggle", function (parser) {
+        return ToggleCommand.parse(parser, kernel_, config);
+    });
+    kernel_.addCommand("hide", function (parser) {
+        return HideCommand.parse(parser, kernel_, config);
+    });
+    kernel_.addCommand("show", function (parser) {
+        return ShowCommand.parse(parser, kernel_, config);
+    });
+    kernel_.addCommand("take", TakeCommand.parse);
+    kernel_.addCommand("put", function (parser) {
+        return PutCommand.parse(parser, kernel_);
+    });
+    kernel_.addCommand("transition", function (parser) {
+        return TransitionCommand.parse(parser, config);
+    });
+    kernel_.addCommand("measure", MeasureCommand.parse);
+    kernel_.addLeafExpression("closestExpr", ClosestExpr.parse);
+    kernel_.addCommand("go", GoCommand.parse);
+
+    // Initialize web-specific conversions
+    initWebConversions(runtime_);
+
+    // ===== Inline grammar elements (will eventually move to kernel) =====
     kernel_.addGrammarElement("postfixExpression", function (parser) {
         var root = parser.parseElement("negativeNumber");
         return StringPostfixExpression.parse(parser, root) ||

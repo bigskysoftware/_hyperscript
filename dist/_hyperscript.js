@@ -6417,737 +6417,6 @@ var PseudoCommand = class {
   }
 };
 
-// src/parsetree/features/set.js
-var SetFeature = class {
-  /**
-   * Parse set feature
-   * @param {Parser} parser
-   * @param {LanguageKernel} kernel
-   * @returns {SetFeature | undefined}
-   */
-  static parse(parser, kernel) {
-    let setCmd = parser.parseElement("setCommand");
-    if (setCmd) {
-      if (setCmd.target.scope !== "element") {
-        parser.raiseParseError("variables declared at the feature level must be element scoped.");
-      }
-      let setFeature = {
-        start: setCmd,
-        install: function(target, source, args, runtime) {
-          setCmd && setCmd.execute(runtime.makeContext(target, setFeature, target, null));
-        }
-      };
-      kernel.ensureTerminated(setCmd);
-      return setFeature;
-    }
-  }
-};
-
-// src/parsetree/features/init.js
-var InitFeature = class {
-  /**
-   * Parse init feature
-   * @param {Parser} parser
-   * @param {LanguageKernel} kernel
-   * @returns {InitFeature | undefined}
-   */
-  static parse(parser, kernel) {
-    if (!parser.matchToken("init")) return;
-    var immediately = parser.matchToken("immediately");
-    var start = parser.requireElement("commandList");
-    var initFeature = {
-      start,
-      install: function(target, source, args, runtime) {
-        let handler = function() {
-          start && start.execute(runtime.makeContext(target, initFeature, target, null));
-        };
-        if (immediately) {
-          handler();
-        } else {
-          setTimeout(handler, 0);
-        }
-      }
-    };
-    kernel.ensureTerminated(start);
-    parser.setParent(start, initFeature);
-    return initFeature;
-  }
-};
-
-// src/parsetree/features/worker.js
-var WorkerFeature = class {
-  /**
-   * Parse worker feature
-   * @param {Parser} parser
-   * @returns {WorkerFeature | undefined}
-   */
-  static parse(parser) {
-    if (parser.matchToken("worker")) {
-      parser.raiseParseError(
-        "In order to use the 'worker' feature, include the _hyperscript worker plugin. See https://hyperscript.org/features/worker/ for more info."
-      );
-      return void 0;
-    }
-  }
-};
-
-// src/parsetree/features/behavior.js
-var BehaviorFeature = class {
-  /**
-   * Parse behavior feature
-   * @param {Parser} parser
-   * @returns {BehaviorFeature | undefined}
-   */
-  static parse(parser) {
-    if (!parser.matchToken("behavior")) return;
-    var path = parser.requireElement("dotOrColonPath").evaluate();
-    var nameSpace = path.split(".");
-    var name = nameSpace.pop();
-    var formalParams = [];
-    if (parser.matchOpToken("(") && !parser.matchOpToken(")")) {
-      do {
-        formalParams.push(parser.requireTokenType("IDENTIFIER").value);
-      } while (parser.matchOpToken(","));
-      parser.requireOpToken(")");
-    }
-    var hs = parser.requireElement("hyperscript");
-    for (var i = 0; i < hs.features.length; i++) {
-      var feature = hs.features[i];
-      feature.behavior = path;
-    }
-    return {
-      install: function(target, source, args, runtime) {
-        runtime.assignToNamespace(
-          runtime.globalScope.document && runtime.globalScope.document.body,
-          nameSpace,
-          name,
-          function(target2, source2, innerArgs) {
-            var internalData = runtime.getInternalData(target2);
-            var elementScope = getOrInitObject(internalData, path + "Scope");
-            for (var i2 = 0; i2 < formalParams.length; i2++) {
-              elementScope[formalParams[i2]] = innerArgs[formalParams[i2]];
-            }
-            hs.apply(target2, source2, null, runtime);
-          }
-        );
-      }
-    };
-  }
-};
-
-// src/parsetree/features/install.js
-var InstallFeature = class {
-  /**
-   * Parse install feature
-   * @param {Parser} parser
-   * @returns {InstallFeature | undefined}
-   */
-  static parse(parser) {
-    if (!parser.matchToken("install")) return;
-    var behaviorPath = parser.requireElement("dotOrColonPath").evaluate();
-    var behaviorNamespace = behaviorPath.split(".");
-    var args = parser.parseElement("namedArgumentList");
-    var installFeature;
-    return installFeature = {
-      install: function(target, source, installArgs, runtime) {
-        runtime.unifiedEval(
-          {
-            args: [args],
-            op: function(ctx, args2) {
-              var behavior = runtime.globalScope;
-              for (var i = 0; i < behaviorNamespace.length; i++) {
-                behavior = behavior[behaviorNamespace[i]];
-                if (typeof behavior !== "object" && typeof behavior !== "function")
-                  throw new Error("No such behavior defined as " + behaviorPath);
-              }
-              if (!(behavior instanceof Function))
-                throw new Error(behaviorPath + " is not a behavior");
-              behavior(target, source, args2);
-            }
-          },
-          runtime.makeContext(target, installFeature, target, null)
-        );
-      }
-    };
-  }
-};
-
-// src/parsetree/features/js.js
-var JsFeature = class {
-  /**
-   * Parse js feature
-   * @param {Parser} parser
-   * @returns {JsFeature | undefined}
-   */
-  static parse(parser) {
-    if (!parser.matchToken("js")) return;
-    var jsBody = parser.requireElement("jsBody");
-    var jsSource = jsBody.jsSource + "\nreturn { " + jsBody.exposedFunctionNames.map(function(name) {
-      return name + ":" + name;
-    }).join(",") + " } ";
-    var func = new Function(jsSource);
-    return {
-      jsSource,
-      function: func,
-      exposedFunctionNames: jsBody.exposedFunctionNames,
-      install: function(target, source, args, runtime) {
-        Object.assign(runtime.globalScope, func());
-      }
-    };
-  }
-};
-
-// src/parsetree/features/def.js
-var DefFeature = class {
-  /**
-   * Parse def feature
-   * @param {Parser} parser
-   * @param {LanguageKernel} parser
-   * @returns {DefFeature | undefined}
-   */
-  static parse(parser, kernel) {
-    if (!parser.matchToken("def")) return;
-    var functionName = parser.requireElement("dotOrColonPath");
-    var nameVal = functionName.evaluate();
-    var nameSpace = nameVal.split(".");
-    var funcName = nameSpace.pop();
-    var args = [];
-    if (parser.matchOpToken("(")) {
-      if (parser.matchOpToken(")")) {
-      } else {
-        do {
-          args.push(parser.requireTokenType("IDENTIFIER"));
-        } while (parser.matchOpToken(","));
-        parser.requireOpToken(")");
-      }
-    }
-    var start = parser.requireElement("commandList");
-    var errorSymbol, errorHandler;
-    if (parser.matchToken("catch")) {
-      errorSymbol = parser.requireTokenType("IDENTIFIER").value;
-      errorHandler = parser.parseElement("commandList");
-    }
-    if (parser.matchToken("finally")) {
-      var finallyHandler = parser.requireElement("commandList");
-      kernel.ensureTerminated(finallyHandler);
-    }
-    var functionFeature = {
-      displayName: funcName + "(" + args.map(function(arg) {
-        return arg.value;
-      }).join(", ") + ")",
-      name: funcName,
-      args,
-      start,
-      errorHandler,
-      errorSymbol,
-      finallyHandler,
-      install: function(target, source, funcArgs, runtime) {
-        var func = function() {
-          var ctx = runtime.makeContext(source, functionFeature, target, null);
-          ctx.meta.errorHandler = errorHandler;
-          ctx.meta.errorSymbol = errorSymbol;
-          ctx.meta.finallyHandler = finallyHandler;
-          for (var i = 0; i < args.length; i++) {
-            var name = args[i];
-            var argumentVal = arguments[i];
-            if (name) {
-              ctx.locals[name.value] = argumentVal;
-            }
-          }
-          ctx.meta.caller = arguments[args.length];
-          if (ctx.meta.caller) {
-            ctx.meta.callingCommand = ctx.meta.caller.meta.command;
-          }
-          var resolve, reject = null;
-          var promise = new Promise(function(theResolve, theReject) {
-            resolve = theResolve;
-            reject = theReject;
-          });
-          start.execute(ctx);
-          if (ctx.meta.returned) {
-            return ctx.meta.returnValue;
-          } else {
-            ctx.meta.resolve = resolve;
-            ctx.meta.reject = reject;
-            return promise;
-          }
-        };
-        func.hyperfunc = true;
-        func.hypername = nameVal;
-        runtime.assignToNamespace(target, nameSpace, funcName, func);
-      }
-    };
-    kernel.ensureTerminated(start);
-    if (errorHandler) {
-      kernel.ensureTerminated(errorHandler);
-    }
-    parser.setParent(start, functionFeature);
-    return functionFeature;
-  }
-};
-
-// src/parsetree/features/on.js
-function parseEventArgs2(parser) {
-  var args = [];
-  if (parser.token(0).value === "(" && (parser.token(1).value === ")" || parser.token(2).value === "," || parser.token(2).value === ")")) {
-    parser.matchOpToken("(");
-    do {
-      args.push(parser.requireTokenType("IDENTIFIER"));
-    } while (parser.matchOpToken(","));
-    parser.requireOpToken(")");
-  }
-  return args;
-}
-var OnFeature = class {
-  /**
-   * Parse on feature
-   * @param {Parser} parser
-   * @param {LanguageKernel} kernel
-   * @returns {OnFeature | undefined}
-   */
-  static parse(parser, kernel) {
-    if (!parser.matchToken("on")) return;
-    var every = false;
-    if (parser.matchToken("every")) {
-      every = true;
-    }
-    var events = [];
-    var displayName = null;
-    do {
-      var on = parser.requireElement("eventName", "Expected event name");
-      var eventName = on.evaluate();
-      if (displayName) {
-        displayName = displayName + " or " + eventName;
-      } else {
-        displayName = "on " + eventName;
-      }
-      var args = parseEventArgs2(parser);
-      var filter = null;
-      if (parser.matchOpToken("[")) {
-        filter = parser.requireElement("expression");
-        parser.requireOpToken("]");
-      }
-      var startCount, endCount, unbounded;
-      if (parser.currentToken().type === "NUMBER") {
-        var startCountToken = parser.consumeToken();
-        if (!startCountToken.value) return;
-        startCount = parseInt(startCountToken.value);
-        if (parser.matchToken("to")) {
-          var endCountToken = parser.consumeToken();
-          if (!endCountToken.value) return;
-          endCount = parseInt(endCountToken.value);
-        } else if (parser.matchToken("and")) {
-          unbounded = true;
-          parser.requireToken("on");
-        }
-      }
-      var intersectionSpec, mutationSpec;
-      if (eventName === "intersection") {
-        intersectionSpec = {};
-        if (parser.matchToken("with")) {
-          intersectionSpec["with"] = parser.requireElement("expression").evaluate();
-        }
-        if (parser.matchToken("having")) {
-          do {
-            if (parser.matchToken("margin")) {
-              intersectionSpec["rootMargin"] = parser.requireElement("stringLike").evaluate();
-            } else if (parser.matchToken("threshold")) {
-              intersectionSpec["threshold"] = parser.requireElement("expression").evaluate();
-            } else {
-              parser.raiseParseError("Unknown intersection config specification");
-            }
-          } while (parser.matchToken("and"));
-        }
-      } else if (eventName === "mutation") {
-        mutationSpec = {};
-        if (parser.matchToken("of")) {
-          do {
-            if (parser.matchToken("anything")) {
-              mutationSpec["attributes"] = true;
-              mutationSpec["subtree"] = true;
-              mutationSpec["characterData"] = true;
-              mutationSpec["childList"] = true;
-            } else if (parser.matchToken("childList")) {
-              mutationSpec["childList"] = true;
-            } else if (parser.matchToken("attributes")) {
-              mutationSpec["attributes"] = true;
-              mutationSpec["attributeOldValue"] = true;
-            } else if (parser.matchToken("subtree")) {
-              mutationSpec["subtree"] = true;
-            } else if (parser.matchToken("characterData")) {
-              mutationSpec["characterData"] = true;
-              mutationSpec["characterDataOldValue"] = true;
-            } else if (parser.currentToken().type === "ATTRIBUTE_REF") {
-              var attribute = parser.consumeToken();
-              if (mutationSpec["attributeFilter"] == null) {
-                mutationSpec["attributeFilter"] = [];
-              }
-              if (attribute.value.indexOf("@") == 0) {
-                mutationSpec["attributeFilter"].push(attribute.value.substring(1));
-              } else {
-                parser.raiseParseError(
-                  "Only shorthand attribute references are allowed here"
-                );
-              }
-            } else {
-              parser.raiseParseError("Unknown mutation config specification");
-            }
-          } while (parser.matchToken("or"));
-        } else {
-          mutationSpec["attributes"] = true;
-          mutationSpec["characterData"] = true;
-          mutationSpec["childList"] = true;
-        }
-      }
-      var from = null;
-      var elsewhere = false;
-      if (parser.matchToken("from")) {
-        if (parser.matchToken("elsewhere")) {
-          elsewhere = true;
-        } else {
-          parser.pushFollow("or");
-          try {
-            from = parser.requireElement("expression");
-          } finally {
-            parser.popFollow();
-          }
-          if (!from) {
-            parser.raiseParseError('Expected either target value or "elsewhere".');
-          }
-        }
-      }
-      if (from === null && elsewhere === false && parser.matchToken("elsewhere")) {
-        elsewhere = true;
-      }
-      if (parser.matchToken("in")) {
-        var inExpr = parser.parseElement("unaryExpression");
-      }
-      if (parser.matchToken("debounced")) {
-        parser.requireToken("at");
-        var timeExpr = parser.requireElement("unaryExpression");
-        var debounceTime = timeExpr.evaluate({});
-      } else if (parser.matchToken("throttled")) {
-        parser.requireToken("at");
-        var timeExpr = parser.requireElement("unaryExpression");
-        var throttleTime = timeExpr.evaluate({});
-      }
-      events.push({
-        execCount: 0,
-        every,
-        on: eventName,
-        args,
-        filter,
-        from,
-        inExpr,
-        elsewhere,
-        startCount,
-        endCount,
-        unbounded,
-        debounceTime,
-        throttleTime,
-        mutationSpec,
-        intersectionSpec,
-        debounced: void 0,
-        lastExec: void 0
-      });
-    } while (parser.matchToken("or"));
-    var queueLast = true;
-    if (!every) {
-      if (parser.matchToken("queue")) {
-        if (parser.matchToken("all")) {
-          var queueAll = true;
-          var queueLast = false;
-        } else if (parser.matchToken("first")) {
-          var queueFirst = true;
-        } else if (parser.matchToken("none")) {
-          var queueNone = true;
-        } else {
-          parser.requireToken("last");
-        }
-      }
-    }
-    var start = parser.requireElement("commandList");
-    kernel.ensureTerminated(start);
-    var errorSymbol, errorHandler;
-    if (parser.matchToken("catch")) {
-      errorSymbol = parser.requireTokenType("IDENTIFIER").value;
-      errorHandler = parser.requireElement("commandList");
-      kernel.ensureTerminated(errorHandler);
-    }
-    if (parser.matchToken("finally")) {
-      var finallyHandler = parser.requireElement("commandList");
-      kernel.ensureTerminated(finallyHandler);
-    }
-    var onFeature = {
-      displayName,
-      events,
-      start,
-      every,
-      execCount: 0,
-      errorHandler,
-      errorSymbol,
-      execute: function(ctx) {
-        let eventQueueInfo = ctx.meta.runtime.getEventQueueFor(ctx.me, onFeature);
-        if (eventQueueInfo.executing && every === false) {
-          if (queueNone || queueFirst && eventQueueInfo.queue.length > 0) {
-            return;
-          }
-          if (queueLast) {
-            eventQueueInfo.queue.length = 0;
-          }
-          eventQueueInfo.queue.push(ctx);
-          return;
-        }
-        onFeature.execCount++;
-        eventQueueInfo.executing = true;
-        ctx.meta.onHalt = function() {
-          eventQueueInfo.executing = false;
-          var queued = eventQueueInfo.queue.shift();
-          if (queued) {
-            setTimeout(function() {
-              onFeature.execute(queued);
-            }, 1);
-          }
-        };
-        ctx.meta.reject = function(err) {
-          console.error(err.message ? err.message : err);
-          console.error(err.stack);
-          var hypertrace = ctx.meta.runtime.getHyperTrace(ctx, err);
-          if (hypertrace) {
-            hypertrace.print();
-          }
-          ctx.meta.runtime.triggerEvent(ctx.me, "exception", {
-            error: err
-          });
-        };
-        start.execute(ctx);
-      },
-      install: function(elt, source, args2, runtime) {
-        for (const eventSpec of onFeature.events) {
-          var targets;
-          if (eventSpec.elsewhere) {
-            targets = [document];
-          } else if (eventSpec.from) {
-            targets = eventSpec.from.evaluate(runtime.makeContext(elt, onFeature, elt, null));
-          } else {
-            targets = [elt];
-          }
-          runtime.implicitLoop(targets, function(target) {
-            var eventName2 = eventSpec.on;
-            if (target == null) {
-              console.warn("'%s' feature ignored because target does not exists:", displayName, elt);
-              return;
-            }
-            if (eventSpec.mutationSpec) {
-              eventName2 = "hyperscript:mutation";
-              const observer = new MutationObserver(function(mutationList, observer2) {
-                if (!onFeature.executing) {
-                  runtime.triggerEvent(target, eventName2, {
-                    mutationList,
-                    observer: observer2
-                  });
-                }
-              });
-              observer.observe(target, eventSpec.mutationSpec);
-            }
-            if (eventSpec.intersectionSpec) {
-              eventName2 = "hyperscript:intersection";
-              const observer = new IntersectionObserver(function(entries) {
-                for (const entry of entries) {
-                  var detail = {
-                    observer
-                  };
-                  detail = Object.assign(detail, entry);
-                  detail["intersecting"] = entry.isIntersecting;
-                  runtime.triggerEvent(target, eventName2, detail);
-                }
-              }, eventSpec.intersectionSpec);
-              observer.observe(target);
-            }
-            var addEventListener = target.addEventListener || target.on;
-            addEventListener.call(target, eventName2, function listener(evt) {
-              if (typeof Node !== "undefined" && elt instanceof Node && target !== elt && !elt.isConnected) {
-                target.removeEventListener(eventName2, listener);
-                return;
-              }
-              var ctx = runtime.makeContext(elt, onFeature, elt, evt);
-              if (eventSpec.elsewhere && elt.contains(evt.target)) {
-                return;
-              }
-              if (eventSpec.from) {
-                ctx.result = target;
-              }
-              for (const arg of eventSpec.args) {
-                let eventValue = ctx.event[arg.value];
-                if (eventValue !== void 0) {
-                  ctx.locals[arg.value] = eventValue;
-                } else if ("detail" in ctx.event) {
-                  ctx.locals[arg.value] = ctx.event["detail"][arg.value];
-                }
-              }
-              ctx.meta.errorHandler = errorHandler;
-              ctx.meta.errorSymbol = errorSymbol;
-              ctx.meta.finallyHandler = finallyHandler;
-              if (eventSpec.filter) {
-                var initialCtx = ctx.meta.context;
-                ctx.meta.context = ctx.event;
-                try {
-                  var value = eventSpec.filter.evaluate(ctx);
-                  if (value) {
-                  } else {
-                    return;
-                  }
-                } finally {
-                  ctx.meta.context = initialCtx;
-                }
-              }
-              if (eventSpec.inExpr) {
-                var inElement = evt.target;
-                while (true) {
-                  if (inElement.matches && inElement.matches(eventSpec.inExpr.css)) {
-                    ctx.result = inElement;
-                    break;
-                  } else {
-                    inElement = inElement.parentElement;
-                    if (inElement == null) {
-                      return;
-                    }
-                  }
-                }
-              }
-              eventSpec.execCount++;
-              if (eventSpec.startCount) {
-                if (eventSpec.endCount) {
-                  if (eventSpec.execCount < eventSpec.startCount || eventSpec.execCount > eventSpec.endCount) {
-                    return;
-                  }
-                } else if (eventSpec.unbounded) {
-                  if (eventSpec.execCount < eventSpec.startCount) {
-                    return;
-                  }
-                } else if (eventSpec.execCount !== eventSpec.startCount) {
-                  return;
-                }
-              }
-              if (eventSpec.debounceTime) {
-                if (eventSpec.debounced) {
-                  clearTimeout(eventSpec.debounced);
-                }
-                eventSpec.debounced = setTimeout(function() {
-                  onFeature.execute(ctx);
-                }, eventSpec.debounceTime);
-                return;
-              }
-              if (eventSpec.throttleTime) {
-                if (eventSpec.lastExec && Date.now() < eventSpec.lastExec + eventSpec.throttleTime) {
-                  return;
-                } else {
-                  eventSpec.lastExec = Date.now();
-                }
-              }
-              onFeature.execute(ctx);
-            });
-          });
-        }
-      }
-    };
-    parser.setParent(start, onFeature);
-    return onFeature;
-  }
-};
-
-// src/grammars/core.js
-function hyperscriptCoreGrammar(kernel) {
-  kernel.addLeafExpression("parenthesized", ParenthesizedExpression.parse);
-  kernel.addLeafExpression("string", StringLiteral.parse);
-  kernel.addGrammarElement("nakedString", NakedString.parse);
-  kernel.addLeafExpression("number", NumberLiteral.parse);
-  kernel.addLeafExpression("idRef", IdRef.parse);
-  kernel.addLeafExpression("classRef", ClassRef.parse);
-  kernel.addLeafExpression("queryRef", QueryRef.parse);
-  kernel.addLeafExpression("attributeRef", AttributeRef.parse);
-  kernel.addLeafExpression("styleRef", StyleRef.parse);
-  kernel.addGrammarElement("objectKey", ObjectKey.parse);
-  kernel.addLeafExpression("objectLiteral", ObjectLiteral.parse);
-  kernel.addGrammarElement("nakedNamedArgumentList", NamedArgumentList.parseNaked);
-  kernel.addGrammarElement("namedArgumentList", NamedArgumentList.parse);
-  kernel.addGrammarElement("symbol", SymbolRef.parse);
-  kernel.addGrammarElement("implicitMeTarget", ImplicitMeTarget.parse);
-  kernel.addLeafExpression("boolean", BooleanLiteral.parse);
-  kernel.addLeafExpression("null", NullLiteral.parse);
-  kernel.addLeafExpression("arrayLiteral", ArrayLiteral.parse);
-  kernel.addLeafExpression("blockLiteral", BlockLiteral.parse);
-  kernel.addIndirectExpression("propertyAccess", PropertyAccess.parse);
-  kernel.addIndirectExpression("of", OfExpression.parse);
-  kernel.addIndirectExpression("possessive", PossessiveExpression.parse);
-  kernel.addIndirectExpression("inExpression", InExpression.parse);
-  kernel.addIndirectExpression("asExpression", AsExpression.parse);
-  kernel.addIndirectExpression("functionCall", FunctionCall.parse);
-  kernel.addIndirectExpression("attributeRefAccess", AttributeRefAccess.parse);
-  kernel.addIndirectExpression("arrayIndex", ArrayIndex.parse);
-  kernel.addGrammarElement("logicalNot", LogicalNot.parse);
-  kernel.addGrammarElement("noExpression", NoExpression.parse);
-  kernel.addLeafExpression("some", SomeExpression.parse);
-  kernel.addGrammarElement("negativeNumber", NegativeNumber.parse);
-  kernel.addGrammarElement("beepExpression", BeepExpression.parse);
-  kernel.addGrammarElement("relativePositionalExpression", RelativePositionalExpression.parse);
-  kernel.addGrammarElement("positionalExpression", PositionalExpression.parse);
-  kernel.addGrammarElement("mathOperator", MathOperator.parse);
-  kernel.addGrammarElement("mathExpression", MathExpression.parse);
-  kernel.addGrammarElement("comparisonOperator", ComparisonOperator.parse);
-  kernel.addGrammarElement("comparisonExpression", ComparisonExpression.parse);
-  kernel.addGrammarElement("logicalOperator", LogicalOperator.parse);
-  kernel.addGrammarElement("logicalExpression", LogicalExpression.parse);
-  kernel.addGrammarElement("asyncExpression", AsyncExpression.parse);
-  kernel.addFeature("on", function(parser) {
-    return OnFeature.parse(parser, kernel);
-  });
-  kernel.addFeature("def", function(parser) {
-    return DefFeature.parse(parser, kernel);
-  });
-  kernel.addFeature("set", function(parser) {
-    return SetFeature.parse(parser, kernel);
-  });
-  kernel.addFeature("init", function(parser) {
-    return InitFeature.parse(parser, kernel);
-  });
-  kernel.addFeature("worker", WorkerFeature.parse);
-  kernel.addFeature("behavior", BehaviorFeature.parse);
-  kernel.addFeature("install", InstallFeature.parse);
-  kernel.addGrammarElement("jsBody", JsBody.parse);
-  kernel.addFeature("js", JsFeature.parse);
-  kernel.addCommand("js", JsCommand.parse);
-  kernel.addCommand("async", AsyncCommand.parse);
-  kernel.addCommand("tell", TellCommand.parse);
-  kernel.addCommand("wait", WaitCommand.parse);
-  kernel.addGrammarElement("dotOrColonPath", DotOrColonPath.parse);
-  kernel.addGrammarElement("eventName", EventName.parse);
-  kernel.addCommand("trigger", TriggerCommand.parse);
-  kernel.addCommand("send", SendCommand.parse);
-  kernel.addCommand("return", ReturnCommand.parse);
-  kernel.addCommand("exit", ExitCommand.parse);
-  kernel.addCommand("halt", HaltCommand.parse);
-  kernel.addCommand("log", LogCommand.parse);
-  kernel.addCommand("beep!", BeepCommand.parse);
-  kernel.addCommand("throw", ThrowCommand.parse);
-  kernel.addCommand("call", CallCommand.parse);
-  kernel.addCommand("get", GetCommand.parse);
-  kernel.addCommand("make", MakeCommand.parse);
-  kernel.addGrammarElement("pseudoCommand", PseudoCommand.parse);
-  kernel.addCommand("default", DefaultCommand.parse);
-  kernel.addCommand("set", SetCommand.parse);
-  kernel.addCommand("if", IfCommand.parse);
-  kernel.addCommand("repeat", RepeatCommand.parse);
-  kernel.addCommand("for", ForCommand.parse);
-  kernel.addCommand("continue", ContinueCommand.parse);
-  kernel.addCommand("break", BreakCommand.parse);
-  kernel.addCommand("append", AppendCommand.parse);
-  kernel.addCommand("pick", PickCommand.parse);
-  kernel.addCommand("increment", IncrementCommand.parse);
-  kernel.addCommand("decrement", DecrementCommand.parse);
-  kernel.addCommand("fetch", FetchCommand.parse);
-}
-
 // src/parsetree/commands/dom.js
 var HIDE_SHOW_STRATEGIES = {
   display: function(op, element, arg, kernel) {
@@ -7998,37 +7267,648 @@ var TransitionCommand = class {
   }
 };
 
-// src/grammars/web.js
-function hyperscriptWebGrammar(kernel) {
-  kernel.addCommand("settle", SettleCommand.parse);
-  kernel.addCommand("add", AddCommand.parse);
-  kernel.addGrammarElement("styleLiteral", StyleLiteral.parse);
-  kernel.addCommand("remove", RemoveCommand.parse);
-  kernel.addCommand("toggle", function(parser) {
-    return ToggleCommand.parse(parser, kernel, config);
-  });
-  kernel.addCommand("hide", function(parser) {
-    return HideCommand.parse(parser, kernel, config);
-  });
-  kernel.addCommand("show", function(parser) {
-    return ShowCommand.parse(parser, kernel, config);
-  });
-  kernel.addCommand("take", TakeCommand.parse);
-  kernel.addCommand("put", function(parser) {
-    return PutCommand.parse(parser, kernel);
-  });
-  kernel.addCommand("transition", function(parser) {
-    return TransitionCommand.parse(parser, config);
-  });
-  kernel.addCommand("measure", MeasureCommand.parse);
-  kernel.addLeafExpression("closestExpr", ClosestExpr.parse);
-  kernel.addCommand("go", GoCommand.parse);
-  initWebConversions(kernel.runtime);
+// src/parsetree/features/set.js
+var SetFeature = class {
+  /**
+   * Parse set feature
+   * @param {Parser} parser
+   * @param {LanguageKernel} kernel
+   * @returns {SetFeature | undefined}
+   */
+  static parse(parser, kernel) {
+    let setCmd = parser.parseElement("setCommand");
+    if (setCmd) {
+      if (setCmd.target.scope !== "element") {
+        parser.raiseParseError("variables declared at the feature level must be element scoped.");
+      }
+      let setFeature = {
+        start: setCmd,
+        install: function(target, source, args, runtime) {
+          setCmd && setCmd.execute(runtime.makeContext(target, setFeature, target, null));
+        }
+      };
+      kernel.ensureTerminated(setCmd);
+      return setFeature;
+    }
+  }
+};
+
+// src/parsetree/features/init.js
+var InitFeature = class {
+  /**
+   * Parse init feature
+   * @param {Parser} parser
+   * @param {LanguageKernel} kernel
+   * @returns {InitFeature | undefined}
+   */
+  static parse(parser, kernel) {
+    if (!parser.matchToken("init")) return;
+    var immediately = parser.matchToken("immediately");
+    var start = parser.requireElement("commandList");
+    var initFeature = {
+      start,
+      install: function(target, source, args, runtime) {
+        let handler = function() {
+          start && start.execute(runtime.makeContext(target, initFeature, target, null));
+        };
+        if (immediately) {
+          handler();
+        } else {
+          setTimeout(handler, 0);
+        }
+      }
+    };
+    kernel.ensureTerminated(start);
+    parser.setParent(start, initFeature);
+    return initFeature;
+  }
+};
+
+// src/parsetree/features/worker.js
+var WorkerFeature = class {
+  /**
+   * Parse worker feature
+   * @param {Parser} parser
+   * @returns {WorkerFeature | undefined}
+   */
+  static parse(parser) {
+    if (parser.matchToken("worker")) {
+      parser.raiseParseError(
+        "In order to use the 'worker' feature, include the _hyperscript worker plugin. See https://hyperscript.org/features/worker/ for more info."
+      );
+      return void 0;
+    }
+  }
+};
+
+// src/parsetree/features/behavior.js
+var BehaviorFeature = class {
+  /**
+   * Parse behavior feature
+   * @param {Parser} parser
+   * @returns {BehaviorFeature | undefined}
+   */
+  static parse(parser) {
+    if (!parser.matchToken("behavior")) return;
+    var path = parser.requireElement("dotOrColonPath").evaluate();
+    var nameSpace = path.split(".");
+    var name = nameSpace.pop();
+    var formalParams = [];
+    if (parser.matchOpToken("(") && !parser.matchOpToken(")")) {
+      do {
+        formalParams.push(parser.requireTokenType("IDENTIFIER").value);
+      } while (parser.matchOpToken(","));
+      parser.requireOpToken(")");
+    }
+    var hs = parser.requireElement("hyperscript");
+    for (var i = 0; i < hs.features.length; i++) {
+      var feature = hs.features[i];
+      feature.behavior = path;
+    }
+    return {
+      install: function(target, source, args, runtime) {
+        runtime.assignToNamespace(
+          runtime.globalScope.document && runtime.globalScope.document.body,
+          nameSpace,
+          name,
+          function(target2, source2, innerArgs) {
+            var internalData = runtime.getInternalData(target2);
+            var elementScope = getOrInitObject(internalData, path + "Scope");
+            for (var i2 = 0; i2 < formalParams.length; i2++) {
+              elementScope[formalParams[i2]] = innerArgs[formalParams[i2]];
+            }
+            hs.apply(target2, source2, null, runtime);
+          }
+        );
+      }
+    };
+  }
+};
+
+// src/parsetree/features/install.js
+var InstallFeature = class {
+  /**
+   * Parse install feature
+   * @param {Parser} parser
+   * @returns {InstallFeature | undefined}
+   */
+  static parse(parser) {
+    if (!parser.matchToken("install")) return;
+    var behaviorPath = parser.requireElement("dotOrColonPath").evaluate();
+    var behaviorNamespace = behaviorPath.split(".");
+    var args = parser.parseElement("namedArgumentList");
+    var installFeature;
+    return installFeature = {
+      install: function(target, source, installArgs, runtime) {
+        runtime.unifiedEval(
+          {
+            args: [args],
+            op: function(ctx, args2) {
+              var behavior = runtime.globalScope;
+              for (var i = 0; i < behaviorNamespace.length; i++) {
+                behavior = behavior[behaviorNamespace[i]];
+                if (typeof behavior !== "object" && typeof behavior !== "function")
+                  throw new Error("No such behavior defined as " + behaviorPath);
+              }
+              if (!(behavior instanceof Function))
+                throw new Error(behaviorPath + " is not a behavior");
+              behavior(target, source, args2);
+            }
+          },
+          runtime.makeContext(target, installFeature, target, null)
+        );
+      }
+    };
+  }
+};
+
+// src/parsetree/features/js.js
+var JsFeature = class {
+  /**
+   * Parse js feature
+   * @param {Parser} parser
+   * @returns {JsFeature | undefined}
+   */
+  static parse(parser) {
+    if (!parser.matchToken("js")) return;
+    var jsBody = parser.requireElement("jsBody");
+    var jsSource = jsBody.jsSource + "\nreturn { " + jsBody.exposedFunctionNames.map(function(name) {
+      return name + ":" + name;
+    }).join(",") + " } ";
+    var func = new Function(jsSource);
+    return {
+      jsSource,
+      function: func,
+      exposedFunctionNames: jsBody.exposedFunctionNames,
+      install: function(target, source, args, runtime) {
+        Object.assign(runtime.globalScope, func());
+      }
+    };
+  }
+};
+
+// src/parsetree/features/def.js
+var DefFeature = class {
+  /**
+   * Parse def feature
+   * @param {Parser} parser
+   * @param {LanguageKernel} parser
+   * @returns {DefFeature | undefined}
+   */
+  static parse(parser, kernel) {
+    if (!parser.matchToken("def")) return;
+    var functionName = parser.requireElement("dotOrColonPath");
+    var nameVal = functionName.evaluate();
+    var nameSpace = nameVal.split(".");
+    var funcName = nameSpace.pop();
+    var args = [];
+    if (parser.matchOpToken("(")) {
+      if (parser.matchOpToken(")")) {
+      } else {
+        do {
+          args.push(parser.requireTokenType("IDENTIFIER"));
+        } while (parser.matchOpToken(","));
+        parser.requireOpToken(")");
+      }
+    }
+    var start = parser.requireElement("commandList");
+    var errorSymbol, errorHandler;
+    if (parser.matchToken("catch")) {
+      errorSymbol = parser.requireTokenType("IDENTIFIER").value;
+      errorHandler = parser.parseElement("commandList");
+    }
+    if (parser.matchToken("finally")) {
+      var finallyHandler = parser.requireElement("commandList");
+      kernel.ensureTerminated(finallyHandler);
+    }
+    var functionFeature = {
+      displayName: funcName + "(" + args.map(function(arg) {
+        return arg.value;
+      }).join(", ") + ")",
+      name: funcName,
+      args,
+      start,
+      errorHandler,
+      errorSymbol,
+      finallyHandler,
+      install: function(target, source, funcArgs, runtime) {
+        var func = function() {
+          var ctx = runtime.makeContext(source, functionFeature, target, null);
+          ctx.meta.errorHandler = errorHandler;
+          ctx.meta.errorSymbol = errorSymbol;
+          ctx.meta.finallyHandler = finallyHandler;
+          for (var i = 0; i < args.length; i++) {
+            var name = args[i];
+            var argumentVal = arguments[i];
+            if (name) {
+              ctx.locals[name.value] = argumentVal;
+            }
+          }
+          ctx.meta.caller = arguments[args.length];
+          if (ctx.meta.caller) {
+            ctx.meta.callingCommand = ctx.meta.caller.meta.command;
+          }
+          var resolve, reject = null;
+          var promise = new Promise(function(theResolve, theReject) {
+            resolve = theResolve;
+            reject = theReject;
+          });
+          start.execute(ctx);
+          if (ctx.meta.returned) {
+            return ctx.meta.returnValue;
+          } else {
+            ctx.meta.resolve = resolve;
+            ctx.meta.reject = reject;
+            return promise;
+          }
+        };
+        func.hyperfunc = true;
+        func.hypername = nameVal;
+        runtime.assignToNamespace(target, nameSpace, funcName, func);
+      }
+    };
+    kernel.ensureTerminated(start);
+    if (errorHandler) {
+      kernel.ensureTerminated(errorHandler);
+    }
+    parser.setParent(start, functionFeature);
+    return functionFeature;
+  }
+};
+
+// src/parsetree/features/on.js
+function parseEventArgs2(parser) {
+  var args = [];
+  if (parser.token(0).value === "(" && (parser.token(1).value === ")" || parser.token(2).value === "," || parser.token(2).value === ")")) {
+    parser.matchOpToken("(");
+    do {
+      args.push(parser.requireTokenType("IDENTIFIER"));
+    } while (parser.matchOpToken(","));
+    parser.requireOpToken(")");
+  }
+  return args;
 }
+var OnFeature = class {
+  /**
+   * Parse on feature
+   * @param {Parser} parser
+   * @param {LanguageKernel} kernel
+   * @returns {OnFeature | undefined}
+   */
+  static parse(parser, kernel) {
+    if (!parser.matchToken("on")) return;
+    var every = false;
+    if (parser.matchToken("every")) {
+      every = true;
+    }
+    var events = [];
+    var displayName = null;
+    do {
+      var on = parser.requireElement("eventName", "Expected event name");
+      var eventName = on.evaluate();
+      if (displayName) {
+        displayName = displayName + " or " + eventName;
+      } else {
+        displayName = "on " + eventName;
+      }
+      var args = parseEventArgs2(parser);
+      var filter = null;
+      if (parser.matchOpToken("[")) {
+        filter = parser.requireElement("expression");
+        parser.requireOpToken("]");
+      }
+      var startCount, endCount, unbounded;
+      if (parser.currentToken().type === "NUMBER") {
+        var startCountToken = parser.consumeToken();
+        if (!startCountToken.value) return;
+        startCount = parseInt(startCountToken.value);
+        if (parser.matchToken("to")) {
+          var endCountToken = parser.consumeToken();
+          if (!endCountToken.value) return;
+          endCount = parseInt(endCountToken.value);
+        } else if (parser.matchToken("and")) {
+          unbounded = true;
+          parser.requireToken("on");
+        }
+      }
+      var intersectionSpec, mutationSpec;
+      if (eventName === "intersection") {
+        intersectionSpec = {};
+        if (parser.matchToken("with")) {
+          intersectionSpec["with"] = parser.requireElement("expression").evaluate();
+        }
+        if (parser.matchToken("having")) {
+          do {
+            if (parser.matchToken("margin")) {
+              intersectionSpec["rootMargin"] = parser.requireElement("stringLike").evaluate();
+            } else if (parser.matchToken("threshold")) {
+              intersectionSpec["threshold"] = parser.requireElement("expression").evaluate();
+            } else {
+              parser.raiseParseError("Unknown intersection config specification");
+            }
+          } while (parser.matchToken("and"));
+        }
+      } else if (eventName === "mutation") {
+        mutationSpec = {};
+        if (parser.matchToken("of")) {
+          do {
+            if (parser.matchToken("anything")) {
+              mutationSpec["attributes"] = true;
+              mutationSpec["subtree"] = true;
+              mutationSpec["characterData"] = true;
+              mutationSpec["childList"] = true;
+            } else if (parser.matchToken("childList")) {
+              mutationSpec["childList"] = true;
+            } else if (parser.matchToken("attributes")) {
+              mutationSpec["attributes"] = true;
+              mutationSpec["attributeOldValue"] = true;
+            } else if (parser.matchToken("subtree")) {
+              mutationSpec["subtree"] = true;
+            } else if (parser.matchToken("characterData")) {
+              mutationSpec["characterData"] = true;
+              mutationSpec["characterDataOldValue"] = true;
+            } else if (parser.currentToken().type === "ATTRIBUTE_REF") {
+              var attribute = parser.consumeToken();
+              if (mutationSpec["attributeFilter"] == null) {
+                mutationSpec["attributeFilter"] = [];
+              }
+              if (attribute.value.indexOf("@") == 0) {
+                mutationSpec["attributeFilter"].push(attribute.value.substring(1));
+              } else {
+                parser.raiseParseError(
+                  "Only shorthand attribute references are allowed here"
+                );
+              }
+            } else {
+              parser.raiseParseError("Unknown mutation config specification");
+            }
+          } while (parser.matchToken("or"));
+        } else {
+          mutationSpec["attributes"] = true;
+          mutationSpec["characterData"] = true;
+          mutationSpec["childList"] = true;
+        }
+      }
+      var from = null;
+      var elsewhere = false;
+      if (parser.matchToken("from")) {
+        if (parser.matchToken("elsewhere")) {
+          elsewhere = true;
+        } else {
+          parser.pushFollow("or");
+          try {
+            from = parser.requireElement("expression");
+          } finally {
+            parser.popFollow();
+          }
+          if (!from) {
+            parser.raiseParseError('Expected either target value or "elsewhere".');
+          }
+        }
+      }
+      if (from === null && elsewhere === false && parser.matchToken("elsewhere")) {
+        elsewhere = true;
+      }
+      if (parser.matchToken("in")) {
+        var inExpr = parser.parseElement("unaryExpression");
+      }
+      if (parser.matchToken("debounced")) {
+        parser.requireToken("at");
+        var timeExpr = parser.requireElement("unaryExpression");
+        var debounceTime = timeExpr.evaluate({});
+      } else if (parser.matchToken("throttled")) {
+        parser.requireToken("at");
+        var timeExpr = parser.requireElement("unaryExpression");
+        var throttleTime = timeExpr.evaluate({});
+      }
+      events.push({
+        execCount: 0,
+        every,
+        on: eventName,
+        args,
+        filter,
+        from,
+        inExpr,
+        elsewhere,
+        startCount,
+        endCount,
+        unbounded,
+        debounceTime,
+        throttleTime,
+        mutationSpec,
+        intersectionSpec,
+        debounced: void 0,
+        lastExec: void 0
+      });
+    } while (parser.matchToken("or"));
+    var queueLast = true;
+    if (!every) {
+      if (parser.matchToken("queue")) {
+        if (parser.matchToken("all")) {
+          var queueAll = true;
+          var queueLast = false;
+        } else if (parser.matchToken("first")) {
+          var queueFirst = true;
+        } else if (parser.matchToken("none")) {
+          var queueNone = true;
+        } else {
+          parser.requireToken("last");
+        }
+      }
+    }
+    var start = parser.requireElement("commandList");
+    kernel.ensureTerminated(start);
+    var errorSymbol, errorHandler;
+    if (parser.matchToken("catch")) {
+      errorSymbol = parser.requireTokenType("IDENTIFIER").value;
+      errorHandler = parser.requireElement("commandList");
+      kernel.ensureTerminated(errorHandler);
+    }
+    if (parser.matchToken("finally")) {
+      var finallyHandler = parser.requireElement("commandList");
+      kernel.ensureTerminated(finallyHandler);
+    }
+    var onFeature = {
+      displayName,
+      events,
+      start,
+      every,
+      execCount: 0,
+      errorHandler,
+      errorSymbol,
+      execute: function(ctx) {
+        let eventQueueInfo = ctx.meta.runtime.getEventQueueFor(ctx.me, onFeature);
+        if (eventQueueInfo.executing && every === false) {
+          if (queueNone || queueFirst && eventQueueInfo.queue.length > 0) {
+            return;
+          }
+          if (queueLast) {
+            eventQueueInfo.queue.length = 0;
+          }
+          eventQueueInfo.queue.push(ctx);
+          return;
+        }
+        onFeature.execCount++;
+        eventQueueInfo.executing = true;
+        ctx.meta.onHalt = function() {
+          eventQueueInfo.executing = false;
+          var queued = eventQueueInfo.queue.shift();
+          if (queued) {
+            setTimeout(function() {
+              onFeature.execute(queued);
+            }, 1);
+          }
+        };
+        ctx.meta.reject = function(err) {
+          console.error(err.message ? err.message : err);
+          console.error(err.stack);
+          var hypertrace = ctx.meta.runtime.getHyperTrace(ctx, err);
+          if (hypertrace) {
+            hypertrace.print();
+          }
+          ctx.meta.runtime.triggerEvent(ctx.me, "exception", {
+            error: err
+          });
+        };
+        start.execute(ctx);
+      },
+      install: function(elt, source, args2, runtime) {
+        for (const eventSpec of onFeature.events) {
+          var targets;
+          if (eventSpec.elsewhere) {
+            targets = [document];
+          } else if (eventSpec.from) {
+            targets = eventSpec.from.evaluate(runtime.makeContext(elt, onFeature, elt, null));
+          } else {
+            targets = [elt];
+          }
+          runtime.implicitLoop(targets, function(target) {
+            var eventName2 = eventSpec.on;
+            if (target == null) {
+              console.warn("'%s' feature ignored because target does not exists:", displayName, elt);
+              return;
+            }
+            if (eventSpec.mutationSpec) {
+              eventName2 = "hyperscript:mutation";
+              const observer = new MutationObserver(function(mutationList, observer2) {
+                if (!onFeature.executing) {
+                  runtime.triggerEvent(target, eventName2, {
+                    mutationList,
+                    observer: observer2
+                  });
+                }
+              });
+              observer.observe(target, eventSpec.mutationSpec);
+            }
+            if (eventSpec.intersectionSpec) {
+              eventName2 = "hyperscript:intersection";
+              const observer = new IntersectionObserver(function(entries) {
+                for (const entry of entries) {
+                  var detail = {
+                    observer
+                  };
+                  detail = Object.assign(detail, entry);
+                  detail["intersecting"] = entry.isIntersecting;
+                  runtime.triggerEvent(target, eventName2, detail);
+                }
+              }, eventSpec.intersectionSpec);
+              observer.observe(target);
+            }
+            var addEventListener = target.addEventListener || target.on;
+            addEventListener.call(target, eventName2, function listener(evt) {
+              if (typeof Node !== "undefined" && elt instanceof Node && target !== elt && !elt.isConnected) {
+                target.removeEventListener(eventName2, listener);
+                return;
+              }
+              var ctx = runtime.makeContext(elt, onFeature, elt, evt);
+              if (eventSpec.elsewhere && elt.contains(evt.target)) {
+                return;
+              }
+              if (eventSpec.from) {
+                ctx.result = target;
+              }
+              for (const arg of eventSpec.args) {
+                let eventValue = ctx.event[arg.value];
+                if (eventValue !== void 0) {
+                  ctx.locals[arg.value] = eventValue;
+                } else if ("detail" in ctx.event) {
+                  ctx.locals[arg.value] = ctx.event["detail"][arg.value];
+                }
+              }
+              ctx.meta.errorHandler = errorHandler;
+              ctx.meta.errorSymbol = errorSymbol;
+              ctx.meta.finallyHandler = finallyHandler;
+              if (eventSpec.filter) {
+                var initialCtx = ctx.meta.context;
+                ctx.meta.context = ctx.event;
+                try {
+                  var value = eventSpec.filter.evaluate(ctx);
+                  if (value) {
+                  } else {
+                    return;
+                  }
+                } finally {
+                  ctx.meta.context = initialCtx;
+                }
+              }
+              if (eventSpec.inExpr) {
+                var inElement = evt.target;
+                while (true) {
+                  if (inElement.matches && inElement.matches(eventSpec.inExpr.css)) {
+                    ctx.result = inElement;
+                    break;
+                  } else {
+                    inElement = inElement.parentElement;
+                    if (inElement == null) {
+                      return;
+                    }
+                  }
+                }
+              }
+              eventSpec.execCount++;
+              if (eventSpec.startCount) {
+                if (eventSpec.endCount) {
+                  if (eventSpec.execCount < eventSpec.startCount || eventSpec.execCount > eventSpec.endCount) {
+                    return;
+                  }
+                } else if (eventSpec.unbounded) {
+                  if (eventSpec.execCount < eventSpec.startCount) {
+                    return;
+                  }
+                } else if (eventSpec.execCount !== eventSpec.startCount) {
+                  return;
+                }
+              }
+              if (eventSpec.debounceTime) {
+                if (eventSpec.debounced) {
+                  clearTimeout(eventSpec.debounced);
+                }
+                eventSpec.debounced = setTimeout(function() {
+                  onFeature.execute(ctx);
+                }, eventSpec.debounceTime);
+                return;
+              }
+              if (eventSpec.throttleTime) {
+                if (eventSpec.lastExec && Date.now() < eventSpec.lastExec + eventSpec.throttleTime) {
+                  return;
+                } else {
+                  eventSpec.lastExec = Date.now();
+                }
+              }
+              onFeature.execute(ctx);
+            });
+          });
+        }
+      }
+    };
+    parser.setParent(start, onFeature);
+    return onFeature;
+  }
+};
 
 // src/_hyperscript.js
 var globalScope = typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : void 0;
-function parseJSON2(jString) {
+function parseJSON(jString) {
   try {
     return JSON.parse(jString);
   } catch (error) {
@@ -8047,8 +7927,118 @@ var tokenizer_ = new Tokenizer();
 var runtime_ = new Runtime(globalScope);
 var kernel_ = new LanguageKernel();
 kernel_.runtime = runtime_;
-hyperscriptCoreGrammar(kernel_);
-hyperscriptWebGrammar(kernel_);
+kernel_.addLeafExpression("parenthesized", ParenthesizedExpression.parse);
+kernel_.addLeafExpression("string", StringLiteral.parse);
+kernel_.addGrammarElement("nakedString", NakedString.parse);
+kernel_.addLeafExpression("number", NumberLiteral.parse);
+kernel_.addLeafExpression("idRef", IdRef.parse);
+kernel_.addLeafExpression("classRef", ClassRef.parse);
+kernel_.addLeafExpression("queryRef", QueryRef.parse);
+kernel_.addLeafExpression("attributeRef", AttributeRef.parse);
+kernel_.addLeafExpression("styleRef", StyleRef.parse);
+kernel_.addGrammarElement("objectKey", ObjectKey.parse);
+kernel_.addLeafExpression("objectLiteral", ObjectLiteral.parse);
+kernel_.addGrammarElement("nakedNamedArgumentList", NamedArgumentList.parseNaked);
+kernel_.addGrammarElement("namedArgumentList", NamedArgumentList.parse);
+kernel_.addGrammarElement("symbol", SymbolRef.parse);
+kernel_.addGrammarElement("implicitMeTarget", ImplicitMeTarget.parse);
+kernel_.addLeafExpression("boolean", BooleanLiteral.parse);
+kernel_.addLeafExpression("null", NullLiteral.parse);
+kernel_.addLeafExpression("arrayLiteral", ArrayLiteral.parse);
+kernel_.addLeafExpression("blockLiteral", BlockLiteral.parse);
+kernel_.addIndirectExpression("propertyAccess", PropertyAccess.parse);
+kernel_.addIndirectExpression("of", OfExpression.parse);
+kernel_.addIndirectExpression("possessive", PossessiveExpression.parse);
+kernel_.addIndirectExpression("inExpression", InExpression.parse);
+kernel_.addIndirectExpression("asExpression", AsExpression.parse);
+kernel_.addIndirectExpression("functionCall", FunctionCall.parse);
+kernel_.addIndirectExpression("attributeRefAccess", AttributeRefAccess.parse);
+kernel_.addIndirectExpression("arrayIndex", ArrayIndex.parse);
+kernel_.addGrammarElement("logicalNot", LogicalNot.parse);
+kernel_.addGrammarElement("noExpression", NoExpression.parse);
+kernel_.addLeafExpression("some", SomeExpression.parse);
+kernel_.addGrammarElement("negativeNumber", NegativeNumber.parse);
+kernel_.addGrammarElement("beepExpression", BeepExpression.parse);
+kernel_.addGrammarElement("relativePositionalExpression", RelativePositionalExpression.parse);
+kernel_.addGrammarElement("positionalExpression", PositionalExpression.parse);
+kernel_.addGrammarElement("mathOperator", MathOperator.parse);
+kernel_.addGrammarElement("mathExpression", MathExpression.parse);
+kernel_.addGrammarElement("comparisonOperator", ComparisonOperator.parse);
+kernel_.addGrammarElement("comparisonExpression", ComparisonExpression.parse);
+kernel_.addGrammarElement("logicalOperator", LogicalOperator.parse);
+kernel_.addGrammarElement("logicalExpression", LogicalExpression.parse);
+kernel_.addGrammarElement("asyncExpression", AsyncExpression.parse);
+kernel_.addGrammarElement("dotOrColonPath", DotOrColonPath.parse);
+kernel_.addGrammarElement("eventName", EventName.parse);
+kernel_.addFeature("on", function(parser) {
+  return OnFeature.parse(parser, kernel_);
+});
+kernel_.addFeature("def", function(parser) {
+  return DefFeature.parse(parser, kernel_);
+});
+kernel_.addFeature("set", function(parser) {
+  return SetFeature.parse(parser, kernel_);
+});
+kernel_.addFeature("init", function(parser) {
+  return InitFeature.parse(parser, kernel_);
+});
+kernel_.addFeature("worker", WorkerFeature.parse);
+kernel_.addFeature("behavior", BehaviorFeature.parse);
+kernel_.addFeature("install", InstallFeature.parse);
+kernel_.addGrammarElement("jsBody", JsBody.parse);
+kernel_.addFeature("js", JsFeature.parse);
+kernel_.addCommand("js", JsCommand.parse);
+kernel_.addCommand("async", AsyncCommand.parse);
+kernel_.addCommand("tell", TellCommand.parse);
+kernel_.addCommand("wait", WaitCommand.parse);
+kernel_.addCommand("trigger", TriggerCommand.parse);
+kernel_.addCommand("send", SendCommand.parse);
+kernel_.addCommand("return", ReturnCommand.parse);
+kernel_.addCommand("exit", ExitCommand.parse);
+kernel_.addCommand("halt", HaltCommand.parse);
+kernel_.addCommand("log", LogCommand.parse);
+kernel_.addCommand("beep!", BeepCommand.parse);
+kernel_.addCommand("throw", ThrowCommand.parse);
+kernel_.addCommand("call", CallCommand.parse);
+kernel_.addCommand("get", GetCommand.parse);
+kernel_.addCommand("make", MakeCommand.parse);
+kernel_.addGrammarElement("pseudoCommand", PseudoCommand.parse);
+kernel_.addCommand("default", DefaultCommand.parse);
+kernel_.addCommand("set", SetCommand.parse);
+kernel_.addCommand("if", IfCommand.parse);
+kernel_.addCommand("repeat", RepeatCommand.parse);
+kernel_.addCommand("for", ForCommand.parse);
+kernel_.addCommand("continue", ContinueCommand.parse);
+kernel_.addCommand("break", BreakCommand.parse);
+kernel_.addCommand("append", AppendCommand.parse);
+kernel_.addCommand("pick", PickCommand.parse);
+kernel_.addCommand("increment", IncrementCommand.parse);
+kernel_.addCommand("decrement", DecrementCommand.parse);
+kernel_.addCommand("fetch", FetchCommand.parse);
+kernel_.addCommand("settle", SettleCommand.parse);
+kernel_.addCommand("add", AddCommand.parse);
+kernel_.addGrammarElement("styleLiteral", StyleLiteral.parse);
+kernel_.addCommand("remove", RemoveCommand.parse);
+kernel_.addCommand("toggle", function(parser) {
+  return ToggleCommand.parse(parser, kernel_, config);
+});
+kernel_.addCommand("hide", function(parser) {
+  return HideCommand.parse(parser, kernel_, config);
+});
+kernel_.addCommand("show", function(parser) {
+  return ShowCommand.parse(parser, kernel_, config);
+});
+kernel_.addCommand("take", TakeCommand.parse);
+kernel_.addCommand("put", function(parser) {
+  return PutCommand.parse(parser, kernel_);
+});
+kernel_.addCommand("transition", function(parser) {
+  return TransitionCommand.parse(parser, config);
+});
+kernel_.addCommand("measure", MeasureCommand.parse);
+kernel_.addLeafExpression("closestExpr", ClosestExpr.parse);
+kernel_.addCommand("go", GoCommand.parse);
+initWebConversions(runtime_);
 kernel_.addGrammarElement("postfixExpression", function(parser) {
   var root = parser.parseElement("negativeNumber");
   return StringPostfixExpression.parse(parser, root) || TimeExpression.parse(parser, root) || TypeCheckExpression.parse(parser, root) || root;
@@ -8205,7 +8195,7 @@ function browserInit() {
   function getMetaConfig() {
     var element = document.querySelector('meta[name="htmx-config"]');
     if (element) {
-      return parseJSON2(element.content);
+      return parseJSON(element.content);
     } else {
       return null;
     }
