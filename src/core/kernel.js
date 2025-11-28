@@ -1,7 +1,7 @@
 // LanguageKernel - AST parsing for _hyperscript
 import { Tokens } from './tokens.js';
 import { Runtime } from './runtime.js';
-import { Parser } from './parser-helper.js';
+import { Parser } from './parser.js';
 
 /**
  * @callback ParseRule

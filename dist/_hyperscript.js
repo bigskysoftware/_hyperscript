@@ -1782,7 +1782,7 @@ var _Runtime = class _Runtime {
 __publicField(_Runtime, "HALT", {});
 var Runtime = _Runtime;
 
-// src/core/parser-helper.js
+// src/core/parser.js
 var Parser = class {
   /**
    * @param {import('./kernel.js').LanguageKernel} kernel
