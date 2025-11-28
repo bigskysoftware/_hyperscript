@@ -16,6 +16,7 @@ import {
 import { ImplicitMeTarget } from '../parsetree/expressions/targets.js';
 import { NoExpression, SomeExpression } from '../parsetree/expressions/existentials.js';
 import { RelativePositionalExpression, PositionalExpression } from '../parsetree/expressions/positional.js';
+import { StringPostfixExpression, TimeExpression, TypeCheckExpression } from '../parsetree/expressions/postfix.js';
 
 // Command imports
 import {
@@ -25,7 +26,7 @@ import {
 import { SetCommand, DefaultCommand, IncrementCommand, DecrementCommand } from '../parsetree/commands/setters.js';
 import { WaitCommand, TriggerCommand, SendCommand } from '../parsetree/commands/events.js';
 import { IfCommand, RepeatCommand, ForCommand, ContinueCommand, BreakCommand, TellCommand } from '../parsetree/commands/controlflow.js';
-import { JsCommand, AsyncCommand, CallCommand, GetCommand } from '../parsetree/commands/execution.js';
+import { JsBody, JsCommand, AsyncCommand, CallCommand, GetCommand } from '../parsetree/commands/execution.js';
 
 // Feature imports
 import { SetFeature } from '../parsetree/features/set.js';
@@ -97,76 +98,13 @@ export default function hyperscriptCoreGrammar(parser) {
 
         parser.addIndirectExpression("arrayIndex", ArrayIndex.parse);
 
-        // taken from https://drafts.csswg.org/css-values-4/#relative-length
-        //        and https://drafts.csswg.org/css-values-4/#absolute-length
-        //        (NB: we do not support `in` dues to conflicts w/ the hyperscript grammar)
-        var STRING_POSTFIXES = [
-            'em', 'ex', 'cap', 'ch', 'ic', 'rem', 'lh', 'rlh', 'vw', 'vh', 'vi', 'vb', 'vmin', 'vmax',
-            'cm', 'mm', 'Q', 'pc', 'pt', 'px'
-        ];
         parser.addGrammarElement("postfixExpression", function (helper) {
             var root = helper.parseElement("negativeNumber");
 
-            let stringPosfix = helper.tokens.matchAnyToken.apply(helper.tokens, STRING_POSTFIXES) || helper.matchOpToken("%");
-            if (stringPosfix) {
-                return {
-                    type: "stringPostfix",
-                    postfix: stringPosfix.value,
-                    args: [root],
-                    op: function (context, val) {
-                        return "" + val + stringPosfix.value;
-                    },
-                    evaluate: function (context) {
-                        return context.meta.runtime.unifiedEval(this, context);
-                    },
-                };
-            }
-
-            var timeFactor = null;
-            if (helper.matchToken("s") || helper.matchToken("seconds")) {
-                timeFactor = 1000;
-            } else if (helper.matchToken("ms") || helper.matchToken("milliseconds")) {
-                timeFactor = 1;
-            }
-            if (timeFactor) {
-                return {
-                    type: "timeExpression",
-                    time: root,
-                    factor: timeFactor,
-                    args: [root],
-                    op: function (context, val) {
-                        return val * timeFactor;
-                    },
-                    evaluate: function (context) {
-                        return context.meta.runtime.unifiedEval(this, context);
-                    },
-                };
-            }
-
-            if (helper.matchOpToken(":")) {
-                var typeName = helper.requireTokenType("IDENTIFIER");
-                if (!typeName.value) return;
-                var nullOk = !helper.matchOpToken("!");
-                return {
-                    type: "typeCheck",
-                    typeName: typeName,
-                    nullOk: nullOk,
-                    args: [root],
-                    op: function (context, val) {
-                        var passed = context.meta.runtime.typeCheck(val, this.typeName.value, nullOk);
-                        if (passed) {
-                            return val;
-                        } else {
-                            throw new Error("Typecheck failed!  Expected: " + typeName.value);
-                        }
-                    },
-                    evaluate: function (context) {
-                        return context.meta.runtime.unifiedEval(this, context);
-                    },
-                };
-            } else {
-                return root;
-            }
+            return StringPostfixExpression.parse(helper, root) ||
+                   TimeExpression.parse(helper, root) ||
+                   TypeCheckExpression.parse(helper, root) ||
+                   root;
         });
 
         parser.addGrammarElement("logicalNot", LogicalNot.parse);
@@ -275,39 +213,7 @@ export default function hyperscriptCoreGrammar(parser) {
 
         parser.addFeature("install", InstallFeature.parse);
 
-        parser.addGrammarElement("jsBody", function (helper) {
-            var jsSourceStart = helper.currentToken().start;
-            var jsLastToken = helper.currentToken();
-
-            var funcNames = [];
-            var funcName = "";
-            var expectFunctionDeclaration = false;
-            while (helper.hasMore()) {
-                jsLastToken = helper.consumeToken();
-                var peek = helper.token(0, true);
-                if (peek.type === "IDENTIFIER" && peek.value === "end") {
-                    break;
-                }
-                if (expectFunctionDeclaration) {
-                    if (jsLastToken.type === "IDENTIFIER" || jsLastToken.type === "NUMBER") {
-                        funcName += jsLastToken.value;
-                    } else {
-                        if (funcName !== "") funcNames.push(funcName);
-                        funcName = "";
-                        expectFunctionDeclaration = false;
-                    }
-                } else if (jsLastToken.type === "IDENTIFIER" && jsLastToken.value === "function") {
-                    expectFunctionDeclaration = true;
-                }
-            }
-            var jsSourceEnd = jsLastToken.end + 1;
-
-            return {
-                type: "jsBody",
-                exposedFunctionNames: funcNames,
-                jsSource: helper.source.substring(jsSourceStart, jsSourceEnd),
-            };
-        });
+        parser.addGrammarElement("jsBody", JsBody.parse);
 
         parser.addFeature("js", JsFeature.parse);
 

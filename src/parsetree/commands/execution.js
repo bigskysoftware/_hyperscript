@@ -7,6 +7,52 @@ import { Runtime } from '../../core/runtime.js';
 import { varargConstructor } from '../../core/helpers.js';
 
 /**
+ * JsBody - Parse JavaScript body for js feature/command
+ *
+ * Parses JavaScript code until 'end' keyword, extracting function names
+ */
+export class JsBody {
+    /**
+     * Parse JavaScript body
+     * @param {ParserHelper} helper
+     * @returns {Object}
+     */
+    static parse(helper) {
+        var jsSourceStart = helper.currentToken().start;
+        var jsLastToken = helper.currentToken();
+
+        var funcNames = [];
+        var funcName = "";
+        var expectFunctionDeclaration = false;
+        while (helper.hasMore()) {
+            jsLastToken = helper.consumeToken();
+            var peek = helper.token(0, true);
+            if (peek.type === "IDENTIFIER" && peek.value === "end") {
+                break;
+            }
+            if (expectFunctionDeclaration) {
+                if (jsLastToken.type === "IDENTIFIER" || jsLastToken.type === "NUMBER") {
+                    funcName += jsLastToken.value;
+                } else {
+                    if (funcName !== "") funcNames.push(funcName);
+                    funcName = "";
+                    expectFunctionDeclaration = false;
+                }
+            } else if (jsLastToken.type === "IDENTIFIER" && jsLastToken.value === "function") {
+                expectFunctionDeclaration = true;
+            }
+        }
+        var jsSourceEnd = jsLastToken.end + 1;
+
+        return {
+            type: "jsBody",
+            exposedFunctionNames: funcNames,
+            jsSource: helper.source.substring(jsSourceStart, jsSourceEnd),
+        };
+    }
+}
+
+/**
  * JsCommand - Execute JavaScript code
  *
  * Parses: js [(inputs...)] <jsBody> end

@@ -4318,6 +4318,113 @@ var ClosestExpr = class {
   }
 };
 
+// src/parsetree/expressions/postfix.js
+var STRING_POSTFIXES = [
+  "em",
+  "ex",
+  "cap",
+  "ch",
+  "ic",
+  "rem",
+  "lh",
+  "rlh",
+  "vw",
+  "vh",
+  "vi",
+  "vb",
+  "vmin",
+  "vmax",
+  "cm",
+  "mm",
+  "Q",
+  "pc",
+  "pt",
+  "px"
+];
+var StringPostfixExpression = class {
+  /**
+   * Parse string postfix expression
+   * @param {ParserHelper} helper
+   * @param {Object} root - the root expression to apply postfix to
+   * @returns {Object | undefined}
+   */
+  static parse(helper, root) {
+    let stringPostfix = helper.tokens.matchAnyToken.apply(helper.tokens, STRING_POSTFIXES) || helper.matchOpToken("%");
+    if (!stringPostfix) return;
+    return {
+      type: "stringPostfix",
+      postfix: stringPostfix.value,
+      args: [root],
+      op: function(context2, val) {
+        return "" + val + stringPostfix.value;
+      },
+      evaluate: function(context2) {
+        return context2.meta.runtime.unifiedEval(this, context2);
+      }
+    };
+  }
+};
+var TimeExpression = class {
+  /**
+   * Parse time expression
+   * @param {ParserHelper} helper
+   * @param {Object} root - the root expression to apply time factor to
+   * @returns {Object | undefined}
+   */
+  static parse(helper, root) {
+    var timeFactor = null;
+    if (helper.matchToken("s") || helper.matchToken("seconds")) {
+      timeFactor = 1e3;
+    } else if (helper.matchToken("ms") || helper.matchToken("milliseconds")) {
+      timeFactor = 1;
+    }
+    if (!timeFactor) return;
+    return {
+      type: "timeExpression",
+      time: root,
+      factor: timeFactor,
+      args: [root],
+      op: function(context2, val) {
+        return val * timeFactor;
+      },
+      evaluate: function(context2) {
+        return context2.meta.runtime.unifiedEval(this, context2);
+      }
+    };
+  }
+};
+var TypeCheckExpression = class {
+  /**
+   * Parse type check expression
+   * @param {ParserHelper} helper
+   * @param {Object} root - the root expression to type check
+   * @returns {Object | undefined}
+   */
+  static parse(helper, root) {
+    if (!helper.matchOpToken(":")) return;
+    var typeName = helper.requireTokenType("IDENTIFIER");
+    if (!typeName.value) return;
+    var nullOk = !helper.matchOpToken("!");
+    return {
+      type: "typeCheck",
+      typeName,
+      nullOk,
+      args: [root],
+      op: function(context2, val) {
+        var passed = context2.meta.runtime.typeCheck(val, this.typeName.value, nullOk);
+        if (passed) {
+          return val;
+        } else {
+          throw new Error("Typecheck failed!  Expected: " + typeName.value);
+        }
+      },
+      evaluate: function(context2) {
+        return context2.meta.runtime.unifiedEval(this, context2);
+      }
+    };
+  }
+};
+
 // src/parsetree/commands/basic.js
 var LogCommand = class _LogCommand {
   constructor(exprs, withExpr) {
@@ -5767,6 +5874,44 @@ var TellCommand = class {
 };
 
 // src/parsetree/commands/execution.js
+var JsBody = class {
+  /**
+   * Parse JavaScript body
+   * @param {ParserHelper} helper
+   * @returns {Object}
+   */
+  static parse(helper) {
+    var jsSourceStart = helper.currentToken().start;
+    var jsLastToken = helper.currentToken();
+    var funcNames = [];
+    var funcName = "";
+    var expectFunctionDeclaration = false;
+    while (helper.hasMore()) {
+      jsLastToken = helper.consumeToken();
+      var peek = helper.token(0, true);
+      if (peek.type === "IDENTIFIER" && peek.value === "end") {
+        break;
+      }
+      if (expectFunctionDeclaration) {
+        if (jsLastToken.type === "IDENTIFIER" || jsLastToken.type === "NUMBER") {
+          funcName += jsLastToken.value;
+        } else {
+          if (funcName !== "") funcNames.push(funcName);
+          funcName = "";
+          expectFunctionDeclaration = false;
+        }
+      } else if (jsLastToken.type === "IDENTIFIER" && jsLastToken.value === "function") {
+        expectFunctionDeclaration = true;
+      }
+    }
+    var jsSourceEnd = jsLastToken.end + 1;
+    return {
+      type: "jsBody",
+      exposedFunctionNames: funcNames,
+      jsSource: helper.source.substring(jsSourceStart, jsSourceEnd)
+    };
+  }
+};
 var JsCommand = class {
   /**
    * Parse js command
@@ -6553,88 +6698,9 @@ function hyperscriptCoreGrammar(parser) {
   parser.addIndirectExpression("functionCall", FunctionCall.parse);
   parser.addIndirectExpression("attributeRefAccess", AttributeRefAccess.parse);
   parser.addIndirectExpression("arrayIndex", ArrayIndex.parse);
-  var STRING_POSTFIXES = [
-    "em",
-    "ex",
-    "cap",
-    "ch",
-    "ic",
-    "rem",
-    "lh",
-    "rlh",
-    "vw",
-    "vh",
-    "vi",
-    "vb",
-    "vmin",
-    "vmax",
-    "cm",
-    "mm",
-    "Q",
-    "pc",
-    "pt",
-    "px"
-  ];
   parser.addGrammarElement("postfixExpression", function(helper) {
     var root = helper.parseElement("negativeNumber");
-    let stringPosfix = helper.tokens.matchAnyToken.apply(helper.tokens, STRING_POSTFIXES) || helper.matchOpToken("%");
-    if (stringPosfix) {
-      return {
-        type: "stringPostfix",
-        postfix: stringPosfix.value,
-        args: [root],
-        op: function(context2, val) {
-          return "" + val + stringPosfix.value;
-        },
-        evaluate: function(context2) {
-          return context2.meta.runtime.unifiedEval(this, context2);
-        }
-      };
-    }
-    var timeFactor = null;
-    if (helper.matchToken("s") || helper.matchToken("seconds")) {
-      timeFactor = 1e3;
-    } else if (helper.matchToken("ms") || helper.matchToken("milliseconds")) {
-      timeFactor = 1;
-    }
-    if (timeFactor) {
-      return {
-        type: "timeExpression",
-        time: root,
-        factor: timeFactor,
-        args: [root],
-        op: function(context2, val) {
-          return val * timeFactor;
-        },
-        evaluate: function(context2) {
-          return context2.meta.runtime.unifiedEval(this, context2);
-        }
-      };
-    }
-    if (helper.matchOpToken(":")) {
-      var typeName = helper.requireTokenType("IDENTIFIER");
-      if (!typeName.value) return;
-      var nullOk = !helper.matchOpToken("!");
-      return {
-        type: "typeCheck",
-        typeName,
-        nullOk,
-        args: [root],
-        op: function(context2, val) {
-          var passed = context2.meta.runtime.typeCheck(val, this.typeName.value, nullOk);
-          if (passed) {
-            return val;
-          } else {
-            throw new Error("Typecheck failed!  Expected: " + typeName.value);
-          }
-        },
-        evaluate: function(context2) {
-          return context2.meta.runtime.unifiedEval(this, context2);
-        }
-      };
-    } else {
-      return root;
-    }
+    return StringPostfixExpression.parse(helper, root) || TimeExpression.parse(helper, root) || TypeCheckExpression.parse(helper, root) || root;
   });
   parser.addGrammarElement("logicalNot", LogicalNot.parse);
   parser.addGrammarElement("noExpression", NoExpression.parse);
@@ -6704,37 +6770,7 @@ function hyperscriptCoreGrammar(parser) {
   parser.addFeature("worker", WorkerFeature.parse);
   parser.addFeature("behavior", BehaviorFeature.parse);
   parser.addFeature("install", InstallFeature.parse);
-  parser.addGrammarElement("jsBody", function(helper) {
-    var jsSourceStart = helper.currentToken().start;
-    var jsLastToken = helper.currentToken();
-    var funcNames = [];
-    var funcName = "";
-    var expectFunctionDeclaration = false;
-    while (helper.hasMore()) {
-      jsLastToken = helper.consumeToken();
-      var peek = helper.token(0, true);
-      if (peek.type === "IDENTIFIER" && peek.value === "end") {
-        break;
-      }
-      if (expectFunctionDeclaration) {
-        if (jsLastToken.type === "IDENTIFIER" || jsLastToken.type === "NUMBER") {
-          funcName += jsLastToken.value;
-        } else {
-          if (funcName !== "") funcNames.push(funcName);
-          funcName = "";
-          expectFunctionDeclaration = false;
-        }
-      } else if (jsLastToken.type === "IDENTIFIER" && jsLastToken.value === "function") {
-        expectFunctionDeclaration = true;
-      }
-    }
-    var jsSourceEnd = jsLastToken.end + 1;
-    return {
-      type: "jsBody",
-      exposedFunctionNames: funcNames,
-      jsSource: helper.source.substring(jsSourceStart, jsSourceEnd)
-    };
-  });
+  parser.addGrammarElement("jsBody", JsBody.parse);
   parser.addFeature("js", JsFeature.parse);
   parser.addCommand("js", JsCommand.parse);
   parser.addCommand("async", AsyncCommand.parse);
