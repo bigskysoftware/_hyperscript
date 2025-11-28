@@ -304,6 +304,7 @@ export class Tokens {
 }
 
 export class Tokenizer {
+
     static OP_TABLE = {
         "+": "PLUS",
         "-": "MINUS",
@@ -339,6 +340,552 @@ export class Tokenizer {
         "=": "EQUALS",
         "~": "TILDE",
     };
+
+    // Instance state for tokenization
+    #source = "";
+    #position = 0;
+    #column = 0;
+    #line = 1;
+    #lastToken = "<START>";
+    #templateBraceCount = 0;
+    #tokens = [];
+    #template = false;
+
+    /**
+     * Initialize tokenization state
+     * @param {string} string
+     * @param {boolean} [template]
+     */
+    #initializeState(string, template) {
+        this.#source = string;
+        this.#position = 0;
+        this.#column = 0;
+        this.#line = 1;
+        this.#lastToken = "<START>";
+        this.#templateBraceCount = 0;
+        this.#tokens = [];
+        this.#template = template || false;
+    }
+
+    /**
+     * @param {string} c
+     * @returns {boolean}
+     */
+    #isValidCSSClassChar(c) {
+        return Tokenizer.isAlpha(c) || Tokenizer.isNumeric(c) || c === "-" || c === "_" || c === ":";
+    }
+
+    /**
+     * @param {string} c
+     * @returns {boolean}
+     */
+    #isValidCSSIDChar(c) {
+        return Tokenizer.isAlpha(c) || Tokenizer.isNumeric(c) || c === "-" || c === "_" || c === ":";
+    }
+
+    /**
+     * @param {string} c
+     * @returns {boolean}
+     */
+    #isIdentifierChar(c) {
+        return c === "_" || c === "$";
+    }
+
+    /**
+     * @param {string} c
+     * @returns {boolean}
+     */
+    #isReservedChar(c) {
+        return c === "`" || c === "^";
+    }
+
+    /**
+     * @param {Token[]} tokens
+     * @returns {boolean}
+     */
+    #isValidSingleQuoteStringStart(tokens) {
+        if (tokens.length > 0) {
+            var previousToken = tokens[tokens.length - 1];
+            if (
+                previousToken.type === "IDENTIFIER" ||
+                previousToken.type === "CLASS_REF" ||
+                previousToken.type === "ID_REF"
+            ) {
+                return false;
+            }
+            if (previousToken.op && (previousToken.value === ">" || previousToken.value === ")")) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * @returns {boolean}
+     */
+    #inTemplate() {
+        return this.#template && this.#templateBraceCount === 0;
+    }
+
+    /**
+     * @returns {string}
+     */
+    #currentChar() {
+        return this.#source.charAt(this.#position);
+    }
+
+    /**
+     * @returns {string}
+     */
+    #nextChar() {
+        return this.#source.charAt(this.#position + 1);
+    }
+
+    /**
+     * @param {number} number
+     * @returns {string}
+     */
+    #nextCharAt(number = 1) {
+        return this.#source.charAt(this.#position + number);
+    }
+
+    /**
+     * @returns {string}
+     */
+    #consumeChar() {
+        this.#lastToken = this.#currentChar();
+        this.#position++;
+        this.#column++;
+        return this.#lastToken;
+    }
+
+    /**
+     * @returns {boolean}
+     */
+    #possiblePrecedingSymbol() {
+        return (
+            Tokenizer.isAlpha(this.#lastToken) ||
+            Tokenizer.isNumeric(this.#lastToken) ||
+            this.#lastToken === ")" ||
+            this.#lastToken === "\"" ||
+            this.#lastToken === "'" ||
+            this.#lastToken === "`" ||
+            this.#lastToken === "}" ||
+            this.#lastToken === "]"
+        );
+    }
+
+    /**
+     * @param {string} [type]
+     * @param {string} [value]
+     * @returns {Token}
+     */
+    #makeToken(type, value) {
+        return {
+            type: type,
+            value: value || "",
+            start: this.#position,
+            end: this.#position + 1,
+            column: this.#column,
+            line: this.#line,
+        };
+    }
+
+    /**
+     * @param {string} [type]
+     * @param {string} [value]
+     * @returns {Token}
+     */
+    #makeOpToken(type, value) {
+        var token = this.#makeToken(type, value);
+        token.op = true;
+        return token;
+    }
+
+    #consumeComment() {
+        while (this.#currentChar() && !Tokenizer.isNewline(this.#currentChar())) {
+            this.#consumeChar();
+        }
+        this.#consumeChar(); // Consume newline
+    }
+
+    #consumeCommentMultiline() {
+        while (this.#currentChar() && !(this.#currentChar() === '*' && this.#nextChar() === '/')) {
+            this.#consumeChar();
+        }
+        this.#consumeChar(); // Consume "*/"
+        this.#consumeChar();
+    }
+
+    /**
+     * @returns {Token}
+     */
+    #consumeWhitespace() {
+        var whitespace = this.#makeToken("WHITESPACE");
+        var value = "";
+        while (this.#currentChar() && Tokenizer.isWhitespace(this.#currentChar())) {
+            if (Tokenizer.isNewline(this.#currentChar())) {
+                this.#column = 0;
+                this.#line++;
+            }
+            value += this.#consumeChar();
+        }
+        whitespace.value = value;
+        whitespace.end = this.#position;
+        return whitespace;
+    }
+
+    /**
+     * @returns {Token}
+     */
+    #consumeClassReference() {
+        var classRef = this.#makeToken("CLASS_REF");
+        var value = this.#consumeChar();
+        if (this.#currentChar() === "{") {
+            classRef.template = true;
+            value += this.#consumeChar();
+            while (this.#currentChar() && this.#currentChar() !== "}") {
+                value += this.#consumeChar();
+            }
+            if (this.#currentChar() !== "}") {
+                throw Error("Unterminated class reference");
+            } else {
+                value += this.#consumeChar(); // consume final curly
+            }
+        } else {
+            while (this.#isValidCSSClassChar(this.#currentChar()) || this.#currentChar() === "\\") {
+                if (this.#currentChar() === "\\") {
+                    this.#consumeChar();
+                }
+                value += this.#consumeChar();
+            }
+        }
+        classRef.value = value;
+        classRef.end = this.#position;
+        return classRef;
+    }
+
+    /**
+     * @returns {Token}
+     */
+    #consumeIdReference() {
+        var idRef = this.#makeToken("ID_REF");
+        var value = this.#consumeChar();
+        if (this.#currentChar() === "{") {
+            idRef.template = true;
+            value += this.#consumeChar();
+            while (this.#currentChar() && this.#currentChar() !== "}") {
+                value += this.#consumeChar();
+            }
+            if (this.#currentChar() !== "}") {
+                throw Error("Unterminated id reference");
+            } else {
+                this.#consumeChar(); // consume final quote
+            }
+        } else {
+            while (this.#isValidCSSIDChar(this.#currentChar())) {
+                value += this.#consumeChar();
+            }
+        }
+        idRef.value = value;
+        idRef.end = this.#position;
+        return idRef;
+    }
+
+    /**
+     * @returns {Token}
+     */
+    #consumeAttributeReference() {
+        var attributeRef = this.#makeToken("ATTRIBUTE_REF");
+        var value = this.#consumeChar();
+        while (this.#position < this.#source.length && this.#currentChar() !== "]") {
+            value += this.#consumeChar();
+        }
+        if (this.#currentChar() === "]") {
+            value += this.#consumeChar();
+        }
+        attributeRef.value = value;
+        attributeRef.end = this.#position;
+        return attributeRef;
+    }
+
+    #consumeShortAttributeReference() {
+        var attributeRef = this.#makeToken("ATTRIBUTE_REF");
+        var value = this.#consumeChar();
+        while (this.#isValidCSSIDChar(this.#currentChar())) {
+            value += this.#consumeChar();
+        }
+        if (this.#currentChar() === '=') {
+            value += this.#consumeChar();
+            if (this.#currentChar() === '"' || this.#currentChar() === "'") {
+                let stringValue = this.#consumeString();
+                value += stringValue.value;
+            } else if(Tokenizer.isAlpha(this.#currentChar()) ||
+                Tokenizer.isNumeric(this.#currentChar()) ||
+                this.#isIdentifierChar(this.#currentChar())) {
+                let id = this.#consumeIdentifier();
+                value += id.value;
+            }
+        }
+        attributeRef.value = value;
+        attributeRef.end = this.#position;
+        return attributeRef;
+    }
+
+    #consumeStyleReference() {
+        var styleRef = this.#makeToken("STYLE_REF");
+        var value = this.#consumeChar();
+        while (Tokenizer.isAlpha(this.#currentChar()) || this.#currentChar() === "-") {
+            value += this.#consumeChar();
+        }
+        styleRef.value = value;
+        styleRef.end = this.#position;
+        return styleRef;
+    }
+
+    /**
+     * @returns {Token}
+     */
+    #consumeTemplateIdentifier() {
+        var identifier = this.#makeToken("IDENTIFIER");
+        var value = this.#consumeChar();
+        var escd = value === "\\";
+        if (escd) {
+            value = "";
+        }
+        while (Tokenizer.isAlpha(this.#currentChar()) ||
+               Tokenizer.isNumeric(this.#currentChar()) ||
+               this.#isIdentifierChar(this.#currentChar()) ||
+               this.#currentChar() === "\\" ||
+               this.#currentChar() === "{" ||
+               this.#currentChar() === "}" ) {
+            if (this.#currentChar() === "$" && escd === false) {
+                break;
+            } else if (this.#currentChar() === "\\") {
+                escd = true;
+                this.#consumeChar();
+            } else {
+                escd = false;
+                value += this.#consumeChar();
+            }
+        }
+        if (this.#currentChar() === "!" && value === "beep") {
+            value += this.#consumeChar();
+        }
+        identifier.value = value;
+        identifier.end = this.#position;
+        return identifier;
+    }
+
+    /**
+     * @returns {Token}
+     */
+    #consumeIdentifier() {
+        var identifier = this.#makeToken("IDENTIFIER");
+        var value = this.#consumeChar();
+        while (Tokenizer.isAlpha(this.#currentChar()) ||
+               Tokenizer.isNumeric(this.#currentChar()) ||
+               this.#isIdentifierChar(this.#currentChar())) {
+            value += this.#consumeChar();
+        }
+        if (this.#currentChar() === "!" && value === "beep") {
+            value += this.#consumeChar();
+        }
+        identifier.value = value;
+        identifier.end = this.#position;
+        return identifier;
+    }
+
+    /**
+     * @returns {Token}
+     */
+    #consumeNumber() {
+        var number = this.#makeToken("NUMBER");
+        var value = this.#consumeChar();
+
+        // given possible XXX.YYY(e|E)[-]ZZZ consume XXX
+        while (Tokenizer.isNumeric(this.#currentChar())) {
+            value += this.#consumeChar();
+        }
+
+        // consume .YYY
+        if (this.#currentChar() === "." && Tokenizer.isNumeric(this.#nextChar())) {
+            value += this.#consumeChar();
+        }
+        while (Tokenizer.isNumeric(this.#currentChar())) {
+            value += this.#consumeChar();
+        }
+
+        // consume (e|E)[-]
+        if (this.#currentChar() === "e" || this.#currentChar() === "E") {
+            // possible scientific notation, e.g. 1e6 or 1e-6
+            if (Tokenizer.isNumeric(this.#nextChar())) {
+                // e.g. 1e6
+                value += this.#consumeChar();
+            } else if (this.#nextChar() === "-") {
+                // e.g. 1e-6
+                value += this.#consumeChar();
+                // consume the - as well since otherwise we would stop on the next loop
+                value += this.#consumeChar();
+            }
+        }
+
+        // consume ZZZ
+        while (Tokenizer.isNumeric(this.#currentChar())) {
+            value += this.#consumeChar();
+        }
+        number.value = value;
+        number.end = this.#position;
+        return number;
+    }
+
+    /**
+     * @returns {Token}
+     */
+    #consumeOp() {
+        var op = this.#makeOpToken();
+        var value = this.#consumeChar(); // consume leading char
+        while (this.#currentChar() && Tokenizer.OP_TABLE[value + this.#currentChar()]) {
+            value += this.#consumeChar();
+        }
+        op.type = Tokenizer.OP_TABLE[value];
+        op.value = value;
+        op.end = this.#position;
+        return op;
+    }
+
+    /**
+     * @returns {Token}
+     */
+    #consumeString() {
+        var string = this.#makeToken("STRING");
+        var startChar = this.#consumeChar(); // consume leading quote
+        string.template = startChar === "`";
+        var value = "";
+        while (this.#currentChar() && this.#currentChar() !== startChar) {
+            if (this.#currentChar() === "\\") {
+                this.#consumeChar(); // consume escape char and get the next one
+                let nextChar = this.#consumeChar();
+                if (nextChar === "b") {
+                    value += "\b";
+                } else if (nextChar === "f") {
+                    value += "\f";
+                } else if (nextChar === "n") {
+                    value += "\n";
+                } else if (nextChar === "r") {
+                    value += "\r";
+                } else if (nextChar === "t") {
+                    value += "\t";
+                } else if (nextChar === "v") {
+                    value += "\v";
+                } else if (string.template && nextChar === "$") {
+                    value += "\\$";
+                } else if (nextChar === "x") {
+                    const hex = this.#consumeHexEscape();
+                    if (Number.isNaN(hex)) {
+                        throw Error("Invalid hexadecimal escape at " + Tokenizer.positionString(string));
+                    }
+                    value += String.fromCharCode(hex);
+                } else {
+                    value += nextChar;
+                }
+            } else {
+                value += this.#consumeChar();
+            }
+        }
+        if (this.#currentChar() !== startChar) {
+            throw Error("Unterminated string at " + Tokenizer.positionString(string));
+        } else {
+            this.#consumeChar(); // consume final quote
+        }
+        string.value = value;
+        string.end = this.#position;
+        return string;
+    }
+
+    /**
+     * @returns {number}
+     */
+    #consumeHexEscape() {
+        const BASE = 16;
+        if (!this.#currentChar()) {
+            return NaN;
+        }
+        let result = BASE * Number.parseInt(this.#consumeChar(), BASE);
+        if (!this.#currentChar()) {
+            return NaN;
+        }
+        result += Number.parseInt(this.#consumeChar(), BASE);
+
+        return result;
+    }
+
+    /**
+     * Main tokenization implementation
+     * @returns {Tokens}
+     */
+    #tokenizeImpl() {
+        while (this.#position < this.#source.length) {
+            if ((this.#currentChar() === "-" && this.#nextChar() === "-" && (Tokenizer.isWhitespace(this.#nextCharAt(2)) || this.#nextCharAt(2) === "" || this.#nextCharAt(2) === "-"))
+                || (this.#currentChar() === "/" && this.#nextChar() === "/" && (Tokenizer.isWhitespace(this.#nextCharAt(2)) || this.#nextCharAt(2) === "" || this.#nextCharAt(2) === "/"))) {
+                this.#consumeComment();
+            } else if (this.#currentChar() === "/" && this.#nextChar() === "*" && (Tokenizer.isWhitespace(this.#nextCharAt(2)) || this.#nextCharAt(2) === "" || this.#nextCharAt(2) === "*")) {
+                this.#consumeCommentMultiline();
+            } else {
+                if (Tokenizer.isWhitespace(this.#currentChar())) {
+                    this.#tokens.push(this.#consumeWhitespace());
+                } else if (
+                    !this.#possiblePrecedingSymbol() &&
+                    this.#currentChar() === "." &&
+                    (Tokenizer.isAlpha(this.#nextChar()) || this.#nextChar() === "{" || this.#nextChar() === "-")
+                ) {
+                    this.#tokens.push(this.#consumeClassReference());
+                } else if (
+                    !this.#possiblePrecedingSymbol() &&
+                    this.#currentChar() === "#" &&
+                    (Tokenizer.isAlpha(this.#nextChar()) || this.#nextChar() === "{")
+                ) {
+                    this.#tokens.push(this.#consumeIdReference());
+                } else if (this.#currentChar() === "[" && this.#nextChar() === "@") {
+                    this.#tokens.push(this.#consumeAttributeReference());
+                } else if (this.#currentChar() === "@") {
+                    this.#tokens.push(this.#consumeShortAttributeReference());
+                } else if (this.#currentChar() === "*" && Tokenizer.isAlpha(this.#nextChar())) {
+                    this.#tokens.push(this.#consumeStyleReference());
+                } else if (this.#inTemplate() && (Tokenizer.isAlpha(this.#currentChar()) || this.#currentChar() === "\\")) {
+                    this.#tokens.push(this.#consumeTemplateIdentifier());
+                } else if (!this.#inTemplate() && (Tokenizer.isAlpha(this.#currentChar()) || this.#isIdentifierChar(this.#currentChar()))) {
+                    this.#tokens.push(this.#consumeIdentifier());
+                } else if (Tokenizer.isNumeric(this.#currentChar())) {
+                    this.#tokens.push(this.#consumeNumber());
+                } else if (!this.#inTemplate() && (this.#currentChar() === '"' || this.#currentChar() === "`")) {
+                    this.#tokens.push(this.#consumeString());
+                } else if (!this.#inTemplate() && this.#currentChar() === "'") {
+                    if (this.#isValidSingleQuoteStringStart(this.#tokens)) {
+                        this.#tokens.push(this.#consumeString());
+                    } else {
+                        this.#tokens.push(this.#consumeOp());
+                    }
+                } else if (Tokenizer.OP_TABLE[this.#currentChar()]) {
+                    if (this.#lastToken === "$" && this.#currentChar() === "{") {
+                        this.#templateBraceCount++;
+                    }
+                    if (this.#currentChar() === "}") {
+                        this.#templateBraceCount--;
+                    }
+                    this.#tokens.push(this.#consumeOp());
+                } else if (this.#inTemplate() || this.#isReservedChar(this.#currentChar())) {
+                    this.#tokens.push(this.#makeToken("RESERVED", this.#consumeChar()));
+                } else {
+                    if (this.#position < this.#source.length) {
+                        throw Error("Unknown token: " + this.#currentChar() + " ");
+                    }
+                }
+            }
+        }
+
+        return new Tokens(this.#tokens, [], this.#source);
+    }
 
     /**
      * isValidCSSClassChar returns `true` if the provided character is valid in a CSS class.
@@ -447,476 +994,18 @@ export class Tokenizer {
      * @returns {Tokens}
      */
     static tokenize(string, template) {
-
-        var tokens = /** @type {Token[]}*/ [];
-        var source = string;
-        var position = 0;
-        var column = 0;
-        var line = 1;
-        var lastToken = "<START>";
-        var templateBraceCount = 0;
-
-        function inTemplate() {
-            return template && templateBraceCount === 0;
-        }
-
-        while (position < source.length) {
-            if ((currentChar() === "-" && nextChar() === "-" && (Tokenizer.isWhitespace(nextCharAt(2)) || nextCharAt(2) === "" || nextCharAt(2) === "-"))
-                || (currentChar() === "/" && nextChar() === "/" && (Tokenizer.isWhitespace(nextCharAt(2)) || nextCharAt(2) === "" || nextCharAt(2) === "/"))) {
-                consumeComment();
-            } else if (currentChar() === "/" && nextChar() === "*" && (Tokenizer.isWhitespace(nextCharAt(2)) || nextCharAt(2) === "" || nextCharAt(2) === "*")) {
-                consumeCommentMultiline();
-            } else {
-                if (Tokenizer.isWhitespace(currentChar())) {
-                    tokens.push(consumeWhitespace());
-                } else if (
-                    !possiblePrecedingSymbol() &&
-                    currentChar() === "." &&
-                    (Tokenizer.isAlpha(nextChar()) || nextChar() === "{" || nextChar() === "-")
-                ) {
-                    tokens.push(consumeClassReference());
-                } else if (
-                    !possiblePrecedingSymbol() &&
-                    currentChar() === "#" &&
-                    (Tokenizer.isAlpha(nextChar()) || nextChar() === "{")
-                ) {
-                    tokens.push(consumeIdReference());
-                } else if (currentChar() === "[" && nextChar() === "@") {
-                    tokens.push(consumeAttributeReference());
-                } else if (currentChar() === "@") {
-                    tokens.push(consumeShortAttributeReference());
-                } else if (currentChar() === "*" && Tokenizer.isAlpha(nextChar())) {
-                    tokens.push(consumeStyleReference());
-                } else if (inTemplate() && (Tokenizer.isAlpha(currentChar()) || currentChar() === "\\")) {
-                    tokens.push(consumeTemplateIdentifier());
-                } else if (!inTemplate() && (Tokenizer.isAlpha(currentChar()) || Tokenizer.isIdentifierChar(currentChar()))) {
-                    tokens.push(consumeIdentifier());
-                } else if (Tokenizer.isNumeric(currentChar())) {
-                    tokens.push(consumeNumber());
-                } else if (!inTemplate() && (currentChar() === '"' || currentChar() === "`")) {
-                    tokens.push(consumeString());
-                } else if (!inTemplate() && currentChar() === "'") {
-                    if (Tokenizer.isValidSingleQuoteStringStart(tokens)) {
-                        tokens.push(consumeString());
-                    } else {
-                        tokens.push(consumeOp());
-                    }
-                } else if (Tokenizer.OP_TABLE[currentChar()]) {
-                    if (lastToken === "$" && currentChar() === "{") {
-                        templateBraceCount++;
-                    }
-                    if (currentChar() === "}") {
-                        templateBraceCount--;
-                    }
-                    tokens.push(consumeOp());
-                } else if (inTemplate() || Tokenizer.isReservedChar(currentChar())) {
-                    tokens.push(makeToken("RESERVED", consumeChar()));
-                } else {
-                    if (position < source.length) {
-                        throw Error("Unknown token: " + currentChar() + " ");
-                    }
-                }
-            }
-        }
-
-        return new Tokens(tokens, [], source);
-
-        /**
-         * @param {string} [type]
-         * @param {string} [value]
-         * @returns {Token}
-         */
-        function makeOpToken(type, value) {
-            var token = makeToken(type, value);
-            token.op = true;
-            return token;
-        }
-
-        /**
-         * @param {string} [type]
-         * @param {string} [value]
-         * @returns {Token}
-         */
-        function makeToken(type, value) {
-            return {
-                type: type,
-                value: value || "",
-                start: position,
-                end: position + 1,
-                column: column,
-                line: line,
-            };
-        }
-
-        function consumeComment() {
-            while (currentChar() && !Tokenizer.isNewline(currentChar())) {
-                consumeChar();
-            }
-            consumeChar(); // Consume newline
-        }
-
-        function consumeCommentMultiline() {
-            while (currentChar() && !(currentChar() === '*' && nextChar() === '/')) {
-                consumeChar();
-            }
-            consumeChar(); // Consume "*/"
-            consumeChar();
-        }
-
-        /**
-         * @returns Token
-         */
-        function consumeClassReference() {
-            var classRef = makeToken("CLASS_REF");
-            var value = consumeChar();
-            if (currentChar() === "{") {
-                classRef.template = true;
-                value += consumeChar();
-                while (currentChar() && currentChar() !== "}") {
-                    value += consumeChar();
-                }
-                if (currentChar() !== "}") {
-                    throw Error("Unterminated class reference");
-                } else {
-                    value += consumeChar(); // consume final curly
-                }
-            } else {
-                while (Tokenizer.isValidCSSClassChar(currentChar()) || currentChar() === "\\") {
-                    if (currentChar() === "\\") {
-                        consumeChar();
-                    }
-                    value += consumeChar();
-                }
-            }
-            classRef.value = value;
-            classRef.end = position;
-            return classRef;
-        }
-
-        /**
-         * @returns Token
-         */
-        function consumeAttributeReference() {
-            var attributeRef = makeToken("ATTRIBUTE_REF");
-            var value = consumeChar();
-            while (position < source.length && currentChar() !== "]") {
-                value += consumeChar();
-            }
-            if (currentChar() === "]") {
-                value += consumeChar();
-            }
-            attributeRef.value = value;
-            attributeRef.end = position;
-            return attributeRef;
-        }
-
-        function consumeShortAttributeReference() {
-            var attributeRef = makeToken("ATTRIBUTE_REF");
-            var value = consumeChar();
-            while (Tokenizer.isValidCSSIDChar(currentChar())) {
-                value += consumeChar();
-            }
-            if (currentChar() === '=') {
-                value += consumeChar();
-                if (currentChar() === '"' || currentChar() === "'") {
-                    let stringValue = consumeString();
-                    value += stringValue.value;
-                } else if(Tokenizer.isAlpha(currentChar()) ||
-                    Tokenizer.isNumeric(currentChar()) ||
-                    Tokenizer.isIdentifierChar(currentChar())) {
-                    let id = consumeIdentifier();
-                    value += id.value;
-                }
-            }
-            attributeRef.value = value;
-            attributeRef.end = position;
-            return attributeRef;
-        }
-
-        function consumeStyleReference() {
-            var styleRef = makeToken("STYLE_REF");
-            var value = consumeChar();
-            while (Tokenizer.isAlpha(currentChar()) || currentChar() === "-") {
-                value += consumeChar();
-            }
-            styleRef.value = value;
-            styleRef.end = position;
-            return styleRef;
-        }
-
-        /**
-         * @returns Token
-         */
-        function consumeIdReference() {
-            var idRef = makeToken("ID_REF");
-            var value = consumeChar();
-            if (currentChar() === "{") {
-                idRef.template = true;
-                value += consumeChar();
-                while (currentChar() && currentChar() !== "}") {
-                    value += consumeChar();
-                }
-                if (currentChar() !== "}") {
-                    throw Error("Unterminated id reference");
-                } else {
-                    consumeChar(); // consume final quote
-                }
-            } else {
-                while (Tokenizer.isValidCSSIDChar(currentChar())) {
-                    value += consumeChar();
-                }
-            }
-            idRef.value = value;
-            idRef.end = position;
-            return idRef;
-        }
-
-        /**
-         * @returns Token
-         */
-        function consumeTemplateIdentifier() {
-            var identifier = makeToken("IDENTIFIER");
-            var value = consumeChar();
-            var escd = value === "\\";
-            if (escd) {
-                value = "";
-            }
-            while (Tokenizer.isAlpha(currentChar()) ||
-                   Tokenizer.isNumeric(currentChar()) ||
-                   Tokenizer.isIdentifierChar(currentChar()) ||
-                   currentChar() === "\\" ||
-                   currentChar() === "{" ||
-                   currentChar() === "}" ) {
-                if (currentChar() === "$" && escd === false) {
-                    break;
-                } else if (currentChar() === "\\") {
-                    escd = true;
-                    consumeChar();
-                } else {
-                    escd = false;
-                    value += consumeChar();
-                }
-            }
-            if (currentChar() === "!" && value === "beep") {
-                value += consumeChar();
-            }
-            identifier.value = value;
-            identifier.end = position;
-            return identifier;
-        }
-
-        /**
-         * @returns Token
-         */
-        function consumeIdentifier() {
-            var identifier = makeToken("IDENTIFIER");
-            var value = consumeChar();
-            while (Tokenizer.isAlpha(currentChar()) ||
-                   Tokenizer.isNumeric(currentChar()) ||
-                   Tokenizer.isIdentifierChar(currentChar())) {
-                value += consumeChar();
-            }
-            if (currentChar() === "!" && value === "beep") {
-                value += consumeChar();
-            }
-            identifier.value = value;
-            identifier.end = position;
-            return identifier;
-        }
-
-        /**
-         * @returns Token
-         */
-        function consumeNumber() {
-            var number = makeToken("NUMBER");
-            var value = consumeChar();
-
-            // given possible XXX.YYY(e|E)[-]ZZZ consume XXX
-            while (Tokenizer.isNumeric(currentChar())) {
-                value += consumeChar();
-            }
-
-            // consume .YYY
-            if (currentChar() === "." && Tokenizer.isNumeric(nextChar())) {
-                value += consumeChar();
-            }
-            while (Tokenizer.isNumeric(currentChar())) {
-                value += consumeChar();
-            }
-
-            // consume (e|E)[-]
-            if (currentChar() === "e" || currentChar() === "E") {
-                // possible scientific notation, e.g. 1e6 or 1e-6
-                if (Tokenizer.isNumeric(nextChar())) {
-                    // e.g. 1e6
-                    value += consumeChar();
-                } else if (nextChar() === "-") {
-                    // e.g. 1e-6
-                    value += consumeChar();
-                    // consume the - as well since otherwise we would stop on the next loop
-                    value += consumeChar();
-                }
-            }
-
-            // consume ZZZ
-            while (Tokenizer.isNumeric(currentChar())) {
-                value += consumeChar();
-            }
-            number.value = value;
-            number.end = position;
-            return number;
-        }
-
-        /**
-         * @returns Token
-         */
-        function consumeOp() {
-            var op = makeOpToken();
-            var value = consumeChar(); // consume leading char
-            while (currentChar() && Tokenizer.OP_TABLE[value + currentChar()]) {
-                value += consumeChar();
-            }
-            op.type = Tokenizer.OP_TABLE[value];
-            op.value = value;
-            op.end = position;
-            return op;
-        }
-
-        /**
-         * @returns Token
-         */
-        function consumeString() {
-            var string = makeToken("STRING");
-            var startChar = consumeChar(); // consume leading quote
-            string.template = startChar === "`";
-            var value = "";
-            while (currentChar() && currentChar() !== startChar) {
-                if (currentChar() === "\\") {
-                    consumeChar(); // consume escape char and get the next one
-                    let nextChar = consumeChar();
-                    if (nextChar === "b") {
-                        value += "\b";
-                    } else if (nextChar === "f") {
-                        value += "\f";
-                    } else if (nextChar === "n") {
-                        value += "\n";
-                    } else if (nextChar === "r") {
-                        value += "\r";
-                    } else if (nextChar === "t") {
-                        value += "\t";
-                    } else if (nextChar === "v") {
-                        value += "\v";
-                    } else if (string.template && nextChar === "$") {
-                        value += "\\$";
-                    } else if (nextChar === "x") {
-                        const hex = consumeHexEscape();
-                        if (Number.isNaN(hex)) {
-                            throw Error("Invalid hexadecimal escape at " + Tokenizer.positionString(string));
-                        }
-                        value += String.fromCharCode(hex);
-                    } else {
-                        value += nextChar;
-                    }
-                } else {
-                    value += consumeChar();
-                }
-            }
-            if (currentChar() !== startChar) {
-                throw Error("Unterminated string at " + Tokenizer.positionString(string));
-            } else {
-                consumeChar(); // consume final quote
-            }
-            string.value = value;
-            string.end = position;
-            return string;
-        }
-
-        /**
-         * @returns number
-         */
-        function consumeHexEscape() {
-            const BASE = 16;
-            if (!currentChar()) {
-                return NaN;
-            }
-            let result = BASE * Number.parseInt(consumeChar(), BASE);
-            if (!currentChar()) {
-                return NaN;
-            }
-            result += Number.parseInt(consumeChar(), BASE);
-
-            return result;
-        }
-
-        /**
-         * @returns string
-         */
-        function currentChar() {
-            return source.charAt(position);
-        }
-
-        /**
-         * @returns string
-         */
-        function nextChar() {
-            return source.charAt(position + 1);
-        }
-
-        function nextCharAt(number = 1) {
-            return source.charAt(position + number);
-        }
-
-        /**
-         * @returns string
-         */
-        function consumeChar() {
-            lastToken = currentChar();
-            position++;
-            column++;
-            return lastToken;
-        }
-
-        /**
-         * @returns boolean
-         */
-        function possiblePrecedingSymbol() {
-            return (
-                Tokenizer.isAlpha(lastToken) ||
-                Tokenizer.isNumeric(lastToken) ||
-                lastToken === ")" ||
-                lastToken === "\"" ||
-                lastToken === "'" ||
-                lastToken === "`" ||
-                lastToken === "}" ||
-                lastToken === "]"
-            );
-        }
-
-        /**
-         * @returns Token
-         */
-        function consumeWhitespace() {
-            var whitespace = makeToken("WHITESPACE");
-            var value = "";
-            while (currentChar() && Tokenizer.isWhitespace(currentChar())) {
-                if (Tokenizer.isNewline(currentChar())) {
-                    column = 0;
-                    line++;
-                }
-                value += consumeChar();
-            }
-            whitespace.value = value;
-            whitespace.end = position;
-            return whitespace;
-        }
+        const tokenizer = new Tokenizer();
+        return tokenizer.tokenize(string, template);
     }
 
     /**
+     * Instance tokenize method
      * @param {string} string
      * @param {boolean} [template]
      * @returns {Tokens}
      */
     tokenize(string, template) {
-        return Tokenizer.tokenize(string, template)
+        this.#initializeState(string, template);
+        return this.#tokenizeImpl();
     }
 }

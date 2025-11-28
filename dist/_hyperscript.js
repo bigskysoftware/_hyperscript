@@ -1,7 +1,23 @@
 // _hyperscript ES module
 var __defProp = Object.defineProperty;
+var __typeError = (msg) => {
+  throw TypeError(msg);
+};
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+var __accessCheck = (obj, member, msg) => member.has(obj) || __typeError("Cannot " + msg);
+var __privateGet = (obj, member, getter) => (__accessCheck(obj, member, "read from private field"), getter ? getter.call(obj) : member.get(obj));
+var __privateAdd = (obj, member, value) => member.has(obj) ? __typeError("Cannot add the same private member more than once") : member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
+var __privateSet = (obj, member, value, setter) => (__accessCheck(obj, member, "write to private field"), setter ? setter.call(obj, value) : member.set(obj, value), value);
+var __privateMethod = (obj, member, method) => (__accessCheck(obj, member, "access private method"), method);
+var __privateWrapper = (obj, member, setter, getter) => ({
+  set _(value) {
+    __privateSet(obj, member, value, setter);
+  },
+  get _() {
+    return __privateGet(obj, member, getter);
+  }
+});
 
 // src/core/tokenizer.js
 var _Tokens = class _Tokens {
@@ -255,7 +271,20 @@ __publicField(_Tokens, "lineFor", function() {
   return this.programSource.split("\n")[this.startToken.line - 1];
 });
 var Tokens = _Tokens;
+var _source, _position, _column, _line, _lastToken, _templateBraceCount, _tokens, _template, _Tokenizer_instances, initializeState_fn, isValidCSSClassChar_fn, isValidCSSIDChar_fn, isIdentifierChar_fn, isReservedChar_fn, isValidSingleQuoteStringStart_fn, inTemplate_fn, currentChar_fn, nextChar_fn, nextCharAt_fn, consumeChar_fn, possiblePrecedingSymbol_fn, makeToken_fn, makeOpToken_fn, consumeComment_fn, consumeCommentMultiline_fn, consumeWhitespace_fn, consumeClassReference_fn, consumeIdReference_fn, consumeAttributeReference_fn, consumeShortAttributeReference_fn, consumeStyleReference_fn, consumeTemplateIdentifier_fn, consumeIdentifier_fn, consumeNumber_fn, consumeOp_fn, consumeString_fn, consumeHexEscape_fn, tokenizeImpl_fn;
 var _Tokenizer = class _Tokenizer {
+  constructor() {
+    __privateAdd(this, _Tokenizer_instances);
+    // Instance state for tokenization
+    __privateAdd(this, _source, "");
+    __privateAdd(this, _position, 0);
+    __privateAdd(this, _column, 0);
+    __privateAdd(this, _line, 1);
+    __privateAdd(this, _lastToken, "<START>");
+    __privateAdd(this, _templateBraceCount, 0);
+    __privateAdd(this, _tokens, []);
+    __privateAdd(this, _template, false);
+  }
   /**
    * isValidCSSClassChar returns `true` if the provided character is valid in a CSS class.
    * @param {string} c
@@ -349,363 +378,490 @@ var _Tokenizer = class _Tokenizer {
    * @returns {Tokens}
    */
   static tokenize(string, template) {
-    var tokens = (
-      /** @type {Token[]}*/
-      []
-    );
-    var source = string;
-    var position = 0;
-    var column = 0;
-    var line = 1;
-    var lastToken = "<START>";
-    var templateBraceCount = 0;
-    function inTemplate() {
-      return template && templateBraceCount === 0;
-    }
-    while (position < source.length) {
-      if (currentChar() === "-" && nextChar() === "-" && (_Tokenizer.isWhitespace(nextCharAt(2)) || nextCharAt(2) === "" || nextCharAt(2) === "-") || currentChar() === "/" && nextChar() === "/" && (_Tokenizer.isWhitespace(nextCharAt(2)) || nextCharAt(2) === "" || nextCharAt(2) === "/")) {
-        consumeComment();
-      } else if (currentChar() === "/" && nextChar() === "*" && (_Tokenizer.isWhitespace(nextCharAt(2)) || nextCharAt(2) === "" || nextCharAt(2) === "*")) {
-        consumeCommentMultiline();
-      } else {
-        if (_Tokenizer.isWhitespace(currentChar())) {
-          tokens.push(consumeWhitespace());
-        } else if (!possiblePrecedingSymbol() && currentChar() === "." && (_Tokenizer.isAlpha(nextChar()) || nextChar() === "{" || nextChar() === "-")) {
-          tokens.push(consumeClassReference());
-        } else if (!possiblePrecedingSymbol() && currentChar() === "#" && (_Tokenizer.isAlpha(nextChar()) || nextChar() === "{")) {
-          tokens.push(consumeIdReference());
-        } else if (currentChar() === "[" && nextChar() === "@") {
-          tokens.push(consumeAttributeReference());
-        } else if (currentChar() === "@") {
-          tokens.push(consumeShortAttributeReference());
-        } else if (currentChar() === "*" && _Tokenizer.isAlpha(nextChar())) {
-          tokens.push(consumeStyleReference());
-        } else if (inTemplate() && (_Tokenizer.isAlpha(currentChar()) || currentChar() === "\\")) {
-          tokens.push(consumeTemplateIdentifier());
-        } else if (!inTemplate() && (_Tokenizer.isAlpha(currentChar()) || _Tokenizer.isIdentifierChar(currentChar()))) {
-          tokens.push(consumeIdentifier());
-        } else if (_Tokenizer.isNumeric(currentChar())) {
-          tokens.push(consumeNumber());
-        } else if (!inTemplate() && (currentChar() === '"' || currentChar() === "`")) {
-          tokens.push(consumeString());
-        } else if (!inTemplate() && currentChar() === "'") {
-          if (_Tokenizer.isValidSingleQuoteStringStart(tokens)) {
-            tokens.push(consumeString());
-          } else {
-            tokens.push(consumeOp());
-          }
-        } else if (_Tokenizer.OP_TABLE[currentChar()]) {
-          if (lastToken === "$" && currentChar() === "{") {
-            templateBraceCount++;
-          }
-          if (currentChar() === "}") {
-            templateBraceCount--;
-          }
-          tokens.push(consumeOp());
-        } else if (inTemplate() || _Tokenizer.isReservedChar(currentChar())) {
-          tokens.push(makeToken("RESERVED", consumeChar()));
-        } else {
-          if (position < source.length) {
-            throw Error("Unknown token: " + currentChar() + " ");
-          }
-        }
-      }
-    }
-    return new Tokens(tokens, [], source);
-    function makeOpToken(type, value) {
-      var token = makeToken(type, value);
-      token.op = true;
-      return token;
-    }
-    function makeToken(type, value) {
-      return {
-        type,
-        value: value || "",
-        start: position,
-        end: position + 1,
-        column,
-        line
-      };
-    }
-    function consumeComment() {
-      while (currentChar() && !_Tokenizer.isNewline(currentChar())) {
-        consumeChar();
-      }
-      consumeChar();
-    }
-    function consumeCommentMultiline() {
-      while (currentChar() && !(currentChar() === "*" && nextChar() === "/")) {
-        consumeChar();
-      }
-      consumeChar();
-      consumeChar();
-    }
-    function consumeClassReference() {
-      var classRef = makeToken("CLASS_REF");
-      var value = consumeChar();
-      if (currentChar() === "{") {
-        classRef.template = true;
-        value += consumeChar();
-        while (currentChar() && currentChar() !== "}") {
-          value += consumeChar();
-        }
-        if (currentChar() !== "}") {
-          throw Error("Unterminated class reference");
-        } else {
-          value += consumeChar();
-        }
-      } else {
-        while (_Tokenizer.isValidCSSClassChar(currentChar()) || currentChar() === "\\") {
-          if (currentChar() === "\\") {
-            consumeChar();
-          }
-          value += consumeChar();
-        }
-      }
-      classRef.value = value;
-      classRef.end = position;
-      return classRef;
-    }
-    function consumeAttributeReference() {
-      var attributeRef = makeToken("ATTRIBUTE_REF");
-      var value = consumeChar();
-      while (position < source.length && currentChar() !== "]") {
-        value += consumeChar();
-      }
-      if (currentChar() === "]") {
-        value += consumeChar();
-      }
-      attributeRef.value = value;
-      attributeRef.end = position;
-      return attributeRef;
-    }
-    function consumeShortAttributeReference() {
-      var attributeRef = makeToken("ATTRIBUTE_REF");
-      var value = consumeChar();
-      while (_Tokenizer.isValidCSSIDChar(currentChar())) {
-        value += consumeChar();
-      }
-      if (currentChar() === "=") {
-        value += consumeChar();
-        if (currentChar() === '"' || currentChar() === "'") {
-          let stringValue = consumeString();
-          value += stringValue.value;
-        } else if (_Tokenizer.isAlpha(currentChar()) || _Tokenizer.isNumeric(currentChar()) || _Tokenizer.isIdentifierChar(currentChar())) {
-          let id = consumeIdentifier();
-          value += id.value;
-        }
-      }
-      attributeRef.value = value;
-      attributeRef.end = position;
-      return attributeRef;
-    }
-    function consumeStyleReference() {
-      var styleRef = makeToken("STYLE_REF");
-      var value = consumeChar();
-      while (_Tokenizer.isAlpha(currentChar()) || currentChar() === "-") {
-        value += consumeChar();
-      }
-      styleRef.value = value;
-      styleRef.end = position;
-      return styleRef;
-    }
-    function consumeIdReference() {
-      var idRef = makeToken("ID_REF");
-      var value = consumeChar();
-      if (currentChar() === "{") {
-        idRef.template = true;
-        value += consumeChar();
-        while (currentChar() && currentChar() !== "}") {
-          value += consumeChar();
-        }
-        if (currentChar() !== "}") {
-          throw Error("Unterminated id reference");
-        } else {
-          consumeChar();
-        }
-      } else {
-        while (_Tokenizer.isValidCSSIDChar(currentChar())) {
-          value += consumeChar();
-        }
-      }
-      idRef.value = value;
-      idRef.end = position;
-      return idRef;
-    }
-    function consumeTemplateIdentifier() {
-      var identifier = makeToken("IDENTIFIER");
-      var value = consumeChar();
-      var escd = value === "\\";
-      if (escd) {
-        value = "";
-      }
-      while (_Tokenizer.isAlpha(currentChar()) || _Tokenizer.isNumeric(currentChar()) || _Tokenizer.isIdentifierChar(currentChar()) || currentChar() === "\\" || currentChar() === "{" || currentChar() === "}") {
-        if (currentChar() === "$" && escd === false) {
-          break;
-        } else if (currentChar() === "\\") {
-          escd = true;
-          consumeChar();
-        } else {
-          escd = false;
-          value += consumeChar();
-        }
-      }
-      if (currentChar() === "!" && value === "beep") {
-        value += consumeChar();
-      }
-      identifier.value = value;
-      identifier.end = position;
-      return identifier;
-    }
-    function consumeIdentifier() {
-      var identifier = makeToken("IDENTIFIER");
-      var value = consumeChar();
-      while (_Tokenizer.isAlpha(currentChar()) || _Tokenizer.isNumeric(currentChar()) || _Tokenizer.isIdentifierChar(currentChar())) {
-        value += consumeChar();
-      }
-      if (currentChar() === "!" && value === "beep") {
-        value += consumeChar();
-      }
-      identifier.value = value;
-      identifier.end = position;
-      return identifier;
-    }
-    function consumeNumber() {
-      var number = makeToken("NUMBER");
-      var value = consumeChar();
-      while (_Tokenizer.isNumeric(currentChar())) {
-        value += consumeChar();
-      }
-      if (currentChar() === "." && _Tokenizer.isNumeric(nextChar())) {
-        value += consumeChar();
-      }
-      while (_Tokenizer.isNumeric(currentChar())) {
-        value += consumeChar();
-      }
-      if (currentChar() === "e" || currentChar() === "E") {
-        if (_Tokenizer.isNumeric(nextChar())) {
-          value += consumeChar();
-        } else if (nextChar() === "-") {
-          value += consumeChar();
-          value += consumeChar();
-        }
-      }
-      while (_Tokenizer.isNumeric(currentChar())) {
-        value += consumeChar();
-      }
-      number.value = value;
-      number.end = position;
-      return number;
-    }
-    function consumeOp() {
-      var op = makeOpToken();
-      var value = consumeChar();
-      while (currentChar() && _Tokenizer.OP_TABLE[value + currentChar()]) {
-        value += consumeChar();
-      }
-      op.type = _Tokenizer.OP_TABLE[value];
-      op.value = value;
-      op.end = position;
-      return op;
-    }
-    function consumeString() {
-      var string2 = makeToken("STRING");
-      var startChar = consumeChar();
-      string2.template = startChar === "`";
-      var value = "";
-      while (currentChar() && currentChar() !== startChar) {
-        if (currentChar() === "\\") {
-          consumeChar();
-          let nextChar2 = consumeChar();
-          if (nextChar2 === "b") {
-            value += "\b";
-          } else if (nextChar2 === "f") {
-            value += "\f";
-          } else if (nextChar2 === "n") {
-            value += "\n";
-          } else if (nextChar2 === "r") {
-            value += "\r";
-          } else if (nextChar2 === "t") {
-            value += "	";
-          } else if (nextChar2 === "v") {
-            value += "\v";
-          } else if (string2.template && nextChar2 === "$") {
-            value += "\\$";
-          } else if (nextChar2 === "x") {
-            const hex = consumeHexEscape();
-            if (Number.isNaN(hex)) {
-              throw Error("Invalid hexadecimal escape at " + _Tokenizer.positionString(string2));
-            }
-            value += String.fromCharCode(hex);
-          } else {
-            value += nextChar2;
-          }
-        } else {
-          value += consumeChar();
-        }
-      }
-      if (currentChar() !== startChar) {
-        throw Error("Unterminated string at " + _Tokenizer.positionString(string2));
-      } else {
-        consumeChar();
-      }
-      string2.value = value;
-      string2.end = position;
-      return string2;
-    }
-    function consumeHexEscape() {
-      const BASE = 16;
-      if (!currentChar()) {
-        return NaN;
-      }
-      let result = BASE * Number.parseInt(consumeChar(), BASE);
-      if (!currentChar()) {
-        return NaN;
-      }
-      result += Number.parseInt(consumeChar(), BASE);
-      return result;
-    }
-    function currentChar() {
-      return source.charAt(position);
-    }
-    function nextChar() {
-      return source.charAt(position + 1);
-    }
-    function nextCharAt(number = 1) {
-      return source.charAt(position + number);
-    }
-    function consumeChar() {
-      lastToken = currentChar();
-      position++;
-      column++;
-      return lastToken;
-    }
-    function possiblePrecedingSymbol() {
-      return _Tokenizer.isAlpha(lastToken) || _Tokenizer.isNumeric(lastToken) || lastToken === ")" || lastToken === '"' || lastToken === "'" || lastToken === "`" || lastToken === "}" || lastToken === "]";
-    }
-    function consumeWhitespace() {
-      var whitespace = makeToken("WHITESPACE");
-      var value = "";
-      while (currentChar() && _Tokenizer.isWhitespace(currentChar())) {
-        if (_Tokenizer.isNewline(currentChar())) {
-          column = 0;
-          line++;
-        }
-        value += consumeChar();
-      }
-      whitespace.value = value;
-      whitespace.end = position;
-      return whitespace;
-    }
+    const tokenizer = new _Tokenizer();
+    return tokenizer.tokenize(string, template);
   }
   /**
+   * Instance tokenize method
    * @param {string} string
    * @param {boolean} [template]
    * @returns {Tokens}
    */
   tokenize(string, template) {
-    return _Tokenizer.tokenize(string, template);
+    __privateMethod(this, _Tokenizer_instances, initializeState_fn).call(this, string, template);
+    return __privateMethod(this, _Tokenizer_instances, tokenizeImpl_fn).call(this);
   }
+};
+_source = new WeakMap();
+_position = new WeakMap();
+_column = new WeakMap();
+_line = new WeakMap();
+_lastToken = new WeakMap();
+_templateBraceCount = new WeakMap();
+_tokens = new WeakMap();
+_template = new WeakMap();
+_Tokenizer_instances = new WeakSet();
+/**
+ * Initialize tokenization state
+ * @param {string} string
+ * @param {boolean} [template]
+ */
+initializeState_fn = function(string, template) {
+  __privateSet(this, _source, string);
+  __privateSet(this, _position, 0);
+  __privateSet(this, _column, 0);
+  __privateSet(this, _line, 1);
+  __privateSet(this, _lastToken, "<START>");
+  __privateSet(this, _templateBraceCount, 0);
+  __privateSet(this, _tokens, []);
+  __privateSet(this, _template, template || false);
+};
+/**
+ * @param {string} c
+ * @returns {boolean}
+ */
+isValidCSSClassChar_fn = function(c) {
+  return _Tokenizer.isAlpha(c) || _Tokenizer.isNumeric(c) || c === "-" || c === "_" || c === ":";
+};
+/**
+ * @param {string} c
+ * @returns {boolean}
+ */
+isValidCSSIDChar_fn = function(c) {
+  return _Tokenizer.isAlpha(c) || _Tokenizer.isNumeric(c) || c === "-" || c === "_" || c === ":";
+};
+/**
+ * @param {string} c
+ * @returns {boolean}
+ */
+isIdentifierChar_fn = function(c) {
+  return c === "_" || c === "$";
+};
+/**
+ * @param {string} c
+ * @returns {boolean}
+ */
+isReservedChar_fn = function(c) {
+  return c === "`" || c === "^";
+};
+/**
+ * @param {Token[]} tokens
+ * @returns {boolean}
+ */
+isValidSingleQuoteStringStart_fn = function(tokens) {
+  if (tokens.length > 0) {
+    var previousToken = tokens[tokens.length - 1];
+    if (previousToken.type === "IDENTIFIER" || previousToken.type === "CLASS_REF" || previousToken.type === "ID_REF") {
+      return false;
+    }
+    if (previousToken.op && (previousToken.value === ">" || previousToken.value === ")")) {
+      return false;
+    }
+  }
+  return true;
+};
+/**
+ * @returns {boolean}
+ */
+inTemplate_fn = function() {
+  return __privateGet(this, _template) && __privateGet(this, _templateBraceCount) === 0;
+};
+/**
+ * @returns {string}
+ */
+currentChar_fn = function() {
+  return __privateGet(this, _source).charAt(__privateGet(this, _position));
+};
+/**
+ * @returns {string}
+ */
+nextChar_fn = function() {
+  return __privateGet(this, _source).charAt(__privateGet(this, _position) + 1);
+};
+/**
+ * @param {number} number
+ * @returns {string}
+ */
+nextCharAt_fn = function(number = 1) {
+  return __privateGet(this, _source).charAt(__privateGet(this, _position) + number);
+};
+/**
+ * @returns {string}
+ */
+consumeChar_fn = function() {
+  __privateSet(this, _lastToken, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this));
+  __privateWrapper(this, _position)._++;
+  __privateWrapper(this, _column)._++;
+  return __privateGet(this, _lastToken);
+};
+/**
+ * @returns {boolean}
+ */
+possiblePrecedingSymbol_fn = function() {
+  return _Tokenizer.isAlpha(__privateGet(this, _lastToken)) || _Tokenizer.isNumeric(__privateGet(this, _lastToken)) || __privateGet(this, _lastToken) === ")" || __privateGet(this, _lastToken) === '"' || __privateGet(this, _lastToken) === "'" || __privateGet(this, _lastToken) === "`" || __privateGet(this, _lastToken) === "}" || __privateGet(this, _lastToken) === "]";
+};
+/**
+ * @param {string} [type]
+ * @param {string} [value]
+ * @returns {Token}
+ */
+makeToken_fn = function(type, value) {
+  return {
+    type,
+    value: value || "",
+    start: __privateGet(this, _position),
+    end: __privateGet(this, _position) + 1,
+    column: __privateGet(this, _column),
+    line: __privateGet(this, _line)
+  };
+};
+/**
+ * @param {string} [type]
+ * @param {string} [value]
+ * @returns {Token}
+ */
+makeOpToken_fn = function(type, value) {
+  var token = __privateMethod(this, _Tokenizer_instances, makeToken_fn).call(this, type, value);
+  token.op = true;
+  return token;
+};
+consumeComment_fn = function() {
+  while (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) && !_Tokenizer.isNewline(__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
+    __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  }
+  __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+};
+consumeCommentMultiline_fn = function() {
+  while (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) && !(__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "*" && __privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this) === "/")) {
+    __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  }
+  __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+};
+/**
+ * @returns {Token}
+ */
+consumeWhitespace_fn = function() {
+  var whitespace = __privateMethod(this, _Tokenizer_instances, makeToken_fn).call(this, "WHITESPACE");
+  var value = "";
+  while (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) && _Tokenizer.isWhitespace(__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
+    if (_Tokenizer.isNewline(__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
+      __privateSet(this, _column, 0);
+      __privateWrapper(this, _line)._++;
+    }
+    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  }
+  whitespace.value = value;
+  whitespace.end = __privateGet(this, _position);
+  return whitespace;
+};
+/**
+ * @returns {Token}
+ */
+consumeClassReference_fn = function() {
+  var classRef = __privateMethod(this, _Tokenizer_instances, makeToken_fn).call(this, "CLASS_REF");
+  var value = __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "{") {
+    classRef.template = true;
+    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+    while (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) && __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) !== "}") {
+      value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+    }
+    if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) !== "}") {
+      throw Error("Unterminated class reference");
+    } else {
+      value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+    }
+  } else {
+    while (__privateMethod(this, _Tokenizer_instances, isValidCSSClassChar_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) || __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "\\") {
+      if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "\\") {
+        __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+      }
+      value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+    }
+  }
+  classRef.value = value;
+  classRef.end = __privateGet(this, _position);
+  return classRef;
+};
+/**
+ * @returns {Token}
+ */
+consumeIdReference_fn = function() {
+  var idRef = __privateMethod(this, _Tokenizer_instances, makeToken_fn).call(this, "ID_REF");
+  var value = __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "{") {
+    idRef.template = true;
+    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+    while (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) && __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) !== "}") {
+      value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+    }
+    if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) !== "}") {
+      throw Error("Unterminated id reference");
+    } else {
+      __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+    }
+  } else {
+    while (__privateMethod(this, _Tokenizer_instances, isValidCSSIDChar_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
+      value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+    }
+  }
+  idRef.value = value;
+  idRef.end = __privateGet(this, _position);
+  return idRef;
+};
+/**
+ * @returns {Token}
+ */
+consumeAttributeReference_fn = function() {
+  var attributeRef = __privateMethod(this, _Tokenizer_instances, makeToken_fn).call(this, "ATTRIBUTE_REF");
+  var value = __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  while (__privateGet(this, _position) < __privateGet(this, _source).length && __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) !== "]") {
+    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  }
+  if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "]") {
+    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  }
+  attributeRef.value = value;
+  attributeRef.end = __privateGet(this, _position);
+  return attributeRef;
+};
+consumeShortAttributeReference_fn = function() {
+  var attributeRef = __privateMethod(this, _Tokenizer_instances, makeToken_fn).call(this, "ATTRIBUTE_REF");
+  var value = __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  while (__privateMethod(this, _Tokenizer_instances, isValidCSSIDChar_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
+    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  }
+  if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "=") {
+    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+    if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === '"' || __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "'") {
+      let stringValue = __privateMethod(this, _Tokenizer_instances, consumeString_fn).call(this);
+      value += stringValue.value;
+    } else if (_Tokenizer.isAlpha(__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) || _Tokenizer.isNumeric(__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) || __privateMethod(this, _Tokenizer_instances, isIdentifierChar_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
+      let id = __privateMethod(this, _Tokenizer_instances, consumeIdentifier_fn).call(this);
+      value += id.value;
+    }
+  }
+  attributeRef.value = value;
+  attributeRef.end = __privateGet(this, _position);
+  return attributeRef;
+};
+consumeStyleReference_fn = function() {
+  var styleRef = __privateMethod(this, _Tokenizer_instances, makeToken_fn).call(this, "STYLE_REF");
+  var value = __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  while (_Tokenizer.isAlpha(__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) || __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "-") {
+    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  }
+  styleRef.value = value;
+  styleRef.end = __privateGet(this, _position);
+  return styleRef;
+};
+/**
+ * @returns {Token}
+ */
+consumeTemplateIdentifier_fn = function() {
+  var identifier = __privateMethod(this, _Tokenizer_instances, makeToken_fn).call(this, "IDENTIFIER");
+  var value = __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  var escd = value === "\\";
+  if (escd) {
+    value = "";
+  }
+  while (_Tokenizer.isAlpha(__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) || _Tokenizer.isNumeric(__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) || __privateMethod(this, _Tokenizer_instances, isIdentifierChar_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) || __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "\\" || __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "{" || __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "}") {
+    if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "$" && escd === false) {
+      break;
+    } else if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "\\") {
+      escd = true;
+      __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+    } else {
+      escd = false;
+      value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+    }
+  }
+  if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "!" && value === "beep") {
+    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  }
+  identifier.value = value;
+  identifier.end = __privateGet(this, _position);
+  return identifier;
+};
+/**
+ * @returns {Token}
+ */
+consumeIdentifier_fn = function() {
+  var identifier = __privateMethod(this, _Tokenizer_instances, makeToken_fn).call(this, "IDENTIFIER");
+  var value = __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  while (_Tokenizer.isAlpha(__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) || _Tokenizer.isNumeric(__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) || __privateMethod(this, _Tokenizer_instances, isIdentifierChar_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
+    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  }
+  if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "!" && value === "beep") {
+    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  }
+  identifier.value = value;
+  identifier.end = __privateGet(this, _position);
+  return identifier;
+};
+/**
+ * @returns {Token}
+ */
+consumeNumber_fn = function() {
+  var number = __privateMethod(this, _Tokenizer_instances, makeToken_fn).call(this, "NUMBER");
+  var value = __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  while (_Tokenizer.isNumeric(__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
+    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  }
+  if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "." && _Tokenizer.isNumeric(__privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this))) {
+    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  }
+  while (_Tokenizer.isNumeric(__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
+    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  }
+  if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "e" || __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "E") {
+    if (_Tokenizer.isNumeric(__privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this))) {
+      value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+    } else if (__privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this) === "-") {
+      value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+      value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+    }
+  }
+  while (_Tokenizer.isNumeric(__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
+    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  }
+  number.value = value;
+  number.end = __privateGet(this, _position);
+  return number;
+};
+/**
+ * @returns {Token}
+ */
+consumeOp_fn = function() {
+  var op = __privateMethod(this, _Tokenizer_instances, makeOpToken_fn).call(this);
+  var value = __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  while (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) && _Tokenizer.OP_TABLE[value + __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)]) {
+    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  }
+  op.type = _Tokenizer.OP_TABLE[value];
+  op.value = value;
+  op.end = __privateGet(this, _position);
+  return op;
+};
+/**
+ * @returns {Token}
+ */
+consumeString_fn = function() {
+  var string = __privateMethod(this, _Tokenizer_instances, makeToken_fn).call(this, "STRING");
+  var startChar = __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  string.template = startChar === "`";
+  var value = "";
+  while (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) && __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) !== startChar) {
+    if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "\\") {
+      __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+      let nextChar = __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+      if (nextChar === "b") {
+        value += "\b";
+      } else if (nextChar === "f") {
+        value += "\f";
+      } else if (nextChar === "n") {
+        value += "\n";
+      } else if (nextChar === "r") {
+        value += "\r";
+      } else if (nextChar === "t") {
+        value += "	";
+      } else if (nextChar === "v") {
+        value += "\v";
+      } else if (string.template && nextChar === "$") {
+        value += "\\$";
+      } else if (nextChar === "x") {
+        const hex = __privateMethod(this, _Tokenizer_instances, consumeHexEscape_fn).call(this);
+        if (Number.isNaN(hex)) {
+          throw Error("Invalid hexadecimal escape at " + _Tokenizer.positionString(string));
+        }
+        value += String.fromCharCode(hex);
+      } else {
+        value += nextChar;
+      }
+    } else {
+      value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+    }
+  }
+  if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) !== startChar) {
+    throw Error("Unterminated string at " + _Tokenizer.positionString(string));
+  } else {
+    __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  }
+  string.value = value;
+  string.end = __privateGet(this, _position);
+  return string;
+};
+/**
+ * @returns {number}
+ */
+consumeHexEscape_fn = function() {
+  const BASE = 16;
+  if (!__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) {
+    return NaN;
+  }
+  let result = BASE * Number.parseInt(__privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this), BASE);
+  if (!__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) {
+    return NaN;
+  }
+  result += Number.parseInt(__privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this), BASE);
+  return result;
+};
+/**
+ * Main tokenization implementation
+ * @returns {Tokens}
+ */
+tokenizeImpl_fn = function() {
+  while (__privateGet(this, _position) < __privateGet(this, _source).length) {
+    if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "-" && __privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this) === "-" && (_Tokenizer.isWhitespace(__privateMethod(this, _Tokenizer_instances, nextCharAt_fn).call(this, 2)) || __privateMethod(this, _Tokenizer_instances, nextCharAt_fn).call(this, 2) === "" || __privateMethod(this, _Tokenizer_instances, nextCharAt_fn).call(this, 2) === "-") || __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "/" && __privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this) === "/" && (_Tokenizer.isWhitespace(__privateMethod(this, _Tokenizer_instances, nextCharAt_fn).call(this, 2)) || __privateMethod(this, _Tokenizer_instances, nextCharAt_fn).call(this, 2) === "" || __privateMethod(this, _Tokenizer_instances, nextCharAt_fn).call(this, 2) === "/")) {
+      __privateMethod(this, _Tokenizer_instances, consumeComment_fn).call(this);
+    } else if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "/" && __privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this) === "*" && (_Tokenizer.isWhitespace(__privateMethod(this, _Tokenizer_instances, nextCharAt_fn).call(this, 2)) || __privateMethod(this, _Tokenizer_instances, nextCharAt_fn).call(this, 2) === "" || __privateMethod(this, _Tokenizer_instances, nextCharAt_fn).call(this, 2) === "*")) {
+      __privateMethod(this, _Tokenizer_instances, consumeCommentMultiline_fn).call(this);
+    } else {
+      if (_Tokenizer.isWhitespace(__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
+        __privateGet(this, _tokens).push(__privateMethod(this, _Tokenizer_instances, consumeWhitespace_fn).call(this));
+      } else if (!__privateMethod(this, _Tokenizer_instances, possiblePrecedingSymbol_fn).call(this) && __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "." && (_Tokenizer.isAlpha(__privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this)) || __privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this) === "{" || __privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this) === "-")) {
+        __privateGet(this, _tokens).push(__privateMethod(this, _Tokenizer_instances, consumeClassReference_fn).call(this));
+      } else if (!__privateMethod(this, _Tokenizer_instances, possiblePrecedingSymbol_fn).call(this) && __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "#" && (_Tokenizer.isAlpha(__privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this)) || __privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this) === "{")) {
+        __privateGet(this, _tokens).push(__privateMethod(this, _Tokenizer_instances, consumeIdReference_fn).call(this));
+      } else if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "[" && __privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this) === "@") {
+        __privateGet(this, _tokens).push(__privateMethod(this, _Tokenizer_instances, consumeAttributeReference_fn).call(this));
+      } else if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "@") {
+        __privateGet(this, _tokens).push(__privateMethod(this, _Tokenizer_instances, consumeShortAttributeReference_fn).call(this));
+      } else if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "*" && _Tokenizer.isAlpha(__privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this))) {
+        __privateGet(this, _tokens).push(__privateMethod(this, _Tokenizer_instances, consumeStyleReference_fn).call(this));
+      } else if (__privateMethod(this, _Tokenizer_instances, inTemplate_fn).call(this) && (_Tokenizer.isAlpha(__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) || __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "\\")) {
+        __privateGet(this, _tokens).push(__privateMethod(this, _Tokenizer_instances, consumeTemplateIdentifier_fn).call(this));
+      } else if (!__privateMethod(this, _Tokenizer_instances, inTemplate_fn).call(this) && (_Tokenizer.isAlpha(__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) || __privateMethod(this, _Tokenizer_instances, isIdentifierChar_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)))) {
+        __privateGet(this, _tokens).push(__privateMethod(this, _Tokenizer_instances, consumeIdentifier_fn).call(this));
+      } else if (_Tokenizer.isNumeric(__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
+        __privateGet(this, _tokens).push(__privateMethod(this, _Tokenizer_instances, consumeNumber_fn).call(this));
+      } else if (!__privateMethod(this, _Tokenizer_instances, inTemplate_fn).call(this) && (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === '"' || __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "`")) {
+        __privateGet(this, _tokens).push(__privateMethod(this, _Tokenizer_instances, consumeString_fn).call(this));
+      } else if (!__privateMethod(this, _Tokenizer_instances, inTemplate_fn).call(this) && __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "'") {
+        if (__privateMethod(this, _Tokenizer_instances, isValidSingleQuoteStringStart_fn).call(this, __privateGet(this, _tokens))) {
+          __privateGet(this, _tokens).push(__privateMethod(this, _Tokenizer_instances, consumeString_fn).call(this));
+        } else {
+          __privateGet(this, _tokens).push(__privateMethod(this, _Tokenizer_instances, consumeOp_fn).call(this));
+        }
+      } else if (_Tokenizer.OP_TABLE[__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)]) {
+        if (__privateGet(this, _lastToken) === "$" && __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "{") {
+          __privateWrapper(this, _templateBraceCount)._++;
+        }
+        if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "}") {
+          __privateWrapper(this, _templateBraceCount)._--;
+        }
+        __privateGet(this, _tokens).push(__privateMethod(this, _Tokenizer_instances, consumeOp_fn).call(this));
+      } else if (__privateMethod(this, _Tokenizer_instances, inTemplate_fn).call(this) || __privateMethod(this, _Tokenizer_instances, isReservedChar_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
+        __privateGet(this, _tokens).push(__privateMethod(this, _Tokenizer_instances, makeToken_fn).call(this, "RESERVED", __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this)));
+      } else {
+        if (__privateGet(this, _position) < __privateGet(this, _source).length) {
+          throw Error("Unknown token: " + __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) + " ");
+        }
+      }
+    }
+  }
+  return new Tokens(__privateGet(this, _tokens), [], __privateGet(this, _source));
 };
 __publicField(_Tokenizer, "OP_TABLE", {
   "+": "PLUS",
