@@ -267,35 +267,6 @@ export default function hyperscriptCoreGrammar(parser) {
 
         parser.addCommand("send", SendCommand.parse);
 
-        var parseReturnFunction = function (helper, returnAValue) {
-            if (returnAValue) {
-                if (helper.commandBoundary(helper.currentToken())) {
-                    helper.raiseParseError("'return' commands must return a value.  If you do not wish to return a value, use 'exit' instead.");
-                } else {
-                    var value = helper.requireElement("expression");
-                }
-            }
-
-            var returnCmd = {
-                value: value,
-                args: [value],
-                op: function (context, value) {
-                    var resolve = context.meta.resolve;
-                    context.meta.returned = true;
-                    context.meta.returnValue = value;
-                    if (resolve) {
-                        if (value) {
-                            resolve(value);
-                        } else {
-                            resolve();
-                        }
-                    }
-                    return context.meta.runtime.HALT;
-                },
-            };
-            return returnCmd;
-        };
-
         parser.addCommand("return", ReturnCommand.parse);
 
         parser.addCommand("exit", ExitCommand.parse);
