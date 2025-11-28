@@ -89,27 +89,37 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
     // Add runtime to kernel for backward compatibility with grammar code
     kernel_.runtime = runtime_;
 
-    // ===== Core Grammar Registration =====
-    // Expression grammar elements
+    // ===== Grammar Registration =====
+
+    // Literals and basic expressions
     kernel_.addLeafExpression("parenthesized", ParenthesizedExpression.parse);
     kernel_.addLeafExpression("string", StringLiteral.parse);
     kernel_.addGrammarElement("nakedString", NakedString.parse);
     kernel_.addLeafExpression("number", NumberLiteral.parse);
+    kernel_.addLeafExpression("boolean", BooleanLiteral.parse);
+    kernel_.addLeafExpression("null", NullLiteral.parse);
+    kernel_.addLeafExpression("arrayLiteral", ArrayLiteral.parse);
+    kernel_.addLeafExpression("blockLiteral", BlockLiteral.parse);
+    kernel_.addLeafExpression("objectLiteral", ObjectLiteral.parse);
+    kernel_.addGrammarElement("objectKey", ObjectKey.parse);
+    kernel_.addGrammarElement("nakedNamedArgumentList", NamedArgumentList.parseNaked);
+    kernel_.addGrammarElement("namedArgumentList", NamedArgumentList.parse);
+
+    // Web literals and references
     kernel_.addLeafExpression("idRef", IdRef.parse);
     kernel_.addLeafExpression("classRef", ClassRef.parse);
     kernel_.addLeafExpression("queryRef", QueryRef.parse);
     kernel_.addLeafExpression("attributeRef", AttributeRef.parse);
     kernel_.addLeafExpression("styleRef", StyleRef.parse);
-    kernel_.addGrammarElement("objectKey", ObjectKey.parse);
-    kernel_.addLeafExpression("objectLiteral", ObjectLiteral.parse);
-    kernel_.addGrammarElement("nakedNamedArgumentList", NamedArgumentList.parseNaked);
-    kernel_.addGrammarElement("namedArgumentList", NamedArgumentList.parse);
+    kernel_.addGrammarElement("styleLiteral", StyleLiteral.parse);
+
+    // Symbols and identifiers
     kernel_.addGrammarElement("symbol", SymbolRef.parse);
     kernel_.addGrammarElement("implicitMeTarget", ImplicitMeTarget.parse);
-    kernel_.addLeafExpression("boolean", BooleanLiteral.parse);
-    kernel_.addLeafExpression("null", NullLiteral.parse);
-    kernel_.addLeafExpression("arrayLiteral", ArrayLiteral.parse);
-    kernel_.addLeafExpression("blockLiteral", BlockLiteral.parse);
+    kernel_.addGrammarElement("dotOrColonPath", DotOrColonPath.parse);
+    kernel_.addGrammarElement("eventName", EventName.parse);
+
+    // Indirect expressions (property access, function calls, etc.)
     kernel_.addIndirectExpression("propertyAccess", PropertyAccess.parse);
     kernel_.addIndirectExpression("of", OfExpression.parse);
     kernel_.addIndirectExpression("possessive", PossessiveExpression.parse);
@@ -118,22 +128,29 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
     kernel_.addIndirectExpression("functionCall", FunctionCall.parse);
     kernel_.addIndirectExpression("attributeRefAccess", AttributeRefAccess.parse);
     kernel_.addIndirectExpression("arrayIndex", ArrayIndex.parse);
+
+    // Unary and logical expressions
     kernel_.addGrammarElement("logicalNot", LogicalNot.parse);
     kernel_.addGrammarElement("noExpression", NoExpression.parse);
     kernel_.addLeafExpression("some", SomeExpression.parse);
     kernel_.addGrammarElement("negativeNumber", NegativeNumber.parse);
     kernel_.addGrammarElement("beepExpression", BeepExpression.parse);
+
+    // Positional expressions
     kernel_.addGrammarElement("relativePositionalExpression", RelativePositionalExpression.parse);
     kernel_.addGrammarElement("positionalExpression", PositionalExpression.parse);
+    kernel_.addLeafExpression("closestExpr", ClosestExpr.parse);
+
+    // Math and comparison expressions
     kernel_.addGrammarElement("mathOperator", MathOperator.parse);
     kernel_.addGrammarElement("mathExpression", MathExpression.parse);
     kernel_.addGrammarElement("comparisonOperator", ComparisonOperator.parse);
     kernel_.addGrammarElement("comparisonExpression", ComparisonExpression.parse);
+
+    // Logical expressions
     kernel_.addGrammarElement("logicalOperator", LogicalOperator.parse);
     kernel_.addGrammarElement("logicalExpression", LogicalExpression.parse);
     kernel_.addGrammarElement("asyncExpression", AsyncExpression.parse);
-    kernel_.addGrammarElement("dotOrColonPath", DotOrColonPath.parse);
-    kernel_.addGrammarElement("eventName", EventName.parse);
 
     // Features
     kernel_.addFeature("on", function (parser) {
@@ -154,40 +171,50 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
     kernel_.addGrammarElement("jsBody", JsBody.parse);
     kernel_.addFeature("js", JsFeature.parse);
 
-    // Commands
-    kernel_.addCommand("js", JsCommand.parse);
-    kernel_.addCommand("async", AsyncCommand.parse);
-    kernel_.addCommand("tell", TellCommand.parse);
-    kernel_.addCommand("wait", WaitCommand.parse);
-    kernel_.addCommand("trigger", TriggerCommand.parse);
-    kernel_.addCommand("send", SendCommand.parse);
-    kernel_.addCommand("return", ReturnCommand.parse);
-    kernel_.addCommand("exit", ExitCommand.parse);
-    kernel_.addCommand("halt", HaltCommand.parse);
+    // Basic commands
     kernel_.addCommand("log", LogCommand.parse);
     kernel_.addCommand("beep!", BeepCommand.parse);
     kernel_.addCommand("throw", ThrowCommand.parse);
-    kernel_.addCommand("call", CallCommand.parse);
-    kernel_.addCommand("get", GetCommand.parse);
+    kernel_.addCommand("return", ReturnCommand.parse);
+    kernel_.addCommand("exit", ExitCommand.parse);
+    kernel_.addCommand("halt", HaltCommand.parse);
     kernel_.addCommand("make", MakeCommand.parse);
-    kernel_.addGrammarElement("pseudoCommand", PseudoCommand.parse);
-    kernel_.addCommand("default", DefaultCommand.parse);
+    kernel_.addCommand("pick", PickCommand.parse);
+    kernel_.addCommand("fetch", FetchCommand.parse);
+    kernel_.addCommand("go", GoCommand.parse);
+
+    // Variable and value commands
     kernel_.addCommand("set", SetCommand.parse);
+    kernel_.addCommand("default", DefaultCommand.parse);
+    kernel_.addCommand("increment", IncrementCommand.parse);
+    kernel_.addCommand("decrement", DecrementCommand.parse);
+    kernel_.addCommand("append", AppendCommand.parse);
+    kernel_.addCommand("put", function (parser) {
+        return PutCommand.parse(parser, kernel_);
+    });
+
+    // Control flow commands
     kernel_.addCommand("if", IfCommand.parse);
     kernel_.addCommand("repeat", RepeatCommand.parse);
     kernel_.addCommand("for", ForCommand.parse);
     kernel_.addCommand("continue", ContinueCommand.parse);
     kernel_.addCommand("break", BreakCommand.parse);
-    kernel_.addCommand("append", AppendCommand.parse);
-    kernel_.addCommand("pick", PickCommand.parse);
-    kernel_.addCommand("increment", IncrementCommand.parse);
-    kernel_.addCommand("decrement", DecrementCommand.parse);
-    kernel_.addCommand("fetch", FetchCommand.parse);
+    kernel_.addCommand("tell", TellCommand.parse);
 
-    // ===== Web Grammar Registration =====
-    kernel_.addCommand("settle", SettleCommand.parse);
+    // Event commands
+    kernel_.addCommand("wait", WaitCommand.parse);
+    kernel_.addCommand("trigger", TriggerCommand.parse);
+    kernel_.addCommand("send", SendCommand.parse);
+
+    // Execution commands
+    kernel_.addCommand("js", JsCommand.parse);
+    kernel_.addCommand("async", AsyncCommand.parse);
+    kernel_.addCommand("call", CallCommand.parse);
+    kernel_.addCommand("get", GetCommand.parse);
+    kernel_.addGrammarElement("pseudoCommand", PseudoCommand.parse);
+
+    // DOM manipulation commands
     kernel_.addCommand("add", AddCommand.parse);
-    kernel_.addGrammarElement("styleLiteral", StyleLiteral.parse);
     kernel_.addCommand("remove", RemoveCommand.parse);
     kernel_.addCommand("toggle", function (parser) {
         return ToggleCommand.parse(parser, kernel_, config);
@@ -199,20 +226,18 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
         return ShowCommand.parse(parser, kernel_, config);
     });
     kernel_.addCommand("take", TakeCommand.parse);
-    kernel_.addCommand("put", function (parser) {
-        return PutCommand.parse(parser, kernel_);
-    });
+    kernel_.addCommand("measure", MeasureCommand.parse);
+
+    // Animation commands
+    kernel_.addCommand("settle", SettleCommand.parse);
     kernel_.addCommand("transition", function (parser) {
         return TransitionCommand.parse(parser, config);
     });
-    kernel_.addCommand("measure", MeasureCommand.parse);
-    kernel_.addLeafExpression("closestExpr", ClosestExpr.parse);
-    kernel_.addCommand("go", GoCommand.parse);
 
     // Initialize web-specific conversions
     initWebConversions(runtime_);
 
-    // ===== Inline grammar elements (will eventually move to kernel) =====
+    // ===== TODO: Move To Kernel =====
     kernel_.addGrammarElement("postfixExpression", function (parser) {
         var root = parser.parseElement("negativeNumber");
         return StringPostfixExpression.parse(parser, root) ||
