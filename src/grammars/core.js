@@ -3,7 +3,7 @@ import { Lexer } from '../core/lexer.js';
 import { Runtime } from '../core/runtime.js';
 import {ElementCollection, RegExpIterable, TemplatedQueryElementCollection} from '../core/util.js';
 import { getOrInitObject, varargConstructor } from '../core/helpers.js';
-import { IdRef } from '../parsetree/webliterals.js';
+import { IdRef, ClassRef } from '../parsetree/webliterals.js';
 
 /**
  * @param {Parser} parser
@@ -93,38 +93,7 @@ export default function hyperscriptCoreGrammar(parser) {
 
         parser.addLeafExpression("idRef", IdRef.parse);
 
-        parser.addLeafExpression("classRef", function (helper) {
-            var classRef = helper.matchTokenType("CLASS_REF");
-
-            if (!classRef) return;
-            if (!classRef.value) return;
-
-            // TODO - unify these two expression types
-            if (classRef.template) {
-                var templateValue = classRef.value.substring(2);
-                var innerTokens = Lexer.tokenize(templateValue);
-                var innerExpression = helper.parser.requireElement("expression", innerTokens);
-                return {
-                    type: "classRefTemplate",
-                    args: [innerExpression],
-                    op: function (context, arg) {
-                        return new ElementCollection("." + arg, context.me, true)
-                    },
-                    evaluate: function (context) {
-                        return context.meta.runtime.unifiedEval(this, context);
-                    },
-                };
-            } else {
-                const css = classRef.value;
-                return {
-                    type: "classRef",
-                    css: css,
-                    evaluate: function (context) {
-                        return new ElementCollection(css, context.me, true)
-                    },
-                };
-            }
-        });
+        parser.addLeafExpression("classRef", ClassRef.parse);
 
         // TemplatedQueryElementCollection is now imported from ./core/util.js
 

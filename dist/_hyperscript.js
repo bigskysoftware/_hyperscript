@@ -2362,6 +2362,46 @@ var IdRef = class {
     }
   }
 };
+var ClassRef = class {
+  /**
+   * Parse a class reference
+   * @param {ParserHelper} helper
+   * @returns {any | undefined}
+   */
+  static parse(helper) {
+    var _a, _b;
+    const Lexer2 = helper.parser.constructor.Lexer || ((_b = (_a = window._hyperscript) == null ? void 0 : _a.internals) == null ? void 0 : _b.Lexer);
+    var classRef = helper.matchTokenType("CLASS_REF");
+    if (!classRef) return;
+    if (!classRef.value) return;
+    if (classRef.template) {
+      var templateValue = classRef.value.substring(2);
+      var innerTokens = Lexer2.tokenize(templateValue);
+      var innerExpression = helper.parser.requireElement("expression", innerTokens);
+      return {
+        type: "classRefTemplate",
+        args: [innerExpression],
+        op: function(context2, arg) {
+          return new ElementCollection("." + arg, context2.me, true);
+        },
+        evaluate: function(context2) {
+          return context2.meta.runtime.unifiedEval(this, context2);
+        }
+      };
+    } else {
+      const css = classRef.value;
+      const className = css.substr(1);
+      return {
+        type: "classRef",
+        css,
+        className,
+        evaluate: function(context2) {
+          return new ElementCollection(css, context2.me, true);
+        }
+      };
+    }
+  }
+};
 
 // src/grammars/core.js
 function hyperscriptCoreGrammar(parser) {
@@ -2447,35 +2487,7 @@ function hyperscriptCoreGrammar(parser) {
     };
   });
   parser.addLeafExpression("idRef", IdRef.parse);
-  parser.addLeafExpression("classRef", function(helper) {
-    var classRef = helper.matchTokenType("CLASS_REF");
-    if (!classRef) return;
-    if (!classRef.value) return;
-    if (classRef.template) {
-      var templateValue = classRef.value.substring(2);
-      var innerTokens = Lexer.tokenize(templateValue);
-      var innerExpression = helper.parser.requireElement("expression", innerTokens);
-      return {
-        type: "classRefTemplate",
-        args: [innerExpression],
-        op: function(context2, arg) {
-          return new ElementCollection("." + arg, context2.me, true);
-        },
-        evaluate: function(context2) {
-          return context2.meta.runtime.unifiedEval(this, context2);
-        }
-      };
-    } else {
-      const css = classRef.value;
-      return {
-        type: "classRef",
-        css,
-        evaluate: function(context2) {
-          return new ElementCollection(css, context2.me, true);
-        }
-      };
-    }
-  });
+  parser.addLeafExpression("classRef", ClassRef.parse);
   parser.addLeafExpression("queryRef", function(helper) {
     var queryStart = helper.matchOpToken("<");
     if (!queryStart) return;
