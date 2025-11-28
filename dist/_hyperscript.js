@@ -2402,6 +2402,92 @@ var ClassRef = class {
     }
   }
 };
+var QueryRef = class {
+  /**
+   * Parse a query reference
+   * @param {ParserHelper} helper
+   * @returns {any | undefined}
+   */
+  static parse(helper) {
+    var _a, _b;
+    const Lexer2 = helper.parser.constructor.Lexer || ((_b = (_a = window._hyperscript) == null ? void 0 : _a.internals) == null ? void 0 : _b.Lexer);
+    var queryStart = helper.matchOpToken("<");
+    if (!queryStart) return;
+    var queryTokens = helper.consumeUntil("/");
+    helper.requireOpToken("/");
+    helper.requireOpToken(">");
+    var queryValue = queryTokens.map(function(t) {
+      if (t.type === "STRING") {
+        return '"' + t.value + '"';
+      } else {
+        return t.value;
+      }
+    }).join("");
+    var template, innerTokens, args;
+    if (/\$[^=]/.test(queryValue)) {
+      template = true;
+      innerTokens = Lexer2.tokenize(queryValue, true);
+      args = helper.parser.parseStringTemplate(innerTokens);
+    }
+    return {
+      type: "queryRef",
+      css: queryValue,
+      args,
+      op: function(context2, ...args2) {
+        if (template) {
+          return new TemplatedQueryElementCollection(queryValue, context2.me, args2);
+        } else {
+          return new ElementCollection(queryValue, context2.me);
+        }
+      },
+      evaluate: function(context2) {
+        return context2.meta.runtime.unifiedEval(this, context2);
+      }
+    };
+  }
+};
+var AttributeRef = class {
+  /**
+   * Parse an attribute reference
+   * @param {ParserHelper} helper
+   * @returns {any | undefined}
+   */
+  static parse(helper) {
+    var attributeRef = helper.matchTokenType("ATTRIBUTE_REF");
+    if (!attributeRef) return;
+    if (!attributeRef.value) return;
+    var outerVal = attributeRef.value;
+    if (outerVal.indexOf("[") === 0) {
+      var innerValue = outerVal.substring(2, outerVal.length - 1);
+    } else {
+      var innerValue = outerVal.substring(1);
+    }
+    var css = "[" + innerValue + "]";
+    var split = innerValue.split("=");
+    var name = split[0];
+    var value = split[1];
+    if (value) {
+      if (value.indexOf('"') === 0) {
+        value = value.substring(1, value.length - 1);
+      }
+    }
+    return {
+      type: "attributeRef",
+      name,
+      css,
+      value,
+      op: function(context2) {
+        var target = context2.you || context2.me;
+        if (target) {
+          return target.getAttribute(name);
+        }
+      },
+      evaluate: function(context2) {
+        return context2.meta.runtime.unifiedEval(this, context2);
+      }
+    };
+  }
+};
 
 // src/grammars/core.js
 function hyperscriptCoreGrammar(parser) {
@@ -2488,76 +2574,8 @@ function hyperscriptCoreGrammar(parser) {
   });
   parser.addLeafExpression("idRef", IdRef.parse);
   parser.addLeafExpression("classRef", ClassRef.parse);
-  parser.addLeafExpression("queryRef", function(helper) {
-    var queryStart = helper.matchOpToken("<");
-    if (!queryStart) return;
-    var queryTokens = helper.consumeUntil("/");
-    helper.requireOpToken("/");
-    helper.requireOpToken(">");
-    var queryValue = queryTokens.map(function(t) {
-      if (t.type === "STRING") {
-        return '"' + t.value + '"';
-      } else {
-        return t.value;
-      }
-    }).join("");
-    var template, innerTokens, args;
-    if (/\$[^=]/.test(queryValue)) {
-      template = true;
-      innerTokens = Lexer.tokenize(queryValue, true);
-      args = helper.parser.parseStringTemplate(innerTokens);
-    }
-    return {
-      type: "queryRef",
-      css: queryValue,
-      args,
-      op: function(context2, ...args2) {
-        if (template) {
-          return new TemplatedQueryElementCollection(queryValue, context2.me, args2);
-        } else {
-          return new ElementCollection(queryValue, context2.me);
-        }
-      },
-      evaluate: function(context2) {
-        return context2.meta.runtime.unifiedEval(this, context2);
-      }
-    };
-  });
-  parser.addLeafExpression("attributeRef", function(helper) {
-    var attributeRef = helper.matchTokenType("ATTRIBUTE_REF");
-    if (!attributeRef) return;
-    if (!attributeRef.value) return;
-    var outerVal = attributeRef.value;
-    if (outerVal.indexOf("[") === 0) {
-      var innerValue = outerVal.substring(2, outerVal.length - 1);
-    } else {
-      var innerValue = outerVal.substring(1);
-    }
-    var css = "[" + innerValue + "]";
-    var split = innerValue.split("=");
-    var name = split[0];
-    var value = split[1];
-    if (value) {
-      if (value.indexOf('"') === 0) {
-        value = value.substring(1, value.length - 1);
-      }
-    }
-    return {
-      type: "attributeRef",
-      name,
-      css,
-      value,
-      op: function(context2) {
-        var target = context2.you || context2.me;
-        if (target) {
-          return target.getAttribute(name);
-        }
-      },
-      evaluate: function(context2) {
-        return context2.meta.runtime.unifiedEval(this, context2);
-      }
-    };
-  });
+  parser.addLeafExpression("queryRef", QueryRef.parse);
+  parser.addLeafExpression("attributeRef", AttributeRef.parse);
   parser.addLeafExpression("styleRef", function(helper) {
     var styleRef = helper.matchTokenType("STYLE_REF");
     if (!styleRef) return;

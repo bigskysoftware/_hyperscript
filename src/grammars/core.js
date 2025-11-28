@@ -3,7 +3,7 @@ import { Lexer } from '../core/lexer.js';
 import { Runtime } from '../core/runtime.js';
 import {ElementCollection, RegExpIterable, TemplatedQueryElementCollection} from '../core/util.js';
 import { getOrInitObject, varargConstructor } from '../core/helpers.js';
-import { IdRef, ClassRef } from '../parsetree/webliterals.js';
+import { IdRef, ClassRef, QueryRef, AttributeRef } from '../parsetree/webliterals.js';
 
 /**
  * @param {Parser} parser
@@ -97,82 +97,9 @@ export default function hyperscriptCoreGrammar(parser) {
 
         // TemplatedQueryElementCollection is now imported from ./core/util.js
 
-        parser.addLeafExpression("queryRef", function (helper) {
-            var queryStart = helper.matchOpToken("<");
-            if (!queryStart) return;
-            var queryTokens = helper.consumeUntil("/");
-            helper.requireOpToken("/");
-            helper.requireOpToken(">");
-            var queryValue = queryTokens
-                .map(function (t) {
-                    if (t.type === "STRING") {
-                        return '"' + t.value + '"';
-                    } else {
-                        return t.value;
-                    }
-                })
-                .join("");
+        parser.addLeafExpression("queryRef", QueryRef.parse);
 
-            var template, innerTokens, args;
-            if (/\$[^=]/.test(queryValue)) {
-                template = true;
-                innerTokens = Lexer.tokenize(queryValue, true);
-                args = helper.parser.parseStringTemplate(innerTokens);
-            }
-
-            return {
-                type: "queryRef",
-                css: queryValue,
-                args: args,
-                op: function (context, ...args) {
-                    if (template) {
-                        return new TemplatedQueryElementCollection(queryValue, context.me, args)
-                    } else {
-                        return new ElementCollection(queryValue, context.me)
-                    }
-                },
-                evaluate: function (context) {
-                    return context.meta.runtime.unifiedEval(this, context);
-                },
-            };
-        });
-
-        parser.addLeafExpression("attributeRef", function (helper) {
-            var attributeRef = helper.matchTokenType("ATTRIBUTE_REF");
-            if (!attributeRef) return;
-            if (!attributeRef.value) return;
-            var outerVal = attributeRef.value;
-            if (outerVal.indexOf("[") === 0) {
-                var innerValue = outerVal.substring(2, outerVal.length - 1);
-            } else {
-                var innerValue = outerVal.substring(1);
-            }
-            var css = "[" + innerValue + "]";
-            var split = innerValue.split("=");
-            var name = split[0];
-            var value = split[1];
-            if (value) {
-                // strip quotes
-                if (value.indexOf('"') === 0) {
-                    value = value.substring(1, value.length - 1);
-                }
-            }
-            return {
-                type: "attributeRef",
-                name: name,
-                css: css,
-                value: value,
-                op: function (context) {
-                    var target = context.you || context.me;
-                    if (target) {
-                        return target.getAttribute(name);
-                    }
-                },
-                evaluate: function (context) {
-                    return context.meta.runtime.unifiedEval(this, context);
-                },
-            };
-        });
+        parser.addLeafExpression("attributeRef", AttributeRef.parse);
 
         parser.addLeafExpression("styleRef", function (helper) {
             var styleRef = helper.matchTokenType("STYLE_REF");
