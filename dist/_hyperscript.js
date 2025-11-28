@@ -6154,183 +6154,26 @@ var DefFeature = class {
   }
 };
 
-// src/grammars/core.js
-function hyperscriptCoreGrammar(parser) {
-  parser.addLeafExpression("parenthesized", ParenthesizedExpression.parse);
-  parser.addLeafExpression("string", StringLiteral.parse);
-  parser.addGrammarElement("nakedString", NakedString.parse);
-  parser.addLeafExpression("number", NumberLiteral.parse);
-  parser.addLeafExpression("idRef", IdRef.parse);
-  parser.addLeafExpression("classRef", ClassRef.parse);
-  parser.addLeafExpression("queryRef", QueryRef.parse);
-  parser.addLeafExpression("attributeRef", AttributeRef.parse);
-  parser.addLeafExpression("styleRef", StyleRef.parse);
-  parser.addGrammarElement("objectKey", ObjectKey.parse);
-  parser.addLeafExpression("objectLiteral", ObjectLiteral.parse);
-  parser.addGrammarElement("nakedNamedArgumentList", NamedArgumentList.parseNaked);
-  parser.addGrammarElement("namedArgumentList", NamedArgumentList.parse);
-  parser.addGrammarElement("symbol", SymbolRef.parse);
-  parser.addGrammarElement("implicitMeTarget", ImplicitMeTarget.parse);
-  parser.addLeafExpression("boolean", BooleanLiteral.parse);
-  parser.addLeafExpression("null", NullLiteral.parse);
-  parser.addLeafExpression("arrayLiteral", ArrayLiteral.parse);
-  parser.addLeafExpression("blockLiteral", BlockLiteral.parse);
-  parser.addIndirectExpression("propertyAccess", PropertyAccess.parse);
-  parser.addIndirectExpression("of", OfExpression.parse);
-  parser.addIndirectExpression("possessive", PossessiveExpression.parse);
-  parser.addIndirectExpression("inExpression", InExpression.parse);
-  parser.addIndirectExpression("asExpression", AsExpression.parse);
-  parser.addIndirectExpression("functionCall", FunctionCall.parse);
-  parser.addIndirectExpression("attributeRefAccess", AttributeRefAccess.parse);
-  parser.addIndirectExpression("arrayIndex", ArrayIndex.parse);
-  var STRING_POSTFIXES = [
-    "em",
-    "ex",
-    "cap",
-    "ch",
-    "ic",
-    "rem",
-    "lh",
-    "rlh",
-    "vw",
-    "vh",
-    "vi",
-    "vb",
-    "vmin",
-    "vmax",
-    "cm",
-    "mm",
-    "Q",
-    "pc",
-    "pt",
-    "px"
-  ];
-  parser.addGrammarElement("postfixExpression", function(helper) {
-    var root = helper.parseElement("negativeNumber");
-    let stringPosfix = helper.tokens.matchAnyToken.apply(helper.tokens, STRING_POSTFIXES) || helper.matchOpToken("%");
-    if (stringPosfix) {
-      return {
-        type: "stringPostfix",
-        postfix: stringPosfix.value,
-        args: [root],
-        op: function(context2, val) {
-          return "" + val + stringPosfix.value;
-        },
-        evaluate: function(context2) {
-          return context2.meta.runtime.unifiedEval(this, context2);
-        }
-      };
-    }
-    var timeFactor = null;
-    if (helper.matchToken("s") || helper.matchToken("seconds")) {
-      timeFactor = 1e3;
-    } else if (helper.matchToken("ms") || helper.matchToken("milliseconds")) {
-      timeFactor = 1;
-    }
-    if (timeFactor) {
-      return {
-        type: "timeExpression",
-        time: root,
-        factor: timeFactor,
-        args: [root],
-        op: function(context2, val) {
-          return val * timeFactor;
-        },
-        evaluate: function(context2) {
-          return context2.meta.runtime.unifiedEval(this, context2);
-        }
-      };
-    }
-    if (helper.matchOpToken(":")) {
-      var typeName = helper.requireTokenType("IDENTIFIER");
-      if (!typeName.value) return;
-      var nullOk = !helper.matchOpToken("!");
-      return {
-        type: "typeCheck",
-        typeName,
-        nullOk,
-        args: [root],
-        op: function(context2, val) {
-          var passed = context2.meta.runtime.typeCheck(val, this.typeName.value, nullOk);
-          if (passed) {
-            return val;
-          } else {
-            throw new Error("Typecheck failed!  Expected: " + typeName.value);
-          }
-        },
-        evaluate: function(context2) {
-          return context2.meta.runtime.unifiedEval(this, context2);
-        }
-      };
-    } else {
-      return root;
-    }
-  });
-  parser.addGrammarElement("logicalNot", LogicalNot.parse);
-  parser.addGrammarElement("noExpression", NoExpression.parse);
-  parser.addLeafExpression("some", SomeExpression.parse);
-  parser.addGrammarElement("negativeNumber", NegativeNumber.parse);
-  parser.addGrammarElement("unaryExpression", function(helper) {
-    helper.matchToken("the");
-    return helper.parseAnyOf(["beepExpression", "logicalNot", "relativePositionalExpression", "positionalExpression", "noExpression", "postfixExpression"]);
-  });
-  parser.addGrammarElement("beepExpression", BeepExpression.parse);
-  parser.addGrammarElement("relativePositionalExpression", RelativePositionalExpression.parse);
-  parser.addGrammarElement("positionalExpression", PositionalExpression.parse);
-  parser.addGrammarElement("mathOperator", MathOperator.parse);
-  parser.addGrammarElement("mathExpression", MathExpression.parse);
-  parser.addGrammarElement("comparisonOperator", ComparisonOperator.parse);
-  parser.addGrammarElement("comparisonExpression", ComparisonExpression.parse);
-  parser.addGrammarElement("logicalOperator", LogicalOperator.parse);
-  parser.addGrammarElement("logicalExpression", LogicalExpression.parse);
-  parser.addGrammarElement("asyncExpression", AsyncExpression.parse);
-  parser.addGrammarElement("expression", function(helper) {
-    helper.matchToken("the");
-    return helper.parseElement("asyncExpression");
-  });
-  parser.addGrammarElement("assignableExpression", function(helper) {
-    helper.matchToken("the");
-    var expr = helper.parseElement("primaryExpression");
-    if (expr && (expr.type === "symbol" || expr.type === "ofExpression" || expr.type === "propertyAccess" || expr.type === "attributeRefAccess" || expr.type === "attributeRef" || expr.type === "styleRef" || expr.type === "arrayIndex" || expr.type === "possessive")) {
-      return expr;
-    } else {
-      helper.raiseParseError(
-        "A target expression must be writable.  The expression type '" + (expr && expr.type) + "' is not."
-      );
-    }
-    return expr;
-  });
-  parser.addGrammarElement("hyperscript", function(helper) {
-    var features = [];
-    if (helper.hasMore()) {
-      while (helper.featureStart(helper.currentToken()) || helper.currentToken().value === "(") {
-        var feature = helper.requireElement("feature");
-        features.push(feature);
-        helper.matchToken("end");
-      }
-    }
-    return {
-      type: "hyperscript",
-      features,
-      apply: function(target, source, args, runtime) {
-        for (const feature2 of features) {
-          feature2.install(target, source, args, runtime);
-        }
-      }
-    };
-  });
-  var parseEventArgs2 = function(helper) {
-    var args = [];
-    if (helper.token(0).value === "(" && (helper.token(1).value === ")" || helper.token(2).value === "," || helper.token(2).value === ")")) {
-      helper.matchOpToken("(");
-      do {
-        args.push(helper.requireTokenType("IDENTIFIER"));
-      } while (helper.matchOpToken(","));
-      helper.requireOpToken(")");
-    }
-    return args;
-  };
-  parser.addFeature("on", function(helper) {
+// src/parsetree/features/on.js
+function parseEventArgs2(helper) {
+  var args = [];
+  if (helper.token(0).value === "(" && (helper.token(1).value === ")" || helper.token(2).value === "," || helper.token(2).value === ")")) {
+    helper.matchOpToken("(");
+    do {
+      args.push(helper.requireTokenType("IDENTIFIER"));
+    } while (helper.matchOpToken(","));
+    helper.requireOpToken(")");
+  }
+  return args;
+}
+var OnFeature = class {
+  /**
+   * Parse on feature
+   * @param {ParserHelper} helper
+   * @param {Parser} parser
+   * @returns {OnFeature | undefined}
+   */
+  static parse(helper, parser) {
     if (!helper.matchToken("on")) return;
     var every = false;
     if (helper.matchToken("every")) {
@@ -6678,6 +6521,176 @@ function hyperscriptCoreGrammar(parser) {
     };
     helper.setParent(start, onFeature);
     return onFeature;
+  }
+};
+
+// src/grammars/core.js
+function hyperscriptCoreGrammar(parser) {
+  parser.addLeafExpression("parenthesized", ParenthesizedExpression.parse);
+  parser.addLeafExpression("string", StringLiteral.parse);
+  parser.addGrammarElement("nakedString", NakedString.parse);
+  parser.addLeafExpression("number", NumberLiteral.parse);
+  parser.addLeafExpression("idRef", IdRef.parse);
+  parser.addLeafExpression("classRef", ClassRef.parse);
+  parser.addLeafExpression("queryRef", QueryRef.parse);
+  parser.addLeafExpression("attributeRef", AttributeRef.parse);
+  parser.addLeafExpression("styleRef", StyleRef.parse);
+  parser.addGrammarElement("objectKey", ObjectKey.parse);
+  parser.addLeafExpression("objectLiteral", ObjectLiteral.parse);
+  parser.addGrammarElement("nakedNamedArgumentList", NamedArgumentList.parseNaked);
+  parser.addGrammarElement("namedArgumentList", NamedArgumentList.parse);
+  parser.addGrammarElement("symbol", SymbolRef.parse);
+  parser.addGrammarElement("implicitMeTarget", ImplicitMeTarget.parse);
+  parser.addLeafExpression("boolean", BooleanLiteral.parse);
+  parser.addLeafExpression("null", NullLiteral.parse);
+  parser.addLeafExpression("arrayLiteral", ArrayLiteral.parse);
+  parser.addLeafExpression("blockLiteral", BlockLiteral.parse);
+  parser.addIndirectExpression("propertyAccess", PropertyAccess.parse);
+  parser.addIndirectExpression("of", OfExpression.parse);
+  parser.addIndirectExpression("possessive", PossessiveExpression.parse);
+  parser.addIndirectExpression("inExpression", InExpression.parse);
+  parser.addIndirectExpression("asExpression", AsExpression.parse);
+  parser.addIndirectExpression("functionCall", FunctionCall.parse);
+  parser.addIndirectExpression("attributeRefAccess", AttributeRefAccess.parse);
+  parser.addIndirectExpression("arrayIndex", ArrayIndex.parse);
+  var STRING_POSTFIXES = [
+    "em",
+    "ex",
+    "cap",
+    "ch",
+    "ic",
+    "rem",
+    "lh",
+    "rlh",
+    "vw",
+    "vh",
+    "vi",
+    "vb",
+    "vmin",
+    "vmax",
+    "cm",
+    "mm",
+    "Q",
+    "pc",
+    "pt",
+    "px"
+  ];
+  parser.addGrammarElement("postfixExpression", function(helper) {
+    var root = helper.parseElement("negativeNumber");
+    let stringPosfix = helper.tokens.matchAnyToken.apply(helper.tokens, STRING_POSTFIXES) || helper.matchOpToken("%");
+    if (stringPosfix) {
+      return {
+        type: "stringPostfix",
+        postfix: stringPosfix.value,
+        args: [root],
+        op: function(context2, val) {
+          return "" + val + stringPosfix.value;
+        },
+        evaluate: function(context2) {
+          return context2.meta.runtime.unifiedEval(this, context2);
+        }
+      };
+    }
+    var timeFactor = null;
+    if (helper.matchToken("s") || helper.matchToken("seconds")) {
+      timeFactor = 1e3;
+    } else if (helper.matchToken("ms") || helper.matchToken("milliseconds")) {
+      timeFactor = 1;
+    }
+    if (timeFactor) {
+      return {
+        type: "timeExpression",
+        time: root,
+        factor: timeFactor,
+        args: [root],
+        op: function(context2, val) {
+          return val * timeFactor;
+        },
+        evaluate: function(context2) {
+          return context2.meta.runtime.unifiedEval(this, context2);
+        }
+      };
+    }
+    if (helper.matchOpToken(":")) {
+      var typeName = helper.requireTokenType("IDENTIFIER");
+      if (!typeName.value) return;
+      var nullOk = !helper.matchOpToken("!");
+      return {
+        type: "typeCheck",
+        typeName,
+        nullOk,
+        args: [root],
+        op: function(context2, val) {
+          var passed = context2.meta.runtime.typeCheck(val, this.typeName.value, nullOk);
+          if (passed) {
+            return val;
+          } else {
+            throw new Error("Typecheck failed!  Expected: " + typeName.value);
+          }
+        },
+        evaluate: function(context2) {
+          return context2.meta.runtime.unifiedEval(this, context2);
+        }
+      };
+    } else {
+      return root;
+    }
+  });
+  parser.addGrammarElement("logicalNot", LogicalNot.parse);
+  parser.addGrammarElement("noExpression", NoExpression.parse);
+  parser.addLeafExpression("some", SomeExpression.parse);
+  parser.addGrammarElement("negativeNumber", NegativeNumber.parse);
+  parser.addGrammarElement("unaryExpression", function(helper) {
+    helper.matchToken("the");
+    return helper.parseAnyOf(["beepExpression", "logicalNot", "relativePositionalExpression", "positionalExpression", "noExpression", "postfixExpression"]);
+  });
+  parser.addGrammarElement("beepExpression", BeepExpression.parse);
+  parser.addGrammarElement("relativePositionalExpression", RelativePositionalExpression.parse);
+  parser.addGrammarElement("positionalExpression", PositionalExpression.parse);
+  parser.addGrammarElement("mathOperator", MathOperator.parse);
+  parser.addGrammarElement("mathExpression", MathExpression.parse);
+  parser.addGrammarElement("comparisonOperator", ComparisonOperator.parse);
+  parser.addGrammarElement("comparisonExpression", ComparisonExpression.parse);
+  parser.addGrammarElement("logicalOperator", LogicalOperator.parse);
+  parser.addGrammarElement("logicalExpression", LogicalExpression.parse);
+  parser.addGrammarElement("asyncExpression", AsyncExpression.parse);
+  parser.addGrammarElement("expression", function(helper) {
+    helper.matchToken("the");
+    return helper.parseElement("asyncExpression");
+  });
+  parser.addGrammarElement("assignableExpression", function(helper) {
+    helper.matchToken("the");
+    var expr = helper.parseElement("primaryExpression");
+    if (expr && (expr.type === "symbol" || expr.type === "ofExpression" || expr.type === "propertyAccess" || expr.type === "attributeRefAccess" || expr.type === "attributeRef" || expr.type === "styleRef" || expr.type === "arrayIndex" || expr.type === "possessive")) {
+      return expr;
+    } else {
+      helper.raiseParseError(
+        "A target expression must be writable.  The expression type '" + (expr && expr.type) + "' is not."
+      );
+    }
+    return expr;
+  });
+  parser.addGrammarElement("hyperscript", function(helper) {
+    var features = [];
+    if (helper.hasMore()) {
+      while (helper.featureStart(helper.currentToken()) || helper.currentToken().value === "(") {
+        var feature = helper.requireElement("feature");
+        features.push(feature);
+        helper.matchToken("end");
+      }
+    }
+    return {
+      type: "hyperscript",
+      features,
+      apply: function(target, source, args, runtime) {
+        for (const feature2 of features) {
+          feature2.install(target, source, args, runtime);
+        }
+      }
+    };
+  });
+  parser.addFeature("on", function(helper) {
+    return OnFeature.parse(helper, parser);
   });
   parser.addFeature("def", function(helper) {
     return DefFeature.parse(helper, parser);
