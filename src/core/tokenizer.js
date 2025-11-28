@@ -1,7 +1,7 @@
-// Lexer - Tokenization for _hyperscript
+// Tokenizer - Tokenization for _hyperscript
 import { Tokens } from './tokens.js';
 
-export class Lexer {
+export class Tokenizer {
     static OP_TABLE = {
         "+": "PLUS",
         "-": "MINUS",
@@ -44,7 +44,7 @@ export class Lexer {
      * @returns boolean
      */
     static isValidCSSClassChar(c) {
-        return Lexer.isAlpha(c) || Lexer.isNumeric(c) || c === "-" || c === "_" || c === ":";
+        return Tokenizer.isAlpha(c) || Tokenizer.isNumeric(c) || c === "-" || c === "_" || c === ":";
     }
 
     /**
@@ -53,7 +53,7 @@ export class Lexer {
      * @returns boolean
      */
     static isValidCSSIDChar(c) {
-        return Lexer.isAlpha(c) || Lexer.isNumeric(c) || c === "-" || c === "_" || c === ":";
+        return Tokenizer.isAlpha(c) || Tokenizer.isNumeric(c) || c === "-" || c === "_" || c === ":";
     }
 
     /**
@@ -62,7 +62,7 @@ export class Lexer {
      * @returns boolean
      */
     static isWhitespace(c) {
-        return c === " " || c === "\t" || Lexer.isNewline(c);
+        return c === " " || c === "\t" || Tokenizer.isNewline(c);
     }
 
     /**
@@ -159,47 +159,47 @@ export class Lexer {
         }
 
         while (position < source.length) {
-            if ((currentChar() === "-" && nextChar() === "-" && (Lexer.isWhitespace(nextCharAt(2)) || nextCharAt(2) === "" || nextCharAt(2) === "-"))
-                || (currentChar() === "/" && nextChar() === "/" && (Lexer.isWhitespace(nextCharAt(2)) || nextCharAt(2) === "" || nextCharAt(2) === "/"))) {
+            if ((currentChar() === "-" && nextChar() === "-" && (Tokenizer.isWhitespace(nextCharAt(2)) || nextCharAt(2) === "" || nextCharAt(2) === "-"))
+                || (currentChar() === "/" && nextChar() === "/" && (Tokenizer.isWhitespace(nextCharAt(2)) || nextCharAt(2) === "" || nextCharAt(2) === "/"))) {
                 consumeComment();
-            } else if (currentChar() === "/" && nextChar() === "*" && (Lexer.isWhitespace(nextCharAt(2)) || nextCharAt(2) === "" || nextCharAt(2) === "*")) {
+            } else if (currentChar() === "/" && nextChar() === "*" && (Tokenizer.isWhitespace(nextCharAt(2)) || nextCharAt(2) === "" || nextCharAt(2) === "*")) {
                 consumeCommentMultiline();
             } else {
-                if (Lexer.isWhitespace(currentChar())) {
+                if (Tokenizer.isWhitespace(currentChar())) {
                     tokens.push(consumeWhitespace());
                 } else if (
                     !possiblePrecedingSymbol() &&
                     currentChar() === "." &&
-                    (Lexer.isAlpha(nextChar()) || nextChar() === "{" || nextChar() === "-")
+                    (Tokenizer.isAlpha(nextChar()) || nextChar() === "{" || nextChar() === "-")
                 ) {
                     tokens.push(consumeClassReference());
                 } else if (
                     !possiblePrecedingSymbol() &&
                     currentChar() === "#" &&
-                    (Lexer.isAlpha(nextChar()) || nextChar() === "{")
+                    (Tokenizer.isAlpha(nextChar()) || nextChar() === "{")
                 ) {
                     tokens.push(consumeIdReference());
                 } else if (currentChar() === "[" && nextChar() === "@") {
                     tokens.push(consumeAttributeReference());
                 } else if (currentChar() === "@") {
                     tokens.push(consumeShortAttributeReference());
-                } else if (currentChar() === "*" && Lexer.isAlpha(nextChar())) {
+                } else if (currentChar() === "*" && Tokenizer.isAlpha(nextChar())) {
                     tokens.push(consumeStyleReference());
-                } else if (inTemplate() && (Lexer.isAlpha(currentChar()) || currentChar() === "\\")) {
+                } else if (inTemplate() && (Tokenizer.isAlpha(currentChar()) || currentChar() === "\\")) {
                     tokens.push(consumeTemplateIdentifier());
-                } else if (!inTemplate() && (Lexer.isAlpha(currentChar()) || Lexer.isIdentifierChar(currentChar()))) {
+                } else if (!inTemplate() && (Tokenizer.isAlpha(currentChar()) || Tokenizer.isIdentifierChar(currentChar()))) {
                     tokens.push(consumeIdentifier());
-                } else if (Lexer.isNumeric(currentChar())) {
+                } else if (Tokenizer.isNumeric(currentChar())) {
                     tokens.push(consumeNumber());
                 } else if (!inTemplate() && (currentChar() === '"' || currentChar() === "`")) {
                     tokens.push(consumeString());
                 } else if (!inTemplate() && currentChar() === "'") {
-                    if (Lexer.isValidSingleQuoteStringStart(tokens)) {
+                    if (Tokenizer.isValidSingleQuoteStringStart(tokens)) {
                         tokens.push(consumeString());
                     } else {
                         tokens.push(consumeOp());
                     }
-                } else if (Lexer.OP_TABLE[currentChar()]) {
+                } else if (Tokenizer.OP_TABLE[currentChar()]) {
                     if (lastToken === "$" && currentChar() === "{") {
                         templateBraceCount++;
                     }
@@ -207,7 +207,7 @@ export class Lexer {
                         templateBraceCount--;
                     }
                     tokens.push(consumeOp());
-                } else if (inTemplate() || Lexer.isReservedChar(currentChar())) {
+                } else if (inTemplate() || Tokenizer.isReservedChar(currentChar())) {
                     tokens.push(makeToken("RESERVED", consumeChar()));
                 } else {
                     if (position < source.length) {
@@ -247,7 +247,7 @@ export class Lexer {
         }
 
         function consumeComment() {
-            while (currentChar() && !Lexer.isNewline(currentChar())) {
+            while (currentChar() && !Tokenizer.isNewline(currentChar())) {
                 consumeChar();
             }
             consumeChar(); // Consume newline
@@ -279,7 +279,7 @@ export class Lexer {
                     value += consumeChar(); // consume final curly
                 }
             } else {
-                while (Lexer.isValidCSSClassChar(currentChar()) || currentChar() === "\\") {
+                while (Tokenizer.isValidCSSClassChar(currentChar()) || currentChar() === "\\") {
                     if (currentChar() === "\\") {
                         consumeChar();
                     }
@@ -311,7 +311,7 @@ export class Lexer {
         function consumeShortAttributeReference() {
             var attributeRef = makeToken("ATTRIBUTE_REF");
             var value = consumeChar();
-            while (Lexer.isValidCSSIDChar(currentChar())) {
+            while (Tokenizer.isValidCSSIDChar(currentChar())) {
                 value += consumeChar();
             }
             if (currentChar() === '=') {
@@ -319,9 +319,9 @@ export class Lexer {
                 if (currentChar() === '"' || currentChar() === "'") {
                     let stringValue = consumeString();
                     value += stringValue.value;
-                } else if(Lexer.isAlpha(currentChar()) ||
-                    Lexer.isNumeric(currentChar()) ||
-                    Lexer.isIdentifierChar(currentChar())) {
+                } else if(Tokenizer.isAlpha(currentChar()) ||
+                    Tokenizer.isNumeric(currentChar()) ||
+                    Tokenizer.isIdentifierChar(currentChar())) {
                     let id = consumeIdentifier();
                     value += id.value;
                 }
@@ -334,7 +334,7 @@ export class Lexer {
         function consumeStyleReference() {
             var styleRef = makeToken("STYLE_REF");
             var value = consumeChar();
-            while (Lexer.isAlpha(currentChar()) || currentChar() === "-") {
+            while (Tokenizer.isAlpha(currentChar()) || currentChar() === "-") {
                 value += consumeChar();
             }
             styleRef.value = value;
@@ -360,7 +360,7 @@ export class Lexer {
                     consumeChar(); // consume final quote
                 }
             } else {
-                while (Lexer.isValidCSSIDChar(currentChar())) {
+                while (Tokenizer.isValidCSSIDChar(currentChar())) {
                     value += consumeChar();
                 }
             }
@@ -379,9 +379,9 @@ export class Lexer {
             if (escd) {
                 value = "";
             }
-            while (Lexer.isAlpha(currentChar()) ||
-                   Lexer.isNumeric(currentChar()) ||
-                   Lexer.isIdentifierChar(currentChar()) ||
+            while (Tokenizer.isAlpha(currentChar()) ||
+                   Tokenizer.isNumeric(currentChar()) ||
+                   Tokenizer.isIdentifierChar(currentChar()) ||
                    currentChar() === "\\" ||
                    currentChar() === "{" ||
                    currentChar() === "}" ) {
@@ -409,9 +409,9 @@ export class Lexer {
         function consumeIdentifier() {
             var identifier = makeToken("IDENTIFIER");
             var value = consumeChar();
-            while (Lexer.isAlpha(currentChar()) ||
-                   Lexer.isNumeric(currentChar()) ||
-                   Lexer.isIdentifierChar(currentChar())) {
+            while (Tokenizer.isAlpha(currentChar()) ||
+                   Tokenizer.isNumeric(currentChar()) ||
+                   Tokenizer.isIdentifierChar(currentChar())) {
                 value += consumeChar();
             }
             if (currentChar() === "!" && value === "beep") {
@@ -430,22 +430,22 @@ export class Lexer {
             var value = consumeChar();
 
             // given possible XXX.YYY(e|E)[-]ZZZ consume XXX
-            while (Lexer.isNumeric(currentChar())) {
+            while (Tokenizer.isNumeric(currentChar())) {
                 value += consumeChar();
             }
 
             // consume .YYY
-            if (currentChar() === "." && Lexer.isNumeric(nextChar())) {
+            if (currentChar() === "." && Tokenizer.isNumeric(nextChar())) {
                 value += consumeChar();
             }
-            while (Lexer.isNumeric(currentChar())) {
+            while (Tokenizer.isNumeric(currentChar())) {
                 value += consumeChar();
             }
 
             // consume (e|E)[-]
             if (currentChar() === "e" || currentChar() === "E") {
                 // possible scientific notation, e.g. 1e6 or 1e-6
-                if (Lexer.isNumeric(nextChar())) {
+                if (Tokenizer.isNumeric(nextChar())) {
                     // e.g. 1e6
                     value += consumeChar();
                 } else if (nextChar() === "-") {
@@ -457,7 +457,7 @@ export class Lexer {
             }
 
             // consume ZZZ
-            while (Lexer.isNumeric(currentChar())) {
+            while (Tokenizer.isNumeric(currentChar())) {
                 value += consumeChar();
             }
             number.value = value;
@@ -471,10 +471,10 @@ export class Lexer {
         function consumeOp() {
             var op = makeOpToken();
             var value = consumeChar(); // consume leading char
-            while (currentChar() && Lexer.OP_TABLE[value + currentChar()]) {
+            while (currentChar() && Tokenizer.OP_TABLE[value + currentChar()]) {
                 value += consumeChar();
             }
-            op.type = Lexer.OP_TABLE[value];
+            op.type = Tokenizer.OP_TABLE[value];
             op.value = value;
             op.end = position;
             return op;
@@ -509,7 +509,7 @@ export class Lexer {
                     } else if (nextChar === "x") {
                         const hex = consumeHexEscape();
                         if (Number.isNaN(hex)) {
-                            throw Error("Invalid hexadecimal escape at " + Lexer.positionString(string));
+                            throw Error("Invalid hexadecimal escape at " + Tokenizer.positionString(string));
                         }
                         value += String.fromCharCode(hex);
                     } else {
@@ -520,7 +520,7 @@ export class Lexer {
                 }
             }
             if (currentChar() !== startChar) {
-                throw Error("Unterminated string at " + Lexer.positionString(string));
+                throw Error("Unterminated string at " + Tokenizer.positionString(string));
             } else {
                 consumeChar(); // consume final quote
             }
@@ -579,8 +579,8 @@ export class Lexer {
          */
         function possiblePrecedingSymbol() {
             return (
-                Lexer.isAlpha(lastToken) ||
-                Lexer.isNumeric(lastToken) ||
+                Tokenizer.isAlpha(lastToken) ||
+                Tokenizer.isNumeric(lastToken) ||
                 lastToken === ")" ||
                 lastToken === "\"" ||
                 lastToken === "'" ||
@@ -596,8 +596,8 @@ export class Lexer {
         function consumeWhitespace() {
             var whitespace = makeToken("WHITESPACE");
             var value = "";
-            while (currentChar() && Lexer.isWhitespace(currentChar())) {
-                if (Lexer.isNewline(currentChar())) {
+            while (currentChar() && Tokenizer.isWhitespace(currentChar())) {
+                if (Tokenizer.isNewline(currentChar())) {
                     column = 0;
                     line++;
                 }
@@ -615,7 +615,7 @@ export class Lexer {
      * @returns {Tokens}
      */
     tokenize(string, template) {
-        return Lexer.tokenize(string, template)
+        return Tokenizer.tokenize(string, template)
     }
 }
 

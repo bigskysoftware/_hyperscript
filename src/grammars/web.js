@@ -1,5 +1,5 @@
 // Web/DOM grammar for _hyperscript
-import { Lexer } from '../core/lexer.js';
+import { Tokenizer } from '../core/tokenizer.js';
 import { RegExpIterable, ElementCollection } from '../core/runtime.js';
 import { parseJSON } from '../core/runtime.js';
 import { config } from '../core/config.js';

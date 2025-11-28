@@ -104,7 +104,7 @@ export default function hdbPlugin(_hyperscript) {
 			}
 			const next = command.next
 
-			const tok = _hyperscript.internals.lexer.tokenize(newCode)
+			const tok = _hyperscript.internals.tokenizer.tokenize(newCode)
 			const newcmd = _hyperscript.internals.parser.requireElement('command', tok)
 
 			console.log(newcmd)

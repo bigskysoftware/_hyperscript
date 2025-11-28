@@ -171,9 +171,9 @@ export class StringLiteral {
         var args;
         if (stringToken.template) {
             // Import Lexer from the helper's parser
-            const Lexer = parser.kernel.constructor.Lexer || window._hyperscript?.internals?.Lexer;
-            if (Lexer) {
-                var innerTokens = Lexer.tokenize(rawValue, true);
+            const Tokenizer = parser.kernel.constructor.Tokenizer || window._hyperscript?.internals?.Tokenizer;
+            if (Tokenizer) {
+                var innerTokens = Tokenizer.tokenize(rawValue, true);
                 args = parser.kernel.parseStringTemplate(innerTokens);
             } else {
                 args = [];

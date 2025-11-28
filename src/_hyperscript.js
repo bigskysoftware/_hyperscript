@@ -2,7 +2,7 @@
 'use strict';
 
 // Import core modules
-import { Lexer } from './core/lexer.js';
+import { Tokenizer } from './core/tokenizer.js';
 import { Tokens } from './core/tokens.js';
 import { LanguageKernel } from './core/kernel.js';
 import { Runtime } from './core/runtime.js';
@@ -102,7 +102,7 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
         constructor(owner, feature, hyperscriptTarget, event, runtime) {
             this.meta = {
                 parser: runtime.parser,
-                lexer: runtime.lexer,
+                tokenizer: runtime.tokenizer,
                 runtime,
                 owner: owner,
                 feature: feature,
@@ -155,7 +155,7 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
 
 
     // Create lexer and runtime first
-    const lexer_ = new Lexer();
+    const tokenizer_ = new Tokenizer();
     const runtime_ = new Runtime(globalScope);
 
     // Create and configure kernel
@@ -194,7 +194,7 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
             ? globalScope.document.body
             : new HyperscriptModule(args && args.module);
         ctx = Object.assign(runtime_.makeContext(body, null, body, null), ctx || {});
-        var element = kernel_.parse(lexer_, src);
+        var element = kernel_.parse(tokenizer_, src);
         if (element.execute) {
             element.execute(ctx);
             if(typeof ctx.meta.returnValue !== 'undefined'){
@@ -225,7 +225,7 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
                 try {
                     internalData.initialized = true;
                     internalData.script = src;
-                    var tokens = lexer_.tokenize(src);
+                    var tokens = tokenizer_.tokenize(src);
                     var hyperScript = kernel_.parseHyperScript(tokens);
                     if (!hyperScript) return;
                     hyperScript.apply(target || elt, elt, null, runtime_);
@@ -339,8 +339,8 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
      * @property {typeof conversions} config.conversions
      *
      * @property {Object} internals
-     * @property {Lexer} internals.lexer
-     * @property {typeof Lexer} internals.Lexer
+     * @property {Tokenizer} internals.tokenizer
+     * @property {typeof Tokenizer} internals.Tokenizer
      * @property {LanguageKernel} internals.parser
      * @property {typeof LanguageKernel} internals.Parser
      * @property {Runtime} internals.runtime
@@ -374,8 +374,8 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
             use(plugin) { plugin(_hyperscript) },
 
             internals: {
-                lexer: lexer_, parser: kernel_, runtime: runtime_,
-                Lexer, Tokens, Parser: LanguageKernel, Runtime,
+                tokenizer: tokenizer_, parser: kernel_, runtime: runtime_,
+                Tokenizer, Tokens, Parser: LanguageKernel, Runtime,
             },
             ElementCollection,
 
@@ -385,7 +385,7 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
             addIndirectExpression: kernel_.addIndirectExpression.bind(kernel_),
 
             evaluate,
-            parse:       (src) => kernel_.parse(lexer_, src),
+            parse:       (src) => kernel_.parse(tokenizer_, src),
             process: processNode,
             processNode,
             version: "0.9.14",

@@ -2,6 +2,7 @@
 import { Tokens } from './tokens.js';
 import { Runtime } from './runtime.js';
 import { Parser } from './parser.js';
+import { Tokenizer } from './tokenizer.js';
 
 /**
  * @callback ParseRule
@@ -33,6 +34,8 @@ import { Parser } from './parser.js';
  */
 
 export class LanguageKernel {
+    static Tokenizer = Tokenizer;
+
     constructor() {
         this.possessivesDisabled = false
 
@@ -350,12 +353,12 @@ export class LanguageKernel {
     }
 
     /**
-     * @param {Lexer} lexer
+     * @param {Tokenizer} tokenizer
      * @param {string} src
      * @returns {ASTNode}
      */
-    parse(lexer, src) {
-        var tokens = lexer.tokenize(src);
+    parse(tokenizer, src) {
+        var tokens = tokenizer.tokenize(src);
         if (this.commandStart(tokens.currentToken())) {
             var commandList = this.requireElement("commandList", tokens);
             if (tokens.hasMore()) LanguageKernel.raiseParseError(tokens);

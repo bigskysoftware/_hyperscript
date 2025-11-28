@@ -256,15 +256,15 @@ __publicField(_Tokens, "lineFor", function() {
 });
 var Tokens = _Tokens;
 
-// src/core/lexer.js
-var _Lexer = class _Lexer {
+// src/core/tokenizer.js
+var _Tokenizer = class _Tokenizer {
   /**
    * isValidCSSClassChar returns `true` if the provided character is valid in a CSS class.
    * @param {string} c
    * @returns boolean
    */
   static isValidCSSClassChar(c) {
-    return _Lexer.isAlpha(c) || _Lexer.isNumeric(c) || c === "-" || c === "_" || c === ":";
+    return _Tokenizer.isAlpha(c) || _Tokenizer.isNumeric(c) || c === "-" || c === "_" || c === ":";
   }
   /**
    * isValidCSSIDChar returns `true` if the provided character is valid in a CSS ID
@@ -272,7 +272,7 @@ var _Lexer = class _Lexer {
    * @returns boolean
    */
   static isValidCSSIDChar(c) {
-    return _Lexer.isAlpha(c) || _Lexer.isNumeric(c) || c === "-" || c === "_" || c === ":";
+    return _Tokenizer.isAlpha(c) || _Tokenizer.isNumeric(c) || c === "-" || c === "_" || c === ":";
   }
   /**
    * isWhitespace returns `true` if the provided character is whitespace.
@@ -280,7 +280,7 @@ var _Lexer = class _Lexer {
    * @returns boolean
    */
   static isWhitespace(c) {
-    return c === " " || c === "	" || _Lexer.isNewline(c);
+    return c === " " || c === "	" || _Tokenizer.isNewline(c);
   }
   /**
    * positionString returns a string representation of a Token's line and column details.
@@ -365,38 +365,38 @@ var _Lexer = class _Lexer {
       return template && templateBraceCount === 0;
     }
     while (position < source.length) {
-      if (currentChar() === "-" && nextChar() === "-" && (_Lexer.isWhitespace(nextCharAt(2)) || nextCharAt(2) === "" || nextCharAt(2) === "-") || currentChar() === "/" && nextChar() === "/" && (_Lexer.isWhitespace(nextCharAt(2)) || nextCharAt(2) === "" || nextCharAt(2) === "/")) {
+      if (currentChar() === "-" && nextChar() === "-" && (_Tokenizer.isWhitespace(nextCharAt(2)) || nextCharAt(2) === "" || nextCharAt(2) === "-") || currentChar() === "/" && nextChar() === "/" && (_Tokenizer.isWhitespace(nextCharAt(2)) || nextCharAt(2) === "" || nextCharAt(2) === "/")) {
         consumeComment();
-      } else if (currentChar() === "/" && nextChar() === "*" && (_Lexer.isWhitespace(nextCharAt(2)) || nextCharAt(2) === "" || nextCharAt(2) === "*")) {
+      } else if (currentChar() === "/" && nextChar() === "*" && (_Tokenizer.isWhitespace(nextCharAt(2)) || nextCharAt(2) === "" || nextCharAt(2) === "*")) {
         consumeCommentMultiline();
       } else {
-        if (_Lexer.isWhitespace(currentChar())) {
+        if (_Tokenizer.isWhitespace(currentChar())) {
           tokens.push(consumeWhitespace());
-        } else if (!possiblePrecedingSymbol() && currentChar() === "." && (_Lexer.isAlpha(nextChar()) || nextChar() === "{" || nextChar() === "-")) {
+        } else if (!possiblePrecedingSymbol() && currentChar() === "." && (_Tokenizer.isAlpha(nextChar()) || nextChar() === "{" || nextChar() === "-")) {
           tokens.push(consumeClassReference());
-        } else if (!possiblePrecedingSymbol() && currentChar() === "#" && (_Lexer.isAlpha(nextChar()) || nextChar() === "{")) {
+        } else if (!possiblePrecedingSymbol() && currentChar() === "#" && (_Tokenizer.isAlpha(nextChar()) || nextChar() === "{")) {
           tokens.push(consumeIdReference());
         } else if (currentChar() === "[" && nextChar() === "@") {
           tokens.push(consumeAttributeReference());
         } else if (currentChar() === "@") {
           tokens.push(consumeShortAttributeReference());
-        } else if (currentChar() === "*" && _Lexer.isAlpha(nextChar())) {
+        } else if (currentChar() === "*" && _Tokenizer.isAlpha(nextChar())) {
           tokens.push(consumeStyleReference());
-        } else if (inTemplate() && (_Lexer.isAlpha(currentChar()) || currentChar() === "\\")) {
+        } else if (inTemplate() && (_Tokenizer.isAlpha(currentChar()) || currentChar() === "\\")) {
           tokens.push(consumeTemplateIdentifier());
-        } else if (!inTemplate() && (_Lexer.isAlpha(currentChar()) || _Lexer.isIdentifierChar(currentChar()))) {
+        } else if (!inTemplate() && (_Tokenizer.isAlpha(currentChar()) || _Tokenizer.isIdentifierChar(currentChar()))) {
           tokens.push(consumeIdentifier());
-        } else if (_Lexer.isNumeric(currentChar())) {
+        } else if (_Tokenizer.isNumeric(currentChar())) {
           tokens.push(consumeNumber());
         } else if (!inTemplate() && (currentChar() === '"' || currentChar() === "`")) {
           tokens.push(consumeString());
         } else if (!inTemplate() && currentChar() === "'") {
-          if (_Lexer.isValidSingleQuoteStringStart(tokens)) {
+          if (_Tokenizer.isValidSingleQuoteStringStart(tokens)) {
             tokens.push(consumeString());
           } else {
             tokens.push(consumeOp());
           }
-        } else if (_Lexer.OP_TABLE[currentChar()]) {
+        } else if (_Tokenizer.OP_TABLE[currentChar()]) {
           if (lastToken === "$" && currentChar() === "{") {
             templateBraceCount++;
           }
@@ -404,7 +404,7 @@ var _Lexer = class _Lexer {
             templateBraceCount--;
           }
           tokens.push(consumeOp());
-        } else if (inTemplate() || _Lexer.isReservedChar(currentChar())) {
+        } else if (inTemplate() || _Tokenizer.isReservedChar(currentChar())) {
           tokens.push(makeToken("RESERVED", consumeChar()));
         } else {
           if (position < source.length) {
@@ -430,7 +430,7 @@ var _Lexer = class _Lexer {
       };
     }
     function consumeComment() {
-      while (currentChar() && !_Lexer.isNewline(currentChar())) {
+      while (currentChar() && !_Tokenizer.isNewline(currentChar())) {
         consumeChar();
       }
       consumeChar();
@@ -457,7 +457,7 @@ var _Lexer = class _Lexer {
           value += consumeChar();
         }
       } else {
-        while (_Lexer.isValidCSSClassChar(currentChar()) || currentChar() === "\\") {
+        while (_Tokenizer.isValidCSSClassChar(currentChar()) || currentChar() === "\\") {
           if (currentChar() === "\\") {
             consumeChar();
           }
@@ -484,7 +484,7 @@ var _Lexer = class _Lexer {
     function consumeShortAttributeReference() {
       var attributeRef = makeToken("ATTRIBUTE_REF");
       var value = consumeChar();
-      while (_Lexer.isValidCSSIDChar(currentChar())) {
+      while (_Tokenizer.isValidCSSIDChar(currentChar())) {
         value += consumeChar();
       }
       if (currentChar() === "=") {
@@ -492,7 +492,7 @@ var _Lexer = class _Lexer {
         if (currentChar() === '"' || currentChar() === "'") {
           let stringValue = consumeString();
           value += stringValue.value;
-        } else if (_Lexer.isAlpha(currentChar()) || _Lexer.isNumeric(currentChar()) || _Lexer.isIdentifierChar(currentChar())) {
+        } else if (_Tokenizer.isAlpha(currentChar()) || _Tokenizer.isNumeric(currentChar()) || _Tokenizer.isIdentifierChar(currentChar())) {
           let id = consumeIdentifier();
           value += id.value;
         }
@@ -504,7 +504,7 @@ var _Lexer = class _Lexer {
     function consumeStyleReference() {
       var styleRef = makeToken("STYLE_REF");
       var value = consumeChar();
-      while (_Lexer.isAlpha(currentChar()) || currentChar() === "-") {
+      while (_Tokenizer.isAlpha(currentChar()) || currentChar() === "-") {
         value += consumeChar();
       }
       styleRef.value = value;
@@ -526,7 +526,7 @@ var _Lexer = class _Lexer {
           consumeChar();
         }
       } else {
-        while (_Lexer.isValidCSSIDChar(currentChar())) {
+        while (_Tokenizer.isValidCSSIDChar(currentChar())) {
           value += consumeChar();
         }
       }
@@ -541,7 +541,7 @@ var _Lexer = class _Lexer {
       if (escd) {
         value = "";
       }
-      while (_Lexer.isAlpha(currentChar()) || _Lexer.isNumeric(currentChar()) || _Lexer.isIdentifierChar(currentChar()) || currentChar() === "\\" || currentChar() === "{" || currentChar() === "}") {
+      while (_Tokenizer.isAlpha(currentChar()) || _Tokenizer.isNumeric(currentChar()) || _Tokenizer.isIdentifierChar(currentChar()) || currentChar() === "\\" || currentChar() === "{" || currentChar() === "}") {
         if (currentChar() === "$" && escd === false) {
           break;
         } else if (currentChar() === "\\") {
@@ -562,7 +562,7 @@ var _Lexer = class _Lexer {
     function consumeIdentifier() {
       var identifier = makeToken("IDENTIFIER");
       var value = consumeChar();
-      while (_Lexer.isAlpha(currentChar()) || _Lexer.isNumeric(currentChar()) || _Lexer.isIdentifierChar(currentChar())) {
+      while (_Tokenizer.isAlpha(currentChar()) || _Tokenizer.isNumeric(currentChar()) || _Tokenizer.isIdentifierChar(currentChar())) {
         value += consumeChar();
       }
       if (currentChar() === "!" && value === "beep") {
@@ -575,24 +575,24 @@ var _Lexer = class _Lexer {
     function consumeNumber() {
       var number = makeToken("NUMBER");
       var value = consumeChar();
-      while (_Lexer.isNumeric(currentChar())) {
+      while (_Tokenizer.isNumeric(currentChar())) {
         value += consumeChar();
       }
-      if (currentChar() === "." && _Lexer.isNumeric(nextChar())) {
+      if (currentChar() === "." && _Tokenizer.isNumeric(nextChar())) {
         value += consumeChar();
       }
-      while (_Lexer.isNumeric(currentChar())) {
+      while (_Tokenizer.isNumeric(currentChar())) {
         value += consumeChar();
       }
       if (currentChar() === "e" || currentChar() === "E") {
-        if (_Lexer.isNumeric(nextChar())) {
+        if (_Tokenizer.isNumeric(nextChar())) {
           value += consumeChar();
         } else if (nextChar() === "-") {
           value += consumeChar();
           value += consumeChar();
         }
       }
-      while (_Lexer.isNumeric(currentChar())) {
+      while (_Tokenizer.isNumeric(currentChar())) {
         value += consumeChar();
       }
       number.value = value;
@@ -602,10 +602,10 @@ var _Lexer = class _Lexer {
     function consumeOp() {
       var op = makeOpToken();
       var value = consumeChar();
-      while (currentChar() && _Lexer.OP_TABLE[value + currentChar()]) {
+      while (currentChar() && _Tokenizer.OP_TABLE[value + currentChar()]) {
         value += consumeChar();
       }
-      op.type = _Lexer.OP_TABLE[value];
+      op.type = _Tokenizer.OP_TABLE[value];
       op.value = value;
       op.end = position;
       return op;
@@ -636,7 +636,7 @@ var _Lexer = class _Lexer {
           } else if (nextChar2 === "x") {
             const hex = consumeHexEscape();
             if (Number.isNaN(hex)) {
-              throw Error("Invalid hexadecimal escape at " + _Lexer.positionString(string2));
+              throw Error("Invalid hexadecimal escape at " + _Tokenizer.positionString(string2));
             }
             value += String.fromCharCode(hex);
           } else {
@@ -647,7 +647,7 @@ var _Lexer = class _Lexer {
         }
       }
       if (currentChar() !== startChar) {
-        throw Error("Unterminated string at " + _Lexer.positionString(string2));
+        throw Error("Unterminated string at " + _Tokenizer.positionString(string2));
       } else {
         consumeChar();
       }
@@ -683,13 +683,13 @@ var _Lexer = class _Lexer {
       return lastToken;
     }
     function possiblePrecedingSymbol() {
-      return _Lexer.isAlpha(lastToken) || _Lexer.isNumeric(lastToken) || lastToken === ")" || lastToken === '"' || lastToken === "'" || lastToken === "`" || lastToken === "}" || lastToken === "]";
+      return _Tokenizer.isAlpha(lastToken) || _Tokenizer.isNumeric(lastToken) || lastToken === ")" || lastToken === '"' || lastToken === "'" || lastToken === "`" || lastToken === "}" || lastToken === "]";
     }
     function consumeWhitespace() {
       var whitespace = makeToken("WHITESPACE");
       var value = "";
-      while (currentChar() && _Lexer.isWhitespace(currentChar())) {
-        if (_Lexer.isNewline(currentChar())) {
+      while (currentChar() && _Tokenizer.isWhitespace(currentChar())) {
+        if (_Tokenizer.isNewline(currentChar())) {
           column = 0;
           line++;
         }
@@ -706,10 +706,10 @@ var _Lexer = class _Lexer {
    * @returns {Tokens}
    */
   tokenize(string, template) {
-    return _Lexer.tokenize(string, template);
+    return _Tokenizer.tokenize(string, template);
   }
 };
-__publicField(_Lexer, "OP_TABLE", {
+__publicField(_Tokenizer, "OP_TABLE", {
   "+": "PLUS",
   "-": "MINUS",
   "*": "MULTIPLY",
@@ -744,7 +744,7 @@ __publicField(_Lexer, "OP_TABLE", {
   "=": "EQUALS",
   "~": "TILDE"
 });
-var Lexer = _Lexer;
+var Tokenizer = _Tokenizer;
 
 // src/core/config.js
 var conversions = {
@@ -1925,7 +1925,7 @@ var Parser = class {
 };
 
 // src/core/kernel.js
-var LanguageKernel = class _LanguageKernel {
+var _LanguageKernel = class _LanguageKernel {
   constructor() {
     /** @type {Object<string,ParseRule>} */
     __publicField(this, "GRAMMAR", {});
@@ -2208,12 +2208,12 @@ var LanguageKernel = class _LanguageKernel {
     if (result) return result;
   }
   /**
-   * @param {Lexer} lexer
+   * @param {Tokenizer} tokenizer
    * @param {string} src
    * @returns {ASTNode}
    */
-  parse(lexer, src) {
-    var tokens = lexer.tokenize(src);
+  parse(tokenizer, src) {
+    var tokens = tokenizer.tokenize(src);
     if (this.commandStart(tokens.currentToken())) {
       var commandList = this.requireElement("commandList", tokens);
       if (tokens.hasMore()) _LanguageKernel.raiseParseError(tokens);
@@ -2317,6 +2317,8 @@ var LanguageKernel = class _LanguageKernel {
     end.next = implicitReturn;
   }
 };
+__publicField(_LanguageKernel, "Tokenizer", Tokenizer);
+var LanguageKernel = _LanguageKernel;
 
 // src/parsetree/expressions/webliterals.js
 var IdRef = class {
@@ -2327,13 +2329,13 @@ var IdRef = class {
    */
   static parse(parser) {
     var _a, _b;
-    const Lexer2 = parser.kernel.constructor.Lexer || ((_b = (_a = window._hyperscript) == null ? void 0 : _a.internals) == null ? void 0 : _b.Lexer);
+    const Tokenizer2 = parser.kernel.constructor.Tokenizer || ((_b = (_a = window._hyperscript) == null ? void 0 : _a.internals) == null ? void 0 : _b.Tokenizer);
     var elementId = parser.matchTokenType("ID_REF");
     if (!elementId) return;
     if (!elementId.value) return;
     if (elementId.template) {
       var templateValue = elementId.value.substring(2);
-      var innerTokens = Lexer2.tokenize(templateValue);
+      var innerTokens = Tokenizer2.tokenize(templateValue);
       var innerExpression = parser.kernel.requireElement("expression", innerTokens);
       return {
         type: "idRefTemplate",
@@ -2366,13 +2368,13 @@ var ClassRef = class {
    */
   static parse(parser) {
     var _a, _b;
-    const Lexer2 = parser.kernel.constructor.Lexer || ((_b = (_a = window._hyperscript) == null ? void 0 : _a.internals) == null ? void 0 : _b.Lexer);
+    const Tokenizer2 = parser.kernel.constructor.Tokenizer || ((_b = (_a = window._hyperscript) == null ? void 0 : _a.internals) == null ? void 0 : _b.Tokenizer);
     var classRef = parser.matchTokenType("CLASS_REF");
     if (!classRef) return;
     if (!classRef.value) return;
     if (classRef.template) {
       var templateValue = classRef.value.substring(2);
-      var innerTokens = Lexer2.tokenize(templateValue);
+      var innerTokens = Tokenizer2.tokenize(templateValue);
       var innerExpression = parser.kernel.requireElement("expression", innerTokens);
       return {
         type: "classRefTemplate",
@@ -2406,7 +2408,7 @@ var QueryRef = class {
    */
   static parse(parser) {
     var _a, _b;
-    const Lexer2 = parser.kernel.constructor.Lexer || ((_b = (_a = window._hyperscript) == null ? void 0 : _a.internals) == null ? void 0 : _b.Lexer);
+    const Tokenizer2 = parser.kernel.constructor.Tokenizer || ((_b = (_a = window._hyperscript) == null ? void 0 : _a.internals) == null ? void 0 : _b.Tokenizer);
     var queryStart = parser.matchOpToken("<");
     if (!queryStart) return;
     var queryTokens = parser.consumeUntil("/");
@@ -2422,7 +2424,7 @@ var QueryRef = class {
     var template, innerTokens, args;
     if (/\$[^=]/.test(queryValue)) {
       template = true;
-      innerTokens = Lexer2.tokenize(queryValue, true);
+      innerTokens = Tokenizer2.tokenize(queryValue, true);
       args = parser.kernel.parseStringTemplate(innerTokens);
     }
     return {
@@ -3737,9 +3739,9 @@ var StringLiteral = class _StringLiteral {
     );
     var args;
     if (stringToken.template) {
-      const Lexer2 = parser.kernel.constructor.Lexer || ((_b = (_a = window._hyperscript) == null ? void 0 : _a.internals) == null ? void 0 : _b.Lexer);
-      if (Lexer2) {
-        var innerTokens = Lexer2.tokenize(rawValue, true);
+      const Tokenizer2 = parser.kernel.constructor.Tokenizer || ((_b = (_a = window._hyperscript) == null ? void 0 : _a.internals) == null ? void 0 : _b.Tokenizer);
+      if (Tokenizer2) {
+        var innerTokens = Tokenizer2.tokenize(rawValue, true);
         args = parser.kernel.parseStringTemplate(innerTokens);
       } else {
         args = [];
@@ -8041,7 +8043,7 @@ function logError(msg) {
     console.log("ERROR: ", msg);
   }
 }
-var lexer_ = new Lexer();
+var tokenizer_ = new Tokenizer();
 var runtime_ = new Runtime(globalScope);
 var kernel_ = new LanguageKernel();
 kernel_.runtime = runtime_;
@@ -8063,7 +8065,7 @@ function evaluate(src, ctx, args) {
   }
   var body = "document" in globalScope ? globalScope.document.body : new HyperscriptModule(args && args.module);
   ctx = Object.assign(runtime_.makeContext(body, null, body, null), ctx || {});
-  var element = kernel_.parse(lexer_, src);
+  var element = kernel_.parse(tokenizer_, src);
   if (element.execute) {
     element.execute(ctx);
     if (typeof ctx.meta.returnValue !== "undefined") {
@@ -8089,7 +8091,7 @@ initElement = function(elt, target) {
       try {
         internalData.initialized = true;
         internalData.script = src;
-        var tokens = lexer_.tokenize(src);
+        var tokens = tokenizer_.tokenize(src);
         var hyperScript = kernel_.parseHyperScript(tokens);
         if (!hyperScript) return;
         hyperScript.apply(target || elt, elt, null, runtime_);
@@ -8177,10 +8179,10 @@ var _hyperscript = Object.assign(
       plugin(_hyperscript);
     },
     internals: {
-      lexer: lexer_,
+      tokenizer: tokenizer_,
       parser: kernel_,
       runtime: runtime_,
-      Lexer,
+      Tokenizer,
       Tokens,
       Parser: LanguageKernel,
       Runtime
@@ -8191,7 +8193,7 @@ var _hyperscript = Object.assign(
     addLeafExpression: kernel_.addLeafExpression.bind(kernel_),
     addIndirectExpression: kernel_.addIndirectExpression.bind(kernel_),
     evaluate,
-    parse: (src) => kernel_.parse(lexer_, src),
+    parse: (src) => kernel_.parse(tokenizer_, src),
     process: processNode,
     processNode,
     version: "0.9.14",

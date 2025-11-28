@@ -17,14 +17,14 @@ export class IdRef {
      * @returns {any | undefined}
      */
     static parse(parser) {
-        const Lexer = parser.kernel.constructor.Lexer || window._hyperscript?.internals?.Lexer;
+        const Tokenizer = parser.kernel.constructor.Tokenizer || window._hyperscript?.internals?.Tokenizer;
         var elementId = parser.matchTokenType("ID_REF");
         if (!elementId) return;
         if (!elementId.value) return;
         // TODO - unify these two expression types
         if (elementId.template) {
             var templateValue = elementId.value.substring(2);
-            var innerTokens = Lexer.tokenize(templateValue);
+            var innerTokens = Tokenizer.tokenize(templateValue);
             var innerExpression = parser.kernel.requireElement("expression", innerTokens);
             return {
                 type: "idRefTemplate",
@@ -65,7 +65,7 @@ export class ClassRef {
      * @returns {any | undefined}
      */
     static parse(parser) {
-        const Lexer = parser.kernel.constructor.Lexer || window._hyperscript?.internals?.Lexer;
+        const Tokenizer = parser.kernel.constructor.Tokenizer || window._hyperscript?.internals?.Tokenizer;
 
         var classRef = parser.matchTokenType("CLASS_REF");
 
@@ -75,7 +75,7 @@ export class ClassRef {
         // TODO - unify these two expression types
         if (classRef.template) {
             var templateValue = classRef.value.substring(2);
-            var innerTokens = Lexer.tokenize(templateValue);
+            var innerTokens = Tokenizer.tokenize(templateValue);
             var innerExpression = parser.kernel.requireElement("expression", innerTokens);
             return {
                 type: "classRefTemplate",
@@ -115,7 +115,7 @@ export class QueryRef {
      * @returns {any | undefined}
      */
     static parse(parser) {
-        const Lexer = parser.kernel.constructor.Lexer || window._hyperscript?.internals?.Lexer;
+        const Tokenizer = parser.kernel.constructor.Tokenizer || window._hyperscript?.internals?.Tokenizer;
 
         var queryStart = parser.matchOpToken("<");
         if (!queryStart) return;
@@ -135,7 +135,7 @@ export class QueryRef {
         var template, innerTokens, args;
         if (/\$[^=]/.test(queryValue)) {
             template = true;
-            innerTokens = Lexer.tokenize(queryValue, true);
+            innerTokens = Tokenizer.tokenize(queryValue, true);
             args = parser.kernel.parseStringTemplate(innerTokens);
         }
 
