@@ -5,6 +5,7 @@
 
 import { varargConstructor } from '../../core/runtime.js';
 import { RegExpIterable } from '../../core/runtime.js';
+import { SetCommand } from './setters.js';
 
 /**
  * LogCommand - Log values to console
@@ -367,10 +368,9 @@ export class AppendCommand {
     /**
      * Parse append command
      * @param {Parser} parser
-     * @param {Function} makeSetter - makeSetter function from core grammar
      * @returns {AppendCommand | undefined}
      */
-    static parse(parser, makeSetter) {
+    static parse(parser) {
         if (!parser.matchToken("append")) return;
         var targetExpr = null;
 
@@ -392,7 +392,7 @@ export class AppendCommand {
 
         var setter = null;
         if (targetExpr.type === "symbol" || targetExpr.type === "attributeRef" || targetExpr.root != null) {
-            setter = makeSetter(parser, targetExpr, implicitResultSymbol);
+            setter = SetCommand.makeSetter(parser, targetExpr, implicitResultSymbol);
         }
 
         var command = {

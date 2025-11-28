@@ -191,3 +191,29 @@ export class SendCommand {
         }
     }
 }
+
+/**
+ * EventName - Parse an event name
+ *
+ * Parses: "string" OR dotOrColonPath
+ * Returns: evaluable event name
+ */
+export class EventName {
+    /**
+     * Parse event name (string literal or dot/colon path)
+     * @param {Parser} parser
+     * @returns {{evaluate: function(): string} | undefined}
+     */
+    static parse(parser) {
+        var token;
+        if ((token = parser.matchTokenType("STRING"))) {
+            return {
+                evaluate: function() {
+                    return token.value;
+                },
+            };
+        }
+
+        return parser.parseElement("dotOrColonPath");
+    }
+}

@@ -9,6 +9,7 @@ import { ElementCollection } from './core/runtime.js';
 import { config, conversions } from './core/config.js';
 import hyperscriptCoreGrammar from './grammars/core.js';
 import hyperscriptWebGrammar from './grammars/web.js';
+import { StringPostfixExpression, TimeExpression, TypeCheckExpression } from './parsetree/expressions/postfix.js';
 
 const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'undefined' ? global : this);
 
@@ -52,6 +53,73 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
     kernel_.runtime = runtime_;
     hyperscriptCoreGrammar(kernel_);
     hyperscriptWebGrammar(kernel_);
+
+    // Inline grammar elements (will eventually move to kernel)
+    kernel_.addGrammarElement("postfixExpression", function (parser) {
+        var root = parser.parseElement("negativeNumber");
+        return StringPostfixExpression.parse(parser, root) ||
+               TimeExpression.parse(parser, root) ||
+               TypeCheckExpression.parse(parser, root) ||
+               root;
+    });
+
+    kernel_.addGrammarElement("unaryExpression", function (parser) {
+        parser.matchToken("the"); // optional "the"
+        return parser.parseAnyOf(["beepExpression", "logicalNot", "relativePositionalExpression", "positionalExpression", "noExpression", "postfixExpression"]);
+    });
+
+    kernel_.addGrammarElement("expression", function (parser) {
+        parser.matchToken("the"); // optional the
+        return parser.parseElement("asyncExpression");
+    });
+
+    kernel_.addGrammarElement("assignableExpression", function (parser) {
+        parser.matchToken("the"); // optional the
+        // TODO obviously we need to generalize this as a left hand side / targetable concept
+        var expr = parser.parseElement("primaryExpression");
+        if (expr && (
+            expr.type === "symbol" ||
+            expr.type === "ofExpression" ||
+            expr.type === "propertyAccess" ||
+            expr.type === "attributeRefAccess" ||
+            expr.type === "attributeRef" ||
+            expr.type === "styleRef" ||
+            expr.type === "arrayIndex" ||
+            expr.type === "possessive")
+        ) {
+            return expr;
+        } else {
+            parser.raiseParseError(
+                "A target expression must be writable.  The expression type '" + (expr && expr.type) + "' is not."
+            );
+        }
+        return expr;
+    });
+
+    kernel_.addGrammarElement("stringLike", function (parser) {
+        return parser.parseAnyOf(["string", "nakedString"]);
+    });
+
+    kernel_.addGrammarElement("hyperscript", function (parser) {
+        var features = [];
+        if (parser.hasMore()) {
+            while (parser.featureStart(parser.currentToken()) || parser.currentToken().value === "(") {
+                var feature = parser.requireElement("feature");
+                features.push(feature);
+                parser.matchToken("end"); // optional end
+            }
+        }
+        return {
+            type: "hyperscript",
+            features: features,
+            apply: function (target, source, args, runtime) {
+                // no op
+                for (const feature of features) {
+                    feature.install(target, source, args, runtime);
+                }
+            },
+        };
+    });
 
     // Set up the LanguageKernel.raiseParseError callback for Tokens
     Tokens._parserRaiseError = LanguageKernel.raiseParseError;

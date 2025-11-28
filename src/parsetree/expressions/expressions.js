@@ -1261,3 +1261,38 @@ export class AsyncExpression {
         };
     }
 }
+
+/**
+ * DotOrColonPath - Path with dots or colons
+ *
+ * Parses: identifier.identifier.identifier OR identifier:identifier:identifier
+ * Returns: joined path string
+ */
+export class DotOrColonPath {
+    /**
+     * Parse dot or colon separated path
+     * @param {Parser} parser
+     * @returns {{type: string, path: string[], evaluate: function(): string} | undefined}
+     */
+    static parse(parser) {
+        var root = parser.matchTokenType("IDENTIFIER");
+        if (root) {
+            var path = [root.value];
+
+            var separator = parser.matchOpToken(".") || parser.matchOpToken(":");
+            if (separator) {
+                do {
+                    path.push(parser.requireTokenType("IDENTIFIER", "NUMBER").value);
+                } while (parser.matchOpToken(separator.value));
+            }
+
+            return {
+                type: "dotOrColonPath",
+                path: path,
+                evaluate: function () {
+                    return path.join(separator ? separator.value : "");
+                },
+            };
+        }
+    }
+}
