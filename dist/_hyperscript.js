@@ -2322,6 +2322,47 @@ var Parser = class _Parser {
   }
 };
 
+// src/parsetree/webliterals.js
+var IdRef = class {
+  /**
+   * Parse an ID reference
+   * @param {ParserHelper} helper
+   * @returns {any | undefined}
+   */
+  static parse(helper) {
+    var _a, _b;
+    const Lexer2 = helper.parser.constructor.Lexer || ((_b = (_a = window._hyperscript) == null ? void 0 : _a.internals) == null ? void 0 : _b.Lexer);
+    var elementId = helper.matchTokenType("ID_REF");
+    if (!elementId) return;
+    if (!elementId.value) return;
+    if (elementId.template) {
+      var templateValue = elementId.value.substring(2);
+      var innerTokens = Lexer2.tokenize(templateValue);
+      var innerExpression = helper.parser.requireElement("expression", innerTokens);
+      return {
+        type: "idRefTemplate",
+        args: [innerExpression],
+        op: function(context2, arg) {
+          return context2.meta.runtime.getRootNode(context2.me).getElementById(arg);
+        },
+        evaluate: function(context2) {
+          return context2.meta.runtime.unifiedEval(this, context2);
+        }
+      };
+    } else {
+      const value = elementId.value.substring(1);
+      return {
+        type: "idRef",
+        css: elementId.value,
+        value,
+        evaluate: function(context2) {
+          return context2.meta.runtime.getRootNode(context2.me).getElementById(value);
+        }
+      };
+    }
+  }
+};
+
 // src/grammars/core.js
 function hyperscriptCoreGrammar(parser) {
   parser.addLeafExpression("parenthesized", function(helper) {
@@ -2405,36 +2446,7 @@ function hyperscriptCoreGrammar(parser) {
       }
     };
   });
-  parser.addLeafExpression("idRef", function(helper) {
-    var elementId = helper.matchTokenType("ID_REF");
-    if (!elementId) return;
-    if (!elementId.value) return;
-    if (elementId.template) {
-      var templateValue = elementId.value.substring(2);
-      var innerTokens = Lexer.tokenize(templateValue);
-      var innerExpression = helper.parser.requireElement("expression", innerTokens);
-      return {
-        type: "idRefTemplate",
-        args: [innerExpression],
-        op: function(context2, arg) {
-          return context2.meta.runtime.getRootNode(context2.me).getElementById(arg);
-        },
-        evaluate: function(context2) {
-          return context2.meta.runtime.unifiedEval(this, context2);
-        }
-      };
-    } else {
-      const value = elementId.value.substring(1);
-      return {
-        type: "idRef",
-        css: elementId.value,
-        value,
-        evaluate: function(context2) {
-          return context2.meta.runtime.getRootNode(context2.me).getElementById(value);
-        }
-      };
-    }
-  });
+  parser.addLeafExpression("idRef", IdRef.parse);
   parser.addLeafExpression("classRef", function(helper) {
     var classRef = helper.matchTokenType("CLASS_REF");
     if (!classRef) return;

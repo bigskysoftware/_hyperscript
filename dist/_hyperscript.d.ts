@@ -653,19 +653,15 @@ declare var hyperscript_default: typeof run & {
                  */
                 requireOpToken(value: string): Token;
                 /**
-                 * @param {string} op1
-                 * @param {string} [op2]
-                 * @param {string} [op3]
+                 * @param {...string} ops
                  * @returns {Token | void}
                  */
-                matchAnyOpToken(op1: string, op2?: string, op3?: string, ...args: any[]): Token | void;
+                matchAnyOpToken(...ops: string[]): Token | void;
                 /**
-                 * @param {string} op1
-                 * @param {string} [op2]
-                 * @param {string} [op3]
+                 * @param {...string} tokens
                  * @returns {Token | void}
                  */
-                matchAnyToken(op1: string, op2?: string, op3?: string, ...args: any[]): Token | void;
+                matchAnyToken(...tokens: string[]): Token | void;
                 /**
                  * @param {string} value
                  * @returns {Token | void}
@@ -931,7 +927,7 @@ declare var hyperscript_default: typeof run & {
             raiseParseError(tokens: Tokens, message?: string): never;
         };
         Runtime: {
-            new (globalScope3: any): {
+            new (globalScope2: any): {
                 globalScope: any;
                 /**
                  * @param {HTMLElement} elt
@@ -2331,19 +2327,15 @@ declare var browser_default: typeof run & {
                  */
                 requireOpToken(value: string): Token;
                 /**
-                 * @param {string} op1
-                 * @param {string} [op2]
-                 * @param {string} [op3]
+                 * @param {...string} ops
                  * @returns {Token | void}
                  */
-                matchAnyOpToken(op1: string, op2?: string, op3?: string, ...args: any[]): Token | void;
+                matchAnyOpToken(...ops: string[]): Token | void;
                 /**
-                 * @param {string} op1
-                 * @param {string} [op2]
-                 * @param {string} [op3]
+                 * @param {...string} tokens
                  * @returns {Token | void}
                  */
-                matchAnyToken(op1: string, op2?: string, op3?: string, ...args: any[]): Token | void;
+                matchAnyToken(...tokens: string[]): Token | void;
                 /**
                  * @param {string} value
                  * @returns {Token | void}
@@ -2609,7 +2601,7 @@ declare var browser_default: typeof run & {
             raiseParseError(tokens: Tokens, message?: string): never;
         };
         Runtime: {
-            new (globalScope3: any): {
+            new (globalScope2: any): {
                 globalScope: any;
                 /**
                  * @param {HTMLElement} elt

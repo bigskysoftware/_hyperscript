@@ -34,7 +34,7 @@ export default function socketPlugin(_hyperscript) {
 		/** @type {(string | symbol)[]} */
 		var PROXY_BLACKLIST = ["then", "catch", "length", "asyncWrapper", "toJSON"];
 
-		_hyperscript.addFeature("socket", function (parser, tokens) {
+		_hyperscript.addFeature("socket", function (helper) {
 			function getProxy(timeout) {
 				return new Proxy(
 					{},
@@ -86,28 +86,28 @@ export default function socketPlugin(_hyperscript) {
 				);
 			}
 
-			if (tokens.matchToken("socket")) {
-				var name = parser.requireElement("dotOrColonPath", tokens);
+			if (helper.matchToken("socket")) {
+				var name = helper.requireElement("dotOrColonPath");
 				var qualifiedName = name.evaluate();
 				var nameSpace = qualifiedName.split(".");
 				var socketName = nameSpace.pop();
 
 				var promises = {};
-				var url = parser.requireElement("stringLike", tokens);
+				var url = helper.requireElement("stringLike");
 
 				var defaultTimeout = 10000;
-				if (tokens.matchToken("with")) {
-					tokens.requireToken("timeout");
-					defaultTimeout = parser.requireElement("expression", tokens).evaluate();
+				if (helper.matchToken("with")) {
+					helper.requireToken("timeout");
+					defaultTimeout = helper.requireElement("expression").evaluate();
 				}
 
-				if (tokens.matchToken("on")) {
-					tokens.requireToken("message");
-					if (tokens.matchToken("as")) {
-						tokens.requireToken("json");
+				if (helper.matchToken("on")) {
+					helper.requireToken("message");
+					if (helper.matchToken("as")) {
+						helper.requireToken("json");
 						var jsonMessages = true;
 					}
-					var messageHandler = parser.requireElement("commandList", tokens);
+					var messageHandler = helper.requireElement("commandList");
 					var implicitReturn = {
 						type: "implicitReturn",
 						op: function (context) {

@@ -3,6 +3,7 @@ import { Lexer } from '../core/lexer.js';
 import { Runtime } from '../core/runtime.js';
 import {ElementCollection, RegExpIterable, TemplatedQueryElementCollection} from '../core/util.js';
 import { getOrInitObject, varargConstructor } from '../core/helpers.js';
+import { IdRef } from '../parsetree/webliterals.js';
 
 /**
  * @param {Parser} parser
@@ -90,39 +91,7 @@ export default function hyperscriptCoreGrammar(parser) {
             };
         });
 
-        parser.addLeafExpression("idRef", function (helper) {
-            var elementId = helper.matchTokenType("ID_REF");
-            if (!elementId) return;
-            if (!elementId.value) return;
-            // TODO - unify these two expression types
-            if (elementId.template) {
-                var templateValue = elementId.value.substring(2);
-                var innerTokens = Lexer.tokenize(templateValue);
-                var innerExpression = helper.parser.requireElement("expression", innerTokens);
-                return {
-                    type: "idRefTemplate",
-                    args: [innerExpression],
-                    op: function (context, arg) {
-                        return context.meta.runtime.getRootNode(context.me).getElementById(arg);
-                    },
-                    evaluate: function (context) {
-                        return context.meta.runtime.unifiedEval(this, context);
-                    },
-                };
-            } else {
-                const value = elementId.value.substring(1);
-                return {
-                    type: "idRef",
-                    css: elementId.value,
-                    value: value,
-                    evaluate: function (context) {
-                        return (
-                            context.meta.runtime.getRootNode(context.me).getElementById(value)
-                        );
-                    },
-                };
-            }
-        });
+        parser.addLeafExpression("idRef", IdRef.parse);
 
         parser.addLeafExpression("classRef", function (helper) {
             var classRef = helper.matchTokenType("CLASS_REF");

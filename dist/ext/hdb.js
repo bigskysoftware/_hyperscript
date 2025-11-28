@@ -10,8 +10,8 @@ export default function hdbPlugin(_hyperscript) {
 			this.bus = new EventTarget();
 		} // See below for methods
 
-		_hyperscript.addCommand("breakpoint", function (parser, tokens) {
-			if (!tokens.matchToken("breakpoint")) return;
+		_hyperscript.addCommand("breakpoint", function (helper) {
+			if (!helper.matchToken("breakpoint")) return;
 
 			var hdb;
 
