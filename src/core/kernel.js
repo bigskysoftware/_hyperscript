@@ -1,8 +1,7 @@
 // LanguageKernel - AST parsing for _hyperscript
-import { Tokens } from './tokens.js';
+import { Tokens, Tokenizer } from './tokenizer.js';
 import { Runtime } from './runtime.js';
 import { Parser } from './parser.js';
-import { Tokenizer } from './tokenizer.js';
 
 /**
  * @callback ParseRule

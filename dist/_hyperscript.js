@@ -3,7 +3,7 @@ var __defProp = Object.defineProperty;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 
-// src/core/tokens.js
+// src/core/tokenizer.js
 var _Tokens = class _Tokens {
   constructor(tokens, consumed, source) {
     /** @type Token | null */
@@ -255,8 +255,6 @@ __publicField(_Tokens, "lineFor", function() {
   return this.programSource.split("\n")[this.startToken.line - 1];
 });
 var Tokens = _Tokens;
-
-// src/core/tokenizer.js
 var _Tokenizer = class _Tokenizer {
   /**
    * isValidCSSClassChar returns `true` if the provided character is valid in a CSS class.

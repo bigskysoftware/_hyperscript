@@ -2,8 +2,7 @@
 'use strict';
 
 // Import core modules
-import { Tokenizer } from './core/tokenizer.js';
-import { Tokens } from './core/tokens.js';
+import { Tokenizer, Tokens } from './core/tokenizer.js';
 import { LanguageKernel } from './core/kernel.js';
 import { Runtime } from './core/runtime.js';
 import { ElementCollection } from './core/runtime.js';

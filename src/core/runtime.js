@@ -1,6 +1,6 @@
 // Runtime - Execution engine for _hyperscript
 import { config, conversions } from './config.js';
-import { Tokens } from './tokens.js';
+import { Tokens } from './tokenizer.js';
 
 // ============================================================================
 // Utility classes and symbols (from util.js)

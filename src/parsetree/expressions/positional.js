@@ -3,7 +3,7 @@
  * DOM query and position-based selections
  */
 
-import { Tokens } from '../../core/tokens.js';
+import { Tokens } from '../../core/tokenizer.js';
 
 /**
  * Helper function - scan forward in DOM tree for matching element
