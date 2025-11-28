@@ -221,6 +221,8 @@ export class Context {
     */
     constructor(owner, feature, hyperscriptTarget, event, runtime, globalScope) {
         this.meta = {
+            parser: runtime.parser,
+            tokenizer: runtime.tokenizer,
             runtime,
             owner: owner,
             feature: feature,

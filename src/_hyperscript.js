@@ -12,39 +12,7 @@ import hyperscriptWebGrammar from './grammars/web.js';
 
 const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'undefined' ? global : this);
 
-class Context {
-        /**
-        * @param {*} owner
-        * @param {*} feature
-        * @param {*} hyperscriptTarget
-        * @param {*} event
-        */
-        constructor(owner, feature, hyperscriptTarget, event, runtime) {
-            this.meta = {
-                parser: runtime.parser,
-                tokenizer: runtime.tokenizer,
-                runtime,
-                owner: owner,
-                feature: feature,
-                iterators: {},
-                ctx: this
-            }
-            this.locals = {
-                cookies:CookieJar
-            };
-            this.me = hyperscriptTarget,
-            this.you = undefined
-            this.result = undefined
-            this.event = event;
-            this.target = event ? event.target : null;
-            this.detail = event ? event.detail : null;
-            this.sender = event ? event.detail ? event.detail.sender : null : null;
-            this.body = "document" in globalScope ? document.body : null;
-            runtime.addFeatures(owner, this);
-        }
-    }
-
-    /**
+/**
      * parseJSON parses a JSON string into a corresponding value.  If the
      * value passed in is not valid JSON, then it logs an error and returns `null`.
      *

@@ -1119,6 +1119,8 @@ var Context = class {
   */
   constructor(owner, feature, hyperscriptTarget, event, runtime, globalScope2) {
     this.meta = {
+      parser: runtime.parser,
+      tokenizer: runtime.tokenizer,
       runtime,
       owner,
       feature,
