@@ -4,8 +4,8 @@ import { Runtime } from '../core/runtime.js';
 import {ElementCollection, RegExpIterable, TemplatedQueryElementCollection} from '../core/util.js';
 import { getOrInitObject, varargConstructor } from '../core/helpers.js';
 import { IdRef, ClassRef, QueryRef, AttributeRef, StyleRef } from '../parsetree/webliterals.js';
-import { ParenthesizedExpression, BlockLiteral } from '../parsetree/expressions.js';
-import { NakedString, StringLiteral, NumberLiteral, BooleanLiteral, NullLiteral, ArrayLiteral } from '../parsetree/literals.js';
+import { ParenthesizedExpression, BlockLiteral, NegativeNumber, LogicalNot, SymbolRef, BeepExpression } from '../parsetree/expressions.js';
+import { NakedString, StringLiteral, NumberLiteral, BooleanLiteral, NullLiteral, ArrayLiteral, ObjectKey, ObjectLiteral, NamedArgumentList } from '../parsetree/literals.js';
 import { ImplicitMeTarget } from '../parsetree/targets.js';
 import { NoExpression, SomeExpression } from '../parsetree/existentials.js';
 
@@ -33,155 +33,15 @@ export default function hyperscriptCoreGrammar(parser) {
 
         parser.addLeafExpression("styleRef", StyleRef.parse);
 
-        parser.addGrammarElement("objectKey", function (helper) {
-            var token;
-            if ((token = helper.matchTokenType("STRING"))) {
-                return {
-                    type: "objectKey",
-                    key: token.value,
-                    evaluate: function () {
-                        return token.value;
-                    },
-                };
-            } else if (helper.matchOpToken("[")) {
-                var expr = helper.parseElement("expression");
-                helper.requireOpToken("]");
-                return {
-                    type: "objectKey",
-                    expr: expr,
-                    args: [expr],
-                    op: function (ctx, expr) {
-                        return expr;
-                    },
-                    evaluate: function (context) {
-                        return context.meta.runtime.unifiedEval(this, context);
-                    },
-                };
-            } else {
-                var key = "";
-                do {
-                    token = helper.matchTokenType("IDENTIFIER") || helper.matchOpToken("-");
-                    if (token) key += token.value;
-                } while (token);
-                return {
-                    type: "objectKey",
-                    key: key,
-                    evaluate: function () {
-                        return key;
-                    },
-                };
-            }
-        });
+        parser.addGrammarElement("objectKey", ObjectKey.parse);
 
-        parser.addLeafExpression("objectLiteral", function (helper) {
-            if (!helper.matchOpToken("{")) return;
-            var keyExpressions = [];
-            var valueExpressions = [];
-            if (!helper.matchOpToken("}")) {
-                do {
-                    var name = helper.requireElement("objectKey");
-                    helper.requireOpToken(":");
-                    var value = helper.requireElement("expression");
-                    valueExpressions.push(value);
-                    keyExpressions.push(name);
-                } while (helper.matchOpToken(",") && !helper.peekToken("}", 0, 'R_BRACE'));
-                helper.requireOpToken("}");
-            }
-            return {
-                type: "objectLiteral",
-                args: [keyExpressions, valueExpressions],
-                op: function (context, keys, values) {
-                    var returnVal = {};
-                    for (var i = 0; i < keys.length; i++) {
-                        returnVal[keys[i]] = values[i];
-                    }
-                    return returnVal;
-                },
-                evaluate: function (context) {
-                    return context.meta.runtime.unifiedEval(this, context);
-                },
-            };
-        });
+        parser.addLeafExpression("objectLiteral", ObjectLiteral.parse);
 
-        parser.addGrammarElement("nakedNamedArgumentList", function (helper) {
-            var fields = [];
-            var valueExpressions = [];
-            if (helper.currentToken().type === "IDENTIFIER") {
-                do {
-                    var name = helper.requireTokenType("IDENTIFIER");
-                    helper.requireOpToken(":");
-                    var value = helper.requireElement("expression");
-                    valueExpressions.push(value);
-                    fields.push({ name: name, value: value });
-                } while (helper.matchOpToken(","));
-            }
-            return {
-                type: "namedArgumentList",
-                fields: fields,
-                args: [valueExpressions],
-                op: function (context, values) {
-                    var returnVal = { _namedArgList_: true };
-                    for (var i = 0; i < values.length; i++) {
-                        var field = fields[i];
-                        returnVal[field.name.value] = values[i];
-                    }
-                    return returnVal;
-                },
-                evaluate: function (context) {
-                    return context.meta.runtime.unifiedEval(this, context);
-                },
-            };
-        });
+        parser.addGrammarElement("nakedNamedArgumentList", NamedArgumentList.parseNaked);
 
-        parser.addGrammarElement("namedArgumentList", function (helper) {
-            if (!helper.matchOpToken("(")) return;
-            var elt = helper.requireElement("nakedNamedArgumentList");
-            helper.requireOpToken(")");
-            return elt;
-        });
+        parser.addGrammarElement("namedArgumentList", NamedArgumentList.parse);
 
-        parser.addGrammarElement("symbol", function (helper) {
-            /** @scope {SymbolScope} */
-            var scope = "default";
-            if (helper.matchToken("global")) {
-                scope = "global";
-            } else if (helper.matchToken("element") || helper.matchToken("module")) {
-                scope = "element";
-                // optional possessive
-                if (helper.matchOpToken("'")) {
-                    helper.requireToken("s");
-                }
-            } else if (helper.matchToken("local")) {
-                scope = "local";
-            }
-
-            // TODO better look ahead here
-            let eltPrefix = helper.matchOpToken(":");
-            let identifier = helper.matchTokenType("IDENTIFIER");
-            if (identifier && identifier.value) {
-                var name = identifier.value;
-                if (eltPrefix) {
-                    name = ":" + name;
-                }
-                if (scope === "default") {
-                    if (name.indexOf("$") === 0) {
-                        scope = "global";
-                    }
-                    if (name.indexOf(":") === 0) {
-                        scope = "element";
-                    }
-                }
-                return {
-                    type: "symbol",
-                    token: identifier,
-                    scope: scope,
-                    name: name,
-                    evaluate: function (context) {
-                        return context.meta.runtime.resolveSymbol(name, context, scope);
-                    },
-                };
-            }
-        });
+        parser.addGrammarElement("symbol", SymbolRef.parse);
 
         parser.addGrammarElement("implicitMeTarget", ImplicitMeTarget.parse);
 
@@ -586,65 +446,20 @@ export default function hyperscriptCoreGrammar(parser) {
             }
         });
 
-        parser.addGrammarElement("logicalNot", function (helper) {
-            if (!helper.matchToken("not")) return;
-            var root = helper.requireElement("unaryExpression");
-            return {
-                type: "logicalNot",
-                root: root,
-                args: [root],
-                op: function (context, val) {
-                    return !val;
-                },
-                evaluate: function (context) {
-                    return context.meta.runtime.unifiedEval(this, context);
-                },
-            };
-        });
+        parser.addGrammarElement("logicalNot", LogicalNot.parse);
 
         parser.addGrammarElement("noExpression", NoExpression.parse);
 
         parser.addLeafExpression("some", SomeExpression.parse);
 
-        parser.addGrammarElement("negativeNumber", function (helper) {
-            if (helper.matchOpToken("-")) {
-                var root = helper.requireElement("negativeNumber");
-                return {
-                    type: "negativeNumber",
-                    root: root,
-                    args: [root],
-                    op: function (context, value) {
-                        return -1 * value;
-                    },
-                    evaluate: function (context) {
-                        return context.meta.runtime.unifiedEval(this, context);
-                    },
-                };
-            } else {
-                return helper.requireElement("primaryExpression");
-            }
-        });
+        parser.addGrammarElement("negativeNumber", NegativeNumber.parse);
 
         parser.addGrammarElement("unaryExpression", function (helper) {
             helper.matchToken("the"); // optional "the"
             return helper.parseAnyOf(["beepExpression", "logicalNot", "relativePositionalExpression", "positionalExpression", "noExpression", "postfixExpression"]);
         });
 
-        parser.addGrammarElement("beepExpression", function (helper) {
-            if (!helper.matchToken("beep!")) return;
-            var expression = helper.parseElement("unaryExpression");
-            if (expression) {
-                expression['booped'] = true;
-                var originalEvaluate = expression.evaluate;
-                expression.evaluate = function(ctx){
-                    let value = originalEvaluate.apply(expression, arguments);
-                    let element = ctx.me;
-                    ctx.meta.runtime.beepValueToConsole(element, expression, value);
-                    return value;
-                }
-                return expression;
-            }
-        });
+        parser.addGrammarElement("beepExpression", BeepExpression.parse);
 
         var scanForwardQuery = function(start, root, match, wrap) {
             var results = root.querySelectorAll(match);

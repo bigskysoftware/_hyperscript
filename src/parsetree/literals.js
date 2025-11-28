@@ -259,3 +259,185 @@ export class ArrayLiteral {
         return context.meta.runtime.unifiedEval(this, context);
     }
 }
+
+/**
+ * ObjectKey - Represents an object key (string, identifier, or computed expression)
+ *
+ * Parses: "key" | key | [expression]
+ * Returns: string key value
+ */
+export class ObjectKey {
+    constructor(key, expr, args) {
+        this.type = "objectKey";
+        this.key = key;
+        this.expr = expr;
+        this.args = args;
+    }
+
+    /**
+     * Parse an object key
+     * @param {ParserHelper} helper
+     * @returns {ObjectKey}
+     */
+    static parse(helper) {
+        var token;
+        if ((token = helper.matchTokenType("STRING"))) {
+            return new ObjectKey(token.value, null, null);
+        } else if (helper.matchOpToken("[")) {
+            var expr = helper.parseElement("expression");
+            helper.requireOpToken("]");
+            return new ObjectKey(null, expr, [expr]);
+        } else {
+            var key = "";
+            do {
+                token = helper.matchTokenType("IDENTIFIER") || helper.matchOpToken("-");
+                if (token) key += token.value;
+            } while (token);
+            return new ObjectKey(key, null, null);
+        }
+    }
+
+    /**
+     * Op function for computed keys
+     */
+    op(ctx, expr) {
+        return expr;
+    }
+
+    /**
+     * Evaluate to key string
+     * @param {Context} context
+     * @returns {string}
+     */
+    evaluate(context) {
+        if (this.expr) {
+            return context.meta.runtime.unifiedEval(this, context);
+        } else {
+            return this.key;
+        }
+    }
+}
+
+/**
+ * ObjectLiteral - Represents object literals
+ *
+ * Parses: {foo: bar, baz: qux} | {}
+ * Returns: object value
+ */
+export class ObjectLiteral {
+    constructor(keyExpressions, valueExpressions) {
+        this.type = "objectLiteral";
+        this.keyExpressions = keyExpressions;
+        this.valueExpressions = valueExpressions;
+        this.args = [keyExpressions, valueExpressions];
+    }
+
+    /**
+     * Parse an object literal
+     * @param {ParserHelper} helper
+     * @returns {ObjectLiteral | undefined}
+     */
+    static parse(helper) {
+        if (!helper.matchOpToken("{")) return;
+        var keyExpressions = [];
+        var valueExpressions = [];
+        if (!helper.matchOpToken("}")) {
+            do {
+                var name = helper.requireElement("objectKey");
+                helper.requireOpToken(":");
+                var value = helper.requireElement("expression");
+                valueExpressions.push(value);
+                keyExpressions.push(name);
+            } while (helper.matchOpToken(",") && !helper.peekToken("}", 0, 'R_BRACE'));
+            helper.requireOpToken("}");
+        }
+        return new ObjectLiteral(keyExpressions, valueExpressions);
+    }
+
+    /**
+     * Op function for object literal
+     */
+    op(context, keys, values) {
+        var returnVal = {};
+        for (var i = 0; i < keys.length; i++) {
+            returnVal[keys[i]] = values[i];
+        }
+        return returnVal;
+    }
+
+    /**
+     * Evaluate to object value
+     * @param {Context} context
+     * @returns {Object}
+     */
+    evaluate(context) {
+        return context.meta.runtime.unifiedEval(this, context);
+    }
+}
+
+/**
+ * NamedArgumentList - Represents named argument lists (with or without parentheses)
+ *
+ * Parses: foo: 1, bar: 2 or (foo: 1, bar: 2)
+ * Returns: object with named arguments
+ */
+export class NamedArgumentList {
+    constructor(fields, valueExpressions) {
+        this.type = "namedArgumentList";
+        this.fields = fields;
+        this.args = [valueExpressions];
+    }
+
+    /**
+     * Parse a naked named argument list (without parentheses)
+     * @param {ParserHelper} helper
+     * @returns {NamedArgumentList}
+     */
+    static parseNaked(helper) {
+        var fields = [];
+        var valueExpressions = [];
+        if (helper.currentToken().type === "IDENTIFIER") {
+            do {
+                var name = helper.requireTokenType("IDENTIFIER");
+                helper.requireOpToken(":");
+                var value = helper.requireElement("expression");
+                valueExpressions.push(value);
+                fields.push({ name: name, value: value });
+            } while (helper.matchOpToken(","));
+        }
+        return new NamedArgumentList(fields, valueExpressions);
+    }
+
+    /**
+     * Parse a named argument list with parentheses
+     * @param {ParserHelper} helper
+     * @returns {NamedArgumentList | undefined}
+     */
+    static parse(helper) {
+        if (!helper.matchOpToken("(")) return;
+        var elt = NamedArgumentList.parseNaked(helper);
+        helper.requireOpToken(")");
+        return elt;
+    }
+
+    /**
+     * Op function for named arguments
+     */
+    op(context, values) {
+        var returnVal = { _namedArgList_: true };
+        for (var i = 0; i < values.length; i++) {
+            var field = this.fields[i];
+            returnVal[field.name.value] = values[i];
+        }
+        return returnVal;
+    }
+
+    /**
+     * Evaluate to named argument object
+     * @param {Context} context
+     * @returns {Object}
+     */
+    evaluate(context) {
+        return context.meta.runtime.unifiedEval(this, context);
+    }
+}
