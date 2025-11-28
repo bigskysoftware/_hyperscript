@@ -171,10 +171,10 @@ export class StringLiteral {
         var args;
         if (stringToken.template) {
             // Import Lexer from the helper's parser
-            const Lexer = helper.parser.constructor.Lexer || window._hyperscript?.internals?.Lexer;
+            const Lexer = helper.kernel.constructor.Lexer || window._hyperscript?.internals?.Lexer;
             if (Lexer) {
                 var innerTokens = Lexer.tokenize(rawValue, true);
-                args = helper.parser.parseStringTemplate(innerTokens);
+                args = helper.kernel.parseStringTemplate(innerTokens);
             } else {
                 args = [];
             }

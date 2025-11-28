@@ -4,7 +4,7 @@
 // Import core modules
 import { Lexer } from './core/lexer.js';
 import { Tokens } from './core/tokens.js';
-import { LanguageKernel } from './core/parser.js';
+import { LanguageKernel } from './core/kernel.js';
 import { Runtime } from './core/runtime.js';
 import { ElementCollection } from './core/util.js';
 import { config, conversions } from './core/config.js';
@@ -158,12 +158,12 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
     const lexer_ = new Lexer();
     const runtime_ = new Runtime(globalScope);
 
-    // Create and configure parser
-    const parser_ = new LanguageKernel();
-    // Add runtime to parser for backward compatibility with grammar code
-    parser_.runtime = runtime_;
-    hyperscriptCoreGrammar(parser_);
-    hyperscriptWebGrammar(parser_);
+    // Create and configure kernel
+    const kernel_ = new LanguageKernel();
+    // Add runtime to kernel for backward compatibility with grammar code
+    kernel_.runtime = runtime_;
+    hyperscriptCoreGrammar(kernel_);
+    hyperscriptWebGrammar(kernel_);
 
     // Set up the LanguageKernel.raiseParseError callback for Tokens
     Tokens._parserRaiseError = LanguageKernel.raiseParseError;
@@ -194,7 +194,7 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
             ? globalScope.document.body
             : new HyperscriptModule(args && args.module);
         ctx = Object.assign(runtime_.makeContext(body, null, body, null), ctx || {});
-        var element = parser_.parse(lexer_, src);
+        var element = kernel_.parse(lexer_, src);
         if (element.execute) {
             element.execute(ctx);
             if(typeof ctx.meta.returnValue !== 'undefined'){
@@ -226,7 +226,7 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
                     internalData.initialized = true;
                     internalData.script = src;
                     var tokens = lexer_.tokenize(src);
-                    var hyperScript = parser_.parseHyperScript(tokens);
+                    var hyperScript = kernel_.parseHyperScript(tokens);
                     if (!hyperScript) return;
                     hyperScript.apply(target || elt, elt, null, runtime_);
                     setTimeout(() => {
@@ -374,18 +374,18 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
             use(plugin) { plugin(_hyperscript) },
 
             internals: {
-                lexer: lexer_, parser: parser_, runtime: runtime_,
+                lexer: lexer_, parser: kernel_, runtime: runtime_,
                 Lexer, Tokens, Parser: LanguageKernel, Runtime,
             },
             ElementCollection,
 
-            addFeature:            parser_.addFeature.bind(parser_),
-            addCommand:            parser_.addCommand.bind(parser_),
-            addLeafExpression:     parser_.addLeafExpression.bind(parser_),
-            addIndirectExpression: parser_.addIndirectExpression.bind(parser_),
+            addFeature:            kernel_.addFeature.bind(kernel_),
+            addCommand:            kernel_.addCommand.bind(kernel_),
+            addLeafExpression:     kernel_.addLeafExpression.bind(kernel_),
+            addIndirectExpression: kernel_.addIndirectExpression.bind(kernel_),
 
             evaluate,
-            parse:       (src) => parser_.parse(lexer_, src),
+            parse:       (src) => kernel_.parse(lexer_, src),
             process: processNode,
             processNode,
             version: "0.9.14",

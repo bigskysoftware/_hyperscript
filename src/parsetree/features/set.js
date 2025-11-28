@@ -11,7 +11,7 @@ export class SetFeature {
      * @param {LanguageKernel} parser
      * @returns {SetFeature | undefined}
      */
-    static parse(helper, parser) {
+    static parse(helper, kernel) {
         let setCmd = helper.parseElement("setCommand");
         if (setCmd) {
             if (setCmd.target.scope !== "element") {
@@ -23,7 +23,7 @@ export class SetFeature {
                     setCmd && setCmd.execute(runtime.makeContext(target, setFeature, target, null));
                 },
             };
-            parser.ensureTerminated(setCmd);
+            kernel.ensureTerminated(setCmd);
             return setFeature;
         }
     }

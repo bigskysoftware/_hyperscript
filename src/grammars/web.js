@@ -11,44 +11,44 @@ import { SettleCommand, TransitionCommand } from '../parsetree/commands/animatio
 import { GoCommand } from '../parsetree/commands/basic.js';
 
 /**
- * @param {LanguageKernel} parser
+ * @param {LanguageKernel} kernel
  */
-export default function hyperscriptWebGrammar(parser) {
-        parser.addCommand("settle", SettleCommand.parse);
+export default function hyperscriptWebGrammar(kernel) {
+        kernel.addCommand("settle", SettleCommand.parse);
 
-        parser.addCommand("add", AddCommand.parse);
+        kernel.addCommand("add", AddCommand.parse);
 
-        parser.addGrammarElement("styleLiteral", StyleLiteral.parse);
+        kernel.addGrammarElement("styleLiteral", StyleLiteral.parse);
 
-        parser.addCommand("remove", RemoveCommand.parse);
+        kernel.addCommand("remove", RemoveCommand.parse);
 
-        parser.addCommand("toggle", function (helper) {
-            return ToggleCommand.parse(helper, parser, config);
+        kernel.addCommand("toggle", function (helper) {
+            return ToggleCommand.parse(helper, kernel, config);
         });
 
-        parser.addCommand("hide", function (helper) {
-            return HideCommand.parse(helper, parser, config);
+        kernel.addCommand("hide", function (helper) {
+            return HideCommand.parse(helper, kernel, config);
         });
 
-        parser.addCommand("show", function (helper) {
-            return ShowCommand.parse(helper, parser, config);
+        kernel.addCommand("show", function (helper) {
+            return ShowCommand.parse(helper, kernel, config);
         });
 
-        parser.addCommand("take", TakeCommand.parse);
+        kernel.addCommand("take", TakeCommand.parse);
 
-        parser.addCommand("put", function (helper) {
-            return PutCommand.parse(helper, parser);
+        kernel.addCommand("put", function (helper) {
+            return PutCommand.parse(helper, kernel);
         });
 
-        parser.addCommand("transition", function (helper) {
+        kernel.addCommand("transition", function (helper) {
             return TransitionCommand.parse(helper, config);
         });
 
-        parser.addCommand("measure", MeasureCommand.parse);
+        kernel.addCommand("measure", MeasureCommand.parse);
 
-        parser.addLeafExpression("closestExpr", ClosestExpr.parse);
+        kernel.addLeafExpression("closestExpr", ClosestExpr.parse);
 
-        parser.addCommand("go", GoCommand.parse);
+        kernel.addCommand("go", GoCommand.parse);
 
         config.conversions.dynamicResolvers.push(function (str, node) {
             if (!(str === "Values" || str.indexOf("Values:") === 0)) {
@@ -58,7 +58,7 @@ export default function hyperscriptWebGrammar(parser) {
             /** @type Object<string,string | string[]> */
             var result = {};
 
-            var implicitLoop = parser.runtime.implicitLoop.bind(parser.runtime);
+            var implicitLoop = kernel.runtime.implicitLoop.bind(kernel.runtime);
 
             implicitLoop(node, function (/** @type HTMLInputElement */ node) {
                 // Try to get a value directly from this node
@@ -193,7 +193,7 @@ export default function hyperscriptWebGrammar(parser) {
 
         config.conversions["Fragment"] = function (val) {
             var frag = document.createDocumentFragment();
-            parser.runtime.implicitLoop(val, function (val) {
+            kernel.runtime.implicitLoop(val, function (val) {
                 if (val instanceof Node) frag.append(val);
                 else {
                     var temp = document.createElement("template");

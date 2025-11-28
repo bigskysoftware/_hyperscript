@@ -40,66 +40,66 @@ import { DefFeature } from '../parsetree/features/def.js';
 import { OnFeature } from '../parsetree/features/on.js';
 
 /**
- * @param {LanguageKernel} parser
+ * @param {LanguageKernel} kernel
  */
-export default function hyperscriptCoreGrammar(parser) {
-        parser.addLeafExpression("parenthesized", ParenthesizedExpression.parse);
+export default function hyperscriptCoreGrammar(kernel) {
+        kernel.addLeafExpression("parenthesized", ParenthesizedExpression.parse);
 
-        parser.addLeafExpression("string", StringLiteral.parse);
+        kernel.addLeafExpression("string", StringLiteral.parse);
 
-        parser.addGrammarElement("nakedString", NakedString.parse);
+        kernel.addGrammarElement("nakedString", NakedString.parse);
 
-        parser.addLeafExpression("number", NumberLiteral.parse);
+        kernel.addLeafExpression("number", NumberLiteral.parse);
 
-        parser.addLeafExpression("idRef", IdRef.parse);
+        kernel.addLeafExpression("idRef", IdRef.parse);
 
-        parser.addLeafExpression("classRef", ClassRef.parse);
+        kernel.addLeafExpression("classRef", ClassRef.parse);
 
         // TemplatedQueryElementCollection is now imported from ./core/util.js
 
-        parser.addLeafExpression("queryRef", QueryRef.parse);
+        kernel.addLeafExpression("queryRef", QueryRef.parse);
 
-        parser.addLeafExpression("attributeRef", AttributeRef.parse);
+        kernel.addLeafExpression("attributeRef", AttributeRef.parse);
 
-        parser.addLeafExpression("styleRef", StyleRef.parse);
+        kernel.addLeafExpression("styleRef", StyleRef.parse);
 
-        parser.addGrammarElement("objectKey", ObjectKey.parse);
+        kernel.addGrammarElement("objectKey", ObjectKey.parse);
 
-        parser.addLeafExpression("objectLiteral", ObjectLiteral.parse);
+        kernel.addLeafExpression("objectLiteral", ObjectLiteral.parse);
 
-        parser.addGrammarElement("nakedNamedArgumentList", NamedArgumentList.parseNaked);
+        kernel.addGrammarElement("nakedNamedArgumentList", NamedArgumentList.parseNaked);
 
-        parser.addGrammarElement("namedArgumentList", NamedArgumentList.parse);
+        kernel.addGrammarElement("namedArgumentList", NamedArgumentList.parse);
 
-        parser.addGrammarElement("symbol", SymbolRef.parse);
+        kernel.addGrammarElement("symbol", SymbolRef.parse);
 
-        parser.addGrammarElement("implicitMeTarget", ImplicitMeTarget.parse);
+        kernel.addGrammarElement("implicitMeTarget", ImplicitMeTarget.parse);
 
-        parser.addLeafExpression("boolean", BooleanLiteral.parse);
+        kernel.addLeafExpression("boolean", BooleanLiteral.parse);
 
-        parser.addLeafExpression("null", NullLiteral.parse);
+        kernel.addLeafExpression("null", NullLiteral.parse);
 
-        parser.addLeafExpression("arrayLiteral", ArrayLiteral.parse);
+        kernel.addLeafExpression("arrayLiteral", ArrayLiteral.parse);
 
-        parser.addLeafExpression("blockLiteral", BlockLiteral.parse);
+        kernel.addLeafExpression("blockLiteral", BlockLiteral.parse);
 
-        parser.addIndirectExpression("propertyAccess", PropertyAccess.parse);
+        kernel.addIndirectExpression("propertyAccess", PropertyAccess.parse);
 
-        parser.addIndirectExpression("of", OfExpression.parse);
+        kernel.addIndirectExpression("of", OfExpression.parse);
 
-        parser.addIndirectExpression("possessive", PossessiveExpression.parse);
+        kernel.addIndirectExpression("possessive", PossessiveExpression.parse);
 
-        parser.addIndirectExpression("inExpression", InExpression.parse);
+        kernel.addIndirectExpression("inExpression", InExpression.parse);
 
-        parser.addIndirectExpression("asExpression", AsExpression.parse);
+        kernel.addIndirectExpression("asExpression", AsExpression.parse);
 
-        parser.addIndirectExpression("functionCall", FunctionCall.parse);
+        kernel.addIndirectExpression("functionCall", FunctionCall.parse);
 
-        parser.addIndirectExpression("attributeRefAccess", AttributeRefAccess.parse);
+        kernel.addIndirectExpression("attributeRefAccess", AttributeRefAccess.parse);
 
-        parser.addIndirectExpression("arrayIndex", ArrayIndex.parse);
+        kernel.addIndirectExpression("arrayIndex", ArrayIndex.parse);
 
-        parser.addGrammarElement("postfixExpression", function (helper) {
+        kernel.addGrammarElement("postfixExpression", function (helper) {
             var root = helper.parseElement("negativeNumber");
 
             return StringPostfixExpression.parse(helper, root) ||
@@ -108,45 +108,45 @@ export default function hyperscriptCoreGrammar(parser) {
                    root;
         });
 
-        parser.addGrammarElement("logicalNot", LogicalNot.parse);
+        kernel.addGrammarElement("logicalNot", LogicalNot.parse);
 
-        parser.addGrammarElement("noExpression", NoExpression.parse);
+        kernel.addGrammarElement("noExpression", NoExpression.parse);
 
-        parser.addLeafExpression("some", SomeExpression.parse);
+        kernel.addLeafExpression("some", SomeExpression.parse);
 
-        parser.addGrammarElement("negativeNumber", NegativeNumber.parse);
+        kernel.addGrammarElement("negativeNumber", NegativeNumber.parse);
 
-        parser.addGrammarElement("unaryExpression", function (helper) {
+        kernel.addGrammarElement("unaryExpression", function (helper) {
             helper.matchToken("the"); // optional "the"
             return helper.parseAnyOf(["beepExpression", "logicalNot", "relativePositionalExpression", "positionalExpression", "noExpression", "postfixExpression"]);
         });
 
-        parser.addGrammarElement("beepExpression", BeepExpression.parse);
+        kernel.addGrammarElement("beepExpression", BeepExpression.parse);
 
-        parser.addGrammarElement("relativePositionalExpression", RelativePositionalExpression.parse);
+        kernel.addGrammarElement("relativePositionalExpression", RelativePositionalExpression.parse);
 
-        parser.addGrammarElement("positionalExpression", PositionalExpression.parse);
+        kernel.addGrammarElement("positionalExpression", PositionalExpression.parse);
 
-        parser.addGrammarElement("mathOperator", MathOperator.parse);
+        kernel.addGrammarElement("mathOperator", MathOperator.parse);
 
-        parser.addGrammarElement("mathExpression", MathExpression.parse);
+        kernel.addGrammarElement("mathExpression", MathExpression.parse);
 
-        parser.addGrammarElement("comparisonOperator", ComparisonOperator.parse);
+        kernel.addGrammarElement("comparisonOperator", ComparisonOperator.parse);
 
-        parser.addGrammarElement("comparisonExpression", ComparisonExpression.parse);
+        kernel.addGrammarElement("comparisonExpression", ComparisonExpression.parse);
 
-        parser.addGrammarElement("logicalOperator", LogicalOperator.parse);
+        kernel.addGrammarElement("logicalOperator", LogicalOperator.parse);
 
-        parser.addGrammarElement("logicalExpression", LogicalExpression.parse);
+        kernel.addGrammarElement("logicalExpression", LogicalExpression.parse);
 
-        parser.addGrammarElement("asyncExpression", AsyncExpression.parse);
+        kernel.addGrammarElement("asyncExpression", AsyncExpression.parse);
 
-        parser.addGrammarElement("expression", function (helper) {
+        kernel.addGrammarElement("expression", function (helper) {
             helper.matchToken("the"); // optional the
             return helper.parseElement("asyncExpression");
         });
 
-        parser.addGrammarElement("assignableExpression", function (helper) {
+        kernel.addGrammarElement("assignableExpression", function (helper) {
             helper.matchToken("the"); // optional the
 
             // TODO obviously we need to generalize this as a left hand side / targetable concept
@@ -170,7 +170,7 @@ export default function hyperscriptCoreGrammar(parser) {
             return expr;
         });
 
-        parser.addGrammarElement("hyperscript", function (helper) {
+        kernel.addGrammarElement("hyperscript", function (helper) {
             var features = [];
 
             if (helper.hasMore()) {
@@ -192,42 +192,42 @@ export default function hyperscriptCoreGrammar(parser) {
             };
         });
 
-        parser.addFeature("on", function (helper) {
-            return OnFeature.parse(helper, parser);
+        kernel.addFeature("on", function (helper) {
+            return OnFeature.parse(helper, kernel);
         });
 
-        parser.addFeature("def", function (helper) {
-            return DefFeature.parse(helper, parser);
+        kernel.addFeature("def", function (helper) {
+            return DefFeature.parse(helper, kernel);
         });
 
-        parser.addFeature("set", function (helper) {
-            return SetFeature.parse(helper, parser);
+        kernel.addFeature("set", function (helper) {
+            return SetFeature.parse(helper, kernel);
         });
 
-        parser.addFeature("init", function (helper) {
-            return InitFeature.parse(helper, parser);
+        kernel.addFeature("init", function (helper) {
+            return InitFeature.parse(helper, kernel);
         });
 
-        parser.addFeature("worker", WorkerFeature.parse);
+        kernel.addFeature("worker", WorkerFeature.parse);
 
-        parser.addFeature("behavior", BehaviorFeature.parse);
+        kernel.addFeature("behavior", BehaviorFeature.parse);
 
-        parser.addFeature("install", InstallFeature.parse);
+        kernel.addFeature("install", InstallFeature.parse);
 
-        parser.addGrammarElement("jsBody", JsBody.parse);
+        kernel.addGrammarElement("jsBody", JsBody.parse);
 
-        parser.addFeature("js", JsFeature.parse);
+        kernel.addFeature("js", JsFeature.parse);
 
-        parser.addCommand("js", JsCommand.parse);
+        kernel.addCommand("js", JsCommand.parse);
 
-        parser.addCommand("async", AsyncCommand.parse);
+        kernel.addCommand("async", AsyncCommand.parse);
 
-        parser.addCommand("tell", TellCommand.parse);
+        kernel.addCommand("tell", TellCommand.parse);
 
-        parser.addCommand("wait", WaitCommand.parse);
+        kernel.addCommand("wait", WaitCommand.parse);
 
         // TODO  - colon path needs to eventually become part of ruby-style symbols
-        parser.addGrammarElement("dotOrColonPath", function (helper) {
+        kernel.addGrammarElement("dotOrColonPath", function (helper) {
             var root = helper.matchTokenType("IDENTIFIER");
             if (root) {
                 var path = [root.value];
@@ -250,7 +250,7 @@ export default function hyperscriptCoreGrammar(parser) {
         });
 
 
-        parser.addGrammarElement("eventName", function (helper) {
+        kernel.addGrammarElement("eventName", function (helper) {
             var token;
             if ((token = helper.matchTokenType("STRING"))) {
                 return {
@@ -263,29 +263,29 @@ export default function hyperscriptCoreGrammar(parser) {
             return helper.parseElement("dotOrColonPath");
         });
 
-        parser.addCommand("trigger", TriggerCommand.parse);
+        kernel.addCommand("trigger", TriggerCommand.parse);
 
-        parser.addCommand("send", SendCommand.parse);
+        kernel.addCommand("send", SendCommand.parse);
 
-        parser.addCommand("return", ReturnCommand.parse);
+        kernel.addCommand("return", ReturnCommand.parse);
 
-        parser.addCommand("exit", ExitCommand.parse);
+        kernel.addCommand("exit", ExitCommand.parse);
 
-        parser.addCommand("halt", HaltCommand.parse);
+        kernel.addCommand("halt", HaltCommand.parse);
 
-        parser.addCommand("log", LogCommand.parse);
+        kernel.addCommand("log", LogCommand.parse);
 
-        parser.addCommand("beep!", BeepCommand.parse);
+        kernel.addCommand("beep!", BeepCommand.parse);
 
-        parser.addCommand("throw", ThrowCommand.parse);
+        kernel.addCommand("throw", ThrowCommand.parse);
 
-        parser.addCommand("call", CallCommand.parse);
+        kernel.addCommand("call", CallCommand.parse);
 
-        parser.addCommand("get", GetCommand.parse);
+        kernel.addCommand("get", GetCommand.parse);
 
-        parser.addCommand("make", MakeCommand.parse);
+        kernel.addCommand("make", MakeCommand.parse);
 
-        parser.addGrammarElement("pseudoCommand", PseudoCommand.parse);
+        kernel.addGrammarElement("pseudoCommand", PseudoCommand.parse);
 
         /**
         * @param {LanguageKernel} parser
@@ -359,33 +359,33 @@ export default function hyperscriptCoreGrammar(parser) {
             return setCmd;
         };
 
-        parser.addCommand("default", DefaultCommand.parse);
+        kernel.addCommand("default", DefaultCommand.parse);
 
-        parser.addCommand("set", SetCommand.parse);
+        kernel.addCommand("set", SetCommand.parse);
 
-        parser.addCommand("if", IfCommand.parse);
+        kernel.addCommand("if", IfCommand.parse);
 
-        parser.addCommand("repeat", RepeatCommand.parse);
+        kernel.addCommand("repeat", RepeatCommand.parse);
 
-        parser.addCommand("for", ForCommand.parse);
+        kernel.addCommand("for", ForCommand.parse);
 
-        parser.addCommand("continue", ContinueCommand.parse);
+        kernel.addCommand("continue", ContinueCommand.parse);
 
-        parser.addCommand("break", BreakCommand.parse);
+        kernel.addCommand("break", BreakCommand.parse);
 
-        parser.addGrammarElement("stringLike", function (helper) {
+        kernel.addGrammarElement("stringLike", function (helper) {
             return helper.parseAnyOf(["string", "nakedString"]);
         });
 
-        parser.addCommand("append", function (helper) {
+        kernel.addCommand("append", function (helper) {
             return AppendCommand.parse(helper, makeSetter);
         });
 
-        parser.addCommand("pick", PickCommand.parse);
+        kernel.addCommand("pick", PickCommand.parse);
 
-        parser.addCommand("increment", IncrementCommand.parse);
+        kernel.addCommand("increment", IncrementCommand.parse);
 
-        parser.addCommand("decrement", DecrementCommand.parse);
+        kernel.addCommand("decrement", DecrementCommand.parse);
 
-        parser.addCommand("fetch", FetchCommand.parse);
+        kernel.addCommand("fetch", FetchCommand.parse);
 }

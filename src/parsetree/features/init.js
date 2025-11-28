@@ -11,7 +11,7 @@ export class InitFeature {
      * @param {LanguageKernel} parser
      * @returns {InitFeature | undefined}
      */
-    static parse(helper, parser) {
+    static parse(helper, kernel) {
         if (!helper.matchToken("init")) return;
 
         var immediately = helper.matchToken("immediately");
@@ -32,7 +32,7 @@ export class InitFeature {
         };
 
         // terminate body
-        parser.ensureTerminated(start);
+        kernel.ensureTerminated(start);
         helper.setParent(start, initFeature);
         return initFeature;
     }

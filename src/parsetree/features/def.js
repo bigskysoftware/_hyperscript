@@ -11,7 +11,7 @@ export class DefFeature {
      * @param {LanguageKernel} parser
      * @returns {DefFeature | undefined}
      */
-    static parse(helper, parser) {
+    static parse(helper, kernel) {
         if (!helper.matchToken("def")) return;
         var functionName = helper.requireElement("dotOrColonPath");
         var nameVal = functionName.evaluate(); // OK
@@ -40,7 +40,7 @@ export class DefFeature {
 
         if (helper.matchToken("finally")) {
             var finallyHandler = helper.requireElement("commandList");
-            parser.ensureTerminated(finallyHandler);
+            kernel.ensureTerminated(finallyHandler);
         }
 
         var functionFeature = {
@@ -101,11 +101,11 @@ export class DefFeature {
             },
         };
 
-        parser.ensureTerminated(start);
+        kernel.ensureTerminated(start);
 
         // terminate error handler if any
         if (errorHandler) {
-            parser.ensureTerminated(errorHandler);
+            kernel.ensureTerminated(errorHandler);
         }
 
         helper.setParent(start, functionFeature);

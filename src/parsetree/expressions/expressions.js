@@ -293,7 +293,7 @@ export class PropertyAccess {
         if (!helper.matchOpToken(".")) return;
         var prop = helper.requireTokenType("IDENTIFIER");
         var propertyAccess = new PropertyAccess(root, prop);
-        return helper.parser.parseElement("indirectExpression", helper.tokens, propertyAccess);
+        return helper.kernel.parseElement("indirectExpression", helper.tokens, propertyAccess);
     }
 
     /**
@@ -374,7 +374,7 @@ export class OfExpression {
             root = propertyAccess;
         }
 
-        return helper.parser.parseElement("indirectExpression", helper.tokens, root);
+        return helper.kernel.parseElement("indirectExpression", helper.tokens, root);
     }
 
     /**
@@ -454,7 +454,7 @@ export class PossessiveExpression {
                 }
             }
             var propertyAccess = new PossessiveExpression(root, attribute || style, prop);
-            return helper.parser.parseElement("indirectExpression", helper.tokens, propertyAccess);
+            return helper.kernel.parseElement("indirectExpression", helper.tokens, propertyAccess);
         }
     }
 
@@ -511,7 +511,7 @@ export class InExpression {
         if (!helper.matchToken("in")) return;
         var target = helper.requireElement("unaryExpression");
         var inExpression = new InExpression(root, target);
-        return helper.parser.parseElement("indirectExpression", helper.tokens, inExpression);
+        return helper.kernel.parseElement("indirectExpression", helper.tokens, inExpression);
     }
 
     /**
@@ -583,7 +583,7 @@ export class AsExpression {
         helper.matchToken("a") || helper.matchToken("an");
         var conversion = helper.requireElement("dotOrColonPath").evaluate(); // OK No promise
         var asExpression = new AsExpression(root, conversion);
-        return helper.parser.parseElement("indirectExpression", helper.tokens, asExpression);
+        return helper.kernel.parseElement("indirectExpression", helper.tokens, asExpression);
     }
 
     /**
@@ -641,7 +641,7 @@ export class FunctionCall {
         } else {
             functionCall = new FunctionCall(root, args, [root, args], false);
         }
-        return helper.parser.parseElement("indirectExpression", helper.tokens, functionCall);
+        return helper.kernel.parseElement("indirectExpression", helper.tokens, functionCall);
     }
 
     /**
@@ -795,7 +795,7 @@ export class ArrayIndex {
         helper.requireOpToken("]");
 
         var arrayIndex = new ArrayIndex(root, firstIndex, secondIndex, andBefore, andAfter);
-        return helper.parser.parseElement("indirectExpression", helper.tokens, arrayIndex);
+        return helper.kernel.parseElement("indirectExpression", helper.tokens, arrayIndex);
     }
 
     /**

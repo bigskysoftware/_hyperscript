@@ -41,7 +41,7 @@ export class OnFeature {
      * @param {LanguageKernel} parser
      * @returns {OnFeature | undefined}
      */
-    static parse(helper, parser) {
+    static parse(helper, kernel) {
         if (!helper.matchToken("on")) return;
         var every = false;
         if (helper.matchToken("every")) {
@@ -215,18 +215,18 @@ export class OnFeature {
         }
 
         var start = helper.requireElement("commandList");
-        parser.ensureTerminated(start);
+        kernel.ensureTerminated(start);
 
         var errorSymbol, errorHandler;
         if (helper.matchToken("catch")) {
             errorSymbol = helper.requireTokenType("IDENTIFIER").value;
             errorHandler = helper.requireElement("commandList");
-            parser.ensureTerminated(errorHandler);
+            kernel.ensureTerminated(errorHandler);
         }
 
         if (helper.matchToken("finally")) {
             var finallyHandler = helper.requireElement("commandList");
-            parser.ensureTerminated(finallyHandler);
+            kernel.ensureTerminated(finallyHandler);
         }
 
         var onFeature = {

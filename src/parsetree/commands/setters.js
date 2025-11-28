@@ -6,7 +6,7 @@
 /**
  * Helper function for put command - put content into element or symbol
  */
-function putInto(context, root, prop, valueToPut, parser) {
+function putInto(context, root, prop, valueToPut, kernel) {
     if (root == null) {
         var value = context.meta.runtime.resolveSymbol(prop, context);
     } else {
@@ -14,7 +14,7 @@ function putInto(context, root, prop, valueToPut, parser) {
     }
     if (value instanceof Element || value instanceof HTMLDocument) {
         while (value.firstChild) value.removeChild(value.firstChild);
-        value.append(parser.runtime.convertValue(valueToPut, "Fragment"));
+        value.append(kernel.runtime.convertValue(valueToPut, "Fragment"));
         context.meta.runtime.processNode(value);
     } else {
         if (root == null) {
@@ -314,7 +314,7 @@ export class PutCommand extends SetterCommand {
      * @param {ParserHelper} helper
      * @returns {PutCommand | undefined}
      */
-    static parse(helper, parser) {
+    static parse(helper, kernel) {
         if (!helper.matchToken("put")) return;
 
         var value = helper.requireElement("expression");
@@ -374,7 +374,7 @@ export class PutCommand extends SetterCommand {
             args: [rootExpr, prop, value],
             op: function (context, root, prop, valueToPut) {
                 if (symbolWrite) {
-                    putInto(context, root, prop, valueToPut, parser);
+                    putInto(context, root, prop, valueToPut, kernel);
                 } else {
                     context.meta.runtime.nullCheck(root, rootExpr);
                     if (operation === "into") {
@@ -390,7 +390,7 @@ export class PutCommand extends SetterCommand {
                             root[prop] = valueToPut;
                         } else {
                             context.meta.runtime.implicitLoop(root, function (elt) {
-                                putInto(context, elt, prop, valueToPut, parser);
+                                putInto(context, elt, prop, valueToPut, kernel);
                             });
                         }
                     } else {

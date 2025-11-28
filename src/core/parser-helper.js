@@ -7,11 +7,11 @@
  */
 export class ParserHelper {
     /**
-     * @param {import('./parser.js').LanguageKernel} parser
+     * @param {import('./kernel.js').LanguageKernel} kernel
      * @param {import('./tokens.js').Tokens} tokens
      */
-    constructor(parser, tokens) {
-        this.parser = parser;
+    constructor(kernel, tokens) {
+        this.kernel = kernel;
         this.tokens = tokens;
     }
 
@@ -120,76 +120,76 @@ export class ParserHelper {
     }
 
     // ===========================
-    // Parser delegation methods
+    // Kernel delegation methods
     // ===========================
 
     parseElement(type, root) {
-        return this.parser.parseElement(type, this.tokens, root);
+        return this.kernel.parseElement(type, this.tokens, root);
     }
 
     requireElement(type, message, root) {
-        return this.parser.requireElement(type, this.tokens, message, root);
+        return this.kernel.requireElement(type, this.tokens, message, root);
     }
 
     parseAnyOf(types) {
-        return this.parser.parseAnyOf(types, this.tokens);
+        return this.kernel.parseAnyOf(types, this.tokens);
     }
 
     raiseParseError(message) {
-        return this.parser.raiseParseError(this.tokens, message);
+        return this.kernel.raiseParseError(this.tokens, message);
     }
 
     parseStringTemplate() {
-        return this.parser.parseStringTemplate(this.tokens);
+        return this.kernel.parseStringTemplate(this.tokens);
     }
 
     commandBoundary(token) {
-        return this.parser.commandBoundary(token);
+        return this.kernel.commandBoundary(token);
     }
 
     commandStart(token) {
-        return this.parser.commandStart(token);
+        return this.kernel.commandStart(token);
     }
 
     featureStart(token) {
-        return this.parser.featureStart(token);
+        return this.kernel.featureStart(token);
     }
 
     setParent(elt, parent) {
-        return this.parser.setParent(elt, parent);
+        return this.kernel.setParent(elt, parent);
     }
 
     // Access to parser properties needed by grammars
     get possessivesDisabled() {
-        return this.parser.possessivesDisabled;
+        return this.kernel.possessivesDisabled;
     }
 
     set possessivesDisabled(value) {
-        this.parser.possessivesDisabled = value;
+        this.kernel.possessivesDisabled = value;
     }
 
     get GRAMMAR() {
-        return this.parser.GRAMMAR;
+        return this.kernel.GRAMMAR;
     }
 
     get COMMANDS() {
-        return this.parser.COMMANDS;
+        return this.kernel.COMMANDS;
     }
 
     get FEATURES() {
-        return this.parser.FEATURES;
+        return this.kernel.FEATURES;
     }
 
     get LEAF_EXPRESSIONS() {
-        return this.parser.LEAF_EXPRESSIONS;
+        return this.kernel.LEAF_EXPRESSIONS;
     }
 
     get INDIRECT_EXPRESSIONS() {
-        return this.parser.INDIRECT_EXPRESSIONS;
+        return this.kernel.INDIRECT_EXPRESSIONS;
     }
 
     // Access to runtime for grammars that need it
     get runtime() {
-        return this.parser.runtime;
+        return this.kernel.runtime;
     }
 }
