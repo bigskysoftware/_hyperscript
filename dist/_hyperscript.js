@@ -2488,95 +2488,13 @@ var AttributeRef = class {
     };
   }
 };
-
-// src/grammars/core.js
-function hyperscriptCoreGrammar(parser) {
-  parser.addLeafExpression("parenthesized", function(helper) {
-    if (helper.matchOpToken("(")) {
-      var follows = helper.clearFollows();
-      try {
-        var expr = helper.requireElement("expression");
-      } finally {
-        helper.restoreFollows(follows);
-      }
-      helper.requireOpToken(")");
-      return expr;
-    }
-  });
-  parser.addLeafExpression("string", function(helper) {
-    var stringToken = helper.matchTokenType("STRING");
-    if (!stringToken) return;
-    var rawValue = (
-      /** @type {string} */
-      stringToken.value
-    );
-    var args;
-    if (stringToken.template) {
-      var innerTokens = Lexer.tokenize(rawValue, true);
-      args = helper.parser.parseStringTemplate(innerTokens);
-    } else {
-      args = [];
-    }
-    return {
-      type: "string",
-      token: stringToken,
-      args,
-      op: function(context2) {
-        var returnStr = "";
-        for (var i = 1; i < arguments.length; i++) {
-          var val = arguments[i];
-          if (val !== void 0) {
-            returnStr += val;
-          }
-        }
-        return returnStr;
-      },
-      evaluate: function(context2) {
-        if (args.length === 0) {
-          return rawValue;
-        } else {
-          return context2.meta.runtime.unifiedEval(this, context2);
-        }
-      }
-    };
-  });
-  parser.addGrammarElement("nakedString", function(helper) {
-    if (helper.hasMore()) {
-      var tokenArr = helper.consumeUntilWhitespace();
-      helper.matchTokenType("WHITESPACE");
-      return {
-        type: "nakedString",
-        tokens: tokenArr,
-        evaluate: function(context2) {
-          return tokenArr.map(function(t) {
-            return t.value;
-          }).join("");
-        }
-      };
-    }
-  });
-  parser.addLeafExpression("number", function(helper) {
-    var number = helper.matchTokenType("NUMBER");
-    if (!number) return;
-    var numberToken = number;
-    var value = parseFloat(
-      /** @type {string} */
-      number.value
-    );
-    return {
-      type: "number",
-      value,
-      numberToken,
-      evaluate: function() {
-        return value;
-      }
-    };
-  });
-  parser.addLeafExpression("idRef", IdRef.parse);
-  parser.addLeafExpression("classRef", ClassRef.parse);
-  parser.addLeafExpression("queryRef", QueryRef.parse);
-  parser.addLeafExpression("attributeRef", AttributeRef.parse);
-  parser.addLeafExpression("styleRef", function(helper) {
+var StyleRef = class {
+  /**
+   * Parse a style reference
+   * @param {ParserHelper} helper
+   * @returns {any | undefined}
+   */
+  static parse(helper) {
     var styleRef = helper.matchTokenType("STYLE_REF");
     if (!styleRef) return;
     if (!styleRef.value) return;
@@ -2611,7 +2529,233 @@ function hyperscriptCoreGrammar(parser) {
         }
       };
     }
+  }
+};
+
+// src/parsetree/expressions.js
+var ParenthesizedExpression = class {
+  /**
+   * Parse a parenthesized expression
+   * @param {ParserHelper} helper
+   * @returns {any | undefined}
+   */
+  static parse(helper) {
+    if (helper.matchOpToken("(")) {
+      var follows = helper.clearFollows();
+      try {
+        var expr = helper.requireElement("expression");
+      } finally {
+        helper.restoreFollows(follows);
+      }
+      helper.requireOpToken(")");
+      return expr;
+    }
+  }
+};
+
+// src/parsetree/literals.js
+var BooleanLiteral = class _BooleanLiteral {
+  constructor(value) {
+    this.type = "boolean";
+    this.value = value;
+  }
+  /**
+   * Parse a boolean literal
+   * @param {ParserHelper} helper
+   * @returns {BooleanLiteral | undefined}
+   */
+  static parse(helper) {
+    var booleanLiteral = helper.matchToken("true") || helper.matchToken("false");
+    if (!booleanLiteral) return;
+    const value = booleanLiteral.value === "true";
+    return new _BooleanLiteral(value);
+  }
+  /**
+   * Evaluate to boolean value
+   * @param {Context} context
+   * @returns {boolean}
+   */
+  evaluate(context2) {
+    return this.value;
+  }
+};
+var NullLiteral = class _NullLiteral {
+  constructor() {
+    this.type = "null";
+  }
+  /**
+   * Parse a null literal
+   * @param {ParserHelper} helper
+   * @returns {NullLiteral | undefined}
+   */
+  static parse(helper) {
+    if (helper.matchToken("null")) {
+      return new _NullLiteral();
+    }
+  }
+  /**
+   * Evaluate to null
+   * @param {Context} context
+   * @returns {null}
+   */
+  evaluate(context2) {
+    return null;
+  }
+};
+var NumberLiteral = class _NumberLiteral {
+  constructor(value, numberToken) {
+    this.type = "number";
+    this.value = value;
+    this.numberToken = numberToken;
+  }
+  /**
+   * Parse a number literal
+   * @param {ParserHelper} helper
+   * @returns {NumberLiteral | undefined}
+   */
+  static parse(helper) {
+    var number = helper.matchTokenType("NUMBER");
+    if (!number) return;
+    var numberToken = number;
+    var value = parseFloat(
+      /** @type {string} */
+      number.value
+    );
+    return new _NumberLiteral(value, numberToken);
+  }
+  /**
+   * Evaluate to numeric value
+   * @param {Context} context
+   * @returns {number}
+   */
+  evaluate(context2) {
+    return this.value;
+  }
+};
+var StringLiteral = class _StringLiteral {
+  constructor(stringToken, rawValue, args) {
+    this.type = "string";
+    this.token = stringToken;
+    this.rawValue = rawValue;
+    this.args = args;
+  }
+  /**
+   * Parse a string literal
+   * @param {ParserHelper} helper
+   * @returns {StringLiteral | undefined}
+   */
+  static parse(helper) {
+    var _a, _b;
+    var stringToken = helper.matchTokenType("STRING");
+    if (!stringToken) return;
+    var rawValue = (
+      /** @type {string} */
+      stringToken.value
+    );
+    var args;
+    if (stringToken.template) {
+      const Lexer2 = helper.parser.constructor.Lexer || ((_b = (_a = window._hyperscript) == null ? void 0 : _a.internals) == null ? void 0 : _b.Lexer);
+      if (Lexer2) {
+        var innerTokens = Lexer2.tokenize(rawValue, true);
+        args = helper.parser.parseStringTemplate(innerTokens);
+      } else {
+        args = [];
+      }
+    } else {
+      args = [];
+    }
+    return new _StringLiteral(stringToken, rawValue, args);
+  }
+  /**
+   * Op function for template strings
+   */
+  op(context2) {
+    var returnStr = "";
+    for (var i = 1; i < arguments.length; i++) {
+      var val = arguments[i];
+      if (val !== void 0) {
+        returnStr += val;
+      }
+    }
+    return returnStr;
+  }
+  /**
+   * Evaluate string value
+   * @param {Context} context
+   * @returns {string}
+   */
+  evaluate(context2) {
+    if (this.args.length === 0) {
+      return this.rawValue;
+    } else {
+      return context2.meta.runtime.unifiedEval(this, context2);
+    }
+  }
+};
+var ArrayLiteral = class _ArrayLiteral {
+  constructor(values) {
+    this.type = "arrayLiteral";
+    this.values = values;
+    this.args = [values];
+  }
+  /**
+   * Parse an array literal
+   * @param {ParserHelper} helper
+   * @returns {ArrayLiteral | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchOpToken("[")) return;
+    var values = [];
+    if (!helper.matchOpToken("]")) {
+      do {
+        var expr = helper.requireElement("expression");
+        values.push(expr);
+      } while (helper.matchOpToken(","));
+      helper.requireOpToken("]");
+    }
+    return new _ArrayLiteral(values);
+  }
+  /**
+   * Op function for array literal
+   */
+  op(context2, values) {
+    return values;
+  }
+  /**
+   * Evaluate array value
+   * @param {Context} context
+   * @returns {Array}
+   */
+  evaluate(context2) {
+    return context2.meta.runtime.unifiedEval(this, context2);
+  }
+};
+
+// src/grammars/core.js
+function hyperscriptCoreGrammar(parser) {
+  parser.addLeafExpression("parenthesized", ParenthesizedExpression.parse);
+  parser.addLeafExpression("string", StringLiteral.parse);
+  parser.addGrammarElement("nakedString", function(helper) {
+    if (helper.hasMore()) {
+      var tokenArr = helper.consumeUntilWhitespace();
+      helper.matchTokenType("WHITESPACE");
+      return {
+        type: "nakedString",
+        tokens: tokenArr,
+        evaluate: function(context2) {
+          return tokenArr.map(function(t) {
+            return t.value;
+          }).join("");
+        }
+      };
+    }
   });
+  parser.addLeafExpression("number", NumberLiteral.parse);
+  parser.addLeafExpression("idRef", IdRef.parse);
+  parser.addLeafExpression("classRef", ClassRef.parse);
+  parser.addLeafExpression("queryRef", QueryRef.parse);
+  parser.addLeafExpression("attributeRef", AttributeRef.parse);
+  parser.addLeafExpression("styleRef", StyleRef.parse);
   parser.addGrammarElement("objectKey", function(helper) {
     var token;
     if (token = helper.matchTokenType("STRING")) {
@@ -2761,49 +2905,9 @@ function hyperscriptCoreGrammar(parser) {
       }
     };
   });
-  parser.addLeafExpression("boolean", function(helper) {
-    var booleanLiteral = helper.matchToken("true") || helper.matchToken("false");
-    if (!booleanLiteral) return;
-    const value = booleanLiteral.value === "true";
-    return {
-      type: "boolean",
-      evaluate: function(context2) {
-        return value;
-      }
-    };
-  });
-  parser.addLeafExpression("null", function(helper) {
-    if (helper.matchToken("null")) {
-      return {
-        type: "null",
-        evaluate: function(context2) {
-          return null;
-        }
-      };
-    }
-  });
-  parser.addLeafExpression("arrayLiteral", function(helper) {
-    if (!helper.matchOpToken("[")) return;
-    var values = [];
-    if (!helper.matchOpToken("]")) {
-      do {
-        var expr = helper.requireElement("expression");
-        values.push(expr);
-      } while (helper.matchOpToken(","));
-      helper.requireOpToken("]");
-    }
-    return {
-      type: "arrayLiteral",
-      values,
-      args: [values],
-      op: function(context2, values2) {
-        return values2;
-      },
-      evaluate: function(context2) {
-        return context2.meta.runtime.unifiedEval(this, context2);
-      }
-    };
-  });
+  parser.addLeafExpression("boolean", BooleanLiteral.parse);
+  parser.addLeafExpression("null", NullLiteral.parse);
+  parser.addLeafExpression("arrayLiteral", ArrayLiteral.parse);
   parser.addLeafExpression("blockLiteral", function(helper) {
     if (!helper.matchOpToken("\\")) return;
     var args = [];

@@ -206,3 +206,53 @@ export class AttributeRef {
         };
     }
 }
+
+/**
+ * StyleRef - Represents style references (*prop or *computed-prop)
+ *
+ * Parses: *color | *computed-width
+ * Returns: Style property value (regular or computed)
+ */
+export class StyleRef {
+    /**
+     * Parse a style reference
+     * @param {ParserHelper} helper
+     * @returns {any | undefined}
+     */
+    static parse(helper) {
+        var styleRef = helper.matchTokenType("STYLE_REF");
+        if (!styleRef) return;
+        if (!styleRef.value) return;
+        var styleProp = styleRef.value.substr(1);
+        if (styleProp.startsWith("computed-")) {
+            styleProp = styleProp.substr("computed-".length);
+            return {
+                type: "computedStyleRef",
+                name: styleProp,
+                op: function (context) {
+                    var target = context.you || context.me;
+                    if (target) {
+                        return context.meta.runtime.resolveComputedStyle(target, styleProp);
+                    }
+                },
+                evaluate: function (context) {
+                    return context.meta.runtime.unifiedEval(this, context);
+                },
+            };
+        } else {
+            return {
+                type: "styleRef",
+                name: styleProp,
+                op: function (context) {
+                    var target = context.you || context.me;
+                    if (target) {
+                        return context.meta.runtime.resolveStyle(target, styleProp);
+                    }
+                },
+                evaluate: function (context) {
+                    return context.meta.runtime.unifiedEval(this, context);
+                },
+            };
+        }
+    }
+}

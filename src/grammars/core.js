@@ -3,60 +3,17 @@ import { Lexer } from '../core/lexer.js';
 import { Runtime } from '../core/runtime.js';
 import {ElementCollection, RegExpIterable, TemplatedQueryElementCollection} from '../core/util.js';
 import { getOrInitObject, varargConstructor } from '../core/helpers.js';
-import { IdRef, ClassRef, QueryRef, AttributeRef } from '../parsetree/webliterals.js';
+import { IdRef, ClassRef, QueryRef, AttributeRef, StyleRef } from '../parsetree/webliterals.js';
+import { ParenthesizedExpression } from '../parsetree/expressions.js';
+import { StringLiteral, NumberLiteral, BooleanLiteral, NullLiteral, ArrayLiteral } from '../parsetree/literals.js';
 
 /**
  * @param {Parser} parser
  */
 export default function hyperscriptCoreGrammar(parser) {
-        parser.addLeafExpression("parenthesized", function (helper) {
-            if (helper.matchOpToken("(")) {
-                var follows = helper.clearFollows();
-                try {
-                    var expr = helper.requireElement("expression");
-                } finally {
-                    helper.restoreFollows(follows);
-                }
-                helper.requireOpToken(")");
-                return expr;
-            }
-        });
+        parser.addLeafExpression("parenthesized", ParenthesizedExpression.parse);
 
-        parser.addLeafExpression("string", function (helper) {
-            var stringToken = helper.matchTokenType("STRING");
-            if (!stringToken) return;
-            var rawValue = /** @type {string} */ (stringToken.value);
-            /** @type {any[]} */
-            var args;
-            if (stringToken.template) {
-                var innerTokens = Lexer.tokenize(rawValue, true);
-                args = helper.parser.parseStringTemplate(innerTokens);
-            } else {
-                args = [];
-            }
-            return {
-                type: "string",
-                token: stringToken,
-                args: args,
-                op: function (context) {
-                    var returnStr = "";
-                    for (var i = 1; i < arguments.length; i++) {
-                        var val = arguments[i];
-                        if (val !== undefined) {
-                            returnStr += val;
-                        }
-                    }
-                    return returnStr;
-                },
-                evaluate: function (context) {
-                    if (args.length === 0) {
-                        return rawValue;
-                    } else {
-                        return context.meta.runtime.unifiedEval(this, context);
-                    }
-                },
-            };
-        });
+        parser.addLeafExpression("string", StringLiteral.parse);
 
         parser.addGrammarElement("nakedString", function (helper) {
             if (helper.hasMore()) {
@@ -76,20 +33,7 @@ export default function hyperscriptCoreGrammar(parser) {
             }
         });
 
-        parser.addLeafExpression("number", function (helper) {
-            var number = helper.matchTokenType("NUMBER");
-            if (!number) return;
-            var numberToken = number;
-            var value = parseFloat(/** @type {string} */ (number.value));
-            return {
-                type: "number",
-                value: value,
-                numberToken: numberToken,
-                evaluate: function () {
-                    return value;
-                },
-            };
-        });
+        parser.addLeafExpression("number", NumberLiteral.parse);
 
         parser.addLeafExpression("idRef", IdRef.parse);
 
@@ -101,42 +45,7 @@ export default function hyperscriptCoreGrammar(parser) {
 
         parser.addLeafExpression("attributeRef", AttributeRef.parse);
 
-        parser.addLeafExpression("styleRef", function (helper) {
-            var styleRef = helper.matchTokenType("STYLE_REF");
-            if (!styleRef) return;
-            if (!styleRef.value) return;
-            var styleProp = styleRef.value.substr(1);
-            if (styleProp.startsWith("computed-")) {
-                styleProp = styleProp.substr("computed-".length);
-                return {
-                    type: "computedStyleRef",
-                    name: styleProp,
-                    op: function (context) {
-                        var target = context.you || context.me;
-                        if (target) {
-                            return context.meta.runtime.resolveComputedStyle(target, styleProp);
-                        }
-                    },
-                    evaluate: function (context) {
-                        return context.meta.runtime.unifiedEval(this, context);
-                    },
-                };
-            } else {
-                return {
-                    type: "styleRef",
-                    name: styleProp,
-                    op: function (context) {
-                        var target = context.you || context.me;
-                        if (target) {
-                            return context.meta.runtime.resolveStyle(target, styleProp);
-                        }
-                    },
-                    evaluate: function (context) {
-                        return context.meta.runtime.unifiedEval(this, context);
-                    },
-                };
-            }
-        });
+        parser.addLeafExpression("styleRef", StyleRef.parse);
 
         parser.addGrammarElement("objectKey", function (helper) {
             var token;
@@ -297,51 +206,11 @@ export default function hyperscriptCoreGrammar(parser) {
             };
         });
 
-        parser.addLeafExpression("boolean", function (helper) {
-            var booleanLiteral = helper.matchToken("true") || helper.matchToken("false");
-            if (!booleanLiteral) return;
-            const value = booleanLiteral.value === "true";
-            return {
-                type: "boolean",
-                evaluate: function (context) {
-                    return value;
-                },
-            };
-        });
+        parser.addLeafExpression("boolean", BooleanLiteral.parse);
 
-        parser.addLeafExpression("null", function (helper) {
-            if (helper.matchToken("null")) {
-                return {
-                    type: "null",
-                    evaluate: function (context) {
-                        return null;
-                    },
-                };
-            }
-        });
+        parser.addLeafExpression("null", NullLiteral.parse);
 
-        parser.addLeafExpression("arrayLiteral", function (helper) {
-            if (!helper.matchOpToken("[")) return;
-            var values = [];
-            if (!helper.matchOpToken("]")) {
-                do {
-                    var expr = helper.requireElement("expression");
-                    values.push(expr);
-                } while (helper.matchOpToken(","));
-                helper.requireOpToken("]");
-            }
-            return {
-                type: "arrayLiteral",
-                values: values,
-                args: [values],
-                op: function (context, values) {
-                    return values;
-                },
-                evaluate: function (context) {
-                    return context.meta.runtime.unifiedEval(this, context);
-                },
-            };
-        });
+        parser.addLeafExpression("arrayLiteral", ArrayLiteral.parse);
 
         parser.addLeafExpression("blockLiteral", function (helper) {
             if (!helper.matchOpToken("\\")) return;
