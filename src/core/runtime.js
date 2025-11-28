@@ -112,10 +112,14 @@ export class RegExpIterable {
 }
 
 // ============================================================================
-// Helper functions and classes (from helpers.js)
+// Cookie functionality
 // ============================================================================
 
-export function getCookiesAsArray() {
+/**
+ * Get all cookies as an array of {name, value} objects
+ * @returns {Array<{name: string, value: string}>}
+ */
+function getCookiesAsArray() {
     let cookiesAsArray = document.cookie
         .split("; ")
         .map(cookieEntry => {
@@ -125,16 +129,26 @@ export function getCookiesAsArray() {
     return cookiesAsArray;
 }
 
-export function clearCookie(name) {
+/**
+ * Clear a specific cookie by name
+ * @param {string} name
+ */
+function clearCookie(name) {
     document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT";
 }
 
-export function clearAllCookies() {
+/**
+ * Clear all cookies
+ */
+function clearAllCookies() {
     for (const cookie of getCookiesAsArray()) {
         clearCookie(cookie.name);
     }
 }
 
+/**
+ * CookieJar proxy for accessing and managing cookies
+ */
 export const CookieJar = new Proxy({}, {
     get(target, prop) {
         if (prop === 'then' || prop === 'asyncWrapper') { // ignore special symbols
@@ -193,6 +207,10 @@ export const CookieJar = new Proxy({}, {
         return true;
     }
 })
+
+// ============================================================================
+// Helper functions and classes (from helpers.js)
+// ============================================================================
 
 export class Context {
     /**
