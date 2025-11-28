@@ -7,8 +7,4 @@ _site
 *~
 *.icloud
 /coverage/
-/tmp/baseline_errors.txt
-/tmp/COMMAND_EXTRACTION.md
-/tmp/current_errors.txt
-/tmp/FEATURE_EXTRACTION.md
-/tmp/PARSETREE_EXTRACTION.md
+/tmp/
