@@ -7,15 +7,15 @@
 export class SetFeature {
     /**
      * Parse set feature
-     * @param {ParserHelper} helper
-     * @param {LanguageKernel} parser
+     * @param {Parser} parser
+     * @param {LanguageKernel} kernel
      * @returns {SetFeature | undefined}
      */
-    static parse(helper, kernel) {
-        let setCmd = helper.parseElement("setCommand");
+    static parse(parser, kernel) {
+        let setCmd = parser.parseElement("setCommand");
         if (setCmd) {
             if (setCmd.target.scope !== "element") {
-                helper.raiseParseError("variables declared at the feature level must be element scoped.");
+                parser.raiseParseError("variables declared at the feature level must be element scoped.");
             }
             let setFeature = {
                 start: setCmd,

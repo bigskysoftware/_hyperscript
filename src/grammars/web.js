@@ -22,26 +22,26 @@ export default function hyperscriptWebGrammar(kernel) {
 
         kernel.addCommand("remove", RemoveCommand.parse);
 
-        kernel.addCommand("toggle", function (helper) {
-            return ToggleCommand.parse(helper, kernel, config);
+        kernel.addCommand("toggle", function (parser) {
+            return ToggleCommand.parse(parser, kernel, config);
         });
 
-        kernel.addCommand("hide", function (helper) {
-            return HideCommand.parse(helper, kernel, config);
+        kernel.addCommand("hide", function (parser) {
+            return HideCommand.parse(parser, kernel, config);
         });
 
-        kernel.addCommand("show", function (helper) {
-            return ShowCommand.parse(helper, kernel, config);
+        kernel.addCommand("show", function (parser) {
+            return ShowCommand.parse(parser, kernel, config);
         });
 
         kernel.addCommand("take", TakeCommand.parse);
 
-        kernel.addCommand("put", function (helper) {
-            return PutCommand.parse(helper, kernel);
+        kernel.addCommand("put", function (parser) {
+            return PutCommand.parse(parser, kernel);
         });
 
-        kernel.addCommand("transition", function (helper) {
-            return TransitionCommand.parse(helper, config);
+        kernel.addCommand("transition", function (parser) {
+            return TransitionCommand.parse(parser, config);
         });
 
         kernel.addCommand("measure", MeasureCommand.parse);

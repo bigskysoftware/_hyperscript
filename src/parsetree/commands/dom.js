@@ -66,13 +66,13 @@ const HIDE_SHOW_STRATEGIES = {
 /**
  * Helper function to parse show/hide target
  */
-function parseShowHideTarget(helper) {
+function parseShowHideTarget(parser) {
     var target;
-    var currentTokenValue = helper.currentToken();
-    if (currentTokenValue.value === "when" || currentTokenValue.value === "with" || helper.commandBoundary(currentTokenValue)) {
-        target = helper.parseElement("implicitMeTarget");
+    var currentTokenValue = parser.currentToken();
+    if (currentTokenValue.value === "when" || currentTokenValue.value === "with" || parser.commandBoundary(currentTokenValue)) {
+        target = parser.parseElement("implicitMeTarget");
     } else {
-        target = helper.parseElement("expression");
+        target = parser.parseElement("expression");
     }
     return target;
 }
@@ -80,7 +80,7 @@ function parseShowHideTarget(helper) {
 /**
  * Helper function to resolve hide/show strategy
  */
-function resolveHideShowStrategy(kernel, helper, name, config) {
+function resolveHideShowStrategy(kernel, parser, name, config) {
     var configDefault = config.defaultHideShowStrategy;
     var strategies = HIDE_SHOW_STRATEGIES;
     if (config.hideShowStrategies) {
@@ -89,7 +89,7 @@ function resolveHideShowStrategy(kernel, helper, name, config) {
     name = name || configDefault || "display";
     var value = strategies[name];
     if (value == null) {
-        helper.raiseParseError("Unknown show/hide strategy : " + name);
+        parser.raiseParseError("Unknown show/hide strategy : " + name);
     }
     return value;
 }
@@ -101,38 +101,38 @@ function resolveHideShowStrategy(kernel, helper, name, config) {
  * Executes: Adds classes/attributes/CSS to target elements
  */
 export class AddCommand {
-    static parse(helper) {
-        if (!helper.matchToken("add")) return;
+    static parse(parser) {
+        if (!parser.matchToken("add")) return;
 
-        var classRef = helper.parseElement("classRef");
+        var classRef = parser.parseElement("classRef");
         var attributeRef = null;
         var cssDeclaration = null;
         if (classRef == null) {
-            attributeRef = helper.parseElement("attributeRef");
+            attributeRef = parser.parseElement("attributeRef");
             if (attributeRef == null) {
-                cssDeclaration = helper.parseElement("styleLiteral");
+                cssDeclaration = parser.parseElement("styleLiteral");
                 if (cssDeclaration == null) {
-                    helper.raiseParseError("Expected either a class reference or attribute expression");
+                    parser.raiseParseError("Expected either a class reference or attribute expression");
                 }
             }
         } else {
             var classRefs = [classRef];
-            while ((classRef = helper.parseElement("classRef"))) {
+            while ((classRef = parser.parseElement("classRef"))) {
                 classRefs.push(classRef);
             }
         }
 
-        if (helper.matchToken("to")) {
-            var toExpr = helper.requireElement("expression");
+        if (parser.matchToken("to")) {
+            var toExpr = parser.requireElement("expression");
         } else {
-            var toExpr = helper.requireElement("implicitMeTarget");
+            var toExpr = parser.requireElement("implicitMeTarget");
         }
 
-        if (helper.matchToken("when")) {
+        if (parser.matchToken("when")) {
             if (cssDeclaration) {
-                helper.raiseParseError("Only class and properties are supported with a when clause")
+                parser.raiseParseError("Only class and properties are supported with a when clause")
             }
-            var when = helper.requireElement("expression");
+            var when = parser.requireElement("expression");
         }
 
         if (classRefs) {
@@ -217,34 +217,34 @@ export class AddCommand {
  * Executes: Removes classes/attributes or removes element from DOM
  */
 export class RemoveCommand {
-    static parse(helper) {
-        if (!helper.matchToken("remove")) return;
+    static parse(parser) {
+        if (!parser.matchToken("remove")) return;
 
-        var classRef = helper.parseElement("classRef");
+        var classRef = parser.parseElement("classRef");
         var attributeRef = null;
         var elementExpr = null;
         if (classRef == null) {
-            attributeRef = helper.parseElement("attributeRef");
+            attributeRef = parser.parseElement("attributeRef");
             if (attributeRef == null) {
-                elementExpr = helper.parseElement("expression");
+                elementExpr = parser.parseElement("expression");
                 if (elementExpr == null) {
-                    helper.raiseParseError(
+                    parser.raiseParseError(
                         "Expected either a class reference, attribute expression or value expression"
                     );
                 }
             }
         } else {
             var classRefs = [classRef];
-            while ((classRef = helper.parseElement("classRef"))) {
+            while ((classRef = parser.parseElement("classRef"))) {
                 classRefs.push(classRef);
             }
         }
 
-        if (helper.matchToken("from")) {
-            var fromExpr = helper.requireElement("expression");
+        if (parser.matchToken("from")) {
+            var fromExpr = parser.requireElement("expression");
         } else {
             if (elementExpr == null) {
-                var fromExpr = helper.requireElement("implicitMeTarget");
+                var fromExpr = parser.requireElement("implicitMeTarget");
             }
         }
 
@@ -297,60 +297,60 @@ export class RemoveCommand {
  * Executes: Toggles classes/attributes or visibility state
  */
 export class ToggleCommand {
-    static parse(helper, kernel, config) {
-        if (!helper.matchToken("toggle")) return;
+    static parse(parser, kernel, config) {
+        if (!parser.matchToken("toggle")) return;
 
-        helper.matchAnyToken("the", "my");
-        if (helper.currentToken().type === "STYLE_REF") {
-            let styleRef = helper.consumeToken();
+        parser.matchAnyToken("the", "my");
+        if (parser.currentToken().type === "STYLE_REF") {
+            let styleRef = parser.consumeToken();
             var name = styleRef.value.substr(1);
             var visibility = true;
-            var hideShowStrategy = resolveHideShowStrategy(kernel, helper, name, config);
-            if (helper.matchToken("of")) {
-                helper.pushFollow("with");
+            var hideShowStrategy = resolveHideShowStrategy(kernel, parser, name, config);
+            if (parser.matchToken("of")) {
+                parser.pushFollow("with");
                 try {
-                    var onExpr = helper.requireElement("expression");
+                    var onExpr = parser.requireElement("expression");
                 } finally {
-                    helper.popFollow();
+                    parser.popFollow();
                 }
             } else {
-                var onExpr = helper.requireElement("implicitMeTarget");
+                var onExpr = parser.requireElement("implicitMeTarget");
             }
-        } else if (helper.matchToken("between")) {
+        } else if (parser.matchToken("between")) {
             var between = true;
-            var classRef = helper.parseElement("classRef");
-            helper.requireToken("and");
-            var classRef2 = helper.requireElement("classRef");
+            var classRef = parser.parseElement("classRef");
+            parser.requireToken("and");
+            var classRef2 = parser.requireElement("classRef");
         } else {
-            var classRef = helper.parseElement("classRef");
+            var classRef = parser.parseElement("classRef");
             var attributeRef = null;
             if (classRef == null) {
-                attributeRef = helper.parseElement("attributeRef");
+                attributeRef = parser.parseElement("attributeRef");
                 if (attributeRef == null) {
-                    helper.raiseParseError("Expected either a class reference or attribute expression");
+                    parser.raiseParseError("Expected either a class reference or attribute expression");
                 }
             } else {
                 var classRefs = [classRef];
-                while ((classRef = helper.parseElement("classRef"))) {
+                while ((classRef = parser.parseElement("classRef"))) {
                     classRefs.push(classRef);
                 }
             }
         }
 
         if (visibility !== true) {
-            if (helper.matchToken("on")) {
-                var onExpr = helper.requireElement("expression");
+            if (parser.matchToken("on")) {
+                var onExpr = parser.requireElement("expression");
             } else {
-                var onExpr = helper.requireElement("implicitMeTarget");
+                var onExpr = parser.requireElement("implicitMeTarget");
             }
         }
 
-        if (helper.matchToken("for")) {
-            var time = helper.requireElement("expression");
-        } else if (helper.matchToken("until")) {
-            var evt = helper.requireElement("dotOrColonPath", "Expected event name");
-            if (helper.matchToken("from")) {
-                var from = helper.requireElement("expression");
+        if (parser.matchToken("for")) {
+            var time = parser.requireElement("expression");
+        } else if (parser.matchToken("until")) {
+            var evt = parser.requireElement("dotOrColonPath", "Expected event name");
+            if (parser.matchToken("from")) {
+                var from = parser.requireElement("expression");
             }
         }
 
@@ -435,19 +435,19 @@ export class ToggleCommand {
  * Executes: Hides target element using specified strategy
  */
 export class HideCommand {
-    static parse(helper, kernel, config) {
-        if (!helper.matchToken("hide")) return;
+    static parse(parser, kernel, config) {
+        if (!parser.matchToken("hide")) return;
 
-        var targetExpr = parseShowHideTarget(helper);
+        var targetExpr = parseShowHideTarget(parser);
 
         var name = null;
-        if (helper.matchToken("with")) {
-            name = helper.requireTokenType("IDENTIFIER", "STYLE_REF").value;
+        if (parser.matchToken("with")) {
+            name = parser.requireTokenType("IDENTIFIER", "STYLE_REF").value;
             if (name.indexOf("*") === 0) {
                 name = name.substr(1);
             }
         }
-        var hideShowStrategy = resolveHideShowStrategy(kernel, helper, name, config);
+        var hideShowStrategy = resolveHideShowStrategy(kernel, parser, name, config);
 
         return {
             target: targetExpr,
@@ -470,22 +470,22 @@ export class HideCommand {
  * Executes: Shows target element using specified strategy
  */
 export class ShowCommand {
-    static parse(helper, kernel, config) {
-        if (!helper.matchToken("show")) return;
+    static parse(parser, kernel, config) {
+        if (!parser.matchToken("show")) return;
 
-        var targetExpr = parseShowHideTarget(helper);
+        var targetExpr = parseShowHideTarget(parser);
 
         var name = null;
-        if (helper.matchToken("with")) {
-            name = helper.requireTokenType("IDENTIFIER", "STYLE_REF").value;
+        if (parser.matchToken("with")) {
+            name = parser.requireTokenType("IDENTIFIER", "STYLE_REF").value;
             if (name.indexOf("*") === 0) {
                 name = name.substr(1);
             }
         }
         var arg = null;
-        if (helper.matchOpToken(":")) {
-            var tokenArr = helper.consumeUntilWhitespace();
-            helper.matchTokenType("WHITESPACE");
+        if (parser.matchOpToken(":")) {
+            var tokenArr = parser.consumeUntilWhitespace();
+            parser.matchTokenType("WHITESPACE");
             arg = tokenArr
                 .map(function (t) {
                     return t.value;
@@ -493,11 +493,11 @@ export class ShowCommand {
                 .join("");
         }
 
-        if (helper.matchToken("when")) {
-            var when = helper.requireElement("expression");
+        if (parser.matchToken("when")) {
+            var when = parser.requireElement("expression");
         }
 
-        var hideShowStrategy = resolveHideShowStrategy(kernel, helper, name, config);
+        var hideShowStrategy = resolveHideShowStrategy(kernel, parser, name, config);
 
         return {
             target: targetExpr,
@@ -528,28 +528,28 @@ export class ShowCommand {
 /**
  * Helper function to parse pseudopossessive targets (the/its/my element's)
  */
-function parsePseudopossessiveTarget(helper) {
+function parsePseudopossessiveTarget(parser) {
     var targets;
     if (
-        helper.matchToken("the") ||
-        helper.matchToken("element") ||
-        helper.matchToken("elements") ||
-        helper.currentToken().type === "CLASS_REF" ||
-        helper.currentToken().type === "ID_REF" ||
-        (helper.currentToken().op && helper.currentToken().value === "<")
+        parser.matchToken("the") ||
+        parser.matchToken("element") ||
+        parser.matchToken("elements") ||
+        parser.currentToken().type === "CLASS_REF" ||
+        parser.currentToken().type === "ID_REF" ||
+        (parser.currentToken().op && parser.currentToken().value === "<")
     ) {
-        helper.possessivesDisabled = true;
+        parser.possessivesDisabled = true;
         try {
-            targets = helper.parseElement("expression");
+            targets = parser.parseElement("expression");
         } finally {
-            delete helper.possessivesDisabled;
+            delete parser.possessivesDisabled;
         }
         // optional possessive
-        if (helper.matchOpToken("'")) {
-            helper.requireToken("s");
+        if (parser.matchOpToken("'")) {
+            parser.requireToken("s");
         }
-    } else if (helper.currentToken().type === "IDENTIFIER" && helper.currentToken().value === "its") {
-        var identifier = helper.matchToken("its");
+    } else if (parser.currentToken().type === "IDENTIFIER" && parser.currentToken().value === "its") {
+        var identifier = parser.matchToken("its");
         targets = {
             type: "pseudopossessiveIts",
             token: identifier,
@@ -559,8 +559,8 @@ function parsePseudopossessiveTarget(helper) {
             },
         };
     } else {
-        helper.matchToken("my") || helper.matchToken("me"); // consume optional 'my'
-        targets = helper.parseElement("implicitMeTarget");
+        parser.matchToken("my") || parser.matchToken("me"); // consume optional 'my'
+        targets = parser.parseElement("implicitMeTarget");
     }
     return targets;
 }
@@ -574,14 +574,14 @@ function parsePseudopossessiveTarget(helper) {
 export class TakeCommand {
     /**
      * Parse take command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {TakeCommand | undefined}
      */
-    static parse(helper) {
-        if (helper.matchToken("take")) {
+    static parse(parser) {
+        if (parser.matchToken("take")) {
             let classRef = null;
             let classRefs = [];
-            while ((classRef = helper.parseElement("classRef"))) {
+            while ((classRef = parser.parseElement("classRef"))) {
                 classRefs.push(classRef);
             }
 
@@ -590,24 +590,24 @@ export class TakeCommand {
 
             let weAreTakingClasses = classRefs.length > 0;
             if (!weAreTakingClasses) {
-                attributeRef = helper.parseElement("attributeRef");
+                attributeRef = parser.parseElement("attributeRef");
                 if (attributeRef == null) {
-                    helper.raiseParseError("Expected either a class reference or attribute expression");
+                    parser.raiseParseError("Expected either a class reference or attribute expression");
                 }
 
-                if (helper.matchToken("with")) {
-                    replacementValue = helper.requireElement("expression");
+                if (parser.matchToken("with")) {
+                    replacementValue = parser.requireElement("expression");
                 }
             }
 
-            if (helper.matchToken("from")) {
-                var fromExpr = helper.requireElement("expression");
+            if (parser.matchToken("from")) {
+                var fromExpr = parser.requireElement("expression");
             }
 
-            if (helper.matchToken("for")) {
-                var forExpr = helper.requireElement("expression");
+            if (parser.matchToken("for")) {
+                var forExpr = parser.requireElement("expression");
             } else {
-                var forExpr = helper.requireElement("implicitMeTarget");
+                var forExpr = parser.requireElement("implicitMeTarget");
             }
 
             if (weAreTakingClasses) {
@@ -674,19 +674,19 @@ export class TakeCommand {
 export class MeasureCommand {
     /**
      * Parse measure command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {MeasureCommand | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchToken("measure")) return;
+    static parse(parser) {
+        if (!parser.matchToken("measure")) return;
 
-        var targetExpr = parsePseudopossessiveTarget(helper);
+        var targetExpr = parsePseudopossessiveTarget(parser);
 
         var propsToMeasure = [];
-        if (!helper.commandBoundary(helper.currentToken()))
+        if (!parser.commandBoundary(parser.currentToken()))
             do {
-                propsToMeasure.push(helper.matchTokenType("IDENTIFIER").value);
-            } while (helper.matchOpToken(","));
+                propsToMeasure.push(parser.matchTokenType("IDENTIFIER").value);
+            } while (parser.matchOpToken(","));
 
         return {
             properties: propsToMeasure,

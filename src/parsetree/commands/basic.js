@@ -21,17 +21,17 @@ export class LogCommand {
 
     /**
      * Parse log command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {LogCommand | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchToken("log")) return;
-        var exprs = [helper.parseElement("expression")];
-        while (helper.matchOpToken(",")) {
-            exprs.push(helper.requireElement("expression"));
+    static parse(parser) {
+        if (!parser.matchToken("log")) return;
+        var exprs = [parser.parseElement("expression")];
+        while (parser.matchOpToken(",")) {
+            exprs.push(parser.requireElement("expression"));
         }
-        if (helper.matchToken("with")) {
-            var withExpr = helper.requireElement("expression");
+        if (parser.matchToken("with")) {
+            var withExpr = parser.requireElement("expression");
         }
         return new LogCommand(exprs, withExpr);
     }
@@ -63,14 +63,14 @@ export class BeepCommand {
 
     /**
      * Parse beep command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {BeepCommand | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchToken("beep!")) return;
-        var exprs = [helper.parseElement("expression")];
-        while (helper.matchOpToken(",")) {
-            exprs.push(helper.requireElement("expression"));
+    static parse(parser) {
+        if (!parser.matchToken("beep!")) return;
+        var exprs = [parser.parseElement("expression")];
+        while (parser.matchOpToken(",")) {
+            exprs.push(parser.requireElement("expression"));
         }
         return new BeepCommand(exprs);
     }
@@ -102,12 +102,12 @@ export class ThrowCommand {
 
     /**
      * Parse throw command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {ThrowCommand | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchToken("throw")) return;
-        var expr = helper.requireElement("expression");
+    static parse(parser) {
+        if (!parser.matchToken("throw")) return;
+        var expr = parser.requireElement("expression");
         return new ThrowCommand(expr);
     }
 
@@ -134,15 +134,15 @@ export class ReturnCommand {
 
     /**
      * Parse return command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {ReturnCommand | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchToken("return")) return;
-        if (helper.commandBoundary(helper.currentToken())) {
-            helper.raiseParseError("'return' commands must return a value.  If you do not wish to return a value, use 'exit' instead.");
+    static parse(parser) {
+        if (!parser.matchToken("return")) return;
+        if (parser.commandBoundary(parser.currentToken())) {
+            parser.raiseParseError("'return' commands must return a value.  If you do not wish to return a value, use 'exit' instead.");
         } else {
-            var value = helper.requireElement("expression");
+            var value = parser.requireElement("expression");
         }
         return new ReturnCommand(value);
     }
@@ -178,11 +178,11 @@ export class ExitCommand {
 
     /**
      * Parse exit command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {ExitCommand | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchToken("exit")) return;
+    static parse(parser) {
+        if (!parser.matchToken("exit")) return;
         return new ExitCommand();
     }
 
@@ -220,22 +220,22 @@ export class HaltCommand {
 
     /**
      * Parse halt command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {HaltCommand | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchToken("halt")) return;
-        if (helper.matchToken("the")) {
-            helper.requireToken("event");
+    static parse(parser) {
+        if (!parser.matchToken("halt")) return;
+        if (parser.matchToken("the")) {
+            parser.requireToken("event");
             // optional possessive
-            if (helper.matchOpToken("'")) {
-                helper.requireToken("s");
+            if (parser.matchOpToken("'")) {
+                parser.requireToken("s");
             }
             var keepExecuting = true;
         }
-        if (helper.matchToken("bubbling")) {
+        if (parser.matchToken("bubbling")) {
             var bubbling = true;
-        } else if (helper.matchToken("default")) {
+        } else if (parser.matchToken("default")) {
             var haltDefault = true;
         }
         // Parse exit as inline structure
@@ -289,24 +289,24 @@ export class HaltCommand {
 export class MakeCommand {
     /**
      * Parse make command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {MakeCommand | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchToken("make")) return;
-        helper.matchToken("a") || helper.matchToken("an");
+    static parse(parser) {
+        if (!parser.matchToken("make")) return;
+        parser.matchToken("a") || parser.matchToken("an");
 
-        var expr = helper.requireElement("expression");
+        var expr = parser.requireElement("expression");
 
         var args = [];
-        if (expr.type !== "queryRef" && helper.matchToken("from")) {
+        if (expr.type !== "queryRef" && parser.matchToken("from")) {
             do {
-                args.push(helper.requireElement("expression"));
-            } while (helper.matchOpToken(","));
+                args.push(parser.requireElement("expression"));
+            } while (parser.matchOpToken(","));
         }
 
-        if (helper.matchToken("called")) {
-            var target = helper.requireElement("symbol");
+        if (parser.matchToken("called")) {
+            var target = parser.requireElement("symbol");
         }
 
         var command;
@@ -366,15 +366,15 @@ export class MakeCommand {
 export class AppendCommand {
     /**
      * Parse append command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @param {Function} makeSetter - makeSetter function from core grammar
      * @returns {AppendCommand | undefined}
      */
-    static parse(helper, makeSetter) {
-        if (!helper.matchToken("append")) return;
+    static parse(parser, makeSetter) {
+        if (!parser.matchToken("append")) return;
         var targetExpr = null;
 
-        var value = helper.requireElement("expression");
+        var value = parser.requireElement("expression");
 
         /** @type {ASTNode} */
         var implicitResultSymbol = {
@@ -384,15 +384,15 @@ export class AppendCommand {
             },
         };
 
-        if (helper.matchToken("to")) {
-            targetExpr = helper.requireElement("expression");
+        if (parser.matchToken("to")) {
+            targetExpr = parser.requireElement("expression");
         } else {
             targetExpr = implicitResultSymbol;
         }
 
         var setter = null;
         if (targetExpr.type === "symbol" || targetExpr.type === "attributeRef" || targetExpr.root != null) {
-            setter = makeSetter(helper, targetExpr, implicitResultSymbol);
+            setter = makeSetter(parser, targetExpr, implicitResultSymbol);
         }
 
         var command = {
@@ -434,22 +434,22 @@ export class AppendCommand {
 /**
  * Helper function to parse pick range syntax
  */
-function parsePickRange(helper) {
-    helper.matchToken("at") || helper.matchToken("from");
+function parsePickRange(parser) {
+    parser.matchToken("at") || parser.matchToken("from");
     const rv = { includeStart: true, includeEnd: false }
 
-    rv.from = helper.matchToken("start") ? 0 : helper.requireElement("expression")
+    rv.from = parser.matchToken("start") ? 0 : parser.requireElement("expression")
 
-    if (helper.matchToken("to") || helper.matchOpToken("..")) {
-      if (helper.matchToken("end")) {
+    if (parser.matchToken("to") || parser.matchOpToken("..")) {
+      if (parser.matchToken("end")) {
         rv.toEnd = true;
       } else {
-        rv.to = helper.requireElement("expression");
+        rv.to = parser.requireElement("expression");
       }
     }
 
-    if (helper.matchToken("inclusive")) rv.includeEnd = true;
-    else if (helper.matchToken("exclusive")) rv.includeStart = false;
+    if (parser.matchToken("inclusive")) rv.includeEnd = true;
+    else if (parser.matchToken("exclusive")) rv.includeStart = false;
 
     return rv;
 }
@@ -464,20 +464,20 @@ function parsePickRange(helper) {
 export class PickCommand {
     /**
      * Parse pick command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {PickCommand | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchToken("pick")) return;
+    static parse(parser) {
+        if (!parser.matchToken("pick")) return;
 
-        helper.matchToken("the");
+        parser.matchToken("the");
 
-        if (helper.matchToken("item") || helper.matchToken("items")
-         || helper.matchToken("character") || helper.matchToken("characters")) {
-            const range = parsePickRange(helper);
+        if (parser.matchToken("item") || parser.matchToken("items")
+         || parser.matchToken("character") || parser.matchToken("characters")) {
+            const range = parsePickRange(parser);
 
-            helper.requireToken("from");
-            const root = helper.requireElement("expression");
+            parser.requireToken("from");
+            const root = parser.requireElement("expression");
 
             return {
                 args: [root, range.from, range.to],
@@ -492,16 +492,16 @@ export class PickCommand {
             }
         }
 
-        if (helper.matchToken("match")) {
-            helper.matchToken("of");
-            const re = helper.parseElement("expression");
+        if (parser.matchToken("match")) {
+            parser.matchToken("of");
+            const re = parser.parseElement("expression");
             let flags = ""
-            if (helper.matchOpToken("|")) {
-                flags = helper.requireTokenType("IDENTIFIER").value;
+            if (parser.matchOpToken("|")) {
+                flags = parser.requireTokenType("IDENTIFIER").value;
             }
 
-            helper.requireToken("from");
-            const root = helper.parseElement("expression");
+            parser.requireToken("from");
+            const root = parser.parseElement("expression");
 
             return {
                 args: [root, re],
@@ -512,16 +512,16 @@ export class PickCommand {
             }
         }
 
-        if (helper.matchToken("matches")) {
-            helper.matchToken("of");
-            const re = helper.parseElement("expression");
+        if (parser.matchToken("matches")) {
+            parser.matchToken("of");
+            const re = parser.parseElement("expression");
             let flags = "gu"
-            if (helper.matchOpToken("|")) {
-                flags = 'g' + helper.requireTokenType("IDENTIFIER").value.replace('g', '');
+            if (parser.matchOpToken("|")) {
+                flags = 'g' + parser.requireTokenType("IDENTIFIER").value.replace('g', '');
             }
 
-            helper.requireToken("from");
-            const root = helper.parseElement("expression");
+            parser.requireToken("from");
+            const root = parser.parseElement("expression");
 
             return {
                 args: [root, re],
@@ -537,20 +537,20 @@ export class PickCommand {
 /**
  * Helper function to parse conversion info for fetch command
  */
-function parseConversionInfo(helper) {
+function parseConversionInfo(parser) {
     var type = "text";
     var conversion;
-    helper.matchToken("a") || helper.matchToken("an");
-    if (helper.matchToken("json") || helper.matchToken("Object")) {
+    parser.matchToken("a") || parser.matchToken("an");
+    if (parser.matchToken("json") || parser.matchToken("Object")) {
         type = "json";
-    } else if (helper.matchToken("response")) {
+    } else if (parser.matchToken("response")) {
         type = "response";
-    } else if (helper.matchToken("html")) {
+    } else if (parser.matchToken("html")) {
         type = "html";
-    } else if (helper.matchToken("text")) {
+    } else if (parser.matchToken("text")) {
         // default, ignore
     } else {
-        conversion = helper.requireElement("dotOrColonPath").evaluate();
+        conversion = parser.requireElement("dotOrColonPath").evaluate();
     }
     return {type, conversion};
 }
@@ -564,25 +564,25 @@ function parseConversionInfo(helper) {
 export class FetchCommand {
     /**
      * Parse fetch command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {FetchCommand | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchToken("fetch")) return;
-        var url = helper.requireElement("stringLike");
+    static parse(parser) {
+        if (!parser.matchToken("fetch")) return;
+        var url = parser.requireElement("stringLike");
 
-        if (helper.matchToken("as")) {
-            var conversionInfo = parseConversionInfo(helper);
+        if (parser.matchToken("as")) {
+            var conversionInfo = parseConversionInfo(parser);
         }
 
-        if (helper.matchToken("with") && helper.currentToken().value !== "{") {
-            var args = helper.parseElement("nakedNamedArgumentList");
+        if (parser.matchToken("with") && parser.currentToken().value !== "{") {
+            var args = parser.parseElement("nakedNamedArgumentList");
         } else {
-            var args = helper.parseElement("objectLiteral");
+            var args = parser.parseElement("objectLiteral");
         }
 
-        if (conversionInfo == null && helper.matchToken("as")) {
-            conversionInfo = parseConversionInfo(helper);
+        if (conversionInfo == null && parser.matchToken("as")) {
+            conversionInfo = parseConversionInfo(parser);
         }
 
         var type = conversionInfo ? conversionInfo.type : "text";
@@ -667,44 +667,44 @@ export class FetchCommand {
 export class GoCommand {
     /**
      * Parse go command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {GoCommand | undefined}
      */
-    static parse(helper) {
-        if (helper.matchToken("go")) {
-            if (helper.matchToken("back")) {
+    static parse(parser) {
+        if (parser.matchToken("go")) {
+            if (parser.matchToken("back")) {
                 var back = true;
             } else {
-                helper.matchToken("to");
-                if (helper.matchToken("url")) {
-                    var target = helper.requireElement("stringLike");
+                parser.matchToken("to");
+                if (parser.matchToken("url")) {
+                    var target = parser.requireElement("stringLike");
                     var url = true;
-                    if (helper.matchToken("in")) {
-                        helper.requireToken("new");
-                        helper.requireToken("window");
+                    if (parser.matchToken("in")) {
+                        parser.requireToken("new");
+                        parser.requireToken("window");
                         var newWindow = true;
                     }
                 } else {
-                    helper.matchToken("the"); // optional the
-                    var verticalPosition = helper.matchAnyToken("top", "middle", "bottom");
-                    var horizontalPosition = helper.matchAnyToken("left", "center", "right");
+                    parser.matchToken("the"); // optional the
+                    var verticalPosition = parser.matchAnyToken("top", "middle", "bottom");
+                    var horizontalPosition = parser.matchAnyToken("left", "center", "right");
                     if (verticalPosition || horizontalPosition) {
-                        helper.requireToken("of");
+                        parser.requireToken("of");
                     }
-                    var target = helper.requireElement("unaryExpression");
+                    var target = parser.requireElement("unaryExpression");
 
-                    var plusOrMinus = helper.matchAnyOpToken("+", "-");
+                    var plusOrMinus = parser.matchAnyOpToken("+", "-");
                     if (plusOrMinus) {
-                        helper.pushFollow("px");
+                        parser.pushFollow("px");
                         try {
-                            var offset = helper.requireElement("expression");
+                            var offset = parser.requireElement("expression");
                         } finally {
-                            helper.popFollow();
+                            parser.popFollow();
                         }
                     }
-                    helper.matchToken("px"); // optional px
+                    parser.matchToken("px"); // optional px
 
-                    var smoothness = helper.matchAnyToken("smoothly", "instantly");
+                    var smoothness = parser.matchAnyToken("smoothly", "instantly");
 
                     var scrollOptions = {
                         block: "start",

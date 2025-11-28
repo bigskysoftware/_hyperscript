@@ -7,14 +7,14 @@
 export class InstallFeature {
     /**
      * Parse install feature
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {InstallFeature | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchToken("install")) return;
-        var behaviorPath = helper.requireElement("dotOrColonPath").evaluate();
+    static parse(parser) {
+        if (!parser.matchToken("install")) return;
+        var behaviorPath = parser.requireElement("dotOrColonPath").evaluate();
         var behaviorNamespace = behaviorPath.split(".");
-        var args = helper.parseElement("namedArgumentList");
+        var args = parser.parseElement("namedArgumentList");
 
         var installFeature;
         return (installFeature = {

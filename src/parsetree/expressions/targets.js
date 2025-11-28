@@ -16,10 +16,10 @@ export class ImplicitMeTarget {
 
     /**
      * Parse an implicit me target
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {ImplicitMeTarget}
      */
-    static parse(helper) {
+    static parse(parser) {
         return new ImplicitMeTarget();
     }
 

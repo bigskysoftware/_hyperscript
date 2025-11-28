@@ -10,23 +10,23 @@ import { getOrInitObject } from '../../core/helpers.js';
 export class BehaviorFeature {
     /**
      * Parse behavior feature
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {BehaviorFeature | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchToken("behavior")) return;
-        var path = helper.requireElement("dotOrColonPath").evaluate();
+    static parse(parser) {
+        if (!parser.matchToken("behavior")) return;
+        var path = parser.requireElement("dotOrColonPath").evaluate();
         var nameSpace = path.split(".");
         var name = nameSpace.pop();
 
         var formalParams = [];
-        if (helper.matchOpToken("(") && !helper.matchOpToken(")")) {
+        if (parser.matchOpToken("(") && !parser.matchOpToken(")")) {
             do {
-                formalParams.push(helper.requireTokenType("IDENTIFIER").value);
-            } while (helper.matchOpToken(","));
-            helper.requireOpToken(")");
+                formalParams.push(parser.requireTokenType("IDENTIFIER").value);
+            } while (parser.matchOpToken(","));
+            parser.requireOpToken(")");
         }
-        var hs = helper.requireElement("hyperscript");
+        var hs = parser.requireElement("hyperscript");
         for (var i = 0; i < hs.features.length; i++) {
             var feature = hs.features[i];
             feature.behavior = path;

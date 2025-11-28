@@ -90,41 +90,41 @@ export class RelativePositionalExpression {
 
     /**
      * Parse a relative positional expression
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {RelativePositionalExpression | undefined}
      */
-    static parse(helper) {
-        var op = helper.matchAnyToken("next", "previous");
+    static parse(parser) {
+        var op = parser.matchAnyToken("next", "previous");
         if (!op) return;
         var forwardSearch = op.value === "next";
 
-        var thingElt = helper.parseElement("expression");
+        var thingElt = parser.parseElement("expression");
 
-        if (helper.matchToken("from")) {
-            helper.pushFollow("in");
+        if (parser.matchToken("from")) {
+            parser.pushFollow("in");
             try {
-                var from = helper.requireElement("unaryExpression");
+                var from = parser.requireElement("unaryExpression");
             } finally {
-                helper.popFollow();
+                parser.popFollow();
             }
         } else {
-            var from = helper.requireElement("implicitMeTarget");
+            var from = parser.requireElement("implicitMeTarget");
         }
 
         var inSearch = false;
         var withinElt;
-        if (helper.matchToken("in")) {
+        if (parser.matchToken("in")) {
             inSearch = true;
-            var inElt = helper.requireElement("unaryExpression");
-        } else if (helper.matchToken("within")) {
-            withinElt = helper.requireElement("unaryExpression");
+            var inElt = parser.requireElement("unaryExpression");
+        } else if (parser.matchToken("within")) {
+            withinElt = parser.requireElement("unaryExpression");
         } else {
             withinElt = document.body;
         }
 
         var wrapping = false;
-        if (helper.matchToken("with")) {
-            helper.requireToken("wrapping")
+        if (parser.matchToken("with")) {
+            parser.requireToken("wrapping")
             wrapping = true;
         }
 
@@ -194,14 +194,14 @@ export class PositionalExpression {
 
     /**
      * Parse a positional expression
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {PositionalExpression | undefined}
      */
-    static parse(helper) {
-        var op = helper.matchAnyToken("first", "last", "random");
+    static parse(parser) {
+        var op = parser.matchAnyToken("first", "last", "random");
         if (!op) return;
-        helper.matchAnyToken("in", "from", "of");
-        var rhs = helper.requireElement("unaryExpression");
+        parser.matchAnyToken("in", "from", "of");
+        var rhs = parser.requireElement("unaryExpression");
         return new PositionalExpression(rhs, op.value);
     }
 
@@ -246,37 +246,37 @@ export class PositionalExpression {
 export class ClosestExpr {
     /**
      * Parse a closest expression
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {any | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchToken("closest")) return;
+    static parse(parser) {
+        if (!parser.matchToken("closest")) return;
 
         var parentSearch = false;
-        if (helper.matchToken("parent")) {
+        if (parser.matchToken("parent")) {
             parentSearch = true;
         }
 
         var css = null;
         var attributeRef = null;
-        if (helper.currentToken().type === "ATTRIBUTE_REF") {
-            attributeRef = helper.requireElement("attributeRefAccess", null);
+        if (parser.currentToken().type === "ATTRIBUTE_REF") {
+            attributeRef = parser.requireElement("attributeRefAccess", null);
             css = "[" + attributeRef.attribute.name + "]";
         }
 
         if (css == null) {
-            var expr = helper.requireElement("expression");
+            var expr = parser.requireElement("expression");
             if (expr.css == null) {
-                helper.raiseParseError("Expected a CSS expression");
+                parser.raiseParseError("Expected a CSS expression");
             } else {
                 css = expr.css;
             }
         }
 
-        if (helper.matchToken("to")) {
-            var to = helper.parseElement("expression");
+        if (parser.matchToken("to")) {
+            var to = parser.parseElement("expression");
         } else {
-            var to = helper.parseElement("implicitMeTarget");
+            var to = parser.parseElement("implicitMeTarget");
         }
 
         var closestExpr = {

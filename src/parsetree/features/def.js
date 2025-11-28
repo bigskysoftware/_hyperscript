@@ -7,39 +7,39 @@
 export class DefFeature {
     /**
      * Parse def feature
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @param {LanguageKernel} parser
      * @returns {DefFeature | undefined}
      */
-    static parse(helper, kernel) {
-        if (!helper.matchToken("def")) return;
-        var functionName = helper.requireElement("dotOrColonPath");
+    static parse(parser, kernel) {
+        if (!parser.matchToken("def")) return;
+        var functionName = parser.requireElement("dotOrColonPath");
         var nameVal = functionName.evaluate(); // OK
         var nameSpace = nameVal.split(".");
         var funcName = nameSpace.pop();
 
         var args = [];
-        if (helper.matchOpToken("(")) {
-            if (helper.matchOpToken(")")) {
+        if (parser.matchOpToken("(")) {
+            if (parser.matchOpToken(")")) {
                 // empty args list
             } else {
                 do {
-                    args.push(helper.requireTokenType("IDENTIFIER"));
-                } while (helper.matchOpToken(","));
-                helper.requireOpToken(")");
+                    args.push(parser.requireTokenType("IDENTIFIER"));
+                } while (parser.matchOpToken(","));
+                parser.requireOpToken(")");
             }
         }
 
-        var start = helper.requireElement("commandList");
+        var start = parser.requireElement("commandList");
 
         var errorSymbol, errorHandler;
-        if (helper.matchToken("catch")) {
-            errorSymbol = helper.requireTokenType("IDENTIFIER").value;
-            errorHandler = helper.parseElement("commandList");
+        if (parser.matchToken("catch")) {
+            errorSymbol = parser.requireTokenType("IDENTIFIER").value;
+            errorHandler = parser.parseElement("commandList");
         }
 
-        if (helper.matchToken("finally")) {
-            var finallyHandler = helper.requireElement("commandList");
+        if (parser.matchToken("finally")) {
+            var finallyHandler = parser.requireElement("commandList");
             kernel.ensureTerminated(finallyHandler);
         }
 
@@ -108,7 +108,7 @@ export class DefFeature {
             kernel.ensureTerminated(errorHandler);
         }
 
-        helper.setParent(start, functionFeature);
+        parser.setParent(start, functionFeature);
         return functionFeature;
     }
 }

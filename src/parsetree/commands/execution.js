@@ -14,19 +14,19 @@ import { varargConstructor } from '../../core/helpers.js';
 export class JsBody {
     /**
      * Parse JavaScript body
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {Object}
      */
-    static parse(helper) {
-        var jsSourceStart = helper.currentToken().start;
-        var jsLastToken = helper.currentToken();
+    static parse(parser) {
+        var jsSourceStart = parser.currentToken().start;
+        var jsLastToken = parser.currentToken();
 
         var funcNames = [];
         var funcName = "";
         var expectFunctionDeclaration = false;
-        while (helper.hasMore()) {
-            jsLastToken = helper.consumeToken();
-            var peek = helper.token(0, true);
+        while (parser.hasMore()) {
+            jsLastToken = parser.consumeToken();
+            var peek = parser.token(0, true);
             if (peek.type === "IDENTIFIER" && peek.value === "end") {
                 break;
             }
@@ -47,7 +47,7 @@ export class JsBody {
         return {
             type: "jsBody",
             exposedFunctionNames: funcNames,
-            jsSource: helper.source.substring(jsSourceStart, jsSourceEnd),
+            jsSource: parser.source.substring(jsSourceStart, jsSourceEnd),
         };
     }
 }
@@ -61,27 +61,27 @@ export class JsBody {
 export class JsCommand {
     /**
      * Parse js command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {JsCommand | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchToken("js")) return;
+    static parse(parser) {
+        if (!parser.matchToken("js")) return;
         // Parse inputs
         var inputs = [];
-        if (helper.matchOpToken("(")) {
-            if (helper.matchOpToken(")")) {
+        if (parser.matchOpToken("(")) {
+            if (parser.matchOpToken(")")) {
                 // empty input list
             } else {
                 do {
-                    var inp = helper.requireTokenType("IDENTIFIER");
+                    var inp = parser.requireTokenType("IDENTIFIER");
                     inputs.push(inp.value);
-                } while (helper.matchOpToken(","));
-                helper.requireOpToken(")");
+                } while (parser.matchOpToken(","));
+                parser.requireOpToken(")");
             }
         }
 
-        var jsBody = helper.requireElement("jsBody");
-        helper.matchToken("end");
+        var jsBody = parser.requireElement("jsBody");
+        parser.matchToken("end");
 
         var func = varargConstructor(Function, inputs.concat([jsBody.jsSource]));
 
@@ -121,22 +121,22 @@ export class JsCommand {
 export class AsyncCommand {
     /**
      * Parse async command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {AsyncCommand | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchToken("async")) return;
-        if (helper.matchToken("do")) {
-            var body = helper.requireElement("commandList");
+    static parse(parser) {
+        if (!parser.matchToken("async")) return;
+        if (parser.matchToken("do")) {
+            var body = parser.requireElement("commandList");
 
             // Append halt
             var end = body;
             while (end.next) end = end.next;
             end.next = Runtime.HALT;
 
-            helper.requireToken("end");
+            parser.requireToken("end");
         } else {
-            var body = helper.requireElement("command");
+            var body = parser.requireElement("command");
         }
         var command = {
             body: body,
@@ -147,7 +147,7 @@ export class AsyncCommand {
                 return context.meta.runtime.findNext(this, context);
             },
         };
-        helper.setParent(body, command);
+        parser.setParent(body, command);
         return command;
     }
 }
@@ -155,8 +155,8 @@ export class AsyncCommand {
 /**
  * Helper function to parse call/get commands
  */
-function parseCallOrGet(helper) {
-    var expr = helper.requireElement("expression");
+function parseCallOrGet(parser) {
+    var expr = parser.requireElement("expression");
     var callCmd = {
         expr: expr,
         args: [expr],
@@ -177,14 +177,14 @@ function parseCallOrGet(helper) {
 export class CallCommand {
     /**
      * Parse call command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {CallCommand | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchToken("call")) return;
-        var call = parseCallOrGet(helper);
+    static parse(parser) {
+        if (!parser.matchToken("call")) return;
+        var call = parseCallOrGet(parser);
         if (call.expr && call.expr.type !== "functionCall") {
-            helper.raiseParseError("Must be a function invocation");
+            parser.raiseParseError("Must be a function invocation");
         }
         return call;
     }
@@ -199,12 +199,12 @@ export class CallCommand {
 export class GetCommand {
     /**
      * Parse get command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {GetCommand | undefined}
      */
-    static parse(helper) {
-        if (helper.matchToken("get")) {
-            return parseCallOrGet(helper);
+    static parse(parser) {
+        if (parser.matchToken("get")) {
+            return parseCallOrGet(parser);
         }
     }
 }

@@ -7,12 +7,12 @@
 export class WorkerFeature {
     /**
      * Parse worker feature
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {WorkerFeature | undefined}
      */
-    static parse(helper) {
-        if (helper.matchToken("worker")) {
-            helper.raiseParseError(
+    static parse(parser) {
+        if (parser.matchToken("worker")) {
+            parser.raiseParseError(
                 "In order to use the 'worker' feature, include " +
                     "the _hyperscript worker plugin. See " +
                     "https://hyperscript.org/features/worker/ for " +

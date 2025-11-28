@@ -15,21 +15,21 @@
 
 /**
  * Parse event arguments
- * @param {ParserHelper} helper
+ * @param {Parser} parser
  * @returns {Array}
  */
-function parseEventArgs(helper) {
+function parseEventArgs(parser) {
     var args = [];
     // handle argument list (look ahead 3)
     if (
-        helper.token(0).value === "(" &&
-        (helper.token(1).value === ")" || helper.token(2).value === "," || helper.token(2).value === ")")
+        parser.token(0).value === "(" &&
+        (parser.token(1).value === ")" || parser.token(2).value === "," || parser.token(2).value === ")")
     ) {
-        helper.matchOpToken("(");
+        parser.matchOpToken("(");
         do {
-            args.push(helper.requireTokenType("IDENTIFIER"));
-        } while (helper.matchOpToken(","));
-        helper.requireOpToken(")");
+            args.push(parser.requireTokenType("IDENTIFIER"));
+        } while (parser.matchOpToken(","));
+        parser.requireOpToken(")");
     }
     return args;
 }
@@ -37,20 +37,20 @@ function parseEventArgs(helper) {
 export class OnFeature {
     /**
      * Parse on feature
-     * @param {ParserHelper} helper
-     * @param {LanguageKernel} parser
+     * @param {Parser} parser
+     * @param {LanguageKernel} kernel
      * @returns {OnFeature | undefined}
      */
-    static parse(helper, kernel) {
-        if (!helper.matchToken("on")) return;
+    static parse(parser, kernel) {
+        if (!parser.matchToken("on")) return;
         var every = false;
-        if (helper.matchToken("every")) {
+        if (parser.matchToken("every")) {
             every = true;
         }
         var events = [];
         var displayName = null;
         do {
-            var on = helper.requireElement("eventName", "Expected event name");
+            var on = parser.requireElement("eventName", "Expected event name");
 
             var eventName = on.evaluate(); // OK No Promise
 
@@ -59,81 +59,81 @@ export class OnFeature {
             } else {
                 displayName = "on " + eventName;
             }
-            var args = parseEventArgs(helper);
+            var args = parseEventArgs(parser);
 
             var filter = null;
-            if (helper.matchOpToken("[")) {
-                filter = helper.requireElement("expression");
-                helper.requireOpToken("]");
+            if (parser.matchOpToken("[")) {
+                filter = parser.requireElement("expression");
+                parser.requireOpToken("]");
             }
 
             var startCount, endCount ,unbounded;
-            if (helper.currentToken().type === "NUMBER") {
-                var startCountToken = helper.consumeToken();
+            if (parser.currentToken().type === "NUMBER") {
+                var startCountToken = parser.consumeToken();
                 if (!startCountToken.value) return;
                 startCount = parseInt(startCountToken.value);
-                if (helper.matchToken("to")) {
-                    var endCountToken = helper.consumeToken();
+                if (parser.matchToken("to")) {
+                    var endCountToken = parser.consumeToken();
                     if (!endCountToken.value) return;
                     endCount = parseInt(endCountToken.value);
-                } else if (helper.matchToken("and")) {
+                } else if (parser.matchToken("and")) {
                     unbounded = true;
-                    helper.requireToken("on");
+                    parser.requireToken("on");
                 }
             }
 
             var intersectionSpec, mutationSpec;
             if (eventName === "intersection") {
                 intersectionSpec = {};
-                if (helper.matchToken("with")) {
-                    intersectionSpec["with"] = helper.requireElement("expression").evaluate();
+                if (parser.matchToken("with")) {
+                    intersectionSpec["with"] = parser.requireElement("expression").evaluate();
                 }
-                if (helper.matchToken("having")) {
+                if (parser.matchToken("having")) {
                     do {
-                        if (helper.matchToken("margin")) {
-                            intersectionSpec["rootMargin"] = helper.requireElement("stringLike").evaluate();
-                        } else if (helper.matchToken("threshold")) {
-                            intersectionSpec["threshold"] = helper.requireElement("expression").evaluate();
+                        if (parser.matchToken("margin")) {
+                            intersectionSpec["rootMargin"] = parser.requireElement("stringLike").evaluate();
+                        } else if (parser.matchToken("threshold")) {
+                            intersectionSpec["threshold"] = parser.requireElement("expression").evaluate();
                         } else {
-                            helper.raiseParseError("Unknown intersection config specification");
+                            parser.raiseParseError("Unknown intersection config specification");
                         }
-                    } while (helper.matchToken("and"));
+                    } while (parser.matchToken("and"));
                 }
             } else if (eventName === "mutation") {
                 mutationSpec = {};
-                if (helper.matchToken("of")) {
+                if (parser.matchToken("of")) {
                     do {
-                        if (helper.matchToken("anything")) {
+                        if (parser.matchToken("anything")) {
                             mutationSpec["attributes"] = true;
                             mutationSpec["subtree"] = true;
                             mutationSpec["characterData"] = true;
                             mutationSpec["childList"] = true;
-                        } else if (helper.matchToken("childList")) {
+                        } else if (parser.matchToken("childList")) {
                             mutationSpec["childList"] = true;
-                        } else if (helper.matchToken("attributes")) {
+                        } else if (parser.matchToken("attributes")) {
                             mutationSpec["attributes"] = true;
                             mutationSpec["attributeOldValue"] = true;
-                        } else if (helper.matchToken("subtree")) {
+                        } else if (parser.matchToken("subtree")) {
                             mutationSpec["subtree"] = true;
-                        } else if (helper.matchToken("characterData")) {
+                        } else if (parser.matchToken("characterData")) {
                             mutationSpec["characterData"] = true;
                             mutationSpec["characterDataOldValue"] = true;
-                        } else if (helper.currentToken().type === "ATTRIBUTE_REF") {
-                            var attribute = helper.consumeToken();
+                        } else if (parser.currentToken().type === "ATTRIBUTE_REF") {
+                            var attribute = parser.consumeToken();
                             if (mutationSpec["attributeFilter"] == null) {
                                 mutationSpec["attributeFilter"] = [];
                             }
                             if (attribute.value.indexOf("@") == 0) {
                                 mutationSpec["attributeFilter"].push(attribute.value.substring(1));
                             } else {
-                                helper.raiseParseError(
+                                parser.raiseParseError(
                                     "Only shorthand attribute references are allowed here"
                                 );
                             }
                         } else {
-                            helper.raiseParseError("Unknown mutation config specification");
+                            parser.raiseParseError("Unknown mutation config specification");
                         }
-                    } while (helper.matchToken("or"));
+                    } while (parser.matchToken("or"));
                 } else {
                     mutationSpec["attributes"] = true;
                     mutationSpec["characterData"] = true;
@@ -143,37 +143,37 @@ export class OnFeature {
 
             var from = null;
             var elsewhere = false;
-            if (helper.matchToken("from")) {
-                if (helper.matchToken("elsewhere")) {
+            if (parser.matchToken("from")) {
+                if (parser.matchToken("elsewhere")) {
                     elsewhere = true;
                 } else {
-                    helper.pushFollow("or");
+                    parser.pushFollow("or");
                     try {
-                        from = helper.requireElement("expression")
+                        from = parser.requireElement("expression")
                     } finally {
-                        helper.popFollow();
+                        parser.popFollow();
                     }
                     if (!from) {
-                        helper.raiseParseError('Expected either target value or "elsewhere".');
+                        parser.raiseParseError('Expected either target value or "elsewhere".');
                     }
                 }
             }
             // support both "elsewhere" and "from elsewhere"
-            if (from === null && elsewhere === false && helper.matchToken("elsewhere")) {
+            if (from === null && elsewhere === false && parser.matchToken("elsewhere")) {
                 elsewhere = true;
             }
 
-            if (helper.matchToken("in")) {
-                var inExpr = helper.parseElement('unaryExpression');
+            if (parser.matchToken("in")) {
+                var inExpr = parser.parseElement('unaryExpression');
             }
 
-            if (helper.matchToken("debounced")) {
-                helper.requireToken("at");
-                var timeExpr = helper.requireElement("unaryExpression");
+            if (parser.matchToken("debounced")) {
+                parser.requireToken("at");
+                var timeExpr = parser.requireElement("unaryExpression");
                 var debounceTime = timeExpr.evaluate({}); // OK No promise TODO make a literal time expr
-            } else if (helper.matchToken("throttled")) {
-                helper.requireToken("at");
-                var timeExpr = helper.requireElement("unaryExpression");
+            } else if (parser.matchToken("throttled")) {
+                parser.requireToken("at");
+                var timeExpr = parser.requireElement("unaryExpression");
                 var throttleTime = timeExpr.evaluate({}); // OK No promise TODO make a literal time expr
             }
 
@@ -196,36 +196,36 @@ export class OnFeature {
                 debounced: undefined,
                 lastExec: undefined,
             });
-        } while (helper.matchToken("or"));
+        } while (parser.matchToken("or"));
 
         var queueLast = true;
         if (!every) {
-            if (helper.matchToken("queue")) {
-                if (helper.matchToken("all")) {
+            if (parser.matchToken("queue")) {
+                if (parser.matchToken("all")) {
                     var queueAll = true;
                     var queueLast = false;
-                } else if (helper.matchToken("first")) {
+                } else if (parser.matchToken("first")) {
                     var queueFirst = true;
-                } else if (helper.matchToken("none")) {
+                } else if (parser.matchToken("none")) {
                     var queueNone = true;
                 } else {
-                    helper.requireToken("last");
+                    parser.requireToken("last");
                 }
             }
         }
 
-        var start = helper.requireElement("commandList");
+        var start = parser.requireElement("commandList");
         kernel.ensureTerminated(start);
 
         var errorSymbol, errorHandler;
-        if (helper.matchToken("catch")) {
-            errorSymbol = helper.requireTokenType("IDENTIFIER").value;
-            errorHandler = helper.requireElement("commandList");
+        if (parser.matchToken("catch")) {
+            errorSymbol = parser.requireTokenType("IDENTIFIER").value;
+            errorHandler = parser.requireElement("commandList");
             kernel.ensureTerminated(errorHandler);
         }
 
-        if (helper.matchToken("finally")) {
-            var finallyHandler = helper.requireElement("commandList");
+        if (parser.matchToken("finally")) {
+            var finallyHandler = parser.requireElement("commandList");
             kernel.ensureTerminated(finallyHandler);
         }
 
@@ -431,7 +431,7 @@ export class OnFeature {
                 }
             },
         };
-        helper.setParent(start, onFeature);
+        parser.setParent(start, onFeature);
         return onFeature;
     }
 }

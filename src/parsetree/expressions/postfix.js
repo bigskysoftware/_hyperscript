@@ -18,12 +18,12 @@ const STRING_POSTFIXES = [
 export class StringPostfixExpression {
     /**
      * Parse string postfix expression
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @param {Object} root - the root expression to apply postfix to
      * @returns {Object | undefined}
      */
-    static parse(helper, root) {
-        let stringPostfix = helper.tokens.matchAnyToken.apply(helper.tokens, STRING_POSTFIXES) || helper.matchOpToken("%");
+    static parse(parser, root) {
+        let stringPostfix = parser.tokens.matchAnyToken.apply(parser.tokens, STRING_POSTFIXES) || parser.matchOpToken("%");
         if (!stringPostfix) return;
 
         return {
@@ -46,15 +46,15 @@ export class StringPostfixExpression {
 export class TimeExpression {
     /**
      * Parse time expression
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @param {Object} root - the root expression to apply time factor to
      * @returns {Object | undefined}
      */
-    static parse(helper, root) {
+    static parse(parser, root) {
         var timeFactor = null;
-        if (helper.matchToken("s") || helper.matchToken("seconds")) {
+        if (parser.matchToken("s") || parser.matchToken("seconds")) {
             timeFactor = 1000;
-        } else if (helper.matchToken("ms") || helper.matchToken("milliseconds")) {
+        } else if (parser.matchToken("ms") || parser.matchToken("milliseconds")) {
             timeFactor = 1;
         }
         if (!timeFactor) return;
@@ -80,16 +80,16 @@ export class TimeExpression {
 export class TypeCheckExpression {
     /**
      * Parse type check expression
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @param {Object} root - the root expression to type check
      * @returns {Object | undefined}
      */
-    static parse(helper, root) {
-        if (!helper.matchOpToken(":")) return;
+    static parse(parser, root) {
+        if (!parser.matchOpToken(":")) return;
 
-        var typeName = helper.requireTokenType("IDENTIFIER");
+        var typeName = parser.requireTokenType("IDENTIFIER");
         if (!typeName.value) return;
-        var nullOk = !helper.matchOpToken("!");
+        var nullOk = !parser.matchOpToken("!");
 
         return {
             type: "typeCheck",

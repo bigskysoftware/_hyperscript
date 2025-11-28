@@ -36,14 +36,14 @@ class SetterCommand {
      * @param {*} value - Value expression to assign
      * @returns Setter command object
      */
-    static makeSetter(helper, target, value) {
+    static makeSetter(parser, target, value) {
         var symbolWrite = target.type === "symbol";
         var attributeWrite = target.type === "attributeRef";
         var styleWrite = target.type === "styleRef";
         var arrayWrite = target.type === "arrayIndex";
 
         if (!(attributeWrite || styleWrite || symbolWrite) && target.root == null) {
-            helper.raiseParseError("Can only put directly into symbols, not references");
+            parser.raiseParseError("Can only put directly into symbols, not references");
         }
 
         var rootElt = null;
@@ -51,7 +51,7 @@ class SetterCommand {
         if (symbolWrite) {
             // rootElt is null
         } else if (attributeWrite || styleWrite) {
-            rootElt = helper.requireElement("implicitMeTarget");
+            rootElt = parser.requireElement("implicitMeTarget");
             var attribute = target;
         } else if(arrayWrite) {
             prop = target.firstIndex;
@@ -121,17 +121,17 @@ export class SetCommand extends SetterCommand {
 
     /**
      * Parse set command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {SetCommand | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchToken("set")) return;
+    static parse(parser) {
+        if (!parser.matchToken("set")) return;
 
         // set {obj} on target form
-        if (helper.currentToken().type === "L_BRACE") {
-            var obj = helper.requireElement("objectLiteral");
-            helper.requireToken("on");
-            var target = helper.requireElement("expression");
+        if (parser.currentToken().type === "L_BRACE") {
+            var obj = parser.requireElement("objectLiteral");
+            parser.requireToken("on");
+            var target = parser.requireElement("expression");
 
             var command = new SetCommand(target, null, obj);
             command.op = function (ctx, obj, target) {
@@ -143,14 +143,14 @@ export class SetCommand extends SetterCommand {
 
         // set target to value form
         try {
-            helper.pushFollow("to");
-            var target = helper.requireElement("assignableExpression");
+            parser.pushFollow("to");
+            var target = parser.requireElement("assignableExpression");
         } finally {
-            helper.popFollow();
+            parser.popFollow();
         }
-        helper.requireToken("to");
-        var value = helper.requireElement("expression");
-        return SetCommand.makeSetter(helper, target, value);
+        parser.requireToken("to");
+        var value = parser.requireElement("expression");
+        return SetCommand.makeSetter(parser, target, value);
     }
 }
 
@@ -171,17 +171,17 @@ export class DefaultCommand extends SetterCommand {
 
     /**
      * Parse default command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {DefaultCommand | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchToken("default")) return;
-        var target = helper.requireElement("assignableExpression");
-        helper.requireToken("to");
+    static parse(parser) {
+        if (!parser.matchToken("default")) return;
+        var target = parser.requireElement("assignableExpression");
+        parser.requireToken("to");
 
-        var value = helper.requireElement("expression");
+        var value = parser.requireElement("expression");
 
-        var setter = SetCommand.makeSetter(helper, target, value);
+        var setter = SetCommand.makeSetter(parser, target, value);
         var defaultCmd = new DefaultCommand(target, value, setter);
         defaultCmd.op = function (context, target) {
             if (target) {
@@ -210,19 +210,19 @@ export class IncrementCommand extends SetterCommand {
 
     /**
      * Parse increment command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {IncrementCommand | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchToken("increment")) return;
+    static parse(parser) {
+        if (!parser.matchToken("increment")) return;
         var amountExpr;
 
         // This is optional.  Defaults to "result"
-        var target = helper.parseElement("assignableExpression");
+        var target = parser.parseElement("assignableExpression");
 
         // This is optional. Defaults to 1.
-        if (helper.matchToken("by")) {
-            amountExpr = helper.requireElement("expression");
+        if (parser.matchToken("by")) {
+            amountExpr = parser.requireElement("expression");
         }
 
         var implicitIncrementOp = {
@@ -241,7 +241,7 @@ export class IncrementCommand extends SetterCommand {
             }
         };
 
-        return SetCommand.makeSetter(helper, target, implicitIncrementOp);
+        return SetCommand.makeSetter(parser, target, implicitIncrementOp);
     }
 }
 
@@ -260,19 +260,19 @@ export class DecrementCommand extends SetterCommand {
 
     /**
      * Parse decrement command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {DecrementCommand | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchToken("decrement")) return;
+    static parse(parser) {
+        if (!parser.matchToken("decrement")) return;
         var amountExpr;
 
         // This is optional.  Defaults to "result"
-        var target = helper.parseElement("assignableExpression");
+        var target = parser.parseElement("assignableExpression");
 
         // This is optional. Defaults to 1.
-        if (helper.matchToken("by")) {
-            amountExpr = helper.requireElement("expression");
+        if (parser.matchToken("by")) {
+            amountExpr = parser.requireElement("expression");
         }
 
         var implicitDecrementOp = {
@@ -291,7 +291,7 @@ export class DecrementCommand extends SetterCommand {
             }
         };
 
-        return SetCommand.makeSetter(helper, target, implicitDecrementOp);
+        return SetCommand.makeSetter(parser, target, implicitDecrementOp);
     }
 }
 
@@ -311,26 +311,26 @@ export class PutCommand extends SetterCommand {
 
     /**
      * Parse put command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {PutCommand | undefined}
      */
-    static parse(helper, kernel) {
-        if (!helper.matchToken("put")) return;
+    static parse(parser, kernel) {
+        if (!parser.matchToken("put")) return;
 
-        var value = helper.requireElement("expression");
+        var value = parser.requireElement("expression");
 
-        var operationToken = helper.matchAnyToken("into", "before", "after");
+        var operationToken = parser.matchAnyToken("into", "before", "after");
 
-        if (operationToken == null && helper.matchToken("at")) {
-            helper.matchToken("the"); // optional "the"
-            operationToken = helper.matchAnyToken("start", "end");
-            helper.requireToken("of");
+        if (operationToken == null && parser.matchToken("at")) {
+            parser.matchToken("the"); // optional "the"
+            operationToken = parser.matchAnyToken("start", "end");
+            parser.requireToken("of");
         }
 
         if (operationToken == null) {
-            helper.raiseParseError("Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
+            parser.raiseParseError("Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
         }
-        var target = helper.requireElement("expression");
+        var target = parser.requireElement("expression");
 
         var operation = operationToken.value;
 
@@ -352,11 +352,11 @@ export class PutCommand extends SetterCommand {
         } else if (target.type === "attributeRef" && operation === "into") {
             var attributeWrite = true;
             prop = target.name;
-            rootExpr = helper.requireElement("implicitMeTarget");
+            rootExpr = parser.requireElement("implicitMeTarget");
         } else if (target.type === "styleRef" && operation === "into") {
             var styleWrite = true;
             prop = target.name;
-            rootExpr = helper.requireElement("implicitMeTarget");
+            rootExpr = parser.requireElement("implicitMeTarget");
         } else if (target.attribute && operation === "into") {
             var attributeWrite = target.attribute.type === "attributeRef";
             var styleWrite = target.attribute.type === "styleRef";

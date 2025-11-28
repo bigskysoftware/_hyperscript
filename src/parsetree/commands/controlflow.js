@@ -12,27 +12,27 @@
 export class IfCommand {
     /**
      * Parse if command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {IfCommand | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchToken("if")) return;
-        var expr = helper.requireElement("expression");
-        helper.matchToken("then"); // optional 'then'
-        var trueBranch = helper.parseElement("commandList");
+    static parse(parser) {
+        if (!parser.matchToken("if")) return;
+        var expr = parser.requireElement("expression");
+        parser.matchToken("then"); // optional 'then'
+        var trueBranch = parser.parseElement("commandList");
         var nestedIfStmt = false;
-        let elseToken = helper.matchToken("else") || helper.matchToken("otherwise");
+        let elseToken = parser.matchToken("else") || parser.matchToken("otherwise");
         if (elseToken) {
-            let elseIfIfToken = helper.peekToken("if");
+            let elseIfIfToken = parser.peekToken("if");
             nestedIfStmt = elseIfIfToken != null && elseIfIfToken.line === elseToken.line;
             if (nestedIfStmt) {
-                var falseBranch = helper.parseElement("command");
+                var falseBranch = parser.parseElement("command");
             } else {
-                var falseBranch = helper.parseElement("commandList");
+                var falseBranch = parser.parseElement("commandList");
             }
         }
-        if (helper.hasMore() && !nestedIfStmt) {
-            helper.requireToken("end");
+        if (parser.hasMore() && !nestedIfStmt) {
+            parser.requireToken("end");
         }
 
         /** @type {ASTNode} */
@@ -51,8 +51,8 @@ export class IfCommand {
                 }
             },
         };
-        helper.setParent(trueBranch, ifCmd);
-        helper.setParent(falseBranch, ifCmd);
+        parser.setParent(trueBranch, ifCmd);
+        parser.setParent(falseBranch, ifCmd);
         return ifCmd;
     }
 }
@@ -60,50 +60,50 @@ export class IfCommand {
 /**
  * Helper function to parse repeat/for expressions
  */
-function parseRepeatExpression(helper, startedWithForToken) {
-    var innerStartToken = helper.currentToken();
+function parseRepeatExpression(parser, startedWithForToken) {
+    var innerStartToken = parser.currentToken();
     var identifier;
-    if (helper.matchToken("for") || startedWithForToken) {
-        var identifierToken = helper.requireTokenType("IDENTIFIER");
+    if (parser.matchToken("for") || startedWithForToken) {
+        var identifierToken = parser.requireTokenType("IDENTIFIER");
         identifier = identifierToken.value;
-        helper.requireToken("in");
-        var expression = helper.requireElement("expression");
-    } else if (helper.matchToken("in")) {
+        parser.requireToken("in");
+        var expression = parser.requireElement("expression");
+    } else if (parser.matchToken("in")) {
         identifier = "it";
-        var expression = helper.requireElement("expression");
-    } else if (helper.matchToken("while")) {
-        var whileExpr = helper.requireElement("expression");
-    } else if (helper.matchToken("until")) {
+        var expression = parser.requireElement("expression");
+    } else if (parser.matchToken("while")) {
+        var whileExpr = parser.requireElement("expression");
+    } else if (parser.matchToken("until")) {
         var isUntil = true;
-        if (helper.matchToken("event")) {
-            var evt = helper.requireElement("dotOrColonPath", "Expected event name");
-            if (helper.matchToken("from")) {
-                var on = helper.requireElement("expression");
+        if (parser.matchToken("event")) {
+            var evt = parser.requireElement("dotOrColonPath", "Expected event name");
+            if (parser.matchToken("from")) {
+                var on = parser.requireElement("expression");
             }
         } else {
-            var whileExpr = helper.requireElement("expression");
+            var whileExpr = parser.requireElement("expression");
         }
     } else {
-        if (!helper.commandBoundary(helper.currentToken()) &&
-            helper.currentToken().value !== 'forever') {
-            var times = helper.requireElement("expression");
-            helper.requireToken("times");
+        if (!parser.commandBoundary(parser.currentToken()) &&
+            parser.currentToken().value !== 'forever') {
+            var times = parser.requireElement("expression");
+            parser.requireToken("times");
         } else {
-            helper.matchToken("forever"); // consume optional forever
+            parser.matchToken("forever"); // consume optional forever
             var forever = true;
         }
     }
 
-    if (helper.matchToken("index")) {
-        var identifierToken = helper.requireTokenType("IDENTIFIER");
+    if (parser.matchToken("index")) {
+        var identifierToken = parser.requireTokenType("IDENTIFIER");
         var indexIdentifier = identifierToken.value;
-    } else if (helper.matchToken("indexed")) {
-        helper.requireToken("by");
-        var identifierToken = helper.requireTokenType("IDENTIFIER");
+    } else if (parser.matchToken("indexed")) {
+        parser.requireToken("by");
+        var identifierToken = parser.requireTokenType("IDENTIFIER");
         var indexIdentifier = identifierToken.value;
     }
 
-    var loop = helper.parseElement("commandList");
+    var loop = parser.parseElement("commandList");
     if (loop && evt) {
         // if this is an event based loop, wait a tick at the end of the loop so that
         // events have a chance to trigger in the loop condition o_O)))
@@ -123,8 +123,8 @@ function parseRepeatExpression(helper, startedWithForToken) {
         };
         last.next = waitATick;
     }
-    if (helper.hasMore()) {
-        helper.requireToken("end");
+    if (parser.hasMore()) {
+        parser.requireToken("end");
     }
 
     if (identifier == null) {
@@ -189,7 +189,7 @@ function parseRepeatExpression(helper, startedWithForToken) {
             }
         },
     };
-    helper.setParent(loop, repeatCmd);
+    parser.setParent(loop, repeatCmd);
     var repeatInit = {
         name: "repeatInit",
         args: [expression, evt, on],
@@ -223,7 +223,7 @@ function parseRepeatExpression(helper, startedWithForToken) {
             return context.meta.runtime.unifiedExec(this, context);
         },
     };
-    helper.setParent(repeatCmd, repeatInit);
+    parser.setParent(repeatCmd, repeatInit);
     return repeatInit;
 }
 
@@ -236,12 +236,12 @@ function parseRepeatExpression(helper, startedWithForToken) {
 export class RepeatCommand {
     /**
      * Parse repeat command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {RepeatCommand | undefined}
      */
-    static parse(helper) {
-        if (helper.matchToken("repeat")) {
-            return parseRepeatExpression(helper, false);
+    static parse(parser) {
+        if (parser.matchToken("repeat")) {
+            return parseRepeatExpression(parser, false);
         }
     }
 }
@@ -255,12 +255,12 @@ export class RepeatCommand {
 export class ForCommand {
     /**
      * Parse for command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {ForCommand | undefined}
      */
-    static parse(helper) {
-        if (helper.matchToken("for")) {
-            return parseRepeatExpression(helper, true);
+    static parse(parser) {
+        if (parser.matchToken("for")) {
+            return parseRepeatExpression(parser, true);
         }
     }
 }
@@ -274,18 +274,18 @@ export class ForCommand {
 export class ContinueCommand {
     /**
      * Parse continue command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {ContinueCommand | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchToken("continue")) return;
+    static parse(parser) {
+        if (!parser.matchToken("continue")) return;
 
         var command = {
             op: function (context) {
                 // scan for the closest repeat statement
                 for (var parent = this.parent ; true ; parent = parent.parent) {
                     if (parent == undefined) {
-                        helper.raiseParseError("Command `continue` cannot be used outside of a `repeat` loop.")
+                        parser.raiseParseError("Command `continue` cannot be used outside of a `repeat` loop.")
                     }
                     if (parent.loop != undefined) {
                         return parent.resolveNext(context)
@@ -306,18 +306,18 @@ export class ContinueCommand {
 export class BreakCommand {
     /**
      * Parse break command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {BreakCommand | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchToken("break")) return;
+    static parse(parser) {
+        if (!parser.matchToken("break")) return;
 
         var command = {
             op: function (context) {
                 // scan for the closest repeat statement
                 for (var parent = this.parent ; true ; parent = parent.parent) {
                     if (parent == undefined) {
-                        helper.raiseParseError("Command `continue` cannot be used outside of a `repeat` loop.")
+                        parser.raiseParseError("Command `continue` cannot be used outside of a `repeat` loop.")
                     }
                     if (parent.loop != undefined) {
                         return context.meta.runtime.findNext(parent.parent, context);
@@ -338,16 +338,16 @@ export class BreakCommand {
 export class TellCommand {
     /**
      * Parse tell command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {TellCommand | undefined}
      */
-    static parse(helper) {
-        var startToken = helper.currentToken();
-        if (!helper.matchToken("tell")) return;
-        var value = helper.requireElement("expression");
-        var body = helper.requireElement("commandList");
-        if (helper.hasMore() && !helper.featureStart(helper.currentToken())) {
-            helper.requireToken("end");
+    static parse(parser) {
+        var startToken = parser.currentToken();
+        if (!parser.matchToken("tell")) return;
+        var value = parser.requireElement("expression");
+        var body = parser.requireElement("commandList");
+        if (parser.hasMore() && !parser.featureStart(parser.currentToken())) {
+            parser.requireToken("end");
         }
         var slot = "tell_" + startToken.start;
         var tellCmd = {
@@ -383,7 +383,7 @@ export class TellCommand {
                 return this.resolveNext(context);
             },
         };
-        helper.setParent(body, tellCmd);
+        parser.setParent(body, tellCmd);
         return tellCmd;
     }
 }

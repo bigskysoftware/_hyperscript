@@ -17,13 +17,13 @@ export class NakedString {
 
     /**
      * Parse a naked string (unquoted string until whitespace)
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {NakedString | undefined}
      */
-    static parse(helper) {
-        if (helper.hasMore()) {
-            var tokenArr = helper.consumeUntilWhitespace();
-            helper.matchTokenType("WHITESPACE");
+    static parse(parser) {
+        if (parser.hasMore()) {
+            var tokenArr = parser.consumeUntilWhitespace();
+            parser.matchTokenType("WHITESPACE");
             return new NakedString(tokenArr);
         }
     }
@@ -56,11 +56,11 @@ export class BooleanLiteral {
 
     /**
      * Parse a boolean literal
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {BooleanLiteral | undefined}
      */
-    static parse(helper) {
-        var booleanLiteral = helper.matchToken("true") || helper.matchToken("false");
+    static parse(parser) {
+        var booleanLiteral = parser.matchToken("true") || parser.matchToken("false");
         if (!booleanLiteral) return;
         const value = booleanLiteral.value === "true";
         return new BooleanLiteral(value);
@@ -89,11 +89,11 @@ export class NullLiteral {
 
     /**
      * Parse a null literal
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {NullLiteral | undefined}
      */
-    static parse(helper) {
-        if (helper.matchToken("null")) {
+    static parse(parser) {
+        if (parser.matchToken("null")) {
             return new NullLiteral();
         }
     }
@@ -123,11 +123,11 @@ export class NumberLiteral {
 
     /**
      * Parse a number literal
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {NumberLiteral | undefined}
      */
-    static parse(helper) {
-        var number = helper.matchTokenType("NUMBER");
+    static parse(parser) {
+        var number = parser.matchTokenType("NUMBER");
         if (!number) return;
         var numberToken = number;
         var value = parseFloat(/** @type {string} */ (number.value));
@@ -160,21 +160,21 @@ export class StringLiteral {
 
     /**
      * Parse a string literal
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {StringLiteral | undefined}
      */
-    static parse(helper) {
-        var stringToken = helper.matchTokenType("STRING");
+    static parse(parser) {
+        var stringToken = parser.matchTokenType("STRING");
         if (!stringToken) return;
         var rawValue = /** @type {string} */ (stringToken.value);
         /** @type {any[]} */
         var args;
         if (stringToken.template) {
             // Import Lexer from the helper's parser
-            const Lexer = helper.kernel.constructor.Lexer || window._hyperscript?.internals?.Lexer;
+            const Lexer = parser.kernel.constructor.Lexer || window._hyperscript?.internals?.Lexer;
             if (Lexer) {
                 var innerTokens = Lexer.tokenize(rawValue, true);
-                args = helper.kernel.parseStringTemplate(innerTokens);
+                args = parser.kernel.parseStringTemplate(innerTokens);
             } else {
                 args = [];
             }
@@ -227,18 +227,18 @@ export class ArrayLiteral {
 
     /**
      * Parse an array literal
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {ArrayLiteral | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchOpToken("[")) return;
+    static parse(parser) {
+        if (!parser.matchOpToken("[")) return;
         var values = [];
-        if (!helper.matchOpToken("]")) {
+        if (!parser.matchOpToken("]")) {
             do {
-                var expr = helper.requireElement("expression");
+                var expr = parser.requireElement("expression");
                 values.push(expr);
-            } while (helper.matchOpToken(","));
-            helper.requireOpToken("]");
+            } while (parser.matchOpToken(","));
+            parser.requireOpToken("]");
         }
         return new ArrayLiteral(values);
     }
@@ -276,21 +276,21 @@ export class ObjectKey {
 
     /**
      * Parse an object key
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {ObjectKey}
      */
-    static parse(helper) {
+    static parse(parser) {
         var token;
-        if ((token = helper.matchTokenType("STRING"))) {
+        if ((token = parser.matchTokenType("STRING"))) {
             return new ObjectKey(token.value, null, null);
-        } else if (helper.matchOpToken("[")) {
-            var expr = helper.parseElement("expression");
-            helper.requireOpToken("]");
+        } else if (parser.matchOpToken("[")) {
+            var expr = parser.parseElement("expression");
+            parser.requireOpToken("]");
             return new ObjectKey(null, expr, [expr]);
         } else {
             var key = "";
             do {
-                token = helper.matchTokenType("IDENTIFIER") || helper.matchOpToken("-");
+                token = parser.matchTokenType("IDENTIFIER") || parser.matchOpToken("-");
                 if (token) key += token.value;
             } while (token);
             return new ObjectKey(key, null, null);
@@ -334,22 +334,22 @@ export class ObjectLiteral {
 
     /**
      * Parse an object literal
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {ObjectLiteral | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchOpToken("{")) return;
+    static parse(parser) {
+        if (!parser.matchOpToken("{")) return;
         var keyExpressions = [];
         var valueExpressions = [];
-        if (!helper.matchOpToken("}")) {
+        if (!parser.matchOpToken("}")) {
             do {
-                var name = helper.requireElement("objectKey");
-                helper.requireOpToken(":");
-                var value = helper.requireElement("expression");
+                var name = parser.requireElement("objectKey");
+                parser.requireOpToken(":");
+                var value = parser.requireElement("expression");
                 valueExpressions.push(value);
                 keyExpressions.push(name);
-            } while (helper.matchOpToken(",") && !helper.peekToken("}", 0, 'R_BRACE'));
-            helper.requireOpToken("}");
+            } while (parser.matchOpToken(",") && !parser.peekToken("}", 0, 'R_BRACE'));
+            parser.requireOpToken("}");
         }
         return new ObjectLiteral(keyExpressions, valueExpressions);
     }
@@ -390,33 +390,33 @@ export class NamedArgumentList {
 
     /**
      * Parse a naked named argument list (without parentheses)
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {NamedArgumentList}
      */
-    static parseNaked(helper) {
+    static parseNaked(parser) {
         var fields = [];
         var valueExpressions = [];
-        if (helper.currentToken().type === "IDENTIFIER") {
+        if (parser.currentToken().type === "IDENTIFIER") {
             do {
-                var name = helper.requireTokenType("IDENTIFIER");
-                helper.requireOpToken(":");
-                var value = helper.requireElement("expression");
+                var name = parser.requireTokenType("IDENTIFIER");
+                parser.requireOpToken(":");
+                var value = parser.requireElement("expression");
                 valueExpressions.push(value);
                 fields.push({ name: name, value: value });
-            } while (helper.matchOpToken(","));
+            } while (parser.matchOpToken(","));
         }
         return new NamedArgumentList(fields, valueExpressions);
     }
 
     /**
      * Parse a named argument list with parentheses
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {NamedArgumentList | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchOpToken("(")) return;
-        var elt = NamedArgumentList.parseNaked(helper);
-        helper.requireOpToken(")");
+    static parse(parser) {
+        if (!parser.matchOpToken("(")) return;
+        var elt = NamedArgumentList.parseNaked(parser);
+        parser.requireOpToken(")");
         return elt;
     }
 

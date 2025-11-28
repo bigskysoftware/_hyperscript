@@ -7,16 +7,16 @@
 export class InitFeature {
     /**
      * Parse init feature
-     * @param {ParserHelper} helper
-     * @param {LanguageKernel} parser
+     * @param {Parser} parser
+     * @param {LanguageKernel} kernel
      * @returns {InitFeature | undefined}
      */
-    static parse(helper, kernel) {
-        if (!helper.matchToken("init")) return;
+    static parse(parser, kernel) {
+        if (!parser.matchToken("init")) return;
 
-        var immediately = helper.matchToken("immediately");
+        var immediately = parser.matchToken("immediately");
 
-        var start = helper.requireElement("commandList");
+        var start = parser.requireElement("commandList");
         var initFeature = {
             start: start,
             install: function (target, source, args, runtime) {
@@ -33,7 +33,7 @@ export class InitFeature {
 
         // terminate body
         kernel.ensureTerminated(start);
-        helper.setParent(start, initFeature);
+        parser.setParent(start, initFeature);
         return initFeature;
     }
 }

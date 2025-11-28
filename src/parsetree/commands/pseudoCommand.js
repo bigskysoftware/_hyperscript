@@ -11,16 +11,16 @@
 export class PseudoCommand {
     /**
      * Parse pseudo-command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {Object | undefined}
      */
-    static parse(helper) {
-        let lookAhead = helper.token(1);
+    static parse(parser) {
+        let lookAhead = parser.token(1);
         if (!(lookAhead && lookAhead.op && (lookAhead.value === '.' || lookAhead.value === "("))) {
             return null;
         }
 
-        var expr = helper.requireElement("primaryExpression");
+        var expr = parser.requireElement("primaryExpression");
 
         var rootRoot = expr.root;
         var root = expr;
@@ -30,14 +30,14 @@ export class PseudoCommand {
         }
 
         if (expr.type !== "functionCall") {
-            helper.raiseParseError("Pseudo-commands must be function calls");
+            parser.raiseParseError("Pseudo-commands must be function calls");
         }
 
         if (root.type === "functionCall" && root.root.root == null) {
-            if (helper.matchAnyToken("the", "to", "on", "with", "into", "from", "at")) {
-                var realRoot = helper.requireElement("expression");
-            } else if (helper.matchToken("me")) {
-                var realRoot = helper.requireElement("implicitMeTarget");
+            if (parser.matchAnyToken("the", "to", "on", "with", "into", "from", "at")) {
+                var realRoot = parser.requireElement("expression");
+            } else if (parser.matchToken("me")) {
+                var realRoot = parser.requireElement("implicitMeTarget");
             }
         }
 

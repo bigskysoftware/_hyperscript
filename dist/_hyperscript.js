@@ -1783,7 +1783,7 @@ __publicField(_Runtime, "HALT", {});
 var Runtime = _Runtime;
 
 // src/core/parser-helper.js
-var ParserHelper = class {
+var Parser = class {
   /**
    * @param {import('./kernel.js').LanguageKernel} kernel
    * @param {import('./tokens.js').Tokens} tokens
@@ -1942,41 +1942,41 @@ var LanguageKernel = class _LanguageKernel {
     /** @type {string[]} */
     __publicField(this, "INDIRECT_EXPRESSIONS", []);
     this.possessivesDisabled = false;
-    this.addGrammarElement("feature", function(helper) {
-      if (helper.matchOpToken("(")) {
-        var featureElement = helper.requireElement("feature");
-        helper.requireOpToken(")");
+    this.addGrammarElement("feature", function(parser) {
+      if (parser.matchOpToken("(")) {
+        var featureElement = parser.requireElement("feature");
+        parser.requireOpToken(")");
         return featureElement;
       }
-      var featureDefinition = helper.FEATURES[helper.currentToken().value || ""];
+      var featureDefinition = parser.FEATURES[parser.currentToken().value || ""];
       if (featureDefinition) {
-        return featureDefinition(helper);
+        return featureDefinition(parser);
       }
     });
-    this.addGrammarElement("command", function(helper) {
-      if (helper.matchOpToken("(")) {
-        const commandElement2 = helper.requireElement("command");
-        helper.requireOpToken(")");
+    this.addGrammarElement("command", function(parser) {
+      if (parser.matchOpToken("(")) {
+        const commandElement2 = parser.requireElement("command");
+        parser.requireOpToken(")");
         return commandElement2;
       }
-      var commandDefinition = helper.COMMANDS[helper.currentToken().value || ""];
+      var commandDefinition = parser.COMMANDS[parser.currentToken().value || ""];
       let commandElement;
       if (commandDefinition) {
-        commandElement = commandDefinition(helper);
-      } else if (helper.currentToken().type === "IDENTIFIER") {
-        commandElement = helper.parseElement("pseudoCommand");
+        commandElement = commandDefinition(parser);
+      } else if (parser.currentToken().type === "IDENTIFIER") {
+        commandElement = parser.parseElement("pseudoCommand");
       }
       if (commandElement) {
-        return helper.kernel.parseElement("indirectStatement", helper.tokens, commandElement);
+        return parser.kernel.parseElement("indirectStatement", parser.tokens, commandElement);
       }
       return commandElement;
     });
-    this.addGrammarElement("commandList", function(helper) {
-      if (helper.hasMore()) {
-        var cmd = helper.parseElement("command");
+    this.addGrammarElement("commandList", function(parser) {
+      if (parser.hasMore()) {
+        var cmd = parser.parseElement("command");
         if (cmd) {
-          helper.matchToken("then");
-          const next = helper.parseElement("commandList");
+          parser.matchToken("then");
+          const next = parser.parseElement("commandList");
           if (next) cmd.next = next;
           return cmd;
         }
@@ -1991,28 +1991,28 @@ var LanguageKernel = class _LanguageKernel {
         }
       };
     });
-    this.addGrammarElement("leaf", function(helper) {
-      var result = helper.parseAnyOf(helper.LEAF_EXPRESSIONS);
+    this.addGrammarElement("leaf", function(parser) {
+      var result = parser.parseAnyOf(parser.LEAF_EXPRESSIONS);
       if (result == null) {
-        return helper.parseElement("symbol");
+        return parser.parseElement("symbol");
       }
       return result;
     });
-    this.addGrammarElement("indirectExpression", function(helper, root) {
-      for (var i = 0; i < helper.INDIRECT_EXPRESSIONS.length; i++) {
-        var indirect = helper.INDIRECT_EXPRESSIONS[i];
-        root.endToken = helper.lastMatch();
-        var result = helper.kernel.parseElement(indirect, helper.tokens, root);
+    this.addGrammarElement("indirectExpression", function(parser, root) {
+      for (var i = 0; i < parser.INDIRECT_EXPRESSIONS.length; i++) {
+        var indirect = parser.INDIRECT_EXPRESSIONS[i];
+        root.endToken = parser.lastMatch();
+        var result = parser.kernel.parseElement(indirect, parser.tokens, root);
         if (result) {
           return result;
         }
       }
       return root;
     });
-    this.addGrammarElement("indirectStatement", function(helper, root) {
-      if (helper.matchToken("unless")) {
-        root.endToken = helper.lastMatch();
-        var conditional = helper.requireElement("expression");
+    this.addGrammarElement("indirectStatement", function(parser, root) {
+      if (parser.matchToken("unless")) {
+        root.endToken = parser.lastMatch();
+        var conditional = parser.requireElement("expression");
         var unless = {
           type: "unlessStatementModifier",
           args: [conditional],
@@ -2032,12 +2032,12 @@ var LanguageKernel = class _LanguageKernel {
       }
       return root;
     });
-    this.addGrammarElement("primaryExpression", function(helper) {
-      var leaf = helper.parseElement("leaf");
+    this.addGrammarElement("primaryExpression", function(parser) {
+      var leaf = parser.parseElement("leaf");
       if (leaf) {
-        return helper.kernel.parseElement("indirectExpression", helper.tokens, leaf);
+        return parser.kernel.parseElement("indirectExpression", parser.tokens, leaf);
       }
-      helper.raiseParseError("Unexpected value: " + helper.currentToken().value);
+      parser.raiseParseError("Unexpected value: " + parser.currentToken().value);
     });
   }
   use(plugin) {
@@ -2065,8 +2065,8 @@ var LanguageKernel = class _LanguageKernel {
     var elementDefinition = this.GRAMMAR[type];
     if (elementDefinition) {
       var start = tokens.currentToken();
-      var helper = new ParserHelper(this, tokens);
-      var parseElement = elementDefinition(helper, root);
+      var parser = new Parser(this, tokens);
+      var parseElement = elementDefinition(parser, root);
       if (parseElement) {
         this.initElt(parseElement, start, tokens);
         parseElement.endToken = parseElement.endToken || tokens.lastMatch();
@@ -2119,8 +2119,8 @@ var LanguageKernel = class _LanguageKernel {
    */
   addCommand(keyword, definition) {
     var commandGrammarType = keyword + "Command";
-    var commandDefinitionWrapper = function(helper) {
-      const commandElement = definition(helper);
+    var commandDefinitionWrapper = function(parser) {
+      const commandElement = definition(parser);
       if (commandElement) {
         commandElement.type = commandGrammarType;
         commandElement.execute = function(context2) {
@@ -2139,8 +2139,8 @@ var LanguageKernel = class _LanguageKernel {
    */
   addFeature(keyword, definition) {
     var featureGrammarType = keyword + "Feature";
-    var featureDefinitionWrapper = function(helper) {
-      var featureElement = definition(helper);
+    var featureDefinitionWrapper = function(parser) {
+      var featureElement = definition(parser);
       if (featureElement) {
         featureElement.isFeature = true;
         featureElement.keyword = keyword;
@@ -2326,19 +2326,19 @@ var LanguageKernel = class _LanguageKernel {
 var IdRef = class {
   /**
    * Parse an ID reference
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {any | undefined}
    */
-  static parse(helper) {
+  static parse(parser) {
     var _a, _b;
-    const Lexer2 = helper.kernel.constructor.Lexer || ((_b = (_a = window._hyperscript) == null ? void 0 : _a.internals) == null ? void 0 : _b.Lexer);
-    var elementId = helper.matchTokenType("ID_REF");
+    const Lexer2 = parser.kernel.constructor.Lexer || ((_b = (_a = window._hyperscript) == null ? void 0 : _a.internals) == null ? void 0 : _b.Lexer);
+    var elementId = parser.matchTokenType("ID_REF");
     if (!elementId) return;
     if (!elementId.value) return;
     if (elementId.template) {
       var templateValue = elementId.value.substring(2);
       var innerTokens = Lexer2.tokenize(templateValue);
-      var innerExpression = helper.kernel.requireElement("expression", innerTokens);
+      var innerExpression = parser.kernel.requireElement("expression", innerTokens);
       return {
         type: "idRefTemplate",
         args: [innerExpression],
@@ -2365,19 +2365,19 @@ var IdRef = class {
 var ClassRef = class {
   /**
    * Parse a class reference
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {any | undefined}
    */
-  static parse(helper) {
+  static parse(parser) {
     var _a, _b;
-    const Lexer2 = helper.kernel.constructor.Lexer || ((_b = (_a = window._hyperscript) == null ? void 0 : _a.internals) == null ? void 0 : _b.Lexer);
-    var classRef = helper.matchTokenType("CLASS_REF");
+    const Lexer2 = parser.kernel.constructor.Lexer || ((_b = (_a = window._hyperscript) == null ? void 0 : _a.internals) == null ? void 0 : _b.Lexer);
+    var classRef = parser.matchTokenType("CLASS_REF");
     if (!classRef) return;
     if (!classRef.value) return;
     if (classRef.template) {
       var templateValue = classRef.value.substring(2);
       var innerTokens = Lexer2.tokenize(templateValue);
-      var innerExpression = helper.kernel.requireElement("expression", innerTokens);
+      var innerExpression = parser.kernel.requireElement("expression", innerTokens);
       return {
         type: "classRefTemplate",
         args: [innerExpression],
@@ -2405,17 +2405,17 @@ var ClassRef = class {
 var QueryRef = class {
   /**
    * Parse a query reference
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {any | undefined}
    */
-  static parse(helper) {
+  static parse(parser) {
     var _a, _b;
-    const Lexer2 = helper.kernel.constructor.Lexer || ((_b = (_a = window._hyperscript) == null ? void 0 : _a.internals) == null ? void 0 : _b.Lexer);
-    var queryStart = helper.matchOpToken("<");
+    const Lexer2 = parser.kernel.constructor.Lexer || ((_b = (_a = window._hyperscript) == null ? void 0 : _a.internals) == null ? void 0 : _b.Lexer);
+    var queryStart = parser.matchOpToken("<");
     if (!queryStart) return;
-    var queryTokens = helper.consumeUntil("/");
-    helper.requireOpToken("/");
-    helper.requireOpToken(">");
+    var queryTokens = parser.consumeUntil("/");
+    parser.requireOpToken("/");
+    parser.requireOpToken(">");
     var queryValue = queryTokens.map(function(t) {
       if (t.type === "STRING") {
         return '"' + t.value + '"';
@@ -2427,7 +2427,7 @@ var QueryRef = class {
     if (/\$[^=]/.test(queryValue)) {
       template = true;
       innerTokens = Lexer2.tokenize(queryValue, true);
-      args = helper.kernel.parseStringTemplate(innerTokens);
+      args = parser.kernel.parseStringTemplate(innerTokens);
     }
     return {
       type: "queryRef",
@@ -2449,11 +2449,11 @@ var QueryRef = class {
 var AttributeRef = class {
   /**
    * Parse an attribute reference
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {any | undefined}
    */
-  static parse(helper) {
-    var attributeRef = helper.matchTokenType("ATTRIBUTE_REF");
+  static parse(parser) {
+    var attributeRef = parser.matchTokenType("ATTRIBUTE_REF");
     if (!attributeRef) return;
     if (!attributeRef.value) return;
     var outerVal = attributeRef.value;
@@ -2491,11 +2491,11 @@ var AttributeRef = class {
 var StyleRef = class {
   /**
    * Parse a style reference
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {any | undefined}
    */
-  static parse(helper) {
-    var styleRef = helper.matchTokenType("STYLE_REF");
+  static parse(parser) {
+    var styleRef = parser.matchTokenType("STYLE_REF");
     if (!styleRef) return;
     if (!styleRef.value) return;
     var styleProp = styleRef.value.substr(1);
@@ -2534,29 +2534,29 @@ var StyleRef = class {
 var StyleLiteral = class {
   /**
    * Parse a style literal
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {any | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchOpToken("{")) return;
+  static parse(parser) {
+    if (!parser.matchOpToken("{")) return;
     var stringParts = [""];
     var exprs = [];
-    while (helper.hasMore()) {
-      if (helper.matchOpToken("\\")) {
-        helper.consumeToken();
-      } else if (helper.matchOpToken("}")) {
+    while (parser.hasMore()) {
+      if (parser.matchOpToken("\\")) {
+        parser.consumeToken();
+      } else if (parser.matchOpToken("}")) {
         break;
-      } else if (helper.matchToken("$")) {
-        var opencurly = helper.matchOpToken("{");
-        var expr = helper.parseElement("expression");
-        if (opencurly) helper.requireOpToken("}");
+      } else if (parser.matchToken("$")) {
+        var opencurly = parser.matchOpToken("{");
+        var expr = parser.parseElement("expression");
+        if (opencurly) parser.requireOpToken("}");
         exprs.push(expr);
         stringParts.push("");
       } else {
-        var tok = helper.consumeToken();
-        stringParts[stringParts.length - 1] += helper.source.substring(tok.start, tok.end);
+        var tok = parser.consumeToken();
+        stringParts[stringParts.length - 1] += parser.source.substring(tok.start, tok.end);
       }
-      stringParts[stringParts.length - 1] += helper.lastWhitespace();
+      stringParts[stringParts.length - 1] += parser.lastWhitespace();
     }
     return {
       type: "styleLiteral",
@@ -2580,18 +2580,18 @@ var StyleLiteral = class {
 var ParenthesizedExpression = class {
   /**
    * Parse a parenthesized expression
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {any | undefined}
    */
-  static parse(helper) {
-    if (helper.matchOpToken("(")) {
-      var follows = helper.clearFollows();
+  static parse(parser) {
+    if (parser.matchOpToken("(")) {
+      var follows = parser.clearFollows();
       try {
-        var expr = helper.requireElement("expression");
+        var expr = parser.requireElement("expression");
       } finally {
-        helper.restoreFollows(follows);
+        parser.restoreFollows(follows);
       }
-      helper.requireOpToken(")");
+      parser.requireOpToken(")");
       return expr;
     }
   }
@@ -2604,22 +2604,22 @@ var BlockLiteral = class _BlockLiteral {
   }
   /**
    * Parse a block literal (lambda expression)
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {BlockLiteral | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchOpToken("\\")) return;
+  static parse(parser) {
+    if (!parser.matchOpToken("\\")) return;
     var args = [];
-    var arg1 = helper.matchTokenType("IDENTIFIER");
+    var arg1 = parser.matchTokenType("IDENTIFIER");
     if (arg1) {
       args.push(arg1);
-      while (helper.matchOpToken(",")) {
-        args.push(helper.requireTokenType("IDENTIFIER"));
+      while (parser.matchOpToken(",")) {
+        args.push(parser.requireTokenType("IDENTIFIER"));
       }
     }
-    helper.requireOpToken("-");
-    helper.requireOpToken(">");
-    var expr = helper.requireElement("expression");
+    parser.requireOpToken("-");
+    parser.requireOpToken(">");
+    var expr = parser.requireElement("expression");
     return new _BlockLiteral(args, expr);
   }
   /**
@@ -2647,15 +2647,15 @@ var NegativeNumber = class _NegativeNumber {
   }
   /**
    * Parse a negative number
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {NegativeNumber | any}
    */
-  static parse(helper) {
-    if (helper.matchOpToken("-")) {
-      var root = helper.requireElement("negativeNumber");
+  static parse(parser) {
+    if (parser.matchOpToken("-")) {
+      var root = parser.requireElement("negativeNumber");
       return new _NegativeNumber(root);
     } else {
-      return helper.requireElement("primaryExpression");
+      return parser.requireElement("primaryExpression");
     }
   }
   /**
@@ -2681,12 +2681,12 @@ var LogicalNot = class _LogicalNot {
   }
   /**
    * Parse a logical not expression
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {LogicalNot | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchToken("not")) return;
-    var root = helper.requireElement("unaryExpression");
+  static parse(parser) {
+    if (!parser.matchToken("not")) return;
+    var root = parser.requireElement("unaryExpression");
     return new _LogicalNot(root);
   }
   /**
@@ -2713,23 +2713,23 @@ var SymbolRef = class _SymbolRef {
   }
   /**
    * Parse a symbol reference
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {SymbolRef | undefined}
    */
-  static parse(helper) {
+  static parse(parser) {
     var scope = "default";
-    if (helper.matchToken("global")) {
+    if (parser.matchToken("global")) {
       scope = "global";
-    } else if (helper.matchToken("element") || helper.matchToken("module")) {
+    } else if (parser.matchToken("element") || parser.matchToken("module")) {
       scope = "element";
-      if (helper.matchOpToken("'")) {
-        helper.requireToken("s");
+      if (parser.matchOpToken("'")) {
+        parser.requireToken("s");
       }
-    } else if (helper.matchToken("local")) {
+    } else if (parser.matchToken("local")) {
       scope = "local";
     }
-    let eltPrefix = helper.matchOpToken(":");
-    let identifier = helper.matchTokenType("IDENTIFIER");
+    let eltPrefix = parser.matchOpToken(":");
+    let identifier = parser.matchTokenType("IDENTIFIER");
     if (identifier && identifier.value) {
       var name = identifier.value;
       if (eltPrefix) {
@@ -2763,12 +2763,12 @@ var BeepExpression = class _BeepExpression {
   }
   /**
    * Parse a beep expression
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {any | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchToken("beep!")) return;
-    var expression = helper.parseElement("unaryExpression");
+  static parse(parser) {
+    if (!parser.matchToken("beep!")) return;
+    var expression = parser.parseElement("unaryExpression");
     if (expression) {
       return new _BeepExpression(expression);
     }
@@ -2794,15 +2794,15 @@ var PropertyAccess = class _PropertyAccess {
   }
   /**
    * Parse a property access expression
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @param {any} root - The root expression
    * @returns {any | undefined}
    */
-  static parse(helper, root) {
-    if (!helper.matchOpToken(".")) return;
-    var prop = helper.requireTokenType("IDENTIFIER");
+  static parse(parser, root) {
+    if (!parser.matchOpToken(".")) return;
+    var prop = parser.requireTokenType("IDENTIFIER");
     var propertyAccess = new _PropertyAccess(root, prop);
-    return helper.kernel.parseElement("indirectExpression", helper.tokens, propertyAccess);
+    return parser.kernel.parseElement("indirectExpression", parser.tokens, propertyAccess);
   }
   /**
    * Op function for property access
@@ -2832,13 +2832,13 @@ var OfExpression = class _OfExpression {
   }
   /**
    * Parse an of expression
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @param {any} root - The property expression
    * @returns {any | undefined}
    */
-  static parse(helper, root) {
-    if (!helper.matchToken("of")) return;
-    var newRoot = helper.requireElement("unaryExpression");
+  static parse(parser, root) {
+    if (!parser.matchToken("of")) return;
+    var newRoot = parser.requireElement("unaryExpression");
     var childOfUrRoot = null;
     var urRoot = root;
     while (urRoot.root) {
@@ -2846,7 +2846,7 @@ var OfExpression = class _OfExpression {
       urRoot = urRoot.root;
     }
     if (urRoot.type !== "symbol" && urRoot.type !== "attributeRef" && urRoot.type !== "styleRef" && urRoot.type !== "computedStyleRef") {
-      helper.raiseParseError("Cannot take a property of a non-symbol: " + urRoot.type);
+      parser.raiseParseError("Cannot take a property of a non-symbol: " + urRoot.type);
     }
     var attribute = urRoot.type === "attributeRef";
     var style = urRoot.type === "styleRef" || urRoot.type === "computedStyleRef";
@@ -2870,7 +2870,7 @@ var OfExpression = class _OfExpression {
     } else {
       root = propertyAccess;
     }
-    return helper.kernel.parseElement("indirectExpression", helper.tokens, root);
+    return parser.kernel.parseElement("indirectExpression", parser.tokens, root);
   }
   /**
    * Op function for of expression
@@ -2911,29 +2911,29 @@ var PossessiveExpression = class _PossessiveExpression {
   }
   /**
    * Parse a possessive expression
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @param {any} root
    * @returns {any | undefined}
    */
-  static parse(helper, root) {
-    if (helper.possessivesDisabled) {
+  static parse(parser, root) {
+    if (parser.possessivesDisabled) {
       return;
     }
-    var apostrophe = helper.matchOpToken("'");
-    if (apostrophe || root.type === "symbol" && (root.name === "my" || root.name === "its" || root.name === "your") && (helper.currentToken().type === "IDENTIFIER" || helper.currentToken().type === "ATTRIBUTE_REF" || helper.currentToken().type === "STYLE_REF")) {
+    var apostrophe = parser.matchOpToken("'");
+    if (apostrophe || root.type === "symbol" && (root.name === "my" || root.name === "its" || root.name === "your") && (parser.currentToken().type === "IDENTIFIER" || parser.currentToken().type === "ATTRIBUTE_REF" || parser.currentToken().type === "STYLE_REF")) {
       if (apostrophe) {
-        helper.requireToken("s");
+        parser.requireToken("s");
       }
       var attribute, style, prop;
-      attribute = helper.parseElement("attributeRef");
+      attribute = parser.parseElement("attributeRef");
       if (attribute == null) {
-        style = helper.parseElement("styleRef");
+        style = parser.parseElement("styleRef");
         if (style == null) {
-          prop = helper.requireTokenType("IDENTIFIER");
+          prop = parser.requireTokenType("IDENTIFIER");
         }
       }
       var propertyAccess = new _PossessiveExpression(root, attribute || style, prop);
-      return helper.kernel.parseElement("indirectExpression", helper.tokens, propertyAccess);
+      return parser.kernel.parseElement("indirectExpression", parser.tokens, propertyAccess);
     }
   }
   /**
@@ -2972,15 +2972,15 @@ var InExpression = class _InExpression {
   }
   /**
    * Parse an in expression
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @param {any} root
    * @returns {InExpression | undefined}
    */
-  static parse(helper, root) {
-    if (!helper.matchToken("in")) return;
-    var target = helper.requireElement("unaryExpression");
+  static parse(parser, root) {
+    if (!parser.matchToken("in")) return;
+    var target = parser.requireElement("unaryExpression");
     var inExpression = new _InExpression(root, target);
-    return helper.kernel.parseElement("indirectExpression", helper.tokens, inExpression);
+    return parser.kernel.parseElement("indirectExpression", parser.tokens, inExpression);
   }
   /**
    * Op function for in expression
@@ -3033,16 +3033,16 @@ var AsExpression = class _AsExpression {
   }
   /**
    * Parse an as expression
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @param {any} root
    * @returns {AsExpression | undefined}
    */
-  static parse(helper, root) {
-    if (!helper.matchToken("as")) return;
-    helper.matchToken("a") || helper.matchToken("an");
-    var conversion = helper.requireElement("dotOrColonPath").evaluate();
+  static parse(parser, root) {
+    if (!parser.matchToken("as")) return;
+    parser.matchToken("a") || parser.matchToken("an");
+    var conversion = parser.requireElement("dotOrColonPath").evaluate();
     var asExpression = new _AsExpression(root, conversion);
-    return helper.kernel.parseElement("indirectExpression", helper.tokens, asExpression);
+    return parser.kernel.parseElement("indirectExpression", parser.tokens, asExpression);
   }
   /**
    * Op function for as expression
@@ -3070,18 +3070,18 @@ var FunctionCall = class _FunctionCall {
   }
   /**
    * Parse a function call
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @param {any} root
    * @returns {FunctionCall | undefined}
    */
-  static parse(helper, root) {
-    if (!helper.matchOpToken("(")) return;
+  static parse(parser, root) {
+    if (!parser.matchOpToken("(")) return;
     var args = [];
-    if (!helper.matchOpToken(")")) {
+    if (!parser.matchOpToken(")")) {
       do {
-        args.push(helper.requireElement("expression"));
-      } while (helper.matchOpToken(","));
-      helper.requireOpToken(")");
+        args.push(parser.requireElement("expression"));
+      } while (parser.matchOpToken(","));
+      parser.requireOpToken(")");
     }
     var functionCall;
     if (root.root) {
@@ -3089,7 +3089,7 @@ var FunctionCall = class _FunctionCall {
     } else {
       functionCall = new _FunctionCall(root, args, [root, args], false);
     }
-    return helper.kernel.parseElement("indirectExpression", helper.tokens, functionCall);
+    return parser.kernel.parseElement("indirectExpression", parser.tokens, functionCall);
   }
   /**
    * Op function for function call
@@ -3131,12 +3131,12 @@ var AttributeRefAccess = class _AttributeRefAccess {
   }
   /**
    * Parse an attribute ref access
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @param {any} root
    * @returns {AttributeRefAccess | undefined}
    */
-  static parse(helper, root) {
-    var attribute = helper.parseElement("attributeRef");
+  static parse(parser, root) {
+    var attribute = parser.parseElement("attributeRef");
     if (!attribute) return;
     return new _AttributeRefAccess(root, attribute);
   }
@@ -3187,32 +3187,32 @@ var ArrayIndex = class _ArrayIndex {
   }
   /**
    * Parse an array index expression
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @param {any} root
    * @returns {any | undefined}
    */
-  static parse(helper, root) {
-    if (!helper.matchOpToken("[")) return;
+  static parse(parser, root) {
+    if (!parser.matchOpToken("[")) return;
     var andBefore = false;
     var andAfter = false;
     var firstIndex = null;
     var secondIndex = null;
-    if (helper.matchOpToken("..")) {
+    if (parser.matchOpToken("..")) {
       andBefore = true;
-      firstIndex = helper.requireElement("expression");
+      firstIndex = parser.requireElement("expression");
     } else {
-      firstIndex = helper.requireElement("expression");
-      if (helper.matchOpToken("..")) {
+      firstIndex = parser.requireElement("expression");
+      if (parser.matchOpToken("..")) {
         andAfter = true;
-        var current = helper.currentToken();
+        var current = parser.currentToken();
         if (current.type !== "R_BRACKET") {
-          secondIndex = helper.parseElement("expression");
+          secondIndex = parser.parseElement("expression");
         }
       }
     }
-    helper.requireOpToken("]");
+    parser.requireOpToken("]");
     var arrayIndex = new _ArrayIndex(root, firstIndex, secondIndex, andBefore, andAfter);
-    return helper.kernel.parseElement("indirectExpression", helper.tokens, arrayIndex);
+    return parser.kernel.parseElement("indirectExpression", parser.tokens, arrayIndex);
   }
   /**
    * Op function for array index
@@ -3258,22 +3258,22 @@ var MathOperator = class _MathOperator {
   }
   /**
    * Parse math operator expression
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {any}
    */
-  static parse(helper) {
-    var expr = helper.parseElement("unaryExpression");
+  static parse(parser) {
+    var expr = parser.parseElement("unaryExpression");
     var mathOp, initialMathOp = null;
-    mathOp = helper.matchAnyOpToken("+", "-", "*", "/") || helper.matchToken("mod");
+    mathOp = parser.matchAnyOpToken("+", "-", "*", "/") || parser.matchToken("mod");
     while (mathOp) {
       initialMathOp = initialMathOp || mathOp;
       var operator = mathOp.value;
       if (initialMathOp.value !== operator) {
-        helper.raiseParseError("You must parenthesize math operations with different operators");
+        parser.raiseParseError("You must parenthesize math operations with different operators");
       }
-      var rhs = helper.parseElement("unaryExpression");
+      var rhs = parser.parseElement("unaryExpression");
       expr = new _MathOperator(expr, operator, rhs);
-      mathOp = helper.matchAnyOpToken("+", "-", "*", "/") || helper.matchToken("mod");
+      mathOp = parser.matchAnyOpToken("+", "-", "*", "/") || parser.matchToken("mod");
     }
     return expr;
   }
@@ -3305,11 +3305,11 @@ var MathOperator = class _MathOperator {
 var MathExpression = class {
   /**
    * Parse math expression (dispatcher)
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {any}
    */
-  static parse(helper) {
-    return helper.parseAnyOf(["mathOperator", "unaryExpression"]);
+  static parse(parser) {
+    return parser.parseAnyOf(["mathOperator", "unaryExpression"]);
   }
 };
 var ComparisonOperator = class _ComparisonOperator {
@@ -3324,109 +3324,109 @@ var ComparisonOperator = class _ComparisonOperator {
   }
   /**
    * Parse comparison operator expression
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {any}
    */
-  static parse(helper) {
-    var expr = helper.parseElement("mathExpression");
-    var comparisonToken = helper.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==");
+  static parse(parser) {
+    var expr = parser.parseElement("mathExpression");
+    var comparisonToken = parser.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==");
     var operator = comparisonToken ? comparisonToken.value : null;
     var hasRightValue = true;
     var typeCheck = false;
     if (operator == null) {
-      if (helper.matchToken("is") || helper.matchToken("am")) {
-        if (helper.matchToken("not")) {
-          if (helper.matchToken("in")) {
+      if (parser.matchToken("is") || parser.matchToken("am")) {
+        if (parser.matchToken("not")) {
+          if (parser.matchToken("in")) {
             operator = "not in";
-          } else if (helper.matchToken("a") || helper.matchToken("an")) {
+          } else if (parser.matchToken("a") || parser.matchToken("an")) {
             operator = "not a";
             typeCheck = true;
-          } else if (helper.matchToken("empty")) {
+          } else if (parser.matchToken("empty")) {
             operator = "not empty";
             hasRightValue = false;
           } else {
-            if (helper.matchToken("really")) {
+            if (parser.matchToken("really")) {
               operator = "!==";
             } else {
               operator = "!=";
             }
-            if (helper.matchToken("equal")) {
-              helper.matchToken("to");
+            if (parser.matchToken("equal")) {
+              parser.matchToken("to");
             }
           }
-        } else if (helper.matchToken("in")) {
+        } else if (parser.matchToken("in")) {
           operator = "in";
-        } else if (helper.matchToken("a") || helper.matchToken("an")) {
+        } else if (parser.matchToken("a") || parser.matchToken("an")) {
           operator = "a";
           typeCheck = true;
-        } else if (helper.matchToken("empty")) {
+        } else if (parser.matchToken("empty")) {
           operator = "empty";
           hasRightValue = false;
-        } else if (helper.matchToken("less")) {
-          helper.requireToken("than");
-          if (helper.matchToken("or")) {
-            helper.requireToken("equal");
-            helper.requireToken("to");
+        } else if (parser.matchToken("less")) {
+          parser.requireToken("than");
+          if (parser.matchToken("or")) {
+            parser.requireToken("equal");
+            parser.requireToken("to");
             operator = "<=";
           } else {
             operator = "<";
           }
-        } else if (helper.matchToken("greater")) {
-          helper.requireToken("than");
-          if (helper.matchToken("or")) {
-            helper.requireToken("equal");
-            helper.requireToken("to");
+        } else if (parser.matchToken("greater")) {
+          parser.requireToken("than");
+          if (parser.matchToken("or")) {
+            parser.requireToken("equal");
+            parser.requireToken("to");
             operator = ">=";
           } else {
             operator = ">";
           }
         } else {
-          if (helper.matchToken("really")) {
+          if (parser.matchToken("really")) {
             operator = "===";
           } else {
             operator = "==";
           }
-          if (helper.matchToken("equal")) {
-            helper.matchToken("to");
+          if (parser.matchToken("equal")) {
+            parser.matchToken("to");
           }
         }
-      } else if (helper.matchToken("equals")) {
+      } else if (parser.matchToken("equals")) {
         operator = "==";
-      } else if (helper.matchToken("really")) {
-        helper.requireToken("equals");
+      } else if (parser.matchToken("really")) {
+        parser.requireToken("equals");
         operator = "===";
-      } else if (helper.matchToken("exist") || helper.matchToken("exists")) {
+      } else if (parser.matchToken("exist") || parser.matchToken("exists")) {
         operator = "exist";
         hasRightValue = false;
-      } else if (helper.matchToken("matches") || helper.matchToken("match")) {
+      } else if (parser.matchToken("matches") || parser.matchToken("match")) {
         operator = "match";
-      } else if (helper.matchToken("contains") || helper.matchToken("contain")) {
+      } else if (parser.matchToken("contains") || parser.matchToken("contain")) {
         operator = "contain";
-      } else if (helper.matchToken("includes") || helper.matchToken("include")) {
+      } else if (parser.matchToken("includes") || parser.matchToken("include")) {
         operator = "include";
-      } else if (helper.matchToken("do") || helper.matchToken("does")) {
-        helper.requireToken("not");
-        if (helper.matchToken("matches") || helper.matchToken("match")) {
+      } else if (parser.matchToken("do") || parser.matchToken("does")) {
+        parser.requireToken("not");
+        if (parser.matchToken("matches") || parser.matchToken("match")) {
           operator = "not match";
-        } else if (helper.matchToken("contains") || helper.matchToken("contain")) {
+        } else if (parser.matchToken("contains") || parser.matchToken("contain")) {
           operator = "not contain";
-        } else if (helper.matchToken("exist") || helper.matchToken("exist")) {
+        } else if (parser.matchToken("exist") || parser.matchToken("exist")) {
           operator = "not exist";
           hasRightValue = false;
-        } else if (helper.matchToken("include")) {
+        } else if (parser.matchToken("include")) {
           operator = "not include";
         } else {
-          helper.raiseParseError("Expected matches or contains");
+          parser.raiseParseError("Expected matches or contains");
         }
       }
     }
     if (operator) {
       var typeName, nullOk, rhs;
       if (typeCheck) {
-        typeName = helper.requireTokenType("IDENTIFIER");
-        nullOk = !helper.matchOpToken("!");
+        typeName = parser.requireTokenType("IDENTIFIER");
+        nullOk = !parser.matchOpToken("!");
       } else if (hasRightValue) {
-        rhs = helper.requireElement("mathExpression");
+        rhs = parser.requireElement("mathExpression");
         if (operator === "match" || operator === "not match") {
           rhs = rhs.css ? rhs.css : rhs;
         }
@@ -3515,11 +3515,11 @@ var ComparisonOperator = class _ComparisonOperator {
 var ComparisonExpression = class {
   /**
    * Parse comparison expression (dispatcher)
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {any}
    */
-  static parse(helper) {
-    return helper.parseAnyOf(["comparisonOperator", "mathExpression"]);
+  static parse(parser) {
+    return parser.parseAnyOf(["comparisonOperator", "mathExpression"]);
   }
 };
 var LogicalOperator = class _LogicalOperator {
@@ -3532,22 +3532,22 @@ var LogicalOperator = class _LogicalOperator {
   }
   /**
    * Parse logical operator expression
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {any}
    */
-  static parse(helper) {
-    var expr = helper.parseElement("comparisonExpression");
+  static parse(parser) {
+    var expr = parser.parseElement("comparisonExpression");
     var logicalOp, initialLogicalOp = null;
-    logicalOp = helper.matchToken("and") || helper.matchToken("or");
+    logicalOp = parser.matchToken("and") || parser.matchToken("or");
     while (logicalOp) {
       initialLogicalOp = initialLogicalOp || logicalOp;
       if (initialLogicalOp.value !== logicalOp.value) {
-        helper.raiseParseError("You must parenthesize logical operations with different operators");
+        parser.raiseParseError("You must parenthesize logical operations with different operators");
       }
-      var rhs = helper.requireElement("comparisonExpression");
+      var rhs = parser.requireElement("comparisonExpression");
       const operator = logicalOp.value;
       expr = new _LogicalOperator(expr, operator, rhs);
-      logicalOp = helper.matchToken("and") || helper.matchToken("or");
+      logicalOp = parser.matchToken("and") || parser.matchToken("or");
     }
     return expr;
   }
@@ -3573,11 +3573,11 @@ var LogicalOperator = class _LogicalOperator {
 var LogicalExpression = class {
   /**
    * Parse logical expression (dispatcher)
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {any}
    */
-  static parse(helper) {
-    return helper.parseAnyOf(["logicalOperator", "mathExpression"]);
+  static parse(parser) {
+    return parser.parseAnyOf(["logicalOperator", "mathExpression"]);
   }
 };
 var AsyncExpression = class _AsyncExpression {
@@ -3587,15 +3587,15 @@ var AsyncExpression = class _AsyncExpression {
   }
   /**
    * Parse async expression (dispatcher with optional async keyword)
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {AsyncExpression | any}
    */
-  static parse(helper) {
-    if (helper.matchToken("async")) {
-      var value = helper.requireElement("logicalExpression");
+  static parse(parser) {
+    if (parser.matchToken("async")) {
+      var value = parser.requireElement("logicalExpression");
       return new _AsyncExpression(value);
     } else {
-      return helper.parseElement("logicalExpression");
+      return parser.parseElement("logicalExpression");
     }
   }
   /**
@@ -3620,13 +3620,13 @@ var NakedString = class _NakedString {
   }
   /**
    * Parse a naked string (unquoted string until whitespace)
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {NakedString | undefined}
    */
-  static parse(helper) {
-    if (helper.hasMore()) {
-      var tokenArr = helper.consumeUntilWhitespace();
-      helper.matchTokenType("WHITESPACE");
+  static parse(parser) {
+    if (parser.hasMore()) {
+      var tokenArr = parser.consumeUntilWhitespace();
+      parser.matchTokenType("WHITESPACE");
       return new _NakedString(tokenArr);
     }
   }
@@ -3648,11 +3648,11 @@ var BooleanLiteral = class _BooleanLiteral {
   }
   /**
    * Parse a boolean literal
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {BooleanLiteral | undefined}
    */
-  static parse(helper) {
-    var booleanLiteral = helper.matchToken("true") || helper.matchToken("false");
+  static parse(parser) {
+    var booleanLiteral = parser.matchToken("true") || parser.matchToken("false");
     if (!booleanLiteral) return;
     const value = booleanLiteral.value === "true";
     return new _BooleanLiteral(value);
@@ -3672,11 +3672,11 @@ var NullLiteral = class _NullLiteral {
   }
   /**
    * Parse a null literal
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {NullLiteral | undefined}
    */
-  static parse(helper) {
-    if (helper.matchToken("null")) {
+  static parse(parser) {
+    if (parser.matchToken("null")) {
       return new _NullLiteral();
     }
   }
@@ -3697,11 +3697,11 @@ var NumberLiteral = class _NumberLiteral {
   }
   /**
    * Parse a number literal
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {NumberLiteral | undefined}
    */
-  static parse(helper) {
-    var number = helper.matchTokenType("NUMBER");
+  static parse(parser) {
+    var number = parser.matchTokenType("NUMBER");
     if (!number) return;
     var numberToken = number;
     var value = parseFloat(
@@ -3728,12 +3728,12 @@ var StringLiteral = class _StringLiteral {
   }
   /**
    * Parse a string literal
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {StringLiteral | undefined}
    */
-  static parse(helper) {
+  static parse(parser) {
     var _a, _b;
-    var stringToken = helper.matchTokenType("STRING");
+    var stringToken = parser.matchTokenType("STRING");
     if (!stringToken) return;
     var rawValue = (
       /** @type {string} */
@@ -3741,10 +3741,10 @@ var StringLiteral = class _StringLiteral {
     );
     var args;
     if (stringToken.template) {
-      const Lexer2 = helper.kernel.constructor.Lexer || ((_b = (_a = window._hyperscript) == null ? void 0 : _a.internals) == null ? void 0 : _b.Lexer);
+      const Lexer2 = parser.kernel.constructor.Lexer || ((_b = (_a = window._hyperscript) == null ? void 0 : _a.internals) == null ? void 0 : _b.Lexer);
       if (Lexer2) {
         var innerTokens = Lexer2.tokenize(rawValue, true);
-        args = helper.kernel.parseStringTemplate(innerTokens);
+        args = parser.kernel.parseStringTemplate(innerTokens);
       } else {
         args = [];
       }
@@ -3787,18 +3787,18 @@ var ArrayLiteral = class _ArrayLiteral {
   }
   /**
    * Parse an array literal
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {ArrayLiteral | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchOpToken("[")) return;
+  static parse(parser) {
+    if (!parser.matchOpToken("[")) return;
     var values = [];
-    if (!helper.matchOpToken("]")) {
+    if (!parser.matchOpToken("]")) {
       do {
-        var expr = helper.requireElement("expression");
+        var expr = parser.requireElement("expression");
         values.push(expr);
-      } while (helper.matchOpToken(","));
-      helper.requireOpToken("]");
+      } while (parser.matchOpToken(","));
+      parser.requireOpToken("]");
     }
     return new _ArrayLiteral(values);
   }
@@ -3826,21 +3826,21 @@ var ObjectKey = class _ObjectKey {
   }
   /**
    * Parse an object key
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {ObjectKey}
    */
-  static parse(helper) {
+  static parse(parser) {
     var token;
-    if (token = helper.matchTokenType("STRING")) {
+    if (token = parser.matchTokenType("STRING")) {
       return new _ObjectKey(token.value, null, null);
-    } else if (helper.matchOpToken("[")) {
-      var expr = helper.parseElement("expression");
-      helper.requireOpToken("]");
+    } else if (parser.matchOpToken("[")) {
+      var expr = parser.parseElement("expression");
+      parser.requireOpToken("]");
       return new _ObjectKey(null, expr, [expr]);
     } else {
       var key = "";
       do {
-        token = helper.matchTokenType("IDENTIFIER") || helper.matchOpToken("-");
+        token = parser.matchTokenType("IDENTIFIER") || parser.matchOpToken("-");
         if (token) key += token.value;
       } while (token);
       return new _ObjectKey(key, null, null);
@@ -3874,22 +3874,22 @@ var ObjectLiteral = class _ObjectLiteral {
   }
   /**
    * Parse an object literal
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {ObjectLiteral | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchOpToken("{")) return;
+  static parse(parser) {
+    if (!parser.matchOpToken("{")) return;
     var keyExpressions = [];
     var valueExpressions = [];
-    if (!helper.matchOpToken("}")) {
+    if (!parser.matchOpToken("}")) {
       do {
-        var name = helper.requireElement("objectKey");
-        helper.requireOpToken(":");
-        var value = helper.requireElement("expression");
+        var name = parser.requireElement("objectKey");
+        parser.requireOpToken(":");
+        var value = parser.requireElement("expression");
         valueExpressions.push(value);
         keyExpressions.push(name);
-      } while (helper.matchOpToken(",") && !helper.peekToken("}", 0, "R_BRACE"));
-      helper.requireOpToken("}");
+      } while (parser.matchOpToken(",") && !parser.peekToken("}", 0, "R_BRACE"));
+      parser.requireOpToken("}");
     }
     return new _ObjectLiteral(keyExpressions, valueExpressions);
   }
@@ -3920,32 +3920,32 @@ var NamedArgumentList = class _NamedArgumentList {
   }
   /**
    * Parse a naked named argument list (without parentheses)
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {NamedArgumentList}
    */
-  static parseNaked(helper) {
+  static parseNaked(parser) {
     var fields = [];
     var valueExpressions = [];
-    if (helper.currentToken().type === "IDENTIFIER") {
+    if (parser.currentToken().type === "IDENTIFIER") {
       do {
-        var name = helper.requireTokenType("IDENTIFIER");
-        helper.requireOpToken(":");
-        var value = helper.requireElement("expression");
+        var name = parser.requireTokenType("IDENTIFIER");
+        parser.requireOpToken(":");
+        var value = parser.requireElement("expression");
         valueExpressions.push(value);
         fields.push({ name, value });
-      } while (helper.matchOpToken(","));
+      } while (parser.matchOpToken(","));
     }
     return new _NamedArgumentList(fields, valueExpressions);
   }
   /**
    * Parse a named argument list with parentheses
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {NamedArgumentList | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchOpToken("(")) return;
-    var elt = _NamedArgumentList.parseNaked(helper);
-    helper.requireOpToken(")");
+  static parse(parser) {
+    if (!parser.matchOpToken("(")) return;
+    var elt = _NamedArgumentList.parseNaked(parser);
+    parser.requireOpToken(")");
     return elt;
   }
   /**
@@ -3976,10 +3976,10 @@ var ImplicitMeTarget = class _ImplicitMeTarget {
   }
   /**
    * Parse an implicit me target
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {ImplicitMeTarget}
    */
-  static parse(helper) {
+  static parse(parser) {
     return new _ImplicitMeTarget();
   }
   /**
@@ -4001,12 +4001,12 @@ var NoExpression = class _NoExpression {
   }
   /**
    * Parse a no expression
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {NoExpression | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchToken("no")) return;
-    var root = helper.requireElement("unaryExpression");
+  static parse(parser) {
+    if (!parser.matchToken("no")) return;
+    var root = parser.requireElement("unaryExpression");
     return new _NoExpression(root);
   }
   /**
@@ -4032,12 +4032,12 @@ var SomeExpression = class _SomeExpression {
   }
   /**
    * Parse a some expression
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {SomeExpression | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchToken("some")) return;
-    var root = helper.requireElement("expression");
+  static parse(parser) {
+    if (!parser.matchToken("some")) return;
+    var root = parser.requireElement("expression");
     return new _SomeExpression(root);
   }
   /**
@@ -4119,37 +4119,37 @@ var RelativePositionalExpression = class _RelativePositionalExpression {
   }
   /**
    * Parse a relative positional expression
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {RelativePositionalExpression | undefined}
    */
-  static parse(helper) {
-    var op = helper.matchAnyToken("next", "previous");
+  static parse(parser) {
+    var op = parser.matchAnyToken("next", "previous");
     if (!op) return;
     var forwardSearch = op.value === "next";
-    var thingElt = helper.parseElement("expression");
-    if (helper.matchToken("from")) {
-      helper.pushFollow("in");
+    var thingElt = parser.parseElement("expression");
+    if (parser.matchToken("from")) {
+      parser.pushFollow("in");
       try {
-        var from = helper.requireElement("unaryExpression");
+        var from = parser.requireElement("unaryExpression");
       } finally {
-        helper.popFollow();
+        parser.popFollow();
       }
     } else {
-      var from = helper.requireElement("implicitMeTarget");
+      var from = parser.requireElement("implicitMeTarget");
     }
     var inSearch = false;
     var withinElt;
-    if (helper.matchToken("in")) {
+    if (parser.matchToken("in")) {
       inSearch = true;
-      var inElt = helper.requireElement("unaryExpression");
-    } else if (helper.matchToken("within")) {
-      withinElt = helper.requireElement("unaryExpression");
+      var inElt = parser.requireElement("unaryExpression");
+    } else if (parser.matchToken("within")) {
+      withinElt = parser.requireElement("unaryExpression");
     } else {
       withinElt = document.body;
     }
     var wrapping = false;
-    if (helper.matchToken("with")) {
-      helper.requireToken("wrapping");
+    if (parser.matchToken("with")) {
+      parser.requireToken("wrapping");
       wrapping = true;
     }
     return new _RelativePositionalExpression(
@@ -4207,14 +4207,14 @@ var PositionalExpression = class _PositionalExpression {
   }
   /**
    * Parse a positional expression
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {PositionalExpression | undefined}
    */
-  static parse(helper) {
-    var op = helper.matchAnyToken("first", "last", "random");
+  static parse(parser) {
+    var op = parser.matchAnyToken("first", "last", "random");
     if (!op) return;
-    helper.matchAnyToken("in", "from", "of");
-    var rhs = helper.requireElement("unaryExpression");
+    parser.matchAnyToken("in", "from", "of");
+    var rhs = parser.requireElement("unaryExpression");
     return new _PositionalExpression(rhs, op.value);
   }
   /**
@@ -4250,33 +4250,33 @@ var PositionalExpression = class _PositionalExpression {
 var ClosestExpr = class {
   /**
    * Parse a closest expression
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {any | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchToken("closest")) return;
+  static parse(parser) {
+    if (!parser.matchToken("closest")) return;
     var parentSearch = false;
-    if (helper.matchToken("parent")) {
+    if (parser.matchToken("parent")) {
       parentSearch = true;
     }
     var css = null;
     var attributeRef = null;
-    if (helper.currentToken().type === "ATTRIBUTE_REF") {
-      attributeRef = helper.requireElement("attributeRefAccess", null);
+    if (parser.currentToken().type === "ATTRIBUTE_REF") {
+      attributeRef = parser.requireElement("attributeRefAccess", null);
       css = "[" + attributeRef.attribute.name + "]";
     }
     if (css == null) {
-      var expr = helper.requireElement("expression");
+      var expr = parser.requireElement("expression");
       if (expr.css == null) {
-        helper.raiseParseError("Expected a CSS expression");
+        parser.raiseParseError("Expected a CSS expression");
       } else {
         css = expr.css;
       }
     }
-    if (helper.matchToken("to")) {
-      var to = helper.parseElement("expression");
+    if (parser.matchToken("to")) {
+      var to = parser.parseElement("expression");
     } else {
-      var to = helper.parseElement("implicitMeTarget");
+      var to = parser.parseElement("implicitMeTarget");
     }
     var closestExpr = {
       type: "closestExpr",
@@ -4344,12 +4344,12 @@ var STRING_POSTFIXES = [
 var StringPostfixExpression = class {
   /**
    * Parse string postfix expression
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @param {Object} root - the root expression to apply postfix to
    * @returns {Object | undefined}
    */
-  static parse(helper, root) {
-    let stringPostfix = helper.tokens.matchAnyToken.apply(helper.tokens, STRING_POSTFIXES) || helper.matchOpToken("%");
+  static parse(parser, root) {
+    let stringPostfix = parser.tokens.matchAnyToken.apply(parser.tokens, STRING_POSTFIXES) || parser.matchOpToken("%");
     if (!stringPostfix) return;
     return {
       type: "stringPostfix",
@@ -4367,15 +4367,15 @@ var StringPostfixExpression = class {
 var TimeExpression = class {
   /**
    * Parse time expression
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @param {Object} root - the root expression to apply time factor to
    * @returns {Object | undefined}
    */
-  static parse(helper, root) {
+  static parse(parser, root) {
     var timeFactor = null;
-    if (helper.matchToken("s") || helper.matchToken("seconds")) {
+    if (parser.matchToken("s") || parser.matchToken("seconds")) {
       timeFactor = 1e3;
-    } else if (helper.matchToken("ms") || helper.matchToken("milliseconds")) {
+    } else if (parser.matchToken("ms") || parser.matchToken("milliseconds")) {
       timeFactor = 1;
     }
     if (!timeFactor) return;
@@ -4396,15 +4396,15 @@ var TimeExpression = class {
 var TypeCheckExpression = class {
   /**
    * Parse type check expression
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @param {Object} root - the root expression to type check
    * @returns {Object | undefined}
    */
-  static parse(helper, root) {
-    if (!helper.matchOpToken(":")) return;
-    var typeName = helper.requireTokenType("IDENTIFIER");
+  static parse(parser, root) {
+    if (!parser.matchOpToken(":")) return;
+    var typeName = parser.requireTokenType("IDENTIFIER");
     if (!typeName.value) return;
-    var nullOk = !helper.matchOpToken("!");
+    var nullOk = !parser.matchOpToken("!");
     return {
       type: "typeCheck",
       typeName,
@@ -4434,17 +4434,17 @@ var LogCommand = class _LogCommand {
   }
   /**
    * Parse log command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {LogCommand | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchToken("log")) return;
-    var exprs = [helper.parseElement("expression")];
-    while (helper.matchOpToken(",")) {
-      exprs.push(helper.requireElement("expression"));
+  static parse(parser) {
+    if (!parser.matchToken("log")) return;
+    var exprs = [parser.parseElement("expression")];
+    while (parser.matchOpToken(",")) {
+      exprs.push(parser.requireElement("expression"));
     }
-    if (helper.matchToken("with")) {
-      var withExpr = helper.requireElement("expression");
+    if (parser.matchToken("with")) {
+      var withExpr = parser.requireElement("expression");
     }
     return new _LogCommand(exprs, withExpr);
   }
@@ -4467,14 +4467,14 @@ var BeepCommand = class _BeepCommand {
   }
   /**
    * Parse beep command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {BeepCommand | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchToken("beep!")) return;
-    var exprs = [helper.parseElement("expression")];
-    while (helper.matchOpToken(",")) {
-      exprs.push(helper.requireElement("expression"));
+  static parse(parser) {
+    if (!parser.matchToken("beep!")) return;
+    var exprs = [parser.parseElement("expression")];
+    while (parser.matchOpToken(",")) {
+      exprs.push(parser.requireElement("expression"));
     }
     return new _BeepCommand(exprs);
   }
@@ -4497,12 +4497,12 @@ var ThrowCommand = class _ThrowCommand {
   }
   /**
    * Parse throw command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {ThrowCommand | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchToken("throw")) return;
-    var expr = helper.requireElement("expression");
+  static parse(parser) {
+    if (!parser.matchToken("throw")) return;
+    var expr = parser.requireElement("expression");
     return new _ThrowCommand(expr);
   }
   /**
@@ -4520,15 +4520,15 @@ var ReturnCommand = class _ReturnCommand {
   }
   /**
    * Parse return command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {ReturnCommand | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchToken("return")) return;
-    if (helper.commandBoundary(helper.currentToken())) {
-      helper.raiseParseError("'return' commands must return a value.  If you do not wish to return a value, use 'exit' instead.");
+  static parse(parser) {
+    if (!parser.matchToken("return")) return;
+    if (parser.commandBoundary(parser.currentToken())) {
+      parser.raiseParseError("'return' commands must return a value.  If you do not wish to return a value, use 'exit' instead.");
     } else {
-      var value = helper.requireElement("expression");
+      var value = parser.requireElement("expression");
     }
     return new _ReturnCommand(value);
   }
@@ -4555,11 +4555,11 @@ var ExitCommand = class _ExitCommand {
   }
   /**
    * Parse exit command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {ExitCommand | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchToken("exit")) return;
+  static parse(parser) {
+    if (!parser.matchToken("exit")) return;
     return new _ExitCommand();
   }
   /**
@@ -4588,21 +4588,21 @@ var HaltCommand = class _HaltCommand {
   }
   /**
    * Parse halt command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {HaltCommand | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchToken("halt")) return;
-    if (helper.matchToken("the")) {
-      helper.requireToken("event");
-      if (helper.matchOpToken("'")) {
-        helper.requireToken("s");
+  static parse(parser) {
+    if (!parser.matchToken("halt")) return;
+    if (parser.matchToken("the")) {
+      parser.requireToken("event");
+      if (parser.matchOpToken("'")) {
+        parser.requireToken("s");
       }
       var keepExecuting = true;
     }
-    if (helper.matchToken("bubbling")) {
+    if (parser.matchToken("bubbling")) {
       var bubbling = true;
-    } else if (helper.matchToken("default")) {
+    } else if (parser.matchToken("default")) {
       var haltDefault = true;
     }
     var exit = {
@@ -4647,21 +4647,21 @@ var HaltCommand = class _HaltCommand {
 var MakeCommand = class {
   /**
    * Parse make command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {MakeCommand | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchToken("make")) return;
-    helper.matchToken("a") || helper.matchToken("an");
-    var expr = helper.requireElement("expression");
+  static parse(parser) {
+    if (!parser.matchToken("make")) return;
+    parser.matchToken("a") || parser.matchToken("an");
+    var expr = parser.requireElement("expression");
     var args = [];
-    if (expr.type !== "queryRef" && helper.matchToken("from")) {
+    if (expr.type !== "queryRef" && parser.matchToken("from")) {
       do {
-        args.push(helper.requireElement("expression"));
-      } while (helper.matchOpToken(","));
+        args.push(parser.requireElement("expression"));
+      } while (parser.matchOpToken(","));
     }
-    if (helper.matchToken("called")) {
-      var target = helper.requireElement("symbol");
+    if (parser.matchToken("called")) {
+      var target = parser.requireElement("symbol");
     }
     var command;
     if (expr.type === "queryRef") {
@@ -4706,28 +4706,28 @@ var MakeCommand = class {
 var AppendCommand = class {
   /**
    * Parse append command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @param {Function} makeSetter - makeSetter function from core grammar
    * @returns {AppendCommand | undefined}
    */
-  static parse(helper, makeSetter) {
-    if (!helper.matchToken("append")) return;
+  static parse(parser, makeSetter) {
+    if (!parser.matchToken("append")) return;
     var targetExpr = null;
-    var value = helper.requireElement("expression");
+    var value = parser.requireElement("expression");
     var implicitResultSymbol = {
       type: "symbol",
       evaluate: function(context2) {
         return context2.meta.runtime.resolveSymbol("result", context2);
       }
     };
-    if (helper.matchToken("to")) {
-      targetExpr = helper.requireElement("expression");
+    if (parser.matchToken("to")) {
+      targetExpr = parser.requireElement("expression");
     } else {
       targetExpr = implicitResultSymbol;
     }
     var setter = null;
     if (targetExpr.type === "symbol" || targetExpr.type === "attributeRef" || targetExpr.root != null) {
-      setter = makeSetter(helper, targetExpr, implicitResultSymbol);
+      setter = makeSetter(parser, targetExpr, implicitResultSymbol);
     }
     var command = {
       value,
@@ -4769,34 +4769,34 @@ var AppendCommand = class {
     return command;
   }
 };
-function parsePickRange(helper) {
-  helper.matchToken("at") || helper.matchToken("from");
+function parsePickRange(parser) {
+  parser.matchToken("at") || parser.matchToken("from");
   const rv = { includeStart: true, includeEnd: false };
-  rv.from = helper.matchToken("start") ? 0 : helper.requireElement("expression");
-  if (helper.matchToken("to") || helper.matchOpToken("..")) {
-    if (helper.matchToken("end")) {
+  rv.from = parser.matchToken("start") ? 0 : parser.requireElement("expression");
+  if (parser.matchToken("to") || parser.matchOpToken("..")) {
+    if (parser.matchToken("end")) {
       rv.toEnd = true;
     } else {
-      rv.to = helper.requireElement("expression");
+      rv.to = parser.requireElement("expression");
     }
   }
-  if (helper.matchToken("inclusive")) rv.includeEnd = true;
-  else if (helper.matchToken("exclusive")) rv.includeStart = false;
+  if (parser.matchToken("inclusive")) rv.includeEnd = true;
+  else if (parser.matchToken("exclusive")) rv.includeStart = false;
   return rv;
 }
 var PickCommand = class {
   /**
    * Parse pick command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {PickCommand | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchToken("pick")) return;
-    helper.matchToken("the");
-    if (helper.matchToken("item") || helper.matchToken("items") || helper.matchToken("character") || helper.matchToken("characters")) {
-      const range = parsePickRange(helper);
-      helper.requireToken("from");
-      const root = helper.requireElement("expression");
+  static parse(parser) {
+    if (!parser.matchToken("pick")) return;
+    parser.matchToken("the");
+    if (parser.matchToken("item") || parser.matchToken("items") || parser.matchToken("character") || parser.matchToken("characters")) {
+      const range = parsePickRange(parser);
+      parser.requireToken("from");
+      const root = parser.requireElement("expression");
       return {
         args: [root, range.from, range.to],
         op(ctx, root2, from, to) {
@@ -4809,15 +4809,15 @@ var PickCommand = class {
         }
       };
     }
-    if (helper.matchToken("match")) {
-      helper.matchToken("of");
-      const re = helper.parseElement("expression");
+    if (parser.matchToken("match")) {
+      parser.matchToken("of");
+      const re = parser.parseElement("expression");
       let flags = "";
-      if (helper.matchOpToken("|")) {
-        flags = helper.requireTokenType("IDENTIFIER").value;
+      if (parser.matchOpToken("|")) {
+        flags = parser.requireTokenType("IDENTIFIER").value;
       }
-      helper.requireToken("from");
-      const root = helper.parseElement("expression");
+      parser.requireToken("from");
+      const root = parser.parseElement("expression");
       return {
         args: [root, re],
         op(ctx, root2, re2) {
@@ -4826,15 +4826,15 @@ var PickCommand = class {
         }
       };
     }
-    if (helper.matchToken("matches")) {
-      helper.matchToken("of");
-      const re = helper.parseElement("expression");
+    if (parser.matchToken("matches")) {
+      parser.matchToken("of");
+      const re = parser.parseElement("expression");
       let flags = "gu";
-      if (helper.matchOpToken("|")) {
-        flags = "g" + helper.requireTokenType("IDENTIFIER").value.replace("g", "");
+      if (parser.matchOpToken("|")) {
+        flags = "g" + parser.requireTokenType("IDENTIFIER").value.replace("g", "");
       }
-      helper.requireToken("from");
-      const root = helper.parseElement("expression");
+      parser.requireToken("from");
+      const root = parser.parseElement("expression");
       return {
         args: [root, re],
         op(ctx, root2, re2) {
@@ -4845,41 +4845,41 @@ var PickCommand = class {
     }
   }
 };
-function parseConversionInfo(helper) {
+function parseConversionInfo(parser) {
   var type = "text";
   var conversion;
-  helper.matchToken("a") || helper.matchToken("an");
-  if (helper.matchToken("json") || helper.matchToken("Object")) {
+  parser.matchToken("a") || parser.matchToken("an");
+  if (parser.matchToken("json") || parser.matchToken("Object")) {
     type = "json";
-  } else if (helper.matchToken("response")) {
+  } else if (parser.matchToken("response")) {
     type = "response";
-  } else if (helper.matchToken("html")) {
+  } else if (parser.matchToken("html")) {
     type = "html";
-  } else if (helper.matchToken("text")) {
+  } else if (parser.matchToken("text")) {
   } else {
-    conversion = helper.requireElement("dotOrColonPath").evaluate();
+    conversion = parser.requireElement("dotOrColonPath").evaluate();
   }
   return { type, conversion };
 }
 var FetchCommand = class {
   /**
    * Parse fetch command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {FetchCommand | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchToken("fetch")) return;
-    var url = helper.requireElement("stringLike");
-    if (helper.matchToken("as")) {
-      var conversionInfo = parseConversionInfo(helper);
+  static parse(parser) {
+    if (!parser.matchToken("fetch")) return;
+    var url = parser.requireElement("stringLike");
+    if (parser.matchToken("as")) {
+      var conversionInfo = parseConversionInfo(parser);
     }
-    if (helper.matchToken("with") && helper.currentToken().value !== "{") {
-      var args = helper.parseElement("nakedNamedArgumentList");
+    if (parser.matchToken("with") && parser.currentToken().value !== "{") {
+      var args = parser.parseElement("nakedNamedArgumentList");
     } else {
-      var args = helper.parseElement("objectLiteral");
+      var args = parser.parseElement("objectLiteral");
     }
-    if (conversionInfo == null && helper.matchToken("as")) {
-      conversionInfo = parseConversionInfo(helper);
+    if (conversionInfo == null && parser.matchToken("as")) {
+      conversionInfo = parseConversionInfo(parser);
     }
     var type = conversionInfo ? conversionInfo.type : "text";
     var conversion = conversionInfo ? conversionInfo.conversion : null;
@@ -4949,42 +4949,42 @@ var FetchCommand = class {
 var GoCommand = class {
   /**
    * Parse go command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {GoCommand | undefined}
    */
-  static parse(helper) {
-    if (helper.matchToken("go")) {
-      if (helper.matchToken("back")) {
+  static parse(parser) {
+    if (parser.matchToken("go")) {
+      if (parser.matchToken("back")) {
         var back = true;
       } else {
-        helper.matchToken("to");
-        if (helper.matchToken("url")) {
-          var target = helper.requireElement("stringLike");
+        parser.matchToken("to");
+        if (parser.matchToken("url")) {
+          var target = parser.requireElement("stringLike");
           var url = true;
-          if (helper.matchToken("in")) {
-            helper.requireToken("new");
-            helper.requireToken("window");
+          if (parser.matchToken("in")) {
+            parser.requireToken("new");
+            parser.requireToken("window");
             var newWindow = true;
           }
         } else {
-          helper.matchToken("the");
-          var verticalPosition = helper.matchAnyToken("top", "middle", "bottom");
-          var horizontalPosition = helper.matchAnyToken("left", "center", "right");
+          parser.matchToken("the");
+          var verticalPosition = parser.matchAnyToken("top", "middle", "bottom");
+          var horizontalPosition = parser.matchAnyToken("left", "center", "right");
           if (verticalPosition || horizontalPosition) {
-            helper.requireToken("of");
+            parser.requireToken("of");
           }
-          var target = helper.requireElement("unaryExpression");
-          var plusOrMinus = helper.matchAnyOpToken("+", "-");
+          var target = parser.requireElement("unaryExpression");
+          var plusOrMinus = parser.matchAnyOpToken("+", "-");
           if (plusOrMinus) {
-            helper.pushFollow("px");
+            parser.pushFollow("px");
             try {
-              var offset = helper.requireElement("expression");
+              var offset = parser.requireElement("expression");
             } finally {
-              helper.popFollow();
+              parser.popFollow();
             }
           }
-          helper.matchToken("px");
-          var smoothness = helper.matchAnyToken("smoothly", "instantly");
+          parser.matchToken("px");
+          var smoothness = parser.matchAnyToken("smoothly", "instantly");
           var scrollOptions = {
             block: "start",
             inline: "nearest"
@@ -5092,19 +5092,19 @@ var SetterCommand = class {
    * @param {*} value - Value expression to assign
    * @returns Setter command object
    */
-  static makeSetter(helper, target, value) {
+  static makeSetter(parser, target, value) {
     var symbolWrite = target.type === "symbol";
     var attributeWrite = target.type === "attributeRef";
     var styleWrite = target.type === "styleRef";
     var arrayWrite = target.type === "arrayIndex";
     if (!(attributeWrite || styleWrite || symbolWrite) && target.root == null) {
-      helper.raiseParseError("Can only put directly into symbols, not references");
+      parser.raiseParseError("Can only put directly into symbols, not references");
     }
     var rootElt = null;
     var prop = null;
     if (symbolWrite) {
     } else if (attributeWrite || styleWrite) {
-      rootElt = helper.requireElement("implicitMeTarget");
+      rootElt = parser.requireElement("implicitMeTarget");
       var attribute = target;
     } else if (arrayWrite) {
       prop = target.firstIndex;
@@ -5163,15 +5163,15 @@ var SetCommand = class _SetCommand extends SetterCommand {
   }
   /**
    * Parse set command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {SetCommand | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchToken("set")) return;
-    if (helper.currentToken().type === "L_BRACE") {
-      var obj = helper.requireElement("objectLiteral");
-      helper.requireToken("on");
-      var target = helper.requireElement("expression");
+  static parse(parser) {
+    if (!parser.matchToken("set")) return;
+    if (parser.currentToken().type === "L_BRACE") {
+      var obj = parser.requireElement("objectLiteral");
+      parser.requireToken("on");
+      var target = parser.requireElement("expression");
       var command = new _SetCommand(target, null, obj);
       command.op = function(ctx, obj2, target2) {
         Object.assign(target2, obj2);
@@ -5180,14 +5180,14 @@ var SetCommand = class _SetCommand extends SetterCommand {
       return command;
     }
     try {
-      helper.pushFollow("to");
-      var target = helper.requireElement("assignableExpression");
+      parser.pushFollow("to");
+      var target = parser.requireElement("assignableExpression");
     } finally {
-      helper.popFollow();
+      parser.popFollow();
     }
-    helper.requireToken("to");
-    var value = helper.requireElement("expression");
-    return _SetCommand.makeSetter(helper, target, value);
+    parser.requireToken("to");
+    var value = parser.requireElement("expression");
+    return _SetCommand.makeSetter(parser, target, value);
   }
 };
 var DefaultCommand = class _DefaultCommand extends SetterCommand {
@@ -5200,15 +5200,15 @@ var DefaultCommand = class _DefaultCommand extends SetterCommand {
   }
   /**
    * Parse default command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {DefaultCommand | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchToken("default")) return;
-    var target = helper.requireElement("assignableExpression");
-    helper.requireToken("to");
-    var value = helper.requireElement("expression");
-    var setter = SetCommand.makeSetter(helper, target, value);
+  static parse(parser) {
+    if (!parser.matchToken("default")) return;
+    var target = parser.requireElement("assignableExpression");
+    parser.requireToken("to");
+    var value = parser.requireElement("expression");
+    var setter = SetCommand.makeSetter(parser, target, value);
     var defaultCmd = new _DefaultCommand(target, value, setter);
     defaultCmd.op = function(context2, target2) {
       if (target2) {
@@ -5229,15 +5229,15 @@ var IncrementCommand = class extends SetterCommand {
   }
   /**
    * Parse increment command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {IncrementCommand | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchToken("increment")) return;
+  static parse(parser) {
+    if (!parser.matchToken("increment")) return;
     var amountExpr;
-    var target = helper.parseElement("assignableExpression");
-    if (helper.matchToken("by")) {
-      amountExpr = helper.requireElement("expression");
+    var target = parser.parseElement("assignableExpression");
+    if (parser.matchToken("by")) {
+      amountExpr = parser.requireElement("expression");
     }
     var implicitIncrementOp = {
       type: "implicitIncrementOp",
@@ -5254,7 +5254,7 @@ var IncrementCommand = class extends SetterCommand {
         return context2.meta.runtime.unifiedEval(this, context2);
       }
     };
-    return SetCommand.makeSetter(helper, target, implicitIncrementOp);
+    return SetCommand.makeSetter(parser, target, implicitIncrementOp);
   }
 };
 var DecrementCommand = class extends SetterCommand {
@@ -5265,15 +5265,15 @@ var DecrementCommand = class extends SetterCommand {
   }
   /**
    * Parse decrement command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {DecrementCommand | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchToken("decrement")) return;
+  static parse(parser) {
+    if (!parser.matchToken("decrement")) return;
     var amountExpr;
-    var target = helper.parseElement("assignableExpression");
-    if (helper.matchToken("by")) {
-      amountExpr = helper.requireElement("expression");
+    var target = parser.parseElement("assignableExpression");
+    if (parser.matchToken("by")) {
+      amountExpr = parser.requireElement("expression");
     }
     var implicitDecrementOp = {
       type: "implicitDecrementOp",
@@ -5290,7 +5290,7 @@ var DecrementCommand = class extends SetterCommand {
         return context2.meta.runtime.unifiedEval(this, context2);
       }
     };
-    return SetCommand.makeSetter(helper, target, implicitDecrementOp);
+    return SetCommand.makeSetter(parser, target, implicitDecrementOp);
   }
 };
 var PutCommand = class extends SetterCommand {
@@ -5302,22 +5302,22 @@ var PutCommand = class extends SetterCommand {
   }
   /**
    * Parse put command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {PutCommand | undefined}
    */
-  static parse(helper, kernel) {
-    if (!helper.matchToken("put")) return;
-    var value = helper.requireElement("expression");
-    var operationToken = helper.matchAnyToken("into", "before", "after");
-    if (operationToken == null && helper.matchToken("at")) {
-      helper.matchToken("the");
-      operationToken = helper.matchAnyToken("start", "end");
-      helper.requireToken("of");
+  static parse(parser, kernel) {
+    if (!parser.matchToken("put")) return;
+    var value = parser.requireElement("expression");
+    var operationToken = parser.matchAnyToken("into", "before", "after");
+    if (operationToken == null && parser.matchToken("at")) {
+      parser.matchToken("the");
+      operationToken = parser.matchAnyToken("start", "end");
+      parser.requireToken("of");
     }
     if (operationToken == null) {
-      helper.raiseParseError("Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
+      parser.raiseParseError("Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
     }
-    var target = helper.requireElement("expression");
+    var target = parser.requireElement("expression");
     var operation = operationToken.value;
     var arrayIndex = false;
     var symbolWrite = false;
@@ -5336,11 +5336,11 @@ var PutCommand = class extends SetterCommand {
     } else if (target.type === "attributeRef" && operation === "into") {
       var attributeWrite = true;
       prop = target.name;
-      rootExpr = helper.requireElement("implicitMeTarget");
+      rootExpr = parser.requireElement("implicitMeTarget");
     } else if (target.type === "styleRef" && operation === "into") {
       var styleWrite = true;
       prop = target.name;
-      rootExpr = helper.requireElement("implicitMeTarget");
+      rootExpr = parser.requireElement("implicitMeTarget");
     } else if (target.attribute && operation === "into") {
       var attributeWrite = target.attribute.type === "attributeRef";
       var styleWrite = target.attribute.type === "styleRef";
@@ -5399,45 +5399,45 @@ var PutCommand = class extends SetterCommand {
 };
 
 // src/parsetree/commands/events.js
-function parseEventArgs(helper) {
+function parseEventArgs(parser) {
   var args = [];
-  if (helper.token(0).value === "(" && (helper.token(1).value === ")" || helper.token(2).value === "," || helper.token(2).value === ")")) {
-    helper.matchOpToken("(");
+  if (parser.token(0).value === "(" && (parser.token(1).value === ")" || parser.token(2).value === "," || parser.token(2).value === ")")) {
+    parser.matchOpToken("(");
     do {
-      args.push(helper.requireTokenType("IDENTIFIER"));
-    } while (helper.matchOpToken(","));
-    helper.requireOpToken(")");
+      args.push(parser.requireTokenType("IDENTIFIER"));
+    } while (parser.matchOpToken(","));
+    parser.requireOpToken(")");
   }
   return args;
 }
 var WaitCommand = class {
   /**
    * Parse wait command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {WaitCommand | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchToken("wait")) return;
+  static parse(parser) {
+    if (!parser.matchToken("wait")) return;
     var command;
-    if (helper.matchToken("for")) {
-      helper.matchToken("a");
+    if (parser.matchToken("for")) {
+      parser.matchToken("a");
       var events = [];
       do {
-        var lookahead = helper.token(0);
+        var lookahead = parser.token(0);
         if (lookahead.type === "NUMBER" || lookahead.type === "L_PAREN") {
           events.push({
-            time: helper.requireElement("expression").evaluate()
+            time: parser.requireElement("expression").evaluate()
             // TODO: do we want to allow async here?
           });
         } else {
           events.push({
-            name: helper.requireElement("dotOrColonPath", "Expected event name").evaluate(),
-            args: parseEventArgs(helper)
+            name: parser.requireElement("dotOrColonPath", "Expected event name").evaluate(),
+            args: parseEventArgs(parser)
           });
         }
-      } while (helper.matchToken("or"));
-      if (helper.matchToken("from")) {
-        var on = helper.requireElement("expression");
+      } while (parser.matchToken("or"));
+      if (parser.matchToken("from")) {
+        var on = parser.requireElement("expression");
       }
       command = {
         event: events,
@@ -5474,11 +5474,11 @@ var WaitCommand = class {
       return command;
     } else {
       var time;
-      if (helper.matchToken("a")) {
-        helper.requireToken("tick");
+      if (parser.matchToken("a")) {
+        parser.requireToken("tick");
         time = 0;
       } else {
-        time = helper.requireElement("expression");
+        time = parser.requireElement("expression");
       }
       command = {
         type: "waitCmd",
@@ -5499,13 +5499,13 @@ var WaitCommand = class {
     }
   }
 };
-function parseSendCmd(cmdType, helper) {
-  var eventName = helper.requireElement("eventName");
-  var details = helper.parseElement("namedArgumentList");
-  if (cmdType === "send" && helper.matchToken("to") || cmdType === "trigger" && helper.matchToken("on")) {
-    var toExpr = helper.requireElement("expression");
+function parseSendCmd(cmdType, parser) {
+  var eventName = parser.requireElement("eventName");
+  var details = parser.parseElement("namedArgumentList");
+  if (cmdType === "send" && parser.matchToken("to") || cmdType === "trigger" && parser.matchToken("on")) {
+    var toExpr = parser.requireElement("expression");
   } else {
-    var toExpr = helper.requireElement("implicitMeTarget");
+    var toExpr = parser.requireElement("implicitMeTarget");
   }
   var sendCmd = {
     eventName,
@@ -5525,24 +5525,24 @@ function parseSendCmd(cmdType, helper) {
 var TriggerCommand = class {
   /**
    * Parse trigger command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {TriggerCommand | undefined}
    */
-  static parse(helper) {
-    if (helper.matchToken("trigger")) {
-      return parseSendCmd("trigger", helper);
+  static parse(parser) {
+    if (parser.matchToken("trigger")) {
+      return parseSendCmd("trigger", parser);
     }
   }
 };
 var SendCommand = class {
   /**
    * Parse send command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {SendCommand | undefined}
    */
-  static parse(helper) {
-    if (helper.matchToken("send")) {
-      return parseSendCmd("send", helper);
+  static parse(parser) {
+    if (parser.matchToken("send")) {
+      return parseSendCmd("send", parser);
     }
   }
 };
@@ -5551,27 +5551,27 @@ var SendCommand = class {
 var IfCommand = class {
   /**
    * Parse if command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {IfCommand | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchToken("if")) return;
-    var expr = helper.requireElement("expression");
-    helper.matchToken("then");
-    var trueBranch = helper.parseElement("commandList");
+  static parse(parser) {
+    if (!parser.matchToken("if")) return;
+    var expr = parser.requireElement("expression");
+    parser.matchToken("then");
+    var trueBranch = parser.parseElement("commandList");
     var nestedIfStmt = false;
-    let elseToken = helper.matchToken("else") || helper.matchToken("otherwise");
+    let elseToken = parser.matchToken("else") || parser.matchToken("otherwise");
     if (elseToken) {
-      let elseIfIfToken = helper.peekToken("if");
+      let elseIfIfToken = parser.peekToken("if");
       nestedIfStmt = elseIfIfToken != null && elseIfIfToken.line === elseToken.line;
       if (nestedIfStmt) {
-        var falseBranch = helper.parseElement("command");
+        var falseBranch = parser.parseElement("command");
       } else {
-        var falseBranch = helper.parseElement("commandList");
+        var falseBranch = parser.parseElement("commandList");
       }
     }
-    if (helper.hasMore() && !nestedIfStmt) {
-      helper.requireToken("end");
+    if (parser.hasMore() && !nestedIfStmt) {
+      parser.requireToken("end");
     }
     var ifCmd = {
       expr,
@@ -5588,52 +5588,52 @@ var IfCommand = class {
         }
       }
     };
-    helper.setParent(trueBranch, ifCmd);
-    helper.setParent(falseBranch, ifCmd);
+    parser.setParent(trueBranch, ifCmd);
+    parser.setParent(falseBranch, ifCmd);
     return ifCmd;
   }
 };
-function parseRepeatExpression(helper, startedWithForToken) {
-  var innerStartToken = helper.currentToken();
+function parseRepeatExpression(parser, startedWithForToken) {
+  var innerStartToken = parser.currentToken();
   var identifier;
-  if (helper.matchToken("for") || startedWithForToken) {
-    var identifierToken = helper.requireTokenType("IDENTIFIER");
+  if (parser.matchToken("for") || startedWithForToken) {
+    var identifierToken = parser.requireTokenType("IDENTIFIER");
     identifier = identifierToken.value;
-    helper.requireToken("in");
-    var expression = helper.requireElement("expression");
-  } else if (helper.matchToken("in")) {
+    parser.requireToken("in");
+    var expression = parser.requireElement("expression");
+  } else if (parser.matchToken("in")) {
     identifier = "it";
-    var expression = helper.requireElement("expression");
-  } else if (helper.matchToken("while")) {
-    var whileExpr = helper.requireElement("expression");
-  } else if (helper.matchToken("until")) {
+    var expression = parser.requireElement("expression");
+  } else if (parser.matchToken("while")) {
+    var whileExpr = parser.requireElement("expression");
+  } else if (parser.matchToken("until")) {
     var isUntil = true;
-    if (helper.matchToken("event")) {
-      var evt = helper.requireElement("dotOrColonPath", "Expected event name");
-      if (helper.matchToken("from")) {
-        var on = helper.requireElement("expression");
+    if (parser.matchToken("event")) {
+      var evt = parser.requireElement("dotOrColonPath", "Expected event name");
+      if (parser.matchToken("from")) {
+        var on = parser.requireElement("expression");
       }
     } else {
-      var whileExpr = helper.requireElement("expression");
+      var whileExpr = parser.requireElement("expression");
     }
   } else {
-    if (!helper.commandBoundary(helper.currentToken()) && helper.currentToken().value !== "forever") {
-      var times = helper.requireElement("expression");
-      helper.requireToken("times");
+    if (!parser.commandBoundary(parser.currentToken()) && parser.currentToken().value !== "forever") {
+      var times = parser.requireElement("expression");
+      parser.requireToken("times");
     } else {
-      helper.matchToken("forever");
+      parser.matchToken("forever");
       var forever = true;
     }
   }
-  if (helper.matchToken("index")) {
-    var identifierToken = helper.requireTokenType("IDENTIFIER");
+  if (parser.matchToken("index")) {
+    var identifierToken = parser.requireTokenType("IDENTIFIER");
     var indexIdentifier = identifierToken.value;
-  } else if (helper.matchToken("indexed")) {
-    helper.requireToken("by");
-    var identifierToken = helper.requireTokenType("IDENTIFIER");
+  } else if (parser.matchToken("indexed")) {
+    parser.requireToken("by");
+    var identifierToken = parser.requireTokenType("IDENTIFIER");
     var indexIdentifier = identifierToken.value;
   }
-  var loop = helper.parseElement("commandList");
+  var loop = parser.parseElement("commandList");
   if (loop && evt) {
     var last = loop;
     while (last.next) {
@@ -5651,8 +5651,8 @@ function parseRepeatExpression(helper, startedWithForToken) {
     };
     last.next = waitATick;
   }
-  if (helper.hasMore()) {
-    helper.requireToken("end");
+  if (parser.hasMore()) {
+    parser.requireToken("end");
   }
   if (identifier == null) {
     identifier = "_implicit_repeat_" + innerStartToken.start;
@@ -5714,7 +5714,7 @@ function parseRepeatExpression(helper, startedWithForToken) {
       }
     }
   };
-  helper.setParent(loop, repeatCmd);
+  parser.setParent(loop, repeatCmd);
   var repeatInit = {
     name: "repeatInit",
     args: [expression, evt, on],
@@ -5748,46 +5748,46 @@ function parseRepeatExpression(helper, startedWithForToken) {
       return context2.meta.runtime.unifiedExec(this, context2);
     }
   };
-  helper.setParent(repeatCmd, repeatInit);
+  parser.setParent(repeatCmd, repeatInit);
   return repeatInit;
 }
 var RepeatCommand = class {
   /**
    * Parse repeat command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {RepeatCommand | undefined}
    */
-  static parse(helper) {
-    if (helper.matchToken("repeat")) {
-      return parseRepeatExpression(helper, false);
+  static parse(parser) {
+    if (parser.matchToken("repeat")) {
+      return parseRepeatExpression(parser, false);
     }
   }
 };
 var ForCommand = class {
   /**
    * Parse for command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {ForCommand | undefined}
    */
-  static parse(helper) {
-    if (helper.matchToken("for")) {
-      return parseRepeatExpression(helper, true);
+  static parse(parser) {
+    if (parser.matchToken("for")) {
+      return parseRepeatExpression(parser, true);
     }
   }
 };
 var ContinueCommand = class {
   /**
    * Parse continue command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {ContinueCommand | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchToken("continue")) return;
+  static parse(parser) {
+    if (!parser.matchToken("continue")) return;
     var command = {
       op: function(context2) {
         for (var parent = this.parent; true; parent = parent.parent) {
           if (parent == void 0) {
-            helper.raiseParseError("Command `continue` cannot be used outside of a `repeat` loop.");
+            parser.raiseParseError("Command `continue` cannot be used outside of a `repeat` loop.");
           }
           if (parent.loop != void 0) {
             return parent.resolveNext(context2);
@@ -5801,16 +5801,16 @@ var ContinueCommand = class {
 var BreakCommand = class {
   /**
    * Parse break command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {BreakCommand | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchToken("break")) return;
+  static parse(parser) {
+    if (!parser.matchToken("break")) return;
     var command = {
       op: function(context2) {
         for (var parent = this.parent; true; parent = parent.parent) {
           if (parent == void 0) {
-            helper.raiseParseError("Command `continue` cannot be used outside of a `repeat` loop.");
+            parser.raiseParseError("Command `continue` cannot be used outside of a `repeat` loop.");
           }
           if (parent.loop != void 0) {
             return context2.meta.runtime.findNext(parent.parent, context2);
@@ -5824,16 +5824,16 @@ var BreakCommand = class {
 var TellCommand = class {
   /**
    * Parse tell command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {TellCommand | undefined}
    */
-  static parse(helper) {
-    var startToken = helper.currentToken();
-    if (!helper.matchToken("tell")) return;
-    var value = helper.requireElement("expression");
-    var body = helper.requireElement("commandList");
-    if (helper.hasMore() && !helper.featureStart(helper.currentToken())) {
-      helper.requireToken("end");
+  static parse(parser) {
+    var startToken = parser.currentToken();
+    if (!parser.matchToken("tell")) return;
+    var value = parser.requireElement("expression");
+    var body = parser.requireElement("commandList");
+    if (parser.hasMore() && !parser.featureStart(parser.currentToken())) {
+      parser.requireToken("end");
     }
     var slot = "tell_" + startToken.start;
     var tellCmd = {
@@ -5868,7 +5868,7 @@ var TellCommand = class {
         return this.resolveNext(context2);
       }
     };
-    helper.setParent(body, tellCmd);
+    parser.setParent(body, tellCmd);
     return tellCmd;
   }
 };
@@ -5877,18 +5877,18 @@ var TellCommand = class {
 var JsBody = class {
   /**
    * Parse JavaScript body
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {Object}
    */
-  static parse(helper) {
-    var jsSourceStart = helper.currentToken().start;
-    var jsLastToken = helper.currentToken();
+  static parse(parser) {
+    var jsSourceStart = parser.currentToken().start;
+    var jsLastToken = parser.currentToken();
     var funcNames = [];
     var funcName = "";
     var expectFunctionDeclaration = false;
-    while (helper.hasMore()) {
-      jsLastToken = helper.consumeToken();
-      var peek = helper.token(0, true);
+    while (parser.hasMore()) {
+      jsLastToken = parser.consumeToken();
+      var peek = parser.token(0, true);
       if (peek.type === "IDENTIFIER" && peek.value === "end") {
         break;
       }
@@ -5908,31 +5908,31 @@ var JsBody = class {
     return {
       type: "jsBody",
       exposedFunctionNames: funcNames,
-      jsSource: helper.source.substring(jsSourceStart, jsSourceEnd)
+      jsSource: parser.source.substring(jsSourceStart, jsSourceEnd)
     };
   }
 };
 var JsCommand = class {
   /**
    * Parse js command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {JsCommand | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchToken("js")) return;
+  static parse(parser) {
+    if (!parser.matchToken("js")) return;
     var inputs = [];
-    if (helper.matchOpToken("(")) {
-      if (helper.matchOpToken(")")) {
+    if (parser.matchOpToken("(")) {
+      if (parser.matchOpToken(")")) {
       } else {
         do {
-          var inp = helper.requireTokenType("IDENTIFIER");
+          var inp = parser.requireTokenType("IDENTIFIER");
           inputs.push(inp.value);
-        } while (helper.matchOpToken(","));
-        helper.requireOpToken(")");
+        } while (parser.matchOpToken(","));
+        parser.requireOpToken(")");
       }
     }
-    var jsBody = helper.requireElement("jsBody");
-    helper.matchToken("end");
+    var jsBody = parser.requireElement("jsBody");
+    parser.matchToken("end");
     var func = varargConstructor(Function, inputs.concat([jsBody.jsSource]));
     var command = {
       jsSource: jsBody.jsSource,
@@ -5963,19 +5963,19 @@ var JsCommand = class {
 var AsyncCommand = class {
   /**
    * Parse async command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {AsyncCommand | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchToken("async")) return;
-    if (helper.matchToken("do")) {
-      var body = helper.requireElement("commandList");
+  static parse(parser) {
+    if (!parser.matchToken("async")) return;
+    if (parser.matchToken("do")) {
+      var body = parser.requireElement("commandList");
       var end = body;
       while (end.next) end = end.next;
       end.next = Runtime.HALT;
-      helper.requireToken("end");
+      parser.requireToken("end");
     } else {
-      var body = helper.requireElement("command");
+      var body = parser.requireElement("command");
     }
     var command = {
       body,
@@ -5986,12 +5986,12 @@ var AsyncCommand = class {
         return context2.meta.runtime.findNext(this, context2);
       }
     };
-    helper.setParent(body, command);
+    parser.setParent(body, command);
     return command;
   }
 };
-function parseCallOrGet(helper) {
-  var expr = helper.requireElement("expression");
+function parseCallOrGet(parser) {
+  var expr = parser.requireElement("expression");
   var callCmd = {
     expr,
     args: [expr],
@@ -6005,14 +6005,14 @@ function parseCallOrGet(helper) {
 var CallCommand = class {
   /**
    * Parse call command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {CallCommand | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchToken("call")) return;
-    var call = parseCallOrGet(helper);
+  static parse(parser) {
+    if (!parser.matchToken("call")) return;
+    var call = parseCallOrGet(parser);
     if (call.expr && call.expr.type !== "functionCall") {
-      helper.raiseParseError("Must be a function invocation");
+      parser.raiseParseError("Must be a function invocation");
     }
     return call;
   }
@@ -6020,12 +6020,12 @@ var CallCommand = class {
 var GetCommand = class {
   /**
    * Parse get command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {GetCommand | undefined}
    */
-  static parse(helper) {
-    if (helper.matchToken("get")) {
-      return parseCallOrGet(helper);
+  static parse(parser) {
+    if (parser.matchToken("get")) {
+      return parseCallOrGet(parser);
     }
   }
 };
@@ -6034,15 +6034,15 @@ var GetCommand = class {
 var PseudoCommand = class {
   /**
    * Parse pseudo-command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {Object | undefined}
    */
-  static parse(helper) {
-    let lookAhead = helper.token(1);
+  static parse(parser) {
+    let lookAhead = parser.token(1);
     if (!(lookAhead && lookAhead.op && (lookAhead.value === "." || lookAhead.value === "("))) {
       return null;
     }
-    var expr = helper.requireElement("primaryExpression");
+    var expr = parser.requireElement("primaryExpression");
     var rootRoot = expr.root;
     var root = expr;
     while (rootRoot.root != null) {
@@ -6050,13 +6050,13 @@ var PseudoCommand = class {
       rootRoot = rootRoot.root;
     }
     if (expr.type !== "functionCall") {
-      helper.raiseParseError("Pseudo-commands must be function calls");
+      parser.raiseParseError("Pseudo-commands must be function calls");
     }
     if (root.type === "functionCall" && root.root.root == null) {
-      if (helper.matchAnyToken("the", "to", "on", "with", "into", "from", "at")) {
-        var realRoot = helper.requireElement("expression");
-      } else if (helper.matchToken("me")) {
-        var realRoot = helper.requireElement("implicitMeTarget");
+      if (parser.matchAnyToken("the", "to", "on", "with", "into", "from", "at")) {
+        var realRoot = parser.requireElement("expression");
+      } else if (parser.matchToken("me")) {
+        var realRoot = parser.requireElement("implicitMeTarget");
       }
     }
     var pseudoCommand;
@@ -6102,15 +6102,15 @@ var PseudoCommand = class {
 var SetFeature = class {
   /**
    * Parse set feature
-   * @param {ParserHelper} helper
-   * @param {LanguageKernel} parser
+   * @param {Parser} parser
+   * @param {LanguageKernel} kernel
    * @returns {SetFeature | undefined}
    */
-  static parse(helper, kernel) {
-    let setCmd = helper.parseElement("setCommand");
+  static parse(parser, kernel) {
+    let setCmd = parser.parseElement("setCommand");
     if (setCmd) {
       if (setCmd.target.scope !== "element") {
-        helper.raiseParseError("variables declared at the feature level must be element scoped.");
+        parser.raiseParseError("variables declared at the feature level must be element scoped.");
       }
       let setFeature = {
         start: setCmd,
@@ -6128,14 +6128,14 @@ var SetFeature = class {
 var InitFeature = class {
   /**
    * Parse init feature
-   * @param {ParserHelper} helper
-   * @param {LanguageKernel} parser
+   * @param {Parser} parser
+   * @param {LanguageKernel} kernel
    * @returns {InitFeature | undefined}
    */
-  static parse(helper, kernel) {
-    if (!helper.matchToken("init")) return;
-    var immediately = helper.matchToken("immediately");
-    var start = helper.requireElement("commandList");
+  static parse(parser, kernel) {
+    if (!parser.matchToken("init")) return;
+    var immediately = parser.matchToken("immediately");
+    var start = parser.requireElement("commandList");
     var initFeature = {
       start,
       install: function(target, source, args, runtime) {
@@ -6150,7 +6150,7 @@ var InitFeature = class {
       }
     };
     kernel.ensureTerminated(start);
-    helper.setParent(start, initFeature);
+    parser.setParent(start, initFeature);
     return initFeature;
   }
 };
@@ -6159,12 +6159,12 @@ var InitFeature = class {
 var WorkerFeature = class {
   /**
    * Parse worker feature
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {WorkerFeature | undefined}
    */
-  static parse(helper) {
-    if (helper.matchToken("worker")) {
-      helper.raiseParseError(
+  static parse(parser) {
+    if (parser.matchToken("worker")) {
+      parser.raiseParseError(
         "In order to use the 'worker' feature, include the _hyperscript worker plugin. See https://hyperscript.org/features/worker/ for more info."
       );
       return void 0;
@@ -6176,22 +6176,22 @@ var WorkerFeature = class {
 var BehaviorFeature = class {
   /**
    * Parse behavior feature
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {BehaviorFeature | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchToken("behavior")) return;
-    var path = helper.requireElement("dotOrColonPath").evaluate();
+  static parse(parser) {
+    if (!parser.matchToken("behavior")) return;
+    var path = parser.requireElement("dotOrColonPath").evaluate();
     var nameSpace = path.split(".");
     var name = nameSpace.pop();
     var formalParams = [];
-    if (helper.matchOpToken("(") && !helper.matchOpToken(")")) {
+    if (parser.matchOpToken("(") && !parser.matchOpToken(")")) {
       do {
-        formalParams.push(helper.requireTokenType("IDENTIFIER").value);
-      } while (helper.matchOpToken(","));
-      helper.requireOpToken(")");
+        formalParams.push(parser.requireTokenType("IDENTIFIER").value);
+      } while (parser.matchOpToken(","));
+      parser.requireOpToken(")");
     }
-    var hs = helper.requireElement("hyperscript");
+    var hs = parser.requireElement("hyperscript");
     for (var i = 0; i < hs.features.length; i++) {
       var feature = hs.features[i];
       feature.behavior = path;
@@ -6220,14 +6220,14 @@ var BehaviorFeature = class {
 var InstallFeature = class {
   /**
    * Parse install feature
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {InstallFeature | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchToken("install")) return;
-    var behaviorPath = helper.requireElement("dotOrColonPath").evaluate();
+  static parse(parser) {
+    if (!parser.matchToken("install")) return;
+    var behaviorPath = parser.requireElement("dotOrColonPath").evaluate();
     var behaviorNamespace = behaviorPath.split(".");
-    var args = helper.parseElement("namedArgumentList");
+    var args = parser.parseElement("namedArgumentList");
     var installFeature;
     return installFeature = {
       install: function(target, source, installArgs, runtime) {
@@ -6257,12 +6257,12 @@ var InstallFeature = class {
 var JsFeature = class {
   /**
    * Parse js feature
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {JsFeature | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchToken("js")) return;
-    var jsBody = helper.requireElement("jsBody");
+  static parse(parser) {
+    if (!parser.matchToken("js")) return;
+    var jsBody = parser.requireElement("jsBody");
     var jsSource = jsBody.jsSource + "\nreturn { " + jsBody.exposedFunctionNames.map(function(name) {
       return name + ":" + name;
     }).join(",") + " } ";
@@ -6282,34 +6282,34 @@ var JsFeature = class {
 var DefFeature = class {
   /**
    * Parse def feature
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @param {LanguageKernel} parser
    * @returns {DefFeature | undefined}
    */
-  static parse(helper, kernel) {
-    if (!helper.matchToken("def")) return;
-    var functionName = helper.requireElement("dotOrColonPath");
+  static parse(parser, kernel) {
+    if (!parser.matchToken("def")) return;
+    var functionName = parser.requireElement("dotOrColonPath");
     var nameVal = functionName.evaluate();
     var nameSpace = nameVal.split(".");
     var funcName = nameSpace.pop();
     var args = [];
-    if (helper.matchOpToken("(")) {
-      if (helper.matchOpToken(")")) {
+    if (parser.matchOpToken("(")) {
+      if (parser.matchOpToken(")")) {
       } else {
         do {
-          args.push(helper.requireTokenType("IDENTIFIER"));
-        } while (helper.matchOpToken(","));
-        helper.requireOpToken(")");
+          args.push(parser.requireTokenType("IDENTIFIER"));
+        } while (parser.matchOpToken(","));
+        parser.requireOpToken(")");
       }
     }
-    var start = helper.requireElement("commandList");
+    var start = parser.requireElement("commandList");
     var errorSymbol, errorHandler;
-    if (helper.matchToken("catch")) {
-      errorSymbol = helper.requireTokenType("IDENTIFIER").value;
-      errorHandler = helper.parseElement("commandList");
+    if (parser.matchToken("catch")) {
+      errorSymbol = parser.requireTokenType("IDENTIFIER").value;
+      errorHandler = parser.parseElement("commandList");
     }
-    if (helper.matchToken("finally")) {
-      var finallyHandler = helper.requireElement("commandList");
+    if (parser.matchToken("finally")) {
+      var finallyHandler = parser.requireElement("commandList");
       kernel.ensureTerminated(finallyHandler);
     }
     var functionFeature = {
@@ -6362,118 +6362,118 @@ var DefFeature = class {
     if (errorHandler) {
       kernel.ensureTerminated(errorHandler);
     }
-    helper.setParent(start, functionFeature);
+    parser.setParent(start, functionFeature);
     return functionFeature;
   }
 };
 
 // src/parsetree/features/on.js
-function parseEventArgs2(helper) {
+function parseEventArgs2(parser) {
   var args = [];
-  if (helper.token(0).value === "(" && (helper.token(1).value === ")" || helper.token(2).value === "," || helper.token(2).value === ")")) {
-    helper.matchOpToken("(");
+  if (parser.token(0).value === "(" && (parser.token(1).value === ")" || parser.token(2).value === "," || parser.token(2).value === ")")) {
+    parser.matchOpToken("(");
     do {
-      args.push(helper.requireTokenType("IDENTIFIER"));
-    } while (helper.matchOpToken(","));
-    helper.requireOpToken(")");
+      args.push(parser.requireTokenType("IDENTIFIER"));
+    } while (parser.matchOpToken(","));
+    parser.requireOpToken(")");
   }
   return args;
 }
 var OnFeature = class {
   /**
    * Parse on feature
-   * @param {ParserHelper} helper
-   * @param {LanguageKernel} parser
+   * @param {Parser} parser
+   * @param {LanguageKernel} kernel
    * @returns {OnFeature | undefined}
    */
-  static parse(helper, kernel) {
-    if (!helper.matchToken("on")) return;
+  static parse(parser, kernel) {
+    if (!parser.matchToken("on")) return;
     var every = false;
-    if (helper.matchToken("every")) {
+    if (parser.matchToken("every")) {
       every = true;
     }
     var events = [];
     var displayName = null;
     do {
-      var on = helper.requireElement("eventName", "Expected event name");
+      var on = parser.requireElement("eventName", "Expected event name");
       var eventName = on.evaluate();
       if (displayName) {
         displayName = displayName + " or " + eventName;
       } else {
         displayName = "on " + eventName;
       }
-      var args = parseEventArgs2(helper);
+      var args = parseEventArgs2(parser);
       var filter = null;
-      if (helper.matchOpToken("[")) {
-        filter = helper.requireElement("expression");
-        helper.requireOpToken("]");
+      if (parser.matchOpToken("[")) {
+        filter = parser.requireElement("expression");
+        parser.requireOpToken("]");
       }
       var startCount, endCount, unbounded;
-      if (helper.currentToken().type === "NUMBER") {
-        var startCountToken = helper.consumeToken();
+      if (parser.currentToken().type === "NUMBER") {
+        var startCountToken = parser.consumeToken();
         if (!startCountToken.value) return;
         startCount = parseInt(startCountToken.value);
-        if (helper.matchToken("to")) {
-          var endCountToken = helper.consumeToken();
+        if (parser.matchToken("to")) {
+          var endCountToken = parser.consumeToken();
           if (!endCountToken.value) return;
           endCount = parseInt(endCountToken.value);
-        } else if (helper.matchToken("and")) {
+        } else if (parser.matchToken("and")) {
           unbounded = true;
-          helper.requireToken("on");
+          parser.requireToken("on");
         }
       }
       var intersectionSpec, mutationSpec;
       if (eventName === "intersection") {
         intersectionSpec = {};
-        if (helper.matchToken("with")) {
-          intersectionSpec["with"] = helper.requireElement("expression").evaluate();
+        if (parser.matchToken("with")) {
+          intersectionSpec["with"] = parser.requireElement("expression").evaluate();
         }
-        if (helper.matchToken("having")) {
+        if (parser.matchToken("having")) {
           do {
-            if (helper.matchToken("margin")) {
-              intersectionSpec["rootMargin"] = helper.requireElement("stringLike").evaluate();
-            } else if (helper.matchToken("threshold")) {
-              intersectionSpec["threshold"] = helper.requireElement("expression").evaluate();
+            if (parser.matchToken("margin")) {
+              intersectionSpec["rootMargin"] = parser.requireElement("stringLike").evaluate();
+            } else if (parser.matchToken("threshold")) {
+              intersectionSpec["threshold"] = parser.requireElement("expression").evaluate();
             } else {
-              helper.raiseParseError("Unknown intersection config specification");
+              parser.raiseParseError("Unknown intersection config specification");
             }
-          } while (helper.matchToken("and"));
+          } while (parser.matchToken("and"));
         }
       } else if (eventName === "mutation") {
         mutationSpec = {};
-        if (helper.matchToken("of")) {
+        if (parser.matchToken("of")) {
           do {
-            if (helper.matchToken("anything")) {
+            if (parser.matchToken("anything")) {
               mutationSpec["attributes"] = true;
               mutationSpec["subtree"] = true;
               mutationSpec["characterData"] = true;
               mutationSpec["childList"] = true;
-            } else if (helper.matchToken("childList")) {
+            } else if (parser.matchToken("childList")) {
               mutationSpec["childList"] = true;
-            } else if (helper.matchToken("attributes")) {
+            } else if (parser.matchToken("attributes")) {
               mutationSpec["attributes"] = true;
               mutationSpec["attributeOldValue"] = true;
-            } else if (helper.matchToken("subtree")) {
+            } else if (parser.matchToken("subtree")) {
               mutationSpec["subtree"] = true;
-            } else if (helper.matchToken("characterData")) {
+            } else if (parser.matchToken("characterData")) {
               mutationSpec["characterData"] = true;
               mutationSpec["characterDataOldValue"] = true;
-            } else if (helper.currentToken().type === "ATTRIBUTE_REF") {
-              var attribute = helper.consumeToken();
+            } else if (parser.currentToken().type === "ATTRIBUTE_REF") {
+              var attribute = parser.consumeToken();
               if (mutationSpec["attributeFilter"] == null) {
                 mutationSpec["attributeFilter"] = [];
               }
               if (attribute.value.indexOf("@") == 0) {
                 mutationSpec["attributeFilter"].push(attribute.value.substring(1));
               } else {
-                helper.raiseParseError(
+                parser.raiseParseError(
                   "Only shorthand attribute references are allowed here"
                 );
               }
             } else {
-              helper.raiseParseError("Unknown mutation config specification");
+              parser.raiseParseError("Unknown mutation config specification");
             }
-          } while (helper.matchToken("or"));
+          } while (parser.matchToken("or"));
         } else {
           mutationSpec["attributes"] = true;
           mutationSpec["characterData"] = true;
@@ -6482,34 +6482,34 @@ var OnFeature = class {
       }
       var from = null;
       var elsewhere = false;
-      if (helper.matchToken("from")) {
-        if (helper.matchToken("elsewhere")) {
+      if (parser.matchToken("from")) {
+        if (parser.matchToken("elsewhere")) {
           elsewhere = true;
         } else {
-          helper.pushFollow("or");
+          parser.pushFollow("or");
           try {
-            from = helper.requireElement("expression");
+            from = parser.requireElement("expression");
           } finally {
-            helper.popFollow();
+            parser.popFollow();
           }
           if (!from) {
-            helper.raiseParseError('Expected either target value or "elsewhere".');
+            parser.raiseParseError('Expected either target value or "elsewhere".');
           }
         }
       }
-      if (from === null && elsewhere === false && helper.matchToken("elsewhere")) {
+      if (from === null && elsewhere === false && parser.matchToken("elsewhere")) {
         elsewhere = true;
       }
-      if (helper.matchToken("in")) {
-        var inExpr = helper.parseElement("unaryExpression");
+      if (parser.matchToken("in")) {
+        var inExpr = parser.parseElement("unaryExpression");
       }
-      if (helper.matchToken("debounced")) {
-        helper.requireToken("at");
-        var timeExpr = helper.requireElement("unaryExpression");
+      if (parser.matchToken("debounced")) {
+        parser.requireToken("at");
+        var timeExpr = parser.requireElement("unaryExpression");
         var debounceTime = timeExpr.evaluate({});
-      } else if (helper.matchToken("throttled")) {
-        helper.requireToken("at");
-        var timeExpr = helper.requireElement("unaryExpression");
+      } else if (parser.matchToken("throttled")) {
+        parser.requireToken("at");
+        var timeExpr = parser.requireElement("unaryExpression");
         var throttleTime = timeExpr.evaluate({});
       }
       events.push({
@@ -6531,32 +6531,32 @@ var OnFeature = class {
         debounced: void 0,
         lastExec: void 0
       });
-    } while (helper.matchToken("or"));
+    } while (parser.matchToken("or"));
     var queueLast = true;
     if (!every) {
-      if (helper.matchToken("queue")) {
-        if (helper.matchToken("all")) {
+      if (parser.matchToken("queue")) {
+        if (parser.matchToken("all")) {
           var queueAll = true;
           var queueLast = false;
-        } else if (helper.matchToken("first")) {
+        } else if (parser.matchToken("first")) {
           var queueFirst = true;
-        } else if (helper.matchToken("none")) {
+        } else if (parser.matchToken("none")) {
           var queueNone = true;
         } else {
-          helper.requireToken("last");
+          parser.requireToken("last");
         }
       }
     }
-    var start = helper.requireElement("commandList");
+    var start = parser.requireElement("commandList");
     kernel.ensureTerminated(start);
     var errorSymbol, errorHandler;
-    if (helper.matchToken("catch")) {
-      errorSymbol = helper.requireTokenType("IDENTIFIER").value;
-      errorHandler = helper.requireElement("commandList");
+    if (parser.matchToken("catch")) {
+      errorSymbol = parser.requireTokenType("IDENTIFIER").value;
+      errorHandler = parser.requireElement("commandList");
       kernel.ensureTerminated(errorHandler);
     }
-    if (helper.matchToken("finally")) {
-      var finallyHandler = helper.requireElement("commandList");
+    if (parser.matchToken("finally")) {
+      var finallyHandler = parser.requireElement("commandList");
       kernel.ensureTerminated(finallyHandler);
     }
     var onFeature = {
@@ -6732,7 +6732,7 @@ var OnFeature = class {
         }
       }
     };
-    helper.setParent(start, onFeature);
+    parser.setParent(start, onFeature);
     return onFeature;
   }
 };
@@ -6766,17 +6766,17 @@ function hyperscriptCoreGrammar(kernel) {
   kernel.addIndirectExpression("functionCall", FunctionCall.parse);
   kernel.addIndirectExpression("attributeRefAccess", AttributeRefAccess.parse);
   kernel.addIndirectExpression("arrayIndex", ArrayIndex.parse);
-  kernel.addGrammarElement("postfixExpression", function(helper) {
-    var root = helper.parseElement("negativeNumber");
-    return StringPostfixExpression.parse(helper, root) || TimeExpression.parse(helper, root) || TypeCheckExpression.parse(helper, root) || root;
+  kernel.addGrammarElement("postfixExpression", function(parser) {
+    var root = parser.parseElement("negativeNumber");
+    return StringPostfixExpression.parse(parser, root) || TimeExpression.parse(parser, root) || TypeCheckExpression.parse(parser, root) || root;
   });
   kernel.addGrammarElement("logicalNot", LogicalNot.parse);
   kernel.addGrammarElement("noExpression", NoExpression.parse);
   kernel.addLeafExpression("some", SomeExpression.parse);
   kernel.addGrammarElement("negativeNumber", NegativeNumber.parse);
-  kernel.addGrammarElement("unaryExpression", function(helper) {
-    helper.matchToken("the");
-    return helper.parseAnyOf(["beepExpression", "logicalNot", "relativePositionalExpression", "positionalExpression", "noExpression", "postfixExpression"]);
+  kernel.addGrammarElement("unaryExpression", function(parser) {
+    parser.matchToken("the");
+    return parser.parseAnyOf(["beepExpression", "logicalNot", "relativePositionalExpression", "positionalExpression", "noExpression", "postfixExpression"]);
   });
   kernel.addGrammarElement("beepExpression", BeepExpression.parse);
   kernel.addGrammarElement("relativePositionalExpression", RelativePositionalExpression.parse);
@@ -6788,29 +6788,29 @@ function hyperscriptCoreGrammar(kernel) {
   kernel.addGrammarElement("logicalOperator", LogicalOperator.parse);
   kernel.addGrammarElement("logicalExpression", LogicalExpression.parse);
   kernel.addGrammarElement("asyncExpression", AsyncExpression.parse);
-  kernel.addGrammarElement("expression", function(helper) {
-    helper.matchToken("the");
-    return helper.parseElement("asyncExpression");
+  kernel.addGrammarElement("expression", function(parser) {
+    parser.matchToken("the");
+    return parser.parseElement("asyncExpression");
   });
-  kernel.addGrammarElement("assignableExpression", function(helper) {
-    helper.matchToken("the");
-    var expr = helper.parseElement("primaryExpression");
+  kernel.addGrammarElement("assignableExpression", function(parser) {
+    parser.matchToken("the");
+    var expr = parser.parseElement("primaryExpression");
     if (expr && (expr.type === "symbol" || expr.type === "ofExpression" || expr.type === "propertyAccess" || expr.type === "attributeRefAccess" || expr.type === "attributeRef" || expr.type === "styleRef" || expr.type === "arrayIndex" || expr.type === "possessive")) {
       return expr;
     } else {
-      helper.raiseParseError(
+      parser.raiseParseError(
         "A target expression must be writable.  The expression type '" + (expr && expr.type) + "' is not."
       );
     }
     return expr;
   });
-  kernel.addGrammarElement("hyperscript", function(helper) {
+  kernel.addGrammarElement("hyperscript", function(parser) {
     var features = [];
-    if (helper.hasMore()) {
-      while (helper.featureStart(helper.currentToken()) || helper.currentToken().value === "(") {
-        var feature = helper.requireElement("feature");
+    if (parser.hasMore()) {
+      while (parser.featureStart(parser.currentToken()) || parser.currentToken().value === "(") {
+        var feature = parser.requireElement("feature");
         features.push(feature);
-        helper.matchToken("end");
+        parser.matchToken("end");
       }
     }
     return {
@@ -6823,17 +6823,17 @@ function hyperscriptCoreGrammar(kernel) {
       }
     };
   });
-  kernel.addFeature("on", function(helper) {
-    return OnFeature.parse(helper, kernel);
+  kernel.addFeature("on", function(parser) {
+    return OnFeature.parse(parser, kernel);
   });
-  kernel.addFeature("def", function(helper) {
-    return DefFeature.parse(helper, kernel);
+  kernel.addFeature("def", function(parser) {
+    return DefFeature.parse(parser, kernel);
   });
-  kernel.addFeature("set", function(helper) {
-    return SetFeature.parse(helper, kernel);
+  kernel.addFeature("set", function(parser) {
+    return SetFeature.parse(parser, kernel);
   });
-  kernel.addFeature("init", function(helper) {
-    return InitFeature.parse(helper, kernel);
+  kernel.addFeature("init", function(parser) {
+    return InitFeature.parse(parser, kernel);
   });
   kernel.addFeature("worker", WorkerFeature.parse);
   kernel.addFeature("behavior", BehaviorFeature.parse);
@@ -6844,15 +6844,15 @@ function hyperscriptCoreGrammar(kernel) {
   kernel.addCommand("async", AsyncCommand.parse);
   kernel.addCommand("tell", TellCommand.parse);
   kernel.addCommand("wait", WaitCommand.parse);
-  kernel.addGrammarElement("dotOrColonPath", function(helper) {
-    var root = helper.matchTokenType("IDENTIFIER");
+  kernel.addGrammarElement("dotOrColonPath", function(parser) {
+    var root = parser.matchTokenType("IDENTIFIER");
     if (root) {
       var path = [root.value];
-      var separator = helper.matchOpToken(".") || helper.matchOpToken(":");
+      var separator = parser.matchOpToken(".") || parser.matchOpToken(":");
       if (separator) {
         do {
-          path.push(helper.requireTokenType("IDENTIFIER", "NUMBER").value);
-        } while (helper.matchOpToken(separator.value));
+          path.push(parser.requireTokenType("IDENTIFIER", "NUMBER").value);
+        } while (parser.matchOpToken(separator.value));
       }
       return {
         type: "dotOrColonPath",
@@ -6863,16 +6863,16 @@ function hyperscriptCoreGrammar(kernel) {
       };
     }
   });
-  kernel.addGrammarElement("eventName", function(helper) {
+  kernel.addGrammarElement("eventName", function(parser) {
     var token;
-    if (token = helper.matchTokenType("STRING")) {
+    if (token = parser.matchTokenType("STRING")) {
       return {
         evaluate: function() {
           return token.value;
         }
       };
     }
-    return helper.parseElement("dotOrColonPath");
+    return parser.parseElement("dotOrColonPath");
   });
   kernel.addCommand("trigger", TriggerCommand.parse);
   kernel.addCommand("send", SendCommand.parse);
@@ -6886,19 +6886,19 @@ function hyperscriptCoreGrammar(kernel) {
   kernel.addCommand("get", GetCommand.parse);
   kernel.addCommand("make", MakeCommand.parse);
   kernel.addGrammarElement("pseudoCommand", PseudoCommand.parse);
-  var makeSetter = function(helper, target, value) {
+  var makeSetter = function(parser, target, value) {
     var symbolWrite = target.type === "symbol";
     var attributeWrite = target.type === "attributeRef";
     var styleWrite = target.type === "styleRef";
     var arrayWrite = target.type === "arrayIndex";
     if (!(attributeWrite || styleWrite || symbolWrite) && target.root == null) {
-      helper.raiseParseError("Can only put directly into symbols, not references");
+      parser.raiseParseError("Can only put directly into symbols, not references");
     }
     var rootElt = null;
     var prop = null;
     if (symbolWrite) {
     } else if (attributeWrite || styleWrite) {
-      rootElt = helper.requireElement("implicitMeTarget");
+      rootElt = parser.requireElement("implicitMeTarget");
       var attribute = target;
     } else if (arrayWrite) {
       prop = target.firstIndex;
@@ -6950,11 +6950,11 @@ function hyperscriptCoreGrammar(kernel) {
   kernel.addCommand("for", ForCommand.parse);
   kernel.addCommand("continue", ContinueCommand.parse);
   kernel.addCommand("break", BreakCommand.parse);
-  kernel.addGrammarElement("stringLike", function(helper) {
-    return helper.parseAnyOf(["string", "nakedString"]);
+  kernel.addGrammarElement("stringLike", function(parser) {
+    return parser.parseAnyOf(["string", "nakedString"]);
   });
-  kernel.addCommand("append", function(helper) {
-    return AppendCommand.parse(helper, makeSetter);
+  kernel.addCommand("append", function(parser) {
+    return AppendCommand.parse(parser, makeSetter);
   });
   kernel.addCommand("pick", PickCommand.parse);
   kernel.addCommand("increment", IncrementCommand.parse);
@@ -7019,17 +7019,17 @@ var HIDE_SHOW_STRATEGIES = {
     }
   }
 };
-function parseShowHideTarget(helper) {
+function parseShowHideTarget(parser) {
   var target;
-  var currentTokenValue = helper.currentToken();
-  if (currentTokenValue.value === "when" || currentTokenValue.value === "with" || helper.commandBoundary(currentTokenValue)) {
-    target = helper.parseElement("implicitMeTarget");
+  var currentTokenValue = parser.currentToken();
+  if (currentTokenValue.value === "when" || currentTokenValue.value === "with" || parser.commandBoundary(currentTokenValue)) {
+    target = parser.parseElement("implicitMeTarget");
   } else {
-    target = helper.parseElement("expression");
+    target = parser.parseElement("expression");
   }
   return target;
 }
-function resolveHideShowStrategy(kernel, helper, name, config2) {
+function resolveHideShowStrategy(kernel, parser, name, config2) {
   var configDefault = config2.defaultHideShowStrategy;
   var strategies = HIDE_SHOW_STRATEGIES;
   if (config2.hideShowStrategies) {
@@ -7038,40 +7038,40 @@ function resolveHideShowStrategy(kernel, helper, name, config2) {
   name = name || configDefault || "display";
   var value = strategies[name];
   if (value == null) {
-    helper.raiseParseError("Unknown show/hide strategy : " + name);
+    parser.raiseParseError("Unknown show/hide strategy : " + name);
   }
   return value;
 }
 var AddCommand = class {
-  static parse(helper) {
-    if (!helper.matchToken("add")) return;
-    var classRef = helper.parseElement("classRef");
+  static parse(parser) {
+    if (!parser.matchToken("add")) return;
+    var classRef = parser.parseElement("classRef");
     var attributeRef = null;
     var cssDeclaration = null;
     if (classRef == null) {
-      attributeRef = helper.parseElement("attributeRef");
+      attributeRef = parser.parseElement("attributeRef");
       if (attributeRef == null) {
-        cssDeclaration = helper.parseElement("styleLiteral");
+        cssDeclaration = parser.parseElement("styleLiteral");
         if (cssDeclaration == null) {
-          helper.raiseParseError("Expected either a class reference or attribute expression");
+          parser.raiseParseError("Expected either a class reference or attribute expression");
         }
       }
     } else {
       var classRefs = [classRef];
-      while (classRef = helper.parseElement("classRef")) {
+      while (classRef = parser.parseElement("classRef")) {
         classRefs.push(classRef);
       }
     }
-    if (helper.matchToken("to")) {
-      var toExpr = helper.requireElement("expression");
+    if (parser.matchToken("to")) {
+      var toExpr = parser.requireElement("expression");
     } else {
-      var toExpr = helper.requireElement("implicitMeTarget");
+      var toExpr = parser.requireElement("implicitMeTarget");
     }
-    if (helper.matchToken("when")) {
+    if (parser.matchToken("when")) {
       if (cssDeclaration) {
-        helper.raiseParseError("Only class and properties are supported with a when clause");
+        parser.raiseParseError("Only class and properties are supported with a when clause");
       }
-      var when = helper.requireElement("expression");
+      var when = parser.requireElement("expression");
     }
     if (classRefs) {
       return {
@@ -7148,32 +7148,32 @@ var AddCommand = class {
   }
 };
 var RemoveCommand = class {
-  static parse(helper) {
-    if (!helper.matchToken("remove")) return;
-    var classRef = helper.parseElement("classRef");
+  static parse(parser) {
+    if (!parser.matchToken("remove")) return;
+    var classRef = parser.parseElement("classRef");
     var attributeRef = null;
     var elementExpr = null;
     if (classRef == null) {
-      attributeRef = helper.parseElement("attributeRef");
+      attributeRef = parser.parseElement("attributeRef");
       if (attributeRef == null) {
-        elementExpr = helper.parseElement("expression");
+        elementExpr = parser.parseElement("expression");
         if (elementExpr == null) {
-          helper.raiseParseError(
+          parser.raiseParseError(
             "Expected either a class reference, attribute expression or value expression"
           );
         }
       }
     } else {
       var classRefs = [classRef];
-      while (classRef = helper.parseElement("classRef")) {
+      while (classRef = parser.parseElement("classRef")) {
         classRefs.push(classRef);
       }
     }
-    if (helper.matchToken("from")) {
-      var fromExpr = helper.requireElement("expression");
+    if (parser.matchToken("from")) {
+      var fromExpr = parser.requireElement("expression");
     } else {
       if (elementExpr == null) {
-        var fromExpr = helper.requireElement("implicitMeTarget");
+        var fromExpr = parser.requireElement("implicitMeTarget");
       }
     }
     if (elementExpr) {
@@ -7218,57 +7218,57 @@ var RemoveCommand = class {
   }
 };
 var ToggleCommand = class {
-  static parse(helper, kernel, config2) {
-    if (!helper.matchToken("toggle")) return;
-    helper.matchAnyToken("the", "my");
-    if (helper.currentToken().type === "STYLE_REF") {
-      let styleRef = helper.consumeToken();
+  static parse(parser, kernel, config2) {
+    if (!parser.matchToken("toggle")) return;
+    parser.matchAnyToken("the", "my");
+    if (parser.currentToken().type === "STYLE_REF") {
+      let styleRef = parser.consumeToken();
       var name = styleRef.value.substr(1);
       var visibility = true;
-      var hideShowStrategy = resolveHideShowStrategy(kernel, helper, name, config2);
-      if (helper.matchToken("of")) {
-        helper.pushFollow("with");
+      var hideShowStrategy = resolveHideShowStrategy(kernel, parser, name, config2);
+      if (parser.matchToken("of")) {
+        parser.pushFollow("with");
         try {
-          var onExpr = helper.requireElement("expression");
+          var onExpr = parser.requireElement("expression");
         } finally {
-          helper.popFollow();
+          parser.popFollow();
         }
       } else {
-        var onExpr = helper.requireElement("implicitMeTarget");
+        var onExpr = parser.requireElement("implicitMeTarget");
       }
-    } else if (helper.matchToken("between")) {
+    } else if (parser.matchToken("between")) {
       var between = true;
-      var classRef = helper.parseElement("classRef");
-      helper.requireToken("and");
-      var classRef2 = helper.requireElement("classRef");
+      var classRef = parser.parseElement("classRef");
+      parser.requireToken("and");
+      var classRef2 = parser.requireElement("classRef");
     } else {
-      var classRef = helper.parseElement("classRef");
+      var classRef = parser.parseElement("classRef");
       var attributeRef = null;
       if (classRef == null) {
-        attributeRef = helper.parseElement("attributeRef");
+        attributeRef = parser.parseElement("attributeRef");
         if (attributeRef == null) {
-          helper.raiseParseError("Expected either a class reference or attribute expression");
+          parser.raiseParseError("Expected either a class reference or attribute expression");
         }
       } else {
         var classRefs = [classRef];
-        while (classRef = helper.parseElement("classRef")) {
+        while (classRef = parser.parseElement("classRef")) {
           classRefs.push(classRef);
         }
       }
     }
     if (visibility !== true) {
-      if (helper.matchToken("on")) {
-        var onExpr = helper.requireElement("expression");
+      if (parser.matchToken("on")) {
+        var onExpr = parser.requireElement("expression");
       } else {
-        var onExpr = helper.requireElement("implicitMeTarget");
+        var onExpr = parser.requireElement("implicitMeTarget");
       }
     }
-    if (helper.matchToken("for")) {
-      var time = helper.requireElement("expression");
-    } else if (helper.matchToken("until")) {
-      var evt = helper.requireElement("dotOrColonPath", "Expected event name");
-      if (helper.matchToken("from")) {
-        var from = helper.requireElement("expression");
+    if (parser.matchToken("for")) {
+      var time = parser.requireElement("expression");
+    } else if (parser.matchToken("until")) {
+      var evt = parser.requireElement("dotOrColonPath", "Expected event name");
+      if (parser.matchToken("from")) {
+        var from = parser.requireElement("expression");
       }
     }
     var toggleCmd = {
@@ -7345,17 +7345,17 @@ var ToggleCommand = class {
   }
 };
 var HideCommand = class {
-  static parse(helper, kernel, config2) {
-    if (!helper.matchToken("hide")) return;
-    var targetExpr = parseShowHideTarget(helper);
+  static parse(parser, kernel, config2) {
+    if (!parser.matchToken("hide")) return;
+    var targetExpr = parseShowHideTarget(parser);
     var name = null;
-    if (helper.matchToken("with")) {
-      name = helper.requireTokenType("IDENTIFIER", "STYLE_REF").value;
+    if (parser.matchToken("with")) {
+      name = parser.requireTokenType("IDENTIFIER", "STYLE_REF").value;
       if (name.indexOf("*") === 0) {
         name = name.substr(1);
       }
     }
-    var hideShowStrategy = resolveHideShowStrategy(kernel, helper, name, config2);
+    var hideShowStrategy = resolveHideShowStrategy(kernel, parser, name, config2);
     return {
       target: targetExpr,
       args: [targetExpr],
@@ -7370,28 +7370,28 @@ var HideCommand = class {
   }
 };
 var ShowCommand = class {
-  static parse(helper, kernel, config2) {
-    if (!helper.matchToken("show")) return;
-    var targetExpr = parseShowHideTarget(helper);
+  static parse(parser, kernel, config2) {
+    if (!parser.matchToken("show")) return;
+    var targetExpr = parseShowHideTarget(parser);
     var name = null;
-    if (helper.matchToken("with")) {
-      name = helper.requireTokenType("IDENTIFIER", "STYLE_REF").value;
+    if (parser.matchToken("with")) {
+      name = parser.requireTokenType("IDENTIFIER", "STYLE_REF").value;
       if (name.indexOf("*") === 0) {
         name = name.substr(1);
       }
     }
     var arg = null;
-    if (helper.matchOpToken(":")) {
-      var tokenArr = helper.consumeUntilWhitespace();
-      helper.matchTokenType("WHITESPACE");
+    if (parser.matchOpToken(":")) {
+      var tokenArr = parser.consumeUntilWhitespace();
+      parser.matchTokenType("WHITESPACE");
       arg = tokenArr.map(function(t) {
         return t.value;
       }).join("");
     }
-    if (helper.matchToken("when")) {
-      var when = helper.requireElement("expression");
+    if (parser.matchToken("when")) {
+      var when = parser.requireElement("expression");
     }
-    var hideShowStrategy = resolveHideShowStrategy(kernel, helper, name, config2);
+    var hideShowStrategy = resolveHideShowStrategy(kernel, parser, name, config2);
     return {
       target: targetExpr,
       when,
@@ -7417,20 +7417,20 @@ var ShowCommand = class {
     };
   }
 };
-function parsePseudopossessiveTarget(helper) {
+function parsePseudopossessiveTarget(parser) {
   var targets;
-  if (helper.matchToken("the") || helper.matchToken("element") || helper.matchToken("elements") || helper.currentToken().type === "CLASS_REF" || helper.currentToken().type === "ID_REF" || helper.currentToken().op && helper.currentToken().value === "<") {
-    helper.possessivesDisabled = true;
+  if (parser.matchToken("the") || parser.matchToken("element") || parser.matchToken("elements") || parser.currentToken().type === "CLASS_REF" || parser.currentToken().type === "ID_REF" || parser.currentToken().op && parser.currentToken().value === "<") {
+    parser.possessivesDisabled = true;
     try {
-      targets = helper.parseElement("expression");
+      targets = parser.parseElement("expression");
     } finally {
-      delete helper.possessivesDisabled;
+      delete parser.possessivesDisabled;
     }
-    if (helper.matchOpToken("'")) {
-      helper.requireToken("s");
+    if (parser.matchOpToken("'")) {
+      parser.requireToken("s");
     }
-  } else if (helper.currentToken().type === "IDENTIFIER" && helper.currentToken().value === "its") {
-    var identifier = helper.matchToken("its");
+  } else if (parser.currentToken().type === "IDENTIFIER" && parser.currentToken().value === "its") {
+    var identifier = parser.matchToken("its");
     targets = {
       type: "pseudopossessiveIts",
       token: identifier,
@@ -7440,43 +7440,43 @@ function parsePseudopossessiveTarget(helper) {
       }
     };
   } else {
-    helper.matchToken("my") || helper.matchToken("me");
-    targets = helper.parseElement("implicitMeTarget");
+    parser.matchToken("my") || parser.matchToken("me");
+    targets = parser.parseElement("implicitMeTarget");
   }
   return targets;
 }
 var TakeCommand = class {
   /**
    * Parse take command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {TakeCommand | undefined}
    */
-  static parse(helper) {
-    if (helper.matchToken("take")) {
+  static parse(parser) {
+    if (parser.matchToken("take")) {
       let classRef = null;
       let classRefs = [];
-      while (classRef = helper.parseElement("classRef")) {
+      while (classRef = parser.parseElement("classRef")) {
         classRefs.push(classRef);
       }
       var attributeRef = null;
       var replacementValue = null;
       let weAreTakingClasses = classRefs.length > 0;
       if (!weAreTakingClasses) {
-        attributeRef = helper.parseElement("attributeRef");
+        attributeRef = parser.parseElement("attributeRef");
         if (attributeRef == null) {
-          helper.raiseParseError("Expected either a class reference or attribute expression");
+          parser.raiseParseError("Expected either a class reference or attribute expression");
         }
-        if (helper.matchToken("with")) {
-          replacementValue = helper.requireElement("expression");
+        if (parser.matchToken("with")) {
+          replacementValue = parser.requireElement("expression");
         }
       }
-      if (helper.matchToken("from")) {
-        var fromExpr = helper.requireElement("expression");
+      if (parser.matchToken("from")) {
+        var fromExpr = parser.requireElement("expression");
       }
-      if (helper.matchToken("for")) {
-        var forExpr = helper.requireElement("expression");
+      if (parser.matchToken("for")) {
+        var forExpr = parser.requireElement("expression");
       } else {
-        var forExpr = helper.requireElement("implicitMeTarget");
+        var forExpr = parser.requireElement("implicitMeTarget");
       }
       if (weAreTakingClasses) {
         var takeCmd = {
@@ -7535,17 +7535,17 @@ var TakeCommand = class {
 var MeasureCommand = class {
   /**
    * Parse measure command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {MeasureCommand | undefined}
    */
-  static parse(helper) {
-    if (!helper.matchToken("measure")) return;
-    var targetExpr = parsePseudopossessiveTarget(helper);
+  static parse(parser) {
+    if (!parser.matchToken("measure")) return;
+    var targetExpr = parsePseudopossessiveTarget(parser);
     var propsToMeasure = [];
-    if (!helper.commandBoundary(helper.currentToken()))
+    if (!parser.commandBoundary(parser.currentToken()))
       do {
-        propsToMeasure.push(helper.matchTokenType("IDENTIFIER").value);
-      } while (helper.matchOpToken(","));
+        propsToMeasure.push(parser.matchTokenType("IDENTIFIER").value);
+      } while (parser.matchOpToken(","));
     return {
       properties: propsToMeasure,
       args: [targetExpr],
@@ -7590,20 +7590,20 @@ var MeasureCommand = class {
 };
 
 // src/parsetree/commands/animations.js
-function parsePseudopossessiveTarget2(helper) {
+function parsePseudopossessiveTarget2(parser) {
   var targets;
-  if (helper.matchToken("the") || helper.matchToken("element") || helper.matchToken("elements") || helper.currentToken().type === "CLASS_REF" || helper.currentToken().type === "ID_REF" || helper.currentToken().op && helper.currentToken().value === "<") {
-    helper.possessivesDisabled = true;
+  if (parser.matchToken("the") || parser.matchToken("element") || parser.matchToken("elements") || parser.currentToken().type === "CLASS_REF" || parser.currentToken().type === "ID_REF" || parser.currentToken().op && parser.currentToken().value === "<") {
+    parser.possessivesDisabled = true;
     try {
-      targets = helper.parseElement("expression");
+      targets = parser.parseElement("expression");
     } finally {
-      delete helper.possessivesDisabled;
+      delete parser.possessivesDisabled;
     }
-    if (helper.matchOpToken("'")) {
-      helper.requireToken("s");
+    if (parser.matchOpToken("'")) {
+      parser.requireToken("s");
     }
-  } else if (helper.currentToken().type === "IDENTIFIER" && helper.currentToken().value === "its") {
-    var identifier = helper.matchToken("its");
+  } else if (parser.currentToken().type === "IDENTIFIER" && parser.currentToken().value === "its") {
+    var identifier = parser.matchToken("its");
     targets = {
       type: "pseudopossessiveIts",
       token: identifier,
@@ -7613,23 +7613,23 @@ function parsePseudopossessiveTarget2(helper) {
       }
     };
   } else {
-    helper.matchToken("my") || helper.matchToken("me");
-    targets = helper.parseElement("implicitMeTarget");
+    parser.matchToken("my") || parser.matchToken("me");
+    targets = parser.parseElement("implicitMeTarget");
   }
   return targets;
 }
 var SettleCommand = class {
   /**
    * Parse settle command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @returns {SettleCommand | undefined}
    */
-  static parse(helper) {
-    if (helper.matchToken("settle")) {
-      if (!helper.commandBoundary(helper.currentToken())) {
-        var onExpr = helper.requireElement("expression");
+  static parse(parser) {
+    if (parser.matchToken("settle")) {
+      if (!parser.commandBoundary(parser.currentToken())) {
+        var onExpr = parser.requireElement("expression");
       } else {
-        var onExpr = helper.requireElement("implicitMeTarget");
+        var onExpr = parser.requireElement("implicitMeTarget");
       }
       var settleCommand = {
         type: "settleCmd",
@@ -7676,20 +7676,20 @@ var SettleCommand = class {
 var TransitionCommand = class {
   /**
    * Parse transition command
-   * @param {ParserHelper} helper
+   * @param {Parser} parser
    * @param {Object} config - Parser configuration with defaultTransition
    * @returns {TransitionCommand | undefined}
    */
-  static parse(helper, config2) {
-    if (helper.matchToken("transition")) {
-      var targetsExpr = parsePseudopossessiveTarget2(helper);
+  static parse(parser, config2) {
+    if (parser.matchToken("transition")) {
+      var targetsExpr = parsePseudopossessiveTarget2(parser);
       var properties = [];
       var from = [];
       var to = [];
-      var currentToken = helper.currentToken();
-      while (!helper.commandBoundary(currentToken) && currentToken.value !== "over" && currentToken.value !== "using") {
-        if (helper.currentToken().type === "STYLE_REF") {
-          let styleRef = helper.consumeToken();
+      var currentToken = parser.currentToken();
+      while (!parser.commandBoundary(currentToken) && currentToken.value !== "over" && currentToken.value !== "using") {
+        if (parser.currentToken().type === "STYLE_REF") {
+          let styleRef = parser.consumeToken();
           let styleProp = styleRef.value.substr(1);
           properties.push({
             type: "styleRefValue",
@@ -7698,15 +7698,15 @@ var TransitionCommand = class {
             }
           });
         } else {
-          properties.push(helper.requireElement("stringLike"));
+          properties.push(parser.requireElement("stringLike"));
         }
-        if (helper.matchToken("from")) {
-          from.push(helper.requireElement("expression"));
+        if (parser.matchToken("from")) {
+          from.push(parser.requireElement("expression"));
         } else {
           from.push(null);
         }
-        helper.requireToken("to");
-        if (helper.matchToken("initial")) {
+        parser.requireToken("to");
+        if (parser.matchToken("initial")) {
           to.push({
             type: "initial_literal",
             evaluate: function() {
@@ -7714,14 +7714,14 @@ var TransitionCommand = class {
             }
           });
         } else {
-          to.push(helper.requireElement("expression"));
+          to.push(parser.requireElement("expression"));
         }
-        currentToken = helper.currentToken();
+        currentToken = parser.currentToken();
       }
-      if (helper.matchToken("over")) {
-        var over = helper.requireElement("expression");
-      } else if (helper.matchToken("using")) {
-        var usingExpr = helper.requireElement("expression");
+      if (parser.matchToken("over")) {
+        var over = parser.requireElement("expression");
+      } else if (parser.matchToken("using")) {
+        var usingExpr = parser.requireElement("expression");
       }
       var transition = {
         to,
@@ -7818,21 +7818,21 @@ function hyperscriptWebGrammar(kernel) {
   kernel.addCommand("add", AddCommand.parse);
   kernel.addGrammarElement("styleLiteral", StyleLiteral.parse);
   kernel.addCommand("remove", RemoveCommand.parse);
-  kernel.addCommand("toggle", function(helper) {
-    return ToggleCommand.parse(helper, kernel, config);
+  kernel.addCommand("toggle", function(parser) {
+    return ToggleCommand.parse(parser, kernel, config);
   });
-  kernel.addCommand("hide", function(helper) {
-    return HideCommand.parse(helper, kernel, config);
+  kernel.addCommand("hide", function(parser) {
+    return HideCommand.parse(parser, kernel, config);
   });
-  kernel.addCommand("show", function(helper) {
-    return ShowCommand.parse(helper, kernel, config);
+  kernel.addCommand("show", function(parser) {
+    return ShowCommand.parse(parser, kernel, config);
   });
   kernel.addCommand("take", TakeCommand.parse);
-  kernel.addCommand("put", function(helper) {
-    return PutCommand.parse(helper, kernel);
+  kernel.addCommand("put", function(parser) {
+    return PutCommand.parse(parser, kernel);
   });
-  kernel.addCommand("transition", function(helper) {
-    return TransitionCommand.parse(helper, config);
+  kernel.addCommand("transition", function(parser) {
+    return TransitionCommand.parse(parser, config);
   });
   kernel.addCommand("measure", MeasureCommand.parse);
   kernel.addLeafExpression("closestExpr", ClosestExpr.parse);

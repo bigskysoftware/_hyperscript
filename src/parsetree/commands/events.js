@@ -6,18 +6,18 @@
 /**
  * Helper function to parse event argument list
  */
-function parseEventArgs(helper) {
+function parseEventArgs(parser) {
     var args = [];
     // handle argument list (look ahead 3)
     if (
-        helper.token(0).value === "(" &&
-        (helper.token(1).value === ")" || helper.token(2).value === "," || helper.token(2).value === ")")
+        parser.token(0).value === "(" &&
+        (parser.token(1).value === ")" || parser.token(2).value === "," || parser.token(2).value === ")")
     ) {
-        helper.matchOpToken("(");
+        parser.matchOpToken("(");
         do {
-            args.push(helper.requireTokenType("IDENTIFIER"));
-        } while (helper.matchOpToken(","));
-        helper.requireOpToken(")");
+            args.push(parser.requireTokenType("IDENTIFIER"));
+        } while (parser.matchOpToken(","));
+        parser.requireOpToken(")");
     }
     return args;
 }
@@ -31,33 +31,33 @@ function parseEventArgs(helper) {
 export class WaitCommand {
     /**
      * Parse wait command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {WaitCommand | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchToken("wait")) return;
+    static parse(parser) {
+        if (!parser.matchToken("wait")) return;
         var command;
 
         // wait on event
-        if (helper.matchToken("for")) {
-            helper.matchToken("a"); // optional "a"
+        if (parser.matchToken("for")) {
+            parser.matchToken("a"); // optional "a"
             var events = [];
             do {
-                var lookahead = helper.token(0);
+                var lookahead = parser.token(0);
                 if (lookahead.type === 'NUMBER' || lookahead.type === 'L_PAREN') {
                     events.push({
-                        time: helper.requireElement('expression').evaluate() // TODO: do we want to allow async here?
+                        time: parser.requireElement('expression').evaluate() // TODO: do we want to allow async here?
                     })
                 } else {
                     events.push({
-                        name: helper.requireElement("dotOrColonPath", "Expected event name").evaluate(),
-                        args: parseEventArgs(helper),
+                        name: parser.requireElement("dotOrColonPath", "Expected event name").evaluate(),
+                        args: parseEventArgs(parser),
                     });
                 }
-            } while (helper.matchToken("or"));
+            } while (parser.matchToken("or"));
 
-            if (helper.matchToken("from")) {
-                var on = helper.requireElement("expression");
+            if (parser.matchToken("from")) {
+                var on = parser.requireElement("expression");
             }
 
             // wait on event
@@ -97,11 +97,11 @@ export class WaitCommand {
             return command;
         } else {
             var time;
-            if (helper.matchToken("a")) {
-                helper.requireToken("tick");
+            if (parser.matchToken("a")) {
+                parser.requireToken("tick");
                 time = 0;
             } else {
-                time = helper.requireElement("expression");
+                time = parser.requireElement("expression");
             }
 
             command = {
@@ -127,15 +127,15 @@ export class WaitCommand {
 /**
  * Helper function to parse send/trigger commands
  */
-function parseSendCmd(cmdType, helper) {
-    var eventName = helper.requireElement("eventName");
+function parseSendCmd(cmdType, parser) {
+    var eventName = parser.requireElement("eventName");
 
-    var details = helper.parseElement("namedArgumentList");
-    if ((cmdType === "send" && helper.matchToken("to")) ||
-        (cmdType === "trigger" && helper.matchToken("on"))) {
-        var toExpr = helper.requireElement("expression");
+    var details = parser.parseElement("namedArgumentList");
+    if ((cmdType === "send" && parser.matchToken("to")) ||
+        (cmdType === "trigger" && parser.matchToken("on"))) {
+        var toExpr = parser.requireElement("expression");
     } else {
-        var toExpr = helper.requireElement("implicitMeTarget");
+        var toExpr = parser.requireElement("implicitMeTarget");
     }
 
     var sendCmd = {
@@ -163,12 +163,12 @@ function parseSendCmd(cmdType, helper) {
 export class TriggerCommand {
     /**
      * Parse trigger command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {TriggerCommand | undefined}
      */
-    static parse(helper) {
-        if (helper.matchToken("trigger")) {
-            return parseSendCmd("trigger", helper);
+    static parse(parser) {
+        if (parser.matchToken("trigger")) {
+            return parseSendCmd("trigger", parser);
         }
     }
 }
@@ -182,12 +182,12 @@ export class TriggerCommand {
 export class SendCommand {
     /**
      * Parse send command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {SendCommand | undefined}
      */
-    static parse(helper) {
-        if (helper.matchToken("send")) {
-            return parseSendCmd("send", helper);
+    static parse(parser) {
+        if (parser.matchToken("send")) {
+            return parseSendCmd("send", parser);
         }
     }
 }

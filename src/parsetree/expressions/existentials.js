@@ -18,12 +18,12 @@ export class NoExpression {
 
     /**
      * Parse a no expression
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {NoExpression | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchToken("no")) return;
-        var root = helper.requireElement("unaryExpression");
+    static parse(parser) {
+        if (!parser.matchToken("no")) return;
+        var root = parser.requireElement("unaryExpression");
         return new NoExpression(root);
     }
 
@@ -59,12 +59,12 @@ export class SomeExpression {
 
     /**
      * Parse a some expression
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {SomeExpression | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchToken("some")) return;
-        var root = helper.requireElement("expression");
+    static parse(parser) {
+        if (!parser.matchToken("some")) return;
+        var root = parser.requireElement("expression");
         return new SomeExpression(root);
     }
 

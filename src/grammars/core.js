@@ -99,12 +99,12 @@ export default function hyperscriptCoreGrammar(kernel) {
 
         kernel.addIndirectExpression("arrayIndex", ArrayIndex.parse);
 
-        kernel.addGrammarElement("postfixExpression", function (helper) {
-            var root = helper.parseElement("negativeNumber");
+        kernel.addGrammarElement("postfixExpression", function (parser) {
+            var root = parser.parseElement("negativeNumber");
 
-            return StringPostfixExpression.parse(helper, root) ||
-                   TimeExpression.parse(helper, root) ||
-                   TypeCheckExpression.parse(helper, root) ||
+            return StringPostfixExpression.parse(parser, root) ||
+                   TimeExpression.parse(parser, root) ||
+                   TypeCheckExpression.parse(parser, root) ||
                    root;
         });
 
@@ -116,9 +116,9 @@ export default function hyperscriptCoreGrammar(kernel) {
 
         kernel.addGrammarElement("negativeNumber", NegativeNumber.parse);
 
-        kernel.addGrammarElement("unaryExpression", function (helper) {
-            helper.matchToken("the"); // optional "the"
-            return helper.parseAnyOf(["beepExpression", "logicalNot", "relativePositionalExpression", "positionalExpression", "noExpression", "postfixExpression"]);
+        kernel.addGrammarElement("unaryExpression", function (parser) {
+            parser.matchToken("the"); // optional "the"
+            return parser.parseAnyOf(["beepExpression", "logicalNot", "relativePositionalExpression", "positionalExpression", "noExpression", "postfixExpression"]);
         });
 
         kernel.addGrammarElement("beepExpression", BeepExpression.parse);
@@ -141,16 +141,16 @@ export default function hyperscriptCoreGrammar(kernel) {
 
         kernel.addGrammarElement("asyncExpression", AsyncExpression.parse);
 
-        kernel.addGrammarElement("expression", function (helper) {
-            helper.matchToken("the"); // optional the
-            return helper.parseElement("asyncExpression");
+        kernel.addGrammarElement("expression", function (parser) {
+            parser.matchToken("the"); // optional the
+            return parser.parseElement("asyncExpression");
         });
 
-        kernel.addGrammarElement("assignableExpression", function (helper) {
-            helper.matchToken("the"); // optional the
+        kernel.addGrammarElement("assignableExpression", function (parser) {
+            parser.matchToken("the"); // optional the
 
             // TODO obviously we need to generalize this as a left hand side / targetable concept
-            var expr = helper.parseElement("primaryExpression");
+            var expr = parser.parseElement("primaryExpression");
             if (expr && (
                 expr.type === "symbol" ||
                 expr.type === "ofExpression" ||
@@ -163,21 +163,21 @@ export default function hyperscriptCoreGrammar(kernel) {
             ) {
                 return expr;
             } else {
-                helper.raiseParseError(
+                parser.raiseParseError(
                     "A target expression must be writable.  The expression type '" + (expr && expr.type) + "' is not."
                 );
             }
             return expr;
         });
 
-        kernel.addGrammarElement("hyperscript", function (helper) {
+        kernel.addGrammarElement("hyperscript", function (parser) {
             var features = [];
 
-            if (helper.hasMore()) {
-                while (helper.featureStart(helper.currentToken()) || helper.currentToken().value === "(") {
-                    var feature = helper.requireElement("feature");
+            if (parser.hasMore()) {
+                while (parser.featureStart(parser.currentToken()) || parser.currentToken().value === "(") {
+                    var feature = parser.requireElement("feature");
                     features.push(feature);
-                    helper.matchToken("end"); // optional end
+                    parser.matchToken("end"); // optional end
                 }
             }
             return {
@@ -192,20 +192,20 @@ export default function hyperscriptCoreGrammar(kernel) {
             };
         });
 
-        kernel.addFeature("on", function (helper) {
-            return OnFeature.parse(helper, kernel);
+        kernel.addFeature("on", function (parser) {
+            return OnFeature.parse(parser, kernel);
         });
 
-        kernel.addFeature("def", function (helper) {
-            return DefFeature.parse(helper, kernel);
+        kernel.addFeature("def", function (parser) {
+            return DefFeature.parse(parser, kernel);
         });
 
-        kernel.addFeature("set", function (helper) {
-            return SetFeature.parse(helper, kernel);
+        kernel.addFeature("set", function (parser) {
+            return SetFeature.parse(parser, kernel);
         });
 
-        kernel.addFeature("init", function (helper) {
-            return InitFeature.parse(helper, kernel);
+        kernel.addFeature("init", function (parser) {
+            return InitFeature.parse(parser, kernel);
         });
 
         kernel.addFeature("worker", WorkerFeature.parse);
@@ -227,16 +227,16 @@ export default function hyperscriptCoreGrammar(kernel) {
         kernel.addCommand("wait", WaitCommand.parse);
 
         // TODO  - colon path needs to eventually become part of ruby-style symbols
-        kernel.addGrammarElement("dotOrColonPath", function (helper) {
-            var root = helper.matchTokenType("IDENTIFIER");
+        kernel.addGrammarElement("dotOrColonPath", function (parser) {
+            var root = parser.matchTokenType("IDENTIFIER");
             if (root) {
                 var path = [root.value];
 
-                var separator = helper.matchOpToken(".") || helper.matchOpToken(":");
+                var separator = parser.matchOpToken(".") || parser.matchOpToken(":");
                 if (separator) {
                     do {
-                        path.push(helper.requireTokenType("IDENTIFIER", "NUMBER").value);
-                    } while (helper.matchOpToken(separator.value));
+                        path.push(parser.requireTokenType("IDENTIFIER", "NUMBER").value);
+                    } while (parser.matchOpToken(separator.value));
                 }
 
                 return {
@@ -250,9 +250,9 @@ export default function hyperscriptCoreGrammar(kernel) {
         });
 
 
-        kernel.addGrammarElement("eventName", function (helper) {
+        kernel.addGrammarElement("eventName", function (parser) {
             var token;
-            if ((token = helper.matchTokenType("STRING"))) {
+            if ((token = parser.matchTokenType("STRING"))) {
                 return {
                     evaluate: function() {
                         return token.value;
@@ -260,7 +260,7 @@ export default function hyperscriptCoreGrammar(kernel) {
                 };
             }
 
-            return helper.parseElement("dotOrColonPath");
+            return parser.parseElement("dotOrColonPath");
         });
 
         kernel.addCommand("trigger", TriggerCommand.parse);
@@ -295,7 +295,7 @@ export default function hyperscriptCoreGrammar(kernel) {
         * @param {*} value
         * @returns
         */
-        var makeSetter = function (helper, target, value) {
+        var makeSetter = function (parser, target, value) {
 
             var symbolWrite = target.type === "symbol";
             var attributeWrite = target.type === "attributeRef";
@@ -303,7 +303,7 @@ export default function hyperscriptCoreGrammar(kernel) {
             var arrayWrite = target.type === "arrayIndex";
 
             if (!(attributeWrite || styleWrite || symbolWrite) && target.root == null) {
-                helper.raiseParseError("Can only put directly into symbols, not references");
+                parser.raiseParseError("Can only put directly into symbols, not references");
             }
 
             var rootElt = null;
@@ -311,7 +311,7 @@ export default function hyperscriptCoreGrammar(kernel) {
             if (symbolWrite) {
                 // rootElt is null
             } else if (attributeWrite || styleWrite) {
-                rootElt = helper.requireElement("implicitMeTarget");
+                rootElt = parser.requireElement("implicitMeTarget");
                 var attribute = target;
             } else if(arrayWrite) {
                 prop = target.firstIndex;
@@ -373,12 +373,12 @@ export default function hyperscriptCoreGrammar(kernel) {
 
         kernel.addCommand("break", BreakCommand.parse);
 
-        kernel.addGrammarElement("stringLike", function (helper) {
-            return helper.parseAnyOf(["string", "nakedString"]);
+        kernel.addGrammarElement("stringLike", function (parser) {
+            return parser.parseAnyOf(["string", "nakedString"]);
         });
 
-        kernel.addCommand("append", function (helper) {
-            return AppendCommand.parse(helper, makeSetter);
+        kernel.addCommand("append", function (parser) {
+            return AppendCommand.parse(parser, makeSetter);
         });
 
         kernel.addCommand("pick", PickCommand.parse);

@@ -11,18 +11,18 @@
 export class ParenthesizedExpression {
     /**
      * Parse a parenthesized expression
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {any | undefined}
      */
-    static parse(helper) {
-        if (helper.matchOpToken("(")) {
-            var follows = helper.clearFollows();
+    static parse(parser) {
+        if (parser.matchOpToken("(")) {
+            var follows = parser.clearFollows();
             try {
-                var expr = helper.requireElement("expression");
+                var expr = parser.requireElement("expression");
             } finally {
-                helper.restoreFollows(follows);
+                parser.restoreFollows(follows);
             }
-            helper.requireOpToken(")");
+            parser.requireOpToken(")");
             return expr;
         }
     }
@@ -43,23 +43,23 @@ export class BlockLiteral {
 
     /**
      * Parse a block literal (lambda expression)
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {BlockLiteral | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchOpToken("\\")) return;
+    static parse(parser) {
+        if (!parser.matchOpToken("\\")) return;
         var args = [];
-        var arg1 = helper.matchTokenType("IDENTIFIER");
+        var arg1 = parser.matchTokenType("IDENTIFIER");
         if (arg1) {
             args.push(arg1);
-            while (helper.matchOpToken(",")) {
-                args.push(helper.requireTokenType("IDENTIFIER"));
+            while (parser.matchOpToken(",")) {
+                args.push(parser.requireTokenType("IDENTIFIER"));
             }
         }
         // TODO compound op token
-        helper.requireOpToken("-");
-        helper.requireOpToken(">");
-        var expr = helper.requireElement("expression");
+        parser.requireOpToken("-");
+        parser.requireOpToken(">");
+        var expr = parser.requireElement("expression");
         return new BlockLiteral(args, expr);
     }
 
@@ -97,15 +97,15 @@ export class NegativeNumber {
 
     /**
      * Parse a negative number
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {NegativeNumber | any}
      */
-    static parse(helper) {
-        if (helper.matchOpToken("-")) {
-            var root = helper.requireElement("negativeNumber");
+    static parse(parser) {
+        if (parser.matchOpToken("-")) {
+            var root = parser.requireElement("negativeNumber");
             return new NegativeNumber(root);
         } else {
-            return helper.requireElement("primaryExpression");
+            return parser.requireElement("primaryExpression");
         }
     }
 
@@ -141,12 +141,12 @@ export class LogicalNot {
 
     /**
      * Parse a logical not expression
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {LogicalNot | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchToken("not")) return;
-        var root = helper.requireElement("unaryExpression");
+    static parse(parser) {
+        if (!parser.matchToken("not")) return;
+        var root = parser.requireElement("unaryExpression");
         return new LogicalNot(root);
     }
 
@@ -183,26 +183,26 @@ export class SymbolRef {
 
     /**
      * Parse a symbol reference
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {SymbolRef | undefined}
      */
-    static parse(helper) {
+    static parse(parser) {
         var scope = "default";
-        if (helper.matchToken("global")) {
+        if (parser.matchToken("global")) {
             scope = "global";
-        } else if (helper.matchToken("element") || helper.matchToken("module")) {
+        } else if (parser.matchToken("element") || parser.matchToken("module")) {
             scope = "element";
             // optional possessive
-            if (helper.matchOpToken("'")) {
-                helper.requireToken("s");
+            if (parser.matchOpToken("'")) {
+                parser.requireToken("s");
             }
-        } else if (helper.matchToken("local")) {
+        } else if (parser.matchToken("local")) {
             scope = "local";
         }
 
         // TODO better look ahead here
-        let eltPrefix = helper.matchOpToken(":");
-        let identifier = helper.matchTokenType("IDENTIFIER");
+        let eltPrefix = parser.matchOpToken(":");
+        let identifier = parser.matchTokenType("IDENTIFIER");
         if (identifier && identifier.value) {
             var name = identifier.value;
             if (eltPrefix) {
@@ -245,12 +245,12 @@ export class BeepExpression {
 
     /**
      * Parse a beep expression
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {any | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchToken("beep!")) return;
-        var expression = helper.parseElement("unaryExpression");
+    static parse(parser) {
+        if (!parser.matchToken("beep!")) return;
+        var expression = parser.parseElement("unaryExpression");
         if (expression) {
             return new BeepExpression(expression);
         }
@@ -285,15 +285,15 @@ export class PropertyAccess {
 
     /**
      * Parse a property access expression
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @param {any} root - The root expression
      * @returns {any | undefined}
      */
-    static parse(helper, root) {
-        if (!helper.matchOpToken(".")) return;
-        var prop = helper.requireTokenType("IDENTIFIER");
+    static parse(parser, root) {
+        if (!parser.matchOpToken(".")) return;
+        var prop = parser.requireTokenType("IDENTIFIER");
         var propertyAccess = new PropertyAccess(root, prop);
-        return helper.kernel.parseElement("indirectExpression", helper.tokens, propertyAccess);
+        return parser.kernel.parseElement("indirectExpression", parser.tokens, propertyAccess);
     }
 
     /**
@@ -333,13 +333,13 @@ export class OfExpression {
 
     /**
      * Parse an of expression
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @param {any} root - The property expression
      * @returns {any | undefined}
      */
-    static parse(helper, root) {
-        if (!helper.matchToken("of")) return;
-        var newRoot = helper.requireElement("unaryExpression");
+    static parse(parser, root) {
+        if (!parser.matchToken("of")) return;
+        var newRoot = parser.requireElement("unaryExpression");
         // find the urroot
         var childOfUrRoot = null;
         var urRoot = root;
@@ -348,7 +348,7 @@ export class OfExpression {
             urRoot = urRoot.root;
         }
         if (urRoot.type !== "symbol" && urRoot.type !== "attributeRef" && urRoot.type !== "styleRef" && urRoot.type !== "computedStyleRef") {
-            helper.raiseParseError("Cannot take a property of a non-symbol: " + urRoot.type);
+            parser.raiseParseError("Cannot take a property of a non-symbol: " + urRoot.type);
         }
         var attribute = urRoot.type === "attributeRef";
         var style = urRoot.type === "styleRef" || urRoot.type === "computedStyleRef";
@@ -374,7 +374,7 @@ export class OfExpression {
             root = propertyAccess;
         }
 
-        return helper.kernel.parseElement("indirectExpression", helper.tokens, root);
+        return parser.kernel.parseElement("indirectExpression", parser.tokens, root);
     }
 
     /**
@@ -426,35 +426,35 @@ export class PossessiveExpression {
 
     /**
      * Parse a possessive expression
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @param {any} root
      * @returns {any | undefined}
      */
-    static parse(helper, root) {
-        if (helper.possessivesDisabled) {
+    static parse(parser, root) {
+        if (parser.possessivesDisabled) {
             return;
         }
-        var apostrophe = helper.matchOpToken("'");
+        var apostrophe = parser.matchOpToken("'");
         if (
             apostrophe ||
             (root.type === "symbol" &&
                 (root.name === "my" || root.name === "its" || root.name === "your") &&
-                (helper.currentToken().type === "IDENTIFIER" || helper.currentToken().type === "ATTRIBUTE_REF" || helper.currentToken().type === "STYLE_REF"))
+                (parser.currentToken().type === "IDENTIFIER" || parser.currentToken().type === "ATTRIBUTE_REF" || parser.currentToken().type === "STYLE_REF"))
         ) {
             if (apostrophe) {
-                helper.requireToken("s");
+                parser.requireToken("s");
             }
 
             var attribute, style, prop;
-            attribute = helper.parseElement("attributeRef");
+            attribute = parser.parseElement("attributeRef");
             if (attribute == null) {
-                style = helper.parseElement("styleRef");
+                style = parser.parseElement("styleRef");
                 if (style == null) {
-                    prop = helper.requireTokenType("IDENTIFIER");
+                    prop = parser.requireTokenType("IDENTIFIER");
                 }
             }
             var propertyAccess = new PossessiveExpression(root, attribute || style, prop);
-            return helper.kernel.parseElement("indirectExpression", helper.tokens, propertyAccess);
+            return parser.kernel.parseElement("indirectExpression", parser.tokens, propertyAccess);
         }
     }
 
@@ -503,15 +503,15 @@ export class InExpression {
 
     /**
      * Parse an in expression
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @param {any} root
      * @returns {InExpression | undefined}
      */
-    static parse(helper, root) {
-        if (!helper.matchToken("in")) return;
-        var target = helper.requireElement("unaryExpression");
+    static parse(parser, root) {
+        if (!parser.matchToken("in")) return;
+        var target = parser.requireElement("unaryExpression");
         var inExpression = new InExpression(root, target);
-        return helper.kernel.parseElement("indirectExpression", helper.tokens, inExpression);
+        return parser.kernel.parseElement("indirectExpression", parser.tokens, inExpression);
     }
 
     /**
@@ -574,16 +574,16 @@ export class AsExpression {
 
     /**
      * Parse an as expression
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @param {any} root
      * @returns {AsExpression | undefined}
      */
-    static parse(helper, root) {
-        if (!helper.matchToken("as")) return;
-        helper.matchToken("a") || helper.matchToken("an");
-        var conversion = helper.requireElement("dotOrColonPath").evaluate(); // OK No promise
+    static parse(parser, root) {
+        if (!parser.matchToken("as")) return;
+        parser.matchToken("a") || parser.matchToken("an");
+        var conversion = parser.requireElement("dotOrColonPath").evaluate(); // OK No promise
         var asExpression = new AsExpression(root, conversion);
-        return helper.kernel.parseElement("indirectExpression", helper.tokens, asExpression);
+        return parser.kernel.parseElement("indirectExpression", parser.tokens, asExpression);
     }
 
     /**
@@ -621,18 +621,18 @@ export class FunctionCall {
 
     /**
      * Parse a function call
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @param {any} root
      * @returns {FunctionCall | undefined}
      */
-    static parse(helper, root) {
-        if (!helper.matchOpToken("(")) return;
+    static parse(parser, root) {
+        if (!parser.matchOpToken("(")) return;
         var args = [];
-        if (!helper.matchOpToken(")")) {
+        if (!parser.matchOpToken(")")) {
             do {
-                args.push(helper.requireElement("expression"));
-            } while (helper.matchOpToken(","));
-            helper.requireOpToken(")");
+                args.push(parser.requireElement("expression"));
+            } while (parser.matchOpToken(","));
+            parser.requireOpToken(")");
         }
 
         var functionCall;
@@ -641,7 +641,7 @@ export class FunctionCall {
         } else {
             functionCall = new FunctionCall(root, args, [root, args], false);
         }
-        return helper.kernel.parseElement("indirectExpression", helper.tokens, functionCall);
+        return parser.kernel.parseElement("indirectExpression", parser.tokens, functionCall);
     }
 
     /**
@@ -693,12 +693,12 @@ export class AttributeRefAccess {
 
     /**
      * Parse an attribute ref access
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @param {any} root
      * @returns {AttributeRefAccess | undefined}
      */
-    static parse(helper, root) {
-        var attribute = helper.parseElement("attributeRef");
+    static parse(parser, root) {
+        var attribute = parser.parseElement("attributeRef");
         if (!attribute) return;
         return new AttributeRefAccess(root, attribute);
     }
@@ -767,35 +767,35 @@ export class ArrayIndex {
 
     /**
      * Parse an array index expression
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @param {any} root
      * @returns {any | undefined}
      */
-    static parse(helper, root) {
-        if (!helper.matchOpToken("[")) return;
+    static parse(parser, root) {
+        if (!parser.matchOpToken("[")) return;
         var andBefore = false;
         var andAfter = false;
         var firstIndex = null;
         var secondIndex = null;
 
-        if (helper.matchOpToken("..")) {
+        if (parser.matchOpToken("..")) {
             andBefore = true;
-            firstIndex = helper.requireElement("expression");
+            firstIndex = parser.requireElement("expression");
         } else {
-            firstIndex = helper.requireElement("expression");
+            firstIndex = parser.requireElement("expression");
 
-            if (helper.matchOpToken("..")) {
+            if (parser.matchOpToken("..")) {
                 andAfter = true;
-                var current = helper.currentToken();
+                var current = parser.currentToken();
                 if (current.type !== "R_BRACKET") {
-                    secondIndex = helper.parseElement("expression");
+                    secondIndex = parser.parseElement("expression");
                 }
             }
         }
-        helper.requireOpToken("]");
+        parser.requireOpToken("]");
 
         var arrayIndex = new ArrayIndex(root, firstIndex, secondIndex, andBefore, andAfter);
-        return helper.kernel.parseElement("indirectExpression", helper.tokens, arrayIndex);
+        return parser.kernel.parseElement("indirectExpression", parser.tokens, arrayIndex);
     }
 
     /**
@@ -852,22 +852,22 @@ export class MathOperator {
 
     /**
      * Parse math operator expression
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {any}
      */
-    static parse(helper) {
-        var expr = helper.parseElement("unaryExpression");
+    static parse(parser) {
+        var expr = parser.parseElement("unaryExpression");
         var mathOp, initialMathOp = null;
-        mathOp = helper.matchAnyOpToken("+", "-", "*", "/") || helper.matchToken('mod');
+        mathOp = parser.matchAnyOpToken("+", "-", "*", "/") || parser.matchToken('mod');
         while (mathOp) {
             initialMathOp = initialMathOp || mathOp;
             var operator = mathOp.value;
             if (initialMathOp.value !== operator) {
-                helper.raiseParseError("You must parenthesize math operations with different operators");
+                parser.raiseParseError("You must parenthesize math operations with different operators");
             }
-            var rhs = helper.parseElement("unaryExpression");
+            var rhs = parser.parseElement("unaryExpression");
             expr = new MathOperator(expr, operator, rhs);
-            mathOp = helper.matchAnyOpToken("+", "-", "*", "/") || helper.matchToken('mod');
+            mathOp = parser.matchAnyOpToken("+", "-", "*", "/") || parser.matchToken('mod');
         }
         return expr;
     }
@@ -908,11 +908,11 @@ export class MathOperator {
 export class MathExpression {
     /**
      * Parse math expression (dispatcher)
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {any}
      */
-    static parse(helper) {
-        return helper.parseAnyOf(["mathOperator", "unaryExpression"]);
+    static parse(parser) {
+        return parser.parseAnyOf(["mathOperator", "unaryExpression"]);
     }
 }
 
@@ -936,100 +936,100 @@ export class ComparisonOperator {
 
     /**
      * Parse comparison operator expression
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {any}
      */
-    static parse(helper) {
-        var expr = helper.parseElement("mathExpression");
-        var comparisonToken = helper.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==");
+    static parse(parser) {
+        var expr = parser.parseElement("mathExpression");
+        var comparisonToken = parser.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==");
         var operator = comparisonToken ? comparisonToken.value : null;
         var hasRightValue = true;
         var typeCheck = false;
 
         if (operator == null) {
-            if (helper.matchToken("is") || helper.matchToken("am")) {
-                if (helper.matchToken("not")) {
-                    if (helper.matchToken("in")) {
+            if (parser.matchToken("is") || parser.matchToken("am")) {
+                if (parser.matchToken("not")) {
+                    if (parser.matchToken("in")) {
                         operator = "not in";
-                    } else if (helper.matchToken("a") || helper.matchToken("an")) {
+                    } else if (parser.matchToken("a") || parser.matchToken("an")) {
                         operator = "not a";
                         typeCheck = true;
-                    } else if (helper.matchToken("empty")) {
+                    } else if (parser.matchToken("empty")) {
                         operator = "not empty";
                         hasRightValue = false;
                     } else {
-                        if (helper.matchToken("really")) {
+                        if (parser.matchToken("really")) {
                             operator = "!==";
                         } else {
                             operator = "!=";
                         }
-                        if (helper.matchToken("equal")) {
-                            helper.matchToken("to");
+                        if (parser.matchToken("equal")) {
+                            parser.matchToken("to");
                         }
                     }
-                } else if (helper.matchToken("in")) {
+                } else if (parser.matchToken("in")) {
                     operator = "in";
-                } else if (helper.matchToken("a") || helper.matchToken("an")) {
+                } else if (parser.matchToken("a") || parser.matchToken("an")) {
                     operator = "a";
                     typeCheck = true;
-                } else if (helper.matchToken("empty")) {
+                } else if (parser.matchToken("empty")) {
                     operator = "empty";
                     hasRightValue = false;
-                } else if (helper.matchToken("less")) {
-                    helper.requireToken("than");
-                    if (helper.matchToken("or")) {
-                        helper.requireToken("equal");
-                        helper.requireToken("to");
+                } else if (parser.matchToken("less")) {
+                    parser.requireToken("than");
+                    if (parser.matchToken("or")) {
+                        parser.requireToken("equal");
+                        parser.requireToken("to");
                         operator = "<=";
                     } else {
                         operator = "<";
                     }
-                } else if (helper.matchToken("greater")) {
-                    helper.requireToken("than");
-                    if (helper.matchToken("or")) {
-                        helper.requireToken("equal");
-                        helper.requireToken("to");
+                } else if (parser.matchToken("greater")) {
+                    parser.requireToken("than");
+                    if (parser.matchToken("or")) {
+                        parser.requireToken("equal");
+                        parser.requireToken("to");
                         operator = ">=";
                     } else {
                         operator = ">";
                     }
                 } else {
-                    if (helper.matchToken("really")) {
+                    if (parser.matchToken("really")) {
                         operator = "===";
                     } else {
                         operator = "==";
                     }
-                    if (helper.matchToken("equal")) {
-                        helper.matchToken("to");
+                    if (parser.matchToken("equal")) {
+                        parser.matchToken("to");
                     }
                 }
-            } else if (helper.matchToken("equals")) {
+            } else if (parser.matchToken("equals")) {
                 operator = "==";
-            } else if (helper.matchToken("really")) {
-                helper.requireToken("equals")
+            } else if (parser.matchToken("really")) {
+                parser.requireToken("equals")
                 operator = "===";
-            } else if (helper.matchToken("exist") || helper.matchToken("exists")) {
+            } else if (parser.matchToken("exist") || parser.matchToken("exists")) {
                 operator = "exist";
                 hasRightValue = false;
-            } else if (helper.matchToken("matches") || helper.matchToken("match")) {
+            } else if (parser.matchToken("matches") || parser.matchToken("match")) {
                 operator = "match";
-            } else if (helper.matchToken("contains") || helper.matchToken("contain")) {
+            } else if (parser.matchToken("contains") || parser.matchToken("contain")) {
                 operator = "contain";
-            } else if (helper.matchToken("includes") || helper.matchToken("include")) {
+            } else if (parser.matchToken("includes") || parser.matchToken("include")) {
                 operator = "include";
-            } else if (helper.matchToken("do") || helper.matchToken("does")) {
-                helper.requireToken("not");
-                if (helper.matchToken("matches") || helper.matchToken("match")) {
+            } else if (parser.matchToken("do") || parser.matchToken("does")) {
+                parser.requireToken("not");
+                if (parser.matchToken("matches") || parser.matchToken("match")) {
                     operator = "not match";
-                } else if (helper.matchToken("contains") || helper.matchToken("contain")) {
+                } else if (parser.matchToken("contains") || parser.matchToken("contain")) {
                     operator = "not contain";
-                } else if (helper.matchToken("exist") || helper.matchToken("exist")) {
+                } else if (parser.matchToken("exist") || parser.matchToken("exist")) {
                     operator = "not exist";
                     hasRightValue = false;
-                } else if (helper.matchToken("include")) {
+                } else if (parser.matchToken("include")) {
                     operator = "not include";
                 } else {
-                    helper.raiseParseError("Expected matches or contains");
+                    parser.raiseParseError("Expected matches or contains");
                 }
             }
         }
@@ -1037,10 +1037,10 @@ export class ComparisonOperator {
         if (operator) {
             var typeName, nullOk, rhs;
             if (typeCheck) {
-                typeName = helper.requireTokenType("IDENTIFIER");
-                nullOk = !helper.matchOpToken("!");
+                typeName = parser.requireTokenType("IDENTIFIER");
+                nullOk = !parser.matchOpToken("!");
             } else if (hasRightValue) {
-                rhs = helper.requireElement("mathExpression");
+                rhs = parser.requireElement("mathExpression");
                 if (operator === "match" || operator === "not match") {
                     rhs = rhs.css ? rhs.css : rhs;
                 }
@@ -1139,11 +1139,11 @@ export class ComparisonOperator {
 export class ComparisonExpression {
     /**
      * Parse comparison expression (dispatcher)
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {any}
      */
-    static parse(helper) {
-        return helper.parseAnyOf(["comparisonOperator", "mathExpression"]);
+    static parse(parser) {
+        return parser.parseAnyOf(["comparisonOperator", "mathExpression"]);
     }
 }
 
@@ -1165,22 +1165,22 @@ export class LogicalOperator {
 
     /**
      * Parse logical operator expression
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {any}
      */
-    static parse(helper) {
-        var expr = helper.parseElement("comparisonExpression");
+    static parse(parser) {
+        var expr = parser.parseElement("comparisonExpression");
         var logicalOp, initialLogicalOp = null;
-        logicalOp = helper.matchToken("and") || helper.matchToken("or");
+        logicalOp = parser.matchToken("and") || parser.matchToken("or");
         while (logicalOp) {
             initialLogicalOp = initialLogicalOp || logicalOp;
             if (initialLogicalOp.value !== logicalOp.value) {
-                helper.raiseParseError("You must parenthesize logical operations with different operators");
+                parser.raiseParseError("You must parenthesize logical operations with different operators");
             }
-            var rhs = helper.requireElement("comparisonExpression");
+            var rhs = parser.requireElement("comparisonExpression");
             const operator = logicalOp.value;
             expr = new LogicalOperator(expr, operator, rhs);
-            logicalOp = helper.matchToken("and") || helper.matchToken("or");
+            logicalOp = parser.matchToken("and") || parser.matchToken("or");
         }
         return expr;
     }
@@ -1215,11 +1215,11 @@ export class LogicalOperator {
 export class LogicalExpression {
     /**
      * Parse logical expression (dispatcher)
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {any}
      */
-    static parse(helper) {
-        return helper.parseAnyOf(["logicalOperator", "mathExpression"]);
+    static parse(parser) {
+        return parser.parseAnyOf(["logicalOperator", "mathExpression"]);
     }
 }
 
@@ -1237,15 +1237,15 @@ export class AsyncExpression {
 
     /**
      * Parse async expression (dispatcher with optional async keyword)
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {AsyncExpression | any}
      */
-    static parse(helper) {
-        if (helper.matchToken("async")) {
-            var value = helper.requireElement("logicalExpression");
+    static parse(parser) {
+        if (parser.matchToken("async")) {
+            var value = parser.requireElement("logicalExpression");
             return new AsyncExpression(value);
         } else {
-            return helper.parseElement("logicalExpression");
+            return parser.parseElement("logicalExpression");
         }
     }
 

@@ -7,12 +7,12 @@
 export class JsFeature {
     /**
      * Parse js feature
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {JsFeature | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchToken("js")) return;
-        var jsBody = helper.requireElement("jsBody");
+    static parse(parser) {
+        if (!parser.matchToken("js")) return;
+        var jsBody = parser.requireElement("jsBody");
 
         var jsSource =
             jsBody.jsSource +

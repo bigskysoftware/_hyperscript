@@ -13,19 +13,19 @@ import { ElementCollection, TemplatedQueryElementCollection } from '../../core/u
 export class IdRef {
     /**
      * Parse an ID reference
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {any | undefined}
      */
-    static parse(helper) {
-        const Lexer = helper.kernel.constructor.Lexer || window._hyperscript?.internals?.Lexer;
-        var elementId = helper.matchTokenType("ID_REF");
+    static parse(parser) {
+        const Lexer = parser.kernel.constructor.Lexer || window._hyperscript?.internals?.Lexer;
+        var elementId = parser.matchTokenType("ID_REF");
         if (!elementId) return;
         if (!elementId.value) return;
         // TODO - unify these two expression types
         if (elementId.template) {
             var templateValue = elementId.value.substring(2);
             var innerTokens = Lexer.tokenize(templateValue);
-            var innerExpression = helper.kernel.requireElement("expression", innerTokens);
+            var innerExpression = parser.kernel.requireElement("expression", innerTokens);
             return {
                 type: "idRefTemplate",
                 args: [innerExpression],
@@ -61,13 +61,13 @@ export class IdRef {
 export class ClassRef {
     /**
      * Parse a class reference
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {any | undefined}
      */
-    static parse(helper) {
-        const Lexer = helper.kernel.constructor.Lexer || window._hyperscript?.internals?.Lexer;
+    static parse(parser) {
+        const Lexer = parser.kernel.constructor.Lexer || window._hyperscript?.internals?.Lexer;
 
-        var classRef = helper.matchTokenType("CLASS_REF");
+        var classRef = parser.matchTokenType("CLASS_REF");
 
         if (!classRef) return;
         if (!classRef.value) return;
@@ -76,7 +76,7 @@ export class ClassRef {
         if (classRef.template) {
             var templateValue = classRef.value.substring(2);
             var innerTokens = Lexer.tokenize(templateValue);
-            var innerExpression = helper.kernel.requireElement("expression", innerTokens);
+            var innerExpression = parser.kernel.requireElement("expression", innerTokens);
             return {
                 type: "classRefTemplate",
                 args: [innerExpression],
@@ -111,17 +111,17 @@ export class ClassRef {
 export class QueryRef {
     /**
      * Parse a query reference
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {any | undefined}
      */
-    static parse(helper) {
-        const Lexer = helper.kernel.constructor.Lexer || window._hyperscript?.internals?.Lexer;
+    static parse(parser) {
+        const Lexer = parser.kernel.constructor.Lexer || window._hyperscript?.internals?.Lexer;
 
-        var queryStart = helper.matchOpToken("<");
+        var queryStart = parser.matchOpToken("<");
         if (!queryStart) return;
-        var queryTokens = helper.consumeUntil("/");
-        helper.requireOpToken("/");
-        helper.requireOpToken(">");
+        var queryTokens = parser.consumeUntil("/");
+        parser.requireOpToken("/");
+        parser.requireOpToken(">");
         var queryValue = queryTokens
             .map(function (t) {
                 if (t.type === "STRING") {
@@ -136,7 +136,7 @@ export class QueryRef {
         if (/\$[^=]/.test(queryValue)) {
             template = true;
             innerTokens = Lexer.tokenize(queryValue, true);
-            args = helper.kernel.parseStringTemplate(innerTokens);
+            args = parser.kernel.parseStringTemplate(innerTokens);
         }
 
         return {
@@ -166,11 +166,11 @@ export class QueryRef {
 export class AttributeRef {
     /**
      * Parse an attribute reference
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {any | undefined}
      */
-    static parse(helper) {
-        var attributeRef = helper.matchTokenType("ATTRIBUTE_REF");
+    static parse(parser) {
+        var attributeRef = parser.matchTokenType("ATTRIBUTE_REF");
         if (!attributeRef) return;
         if (!attributeRef.value) return;
         var outerVal = attributeRef.value;
@@ -216,11 +216,11 @@ export class AttributeRef {
 export class StyleRef {
     /**
      * Parse a style reference
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {any | undefined}
      */
-    static parse(helper) {
-        var styleRef = helper.matchTokenType("STYLE_REF");
+    static parse(parser) {
+        var styleRef = parser.matchTokenType("STYLE_REF");
         if (!styleRef) return;
         if (!styleRef.value) return;
         var styleProp = styleRef.value.substr(1);
@@ -266,33 +266,33 @@ export class StyleRef {
 export class StyleLiteral {
     /**
      * Parse a style literal
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {any | undefined}
      */
-    static parse(helper) {
-        if (!helper.matchOpToken("{")) return;
+    static parse(parser) {
+        if (!parser.matchOpToken("{")) return;
 
         var stringParts = [""]
         var exprs = []
 
-        while (helper.hasMore()) {
-            if (helper.matchOpToken("\\")) {
-                helper.consumeToken();
-            } else if (helper.matchOpToken("}")) {
+        while (parser.hasMore()) {
+            if (parser.matchOpToken("\\")) {
+                parser.consumeToken();
+            } else if (parser.matchOpToken("}")) {
                 break;
-            } else if (helper.matchToken("$")) {
-                var opencurly = helper.matchOpToken("{");
-                var expr = helper.parseElement("expression");
-                if (opencurly) helper.requireOpToken("}");
+            } else if (parser.matchToken("$")) {
+                var opencurly = parser.matchOpToken("{");
+                var expr = parser.parseElement("expression");
+                if (opencurly) parser.requireOpToken("}");
 
                 exprs.push(expr)
                 stringParts.push("")
             } else {
-                var tok = helper.consumeToken();
-                stringParts[stringParts.length-1] += helper.source.substring(tok.start, tok.end);
+                var tok = parser.consumeToken();
+                stringParts[stringParts.length-1] += parser.source.substring(tok.start, tok.end);
             }
 
-            stringParts[stringParts.length-1] += helper.lastWhitespace();
+            stringParts[stringParts.length-1] += parser.lastWhitespace();
         }
 
         return {

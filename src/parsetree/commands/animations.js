@@ -6,28 +6,28 @@
 /**
  * Helper function to parse pseudopossessive targets (the/its/my element's)
  */
-function parsePseudopossessiveTarget(helper) {
+function parsePseudopossessiveTarget(parser) {
     var targets;
     if (
-        helper.matchToken("the") ||
-        helper.matchToken("element") ||
-        helper.matchToken("elements") ||
-        helper.currentToken().type === "CLASS_REF" ||
-        helper.currentToken().type === "ID_REF" ||
-        (helper.currentToken().op && helper.currentToken().value === "<")
+        parser.matchToken("the") ||
+        parser.matchToken("element") ||
+        parser.matchToken("elements") ||
+        parser.currentToken().type === "CLASS_REF" ||
+        parser.currentToken().type === "ID_REF" ||
+        (parser.currentToken().op && parser.currentToken().value === "<")
     ) {
-        helper.possessivesDisabled = true;
+        parser.possessivesDisabled = true;
         try {
-            targets = helper.parseElement("expression");
+            targets = parser.parseElement("expression");
         } finally {
-            delete helper.possessivesDisabled;
+            delete parser.possessivesDisabled;
         }
         // optional possessive
-        if (helper.matchOpToken("'")) {
-            helper.requireToken("s");
+        if (parser.matchOpToken("'")) {
+            parser.requireToken("s");
         }
-    } else if (helper.currentToken().type === "IDENTIFIER" && helper.currentToken().value === "its") {
-        var identifier = helper.matchToken("its");
+    } else if (parser.currentToken().type === "IDENTIFIER" && parser.currentToken().value === "its") {
+        var identifier = parser.matchToken("its");
         targets = {
             type: "pseudopossessiveIts",
             token: identifier,
@@ -37,8 +37,8 @@ function parsePseudopossessiveTarget(helper) {
             },
         };
     } else {
-        helper.matchToken("my") || helper.matchToken("me"); // consume optional 'my'
-        targets = helper.parseElement("implicitMeTarget");
+        parser.matchToken("my") || parser.matchToken("me"); // consume optional 'my'
+        targets = parser.parseElement("implicitMeTarget");
     }
     return targets;
 }
@@ -52,15 +52,15 @@ function parsePseudopossessiveTarget(helper) {
 export class SettleCommand {
     /**
      * Parse settle command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @returns {SettleCommand | undefined}
      */
-    static parse(helper) {
-        if (helper.matchToken("settle")) {
-            if (!helper.commandBoundary(helper.currentToken())) {
-                var onExpr = helper.requireElement("expression");
+    static parse(parser) {
+        if (parser.matchToken("settle")) {
+            if (!parser.commandBoundary(parser.currentToken())) {
+                var onExpr = parser.requireElement("expression");
             } else {
-                var onExpr = helper.requireElement("implicitMeTarget");
+                var onExpr = parser.requireElement("implicitMeTarget");
             }
 
             var settleCommand = {
@@ -122,25 +122,25 @@ export class SettleCommand {
 export class TransitionCommand {
     /**
      * Parse transition command
-     * @param {ParserHelper} helper
+     * @param {Parser} parser
      * @param {Object} config - Parser configuration with defaultTransition
      * @returns {TransitionCommand | undefined}
      */
-    static parse(helper, config) {
-        if (helper.matchToken("transition")) {
-            var targetsExpr = parsePseudopossessiveTarget(helper);
+    static parse(parser, config) {
+        if (parser.matchToken("transition")) {
+            var targetsExpr = parsePseudopossessiveTarget(parser);
 
             var properties = [];
             var from = [];
             var to = [];
-            var currentToken = helper.currentToken();
+            var currentToken = parser.currentToken();
             while (
-                !helper.commandBoundary(currentToken) &&
+                !parser.commandBoundary(currentToken) &&
                 currentToken.value !== "over" &&
                 currentToken.value !== "using"
             ) {
-                if (helper.currentToken().type === "STYLE_REF") {
-                    let styleRef = helper.consumeToken();
+                if (parser.currentToken().type === "STYLE_REF") {
+                    let styleRef = parser.consumeToken();
                     let styleProp = styleRef.value.substr(1);
                     properties.push({
                         type: "styleRefValue",
@@ -149,16 +149,16 @@ export class TransitionCommand {
                         },
                     });
                 } else {
-                    properties.push(helper.requireElement("stringLike"));
+                    properties.push(parser.requireElement("stringLike"));
                 }
 
-                if (helper.matchToken("from")) {
-                    from.push(helper.requireElement("expression"));
+                if (parser.matchToken("from")) {
+                    from.push(parser.requireElement("expression"));
                 } else {
                     from.push(null);
                 }
-                helper.requireToken("to");
-                if (helper.matchToken("initial")) {
+                parser.requireToken("to");
+                if (parser.matchToken("initial")) {
                     to.push({
                         type: "initial_literal",
                         evaluate : function(){
@@ -166,14 +166,14 @@ export class TransitionCommand {
                         }
                     });
                 } else {
-                    to.push(helper.requireElement("expression"));
+                    to.push(parser.requireElement("expression"));
                 }
-                currentToken = helper.currentToken();
+                currentToken = parser.currentToken();
             }
-            if (helper.matchToken("over")) {
-                var over = helper.requireElement("expression");
-            } else if (helper.matchToken("using")) {
-                var usingExpr = helper.requireElement("expression");
+            if (parser.matchToken("over")) {
+                var over = parser.requireElement("expression");
+            } else if (parser.matchToken("using")) {
+                var usingExpr = parser.requireElement("expression");
             }
 
             var transition = {
