@@ -6030,6 +6030,74 @@ var GetCommand = class {
   }
 };
 
+// src/parsetree/commands/pseudoCommand.js
+var PseudoCommand = class {
+  /**
+   * Parse pseudo-command
+   * @param {ParserHelper} helper
+   * @returns {Object | undefined}
+   */
+  static parse(helper) {
+    let lookAhead = helper.token(1);
+    if (!(lookAhead && lookAhead.op && (lookAhead.value === "." || lookAhead.value === "("))) {
+      return null;
+    }
+    var expr = helper.requireElement("primaryExpression");
+    var rootRoot = expr.root;
+    var root = expr;
+    while (rootRoot.root != null) {
+      root = root.root;
+      rootRoot = rootRoot.root;
+    }
+    if (expr.type !== "functionCall") {
+      helper.raiseParseError("Pseudo-commands must be function calls");
+    }
+    if (root.type === "functionCall" && root.root.root == null) {
+      if (helper.matchAnyToken("the", "to", "on", "with", "into", "from", "at")) {
+        var realRoot = helper.requireElement("expression");
+      } else if (helper.matchToken("me")) {
+        var realRoot = helper.requireElement("implicitMeTarget");
+      }
+    }
+    var pseudoCommand;
+    if (realRoot) {
+      pseudoCommand = {
+        type: "pseudoCommand",
+        root: realRoot,
+        argExressions: root.argExressions,
+        args: [realRoot, root.argExressions],
+        op: function(context2, rootRoot2, args) {
+          context2.meta.runtime.nullCheck(rootRoot2, realRoot);
+          var func = rootRoot2[root.root.name];
+          context2.meta.runtime.nullCheck(func, root);
+          if (func.hyperfunc) {
+            args.push(context2);
+          }
+          context2.result = func.apply(rootRoot2, args);
+          return context2.meta.runtime.findNext(pseudoCommand, context2);
+        },
+        execute: function(context2) {
+          return context2.meta.runtime.unifiedExec(this, context2);
+        }
+      };
+    } else {
+      pseudoCommand = {
+        type: "pseudoCommand",
+        expr,
+        args: [expr],
+        op: function(context2, result) {
+          context2.result = result;
+          return context2.meta.runtime.findNext(pseudoCommand, context2);
+        },
+        execute: function(context2) {
+          return context2.meta.runtime.unifiedExec(this, context2);
+        }
+      };
+    }
+    return pseudoCommand;
+  }
+};
+
 // src/parsetree/features/set.js
 var SetFeature = class {
   /**
@@ -6844,65 +6912,7 @@ function hyperscriptCoreGrammar(parser) {
   parser.addCommand("call", CallCommand.parse);
   parser.addCommand("get", GetCommand.parse);
   parser.addCommand("make", MakeCommand.parse);
-  parser.addGrammarElement("pseudoCommand", function(helper) {
-    let lookAhead = helper.token(1);
-    if (!(lookAhead && lookAhead.op && (lookAhead.value === "." || lookAhead.value === "("))) {
-      return null;
-    }
-    var expr = helper.requireElement("primaryExpression");
-    var rootRoot = expr.root;
-    var root = expr;
-    while (rootRoot.root != null) {
-      root = root.root;
-      rootRoot = rootRoot.root;
-    }
-    if (expr.type !== "functionCall") {
-      helper.raiseParseError("Pseudo-commands must be function calls");
-    }
-    if (root.type === "functionCall" && root.root.root == null) {
-      if (helper.matchAnyToken("the", "to", "on", "with", "into", "from", "at")) {
-        var realRoot = helper.requireElement("expression");
-      } else if (helper.matchToken("me")) {
-        var realRoot = helper.requireElement("implicitMeTarget");
-      }
-    }
-    var pseudoCommand;
-    if (realRoot) {
-      pseudoCommand = {
-        type: "pseudoCommand",
-        root: realRoot,
-        argExressions: root.argExressions,
-        args: [realRoot, root.argExressions],
-        op: function(context2, rootRoot2, args) {
-          context2.meta.runtime.nullCheck(rootRoot2, realRoot);
-          var func = rootRoot2[root.root.name];
-          context2.meta.runtime.nullCheck(func, root);
-          if (func.hyperfunc) {
-            args.push(context2);
-          }
-          context2.result = func.apply(rootRoot2, args);
-          return context2.meta.runtime.findNext(pseudoCommand, context2);
-        },
-        execute: function(context2) {
-          return context2.meta.runtime.unifiedExec(this, context2);
-        }
-      };
-    } else {
-      pseudoCommand = {
-        type: "pseudoCommand",
-        expr,
-        args: [expr],
-        op: function(context2, result) {
-          context2.result = result;
-          return context2.meta.runtime.findNext(pseudoCommand, context2);
-        },
-        execute: function(context2) {
-          return context2.meta.runtime.unifiedExec(this, context2);
-        }
-      };
-    }
-    return pseudoCommand;
-  });
+  parser.addGrammarElement("pseudoCommand", PseudoCommand.parse);
   var makeSetter = function(helper, target, value) {
     var symbolWrite = target.type === "symbol";
     var attributeWrite = target.type === "attributeRef";
