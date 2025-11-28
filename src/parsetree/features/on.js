@@ -38,7 +38,7 @@ export class OnFeature {
     /**
      * Parse on feature
      * @param {ParserHelper} helper
-     * @param {Parser} parser
+     * @param {LanguageKernel} parser
      * @returns {OnFeature | undefined}
      */
     static parse(helper, parser) {

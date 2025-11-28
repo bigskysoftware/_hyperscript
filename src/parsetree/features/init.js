@@ -8,7 +8,7 @@ export class InitFeature {
     /**
      * Parse init feature
      * @param {ParserHelper} helper
-     * @param {Parser} parser
+     * @param {LanguageKernel} parser
      * @returns {InitFeature | undefined}
      */
     static parse(helper, parser) {

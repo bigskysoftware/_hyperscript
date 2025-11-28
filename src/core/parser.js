@@ -1,11 +1,11 @@
-// Parser - AST parsing for _hyperscript
+// LanguageKernel - AST parsing for _hyperscript
 import { Tokens } from './tokens.js';
 import { Runtime } from './runtime.js';
 import { ParserHelper } from './parser-helper.js';
 
 /**
  * @callback ParseRule
- * @param {Parser} parser
+ * @param {LanguageKernel} parser
  * @param {Runtime} runtime
  * @param {Tokens} tokens
  * @param {*} [root]
@@ -32,7 +32,7 @@ import { ParserHelper } from './parser-helper.js';
  *
  */
 
-export class Parser {
+export class LanguageKernel {
     constructor() {
         this.possessivesDisabled = false
 
@@ -214,7 +214,7 @@ export class Parser {
      */
     requireElement(type, tokens, message, root) {
         var result = this.parseElement(type, tokens, root);
-        if (!result) Parser.raiseParseError(tokens, message || "Expected " + type);
+        if (!result) LanguageKernel.raiseParseError(tokens, message || "Expected " + type);
         return result;
     }
 
@@ -325,7 +325,7 @@ export class Parser {
      */
     static raiseParseError(tokens, message) {
         message =
-            (message || "Unexpected Token : " + tokens.currentToken().value) + "\n\n" + Parser.createParserContext(tokens);
+            (message || "Unexpected Token : " + tokens.currentToken().value) + "\n\n" + LanguageKernel.createParserContext(tokens);
         var error = new Error(message);
         error["tokens"] = tokens;
         throw error;
@@ -336,7 +336,7 @@ export class Parser {
      * @param {string} [message]
      */
     raiseParseError(tokens, message) {
-        Parser.raiseParseError(tokens, message)
+        LanguageKernel.raiseParseError(tokens, message)
     }
 
     /**
@@ -358,16 +358,16 @@ export class Parser {
         var tokens = lexer.tokenize(src);
         if (this.commandStart(tokens.currentToken())) {
             var commandList = this.requireElement("commandList", tokens);
-            if (tokens.hasMore()) Parser.raiseParseError(tokens);
+            if (tokens.hasMore()) LanguageKernel.raiseParseError(tokens);
             this.ensureTerminated(commandList);
             return commandList;
         } else if (this.featureStart(tokens.currentToken())) {
             var hyperscript = this.requireElement("hyperscript", tokens);
-            if (tokens.hasMore()) Parser.raiseParseError(tokens);
+            if (tokens.hasMore()) LanguageKernel.raiseParseError(tokens);
             return hyperscript;
         } else {
             var expression = this.requireElement("expression", tokens);
-            if (tokens.hasMore()) Parser.raiseParseError(tokens);
+            if (tokens.hasMore()) LanguageKernel.raiseParseError(tokens);
             return expression;
         }
     }

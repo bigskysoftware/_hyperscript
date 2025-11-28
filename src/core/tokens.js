@@ -40,7 +40,7 @@ export class Tokens {
      * @returns {never}
      */
     raiseError(tokens, error) {
-        // This will be set by Parser when it's initialized
+        // This will be set by LanguageKernel when it's initialized
         if (Tokens._parserRaiseError) {
             Tokens._parserRaiseError(tokens, error);
         } else {

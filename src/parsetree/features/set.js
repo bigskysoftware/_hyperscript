@@ -8,7 +8,7 @@ export class SetFeature {
     /**
      * Parse set feature
      * @param {ParserHelper} helper
-     * @param {Parser} parser
+     * @param {LanguageKernel} parser
      * @returns {SetFeature | undefined}
      */
     static parse(helper, parser) {

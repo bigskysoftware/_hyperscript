@@ -11,7 +11,7 @@ import { SettleCommand, TransitionCommand } from '../parsetree/commands/animatio
 import { GoCommand } from '../parsetree/commands/basic.js';
 
 /**
- * @param {Parser} parser
+ * @param {LanguageKernel} parser
  */
 export default function hyperscriptWebGrammar(parser) {
         parser.addCommand("settle", SettleCommand.parse);

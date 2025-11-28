@@ -40,7 +40,7 @@ import { DefFeature } from '../parsetree/features/def.js';
 import { OnFeature } from '../parsetree/features/on.js';
 
 /**
- * @param {Parser} parser
+ * @param {LanguageKernel} parser
  */
 export default function hyperscriptCoreGrammar(parser) {
         parser.addLeafExpression("parenthesized", ParenthesizedExpression.parse);
@@ -288,7 +288,7 @@ export default function hyperscriptCoreGrammar(parser) {
         parser.addGrammarElement("pseudoCommand", PseudoCommand.parse);
 
         /**
-        * @param {Parser} parser
+        * @param {LanguageKernel} parser
         * @param {Runtime} runtime
         * @param {Tokens} tokens
         * @param {*} target

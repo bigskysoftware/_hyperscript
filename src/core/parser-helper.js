@@ -1,13 +1,13 @@
 // ParserHelper - Unified API for parsing operations
-// Encapsulates both Parser and Tokens to provide a single parameter to grammar functions
+// Encapsulates both LanguageKernel and Tokens to provide a single parameter to grammar functions
 
 /**
- * ParserHelper wraps a Parser and Tokens instance to provide a unified API
+ * ParserHelper wraps a LanguageKernel and Tokens instance to provide a unified API
  * for grammar parsing functions.
  */
 export class ParserHelper {
     /**
-     * @param {import('./parser.js').Parser} parser
+     * @param {import('./parser.js').LanguageKernel} parser
      * @param {import('./tokens.js').Tokens} tokens
      */
     constructor(parser, tokens) {

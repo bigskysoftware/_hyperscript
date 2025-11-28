@@ -4,7 +4,7 @@
 // Import core modules
 import { Lexer } from './core/lexer.js';
 import { Tokens } from './core/tokens.js';
-import { Parser } from './core/parser.js';
+import { LanguageKernel } from './core/parser.js';
 import { Runtime } from './core/runtime.js';
 import { ElementCollection } from './core/util.js';
 import { config, conversions } from './core/config.js';
@@ -159,14 +159,14 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
     const runtime_ = new Runtime(globalScope);
 
     // Create and configure parser
-    const parser_ = new Parser();
+    const parser_ = new LanguageKernel();
     // Add runtime to parser for backward compatibility with grammar code
     parser_.runtime = runtime_;
     hyperscriptCoreGrammar(parser_);
     hyperscriptWebGrammar(parser_);
 
-    // Set up the Parser.raiseParseError callback for Tokens
-    Tokens._parserRaiseError = Parser.raiseParseError;
+    // Set up the LanguageKernel.raiseParseError callback for Tokens
+    Tokens._parserRaiseError = LanguageKernel.raiseParseError;
     // Set up the Runtime reference for ElementCollection
     ElementCollection._runtime = runtime_;
 
@@ -341,8 +341,8 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
      * @property {Object} internals
      * @property {Lexer} internals.lexer
      * @property {typeof Lexer} internals.Lexer
-     * @property {Parser} internals.parser
-     * @property {typeof Parser} internals.Parser
+     * @property {LanguageKernel} internals.parser
+     * @property {typeof LanguageKernel} internals.Parser
      * @property {Runtime} internals.runtime
      * @property {typeof Runtime} internals.Runtime
      *
@@ -375,7 +375,7 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
 
             internals: {
                 lexer: lexer_, parser: parser_, runtime: runtime_,
-                Lexer, Tokens, Parser, Runtime,
+                Lexer, Tokens, Parser: LanguageKernel, Runtime,
             },
             ElementCollection,
 

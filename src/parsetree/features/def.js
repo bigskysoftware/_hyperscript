@@ -8,7 +8,7 @@ export class DefFeature {
     /**
      * Parse def feature
      * @param {ParserHelper} helper
-     * @param {Parser} parser
+     * @param {LanguageKernel} parser
      * @returns {DefFeature | undefined}
      */
     static parse(helper, parser) {

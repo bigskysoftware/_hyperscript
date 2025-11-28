@@ -1785,7 +1785,7 @@ var Runtime = _Runtime;
 // src/core/parser-helper.js
 var ParserHelper = class {
   /**
-   * @param {import('./parser.js').Parser} parser
+   * @param {import('./parser.js').LanguageKernel} parser
    * @param {import('./tokens.js').Tokens} tokens
    */
   constructor(parser, tokens) {
@@ -1929,7 +1929,7 @@ var ParserHelper = class {
 };
 
 // src/core/parser.js
-var Parser = class _Parser {
+var LanguageKernel = class _LanguageKernel {
   constructor() {
     /** @type {Object<string,ParseRule>} */
     __publicField(this, "GRAMMAR", {});
@@ -2088,7 +2088,7 @@ var Parser = class _Parser {
    */
   requireElement(type, tokens, message, root) {
     var result = this.parseElement(type, tokens, root);
-    if (!result) _Parser.raiseParseError(tokens, message || "Expected " + type);
+    if (!result) _LanguageKernel.raiseParseError(tokens, message || "Expected " + type);
     return result;
   }
   /**
@@ -2190,7 +2190,7 @@ var Parser = class _Parser {
    * @returns {never}
    */
   static raiseParseError(tokens, message) {
-    message = (message || "Unexpected Token : " + tokens.currentToken().value) + "\n\n" + _Parser.createParserContext(tokens);
+    message = (message || "Unexpected Token : " + tokens.currentToken().value) + "\n\n" + _LanguageKernel.createParserContext(tokens);
     var error = new Error(message);
     error["tokens"] = tokens;
     throw error;
@@ -2200,7 +2200,7 @@ var Parser = class _Parser {
    * @param {string} [message]
    */
   raiseParseError(tokens, message) {
-    _Parser.raiseParseError(tokens, message);
+    _LanguageKernel.raiseParseError(tokens, message);
   }
   /**
    * @param {Tokens} tokens
@@ -2220,16 +2220,16 @@ var Parser = class _Parser {
     var tokens = lexer.tokenize(src);
     if (this.commandStart(tokens.currentToken())) {
       var commandList = this.requireElement("commandList", tokens);
-      if (tokens.hasMore()) _Parser.raiseParseError(tokens);
+      if (tokens.hasMore()) _LanguageKernel.raiseParseError(tokens);
       this.ensureTerminated(commandList);
       return commandList;
     } else if (this.featureStart(tokens.currentToken())) {
       var hyperscript = this.requireElement("hyperscript", tokens);
-      if (tokens.hasMore()) _Parser.raiseParseError(tokens);
+      if (tokens.hasMore()) _LanguageKernel.raiseParseError(tokens);
       return hyperscript;
     } else {
       var expression = this.requireElement("expression", tokens);
-      if (tokens.hasMore()) _Parser.raiseParseError(tokens);
+      if (tokens.hasMore()) _LanguageKernel.raiseParseError(tokens);
       return expression;
     }
   }
@@ -6103,7 +6103,7 @@ var SetFeature = class {
   /**
    * Parse set feature
    * @param {ParserHelper} helper
-   * @param {Parser} parser
+   * @param {LanguageKernel} parser
    * @returns {SetFeature | undefined}
    */
   static parse(helper, parser) {
@@ -6129,7 +6129,7 @@ var InitFeature = class {
   /**
    * Parse init feature
    * @param {ParserHelper} helper
-   * @param {Parser} parser
+   * @param {LanguageKernel} parser
    * @returns {InitFeature | undefined}
    */
   static parse(helper, parser) {
@@ -6283,7 +6283,7 @@ var DefFeature = class {
   /**
    * Parse def feature
    * @param {ParserHelper} helper
-   * @param {Parser} parser
+   * @param {LanguageKernel} parser
    * @returns {DefFeature | undefined}
    */
   static parse(helper, parser) {
@@ -6383,7 +6383,7 @@ var OnFeature = class {
   /**
    * Parse on feature
    * @param {ParserHelper} helper
-   * @param {Parser} parser
+   * @param {LanguageKernel} parser
    * @returns {OnFeature | undefined}
    */
   static parse(helper, parser) {
@@ -6876,33 +6876,6 @@ function hyperscriptCoreGrammar(parser) {
   });
   parser.addCommand("trigger", TriggerCommand.parse);
   parser.addCommand("send", SendCommand.parse);
-  var parseReturnFunction = function(helper, returnAValue) {
-    if (returnAValue) {
-      if (helper.commandBoundary(helper.currentToken())) {
-        helper.raiseParseError("'return' commands must return a value.  If you do not wish to return a value, use 'exit' instead.");
-      } else {
-        var value = helper.requireElement("expression");
-      }
-    }
-    var returnCmd = {
-      value,
-      args: [value],
-      op: function(context2, value2) {
-        var resolve = context2.meta.resolve;
-        context2.meta.returned = true;
-        context2.meta.returnValue = value2;
-        if (resolve) {
-          if (value2) {
-            resolve(value2);
-          } else {
-            resolve();
-          }
-        }
-        return context2.meta.runtime.HALT;
-      }
-    };
-    return returnCmd;
-  };
   parser.addCommand("return", ReturnCommand.parse);
   parser.addCommand("exit", ExitCommand.parse);
   parser.addCommand("halt", HaltCommand.parse);
@@ -8074,11 +8047,11 @@ function logError(msg) {
 }
 var lexer_ = new Lexer();
 var runtime_ = new Runtime(globalScope);
-var parser_ = new Parser();
+var parser_ = new LanguageKernel();
 parser_.runtime = runtime_;
 hyperscriptCoreGrammar(parser_);
 hyperscriptWebGrammar(parser_);
-Tokens._parserRaiseError = Parser.raiseParseError;
+Tokens._parserRaiseError = LanguageKernel.raiseParseError;
 ElementCollection._runtime = runtime_;
 var processNode;
 var initElement;
@@ -8213,7 +8186,7 @@ var _hyperscript = Object.assign(
       runtime: runtime_,
       Lexer,
       Tokens,
-      Parser,
+      Parser: LanguageKernel,
       Runtime
     },
     ElementCollection,
