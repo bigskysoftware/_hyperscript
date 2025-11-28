@@ -3,8 +3,8 @@
  * Simple commands with no control flow, plus data manipulation commands
  */
 
-import { varargConstructor } from '../../core/helpers.js';
-import { RegExpIterable } from '../../core/util.js';
+import { varargConstructor } from '../../core/runtime.js';
+import { RegExpIterable } from '../../core/runtime.js';
 
 /**
  * LogCommand - Log values to console

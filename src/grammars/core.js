@@ -55,7 +55,7 @@ export default function hyperscriptCoreGrammar(kernel) {
 
         kernel.addLeafExpression("classRef", ClassRef.parse);
 
-        // TemplatedQueryElementCollection is now imported from ./core/util.js
+        // TemplatedQueryElementCollection is now imported from ./core/runtime.js
 
         kernel.addLeafExpression("queryRef", QueryRef.parse);
 

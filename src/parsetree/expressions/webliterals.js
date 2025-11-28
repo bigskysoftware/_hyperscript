@@ -2,7 +2,7 @@
  * Web-related literal parse tree elements
  * References to DOM elements and attributes
  */
-import { ElementCollection, TemplatedQueryElementCollection } from '../../core/util.js';
+import { ElementCollection, TemplatedQueryElementCollection } from '../../core/runtime.js';
 
 /**
  * IdRef - Represents ID references (#foo or #${expr})

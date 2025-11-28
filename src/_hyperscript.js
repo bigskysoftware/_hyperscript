@@ -6,7 +6,7 @@ import { Lexer } from './core/lexer.js';
 import { Tokens } from './core/tokens.js';
 import { LanguageKernel } from './core/kernel.js';
 import { Runtime } from './core/runtime.js';
-import { ElementCollection } from './core/util.js';
+import { ElementCollection } from './core/runtime.js';
 import { config, conversions } from './core/config.js';
 import hyperscriptCoreGrammar from './grammars/core.js';
 import hyperscriptWebGrammar from './grammars/web.js';

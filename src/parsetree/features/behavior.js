@@ -5,7 +5,7 @@
  * Executes: Registers a behavior that can be installed on elements
  */
 
-import { getOrInitObject } from '../../core/helpers.js';
+import { getOrInitObject } from '../../core/runtime.js';
 
 export class BehaviorFeature {
     /**

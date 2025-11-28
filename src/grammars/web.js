@@ -1,7 +1,7 @@
 // Web/DOM grammar for _hyperscript
 import { Lexer } from '../core/lexer.js';
-import { RegExpIterable, ElementCollection } from '../core/util.js';
-import { parseJSON } from '../core/helpers.js';
+import { RegExpIterable, ElementCollection } from '../core/runtime.js';
+import { parseJSON } from '../core/runtime.js';
 import { config } from '../core/config.js';
 import { StyleLiteral } from '../parsetree/expressions/webliterals.js';
 import { ClosestExpr } from '../parsetree/expressions/positional.js';
