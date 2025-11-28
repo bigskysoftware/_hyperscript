@@ -4537,6 +4537,426 @@ var HaltCommand = class _HaltCommand {
     }
   }
 };
+var MakeCommand = class {
+  /**
+   * Parse make command
+   * @param {ParserHelper} helper
+   * @returns {MakeCommand | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchToken("make")) return;
+    helper.matchToken("a") || helper.matchToken("an");
+    var expr = helper.requireElement("expression");
+    var args = [];
+    if (expr.type !== "queryRef" && helper.matchToken("from")) {
+      do {
+        args.push(helper.requireElement("expression"));
+      } while (helper.matchOpToken(","));
+    }
+    if (helper.matchToken("called")) {
+      var target = helper.requireElement("symbol");
+    }
+    var command;
+    if (expr.type === "queryRef") {
+      command = {
+        op: function(ctx) {
+          var match, tagname = "div", id, classes = [];
+          var re = /(?:(^|#|\.)([^#\. ]+))/g;
+          while (match = re.exec(expr.css)) {
+            if (match[1] === "") tagname = match[2].trim();
+            else if (match[1] === "#") id = match[2].trim();
+            else classes.push(match[2].trim());
+          }
+          var result = document.createElement(tagname);
+          if (id !== void 0) result.id = id;
+          for (var i = 0; i < classes.length; i++) {
+            var cls = classes[i];
+            result.classList.add(cls);
+          }
+          ctx.result = result;
+          if (target) {
+            ctx.meta.runtime.setSymbol(target.name, ctx, target.scope, result);
+          }
+          return ctx.meta.runtime.findNext(this, ctx);
+        }
+      };
+      return command;
+    } else {
+      command = {
+        args: [expr, args],
+        op: function(ctx, expr2, args2) {
+          ctx.result = varargConstructor(expr2, args2);
+          if (target) {
+            ctx.meta.runtime.setSymbol(target.name, ctx, target.scope, ctx.result);
+          }
+          return ctx.meta.runtime.findNext(this, ctx);
+        }
+      };
+      return command;
+    }
+  }
+};
+var AppendCommand = class {
+  /**
+   * Parse append command
+   * @param {ParserHelper} helper
+   * @param {Function} makeSetter - makeSetter function from core grammar
+   * @returns {AppendCommand | undefined}
+   */
+  static parse(helper, makeSetter) {
+    if (!helper.matchToken("append")) return;
+    var targetExpr = null;
+    var value = helper.requireElement("expression");
+    var implicitResultSymbol = {
+      type: "symbol",
+      evaluate: function(context2) {
+        return context2.meta.runtime.resolveSymbol("result", context2);
+      }
+    };
+    if (helper.matchToken("to")) {
+      targetExpr = helper.requireElement("expression");
+    } else {
+      targetExpr = implicitResultSymbol;
+    }
+    var setter = null;
+    if (targetExpr.type === "symbol" || targetExpr.type === "attributeRef" || targetExpr.root != null) {
+      setter = makeSetter(helper, targetExpr, implicitResultSymbol);
+    }
+    var command = {
+      value,
+      target: targetExpr,
+      args: [targetExpr, value],
+      op: function(context2, target, value2) {
+        if (Array.isArray(target)) {
+          target.push(value2);
+          return context2.meta.runtime.findNext(this, context2);
+        } else if (target instanceof Element) {
+          if (value2 instanceof Element) {
+            target.insertAdjacentElement("beforeend", value2);
+          } else {
+            target.insertAdjacentHTML("beforeend", value2);
+          }
+          context2.meta.runtime.processNode(
+            /** @type {HTMLElement} */
+            target
+          );
+          return context2.meta.runtime.findNext(this, context2);
+        } else if (setter) {
+          context2.result = (target || "") + value2;
+          return setter;
+        } else {
+          throw Error("Unable to append a value!");
+        }
+      },
+      execute: function(context2) {
+        return context2.meta.runtime.unifiedExec(
+          this,
+          context2
+          /*, value, target*/
+        );
+      }
+    };
+    if (setter != null) {
+      setter.parent = command;
+    }
+    return command;
+  }
+};
+function parsePickRange(helper) {
+  helper.matchToken("at") || helper.matchToken("from");
+  const rv = { includeStart: true, includeEnd: false };
+  rv.from = helper.matchToken("start") ? 0 : helper.requireElement("expression");
+  if (helper.matchToken("to") || helper.matchOpToken("..")) {
+    if (helper.matchToken("end")) {
+      rv.toEnd = true;
+    } else {
+      rv.to = helper.requireElement("expression");
+    }
+  }
+  if (helper.matchToken("inclusive")) rv.includeEnd = true;
+  else if (helper.matchToken("exclusive")) rv.includeStart = false;
+  return rv;
+}
+var PickCommand = class {
+  /**
+   * Parse pick command
+   * @param {ParserHelper} helper
+   * @returns {PickCommand | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchToken("pick")) return;
+    helper.matchToken("the");
+    if (helper.matchToken("item") || helper.matchToken("items") || helper.matchToken("character") || helper.matchToken("characters")) {
+      const range = parsePickRange(helper);
+      helper.requireToken("from");
+      const root = helper.requireElement("expression");
+      return {
+        args: [root, range.from, range.to],
+        op(ctx, root2, from, to) {
+          if (range.toEnd) to = root2.length;
+          if (!range.includeStart) from++;
+          if (range.includeEnd) to++;
+          if (to == null || to == void 0) to = from + 1;
+          ctx.result = root2.slice(from, to);
+          return ctx.meta.runtime.findNext(this, ctx);
+        }
+      };
+    }
+    if (helper.matchToken("match")) {
+      helper.matchToken("of");
+      const re = helper.parseElement("expression");
+      let flags = "";
+      if (helper.matchOpToken("|")) {
+        flags = helper.requireTokenType("IDENTIFIER").value;
+      }
+      helper.requireToken("from");
+      const root = helper.parseElement("expression");
+      return {
+        args: [root, re],
+        op(ctx, root2, re2) {
+          ctx.result = new RegExp(re2, flags).exec(root2);
+          return ctx.meta.runtime.findNext(this, ctx);
+        }
+      };
+    }
+    if (helper.matchToken("matches")) {
+      helper.matchToken("of");
+      const re = helper.parseElement("expression");
+      let flags = "gu";
+      if (helper.matchOpToken("|")) {
+        flags = "g" + helper.requireTokenType("IDENTIFIER").value.replace("g", "");
+      }
+      helper.requireToken("from");
+      const root = helper.parseElement("expression");
+      return {
+        args: [root, re],
+        op(ctx, root2, re2) {
+          ctx.result = new RegExpIterable(re2, flags, root2);
+          return ctx.meta.runtime.findNext(this, ctx);
+        }
+      };
+    }
+  }
+};
+function parseConversionInfo(helper) {
+  var type = "text";
+  var conversion;
+  helper.matchToken("a") || helper.matchToken("an");
+  if (helper.matchToken("json") || helper.matchToken("Object")) {
+    type = "json";
+  } else if (helper.matchToken("response")) {
+    type = "response";
+  } else if (helper.matchToken("html")) {
+    type = "html";
+  } else if (helper.matchToken("text")) {
+  } else {
+    conversion = helper.requireElement("dotOrColonPath").evaluate();
+  }
+  return { type, conversion };
+}
+var FetchCommand = class {
+  /**
+   * Parse fetch command
+   * @param {ParserHelper} helper
+   * @returns {FetchCommand | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchToken("fetch")) return;
+    var url = helper.requireElement("stringLike");
+    if (helper.matchToken("as")) {
+      var conversionInfo = parseConversionInfo(helper);
+    }
+    if (helper.matchToken("with") && helper.currentToken().value !== "{") {
+      var args = helper.parseElement("nakedNamedArgumentList");
+    } else {
+      var args = helper.parseElement("objectLiteral");
+    }
+    if (conversionInfo == null && helper.matchToken("as")) {
+      conversionInfo = parseConversionInfo(helper);
+    }
+    var type = conversionInfo ? conversionInfo.type : "text";
+    var conversion = conversionInfo ? conversionInfo.conversion : null;
+    var fetchCmd = {
+      url,
+      argExpressions: args,
+      args: [url, args],
+      op: function(context2, url2, args2) {
+        var detail = args2 || {};
+        detail["sender"] = context2.me;
+        detail["headers"] = detail["headers"] || {};
+        var abortController = new AbortController();
+        let abortListener = context2.me.addEventListener("fetch:abort", function() {
+          abortController.abort();
+        }, { once: true });
+        detail["signal"] = abortController.signal;
+        context2.meta.runtime.triggerEvent(context2.me, "hyperscript:beforeFetch", detail);
+        context2.meta.runtime.triggerEvent(context2.me, "fetch:beforeRequest", detail);
+        args2 = detail;
+        var finished = false;
+        if (args2.timeout) {
+          setTimeout(function() {
+            if (!finished) {
+              abortController.abort();
+            }
+          }, args2.timeout);
+        }
+        return fetch(url2, args2).then(function(resp) {
+          let resultDetails = { response: resp };
+          context2.meta.runtime.triggerEvent(context2.me, "fetch:afterResponse", resultDetails);
+          resp = resultDetails.response;
+          if (type === "response") {
+            context2.result = resp;
+            context2.meta.runtime.triggerEvent(context2.me, "fetch:afterRequest", { result: resp });
+            finished = true;
+            return context2.meta.runtime.findNext(fetchCmd, context2);
+          }
+          if (type === "json") {
+            return resp.json().then(function(result) {
+              context2.result = result;
+              context2.meta.runtime.triggerEvent(context2.me, "fetch:afterRequest", { result });
+              finished = true;
+              return context2.meta.runtime.findNext(fetchCmd, context2);
+            });
+          }
+          return resp.text().then(function(result) {
+            if (conversion) result = context2.meta.runtime.convertValue(result, conversion);
+            if (type === "html") result = context2.meta.runtime.convertValue(result, "Fragment");
+            context2.result = result;
+            context2.meta.runtime.triggerEvent(context2.me, "fetch:afterRequest", { result });
+            finished = true;
+            return context2.meta.runtime.findNext(fetchCmd, context2);
+          });
+        }).catch(function(reason) {
+          context2.meta.runtime.triggerEvent(context2.me, "fetch:error", {
+            reason
+          });
+          throw reason;
+        }).finally(function() {
+          context2.me.removeEventListener("fetch:abort", abortListener);
+        });
+      }
+    };
+    return fetchCmd;
+  }
+};
+var GoCommand = class {
+  /**
+   * Parse go command
+   * @param {ParserHelper} helper
+   * @returns {GoCommand | undefined}
+   */
+  static parse(helper) {
+    if (helper.matchToken("go")) {
+      if (helper.matchToken("back")) {
+        var back = true;
+      } else {
+        helper.matchToken("to");
+        if (helper.matchToken("url")) {
+          var target = helper.requireElement("stringLike");
+          var url = true;
+          if (helper.matchToken("in")) {
+            helper.requireToken("new");
+            helper.requireToken("window");
+            var newWindow = true;
+          }
+        } else {
+          helper.matchToken("the");
+          var verticalPosition = helper.matchAnyToken("top", "middle", "bottom");
+          var horizontalPosition = helper.matchAnyToken("left", "center", "right");
+          if (verticalPosition || horizontalPosition) {
+            helper.requireToken("of");
+          }
+          var target = helper.requireElement("unaryExpression");
+          var plusOrMinus = helper.matchAnyOpToken("+", "-");
+          if (plusOrMinus) {
+            helper.pushFollow("px");
+            try {
+              var offset = helper.requireElement("expression");
+            } finally {
+              helper.popFollow();
+            }
+          }
+          helper.matchToken("px");
+          var smoothness = helper.matchAnyToken("smoothly", "instantly");
+          var scrollOptions = {
+            block: "start",
+            inline: "nearest"
+          };
+          if (verticalPosition) {
+            if (verticalPosition.value === "top") {
+              scrollOptions.block = "start";
+            } else if (verticalPosition.value === "bottom") {
+              scrollOptions.block = "end";
+            } else if (verticalPosition.value === "middle") {
+              scrollOptions.block = "center";
+            }
+          }
+          if (horizontalPosition) {
+            if (horizontalPosition.value === "left") {
+              scrollOptions.inline = "start";
+            } else if (horizontalPosition.value === "center") {
+              scrollOptions.inline = "center";
+            } else if (horizontalPosition.value === "right") {
+              scrollOptions.inline = "end";
+            }
+          }
+          if (smoothness) {
+            if (smoothness.value === "smoothly") {
+              scrollOptions.behavior = "smooth";
+            } else if (smoothness.value === "instantly") {
+              scrollOptions.behavior = "instant";
+            }
+          }
+        }
+      }
+      var goCmd = {
+        target,
+        args: [target, offset],
+        op: function(ctx, to, offset2) {
+          if (back) {
+            window.history.back();
+          } else if (url) {
+            if (to) {
+              if (newWindow) {
+                window.open(to);
+              } else {
+                window.location.href = to;
+              }
+            }
+          } else {
+            context.meta.runtime.implicitLoop(to, function(target2) {
+              if (target2 === window) {
+                target2 = document.body;
+              }
+              if (plusOrMinus) {
+                let boundingRect = target2.getBoundingClientRect();
+                let scrollShim = document.createElement("div");
+                let actualOffset = plusOrMinus.value === "+" ? offset2 : offset2 * -1;
+                let offsetX = scrollOptions.inline == "start" || scrollOptions.inline == "end" ? actualOffset : 0;
+                let offsetY = scrollOptions.block == "start" || scrollOptions.block == "end" ? actualOffset : 0;
+                scrollShim.style.position = "absolute";
+                scrollShim.style.top = boundingRect.top + window.scrollY + offsetY + "px";
+                scrollShim.style.left = boundingRect.left + window.scrollX + offsetX + "px";
+                scrollShim.style.height = boundingRect.height + "px";
+                scrollShim.style.width = boundingRect.width + "px";
+                scrollShim.style.zIndex = "" + Number.MIN_SAFE_INTEGER;
+                scrollShim.style.opacity = "0";
+                document.body.appendChild(scrollShim);
+                setTimeout(function() {
+                  document.body.removeChild(scrollShim);
+                }, 100);
+                target2 = scrollShim;
+              }
+              target2.scrollIntoView(scrollOptions);
+            });
+          }
+          return context.meta.runtime.findNext(goCmd, ctx);
+        }
+      };
+      return goCmd;
+    }
+  }
+};
 
 // src/parsetree/commands/setters.js
 function putInto(context2, root, prop, valueToPut, parser) {
@@ -4871,6 +5291,869 @@ var PutCommand = class extends SetterCommand {
   }
 };
 
+// src/parsetree/commands/events.js
+function parseEventArgs(helper) {
+  var args = [];
+  if (helper.token(0).value === "(" && (helper.token(1).value === ")" || helper.token(2).value === "," || helper.token(2).value === ")")) {
+    helper.matchOpToken("(");
+    do {
+      args.push(helper.requireTokenType("IDENTIFIER"));
+    } while (helper.matchOpToken(","));
+    helper.requireOpToken(")");
+  }
+  return args;
+}
+var WaitCommand = class {
+  /**
+   * Parse wait command
+   * @param {ParserHelper} helper
+   * @returns {WaitCommand | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchToken("wait")) return;
+    var command;
+    if (helper.matchToken("for")) {
+      helper.matchToken("a");
+      var events = [];
+      do {
+        var lookahead = helper.token(0);
+        if (lookahead.type === "NUMBER" || lookahead.type === "L_PAREN") {
+          events.push({
+            time: helper.requireElement("expression").evaluate()
+            // TODO: do we want to allow async here?
+          });
+        } else {
+          events.push({
+            name: helper.requireElement("dotOrColonPath", "Expected event name").evaluate(),
+            args: parseEventArgs(helper)
+          });
+        }
+      } while (helper.matchToken("or"));
+      if (helper.matchToken("from")) {
+        var on = helper.requireElement("expression");
+      }
+      command = {
+        event: events,
+        on,
+        args: [on],
+        op: function(context2, on2) {
+          var target = on2 ? on2 : context2.me;
+          if (!(target instanceof EventTarget))
+            throw new Error("Not a valid event target: " + this.on.sourceFor());
+          return new Promise((resolve) => {
+            var resolved = false;
+            for (const eventInfo of events) {
+              var listener = (event) => {
+                context2.result = event;
+                if (eventInfo.args) {
+                  for (const arg of eventInfo.args) {
+                    context2.locals[arg.value] = event[arg.value] || (event.detail ? event.detail[arg.value] : null);
+                  }
+                }
+                if (!resolved) {
+                  resolved = true;
+                  resolve(context2.meta.runtime.findNext(this, context2));
+                }
+              };
+              if (eventInfo.name) {
+                target.addEventListener(eventInfo.name, listener, { once: true });
+              } else if (eventInfo.time != null) {
+                setTimeout(listener, eventInfo.time, eventInfo.time);
+              }
+            }
+          });
+        }
+      };
+      return command;
+    } else {
+      var time;
+      if (helper.matchToken("a")) {
+        helper.requireToken("tick");
+        time = 0;
+      } else {
+        time = helper.requireElement("expression");
+      }
+      command = {
+        type: "waitCmd",
+        time,
+        args: [time],
+        op: function(context2, timeValue) {
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              resolve(context2.meta.runtime.findNext(this, context2));
+            }, timeValue);
+          });
+        },
+        execute: function(context2) {
+          return context2.meta.runtime.unifiedExec(this, context2);
+        }
+      };
+      return command;
+    }
+  }
+};
+function parseSendCmd(cmdType, helper) {
+  var eventName = helper.requireElement("eventName");
+  var details = helper.parseElement("namedArgumentList");
+  if (cmdType === "send" && helper.matchToken("to") || cmdType === "trigger" && helper.matchToken("on")) {
+    var toExpr = helper.requireElement("expression");
+  } else {
+    var toExpr = helper.requireElement("implicitMeTarget");
+  }
+  var sendCmd = {
+    eventName,
+    details,
+    to: toExpr,
+    args: [toExpr, eventName, details],
+    op: function(context2, to, eventName2, details2) {
+      context2.meta.runtime.nullCheck(to, toExpr);
+      context2.meta.runtime.implicitLoop(to, function(target) {
+        context2.meta.runtime.triggerEvent(target, eventName2, details2, context2.me);
+      });
+      return context2.meta.runtime.findNext(sendCmd, context2);
+    }
+  };
+  return sendCmd;
+}
+var TriggerCommand = class {
+  /**
+   * Parse trigger command
+   * @param {ParserHelper} helper
+   * @returns {TriggerCommand | undefined}
+   */
+  static parse(helper) {
+    if (helper.matchToken("trigger")) {
+      return parseSendCmd("trigger", helper);
+    }
+  }
+};
+var SendCommand = class {
+  /**
+   * Parse send command
+   * @param {ParserHelper} helper
+   * @returns {SendCommand | undefined}
+   */
+  static parse(helper) {
+    if (helper.matchToken("send")) {
+      return parseSendCmd("send", helper);
+    }
+  }
+};
+
+// src/parsetree/commands/controlflow.js
+var IfCommand = class {
+  /**
+   * Parse if command
+   * @param {ParserHelper} helper
+   * @returns {IfCommand | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchToken("if")) return;
+    var expr = helper.requireElement("expression");
+    helper.matchToken("then");
+    var trueBranch = helper.parseElement("commandList");
+    var nestedIfStmt = false;
+    let elseToken = helper.matchToken("else") || helper.matchToken("otherwise");
+    if (elseToken) {
+      let elseIfIfToken = helper.peekToken("if");
+      nestedIfStmt = elseIfIfToken != null && elseIfIfToken.line === elseToken.line;
+      if (nestedIfStmt) {
+        var falseBranch = helper.parseElement("command");
+      } else {
+        var falseBranch = helper.parseElement("commandList");
+      }
+    }
+    if (helper.hasMore() && !nestedIfStmt) {
+      helper.requireToken("end");
+    }
+    var ifCmd = {
+      expr,
+      trueBranch,
+      falseBranch,
+      args: [expr],
+      op: function(context2, exprValue) {
+        if (exprValue) {
+          return trueBranch;
+        } else if (falseBranch) {
+          return falseBranch;
+        } else {
+          return context2.meta.runtime.findNext(this, context2);
+        }
+      }
+    };
+    helper.setParent(trueBranch, ifCmd);
+    helper.setParent(falseBranch, ifCmd);
+    return ifCmd;
+  }
+};
+function parseRepeatExpression(helper, startedWithForToken) {
+  var innerStartToken = helper.currentToken();
+  var identifier;
+  if (helper.matchToken("for") || startedWithForToken) {
+    var identifierToken = helper.requireTokenType("IDENTIFIER");
+    identifier = identifierToken.value;
+    helper.requireToken("in");
+    var expression = helper.requireElement("expression");
+  } else if (helper.matchToken("in")) {
+    identifier = "it";
+    var expression = helper.requireElement("expression");
+  } else if (helper.matchToken("while")) {
+    var whileExpr = helper.requireElement("expression");
+  } else if (helper.matchToken("until")) {
+    var isUntil = true;
+    if (helper.matchToken("event")) {
+      var evt = helper.requireElement("dotOrColonPath", "Expected event name");
+      if (helper.matchToken("from")) {
+        var on = helper.requireElement("expression");
+      }
+    } else {
+      var whileExpr = helper.requireElement("expression");
+    }
+  } else {
+    if (!helper.commandBoundary(helper.currentToken()) && helper.currentToken().value !== "forever") {
+      var times = helper.requireElement("expression");
+      helper.requireToken("times");
+    } else {
+      helper.matchToken("forever");
+      var forever = true;
+    }
+  }
+  if (helper.matchToken("index")) {
+    var identifierToken = helper.requireTokenType("IDENTIFIER");
+    var indexIdentifier = identifierToken.value;
+  } else if (helper.matchToken("indexed")) {
+    helper.requireToken("by");
+    var identifierToken = helper.requireTokenType("IDENTIFIER");
+    var indexIdentifier = identifierToken.value;
+  }
+  var loop = helper.parseElement("commandList");
+  if (loop && evt) {
+    var last = loop;
+    while (last.next) {
+      last = last.next;
+    }
+    var waitATick = {
+      type: "waitATick",
+      op: function() {
+        return new Promise(function(resolve) {
+          setTimeout(function() {
+            resolve(context.meta.runtime.findNext(waitATick));
+          }, 0);
+        });
+      }
+    };
+    last.next = waitATick;
+  }
+  if (helper.hasMore()) {
+    helper.requireToken("end");
+  }
+  if (identifier == null) {
+    identifier = "_implicit_repeat_" + innerStartToken.start;
+    var slot = identifier;
+  } else {
+    var slot = identifier + "_" + innerStartToken.start;
+  }
+  var repeatCmd = {
+    identifier,
+    indexIdentifier,
+    slot,
+    expression,
+    forever,
+    times,
+    until: isUntil,
+    event: evt,
+    on,
+    whileExpr,
+    resolveNext: function() {
+      return this;
+    },
+    loop,
+    args: [whileExpr, times],
+    op: function(context2, whileValue, times2) {
+      var iteratorInfo = context2.meta.iterators[slot];
+      var keepLooping = false;
+      var loopVal = null;
+      if (this.forever) {
+        keepLooping = true;
+      } else if (this.until) {
+        if (evt) {
+          keepLooping = context2.meta.iterators[slot].eventFired === false;
+        } else {
+          keepLooping = whileValue !== true;
+        }
+      } else if (whileExpr) {
+        keepLooping = whileValue;
+      } else if (times2) {
+        keepLooping = iteratorInfo.index < times2;
+      } else {
+        var nextValFromIterator = iteratorInfo.iterator.next();
+        keepLooping = !nextValFromIterator.done;
+        loopVal = nextValFromIterator.value;
+      }
+      if (keepLooping) {
+        if (iteratorInfo.value) {
+          context2.result = context2.locals[identifier] = loopVal;
+        } else {
+          context2.result = iteratorInfo.index;
+        }
+        if (indexIdentifier) {
+          context2.locals[indexIdentifier] = iteratorInfo.index;
+        }
+        iteratorInfo.index++;
+        return loop;
+      } else {
+        context2.meta.iterators[slot] = null;
+        return context2.meta.runtime.findNext(this.parent, context2);
+      }
+    }
+  };
+  helper.setParent(loop, repeatCmd);
+  var repeatInit = {
+    name: "repeatInit",
+    args: [expression, evt, on],
+    op: function(context2, value, event, on2) {
+      var iteratorInfo = {
+        index: 0,
+        value,
+        eventFired: false
+      };
+      context2.meta.iterators[slot] = iteratorInfo;
+      if (value) {
+        if (value[Symbol.iterator]) {
+          iteratorInfo.iterator = value[Symbol.iterator]();
+        } else {
+          iteratorInfo.iterator = Object.keys(value)[Symbol.iterator]();
+        }
+      }
+      if (evt) {
+        var target = on2 || context2.me;
+        target.addEventListener(
+          event,
+          function(e) {
+            context2.meta.iterators[slot].eventFired = true;
+          },
+          { once: true }
+        );
+      }
+      return repeatCmd;
+    },
+    execute: function(context2) {
+      return context2.meta.runtime.unifiedExec(this, context2);
+    }
+  };
+  helper.setParent(repeatCmd, repeatInit);
+  return repeatInit;
+}
+var RepeatCommand = class {
+  /**
+   * Parse repeat command
+   * @param {ParserHelper} helper
+   * @returns {RepeatCommand | undefined}
+   */
+  static parse(helper) {
+    if (helper.matchToken("repeat")) {
+      return parseRepeatExpression(helper, false);
+    }
+  }
+};
+var ForCommand = class {
+  /**
+   * Parse for command
+   * @param {ParserHelper} helper
+   * @returns {ForCommand | undefined}
+   */
+  static parse(helper) {
+    if (helper.matchToken("for")) {
+      return parseRepeatExpression(helper, true);
+    }
+  }
+};
+var ContinueCommand = class {
+  /**
+   * Parse continue command
+   * @param {ParserHelper} helper
+   * @returns {ContinueCommand | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchToken("continue")) return;
+    var command = {
+      op: function(context2) {
+        for (var parent = this.parent; true; parent = parent.parent) {
+          if (parent == void 0) {
+            helper.raiseParseError("Command `continue` cannot be used outside of a `repeat` loop.");
+          }
+          if (parent.loop != void 0) {
+            return parent.resolveNext(context2);
+          }
+        }
+      }
+    };
+    return command;
+  }
+};
+var BreakCommand = class {
+  /**
+   * Parse break command
+   * @param {ParserHelper} helper
+   * @returns {BreakCommand | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchToken("break")) return;
+    var command = {
+      op: function(context2) {
+        for (var parent = this.parent; true; parent = parent.parent) {
+          if (parent == void 0) {
+            helper.raiseParseError("Command `continue` cannot be used outside of a `repeat` loop.");
+          }
+          if (parent.loop != void 0) {
+            return context2.meta.runtime.findNext(parent.parent, context2);
+          }
+        }
+      }
+    };
+    return command;
+  }
+};
+var TellCommand = class {
+  /**
+   * Parse tell command
+   * @param {ParserHelper} helper
+   * @returns {TellCommand | undefined}
+   */
+  static parse(helper) {
+    var startToken = helper.currentToken();
+    if (!helper.matchToken("tell")) return;
+    var value = helper.requireElement("expression");
+    var body = helper.requireElement("commandList");
+    if (helper.hasMore() && !helper.featureStart(helper.currentToken())) {
+      helper.requireToken("end");
+    }
+    var slot = "tell_" + startToken.start;
+    var tellCmd = {
+      value,
+      body,
+      args: [value],
+      resolveNext: function(context2) {
+        var iterator = context2.meta.iterators[slot];
+        if (iterator.index < iterator.value.length) {
+          context2.you = iterator.value[iterator.index++];
+          return body;
+        } else {
+          context2.you = iterator.originalYou;
+          if (this.next) {
+            return this.next;
+          } else {
+            return context2.meta.runtime.findNext(this.parent, context2);
+          }
+        }
+      },
+      op: function(context2, value2) {
+        if (value2 == null) {
+          value2 = [];
+        } else if (!(Array.isArray(value2) || value2 instanceof NodeList)) {
+          value2 = [value2];
+        }
+        context2.meta.iterators[slot] = {
+          originalYou: context2.you,
+          index: 0,
+          value: value2
+        };
+        return this.resolveNext(context2);
+      }
+    };
+    helper.setParent(body, tellCmd);
+    return tellCmd;
+  }
+};
+
+// src/parsetree/commands/execution.js
+var JsCommand = class {
+  /**
+   * Parse js command
+   * @param {ParserHelper} helper
+   * @returns {JsCommand | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchToken("js")) return;
+    var inputs = [];
+    if (helper.matchOpToken("(")) {
+      if (helper.matchOpToken(")")) {
+      } else {
+        do {
+          var inp = helper.requireTokenType("IDENTIFIER");
+          inputs.push(inp.value);
+        } while (helper.matchOpToken(","));
+        helper.requireOpToken(")");
+      }
+    }
+    var jsBody = helper.requireElement("jsBody");
+    helper.matchToken("end");
+    var func = varargConstructor(Function, inputs.concat([jsBody.jsSource]));
+    var command = {
+      jsSource: jsBody.jsSource,
+      function: func,
+      inputs,
+      op: function(context2) {
+        var args = [];
+        inputs.forEach(function(input) {
+          args.push(context2.meta.runtime.resolveSymbol(input, context2, "default"));
+        });
+        var result = func.apply(context2.meta.runtime.globalScope, args);
+        if (result && typeof result.then === "function") {
+          return new Promise(function(resolve) {
+            result.then(function(actualResult) {
+              context2.result = actualResult;
+              resolve(context2.meta.runtime.findNext(this, context2));
+            });
+          });
+        } else {
+          context2.result = result;
+          return context2.meta.runtime.findNext(this, context2);
+        }
+      }
+    };
+    return command;
+  }
+};
+var AsyncCommand = class {
+  /**
+   * Parse async command
+   * @param {ParserHelper} helper
+   * @returns {AsyncCommand | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchToken("async")) return;
+    if (helper.matchToken("do")) {
+      var body = helper.requireElement("commandList");
+      var end = body;
+      while (end.next) end = end.next;
+      end.next = Runtime.HALT;
+      helper.requireToken("end");
+    } else {
+      var body = helper.requireElement("command");
+    }
+    var command = {
+      body,
+      op: function(context2) {
+        setTimeout(function() {
+          body.execute(context2);
+        });
+        return context2.meta.runtime.findNext(this, context2);
+      }
+    };
+    helper.setParent(body, command);
+    return command;
+  }
+};
+function parseCallOrGet(helper) {
+  var expr = helper.requireElement("expression");
+  var callCmd = {
+    expr,
+    args: [expr],
+    op: function(context2, result) {
+      context2.result = result;
+      return context2.meta.runtime.findNext(callCmd, context2);
+    }
+  };
+  return callCmd;
+}
+var CallCommand = class {
+  /**
+   * Parse call command
+   * @param {ParserHelper} helper
+   * @returns {CallCommand | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchToken("call")) return;
+    var call = parseCallOrGet(helper);
+    if (call.expr && call.expr.type !== "functionCall") {
+      helper.raiseParseError("Must be a function invocation");
+    }
+    return call;
+  }
+};
+var GetCommand = class {
+  /**
+   * Parse get command
+   * @param {ParserHelper} helper
+   * @returns {GetCommand | undefined}
+   */
+  static parse(helper) {
+    if (helper.matchToken("get")) {
+      return parseCallOrGet(helper);
+    }
+  }
+};
+
+// src/parsetree/features/set.js
+var SetFeature = class {
+  /**
+   * Parse set feature
+   * @param {ParserHelper} helper
+   * @param {Parser} parser
+   * @returns {SetFeature | undefined}
+   */
+  static parse(helper, parser) {
+    let setCmd = helper.parseElement("setCommand");
+    if (setCmd) {
+      if (setCmd.target.scope !== "element") {
+        helper.raiseParseError("variables declared at the feature level must be element scoped.");
+      }
+      let setFeature = {
+        start: setCmd,
+        install: function(target, source, args, runtime) {
+          setCmd && setCmd.execute(runtime.makeContext(target, setFeature, target, null));
+        }
+      };
+      parser.ensureTerminated(setCmd);
+      return setFeature;
+    }
+  }
+};
+
+// src/parsetree/features/init.js
+var InitFeature = class {
+  /**
+   * Parse init feature
+   * @param {ParserHelper} helper
+   * @param {Parser} parser
+   * @returns {InitFeature | undefined}
+   */
+  static parse(helper, parser) {
+    if (!helper.matchToken("init")) return;
+    var immediately = helper.matchToken("immediately");
+    var start = helper.requireElement("commandList");
+    var initFeature = {
+      start,
+      install: function(target, source, args, runtime) {
+        let handler = function() {
+          start && start.execute(runtime.makeContext(target, initFeature, target, null));
+        };
+        if (immediately) {
+          handler();
+        } else {
+          setTimeout(handler, 0);
+        }
+      }
+    };
+    parser.ensureTerminated(start);
+    helper.setParent(start, initFeature);
+    return initFeature;
+  }
+};
+
+// src/parsetree/features/worker.js
+var WorkerFeature = class {
+  /**
+   * Parse worker feature
+   * @param {ParserHelper} helper
+   * @returns {WorkerFeature | undefined}
+   */
+  static parse(helper) {
+    if (helper.matchToken("worker")) {
+      helper.raiseParseError(
+        "In order to use the 'worker' feature, include the _hyperscript worker plugin. See https://hyperscript.org/features/worker/ for more info."
+      );
+      return void 0;
+    }
+  }
+};
+
+// src/parsetree/features/behavior.js
+var BehaviorFeature = class {
+  /**
+   * Parse behavior feature
+   * @param {ParserHelper} helper
+   * @returns {BehaviorFeature | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchToken("behavior")) return;
+    var path = helper.requireElement("dotOrColonPath").evaluate();
+    var nameSpace = path.split(".");
+    var name = nameSpace.pop();
+    var formalParams = [];
+    if (helper.matchOpToken("(") && !helper.matchOpToken(")")) {
+      do {
+        formalParams.push(helper.requireTokenType("IDENTIFIER").value);
+      } while (helper.matchOpToken(","));
+      helper.requireOpToken(")");
+    }
+    var hs = helper.requireElement("hyperscript");
+    for (var i = 0; i < hs.features.length; i++) {
+      var feature = hs.features[i];
+      feature.behavior = path;
+    }
+    return {
+      install: function(target, source, args, runtime) {
+        runtime.assignToNamespace(
+          runtime.globalScope.document && runtime.globalScope.document.body,
+          nameSpace,
+          name,
+          function(target2, source2, innerArgs) {
+            var internalData = runtime.getInternalData(target2);
+            var elementScope = getOrInitObject(internalData, path + "Scope");
+            for (var i2 = 0; i2 < formalParams.length; i2++) {
+              elementScope[formalParams[i2]] = innerArgs[formalParams[i2]];
+            }
+            hs.apply(target2, source2, null, runtime);
+          }
+        );
+      }
+    };
+  }
+};
+
+// src/parsetree/features/install.js
+var InstallFeature = class {
+  /**
+   * Parse install feature
+   * @param {ParserHelper} helper
+   * @returns {InstallFeature | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchToken("install")) return;
+    var behaviorPath = helper.requireElement("dotOrColonPath").evaluate();
+    var behaviorNamespace = behaviorPath.split(".");
+    var args = helper.parseElement("namedArgumentList");
+    var installFeature;
+    return installFeature = {
+      install: function(target, source, installArgs, runtime) {
+        runtime.unifiedEval(
+          {
+            args: [args],
+            op: function(ctx, args2) {
+              var behavior = runtime.globalScope;
+              for (var i = 0; i < behaviorNamespace.length; i++) {
+                behavior = behavior[behaviorNamespace[i]];
+                if (typeof behavior !== "object" && typeof behavior !== "function")
+                  throw new Error("No such behavior defined as " + behaviorPath);
+              }
+              if (!(behavior instanceof Function))
+                throw new Error(behaviorPath + " is not a behavior");
+              behavior(target, source, args2);
+            }
+          },
+          runtime.makeContext(target, installFeature, target, null)
+        );
+      }
+    };
+  }
+};
+
+// src/parsetree/features/js.js
+var JsFeature = class {
+  /**
+   * Parse js feature
+   * @param {ParserHelper} helper
+   * @returns {JsFeature | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchToken("js")) return;
+    var jsBody = helper.requireElement("jsBody");
+    var jsSource = jsBody.jsSource + "\nreturn { " + jsBody.exposedFunctionNames.map(function(name) {
+      return name + ":" + name;
+    }).join(",") + " } ";
+    var func = new Function(jsSource);
+    return {
+      jsSource,
+      function: func,
+      exposedFunctionNames: jsBody.exposedFunctionNames,
+      install: function(target, source, args, runtime) {
+        Object.assign(runtime.globalScope, func());
+      }
+    };
+  }
+};
+
+// src/parsetree/features/def.js
+var DefFeature = class {
+  /**
+   * Parse def feature
+   * @param {ParserHelper} helper
+   * @param {Parser} parser
+   * @returns {DefFeature | undefined}
+   */
+  static parse(helper, parser) {
+    if (!helper.matchToken("def")) return;
+    var functionName = helper.requireElement("dotOrColonPath");
+    var nameVal = functionName.evaluate();
+    var nameSpace = nameVal.split(".");
+    var funcName = nameSpace.pop();
+    var args = [];
+    if (helper.matchOpToken("(")) {
+      if (helper.matchOpToken(")")) {
+      } else {
+        do {
+          args.push(helper.requireTokenType("IDENTIFIER"));
+        } while (helper.matchOpToken(","));
+        helper.requireOpToken(")");
+      }
+    }
+    var start = helper.requireElement("commandList");
+    var errorSymbol, errorHandler;
+    if (helper.matchToken("catch")) {
+      errorSymbol = helper.requireTokenType("IDENTIFIER").value;
+      errorHandler = helper.parseElement("commandList");
+    }
+    if (helper.matchToken("finally")) {
+      var finallyHandler = helper.requireElement("commandList");
+      parser.ensureTerminated(finallyHandler);
+    }
+    var functionFeature = {
+      displayName: funcName + "(" + args.map(function(arg) {
+        return arg.value;
+      }).join(", ") + ")",
+      name: funcName,
+      args,
+      start,
+      errorHandler,
+      errorSymbol,
+      finallyHandler,
+      install: function(target, source, funcArgs, runtime) {
+        var func = function() {
+          var ctx = runtime.makeContext(source, functionFeature, target, null);
+          ctx.meta.errorHandler = errorHandler;
+          ctx.meta.errorSymbol = errorSymbol;
+          ctx.meta.finallyHandler = finallyHandler;
+          for (var i = 0; i < args.length; i++) {
+            var name = args[i];
+            var argumentVal = arguments[i];
+            if (name) {
+              ctx.locals[name.value] = argumentVal;
+            }
+          }
+          ctx.meta.caller = arguments[args.length];
+          if (ctx.meta.caller) {
+            ctx.meta.callingCommand = ctx.meta.caller.meta.command;
+          }
+          var resolve, reject = null;
+          var promise = new Promise(function(theResolve, theReject) {
+            resolve = theResolve;
+            reject = theReject;
+          });
+          start.execute(ctx);
+          if (ctx.meta.returned) {
+            return ctx.meta.returnValue;
+          } else {
+            ctx.meta.resolve = resolve;
+            ctx.meta.reject = reject;
+            return promise;
+          }
+        };
+        func.hyperfunc = true;
+        func.hypername = nameVal;
+        runtime.assignToNamespace(target, nameSpace, funcName, func);
+      }
+    };
+    parser.ensureTerminated(start);
+    if (errorHandler) {
+      parser.ensureTerminated(errorHandler);
+    }
+    helper.setParent(start, functionFeature);
+    return functionFeature;
+  }
+};
+
 // src/grammars/core.js
 function hyperscriptCoreGrammar(parser) {
   parser.addLeafExpression("parenthesized", ParenthesizedExpression.parse);
@@ -5036,7 +6319,7 @@ function hyperscriptCoreGrammar(parser) {
       }
     };
   });
-  var parseEventArgs = function(helper) {
+  var parseEventArgs2 = function(helper) {
     var args = [];
     if (helper.token(0).value === "(" && (helper.token(1).value === ")" || helper.token(2).value === "," || helper.token(2).value === ")")) {
       helper.matchOpToken("(");
@@ -5063,7 +6346,7 @@ function hyperscriptCoreGrammar(parser) {
       } else {
         displayName = "on " + eventName;
       }
-      var args = parseEventArgs(helper);
+      var args = parseEventArgs2(helper);
       var filter = null;
       if (helper.matchOpToken("[")) {
         filter = helper.requireElement("expression");
@@ -5397,192 +6680,17 @@ function hyperscriptCoreGrammar(parser) {
     return onFeature;
   });
   parser.addFeature("def", function(helper) {
-    if (!helper.matchToken("def")) return;
-    var functionName = helper.requireElement("dotOrColonPath");
-    var nameVal = functionName.evaluate();
-    var nameSpace = nameVal.split(".");
-    var funcName = nameSpace.pop();
-    var args = [];
-    if (helper.matchOpToken("(")) {
-      if (helper.matchOpToken(")")) {
-      } else {
-        do {
-          args.push(helper.requireTokenType("IDENTIFIER"));
-        } while (helper.matchOpToken(","));
-        helper.requireOpToken(")");
-      }
-    }
-    var start = helper.requireElement("commandList");
-    var errorSymbol, errorHandler;
-    if (helper.matchToken("catch")) {
-      errorSymbol = helper.requireTokenType("IDENTIFIER").value;
-      errorHandler = helper.parseElement("commandList");
-    }
-    if (helper.matchToken("finally")) {
-      var finallyHandler = helper.requireElement("commandList");
-      parser.ensureTerminated(finallyHandler);
-    }
-    var functionFeature = {
-      displayName: funcName + "(" + args.map(function(arg) {
-        return arg.value;
-      }).join(", ") + ")",
-      name: funcName,
-      args,
-      start,
-      errorHandler,
-      errorSymbol,
-      finallyHandler,
-      install: function(target, source, funcArgs, runtime) {
-        var func = function() {
-          var ctx = runtime.makeContext(source, functionFeature, target, null);
-          ctx.meta.errorHandler = errorHandler;
-          ctx.meta.errorSymbol = errorSymbol;
-          ctx.meta.finallyHandler = finallyHandler;
-          for (var i = 0; i < args.length; i++) {
-            var name = args[i];
-            var argumentVal = arguments[i];
-            if (name) {
-              ctx.locals[name.value] = argumentVal;
-            }
-          }
-          ctx.meta.caller = arguments[args.length];
-          if (ctx.meta.caller) {
-            ctx.meta.callingCommand = ctx.meta.caller.meta.command;
-          }
-          var resolve, reject = null;
-          var promise = new Promise(function(theResolve, theReject) {
-            resolve = theResolve;
-            reject = theReject;
-          });
-          start.execute(ctx);
-          if (ctx.meta.returned) {
-            return ctx.meta.returnValue;
-          } else {
-            ctx.meta.resolve = resolve;
-            ctx.meta.reject = reject;
-            return promise;
-          }
-        };
-        func.hyperfunc = true;
-        func.hypername = nameVal;
-        runtime.assignToNamespace(target, nameSpace, funcName, func);
-      }
-    };
-    parser.ensureTerminated(start);
-    if (errorHandler) {
-      parser.ensureTerminated(errorHandler);
-    }
-    helper.setParent(start, functionFeature);
-    return functionFeature;
+    return DefFeature.parse(helper, parser);
   });
   parser.addFeature("set", function(helper) {
-    let setCmd = helper.parseElement("setCommand");
-    if (setCmd) {
-      if (setCmd.target.scope !== "element") {
-        helper.raiseParseError("variables declared at the feature level must be element scoped.");
-      }
-      let setFeature = {
-        start: setCmd,
-        install: function(target, source, args, runtime) {
-          setCmd && setCmd.execute(runtime.makeContext(target, setFeature, target, null));
-        }
-      };
-      parser.ensureTerminated(setCmd);
-      return setFeature;
-    }
+    return SetFeature.parse(helper, parser);
   });
   parser.addFeature("init", function(helper) {
-    if (!helper.matchToken("init")) return;
-    var immediately = helper.matchToken("immediately");
-    var start = helper.requireElement("commandList");
-    var initFeature = {
-      start,
-      install: function(target, source, args, runtime) {
-        let handler = function() {
-          start && start.execute(runtime.makeContext(target, initFeature, target, null));
-        };
-        if (immediately) {
-          handler();
-        } else {
-          setTimeout(handler, 0);
-        }
-      }
-    };
-    parser.ensureTerminated(start);
-    helper.setParent(start, initFeature);
-    return initFeature;
+    return InitFeature.parse(helper, parser);
   });
-  parser.addFeature("worker", function(helper) {
-    if (helper.matchToken("worker")) {
-      helper.raiseParseError(
-        "In order to use the 'worker' feature, include the _hyperscript worker plugin. See https://hyperscript.org/features/worker/ for more info."
-      );
-      return void 0;
-    }
-  });
-  parser.addFeature("behavior", function(helper) {
-    if (!helper.matchToken("behavior")) return;
-    var path = helper.requireElement("dotOrColonPath").evaluate();
-    var nameSpace = path.split(".");
-    var name = nameSpace.pop();
-    var formalParams = [];
-    if (helper.matchOpToken("(") && !helper.matchOpToken(")")) {
-      do {
-        formalParams.push(helper.requireTokenType("IDENTIFIER").value);
-      } while (helper.matchOpToken(","));
-      helper.requireOpToken(")");
-    }
-    var hs = helper.requireElement("hyperscript");
-    for (var i = 0; i < hs.features.length; i++) {
-      var feature = hs.features[i];
-      feature.behavior = path;
-    }
-    return {
-      install: function(target, source, args, runtime) {
-        runtime.assignToNamespace(
-          runtime.globalScope.document && runtime.globalScope.document.body,
-          nameSpace,
-          name,
-          function(target2, source2, innerArgs) {
-            var internalData = runtime.getInternalData(target2);
-            var elementScope = getOrInitObject(internalData, path + "Scope");
-            for (var i2 = 0; i2 < formalParams.length; i2++) {
-              elementScope[formalParams[i2]] = innerArgs[formalParams[i2]];
-            }
-            hs.apply(target2, source2, null, runtime);
-          }
-        );
-      }
-    };
-  });
-  parser.addFeature("install", function(helper) {
-    if (!helper.matchToken("install")) return;
-    var behaviorPath = helper.requireElement("dotOrColonPath").evaluate();
-    var behaviorNamespace = behaviorPath.split(".");
-    var args = helper.parseElement("namedArgumentList");
-    var installFeature;
-    return installFeature = {
-      install: function(target, source, installArgs, runtime) {
-        runtime.unifiedEval(
-          {
-            args: [args],
-            op: function(ctx, args2) {
-              var behavior = runtime.globalScope;
-              for (var i = 0; i < behaviorNamespace.length; i++) {
-                behavior = behavior[behaviorNamespace[i]];
-                if (typeof behavior !== "object" && typeof behavior !== "function")
-                  throw new Error("No such behavior defined as " + behaviorPath);
-              }
-              if (!(behavior instanceof Function))
-                throw new Error(behaviorPath + " is not a behavior");
-              behavior(target, source, args2);
-            }
-          },
-          runtime.makeContext(target, installFeature, target, null)
-        );
-      }
-    };
-  });
+  parser.addFeature("worker", WorkerFeature.parse);
+  parser.addFeature("behavior", BehaviorFeature.parse);
+  parser.addFeature("install", InstallFeature.parse);
   parser.addGrammarElement("jsBody", function(helper) {
     var jsSourceStart = helper.currentToken().start;
     var jsLastToken = helper.currentToken();
@@ -5614,212 +6722,11 @@ function hyperscriptCoreGrammar(parser) {
       jsSource: helper.source.substring(jsSourceStart, jsSourceEnd)
     };
   });
-  parser.addFeature("js", function(helper) {
-    if (!helper.matchToken("js")) return;
-    var jsBody = helper.requireElement("jsBody");
-    var jsSource = jsBody.jsSource + "\nreturn { " + jsBody.exposedFunctionNames.map(function(name) {
-      return name + ":" + name;
-    }).join(",") + " } ";
-    var func = new Function(jsSource);
-    return {
-      jsSource,
-      function: func,
-      exposedFunctionNames: jsBody.exposedFunctionNames,
-      install: function(target, source, args, runtime) {
-        Object.assign(runtime.globalScope, func());
-      }
-    };
-  });
-  parser.addCommand("js", function(helper) {
-    if (!helper.matchToken("js")) return;
-    var inputs = [];
-    if (helper.matchOpToken("(")) {
-      if (helper.matchOpToken(")")) {
-      } else {
-        do {
-          var inp = helper.requireTokenType("IDENTIFIER");
-          inputs.push(inp.value);
-        } while (helper.matchOpToken(","));
-        helper.requireOpToken(")");
-      }
-    }
-    var jsBody = helper.requireElement("jsBody");
-    helper.matchToken("end");
-    var func = varargConstructor(Function, inputs.concat([jsBody.jsSource]));
-    var command = {
-      jsSource: jsBody.jsSource,
-      function: func,
-      inputs,
-      op: function(context2) {
-        var args = [];
-        inputs.forEach(function(input) {
-          args.push(context2.meta.runtime.resolveSymbol(input, context2, "default"));
-        });
-        var result = func.apply(context2.meta.runtime.globalScope, args);
-        if (result && typeof result.then === "function") {
-          return new Promise(function(resolve) {
-            result.then(function(actualResult) {
-              context2.result = actualResult;
-              resolve(context2.meta.runtime.findNext(this, context2));
-            });
-          });
-        } else {
-          context2.result = result;
-          return context2.meta.runtime.findNext(this, context2);
-        }
-      }
-    };
-    return command;
-  });
-  parser.addCommand("async", function(helper) {
-    if (!helper.matchToken("async")) return;
-    if (helper.matchToken("do")) {
-      var body = helper.requireElement("commandList");
-      var end = body;
-      while (end.next) end = end.next;
-      end.next = Runtime.HALT;
-      helper.requireToken("end");
-    } else {
-      var body = helper.requireElement("command");
-    }
-    var command = {
-      body,
-      op: function(context2) {
-        setTimeout(function() {
-          body.execute(context2);
-        });
-        return context2.meta.runtime.findNext(this, context2);
-      }
-    };
-    helper.setParent(body, command);
-    return command;
-  });
-  parser.addCommand("tell", function(helper) {
-    var startToken = helper.currentToken();
-    if (!helper.matchToken("tell")) return;
-    var value = helper.requireElement("expression");
-    var body = helper.requireElement("commandList");
-    if (helper.hasMore() && !helper.featureStart(helper.currentToken())) {
-      helper.requireToken("end");
-    }
-    var slot = "tell_" + startToken.start;
-    var tellCmd = {
-      value,
-      body,
-      args: [value],
-      resolveNext: function(context2) {
-        var iterator = context2.meta.iterators[slot];
-        if (iterator.index < iterator.value.length) {
-          context2.you = iterator.value[iterator.index++];
-          return body;
-        } else {
-          context2.you = iterator.originalYou;
-          if (this.next) {
-            return this.next;
-          } else {
-            return context2.meta.runtime.findNext(this.parent, context2);
-          }
-        }
-      },
-      op: function(context2, value2) {
-        if (value2 == null) {
-          value2 = [];
-        } else if (!(Array.isArray(value2) || value2 instanceof NodeList)) {
-          value2 = [value2];
-        }
-        context2.meta.iterators[slot] = {
-          originalYou: context2.you,
-          index: 0,
-          value: value2
-        };
-        return this.resolveNext(context2);
-      }
-    };
-    helper.setParent(body, tellCmd);
-    return tellCmd;
-  });
-  parser.addCommand("wait", function(helper) {
-    if (!helper.matchToken("wait")) return;
-    var command;
-    if (helper.matchToken("for")) {
-      helper.matchToken("a");
-      var events = [];
-      do {
-        var lookahead = helper.token(0);
-        if (lookahead.type === "NUMBER" || lookahead.type === "L_PAREN") {
-          events.push({
-            time: helper.requireElement("expression").evaluate()
-            // TODO: do we want to allow async here?
-          });
-        } else {
-          events.push({
-            name: helper.requireElement("dotOrColonPath", "Expected event name").evaluate(),
-            args: parseEventArgs(helper)
-          });
-        }
-      } while (helper.matchToken("or"));
-      if (helper.matchToken("from")) {
-        var on = helper.requireElement("expression");
-      }
-      command = {
-        event: events,
-        on,
-        args: [on],
-        op: function(context2, on2) {
-          var target = on2 ? on2 : context2.me;
-          if (!(target instanceof EventTarget))
-            throw new Error("Not a valid event target: " + this.on.sourceFor());
-          return new Promise((resolve) => {
-            var resolved = false;
-            for (const eventInfo of events) {
-              var listener = (event) => {
-                context2.result = event;
-                if (eventInfo.args) {
-                  for (const arg of eventInfo.args) {
-                    context2.locals[arg.value] = event[arg.value] || (event.detail ? event.detail[arg.value] : null);
-                  }
-                }
-                if (!resolved) {
-                  resolved = true;
-                  resolve(context2.meta.runtime.findNext(this, context2));
-                }
-              };
-              if (eventInfo.name) {
-                target.addEventListener(eventInfo.name, listener, { once: true });
-              } else if (eventInfo.time != null) {
-                setTimeout(listener, eventInfo.time, eventInfo.time);
-              }
-            }
-          });
-        }
-      };
-      return command;
-    } else {
-      var time;
-      if (helper.matchToken("a")) {
-        helper.requireToken("tick");
-        time = 0;
-      } else {
-        time = helper.requireElement("expression");
-      }
-      command = {
-        type: "waitCmd",
-        time,
-        args: [time],
-        op: function(context2, timeValue) {
-          return new Promise((resolve) => {
-            setTimeout(() => {
-              resolve(context2.meta.runtime.findNext(this, context2));
-            }, timeValue);
-          });
-        },
-        execute: function(context2) {
-          return context2.meta.runtime.unifiedExec(this, context2);
-        }
-      };
-      return command;
-    }
-  });
+  parser.addFeature("js", JsFeature.parse);
+  parser.addCommand("js", JsCommand.parse);
+  parser.addCommand("async", AsyncCommand.parse);
+  parser.addCommand("tell", TellCommand.parse);
+  parser.addCommand("wait", WaitCommand.parse);
   parser.addGrammarElement("dotOrColonPath", function(helper) {
     var root = helper.matchTokenType("IDENTIFIER");
     if (root) {
@@ -5850,39 +6757,8 @@ function hyperscriptCoreGrammar(parser) {
     }
     return helper.parseElement("dotOrColonPath");
   });
-  function parseSendCmd(cmdType, helper) {
-    var eventName = helper.requireElement("eventName");
-    var details = helper.parseElement("namedArgumentList");
-    if (cmdType === "send" && helper.matchToken("to") || cmdType === "trigger" && helper.matchToken("on")) {
-      var toExpr = helper.requireElement("expression");
-    } else {
-      var toExpr = helper.requireElement("implicitMeTarget");
-    }
-    var sendCmd = {
-      eventName,
-      details,
-      to: toExpr,
-      args: [toExpr, eventName, details],
-      op: function(context2, to, eventName2, details2) {
-        context2.meta.runtime.nullCheck(to, toExpr);
-        context2.meta.runtime.implicitLoop(to, function(target) {
-          context2.meta.runtime.triggerEvent(target, eventName2, details2, context2.me);
-        });
-        return context2.meta.runtime.findNext(sendCmd, context2);
-      }
-    };
-    return sendCmd;
-  }
-  parser.addCommand("trigger", function(helper) {
-    if (helper.matchToken("trigger")) {
-      return parseSendCmd("trigger", helper);
-    }
-  });
-  parser.addCommand("send", function(helper) {
-    if (helper.matchToken("send")) {
-      return parseSendCmd("send", helper);
-    }
-  });
+  parser.addCommand("trigger", TriggerCommand.parse);
+  parser.addCommand("send", SendCommand.parse);
   var parseReturnFunction = function(helper, returnAValue) {
     if (returnAValue) {
       if (helper.commandBoundary(helper.currentToken())) {
@@ -5916,83 +6792,9 @@ function hyperscriptCoreGrammar(parser) {
   parser.addCommand("log", LogCommand.parse);
   parser.addCommand("beep!", BeepCommand.parse);
   parser.addCommand("throw", ThrowCommand.parse);
-  var parseCallOrGet = function(helper) {
-    var expr = helper.requireElement("expression");
-    var callCmd = {
-      expr,
-      args: [expr],
-      op: function(context2, result) {
-        context2.result = result;
-        return context2.meta.runtime.findNext(callCmd, context2);
-      }
-    };
-    return callCmd;
-  };
-  parser.addCommand("call", function(helper) {
-    if (!helper.matchToken("call")) return;
-    var call = parseCallOrGet(helper);
-    if (call.expr && call.expr.type !== "functionCall") {
-      helper.raiseParseError("Must be a function invocation");
-    }
-    return call;
-  });
-  parser.addCommand("get", function(helper) {
-    if (helper.matchToken("get")) {
-      return parseCallOrGet(helper);
-    }
-  });
-  parser.addCommand("make", function(helper) {
-    if (!helper.matchToken("make")) return;
-    helper.matchToken("a") || helper.matchToken("an");
-    var expr = helper.requireElement("expression");
-    var args = [];
-    if (expr.type !== "queryRef" && helper.matchToken("from")) {
-      do {
-        args.push(helper.requireElement("expression"));
-      } while (helper.matchOpToken(","));
-    }
-    if (helper.matchToken("called")) {
-      var target = helper.requireElement("symbol");
-    }
-    var command;
-    if (expr.type === "queryRef") {
-      command = {
-        op: function(ctx) {
-          var match, tagname = "div", id, classes = [];
-          var re = /(?:(^|#|\.)([^#\. ]+))/g;
-          while (match = re.exec(expr.css)) {
-            if (match[1] === "") tagname = match[2].trim();
-            else if (match[1] === "#") id = match[2].trim();
-            else classes.push(match[2].trim());
-          }
-          var result = document.createElement(tagname);
-          if (id !== void 0) result.id = id;
-          for (var i = 0; i < classes.length; i++) {
-            var cls = classes[i];
-            result.classList.add(cls);
-          }
-          ctx.result = result;
-          if (target) {
-            ctx.meta.runtime.setSymbol(target.name, ctx, target.scope, result);
-          }
-          return ctx.meta.runtime.findNext(this, ctx);
-        }
-      };
-      return command;
-    } else {
-      command = {
-        args: [expr, args],
-        op: function(ctx, expr2, args2) {
-          ctx.result = varargConstructor(expr2, args2);
-          if (target) {
-            ctx.meta.runtime.setSymbol(target.name, ctx, target.scope, ctx.result);
-          }
-          return ctx.meta.runtime.findNext(this, ctx);
-        }
-      };
-      return command;
-    }
-  });
+  parser.addCommand("call", CallCommand.parse);
+  parser.addCommand("get", GetCommand.parse);
+  parser.addCommand("make", MakeCommand.parse);
   parser.addGrammarElement("pseudoCommand", function(helper) {
     let lookAhead = helper.token(1);
     if (!(lookAhead && lookAhead.op && (lookAhead.value === "." || lookAhead.value === "("))) {
@@ -6111,641 +6913,309 @@ function hyperscriptCoreGrammar(parser) {
   };
   parser.addCommand("default", DefaultCommand.parse);
   parser.addCommand("set", SetCommand.parse);
-  parser.addCommand("if", function(helper) {
-    if (!helper.matchToken("if")) return;
-    var expr = helper.requireElement("expression");
-    helper.matchToken("then");
-    var trueBranch = helper.parseElement("commandList");
-    var nestedIfStmt = false;
-    let elseToken = helper.matchToken("else") || helper.matchToken("otherwise");
-    if (elseToken) {
-      let elseIfIfToken = helper.peekToken("if");
-      nestedIfStmt = elseIfIfToken != null && elseIfIfToken.line === elseToken.line;
-      if (nestedIfStmt) {
-        var falseBranch = helper.parseElement("command");
-      } else {
-        var falseBranch = helper.parseElement("commandList");
-      }
-    }
-    if (helper.hasMore() && !nestedIfStmt) {
-      helper.requireToken("end");
-    }
-    var ifCmd = {
-      expr,
-      trueBranch,
-      falseBranch,
-      args: [expr],
-      op: function(context2, exprValue) {
-        if (exprValue) {
-          return trueBranch;
-        } else if (falseBranch) {
-          return falseBranch;
-        } else {
-          return context2.meta.runtime.findNext(this, context2);
-        }
-      }
-    };
-    helper.setParent(trueBranch, ifCmd);
-    helper.setParent(falseBranch, ifCmd);
-    return ifCmd;
-  });
-  var parseRepeatExpression = function(helper, startedWithForToken) {
-    var innerStartToken = helper.currentToken();
-    var identifier;
-    if (helper.matchToken("for") || startedWithForToken) {
-      var identifierToken = helper.requireTokenType("IDENTIFIER");
-      identifier = identifierToken.value;
-      helper.requireToken("in");
-      var expression = helper.requireElement("expression");
-    } else if (helper.matchToken("in")) {
-      identifier = "it";
-      var expression = helper.requireElement("expression");
-    } else if (helper.matchToken("while")) {
-      var whileExpr = helper.requireElement("expression");
-    } else if (helper.matchToken("until")) {
-      var isUntil = true;
-      if (helper.matchToken("event")) {
-        var evt = helper.requireElement("dotOrColonPath", "Expected event name");
-        if (helper.matchToken("from")) {
-          var on = helper.requireElement("expression");
-        }
-      } else {
-        var whileExpr = helper.requireElement("expression");
-      }
-    } else {
-      if (!helper.commandBoundary(helper.currentToken()) && helper.currentToken().value !== "forever") {
-        var times = helper.requireElement("expression");
-        helper.requireToken("times");
-      } else {
-        helper.matchToken("forever");
-        var forever = true;
-      }
-    }
-    if (helper.matchToken("index")) {
-      var identifierToken = helper.requireTokenType("IDENTIFIER");
-      var indexIdentifier = identifierToken.value;
-    } else if (helper.matchToken("indexed")) {
-      helper.requireToken("by");
-      var identifierToken = helper.requireTokenType("IDENTIFIER");
-      var indexIdentifier = identifierToken.value;
-    }
-    var loop = helper.parseElement("commandList");
-    if (loop && evt) {
-      var last = loop;
-      while (last.next) {
-        last = last.next;
-      }
-      var waitATick = {
-        type: "waitATick",
-        op: function() {
-          return new Promise(function(resolve) {
-            setTimeout(function() {
-              resolve(context.meta.runtime.findNext(waitATick));
-            }, 0);
-          });
-        }
-      };
-      last.next = waitATick;
-    }
-    if (helper.hasMore()) {
-      helper.requireToken("end");
-    }
-    if (identifier == null) {
-      identifier = "_implicit_repeat_" + innerStartToken.start;
-      var slot = identifier;
-    } else {
-      var slot = identifier + "_" + innerStartToken.start;
-    }
-    var repeatCmd = {
-      identifier,
-      indexIdentifier,
-      slot,
-      expression,
-      forever,
-      times,
-      until: isUntil,
-      event: evt,
-      on,
-      whileExpr,
-      resolveNext: function() {
-        return this;
-      },
-      loop,
-      args: [whileExpr, times],
-      op: function(context2, whileValue, times2) {
-        var iteratorInfo = context2.meta.iterators[slot];
-        var keepLooping = false;
-        var loopVal = null;
-        if (this.forever) {
-          keepLooping = true;
-        } else if (this.until) {
-          if (evt) {
-            keepLooping = context2.meta.iterators[slot].eventFired === false;
-          } else {
-            keepLooping = whileValue !== true;
-          }
-        } else if (whileExpr) {
-          keepLooping = whileValue;
-        } else if (times2) {
-          keepLooping = iteratorInfo.index < times2;
-        } else {
-          var nextValFromIterator = iteratorInfo.iterator.next();
-          keepLooping = !nextValFromIterator.done;
-          loopVal = nextValFromIterator.value;
-        }
-        if (keepLooping) {
-          if (iteratorInfo.value) {
-            context2.result = context2.locals[identifier] = loopVal;
-          } else {
-            context2.result = iteratorInfo.index;
-          }
-          if (indexIdentifier) {
-            context2.locals[indexIdentifier] = iteratorInfo.index;
-          }
-          iteratorInfo.index++;
-          return loop;
-        } else {
-          context2.meta.iterators[slot] = null;
-          return context2.meta.runtime.findNext(this.parent, context2);
-        }
-      }
-    };
-    helper.setParent(loop, repeatCmd);
-    var repeatInit = {
-      name: "repeatInit",
-      args: [expression, evt, on],
-      op: function(context2, value, event, on2) {
-        var iteratorInfo = {
-          index: 0,
-          value,
-          eventFired: false
-        };
-        context2.meta.iterators[slot] = iteratorInfo;
-        if (value) {
-          if (value[Symbol.iterator]) {
-            iteratorInfo.iterator = value[Symbol.iterator]();
-          } else {
-            iteratorInfo.iterator = Object.keys(value)[Symbol.iterator]();
-          }
-        }
-        if (evt) {
-          var target = on2 || context2.me;
-          target.addEventListener(
-            event,
-            function(e) {
-              context2.meta.iterators[slot].eventFired = true;
-            },
-            { once: true }
-          );
-        }
-        return repeatCmd;
-      },
-      execute: function(context2) {
-        return context2.meta.runtime.unifiedExec(this, context2);
-      }
-    };
-    helper.setParent(repeatCmd, repeatInit);
-    return repeatInit;
-  };
-  parser.addCommand("repeat", function(helper) {
-    if (helper.matchToken("repeat")) {
-      return parseRepeatExpression(helper, false);
-    }
-  });
-  parser.addCommand("for", function(helper) {
-    if (helper.matchToken("for")) {
-      return parseRepeatExpression(helper, true);
-    }
-  });
-  parser.addCommand("continue", function(helper) {
-    if (!helper.matchToken("continue")) return;
-    var command = {
-      op: function(context2) {
-        for (var parent = this.parent; true; parent = parent.parent) {
-          if (parent == void 0) {
-            helper.raiseParseError("Command `continue` cannot be used outside of a `repeat` loop.");
-          }
-          if (parent.loop != void 0) {
-            return parent.resolveNext(context2);
-          }
-        }
-      }
-    };
-    return command;
-  });
-  parser.addCommand("break", function(helper) {
-    if (!helper.matchToken("break")) return;
-    var command = {
-      op: function(context2) {
-        for (var parent = this.parent; true; parent = parent.parent) {
-          if (parent == void 0) {
-            helper.raiseParseError("Command `continue` cannot be used outside of a `repeat` loop.");
-          }
-          if (parent.loop != void 0) {
-            return context2.meta.runtime.findNext(parent.parent, context2);
-          }
-        }
-      }
-    };
-    return command;
-  });
+  parser.addCommand("if", IfCommand.parse);
+  parser.addCommand("repeat", RepeatCommand.parse);
+  parser.addCommand("for", ForCommand.parse);
+  parser.addCommand("continue", ContinueCommand.parse);
+  parser.addCommand("break", BreakCommand.parse);
   parser.addGrammarElement("stringLike", function(helper) {
     return helper.parseAnyOf(["string", "nakedString"]);
   });
   parser.addCommand("append", function(helper) {
-    if (!helper.matchToken("append")) return;
-    var targetExpr = null;
-    var value = helper.requireElement("expression");
-    var implicitResultSymbol = {
-      type: "symbol",
-      evaluate: function(context2) {
-        return context2.meta.runtime.resolveSymbol("result", context2);
-      }
-    };
-    if (helper.matchToken("to")) {
-      targetExpr = helper.requireElement("expression");
-    } else {
-      targetExpr = implicitResultSymbol;
-    }
-    var setter = null;
-    if (targetExpr.type === "symbol" || targetExpr.type === "attributeRef" || targetExpr.root != null) {
-      setter = makeSetter(helper, targetExpr, implicitResultSymbol);
-    }
-    var command = {
-      value,
-      target: targetExpr,
-      args: [targetExpr, value],
-      op: function(context2, target, value2) {
-        if (Array.isArray(target)) {
-          target.push(value2);
-          return context2.meta.runtime.findNext(this, context2);
-        } else if (target instanceof Element) {
-          if (value2 instanceof Element) {
-            target.insertAdjacentElement("beforeend", value2);
-          } else {
-            target.insertAdjacentHTML("beforeend", value2);
-          }
-          context2.meta.runtime.processNode(
-            /** @type {HTMLElement} */
-            target
-          );
-          return context2.meta.runtime.findNext(this, context2);
-        } else if (setter) {
-          context2.result = (target || "") + value2;
-          return setter;
-        } else {
-          throw Error("Unable to append a value!");
-        }
-      },
-      execute: function(context2) {
-        return context2.meta.runtime.unifiedExec(
-          this,
-          context2
-          /*, value, target*/
-        );
-      }
-    };
-    if (setter != null) {
-      setter.parent = command;
-    }
-    return command;
+    return AppendCommand.parse(helper, makeSetter);
   });
-  function parsePickRange(helper) {
-    helper.matchToken("at") || helper.matchToken("from");
-    const rv = { includeStart: true, includeEnd: false };
-    rv.from = helper.matchToken("start") ? 0 : helper.requireElement("expression");
-    if (helper.matchToken("to") || helper.matchOpToken("..")) {
-      if (helper.matchToken("end")) {
-        rv.toEnd = true;
-      } else {
-        rv.to = helper.requireElement("expression");
-      }
-    }
-    if (helper.matchToken("inclusive")) rv.includeEnd = true;
-    else if (helper.matchToken("exclusive")) rv.includeStart = false;
-    return rv;
-  }
-  parser.addCommand("pick", (helper) => {
-    if (!helper.matchToken("pick")) return;
-    helper.matchToken("the");
-    if (helper.matchToken("item") || helper.matchToken("items") || helper.matchToken("character") || helper.matchToken("characters")) {
-      const range = parsePickRange(helper);
-      helper.requireToken("from");
-      const root = helper.requireElement("expression");
-      return {
-        args: [root, range.from, range.to],
-        op(ctx, root2, from, to) {
-          if (range.toEnd) to = root2.length;
-          if (!range.includeStart) from++;
-          if (range.includeEnd) to++;
-          if (to == null || to == void 0) to = from + 1;
-          ctx.result = root2.slice(from, to);
-          return ctx.meta.runtime.findNext(this, ctx);
-        }
-      };
-    }
-    if (helper.matchToken("match")) {
-      helper.matchToken("of");
-      const re = helper.parseElement("expression");
-      let flags = "";
-      if (helper.matchOpToken("|")) {
-        flags = helper.requireTokenType("IDENTIFIER").value;
-      }
-      helper.requireToken("from");
-      const root = helper.parseElement("expression");
-      return {
-        args: [root, re],
-        op(ctx, root2, re2) {
-          ctx.result = new RegExp(re2, flags).exec(root2);
-          return ctx.meta.runtime.findNext(this, ctx);
-        }
-      };
-    }
-    if (helper.matchToken("matches")) {
-      helper.matchToken("of");
-      const re = helper.parseElement("expression");
-      let flags = "gu";
-      if (helper.matchOpToken("|")) {
-        flags = "g" + helper.requireTokenType("IDENTIFIER").value.replace("g", "");
-      }
-      helper.requireToken("from");
-      const root = helper.parseElement("expression");
-      return {
-        args: [root, re],
-        op(ctx, root2, re2) {
-          ctx.result = new RegExpIterable(re2, flags, root2);
-          return ctx.meta.runtime.findNext(this, ctx);
-        }
-      };
-    }
-  });
+  parser.addCommand("pick", PickCommand.parse);
   parser.addCommand("increment", IncrementCommand.parse);
   parser.addCommand("decrement", DecrementCommand.parse);
-  function parseConversionInfo(helper) {
-    var type = "text";
-    var conversion;
-    helper.matchToken("a") || helper.matchToken("an");
-    if (helper.matchToken("json") || helper.matchToken("Object")) {
-      type = "json";
-    } else if (helper.matchToken("response")) {
-      type = "response";
-    } else if (helper.matchToken("html")) {
-      type = "html";
-    } else if (helper.matchToken("text")) {
-    } else {
-      conversion = helper.requireElement("dotOrColonPath").evaluate();
-    }
-    return { type, conversion };
-  }
-  parser.addCommand("fetch", function(helper) {
-    if (!helper.matchToken("fetch")) return;
-    var url = helper.requireElement("stringLike");
-    if (helper.matchToken("as")) {
-      var conversionInfo = parseConversionInfo(helper);
-    }
-    if (helper.matchToken("with") && helper.currentToken().value !== "{") {
-      var args = helper.parseElement("nakedNamedArgumentList");
-    } else {
-      var args = helper.parseElement("objectLiteral");
-    }
-    if (conversionInfo == null && helper.matchToken("as")) {
-      conversionInfo = parseConversionInfo(helper);
-    }
-    var type = conversionInfo ? conversionInfo.type : "text";
-    var conversion = conversionInfo ? conversionInfo.conversion : null;
-    var fetchCmd = {
-      url,
-      argExpressions: args,
-      args: [url, args],
-      op: function(context2, url2, args2) {
-        var detail = args2 || {};
-        detail["sender"] = context2.me;
-        detail["headers"] = detail["headers"] || {};
-        var abortController = new AbortController();
-        let abortListener = context2.me.addEventListener("fetch:abort", function() {
-          abortController.abort();
-        }, { once: true });
-        detail["signal"] = abortController.signal;
-        context2.meta.runtime.triggerEvent(context2.me, "hyperscript:beforeFetch", detail);
-        context2.meta.runtime.triggerEvent(context2.me, "fetch:beforeRequest", detail);
-        args2 = detail;
-        var finished = false;
-        if (args2.timeout) {
-          setTimeout(function() {
-            if (!finished) {
-              abortController.abort();
-            }
-          }, args2.timeout);
-        }
-        return fetch(url2, args2).then(function(resp) {
-          let resultDetails = { response: resp };
-          context2.meta.runtime.triggerEvent(context2.me, "fetch:afterResponse", resultDetails);
-          resp = resultDetails.response;
-          if (type === "response") {
-            context2.result = resp;
-            context2.meta.runtime.triggerEvent(context2.me, "fetch:afterRequest", { result: resp });
-            finished = true;
-            return context2.meta.runtime.findNext(fetchCmd, context2);
-          }
-          if (type === "json") {
-            return resp.json().then(function(result) {
-              context2.result = result;
-              context2.meta.runtime.triggerEvent(context2.me, "fetch:afterRequest", { result });
-              finished = true;
-              return context2.meta.runtime.findNext(fetchCmd, context2);
-            });
-          }
-          return resp.text().then(function(result) {
-            if (conversion) result = context2.meta.runtime.convertValue(result, conversion);
-            if (type === "html") result = context2.meta.runtime.convertValue(result, "Fragment");
-            context2.result = result;
-            context2.meta.runtime.triggerEvent(context2.me, "fetch:afterRequest", { result });
-            finished = true;
-            return context2.meta.runtime.findNext(fetchCmd, context2);
-          });
-        }).catch(function(reason) {
-          context2.meta.runtime.triggerEvent(context2.me, "fetch:error", {
-            reason
-          });
-          throw reason;
-        }).finally(function() {
-          context2.me.removeEventListener("fetch:abort", abortListener);
-        });
-      }
-    };
-    return fetchCmd;
-  });
+  parser.addCommand("fetch", FetchCommand.parse);
 }
 
-// src/grammars/web.js
-function hyperscriptWebGrammar(parser) {
-  parser.addCommand("settle", function(helper) {
-    if (helper.matchToken("settle")) {
-      if (!helper.commandBoundary(helper.currentToken())) {
-        var onExpr = helper.requireElement("expression");
+// src/parsetree/commands/dom.js
+var HIDE_SHOW_STRATEGIES = {
+  display: function(op, element, arg, parser) {
+    if (arg) {
+      element.style.display = arg;
+    } else if (op === "toggle") {
+      if (getComputedStyle(element).display === "none") {
+        HIDE_SHOW_STRATEGIES.display("show", element, arg, parser);
       } else {
-        var onExpr = helper.requireElement("implicitMeTarget");
+        HIDE_SHOW_STRATEGIES.display("hide", element, arg, parser);
       }
-      var settleCommand = {
-        type: "settleCmd",
-        args: [onExpr],
-        op: function(context2, on) {
-          context2.meta.runtime.nullCheck(on, onExpr);
-          var resolve = null;
-          var resolved = false;
-          var transitionStarted = false;
-          var promise = new Promise(function(r) {
-            resolve = r;
-          });
-          on.addEventListener(
-            "transitionstart",
-            function() {
-              transitionStarted = true;
-            },
-            { once: true }
-          );
-          setTimeout(function() {
-            if (!transitionStarted && !resolved) {
-              resolve(context2.meta.runtime.findNext(settleCommand, context2));
-            }
-          }, 500);
-          on.addEventListener(
-            "transitionend",
-            function() {
-              if (!resolved) {
-                resolve(context2.meta.runtime.findNext(settleCommand, context2));
-              }
-            },
-            { once: true }
-          );
-          return promise;
-        },
-        execute: function(context2) {
-          return context2.meta.runtime.unifiedExec(this, context2);
-        }
-      };
-      return settleCommand;
+    } else if (op === "hide") {
+      const internalData = parser.runtime.getInternalData(element);
+      if (internalData.originalDisplay == null) {
+        internalData.originalDisplay = element.style.display;
+      }
+      element.style.display = "none";
+    } else {
+      const internalData = parser.runtime.getInternalData(element);
+      if (internalData.originalDisplay && internalData.originalDisplay !== "none") {
+        element.style.display = internalData.originalDisplay;
+      } else {
+        element.style.removeProperty("display");
+      }
     }
-  });
-  parser.addCommand("add", function(helper) {
-    if (helper.matchToken("add")) {
-      var classRef = helper.parseElement("classRef");
-      var attributeRef = null;
-      var cssDeclaration = null;
-      if (classRef == null) {
-        attributeRef = helper.parseElement("attributeRef");
-        if (attributeRef == null) {
-          cssDeclaration = helper.parseElement("styleLiteral");
-          if (cssDeclaration == null) {
-            helper.raiseParseError("Expected either a class reference or attribute expression");
-          }
-        }
+  },
+  visibility: function(op, element, arg) {
+    if (arg) {
+      element.style.visibility = arg;
+    } else if (op === "toggle") {
+      if (getComputedStyle(element).visibility === "hidden") {
+        HIDE_SHOW_STRATEGIES.visibility("show", element, arg);
       } else {
-        var classRefs = [classRef];
-        while (classRef = helper.parseElement("classRef")) {
-          classRefs.push(classRef);
-        }
+        HIDE_SHOW_STRATEGIES.visibility("hide", element, arg);
       }
-      if (helper.matchToken("to")) {
-        var toExpr = helper.requireElement("expression");
+    } else if (op === "hide") {
+      element.style.visibility = "hidden";
+    } else {
+      element.style.visibility = "visible";
+    }
+  },
+  opacity: function(op, element, arg) {
+    if (arg) {
+      element.style.opacity = arg;
+    } else if (op === "toggle") {
+      if (getComputedStyle(element).opacity === "0") {
+        HIDE_SHOW_STRATEGIES.opacity("show", element, arg);
       } else {
-        var toExpr = helper.requireElement("implicitMeTarget");
+        HIDE_SHOW_STRATEGIES.opacity("hide", element, arg);
       }
-      if (helper.matchToken("when")) {
-        if (cssDeclaration) {
-          helper.raiseParseError("Only class and properties are supported with a when clause");
+    } else if (op === "hide") {
+      element.style.opacity = "0";
+    } else {
+      element.style.opacity = "1";
+    }
+  }
+};
+function parseShowHideTarget(helper) {
+  var target;
+  var currentTokenValue = helper.currentToken();
+  if (currentTokenValue.value === "when" || currentTokenValue.value === "with" || helper.commandBoundary(currentTokenValue)) {
+    target = helper.parseElement("implicitMeTarget");
+  } else {
+    target = helper.parseElement("expression");
+  }
+  return target;
+}
+function resolveHideShowStrategy(parser, helper, name, config2) {
+  var configDefault = config2.defaultHideShowStrategy;
+  var strategies = HIDE_SHOW_STRATEGIES;
+  if (config2.hideShowStrategies) {
+    strategies = Object.assign({}, strategies, config2.hideShowStrategies);
+  }
+  name = name || configDefault || "display";
+  var value = strategies[name];
+  if (value == null) {
+    helper.raiseParseError("Unknown show/hide strategy : " + name);
+  }
+  return value;
+}
+var AddCommand = class {
+  static parse(helper) {
+    if (!helper.matchToken("add")) return;
+    var classRef = helper.parseElement("classRef");
+    var attributeRef = null;
+    var cssDeclaration = null;
+    if (classRef == null) {
+      attributeRef = helper.parseElement("attributeRef");
+      if (attributeRef == null) {
+        cssDeclaration = helper.parseElement("styleLiteral");
+        if (cssDeclaration == null) {
+          helper.raiseParseError("Expected either a class reference or attribute expression");
         }
-        var when = helper.requireElement("expression");
       }
-      if (classRefs) {
-        return {
-          classRefs,
-          to: toExpr,
-          args: [toExpr, classRefs],
-          op: function(context2, to, classRefs2) {
-            context2.meta.runtime.nullCheck(to, toExpr);
-            context2.meta.runtime.forEach(classRefs2, function(classRef2) {
-              context2.meta.runtime.implicitLoop(to, function(target) {
-                if (when) {
-                  context2.result = target;
-                  let whenResult = context2.meta.runtime.evaluateNoPromise(when, context2);
-                  if (whenResult) {
-                    if (target instanceof Element) target.classList.add(classRef2.className);
-                  } else {
-                    if (target instanceof Element) target.classList.remove(classRef2.className);
-                  }
-                  context2.result = null;
-                } else {
-                  if (target instanceof Element) target.classList.add(classRef2.className);
-                }
-              });
-            });
-            return context2.meta.runtime.findNext(this, context2);
-          }
-        };
-      } else if (attributeRef) {
-        return {
-          type: "addCmd",
-          attributeRef,
-          to: toExpr,
-          args: [toExpr],
-          op: function(context2, to, attrRef) {
-            context2.meta.runtime.nullCheck(to, toExpr);
+    } else {
+      var classRefs = [classRef];
+      while (classRef = helper.parseElement("classRef")) {
+        classRefs.push(classRef);
+      }
+    }
+    if (helper.matchToken("to")) {
+      var toExpr = helper.requireElement("expression");
+    } else {
+      var toExpr = helper.requireElement("implicitMeTarget");
+    }
+    if (helper.matchToken("when")) {
+      if (cssDeclaration) {
+        helper.raiseParseError("Only class and properties are supported with a when clause");
+      }
+      var when = helper.requireElement("expression");
+    }
+    if (classRefs) {
+      return {
+        classRefs,
+        to: toExpr,
+        args: [toExpr, classRefs],
+        op: function(context2, to, classRefs2) {
+          context2.meta.runtime.nullCheck(to, toExpr);
+          context2.meta.runtime.forEach(classRefs2, function(classRef2) {
             context2.meta.runtime.implicitLoop(to, function(target) {
               if (when) {
                 context2.result = target;
                 let whenResult = context2.meta.runtime.evaluateNoPromise(when, context2);
                 if (whenResult) {
-                  target.setAttribute(attributeRef.name, attributeRef.value);
+                  if (target instanceof Element) target.classList.add(classRef2.className);
                 } else {
-                  target.removeAttribute(attributeRef.name);
+                  if (target instanceof Element) target.classList.remove(classRef2.className);
                 }
                 context2.result = null;
               } else {
-                target.setAttribute(attributeRef.name, attributeRef.value);
+                if (target instanceof Element) target.classList.add(classRef2.className);
               }
             });
-            return context2.meta.runtime.findNext(this, context2);
-          },
-          execute: function(ctx) {
-            return context.meta.runtime.unifiedExec(this, ctx);
-          }
-        };
-      } else {
-        return {
-          type: "addCmd",
-          cssDeclaration,
-          to: toExpr,
-          args: [toExpr, cssDeclaration],
-          op: function(context2, to, css) {
-            context2.meta.runtime.nullCheck(to, toExpr);
-            context2.meta.runtime.implicitLoop(to, function(target) {
-              target.style.cssText += css;
-            });
-            return context2.meta.runtime.findNext(this, context2);
-          },
-          execute: function(ctx) {
-            return context.meta.runtime.unifiedExec(this, ctx);
-          }
-        };
+          });
+          return context2.meta.runtime.findNext(this, context2);
+        }
+      };
+    } else if (attributeRef) {
+      return {
+        type: "addCmd",
+        attributeRef,
+        to: toExpr,
+        args: [toExpr],
+        op: function(context2, to, attrRef) {
+          context2.meta.runtime.nullCheck(to, toExpr);
+          context2.meta.runtime.implicitLoop(to, function(target) {
+            if (when) {
+              context2.result = target;
+              let whenResult = context2.meta.runtime.evaluateNoPromise(when, context2);
+              if (whenResult) {
+                target.setAttribute(attributeRef.name, attributeRef.value);
+              } else {
+                target.removeAttribute(attributeRef.name);
+              }
+              context2.result = null;
+            } else {
+              target.setAttribute(attributeRef.name, attributeRef.value);
+            }
+          });
+          return context2.meta.runtime.findNext(this, context2);
+        },
+        execute: function(ctx) {
+          return context.meta.runtime.unifiedExec(this, ctx);
+        }
+      };
+    } else {
+      return {
+        type: "addCmd",
+        cssDeclaration,
+        to: toExpr,
+        args: [toExpr, cssDeclaration],
+        op: function(context2, to, css) {
+          context2.meta.runtime.nullCheck(to, toExpr);
+          context2.meta.runtime.implicitLoop(to, function(target) {
+            target.style.cssText += css;
+          });
+          return context2.meta.runtime.findNext(this, context2);
+        },
+        execute: function(ctx) {
+          return context.meta.runtime.unifiedExec(this, ctx);
+        }
+      };
+    }
+  }
+};
+var RemoveCommand = class {
+  static parse(helper) {
+    if (!helper.matchToken("remove")) return;
+    var classRef = helper.parseElement("classRef");
+    var attributeRef = null;
+    var elementExpr = null;
+    if (classRef == null) {
+      attributeRef = helper.parseElement("attributeRef");
+      if (attributeRef == null) {
+        elementExpr = helper.parseElement("expression");
+        if (elementExpr == null) {
+          helper.raiseParseError(
+            "Expected either a class reference, attribute expression or value expression"
+          );
+        }
+      }
+    } else {
+      var classRefs = [classRef];
+      while (classRef = helper.parseElement("classRef")) {
+        classRefs.push(classRef);
       }
     }
-  });
-  parser.addGrammarElement("styleLiteral", StyleLiteral.parse);
-  parser.addCommand("remove", function(helper) {
-    if (helper.matchToken("remove")) {
+    if (helper.matchToken("from")) {
+      var fromExpr = helper.requireElement("expression");
+    } else {
+      if (elementExpr == null) {
+        var fromExpr = helper.requireElement("implicitMeTarget");
+      }
+    }
+    if (elementExpr) {
+      return {
+        elementExpr,
+        from: fromExpr,
+        args: [elementExpr, fromExpr],
+        op: function(context2, element, from) {
+          context2.meta.runtime.nullCheck(element, elementExpr);
+          context2.meta.runtime.implicitLoop(element, function(target) {
+            if (target.parentElement && (from == null || from.contains(target))) {
+              target.parentElement.removeChild(target);
+            }
+          });
+          return context2.meta.runtime.findNext(this, context2);
+        }
+      };
+    } else {
+      return {
+        classRefs,
+        attributeRef,
+        elementExpr,
+        from: fromExpr,
+        args: [classRefs, fromExpr],
+        op: function(context2, classRefs2, from) {
+          context2.meta.runtime.nullCheck(from, fromExpr);
+          if (classRefs2) {
+            context2.meta.runtime.forEach(classRefs2, function(classRef2) {
+              context2.meta.runtime.implicitLoop(from, function(target) {
+                target.classList.remove(classRef2.className);
+              });
+            });
+          } else {
+            context2.meta.runtime.implicitLoop(from, function(target) {
+              target.removeAttribute(attributeRef.name);
+            });
+          }
+          return context2.meta.runtime.findNext(this, context2);
+        }
+      };
+    }
+  }
+};
+var ToggleCommand = class {
+  static parse(helper, parser, config2) {
+    if (!helper.matchToken("toggle")) return;
+    helper.matchAnyToken("the", "my");
+    if (helper.currentToken().type === "STYLE_REF") {
+      let styleRef = helper.consumeToken();
+      var name = styleRef.value.substr(1);
+      var visibility = true;
+      var hideShowStrategy = resolveHideShowStrategy(parser, helper, name, config2);
+      if (helper.matchToken("of")) {
+        helper.pushFollow("with");
+        try {
+          var onExpr = helper.requireElement("expression");
+        } finally {
+          helper.popFollow();
+        }
+      } else {
+        var onExpr = helper.requireElement("implicitMeTarget");
+      }
+    } else if (helper.matchToken("between")) {
+      var between = true;
+      var classRef = helper.parseElement("classRef");
+      helper.requireToken("and");
+      var classRef2 = helper.requireElement("classRef");
+    } else {
       var classRef = helper.parseElement("classRef");
       var attributeRef = null;
-      var elementExpr = null;
       if (classRef == null) {
         attributeRef = helper.parseElement("attributeRef");
         if (attributeRef == null) {
-          elementExpr = helper.parseElement("expression");
-          if (elementExpr == null) {
-            helper.raiseParseError(
-              "Expected either a class reference, attribute expression or value expression"
-            );
-          }
+          helper.raiseParseError("Expected either a class reference or attribute expression");
         }
       } else {
         var classRefs = [classRef];
@@ -6753,331 +7223,203 @@ function hyperscriptWebGrammar(parser) {
           classRefs.push(classRef);
         }
       }
-      if (helper.matchToken("from")) {
-        var fromExpr = helper.requireElement("expression");
+    }
+    if (visibility !== true) {
+      if (helper.matchToken("on")) {
+        var onExpr = helper.requireElement("expression");
       } else {
-        if (elementExpr == null) {
-          var fromExpr = helper.requireElement("implicitMeTarget");
-        }
-      }
-      if (elementExpr) {
-        return {
-          elementExpr,
-          from: fromExpr,
-          args: [elementExpr, fromExpr],
-          op: function(context2, element, from) {
-            context2.meta.runtime.nullCheck(element, elementExpr);
-            context2.meta.runtime.implicitLoop(element, function(target) {
-              if (target.parentElement && (from == null || from.contains(target))) {
-                target.parentElement.removeChild(target);
-              }
-            });
-            return context2.meta.runtime.findNext(this, context2);
-          }
-        };
-      } else {
-        return {
-          classRefs,
-          attributeRef,
-          elementExpr,
-          from: fromExpr,
-          args: [classRefs, fromExpr],
-          op: function(context2, classRefs2, from) {
-            context2.meta.runtime.nullCheck(from, fromExpr);
-            if (classRefs2) {
-              context2.meta.runtime.forEach(classRefs2, function(classRef2) {
-                context2.meta.runtime.implicitLoop(from, function(target) {
-                  target.classList.remove(classRef2.className);
-                });
-              });
-            } else {
-              context2.meta.runtime.implicitLoop(from, function(target) {
-                target.removeAttribute(attributeRef.name);
-              });
-            }
-            return context2.meta.runtime.findNext(this, context2);
-          }
-        };
+        var onExpr = helper.requireElement("implicitMeTarget");
       }
     }
-  });
-  parser.addCommand("toggle", function(helper) {
-    if (helper.matchToken("toggle")) {
-      helper.matchAnyToken("the", "my");
-      if (helper.currentToken().type === "STYLE_REF") {
-        let styleRef = helper.consumeToken();
-        var name = styleRef.value.substr(1);
-        var visibility = true;
-        var hideShowStrategy = resolveHideShowStrategy(parser, helper, name);
-        if (helper.matchToken("of")) {
-          helper.pushFollow("with");
-          try {
-            var onExpr = helper.requireElement("expression");
-          } finally {
-            helper.popFollow();
-          }
-        } else {
-          var onExpr = helper.requireElement("implicitMeTarget");
-        }
-      } else if (helper.matchToken("between")) {
-        var between = true;
-        var classRef = helper.parseElement("classRef");
-        helper.requireToken("and");
-        var classRef2 = helper.requireElement("classRef");
-      } else {
-        var classRef = helper.parseElement("classRef");
-        var attributeRef = null;
-        if (classRef == null) {
-          attributeRef = helper.parseElement("attributeRef");
-          if (attributeRef == null) {
-            helper.raiseParseError("Expected either a class reference or attribute expression");
-          }
-        } else {
-          var classRefs = [classRef];
-          while (classRef = helper.parseElement("classRef")) {
-            classRefs.push(classRef);
-          }
-        }
+    if (helper.matchToken("for")) {
+      var time = helper.requireElement("expression");
+    } else if (helper.matchToken("until")) {
+      var evt = helper.requireElement("dotOrColonPath", "Expected event name");
+      if (helper.matchToken("from")) {
+        var from = helper.requireElement("expression");
       }
-      if (visibility !== true) {
-        if (helper.matchToken("on")) {
-          var onExpr = helper.requireElement("expression");
+    }
+    var toggleCmd = {
+      classRef,
+      classRef2,
+      classRefs,
+      attributeRef,
+      on: onExpr,
+      time,
+      evt,
+      from,
+      toggle: function(context2, on, classRef3, classRef22, classRefs2) {
+        context2.meta.runtime.nullCheck(on, onExpr);
+        if (visibility) {
+          context2.meta.runtime.implicitLoop(on, function(target) {
+            hideShowStrategy("toggle", target, null, parser);
+          });
+        } else if (between) {
+          context2.meta.runtime.implicitLoop(on, function(target) {
+            if (target.classList.contains(classRef3.className)) {
+              target.classList.remove(classRef3.className);
+              target.classList.add(classRef22.className);
+            } else {
+              target.classList.add(classRef3.className);
+              target.classList.remove(classRef22.className);
+            }
+          });
+        } else if (classRefs2) {
+          context2.meta.runtime.forEach(classRefs2, function(classRef4) {
+            context2.meta.runtime.implicitLoop(on, function(target) {
+              target.classList.toggle(classRef4.className);
+            });
+          });
         } else {
-          var onExpr = helper.requireElement("implicitMeTarget");
+          context2.meta.runtime.implicitLoop(on, function(target) {
+            if (target.hasAttribute(attributeRef.name)) {
+              target.removeAttribute(attributeRef.name);
+            } else {
+              target.setAttribute(attributeRef.name, attributeRef.value);
+            }
+          });
         }
-      }
-      if (helper.matchToken("for")) {
-        var time = helper.requireElement("expression");
-      } else if (helper.matchToken("until")) {
-        var evt = helper.requireElement("dotOrColonPath", "Expected event name");
-        if (helper.matchToken("from")) {
-          var from = helper.requireElement("expression");
-        }
-      }
-      var toggleCmd = {
-        classRef,
-        classRef2,
-        classRefs,
-        attributeRef,
-        on: onExpr,
-        time,
-        evt,
-        from,
-        toggle: function(context2, on, classRef3, classRef22, classRefs2) {
-          context2.meta.runtime.nullCheck(on, onExpr);
-          if (visibility) {
-            context2.meta.runtime.implicitLoop(on, function(target) {
-              hideShowStrategy("toggle", target);
-            });
-          } else if (between) {
-            context2.meta.runtime.implicitLoop(on, function(target) {
-              if (target.classList.contains(classRef3.className)) {
-                target.classList.remove(classRef3.className);
-                target.classList.add(classRef22.className);
-              } else {
-                target.classList.add(classRef3.className);
-                target.classList.remove(classRef22.className);
-              }
-            });
-          } else if (classRefs2) {
-            context2.meta.runtime.forEach(classRefs2, function(classRef4) {
-              context2.meta.runtime.implicitLoop(on, function(target) {
-                target.classList.toggle(classRef4.className);
-              });
-            });
-          } else {
-            context2.meta.runtime.implicitLoop(on, function(target) {
-              if (target.hasAttribute(attributeRef.name)) {
-                target.removeAttribute(attributeRef.name);
-              } else {
-                target.setAttribute(attributeRef.name, attributeRef.value);
-              }
-            });
-          }
-        },
-        args: [onExpr, time, evt, from, classRef, classRef2, classRefs],
-        op: function(context2, on, time2, evt2, from2, classRef3, classRef22, classRefs2) {
-          if (time2) {
-            return new Promise(function(resolve) {
+      },
+      args: [onExpr, time, evt, from, classRef, classRef2, classRefs],
+      op: function(context2, on, time2, evt2, from2, classRef3, classRef22, classRefs2) {
+        if (time2) {
+          return new Promise(function(resolve) {
+            toggleCmd.toggle(context2, on, classRef3, classRef22, classRefs2);
+            setTimeout(function() {
               toggleCmd.toggle(context2, on, classRef3, classRef22, classRefs2);
-              setTimeout(function() {
+              resolve(context2.meta.runtime.findNext(toggleCmd, context2));
+            }, time2);
+          });
+        } else if (evt2) {
+          return new Promise(function(resolve) {
+            var target = from2 || context2.me;
+            target.addEventListener(
+              evt2,
+              function() {
                 toggleCmd.toggle(context2, on, classRef3, classRef22, classRefs2);
                 resolve(context2.meta.runtime.findNext(toggleCmd, context2));
-              }, time2);
-            });
-          } else if (evt2) {
-            return new Promise(function(resolve) {
-              var target = from2 || context2.me;
-              target.addEventListener(
-                evt2,
-                function() {
-                  toggleCmd.toggle(context2, on, classRef3, classRef22, classRefs2);
-                  resolve(context2.meta.runtime.findNext(toggleCmd, context2));
-                },
-                { once: true }
-              );
-              toggleCmd.toggle(context2, on, classRef3, classRef22, classRefs2);
-            });
-          } else {
-            this.toggle(context2, on, classRef3, classRef22, classRefs2);
-            return context2.meta.runtime.findNext(toggleCmd, context2);
-          }
-        }
-      };
-      return toggleCmd;
-    }
-  });
-  var HIDE_SHOW_STRATEGIES = {
-    display: function(op, element, arg) {
-      if (arg) {
-        element.style.display = arg;
-      } else if (op === "toggle") {
-        if (getComputedStyle(element).display === "none") {
-          HIDE_SHOW_STRATEGIES.display("show", element, arg);
-        } else {
-          HIDE_SHOW_STRATEGIES.display("hide", element, arg);
-        }
-      } else if (op === "hide") {
-        const internalData = parser.runtime.getInternalData(element);
-        if (internalData.originalDisplay == null) {
-          internalData.originalDisplay = element.style.display;
-        }
-        element.style.display = "none";
-      } else {
-        const internalData = parser.runtime.getInternalData(element);
-        if (internalData.originalDisplay && internalData.originalDisplay !== "none") {
-          element.style.display = internalData.originalDisplay;
-        } else {
-          element.style.removeProperty("display");
-        }
-      }
-    },
-    visibility: function(op, element, arg) {
-      if (arg) {
-        element.style.visibility = arg;
-      } else if (op === "toggle") {
-        if (getComputedStyle(element).visibility === "hidden") {
-          HIDE_SHOW_STRATEGIES.visibility("show", element, arg);
-        } else {
-          HIDE_SHOW_STRATEGIES.visibility("hide", element, arg);
-        }
-      } else if (op === "hide") {
-        element.style.visibility = "hidden";
-      } else {
-        element.style.visibility = "visible";
-      }
-    },
-    opacity: function(op, element, arg) {
-      if (arg) {
-        element.style.opacity = arg;
-      } else if (op === "toggle") {
-        if (getComputedStyle(element).opacity === "0") {
-          HIDE_SHOW_STRATEGIES.opacity("show", element, arg);
-        } else {
-          HIDE_SHOW_STRATEGIES.opacity("hide", element, arg);
-        }
-      } else if (op === "hide") {
-        element.style.opacity = "0";
-      } else {
-        element.style.opacity = "1";
-      }
-    }
-  };
-  var parseShowHideTarget = function(helper) {
-    var target;
-    var currentTokenValue = helper.currentToken();
-    if (currentTokenValue.value === "when" || currentTokenValue.value === "with" || helper.commandBoundary(currentTokenValue)) {
-      target = helper.parseElement("implicitMeTarget");
-    } else {
-      target = helper.parseElement("expression");
-    }
-    return target;
-  };
-  var resolveHideShowStrategy = function(parser2, helper, name) {
-    var configDefault = config.defaultHideShowStrategy;
-    var strategies = HIDE_SHOW_STRATEGIES;
-    if (config.hideShowStrategies) {
-      strategies = Object.assign(strategies, config.hideShowStrategies);
-    }
-    name = name || configDefault || "display";
-    var value = strategies[name];
-    if (value == null) {
-      helper.raiseParseError("Unknown show/hide strategy : " + name);
-    }
-    return value;
-  };
-  parser.addCommand("hide", function(helper) {
-    if (helper.matchToken("hide")) {
-      var targetExpr = parseShowHideTarget(helper);
-      var name = null;
-      if (helper.matchToken("with")) {
-        name = helper.requireTokenType("IDENTIFIER", "STYLE_REF").value;
-        if (name.indexOf("*") === 0) {
-          name = name.substr(1);
-        }
-      }
-      var hideShowStrategy = resolveHideShowStrategy(parser, helper, name);
-      return {
-        target: targetExpr,
-        args: [targetExpr],
-        op: function(ctx, target) {
-          ctx.meta.runtime.nullCheck(target, targetExpr);
-          ctx.meta.runtime.implicitLoop(target, function(elt) {
-            hideShowStrategy("hide", elt);
+              },
+              { once: true }
+            );
+            toggleCmd.toggle(context2, on, classRef3, classRef22, classRefs2);
           });
-          return ctx.meta.runtime.findNext(this, ctx);
+        } else {
+          this.toggle(context2, on, classRef3, classRef22, classRefs2);
+          return context2.meta.runtime.findNext(toggleCmd, context2);
         }
-      };
+      }
+    };
+    return toggleCmd;
+  }
+};
+var HideCommand = class {
+  static parse(helper, parser, config2) {
+    if (!helper.matchToken("hide")) return;
+    var targetExpr = parseShowHideTarget(helper);
+    var name = null;
+    if (helper.matchToken("with")) {
+      name = helper.requireTokenType("IDENTIFIER", "STYLE_REF").value;
+      if (name.indexOf("*") === 0) {
+        name = name.substr(1);
+      }
     }
-  });
-  parser.addCommand("show", function(helper) {
-    if (helper.matchToken("show")) {
-      var targetExpr = parseShowHideTarget(helper);
-      var name = null;
-      if (helper.matchToken("with")) {
-        name = helper.requireTokenType("IDENTIFIER", "STYLE_REF").value;
-        if (name.indexOf("*") === 0) {
-          name = name.substr(1);
-        }
+    var hideShowStrategy = resolveHideShowStrategy(parser, helper, name, config2);
+    return {
+      target: targetExpr,
+      args: [targetExpr],
+      op: function(ctx, target) {
+        ctx.meta.runtime.nullCheck(target, targetExpr);
+        ctx.meta.runtime.implicitLoop(target, function(elt) {
+          hideShowStrategy("hide", elt, null, parser);
+        });
+        return ctx.meta.runtime.findNext(this, ctx);
       }
-      var arg = null;
-      if (helper.matchOpToken(":")) {
-        var tokenArr = helper.consumeUntilWhitespace();
-        helper.matchTokenType("WHITESPACE");
-        arg = tokenArr.map(function(t) {
-          return t.value;
-        }).join("");
+    };
+  }
+};
+var ShowCommand = class {
+  static parse(helper, parser, config2) {
+    if (!helper.matchToken("show")) return;
+    var targetExpr = parseShowHideTarget(helper);
+    var name = null;
+    if (helper.matchToken("with")) {
+      name = helper.requireTokenType("IDENTIFIER", "STYLE_REF").value;
+      if (name.indexOf("*") === 0) {
+        name = name.substr(1);
       }
-      if (helper.matchToken("when")) {
-        var when = helper.requireElement("expression");
-      }
-      var hideShowStrategy = resolveHideShowStrategy(parser, helper, name);
-      return {
-        target: targetExpr,
-        when,
-        args: [targetExpr],
-        op: function(ctx, target) {
-          ctx.meta.runtime.nullCheck(target, targetExpr);
-          ctx.meta.runtime.implicitLoop(target, function(elt) {
-            if (when) {
-              ctx.result = elt;
-              let whenResult = ctx.meta.runtime.evaluateNoPromise(when, ctx);
-              if (whenResult) {
-                hideShowStrategy("show", elt, arg);
-              } else {
-                hideShowStrategy("hide", elt);
-              }
-              ctx.result = null;
+    }
+    var arg = null;
+    if (helper.matchOpToken(":")) {
+      var tokenArr = helper.consumeUntilWhitespace();
+      helper.matchTokenType("WHITESPACE");
+      arg = tokenArr.map(function(t) {
+        return t.value;
+      }).join("");
+    }
+    if (helper.matchToken("when")) {
+      var when = helper.requireElement("expression");
+    }
+    var hideShowStrategy = resolveHideShowStrategy(parser, helper, name, config2);
+    return {
+      target: targetExpr,
+      when,
+      args: [targetExpr],
+      op: function(ctx, target) {
+        ctx.meta.runtime.nullCheck(target, targetExpr);
+        ctx.meta.runtime.implicitLoop(target, function(elt) {
+          if (when) {
+            ctx.result = elt;
+            let whenResult = ctx.meta.runtime.evaluateNoPromise(when, ctx);
+            if (whenResult) {
+              hideShowStrategy("show", elt, arg, parser);
             } else {
-              hideShowStrategy("show", elt, arg);
+              hideShowStrategy("hide", elt, null, parser);
             }
-          });
-          return ctx.meta.runtime.findNext(this, ctx);
-        }
-      };
+            ctx.result = null;
+          } else {
+            hideShowStrategy("show", elt, arg, parser);
+          }
+        });
+        return ctx.meta.runtime.findNext(this, ctx);
+      }
+    };
+  }
+};
+function parsePseudopossessiveTarget(helper) {
+  var targets;
+  if (helper.matchToken("the") || helper.matchToken("element") || helper.matchToken("elements") || helper.currentToken().type === "CLASS_REF" || helper.currentToken().type === "ID_REF" || helper.currentToken().op && helper.currentToken().value === "<") {
+    helper.possessivesDisabled = true;
+    try {
+      targets = helper.parseElement("expression");
+    } finally {
+      delete helper.possessivesDisabled;
     }
-  });
-  parser.addCommand("take", function(helper) {
+    if (helper.matchOpToken("'")) {
+      helper.requireToken("s");
+    }
+  } else if (helper.currentToken().type === "IDENTIFIER" && helper.currentToken().value === "its") {
+    var identifier = helper.matchToken("its");
+    targets = {
+      type: "pseudopossessiveIts",
+      token: identifier,
+      name: identifier.value,
+      evaluate: function(context2) {
+        return context2.meta.runtime.resolveSymbol("it", context2);
+      }
+    };
+  } else {
+    helper.matchToken("my") || helper.matchToken("me");
+    targets = helper.parseElement("implicitMeTarget");
+  }
+  return targets;
+}
+var TakeCommand = class {
+  /**
+   * Parse take command
+   * @param {ParserHelper} helper
+   * @returns {TakeCommand | undefined}
+   */
+  static parse(helper) {
     if (helper.matchToken("take")) {
       let classRef = null;
       let classRefs = [];
@@ -7156,41 +7498,159 @@ function hyperscriptWebGrammar(parser) {
         return takeCmd2;
       }
     }
-  });
-  parser.addCommand("put", function(helper) {
-    return PutCommand.parse(helper, parser);
-  });
-  function parsePseudopossessiveTarget(helper) {
-    var targets;
-    if (helper.matchToken("the") || helper.matchToken("element") || helper.matchToken("elements") || helper.currentToken().type === "CLASS_REF" || helper.currentToken().type === "ID_REF" || helper.currentToken().op && helper.currentToken().value === "<") {
-      helper.possessivesDisabled = true;
-      try {
-        targets = helper.parseElement("expression");
-      } finally {
-        delete helper.possessivesDisabled;
+  }
+};
+var MeasureCommand = class {
+  /**
+   * Parse measure command
+   * @param {ParserHelper} helper
+   * @returns {MeasureCommand | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchToken("measure")) return;
+    var targetExpr = parsePseudopossessiveTarget(helper);
+    var propsToMeasure = [];
+    if (!helper.commandBoundary(helper.currentToken()))
+      do {
+        propsToMeasure.push(helper.matchTokenType("IDENTIFIER").value);
+      } while (helper.matchOpToken(","));
+    return {
+      properties: propsToMeasure,
+      args: [targetExpr],
+      op: function(ctx, target) {
+        ctx.meta.runtime.nullCheck(target, targetExpr);
+        if (0 in target) target = target[0];
+        var rect = target.getBoundingClientRect();
+        var scroll = {
+          top: target.scrollTop,
+          left: target.scrollLeft,
+          topMax: target.scrollTopMax,
+          leftMax: target.scrollLeftMax,
+          height: target.scrollHeight,
+          width: target.scrollWidth
+        };
+        ctx.result = {
+          x: rect.x,
+          y: rect.y,
+          left: rect.left,
+          top: rect.top,
+          right: rect.right,
+          bottom: rect.bottom,
+          width: rect.width,
+          height: rect.height,
+          bounds: rect,
+          scrollLeft: scroll.left,
+          scrollTop: scroll.top,
+          scrollLeftMax: scroll.leftMax,
+          scrollTopMax: scroll.topMax,
+          scrollWidth: scroll.width,
+          scrollHeight: scroll.height,
+          scroll
+        };
+        ctx.meta.runtime.forEach(propsToMeasure, function(prop) {
+          if (prop in ctx.result) ctx.locals[prop] = ctx.result[prop];
+          else throw "No such measurement as " + prop;
+        });
+        return ctx.meta.runtime.findNext(this, ctx);
       }
-      if (helper.matchOpToken("'")) {
-        helper.requireToken("s");
+    };
+  }
+};
+
+// src/parsetree/commands/animations.js
+function parsePseudopossessiveTarget2(helper) {
+  var targets;
+  if (helper.matchToken("the") || helper.matchToken("element") || helper.matchToken("elements") || helper.currentToken().type === "CLASS_REF" || helper.currentToken().type === "ID_REF" || helper.currentToken().op && helper.currentToken().value === "<") {
+    helper.possessivesDisabled = true;
+    try {
+      targets = helper.parseElement("expression");
+    } finally {
+      delete helper.possessivesDisabled;
+    }
+    if (helper.matchOpToken("'")) {
+      helper.requireToken("s");
+    }
+  } else if (helper.currentToken().type === "IDENTIFIER" && helper.currentToken().value === "its") {
+    var identifier = helper.matchToken("its");
+    targets = {
+      type: "pseudopossessiveIts",
+      token: identifier,
+      name: identifier.value,
+      evaluate: function(context2) {
+        return context2.meta.runtime.resolveSymbol("it", context2);
       }
-    } else if (helper.currentToken().type === "IDENTIFIER" && helper.currentToken().value === "its") {
-      var identifier = helper.matchToken("its");
-      targets = {
-        type: "pseudopossessiveIts",
-        token: identifier,
-        name: identifier.value,
-        evaluate: function(context2) {
-          return context2.meta.runtime.resolveSymbol("it", context2);
+    };
+  } else {
+    helper.matchToken("my") || helper.matchToken("me");
+    targets = helper.parseElement("implicitMeTarget");
+  }
+  return targets;
+}
+var SettleCommand = class {
+  /**
+   * Parse settle command
+   * @param {ParserHelper} helper
+   * @returns {SettleCommand | undefined}
+   */
+  static parse(helper) {
+    if (helper.matchToken("settle")) {
+      if (!helper.commandBoundary(helper.currentToken())) {
+        var onExpr = helper.requireElement("expression");
+      } else {
+        var onExpr = helper.requireElement("implicitMeTarget");
+      }
+      var settleCommand = {
+        type: "settleCmd",
+        args: [onExpr],
+        op: function(context2, on) {
+          context2.meta.runtime.nullCheck(on, onExpr);
+          var resolve = null;
+          var resolved = false;
+          var transitionStarted = false;
+          var promise = new Promise(function(r) {
+            resolve = r;
+          });
+          on.addEventListener(
+            "transitionstart",
+            function() {
+              transitionStarted = true;
+            },
+            { once: true }
+          );
+          setTimeout(function() {
+            if (!transitionStarted && !resolved) {
+              resolve(context2.meta.runtime.findNext(settleCommand, context2));
+            }
+          }, 500);
+          on.addEventListener(
+            "transitionend",
+            function() {
+              if (!resolved) {
+                resolve(context2.meta.runtime.findNext(settleCommand, context2));
+              }
+            },
+            { once: true }
+          );
+          return promise;
+        },
+        execute: function(context2) {
+          return context2.meta.runtime.unifiedExec(this, context2);
         }
       };
-    } else {
-      helper.matchToken("my") || helper.matchToken("me");
-      targets = helper.parseElement("implicitMeTarget");
+      return settleCommand;
     }
-    return targets;
   }
-  parser.addCommand("transition", function(helper) {
+};
+var TransitionCommand = class {
+  /**
+   * Parse transition command
+   * @param {ParserHelper} helper
+   * @param {Object} config - Parser configuration with defaultTransition
+   * @returns {TransitionCommand | undefined}
+   */
+  static parse(helper, config2) {
     if (helper.matchToken("transition")) {
-      var targetsExpr = parsePseudopossessiveTarget(helper);
+      var targetsExpr = parsePseudopossessiveTarget2(helper);
       var properties = [];
       var from = [];
       var to = [];
@@ -7245,7 +7705,7 @@ function hyperscriptWebGrammar(parser) {
               } else if (using) {
                 target.style.transition = using;
               } else {
-                target.style.transition = config.defaultTransition;
+                target.style.transition = config2.defaultTransition;
               }
               var internalData = context2.meta.runtime.getInternalData(target);
               var computedStyles = getComputedStyle(target);
@@ -7317,168 +7777,34 @@ function hyperscriptWebGrammar(parser) {
       };
       return transition;
     }
+  }
+};
+
+// src/grammars/web.js
+function hyperscriptWebGrammar(parser) {
+  parser.addCommand("settle", SettleCommand.parse);
+  parser.addCommand("add", AddCommand.parse);
+  parser.addGrammarElement("styleLiteral", StyleLiteral.parse);
+  parser.addCommand("remove", RemoveCommand.parse);
+  parser.addCommand("toggle", function(helper) {
+    return ToggleCommand.parse(helper, parser, config);
   });
-  parser.addCommand("measure", function(helper) {
-    if (!helper.matchToken("measure")) return;
-    var targetExpr = parsePseudopossessiveTarget(helper);
-    var propsToMeasure = [];
-    if (!helper.commandBoundary(helper.currentToken()))
-      do {
-        propsToMeasure.push(helper.matchTokenType("IDENTIFIER").value);
-      } while (helper.matchOpToken(","));
-    return {
-      properties: propsToMeasure,
-      args: [targetExpr],
-      op: function(ctx, target) {
-        ctx.meta.runtime.nullCheck(target, targetExpr);
-        if (0 in target) target = target[0];
-        var rect = target.getBoundingClientRect();
-        var scroll = {
-          top: target.scrollTop,
-          left: target.scrollLeft,
-          topMax: target.scrollTopMax,
-          leftMax: target.scrollLeftMax,
-          height: target.scrollHeight,
-          width: target.scrollWidth
-        };
-        ctx.result = {
-          x: rect.x,
-          y: rect.y,
-          left: rect.left,
-          top: rect.top,
-          right: rect.right,
-          bottom: rect.bottom,
-          width: rect.width,
-          height: rect.height,
-          bounds: rect,
-          scrollLeft: scroll.left,
-          scrollTop: scroll.top,
-          scrollLeftMax: scroll.leftMax,
-          scrollTopMax: scroll.topMax,
-          scrollWidth: scroll.width,
-          scrollHeight: scroll.height,
-          scroll
-        };
-        ctx.meta.runtime.forEach(propsToMeasure, function(prop) {
-          if (prop in ctx.result) ctx.locals[prop] = ctx.result[prop];
-          else throw "No such measurement as " + prop;
-        });
-        return ctx.meta.runtime.findNext(this, ctx);
-      }
-    };
+  parser.addCommand("hide", function(helper) {
+    return HideCommand.parse(helper, parser, config);
   });
+  parser.addCommand("show", function(helper) {
+    return ShowCommand.parse(helper, parser, config);
+  });
+  parser.addCommand("take", TakeCommand.parse);
+  parser.addCommand("put", function(helper) {
+    return PutCommand.parse(helper, parser);
+  });
+  parser.addCommand("transition", function(helper) {
+    return TransitionCommand.parse(helper, config);
+  });
+  parser.addCommand("measure", MeasureCommand.parse);
   parser.addLeafExpression("closestExpr", ClosestExpr.parse);
-  parser.addCommand("go", function(helper) {
-    if (helper.matchToken("go")) {
-      if (helper.matchToken("back")) {
-        var back = true;
-      } else {
-        helper.matchToken("to");
-        if (helper.matchToken("url")) {
-          var target = helper.requireElement("stringLike");
-          var url = true;
-          if (helper.matchToken("in")) {
-            helper.requireToken("new");
-            helper.requireToken("window");
-            var newWindow = true;
-          }
-        } else {
-          helper.matchToken("the");
-          var verticalPosition = helper.matchAnyToken("top", "middle", "bottom");
-          var horizontalPosition = helper.matchAnyToken("left", "center", "right");
-          if (verticalPosition || horizontalPosition) {
-            helper.requireToken("of");
-          }
-          var target = helper.requireElement("unaryExpression");
-          var plusOrMinus = helper.matchAnyOpToken("+", "-");
-          if (plusOrMinus) {
-            helper.pushFollow("px");
-            try {
-              var offset = helper.requireElement("expression");
-            } finally {
-              helper.popFollow();
-            }
-          }
-          helper.matchToken("px");
-          var smoothness = helper.matchAnyToken("smoothly", "instantly");
-          var scrollOptions = {
-            block: "start",
-            inline: "nearest"
-          };
-          if (verticalPosition) {
-            if (verticalPosition.value === "top") {
-              scrollOptions.block = "start";
-            } else if (verticalPosition.value === "bottom") {
-              scrollOptions.block = "end";
-            } else if (verticalPosition.value === "middle") {
-              scrollOptions.block = "center";
-            }
-          }
-          if (horizontalPosition) {
-            if (horizontalPosition.value === "left") {
-              scrollOptions.inline = "start";
-            } else if (horizontalPosition.value === "center") {
-              scrollOptions.inline = "center";
-            } else if (horizontalPosition.value === "right") {
-              scrollOptions.inline = "end";
-            }
-          }
-          if (smoothness) {
-            if (smoothness.value === "smoothly") {
-              scrollOptions.behavior = "smooth";
-            } else if (smoothness.value === "instantly") {
-              scrollOptions.behavior = "instant";
-            }
-          }
-        }
-      }
-      var goCmd = {
-        target,
-        args: [target, offset],
-        op: function(ctx, to, offset2) {
-          if (back) {
-            window.history.back();
-          } else if (url) {
-            if (to) {
-              if (newWindow) {
-                window.open(to);
-              } else {
-                window.location.href = to;
-              }
-            }
-          } else {
-            context.meta.runtime.implicitLoop(to, function(target2) {
-              if (target2 === window) {
-                target2 = document.body;
-              }
-              if (plusOrMinus) {
-                let boundingRect = target2.getBoundingClientRect();
-                let scrollShim = document.createElement("div");
-                let actualOffset = plusOrMinus.value === "+" ? offset2 : offset2 * -1;
-                let offsetX = scrollOptions.inline == "start" || scrollOptions.inline == "end" ? actualOffset : 0;
-                let offsetY = scrollOptions.block == "start" || scrollOptions.block == "end" ? actualOffset : 0;
-                scrollShim.style.position = "absolute";
-                scrollShim.style.top = boundingRect.top + window.scrollY + offsetY + "px";
-                scrollShim.style.left = boundingRect.left + window.scrollX + offsetX + "px";
-                scrollShim.style.height = boundingRect.height + "px";
-                scrollShim.style.width = boundingRect.width + "px";
-                scrollShim.style.zIndex = "" + Number.MIN_SAFE_INTEGER;
-                scrollShim.style.opacity = "0";
-                document.body.appendChild(scrollShim);
-                setTimeout(function() {
-                  document.body.removeChild(scrollShim);
-                }, 100);
-                target2 = scrollShim;
-              }
-              target2.scrollIntoView(scrollOptions);
-            });
-          }
-          return context.meta.runtime.findNext(goCmd, ctx);
-        }
-      };
-      return goCmd;
-    }
-  });
+  parser.addCommand("go", GoCommand.parse);
   config.conversions.dynamicResolvers.push(function(str, node) {
     if (!(str === "Values" || str.indexOf("Values:") === 0)) {
       return;
