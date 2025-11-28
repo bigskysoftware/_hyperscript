@@ -254,7 +254,7 @@ __publicField(_Tokens, "sourceFor", function() {
 __publicField(_Tokens, "lineFor", function() {
   return this.programSource.split("\n")[this.startToken.line - 1];
 });
-var Tokens2 = _Tokens;
+var Tokens = _Tokens;
 
 // src/core/lexer.js
 var _Lexer = class _Lexer {
@@ -413,7 +413,7 @@ var _Lexer = class _Lexer {
         }
       }
     }
-    return new Tokens2(tokens, [], source);
+    return new Tokens(tokens, [], source);
     function makeOpToken(type, value) {
       var token = makeToken(type, value);
       token.op = true;
@@ -1407,7 +1407,7 @@ var _Runtime = class _Runtime {
   evaluateNoPromise(elt, ctx) {
     let result = elt.evaluate(ctx);
     if (result.next) {
-      throw new Error(Tokens2.sourceFor.call(elt) + " returned a Promise in a context that they are not allowed.");
+      throw new Error(Tokens.sourceFor.call(elt) + " returned a Promise in a context that they are not allowed.");
     }
     return result;
   }
@@ -1775,7 +1775,7 @@ var _Runtime = class _Runtime {
       } else if (value instanceof ElementCollection) {
         logValue = Array.from(value);
       }
-      console.log("///_ BEEP! The expression (" + Tokens2.sourceFor.call(expression).replace("beep! ", "") + ") evaluates to:", logValue, "of type " + typeName);
+      console.log("///_ BEEP! The expression (" + Tokens.sourceFor.call(expression).replace("beep! ", "") + ") evaluates to:", logValue, "of type " + typeName);
     }
   }
 };
@@ -2051,8 +2051,8 @@ var Parser = class _Parser {
    */
   initElt(parseElement, start, tokens) {
     parseElement.startToken = start;
-    parseElement.sourceFor = Tokens2.sourceFor;
-    parseElement.lineFor = Tokens2.lineFor;
+    parseElement.sourceFor = Tokens.sourceFor;
+    parseElement.lineFor = Tokens.lineFor;
     parseElement.programSource = tokens.source;
   }
   /**
@@ -2322,7 +2322,7 @@ var Parser = class _Parser {
   }
 };
 
-// src/parsetree/webliterals.js
+// src/parsetree/expressions/webliterals.js
 var IdRef = class {
   /**
    * Parse an ID reference
@@ -2531,8 +2531,52 @@ var StyleRef = class {
     }
   }
 };
+var StyleLiteral = class {
+  /**
+   * Parse a style literal
+   * @param {ParserHelper} helper
+   * @returns {any | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchOpToken("{")) return;
+    var stringParts = [""];
+    var exprs = [];
+    while (helper.hasMore()) {
+      if (helper.matchOpToken("\\")) {
+        helper.consumeToken();
+      } else if (helper.matchOpToken("}")) {
+        break;
+      } else if (helper.matchToken("$")) {
+        var opencurly = helper.matchOpToken("{");
+        var expr = helper.parseElement("expression");
+        if (opencurly) helper.requireOpToken("}");
+        exprs.push(expr);
+        stringParts.push("");
+      } else {
+        var tok = helper.consumeToken();
+        stringParts[stringParts.length - 1] += helper.source.substring(tok.start, tok.end);
+      }
+      stringParts[stringParts.length - 1] += helper.lastWhitespace();
+    }
+    return {
+      type: "styleLiteral",
+      args: [exprs],
+      op: function(ctx, exprs2) {
+        var rv = "";
+        stringParts.forEach(function(part, idx) {
+          rv += part;
+          if (idx in exprs2) rv += exprs2[idx];
+        });
+        return rv;
+      },
+      evaluate: function(ctx) {
+        return ctx.meta.runtime.unifiedEval(this, ctx);
+      }
+    };
+  }
+};
 
-// src/parsetree/expressions.js
+// src/parsetree/expressions/expressions.js
 var ParenthesizedExpression = class {
   /**
    * Parse a parenthesized expression
@@ -2741,8 +2785,834 @@ var BeepExpression = class _BeepExpression {
     return value;
   }
 };
+var PropertyAccess = class _PropertyAccess {
+  constructor(root, prop) {
+    this.type = "propertyAccess";
+    this.root = root;
+    this.prop = prop;
+    this.args = [root];
+  }
+  /**
+   * Parse a property access expression
+   * @param {ParserHelper} helper
+   * @param {any} root - The root expression
+   * @returns {any | undefined}
+   */
+  static parse(helper, root) {
+    if (!helper.matchOpToken(".")) return;
+    var prop = helper.requireTokenType("IDENTIFIER");
+    var propertyAccess = new _PropertyAccess(root, prop);
+    return helper.parser.parseElement("indirectExpression", helper.tokens, propertyAccess);
+  }
+  /**
+   * Op function for property access
+   */
+  op(context2, rootVal) {
+    var value = context2.meta.runtime.resolveProperty(rootVal, this.prop.value);
+    return value;
+  }
+  /**
+   * Evaluate property access
+   * @param {Context} context
+   * @returns {any}
+   */
+  evaluate(context2) {
+    return context2.meta.runtime.unifiedEval(this, context2);
+  }
+};
+var OfExpression = class _OfExpression {
+  constructor(prop, newRoot, attribute, expression, args, urRoot) {
+    this.type = "ofExpression";
+    this.prop = prop;
+    this.root = newRoot;
+    this.attribute = attribute;
+    this.expression = expression;
+    this.args = args;
+    this._urRoot = urRoot;
+  }
+  /**
+   * Parse an of expression
+   * @param {ParserHelper} helper
+   * @param {any} root - The property expression
+   * @returns {any | undefined}
+   */
+  static parse(helper, root) {
+    if (!helper.matchToken("of")) return;
+    var newRoot = helper.requireElement("unaryExpression");
+    var childOfUrRoot = null;
+    var urRoot = root;
+    while (urRoot.root) {
+      childOfUrRoot = urRoot;
+      urRoot = urRoot.root;
+    }
+    if (urRoot.type !== "symbol" && urRoot.type !== "attributeRef" && urRoot.type !== "styleRef" && urRoot.type !== "computedStyleRef") {
+      helper.raiseParseError("Cannot take a property of a non-symbol: " + urRoot.type);
+    }
+    var attribute = urRoot.type === "attributeRef";
+    var style = urRoot.type === "styleRef" || urRoot.type === "computedStyleRef";
+    var attributeElt = attribute || style ? urRoot : null;
+    var prop = urRoot.name;
+    var propertyAccess = new _OfExpression(
+      urRoot.token,
+      // can be undefined for attributeRef
+      newRoot,
+      attributeElt,
+      root,
+      [newRoot],
+      urRoot
+    );
+    if (urRoot.type === "attributeRef") {
+      propertyAccess.attribute = urRoot;
+    }
+    if (childOfUrRoot) {
+      childOfUrRoot.root = propertyAccess;
+      childOfUrRoot.args = [propertyAccess];
+    } else {
+      root = propertyAccess;
+    }
+    return helper.parser.parseElement("indirectExpression", helper.tokens, root);
+  }
+  /**
+   * Op function for of expression
+   */
+  op(context2, rootVal) {
+    var urRoot = this._urRoot;
+    var prop = urRoot.name;
+    var attribute = urRoot.type === "attributeRef";
+    var style = urRoot.type === "styleRef" || urRoot.type === "computedStyleRef";
+    if (attribute) {
+      return context2.meta.runtime.resolveAttribute(rootVal, prop);
+    } else if (style) {
+      if (urRoot.type === "computedStyleRef") {
+        return context2.meta.runtime.resolveComputedStyle(rootVal, prop);
+      } else {
+        return context2.meta.runtime.resolveStyle(rootVal, prop);
+      }
+    } else {
+      return context2.meta.runtime.resolveProperty(rootVal, prop);
+    }
+  }
+  /**
+   * Evaluate of expression
+   * @param {Context} context
+   * @returns {any}
+   */
+  evaluate(context2) {
+    return context2.meta.runtime.unifiedEval(this, context2);
+  }
+};
+var PossessiveExpression = class _PossessiveExpression {
+  constructor(root, attribute, prop) {
+    this.type = "possessive";
+    this.root = root;
+    this.attribute = attribute;
+    this.prop = prop;
+    this.args = [root];
+  }
+  /**
+   * Parse a possessive expression
+   * @param {ParserHelper} helper
+   * @param {any} root
+   * @returns {any | undefined}
+   */
+  static parse(helper, root) {
+    if (helper.possessivesDisabled) {
+      return;
+    }
+    var apostrophe = helper.matchOpToken("'");
+    if (apostrophe || root.type === "symbol" && (root.name === "my" || root.name === "its" || root.name === "your") && (helper.currentToken().type === "IDENTIFIER" || helper.currentToken().type === "ATTRIBUTE_REF" || helper.currentToken().type === "STYLE_REF")) {
+      if (apostrophe) {
+        helper.requireToken("s");
+      }
+      var attribute, style, prop;
+      attribute = helper.parseElement("attributeRef");
+      if (attribute == null) {
+        style = helper.parseElement("styleRef");
+        if (style == null) {
+          prop = helper.requireTokenType("IDENTIFIER");
+        }
+      }
+      var propertyAccess = new _PossessiveExpression(root, attribute || style, prop);
+      return helper.parser.parseElement("indirectExpression", helper.tokens, propertyAccess);
+    }
+  }
+  /**
+   * Op function for possessive
+   */
+  op(context2, rootVal) {
+    if (this.attribute) {
+      var value;
+      if (this.attribute.type === "computedStyleRef") {
+        value = context2.meta.runtime.resolveComputedStyle(rootVal, this.attribute["name"]);
+      } else if (this.attribute.type === "styleRef") {
+        value = context2.meta.runtime.resolveStyle(rootVal, this.attribute["name"]);
+      } else {
+        value = context2.meta.runtime.resolveAttribute(rootVal, this.attribute.name);
+      }
+    } else {
+      var value = context2.meta.runtime.resolveProperty(rootVal, this.prop.value);
+    }
+    return value;
+  }
+  /**
+   * Evaluate possessive expression
+   * @param {Context} context
+   * @returns {any}
+   */
+  evaluate(context2) {
+    return context2.meta.runtime.unifiedEval(this, context2);
+  }
+};
+var InExpression = class _InExpression {
+  constructor(root, target) {
+    this.type = "inExpression";
+    this.root = root;
+    this.target = target;
+    this.args = [root, target];
+  }
+  /**
+   * Parse an in expression
+   * @param {ParserHelper} helper
+   * @param {any} root
+   * @returns {InExpression | undefined}
+   */
+  static parse(helper, root) {
+    if (!helper.matchToken("in")) return;
+    var target = helper.requireElement("unaryExpression");
+    var inExpression = new _InExpression(root, target);
+    return helper.parser.parseElement("indirectExpression", helper.tokens, inExpression);
+  }
+  /**
+   * Op function for in expression
+   */
+  op(context2, rootVal, target) {
+    var returnArr = [];
+    if (rootVal.css) {
+      context2.meta.runtime.implicitLoop(target, function(targetElt) {
+        var results = targetElt.querySelectorAll(rootVal.css);
+        for (var i = 0; i < results.length; i++) {
+          returnArr.push(results[i]);
+        }
+      });
+    } else if (rootVal instanceof Element) {
+      var within = false;
+      context2.meta.runtime.implicitLoop(target, function(targetElt) {
+        if (targetElt.contains(rootVal)) {
+          within = true;
+        }
+      });
+      if (within) {
+        return rootVal;
+      }
+    } else {
+      context2.meta.runtime.implicitLoop(rootVal, function(rootElt) {
+        context2.meta.runtime.implicitLoop(target, function(targetElt) {
+          if (rootElt === targetElt) {
+            returnArr.push(rootElt);
+          }
+        });
+      });
+    }
+    return returnArr;
+  }
+  /**
+   * Evaluate in expression
+   * @param {Context} context
+   * @returns {any}
+   */
+  evaluate(context2) {
+    return context2.meta.runtime.unifiedEval(this, context2);
+  }
+};
+var AsExpression = class _AsExpression {
+  constructor(root, conversion) {
+    this.type = "asExpression";
+    this.root = root;
+    this.conversion = conversion;
+    this.args = [root];
+  }
+  /**
+   * Parse an as expression
+   * @param {ParserHelper} helper
+   * @param {any} root
+   * @returns {AsExpression | undefined}
+   */
+  static parse(helper, root) {
+    if (!helper.matchToken("as")) return;
+    helper.matchToken("a") || helper.matchToken("an");
+    var conversion = helper.requireElement("dotOrColonPath").evaluate();
+    var asExpression = new _AsExpression(root, conversion);
+    return helper.parser.parseElement("indirectExpression", helper.tokens, asExpression);
+  }
+  /**
+   * Op function for as expression
+   */
+  op(context2, rootVal) {
+    return context2.meta.runtime.convertValue(rootVal, this.conversion);
+  }
+  /**
+   * Evaluate as expression
+   * @param {Context} context
+   * @returns {any}
+   */
+  evaluate(context2) {
+    return context2.meta.runtime.unifiedEval(this, context2);
+  }
+};
+var FunctionCall = class _FunctionCall {
+  constructor(root, argExpressions, args, isMethodCall) {
+    this.type = "functionCall";
+    this.root = root;
+    this.argExressions = argExpressions;
+    this.args = args;
+    this._isMethodCall = isMethodCall;
+    this._parseRoot = root;
+  }
+  /**
+   * Parse a function call
+   * @param {ParserHelper} helper
+   * @param {any} root
+   * @returns {FunctionCall | undefined}
+   */
+  static parse(helper, root) {
+    if (!helper.matchOpToken("(")) return;
+    var args = [];
+    if (!helper.matchOpToken(")")) {
+      do {
+        args.push(helper.requireElement("expression"));
+      } while (helper.matchOpToken(","));
+      helper.requireOpToken(")");
+    }
+    var functionCall;
+    if (root.root) {
+      functionCall = new _FunctionCall(root, args, [root.root, args], true);
+    } else {
+      functionCall = new _FunctionCall(root, args, [root, args], false);
+    }
+    return helper.parser.parseElement("indirectExpression", helper.tokens, functionCall);
+  }
+  /**
+   * Op function for function call
+   */
+  op(context2, firstArg, argVals) {
+    if (this._isMethodCall) {
+      var rootRoot = firstArg;
+      context2.meta.runtime.nullCheck(rootRoot, this._parseRoot.root);
+      var func = rootRoot[this._parseRoot.prop.value];
+      context2.meta.runtime.nullCheck(func, this._parseRoot);
+      if (func.hyperfunc) {
+        argVals.push(context2);
+      }
+      return func.apply(rootRoot, argVals);
+    } else {
+      var func = firstArg;
+      context2.meta.runtime.nullCheck(func, this._parseRoot);
+      if (func.hyperfunc) {
+        argVals.push(context2);
+      }
+      return func.apply(null, argVals);
+    }
+  }
+  /**
+   * Evaluate function call
+   * @param {Context} context
+   * @returns {any}
+   */
+  evaluate(context2) {
+    return context2.meta.runtime.unifiedEval(this, context2);
+  }
+};
+var AttributeRefAccess = class _AttributeRefAccess {
+  constructor(root, attribute) {
+    this.type = "attributeRefAccess";
+    this.root = root;
+    this.attribute = attribute;
+    this.args = [root];
+  }
+  /**
+   * Parse an attribute ref access
+   * @param {ParserHelper} helper
+   * @param {any} root
+   * @returns {AttributeRefAccess | undefined}
+   */
+  static parse(helper, root) {
+    var attribute = helper.parseElement("attributeRef");
+    if (!attribute) return;
+    return new _AttributeRefAccess(root, attribute);
+  }
+  /**
+   * Op function for attribute ref access
+   */
+  op(_ctx, rootVal) {
+    var value = _ctx.meta.runtime.resolveAttribute(rootVal, this.attribute.name);
+    return value;
+  }
+  /**
+   * Evaluate attribute ref access
+   * @param {Context} context
+   * @returns {any}
+   */
+  evaluate(context2) {
+    return context2.meta.runtime.unifiedEval(this, context2);
+  }
+};
+function sloppyContains(src, container, value) {
+  if (container["contains"]) {
+    return container.contains(value);
+  } else if (container["includes"]) {
+    return container.includes(value);
+  } else {
+    throw Error("The value of " + src.sourceFor() + " does not have a contains or includes method on it");
+  }
+}
+function sloppyMatches(src, target, toMatch) {
+  if (target["match"]) {
+    return !!target.match(toMatch);
+  } else if (target["matches"]) {
+    return target.matches(toMatch);
+  } else {
+    throw Error("The value of " + src.sourceFor() + " does not have a match or matches method on it");
+  }
+}
+var ArrayIndex = class _ArrayIndex {
+  constructor(root, firstIndex, secondIndex, andBefore, andAfter) {
+    this.type = "arrayIndex";
+    this.root = root;
+    this.prop = firstIndex;
+    this.firstIndex = firstIndex;
+    this.secondIndex = secondIndex;
+    this.andBefore = andBefore;
+    this.andAfter = andAfter;
+    this.args = [root, firstIndex, secondIndex];
+  }
+  /**
+   * Parse an array index expression
+   * @param {ParserHelper} helper
+   * @param {any} root
+   * @returns {any | undefined}
+   */
+  static parse(helper, root) {
+    if (!helper.matchOpToken("[")) return;
+    var andBefore = false;
+    var andAfter = false;
+    var firstIndex = null;
+    var secondIndex = null;
+    if (helper.matchOpToken("..")) {
+      andBefore = true;
+      firstIndex = helper.requireElement("expression");
+    } else {
+      firstIndex = helper.requireElement("expression");
+      if (helper.matchOpToken("..")) {
+        andAfter = true;
+        var current = helper.currentToken();
+        if (current.type !== "R_BRACKET") {
+          secondIndex = helper.parseElement("expression");
+        }
+      }
+    }
+    helper.requireOpToken("]");
+    var arrayIndex = new _ArrayIndex(root, firstIndex, secondIndex, andBefore, andAfter);
+    return helper.parser.parseElement("indirectExpression", helper.tokens, arrayIndex);
+  }
+  /**
+   * Op function for array index
+   */
+  op(_ctx, root, firstIndex, secondIndex) {
+    if (root == null) {
+      return null;
+    }
+    if (this.andBefore) {
+      if (firstIndex < 0) {
+        firstIndex = root.length + firstIndex;
+      }
+      return root.slice(0, firstIndex + 1);
+    } else if (this.andAfter) {
+      if (secondIndex != null) {
+        if (secondIndex < 0) {
+          secondIndex = root.length + secondIndex;
+        }
+        return root.slice(firstIndex, secondIndex + 1);
+      } else {
+        return root.slice(firstIndex);
+      }
+    } else {
+      return root[firstIndex];
+    }
+  }
+  /**
+   * Evaluate array index
+   * @param {Context} context
+   * @returns {any}
+   */
+  evaluate(context2) {
+    return context2.meta.runtime.unifiedEval(this, context2);
+  }
+};
+var MathOperator = class _MathOperator {
+  constructor(lhs, operator, rhs) {
+    this.type = "mathOperator";
+    this.lhs = lhs;
+    this.rhs = rhs;
+    this.operator = operator;
+    this.args = [lhs, rhs];
+  }
+  /**
+   * Parse math operator expression
+   * @param {ParserHelper} helper
+   * @returns {any}
+   */
+  static parse(helper) {
+    var expr = helper.parseElement("unaryExpression");
+    var mathOp, initialMathOp = null;
+    mathOp = helper.matchAnyOpToken("+", "-", "*", "/") || helper.matchToken("mod");
+    while (mathOp) {
+      initialMathOp = initialMathOp || mathOp;
+      var operator = mathOp.value;
+      if (initialMathOp.value !== operator) {
+        helper.raiseParseError("You must parenthesize math operations with different operators");
+      }
+      var rhs = helper.parseElement("unaryExpression");
+      expr = new _MathOperator(expr, operator, rhs);
+      mathOp = helper.matchAnyOpToken("+", "-", "*", "/") || helper.matchToken("mod");
+    }
+    return expr;
+  }
+  /**
+   * Op function for math operations
+   */
+  op(context2, lhsVal, rhsVal) {
+    if (this.operator === "+") {
+      return lhsVal + rhsVal;
+    } else if (this.operator === "-") {
+      return lhsVal - rhsVal;
+    } else if (this.operator === "*") {
+      return lhsVal * rhsVal;
+    } else if (this.operator === "/") {
+      return lhsVal / rhsVal;
+    } else if (this.operator === "mod") {
+      return lhsVal % rhsVal;
+    }
+  }
+  /**
+   * Evaluate math operation
+   * @param {Context} context
+   * @returns {number}
+   */
+  evaluate(context2) {
+    return context2.meta.runtime.unifiedEval(this, context2);
+  }
+};
+var MathExpression = class {
+  /**
+   * Parse math expression (dispatcher)
+   * @param {ParserHelper} helper
+   * @returns {any}
+   */
+  static parse(helper) {
+    return helper.parseAnyOf(["mathOperator", "unaryExpression"]);
+  }
+};
+var ComparisonOperator = class _ComparisonOperator {
+  constructor(lhs, operator, rhs, typeName, nullOk) {
+    this.type = "comparisonOperator";
+    this.operator = operator;
+    this.typeName = typeName;
+    this.nullOk = nullOk;
+    this.lhs = lhs;
+    this.rhs = rhs;
+    this.args = [lhs, rhs];
+  }
+  /**
+   * Parse comparison operator expression
+   * @param {ParserHelper} helper
+   * @returns {any}
+   */
+  static parse(helper) {
+    var expr = helper.parseElement("mathExpression");
+    var comparisonToken = helper.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==");
+    var operator = comparisonToken ? comparisonToken.value : null;
+    var hasRightValue = true;
+    var typeCheck = false;
+    if (operator == null) {
+      if (helper.matchToken("is") || helper.matchToken("am")) {
+        if (helper.matchToken("not")) {
+          if (helper.matchToken("in")) {
+            operator = "not in";
+          } else if (helper.matchToken("a") || helper.matchToken("an")) {
+            operator = "not a";
+            typeCheck = true;
+          } else if (helper.matchToken("empty")) {
+            operator = "not empty";
+            hasRightValue = false;
+          } else {
+            if (helper.matchToken("really")) {
+              operator = "!==";
+            } else {
+              operator = "!=";
+            }
+            if (helper.matchToken("equal")) {
+              helper.matchToken("to");
+            }
+          }
+        } else if (helper.matchToken("in")) {
+          operator = "in";
+        } else if (helper.matchToken("a") || helper.matchToken("an")) {
+          operator = "a";
+          typeCheck = true;
+        } else if (helper.matchToken("empty")) {
+          operator = "empty";
+          hasRightValue = false;
+        } else if (helper.matchToken("less")) {
+          helper.requireToken("than");
+          if (helper.matchToken("or")) {
+            helper.requireToken("equal");
+            helper.requireToken("to");
+            operator = "<=";
+          } else {
+            operator = "<";
+          }
+        } else if (helper.matchToken("greater")) {
+          helper.requireToken("than");
+          if (helper.matchToken("or")) {
+            helper.requireToken("equal");
+            helper.requireToken("to");
+            operator = ">=";
+          } else {
+            operator = ">";
+          }
+        } else {
+          if (helper.matchToken("really")) {
+            operator = "===";
+          } else {
+            operator = "==";
+          }
+          if (helper.matchToken("equal")) {
+            helper.matchToken("to");
+          }
+        }
+      } else if (helper.matchToken("equals")) {
+        operator = "==";
+      } else if (helper.matchToken("really")) {
+        helper.requireToken("equals");
+        operator = "===";
+      } else if (helper.matchToken("exist") || helper.matchToken("exists")) {
+        operator = "exist";
+        hasRightValue = false;
+      } else if (helper.matchToken("matches") || helper.matchToken("match")) {
+        operator = "match";
+      } else if (helper.matchToken("contains") || helper.matchToken("contain")) {
+        operator = "contain";
+      } else if (helper.matchToken("includes") || helper.matchToken("include")) {
+        operator = "include";
+      } else if (helper.matchToken("do") || helper.matchToken("does")) {
+        helper.requireToken("not");
+        if (helper.matchToken("matches") || helper.matchToken("match")) {
+          operator = "not match";
+        } else if (helper.matchToken("contains") || helper.matchToken("contain")) {
+          operator = "not contain";
+        } else if (helper.matchToken("exist") || helper.matchToken("exist")) {
+          operator = "not exist";
+          hasRightValue = false;
+        } else if (helper.matchToken("include")) {
+          operator = "not include";
+        } else {
+          helper.raiseParseError("Expected matches or contains");
+        }
+      }
+    }
+    if (operator) {
+      var typeName, nullOk, rhs;
+      if (typeCheck) {
+        typeName = helper.requireTokenType("IDENTIFIER");
+        nullOk = !helper.matchOpToken("!");
+      } else if (hasRightValue) {
+        rhs = helper.requireElement("mathExpression");
+        if (operator === "match" || operator === "not match") {
+          rhs = rhs.css ? rhs.css : rhs;
+        }
+      }
+      var lhs = expr;
+      expr = new _ComparisonOperator(lhs, operator, rhs, typeName, nullOk);
+    }
+    return expr;
+  }
+  /**
+   * Op function for comparison operations
+   */
+  op(context2, lhsVal, rhsVal) {
+    const operator = this.operator;
+    const lhs = this.lhs;
+    const rhs = this.rhs;
+    const typeName = this.typeName;
+    const nullOk = this.nullOk;
+    if (operator === "==") {
+      return lhsVal == rhsVal;
+    } else if (operator === "!=") {
+      return lhsVal != rhsVal;
+    }
+    if (operator === "===") {
+      return lhsVal === rhsVal;
+    } else if (operator === "!==") {
+      return lhsVal !== rhsVal;
+    }
+    if (operator === "match") {
+      return lhsVal != null && sloppyMatches(lhs, lhsVal, rhsVal);
+    }
+    if (operator === "not match") {
+      return lhsVal == null || !sloppyMatches(lhs, lhsVal, rhsVal);
+    }
+    if (operator === "in") {
+      return rhsVal != null && sloppyContains(rhs, rhsVal, lhsVal);
+    }
+    if (operator === "not in") {
+      return rhsVal == null || !sloppyContains(rhs, rhsVal, lhsVal);
+    }
+    if (operator === "contain") {
+      return lhsVal != null && sloppyContains(lhs, lhsVal, rhsVal);
+    }
+    if (operator === "not contain") {
+      return lhsVal == null || !sloppyContains(lhs, lhsVal, rhsVal);
+    }
+    if (operator === "include") {
+      return lhsVal != null && sloppyContains(lhs, lhsVal, rhsVal);
+    }
+    if (operator === "not include") {
+      return lhsVal == null || !sloppyContains(lhs, lhsVal, rhsVal);
+    }
+    if (operator === "<") {
+      return lhsVal < rhsVal;
+    } else if (operator === ">") {
+      return lhsVal > rhsVal;
+    } else if (operator === "<=") {
+      return lhsVal <= rhsVal;
+    } else if (operator === ">=") {
+      return lhsVal >= rhsVal;
+    } else if (operator === "empty") {
+      return context2.meta.runtime.isEmpty(lhsVal);
+    } else if (operator === "not empty") {
+      return !context2.meta.runtime.isEmpty(lhsVal);
+    } else if (operator === "exist") {
+      return context2.meta.runtime.doesExist(lhsVal);
+    } else if (operator === "not exist") {
+      return !context2.meta.runtime.doesExist(lhsVal);
+    } else if (operator === "a") {
+      return context2.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
+    } else if (operator === "not a") {
+      return !context2.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
+    } else {
+      throw "Unknown comparison : " + operator;
+    }
+  }
+  /**
+   * Evaluate comparison
+   * @param {Context} context
+   * @returns {boolean}
+   */
+  evaluate(context2) {
+    return context2.meta.runtime.unifiedEval(this, context2);
+  }
+};
+var ComparisonExpression = class {
+  /**
+   * Parse comparison expression (dispatcher)
+   * @param {ParserHelper} helper
+   * @returns {any}
+   */
+  static parse(helper) {
+    return helper.parseAnyOf(["comparisonOperator", "mathExpression"]);
+  }
+};
+var LogicalOperator = class _LogicalOperator {
+  constructor(lhs, operator, rhs) {
+    this.type = "logicalOperator";
+    this.operator = operator;
+    this.lhs = lhs;
+    this.rhs = rhs;
+    this.args = [lhs, rhs];
+  }
+  /**
+   * Parse logical operator expression
+   * @param {ParserHelper} helper
+   * @returns {any}
+   */
+  static parse(helper) {
+    var expr = helper.parseElement("comparisonExpression");
+    var logicalOp, initialLogicalOp = null;
+    logicalOp = helper.matchToken("and") || helper.matchToken("or");
+    while (logicalOp) {
+      initialLogicalOp = initialLogicalOp || logicalOp;
+      if (initialLogicalOp.value !== logicalOp.value) {
+        helper.raiseParseError("You must parenthesize logical operations with different operators");
+      }
+      var rhs = helper.requireElement("comparisonExpression");
+      const operator = logicalOp.value;
+      expr = new _LogicalOperator(expr, operator, rhs);
+      logicalOp = helper.matchToken("and") || helper.matchToken("or");
+    }
+    return expr;
+  }
+  /**
+   * Op function for logical operations
+   */
+  op(context2, lhsVal, rhsVal) {
+    if (this.operator === "and") {
+      return lhsVal && rhsVal;
+    } else {
+      return lhsVal || rhsVal;
+    }
+  }
+  /**
+   * Evaluate logical operation
+   * @param {Context} context
+   * @returns {boolean}
+   */
+  evaluate(context2) {
+    return context2.meta.runtime.unifiedEval(this, context2, this.operator === "or");
+  }
+};
+var LogicalExpression = class {
+  /**
+   * Parse logical expression (dispatcher)
+   * @param {ParserHelper} helper
+   * @returns {any}
+   */
+  static parse(helper) {
+    return helper.parseAnyOf(["logicalOperator", "mathExpression"]);
+  }
+};
+var AsyncExpression = class _AsyncExpression {
+  constructor(value) {
+    this.type = "asyncExpression";
+    this.value = value;
+  }
+  /**
+   * Parse async expression (dispatcher with optional async keyword)
+   * @param {ParserHelper} helper
+   * @returns {AsyncExpression | any}
+   */
+  static parse(helper) {
+    if (helper.matchToken("async")) {
+      var value = helper.requireElement("logicalExpression");
+      return new _AsyncExpression(value);
+    } else {
+      return helper.parseElement("logicalExpression");
+    }
+  }
+  /**
+   * Evaluate async expression (wraps result in async marker)
+   * @param {Context} context
+   * @returns {{asyncWrapper: boolean, value: any}}
+   */
+  evaluate(context2) {
+    return {
+      asyncWrapper: true,
+      value: this.value.evaluate(context2)
+      //OK
+    };
+  }
+};
 
-// src/parsetree/literals.js
+// src/parsetree/expressions/literals.js
 var NakedString = class _NakedString {
   constructor(tokens) {
     this.type = "nakedString";
@@ -3099,7 +3969,7 @@ var NamedArgumentList = class _NamedArgumentList {
   }
 };
 
-// src/parsetree/targets.js
+// src/parsetree/expressions/targets.js
 var ImplicitMeTarget = class _ImplicitMeTarget {
   constructor() {
     this.type = "implicitMeTarget";
@@ -3122,7 +3992,7 @@ var ImplicitMeTarget = class _ImplicitMeTarget {
   }
 };
 
-// src/parsetree/existentials.js
+// src/parsetree/expressions/existentials.js
 var NoExpression = class _NoExpression {
   constructor(root) {
     this.type = "noExpression";
@@ -3186,6 +4056,821 @@ var SomeExpression = class _SomeExpression {
   }
 };
 
+// src/parsetree/expressions/positional.js
+function scanForwardQuery(start, root, match, wrap) {
+  var results = root.querySelectorAll(match);
+  for (var i = 0; i < results.length; i++) {
+    var elt = results[i];
+    if (elt.compareDocumentPosition(start) === Node.DOCUMENT_POSITION_PRECEDING) {
+      return elt;
+    }
+  }
+  if (wrap) {
+    return results[0];
+  }
+}
+function scanBackwardsQuery(start, root, match, wrap) {
+  var results = root.querySelectorAll(match);
+  for (var i = results.length - 1; i >= 0; i--) {
+    var elt = results[i];
+    if (elt.compareDocumentPosition(start) === Node.DOCUMENT_POSITION_FOLLOWING) {
+      return elt;
+    }
+  }
+  if (wrap) {
+    return results[results.length - 1];
+  }
+}
+function scanForwardArray(start, array, match, wrap) {
+  var matches = [];
+  for (var elt of array) {
+    if (elt.matches(match) || elt === start) {
+      matches.push(elt);
+    }
+  }
+  for (var i = 0; i < matches.length - 1; i++) {
+    var elt = matches[i];
+    if (elt === start) {
+      return matches[i + 1];
+    }
+  }
+  if (wrap) {
+    var first = matches[0];
+    if (first && first.matches(match)) {
+      return first;
+    }
+  }
+}
+function scanBackwardsArray(start, array, match, wrap) {
+  return scanForwardArray(start, Array.from(array).reverse(), match, wrap);
+}
+var RelativePositionalExpression = class _RelativePositionalExpression {
+  constructor(thingElt, from, forwardSearch, inSearch, wrapping, inElt, withinElt, operator) {
+    this.type = "relativePositionalExpression";
+    this.thingElt = thingElt;
+    this.from = from;
+    this.forwardSearch = forwardSearch;
+    this.inSearch = inSearch;
+    this.wrapping = wrapping;
+    this.inElt = inElt;
+    this.withinElt = withinElt;
+    this.operator = operator;
+    this.args = [thingElt, from, inElt, withinElt];
+  }
+  /**
+   * Parse a relative positional expression
+   * @param {ParserHelper} helper
+   * @returns {RelativePositionalExpression | undefined}
+   */
+  static parse(helper) {
+    var op = helper.matchAnyToken("next", "previous");
+    if (!op) return;
+    var forwardSearch = op.value === "next";
+    var thingElt = helper.parseElement("expression");
+    if (helper.matchToken("from")) {
+      helper.pushFollow("in");
+      try {
+        var from = helper.requireElement("unaryExpression");
+      } finally {
+        helper.popFollow();
+      }
+    } else {
+      var from = helper.requireElement("implicitMeTarget");
+    }
+    var inSearch = false;
+    var withinElt;
+    if (helper.matchToken("in")) {
+      inSearch = true;
+      var inElt = helper.requireElement("unaryExpression");
+    } else if (helper.matchToken("within")) {
+      withinElt = helper.requireElement("unaryExpression");
+    } else {
+      withinElt = document.body;
+    }
+    var wrapping = false;
+    if (helper.matchToken("with")) {
+      helper.requireToken("wrapping");
+      wrapping = true;
+    }
+    return new _RelativePositionalExpression(
+      thingElt,
+      from,
+      forwardSearch,
+      inSearch,
+      wrapping,
+      inElt,
+      withinElt,
+      op.value
+    );
+  }
+  /**
+   * Op function for relative positional
+   */
+  op(context2, thing, from, inElt, withinElt) {
+    var css = thing.css;
+    if (css == null) {
+      throw "Expected a CSS value to be returned by " + Tokens.sourceFor.apply(this.thingElt);
+    }
+    if (this.inSearch) {
+      if (inElt) {
+        if (this.forwardSearch) {
+          return scanForwardArray(from, inElt, css, this.wrapping);
+        } else {
+          return scanBackwardsArray(from, inElt, css, this.wrapping);
+        }
+      }
+    } else {
+      if (withinElt) {
+        if (this.forwardSearch) {
+          return scanForwardQuery(from, withinElt, css, this.wrapping);
+        } else {
+          return scanBackwardsQuery(from, withinElt, css, this.wrapping);
+        }
+      }
+    }
+  }
+  /**
+   * Evaluate relative positional expression
+   * @param {Context} context
+   * @returns {Element}
+   */
+  evaluate(context2) {
+    return context2.meta.runtime.unifiedEval(this, context2);
+  }
+};
+var PositionalExpression = class _PositionalExpression {
+  constructor(rhs, operator) {
+    this.type = "positionalExpression";
+    this.rhs = rhs;
+    this.operator = operator;
+    this.args = [rhs];
+  }
+  /**
+   * Parse a positional expression
+   * @param {ParserHelper} helper
+   * @returns {PositionalExpression | undefined}
+   */
+  static parse(helper) {
+    var op = helper.matchAnyToken("first", "last", "random");
+    if (!op) return;
+    helper.matchAnyToken("in", "from", "of");
+    var rhs = helper.requireElement("unaryExpression");
+    return new _PositionalExpression(rhs, op.value);
+  }
+  /**
+   * Op function for positional
+   */
+  op(context2, rhsVal) {
+    if (rhsVal && !Array.isArray(rhsVal)) {
+      if (rhsVal.children) {
+        rhsVal = rhsVal.children;
+      } else {
+        rhsVal = Array.from(rhsVal);
+      }
+    }
+    if (rhsVal) {
+      if (this.operator === "first") {
+        return rhsVal[0];
+      } else if (this.operator === "last") {
+        return rhsVal[rhsVal.length - 1];
+      } else if (this.operator === "random") {
+        return rhsVal[Math.floor(Math.random() * rhsVal.length)];
+      }
+    }
+  }
+  /**
+   * Evaluate positional expression
+   * @param {Context} context
+   * @returns {any}
+   */
+  evaluate(context2) {
+    return context2.meta.runtime.unifiedEval(this, context2);
+  }
+};
+var ClosestExpr = class {
+  /**
+   * Parse a closest expression
+   * @param {ParserHelper} helper
+   * @returns {any | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchToken("closest")) return;
+    var parentSearch = false;
+    if (helper.matchToken("parent")) {
+      parentSearch = true;
+    }
+    var css = null;
+    var attributeRef = null;
+    if (helper.currentToken().type === "ATTRIBUTE_REF") {
+      attributeRef = helper.requireElement("attributeRefAccess", null);
+      css = "[" + attributeRef.attribute.name + "]";
+    }
+    if (css == null) {
+      var expr = helper.requireElement("expression");
+      if (expr.css == null) {
+        helper.raiseParseError("Expected a CSS expression");
+      } else {
+        css = expr.css;
+      }
+    }
+    if (helper.matchToken("to")) {
+      var to = helper.parseElement("expression");
+    } else {
+      var to = helper.parseElement("implicitMeTarget");
+    }
+    var closestExpr = {
+      type: "closestExpr",
+      parentSearch,
+      expr,
+      css,
+      to,
+      args: [to],
+      op: function(ctx, to2) {
+        if (to2 == null) {
+          return null;
+        } else {
+          let result = [];
+          ctx.meta.runtime.implicitLoop(to2, function(to3) {
+            if (parentSearch) {
+              result.push(to3.parentElement ? to3.parentElement.closest(css) : null);
+            } else {
+              result.push(to3.closest(css));
+            }
+          });
+          if (ctx.meta.runtime.shouldAutoIterate(to2)) {
+            return result;
+          } else {
+            return result[0];
+          }
+        }
+      },
+      evaluate: function(ctx) {
+        return ctx.meta.runtime.unifiedEval(this, ctx);
+      }
+    };
+    if (attributeRef) {
+      attributeRef.root = closestExpr;
+      attributeRef.args = [closestExpr];
+      return attributeRef;
+    } else {
+      return closestExpr;
+    }
+  }
+};
+
+// src/parsetree/commands/basic.js
+var LogCommand = class _LogCommand {
+  constructor(exprs, withExpr) {
+    this.exprs = exprs;
+    this.withExpr = withExpr;
+    this.args = [withExpr, exprs];
+  }
+  /**
+   * Parse log command
+   * @param {ParserHelper} helper
+   * @returns {LogCommand | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchToken("log")) return;
+    var exprs = [helper.parseElement("expression")];
+    while (helper.matchOpToken(",")) {
+      exprs.push(helper.requireElement("expression"));
+    }
+    if (helper.matchToken("with")) {
+      var withExpr = helper.requireElement("expression");
+    }
+    return new _LogCommand(exprs, withExpr);
+  }
+  /**
+   * Execute log command
+   */
+  op(ctx, withExpr, values) {
+    if (withExpr) {
+      withExpr.apply(null, values);
+    } else {
+      console.log.apply(null, values);
+    }
+    return ctx.meta.runtime.findNext(this, ctx);
+  }
+};
+var BeepCommand = class _BeepCommand {
+  constructor(exprs) {
+    this.exprs = exprs;
+    this.args = [exprs];
+  }
+  /**
+   * Parse beep command
+   * @param {ParserHelper} helper
+   * @returns {BeepCommand | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchToken("beep!")) return;
+    var exprs = [helper.parseElement("expression")];
+    while (helper.matchOpToken(",")) {
+      exprs.push(helper.requireElement("expression"));
+    }
+    return new _BeepCommand(exprs);
+  }
+  /**
+   * Execute beep command
+   */
+  op(ctx, values) {
+    for (let i = 0; i < this.exprs.length; i++) {
+      const expr = this.exprs[i];
+      const val = values[i];
+      ctx.meta.runtime.beepValueToConsole(ctx.me, expr, val);
+    }
+    return ctx.meta.runtime.findNext(this, ctx);
+  }
+};
+var ThrowCommand = class _ThrowCommand {
+  constructor(expr) {
+    this.expr = expr;
+    this.args = [expr];
+  }
+  /**
+   * Parse throw command
+   * @param {ParserHelper} helper
+   * @returns {ThrowCommand | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchToken("throw")) return;
+    var expr = helper.requireElement("expression");
+    return new _ThrowCommand(expr);
+  }
+  /**
+   * Execute throw command
+   */
+  op(ctx, expr) {
+    ctx.meta.runtime.registerHyperTrace(ctx, expr);
+    throw expr;
+  }
+};
+var ReturnCommand = class _ReturnCommand {
+  constructor(value) {
+    this.value = value;
+    this.args = [value];
+  }
+  /**
+   * Parse return command
+   * @param {ParserHelper} helper
+   * @returns {ReturnCommand | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchToken("return")) return;
+    if (helper.commandBoundary(helper.currentToken())) {
+      helper.raiseParseError("'return' commands must return a value.  If you do not wish to return a value, use 'exit' instead.");
+    } else {
+      var value = helper.requireElement("expression");
+    }
+    return new _ReturnCommand(value);
+  }
+  /**
+   * Execute return command
+   */
+  op(context2, value) {
+    var resolve = context2.meta.resolve;
+    context2.meta.returned = true;
+    context2.meta.returnValue = value;
+    if (resolve) {
+      if (value) {
+        resolve(value);
+      } else {
+        resolve();
+      }
+    }
+    return context2.meta.runtime.HALT;
+  }
+};
+var ExitCommand = class _ExitCommand {
+  constructor() {
+    this.args = [void 0];
+  }
+  /**
+   * Parse exit command
+   * @param {ParserHelper} helper
+   * @returns {ExitCommand | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchToken("exit")) return;
+    return new _ExitCommand();
+  }
+  /**
+   * Execute exit command
+   */
+  op(context2, value) {
+    var resolve = context2.meta.resolve;
+    context2.meta.returned = true;
+    context2.meta.returnValue = value;
+    if (resolve) {
+      if (value) {
+        resolve(value);
+      } else {
+        resolve();
+      }
+    }
+    return context2.meta.runtime.HALT;
+  }
+};
+var HaltCommand = class _HaltCommand {
+  constructor(bubbling, haltDefault, keepExecuting, exit) {
+    this.keepExecuting = keepExecuting;
+    this.bubbling = bubbling;
+    this.haltDefault = haltDefault;
+    this.exit = exit;
+  }
+  /**
+   * Parse halt command
+   * @param {ParserHelper} helper
+   * @returns {HaltCommand | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchToken("halt")) return;
+    if (helper.matchToken("the")) {
+      helper.requireToken("event");
+      if (helper.matchOpToken("'")) {
+        helper.requireToken("s");
+      }
+      var keepExecuting = true;
+    }
+    if (helper.matchToken("bubbling")) {
+      var bubbling = true;
+    } else if (helper.matchToken("default")) {
+      var haltDefault = true;
+    }
+    var exit = {
+      args: [void 0],
+      op: function(context2, value) {
+        var resolve = context2.meta.resolve;
+        context2.meta.returned = true;
+        context2.meta.returnValue = value;
+        if (resolve) {
+          if (value) {
+            resolve(value);
+          } else {
+            resolve();
+          }
+        }
+        return context2.meta.runtime.HALT;
+      }
+    };
+    return new _HaltCommand(bubbling, haltDefault, keepExecuting, exit);
+  }
+  /**
+   * Execute halt command
+   */
+  op(ctx) {
+    if (ctx.event) {
+      if (this.bubbling) {
+        ctx.event.stopPropagation();
+      } else if (this.haltDefault) {
+        ctx.event.preventDefault();
+      } else {
+        ctx.event.stopPropagation();
+        ctx.event.preventDefault();
+      }
+      if (this.keepExecuting) {
+        return ctx.meta.runtime.findNext(this, ctx);
+      } else {
+        return this.exit;
+      }
+    }
+  }
+};
+
+// src/parsetree/commands/setters.js
+function putInto(context2, root, prop, valueToPut, parser) {
+  if (root == null) {
+    var value = context2.meta.runtime.resolveSymbol(prop, context2);
+  } else {
+    var value = root;
+  }
+  if (value instanceof Element || value instanceof HTMLDocument) {
+    while (value.firstChild) value.removeChild(value.firstChild);
+    value.append(parser.runtime.convertValue(valueToPut, "Fragment"));
+    context2.meta.runtime.processNode(value);
+  } else {
+    if (root == null) {
+      context2.meta.runtime.setSymbol(prop, context2, null, valueToPut);
+    } else {
+      root[prop] = valueToPut;
+    }
+  }
+}
+var SetterCommand = class {
+  /**
+   * Create a setter operation for a target
+   * @param {*} helper - Parser helper
+   * @param {*} target - Target expression to set
+   * @param {*} value - Value expression to assign
+   * @returns Setter command object
+   */
+  static makeSetter(helper, target, value) {
+    var symbolWrite = target.type === "symbol";
+    var attributeWrite = target.type === "attributeRef";
+    var styleWrite = target.type === "styleRef";
+    var arrayWrite = target.type === "arrayIndex";
+    if (!(attributeWrite || styleWrite || symbolWrite) && target.root == null) {
+      helper.raiseParseError("Can only put directly into symbols, not references");
+    }
+    var rootElt = null;
+    var prop = null;
+    if (symbolWrite) {
+    } else if (attributeWrite || styleWrite) {
+      rootElt = helper.requireElement("implicitMeTarget");
+      var attribute = target;
+    } else if (arrayWrite) {
+      prop = target.firstIndex;
+      rootElt = target.root;
+    } else {
+      prop = target.prop ? target.prop.value : null;
+      var attribute = target.attribute;
+      rootElt = target.root;
+    }
+    var setCmd = {
+      target,
+      symbolWrite,
+      value,
+      args: [rootElt, prop, value],
+      op: function(context2, root, prop2, valueToSet) {
+        if (symbolWrite) {
+          context2.meta.runtime.setSymbol(target.name, context2, target.scope, valueToSet);
+        } else {
+          context2.meta.runtime.nullCheck(root, rootElt);
+          if (arrayWrite) {
+            root[prop2] = valueToSet;
+          } else {
+            context2.meta.runtime.implicitLoop(root, function(elt) {
+              if (attribute) {
+                if (attribute.type === "attributeRef") {
+                  if (valueToSet == null) {
+                    elt.removeAttribute(attribute.name);
+                  } else {
+                    elt.setAttribute(attribute.name, valueToSet);
+                  }
+                } else {
+                  elt.style[attribute.name] = valueToSet;
+                }
+              } else {
+                elt[prop2] = valueToSet;
+              }
+            });
+          }
+        }
+        return context2.meta.runtime.findNext(this, context2);
+      }
+    };
+    return setCmd;
+  }
+};
+var SetCommand = class _SetCommand extends SetterCommand {
+  constructor(target, value, objectLiteral) {
+    super();
+    this.target = target;
+    this.value = value;
+    this.objectLiteral = objectLiteral;
+    if (objectLiteral) {
+      this.args = [objectLiteral, target];
+    } else {
+    }
+  }
+  /**
+   * Parse set command
+   * @param {ParserHelper} helper
+   * @returns {SetCommand | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchToken("set")) return;
+    if (helper.currentToken().type === "L_BRACE") {
+      var obj = helper.requireElement("objectLiteral");
+      helper.requireToken("on");
+      var target = helper.requireElement("expression");
+      var command = new _SetCommand(target, null, obj);
+      command.op = function(ctx, obj2, target2) {
+        Object.assign(target2, obj2);
+        return ctx.meta.runtime.findNext(this, ctx);
+      };
+      return command;
+    }
+    try {
+      helper.pushFollow("to");
+      var target = helper.requireElement("assignableExpression");
+    } finally {
+      helper.popFollow();
+    }
+    helper.requireToken("to");
+    var value = helper.requireElement("expression");
+    return _SetCommand.makeSetter(helper, target, value);
+  }
+};
+var DefaultCommand = class _DefaultCommand extends SetterCommand {
+  constructor(target, value, setter) {
+    super();
+    this.target = target;
+    this.value = value;
+    this.setter = setter;
+    this.args = [target];
+  }
+  /**
+   * Parse default command
+   * @param {ParserHelper} helper
+   * @returns {DefaultCommand | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchToken("default")) return;
+    var target = helper.requireElement("assignableExpression");
+    helper.requireToken("to");
+    var value = helper.requireElement("expression");
+    var setter = SetCommand.makeSetter(helper, target, value);
+    var defaultCmd = new _DefaultCommand(target, value, setter);
+    defaultCmd.op = function(context2, target2) {
+      if (target2) {
+        return context2.meta.runtime.findNext(this, context2);
+      } else {
+        return setter;
+      }
+    };
+    setter.parent = defaultCmd;
+    return defaultCmd;
+  }
+};
+var IncrementCommand = class extends SetterCommand {
+  constructor(target, amountExpr) {
+    super();
+    this.target = target;
+    this.amountExpr = amountExpr;
+  }
+  /**
+   * Parse increment command
+   * @param {ParserHelper} helper
+   * @returns {IncrementCommand | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchToken("increment")) return;
+    var amountExpr;
+    var target = helper.parseElement("assignableExpression");
+    if (helper.matchToken("by")) {
+      amountExpr = helper.requireElement("expression");
+    }
+    var implicitIncrementOp = {
+      type: "implicitIncrementOp",
+      target,
+      args: [target, amountExpr],
+      op: function(context2, targetValue, amount) {
+        targetValue = targetValue ? parseFloat(targetValue) : 0;
+        amount = amountExpr ? parseFloat(amount) : 1;
+        var newValue = targetValue + amount;
+        context2.result = newValue;
+        return newValue;
+      },
+      evaluate: function(context2) {
+        return context2.meta.runtime.unifiedEval(this, context2);
+      }
+    };
+    return SetCommand.makeSetter(helper, target, implicitIncrementOp);
+  }
+};
+var DecrementCommand = class extends SetterCommand {
+  constructor(target, amountExpr) {
+    super();
+    this.target = target;
+    this.amountExpr = amountExpr;
+  }
+  /**
+   * Parse decrement command
+   * @param {ParserHelper} helper
+   * @returns {DecrementCommand | undefined}
+   */
+  static parse(helper) {
+    if (!helper.matchToken("decrement")) return;
+    var amountExpr;
+    var target = helper.parseElement("assignableExpression");
+    if (helper.matchToken("by")) {
+      amountExpr = helper.requireElement("expression");
+    }
+    var implicitDecrementOp = {
+      type: "implicitDecrementOp",
+      target,
+      args: [target, amountExpr],
+      op: function(context2, targetValue, amount) {
+        targetValue = targetValue ? parseFloat(targetValue) : 0;
+        amount = amountExpr ? parseFloat(amount) : 1;
+        var newValue = targetValue - amount;
+        context2.result = newValue;
+        return newValue;
+      },
+      evaluate: function(context2) {
+        return context2.meta.runtime.unifiedEval(this, context2);
+      }
+    };
+    return SetCommand.makeSetter(helper, target, implicitDecrementOp);
+  }
+};
+var PutCommand = class extends SetterCommand {
+  constructor(value, target, operation) {
+    super();
+    this.value = value;
+    this.target = target;
+    this.operation = operation;
+  }
+  /**
+   * Parse put command
+   * @param {ParserHelper} helper
+   * @returns {PutCommand | undefined}
+   */
+  static parse(helper, parser) {
+    if (!helper.matchToken("put")) return;
+    var value = helper.requireElement("expression");
+    var operationToken = helper.matchAnyToken("into", "before", "after");
+    if (operationToken == null && helper.matchToken("at")) {
+      helper.matchToken("the");
+      operationToken = helper.matchAnyToken("start", "end");
+      helper.requireToken("of");
+    }
+    if (operationToken == null) {
+      helper.raiseParseError("Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
+    }
+    var target = helper.requireElement("expression");
+    var operation = operationToken.value;
+    var arrayIndex = false;
+    var symbolWrite = false;
+    var rootExpr = null;
+    var prop = null;
+    if (target.type === "arrayIndex" && operation === "into") {
+      arrayIndex = true;
+      prop = target.prop;
+      rootExpr = target.root;
+    } else if (target.prop && target.root && operation === "into") {
+      prop = target.prop.value;
+      rootExpr = target.root;
+    } else if (target.type === "symbol" && operation === "into") {
+      symbolWrite = true;
+      prop = target.name;
+    } else if (target.type === "attributeRef" && operation === "into") {
+      var attributeWrite = true;
+      prop = target.name;
+      rootExpr = helper.requireElement("implicitMeTarget");
+    } else if (target.type === "styleRef" && operation === "into") {
+      var styleWrite = true;
+      prop = target.name;
+      rootExpr = helper.requireElement("implicitMeTarget");
+    } else if (target.attribute && operation === "into") {
+      var attributeWrite = target.attribute.type === "attributeRef";
+      var styleWrite = target.attribute.type === "styleRef";
+      prop = target.attribute.name;
+      rootExpr = target.root;
+    } else {
+      rootExpr = target;
+    }
+    var putCmd = {
+      target,
+      operation,
+      symbolWrite,
+      value,
+      args: [rootExpr, prop, value],
+      op: function(context2, root, prop2, valueToPut) {
+        if (symbolWrite) {
+          putInto(context2, root, prop2, valueToPut, parser);
+        } else {
+          context2.meta.runtime.nullCheck(root, rootExpr);
+          if (operation === "into") {
+            if (attributeWrite) {
+              context2.meta.runtime.implicitLoop(root, function(elt) {
+                elt.setAttribute(prop2, valueToPut);
+              });
+            } else if (styleWrite) {
+              context2.meta.runtime.implicitLoop(root, function(elt) {
+                elt.style[prop2] = valueToPut;
+              });
+            } else if (arrayIndex) {
+              root[prop2] = valueToPut;
+            } else {
+              context2.meta.runtime.implicitLoop(root, function(elt) {
+                putInto(context2, elt, prop2, valueToPut, parser);
+              });
+            }
+          } else {
+            var op = operation === "before" ? Element.prototype.before : operation === "after" ? Element.prototype.after : operation === "start" ? Element.prototype.prepend : operation === "end" ? Element.prototype.append : Element.prototype.append;
+            context2.meta.runtime.implicitLoop(root, function(elt) {
+              op.call(
+                elt,
+                valueToPut instanceof Node ? valueToPut : context2.meta.runtime.convertValue(valueToPut, "Fragment")
+              );
+              if (elt.parentElement) {
+                context2.meta.runtime.processNode(elt.parentElement);
+              } else {
+                context2.meta.runtime.processNode(elt);
+              }
+            });
+          }
+        }
+        return context2.meta.runtime.findNext(this, context2);
+      }
+    };
+    return putCmd;
+  }
+};
+
 // src/grammars/core.js
 function hyperscriptCoreGrammar(parser) {
   parser.addLeafExpression("parenthesized", ParenthesizedExpression.parse);
@@ -3207,304 +4892,14 @@ function hyperscriptCoreGrammar(parser) {
   parser.addLeafExpression("null", NullLiteral.parse);
   parser.addLeafExpression("arrayLiteral", ArrayLiteral.parse);
   parser.addLeafExpression("blockLiteral", BlockLiteral.parse);
-  parser.addIndirectExpression("propertyAccess", function(helper, root) {
-    if (!helper.matchOpToken(".")) return;
-    var prop = helper.requireTokenType("IDENTIFIER");
-    var propertyAccess = {
-      type: "propertyAccess",
-      root,
-      prop,
-      args: [root],
-      op: function(context2, rootVal) {
-        var value = context2.meta.runtime.resolveProperty(rootVal, prop.value);
-        return value;
-      },
-      evaluate: function(context2) {
-        return context2.meta.runtime.unifiedEval(this, context2);
-      }
-    };
-    return helper.parser.parseElement("indirectExpression", helper.tokens, propertyAccess);
-  });
-  parser.addIndirectExpression("of", function(helper, root) {
-    if (!helper.matchToken("of")) return;
-    var newRoot = helper.requireElement("unaryExpression");
-    var childOfUrRoot = null;
-    var urRoot = root;
-    while (urRoot.root) {
-      childOfUrRoot = urRoot;
-      urRoot = urRoot.root;
-    }
-    if (urRoot.type !== "symbol" && urRoot.type !== "attributeRef" && urRoot.type !== "styleRef" && urRoot.type !== "computedStyleRef") {
-      helper.raiseParseError("Cannot take a property of a non-symbol: " + urRoot.type);
-    }
-    var attribute = urRoot.type === "attributeRef";
-    var style = urRoot.type === "styleRef" || urRoot.type === "computedStyleRef";
-    if (attribute || style) {
-      var attributeElt = urRoot;
-    }
-    var prop = urRoot.name;
-    var propertyAccess = {
-      type: "ofExpression",
-      prop: urRoot.token,
-      root: newRoot,
-      attribute: attributeElt,
-      expression: root,
-      args: [newRoot],
-      op: function(context2, rootVal) {
-        if (attribute) {
-          return context2.meta.runtime.resolveAttribute(rootVal, prop);
-        } else if (style) {
-          if (urRoot.type === "computedStyleRef") {
-            return context2.meta.runtime.resolveComputedStyle(rootVal, prop);
-          } else {
-            return context2.meta.runtime.resolveStyle(rootVal, prop);
-          }
-        } else {
-          return context2.meta.runtime.resolveProperty(rootVal, prop);
-        }
-      },
-      evaluate: function(context2) {
-        return context2.meta.runtime.unifiedEval(this, context2);
-      }
-    };
-    if (urRoot.type === "attributeRef") {
-      propertyAccess.attribute = urRoot;
-    }
-    if (childOfUrRoot) {
-      childOfUrRoot.root = propertyAccess;
-      childOfUrRoot.args = [propertyAccess];
-    } else {
-      root = propertyAccess;
-    }
-    return helper.parser.parseElement("indirectExpression", helper.tokens, root);
-  });
-  parser.addIndirectExpression("possessive", function(helper, root) {
-    if (helper.possessivesDisabled) {
-      return;
-    }
-    var apostrophe = helper.matchOpToken("'");
-    if (apostrophe || root.type === "symbol" && (root.name === "my" || root.name === "its" || root.name === "your") && (helper.currentToken().type === "IDENTIFIER" || helper.currentToken().type === "ATTRIBUTE_REF" || helper.currentToken().type === "STYLE_REF")) {
-      if (apostrophe) {
-        helper.requireToken("s");
-      }
-      var attribute, style, prop;
-      attribute = helper.parseElement("attributeRef");
-      if (attribute == null) {
-        style = helper.parseElement("styleRef");
-        if (style == null) {
-          prop = helper.requireTokenType("IDENTIFIER");
-        }
-      }
-      var propertyAccess = {
-        type: "possessive",
-        root,
-        attribute: attribute || style,
-        prop,
-        args: [root],
-        op: function(context2, rootVal) {
-          if (attribute) {
-            var value = context2.meta.runtime.resolveAttribute(rootVal, attribute.name);
-          } else if (style) {
-            var value;
-            if (style.type === "computedStyleRef") {
-              value = context2.meta.runtime.resolveComputedStyle(rootVal, style["name"]);
-            } else {
-              value = context2.meta.runtime.resolveStyle(rootVal, style["name"]);
-            }
-          } else {
-            var value = context2.meta.runtime.resolveProperty(rootVal, prop.value);
-          }
-          return value;
-        },
-        evaluate: function(context2) {
-          return context2.meta.runtime.unifiedEval(this, context2);
-        }
-      };
-      return helper.parser.parseElement("indirectExpression", helper.tokens, propertyAccess);
-    }
-  });
-  parser.addIndirectExpression("inExpression", function(helper, root) {
-    if (!helper.matchToken("in")) return;
-    var target = helper.requireElement("unaryExpression");
-    var propertyAccess = {
-      type: "inExpression",
-      root,
-      args: [root, target],
-      op: function(context2, rootVal, target2) {
-        var returnArr = [];
-        if (rootVal.css) {
-          context2.meta.runtime.implicitLoop(target2, function(targetElt) {
-            var results = targetElt.querySelectorAll(rootVal.css);
-            for (var i = 0; i < results.length; i++) {
-              returnArr.push(results[i]);
-            }
-          });
-        } else if (rootVal instanceof Element) {
-          var within = false;
-          context2.meta.runtime.implicitLoop(target2, function(targetElt) {
-            if (targetElt.contains(rootVal)) {
-              within = true;
-            }
-          });
-          if (within) {
-            return rootVal;
-          }
-        } else {
-          context2.meta.runtime.implicitLoop(rootVal, function(rootElt) {
-            context2.meta.runtime.implicitLoop(target2, function(targetElt) {
-              if (rootElt === targetElt) {
-                returnArr.push(rootElt);
-              }
-            });
-          });
-        }
-        return returnArr;
-      },
-      evaluate: function(context2) {
-        return context2.meta.runtime.unifiedEval(this, context2);
-      }
-    };
-    return helper.parser.parseElement("indirectExpression", helper.tokens, propertyAccess);
-  });
-  parser.addIndirectExpression("asExpression", function(helper, root) {
-    if (!helper.matchToken("as")) return;
-    helper.matchToken("a") || helper.matchToken("an");
-    var conversion = helper.requireElement("dotOrColonPath").evaluate();
-    var propertyAccess = {
-      type: "asExpression",
-      root,
-      args: [root],
-      op: function(context2, rootVal) {
-        return context2.meta.runtime.convertValue(rootVal, conversion);
-      },
-      evaluate: function(context2) {
-        return context2.meta.runtime.unifiedEval(this, context2);
-      }
-    };
-    return helper.parser.parseElement("indirectExpression", helper.tokens, propertyAccess);
-  });
-  parser.addIndirectExpression("functionCall", function(helper, root) {
-    if (!helper.matchOpToken("(")) return;
-    var args = [];
-    if (!helper.matchOpToken(")")) {
-      do {
-        args.push(helper.requireElement("expression"));
-      } while (helper.matchOpToken(","));
-      helper.requireOpToken(")");
-    }
-    if (root.root) {
-      var functionCall = {
-        type: "functionCall",
-        root,
-        argExressions: args,
-        args: [root.root, args],
-        op: function(context2, rootRoot, args2) {
-          context2.meta.runtime.nullCheck(rootRoot, root.root);
-          var func = rootRoot[root.prop.value];
-          context2.meta.runtime.nullCheck(func, root);
-          if (func.hyperfunc) {
-            args2.push(context2);
-          }
-          return func.apply(rootRoot, args2);
-        },
-        evaluate: function(context2) {
-          return context2.meta.runtime.unifiedEval(this, context2);
-        }
-      };
-    } else {
-      var functionCall = {
-        type: "functionCall",
-        root,
-        argExressions: args,
-        args: [root, args],
-        op: function(context2, func, argVals) {
-          context2.meta.runtime.nullCheck(func, root);
-          if (func.hyperfunc) {
-            argVals.push(context2);
-          }
-          var apply = func.apply(null, argVals);
-          return apply;
-        },
-        evaluate: function(context2) {
-          return context2.meta.runtime.unifiedEval(this, context2);
-        }
-      };
-    }
-    return helper.parser.parseElement("indirectExpression", helper.tokens, functionCall);
-  });
-  parser.addIndirectExpression("attributeRefAccess", function(helper, root) {
-    var attribute = helper.parseElement("attributeRef");
-    if (!attribute) return;
-    var attributeAccess = {
-      type: "attributeRefAccess",
-      root,
-      attribute,
-      args: [root],
-      op: function(_ctx, rootVal) {
-        var value = _ctx.meta.runtime.resolveAttribute(rootVal, attribute.name);
-        return value;
-      },
-      evaluate: function(context2) {
-        return context2.meta.runtime.unifiedEval(this, context2);
-      }
-    };
-    return attributeAccess;
-  });
-  parser.addIndirectExpression("arrayIndex", function(helper, root) {
-    if (!helper.matchOpToken("[")) return;
-    var andBefore = false;
-    var andAfter = false;
-    var firstIndex = null;
-    var secondIndex = null;
-    if (helper.matchOpToken("..")) {
-      andBefore = true;
-      firstIndex = helper.requireElement("expression");
-    } else {
-      firstIndex = helper.requireElement("expression");
-      if (helper.matchOpToken("..")) {
-        andAfter = true;
-        var current = helper.currentToken();
-        if (current.type !== "R_BRACKET") {
-          secondIndex = helper.parseElement("expression");
-        }
-      }
-    }
-    helper.requireOpToken("]");
-    var arrayIndex = {
-      type: "arrayIndex",
-      root,
-      prop: firstIndex,
-      firstIndex,
-      secondIndex,
-      args: [root, firstIndex, secondIndex],
-      op: function(_ctx, root2, firstIndex2, secondIndex2) {
-        if (root2 == null) {
-          return null;
-        }
-        if (andBefore) {
-          if (firstIndex2 < 0) {
-            firstIndex2 = root2.length + firstIndex2;
-          }
-          return root2.slice(0, firstIndex2 + 1);
-        } else if (andAfter) {
-          if (secondIndex2 != null) {
-            if (secondIndex2 < 0) {
-              secondIndex2 = root2.length + secondIndex2;
-            }
-            return root2.slice(firstIndex2, secondIndex2 + 1);
-          } else {
-            return root2.slice(firstIndex2);
-          }
-        } else {
-          return root2[firstIndex2];
-        }
-      },
-      evaluate: function(context2) {
-        return context2.meta.runtime.unifiedEval(this, context2);
-      }
-    };
-    return helper.parser.parseElement("indirectExpression", helper.tokens, arrayIndex);
-  });
+  parser.addIndirectExpression("propertyAccess", PropertyAccess.parse);
+  parser.addIndirectExpression("of", OfExpression.parse);
+  parser.addIndirectExpression("possessive", PossessiveExpression.parse);
+  parser.addIndirectExpression("inExpression", InExpression.parse);
+  parser.addIndirectExpression("asExpression", AsExpression.parse);
+  parser.addIndirectExpression("functionCall", FunctionCall.parse);
+  parser.addIndirectExpression("attributeRefAccess", AttributeRefAccess.parse);
+  parser.addIndirectExpression("arrayIndex", ArrayIndex.parse);
   var STRING_POSTFIXES = [
     "em",
     "ex",
@@ -3597,454 +4992,15 @@ function hyperscriptCoreGrammar(parser) {
     return helper.parseAnyOf(["beepExpression", "logicalNot", "relativePositionalExpression", "positionalExpression", "noExpression", "postfixExpression"]);
   });
   parser.addGrammarElement("beepExpression", BeepExpression.parse);
-  var scanForwardQuery = function(start, root, match, wrap) {
-    var results = root.querySelectorAll(match);
-    for (var i = 0; i < results.length; i++) {
-      var elt = results[i];
-      if (elt.compareDocumentPosition(start) === Node.DOCUMENT_POSITION_PRECEDING) {
-        return elt;
-      }
-    }
-    if (wrap) {
-      return results[0];
-    }
-  };
-  var scanBackwardsQuery = function(start, root, match, wrap) {
-    var results = root.querySelectorAll(match);
-    for (var i = results.length - 1; i >= 0; i--) {
-      var elt = results[i];
-      if (elt.compareDocumentPosition(start) === Node.DOCUMENT_POSITION_FOLLOWING) {
-        return elt;
-      }
-    }
-    if (wrap) {
-      return results[results.length - 1];
-    }
-  };
-  var scanForwardArray = function(start, array, match, wrap) {
-    var matches = [];
-    for (elt of array) {
-      if (elt.matches(match) || elt === start) {
-        matches.push(elt);
-      }
-    }
-    for (var i = 0; i < matches.length - 1; i++) {
-      var elt = matches[i];
-      if (elt === start) {
-        return matches[i + 1];
-      }
-    }
-    if (wrap) {
-      var first = matches[0];
-      if (first && first.matches(match)) {
-        return first;
-      }
-    }
-  };
-  var scanBackwardsArray = function(start, array, match, wrap) {
-    return scanForwardArray(start, Array.from(array).reverse(), match, wrap);
-  };
-  parser.addGrammarElement("relativePositionalExpression", function(helper) {
-    var op = helper.matchAnyToken("next", "previous");
-    if (!op) return;
-    var forwardSearch = op.value === "next";
-    var thingElt = helper.parseElement("expression");
-    if (helper.matchToken("from")) {
-      helper.pushFollow("in");
-      try {
-        var from = helper.requireElement("unaryExpression");
-      } finally {
-        helper.popFollow();
-      }
-    } else {
-      var from = helper.requireElement("implicitMeTarget");
-    }
-    var inSearch = false;
-    var withinElt;
-    if (helper.matchToken("in")) {
-      inSearch = true;
-      var inElt = helper.requireElement("unaryExpression");
-    } else if (helper.matchToken("within")) {
-      withinElt = helper.requireElement("unaryExpression");
-    } else {
-      withinElt = document.body;
-    }
-    var wrapping = false;
-    if (helper.matchToken("with")) {
-      helper.requireToken("wrapping");
-      wrapping = true;
-    }
-    return {
-      type: "relativePositionalExpression",
-      from,
-      forwardSearch,
-      inSearch,
-      wrapping,
-      inElt,
-      withinElt,
-      operator: op.value,
-      args: [thingElt, from, inElt, withinElt],
-      op: function(context2, thing, from2, inElt2, withinElt2) {
-        var css = thing.css;
-        if (css == null) {
-          throw "Expected a CSS value to be returned by " + Tokens.sourceFor.apply(thingElt);
-        }
-        if (inSearch) {
-          if (inElt2) {
-            if (forwardSearch) {
-              return scanForwardArray(from2, inElt2, css, wrapping);
-            } else {
-              return scanBackwardsArray(from2, inElt2, css, wrapping);
-            }
-          }
-        } else {
-          if (withinElt2) {
-            if (forwardSearch) {
-              return scanForwardQuery(from2, withinElt2, css, wrapping);
-            } else {
-              return scanBackwardsQuery(from2, withinElt2, css, wrapping);
-            }
-          }
-        }
-      },
-      evaluate: function(context2) {
-        return context2.meta.runtime.unifiedEval(this, context2);
-      }
-    };
-  });
-  parser.addGrammarElement("positionalExpression", function(helper) {
-    var op = helper.matchAnyToken("first", "last", "random");
-    if (!op) return;
-    helper.matchAnyToken("in", "from", "of");
-    var rhs = helper.requireElement("unaryExpression");
-    const operator = op.value;
-    return {
-      type: "positionalExpression",
-      rhs,
-      operator: op.value,
-      args: [rhs],
-      op: function(context2, rhsVal) {
-        if (rhsVal && !Array.isArray(rhsVal)) {
-          if (rhsVal.children) {
-            rhsVal = rhsVal.children;
-          } else {
-            rhsVal = Array.from(rhsVal);
-          }
-        }
-        if (rhsVal) {
-          if (operator === "first") {
-            return rhsVal[0];
-          } else if (operator === "last") {
-            return rhsVal[rhsVal.length - 1];
-          } else if (operator === "random") {
-            return rhsVal[Math.floor(Math.random() * rhsVal.length)];
-          }
-        }
-      },
-      evaluate: function(context2) {
-        return context2.meta.runtime.unifiedEval(this, context2);
-      }
-    };
-  });
-  parser.addGrammarElement("mathOperator", function(helper) {
-    var expr = helper.parseElement("unaryExpression");
-    var mathOp, initialMathOp = null;
-    mathOp = helper.matchAnyOpToken("+", "-", "*", "/") || helper.matchToken("mod");
-    while (mathOp) {
-      initialMathOp = initialMathOp || mathOp;
-      var operator = mathOp.value;
-      if (initialMathOp.value !== operator) {
-        helper.raiseParseError("You must parenthesize math operations with different operators");
-      }
-      var rhs = helper.parseElement("unaryExpression");
-      expr = {
-        type: "mathOperator",
-        lhs: expr,
-        rhs,
-        operator,
-        args: [expr, rhs],
-        op: function(context2, lhsVal, rhsVal) {
-          if (operator === "+") {
-            return lhsVal + rhsVal;
-          } else if (operator === "-") {
-            return lhsVal - rhsVal;
-          } else if (operator === "*") {
-            return lhsVal * rhsVal;
-          } else if (operator === "/") {
-            return lhsVal / rhsVal;
-          } else if (operator === "mod") {
-            return lhsVal % rhsVal;
-          }
-        },
-        evaluate: function(context2) {
-          return context2.meta.runtime.unifiedEval(this, context2);
-        }
-      };
-      mathOp = helper.matchAnyOpToken("+", "-", "*", "/") || helper.matchToken("mod");
-    }
-    return expr;
-  });
-  parser.addGrammarElement("mathExpression", function(helper) {
-    return helper.parseAnyOf(["mathOperator", "unaryExpression"]);
-  });
-  function sloppyContains(src, container, value) {
-    if (container["contains"]) {
-      return container.contains(value);
-    } else if (container["includes"]) {
-      return container.includes(value);
-    } else {
-      throw Error("The value of " + src.sourceFor() + " does not have a contains or includes method on it");
-    }
-  }
-  function sloppyMatches(src, target, toMatch) {
-    if (target["match"]) {
-      return !!target.match(toMatch);
-    } else if (target["matches"]) {
-      return target.matches(toMatch);
-    } else {
-      throw Error("The value of " + src.sourceFor() + " does not have a match or matches method on it");
-    }
-  }
-  parser.addGrammarElement("comparisonOperator", function(helper) {
-    var expr = helper.parseElement("mathExpression");
-    var comparisonToken = helper.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==");
-    var operator = comparisonToken ? comparisonToken.value : null;
-    var hasRightValue = true;
-    var typeCheck = false;
-    if (operator == null) {
-      if (helper.matchToken("is") || helper.matchToken("am")) {
-        if (helper.matchToken("not")) {
-          if (helper.matchToken("in")) {
-            operator = "not in";
-          } else if (helper.matchToken("a") || helper.matchToken("an")) {
-            operator = "not a";
-            typeCheck = true;
-          } else if (helper.matchToken("empty")) {
-            operator = "not empty";
-            hasRightValue = false;
-          } else {
-            if (helper.matchToken("really")) {
-              operator = "!==";
-            } else {
-              operator = "!=";
-            }
-            if (helper.matchToken("equal")) {
-              helper.matchToken("to");
-            }
-          }
-        } else if (helper.matchToken("in")) {
-          operator = "in";
-        } else if (helper.matchToken("a") || helper.matchToken("an")) {
-          operator = "a";
-          typeCheck = true;
-        } else if (helper.matchToken("empty")) {
-          operator = "empty";
-          hasRightValue = false;
-        } else if (helper.matchToken("less")) {
-          helper.requireToken("than");
-          if (helper.matchToken("or")) {
-            helper.requireToken("equal");
-            helper.requireToken("to");
-            operator = "<=";
-          } else {
-            operator = "<";
-          }
-        } else if (helper.matchToken("greater")) {
-          helper.requireToken("than");
-          if (helper.matchToken("or")) {
-            helper.requireToken("equal");
-            helper.requireToken("to");
-            operator = ">=";
-          } else {
-            operator = ">";
-          }
-        } else {
-          if (helper.matchToken("really")) {
-            operator = "===";
-          } else {
-            operator = "==";
-          }
-          if (helper.matchToken("equal")) {
-            helper.matchToken("to");
-          }
-        }
-      } else if (helper.matchToken("equals")) {
-        operator = "==";
-      } else if (helper.matchToken("really")) {
-        helper.requireToken("equals");
-        operator = "===";
-      } else if (helper.matchToken("exist") || helper.matchToken("exists")) {
-        operator = "exist";
-        hasRightValue = false;
-      } else if (helper.matchToken("matches") || helper.matchToken("match")) {
-        operator = "match";
-      } else if (helper.matchToken("contains") || helper.matchToken("contain")) {
-        operator = "contain";
-      } else if (helper.matchToken("includes") || helper.matchToken("include")) {
-        operator = "include";
-      } else if (helper.matchToken("do") || helper.matchToken("does")) {
-        helper.requireToken("not");
-        if (helper.matchToken("matches") || helper.matchToken("match")) {
-          operator = "not match";
-        } else if (helper.matchToken("contains") || helper.matchToken("contain")) {
-          operator = "not contain";
-        } else if (helper.matchToken("exist") || helper.matchToken("exist")) {
-          operator = "not exist";
-          hasRightValue = false;
-        } else if (helper.matchToken("include")) {
-          operator = "not include";
-        } else {
-          helper.raiseParseError("Expected matches or contains");
-        }
-      }
-    }
-    if (operator) {
-      var typeName, nullOk, rhs;
-      if (typeCheck) {
-        typeName = helper.requireTokenType("IDENTIFIER");
-        nullOk = !helper.matchOpToken("!");
-      } else if (hasRightValue) {
-        rhs = helper.requireElement("mathExpression");
-        if (operator === "match" || operator === "not match") {
-          rhs = rhs.css ? rhs.css : rhs;
-        }
-      }
-      var lhs = expr;
-      expr = {
-        type: "comparisonOperator",
-        operator,
-        typeName,
-        nullOk,
-        lhs: expr,
-        rhs,
-        args: [expr, rhs],
-        op: function(context2, lhsVal, rhsVal) {
-          if (operator === "==") {
-            return lhsVal == rhsVal;
-          } else if (operator === "!=") {
-            return lhsVal != rhsVal;
-          }
-          if (operator === "===") {
-            return lhsVal === rhsVal;
-          } else if (operator === "!==") {
-            return lhsVal !== rhsVal;
-          }
-          if (operator === "match") {
-            return lhsVal != null && sloppyMatches(lhs, lhsVal, rhsVal);
-          }
-          if (operator === "not match") {
-            return lhsVal == null || !sloppyMatches(lhs, lhsVal, rhsVal);
-          }
-          if (operator === "in") {
-            return rhsVal != null && sloppyContains(rhs, rhsVal, lhsVal);
-          }
-          if (operator === "not in") {
-            return rhsVal == null || !sloppyContains(rhs, rhsVal, lhsVal);
-          }
-          if (operator === "contain") {
-            return lhsVal != null && sloppyContains(lhs, lhsVal, rhsVal);
-          }
-          if (operator === "not contain") {
-            return lhsVal == null || !sloppyContains(lhs, lhsVal, rhsVal);
-          }
-          if (operator === "include") {
-            return lhsVal != null && sloppyContains(lhs, lhsVal, rhsVal);
-          }
-          if (operator === "not include") {
-            return lhsVal == null || !sloppyContains(lhs, lhsVal, rhsVal);
-          }
-          if (operator === "===") {
-            return lhsVal === rhsVal;
-          } else if (operator === "!==") {
-            return lhsVal !== rhsVal;
-          } else if (operator === "<") {
-            return lhsVal < rhsVal;
-          } else if (operator === ">") {
-            return lhsVal > rhsVal;
-          } else if (operator === "<=") {
-            return lhsVal <= rhsVal;
-          } else if (operator === ">=") {
-            return lhsVal >= rhsVal;
-          } else if (operator === "empty") {
-            return context2.meta.runtime.isEmpty(lhsVal);
-          } else if (operator === "not empty") {
-            return !context2.meta.runtime.isEmpty(lhsVal);
-          } else if (operator === "exist") {
-            return context2.meta.runtime.doesExist(lhsVal);
-          } else if (operator === "not exist") {
-            return !context2.meta.runtime.doesExist(lhsVal);
-          } else if (operator === "a") {
-            return context2.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
-          } else if (operator === "not a") {
-            return !context2.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
-          } else {
-            throw "Unknown comparison : " + operator;
-          }
-        },
-        evaluate: function(context2) {
-          return context2.meta.runtime.unifiedEval(this, context2);
-        }
-      };
-    }
-    return expr;
-  });
-  parser.addGrammarElement("comparisonExpression", function(helper) {
-    return helper.parseAnyOf(["comparisonOperator", "mathExpression"]);
-  });
-  parser.addGrammarElement("logicalOperator", function(helper) {
-    var expr = helper.parseElement("comparisonExpression");
-    var logicalOp, initialLogicalOp = null;
-    logicalOp = helper.matchToken("and") || helper.matchToken("or");
-    while (logicalOp) {
-      initialLogicalOp = initialLogicalOp || logicalOp;
-      if (initialLogicalOp.value !== logicalOp.value) {
-        helper.raiseParseError("You must parenthesize logical operations with different operators");
-      }
-      var rhs = helper.requireElement("comparisonExpression");
-      const operator = logicalOp.value;
-      expr = {
-        type: "logicalOperator",
-        operator,
-        lhs: expr,
-        rhs,
-        args: [expr, rhs],
-        op: function(context2, lhsVal, rhsVal) {
-          if (operator === "and") {
-            return lhsVal && rhsVal;
-          } else {
-            return lhsVal || rhsVal;
-          }
-        },
-        evaluate: function(context2) {
-          return context2.meta.runtime.unifiedEval(this, context2, operator === "or");
-        }
-      };
-      logicalOp = helper.matchToken("and") || helper.matchToken("or");
-    }
-    return expr;
-  });
-  parser.addGrammarElement("logicalExpression", function(helper) {
-    return helper.parseAnyOf(["logicalOperator", "mathExpression"]);
-  });
-  parser.addGrammarElement("asyncExpression", function(helper) {
-    if (helper.matchToken("async")) {
-      var value = helper.requireElement("logicalExpression");
-      var expr = {
-        type: "asyncExpression",
-        value,
-        evaluate: function(context2) {
-          return {
-            asyncWrapper: true,
-            value: this.value.evaluate(context2)
-            //OK
-          };
-        }
-      };
-      return expr;
-    } else {
-      return helper.parseElement("logicalExpression");
-    }
-  });
+  parser.addGrammarElement("relativePositionalExpression", RelativePositionalExpression.parse);
+  parser.addGrammarElement("positionalExpression", PositionalExpression.parse);
+  parser.addGrammarElement("mathOperator", MathOperator.parse);
+  parser.addGrammarElement("mathExpression", MathExpression.parse);
+  parser.addGrammarElement("comparisonOperator", ComparisonOperator.parse);
+  parser.addGrammarElement("comparisonExpression", ComparisonExpression.parse);
+  parser.addGrammarElement("logicalOperator", LogicalOperator.parse);
+  parser.addGrammarElement("logicalExpression", LogicalExpression.parse);
+  parser.addGrammarElement("asyncExpression", AsyncExpression.parse);
   parser.addGrammarElement("expression", function(helper) {
     helper.matchToken("the");
     return helper.parseElement("asyncExpression");
@@ -4954,114 +5910,12 @@ function hyperscriptCoreGrammar(parser) {
     };
     return returnCmd;
   };
-  parser.addCommand("return", function(helper) {
-    if (helper.matchToken("return")) {
-      return parseReturnFunction(helper, true);
-    }
-  });
-  parser.addCommand("exit", function(helper) {
-    if (helper.matchToken("exit")) {
-      return parseReturnFunction(helper, false);
-    }
-  });
-  parser.addCommand("halt", function(helper) {
-    if (helper.matchToken("halt")) {
-      if (helper.matchToken("the")) {
-        helper.requireToken("event");
-        if (helper.matchOpToken("'")) {
-          helper.requireToken("s");
-        }
-        var keepExecuting = true;
-      }
-      if (helper.matchToken("bubbling")) {
-        var bubbling = true;
-      } else if (helper.matchToken("default")) {
-        var haltDefault = true;
-      }
-      var exit = parseReturnFunction(helper, false);
-      var haltCmd = {
-        keepExecuting: true,
-        bubbling,
-        haltDefault,
-        exit,
-        op: function(ctx) {
-          if (ctx.event) {
-            if (bubbling) {
-              ctx.event.stopPropagation();
-            } else if (haltDefault) {
-              ctx.event.preventDefault();
-            } else {
-              ctx.event.stopPropagation();
-              ctx.event.preventDefault();
-            }
-            if (keepExecuting) {
-              return ctx.meta.runtime.findNext(this, ctx);
-            } else {
-              return exit;
-            }
-          }
-        }
-      };
-      return haltCmd;
-    }
-  });
-  parser.addCommand("log", function(helper) {
-    if (!helper.matchToken("log")) return;
-    var exprs = [helper.parseElement("expression")];
-    while (helper.matchOpToken(",")) {
-      exprs.push(helper.requireElement("expression"));
-    }
-    if (helper.matchToken("with")) {
-      var withExpr = helper.requireElement("expression");
-    }
-    var logCmd = {
-      exprs,
-      withExpr,
-      args: [withExpr, exprs],
-      op: function(ctx, withExpr2, values) {
-        if (withExpr2) {
-          withExpr2.apply(null, values);
-        } else {
-          console.log.apply(null, values);
-        }
-        return ctx.meta.runtime.findNext(this, ctx);
-      }
-    };
-    return logCmd;
-  });
-  parser.addCommand("beep!", function(helper) {
-    if (!helper.matchToken("beep!")) return;
-    var exprs = [helper.parseElement("expression")];
-    while (helper.matchOpToken(",")) {
-      exprs.push(helper.requireElement("expression"));
-    }
-    var beepCmd = {
-      exprs,
-      args: [exprs],
-      op: function(ctx, values) {
-        for (let i = 0; i < exprs.length; i++) {
-          const expr = exprs[i];
-          const val = values[i];
-          ctx.meta.runtime.beepValueToConsole(ctx.me, expr, val);
-        }
-        return ctx.meta.runtime.findNext(this, ctx);
-      }
-    };
-    return beepCmd;
-  });
-  parser.addCommand("throw", function(helper) {
-    if (!helper.matchToken("throw")) return;
-    var expr = helper.requireElement("expression");
-    var throwCmd = {
-      expr,
-      args: [expr],
-      op: function(ctx, expr2) {
-        ctx.meta.runtime.registerHyperTrace(ctx, expr2);
-        throw expr2;
-      }
-    };
-    return throwCmd;
-  });
+  parser.addCommand("return", ReturnCommand.parse);
+  parser.addCommand("exit", ExitCommand.parse);
+  parser.addCommand("halt", HaltCommand.parse);
+  parser.addCommand("log", LogCommand.parse);
+  parser.addCommand("beep!", BeepCommand.parse);
+  parser.addCommand("throw", ThrowCommand.parse);
   var parseCallOrGet = function(helper) {
     var expr = helper.requireElement("expression");
     var callCmd = {
@@ -5255,55 +6109,8 @@ function hyperscriptCoreGrammar(parser) {
     };
     return setCmd;
   };
-  parser.addCommand("default", function(helper) {
-    if (!helper.matchToken("default")) return;
-    var target = helper.requireElement("assignableExpression");
-    helper.requireToken("to");
-    var value = helper.requireElement("expression");
-    var setter = makeSetter(helper, target, value);
-    var defaultCmd = {
-      target,
-      value,
-      setter,
-      args: [target],
-      op: function(context2, target2) {
-        if (target2) {
-          return context2.meta.runtime.findNext(this, context2);
-        } else {
-          return setter;
-        }
-      }
-    };
-    setter.parent = defaultCmd;
-    return defaultCmd;
-  });
-  parser.addCommand("set", function(helper) {
-    if (!helper.matchToken("set")) return;
-    if (helper.currentToken().type === "L_BRACE") {
-      var obj = helper.requireElement("objectLiteral");
-      helper.requireToken("on");
-      var target = helper.requireElement("expression");
-      var command = {
-        objectLiteral: obj,
-        target,
-        args: [obj, target],
-        op: function(ctx, obj2, target2) {
-          Object.assign(target2, obj2);
-          return ctx.meta.runtime.findNext(this, ctx);
-        }
-      };
-      return command;
-    }
-    try {
-      helper.pushFollow("to");
-      var target = helper.requireElement("assignableExpression");
-    } finally {
-      helper.popFollow();
-    }
-    helper.requireToken("to");
-    var value = helper.requireElement("expression");
-    return makeSetter(helper, target, value);
-  });
+  parser.addCommand("default", DefaultCommand.parse);
+  parser.addCommand("set", SetCommand.parse);
   parser.addCommand("if", function(helper) {
     if (!helper.matchToken("if")) return;
     var expr = helper.requireElement("expression");
@@ -5672,54 +6479,8 @@ function hyperscriptCoreGrammar(parser) {
       };
     }
   });
-  parser.addCommand("increment", function(helper) {
-    if (!helper.matchToken("increment")) return;
-    var amountExpr;
-    var target = helper.parseElement("assignableExpression");
-    if (helper.matchToken("by")) {
-      amountExpr = helper.requireElement("expression");
-    }
-    var implicitIncrementOp = {
-      type: "implicitIncrementOp",
-      target,
-      args: [target, amountExpr],
-      op: function(context2, targetValue, amount) {
-        targetValue = targetValue ? parseFloat(targetValue) : 0;
-        amount = amountExpr ? parseFloat(amount) : 1;
-        var newValue = targetValue + amount;
-        context2.result = newValue;
-        return newValue;
-      },
-      evaluate: function(context2) {
-        return context2.meta.runtime.unifiedEval(this, context2);
-      }
-    };
-    return makeSetter(helper, target, implicitIncrementOp);
-  });
-  parser.addCommand("decrement", function(helper) {
-    if (!helper.matchToken("decrement")) return;
-    var amountExpr;
-    var target = helper.parseElement("assignableExpression");
-    if (helper.matchToken("by")) {
-      amountExpr = helper.requireElement("expression");
-    }
-    var implicitDecrementOp = {
-      type: "implicitDecrementOp",
-      target,
-      args: [target, amountExpr],
-      op: function(context2, targetValue, amount) {
-        targetValue = targetValue ? parseFloat(targetValue) : 0;
-        amount = amountExpr ? parseFloat(amount) : 1;
-        var newValue = targetValue - amount;
-        context2.result = newValue;
-        return newValue;
-      },
-      evaluate: function(context2) {
-        return context2.meta.runtime.unifiedEval(this, context2);
-      }
-    };
-    return makeSetter(helper, target, implicitDecrementOp);
-  });
+  parser.addCommand("increment", IncrementCommand.parse);
+  parser.addCommand("decrement", DecrementCommand.parse);
   function parseConversionInfo(helper) {
     var type = "text";
     var conversion;
@@ -5970,43 +6731,7 @@ function hyperscriptWebGrammar(parser) {
       }
     }
   });
-  parser.addGrammarElement("styleLiteral", function(helper) {
-    if (!helper.matchOpToken("{")) return;
-    var stringParts = [""];
-    var exprs = [];
-    while (helper.hasMore()) {
-      if (helper.matchOpToken("\\")) {
-        helper.consumeToken();
-      } else if (helper.matchOpToken("}")) {
-        break;
-      } else if (helper.matchToken("$")) {
-        var opencurly = helper.matchOpToken("{");
-        var expr = helper.parseElement("expression");
-        if (opencurly) helper.requireOpToken("}");
-        exprs.push(expr);
-        stringParts.push("");
-      } else {
-        var tok = helper.consumeToken();
-        stringParts[stringParts.length - 1] += helper.source.substring(tok.start, tok.end);
-      }
-      stringParts[stringParts.length - 1] += helper.lastWhitespace();
-    }
-    return {
-      type: "styleLiteral",
-      args: [exprs],
-      op: function(ctx, exprs2) {
-        var rv = "";
-        stringParts.forEach(function(part, idx) {
-          rv += part;
-          if (idx in exprs2) rv += exprs2[idx];
-        });
-        return rv;
-      },
-      evaluate: function(ctx) {
-        return ctx.meta.runtime.unifiedEval(this, ctx);
-      }
-    };
-  });
+  parser.addGrammarElement("styleLiteral", StyleLiteral.parse);
   parser.addCommand("remove", function(helper) {
     if (helper.matchToken("remove")) {
       var classRef = helper.parseElement("classRef");
@@ -6432,115 +7157,8 @@ function hyperscriptWebGrammar(parser) {
       }
     }
   });
-  function putInto(context2, root, prop, valueToPut) {
-    if (root == null) {
-      var value = context2.meta.runtime.resolveSymbol(prop, context2);
-    } else {
-      var value = root;
-    }
-    if (value instanceof Element || value instanceof HTMLDocument) {
-      while (value.firstChild) value.removeChild(value.firstChild);
-      value.append(parser.runtime.convertValue(valueToPut, "Fragment"));
-      context2.meta.runtime.processNode(value);
-    } else {
-      if (root == null) {
-        context2.meta.runtime.setSymbol(prop, context2, null, valueToPut);
-      } else {
-        root[prop] = valueToPut;
-      }
-    }
-  }
   parser.addCommand("put", function(helper) {
-    if (helper.matchToken("put")) {
-      var value = helper.requireElement("expression");
-      var operationToken = helper.matchAnyToken("into", "before", "after");
-      if (operationToken == null && helper.matchToken("at")) {
-        helper.matchToken("the");
-        operationToken = helper.matchAnyToken("start", "end");
-        helper.requireToken("of");
-      }
-      if (operationToken == null) {
-        helper.raiseParseError("Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
-      }
-      var target = helper.requireElement("expression");
-      var operation = operationToken.value;
-      var arrayIndex = false;
-      var symbolWrite = false;
-      var rootExpr = null;
-      var prop = null;
-      if (target.type === "arrayIndex" && operation === "into") {
-        arrayIndex = true;
-        prop = target.prop;
-        rootExpr = target.root;
-      } else if (target.prop && target.root && operation === "into") {
-        prop = target.prop.value;
-        rootExpr = target.root;
-      } else if (target.type === "symbol" && operation === "into") {
-        symbolWrite = true;
-        prop = target.name;
-      } else if (target.type === "attributeRef" && operation === "into") {
-        var attributeWrite = true;
-        prop = target.name;
-        rootExpr = helper.requireElement("implicitMeTarget");
-      } else if (target.type === "styleRef" && operation === "into") {
-        var styleWrite = true;
-        prop = target.name;
-        rootExpr = helper.requireElement("implicitMeTarget");
-      } else if (target.attribute && operation === "into") {
-        var attributeWrite = target.attribute.type === "attributeRef";
-        var styleWrite = target.attribute.type === "styleRef";
-        prop = target.attribute.name;
-        rootExpr = target.root;
-      } else {
-        rootExpr = target;
-      }
-      var putCmd = {
-        target,
-        operation,
-        symbolWrite,
-        value,
-        args: [rootExpr, prop, value],
-        op: function(context2, root, prop2, valueToPut) {
-          if (symbolWrite) {
-            putInto(context2, root, prop2, valueToPut);
-          } else {
-            context2.meta.runtime.nullCheck(root, rootExpr);
-            if (operation === "into") {
-              if (attributeWrite) {
-                context2.meta.runtime.implicitLoop(root, function(elt) {
-                  elt.setAttribute(prop2, valueToPut);
-                });
-              } else if (styleWrite) {
-                context2.meta.runtime.implicitLoop(root, function(elt) {
-                  elt.style[prop2] = valueToPut;
-                });
-              } else if (arrayIndex) {
-                root[prop2] = valueToPut;
-              } else {
-                context2.meta.runtime.implicitLoop(root, function(elt) {
-                  putInto(context2, elt, prop2, valueToPut);
-                });
-              }
-            } else {
-              var op = operation === "before" ? Element.prototype.before : operation === "after" ? Element.prototype.after : operation === "start" ? Element.prototype.prepend : operation === "end" ? Element.prototype.append : Element.prototype.append;
-              context2.meta.runtime.implicitLoop(root, function(elt) {
-                op.call(
-                  elt,
-                  valueToPut instanceof Node ? valueToPut : context2.meta.runtime.convertValue(valueToPut, "Fragment")
-                );
-                if (elt.parentElement) {
-                  context2.meta.runtime.processNode(elt.parentElement);
-                } else {
-                  context2.meta.runtime.processNode(elt);
-                }
-              });
-            }
-          }
-          return context2.meta.runtime.findNext(this, context2);
-        }
-      };
-      return putCmd;
-    }
+    return PutCommand.parse(helper, parser);
   });
   function parsePseudopossessiveTarget(helper) {
     var targets;
@@ -6749,68 +7367,7 @@ function hyperscriptWebGrammar(parser) {
       }
     };
   });
-  parser.addLeafExpression("closestExpr", function(helper) {
-    if (helper.matchToken("closest")) {
-      if (helper.matchToken("parent")) {
-        var parentSearch = true;
-      }
-      var css = null;
-      if (helper.currentToken().type === "ATTRIBUTE_REF") {
-        var attributeRef = helper.requireElement("attributeRefAccess", null);
-        css = "[" + attributeRef.attribute.name + "]";
-      }
-      if (css == null) {
-        var expr = helper.requireElement("expression");
-        if (expr.css == null) {
-          helper.raiseParseError("Expected a CSS expression");
-        } else {
-          css = expr.css;
-        }
-      }
-      if (helper.matchToken("to")) {
-        var to = helper.parseElement("expression");
-      } else {
-        var to = helper.parseElement("implicitMeTarget");
-      }
-      var closestExpr = {
-        type: "closestExpr",
-        parentSearch,
-        expr,
-        css,
-        to,
-        args: [to],
-        op: function(ctx, to2) {
-          if (to2 == null) {
-            return null;
-          } else {
-            let result = [];
-            ctx.meta.runtime.implicitLoop(to2, function(to3) {
-              if (parentSearch) {
-                result.push(to3.parentElement ? to3.parentElement.closest(css) : null);
-              } else {
-                result.push(to3.closest(css));
-              }
-            });
-            if (ctx.meta.runtime.shouldAutoIterate(to2)) {
-              return result;
-            } else {
-              return result[0];
-            }
-          }
-        },
-        evaluate: function(context2) {
-          return context2.meta.runtime.unifiedEval(this, context2);
-        }
-      };
-      if (attributeRef) {
-        attributeRef.root = closestExpr;
-        attributeRef.args = [closestExpr];
-        return attributeRef;
-      } else {
-        return closestExpr;
-      }
-    }
-  });
+  parser.addLeafExpression("closestExpr", ClosestExpr.parse);
   parser.addCommand("go", function(helper) {
     if (helper.matchToken("go")) {
       if (helper.matchToken("back")) {
@@ -7136,7 +7693,7 @@ var parser_ = new Parser();
 parser_.runtime = runtime_;
 hyperscriptCoreGrammar(parser_);
 hyperscriptWebGrammar(parser_);
-Tokens2._parserRaiseError = Parser.raiseParseError;
+Tokens._parserRaiseError = Parser.raiseParseError;
 ElementCollection._runtime = runtime_;
 var processNode;
 var initElement;
@@ -7270,7 +7827,7 @@ var _hyperscript = Object.assign(
       parser: parser_,
       runtime: runtime_,
       Lexer,
-      Tokens: Tokens2,
+      Tokens,
       Parser,
       Runtime
     },

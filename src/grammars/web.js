@@ -3,6 +3,9 @@ import { Lexer } from '../core/lexer.js';
 import { RegExpIterable, ElementCollection } from '../core/util.js';
 import { parseJSON } from '../core/helpers.js';
 import { config } from '../core/config.js';
+import { StyleLiteral } from '../parsetree/expressions/webliterals.js';
+import { ClosestExpr } from '../parsetree/expressions/positional.js';
+import { PutCommand } from '../parsetree/commands/setters.js';
 
 /**
  * @param {Parser} parser
@@ -173,50 +176,7 @@ export default function hyperscriptWebGrammar(parser) {
             }
         });
 
-        parser.addGrammarElement("styleLiteral", function (helper) {
-            if (!helper.matchOpToken("{")) return;
-
-            var stringParts = [""]
-            var exprs = []
-
-            while (helper.hasMore()) {
-                if (helper.matchOpToken("\\")) {
-                    helper.consumeToken();
-                } else if (helper.matchOpToken("}")) {
-                    break;
-                } else if (helper.matchToken("$")) {
-                    var opencurly = helper.matchOpToken("{");
-                    var expr = helper.parseElement("expression");
-                    if (opencurly) helper.requireOpToken("}");
-
-                    exprs.push(expr)
-                    stringParts.push("")
-                } else {
-                    var tok = helper.consumeToken();
-                    stringParts[stringParts.length-1] += helper.source.substring(tok.start, tok.end);
-                }
-
-                stringParts[stringParts.length-1] += helper.lastWhitespace();
-            }
-
-            return {
-                type: "styleLiteral",
-                args: [exprs],
-                op: function (ctx, exprs) {
-                    var rv = "";
-
-                    stringParts.forEach(function (part, idx) {
-                        rv += part;
-                        if (idx in exprs) rv += exprs[idx];
-                    });
-
-                    return rv;
-                },
-                evaluate: function(ctx) {
-                    return ctx.meta.runtime.unifiedEval(this, ctx);
-                }
-            }
-        })
+        parser.addGrammarElement("styleLiteral", StyleLiteral.parse);
 
         parser.addCommand("remove", function (helper) {
             if (helper.matchToken("remove")) {
@@ -670,136 +630,8 @@ export default function hyperscriptWebGrammar(parser) {
             }
         });
 
-        function putInto(context, root, prop, valueToPut) {
-            if (root == null) {
-                var value = context.meta.runtime.resolveSymbol(prop, context);
-            } else {
-                var value = root;
-            }
-            if (value instanceof Element || value instanceof HTMLDocument) {
-                while (value.firstChild) value.removeChild(value.firstChild);
-                value.append(parser.runtime.convertValue(valueToPut, "Fragment"));
-                context.meta.runtime.processNode(value);
-            } else {
-                if (root == null) {
-                    context.meta.runtime.setSymbol(prop, context, null, valueToPut);
-                } else {
-                    root[prop] = valueToPut
-                }
-            }
-        }
-
         parser.addCommand("put", function (helper) {
-            if (helper.matchToken("put")) {
-                var value = helper.requireElement("expression");
-
-                var operationToken = helper.matchAnyToken("into", "before", "after");
-
-                if (operationToken == null && helper.matchToken("at")) {
-                    helper.matchToken("the"); // optional "the"
-                    operationToken = helper.matchAnyToken("start", "end");
-                    helper.requireToken("of");
-                }
-
-                if (operationToken == null) {
-                    helper.raiseParseError("Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
-                }
-                var target = helper.requireElement("expression");
-
-                var operation = operationToken.value;
-
-                var arrayIndex = false;
-                var symbolWrite = false;
-                var rootExpr = null;
-                var prop = null;
-
-                if (target.type === "arrayIndex" && operation === "into") {
-                    arrayIndex = true;
-                    prop = target.prop;
-                    rootExpr = target.root;
-                }  else if (target.prop && target.root && operation === "into") {
-                    prop = target.prop.value;
-                    rootExpr = target.root;
-                } else if (target.type === "symbol" && operation === "into") {
-                    symbolWrite = true;
-                    prop = target.name;
-                } else if (target.type === "attributeRef" && operation === "into") {
-                    var attributeWrite = true;
-                    prop = target.name;
-                    rootExpr = helper.requireElement("implicitMeTarget");
-                } else if (target.type === "styleRef" && operation === "into") {
-                    var styleWrite = true;
-                    prop = target.name;
-                    rootExpr = helper.requireElement("implicitMeTarget");
-                } else if (target.attribute && operation === "into") {
-                    var attributeWrite = target.attribute.type === "attributeRef";
-                    var styleWrite = target.attribute.type === "styleRef";
-                    prop = target.attribute.name;
-                    rootExpr = target.root;
-                } else {
-                    rootExpr = target;
-                }
-
-                var putCmd = {
-                    target: target,
-                    operation: operation,
-                    symbolWrite: symbolWrite,
-                    value: value,
-                    args: [rootExpr, prop, value],
-                    op: function (context, root, prop, valueToPut) {
-                        if (symbolWrite) {
-                            putInto( context, root, prop, valueToPut);
-                        } else {
-                            context.meta.runtime.nullCheck(root, rootExpr);
-                            if (operation === "into") {
-                                if (attributeWrite) {
-                                    context.meta.runtime.implicitLoop(root, function (elt) {
-                                        elt.setAttribute(prop, valueToPut);
-                                    });
-                                } else if (styleWrite) {
-                                    context.meta.runtime.implicitLoop(root, function (elt) {
-                                        elt.style[prop] = valueToPut;
-                                    });
-                                } else if (arrayIndex) {
-                                    root[prop] = valueToPut;
-                                } else {
-                                    context.meta.runtime.implicitLoop(root, function (elt) {
-                                        putInto( context, elt, prop, valueToPut);
-                                    });
-                                }
-                            } else {
-                                var op =
-                                    operation === "before"
-                                        ? Element.prototype.before
-                                        : operation === "after"
-                                        ? Element.prototype.after
-                                        : operation === "start"
-                                        ? Element.prototype.prepend
-                                        : operation === "end"
-                                        ? Element.prototype.append
-                                        : Element.prototype.append; // unreachable
-
-                                context.meta.runtime.implicitLoop(root, function (elt) {
-                                    op.call(
-                                        elt,
-                                        valueToPut instanceof Node
-                                            ? valueToPut
-                                            : context.meta.runtime.convertValue(valueToPut, "Fragment")
-                                    );
-                                    // process any new content
-                                    if (elt.parentElement) {
-                                        context.meta.runtime.processNode(elt.parentElement);
-                                    } else {
-                                        context.meta.runtime.processNode(elt);
-                                    }
-                                });
-                            }
-                        }
-                        return context.meta.runtime.findNext(this, context);
-                    },
-                };
-                return putCmd;
-            }
+            return PutCommand.parse(helper, parser);
         });
 
         function parsePseudopossessiveTarget(helper) {
@@ -1048,73 +880,7 @@ export default function hyperscriptWebGrammar(parser) {
             };
         });
 
-        parser.addLeafExpression("closestExpr", function (helper) {
-            if (helper.matchToken("closest")) {
-                if (helper.matchToken("parent")) {
-                    var parentSearch = true;
-                }
-
-                var css = null;
-                if (helper.currentToken().type === "ATTRIBUTE_REF") {
-                    var attributeRef = helper.requireElement("attributeRefAccess", null);
-                    css = "[" + attributeRef.attribute.name + "]";
-                }
-
-                if (css == null) {
-                    var expr = helper.requireElement("expression");
-                    if (expr.css == null) {
-                        helper.raiseParseError("Expected a CSS expression");
-                    } else {
-                        css = expr.css;
-                    }
-                }
-
-                if (helper.matchToken("to")) {
-                    var to = helper.parseElement("expression");
-                } else {
-                    var to = helper.parseElement("implicitMeTarget");
-                }
-
-                var closestExpr = {
-                    type: "closestExpr",
-                    parentSearch: parentSearch,
-                    expr: expr,
-                    css: css,
-                    to: to,
-                    args: [to],
-                    op: function (ctx, to) {
-                        if (to == null) {
-                            return null;
-                        } else {
-                            let result = [];
-                            ctx.meta.runtime.implicitLoop(to, function(to){
-                                if (parentSearch) {
-                                    result.push(to.parentElement ? to.parentElement.closest(css) : null);
-                                } else {
-                                    result.push(to.closest(css));
-                                }
-                            })
-                            if (ctx.meta.runtime.shouldAutoIterate(to)) {
-                                return result;
-                            } else {
-                                return result[0];
-                            }
-                        }
-                    },
-                    evaluate: function (context) {
-                        return context.meta.runtime.unifiedEval(this, context);
-                    },
-                };
-
-                if (attributeRef) {
-                    attributeRef.root = closestExpr;
-                    attributeRef.args = [closestExpr];
-                    return attributeRef;
-                } else {
-                    return closestExpr;
-                }
-            }
-        });
+        parser.addLeafExpression("closestExpr", ClosestExpr.parse);
 
         parser.addCommand("go", function (helper) {
             if (helper.matchToken("go")) {

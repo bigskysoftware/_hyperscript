@@ -2,7 +2,7 @@
  * Web-related literal parse tree elements
  * References to DOM elements and attributes
  */
-import { ElementCollection, TemplatedQueryElementCollection } from '../core/util.js';
+import { ElementCollection, TemplatedQueryElementCollection } from '../../core/util.js';
 
 /**
  * IdRef - Represents ID references (#foo or #${expr})
@@ -256,3 +256,62 @@ export class StyleRef {
         }
     }
 }
+
+/**
+ * StyleLiteral - Represents templated style strings
+ *
+ * Parses: { css-text-with-$variables }
+ * Returns: Interpolated CSS string
+ */
+export class StyleLiteral {
+    /**
+     * Parse a style literal
+     * @param {ParserHelper} helper
+     * @returns {any | undefined}
+     */
+    static parse(helper) {
+        if (!helper.matchOpToken("{")) return;
+
+        var stringParts = [""]
+        var exprs = []
+
+        while (helper.hasMore()) {
+            if (helper.matchOpToken("\\")) {
+                helper.consumeToken();
+            } else if (helper.matchOpToken("}")) {
+                break;
+            } else if (helper.matchToken("$")) {
+                var opencurly = helper.matchOpToken("{");
+                var expr = helper.parseElement("expression");
+                if (opencurly) helper.requireOpToken("}");
+
+                exprs.push(expr)
+                stringParts.push("")
+            } else {
+                var tok = helper.consumeToken();
+                stringParts[stringParts.length-1] += helper.source.substring(tok.start, tok.end);
+            }
+
+            stringParts[stringParts.length-1] += helper.lastWhitespace();
+        }
+
+        return {
+            type: "styleLiteral",
+            args: [exprs],
+            op: function (ctx, exprs) {
+                var rv = "";
+
+                stringParts.forEach(function (part, idx) {
+                    rv += part;
+                    if (idx in exprs) rv += exprs[idx];
+                });
+
+                return rv;
+            },
+            evaluate: function(ctx) {
+                return ctx.meta.runtime.unifiedEval(this, ctx);
+            }
+        }
+    }
+}
+
