@@ -307,8 +307,6 @@ export class ToggleCommand {
 
     static parse(parser) {
         if (!parser.matchToken("toggle")) return;
-
-        var runtime = parser.runtime;
         parser.matchAnyToken("the", "my");
         if (parser.currentToken().type === "STYLE_REF") {
             let styleRef = parser.consumeToken();
@@ -376,7 +374,7 @@ export class ToggleCommand {
                 context.meta.runtime.nullCheck(on, onExpr);
                 if (visibility) {
                     context.meta.runtime.implicitLoop(on, function (target) {
-                        hideShowStrategy("toggle", target, null, runtime);
+                        hideShowStrategy("toggle", target, null, context.meta.runtime);
                     });
                 } else if (between) {
                     context.meta.runtime.implicitLoop(on, function (target) {
@@ -449,7 +447,6 @@ export class HideCommand {
     static parse(parser) {
         if (!parser.matchToken("hide")) return;
 
-        var runtime = parser.runtime;
         var targetExpr = parseShowHideTarget(parser);
 
         var name = null;
@@ -467,7 +464,7 @@ export class HideCommand {
             op: function (ctx, target) {
                 ctx.meta.runtime.nullCheck(target, targetExpr);
                 ctx.meta.runtime.implicitLoop(target, function (elt) {
-                    hideShowStrategy("hide", elt, null, runtime);
+                    hideShowStrategy("hide", elt, null, ctx.meta.runtime);
                 });
                 return ctx.meta.runtime.findNext(this, ctx);
             },
@@ -487,7 +484,6 @@ export class ShowCommand {
     static parse(parser) {
         if (!parser.matchToken("show")) return;
 
-        var runtime = parser.runtime;
         var targetExpr = parseShowHideTarget(parser);
 
         var name = null;
@@ -525,13 +521,13 @@ export class ShowCommand {
                         ctx.result = elt;
                         let whenResult = ctx.meta.runtime.evaluateNoPromise(when, ctx);
                         if (whenResult) {
-                            hideShowStrategy("show", elt, arg, runtime);
+                            hideShowStrategy("show", elt, arg, ctx.meta.runtime);
                         } else {
-                            hideShowStrategy("hide", elt, null, runtime);
+                            hideShowStrategy("hide", elt, null, ctx.meta.runtime);
                         }
                         ctx.result = null;
                     } else {
-                        hideShowStrategy("show", elt, arg, runtime);
+                        hideShowStrategy("show", elt, arg, ctx.meta.runtime);
                     }
                 });
                 return ctx.meta.runtime.findNext(this, ctx);

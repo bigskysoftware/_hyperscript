@@ -124,8 +124,6 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
 
     // Create and configure kernel
     const kernel_ = new LanguageKernel();
-    // Add runtime to kernel for backward compatibility with grammar code
-    kernel_.runtime = runtime_;
 
     // ===== Grammar Registration =====
 
@@ -183,6 +181,7 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
     kernel_.addLeafExpression("closestExpr", ClosestExpr.parse);
 
     // postfixExpression is also part of unary expressions (already registered as grammar element)
+    // TODO this doesn't belong here I think
     kernel_.UNARY_EXPRESSIONS.push("postfixExpression");
 
     // Math and comparison expressions

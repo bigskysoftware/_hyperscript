@@ -191,9 +191,4 @@ export class Parser {
     get INDIRECT_EXPRESSIONS() {
         return this.kernel.INDIRECT_EXPRESSIONS;
     }
-
-    // Access to runtime for grammars that need it
-    get runtime() {
-        return this.kernel.runtime;
-    }
 }

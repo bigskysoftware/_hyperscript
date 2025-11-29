@@ -2200,10 +2200,6 @@ var Parser = class {
   get INDIRECT_EXPRESSIONS() {
     return this.kernel.INDIRECT_EXPRESSIONS;
   }
-  // Access to runtime for grammars that need it
-  get runtime() {
-    return this.kernel.runtime;
-  }
 };
 
 // src/core/kernel.js
@@ -4855,7 +4851,7 @@ var TypeCheckExpression = class {
 };
 
 // src/parsetree/commands/setters.js
-function putInto(context2, root, prop, valueToPut, runtime) {
+function putInto(context2, root, prop, valueToPut) {
   if (root == null) {
     var value = context2.meta.runtime.resolveSymbol(prop, context2);
   } else {
@@ -4863,7 +4859,7 @@ function putInto(context2, root, prop, valueToPut, runtime) {
   }
   if (value instanceof Element || value instanceof HTMLDocument) {
     while (value.firstChild) value.removeChild(value.firstChild);
-    value.append(runtime.convertValue(valueToPut, "Fragment"));
+    value.append(context2.meta.runtime.convertValue(valueToPut, "Fragment"));
     context2.meta.runtime.processNode(value);
   } else {
     if (root == null) {
@@ -5144,7 +5140,6 @@ var PutCommand = class extends SetterCommand {
     } else {
       rootExpr = target;
     }
-    var runtime = parser.runtime;
     var putCmd = {
       target,
       operation,
@@ -5153,7 +5148,7 @@ var PutCommand = class extends SetterCommand {
       args: [rootExpr, prop, value],
       op: function(context2, root, prop2, valueToPut) {
         if (symbolWrite) {
-          putInto(context2, root, prop2, valueToPut, runtime);
+          putInto(context2, root, prop2, valueToPut);
         } else {
           context2.meta.runtime.nullCheck(root, rootExpr);
           if (operation === "into") {
@@ -5169,7 +5164,7 @@ var PutCommand = class extends SetterCommand {
               root[prop2] = valueToPut;
             } else {
               context2.meta.runtime.implicitLoop(root, function(elt) {
-                putInto(context2, elt, prop2, valueToPut, runtime);
+                putInto(context2, elt, prop2, valueToPut);
               });
             }
           } else {
@@ -6842,7 +6837,6 @@ __publicField(RemoveCommand, "keyword", "remove");
 var ToggleCommand = class {
   static parse(parser) {
     if (!parser.matchToken("toggle")) return;
-    var runtime = parser.runtime;
     parser.matchAnyToken("the", "my");
     if (parser.currentToken().type === "STYLE_REF") {
       let styleRef = parser.consumeToken();
@@ -6907,7 +6901,7 @@ var ToggleCommand = class {
         context2.meta.runtime.nullCheck(on, onExpr);
         if (visibility) {
           context2.meta.runtime.implicitLoop(on, function(target) {
-            hideShowStrategy("toggle", target, null, runtime);
+            hideShowStrategy("toggle", target, null, context2.meta.runtime);
           });
         } else if (between) {
           context2.meta.runtime.implicitLoop(on, function(target) {
@@ -6971,7 +6965,6 @@ __publicField(ToggleCommand, "keyword", "toggle");
 var HideCommand = class {
   static parse(parser) {
     if (!parser.matchToken("hide")) return;
-    var runtime = parser.runtime;
     var targetExpr = parseShowHideTarget(parser);
     var name = null;
     if (parser.matchToken("with")) {
@@ -6987,7 +6980,7 @@ var HideCommand = class {
       op: function(ctx, target) {
         ctx.meta.runtime.nullCheck(target, targetExpr);
         ctx.meta.runtime.implicitLoop(target, function(elt) {
-          hideShowStrategy("hide", elt, null, runtime);
+          hideShowStrategy("hide", elt, null, ctx.meta.runtime);
         });
         return ctx.meta.runtime.findNext(this, ctx);
       }
@@ -6998,7 +6991,6 @@ __publicField(HideCommand, "keyword", "hide");
 var ShowCommand = class {
   static parse(parser) {
     if (!parser.matchToken("show")) return;
-    var runtime = parser.runtime;
     var targetExpr = parseShowHideTarget(parser);
     var name = null;
     if (parser.matchToken("with")) {
@@ -7030,13 +7022,13 @@ var ShowCommand = class {
             ctx.result = elt;
             let whenResult = ctx.meta.runtime.evaluateNoPromise(when, ctx);
             if (whenResult) {
-              hideShowStrategy("show", elt, arg, runtime);
+              hideShowStrategy("show", elt, arg, ctx.meta.runtime);
             } else {
-              hideShowStrategy("hide", elt, null, runtime);
+              hideShowStrategy("hide", elt, null, ctx.meta.runtime);
             }
             ctx.result = null;
           } else {
-            hideShowStrategy("show", elt, arg, runtime);
+            hideShowStrategy("show", elt, arg, ctx.meta.runtime);
           }
         });
         return ctx.meta.runtime.findNext(this, ctx);
@@ -8090,7 +8082,6 @@ var globalScope = typeof self !== "undefined" ? self : typeof global !== "undefi
 var tokenizer_ = new Tokenizer();
 var runtime_ = new Runtime(globalScope);
 var kernel_ = new LanguageKernel();
-kernel_.runtime = runtime_;
 kernel_.addLeafExpression("parenthesized", ParenthesizedExpression.parse);
 kernel_.addLeafExpression("string", StringLiteral.parse);
 kernel_.addGrammarElement("nakedString", NakedString.parse);

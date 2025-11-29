@@ -6,7 +6,7 @@
 /**
  * Helper function for put command - put content into element or symbol
  */
-function putInto(context, root, prop, valueToPut, runtime) {
+function putInto(context, root, prop, valueToPut) {
     if (root == null) {
         var value = context.meta.runtime.resolveSymbol(prop, context);
     } else {
@@ -14,7 +14,7 @@ function putInto(context, root, prop, valueToPut, runtime) {
     }
     if (value instanceof Element || value instanceof HTMLDocument) {
         while (value.firstChild) value.removeChild(value.firstChild);
-        value.append(runtime.convertValue(valueToPut, "Fragment"));
+        value.append(context.meta.runtime.convertValue(valueToPut, "Fragment"));
         context.meta.runtime.processNode(value);
     } else {
         if (root == null) {
@@ -376,7 +376,6 @@ export class PutCommand extends SetterCommand {
             rootExpr = target;
         }
 
-        var runtime = parser.runtime;
         var putCmd = {
             target: target,
             operation: operation,
@@ -385,7 +384,7 @@ export class PutCommand extends SetterCommand {
             args: [rootExpr, prop, value],
             op: function (context, root, prop, valueToPut) {
                 if (symbolWrite) {
-                    putInto(context, root, prop, valueToPut, runtime);
+                    putInto(context, root, prop, valueToPut);
                 } else {
                     context.meta.runtime.nullCheck(root, rootExpr);
                     if (operation === "into") {
@@ -401,7 +400,7 @@ export class PutCommand extends SetterCommand {
                             root[prop] = valueToPut;
                         } else {
                             context.meta.runtime.implicitLoop(root, function (elt) {
-                                putInto(context, elt, prop, valueToPut, runtime);
+                                putInto(context, elt, prop, valueToPut);
                             });
                         }
                     } else {
