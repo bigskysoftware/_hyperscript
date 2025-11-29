@@ -6864,6 +6864,94 @@ function resolveHideShowStrategy(parser, name) {
   }
   return value;
 }
+var AddCommandClass = class {
+  constructor(classRefs, toExpr, when) {
+    this.type = "addCommand";
+    this.classRefs = classRefs;
+    this.to = toExpr;
+    this.args = [toExpr, classRefs];
+    this.when = when;
+    this.toExpr = toExpr;
+  }
+  op(context2, to, classRefs) {
+    const when = this.when;
+    const toExpr = this.toExpr;
+    context2.meta.runtime.nullCheck(to, toExpr);
+    context2.meta.runtime.forEach(classRefs, function(classRef) {
+      context2.meta.runtime.implicitLoop(to, function(target) {
+        if (when) {
+          context2.result = target;
+          let whenResult = context2.meta.runtime.evaluateNoPromise(when, context2);
+          if (whenResult) {
+            if (target instanceof Element) target.classList.add(classRef.className);
+          } else {
+            if (target instanceof Element) target.classList.remove(classRef.className);
+          }
+          context2.result = null;
+        } else {
+          if (target instanceof Element) target.classList.add(classRef.className);
+        }
+      });
+    });
+    return context2.meta.runtime.findNext(this, context2);
+  }
+  execute(ctx) {
+    return ctx.meta.runtime.unifiedExec(this, ctx);
+  }
+};
+var AddCommandAttribute = class {
+  constructor(attributeRef, toExpr, when) {
+    this.type = "addCmd";
+    this.attributeRef = attributeRef;
+    this.to = toExpr;
+    this.args = [toExpr];
+    this.when = when;
+    this.toExpr = toExpr;
+  }
+  op(context2, to, attrRef) {
+    const when = this.when;
+    const attributeRef = this.attributeRef;
+    const toExpr = this.toExpr;
+    context2.meta.runtime.nullCheck(to, toExpr);
+    context2.meta.runtime.implicitLoop(to, function(target) {
+      if (when) {
+        context2.result = target;
+        let whenResult = context2.meta.runtime.evaluateNoPromise(when, context2);
+        if (whenResult) {
+          target.setAttribute(attributeRef.name, attributeRef.value);
+        } else {
+          target.removeAttribute(attributeRef.name);
+        }
+        context2.result = null;
+      } else {
+        target.setAttribute(attributeRef.name, attributeRef.value);
+      }
+    });
+    return context2.meta.runtime.findNext(this, context2);
+  }
+  execute(ctx) {
+    return ctx.meta.runtime.unifiedExec(this, ctx);
+  }
+};
+var AddCommandCSS = class {
+  constructor(cssDeclaration, toExpr) {
+    this.type = "addCmd";
+    this.cssDeclaration = cssDeclaration;
+    this.to = toExpr;
+    this.args = [toExpr, cssDeclaration];
+    this.toExpr = toExpr;
+  }
+  op(context2, to, css) {
+    context2.meta.runtime.nullCheck(to, this.toExpr);
+    context2.meta.runtime.implicitLoop(to, function(target) {
+      target.style.cssText += css;
+    });
+    return context2.meta.runtime.findNext(this, context2);
+  }
+  execute(ctx) {
+    return ctx.meta.runtime.unifiedExec(this, ctx);
+  }
+};
 var AddCommand = class {
   static parse(parser) {
     if (!parser.matchToken("add")) return;
@@ -6896,80 +6984,65 @@ var AddCommand = class {
       var when = parser.requireElement("expression");
     }
     if (classRefs) {
-      return {
-        classRefs,
-        to: toExpr,
-        args: [toExpr, classRefs],
-        op: function(context2, to, classRefs2) {
-          context2.meta.runtime.nullCheck(to, toExpr);
-          context2.meta.runtime.forEach(classRefs2, function(classRef2) {
-            context2.meta.runtime.implicitLoop(to, function(target) {
-              if (when) {
-                context2.result = target;
-                let whenResult = context2.meta.runtime.evaluateNoPromise(when, context2);
-                if (whenResult) {
-                  if (target instanceof Element) target.classList.add(classRef2.className);
-                } else {
-                  if (target instanceof Element) target.classList.remove(classRef2.className);
-                }
-                context2.result = null;
-              } else {
-                if (target instanceof Element) target.classList.add(classRef2.className);
-              }
-            });
-          });
-          return context2.meta.runtime.findNext(this, context2);
-        }
-      };
+      return new AddCommandClass(classRefs, toExpr, when);
     } else if (attributeRef) {
-      return {
-        type: "addCmd",
-        attributeRef,
-        to: toExpr,
-        args: [toExpr],
-        op: function(context2, to, attrRef) {
-          context2.meta.runtime.nullCheck(to, toExpr);
-          context2.meta.runtime.implicitLoop(to, function(target) {
-            if (when) {
-              context2.result = target;
-              let whenResult = context2.meta.runtime.evaluateNoPromise(when, context2);
-              if (whenResult) {
-                target.setAttribute(attributeRef.name, attributeRef.value);
-              } else {
-                target.removeAttribute(attributeRef.name);
-              }
-              context2.result = null;
-            } else {
-              target.setAttribute(attributeRef.name, attributeRef.value);
-            }
-          });
-          return context2.meta.runtime.findNext(this, context2);
-        },
-        execute: function(ctx) {
-          return context.meta.runtime.unifiedExec(this, ctx);
-        }
-      };
+      return new AddCommandAttribute(attributeRef, toExpr, when);
     } else {
-      return {
-        type: "addCmd",
-        cssDeclaration,
-        to: toExpr,
-        args: [toExpr, cssDeclaration],
-        op: function(context2, to, css) {
-          context2.meta.runtime.nullCheck(to, toExpr);
-          context2.meta.runtime.implicitLoop(to, function(target) {
-            target.style.cssText += css;
-          });
-          return context2.meta.runtime.findNext(this, context2);
-        },
-        execute: function(ctx) {
-          return context.meta.runtime.unifiedExec(this, ctx);
-        }
-      };
+      return new AddCommandCSS(cssDeclaration, toExpr);
     }
   }
 };
 __publicField(AddCommand, "keyword", "add");
+var RemoveCommandElement = class {
+  constructor(elementExpr, fromExpr) {
+    this.type = "removeCommand";
+    this.elementExpr = elementExpr;
+    this.from = fromExpr;
+    this.args = [elementExpr, fromExpr];
+  }
+  op(context2, element, from) {
+    context2.meta.runtime.nullCheck(element, this.elementExpr);
+    context2.meta.runtime.implicitLoop(element, function(target) {
+      if (target.parentElement && (from == null || from.contains(target))) {
+        target.parentElement.removeChild(target);
+      }
+    });
+    return context2.meta.runtime.findNext(this, context2);
+  }
+  execute(ctx) {
+    return ctx.meta.runtime.unifiedExec(this, ctx);
+  }
+};
+var RemoveCommandClassOrAttr = class {
+  constructor(classRefs, attributeRef, fromExpr) {
+    this.type = "removeCommand";
+    this.classRefs = classRefs;
+    this.attributeRef = attributeRef;
+    this.from = fromExpr;
+    this.args = [classRefs, fromExpr];
+    this.fromExpr = fromExpr;
+  }
+  op(context2, classRefs, from) {
+    const attributeRef = this.attributeRef;
+    const fromExpr = this.fromExpr;
+    context2.meta.runtime.nullCheck(from, fromExpr);
+    if (classRefs) {
+      context2.meta.runtime.forEach(classRefs, function(classRef) {
+        context2.meta.runtime.implicitLoop(from, function(target) {
+          target.classList.remove(classRef.className);
+        });
+      });
+    } else {
+      context2.meta.runtime.implicitLoop(from, function(target) {
+        target.removeAttribute(attributeRef.name);
+      });
+    }
+    return context2.meta.runtime.findNext(this, context2);
+  }
+  execute(ctx) {
+    return ctx.meta.runtime.unifiedExec(this, ctx);
+  }
+};
 var RemoveCommand = class {
   static parse(parser) {
     if (!parser.matchToken("remove")) return;
@@ -7000,81 +7073,134 @@ var RemoveCommand = class {
       }
     }
     if (elementExpr) {
-      return {
-        elementExpr,
-        from: fromExpr,
-        args: [elementExpr, fromExpr],
-        op: function(context2, element, from) {
-          context2.meta.runtime.nullCheck(element, elementExpr);
-          context2.meta.runtime.implicitLoop(element, function(target) {
-            if (target.parentElement && (from == null || from.contains(target))) {
-              target.parentElement.removeChild(target);
-            }
-          });
-          return context2.meta.runtime.findNext(this, context2);
-        }
-      };
+      return new RemoveCommandElement(elementExpr, fromExpr);
     } else {
-      return {
-        classRefs,
-        attributeRef,
-        elementExpr,
-        from: fromExpr,
-        args: [classRefs, fromExpr],
-        op: function(context2, classRefs2, from) {
-          context2.meta.runtime.nullCheck(from, fromExpr);
-          if (classRefs2) {
-            context2.meta.runtime.forEach(classRefs2, function(classRef2) {
-              context2.meta.runtime.implicitLoop(from, function(target) {
-                target.classList.remove(classRef2.className);
-              });
-            });
-          } else {
-            context2.meta.runtime.implicitLoop(from, function(target) {
-              target.removeAttribute(attributeRef.name);
-            });
-          }
-          return context2.meta.runtime.findNext(this, context2);
-        }
-      };
+      return new RemoveCommandClassOrAttr(classRefs, attributeRef, fromExpr);
     }
   }
 };
 __publicField(RemoveCommand, "keyword", "remove");
+var ToggleCommandImpl = class {
+  constructor(classRef, classRef2, classRefs, attributeRef, onExpr, time, evt, from, visibility, between, hideShowStrategy) {
+    this.type = "toggleCommand";
+    this.classRef = classRef;
+    this.classRef2 = classRef2;
+    this.classRefs = classRefs;
+    this.attributeRef = attributeRef;
+    this.on = onExpr;
+    this.time = time;
+    this.evt = evt;
+    this.from = from;
+    this.visibility = visibility;
+    this.between = between;
+    this.hideShowStrategy = hideShowStrategy;
+    this.onExpr = onExpr;
+    this.args = [onExpr, time, evt, from, classRef, classRef2, classRefs];
+  }
+  toggle(context2, on, classRef, classRef2, classRefs) {
+    context2.meta.runtime.nullCheck(on, this.onExpr);
+    if (this.visibility) {
+      context2.meta.runtime.implicitLoop(on, (target) => {
+        this.hideShowStrategy("toggle", target, null, context2.meta.runtime);
+      });
+    } else if (this.between) {
+      context2.meta.runtime.implicitLoop(on, (target) => {
+        if (target.classList.contains(classRef.className)) {
+          target.classList.remove(classRef.className);
+          target.classList.add(classRef2.className);
+        } else {
+          target.classList.add(classRef.className);
+          target.classList.remove(classRef2.className);
+        }
+      });
+    } else if (classRefs) {
+      context2.meta.runtime.forEach(classRefs, (classRef3) => {
+        context2.meta.runtime.implicitLoop(on, (target) => {
+          target.classList.toggle(classRef3.className);
+        });
+      });
+    } else {
+      context2.meta.runtime.implicitLoop(on, (target) => {
+        if (target.hasAttribute(this.attributeRef.name)) {
+          target.removeAttribute(this.attributeRef.name);
+        } else {
+          target.setAttribute(this.attributeRef.name, this.attributeRef.value);
+        }
+      });
+    }
+  }
+  op(context2, on, time, evt, from, classRef, classRef2, classRefs) {
+    if (time) {
+      return new Promise((resolve) => {
+        this.toggle(context2, on, classRef, classRef2, classRefs);
+        setTimeout(() => {
+          this.toggle(context2, on, classRef, classRef2, classRefs);
+          resolve(context2.meta.runtime.findNext(this, context2));
+        }, time);
+      });
+    } else if (evt) {
+      return new Promise((resolve) => {
+        var target = from || context2.me;
+        target.addEventListener(
+          evt,
+          () => {
+            this.toggle(context2, on, classRef, classRef2, classRefs);
+            resolve(context2.meta.runtime.findNext(this, context2));
+          },
+          { once: true }
+        );
+        this.toggle(context2, on, classRef, classRef2, classRefs);
+      });
+    } else {
+      this.toggle(context2, on, classRef, classRef2, classRefs);
+      return context2.meta.runtime.findNext(this, context2);
+    }
+  }
+  execute(ctx) {
+    return ctx.meta.runtime.unifiedExec(this, ctx);
+  }
+};
 var ToggleCommand = class {
   static parse(parser) {
     if (!parser.matchToken("toggle")) return;
     parser.matchAnyToken("the", "my");
+    var visibility = false;
+    var between = false;
+    var hideShowStrategy = null;
+    var onExpr = null;
+    var classRef = null;
+    var classRef2 = null;
+    var classRefs = null;
+    var attributeRef = null;
     if (parser.currentToken().type === "STYLE_REF") {
       let styleRef = parser.consumeToken();
       var name = styleRef.value.substr(1);
-      var visibility = true;
-      var hideShowStrategy = resolveHideShowStrategy(parser, name);
+      visibility = true;
+      hideShowStrategy = resolveHideShowStrategy(parser, name);
       if (parser.matchToken("of")) {
         parser.pushFollow("with");
         try {
-          var onExpr = parser.requireElement("expression");
+          onExpr = parser.requireElement("expression");
         } finally {
           parser.popFollow();
         }
       } else {
-        var onExpr = parser.requireElement("implicitMeTarget");
+        onExpr = parser.requireElement("implicitMeTarget");
       }
     } else if (parser.matchToken("between")) {
-      var between = true;
-      var classRef = parser.parseElement("classRef");
+      between = true;
+      classRef = parser.parseElement("classRef");
       parser.requireToken("and");
-      var classRef2 = parser.requireElement("classRef");
+      classRef2 = parser.requireElement("classRef");
     } else {
-      var classRef = parser.parseElement("classRef");
-      var attributeRef = null;
+      classRef = parser.parseElement("classRef");
       if (classRef == null) {
         attributeRef = parser.parseElement("attributeRef");
         if (attributeRef == null) {
           parser.raiseParseError("Expected either a class reference or attribute expression");
         }
       } else {
-        var classRefs = [classRef];
+        classRefs = [classRef];
         while (classRef = parser.parseElement("classRef")) {
           classRefs.push(classRef);
         }
@@ -7082,93 +7208,45 @@ var ToggleCommand = class {
     }
     if (visibility !== true) {
       if (parser.matchToken("on")) {
-        var onExpr = parser.requireElement("expression");
+        onExpr = parser.requireElement("expression");
       } else {
-        var onExpr = parser.requireElement("implicitMeTarget");
+        onExpr = parser.requireElement("implicitMeTarget");
       }
     }
+    var time = null;
+    var evt = null;
+    var from = null;
     if (parser.matchToken("for")) {
-      var time = parser.requireElement("expression");
+      time = parser.requireElement("expression");
     } else if (parser.matchToken("until")) {
-      var evt = parser.requireElement("dotOrColonPath", "Expected event name");
+      evt = parser.requireElement("dotOrColonPath", "Expected event name");
       if (parser.matchToken("from")) {
-        var from = parser.requireElement("expression");
+        from = parser.requireElement("expression");
       }
     }
-    var toggleCmd = {
-      classRef,
-      classRef2,
-      classRefs,
-      attributeRef,
-      on: onExpr,
-      time,
-      evt,
-      from,
-      toggle: function(context2, on, classRef3, classRef22, classRefs2) {
-        context2.meta.runtime.nullCheck(on, onExpr);
-        if (visibility) {
-          context2.meta.runtime.implicitLoop(on, function(target) {
-            hideShowStrategy("toggle", target, null, context2.meta.runtime);
-          });
-        } else if (between) {
-          context2.meta.runtime.implicitLoop(on, function(target) {
-            if (target.classList.contains(classRef3.className)) {
-              target.classList.remove(classRef3.className);
-              target.classList.add(classRef22.className);
-            } else {
-              target.classList.add(classRef3.className);
-              target.classList.remove(classRef22.className);
-            }
-          });
-        } else if (classRefs2) {
-          context2.meta.runtime.forEach(classRefs2, function(classRef4) {
-            context2.meta.runtime.implicitLoop(on, function(target) {
-              target.classList.toggle(classRef4.className);
-            });
-          });
-        } else {
-          context2.meta.runtime.implicitLoop(on, function(target) {
-            if (target.hasAttribute(attributeRef.name)) {
-              target.removeAttribute(attributeRef.name);
-            } else {
-              target.setAttribute(attributeRef.name, attributeRef.value);
-            }
-          });
-        }
-      },
-      args: [onExpr, time, evt, from, classRef, classRef2, classRefs],
-      op: function(context2, on, time2, evt2, from2, classRef3, classRef22, classRefs2) {
-        if (time2) {
-          return new Promise(function(resolve) {
-            toggleCmd.toggle(context2, on, classRef3, classRef22, classRefs2);
-            setTimeout(function() {
-              toggleCmd.toggle(context2, on, classRef3, classRef22, classRefs2);
-              resolve(context2.meta.runtime.findNext(toggleCmd, context2));
-            }, time2);
-          });
-        } else if (evt2) {
-          return new Promise(function(resolve) {
-            var target = from2 || context2.me;
-            target.addEventListener(
-              evt2,
-              function() {
-                toggleCmd.toggle(context2, on, classRef3, classRef22, classRefs2);
-                resolve(context2.meta.runtime.findNext(toggleCmd, context2));
-              },
-              { once: true }
-            );
-            toggleCmd.toggle(context2, on, classRef3, classRef22, classRefs2);
-          });
-        } else {
-          this.toggle(context2, on, classRef3, classRef22, classRefs2);
-          return context2.meta.runtime.findNext(toggleCmd, context2);
-        }
-      }
-    };
-    return toggleCmd;
+    return new ToggleCommandImpl(classRef, classRef2, classRefs, attributeRef, onExpr, time, evt, from, visibility, between, hideShowStrategy);
   }
 };
 __publicField(ToggleCommand, "keyword", "toggle");
+var HideCommandImpl = class {
+  constructor(targetExpr, hideShowStrategy) {
+    this.type = "hideCommand";
+    this.target = targetExpr;
+    this.targetExpr = targetExpr;
+    this.hideShowStrategy = hideShowStrategy;
+    this.args = [targetExpr];
+  }
+  op(ctx, target) {
+    ctx.meta.runtime.nullCheck(target, this.targetExpr);
+    ctx.meta.runtime.implicitLoop(target, (elt) => {
+      this.hideShowStrategy("hide", elt, null, ctx.meta.runtime);
+    });
+    return ctx.meta.runtime.findNext(this, ctx);
+  }
+  execute(ctx) {
+    return ctx.meta.runtime.unifiedExec(this, ctx);
+  }
+};
 var HideCommand = class {
   static parse(parser) {
     if (!parser.matchToken("hide")) return;
@@ -7181,20 +7259,42 @@ var HideCommand = class {
       }
     }
     var hideShowStrategy = resolveHideShowStrategy(parser, name);
-    return {
-      target: targetExpr,
-      args: [targetExpr],
-      op: function(ctx, target) {
-        ctx.meta.runtime.nullCheck(target, targetExpr);
-        ctx.meta.runtime.implicitLoop(target, function(elt) {
-          hideShowStrategy("hide", elt, null, ctx.meta.runtime);
-        });
-        return ctx.meta.runtime.findNext(this, ctx);
-      }
-    };
+    return new HideCommandImpl(targetExpr, hideShowStrategy);
   }
 };
 __publicField(HideCommand, "keyword", "hide");
+var ShowCommandImpl = class {
+  constructor(targetExpr, when, arg, hideShowStrategy) {
+    this.type = "showCommand";
+    this.target = targetExpr;
+    this.targetExpr = targetExpr;
+    this.when = when;
+    this.arg = arg;
+    this.hideShowStrategy = hideShowStrategy;
+    this.args = [targetExpr];
+  }
+  op(ctx, target) {
+    ctx.meta.runtime.nullCheck(target, this.targetExpr);
+    ctx.meta.runtime.implicitLoop(target, (elt) => {
+      if (this.when) {
+        ctx.result = elt;
+        let whenResult = ctx.meta.runtime.evaluateNoPromise(this.when, ctx);
+        if (whenResult) {
+          this.hideShowStrategy("show", elt, this.arg, ctx.meta.runtime);
+        } else {
+          this.hideShowStrategy("hide", elt, null, ctx.meta.runtime);
+        }
+        ctx.result = null;
+      } else {
+        this.hideShowStrategy("show", elt, this.arg, ctx.meta.runtime);
+      }
+    });
+    return ctx.meta.runtime.findNext(this, ctx);
+  }
+  execute(ctx) {
+    return ctx.meta.runtime.unifiedExec(this, ctx);
+  }
+};
 var ShowCommand = class {
   static parse(parser) {
     if (!parser.matchToken("show")) return;
@@ -7218,29 +7318,7 @@ var ShowCommand = class {
       var when = parser.requireElement("expression");
     }
     var hideShowStrategy = resolveHideShowStrategy(parser, name);
-    return {
-      target: targetExpr,
-      when,
-      args: [targetExpr],
-      op: function(ctx, target) {
-        ctx.meta.runtime.nullCheck(target, targetExpr);
-        ctx.meta.runtime.implicitLoop(target, function(elt) {
-          if (when) {
-            ctx.result = elt;
-            let whenResult = ctx.meta.runtime.evaluateNoPromise(when, ctx);
-            if (whenResult) {
-              hideShowStrategy("show", elt, arg, ctx.meta.runtime);
-            } else {
-              hideShowStrategy("hide", elt, null, ctx.meta.runtime);
-            }
-            ctx.result = null;
-          } else {
-            hideShowStrategy("show", elt, arg, ctx.meta.runtime);
-          }
-        });
-        return ctx.meta.runtime.findNext(this, ctx);
-      }
-    };
+    return new ShowCommandImpl(targetExpr, when, arg, hideShowStrategy);
   }
 };
 __publicField(ShowCommand, "keyword", "show");
@@ -7272,6 +7350,68 @@ function parsePseudopossessiveTarget(parser) {
   }
   return targets;
 }
+var TakeCommandClass = class {
+  constructor(classRefs, fromExpr, forExpr) {
+    this.type = "takeCommand";
+    this.classRefs = classRefs;
+    this.from = fromExpr;
+    this.forElt = forExpr;
+    this.forExpr = forExpr;
+    this.args = [classRefs, fromExpr, forExpr];
+  }
+  op(context2, classRefs, from, forElt) {
+    context2.meta.runtime.nullCheck(forElt, this.forExpr);
+    context2.meta.runtime.implicitLoop(classRefs, (classRef) => {
+      var clazz = classRef.className;
+      if (from) {
+        context2.meta.runtime.implicitLoop(from, (target) => {
+          target.classList.remove(clazz);
+        });
+      } else {
+        context2.meta.runtime.implicitLoop(classRef, (target) => {
+          target.classList.remove(clazz);
+        });
+      }
+      context2.meta.runtime.implicitLoop(forElt, (target) => {
+        target.classList.add(clazz);
+      });
+    });
+    return context2.meta.runtime.findNext(this, context2);
+  }
+  execute(ctx) {
+    return ctx.meta.runtime.unifiedExec(this, ctx);
+  }
+};
+var TakeCommandAttribute = class {
+  constructor(attributeRef, fromExpr, forExpr, replacementValue) {
+    this.type = "takeCommand";
+    this.attributeRef = attributeRef;
+    this.from = fromExpr;
+    this.fromExpr = fromExpr;
+    this.forElt = forExpr;
+    this.forExpr = forExpr;
+    this.replacementValue = replacementValue;
+    this.args = [fromExpr, forExpr, replacementValue];
+  }
+  op(context2, from, forElt, replacementValue) {
+    context2.meta.runtime.nullCheck(from, this.fromExpr);
+    context2.meta.runtime.nullCheck(forElt, this.forExpr);
+    context2.meta.runtime.implicitLoop(from, (target) => {
+      if (!replacementValue) {
+        target.removeAttribute(this.attributeRef.name);
+      } else {
+        target.setAttribute(this.attributeRef.name, replacementValue);
+      }
+    });
+    context2.meta.runtime.implicitLoop(forElt, (target) => {
+      target.setAttribute(this.attributeRef.name, this.attributeRef.value || "");
+    });
+    return context2.meta.runtime.findNext(this, context2);
+  }
+  execute(ctx) {
+    return ctx.meta.runtime.unifiedExec(this, ctx);
+  }
+};
 var TakeCommand = class {
   /**
    * Parse take command
@@ -7306,60 +7446,61 @@ var TakeCommand = class {
         var forExpr = parser.requireElement("implicitMeTarget");
       }
       if (weAreTakingClasses) {
-        var takeCmd = {
-          classRefs,
-          from: fromExpr,
-          forElt: forExpr,
-          args: [classRefs, fromExpr, forExpr],
-          op: function(context2, classRefs2, from, forElt) {
-            context2.meta.runtime.nullCheck(forElt, forExpr);
-            context2.meta.runtime.implicitLoop(classRefs2, function(classRef2) {
-              var clazz = classRef2.className;
-              if (from) {
-                context2.meta.runtime.implicitLoop(from, function(target) {
-                  target.classList.remove(clazz);
-                });
-              } else {
-                context2.meta.runtime.implicitLoop(classRef2, function(target) {
-                  target.classList.remove(clazz);
-                });
-              }
-              context2.meta.runtime.implicitLoop(forElt, function(target) {
-                target.classList.add(clazz);
-              });
-            });
-            return context2.meta.runtime.findNext(this, context2);
-          }
-        };
-        return takeCmd;
+        return new TakeCommandClass(classRefs, fromExpr, forExpr);
       } else {
-        var takeCmd2 = {
-          attributeRef,
-          from: fromExpr,
-          forElt: forExpr,
-          args: [fromExpr, forExpr, replacementValue],
-          op: function(context2, from, forElt, replacementValue2) {
-            context2.meta.runtime.nullCheck(from, fromExpr);
-            context2.meta.runtime.nullCheck(forElt, forExpr);
-            context2.meta.runtime.implicitLoop(from, function(target) {
-              if (!replacementValue2) {
-                target.removeAttribute(attributeRef.name);
-              } else {
-                target.setAttribute(attributeRef.name, replacementValue2);
-              }
-            });
-            context2.meta.runtime.implicitLoop(forElt, function(target) {
-              target.setAttribute(attributeRef.name, attributeRef.value || "");
-            });
-            return context2.meta.runtime.findNext(this, context2);
-          }
-        };
-        return takeCmd2;
+        return new TakeCommandAttribute(attributeRef, fromExpr, forExpr, replacementValue);
       }
     }
   }
 };
 __publicField(TakeCommand, "keyword", "take");
+var MeasureCommandImpl = class {
+  constructor(targetExpr, propsToMeasure) {
+    this.type = "measureCommand";
+    this.properties = propsToMeasure;
+    this.targetExpr = targetExpr;
+    this.args = [targetExpr];
+  }
+  op(ctx, target) {
+    ctx.meta.runtime.nullCheck(target, this.targetExpr);
+    if (0 in target) target = target[0];
+    var rect = target.getBoundingClientRect();
+    var scroll = {
+      top: target.scrollTop,
+      left: target.scrollLeft,
+      topMax: target.scrollTopMax,
+      leftMax: target.scrollLeftMax,
+      height: target.scrollHeight,
+      width: target.scrollWidth
+    };
+    ctx.result = {
+      x: rect.x,
+      y: rect.y,
+      left: rect.left,
+      top: rect.top,
+      right: rect.right,
+      bottom: rect.bottom,
+      width: rect.width,
+      height: rect.height,
+      bounds: rect,
+      scrollLeft: scroll.left,
+      scrollTop: scroll.top,
+      scrollLeftMax: scroll.leftMax,
+      scrollTopMax: scroll.topMax,
+      scrollWidth: scroll.width,
+      scrollHeight: scroll.height,
+      scroll
+    };
+    ctx.meta.runtime.forEach(this.properties, (prop) => {
+      if (prop in ctx.result) ctx.locals[prop] = ctx.result[prop];
+      else throw "No such measurement as " + prop;
+    });
+    return ctx.meta.runtime.findNext(this, ctx);
+  }
+  execute(ctx) {
+    return ctx.meta.runtime.unifiedExec(this, ctx);
+  }
+};
 var MeasureCommand = class {
   /**
    * Parse measure command
@@ -7374,46 +7515,7 @@ var MeasureCommand = class {
       do {
         propsToMeasure.push(parser.matchTokenType("IDENTIFIER").value);
       } while (parser.matchOpToken(","));
-    return {
-      properties: propsToMeasure,
-      args: [targetExpr],
-      op: function(ctx, target) {
-        ctx.meta.runtime.nullCheck(target, targetExpr);
-        if (0 in target) target = target[0];
-        var rect = target.getBoundingClientRect();
-        var scroll = {
-          top: target.scrollTop,
-          left: target.scrollLeft,
-          topMax: target.scrollTopMax,
-          leftMax: target.scrollLeftMax,
-          height: target.scrollHeight,
-          width: target.scrollWidth
-        };
-        ctx.result = {
-          x: rect.x,
-          y: rect.y,
-          left: rect.left,
-          top: rect.top,
-          right: rect.right,
-          bottom: rect.bottom,
-          width: rect.width,
-          height: rect.height,
-          bounds: rect,
-          scrollLeft: scroll.left,
-          scrollTop: scroll.top,
-          scrollLeftMax: scroll.leftMax,
-          scrollTopMax: scroll.topMax,
-          scrollWidth: scroll.width,
-          scrollHeight: scroll.height,
-          scroll
-        };
-        ctx.meta.runtime.forEach(propsToMeasure, function(prop) {
-          if (prop in ctx.result) ctx.locals[prop] = ctx.result[prop];
-          else throw "No such measurement as " + prop;
-        });
-        return ctx.meta.runtime.findNext(this, ctx);
-      }
-    };
+    return new MeasureCommandImpl(targetExpr, propsToMeasure);
   }
 };
 __publicField(MeasureCommand, "keyword", "measure");
