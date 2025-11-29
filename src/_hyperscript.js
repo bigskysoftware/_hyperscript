@@ -105,146 +105,146 @@ import {OnFeature} from './parsetree/features/on.js';
 const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'undefined' ? global : this);
 
     // Create lexer and runtime first
-    const tokenizer_ = new Tokenizer();
-    const runtime_ = new Runtime(globalScope);
+    const tokenizer = new Tokenizer();
+    const runtime = new Runtime(globalScope);
 
     // Create and configure kernel
-    const kernel_ = new LanguageKernel();
+    const kernel = new LanguageKernel();
 
     // ===== Grammar Registration =====
 
     // Literals and basic expressions
-    kernel_.addLeafExpression("parenthesized", ParenthesizedExpression.parse);
-    kernel_.addLeafExpression("string", StringLiteral.parse);
-    kernel_.addGrammarElement("nakedString", NakedString.parse);
-    kernel_.addGrammarElement("stringLike", function (parser) {
+    kernel.addLeafExpression("parenthesized", ParenthesizedExpression.parse);
+    kernel.addLeafExpression("string", StringLiteral.parse);
+    kernel.addGrammarElement("nakedString", NakedString.parse);
+    kernel.addGrammarElement("stringLike", function (parser) {
         return parser.parseAnyOf(["string", "nakedString"]);
     });
-    kernel_.addLeafExpression("number", NumberLiteral.parse);
-    kernel_.addLeafExpression("boolean", BooleanLiteral.parse);
-    kernel_.addLeafExpression("null", NullLiteral.parse);
-    kernel_.addLeafExpression("arrayLiteral", ArrayLiteral.parse);
-    kernel_.addLeafExpression("blockLiteral", BlockLiteral.parse);
-    kernel_.addLeafExpression("objectLiteral", ObjectLiteral.parse);
-    kernel_.addGrammarElement("objectKey", ObjectKey.parse);
-    kernel_.addGrammarElement("nakedNamedArgumentList", NamedArgumentList.parseNaked);
-    kernel_.addGrammarElement("namedArgumentList", NamedArgumentList.parse);
+    kernel.addLeafExpression("number", NumberLiteral.parse);
+    kernel.addLeafExpression("boolean", BooleanLiteral.parse);
+    kernel.addLeafExpression("null", NullLiteral.parse);
+    kernel.addLeafExpression("arrayLiteral", ArrayLiteral.parse);
+    kernel.addLeafExpression("blockLiteral", BlockLiteral.parse);
+    kernel.addLeafExpression("objectLiteral", ObjectLiteral.parse);
+    kernel.addGrammarElement("objectKey", ObjectKey.parse);
+    kernel.addGrammarElement("nakedNamedArgumentList", NamedArgumentList.parseNaked);
+    kernel.addGrammarElement("namedArgumentList", NamedArgumentList.parse);
 
     // Web literals and references
-    kernel_.addLeafExpression("idRef", IdRef.parse);
-    kernel_.addLeafExpression("classRef", ClassRef.parse);
-    kernel_.addLeafExpression("queryRef", QueryRef.parse);
-    kernel_.addLeafExpression("attributeRef", AttributeRef.parse);
-    kernel_.addLeafExpression("styleRef", StyleRef.parse);
-    kernel_.addGrammarElement("styleLiteral", StyleLiteral.parse);
+    kernel.addLeafExpression("idRef", IdRef.parse);
+    kernel.addLeafExpression("classRef", ClassRef.parse);
+    kernel.addLeafExpression("queryRef", QueryRef.parse);
+    kernel.addLeafExpression("attributeRef", AttributeRef.parse);
+    kernel.addLeafExpression("styleRef", StyleRef.parse);
+    kernel.addGrammarElement("styleLiteral", StyleLiteral.parse);
 
     // Symbols and identifiers
-    kernel_.addGrammarElement("symbol", SymbolRef.parse);
-    kernel_.addGrammarElement("implicitMeTarget", ImplicitMeTarget.parse);
-    kernel_.addGrammarElement("dotOrColonPath", DotOrColonPath.parse);
-    kernel_.addGrammarElement("eventName", EventName.parse);
+    kernel.addGrammarElement("symbol", SymbolRef.parse);
+    kernel.addGrammarElement("implicitMeTarget", ImplicitMeTarget.parse);
+    kernel.addGrammarElement("dotOrColonPath", DotOrColonPath.parse);
+    kernel.addGrammarElement("eventName", EventName.parse);
 
     // Indirect expressions (property access, function calls, etc.)
-    kernel_.addIndirectExpression("propertyAccess", PropertyAccess.parse);
-    kernel_.addIndirectExpression("of", OfExpression.parse);
-    kernel_.addIndirectExpression("possessive", PossessiveExpression.parse);
-    kernel_.addIndirectExpression("inExpression", InExpression.parse);
-    kernel_.addIndirectExpression("asExpression", AsExpression.parse);
-    kernel_.addIndirectExpression("functionCall", FunctionCall.parse);
-    kernel_.addIndirectExpression("attributeRefAccess", AttributeRefAccess.parse);
-    kernel_.addIndirectExpression("arrayIndex", ArrayIndex.parse);
+    kernel.addIndirectExpression("propertyAccess", PropertyAccess.parse);
+    kernel.addIndirectExpression("of", OfExpression.parse);
+    kernel.addIndirectExpression("possessive", PossessiveExpression.parse);
+    kernel.addIndirectExpression("inExpression", InExpression.parse);
+    kernel.addIndirectExpression("asExpression", AsExpression.parse);
+    kernel.addIndirectExpression("functionCall", FunctionCall.parse);
+    kernel.addIndirectExpression("attributeRefAccess", AttributeRefAccess.parse);
+    kernel.addIndirectExpression("arrayIndex", ArrayIndex.parse);
 
     // Unary and logical expressions
-    kernel_.addUnaryExpression("beepExpression", BeepExpression.parse);
-    kernel_.addUnaryExpression("logicalNot", LogicalNot.parse);
-    kernel_.addUnaryExpression("noExpression", NoExpression.parse);
-    kernel_.addLeafExpression("some", SomeExpression.parse);
-    kernel_.addGrammarElement("negativeNumber", NegativeNumber.parse);
+    kernel.addUnaryExpression("beepExpression", BeepExpression.parse);
+    kernel.addUnaryExpression("logicalNot", LogicalNot.parse);
+    kernel.addUnaryExpression("noExpression", NoExpression.parse);
+    kernel.addLeafExpression("some", SomeExpression.parse);
+    kernel.addGrammarElement("negativeNumber", NegativeNumber.parse);
 
     // Positional expressions (unary)
-    kernel_.addUnaryExpression("relativePositionalExpression", RelativePositionalExpression.parse);
-    kernel_.addUnaryExpression("positionalExpression", PositionalExpression.parse);
-    kernel_.addLeafExpression("closestExpr", ClosestExpr.parse);
+    kernel.addUnaryExpression("relativePositionalExpression", RelativePositionalExpression.parse);
+    kernel.addUnaryExpression("positionalExpression", PositionalExpression.parse);
+    kernel.addLeafExpression("closestExpr", ClosestExpr.parse);
 
     // postfixExpression is also part of unary expressions (already registered as grammar element)
     // TODO this doesn't belong here I think
-    kernel_.UNARY_EXPRESSIONS.push("postfixExpression");
+    kernel.UNARY_EXPRESSIONS.push("postfixExpression");
 
     // Math and comparison expressions
-    kernel_.addGrammarElement("mathOperator", MathOperator.parse);
-    kernel_.addGrammarElement("mathExpression", MathExpression.parse);
-    kernel_.addGrammarElement("comparisonOperator", ComparisonOperator.parse);
-    kernel_.addGrammarElement("comparisonExpression", ComparisonExpression.parse);
+    kernel.addGrammarElement("mathOperator", MathOperator.parse);
+    kernel.addGrammarElement("mathExpression", MathExpression.parse);
+    kernel.addGrammarElement("comparisonOperator", ComparisonOperator.parse);
+    kernel.addGrammarElement("comparisonExpression", ComparisonExpression.parse);
 
     // Logical expressions
-    kernel_.addGrammarElement("logicalOperator", LogicalOperator.parse);
-    kernel_.addGrammarElement("logicalExpression", LogicalExpression.parse);
+    kernel.addGrammarElement("logicalOperator", LogicalOperator.parse);
+    kernel.addGrammarElement("logicalExpression", LogicalExpression.parse);
 
     // Top-level expression (async expression is the only one currently)
-    kernel_.addTopExpression("asyncExpression", AsyncExpression.parse);
+    kernel.addTopExpression("asyncExpression", AsyncExpression.parse);
 
     // Features
-    kernel_.addFeatures(
+    kernel.addFeatures(
         OnFeature, DefFeature, SetFeature, InitFeature,
         WorkerFeature, BehaviorFeature, InstallFeature
     );
-    kernel_.addGrammarElement("jsBody", JsBody.parse);
-    kernel_.addFeature("js", JsFeature.parse);
+    kernel.addGrammarElement("jsBody", JsBody.parse);
+    kernel.addFeature("js", JsFeature.parse);
 
     // Basic commands
-    kernel_.addCommands(
+    kernel.addCommands(
         LogCommand, BeepCommand, ThrowCommand, ReturnCommand, ExitCommand, HaltCommand,
         MakeCommand, PickCommand, FetchCommand, GoCommand
     );
 
     // Variable and value commands
-    kernel_.addCommands(
+    kernel.addCommands(
         SetCommand, DefaultCommand, IncrementCommand, DecrementCommand, AppendCommand,
         PutCommand
     );
 
     // Control flow commands
-    kernel_.addCommands(
+    kernel.addCommands(
         IfCommand, RepeatCommand, ForCommand, ContinueCommand, BreakCommand, TellCommand
     );
 
     // Event commands
-    kernel_.addCommands(
+    kernel.addCommands(
         WaitCommand, TriggerCommand, SendCommand
     );
 
     // Execution commands
-    kernel_.addCommands(
+    kernel.addCommands(
         JsCommand, AsyncCommand, CallCommand, GetCommand
     );
-    kernel_.addGrammarElement("pseudoCommand", PseudoCommand.parse);
+    kernel.addGrammarElement("pseudoCommand", PseudoCommand.parse);
 
     // DOM manipulation commands
-    kernel_.addCommands(
+    kernel.addCommands(
         AddCommand, RemoveCommand, TakeCommand, MeasureCommand,
         ToggleCommand, HideCommand, ShowCommand
     );
 
     // Animation commands
-    kernel_.addCommands(SettleCommand, TransitionCommand);
+    kernel.addCommands(SettleCommand, TransitionCommand);
 
     // Initialize web-specific conversions
-    initWebConversions(runtime_);
+    initWebConversions(runtime);
 
     // Postfix expressions
-    kernel_.addPostfixExpression("stringPostfixExpression", StringPostfixExpression.parse);
-    kernel_.addPostfixExpression("timeExpression", TimeExpression.parse);
-    kernel_.addPostfixExpression("typeCheckExpression", TypeCheckExpression.parse);
+    kernel.addPostfixExpression("stringPostfixExpression", StringPostfixExpression.parse);
+    kernel.addPostfixExpression("timeExpression", TimeExpression.parse);
+    kernel.addPostfixExpression("typeCheckExpression", TypeCheckExpression.parse);
 
     // TODO: this should be driven by the expressions themselves, not a list here
-    kernel_.ASSIGNABLE_EXPRESSIONS.push("symbol");
-    kernel_.ASSIGNABLE_EXPRESSIONS.push("ofExpression");  // "of" produces type "ofExpression"
-    kernel_.ASSIGNABLE_EXPRESSIONS.push("propertyAccess");
-    kernel_.ASSIGNABLE_EXPRESSIONS.push("attributeRefAccess");
-    kernel_.ASSIGNABLE_EXPRESSIONS.push("attributeRef");
-    kernel_.ASSIGNABLE_EXPRESSIONS.push("styleRef");
-    kernel_.ASSIGNABLE_EXPRESSIONS.push("arrayIndex");
-    kernel_.ASSIGNABLE_EXPRESSIONS.push("possessive");
+    kernel.ASSIGNABLE_EXPRESSIONS.push("symbol");
+    kernel.ASSIGNABLE_EXPRESSIONS.push("ofExpression");  // "of" produces type "ofExpression"
+    kernel.ASSIGNABLE_EXPRESSIONS.push("propertyAccess");
+    kernel.ASSIGNABLE_EXPRESSIONS.push("attributeRefAccess");
+    kernel.ASSIGNABLE_EXPRESSIONS.push("attributeRef");
+    kernel.ASSIGNABLE_EXPRESSIONS.push("styleRef");
+    kernel.ASSIGNABLE_EXPRESSIONS.push("arrayIndex");
+    kernel.ASSIGNABLE_EXPRESSIONS.push("possessive");
 
     // Set up the LanguageKernel.raiseParseError callback for Tokens
     // TODO need to rethink how tokenization errors are done
@@ -270,8 +270,8 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
         var body = 'document' in globalScope
             ? globalScope.document.body
             : new HyperscriptModule(args && args.module);
-        ctx = Object.assign(runtime_.makeContext(body, null, body, null), ctx || {});
-        var element = kernel_.parse(tokenizer_, src);
+        ctx = Object.assign(runtime.makeContext(body, null, body, null), ctx || {});
+        var element = kernel.parse(tokenizer, src);
         if (element.execute) {
             element.execute(ctx);
             if(typeof ctx.meta.returnValue !== 'undefined'){
@@ -280,8 +280,8 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
                 return ctx.result;
             }
         } else if (element.apply) {
-            element.apply(body, body, args, runtime_);
-            return runtime_.getHyperscriptFeatures(body);
+            element.apply(body, body, args, runtime);
+            return runtime.getHyperscriptFeatures(body);
         } else {
             return element.evaluate(ctx);
         }
@@ -295,24 +295,24 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
         if (elt.closest && elt.closest(config.disableSelector)) {
             return;
         }
-        var internalData = runtime_.getInternalData(elt);
+        var internalData = runtime.getInternalData(elt);
         if (!internalData.initialized) {
-            var src = runtime_.getScript(elt);
+            var src = runtime.getScript(elt);
             if (src) {
                 try {
                     internalData.initialized = true;
                     internalData.script = src;
-                    var tokens = tokenizer_.tokenize(src);
-                    var hyperScript = kernel_.parseHyperScript(tokens);
+                    var tokens = tokenizer.tokenize(src);
+                    var hyperScript = kernel.parseHyperScript(tokens);
                     if (!hyperScript) return;
-                    hyperScript.apply(target || elt, elt, null, runtime_);
+                    hyperScript.apply(target || elt, elt, null, runtime);
                     setTimeout(() => {
-                        runtime_.triggerEvent(target || elt, "load", {
+                        runtime.triggerEvent(target || elt, "load", {
                             hyperscript: true,
                         });
                     }, 1);
                 } catch (e) {
-                    runtime_.triggerEvent(elt, "exception", {
+                    runtime.triggerEvent(elt, "exception", {
                         error: e,
                     });
                     console.error(
@@ -331,22 +331,22 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
      * @param {HTMLElement} elt
      */
     function processNode(elt) {
-        var selector = runtime_.getScriptSelector();
-        if (runtime_.matchesSelector(elt, selector)) {
+        var selector = runtime.getScriptSelector();
+        if (runtime.matchesSelector(elt, selector)) {
             initElement(elt, elt);
         }
         if (elt instanceof HTMLScriptElement && elt.type === "text/hyperscript") {
             initElement(elt, document.body);
         }
         if (elt.querySelectorAll) {
-            runtime_.forEach(elt.querySelectorAll(selector + ", [type='text/hyperscript']"), elt => {
+            runtime.forEach(elt.querySelectorAll(selector + ", [type='text/hyperscript']"), elt => {
                 initElement(elt, elt instanceof HTMLScriptElement && elt.type === "text/hyperscript" ? document.body : elt);
             });
         }
     }
 
     // Add processNode to runtime for backward compatibility with grammars
-    runtime_.processNode = processNode;
+    runtime.processNode = processNode;
 
     function browserInit() {
         /** @type {HTMLScriptElement[]} */
@@ -435,18 +435,18 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
             use(plugin) { plugin(_hyperscript) },
 
             internals: {
-                tokenizer: tokenizer_, parser: kernel_, runtime: runtime_,
+                tokenizer: tokenizer, parser: kernel, runtime: runtime,
                 Tokenizer, Tokens, Parser: LanguageKernel, Runtime,
             },
             ElementCollection,
 
-            addFeature:            kernel_.addFeature.bind(kernel_),
-            addCommand:            kernel_.addCommand.bind(kernel_),
-            addLeafExpression:     kernel_.addLeafExpression.bind(kernel_),
-            addIndirectExpression: kernel_.addIndirectExpression.bind(kernel_),
+            addFeature:            kernel.addFeature.bind(kernel),
+            addCommand:            kernel.addCommand.bind(kernel),
+            addLeafExpression:     kernel.addLeafExpression.bind(kernel),
+            addIndirectExpression: kernel.addIndirectExpression.bind(kernel),
 
             evaluate,
-            parse:       (src) => kernel_.parse(tokenizer_, src),
+            parse:       (src) => kernel.parse(tokenizer, src),
             process: processNode,
             processNode,
             version: "0.9.14",

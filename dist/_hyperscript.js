@@ -378,8 +378,8 @@ var _Tokenizer = class _Tokenizer {
    * @returns {Tokens}
    */
   static tokenize(string, template) {
-    const tokenizer = new _Tokenizer();
-    return tokenizer.tokenize(string, template);
+    const tokenizer2 = new _Tokenizer();
+    return tokenizer2.tokenize(string, template);
   }
   /**
    * Instance tokenize method
@@ -955,14 +955,14 @@ var config = {
   hideShowStrategies: {},
   conversions
 };
-function initWebConversions(runtime) {
+function initWebConversions(runtime2) {
   conversions.dynamicResolvers.push(function(str, node) {
     if (!(str === "Values" || str.indexOf("Values:") === 0)) {
       return;
     }
     var conversion = str.split(":")[1];
     var result = {};
-    var implicitLoop = runtime.implicitLoop.bind(runtime);
+    var implicitLoop = runtime2.implicitLoop.bind(runtime2);
     implicitLoop(node, function(node2) {
       var input = getInputInfo(node2);
       if (input !== void 0) {
@@ -1066,7 +1066,7 @@ function initWebConversions(runtime) {
   };
   conversions["Fragment"] = function(val) {
     var frag = document.createDocumentFragment();
-    runtime.implicitLoop(val, function(val2) {
+    runtime2.implicitLoop(val, function(val2) {
       if (val2 instanceof Node) frag.append(val2);
       else {
         var temp = document.createElement("template");
@@ -1081,11 +1081,11 @@ function initWebConversions(runtime) {
 // src/core/runtime.js
 var shouldAutoIterateSymbol = Symbol();
 var ElementCollection = class {
-  constructor(css, relativeToElement, escape, runtime) {
+  constructor(css, relativeToElement, escape, runtime2) {
     this._css = css;
     this.relativeToElement = relativeToElement;
     this.escape = escape;
-    this._runtime = runtime;
+    this._runtime = runtime2;
     this[shouldAutoIterateSymbol] = true;
   }
   get css() {
@@ -1122,8 +1122,8 @@ var ElementCollection = class {
   }
 };
 var TemplatedQueryElementCollection = class extends ElementCollection {
-  constructor(css, relativeToElement, templateParts, runtime) {
-    super(css, relativeToElement, false, runtime);
+  constructor(css, relativeToElement, templateParts, runtime2) {
+    super(css, relativeToElement, false, runtime2);
     this.templateParts = templateParts;
     this.elements = templateParts.filter((elt) => elt instanceof Element);
   }
@@ -1240,11 +1240,11 @@ var Context = class {
   * @param {*} hyperscriptTarget
   * @param {*} event
   */
-  constructor(owner, feature, hyperscriptTarget, event, runtime, globalScope2) {
+  constructor(owner, feature, hyperscriptTarget, event, runtime2, globalScope2) {
     this.meta = {
-      parser: runtime.parser,
-      tokenizer: runtime.tokenizer,
-      runtime,
+      parser: runtime2.parser,
+      tokenizer: runtime2.tokenizer,
+      runtime: runtime2,
       owner,
       feature,
       iterators: {},
@@ -1260,7 +1260,7 @@ var Context = class {
     this.detail = event ? event.detail : null;
     this.sender = event ? event.detail ? event.detail.sender : null : null;
     this.body = "document" in globalScope2 ? document.body : null;
-    runtime.addFeatures(owner, this);
+    runtime2.addFeatures(owner, this);
   }
 };
 function getOrInitObject(root, prop) {
@@ -2063,8 +2063,8 @@ var Parser = class {
    * @param {import('./kernel.js').LanguageKernel} kernel
    * @param {import('./tokens.js').Tokens} tokens
    */
-  constructor(kernel, tokens) {
-    this.kernel = kernel;
+  constructor(kernel2, tokens) {
+    this.kernel = kernel2;
     this.tokens = tokens;
   }
   // ===========================
@@ -2363,9 +2363,9 @@ var _LanguageKernel = class _LanguageKernel {
       return {
         type: "hyperscript",
         features,
-        apply: function(target, source, args, runtime) {
+        apply: function(target, source, args, runtime2) {
           for (const feature2 of features) {
-            feature2.install(target, source, args, runtime);
+            feature2.install(target, source, args, runtime2);
           }
         }
       };
@@ -2613,8 +2613,8 @@ var _LanguageKernel = class _LanguageKernel {
    * @param {string} src
    * @returns {ASTNode}
    */
-  parse(tokenizer, src) {
-    var tokens = tokenizer.tokenize(src);
+  parse(tokenizer2, src) {
+    var tokens = tokenizer2.tokenize(src);
     if (this.commandStart(tokens.currentToken())) {
       var commandList = this.requireElement("commandList", tokens);
       if (tokens.hasMore()) _LanguageKernel.raiseParseError(tokens);
@@ -6579,23 +6579,23 @@ var PseudoCommand = class {
 
 // src/parsetree/commands/dom.js
 var HIDE_SHOW_STRATEGIES = {
-  display: function(op, element, arg, runtime) {
+  display: function(op, element, arg, runtime2) {
     if (arg) {
       element.style.display = arg;
     } else if (op === "toggle") {
       if (getComputedStyle(element).display === "none") {
-        HIDE_SHOW_STRATEGIES.display("show", element, arg, runtime);
+        HIDE_SHOW_STRATEGIES.display("show", element, arg, runtime2);
       } else {
-        HIDE_SHOW_STRATEGIES.display("hide", element, arg, runtime);
+        HIDE_SHOW_STRATEGIES.display("hide", element, arg, runtime2);
       }
     } else if (op === "hide") {
-      const internalData = runtime.getInternalData(element);
+      const internalData = runtime2.getInternalData(element);
       if (internalData.originalDisplay == null) {
         internalData.originalDisplay = element.style.display;
       }
       element.style.display = "none";
     } else {
-      const internalData = runtime.getInternalData(element);
+      const internalData = runtime2.getInternalData(element);
       if (internalData.originalDisplay && internalData.originalDisplay !== "none") {
         element.style.display = internalData.originalDisplay;
       } else {
@@ -7450,8 +7450,8 @@ var SetFeature = class {
       }
       let setFeature = {
         start: setCmd,
-        install: function(target, source, args, runtime) {
-          setCmd && setCmd.execute(runtime.makeContext(target, setFeature, target, null));
+        install: function(target, source, args, runtime2) {
+          setCmd && setCmd.execute(runtime2.makeContext(target, setFeature, target, null));
         }
       };
       parser.ensureTerminated(setCmd);
@@ -7474,9 +7474,9 @@ var InitFeature = class {
     var start = parser.requireElement("commandList");
     var initFeature = {
       start,
-      install: function(target, source, args, runtime) {
+      install: function(target, source, args, runtime2) {
         let handler = function() {
-          start && start.execute(runtime.makeContext(target, initFeature, target, null));
+          start && start.execute(runtime2.makeContext(target, initFeature, target, null));
         };
         if (immediately) {
           handler();
@@ -7535,18 +7535,18 @@ var BehaviorFeature = class {
       feature.behavior = path;
     }
     return {
-      install: function(target, source, args, runtime) {
-        runtime.assignToNamespace(
-          runtime.globalScope.document && runtime.globalScope.document.body,
+      install: function(target, source, args, runtime2) {
+        runtime2.assignToNamespace(
+          runtime2.globalScope.document && runtime2.globalScope.document.body,
           nameSpace,
           name,
           function(target2, source2, innerArgs) {
-            var internalData = runtime.getInternalData(target2);
+            var internalData = runtime2.getInternalData(target2);
             var elementScope = getOrInitObject(internalData, path + "Scope");
             for (var i2 = 0; i2 < formalParams.length; i2++) {
               elementScope[formalParams[i2]] = innerArgs[formalParams[i2]];
             }
-            hs.apply(target2, source2, null, runtime);
+            hs.apply(target2, source2, null, runtime2);
           }
         );
       }
@@ -7569,12 +7569,12 @@ var InstallFeature = class {
     var args = parser.parseElement("namedArgumentList");
     var installFeature;
     return installFeature = {
-      install: function(target, source, installArgs, runtime) {
-        runtime.unifiedEval(
+      install: function(target, source, installArgs, runtime2) {
+        runtime2.unifiedEval(
           {
             args: [args],
             op: function(ctx, args2) {
-              var behavior = runtime.globalScope;
+              var behavior = runtime2.globalScope;
               for (var i = 0; i < behaviorNamespace.length; i++) {
                 behavior = behavior[behaviorNamespace[i]];
                 if (typeof behavior !== "object" && typeof behavior !== "function")
@@ -7585,7 +7585,7 @@ var InstallFeature = class {
               behavior(target, source, args2);
             }
           },
-          runtime.makeContext(target, installFeature, target, null)
+          runtime2.makeContext(target, installFeature, target, null)
         );
       }
     };
@@ -7611,8 +7611,8 @@ var JsFeature = class {
       jsSource,
       function: func,
       exposedFunctionNames: jsBody.exposedFunctionNames,
-      install: function(target, source, args, runtime) {
-        Object.assign(runtime.globalScope, func());
+      install: function(target, source, args, runtime2) {
+        Object.assign(runtime2.globalScope, func());
       }
     };
   }
@@ -7661,9 +7661,9 @@ var DefFeature = class {
       errorHandler,
       errorSymbol,
       finallyHandler,
-      install: function(target, source, funcArgs, runtime) {
+      install: function(target, source, funcArgs, runtime2) {
         var func = function() {
-          var ctx = runtime.makeContext(source, functionFeature, target, null);
+          var ctx = runtime2.makeContext(source, functionFeature, target, null);
           ctx.meta.errorHandler = errorHandler;
           ctx.meta.errorSymbol = errorSymbol;
           ctx.meta.finallyHandler = finallyHandler;
@@ -7694,7 +7694,7 @@ var DefFeature = class {
         };
         func.hyperfunc = true;
         func.hypername = nameVal;
-        runtime.assignToNamespace(target, nameSpace, funcName, func);
+        runtime2.assignToNamespace(target, nameSpace, funcName, func);
       }
     };
     parser.ensureTerminated(start);
@@ -7942,17 +7942,17 @@ var OnFeature = class {
         };
         start.execute(ctx);
       },
-      install: function(elt, source, args2, runtime) {
+      install: function(elt, source, args2, runtime2) {
         for (const eventSpec of onFeature.events) {
           var targets;
           if (eventSpec.elsewhere) {
             targets = [document];
           } else if (eventSpec.from) {
-            targets = eventSpec.from.evaluate(runtime.makeContext(elt, onFeature, elt, null));
+            targets = eventSpec.from.evaluate(runtime2.makeContext(elt, onFeature, elt, null));
           } else {
             targets = [elt];
           }
-          runtime.implicitLoop(targets, function(target) {
+          runtime2.implicitLoop(targets, function(target) {
             var eventName2 = eventSpec.on;
             if (target == null) {
               console.warn("'%s' feature ignored because target does not exists:", displayName, elt);
@@ -7962,7 +7962,7 @@ var OnFeature = class {
               eventName2 = "hyperscript:mutation";
               const observer = new MutationObserver(function(mutationList, observer2) {
                 if (!onFeature.executing) {
-                  runtime.triggerEvent(target, eventName2, {
+                  runtime2.triggerEvent(target, eventName2, {
                     mutationList,
                     observer: observer2
                   });
@@ -7979,7 +7979,7 @@ var OnFeature = class {
                   };
                   detail = Object.assign(detail, entry);
                   detail["intersecting"] = entry.isIntersecting;
-                  runtime.triggerEvent(target, eventName2, detail);
+                  runtime2.triggerEvent(target, eventName2, detail);
                 }
               }, eventSpec.intersectionSpec);
               observer.observe(target);
@@ -7990,7 +7990,7 @@ var OnFeature = class {
                 target.removeEventListener(eventName2, listener);
                 return;
               }
-              var ctx = runtime.makeContext(elt, onFeature, elt, evt);
+              var ctx = runtime2.makeContext(elt, onFeature, elt, evt);
               if (eventSpec.elsewhere && elt.contains(evt.target)) {
                 return;
               }
@@ -8079,59 +8079,59 @@ __publicField(OnFeature, "keyword", "on");
 
 // src/_hyperscript.js
 var globalScope = typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : void 0;
-var tokenizer_ = new Tokenizer();
-var runtime_ = new Runtime(globalScope);
-var kernel_ = new LanguageKernel();
-kernel_.addLeafExpression("parenthesized", ParenthesizedExpression.parse);
-kernel_.addLeafExpression("string", StringLiteral.parse);
-kernel_.addGrammarElement("nakedString", NakedString.parse);
-kernel_.addGrammarElement("stringLike", function(parser) {
+var tokenizer = new Tokenizer();
+var runtime = new Runtime(globalScope);
+var kernel = new LanguageKernel();
+kernel.addLeafExpression("parenthesized", ParenthesizedExpression.parse);
+kernel.addLeafExpression("string", StringLiteral.parse);
+kernel.addGrammarElement("nakedString", NakedString.parse);
+kernel.addGrammarElement("stringLike", function(parser) {
   return parser.parseAnyOf(["string", "nakedString"]);
 });
-kernel_.addLeafExpression("number", NumberLiteral.parse);
-kernel_.addLeafExpression("boolean", BooleanLiteral.parse);
-kernel_.addLeafExpression("null", NullLiteral.parse);
-kernel_.addLeafExpression("arrayLiteral", ArrayLiteral.parse);
-kernel_.addLeafExpression("blockLiteral", BlockLiteral.parse);
-kernel_.addLeafExpression("objectLiteral", ObjectLiteral.parse);
-kernel_.addGrammarElement("objectKey", ObjectKey.parse);
-kernel_.addGrammarElement("nakedNamedArgumentList", NamedArgumentList.parseNaked);
-kernel_.addGrammarElement("namedArgumentList", NamedArgumentList.parse);
-kernel_.addLeafExpression("idRef", IdRef.parse);
-kernel_.addLeafExpression("classRef", ClassRef.parse);
-kernel_.addLeafExpression("queryRef", QueryRef.parse);
-kernel_.addLeafExpression("attributeRef", AttributeRef.parse);
-kernel_.addLeafExpression("styleRef", StyleRef.parse);
-kernel_.addGrammarElement("styleLiteral", StyleLiteral.parse);
-kernel_.addGrammarElement("symbol", SymbolRef.parse);
-kernel_.addGrammarElement("implicitMeTarget", ImplicitMeTarget.parse);
-kernel_.addGrammarElement("dotOrColonPath", DotOrColonPath.parse);
-kernel_.addGrammarElement("eventName", EventName.parse);
-kernel_.addIndirectExpression("propertyAccess", PropertyAccess.parse);
-kernel_.addIndirectExpression("of", OfExpression.parse);
-kernel_.addIndirectExpression("possessive", PossessiveExpression.parse);
-kernel_.addIndirectExpression("inExpression", InExpression.parse);
-kernel_.addIndirectExpression("asExpression", AsExpression.parse);
-kernel_.addIndirectExpression("functionCall", FunctionCall.parse);
-kernel_.addIndirectExpression("attributeRefAccess", AttributeRefAccess.parse);
-kernel_.addIndirectExpression("arrayIndex", ArrayIndex.parse);
-kernel_.addUnaryExpression("beepExpression", BeepExpression.parse);
-kernel_.addUnaryExpression("logicalNot", LogicalNot.parse);
-kernel_.addUnaryExpression("noExpression", NoExpression.parse);
-kernel_.addLeafExpression("some", SomeExpression.parse);
-kernel_.addGrammarElement("negativeNumber", NegativeNumber.parse);
-kernel_.addUnaryExpression("relativePositionalExpression", RelativePositionalExpression.parse);
-kernel_.addUnaryExpression("positionalExpression", PositionalExpression.parse);
-kernel_.addLeafExpression("closestExpr", ClosestExpr.parse);
-kernel_.UNARY_EXPRESSIONS.push("postfixExpression");
-kernel_.addGrammarElement("mathOperator", MathOperator.parse);
-kernel_.addGrammarElement("mathExpression", MathExpression.parse);
-kernel_.addGrammarElement("comparisonOperator", ComparisonOperator.parse);
-kernel_.addGrammarElement("comparisonExpression", ComparisonExpression.parse);
-kernel_.addGrammarElement("logicalOperator", LogicalOperator.parse);
-kernel_.addGrammarElement("logicalExpression", LogicalExpression.parse);
-kernel_.addTopExpression("asyncExpression", AsyncExpression.parse);
-kernel_.addFeatures(
+kernel.addLeafExpression("number", NumberLiteral.parse);
+kernel.addLeafExpression("boolean", BooleanLiteral.parse);
+kernel.addLeafExpression("null", NullLiteral.parse);
+kernel.addLeafExpression("arrayLiteral", ArrayLiteral.parse);
+kernel.addLeafExpression("blockLiteral", BlockLiteral.parse);
+kernel.addLeafExpression("objectLiteral", ObjectLiteral.parse);
+kernel.addGrammarElement("objectKey", ObjectKey.parse);
+kernel.addGrammarElement("nakedNamedArgumentList", NamedArgumentList.parseNaked);
+kernel.addGrammarElement("namedArgumentList", NamedArgumentList.parse);
+kernel.addLeafExpression("idRef", IdRef.parse);
+kernel.addLeafExpression("classRef", ClassRef.parse);
+kernel.addLeafExpression("queryRef", QueryRef.parse);
+kernel.addLeafExpression("attributeRef", AttributeRef.parse);
+kernel.addLeafExpression("styleRef", StyleRef.parse);
+kernel.addGrammarElement("styleLiteral", StyleLiteral.parse);
+kernel.addGrammarElement("symbol", SymbolRef.parse);
+kernel.addGrammarElement("implicitMeTarget", ImplicitMeTarget.parse);
+kernel.addGrammarElement("dotOrColonPath", DotOrColonPath.parse);
+kernel.addGrammarElement("eventName", EventName.parse);
+kernel.addIndirectExpression("propertyAccess", PropertyAccess.parse);
+kernel.addIndirectExpression("of", OfExpression.parse);
+kernel.addIndirectExpression("possessive", PossessiveExpression.parse);
+kernel.addIndirectExpression("inExpression", InExpression.parse);
+kernel.addIndirectExpression("asExpression", AsExpression.parse);
+kernel.addIndirectExpression("functionCall", FunctionCall.parse);
+kernel.addIndirectExpression("attributeRefAccess", AttributeRefAccess.parse);
+kernel.addIndirectExpression("arrayIndex", ArrayIndex.parse);
+kernel.addUnaryExpression("beepExpression", BeepExpression.parse);
+kernel.addUnaryExpression("logicalNot", LogicalNot.parse);
+kernel.addUnaryExpression("noExpression", NoExpression.parse);
+kernel.addLeafExpression("some", SomeExpression.parse);
+kernel.addGrammarElement("negativeNumber", NegativeNumber.parse);
+kernel.addUnaryExpression("relativePositionalExpression", RelativePositionalExpression.parse);
+kernel.addUnaryExpression("positionalExpression", PositionalExpression.parse);
+kernel.addLeafExpression("closestExpr", ClosestExpr.parse);
+kernel.UNARY_EXPRESSIONS.push("postfixExpression");
+kernel.addGrammarElement("mathOperator", MathOperator.parse);
+kernel.addGrammarElement("mathExpression", MathExpression.parse);
+kernel.addGrammarElement("comparisonOperator", ComparisonOperator.parse);
+kernel.addGrammarElement("comparisonExpression", ComparisonExpression.parse);
+kernel.addGrammarElement("logicalOperator", LogicalOperator.parse);
+kernel.addGrammarElement("logicalExpression", LogicalExpression.parse);
+kernel.addTopExpression("asyncExpression", AsyncExpression.parse);
+kernel.addFeatures(
   OnFeature,
   DefFeature,
   SetFeature,
@@ -8140,9 +8140,9 @@ kernel_.addFeatures(
   BehaviorFeature,
   InstallFeature
 );
-kernel_.addGrammarElement("jsBody", JsBody.parse);
-kernel_.addFeature("js", JsFeature.parse);
-kernel_.addCommands(
+kernel.addGrammarElement("jsBody", JsBody.parse);
+kernel.addFeature("js", JsFeature.parse);
+kernel.addCommands(
   LogCommand,
   BeepCommand,
   ThrowCommand,
@@ -8154,7 +8154,7 @@ kernel_.addCommands(
   FetchCommand,
   GoCommand
 );
-kernel_.addCommands(
+kernel.addCommands(
   SetCommand,
   DefaultCommand,
   IncrementCommand,
@@ -8162,7 +8162,7 @@ kernel_.addCommands(
   AppendCommand,
   PutCommand
 );
-kernel_.addCommands(
+kernel.addCommands(
   IfCommand,
   RepeatCommand,
   ForCommand,
@@ -8170,19 +8170,19 @@ kernel_.addCommands(
   BreakCommand,
   TellCommand
 );
-kernel_.addCommands(
+kernel.addCommands(
   WaitCommand,
   TriggerCommand,
   SendCommand
 );
-kernel_.addCommands(
+kernel.addCommands(
   JsCommand,
   AsyncCommand,
   CallCommand,
   GetCommand
 );
-kernel_.addGrammarElement("pseudoCommand", PseudoCommand.parse);
-kernel_.addCommands(
+kernel.addGrammarElement("pseudoCommand", PseudoCommand.parse);
+kernel.addCommands(
   AddCommand,
   RemoveCommand,
   TakeCommand,
@@ -8191,19 +8191,19 @@ kernel_.addCommands(
   HideCommand,
   ShowCommand
 );
-kernel_.addCommands(SettleCommand, TransitionCommand);
-initWebConversions(runtime_);
-kernel_.addPostfixExpression("stringPostfixExpression", StringPostfixExpression.parse);
-kernel_.addPostfixExpression("timeExpression", TimeExpression.parse);
-kernel_.addPostfixExpression("typeCheckExpression", TypeCheckExpression.parse);
-kernel_.ASSIGNABLE_EXPRESSIONS.push("symbol");
-kernel_.ASSIGNABLE_EXPRESSIONS.push("ofExpression");
-kernel_.ASSIGNABLE_EXPRESSIONS.push("propertyAccess");
-kernel_.ASSIGNABLE_EXPRESSIONS.push("attributeRefAccess");
-kernel_.ASSIGNABLE_EXPRESSIONS.push("attributeRef");
-kernel_.ASSIGNABLE_EXPRESSIONS.push("styleRef");
-kernel_.ASSIGNABLE_EXPRESSIONS.push("arrayIndex");
-kernel_.ASSIGNABLE_EXPRESSIONS.push("possessive");
+kernel.addCommands(SettleCommand, TransitionCommand);
+initWebConversions(runtime);
+kernel.addPostfixExpression("stringPostfixExpression", StringPostfixExpression.parse);
+kernel.addPostfixExpression("timeExpression", TimeExpression.parse);
+kernel.addPostfixExpression("typeCheckExpression", TypeCheckExpression.parse);
+kernel.ASSIGNABLE_EXPRESSIONS.push("symbol");
+kernel.ASSIGNABLE_EXPRESSIONS.push("ofExpression");
+kernel.ASSIGNABLE_EXPRESSIONS.push("propertyAccess");
+kernel.ASSIGNABLE_EXPRESSIONS.push("attributeRefAccess");
+kernel.ASSIGNABLE_EXPRESSIONS.push("attributeRef");
+kernel.ASSIGNABLE_EXPRESSIONS.push("styleRef");
+kernel.ASSIGNABLE_EXPRESSIONS.push("arrayIndex");
+kernel.ASSIGNABLE_EXPRESSIONS.push("possessive");
 Tokens._parserRaiseError = LanguageKernel.raiseParseError;
 function evaluate(src, ctx, args) {
   class HyperscriptModule extends EventTarget {
@@ -8216,8 +8216,8 @@ function evaluate(src, ctx, args) {
     }
   }
   var body = "document" in globalScope ? globalScope.document.body : new HyperscriptModule(args && args.module);
-  ctx = Object.assign(runtime_.makeContext(body, null, body, null), ctx || {});
-  var element = kernel_.parse(tokenizer_, src);
+  ctx = Object.assign(runtime.makeContext(body, null, body, null), ctx || {});
+  var element = kernel.parse(tokenizer, src);
   if (element.execute) {
     element.execute(ctx);
     if (typeof ctx.meta.returnValue !== "undefined") {
@@ -8226,8 +8226,8 @@ function evaluate(src, ctx, args) {
       return ctx.result;
     }
   } else if (element.apply) {
-    element.apply(body, body, args, runtime_);
-    return runtime_.getHyperscriptFeatures(body);
+    element.apply(body, body, args, runtime);
+    return runtime.getHyperscriptFeatures(body);
   } else {
     return element.evaluate(ctx);
   }
@@ -8236,24 +8236,24 @@ function initElement(elt, target) {
   if (elt.closest && elt.closest(config.disableSelector)) {
     return;
   }
-  var internalData = runtime_.getInternalData(elt);
+  var internalData = runtime.getInternalData(elt);
   if (!internalData.initialized) {
-    var src = runtime_.getScript(elt);
+    var src = runtime.getScript(elt);
     if (src) {
       try {
         internalData.initialized = true;
         internalData.script = src;
-        var tokens = tokenizer_.tokenize(src);
-        var hyperScript = kernel_.parseHyperScript(tokens);
+        var tokens = tokenizer.tokenize(src);
+        var hyperScript = kernel.parseHyperScript(tokens);
         if (!hyperScript) return;
-        hyperScript.apply(target || elt, elt, null, runtime_);
+        hyperScript.apply(target || elt, elt, null, runtime);
         setTimeout(() => {
-          runtime_.triggerEvent(target || elt, "load", {
+          runtime.triggerEvent(target || elt, "load", {
             hyperscript: true
           });
         }, 1);
       } catch (e) {
-        runtime_.triggerEvent(elt, "exception", {
+        runtime.triggerEvent(elt, "exception", {
           error: e
         });
         console.error(
@@ -8268,20 +8268,20 @@ function initElement(elt, target) {
   }
 }
 function processNode(elt) {
-  var selector = runtime_.getScriptSelector();
-  if (runtime_.matchesSelector(elt, selector)) {
+  var selector = runtime.getScriptSelector();
+  if (runtime.matchesSelector(elt, selector)) {
     initElement(elt, elt);
   }
   if (elt instanceof HTMLScriptElement && elt.type === "text/hyperscript") {
     initElement(elt, document.body);
   }
   if (elt.querySelectorAll) {
-    runtime_.forEach(elt.querySelectorAll(selector + ", [type='text/hyperscript']"), (elt2) => {
+    runtime.forEach(elt.querySelectorAll(selector + ", [type='text/hyperscript']"), (elt2) => {
       initElement(elt2, elt2 instanceof HTMLScriptElement && elt2.type === "text/hyperscript" ? document.body : elt2);
     });
   }
 }
-runtime_.processNode = processNode;
+runtime.processNode = processNode;
 function browserInit() {
   var scripts = Array.from(globalScope.document.querySelectorAll("script[type='text/hyperscript'][src]"));
   Promise.all(
@@ -8323,21 +8323,21 @@ var _hyperscript = Object.assign(
       plugin(_hyperscript);
     },
     internals: {
-      tokenizer: tokenizer_,
-      parser: kernel_,
-      runtime: runtime_,
+      tokenizer,
+      parser: kernel,
+      runtime,
       Tokenizer,
       Tokens,
       Parser: LanguageKernel,
       Runtime
     },
     ElementCollection,
-    addFeature: kernel_.addFeature.bind(kernel_),
-    addCommand: kernel_.addCommand.bind(kernel_),
-    addLeafExpression: kernel_.addLeafExpression.bind(kernel_),
-    addIndirectExpression: kernel_.addIndirectExpression.bind(kernel_),
+    addFeature: kernel.addFeature.bind(kernel),
+    addCommand: kernel.addCommand.bind(kernel),
+    addLeafExpression: kernel.addLeafExpression.bind(kernel),
+    addIndirectExpression: kernel.addIndirectExpression.bind(kernel),
     evaluate,
-    parse: (src) => kernel_.parse(tokenizer_, src),
+    parse: (src) => kernel.parse(tokenizer, src),
     process: processNode,
     processNode,
     version: "0.9.14",
