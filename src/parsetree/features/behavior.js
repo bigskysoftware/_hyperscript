@@ -8,6 +8,8 @@
 import { getOrInitObject } from '../../core/runtime.js';
 
 export class BehaviorFeature {
+    static keyword = "behavior";
+
     /**
      * Parse behavior feature
      * @param {Parser} parser

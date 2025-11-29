@@ -5,6 +5,8 @@
  * Executes: Defines a function that can be called from hyperscript
  */
 export class DefFeature {
+    static keyword = "def";
+
     /**
      * Parse def feature
      * @param {Parser} parser

@@ -191,21 +191,10 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
     kernel_.addGrammarElement("asyncExpression", AsyncExpression.parse);
 
     // Features
-    kernel_.addFeature("on", function (parser) {
-        return OnFeature.parse(parser);
-    });
-    kernel_.addFeature("def", function (parser) {
-        return DefFeature.parse(parser);
-    });
-    kernel_.addFeature("set", function (parser) {
-        return SetFeature.parse(parser);
-    });
-    kernel_.addFeature("init", function (parser) {
-        return InitFeature.parse(parser);
-    });
-    kernel_.addFeature("worker", WorkerFeature.parse);
-    kernel_.addFeature("behavior", BehaviorFeature.parse);
-    kernel_.addFeature("install", InstallFeature.parse);
+    kernel_.addFeatures(
+        OnFeature, DefFeature, SetFeature, InitFeature,
+        WorkerFeature, BehaviorFeature, InstallFeature
+    );
     kernel_.addGrammarElement("jsBody", JsBody.parse);
     kernel_.addFeature("js", JsFeature.parse);
 

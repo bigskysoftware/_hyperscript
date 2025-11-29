@@ -5,6 +5,8 @@
  * Executes: Sets initial value for element-scoped variable when element is processed
  */
 export class SetFeature {
+    static keyword = "set";
+
     /**
      * Parse set feature
      * @param {Parser} parser

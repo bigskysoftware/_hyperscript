@@ -5,6 +5,8 @@
  * Executes: Applies the named behavior to the current element
  */
 export class InstallFeature {
+    static keyword = "install";
+
     /**
      * Parse install feature
      * @param {Parser} parser

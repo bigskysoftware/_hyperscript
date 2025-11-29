@@ -5,6 +5,8 @@
  * Executes: Runs commands on element initialization
  */
 export class InitFeature {
+    static keyword = "init";
+
     /**
      * Parse init feature
      * @param {Parser} parser

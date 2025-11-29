@@ -2429,6 +2429,21 @@ var _LanguageKernel = class _LanguageKernel {
     }
   }
   /**
+   * Register multiple feature classes at once
+   * @param {...Function} featureClasses - Feature classes with static keyword and parse properties
+   */
+  addFeatures(...featureClasses) {
+    for (const FeatureClass of featureClasses) {
+      if (!FeatureClass.keyword) {
+        throw new Error(`Feature class ${FeatureClass.name} must have a static 'keyword' property`);
+      }
+      if (!FeatureClass.parse) {
+        throw new Error(`Feature class ${FeatureClass.name} must have a static 'parse' method`);
+      }
+      this.addFeature(FeatureClass.keyword, FeatureClass.parse);
+    }
+  }
+  /**
    * @param {string} keyword
    * @param {ParseRule} definition
    */
@@ -7361,6 +7376,7 @@ var SetFeature = class {
     }
   }
 };
+__publicField(SetFeature, "keyword", "set");
 
 // src/parsetree/features/init.js
 var InitFeature = class {
@@ -7391,6 +7407,7 @@ var InitFeature = class {
     return initFeature;
   }
 };
+__publicField(InitFeature, "keyword", "init");
 
 // src/parsetree/features/worker.js
 var WorkerFeature = class {
@@ -7408,6 +7425,7 @@ var WorkerFeature = class {
     }
   }
 };
+__publicField(WorkerFeature, "keyword", "worker");
 
 // src/parsetree/features/behavior.js
 var BehaviorFeature = class {
@@ -7452,6 +7470,7 @@ var BehaviorFeature = class {
     };
   }
 };
+__publicField(BehaviorFeature, "keyword", "behavior");
 
 // src/parsetree/features/install.js
 var InstallFeature = class {
@@ -7489,6 +7508,7 @@ var InstallFeature = class {
     };
   }
 };
+__publicField(InstallFeature, "keyword", "install");
 
 // src/parsetree/features/js.js
 var JsFeature = class {
@@ -7602,6 +7622,7 @@ var DefFeature = class {
     return functionFeature;
   }
 };
+__publicField(DefFeature, "keyword", "def");
 
 // src/parsetree/features/on.js
 function parseEventArgs2(parser) {
@@ -7971,6 +7992,7 @@ var OnFeature = class {
     return onFeature;
   }
 };
+__publicField(OnFeature, "keyword", "on");
 
 // src/_hyperscript.js
 var globalScope = typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : void 0;
@@ -8023,21 +8045,15 @@ kernel_.addGrammarElement("comparisonExpression", ComparisonExpression.parse);
 kernel_.addGrammarElement("logicalOperator", LogicalOperator.parse);
 kernel_.addGrammarElement("logicalExpression", LogicalExpression.parse);
 kernel_.addGrammarElement("asyncExpression", AsyncExpression.parse);
-kernel_.addFeature("on", function(parser) {
-  return OnFeature.parse(parser);
-});
-kernel_.addFeature("def", function(parser) {
-  return DefFeature.parse(parser);
-});
-kernel_.addFeature("set", function(parser) {
-  return SetFeature.parse(parser);
-});
-kernel_.addFeature("init", function(parser) {
-  return InitFeature.parse(parser);
-});
-kernel_.addFeature("worker", WorkerFeature.parse);
-kernel_.addFeature("behavior", BehaviorFeature.parse);
-kernel_.addFeature("install", InstallFeature.parse);
+kernel_.addFeatures(
+  OnFeature,
+  DefFeature,
+  SetFeature,
+  InitFeature,
+  WorkerFeature,
+  BehaviorFeature,
+  InstallFeature
+);
 kernel_.addGrammarElement("jsBody", JsBody.parse);
 kernel_.addFeature("js", JsFeature.parse);
 kernel_.addCommands(

@@ -285,6 +285,22 @@ export class LanguageKernel {
     }
 
     /**
+     * Register multiple feature classes at once
+     * @param {...Function} featureClasses - Feature classes with static keyword and parse properties
+     */
+    addFeatures(...featureClasses) {
+        for (const FeatureClass of featureClasses) {
+            if (!FeatureClass.keyword) {
+                throw new Error(`Feature class ${FeatureClass.name} must have a static 'keyword' property`);
+            }
+            if (!FeatureClass.parse) {
+                throw new Error(`Feature class ${FeatureClass.name} must have a static 'parse' method`);
+            }
+            this.addFeature(FeatureClass.keyword, FeatureClass.parse);
+        }
+    }
+
+    /**
      * @param {string} keyword
      * @param {ParseRule} definition
      */

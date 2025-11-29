@@ -35,6 +35,8 @@ function parseEventArgs(parser) {
 }
 
 export class OnFeature {
+    static keyword = "on";
+
     /**
      * Parse on feature
      * @param {Parser} parser

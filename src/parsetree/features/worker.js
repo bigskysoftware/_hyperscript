@@ -5,6 +5,8 @@
  * Note: Requires the _hyperscript worker plugin to function
  */
 export class WorkerFeature {
+    static keyword = "worker";
+
     /**
      * Parse worker feature
      * @param {Parser} parser
