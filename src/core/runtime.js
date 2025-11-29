@@ -110,6 +110,17 @@ export class RegExpIterable {
   }
 }
 
+export class HyperscriptModule extends EventTarget {
+    constructor(mod) {
+        super();
+        this.module = mod;
+    }
+
+    toString() {
+        return this.module.id;
+    }
+}
+
 // ============================================================================
 // Cookie functionality
 // ============================================================================

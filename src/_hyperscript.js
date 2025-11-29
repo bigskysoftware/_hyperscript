@@ -4,7 +4,7 @@
 // Import core modules
 import {Tokenizer, Tokens} from './core/tokenizer.js';
 import {LanguageKernel} from './core/kernel.js';
-import {ElementCollection, Runtime} from './core/runtime.js';
+import {ElementCollection, Runtime, HyperscriptModule} from './core/runtime.js';
 import {config, conversions, initWebConversions} from './core/config.js';
 
 // Expression imports
@@ -197,17 +197,6 @@ Tokens._parserRaiseError = LanguageKernel.raiseParseError;
  * @returns {any}
  */
 function evaluate(src, ctx, args) {
-    class HyperscriptModule extends EventTarget {
-        constructor(mod) {
-            super();
-            this.module = mod;
-        }
-
-        toString() {
-            return this.module.id;
-        }
-    }
-
     var body = 'document' in globalScope
         ? globalScope.document.body
         : new HyperscriptModule(args && args.module);

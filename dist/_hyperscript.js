@@ -1164,6 +1164,15 @@ var RegExpIterable = class {
     return new RegExpIterator(new RegExp(this.re, this.flags), this.str);
   }
 };
+var HyperscriptModule = class extends EventTarget {
+  constructor(mod) {
+    super();
+    this.module = mod;
+  }
+  toString() {
+    return this.module.id;
+  }
+};
 function getCookiesAsArray() {
   let cookiesAsArray = document.cookie.split("; ").map((cookieEntry) => {
     let strings = cookieEntry.split("=");
@@ -8266,15 +8275,6 @@ kernel.ASSIGNABLE_EXPRESSIONS.push("arrayIndex");
 kernel.ASSIGNABLE_EXPRESSIONS.push("possessive");
 Tokens._parserRaiseError = LanguageKernel.raiseParseError;
 function evaluate(src, ctx, args) {
-  class HyperscriptModule extends EventTarget {
-    constructor(mod) {
-      super();
-      this.module = mod;
-    }
-    toString() {
-      return this.module.id;
-    }
-  }
   var body = "document" in globalScope ? globalScope.document.body : new HyperscriptModule(args && args.module);
   ctx = Object.assign(runtime.makeContext(body, null, body, null), ctx || {});
   var element = kernel.parse(tokenizer, src);
