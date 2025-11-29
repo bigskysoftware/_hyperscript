@@ -975,128 +975,6 @@ var config = {
   hideShowStrategies: {},
   conversions
 };
-function initWebConversions(runtime2) {
-  conversions.dynamicResolvers.push(function(str, node) {
-    if (!(str === "Values" || str.indexOf("Values:") === 0)) {
-      return;
-    }
-    var conversion = str.split(":")[1];
-    var result = {};
-    var implicitLoop = runtime2.implicitLoop.bind(runtime2);
-    implicitLoop(node, function(node2) {
-      var input = getInputInfo(node2);
-      if (input !== void 0) {
-        result[input.name] = input.value;
-        return;
-      }
-      if (node2.querySelectorAll != void 0) {
-        var children = node2.querySelectorAll("input,select,textarea");
-        children.forEach(appendValue);
-      }
-    });
-    if (conversion) {
-      if (conversion === "JSON") {
-        return JSON.stringify(result);
-      } else if (conversion === "Form") {
-        return new URLSearchParams(
-          /** @type {Record<string, string>} */
-          result
-        ).toString();
-      } else {
-        throw "Unknown conversion: " + conversion;
-      }
-    } else {
-      return result;
-    }
-    function appendValue(node2) {
-      var info = getInputInfo(node2);
-      if (info == void 0) {
-        return;
-      }
-      if (result[info.name] == void 0) {
-        result[info.name] = info.value;
-        return;
-      }
-      if (Array.isArray(result[info.name]) && Array.isArray(info.value)) {
-        result[info.name] = [].concat(result[info.name], info.value);
-        return;
-      }
-    }
-    function getInputInfo(node2) {
-      try {
-        var result2 = {
-          name: node2.name,
-          value: node2.value
-        };
-        if (result2.name == void 0 || result2.value == void 0) {
-          return void 0;
-        }
-        if (node2.type == "radio" && node2.checked == false) {
-          return void 0;
-        }
-        if (node2.type == "checkbox") {
-          if (node2.checked == false) {
-            result2.value = void 0;
-          } else if (typeof result2.value === "string") {
-            result2.value = [result2.value];
-          }
-        }
-        if (node2.type == "select-multiple") {
-          var selected = node2.querySelectorAll("option[selected]");
-          result2.value = [];
-          for (var index = 0; index < selected.length; index++) {
-            result2.value.push(selected[index].value);
-          }
-        }
-        return result2;
-      } catch (e) {
-        return void 0;
-      }
-    }
-  });
-  conversions["HTML"] = function(value) {
-    var toHTML = (
-      /** @returns {string}*/
-      function(value2) {
-        if (value2 instanceof Array) {
-          return value2.map(function(item) {
-            return toHTML(item);
-          }).join("");
-        }
-        if (value2 instanceof HTMLElement) {
-          return value2.outerHTML;
-        }
-        if (value2 instanceof NodeList) {
-          var result = "";
-          for (var i = 0; i < value2.length; i++) {
-            var node = value2[i];
-            if (node instanceof HTMLElement) {
-              result += node.outerHTML;
-            }
-          }
-          return result;
-        }
-        if (value2.toString) {
-          return value2.toString();
-        }
-        return "";
-      }
-    );
-    return toHTML(value);
-  };
-  conversions["Fragment"] = function(val) {
-    var frag = document.createDocumentFragment();
-    runtime2.implicitLoop(val, function(val2) {
-      if (val2 instanceof Node) frag.append(val2);
-      else {
-        var temp = document.createElement("template");
-        temp.innerHTML = val2;
-        frag.append(temp.content);
-      }
-    });
-    return frag;
-  };
-}
 
 // src/core/runtime.js
 var shouldAutoIterateSymbol = Symbol();
@@ -1323,6 +1201,7 @@ var _Runtime = class _Runtime {
     this.globalScope = globalScope2;
     this.parser = kernel2;
     this.tokenizer = tokenizer2;
+    this.initWebConversions();
   }
   /**
    * @param {HTMLElement} elt
@@ -2141,6 +2020,122 @@ var _Runtime = class _Runtime {
         this.initElement(elt2, elt2 instanceof HTMLScriptElement && elt2.type === "text/hyperscript" ? document.body : elt2);
       });
     }
+  }
+  /**
+   * Initialize web-specific conversions
+   */
+  initWebConversions() {
+    conversions.dynamicResolvers.push((str, node) => {
+      if (!(str === "Values" || str.indexOf("Values:") === 0)) {
+        return;
+      }
+      var conversion = str.split(":")[1];
+      var result = {};
+      this.implicitLoop(node, (node2) => {
+        var input = getInputInfo(node2);
+        if (input !== void 0) {
+          result[input.name] = input.value;
+          return;
+        }
+        if (node2.querySelectorAll != void 0) {
+          var children = node2.querySelectorAll("input,select,textarea");
+          children.forEach(appendValue);
+        }
+      });
+      if (conversion) {
+        if (conversion === "JSON") {
+          return JSON.stringify(result);
+        } else if (conversion === "Form") {
+          return new URLSearchParams(result).toString();
+        } else {
+          throw "Unknown conversion: " + conversion;
+        }
+      } else {
+        return result;
+      }
+      function appendValue(node2) {
+        var info = getInputInfo(node2);
+        if (info == void 0) {
+          return;
+        }
+        if (result[info.name] == void 0) {
+          result[info.name] = info.value;
+          return;
+        }
+        if (Array.isArray(result[info.name]) && Array.isArray(info.value)) {
+          result[info.name] = [].concat(result[info.name], info.value);
+          return;
+        }
+      }
+      function getInputInfo(node2) {
+        try {
+          var result2 = {
+            name: node2.name,
+            value: node2.value
+          };
+          if (result2.name == void 0 || result2.value == void 0) {
+            return void 0;
+          }
+          if (node2.type == "radio" && node2.checked == false) {
+            return void 0;
+          }
+          if (node2.type == "checkbox") {
+            if (node2.checked == false) {
+              result2.value = void 0;
+            } else if (typeof result2.value === "string") {
+              result2.value = [result2.value];
+            }
+          }
+          if (node2.type == "select-multiple") {
+            var selected = node2.querySelectorAll("option[selected]");
+            result2.value = [];
+            for (var index = 0; index < selected.length; index++) {
+              result2.value.push(selected[index].value);
+            }
+          }
+          return result2;
+        } catch (e) {
+          return void 0;
+        }
+      }
+    });
+    conversions["HTML"] = (value) => {
+      var toHTML = (value2) => {
+        if (value2 instanceof Array) {
+          return value2.map((item) => toHTML(item)).join("");
+        }
+        if (value2 instanceof HTMLElement) {
+          return value2.outerHTML;
+        }
+        if (value2 instanceof NodeList) {
+          var result = "";
+          for (var i = 0; i < value2.length; i++) {
+            var node = value2[i];
+            if (node instanceof HTMLElement) {
+              result += node.outerHTML;
+            }
+          }
+          return result;
+        }
+        if (value2.toString) {
+          return value2.toString();
+        }
+        return "";
+      };
+      return toHTML(value);
+    };
+    conversions["Fragment"] = (val) => {
+      var frag = document.createDocumentFragment();
+      this.implicitLoop(val, (val2) => {
+        if (val2 instanceof Node) frag.append(val2);
+        else {
+          var temp = document.createElement("template");
+          temp.innerHTML = val2;
+          frag.append(temp.content);
+        }
+      });
+      return frag;
+    };
   }
 };
 __publicField(_Runtime, "HALT", {});
@@ -8281,7 +8276,6 @@ kernel.addCommands(
   ShowCommand
 );
 kernel.addCommands(SettleCommand, TransitionCommand);
-initWebConversions(runtime);
 kernel.addPostfixExpression("stringPostfixExpression", StringPostfixExpression.parse);
 kernel.addPostfixExpression("timeExpression", TimeExpression.parse);
 kernel.addPostfixExpression("typeCheckExpression", TypeCheckExpression.parse);

@@ -5,7 +5,7 @@
 import {Tokenizer, Tokens} from './core/tokenizer.js';
 import {LanguageKernel} from './core/kernel.js';
 import {ElementCollection, HyperscriptModule, Runtime} from './core/runtime.js';
-import {config, conversions, initWebConversions} from './core/config.js';
+import {config, conversions} from './core/config.js';
 
 // Expression imports
 import {AttributeRef, ClassRef, IdRef, QueryRef, StyleLiteral, StyleRef} from './parsetree/expressions/webliterals.js';
@@ -227,9 +227,6 @@ kernel.addCommands(
 
 // Animation commands
 kernel.addCommands(SettleCommand, TransitionCommand);
-
-// Initialize web-specific conversions
-initWebConversions(runtime);
 
 // Postfix expressions
 kernel.addPostfixExpression("stringPostfixExpression", StringPostfixExpression.parse);
