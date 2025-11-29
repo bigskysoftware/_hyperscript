@@ -44,12 +44,12 @@ import {OnFeature} from './parsetree/features/on.js';
 
 const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'undefined' ? global : this);
 
+// Create and configure kernel
+const kernel = new LanguageKernel();
+
 // Create lexer and runtime first
 const tokenizer = new Tokenizer();
 const runtime = new Runtime(globalScope);
-
-// Create and configure kernel
-const kernel = new LanguageKernel();
 
 // ===== Grammar Registration =====
 
@@ -287,6 +287,7 @@ function processNode(elt) {
 }
 
 // Add processNode to runtime for backward compatibility with grammars
+// TODO figure out how to remove this
 runtime.processNode = processNode;
 
 function browserInit() {
@@ -397,5 +398,16 @@ const _hyperscript = Object.assign(
     }
 )
 
+// Auto-initialize in browser
+if (typeof document !== 'undefined') {
+    _hyperscript.browserInit();
+}
+
+// Also set on global for script tag usage
+if (typeof self !== 'undefined') {
+    self._hyperscript = _hyperscript;
+}
+
 // ES Module exports
 export default _hyperscript;
+export { _hyperscript };

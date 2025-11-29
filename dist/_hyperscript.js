@@ -8079,9 +8079,9 @@ __publicField(OnFeature, "keyword", "on");
 
 // src/_hyperscript.js
 var globalScope = typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : void 0;
+var kernel = new LanguageKernel();
 var tokenizer = new Tokenizer();
 var runtime = new Runtime(globalScope);
-var kernel = new LanguageKernel();
 kernel.addLeafExpression("parenthesized", ParenthesizedExpression.parse);
 kernel.addLeafExpression("string", StringLiteral.parse);
 kernel.addGrammarElement("nakedString", NakedString.parse);
@@ -8344,18 +8344,15 @@ var _hyperscript = Object.assign(
     browserInit
   }
 );
-var hyperscript_default = _hyperscript;
-
-// src/browser.js
 if (typeof document !== "undefined") {
-  hyperscript_default.browserInit();
+  _hyperscript.browserInit();
 }
-var browser_default = hyperscript_default;
 if (typeof self !== "undefined") {
-  self._hyperscript = hyperscript_default;
+  self._hyperscript = _hyperscript;
 }
+var hyperscript_default = _hyperscript;
 export {
-  hyperscript_default as _hyperscript,
-  browser_default as default
+  _hyperscript,
+  hyperscript_default as default
 };
 //# sourceMappingURL=_hyperscript.js.map

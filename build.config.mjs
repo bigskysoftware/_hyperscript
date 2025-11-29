@@ -3,7 +3,7 @@ import * as esbuild from 'esbuild'
 const dev = process.argv.includes('--watch')
 
 const config = {
-  entryPoints: ['src/browser.js'],
+  entryPoints: ['src/_hyperscript.js'],
   bundle: true,
   outfile: 'dist/_hyperscript.js',
   format: 'esm',
