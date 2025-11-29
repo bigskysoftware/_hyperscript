@@ -616,6 +616,89 @@ function parseConversionInfo(parser) {
 }
 
 /**
+ * FetchCommandNode - Fetch command node
+ */
+class FetchCommandNode {
+    constructor(url, args, type, conversion) {
+        this.type = "fetchCommand";
+        this.url = url;
+        this.argExpressions = args;
+        this.args = [url, args];
+        this.conversionType = type;
+        this.conversion = conversion;
+    }
+
+    op(context, url, args) {
+        const type = this.conversionType;
+        const conversion = this.conversion;
+        const fetchCmd = this;
+
+        var detail = args || {};
+        detail["sender"] = context.me;
+        detail["headers"] = detail["headers"] || {}
+        var abortController = new AbortController();
+        let abortListener = context.me.addEventListener('fetch:abort', function(){
+            abortController.abort();
+        }, {once: true});
+        detail['signal'] = abortController.signal;
+        context.meta.runtime.triggerEvent(context.me, "hyperscript:beforeFetch", detail);
+        context.meta.runtime.triggerEvent(context.me, "fetch:beforeRequest", detail);
+        args = detail;
+        var finished = false;
+        if (args.timeout) {
+            setTimeout(function () {
+                if (!finished) {
+                    abortController.abort();
+                }
+            }, args.timeout);
+        }
+        return fetch(url, args)
+            .then(function (resp) {
+                let resultDetails = {response:resp};
+                context.meta.runtime.triggerEvent(context.me, "fetch:afterResponse", resultDetails);
+                resp = resultDetails.response;
+
+                if (type === "response") {
+                    context.result = resp;
+                    context.meta.runtime.triggerEvent(context.me, "fetch:afterRequest", {result:resp});
+                    finished = true;
+                    return context.meta.runtime.findNext(fetchCmd, context);
+                }
+                if (type === "json") {
+                    return resp.json().then(function (result) {
+                        context.result = result;
+                        context.meta.runtime.triggerEvent(context.me, "fetch:afterRequest", {result});
+                        finished = true;
+                        return context.meta.runtime.findNext(fetchCmd, context);
+                    });
+                }
+                return resp.text().then(function (result) {
+                    if (conversion) result = context.meta.runtime.convertValue(result, conversion);
+
+                    if (type === "html") result = context.meta.runtime.convertValue(result, "Fragment");
+
+                    context.result = result;
+                    context.meta.runtime.triggerEvent(context.me, "fetch:afterRequest", {result});
+                    finished = true;
+                    return context.meta.runtime.findNext(fetchCmd, context);
+                });
+            })
+            .catch(function (reason) {
+                context.meta.runtime.triggerEvent(context.me, "fetch:error", {
+                    reason: reason,
+                });
+                throw reason;
+            }).finally(function(){
+                context.me.removeEventListener('fetch:abort', abortListener);
+            });
+    }
+
+    execute(context) {
+        return context.meta.runtime.unifiedExec(this, context);
+    }
+}
+
+/**
  * FetchCommand - HTTP fetch
  *
  * Parses: fetch <url> [as <type>] [with <args>]
@@ -627,7 +710,7 @@ export class FetchCommand {
     /**
      * Parse fetch command
      * @param {Parser} parser
-     * @returns {FetchCommand | undefined}
+     * @returns {FetchCommandNode | undefined}
      */
     static parse(parser) {
         if (!parser.matchToken("fetch")) return;
@@ -650,72 +733,7 @@ export class FetchCommand {
         var type = conversionInfo ? conversionInfo.type : "text";
         var conversion = conversionInfo ? conversionInfo.conversion : null
 
-        /** @type {ASTNode} */
-        var fetchCmd = {
-            url: url,
-            argExpressions: args,
-            args: [url, args],
-            op: function (context, url, args) {
-                var detail = args || {};
-                detail["sender"] = context.me;
-                detail["headers"] = detail["headers"] || {}
-                var abortController = new AbortController();
-                let abortListener = context.me.addEventListener('fetch:abort', function(){
-                    abortController.abort();
-                }, {once: true});
-                detail['signal'] = abortController.signal;
-                context.meta.runtime.triggerEvent(context.me, "hyperscript:beforeFetch", detail);
-                context.meta.runtime.triggerEvent(context.me, "fetch:beforeRequest", detail);
-                args = detail;
-                var finished = false;
-                if (args.timeout) {
-                    setTimeout(function () {
-                        if (!finished) {
-                            abortController.abort();
-                        }
-                    }, args.timeout);
-                }
-                return fetch(url, args)
-                    .then(function (resp) {
-                        let resultDetails = {response:resp};
-                        context.meta.runtime.triggerEvent(context.me, "fetch:afterResponse", resultDetails);
-                        resp = resultDetails.response;
-
-                        if (type === "response") {
-                            context.result = resp;
-                            context.meta.runtime.triggerEvent(context.me, "fetch:afterRequest", {result:resp});
-                            finished = true;
-                            return context.meta.runtime.findNext(fetchCmd, context);
-                        }
-                        if (type === "json") {
-                            return resp.json().then(function (result) {
-                                context.result = result;
-                                context.meta.runtime.triggerEvent(context.me, "fetch:afterRequest", {result});
-                                finished = true;
-                                return context.meta.runtime.findNext(fetchCmd, context);
-                            });
-                        }
-                        return resp.text().then(function (result) {
-                            if (conversion) result = context.meta.runtime.convertValue(result, conversion);
-
-                            if (type === "html") result = context.meta.runtime.convertValue(result, "Fragment");
-
-                            context.result = result;
-                            context.meta.runtime.triggerEvent(context.me, "fetch:afterRequest", {result});
-                            finished = true;
-                            return context.meta.runtime.findNext(fetchCmd, context);
-                        });
-                    })
-                    .catch(function (reason) {
-                        context.meta.runtime.triggerEvent(context.me, "fetch:error", {
-                            reason: reason,
-                        });
-                        throw reason;
-                    }).finally(function(){
-                        context.me.removeEventListener('fetch:abort', abortListener);
-                    });
-            },
-        };
+        var fetchCmd = new FetchCommandNode(url, args, type, conversion);
         return fetchCmd;
     }
 }

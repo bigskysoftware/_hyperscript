@@ -28,17 +28,85 @@ function parseEventArgs(parser) {
  * Parses: wait [a tick] | wait <time> | wait for [a] <event> [or <event>...] [from <target>]
  * Executes: Waits for specified time or events
  */
+/**
+ * WaitCommandEvent - Wait for event(s)
+ */
+class WaitCommandEvent {
+    constructor(events, on) {
+        this.type = "waitCommand";
+        this.event = events;
+        this.on = on;
+        this.args = [on];
+    }
+
+    op(context, on) {
+        const events = this.event;
+        var target = on ? on : context.me;
+        if (!(target instanceof EventTarget))
+            throw new Error("Not a valid event target: " + this.on.sourceFor());
+        return new Promise((resolve) => {
+            var resolved = false;
+            for (const eventInfo of events) {
+                var listener = (event) => {
+                    context.result = event;
+                    if (eventInfo.args) {
+                        for (const arg of eventInfo.args) {
+                            context.locals[arg.value] =
+                                event[arg.value] || (event.detail ? event.detail[arg.value] : null);
+                        }
+                    }
+                    if (!resolved) {
+                        resolved = true;
+                        resolve(context.meta.runtime.findNext(this, context));
+                    }
+                };
+                if (eventInfo.name){
+                    target.addEventListener(eventInfo.name, listener, {once: true});
+                } else if (eventInfo.time != null) {
+                    setTimeout(listener, eventInfo.time, eventInfo.time)
+                }
+            }
+        });
+    }
+
+    execute(context) {
+        return context.meta.runtime.unifiedExec(this, context);
+    }
+}
+
+/**
+ * WaitCommandTime - Wait for time duration
+ */
+class WaitCommandTime {
+    constructor(time) {
+        this.type = "waitCmd";
+        this.time = time;
+        this.args = [time];
+    }
+
+    op(context, timeValue) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                resolve(context.meta.runtime.findNext(this, context));
+            }, timeValue);
+        });
+    }
+
+    execute(context) {
+        return context.meta.runtime.unifiedExec(this, context);
+    }
+}
+
 export class WaitCommand {
     static keyword = "wait";
 
     /**
      * Parse wait command
      * @param {Parser} parser
-     * @returns {WaitCommand | undefined}
+     * @returns {WaitCommandEvent | WaitCommandTime | undefined}
      */
     static parse(parser) {
         if (!parser.matchToken("wait")) return;
-        var command;
 
         // wait on event
         if (parser.matchToken("for")) {
@@ -62,41 +130,7 @@ export class WaitCommand {
                 var on = parser.requireElement("expression");
             }
 
-            // wait on event
-            command = {
-                event: events,
-                on: on,
-                args: [on],
-                op: function (context, on) {
-                    var target = on ? on : context.me;
-                    if (!(target instanceof EventTarget))
-                        throw new Error("Not a valid event target: " + this.on.sourceFor());
-                    return new Promise((resolve) => {
-                        var resolved = false;
-                        for (const eventInfo of events) {
-                            var listener = (event) => {
-                                context.result = event;
-                                if (eventInfo.args) {
-                                    for (const arg of eventInfo.args) {
-                                        context.locals[arg.value] =
-                                            event[arg.value] || (event.detail ? event.detail[arg.value] : null);
-                                    }
-                                }
-                                if (!resolved) {
-                                    resolved = true;
-                                    resolve(context.meta.runtime.findNext(this, context));
-                                }
-                            };
-                            if (eventInfo.name){
-                                target.addEventListener(eventInfo.name, listener, {once: true});
-                            } else if (eventInfo.time != null) {
-                                setTimeout(listener, eventInfo.time, eventInfo.time)
-                            }
-                        }
-                    });
-                },
-            };
-            return command;
+            return new WaitCommandEvent(events, on);
         } else {
             var time;
             if (parser.matchToken("a")) {
@@ -106,23 +140,34 @@ export class WaitCommand {
                 time = parser.requireElement("expression");
             }
 
-            command = {
-                type: "waitCmd",
-                time: time,
-                args: [time],
-                op: function (context, timeValue) {
-                    return new Promise((resolve) => {
-                        setTimeout(() => {
-                            resolve(context.meta.runtime.findNext(this, context));
-                        }, timeValue);
-                    });
-                },
-                execute: function (context) {
-                    return context.meta.runtime.unifiedExec(this, context);
-                },
-            };
-            return command;
+            return new WaitCommandTime(time);
         }
+    }
+}
+
+/**
+ * SendCommandNode - Send/trigger event command node
+ */
+class SendCommandNode {
+    constructor(eventName, details, toExpr) {
+        this.type = "sendCommand";
+        this.eventName = eventName;
+        this.details = details;
+        this.to = toExpr;
+        this.args = [toExpr, eventName, details];
+        this.toExpr = toExpr;
+    }
+
+    op(context, to, eventName, details) {
+        context.meta.runtime.nullCheck(to, this.toExpr);
+        context.meta.runtime.implicitLoop(to, function (target) {
+            context.meta.runtime.triggerEvent(target, eventName, details, context.me);
+        });
+        return context.meta.runtime.findNext(this, context);
+    }
+
+    execute(context) {
+        return context.meta.runtime.unifiedExec(this, context);
     }
 }
 
@@ -140,20 +185,7 @@ function parseSendCmd(cmdType, parser) {
         var toExpr = parser.requireElement("implicitMeTarget");
     }
 
-    var sendCmd = {
-        eventName: eventName,
-        details: details,
-        to: toExpr,
-        args: [toExpr, eventName, details],
-        op: function (context, to, eventName, details) {
-            context.meta.runtime.nullCheck(to, toExpr);
-            context.meta.runtime.implicitLoop(to, function (target) {
-                context.meta.runtime.triggerEvent(target, eventName, details, context.me);
-            });
-            return context.meta.runtime.findNext(sendCmd, context);
-        },
-    };
-    return sendCmd;
+    return new SendCommandNode(eventName, details, toExpr);
 }
 
 /**

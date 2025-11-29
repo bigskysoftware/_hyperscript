@@ -5796,11 +5796,82 @@ function parseConversionInfo(parser) {
   }
   return { type, conversion };
 }
+var FetchCommandNode = class {
+  constructor(url, args, type, conversion) {
+    this.type = "fetchCommand";
+    this.url = url;
+    this.argExpressions = args;
+    this.args = [url, args];
+    this.conversionType = type;
+    this.conversion = conversion;
+  }
+  op(context2, url, args) {
+    const type = this.conversionType;
+    const conversion = this.conversion;
+    const fetchCmd = this;
+    var detail = args || {};
+    detail["sender"] = context2.me;
+    detail["headers"] = detail["headers"] || {};
+    var abortController = new AbortController();
+    let abortListener = context2.me.addEventListener("fetch:abort", function() {
+      abortController.abort();
+    }, { once: true });
+    detail["signal"] = abortController.signal;
+    context2.meta.runtime.triggerEvent(context2.me, "hyperscript:beforeFetch", detail);
+    context2.meta.runtime.triggerEvent(context2.me, "fetch:beforeRequest", detail);
+    args = detail;
+    var finished = false;
+    if (args.timeout) {
+      setTimeout(function() {
+        if (!finished) {
+          abortController.abort();
+        }
+      }, args.timeout);
+    }
+    return fetch(url, args).then(function(resp) {
+      let resultDetails = { response: resp };
+      context2.meta.runtime.triggerEvent(context2.me, "fetch:afterResponse", resultDetails);
+      resp = resultDetails.response;
+      if (type === "response") {
+        context2.result = resp;
+        context2.meta.runtime.triggerEvent(context2.me, "fetch:afterRequest", { result: resp });
+        finished = true;
+        return context2.meta.runtime.findNext(fetchCmd, context2);
+      }
+      if (type === "json") {
+        return resp.json().then(function(result) {
+          context2.result = result;
+          context2.meta.runtime.triggerEvent(context2.me, "fetch:afterRequest", { result });
+          finished = true;
+          return context2.meta.runtime.findNext(fetchCmd, context2);
+        });
+      }
+      return resp.text().then(function(result) {
+        if (conversion) result = context2.meta.runtime.convertValue(result, conversion);
+        if (type === "html") result = context2.meta.runtime.convertValue(result, "Fragment");
+        context2.result = result;
+        context2.meta.runtime.triggerEvent(context2.me, "fetch:afterRequest", { result });
+        finished = true;
+        return context2.meta.runtime.findNext(fetchCmd, context2);
+      });
+    }).catch(function(reason) {
+      context2.meta.runtime.triggerEvent(context2.me, "fetch:error", {
+        reason
+      });
+      throw reason;
+    }).finally(function() {
+      context2.me.removeEventListener("fetch:abort", abortListener);
+    });
+  }
+  execute(context2) {
+    return context2.meta.runtime.unifiedExec(this, context2);
+  }
+};
 var FetchCommand = class {
   /**
    * Parse fetch command
    * @param {Parser} parser
-   * @returns {FetchCommand | undefined}
+   * @returns {FetchCommandNode | undefined}
    */
   static parse(parser) {
     if (!parser.matchToken("fetch")) return;
@@ -5818,66 +5889,7 @@ var FetchCommand = class {
     }
     var type = conversionInfo ? conversionInfo.type : "text";
     var conversion = conversionInfo ? conversionInfo.conversion : null;
-    var fetchCmd = {
-      url,
-      argExpressions: args,
-      args: [url, args],
-      op: function(context2, url2, args2) {
-        var detail = args2 || {};
-        detail["sender"] = context2.me;
-        detail["headers"] = detail["headers"] || {};
-        var abortController = new AbortController();
-        let abortListener = context2.me.addEventListener("fetch:abort", function() {
-          abortController.abort();
-        }, { once: true });
-        detail["signal"] = abortController.signal;
-        context2.meta.runtime.triggerEvent(context2.me, "hyperscript:beforeFetch", detail);
-        context2.meta.runtime.triggerEvent(context2.me, "fetch:beforeRequest", detail);
-        args2 = detail;
-        var finished = false;
-        if (args2.timeout) {
-          setTimeout(function() {
-            if (!finished) {
-              abortController.abort();
-            }
-          }, args2.timeout);
-        }
-        return fetch(url2, args2).then(function(resp) {
-          let resultDetails = { response: resp };
-          context2.meta.runtime.triggerEvent(context2.me, "fetch:afterResponse", resultDetails);
-          resp = resultDetails.response;
-          if (type === "response") {
-            context2.result = resp;
-            context2.meta.runtime.triggerEvent(context2.me, "fetch:afterRequest", { result: resp });
-            finished = true;
-            return context2.meta.runtime.findNext(fetchCmd, context2);
-          }
-          if (type === "json") {
-            return resp.json().then(function(result) {
-              context2.result = result;
-              context2.meta.runtime.triggerEvent(context2.me, "fetch:afterRequest", { result });
-              finished = true;
-              return context2.meta.runtime.findNext(fetchCmd, context2);
-            });
-          }
-          return resp.text().then(function(result) {
-            if (conversion) result = context2.meta.runtime.convertValue(result, conversion);
-            if (type === "html") result = context2.meta.runtime.convertValue(result, "Fragment");
-            context2.result = result;
-            context2.meta.runtime.triggerEvent(context2.me, "fetch:afterRequest", { result });
-            finished = true;
-            return context2.meta.runtime.findNext(fetchCmd, context2);
-          });
-        }).catch(function(reason) {
-          context2.meta.runtime.triggerEvent(context2.me, "fetch:error", {
-            reason
-          });
-          throw reason;
-        }).finally(function() {
-          context2.me.removeEventListener("fetch:abort", abortListener);
-        });
-      }
-    };
+    var fetchCmd = new FetchCommandNode(url, args, type, conversion);
     return fetchCmd;
   }
 };
@@ -6028,15 +6040,70 @@ function parseEventArgs(parser) {
   }
   return args;
 }
+var WaitCommandEvent = class {
+  constructor(events, on) {
+    this.type = "waitCommand";
+    this.event = events;
+    this.on = on;
+    this.args = [on];
+  }
+  op(context2, on) {
+    const events = this.event;
+    var target = on ? on : context2.me;
+    if (!(target instanceof EventTarget))
+      throw new Error("Not a valid event target: " + this.on.sourceFor());
+    return new Promise((resolve) => {
+      var resolved = false;
+      for (const eventInfo of events) {
+        var listener = (event) => {
+          context2.result = event;
+          if (eventInfo.args) {
+            for (const arg of eventInfo.args) {
+              context2.locals[arg.value] = event[arg.value] || (event.detail ? event.detail[arg.value] : null);
+            }
+          }
+          if (!resolved) {
+            resolved = true;
+            resolve(context2.meta.runtime.findNext(this, context2));
+          }
+        };
+        if (eventInfo.name) {
+          target.addEventListener(eventInfo.name, listener, { once: true });
+        } else if (eventInfo.time != null) {
+          setTimeout(listener, eventInfo.time, eventInfo.time);
+        }
+      }
+    });
+  }
+  execute(context2) {
+    return context2.meta.runtime.unifiedExec(this, context2);
+  }
+};
+var WaitCommandTime = class {
+  constructor(time) {
+    this.type = "waitCmd";
+    this.time = time;
+    this.args = [time];
+  }
+  op(context2, timeValue) {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(context2.meta.runtime.findNext(this, context2));
+      }, timeValue);
+    });
+  }
+  execute(context2) {
+    return context2.meta.runtime.unifiedExec(this, context2);
+  }
+};
 var WaitCommand = class {
   /**
    * Parse wait command
    * @param {Parser} parser
-   * @returns {WaitCommand | undefined}
+   * @returns {WaitCommandEvent | WaitCommandTime | undefined}
    */
   static parse(parser) {
     if (!parser.matchToken("wait")) return;
-    var command;
     if (parser.matchToken("for")) {
       parser.matchToken("a");
       var events = [];
@@ -6057,39 +6124,7 @@ var WaitCommand = class {
       if (parser.matchToken("from")) {
         var on = parser.requireElement("expression");
       }
-      command = {
-        event: events,
-        on,
-        args: [on],
-        op: function(context2, on2) {
-          var target = on2 ? on2 : context2.me;
-          if (!(target instanceof EventTarget))
-            throw new Error("Not a valid event target: " + this.on.sourceFor());
-          return new Promise((resolve) => {
-            var resolved = false;
-            for (const eventInfo of events) {
-              var listener = (event) => {
-                context2.result = event;
-                if (eventInfo.args) {
-                  for (const arg of eventInfo.args) {
-                    context2.locals[arg.value] = event[arg.value] || (event.detail ? event.detail[arg.value] : null);
-                  }
-                }
-                if (!resolved) {
-                  resolved = true;
-                  resolve(context2.meta.runtime.findNext(this, context2));
-                }
-              };
-              if (eventInfo.name) {
-                target.addEventListener(eventInfo.name, listener, { once: true });
-              } else if (eventInfo.time != null) {
-                setTimeout(listener, eventInfo.time, eventInfo.time);
-              }
-            }
-          });
-        }
-      };
-      return command;
+      return new WaitCommandEvent(events, on);
     } else {
       var time;
       if (parser.matchToken("a")) {
@@ -6098,26 +6133,31 @@ var WaitCommand = class {
       } else {
         time = parser.requireElement("expression");
       }
-      command = {
-        type: "waitCmd",
-        time,
-        args: [time],
-        op: function(context2, timeValue) {
-          return new Promise((resolve) => {
-            setTimeout(() => {
-              resolve(context2.meta.runtime.findNext(this, context2));
-            }, timeValue);
-          });
-        },
-        execute: function(context2) {
-          return context2.meta.runtime.unifiedExec(this, context2);
-        }
-      };
-      return command;
+      return new WaitCommandTime(time);
     }
   }
 };
 __publicField(WaitCommand, "keyword", "wait");
+var SendCommandNode = class {
+  constructor(eventName, details, toExpr) {
+    this.type = "sendCommand";
+    this.eventName = eventName;
+    this.details = details;
+    this.to = toExpr;
+    this.args = [toExpr, eventName, details];
+    this.toExpr = toExpr;
+  }
+  op(context2, to, eventName, details) {
+    context2.meta.runtime.nullCheck(to, this.toExpr);
+    context2.meta.runtime.implicitLoop(to, function(target) {
+      context2.meta.runtime.triggerEvent(target, eventName, details, context2.me);
+    });
+    return context2.meta.runtime.findNext(this, context2);
+  }
+  execute(context2) {
+    return context2.meta.runtime.unifiedExec(this, context2);
+  }
+};
 function parseSendCmd(cmdType, parser) {
   var eventName = parser.requireElement("eventName");
   var details = parser.parseElement("namedArgumentList");
@@ -6126,20 +6166,7 @@ function parseSendCmd(cmdType, parser) {
   } else {
     var toExpr = parser.requireElement("implicitMeTarget");
   }
-  var sendCmd = {
-    eventName,
-    details,
-    to: toExpr,
-    args: [toExpr, eventName, details],
-    op: function(context2, to, eventName2, details2) {
-      context2.meta.runtime.nullCheck(to, toExpr);
-      context2.meta.runtime.implicitLoop(to, function(target) {
-        context2.meta.runtime.triggerEvent(target, eventName2, details2, context2.me);
-      });
-      return context2.meta.runtime.findNext(sendCmd, context2);
-    }
-  };
-  return sendCmd;
+  return new SendCommandNode(eventName, details, toExpr);
 }
 var TriggerCommand = class {
   /**
