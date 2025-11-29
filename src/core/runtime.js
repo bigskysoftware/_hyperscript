@@ -12,17 +12,17 @@ import { Tokens } from './tokenizer.js';
 export const shouldAutoIterateSymbol = Symbol()
 
 export class ElementCollection {
-    constructor(css, relativeToElement, escape) {
+    constructor(css, relativeToElement, escape, runtime) {
         this._css = css;
         this.relativeToElement = relativeToElement;
         this.escape = escape;
+        this._runtime = runtime;
         this[shouldAutoIterateSymbol] = true;
     }
 
     get css() {
         if (this.escape) {
-            // Runtime will be set up after module initialization
-            return ElementCollection._runtime.escapeSelector(this._css);
+            return this._runtime.escapeSelector(this._css);
         } else {
             return this._css;
         }
@@ -55,15 +55,14 @@ export class ElementCollection {
     }
 
     selectMatches() {
-        // Runtime will be set up after module initialization
-        let query = ElementCollection._runtime.getRootNode(this.relativeToElement).querySelectorAll(this.css);
+        let query = this._runtime.getRootNode(this.relativeToElement).querySelectorAll(this.css);
         return query;
     }
 }
 
 export class TemplatedQueryElementCollection extends ElementCollection {
-    constructor(css, relativeToElement, templateParts) {
-        super(css, relativeToElement);
+    constructor(css, relativeToElement, templateParts, runtime) {
+        super(css, relativeToElement, false, runtime);
         this.templateParts = templateParts;
         this.elements = templateParts.filter(elt => elt instanceof Element);
     }

@@ -1080,16 +1080,17 @@ function initWebConversions(runtime) {
 
 // src/core/runtime.js
 var shouldAutoIterateSymbol = Symbol();
-var ElementCollection = class _ElementCollection {
-  constructor(css, relativeToElement, escape) {
+var ElementCollection = class {
+  constructor(css, relativeToElement, escape, runtime) {
     this._css = css;
     this.relativeToElement = relativeToElement;
     this.escape = escape;
+    this._runtime = runtime;
     this[shouldAutoIterateSymbol] = true;
   }
   get css() {
     if (this.escape) {
-      return _ElementCollection._runtime.escapeSelector(this._css);
+      return this._runtime.escapeSelector(this._css);
     } else {
       return this._css;
     }
@@ -1116,13 +1117,13 @@ var ElementCollection = class _ElementCollection {
     return query[Symbol.iterator]();
   }
   selectMatches() {
-    let query = _ElementCollection._runtime.getRootNode(this.relativeToElement).querySelectorAll(this.css);
+    let query = this._runtime.getRootNode(this.relativeToElement).querySelectorAll(this.css);
     return query;
   }
 };
 var TemplatedQueryElementCollection = class extends ElementCollection {
-  constructor(css, relativeToElement, templateParts) {
-    super(css, relativeToElement);
+  constructor(css, relativeToElement, templateParts, runtime) {
+    super(css, relativeToElement, false, runtime);
     this.templateParts = templateParts;
     this.elements = templateParts.filter((elt) => elt instanceof Element);
   }
@@ -2694,7 +2695,7 @@ var ClassRef = class {
         type: "classRefTemplate",
         args: [innerExpression],
         op: function(context2, arg) {
-          return new ElementCollection("." + arg, context2.me, true);
+          return new ElementCollection("." + arg, context2.me, true, context2.meta.runtime);
         },
         evaluate: function(context2) {
           return context2.meta.runtime.unifiedEval(this, context2);
@@ -2708,7 +2709,7 @@ var ClassRef = class {
         css,
         className,
         evaluate: function(context2) {
-          return new ElementCollection(css, context2.me, true);
+          return new ElementCollection(css, context2.me, true, context2.meta.runtime);
         }
       };
     }
@@ -2747,9 +2748,9 @@ var QueryRef = class {
       args,
       op: function(context2, ...args2) {
         if (template) {
-          return new TemplatedQueryElementCollection(queryValue, context2.me, args2);
+          return new TemplatedQueryElementCollection(queryValue, context2.me, args2, context2.meta.runtime);
         } else {
-          return new ElementCollection(queryValue, context2.me);
+          return new ElementCollection(queryValue, context2.me, false, context2.meta.runtime);
         }
       },
       evaluate: function(context2) {
@@ -8156,7 +8157,6 @@ kernel_.addGrammarElement("hyperscript", function(parser) {
   };
 });
 Tokens._parserRaiseError = LanguageKernel.raiseParseError;
-ElementCollection._runtime = runtime_;
 function evaluate(src, ctx, args) {
   class HyperscriptModule extends EventTarget {
     constructor(mod) {

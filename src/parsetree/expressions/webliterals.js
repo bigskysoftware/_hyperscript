@@ -81,7 +81,7 @@ export class ClassRef {
                 type: "classRefTemplate",
                 args: [innerExpression],
                 op: function (context, arg) {
-                    return new ElementCollection("." + arg, context.me, true)
+                    return new ElementCollection("." + arg, context.me, true, context.meta.runtime)
                 },
                 evaluate: function (context) {
                     return context.meta.runtime.unifiedEval(this, context);
@@ -95,7 +95,7 @@ export class ClassRef {
                 css: css,
                 className: className,
                 evaluate: function (context) {
-                    return new ElementCollection(css, context.me, true)
+                    return new ElementCollection(css, context.me, true, context.meta.runtime)
                 },
             };
         }
@@ -145,9 +145,9 @@ export class QueryRef {
             args: args,
             op: function (context, ...args) {
                 if (template) {
-                    return new TemplatedQueryElementCollection(queryValue, context.me, args)
+                    return new TemplatedQueryElementCollection(queryValue, context.me, args, context.meta.runtime)
                 } else {
-                    return new ElementCollection(queryValue, context.me)
+                    return new ElementCollection(queryValue, context.me, false, context.meta.runtime)
                 }
             },
             evaluate: function (context) {

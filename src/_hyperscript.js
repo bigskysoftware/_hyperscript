@@ -310,8 +310,6 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
 
     // Set up the LanguageKernel.raiseParseError callback for Tokens
     Tokens._parserRaiseError = LanguageKernel.raiseParseError;
-    // Set up the Runtime reference for ElementCollection
-    ElementCollection._runtime = runtime_;
 
     /**
      * @param {string} src
