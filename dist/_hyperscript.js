@@ -2225,6 +2225,8 @@ var _LanguageKernel = class _LanguageKernel {
     __publicField(this, "UNARY_EXPRESSIONS", []);
     /** @type {string[]} */
     __publicField(this, "TOP_EXPRESSIONS", []);
+    /** @type {string[]} */
+    __publicField(this, "ASSIGNABLE_EXPRESSIONS", []);
     this.possessivesDisabled = false;
     this.addGrammarElement("feature", function(parser) {
       if (parser.matchOpToken("(")) {
@@ -2311,6 +2313,17 @@ var _LanguageKernel = class _LanguageKernel {
     this.addGrammarElement("expression", function(parser) {
       parser.matchToken("the");
       return parser.parseAnyOf(parser.kernel.TOP_EXPRESSIONS);
+    });
+    this.addGrammarElement("assignableExpression", function(parser) {
+      parser.matchToken("the");
+      var expr = parser.parseElement("primaryExpression");
+      if (expr && parser.kernel.ASSIGNABLE_EXPRESSIONS.indexOf(expr.type) >= 0) {
+        return expr;
+      } else {
+        parser.raiseParseError(
+          "A target expression must be writable.  The expression type '" + (expr && expr.type) + "' is not."
+        );
+      }
     });
     this.addGrammarElement("indirectStatement", function(parser, root) {
       if (parser.matchToken("unless")) {
@@ -2544,6 +2557,15 @@ var _LanguageKernel = class _LanguageKernel {
    */
   addTopExpression(name, definition) {
     this.TOP_EXPRESSIONS.push(name);
+    this.addGrammarElement(name, definition);
+  }
+  /**
+   * Register an expression as assignable (adds to both ASSIGNABLE_EXPRESSIONS and GRAMMAR)
+   * @param {string} name
+   * @param {ParseRule} definition
+   */
+  addAssignableExpression(name, definition) {
+    this.ASSIGNABLE_EXPRESSIONS.push(name);
     this.addGrammarElement(name, definition);
   }
   /**
@@ -8102,6 +8124,14 @@ kernel_.addIndirectExpression("asExpression", AsExpression.parse);
 kernel_.addIndirectExpression("functionCall", FunctionCall.parse);
 kernel_.addIndirectExpression("attributeRefAccess", AttributeRefAccess.parse);
 kernel_.addIndirectExpression("arrayIndex", ArrayIndex.parse);
+kernel_.ASSIGNABLE_EXPRESSIONS.push("symbol");
+kernel_.ASSIGNABLE_EXPRESSIONS.push("ofExpression");
+kernel_.ASSIGNABLE_EXPRESSIONS.push("propertyAccess");
+kernel_.ASSIGNABLE_EXPRESSIONS.push("attributeRefAccess");
+kernel_.ASSIGNABLE_EXPRESSIONS.push("attributeRef");
+kernel_.ASSIGNABLE_EXPRESSIONS.push("styleRef");
+kernel_.ASSIGNABLE_EXPRESSIONS.push("arrayIndex");
+kernel_.ASSIGNABLE_EXPRESSIONS.push("possessive");
 kernel_.addUnaryExpression("beepExpression", BeepExpression.parse);
 kernel_.addUnaryExpression("logicalNot", LogicalNot.parse);
 kernel_.addUnaryExpression("noExpression", NoExpression.parse);
@@ -8183,18 +8213,6 @@ initWebConversions(runtime_);
 kernel_.addPostfixExpression("stringPostfixExpression", StringPostfixExpression.parse);
 kernel_.addPostfixExpression("timeExpression", TimeExpression.parse);
 kernel_.addPostfixExpression("typeCheckExpression", TypeCheckExpression.parse);
-kernel_.addGrammarElement("assignableExpression", function(parser) {
-  parser.matchToken("the");
-  var expr = parser.parseElement("primaryExpression");
-  if (expr && (expr.type === "symbol" || expr.type === "ofExpression" || expr.type === "propertyAccess" || expr.type === "attributeRefAccess" || expr.type === "attributeRef" || expr.type === "styleRef" || expr.type === "arrayIndex" || expr.type === "possessive")) {
-    return expr;
-  } else {
-    parser.raiseParseError(
-      "A target expression must be writable.  The expression type '" + (expr && expr.type) + "' is not."
-    );
-  }
-  return expr;
-});
 Tokens._parserRaiseError = LanguageKernel.raiseParseError;
 function evaluate(src, ctx, args) {
   class HyperscriptModule extends EventTarget {

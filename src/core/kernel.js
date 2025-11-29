@@ -140,6 +140,18 @@ export class LanguageKernel {
             return parser.parseAnyOf(parser.kernel.TOP_EXPRESSIONS);
         });
 
+        this.addGrammarElement("assignableExpression", function (parser) {
+            parser.matchToken("the"); // optional "the"
+            var expr = parser.parseElement("primaryExpression");
+            if (expr && parser.kernel.ASSIGNABLE_EXPRESSIONS.indexOf(expr.type) >= 0) {
+                return expr;
+            } else {
+                parser.raiseParseError(
+                    "A target expression must be writable.  The expression type '" + (expr && expr.type) + "' is not."
+                );
+            }
+        });
+
         this.addGrammarElement("indirectStatement", function (parser, root) {
             if (parser.matchToken("unless")) {
                 root.endToken = parser.lastMatch();
@@ -222,6 +234,9 @@ export class LanguageKernel {
 
     /** @type {string[]} */
     TOP_EXPRESSIONS = [];
+
+    /** @type {string[]} */
+    ASSIGNABLE_EXPRESSIONS = [];
 
     /**
      * @param {*} parseElement
@@ -416,6 +431,16 @@ export class LanguageKernel {
      */
     addTopExpression(name, definition) {
         this.TOP_EXPRESSIONS.push(name);
+        this.addGrammarElement(name, definition);
+    }
+
+    /**
+     * Register an expression as assignable (adds to both ASSIGNABLE_EXPRESSIONS and GRAMMAR)
+     * @param {string} name
+     * @param {ParseRule} definition
+     */
+    addAssignableExpression(name, definition) {
+        this.ASSIGNABLE_EXPRESSIONS.push(name);
         this.addGrammarElement(name, definition);
     }
 

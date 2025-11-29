@@ -251,32 +251,15 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
     kernel_.addPostfixExpression("timeExpression", TimeExpression.parse);
     kernel_.addPostfixExpression("typeCheckExpression", TypeCheckExpression.parse);
 
-    // ===== TODO: Move To Kernel =====
-
-    kernel_.addGrammarElement("assignableExpression", function (parser) {
-        parser.matchToken("the"); // optional the
-        // TODO obviously we need to generalize this as a left hand side / targetable concept
-        var expr = parser.parseElement("primaryExpression");
-        if (expr && (
-            expr.type === "symbol" ||
-            expr.type === "ofExpression" ||
-            expr.type === "propertyAccess" ||
-            expr.type === "attributeRefAccess" ||
-            expr.type === "attributeRef" ||
-            expr.type === "styleRef" ||
-            expr.type === "arrayIndex" ||
-            expr.type === "possessive")
-        ) {
-            return expr;
-        } else {
-            parser.raiseParseError(
-                "A target expression must be writable.  The expression type '" + (expr && expr.type) + "' is not."
-            );
-        }
-        return expr;
-    });
-
-    // ===== END TODO: Move To Kernel =====
+    // TODO: this should be driven by the expressions themselves, not a list here
+    kernel_.ASSIGNABLE_EXPRESSIONS.push("symbol");
+    kernel_.ASSIGNABLE_EXPRESSIONS.push("ofExpression");  // "of" produces type "ofExpression"
+    kernel_.ASSIGNABLE_EXPRESSIONS.push("propertyAccess");
+    kernel_.ASSIGNABLE_EXPRESSIONS.push("attributeRefAccess");
+    kernel_.ASSIGNABLE_EXPRESSIONS.push("attributeRef");
+    kernel_.ASSIGNABLE_EXPRESSIONS.push("styleRef");
+    kernel_.ASSIGNABLE_EXPRESSIONS.push("arrayIndex");
+    kernel_.ASSIGNABLE_EXPRESSIONS.push("possessive");
 
     // Set up the LanguageKernel.raiseParseError callback for Tokens
     Tokens._parserRaiseError = LanguageKernel.raiseParseError;
