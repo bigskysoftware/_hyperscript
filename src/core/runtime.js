@@ -296,9 +296,13 @@ export class Runtime {
         /**
          *
          * @param {Object} globalScope
+         * @param {Object} kernel - The language kernel for parsing
+         * @param {Object} tokenizer - The tokenizer for tokenizing hyperscript
          */
-        constructor(globalScope) {
+        constructor(globalScope, kernel, tokenizer) {
             this.globalScope = globalScope;
+            this.parser = kernel;
+            this.tokenizer = tokenizer;
         }
 
         /**
@@ -1139,6 +1143,64 @@ export class Runtime {
                     logValue = Array.from(value);
                 }
                 console.log("///_ BEEP! The expression (" + Tokens.sourceFor.call(expression).replace("beep! ", "") + ") evaluates to:", logValue, "of type " + typeName);
+            }
+        }
+
+        /**
+         * @param {Element} elt
+         * @param {Element} [target]
+         */
+        initElement(elt, target) {
+            if (elt.closest && elt.closest(config.disableSelector)) {
+                return;
+            }
+            var internalData = this.getInternalData(elt);
+            if (!internalData.initialized) {
+                var src = this.getScript(elt);
+                if (src) {
+                    try {
+                        internalData.initialized = true;
+                        internalData.script = src;
+                        var tokens = this.tokenizer.tokenize(src);
+                        var hyperScript = this.parser.parseHyperScript(tokens);
+                        if (!hyperScript) return;
+                        hyperScript.apply(target || elt, elt, null, this);
+                        setTimeout(() => {
+                            this.triggerEvent(target || elt, "load", {
+                                hyperscript: true,
+                            });
+                        }, 1);
+                    } catch (e) {
+                        this.triggerEvent(elt, "exception", {
+                            error: e,
+                        });
+                        console.error(
+                            "hyperscript errors were found on the following element:",
+                            elt,
+                            "\n\n",
+                            e.message,
+                            e.stack
+                        );
+                    }
+                }
+            }
+        }
+
+        /**
+         * @param {HTMLElement} elt
+         */
+        processNode(elt) {
+            var selector = this.getScriptSelector();
+            if (this.matchesSelector(elt, selector)) {
+                this.initElement(elt, elt);
+            }
+            if (elt instanceof HTMLScriptElement && elt.type === "text/hyperscript") {
+                this.initElement(elt, document.body);
+            }
+            if (elt.querySelectorAll) {
+                this.forEach(elt.querySelectorAll(selector + ", [type='text/hyperscript']"), elt => {
+                    this.initElement(elt, elt instanceof HTMLScriptElement && elt.type === "text/hyperscript" ? document.body : elt);
+                });
             }
         }
 }

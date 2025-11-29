@@ -47,9 +47,9 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
 // Create and configure kernel
 const kernel = new LanguageKernel();
 
-// Create lexer and runtime first
+// Create tokenizer first, then runtime with kernel and tokenizer
 const tokenizer = new Tokenizer();
-const runtime = new Runtime(globalScope);
+const runtime = new Runtime(globalScope, kernel, tokenizer);
 
 // ===== Grammar Registration =====
 
@@ -228,67 +228,6 @@ function evaluate(src, ctx, args) {
     }
 }
 
-/**
- * @param {Element} elt
- * @param {Element} [target]
- */
-function initElement(elt, target) {
-    if (elt.closest && elt.closest(config.disableSelector)) {
-        return;
-    }
-    var internalData = runtime.getInternalData(elt);
-    if (!internalData.initialized) {
-        var src = runtime.getScript(elt);
-        if (src) {
-            try {
-                internalData.initialized = true;
-                internalData.script = src;
-                var tokens = tokenizer.tokenize(src);
-                var hyperScript = kernel.parseHyperScript(tokens);
-                if (!hyperScript) return;
-                hyperScript.apply(target || elt, elt, null, runtime);
-                setTimeout(() => {
-                    runtime.triggerEvent(target || elt, "load", {
-                        hyperscript: true,
-                    });
-                }, 1);
-            } catch (e) {
-                runtime.triggerEvent(elt, "exception", {
-                    error: e,
-                });
-                console.error(
-                    "hyperscript errors were found on the following element:",
-                    elt,
-                    "\n\n",
-                    e.message,
-                    e.stack
-                );
-            }
-        }
-    }
-}
-
-/**
- * @param {HTMLElement} elt
- */
-function processNode(elt) {
-    var selector = runtime.getScriptSelector();
-    if (runtime.matchesSelector(elt, selector)) {
-        initElement(elt, elt);
-    }
-    if (elt instanceof HTMLScriptElement && elt.type === "text/hyperscript") {
-        initElement(elt, document.body);
-    }
-    if (elt.querySelectorAll) {
-        runtime.forEach(elt.querySelectorAll(selector + ", [type='text/hyperscript']"), elt => {
-            initElement(elt, elt instanceof HTMLScriptElement && elt.type === "text/hyperscript" ? document.body : elt);
-        });
-    }
-}
-
-// Add processNode to runtime for backward compatibility with grammars
-// TODO figure out how to remove this
-runtime.processNode = processNode;
 
 function browserInit() {
     /** @type {HTMLScriptElement[]} */
@@ -304,12 +243,12 @@ function browserInit() {
         .then(script_values => script_values.forEach(sc => _hyperscript(sc)))
         .then(() => ready(function () {
             mergeMetaConfig();
-            processNode(document.documentElement);
+            runtime.processNode(document.documentElement);
 
             document.dispatchEvent(new Event("hyperscript:ready"));
 
             globalScope.document.addEventListener("htmx:load", function (/** @type {CustomEvent} */ evt) {
-                processNode(evt.detail.elt);
+                runtime.processNode(evt.detail.elt);
             });
         }));
 
@@ -391,8 +330,8 @@ const _hyperscript = Object.assign(
 
         evaluate,
         parse: (src) => kernel.parse(tokenizer, src),
-        process: processNode,
-        processNode,
+        process: (elt) => runtime.processNode(elt),
+        processNode: (elt) => runtime.processNode(elt),
         version: "0.9.14",
         browserInit,
     }
