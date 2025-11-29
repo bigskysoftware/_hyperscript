@@ -101,6 +101,8 @@ function resolveHideShowStrategy(kernel, parser, name, config) {
  * Executes: Adds classes/attributes/CSS to target elements
  */
 export class AddCommand {
+    static keyword = "add";
+
     static parse(parser) {
         if (!parser.matchToken("add")) return;
 
@@ -217,6 +219,8 @@ export class AddCommand {
  * Executes: Removes classes/attributes or removes element from DOM
  */
 export class RemoveCommand {
+    static keyword = "remove";
+
     static parse(parser) {
         if (!parser.matchToken("remove")) return;
 
@@ -297,6 +301,8 @@ export class RemoveCommand {
  * Executes: Toggles classes/attributes or visibility state
  */
 export class ToggleCommand {
+    static keyword = "toggle";
+
     static parse(parser, kernel, config) {
         if (!parser.matchToken("toggle")) return;
 
@@ -435,6 +441,8 @@ export class ToggleCommand {
  * Executes: Hides target element using specified strategy
  */
 export class HideCommand {
+    static keyword = "hide";
+
     static parse(parser, kernel, config) {
         if (!parser.matchToken("hide")) return;
 
@@ -470,6 +478,8 @@ export class HideCommand {
  * Executes: Shows target element using specified strategy
  */
 export class ShowCommand {
+    static keyword = "show";
+
     static parse(parser, kernel, config) {
         if (!parser.matchToken("show")) return;
 
@@ -572,6 +582,8 @@ function parsePseudopossessiveTarget(parser) {
  * Executes: Removes classes/attributes from source and adds to target
  */
 export class TakeCommand {
+    static keyword = "take";
+
     /**
      * Parse take command
      * @param {Parser} parser
@@ -672,6 +684,8 @@ export class TakeCommand {
  * Executes: Measures element bounds and scroll properties
  */
 export class MeasureCommand {
+    static keyword = "measure";
+
     /**
      * Parse measure command
      * @param {Parser} parser

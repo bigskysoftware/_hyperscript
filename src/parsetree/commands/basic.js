@@ -59,6 +59,8 @@ export class LogCommand {
  * Executes: Logs values with debug formatting
  */
 export class BeepCommand {
+    static keyword = "beep!";
+
     constructor(exprs) {
         this.exprs = exprs;
         this.args = [exprs];
@@ -98,6 +100,8 @@ export class BeepCommand {
  * Executes: Throws the evaluated expression
  */
 export class ThrowCommand {
+    static keyword = "throw";
+
     constructor(expr) {
         this.expr = expr;
         this.args = [expr];
@@ -130,6 +134,8 @@ export class ThrowCommand {
  * Executes: Returns value and halts execution
  */
 export class ReturnCommand {
+    static keyword = "return";
+
     constructor(value) {
         this.value = value;
         this.args = [value];
@@ -175,6 +181,8 @@ export class ReturnCommand {
  * Executes: Exits and halts execution
  */
 export class ExitCommand {
+    static keyword = "exit";
+
     constructor() {
         this.args = [undefined];
     }
@@ -214,6 +222,8 @@ export class ExitCommand {
  * Executes: Stops event propagation/default
  */
 export class HaltCommand {
+    static keyword = "halt";
+
     constructor(bubbling, haltDefault, keepExecuting, exit) {
         this.keepExecuting = keepExecuting;
         this.bubbling = bubbling;
@@ -290,6 +300,8 @@ export class HaltCommand {
  * Executes: Creates DOM elements from query refs or instantiates objects
  */
 export class MakeCommand {
+    static keyword = "make";
+
     /**
      * Parse make command
      * @param {Parser} parser
@@ -367,6 +379,8 @@ export class MakeCommand {
  * Executes: Appends value to array, string, or DOM element
  */
 export class AppendCommand {
+    static keyword = "append";
+
     /**
      * Parse append command
      * @param {Parser} parser
@@ -464,6 +478,8 @@ function parsePickRange(parser) {
  * Executes: Extracts specified range or matches from collection/string
  */
 export class PickCommand {
+    static keyword = "pick";
+
     /**
      * Parse pick command
      * @param {Parser} parser
@@ -564,6 +580,8 @@ function parseConversionInfo(parser) {
  * Executes: Performs HTTP fetch with optional response conversion
  */
 export class FetchCommand {
+    static keyword = "fetch";
+
     /**
      * Parse fetch command
      * @param {Parser} parser
@@ -667,6 +685,8 @@ export class FetchCommand {
  * Executes: Navigate browser history, URL, or scroll to element
  */
 export class GoCommand {
+    static keyword = "go";
+
     /**
      * Parse go command
      * @param {Parser} parser

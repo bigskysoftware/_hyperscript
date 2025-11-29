@@ -10,6 +10,8 @@
  * Executes: Conditionally executes true or false branch based on expression
  */
 export class IfCommand {
+    static keyword = "if";
+
     /**
      * Parse if command
      * @param {Parser} parser
@@ -234,6 +236,8 @@ function parseRepeatExpression(parser, startedWithForToken) {
  * Executes: Loops according to the specified condition
  */
 export class RepeatCommand {
+    static keyword = "repeat";
+
     /**
      * Parse repeat command
      * @param {Parser} parser
@@ -253,6 +257,8 @@ export class RepeatCommand {
  * Executes: Iterates over expression values
  */
 export class ForCommand {
+    static keyword = "for";
+
     /**
      * Parse for command
      * @param {Parser} parser
@@ -272,6 +278,8 @@ export class ForCommand {
  * Executes: Continues to next iteration of closest repeat loop
  */
 export class ContinueCommand {
+    static keyword = "continue";
+
     /**
      * Parse continue command
      * @param {Parser} parser
@@ -304,6 +312,8 @@ export class ContinueCommand {
  * Executes: Exits closest repeat loop
  */
 export class BreakCommand {
+    static keyword = "break";
+
     /**
      * Parse break command
      * @param {Parser} parser
@@ -336,6 +346,8 @@ export class BreakCommand {
  * Executes: Executes commands with 'you' set to target element(s)
  */
 export class TellCommand {
+    static keyword = "tell";
+
     /**
      * Parse tell command
      * @param {Parser} parser

@@ -59,6 +59,8 @@ export class JsBody {
  * Executes: Runs JavaScript code with optional inputs from hyperscript context
  */
 export class JsCommand {
+    static keyword = "js";
+
     /**
      * Parse js command
      * @param {Parser} parser
@@ -119,6 +121,8 @@ export class JsCommand {
  * Executes: Runs command(s) asynchronously via setTimeout
  */
 export class AsyncCommand {
+    static keyword = "async";
+
     /**
      * Parse async command
      * @param {Parser} parser
@@ -175,6 +179,8 @@ function parseCallOrGet(parser) {
  * Executes: Calls function (must be a function invocation)
  */
 export class CallCommand {
+    static keyword = "call";
+
     /**
      * Parse call command
      * @param {Parser} parser
@@ -197,6 +203,8 @@ export class CallCommand {
  * Executes: Evaluates expression and stores result
  */
 export class GetCommand {
+    static keyword = "get";
+
     /**
      * Parse get command
      * @param {Parser} parser

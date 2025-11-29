@@ -107,6 +107,8 @@ class SetterCommand {
  * Executes: Assigns value to target
  */
 export class SetCommand extends SetterCommand {
+    static keyword = "set";
+
     constructor(target, value, objectLiteral) {
         super();
         this.target = target;
@@ -161,6 +163,8 @@ export class SetCommand extends SetterCommand {
  * Executes: Sets target to value only if target is falsy
  */
 export class DefaultCommand extends SetterCommand {
+    static keyword = "default";
+
     constructor(target, value, setter) {
         super();
         this.target = target;
@@ -202,6 +206,8 @@ export class DefaultCommand extends SetterCommand {
  * Executes: Adds amount (default 1) to target
  */
 export class IncrementCommand extends SetterCommand {
+    static keyword = "increment";
+
     constructor(target, amountExpr) {
         super();
         this.target = target;
@@ -252,6 +258,8 @@ export class IncrementCommand extends SetterCommand {
  * Executes: Subtracts amount (default 1) from target
  */
 export class DecrementCommand extends SetterCommand {
+    static keyword = "decrement";
+
     constructor(target, amountExpr) {
         super();
         this.target = target;
@@ -302,6 +310,8 @@ export class DecrementCommand extends SetterCommand {
  * Executes: Inserts value into DOM or variable
  */
 export class PutCommand extends SetterCommand {
+    static keyword = "put";
+
     constructor(value, target, operation) {
         super();
         this.value = value;

@@ -29,6 +29,8 @@ function parseEventArgs(parser) {
  * Executes: Waits for specified time or events
  */
 export class WaitCommand {
+    static keyword = "wait";
+
     /**
      * Parse wait command
      * @param {Parser} parser
@@ -161,6 +163,8 @@ function parseSendCmd(cmdType, parser) {
  * Executes: Triggers event on target (or implicit me)
  */
 export class TriggerCommand {
+    static keyword = "trigger";
+
     /**
      * Parse trigger command
      * @param {Parser} parser
@@ -180,6 +184,8 @@ export class TriggerCommand {
  * Executes: Sends event to target (or implicit me)
  */
 export class SendCommand {
+    static keyword = "send";
+
     /**
      * Parse send command
      * @param {Parser} parser

@@ -4830,7 +4830,7 @@ var SetterCommand = class {
     return setCmd;
   }
 };
-var SetCommand = class _SetCommand extends SetterCommand {
+var _SetCommand = class _SetCommand extends SetterCommand {
   constructor(target, value, objectLiteral) {
     super();
     this.target = target;
@@ -4870,7 +4870,9 @@ var SetCommand = class _SetCommand extends SetterCommand {
     return _SetCommand.makeSetter(parser, target, value);
   }
 };
-var DefaultCommand = class _DefaultCommand extends SetterCommand {
+__publicField(_SetCommand, "keyword", "set");
+var SetCommand = _SetCommand;
+var _DefaultCommand = class _DefaultCommand extends SetterCommand {
   constructor(target, value, setter) {
     super();
     this.target = target;
@@ -4901,6 +4903,8 @@ var DefaultCommand = class _DefaultCommand extends SetterCommand {
     return defaultCmd;
   }
 };
+__publicField(_DefaultCommand, "keyword", "default");
+var DefaultCommand = _DefaultCommand;
 var IncrementCommand = class extends SetterCommand {
   constructor(target, amountExpr) {
     super();
@@ -4937,6 +4941,7 @@ var IncrementCommand = class extends SetterCommand {
     return SetCommand.makeSetter(parser, target, implicitIncrementOp);
   }
 };
+__publicField(IncrementCommand, "keyword", "increment");
 var DecrementCommand = class extends SetterCommand {
   constructor(target, amountExpr) {
     super();
@@ -4973,6 +4978,7 @@ var DecrementCommand = class extends SetterCommand {
     return SetCommand.makeSetter(parser, target, implicitDecrementOp);
   }
 };
+__publicField(DecrementCommand, "keyword", "decrement");
 var PutCommand = class extends SetterCommand {
   constructor(value, target, operation) {
     super();
@@ -5077,6 +5083,7 @@ var PutCommand = class extends SetterCommand {
     return putCmd;
   }
 };
+__publicField(PutCommand, "keyword", "put");
 
 // src/parsetree/commands/basic.js
 var _LogCommand = class _LogCommand {
@@ -5115,7 +5122,7 @@ var _LogCommand = class _LogCommand {
 };
 __publicField(_LogCommand, "keyword", "log");
 var LogCommand = _LogCommand;
-var BeepCommand = class _BeepCommand {
+var _BeepCommand = class _BeepCommand {
   constructor(exprs) {
     this.exprs = exprs;
     this.args = [exprs];
@@ -5145,7 +5152,9 @@ var BeepCommand = class _BeepCommand {
     return ctx.meta.runtime.findNext(this, ctx);
   }
 };
-var ThrowCommand = class _ThrowCommand {
+__publicField(_BeepCommand, "keyword", "beep!");
+var BeepCommand = _BeepCommand;
+var _ThrowCommand = class _ThrowCommand {
   constructor(expr) {
     this.expr = expr;
     this.args = [expr];
@@ -5168,7 +5177,9 @@ var ThrowCommand = class _ThrowCommand {
     throw expr;
   }
 };
-var ReturnCommand = class _ReturnCommand {
+__publicField(_ThrowCommand, "keyword", "throw");
+var ThrowCommand = _ThrowCommand;
+var _ReturnCommand = class _ReturnCommand {
   constructor(value) {
     this.value = value;
     this.args = [value];
@@ -5204,7 +5215,9 @@ var ReturnCommand = class _ReturnCommand {
     return context2.meta.runtime.HALT;
   }
 };
-var ExitCommand = class _ExitCommand {
+__publicField(_ReturnCommand, "keyword", "return");
+var ReturnCommand = _ReturnCommand;
+var _ExitCommand = class _ExitCommand {
   constructor() {
     this.args = [void 0];
   }
@@ -5234,7 +5247,9 @@ var ExitCommand = class _ExitCommand {
     return context2.meta.runtime.HALT;
   }
 };
-var HaltCommand = class _HaltCommand {
+__publicField(_ExitCommand, "keyword", "exit");
+var ExitCommand = _ExitCommand;
+var _HaltCommand = class _HaltCommand {
   constructor(bubbling, haltDefault, keepExecuting, exit) {
     this.keepExecuting = keepExecuting;
     this.bubbling = bubbling;
@@ -5299,6 +5314,8 @@ var HaltCommand = class _HaltCommand {
     }
   }
 };
+__publicField(_HaltCommand, "keyword", "halt");
+var HaltCommand = _HaltCommand;
 var MakeCommand = class {
   /**
    * Parse make command
@@ -5358,6 +5375,7 @@ var MakeCommand = class {
     }
   }
 };
+__publicField(MakeCommand, "keyword", "make");
 var AppendCommand = class {
   /**
    * Parse append command
@@ -5423,6 +5441,7 @@ var AppendCommand = class {
     return command;
   }
 };
+__publicField(AppendCommand, "keyword", "append");
 function parsePickRange(parser) {
   parser.matchToken("at") || parser.matchToken("from");
   const rv = { includeStart: true, includeEnd: false };
@@ -5499,6 +5518,7 @@ var PickCommand = class {
     }
   }
 };
+__publicField(PickCommand, "keyword", "pick");
 function parseConversionInfo(parser) {
   var type = "text";
   var conversion;
@@ -5600,6 +5620,7 @@ var FetchCommand = class {
     return fetchCmd;
   }
 };
+__publicField(FetchCommand, "keyword", "fetch");
 var GoCommand = class {
   /**
    * Parse go command
@@ -5718,6 +5739,7 @@ var GoCommand = class {
     }
   }
 };
+__publicField(GoCommand, "keyword", "go");
 
 // src/parsetree/commands/events.js
 function parseEventArgs(parser) {
@@ -5820,6 +5842,7 @@ var WaitCommand = class {
     }
   }
 };
+__publicField(WaitCommand, "keyword", "wait");
 function parseSendCmd(cmdType, parser) {
   var eventName = parser.requireElement("eventName");
   var details = parser.parseElement("namedArgumentList");
@@ -5855,6 +5878,7 @@ var TriggerCommand = class {
     }
   }
 };
+__publicField(TriggerCommand, "keyword", "trigger");
 var SendCommand = class {
   /**
    * Parse send command
@@ -5867,6 +5891,7 @@ var SendCommand = class {
     }
   }
 };
+__publicField(SendCommand, "keyword", "send");
 var EventName = class {
   /**
    * Parse event name (string literal or dot/colon path)
@@ -5932,6 +5957,7 @@ var IfCommand = class {
     return ifCmd;
   }
 };
+__publicField(IfCommand, "keyword", "if");
 function parseRepeatExpression(parser, startedWithForToken) {
   var innerStartToken = parser.currentToken();
   var identifier;
@@ -6102,6 +6128,7 @@ var RepeatCommand = class {
     }
   }
 };
+__publicField(RepeatCommand, "keyword", "repeat");
 var ForCommand = class {
   /**
    * Parse for command
@@ -6114,6 +6141,7 @@ var ForCommand = class {
     }
   }
 };
+__publicField(ForCommand, "keyword", "for");
 var ContinueCommand = class {
   /**
    * Parse continue command
@@ -6137,6 +6165,7 @@ var ContinueCommand = class {
     return command;
   }
 };
+__publicField(ContinueCommand, "keyword", "continue");
 var BreakCommand = class {
   /**
    * Parse break command
@@ -6160,6 +6189,7 @@ var BreakCommand = class {
     return command;
   }
 };
+__publicField(BreakCommand, "keyword", "break");
 var TellCommand = class {
   /**
    * Parse tell command
@@ -6211,6 +6241,7 @@ var TellCommand = class {
     return tellCmd;
   }
 };
+__publicField(TellCommand, "keyword", "tell");
 
 // src/parsetree/commands/execution.js
 var JsBody = class {
@@ -6299,6 +6330,7 @@ var JsCommand = class {
     return command;
   }
 };
+__publicField(JsCommand, "keyword", "js");
 var AsyncCommand = class {
   /**
    * Parse async command
@@ -6329,6 +6361,7 @@ var AsyncCommand = class {
     return command;
   }
 };
+__publicField(AsyncCommand, "keyword", "async");
 function parseCallOrGet(parser) {
   var expr = parser.requireElement("expression");
   var callCmd = {
@@ -6356,6 +6389,7 @@ var CallCommand = class {
     return call;
   }
 };
+__publicField(CallCommand, "keyword", "call");
 var GetCommand = class {
   /**
    * Parse get command
@@ -6368,6 +6402,7 @@ var GetCommand = class {
     }
   }
 };
+__publicField(GetCommand, "keyword", "get");
 
 // src/parsetree/commands/pseudoCommand.js
 var PseudoCommand = class {
@@ -6622,6 +6657,7 @@ var AddCommand = class {
     }
   }
 };
+__publicField(AddCommand, "keyword", "add");
 var RemoveCommand = class {
   static parse(parser) {
     if (!parser.matchToken("remove")) return;
@@ -6692,6 +6728,7 @@ var RemoveCommand = class {
     }
   }
 };
+__publicField(RemoveCommand, "keyword", "remove");
 var ToggleCommand = class {
   static parse(parser, kernel, config2) {
     if (!parser.matchToken("toggle")) return;
@@ -6819,6 +6856,7 @@ var ToggleCommand = class {
     return toggleCmd;
   }
 };
+__publicField(ToggleCommand, "keyword", "toggle");
 var HideCommand = class {
   static parse(parser, kernel, config2) {
     if (!parser.matchToken("hide")) return;
@@ -6844,6 +6882,7 @@ var HideCommand = class {
     };
   }
 };
+__publicField(HideCommand, "keyword", "hide");
 var ShowCommand = class {
   static parse(parser, kernel, config2) {
     if (!parser.matchToken("show")) return;
@@ -6892,6 +6931,7 @@ var ShowCommand = class {
     };
   }
 };
+__publicField(ShowCommand, "keyword", "show");
 function parsePseudopossessiveTarget(parser) {
   var targets;
   if (parser.matchToken("the") || parser.matchToken("element") || parser.matchToken("elements") || parser.currentToken().type === "CLASS_REF" || parser.currentToken().type === "ID_REF" || parser.currentToken().op && parser.currentToken().value === "<") {
@@ -7007,6 +7047,7 @@ var TakeCommand = class {
     }
   }
 };
+__publicField(TakeCommand, "keyword", "take");
 var MeasureCommand = class {
   /**
    * Parse measure command
@@ -7063,6 +7104,7 @@ var MeasureCommand = class {
     };
   }
 };
+__publicField(MeasureCommand, "keyword", "measure");
 
 // src/parsetree/commands/animations.js
 function parsePseudopossessiveTarget2(parser) {
@@ -7148,6 +7190,7 @@ var SettleCommand = class {
     }
   }
 };
+__publicField(SettleCommand, "keyword", "settle");
 var TransitionCommand = class {
   /**
    * Parse transition command
@@ -7286,6 +7329,7 @@ var TransitionCommand = class {
     }
   }
 };
+__publicField(TransitionCommand, "keyword", "transition");
 
 // src/parsetree/features/set.js
 var SetFeature = class {
@@ -8009,40 +8053,54 @@ kernel_.addFeature("behavior", BehaviorFeature.parse);
 kernel_.addFeature("install", InstallFeature.parse);
 kernel_.addGrammarElement("jsBody", JsBody.parse);
 kernel_.addFeature("js", JsFeature.parse);
-kernel_.addCommands(LogCommand);
-kernel_.addCommand("beep!", BeepCommand.parse);
-kernel_.addCommand("throw", ThrowCommand.parse);
-kernel_.addCommand("return", ReturnCommand.parse);
-kernel_.addCommand("exit", ExitCommand.parse);
-kernel_.addCommand("halt", HaltCommand.parse);
-kernel_.addCommand("make", MakeCommand.parse);
-kernel_.addCommand("pick", PickCommand.parse);
-kernel_.addCommand("fetch", FetchCommand.parse);
-kernel_.addCommand("go", GoCommand.parse);
-kernel_.addCommand("set", SetCommand.parse);
-kernel_.addCommand("default", DefaultCommand.parse);
-kernel_.addCommand("increment", IncrementCommand.parse);
-kernel_.addCommand("decrement", DecrementCommand.parse);
-kernel_.addCommand("append", AppendCommand.parse);
+kernel_.addCommands(
+  LogCommand,
+  BeepCommand,
+  ThrowCommand,
+  ReturnCommand,
+  ExitCommand,
+  HaltCommand,
+  MakeCommand,
+  PickCommand,
+  FetchCommand,
+  GoCommand
+);
+kernel_.addCommands(
+  SetCommand,
+  DefaultCommand,
+  IncrementCommand,
+  DecrementCommand,
+  AppendCommand
+);
 kernel_.addCommand("put", function(parser) {
   return PutCommand.parse(parser, kernel_);
 });
-kernel_.addCommand("if", IfCommand.parse);
-kernel_.addCommand("repeat", RepeatCommand.parse);
-kernel_.addCommand("for", ForCommand.parse);
-kernel_.addCommand("continue", ContinueCommand.parse);
-kernel_.addCommand("break", BreakCommand.parse);
-kernel_.addCommand("tell", TellCommand.parse);
-kernel_.addCommand("wait", WaitCommand.parse);
-kernel_.addCommand("trigger", TriggerCommand.parse);
-kernel_.addCommand("send", SendCommand.parse);
-kernel_.addCommand("js", JsCommand.parse);
-kernel_.addCommand("async", AsyncCommand.parse);
-kernel_.addCommand("call", CallCommand.parse);
-kernel_.addCommand("get", GetCommand.parse);
+kernel_.addCommands(
+  IfCommand,
+  RepeatCommand,
+  ForCommand,
+  ContinueCommand,
+  BreakCommand,
+  TellCommand
+);
+kernel_.addCommands(
+  WaitCommand,
+  TriggerCommand,
+  SendCommand
+);
+kernel_.addCommands(
+  JsCommand,
+  AsyncCommand,
+  CallCommand,
+  GetCommand
+);
 kernel_.addGrammarElement("pseudoCommand", PseudoCommand.parse);
-kernel_.addCommand("add", AddCommand.parse);
-kernel_.addCommand("remove", RemoveCommand.parse);
+kernel_.addCommands(
+  AddCommand,
+  RemoveCommand,
+  TakeCommand,
+  MeasureCommand
+);
 kernel_.addCommand("toggle", function(parser) {
   return ToggleCommand.parse(parser, kernel_, config);
 });
@@ -8052,9 +8110,7 @@ kernel_.addCommand("hide", function(parser) {
 kernel_.addCommand("show", function(parser) {
   return ShowCommand.parse(parser, kernel_, config);
 });
-kernel_.addCommand("take", TakeCommand.parse);
-kernel_.addCommand("measure", MeasureCommand.parse);
-kernel_.addCommand("settle", SettleCommand.parse);
+kernel_.addCommands(SettleCommand);
 kernel_.addCommand("transition", function(parser) {
   return TransitionCommand.parse(parser, config);
 });

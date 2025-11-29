@@ -50,6 +50,8 @@ function parsePseudopossessiveTarget(parser) {
  * Executes: Waits for CSS transitions to complete
  */
 export class SettleCommand {
+    static keyword = "settle";
+
     /**
      * Parse settle command
      * @param {Parser} parser
@@ -120,6 +122,8 @@ export class SettleCommand {
  * Executes: Performs CSS transitions on elements
  */
 export class TransitionCommand {
+    static keyword = "transition";
+
     /**
      * Parse transition command
      * @param {Parser} parser

@@ -172,50 +172,39 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
     kernel_.addFeature("js", JsFeature.parse);
 
     // Basic commands
-    kernel_.addCommands(LogCommand);
-    kernel_.addCommand("beep!", BeepCommand.parse);
-    kernel_.addCommand("throw", ThrowCommand.parse);
-    kernel_.addCommand("return", ReturnCommand.parse);
-    kernel_.addCommand("exit", ExitCommand.parse);
-    kernel_.addCommand("halt", HaltCommand.parse);
-    kernel_.addCommand("make", MakeCommand.parse);
-    kernel_.addCommand("pick", PickCommand.parse);
-    kernel_.addCommand("fetch", FetchCommand.parse);
-    kernel_.addCommand("go", GoCommand.parse);
+    kernel_.addCommands(
+        LogCommand, BeepCommand, ThrowCommand, ReturnCommand, ExitCommand, HaltCommand,
+        MakeCommand, PickCommand, FetchCommand, GoCommand
+    );
 
     // Variable and value commands
-    kernel_.addCommand("set", SetCommand.parse);
-    kernel_.addCommand("default", DefaultCommand.parse);
-    kernel_.addCommand("increment", IncrementCommand.parse);
-    kernel_.addCommand("decrement", DecrementCommand.parse);
-    kernel_.addCommand("append", AppendCommand.parse);
+    kernel_.addCommands(
+        SetCommand, DefaultCommand, IncrementCommand, DecrementCommand, AppendCommand
+    );
     kernel_.addCommand("put", function (parser) {
         return PutCommand.parse(parser, kernel_);
     });
 
     // Control flow commands
-    kernel_.addCommand("if", IfCommand.parse);
-    kernel_.addCommand("repeat", RepeatCommand.parse);
-    kernel_.addCommand("for", ForCommand.parse);
-    kernel_.addCommand("continue", ContinueCommand.parse);
-    kernel_.addCommand("break", BreakCommand.parse);
-    kernel_.addCommand("tell", TellCommand.parse);
+    kernel_.addCommands(
+        IfCommand, RepeatCommand, ForCommand, ContinueCommand, BreakCommand, TellCommand
+    );
 
     // Event commands
-    kernel_.addCommand("wait", WaitCommand.parse);
-    kernel_.addCommand("trigger", TriggerCommand.parse);
-    kernel_.addCommand("send", SendCommand.parse);
+    kernel_.addCommands(
+        WaitCommand, TriggerCommand, SendCommand
+    );
 
     // Execution commands
-    kernel_.addCommand("js", JsCommand.parse);
-    kernel_.addCommand("async", AsyncCommand.parse);
-    kernel_.addCommand("call", CallCommand.parse);
-    kernel_.addCommand("get", GetCommand.parse);
+    kernel_.addCommands(
+        JsCommand, AsyncCommand, CallCommand, GetCommand
+    );
     kernel_.addGrammarElement("pseudoCommand", PseudoCommand.parse);
 
     // DOM manipulation commands
-    kernel_.addCommand("add", AddCommand.parse);
-    kernel_.addCommand("remove", RemoveCommand.parse);
+    kernel_.addCommands(
+        AddCommand, RemoveCommand, TakeCommand, MeasureCommand
+    );
     kernel_.addCommand("toggle", function (parser) {
         return ToggleCommand.parse(parser, kernel_, config);
     });
@@ -225,11 +214,9 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
     kernel_.addCommand("show", function (parser) {
         return ShowCommand.parse(parser, kernel_, config);
     });
-    kernel_.addCommand("take", TakeCommand.parse);
-    kernel_.addCommand("measure", MeasureCommand.parse);
 
     // Animation commands
-    kernel_.addCommand("settle", SettleCommand.parse);
+    kernel_.addCommands(SettleCommand);
     kernel_.addCommand("transition", function (parser) {
         return TransitionCommand.parse(parser, config);
     });
