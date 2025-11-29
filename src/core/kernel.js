@@ -171,6 +171,27 @@ export class LanguageKernel {
             }
             parser.raiseParseError("Unexpected value: " + parser.currentToken().value);
         });
+
+        this.addGrammarElement("hyperscript", function (parser) {
+            var features = [];
+            if (parser.hasMore()) {
+                while (parser.featureStart(parser.currentToken()) || parser.currentToken().value === "(") {
+                    var feature = parser.requireElement("feature");
+                    features.push(feature);
+                    parser.matchToken("end"); // optional end
+                }
+            }
+            return {
+                type: "hyperscript",
+                features: features,
+                apply: function (target, source, args, runtime) {
+                    // no op
+                    for (const feature of features) {
+                        feature.install(target, source, args, runtime);
+                    }
+                },
+            };
+        });
     }
 
     use(plugin) {

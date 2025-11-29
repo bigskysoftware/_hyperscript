@@ -276,26 +276,6 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
         return expr;
     });
 
-    kernel_.addGrammarElement("hyperscript", function (parser) {
-        var features = [];
-        if (parser.hasMore()) {
-            while (parser.featureStart(parser.currentToken()) || parser.currentToken().value === "(") {
-                var feature = parser.requireElement("feature");
-                features.push(feature);
-                parser.matchToken("end"); // optional end
-            }
-        }
-        return {
-            type: "hyperscript",
-            features: features,
-            apply: function (target, source, args, runtime) {
-                // no op
-                for (const feature of features) {
-                    feature.install(target, source, args, runtime);
-                }
-            },
-        };
-    });
     // ===== END TODO: Move To Kernel =====
 
     // Set up the LanguageKernel.raiseParseError callback for Tokens

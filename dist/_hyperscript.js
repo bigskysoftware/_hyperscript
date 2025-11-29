@@ -2342,6 +2342,25 @@ var _LanguageKernel = class _LanguageKernel {
       }
       parser.raiseParseError("Unexpected value: " + parser.currentToken().value);
     });
+    this.addGrammarElement("hyperscript", function(parser) {
+      var features = [];
+      if (parser.hasMore()) {
+        while (parser.featureStart(parser.currentToken()) || parser.currentToken().value === "(") {
+          var feature = parser.requireElement("feature");
+          features.push(feature);
+          parser.matchToken("end");
+        }
+      }
+      return {
+        type: "hyperscript",
+        features,
+        apply: function(target, source, args, runtime) {
+          for (const feature2 of features) {
+            feature2.install(target, source, args, runtime);
+          }
+        }
+      };
+    });
   }
   use(plugin) {
     plugin(this);
@@ -8053,6 +8072,9 @@ kernel_.runtime = runtime_;
 kernel_.addLeafExpression("parenthesized", ParenthesizedExpression.parse);
 kernel_.addLeafExpression("string", StringLiteral.parse);
 kernel_.addGrammarElement("nakedString", NakedString.parse);
+kernel_.addGrammarElement("stringLike", function(parser) {
+  return parser.parseAnyOf(["string", "nakedString"]);
+});
 kernel_.addLeafExpression("number", NumberLiteral.parse);
 kernel_.addLeafExpression("boolean", BooleanLiteral.parse);
 kernel_.addLeafExpression("null", NullLiteral.parse);
@@ -8172,28 +8194,6 @@ kernel_.addGrammarElement("assignableExpression", function(parser) {
     );
   }
   return expr;
-});
-kernel_.addGrammarElement("stringLike", function(parser) {
-  return parser.parseAnyOf(["string", "nakedString"]);
-});
-kernel_.addGrammarElement("hyperscript", function(parser) {
-  var features = [];
-  if (parser.hasMore()) {
-    while (parser.featureStart(parser.currentToken()) || parser.currentToken().value === "(") {
-      var feature = parser.requireElement("feature");
-      features.push(feature);
-      parser.matchToken("end");
-    }
-  }
-  return {
-    type: "hyperscript",
-    features,
-    apply: function(target, source, args, runtime) {
-      for (const feature2 of features) {
-        feature2.install(target, source, args, runtime);
-      }
-    }
-  };
 });
 Tokens._parserRaiseError = LanguageKernel.raiseParseError;
 function evaluate(src, ctx, args) {
