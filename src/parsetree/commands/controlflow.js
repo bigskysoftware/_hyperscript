@@ -9,6 +9,30 @@
  * Parses: if <expr> [then] <commands> [else|otherwise <commands>] [end]
  * Executes: Conditionally executes true or false branch based on expression
  */
+class IfCommandImpl {
+    constructor(expr, trueBranch, falseBranch) {
+        this.type = "ifCommand";
+        this.expr = expr;
+        this.trueBranch = trueBranch;
+        this.falseBranch = falseBranch;
+        this.args = [expr];
+    }
+
+    op(context, exprValue) {
+        if (exprValue) {
+            return this.trueBranch;
+        } else if (this.falseBranch) {
+            return this.falseBranch;
+        } else {
+            return context.meta.runtime.findNext(this, context);
+        }
+    }
+
+    execute(ctx) {
+        return ctx.meta.runtime.unifiedExec(this, ctx);
+    }
+}
+
 export class IfCommand {
     static keyword = "if";
 
@@ -37,22 +61,7 @@ export class IfCommand {
             parser.requireToken("end");
         }
 
-        /** @type {ASTNode} */
-        var ifCmd = {
-            expr: expr,
-            trueBranch: trueBranch,
-            falseBranch: falseBranch,
-            args: [expr],
-            op: function (context, exprValue) {
-                if (exprValue) {
-                    return trueBranch;
-                } else if (falseBranch) {
-                    return falseBranch;
-                } else {
-                    return context.meta.runtime.findNext(this, context);
-                }
-            },
-        };
+        var ifCmd = new IfCommandImpl(expr, trueBranch, falseBranch);
         parser.setParent(trueBranch, ifCmd);
         parser.setParent(falseBranch, ifCmd);
         return ifCmd;
@@ -277,6 +286,29 @@ export class ForCommand {
  * Parses: continue
  * Executes: Continues to next iteration of closest repeat loop
  */
+class ContinueCommandImpl {
+    constructor(parser) {
+        this.type = "continueCommand";
+        this.parser = parser;
+    }
+
+    op(context) {
+        // scan for the closest repeat statement
+        for (var parent = this.parent; true; parent = parent.parent) {
+            if (parent == undefined) {
+                this.parser.raiseParseError("Command `continue` cannot be used outside of a `repeat` loop.");
+            }
+            if (parent.loop != undefined) {
+                return parent.resolveNext(context);
+            }
+        }
+    }
+
+    execute(ctx) {
+        return ctx.meta.runtime.unifiedExec(this, ctx);
+    }
+}
+
 export class ContinueCommand {
     static keyword = "continue";
 
@@ -287,21 +319,7 @@ export class ContinueCommand {
      */
     static parse(parser) {
         if (!parser.matchToken("continue")) return;
-
-        var command = {
-            op: function (context) {
-                // scan for the closest repeat statement
-                for (var parent = this.parent ; true ; parent = parent.parent) {
-                    if (parent == undefined) {
-                        parser.raiseParseError("Command `continue` cannot be used outside of a `repeat` loop.")
-                    }
-                    if (parent.loop != undefined) {
-                        return parent.resolveNext(context)
-                    }
-                }
-            }
-        };
-        return command;
+        return new ContinueCommandImpl(parser);
     }
 }
 
@@ -311,6 +329,29 @@ export class ContinueCommand {
  * Parses: break
  * Executes: Exits closest repeat loop
  */
+class BreakCommandImpl {
+    constructor(parser) {
+        this.type = "breakCommand";
+        this.parser = parser;
+    }
+
+    op(context) {
+        // scan for the closest repeat statement
+        for (var parent = this.parent; true; parent = parent.parent) {
+            if (parent == undefined) {
+                this.parser.raiseParseError("Command `break` cannot be used outside of a `repeat` loop.");
+            }
+            if (parent.loop != undefined) {
+                return context.meta.runtime.findNext(parent.parent, context);
+            }
+        }
+    }
+
+    execute(ctx) {
+        return ctx.meta.runtime.unifiedExec(this, ctx);
+    }
+}
+
 export class BreakCommand {
     static keyword = "break";
 
@@ -321,21 +362,7 @@ export class BreakCommand {
      */
     static parse(parser) {
         if (!parser.matchToken("break")) return;
-
-        var command = {
-            op: function (context) {
-                // scan for the closest repeat statement
-                for (var parent = this.parent ; true ; parent = parent.parent) {
-                    if (parent == undefined) {
-                        parser.raiseParseError("Command `continue` cannot be used outside of a `repeat` loop.")
-                    }
-                    if (parent.loop != undefined) {
-                        return context.meta.runtime.findNext(parent.parent, context);
-                    }
-                }
-            }
-        };
-        return command;
+        return new BreakCommandImpl(parser);
     }
 }
 
@@ -345,6 +372,50 @@ export class BreakCommand {
  * Parses: tell <expr> <commands> end
  * Executes: Executes commands with 'you' set to target element(s)
  */
+class TellCommandImpl {
+    constructor(value, body, slot) {
+        this.type = "tellCommand";
+        this.value = value;
+        this.body = body;
+        this.slot = slot;
+        this.args = [value];
+    }
+
+    resolveNext(context) {
+        var iterator = context.meta.iterators[this.slot];
+        if (iterator.index < iterator.value.length) {
+            context.you = iterator.value[iterator.index++];
+            return this.body;
+        } else {
+            // restore original me
+            context.you = iterator.originalYou;
+            if (this.next) {
+                return this.next;
+            } else {
+                return context.meta.runtime.findNext(this.parent, context);
+            }
+        }
+    }
+
+    op(context, value) {
+        if (value == null) {
+            value = [];
+        } else if (!(Array.isArray(value) || value instanceof NodeList)) {
+            value = [value];
+        }
+        context.meta.iterators[this.slot] = {
+            originalYou: context.you,
+            index: 0,
+            value: value,
+        };
+        return this.resolveNext(context);
+    }
+
+    execute(ctx) {
+        return ctx.meta.runtime.unifiedExec(this, ctx);
+    }
+}
+
 export class TellCommand {
     static keyword = "tell";
 
@@ -362,39 +433,7 @@ export class TellCommand {
             parser.requireToken("end");
         }
         var slot = "tell_" + startToken.start;
-        var tellCmd = {
-            value: value,
-            body: body,
-            args: [value],
-            resolveNext: function (context) {
-                var iterator = context.meta.iterators[slot];
-                if (iterator.index < iterator.value.length) {
-                    context.you = iterator.value[iterator.index++];
-                    return body;
-                } else {
-                    // restore original me
-                    context.you = iterator.originalYou;
-                    if (this.next) {
-                        return this.next;
-                    } else {
-                        return context.meta.runtime.findNext(this.parent, context);
-                    }
-                }
-            },
-            op: function (context, value) {
-                if (value == null) {
-                    value = [];
-                } else if (!(Array.isArray(value) || value instanceof NodeList)) {
-                    value = [value];
-                }
-                context.meta.iterators[slot] = {
-                    originalYou: context.you,
-                    index: 0,
-                    value: value,
-                };
-                return this.resolveNext(context);
-            },
-        };
+        var tellCmd = new TellCommandImpl(value, body, slot);
         parser.setParent(body, tellCmd);
         return tellCmd;
     }

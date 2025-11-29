@@ -6218,6 +6218,27 @@ var EventName = class {
 };
 
 // src/parsetree/commands/controlflow.js
+var IfCommandImpl = class {
+  constructor(expr, trueBranch, falseBranch) {
+    this.type = "ifCommand";
+    this.expr = expr;
+    this.trueBranch = trueBranch;
+    this.falseBranch = falseBranch;
+    this.args = [expr];
+  }
+  op(context2, exprValue) {
+    if (exprValue) {
+      return this.trueBranch;
+    } else if (this.falseBranch) {
+      return this.falseBranch;
+    } else {
+      return context2.meta.runtime.findNext(this, context2);
+    }
+  }
+  execute(ctx) {
+    return ctx.meta.runtime.unifiedExec(this, ctx);
+  }
+};
 var IfCommand = class {
   /**
    * Parse if command
@@ -6243,21 +6264,7 @@ var IfCommand = class {
     if (parser.hasMore() && !nestedIfStmt) {
       parser.requireToken("end");
     }
-    var ifCmd = {
-      expr,
-      trueBranch,
-      falseBranch,
-      args: [expr],
-      op: function(context2, exprValue) {
-        if (exprValue) {
-          return trueBranch;
-        } else if (falseBranch) {
-          return falseBranch;
-        } else {
-          return context2.meta.runtime.findNext(this, context2);
-        }
-      }
-    };
+    var ifCmd = new IfCommandImpl(expr, trueBranch, falseBranch);
     parser.setParent(trueBranch, ifCmd);
     parser.setParent(falseBranch, ifCmd);
     return ifCmd;
@@ -6448,6 +6455,25 @@ var ForCommand = class {
   }
 };
 __publicField(ForCommand, "keyword", "for");
+var ContinueCommandImpl = class {
+  constructor(parser) {
+    this.type = "continueCommand";
+    this.parser = parser;
+  }
+  op(context2) {
+    for (var parent = this.parent; true; parent = parent.parent) {
+      if (parent == void 0) {
+        this.parser.raiseParseError("Command `continue` cannot be used outside of a `repeat` loop.");
+      }
+      if (parent.loop != void 0) {
+        return parent.resolveNext(context2);
+      }
+    }
+  }
+  execute(ctx) {
+    return ctx.meta.runtime.unifiedExec(this, ctx);
+  }
+};
 var ContinueCommand = class {
   /**
    * Parse continue command
@@ -6456,22 +6482,29 @@ var ContinueCommand = class {
    */
   static parse(parser) {
     if (!parser.matchToken("continue")) return;
-    var command = {
-      op: function(context2) {
-        for (var parent = this.parent; true; parent = parent.parent) {
-          if (parent == void 0) {
-            parser.raiseParseError("Command `continue` cannot be used outside of a `repeat` loop.");
-          }
-          if (parent.loop != void 0) {
-            return parent.resolveNext(context2);
-          }
-        }
-      }
-    };
-    return command;
+    return new ContinueCommandImpl(parser);
   }
 };
 __publicField(ContinueCommand, "keyword", "continue");
+var BreakCommandImpl = class {
+  constructor(parser) {
+    this.type = "breakCommand";
+    this.parser = parser;
+  }
+  op(context2) {
+    for (var parent = this.parent; true; parent = parent.parent) {
+      if (parent == void 0) {
+        this.parser.raiseParseError("Command `break` cannot be used outside of a `repeat` loop.");
+      }
+      if (parent.loop != void 0) {
+        return context2.meta.runtime.findNext(parent.parent, context2);
+      }
+    }
+  }
+  execute(ctx) {
+    return ctx.meta.runtime.unifiedExec(this, ctx);
+  }
+};
 var BreakCommand = class {
   /**
    * Parse break command
@@ -6480,22 +6513,49 @@ var BreakCommand = class {
    */
   static parse(parser) {
     if (!parser.matchToken("break")) return;
-    var command = {
-      op: function(context2) {
-        for (var parent = this.parent; true; parent = parent.parent) {
-          if (parent == void 0) {
-            parser.raiseParseError("Command `continue` cannot be used outside of a `repeat` loop.");
-          }
-          if (parent.loop != void 0) {
-            return context2.meta.runtime.findNext(parent.parent, context2);
-          }
-        }
-      }
-    };
-    return command;
+    return new BreakCommandImpl(parser);
   }
 };
 __publicField(BreakCommand, "keyword", "break");
+var TellCommandImpl = class {
+  constructor(value, body, slot) {
+    this.type = "tellCommand";
+    this.value = value;
+    this.body = body;
+    this.slot = slot;
+    this.args = [value];
+  }
+  resolveNext(context2) {
+    var iterator = context2.meta.iterators[this.slot];
+    if (iterator.index < iterator.value.length) {
+      context2.you = iterator.value[iterator.index++];
+      return this.body;
+    } else {
+      context2.you = iterator.originalYou;
+      if (this.next) {
+        return this.next;
+      } else {
+        return context2.meta.runtime.findNext(this.parent, context2);
+      }
+    }
+  }
+  op(context2, value) {
+    if (value == null) {
+      value = [];
+    } else if (!(Array.isArray(value) || value instanceof NodeList)) {
+      value = [value];
+    }
+    context2.meta.iterators[this.slot] = {
+      originalYou: context2.you,
+      index: 0,
+      value
+    };
+    return this.resolveNext(context2);
+  }
+  execute(ctx) {
+    return ctx.meta.runtime.unifiedExec(this, ctx);
+  }
+};
 var TellCommand = class {
   /**
    * Parse tell command
@@ -6511,38 +6571,7 @@ var TellCommand = class {
       parser.requireToken("end");
     }
     var slot = "tell_" + startToken.start;
-    var tellCmd = {
-      value,
-      body,
-      args: [value],
-      resolveNext: function(context2) {
-        var iterator = context2.meta.iterators[slot];
-        if (iterator.index < iterator.value.length) {
-          context2.you = iterator.value[iterator.index++];
-          return body;
-        } else {
-          context2.you = iterator.originalYou;
-          if (this.next) {
-            return this.next;
-          } else {
-            return context2.meta.runtime.findNext(this.parent, context2);
-          }
-        }
-      },
-      op: function(context2, value2) {
-        if (value2 == null) {
-          value2 = [];
-        } else if (!(Array.isArray(value2) || value2 instanceof NodeList)) {
-          value2 = [value2];
-        }
-        context2.meta.iterators[slot] = {
-          originalYou: context2.you,
-          index: 0,
-          value: value2
-        };
-        return this.resolveNext(context2);
-      }
-    };
+    var tellCmd = new TellCommandImpl(value, body, slot);
     parser.setParent(body, tellCmd);
     return tellCmd;
   }
