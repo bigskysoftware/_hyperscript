@@ -2228,7 +2228,7 @@ var _LanguageKernel = class _LanguageKernel {
     /** @type {string[]} */
     __publicField(this, "ASSIGNABLE_EXPRESSIONS", []);
     this.possessivesDisabled = false;
-    this.addGrammarElement("feature", function(parser) {
+    this.addGrammarElement("feature", (parser) => {
       if (parser.matchOpToken("(")) {
         var featureElement = parser.requireElement("feature");
         parser.requireOpToken(")");
@@ -2239,7 +2239,7 @@ var _LanguageKernel = class _LanguageKernel {
         return featureDefinition(parser);
       }
     });
-    this.addGrammarElement("command", function(parser) {
+    this.addGrammarElement("command", (parser) => {
       if (parser.matchOpToken("(")) {
         const commandElement2 = parser.requireElement("command");
         parser.requireOpToken(")");
@@ -2253,11 +2253,11 @@ var _LanguageKernel = class _LanguageKernel {
         commandElement = parser.parseElement("pseudoCommand");
       }
       if (commandElement) {
-        return parser.kernel.parseElement("indirectStatement", parser.tokens, commandElement);
+        return this.parseElement("indirectStatement", parser.tokens, commandElement);
       }
       return commandElement;
     });
-    this.addGrammarElement("commandList", function(parser) {
+    this.addGrammarElement("commandList", (parser) => {
       if (parser.hasMore()) {
         var cmd = parser.parseElement("command");
         if (cmd) {
@@ -2277,47 +2277,47 @@ var _LanguageKernel = class _LanguageKernel {
         }
       };
     });
-    this.addGrammarElement("leaf", function(parser) {
+    this.addGrammarElement("leaf", (parser) => {
       var result = parser.parseAnyOf(parser.LEAF_EXPRESSIONS);
       if (result == null) {
         return parser.parseElement("symbol");
       }
       return result;
     });
-    this.addGrammarElement("indirectExpression", function(parser, root) {
-      for (var i = 0; i < parser.INDIRECT_EXPRESSIONS.length; i++) {
-        var indirect = parser.INDIRECT_EXPRESSIONS[i];
+    this.addGrammarElement("indirectExpression", (parser, root) => {
+      for (var i = 0; i < this.INDIRECT_EXPRESSIONS.length; i++) {
+        var indirect = this.INDIRECT_EXPRESSIONS[i];
         root.endToken = parser.lastMatch();
-        var result = parser.kernel.parseElement(indirect, parser.tokens, root);
+        var result = this.parseElement(indirect, parser.tokens, root);
         if (result) {
           return result;
         }
       }
       return root;
     });
-    this.addGrammarElement("postfixExpression", function(parser) {
+    this.addGrammarElement("postfixExpression", (parser) => {
       var root = parser.parseElement("negativeNumber");
-      for (var i = 0; i < parser.kernel.POSTFIX_EXPRESSIONS.length; i++) {
-        var postfixType = parser.kernel.POSTFIX_EXPRESSIONS[i];
-        var result = parser.kernel.parseElement(postfixType, parser.tokens, root);
+      for (var i = 0; i < this.POSTFIX_EXPRESSIONS.length; i++) {
+        var postfixType = this.POSTFIX_EXPRESSIONS[i];
+        var result = this.parseElement(postfixType, parser.tokens, root);
         if (result) {
           return result;
         }
       }
       return root;
     });
-    this.addGrammarElement("unaryExpression", function(parser) {
+    this.addGrammarElement("unaryExpression", (parser) => {
       parser.matchToken("the");
-      return parser.parseAnyOf(parser.kernel.UNARY_EXPRESSIONS);
+      return parser.parseAnyOf(this.UNARY_EXPRESSIONS);
     });
-    this.addGrammarElement("expression", function(parser) {
+    this.addGrammarElement("expression", (parser) => {
       parser.matchToken("the");
-      return parser.parseAnyOf(parser.kernel.TOP_EXPRESSIONS);
+      return parser.parseAnyOf(this.TOP_EXPRESSIONS);
     });
-    this.addGrammarElement("assignableExpression", function(parser) {
+    this.addGrammarElement("assignableExpression", (parser) => {
       parser.matchToken("the");
       var expr = parser.parseElement("primaryExpression");
-      if (expr && parser.kernel.ASSIGNABLE_EXPRESSIONS.indexOf(expr.type) >= 0) {
+      if (expr && this.ASSIGNABLE_EXPRESSIONS.indexOf(expr.type) >= 0) {
         return expr;
       } else {
         parser.raiseParseError(
@@ -2325,7 +2325,7 @@ var _LanguageKernel = class _LanguageKernel {
         );
       }
     });
-    this.addGrammarElement("indirectStatement", function(parser, root) {
+    this.addGrammarElement("indirectStatement", (parser, root) => {
       if (parser.matchToken("unless")) {
         root.endToken = parser.lastMatch();
         var conditional = parser.requireElement("expression");
@@ -2348,14 +2348,14 @@ var _LanguageKernel = class _LanguageKernel {
       }
       return root;
     });
-    this.addGrammarElement("primaryExpression", function(parser) {
+    this.addGrammarElement("primaryExpression", (parser) => {
       var leaf = parser.parseElement("leaf");
       if (leaf) {
-        return parser.kernel.parseElement("indirectExpression", parser.tokens, leaf);
+        return this.parseElement("indirectExpression", parser.tokens, leaf);
       }
       parser.raiseParseError("Unexpected value: " + parser.currentToken().value);
     });
-    this.addGrammarElement("hyperscript", function(parser) {
+    this.addGrammarElement("hyperscript", (parser) => {
       var features = [];
       if (parser.hasMore()) {
         while (parser.featureStart(parser.currentToken()) || parser.currentToken().value === "(") {
@@ -8124,14 +8124,6 @@ kernel_.addIndirectExpression("asExpression", AsExpression.parse);
 kernel_.addIndirectExpression("functionCall", FunctionCall.parse);
 kernel_.addIndirectExpression("attributeRefAccess", AttributeRefAccess.parse);
 kernel_.addIndirectExpression("arrayIndex", ArrayIndex.parse);
-kernel_.ASSIGNABLE_EXPRESSIONS.push("symbol");
-kernel_.ASSIGNABLE_EXPRESSIONS.push("ofExpression");
-kernel_.ASSIGNABLE_EXPRESSIONS.push("propertyAccess");
-kernel_.ASSIGNABLE_EXPRESSIONS.push("attributeRefAccess");
-kernel_.ASSIGNABLE_EXPRESSIONS.push("attributeRef");
-kernel_.ASSIGNABLE_EXPRESSIONS.push("styleRef");
-kernel_.ASSIGNABLE_EXPRESSIONS.push("arrayIndex");
-kernel_.ASSIGNABLE_EXPRESSIONS.push("possessive");
 kernel_.addUnaryExpression("beepExpression", BeepExpression.parse);
 kernel_.addUnaryExpression("logicalNot", LogicalNot.parse);
 kernel_.addUnaryExpression("noExpression", NoExpression.parse);
@@ -8213,6 +8205,14 @@ initWebConversions(runtime_);
 kernel_.addPostfixExpression("stringPostfixExpression", StringPostfixExpression.parse);
 kernel_.addPostfixExpression("timeExpression", TimeExpression.parse);
 kernel_.addPostfixExpression("typeCheckExpression", TypeCheckExpression.parse);
+kernel_.ASSIGNABLE_EXPRESSIONS.push("symbol");
+kernel_.ASSIGNABLE_EXPRESSIONS.push("ofExpression");
+kernel_.ASSIGNABLE_EXPRESSIONS.push("propertyAccess");
+kernel_.ASSIGNABLE_EXPRESSIONS.push("attributeRefAccess");
+kernel_.ASSIGNABLE_EXPRESSIONS.push("attributeRef");
+kernel_.ASSIGNABLE_EXPRESSIONS.push("styleRef");
+kernel_.ASSIGNABLE_EXPRESSIONS.push("arrayIndex");
+kernel_.ASSIGNABLE_EXPRESSIONS.push("possessive");
 Tokens._parserRaiseError = LanguageKernel.raiseParseError;
 function evaluate(src, ctx, args) {
   class HyperscriptModule extends EventTarget {
