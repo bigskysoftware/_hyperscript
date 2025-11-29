@@ -2221,6 +2221,8 @@ var _LanguageKernel = class _LanguageKernel {
     __publicField(this, "INDIRECT_EXPRESSIONS", []);
     /** @type {string[]} */
     __publicField(this, "POSTFIX_EXPRESSIONS", []);
+    /** @type {string[]} */
+    __publicField(this, "UNARY_EXPRESSIONS", []);
     this.possessivesDisabled = false;
     this.addGrammarElement("feature", function(parser) {
       if (parser.matchOpToken("(")) {
@@ -2299,6 +2301,10 @@ var _LanguageKernel = class _LanguageKernel {
         }
       }
       return root;
+    });
+    this.addGrammarElement("unaryExpression", function(parser) {
+      parser.matchToken("the");
+      return parser.parseAnyOf(parser.kernel.UNARY_EXPRESSIONS);
     });
     this.addGrammarElement("indirectStatement", function(parser, root) {
       if (parser.matchToken("unless")) {
@@ -2497,6 +2503,14 @@ var _LanguageKernel = class _LanguageKernel {
    */
   addPostfixExpression(name, definition) {
     this.POSTFIX_EXPRESSIONS.push(name);
+    this.addGrammarElement(name, definition);
+  }
+  /**
+   * @param {string} name
+   * @param {ParseRule} definition
+   */
+  addUnaryExpression(name, definition) {
+    this.UNARY_EXPRESSIONS.push(name);
     this.addGrammarElement(name, definition);
   }
   /**
@@ -8052,14 +8066,15 @@ kernel_.addIndirectExpression("asExpression", AsExpression.parse);
 kernel_.addIndirectExpression("functionCall", FunctionCall.parse);
 kernel_.addIndirectExpression("attributeRefAccess", AttributeRefAccess.parse);
 kernel_.addIndirectExpression("arrayIndex", ArrayIndex.parse);
-kernel_.addGrammarElement("logicalNot", LogicalNot.parse);
-kernel_.addGrammarElement("noExpression", NoExpression.parse);
+kernel_.addUnaryExpression("beepExpression", BeepExpression.parse);
+kernel_.addUnaryExpression("logicalNot", LogicalNot.parse);
+kernel_.addUnaryExpression("noExpression", NoExpression.parse);
 kernel_.addLeafExpression("some", SomeExpression.parse);
 kernel_.addGrammarElement("negativeNumber", NegativeNumber.parse);
-kernel_.addGrammarElement("beepExpression", BeepExpression.parse);
-kernel_.addGrammarElement("relativePositionalExpression", RelativePositionalExpression.parse);
-kernel_.addGrammarElement("positionalExpression", PositionalExpression.parse);
+kernel_.addUnaryExpression("relativePositionalExpression", RelativePositionalExpression.parse);
+kernel_.addUnaryExpression("positionalExpression", PositionalExpression.parse);
 kernel_.addLeafExpression("closestExpr", ClosestExpr.parse);
+kernel_.UNARY_EXPRESSIONS.push("postfixExpression");
 kernel_.addGrammarElement("mathOperator", MathOperator.parse);
 kernel_.addGrammarElement("mathExpression", MathExpression.parse);
 kernel_.addGrammarElement("comparisonOperator", ComparisonOperator.parse);
@@ -8132,10 +8147,6 @@ initWebConversions(runtime_);
 kernel_.addPostfixExpression("stringPostfixExpression", StringPostfixExpression.parse);
 kernel_.addPostfixExpression("timeExpression", TimeExpression.parse);
 kernel_.addPostfixExpression("typeCheckExpression", TypeCheckExpression.parse);
-kernel_.addGrammarElement("unaryExpression", function(parser) {
-  parser.matchToken("the");
-  return parser.parseAnyOf(["beepExpression", "logicalNot", "relativePositionalExpression", "positionalExpression", "noExpression", "postfixExpression"]);
-});
 kernel_.addGrammarElement("expression", function(parser) {
   parser.matchToken("the");
   return parser.parseElement("asyncExpression");

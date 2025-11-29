@@ -168,16 +168,19 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
     kernel_.addIndirectExpression("arrayIndex", ArrayIndex.parse);
 
     // Unary and logical expressions
-    kernel_.addGrammarElement("logicalNot", LogicalNot.parse);
-    kernel_.addGrammarElement("noExpression", NoExpression.parse);
+    kernel_.addUnaryExpression("beepExpression", BeepExpression.parse);
+    kernel_.addUnaryExpression("logicalNot", LogicalNot.parse);
+    kernel_.addUnaryExpression("noExpression", NoExpression.parse);
     kernel_.addLeafExpression("some", SomeExpression.parse);
     kernel_.addGrammarElement("negativeNumber", NegativeNumber.parse);
-    kernel_.addGrammarElement("beepExpression", BeepExpression.parse);
 
-    // Positional expressions
-    kernel_.addGrammarElement("relativePositionalExpression", RelativePositionalExpression.parse);
-    kernel_.addGrammarElement("positionalExpression", PositionalExpression.parse);
+    // Positional expressions (unary)
+    kernel_.addUnaryExpression("relativePositionalExpression", RelativePositionalExpression.parse);
+    kernel_.addUnaryExpression("positionalExpression", PositionalExpression.parse);
     kernel_.addLeafExpression("closestExpr", ClosestExpr.parse);
+
+    // postfixExpression is also part of unary expressions (already registered as grammar element)
+    kernel_.UNARY_EXPRESSIONS.push("postfixExpression");
 
     // Math and comparison expressions
     kernel_.addGrammarElement("mathOperator", MathOperator.parse);
@@ -244,11 +247,6 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
     kernel_.addPostfixExpression("typeCheckExpression", TypeCheckExpression.parse);
 
     // ===== TODO: Move To Kernel =====
-
-    kernel_.addGrammarElement("unaryExpression", function (parser) {
-        parser.matchToken("the"); // optional "the"
-        return parser.parseAnyOf(["beepExpression", "logicalNot", "relativePositionalExpression", "positionalExpression", "noExpression", "postfixExpression"]);
-    });
 
     kernel_.addGrammarElement("expression", function (parser) {
         parser.matchToken("the"); // optional the
