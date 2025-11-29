@@ -4756,11 +4756,45 @@ var PositionalExpression = class _PositionalExpression {
     return context2.meta.runtime.unifiedEval(this, context2);
   }
 };
+var ClosestExprNode = class {
+  constructor(parentSearch, expr, css, to) {
+    this.type = "closestExpr";
+    this.parentSearch = parentSearch;
+    this.expr = expr;
+    this.css = css;
+    this.to = to;
+    this.args = [to];
+  }
+  op(ctx, to) {
+    if (to == null) {
+      return null;
+    } else {
+      let result = [];
+      const css = this.css;
+      const parentSearch = this.parentSearch;
+      ctx.meta.runtime.implicitLoop(to, function(to2) {
+        if (parentSearch) {
+          result.push(to2.parentElement ? to2.parentElement.closest(css) : null);
+        } else {
+          result.push(to2.closest(css));
+        }
+      });
+      if (ctx.meta.runtime.shouldAutoIterate(to)) {
+        return result;
+      } else {
+        return result[0];
+      }
+    }
+  }
+  evaluate(ctx) {
+    return ctx.meta.runtime.unifiedEval(this, ctx);
+  }
+};
 var ClosestExpr = class {
   /**
    * Parse a closest expression
    * @param {Parser} parser
-   * @returns {any | undefined}
+   * @returns {ClosestExprNode | undefined}
    */
   static parse(parser) {
     if (!parser.matchToken("closest")) return;
@@ -4787,36 +4821,7 @@ var ClosestExpr = class {
     } else {
       var to = parser.parseElement("implicitMeTarget");
     }
-    var closestExpr = {
-      type: "closestExpr",
-      parentSearch,
-      expr,
-      css,
-      to,
-      args: [to],
-      op: function(ctx, to2) {
-        if (to2 == null) {
-          return null;
-        } else {
-          let result = [];
-          ctx.meta.runtime.implicitLoop(to2, function(to3) {
-            if (parentSearch) {
-              result.push(to3.parentElement ? to3.parentElement.closest(css) : null);
-            } else {
-              result.push(to3.closest(css));
-            }
-          });
-          if (ctx.meta.runtime.shouldAutoIterate(to2)) {
-            return result;
-          } else {
-            return result[0];
-          }
-        }
-      },
-      evaluate: function(ctx) {
-        return ctx.meta.runtime.unifiedEval(this, ctx);
-      }
-    };
+    var closestExpr = new ClosestExprNode(parentSearch, expr, css, to);
     if (attributeRef) {
       attributeRef.root = closestExpr;
       attributeRef.args = [closestExpr];
@@ -6594,11 +6599,48 @@ var GetCommand = class {
 __publicField(GetCommand, "keyword", "get");
 
 // src/parsetree/commands/pseudoCommand.js
+var PseudoCommandWithTarget = class {
+  constructor(realRoot, root) {
+    this.type = "pseudoCommand";
+    this.root = realRoot;
+    this.argExressions = root.argExressions;
+    this.args = [realRoot, root.argExressions];
+    this._root = root;
+    this._realRoot = realRoot;
+  }
+  op(context2, rootRoot, args) {
+    context2.meta.runtime.nullCheck(rootRoot, this._realRoot);
+    var func = rootRoot[this._root.root.name];
+    context2.meta.runtime.nullCheck(func, this._root);
+    if (func.hyperfunc) {
+      args.push(context2);
+    }
+    context2.result = func.apply(rootRoot, args);
+    return context2.meta.runtime.findNext(this, context2);
+  }
+  execute(context2) {
+    return context2.meta.runtime.unifiedExec(this, context2);
+  }
+};
+var PseudoCommandSimple = class {
+  constructor(expr) {
+    this.type = "pseudoCommand";
+    this.expr = expr;
+    this.args = [expr];
+  }
+  op(context2, result) {
+    context2.result = result;
+    return context2.meta.runtime.findNext(this, context2);
+  }
+  execute(context2) {
+    return context2.meta.runtime.unifiedExec(this, context2);
+  }
+};
 var PseudoCommand = class {
   /**
    * Parse pseudo-command
    * @param {Parser} parser
-   * @returns {Object | undefined}
+   * @returns {PseudoCommandWithTarget | PseudoCommandSimple | undefined}
    */
   static parse(parser) {
     let lookAhead = parser.token(1);
@@ -6622,42 +6664,11 @@ var PseudoCommand = class {
         var realRoot = parser.requireElement("implicitMeTarget");
       }
     }
-    var pseudoCommand;
     if (realRoot) {
-      pseudoCommand = {
-        type: "pseudoCommand",
-        root: realRoot,
-        argExressions: root.argExressions,
-        args: [realRoot, root.argExressions],
-        op: function(context2, rootRoot2, args) {
-          context2.meta.runtime.nullCheck(rootRoot2, realRoot);
-          var func = rootRoot2[root.root.name];
-          context2.meta.runtime.nullCheck(func, root);
-          if (func.hyperfunc) {
-            args.push(context2);
-          }
-          context2.result = func.apply(rootRoot2, args);
-          return context2.meta.runtime.findNext(pseudoCommand, context2);
-        },
-        execute: function(context2) {
-          return context2.meta.runtime.unifiedExec(this, context2);
-        }
-      };
+      return new PseudoCommandWithTarget(realRoot, root);
     } else {
-      pseudoCommand = {
-        type: "pseudoCommand",
-        expr,
-        args: [expr],
-        op: function(context2, result) {
-          context2.result = result;
-          return context2.meta.runtime.findNext(pseudoCommand, context2);
-        },
-        execute: function(context2) {
-          return context2.meta.runtime.unifiedExec(this, context2);
-        }
-      };
+      return new PseudoCommandSimple(expr);
     }
-    return pseudoCommand;
   }
 };
 

@@ -238,6 +238,46 @@ export class PositionalExpression {
 }
 
 /**
+ * ClosestExprNode - Closest ancestor matching selector node
+ */
+class ClosestExprNode {
+    constructor(parentSearch, expr, css, to) {
+        this.type = "closestExpr";
+        this.parentSearch = parentSearch;
+        this.expr = expr;
+        this.css = css;
+        this.to = to;
+        this.args = [to];
+    }
+
+    op(ctx, to) {
+        if (to == null) {
+            return null;
+        } else {
+            let result = [];
+            const css = this.css;
+            const parentSearch = this.parentSearch;
+            ctx.meta.runtime.implicitLoop(to, function(to){
+                if (parentSearch) {
+                    result.push(to.parentElement ? to.parentElement.closest(css) : null);
+                } else {
+                    result.push(to.closest(css));
+                }
+            })
+            if (ctx.meta.runtime.shouldAutoIterate(to)) {
+                return result;
+            } else {
+                return result[0];
+            }
+        }
+    }
+
+    evaluate(ctx) {
+        return ctx.meta.runtime.unifiedEval(this, ctx);
+    }
+}
+
+/**
  * ClosestExpr - Finds closest ancestor matching selector
  *
  * Parses: closest <selector> [to element] | closest parent <selector> [to element]
@@ -247,7 +287,7 @@ export class ClosestExpr {
     /**
      * Parse a closest expression
      * @param {Parser} parser
-     * @returns {any | undefined}
+     * @returns {ClosestExprNode | undefined}
      */
     static parse(parser) {
         if (!parser.matchToken("closest")) return;
@@ -279,36 +319,7 @@ export class ClosestExpr {
             var to = parser.parseElement("implicitMeTarget");
         }
 
-        var closestExpr = {
-            type: "closestExpr",
-            parentSearch: parentSearch,
-            expr: expr,
-            css: css,
-            to: to,
-            args: [to],
-            op: function (ctx, to) {
-                if (to == null) {
-                    return null;
-                } else {
-                    let result = [];
-                    ctx.meta.runtime.implicitLoop(to, function(to){
-                        if (parentSearch) {
-                            result.push(to.parentElement ? to.parentElement.closest(css) : null);
-                        } else {
-                            result.push(to.closest(css));
-                        }
-                    })
-                    if (ctx.meta.runtime.shouldAutoIterate(to)) {
-                        return result;
-                    } else {
-                        return result[0];
-                    }
-                }
-            },
-            evaluate: function (ctx) {
-                return ctx.meta.runtime.unifiedEval(this, ctx);
-            },
-        };
+        var closestExpr = new ClosestExprNode(parentSearch, expr, css, to);
 
         // If we parsed an attributeRef, wrap the closestExpr
         if (attributeRef) {

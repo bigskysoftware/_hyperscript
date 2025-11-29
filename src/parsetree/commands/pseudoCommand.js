@@ -1,4 +1,53 @@
 /**
+ * PseudoCommandWithTarget - Function call with explicit target
+ */
+class PseudoCommandWithTarget {
+    constructor(realRoot, root) {
+        this.type = "pseudoCommand";
+        this.root = realRoot;
+        this.argExressions = root.argExressions;
+        this.args = [realRoot, root.argExressions];
+        this._root = root;  // Keep reference for op
+        this._realRoot = realRoot;  // Keep reference for op
+    }
+
+    op(context, rootRoot, args) {
+        context.meta.runtime.nullCheck(rootRoot, this._realRoot);
+        var func = rootRoot[this._root.root.name];
+        context.meta.runtime.nullCheck(func, this._root);
+        if (func.hyperfunc) {
+            args.push(context);
+        }
+        context.result = func.apply(rootRoot, args);
+        return context.meta.runtime.findNext(this, context);
+    }
+
+    execute(context) {
+        return context.meta.runtime.unifiedExec(this, context);
+    }
+}
+
+/**
+ * PseudoCommandSimple - Function call without explicit target
+ */
+class PseudoCommandSimple {
+    constructor(expr) {
+        this.type = "pseudoCommand";
+        this.expr = expr;
+        this.args = [expr];
+    }
+
+    op(context, result) {
+        context.result = result;
+        return context.meta.runtime.findNext(this, context);
+    }
+
+    execute(context) {
+        return context.meta.runtime.unifiedExec(this, context);
+    }
+}
+
+/**
  * PseudoCommand - Function call syntax that looks like a command
  *
  * Parses: <functionCall> [the|to|on|with|into|from|at|me <expression>]
@@ -12,7 +61,7 @@ export class PseudoCommand {
     /**
      * Parse pseudo-command
      * @param {Parser} parser
-     * @returns {Object | undefined}
+     * @returns {PseudoCommandWithTarget | PseudoCommandSimple | undefined}
      */
     static parse(parser) {
         let lookAhead = parser.token(1);
@@ -41,42 +90,10 @@ export class PseudoCommand {
             }
         }
 
-        var pseudoCommand;
         if (realRoot) {
-            pseudoCommand = {
-                type: "pseudoCommand",
-                root: realRoot,
-                argExressions: root.argExressions,
-                args: [realRoot, root.argExressions],
-                op: function (context, rootRoot, args) {
-                    context.meta.runtime.nullCheck(rootRoot, realRoot);
-                    var func = rootRoot[root.root.name];
-                    context.meta.runtime.nullCheck(func, root);
-                    if (func.hyperfunc) {
-                        args.push(context);
-                    }
-                    context.result = func.apply(rootRoot, args);
-                    return context.meta.runtime.findNext(pseudoCommand, context);
-                },
-                execute: function (context) {
-                    return context.meta.runtime.unifiedExec(this, context);
-                },
-            };
+            return new PseudoCommandWithTarget(realRoot, root);
         } else {
-            pseudoCommand = {
-                type: "pseudoCommand",
-                expr: expr,
-                args: [expr],
-                op: function (context, result) {
-                    context.result = result;
-                    return context.meta.runtime.findNext(pseudoCommand, context);
-                },
-                execute: function (context) {
-                    return context.meta.runtime.unifiedExec(this, context);
-                },
-            };
+            return new PseudoCommandSimple(expr);
         }
-
-        return pseudoCommand;
     }
 }
