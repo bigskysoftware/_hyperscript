@@ -2223,6 +2223,8 @@ var _LanguageKernel = class _LanguageKernel {
     __publicField(this, "POSTFIX_EXPRESSIONS", []);
     /** @type {string[]} */
     __publicField(this, "UNARY_EXPRESSIONS", []);
+    /** @type {string[]} */
+    __publicField(this, "TOP_EXPRESSIONS", []);
     this.possessivesDisabled = false;
     this.addGrammarElement("feature", function(parser) {
       if (parser.matchOpToken("(")) {
@@ -2305,6 +2307,10 @@ var _LanguageKernel = class _LanguageKernel {
     this.addGrammarElement("unaryExpression", function(parser) {
       parser.matchToken("the");
       return parser.parseAnyOf(parser.kernel.UNARY_EXPRESSIONS);
+    });
+    this.addGrammarElement("expression", function(parser) {
+      parser.matchToken("the");
+      return parser.parseAnyOf(parser.kernel.TOP_EXPRESSIONS);
     });
     this.addGrammarElement("indirectStatement", function(parser, root) {
       if (parser.matchToken("unless")) {
@@ -2511,6 +2517,14 @@ var _LanguageKernel = class _LanguageKernel {
    */
   addUnaryExpression(name, definition) {
     this.UNARY_EXPRESSIONS.push(name);
+    this.addGrammarElement(name, definition);
+  }
+  /**
+   * @param {string} name
+   * @param {ParseRule} definition
+   */
+  addTopExpression(name, definition) {
+    this.TOP_EXPRESSIONS.push(name);
     this.addGrammarElement(name, definition);
   }
   /**
@@ -8081,7 +8095,7 @@ kernel_.addGrammarElement("comparisonOperator", ComparisonOperator.parse);
 kernel_.addGrammarElement("comparisonExpression", ComparisonExpression.parse);
 kernel_.addGrammarElement("logicalOperator", LogicalOperator.parse);
 kernel_.addGrammarElement("logicalExpression", LogicalExpression.parse);
-kernel_.addGrammarElement("asyncExpression", AsyncExpression.parse);
+kernel_.addTopExpression("asyncExpression", AsyncExpression.parse);
 kernel_.addFeatures(
   OnFeature,
   DefFeature,
@@ -8147,10 +8161,6 @@ initWebConversions(runtime_);
 kernel_.addPostfixExpression("stringPostfixExpression", StringPostfixExpression.parse);
 kernel_.addPostfixExpression("timeExpression", TimeExpression.parse);
 kernel_.addPostfixExpression("typeCheckExpression", TypeCheckExpression.parse);
-kernel_.addGrammarElement("expression", function(parser) {
-  parser.matchToken("the");
-  return parser.parseElement("asyncExpression");
-});
 kernel_.addGrammarElement("assignableExpression", function(parser) {
   parser.matchToken("the");
   var expr = parser.parseElement("primaryExpression");

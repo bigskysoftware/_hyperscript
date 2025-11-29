@@ -191,7 +191,9 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
     // Logical expressions
     kernel_.addGrammarElement("logicalOperator", LogicalOperator.parse);
     kernel_.addGrammarElement("logicalExpression", LogicalExpression.parse);
-    kernel_.addGrammarElement("asyncExpression", AsyncExpression.parse);
+
+    // Top-level expression (async expression is the only one currently)
+    kernel_.addTopExpression("asyncExpression", AsyncExpression.parse);
 
     // Features
     kernel_.addFeatures(
@@ -247,11 +249,6 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
     kernel_.addPostfixExpression("typeCheckExpression", TypeCheckExpression.parse);
 
     // ===== TODO: Move To Kernel =====
-
-    kernel_.addGrammarElement("expression", function (parser) {
-        parser.matchToken("the"); // optional the
-        return parser.parseElement("asyncExpression");
-    });
 
     kernel_.addGrammarElement("assignableExpression", function (parser) {
         parser.matchToken("the"); // optional the

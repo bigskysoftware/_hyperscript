@@ -135,6 +135,11 @@ export class LanguageKernel {
             return parser.parseAnyOf(parser.kernel.UNARY_EXPRESSIONS);
         });
 
+        this.addGrammarElement("expression", function (parser) {
+            parser.matchToken("the"); // optional "the"
+            return parser.parseAnyOf(parser.kernel.TOP_EXPRESSIONS);
+        });
+
         this.addGrammarElement("indirectStatement", function (parser, root) {
             if (parser.matchToken("unless")) {
                 root.endToken = parser.lastMatch();
@@ -193,6 +198,9 @@ export class LanguageKernel {
 
     /** @type {string[]} */
     UNARY_EXPRESSIONS = [];
+
+    /** @type {string[]} */
+    TOP_EXPRESSIONS = [];
 
     /**
      * @param {*} parseElement
@@ -378,6 +386,15 @@ export class LanguageKernel {
      */
     addUnaryExpression(name, definition) {
         this.UNARY_EXPRESSIONS.push(name);
+        this.addGrammarElement(name, definition);
+    }
+
+    /**
+     * @param {string} name
+     * @param {ParseRule} definition
+     */
+    addTopExpression(name, definition) {
+        this.TOP_EXPRESSIONS.push(name);
         this.addGrammarElement(name, definition);
     }
 
