@@ -9,87 +9,27 @@ import {config, conversions, initWebConversions} from './core/config.js';
 
 // Expression imports
 import {AttributeRef, ClassRef, IdRef, QueryRef, StyleLiteral, StyleRef} from './parsetree/expressions/webliterals.js';
-import {
-    ArrayIndex,
-    AsExpression,
-    AsyncExpression,
-    AttributeRefAccess,
-    BeepExpression,
-    BlockLiteral,
-    ComparisonExpression,
-    ComparisonOperator,
-    DotOrColonPath,
-    FunctionCall,
-    InExpression,
-    LogicalExpression,
-    LogicalNot,
-    LogicalOperator,
-    MathExpression,
-    MathOperator,
-    NegativeNumber,
-    OfExpression,
-    ParenthesizedExpression,
-    PossessiveExpression,
-    PropertyAccess,
-    SymbolRef
+import {ArrayIndex, AsExpression, AsyncExpression, AttributeRefAccess, BeepExpression,
+    BlockLiteral, ComparisonExpression, ComparisonOperator, DotOrColonPath, FunctionCall, InExpression,
+    LogicalExpression, LogicalNot, LogicalOperator, MathExpression, MathOperator, NegativeNumber,
+    OfExpression, ParenthesizedExpression, PossessiveExpression, PropertyAccess, SymbolRef
 } from './parsetree/expressions/expressions.js';
-import {
-    ArrayLiteral,
-    BooleanLiteral,
-    NakedString,
-    NamedArgumentList,
-    NullLiteral,
-    NumberLiteral,
-    ObjectKey,
-    ObjectLiteral,
-    StringLiteral
-} from './parsetree/expressions/literals.js';
+import {ArrayLiteral, BooleanLiteral, NakedString, NamedArgumentList, NullLiteral, NumberLiteral,
+    ObjectKey, ObjectLiteral, StringLiteral} from './parsetree/expressions/literals.js';
 import {ImplicitMeTarget} from './parsetree/expressions/targets.js';
 import {NoExpression, SomeExpression} from './parsetree/expressions/existentials.js';
 import {ClosestExpr, PositionalExpression, RelativePositionalExpression} from './parsetree/expressions/positional.js';
 import {StringPostfixExpression, TimeExpression, TypeCheckExpression} from './parsetree/expressions/postfix.js';
 
 // Command imports
-import {
-    AppendCommand,
-    BeepCommand,
-    ExitCommand,
-    FetchCommand,
-    GoCommand,
-    HaltCommand,
-    LogCommand,
-    MakeCommand,
-    PickCommand,
-    ReturnCommand,
-    ThrowCommand
-} from './parsetree/commands/basic.js';
-import {
-    DecrementCommand,
-    DefaultCommand,
-    IncrementCommand,
-    PutCommand,
-    SetCommand
-} from './parsetree/commands/setters.js';
+import {AppendCommand, BeepCommand, ExitCommand, FetchCommand, GoCommand, HaltCommand, LogCommand,
+    MakeCommand, PickCommand, ReturnCommand, ThrowCommand} from './parsetree/commands/basic.js';
+import {DecrementCommand, DefaultCommand, IncrementCommand, PutCommand, SetCommand} from './parsetree/commands/setters.js';
 import {EventName, SendCommand, TriggerCommand, WaitCommand} from './parsetree/commands/events.js';
-import {
-    BreakCommand,
-    ContinueCommand,
-    ForCommand,
-    IfCommand,
-    RepeatCommand,
-    TellCommand
-} from './parsetree/commands/controlflow.js';
+import {BreakCommand, ContinueCommand, ForCommand, IfCommand, RepeatCommand, TellCommand} from './parsetree/commands/controlflow.js';
 import {AsyncCommand, CallCommand, GetCommand, JsBody, JsCommand} from './parsetree/commands/execution.js';
 import {PseudoCommand} from './parsetree/commands/pseudoCommand.js';
-import {
-    AddCommand,
-    HideCommand,
-    MeasureCommand,
-    RemoveCommand,
-    ShowCommand,
-    TakeCommand,
-    ToggleCommand
-} from './parsetree/commands/dom.js';
+import {AddCommand, HideCommand, MeasureCommand, RemoveCommand, ShowCommand, TakeCommand, ToggleCommand} from './parsetree/commands/dom.js';
 import {SettleCommand, TransitionCommand} from './parsetree/commands/animations.js';
 
 // Feature imports
@@ -104,261 +44,262 @@ import {OnFeature} from './parsetree/features/on.js';
 
 const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'undefined' ? global : this);
 
-    // Create lexer and runtime first
-    const tokenizer = new Tokenizer();
-    const runtime = new Runtime(globalScope);
+// Create lexer and runtime first
+const tokenizer = new Tokenizer();
+const runtime = new Runtime(globalScope);
 
-    // Create and configure kernel
-    const kernel = new LanguageKernel();
+// Create and configure kernel
+const kernel = new LanguageKernel();
 
-    // ===== Grammar Registration =====
+// ===== Grammar Registration =====
 
-    // Literals and basic expressions
-    kernel.addLeafExpression("parenthesized", ParenthesizedExpression.parse);
-    kernel.addLeafExpression("string", StringLiteral.parse);
-    kernel.addGrammarElement("nakedString", NakedString.parse);
-    kernel.addGrammarElement("stringLike", function (parser) {
-        return parser.parseAnyOf(["string", "nakedString"]);
-    });
-    kernel.addLeafExpression("number", NumberLiteral.parse);
-    kernel.addLeafExpression("boolean", BooleanLiteral.parse);
-    kernel.addLeafExpression("null", NullLiteral.parse);
-    kernel.addLeafExpression("arrayLiteral", ArrayLiteral.parse);
-    kernel.addLeafExpression("blockLiteral", BlockLiteral.parse);
-    kernel.addLeafExpression("objectLiteral", ObjectLiteral.parse);
-    kernel.addGrammarElement("objectKey", ObjectKey.parse);
-    kernel.addGrammarElement("nakedNamedArgumentList", NamedArgumentList.parseNaked);
-    kernel.addGrammarElement("namedArgumentList", NamedArgumentList.parse);
+// Literals and basic expressions
+kernel.addLeafExpression("parenthesized", ParenthesizedExpression.parse);
+kernel.addLeafExpression("string", StringLiteral.parse);
+kernel.addGrammarElement("nakedString", NakedString.parse);
+kernel.addGrammarElement("stringLike", function (parser) {
+    return parser.parseAnyOf(["string", "nakedString"]);
+});
+kernel.addLeafExpression("number", NumberLiteral.parse);
+kernel.addLeafExpression("boolean", BooleanLiteral.parse);
+kernel.addLeafExpression("null", NullLiteral.parse);
+kernel.addLeafExpression("arrayLiteral", ArrayLiteral.parse);
+kernel.addLeafExpression("blockLiteral", BlockLiteral.parse);
+kernel.addLeafExpression("objectLiteral", ObjectLiteral.parse);
+kernel.addGrammarElement("objectKey", ObjectKey.parse);
+kernel.addGrammarElement("nakedNamedArgumentList", NamedArgumentList.parseNaked);
+kernel.addGrammarElement("namedArgumentList", NamedArgumentList.parse);
 
-    // Web literals and references
-    kernel.addLeafExpression("idRef", IdRef.parse);
-    kernel.addLeafExpression("classRef", ClassRef.parse);
-    kernel.addLeafExpression("queryRef", QueryRef.parse);
-    kernel.addLeafExpression("attributeRef", AttributeRef.parse);
-    kernel.addLeafExpression("styleRef", StyleRef.parse);
-    kernel.addGrammarElement("styleLiteral", StyleLiteral.parse);
+// Web literals and references
+kernel.addLeafExpression("idRef", IdRef.parse);
+kernel.addLeafExpression("classRef", ClassRef.parse);
+kernel.addLeafExpression("queryRef", QueryRef.parse);
+kernel.addLeafExpression("attributeRef", AttributeRef.parse);
+kernel.addLeafExpression("styleRef", StyleRef.parse);
+kernel.addGrammarElement("styleLiteral", StyleLiteral.parse);
 
-    // Symbols and identifiers
-    kernel.addGrammarElement("symbol", SymbolRef.parse);
-    kernel.addGrammarElement("implicitMeTarget", ImplicitMeTarget.parse);
-    kernel.addGrammarElement("dotOrColonPath", DotOrColonPath.parse);
-    kernel.addGrammarElement("eventName", EventName.parse);
+// Symbols and identifiers
+kernel.addGrammarElement("symbol", SymbolRef.parse);
+kernel.addGrammarElement("implicitMeTarget", ImplicitMeTarget.parse);
+kernel.addGrammarElement("dotOrColonPath", DotOrColonPath.parse);
+kernel.addGrammarElement("eventName", EventName.parse);
 
-    // Indirect expressions (property access, function calls, etc.)
-    kernel.addIndirectExpression("propertyAccess", PropertyAccess.parse);
-    kernel.addIndirectExpression("of", OfExpression.parse);
-    kernel.addIndirectExpression("possessive", PossessiveExpression.parse);
-    kernel.addIndirectExpression("inExpression", InExpression.parse);
-    kernel.addIndirectExpression("asExpression", AsExpression.parse);
-    kernel.addIndirectExpression("functionCall", FunctionCall.parse);
-    kernel.addIndirectExpression("attributeRefAccess", AttributeRefAccess.parse);
-    kernel.addIndirectExpression("arrayIndex", ArrayIndex.parse);
+// Indirect expressions (property access, function calls, etc.)
+kernel.addIndirectExpression("propertyAccess", PropertyAccess.parse);
+kernel.addIndirectExpression("of", OfExpression.parse);
+kernel.addIndirectExpression("possessive", PossessiveExpression.parse);
+kernel.addIndirectExpression("inExpression", InExpression.parse);
+kernel.addIndirectExpression("asExpression", AsExpression.parse);
+kernel.addIndirectExpression("functionCall", FunctionCall.parse);
+kernel.addIndirectExpression("attributeRefAccess", AttributeRefAccess.parse);
+kernel.addIndirectExpression("arrayIndex", ArrayIndex.parse);
 
-    // Unary and logical expressions
-    kernel.addUnaryExpression("beepExpression", BeepExpression.parse);
-    kernel.addUnaryExpression("logicalNot", LogicalNot.parse);
-    kernel.addUnaryExpression("noExpression", NoExpression.parse);
-    kernel.addLeafExpression("some", SomeExpression.parse);
-    kernel.addGrammarElement("negativeNumber", NegativeNumber.parse);
+// Unary and logical expressions
+kernel.addUnaryExpression("beepExpression", BeepExpression.parse);
+kernel.addUnaryExpression("logicalNot", LogicalNot.parse);
+kernel.addUnaryExpression("noExpression", NoExpression.parse);
+kernel.addLeafExpression("some", SomeExpression.parse);
+kernel.addGrammarElement("negativeNumber", NegativeNumber.parse);
 
-    // Positional expressions (unary)
-    kernel.addUnaryExpression("relativePositionalExpression", RelativePositionalExpression.parse);
-    kernel.addUnaryExpression("positionalExpression", PositionalExpression.parse);
-    kernel.addLeafExpression("closestExpr", ClosestExpr.parse);
+// Positional expressions (unary)
+kernel.addUnaryExpression("relativePositionalExpression", RelativePositionalExpression.parse);
+kernel.addUnaryExpression("positionalExpression", PositionalExpression.parse);
+kernel.addLeafExpression("closestExpr", ClosestExpr.parse);
 
-    // postfixExpression is also part of unary expressions (already registered as grammar element)
-    // TODO this doesn't belong here I think
-    kernel.UNARY_EXPRESSIONS.push("postfixExpression");
+// postfixExpression is also part of unary expressions (already registered as grammar element)
+// TODO this doesn't belong here I think
+kernel.UNARY_EXPRESSIONS.push("postfixExpression");
 
-    // Math and comparison expressions
-    kernel.addGrammarElement("mathOperator", MathOperator.parse);
-    kernel.addGrammarElement("mathExpression", MathExpression.parse);
-    kernel.addGrammarElement("comparisonOperator", ComparisonOperator.parse);
-    kernel.addGrammarElement("comparisonExpression", ComparisonExpression.parse);
+// Math and comparison expressions
+kernel.addGrammarElement("mathOperator", MathOperator.parse);
+kernel.addGrammarElement("mathExpression", MathExpression.parse);
+kernel.addGrammarElement("comparisonOperator", ComparisonOperator.parse);
+kernel.addGrammarElement("comparisonExpression", ComparisonExpression.parse);
 
-    // Logical expressions
-    kernel.addGrammarElement("logicalOperator", LogicalOperator.parse);
-    kernel.addGrammarElement("logicalExpression", LogicalExpression.parse);
+// Logical expressions
+kernel.addGrammarElement("logicalOperator", LogicalOperator.parse);
+kernel.addGrammarElement("logicalExpression", LogicalExpression.parse);
 
-    // Top-level expression (async expression is the only one currently)
-    kernel.addTopExpression("asyncExpression", AsyncExpression.parse);
+// Top-level expression (async expression is the only one currently)
+kernel.addTopExpression("asyncExpression", AsyncExpression.parse);
 
-    // Features
-    kernel.addFeatures(
-        OnFeature, DefFeature, SetFeature, InitFeature,
-        WorkerFeature, BehaviorFeature, InstallFeature
-    );
-    kernel.addGrammarElement("jsBody", JsBody.parse);
-    kernel.addFeature("js", JsFeature.parse);
+// Features
+kernel.addFeatures(
+    OnFeature, DefFeature, SetFeature, InitFeature,
+    WorkerFeature, BehaviorFeature, InstallFeature
+);
+kernel.addGrammarElement("jsBody", JsBody.parse);
+kernel.addFeature("js", JsFeature.parse);
 
-    // Basic commands
-    kernel.addCommands(
-        LogCommand, BeepCommand, ThrowCommand, ReturnCommand, ExitCommand, HaltCommand,
-        MakeCommand, PickCommand, FetchCommand, GoCommand
-    );
+// Basic commands
+kernel.addCommands(
+    LogCommand, BeepCommand, ThrowCommand, ReturnCommand, ExitCommand, HaltCommand,
+    MakeCommand, PickCommand, FetchCommand, GoCommand
+);
 
-    // Variable and value commands
-    kernel.addCommands(
-        SetCommand, DefaultCommand, IncrementCommand, DecrementCommand, AppendCommand,
-        PutCommand
-    );
+// Variable and value commands
+kernel.addCommands(
+    SetCommand, DefaultCommand, IncrementCommand, DecrementCommand, AppendCommand,
+    PutCommand
+);
 
-    // Control flow commands
-    kernel.addCommands(
-        IfCommand, RepeatCommand, ForCommand, ContinueCommand, BreakCommand, TellCommand
-    );
+// Control flow commands
+kernel.addCommands(
+    IfCommand, RepeatCommand, ForCommand, ContinueCommand, BreakCommand, TellCommand
+);
 
-    // Event commands
-    kernel.addCommands(
-        WaitCommand, TriggerCommand, SendCommand
-    );
+// Event commands
+kernel.addCommands(
+    WaitCommand, TriggerCommand, SendCommand
+);
 
-    // Execution commands
-    kernel.addCommands(
-        JsCommand, AsyncCommand, CallCommand, GetCommand
-    );
-    kernel.addGrammarElement("pseudoCommand", PseudoCommand.parse);
+// Execution commands
+kernel.addCommands(
+    JsCommand, AsyncCommand, CallCommand, GetCommand
+);
+kernel.addGrammarElement("pseudoCommand", PseudoCommand.parse);
 
-    // DOM manipulation commands
-    kernel.addCommands(
-        AddCommand, RemoveCommand, TakeCommand, MeasureCommand,
-        ToggleCommand, HideCommand, ShowCommand
-    );
+// DOM manipulation commands
+kernel.addCommands(
+    AddCommand, RemoveCommand, TakeCommand, MeasureCommand,
+    ToggleCommand, HideCommand, ShowCommand
+);
 
-    // Animation commands
-    kernel.addCommands(SettleCommand, TransitionCommand);
+// Animation commands
+kernel.addCommands(SettleCommand, TransitionCommand);
 
-    // Initialize web-specific conversions
-    initWebConversions(runtime);
+// Initialize web-specific conversions
+initWebConversions(runtime);
 
-    // Postfix expressions
-    kernel.addPostfixExpression("stringPostfixExpression", StringPostfixExpression.parse);
-    kernel.addPostfixExpression("timeExpression", TimeExpression.parse);
-    kernel.addPostfixExpression("typeCheckExpression", TypeCheckExpression.parse);
+// Postfix expressions
+kernel.addPostfixExpression("stringPostfixExpression", StringPostfixExpression.parse);
+kernel.addPostfixExpression("timeExpression", TimeExpression.parse);
+kernel.addPostfixExpression("typeCheckExpression", TypeCheckExpression.parse);
 
-    // TODO: this should be driven by the expressions themselves, not a list here
-    kernel.ASSIGNABLE_EXPRESSIONS.push("symbol");
-    kernel.ASSIGNABLE_EXPRESSIONS.push("ofExpression");  // "of" produces type "ofExpression"
-    kernel.ASSIGNABLE_EXPRESSIONS.push("propertyAccess");
-    kernel.ASSIGNABLE_EXPRESSIONS.push("attributeRefAccess");
-    kernel.ASSIGNABLE_EXPRESSIONS.push("attributeRef");
-    kernel.ASSIGNABLE_EXPRESSIONS.push("styleRef");
-    kernel.ASSIGNABLE_EXPRESSIONS.push("arrayIndex");
-    kernel.ASSIGNABLE_EXPRESSIONS.push("possessive");
+// TODO: this should be driven by the expressions themselves, not a list here
+kernel.ASSIGNABLE_EXPRESSIONS.push("symbol");
+kernel.ASSIGNABLE_EXPRESSIONS.push("ofExpression");  // "of" produces type "ofExpression"
+kernel.ASSIGNABLE_EXPRESSIONS.push("propertyAccess");
+kernel.ASSIGNABLE_EXPRESSIONS.push("attributeRefAccess");
+kernel.ASSIGNABLE_EXPRESSIONS.push("attributeRef");
+kernel.ASSIGNABLE_EXPRESSIONS.push("styleRef");
+kernel.ASSIGNABLE_EXPRESSIONS.push("arrayIndex");
+kernel.ASSIGNABLE_EXPRESSIONS.push("possessive");
 
-    // Set up the LanguageKernel.raiseParseError callback for Tokens
-    // TODO need to rethink how tokenization errors are done
-    Tokens._parserRaiseError = LanguageKernel.raiseParseError;
+// Set up the LanguageKernel.raiseParseError callback for Tokens
+// TODO need to rethink how tokenization errors are done
+Tokens._parserRaiseError = LanguageKernel.raiseParseError;
 
-    /**
-     * @param {string} src
-     * @param {Partial<Context>} [ctx]
-     * @param {Object} [args]
-     * @returns {any}
-     */
-    function evaluate(src, ctx, args) {
-        class HyperscriptModule extends EventTarget {
-            constructor(mod) {
-                super();
-                this.module = mod;
-            }
-            toString() {
-                return this.module.id;
-            }
+/**
+ * @param {string} src
+ * @param {Partial<Context>} [ctx]
+ * @param {Object} [args]
+ * @returns {any}
+ */
+function evaluate(src, ctx, args) {
+    class HyperscriptModule extends EventTarget {
+        constructor(mod) {
+            super();
+            this.module = mod;
         }
 
-        var body = 'document' in globalScope
-            ? globalScope.document.body
-            : new HyperscriptModule(args && args.module);
-        ctx = Object.assign(runtime.makeContext(body, null, body, null), ctx || {});
-        var element = kernel.parse(tokenizer, src);
-        if (element.execute) {
-            element.execute(ctx);
-            if(typeof ctx.meta.returnValue !== 'undefined'){
-                return ctx.meta.returnValue;
-            } else {
-                return ctx.result;
-            }
-        } else if (element.apply) {
-            element.apply(body, body, args, runtime);
-            return runtime.getHyperscriptFeatures(body);
+        toString() {
+            return this.module.id;
+        }
+    }
+
+    var body = 'document' in globalScope
+        ? globalScope.document.body
+        : new HyperscriptModule(args && args.module);
+    ctx = Object.assign(runtime.makeContext(body, null, body, null), ctx || {});
+    var element = kernel.parse(tokenizer, src);
+    if (element.execute) {
+        element.execute(ctx);
+        if (typeof ctx.meta.returnValue !== 'undefined') {
+            return ctx.meta.returnValue;
         } else {
-            return element.evaluate(ctx);
+            return ctx.result;
         }
+    } else if (element.apply) {
+        element.apply(body, body, args, runtime);
+        return runtime.getHyperscriptFeatures(body);
+    } else {
+        return element.evaluate(ctx);
     }
+}
 
-    /**
-     * @param {Element} elt
-     * @param {Element} [target]
-     */
-    function initElement(elt, target) {
-        if (elt.closest && elt.closest(config.disableSelector)) {
-            return;
-        }
-        var internalData = runtime.getInternalData(elt);
-        if (!internalData.initialized) {
-            var src = runtime.getScript(elt);
-            if (src) {
-                try {
-                    internalData.initialized = true;
-                    internalData.script = src;
-                    var tokens = tokenizer.tokenize(src);
-                    var hyperScript = kernel.parseHyperScript(tokens);
-                    if (!hyperScript) return;
-                    hyperScript.apply(target || elt, elt, null, runtime);
-                    setTimeout(() => {
-                        runtime.triggerEvent(target || elt, "load", {
-                            hyperscript: true,
-                        });
-                    }, 1);
-                } catch (e) {
-                    runtime.triggerEvent(elt, "exception", {
-                        error: e,
+/**
+ * @param {Element} elt
+ * @param {Element} [target]
+ */
+function initElement(elt, target) {
+    if (elt.closest && elt.closest(config.disableSelector)) {
+        return;
+    }
+    var internalData = runtime.getInternalData(elt);
+    if (!internalData.initialized) {
+        var src = runtime.getScript(elt);
+        if (src) {
+            try {
+                internalData.initialized = true;
+                internalData.script = src;
+                var tokens = tokenizer.tokenize(src);
+                var hyperScript = kernel.parseHyperScript(tokens);
+                if (!hyperScript) return;
+                hyperScript.apply(target || elt, elt, null, runtime);
+                setTimeout(() => {
+                    runtime.triggerEvent(target || elt, "load", {
+                        hyperscript: true,
                     });
-                    console.error(
-                        "hyperscript errors were found on the following element:",
-                        elt,
-                        "\n\n",
-                        e.message,
-                        e.stack
-                    );
-                }
+                }, 1);
+            } catch (e) {
+                runtime.triggerEvent(elt, "exception", {
+                    error: e,
+                });
+                console.error(
+                    "hyperscript errors were found on the following element:",
+                    elt,
+                    "\n\n",
+                    e.message,
+                    e.stack
+                );
             }
         }
     }
+}
 
-    /**
-     * @param {HTMLElement} elt
-     */
-    function processNode(elt) {
-        var selector = runtime.getScriptSelector();
-        if (runtime.matchesSelector(elt, selector)) {
-            initElement(elt, elt);
-        }
-        if (elt instanceof HTMLScriptElement && elt.type === "text/hyperscript") {
-            initElement(elt, document.body);
-        }
-        if (elt.querySelectorAll) {
-            runtime.forEach(elt.querySelectorAll(selector + ", [type='text/hyperscript']"), elt => {
-                initElement(elt, elt instanceof HTMLScriptElement && elt.type === "text/hyperscript" ? document.body : elt);
-            });
-        }
+/**
+ * @param {HTMLElement} elt
+ */
+function processNode(elt) {
+    var selector = runtime.getScriptSelector();
+    if (runtime.matchesSelector(elt, selector)) {
+        initElement(elt, elt);
     }
+    if (elt instanceof HTMLScriptElement && elt.type === "text/hyperscript") {
+        initElement(elt, document.body);
+    }
+    if (elt.querySelectorAll) {
+        runtime.forEach(elt.querySelectorAll(selector + ", [type='text/hyperscript']"), elt => {
+            initElement(elt, elt instanceof HTMLScriptElement && elt.type === "text/hyperscript" ? document.body : elt);
+        });
+    }
+}
 
-    // Add processNode to runtime for backward compatibility with grammars
-    runtime.processNode = processNode;
+// Add processNode to runtime for backward compatibility with grammars
+runtime.processNode = processNode;
 
-    function browserInit() {
-        /** @type {HTMLScriptElement[]} */
-        var scripts = Array.from(globalScope.document.querySelectorAll("script[type='text/hyperscript'][src]"))
-        Promise.all(
-            scripts.map(function (script) {
-                return fetch(script.src)
-                    .then(function (res) {
-                        return res.text();
-                    });
-            })
-        )
+function browserInit() {
+    /** @type {HTMLScriptElement[]} */
+    var scripts = Array.from(globalScope.document.querySelectorAll("script[type='text/hyperscript'][src]"))
+    Promise.all(
+        scripts.map(function (script) {
+            return fetch(script.src)
+                .then(function (res) {
+                    return res.text();
+                });
+        })
+    )
         .then(script_values => script_values.forEach(sc => _hyperscript(sc)))
         .then(() => ready(function () {
             mergeMetaConfig();
@@ -371,88 +312,90 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
             });
         }));
 
-        function ready(fn) {
-            if (document.readyState !== "loading") {
-                setTimeout(fn);
-            } else {
-                document.addEventListener("DOMContentLoaded", fn);
-            }
-        }
-
-        function mergeMetaConfig() {
-            let element = document.querySelector('meta[name="htmx-config"]');
-            if (element) {
-                let metaConfig = JSON.parse(element.content);
-                Object.assign(config, metaConfig);
-            } else {
-                return null;
-            }
+    function ready(fn) {
+        if (document.readyState !== "loading") {
+            setTimeout(fn);
+        } else {
+            document.addEventListener("DOMContentLoaded", fn);
         }
     }
 
-    /**
-     * @typedef {Object} HyperscriptAPI
-     *
-     * @property {Object} config
-     * @property {string} config.attributes
-     * @property {string} config.defaultTransition
-     * @property {string} config.disableSelector
-     * @property {typeof conversions} config.conversions
-     *
-     * @property {Object} internals
-     * @property {Tokenizer} internals.tokenizer
-     * @property {typeof Tokenizer} internals.Tokenizer
-     * @property {LanguageKernel} internals.parser
-     * @property {typeof LanguageKernel} internals.Parser
-     * @property {Runtime} internals.runtime
-     * @property {typeof Runtime} internals.Runtime
-     *
-     * @property {typeof ElementCollection} ElementCollection
-     *
-     * @property {(keyword: string, definition: ParseRule) => void} addFeature
-     * @property {(keyword: string, definition: ParseRule) => void} addCommand
-     * @property {(keyword: string, definition: ParseRule) => void} addLeafExpression
-     * @property {(keyword: string, definition: ParseRule) => void} addIndirectExpression
-     *
-     * @property {(src: string, ctx?: Partial<Context>, args?: Object) => any} evaluate
-     * @property {(src: string) => ASTNode} parse
-     * @property {(node: Element) => void} processNode
-     *
-     * @property {() => void} browserInit
-     *
-     *
-     * @typedef {HyperscriptAPI & ((src: string, ctx?: Partial<Context>) => any)} Hyperscript
-     */
-
-    /**
-     * @type {Hyperscript}
-     */
-    const _hyperscript = Object.assign(
-        evaluate,
-        {
-            config,
-
-            use(plugin) { plugin(_hyperscript) },
-
-            internals: {
-                tokenizer: tokenizer, parser: kernel, runtime: runtime,
-                Tokenizer, Tokens, Parser: LanguageKernel, Runtime,
-            },
-            ElementCollection,
-
-            addFeature:            kernel.addFeature.bind(kernel),
-            addCommand:            kernel.addCommand.bind(kernel),
-            addLeafExpression:     kernel.addLeafExpression.bind(kernel),
-            addIndirectExpression: kernel.addIndirectExpression.bind(kernel),
-
-            evaluate,
-            parse:       (src) => kernel.parse(tokenizer, src),
-            process: processNode,
-            processNode,
-            version: "0.9.14",
-            browserInit,
+    function mergeMetaConfig() {
+        let element = document.querySelector('meta[name="htmx-config"]');
+        if (element) {
+            let metaConfig = JSON.parse(element.content);
+            Object.assign(config, metaConfig);
+        } else {
+            return null;
         }
-    )
+    }
+}
+
+/**
+ * @typedef {Object} HyperscriptAPI
+ *
+ * @property {Object} config
+ * @property {string} config.attributes
+ * @property {string} config.defaultTransition
+ * @property {string} config.disableSelector
+ * @property {typeof conversions} config.conversions
+ *
+ * @property {Object} internals
+ * @property {Tokenizer} internals.tokenizer
+ * @property {typeof Tokenizer} internals.Tokenizer
+ * @property {LanguageKernel} internals.parser
+ * @property {typeof LanguageKernel} internals.Parser
+ * @property {Runtime} internals.runtime
+ * @property {typeof Runtime} internals.Runtime
+ *
+ * @property {typeof ElementCollection} ElementCollection
+ *
+ * @property {(keyword: string, definition: ParseRule) => void} addFeature
+ * @property {(keyword: string, definition: ParseRule) => void} addCommand
+ * @property {(keyword: string, definition: ParseRule) => void} addLeafExpression
+ * @property {(keyword: string, definition: ParseRule) => void} addIndirectExpression
+ *
+ * @property {(src: string, ctx?: Partial<Context>, args?: Object) => any} evaluate
+ * @property {(src: string) => ASTNode} parse
+ * @property {(node: Element) => void} processNode
+ *
+ * @property {() => void} browserInit
+ *
+ *
+ * @typedef {HyperscriptAPI & ((src: string, ctx?: Partial<Context>) => any)} Hyperscript
+ */
+
+/**
+ * @type {Hyperscript}
+ */
+const _hyperscript = Object.assign(
+    evaluate,
+    {
+        config,
+
+        use(plugin) {
+            plugin(_hyperscript)
+        },
+
+        internals: {
+            tokenizer: tokenizer, parser: kernel, runtime: runtime,
+            Tokenizer, Tokens, Parser: LanguageKernel, Runtime,
+        },
+        ElementCollection,
+
+        addFeature: kernel.addFeature.bind(kernel),
+        addCommand: kernel.addCommand.bind(kernel),
+        addLeafExpression: kernel.addLeafExpression.bind(kernel),
+        addIndirectExpression: kernel.addIndirectExpression.bind(kernel),
+
+        evaluate,
+        parse: (src) => kernel.parse(tokenizer, src),
+        process: processNode,
+        processNode,
+        version: "0.9.14",
+        browserInit,
+    }
+)
 
 // ES Module exports
 export default _hyperscript;
