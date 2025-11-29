@@ -6617,6 +6617,35 @@ var JsBody = class {
     };
   }
 };
+var JsCommandImpl = class {
+  constructor(jsSource, func, inputs) {
+    this.type = "jsCommand";
+    this.jsSource = jsSource;
+    this.function = func;
+    this.inputs = inputs;
+  }
+  op(context2) {
+    var args = [];
+    this.inputs.forEach((input) => {
+      args.push(context2.meta.runtime.resolveSymbol(input, context2, "default"));
+    });
+    var result = this.function.apply(context2.meta.runtime.globalScope, args);
+    if (result && typeof result.then === "function") {
+      return new Promise((resolve) => {
+        result.then((actualResult) => {
+          context2.result = actualResult;
+          resolve(context2.meta.runtime.findNext(this, context2));
+        });
+      });
+    } else {
+      context2.result = result;
+      return context2.meta.runtime.findNext(this, context2);
+    }
+  }
+  execute(ctx) {
+    return ctx.meta.runtime.unifiedExec(this, ctx);
+  }
+};
 var JsCommand = class {
   /**
    * Parse js command
@@ -6639,33 +6668,25 @@ var JsCommand = class {
     var jsBody = parser.requireElement("jsBody");
     parser.matchToken("end");
     var func = varargConstructor(Function, inputs.concat([jsBody.jsSource]));
-    var command = {
-      jsSource: jsBody.jsSource,
-      function: func,
-      inputs,
-      op: function(context2) {
-        var args = [];
-        inputs.forEach(function(input) {
-          args.push(context2.meta.runtime.resolveSymbol(input, context2, "default"));
-        });
-        var result = func.apply(context2.meta.runtime.globalScope, args);
-        if (result && typeof result.then === "function") {
-          return new Promise(function(resolve) {
-            result.then(function(actualResult) {
-              context2.result = actualResult;
-              resolve(context2.meta.runtime.findNext(this, context2));
-            });
-          });
-        } else {
-          context2.result = result;
-          return context2.meta.runtime.findNext(this, context2);
-        }
-      }
-    };
-    return command;
+    return new JsCommandImpl(jsBody.jsSource, func, inputs);
   }
 };
 __publicField(JsCommand, "keyword", "js");
+var AsyncCommandImpl = class {
+  constructor(body) {
+    this.type = "asyncCommand";
+    this.body = body;
+  }
+  op(context2) {
+    setTimeout(() => {
+      this.body.execute(context2);
+    });
+    return context2.meta.runtime.findNext(this, context2);
+  }
+  execute(ctx) {
+    return ctx.meta.runtime.unifiedExec(this, ctx);
+  }
+};
 var AsyncCommand = class {
   /**
    * Parse async command
@@ -6683,31 +6704,29 @@ var AsyncCommand = class {
     } else {
       var body = parser.requireElement("command");
     }
-    var command = {
-      body,
-      op: function(context2) {
-        setTimeout(function() {
-          body.execute(context2);
-        });
-        return context2.meta.runtime.findNext(this, context2);
-      }
-    };
+    var command = new AsyncCommandImpl(body);
     parser.setParent(body, command);
     return command;
   }
 };
 __publicField(AsyncCommand, "keyword", "async");
+var CallOrGetCommandImpl = class {
+  constructor(expr) {
+    this.type = "callCommand";
+    this.expr = expr;
+    this.args = [expr];
+  }
+  op(context2, result) {
+    context2.result = result;
+    return context2.meta.runtime.findNext(this, context2);
+  }
+  execute(ctx) {
+    return ctx.meta.runtime.unifiedExec(this, ctx);
+  }
+};
 function parseCallOrGet(parser) {
   var expr = parser.requireElement("expression");
-  var callCmd = {
-    expr,
-    args: [expr],
-    op: function(context2, result) {
-      context2.result = result;
-      return context2.meta.runtime.findNext(callCmd, context2);
-    }
-  };
-  return callCmd;
+  return new CallOrGetCommandImpl(expr);
 }
 var CallCommand = class {
   /**

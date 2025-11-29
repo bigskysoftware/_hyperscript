@@ -58,6 +58,38 @@ export class JsBody {
  * Parses: js [(inputs...)] <jsBody> end
  * Executes: Runs JavaScript code with optional inputs from hyperscript context
  */
+class JsCommandImpl {
+    constructor(jsSource, func, inputs) {
+        this.type = "jsCommand";
+        this.jsSource = jsSource;
+        this.function = func;
+        this.inputs = inputs;
+    }
+
+    op(context) {
+        var args = [];
+        this.inputs.forEach((input) => {
+            args.push(context.meta.runtime.resolveSymbol(input, context, 'default'));
+        });
+        var result = this.function.apply(context.meta.runtime.globalScope, args);
+        if (result && typeof result.then === "function") {
+            return new Promise((resolve) => {
+                result.then((actualResult) => {
+                    context.result = actualResult;
+                    resolve(context.meta.runtime.findNext(this, context));
+                });
+            });
+        } else {
+            context.result = result;
+            return context.meta.runtime.findNext(this, context);
+        }
+    }
+
+    execute(ctx) {
+        return ctx.meta.runtime.unifiedExec(this, ctx);
+    }
+}
+
 export class JsCommand {
     static keyword = "js";
 
@@ -87,30 +119,7 @@ export class JsCommand {
 
         var func = varargConstructor(Function, inputs.concat([jsBody.jsSource]));
 
-        var command = {
-            jsSource: jsBody.jsSource,
-            function: func,
-            inputs: inputs,
-            op: function (context) {
-                var args = [];
-                inputs.forEach(function (input) {
-                    args.push(context.meta.runtime.resolveSymbol(input, context, 'default'));
-                });
-                var result = func.apply(context.meta.runtime.globalScope, args);
-                if (result && typeof result.then === "function") {
-                    return new Promise(function (resolve) {
-                        result.then(function (actualResult) {
-                            context.result = actualResult;
-                            resolve(context.meta.runtime.findNext(this, context));
-                        });
-                    });
-                } else {
-                    context.result = result;
-                    return context.meta.runtime.findNext(this, context);
-                }
-            },
-        };
-        return command;
+        return new JsCommandImpl(jsBody.jsSource, func, inputs);
     }
 }
 
@@ -120,6 +129,24 @@ export class JsCommand {
  * Parses: async [do] <command[s]> [end]
  * Executes: Runs command(s) asynchronously via setTimeout
  */
+class AsyncCommandImpl {
+    constructor(body) {
+        this.type = "asyncCommand";
+        this.body = body;
+    }
+
+    op(context) {
+        setTimeout(() => {
+            this.body.execute(context);
+        });
+        return context.meta.runtime.findNext(this, context);
+    }
+
+    execute(ctx) {
+        return ctx.meta.runtime.unifiedExec(this, ctx);
+    }
+}
+
 export class AsyncCommand {
     static keyword = "async";
 
@@ -142,15 +169,7 @@ export class AsyncCommand {
         } else {
             var body = parser.requireElement("command");
         }
-        var command = {
-            body: body,
-            op: function (context) {
-                setTimeout(function () {
-                    body.execute(context);
-                });
-                return context.meta.runtime.findNext(this, context);
-            },
-        };
+        var command = new AsyncCommandImpl(body);
         parser.setParent(body, command);
         return command;
     }
@@ -159,17 +178,26 @@ export class AsyncCommand {
 /**
  * Helper function to parse call/get commands
  */
+class CallOrGetCommandImpl {
+    constructor(expr) {
+        this.type = "callCommand";
+        this.expr = expr;
+        this.args = [expr];
+    }
+
+    op(context, result) {
+        context.result = result;
+        return context.meta.runtime.findNext(this, context);
+    }
+
+    execute(ctx) {
+        return ctx.meta.runtime.unifiedExec(this, ctx);
+    }
+}
+
 function parseCallOrGet(parser) {
     var expr = parser.requireElement("expression");
-    var callCmd = {
-        expr: expr,
-        args: [expr],
-        op: function (context, result) {
-            context.result = result;
-            return context.meta.runtime.findNext(callCmd, context);
-        },
-    };
-    return callCmd;
+    return new CallOrGetCommandImpl(expr);
 }
 
 /**
