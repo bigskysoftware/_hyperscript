@@ -192,16 +192,16 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
 
     // Features
     kernel_.addFeature("on", function (parser) {
-        return OnFeature.parse(parser, kernel_);
+        return OnFeature.parse(parser);
     });
     kernel_.addFeature("def", function (parser) {
-        return DefFeature.parse(parser, kernel_);
+        return DefFeature.parse(parser);
     });
     kernel_.addFeature("set", function (parser) {
-        return SetFeature.parse(parser, kernel_);
+        return SetFeature.parse(parser);
     });
     kernel_.addFeature("init", function (parser) {
-        return InitFeature.parse(parser, kernel_);
+        return InitFeature.parse(parser);
     });
     kernel_.addFeature("worker", WorkerFeature.parse);
     kernel_.addFeature("behavior", BehaviorFeature.parse);
@@ -220,7 +220,7 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
         SetCommand, DefaultCommand, IncrementCommand, DecrementCommand, AppendCommand
     );
     kernel_.addCommand("put", function (parser) {
-        return PutCommand.parse(parser, kernel_);
+        return PutCommand.parse(parser);
     });
 
     // Control flow commands
@@ -244,13 +244,13 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
         AddCommand, RemoveCommand, TakeCommand, MeasureCommand
     );
     kernel_.addCommand("toggle", function (parser) {
-        return ToggleCommand.parse(parser, kernel_, config);
+        return ToggleCommand.parse(parser, config);
     });
     kernel_.addCommand("hide", function (parser) {
-        return HideCommand.parse(parser, kernel_, config);
+        return HideCommand.parse(parser, config);
     });
     kernel_.addCommand("show", function (parser) {
-        return ShowCommand.parse(parser, kernel_, config);
+        return ShowCommand.parse(parser, config);
     });
 
     // Animation commands
@@ -513,7 +513,7 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
      * @type {Hyperscript}
      */
     const _hyperscript = Object.assign(
-        {'run' : evaluate},
+        evaluate,
         {
             config,
 

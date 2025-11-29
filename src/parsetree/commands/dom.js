@@ -7,23 +7,23 @@
  * Hide/Show strategies for toggling element visibility
  */
 const HIDE_SHOW_STRATEGIES = {
-    display: function (op, element, arg, kernel) {
+    display: function (op, element, arg, runtime) {
         if (arg) {
             element.style.display = arg;
         } else if (op === "toggle") {
             if (getComputedStyle(element).display === "none") {
-                HIDE_SHOW_STRATEGIES.display("show", element, arg, kernel);
+                HIDE_SHOW_STRATEGIES.display("show", element, arg, runtime);
             } else {
-                HIDE_SHOW_STRATEGIES.display("hide", element, arg, kernel);
+                HIDE_SHOW_STRATEGIES.display("hide", element, arg, runtime);
             }
         } else if (op === "hide") {
-            const internalData = kernel.runtime.getInternalData(element);
+            const internalData = runtime.getInternalData(element);
             if (internalData.originalDisplay == null) {
                 internalData.originalDisplay = element.style.display;
             }
             element.style.display = "none";
         } else {
-            const internalData = kernel.runtime.getInternalData(element);
+            const internalData = runtime.getInternalData(element);
             if (internalData.originalDisplay && internalData.originalDisplay !== 'none') {
                 element.style.display = internalData.originalDisplay;
             } else {
@@ -80,7 +80,7 @@ function parseShowHideTarget(parser) {
 /**
  * Helper function to resolve hide/show strategy
  */
-function resolveHideShowStrategy(kernel, parser, name, config) {
+function resolveHideShowStrategy(parser, name, config) {
     var configDefault = config.defaultHideShowStrategy;
     var strategies = HIDE_SHOW_STRATEGIES;
     if (config.hideShowStrategies) {
@@ -303,15 +303,16 @@ export class RemoveCommand {
 export class ToggleCommand {
     static keyword = "toggle";
 
-    static parse(parser, kernel, config) {
+    static parse(parser, config) {
         if (!parser.matchToken("toggle")) return;
 
+        var runtime = parser.runtime;
         parser.matchAnyToken("the", "my");
         if (parser.currentToken().type === "STYLE_REF") {
             let styleRef = parser.consumeToken();
             var name = styleRef.value.substr(1);
             var visibility = true;
-            var hideShowStrategy = resolveHideShowStrategy(kernel, parser, name, config);
+            var hideShowStrategy = resolveHideShowStrategy(parser, name, config);
             if (parser.matchToken("of")) {
                 parser.pushFollow("with");
                 try {
@@ -373,7 +374,7 @@ export class ToggleCommand {
                 context.meta.runtime.nullCheck(on, onExpr);
                 if (visibility) {
                     context.meta.runtime.implicitLoop(on, function (target) {
-                        hideShowStrategy("toggle", target, null, kernel);
+                        hideShowStrategy("toggle", target, null, runtime);
                     });
                 } else if (between) {
                     context.meta.runtime.implicitLoop(on, function (target) {
@@ -443,9 +444,10 @@ export class ToggleCommand {
 export class HideCommand {
     static keyword = "hide";
 
-    static parse(parser, kernel, config) {
+    static parse(parser, config) {
         if (!parser.matchToken("hide")) return;
 
+        var runtime = parser.runtime;
         var targetExpr = parseShowHideTarget(parser);
 
         var name = null;
@@ -455,7 +457,7 @@ export class HideCommand {
                 name = name.substr(1);
             }
         }
-        var hideShowStrategy = resolveHideShowStrategy(kernel, parser, name, config);
+        var hideShowStrategy = resolveHideShowStrategy(parser, name, config);
 
         return {
             target: targetExpr,
@@ -463,7 +465,7 @@ export class HideCommand {
             op: function (ctx, target) {
                 ctx.meta.runtime.nullCheck(target, targetExpr);
                 ctx.meta.runtime.implicitLoop(target, function (elt) {
-                    hideShowStrategy("hide", elt, null, kernel);
+                    hideShowStrategy("hide", elt, null, runtime);
                 });
                 return ctx.meta.runtime.findNext(this, ctx);
             },
@@ -480,9 +482,10 @@ export class HideCommand {
 export class ShowCommand {
     static keyword = "show";
 
-    static parse(parser, kernel, config) {
+    static parse(parser, config) {
         if (!parser.matchToken("show")) return;
 
+        var runtime = parser.runtime;
         var targetExpr = parseShowHideTarget(parser);
 
         var name = null;
@@ -507,7 +510,7 @@ export class ShowCommand {
             var when = parser.requireElement("expression");
         }
 
-        var hideShowStrategy = resolveHideShowStrategy(kernel, parser, name, config);
+        var hideShowStrategy = resolveHideShowStrategy(parser, name, config);
 
         return {
             target: targetExpr,
@@ -520,13 +523,13 @@ export class ShowCommand {
                         ctx.result = elt;
                         let whenResult = ctx.meta.runtime.evaluateNoPromise(when, ctx);
                         if (whenResult) {
-                            hideShowStrategy("show", elt, arg, kernel);
+                            hideShowStrategy("show", elt, arg, runtime);
                         } else {
-                            hideShowStrategy("hide", elt, null, kernel);
+                            hideShowStrategy("hide", elt, null, runtime);
                         }
                         ctx.result = null;
                     } else {
-                        hideShowStrategy("show", elt, arg, kernel);
+                        hideShowStrategy("show", elt, arg, runtime);
                     }
                 });
                 return ctx.meta.runtime.findNext(this, ctx);

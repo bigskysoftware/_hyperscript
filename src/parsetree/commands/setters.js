@@ -6,7 +6,7 @@
 /**
  * Helper function for put command - put content into element or symbol
  */
-function putInto(context, root, prop, valueToPut, kernel) {
+function putInto(context, root, prop, valueToPut, runtime) {
     if (root == null) {
         var value = context.meta.runtime.resolveSymbol(prop, context);
     } else {
@@ -14,7 +14,7 @@ function putInto(context, root, prop, valueToPut, kernel) {
     }
     if (value instanceof Element || value instanceof HTMLDocument) {
         while (value.firstChild) value.removeChild(value.firstChild);
-        value.append(kernel.runtime.convertValue(valueToPut, "Fragment"));
+        value.append(runtime.convertValue(valueToPut, "Fragment"));
         context.meta.runtime.processNode(value);
     } else {
         if (root == null) {
@@ -324,7 +324,7 @@ export class PutCommand extends SetterCommand {
      * @param {Parser} parser
      * @returns {PutCommand | undefined}
      */
-    static parse(parser, kernel) {
+    static parse(parser) {
         if (!parser.matchToken("put")) return;
 
         var value = parser.requireElement("expression");
@@ -376,6 +376,7 @@ export class PutCommand extends SetterCommand {
             rootExpr = target;
         }
 
+        var runtime = parser.runtime;
         var putCmd = {
             target: target,
             operation: operation,
@@ -384,7 +385,7 @@ export class PutCommand extends SetterCommand {
             args: [rootExpr, prop, value],
             op: function (context, root, prop, valueToPut) {
                 if (symbolWrite) {
-                    putInto(context, root, prop, valueToPut, kernel);
+                    putInto(context, root, prop, valueToPut, runtime);
                 } else {
                     context.meta.runtime.nullCheck(root, rootExpr);
                     if (operation === "into") {
@@ -400,7 +401,7 @@ export class PutCommand extends SetterCommand {
                             root[prop] = valueToPut;
                         } else {
                             context.meta.runtime.implicitLoop(root, function (elt) {
-                                putInto(context, elt, prop, valueToPut, kernel);
+                                putInto(context, elt, prop, valueToPut, runtime);
                             });
                         }
                     } else {

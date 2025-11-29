@@ -8,10 +8,9 @@ export class InitFeature {
     /**
      * Parse init feature
      * @param {Parser} parser
-     * @param {LanguageKernel} kernel
      * @returns {InitFeature | undefined}
      */
-    static parse(parser, kernel) {
+    static parse(parser) {
         if (!parser.matchToken("init")) return;
 
         var immediately = parser.matchToken("immediately");
@@ -32,7 +31,7 @@ export class InitFeature {
         };
 
         // terminate body
-        kernel.ensureTerminated(start);
+        parser.ensureTerminated(start);
         parser.setParent(start, initFeature);
         return initFeature;
     }

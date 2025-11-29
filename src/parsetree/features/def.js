@@ -8,10 +8,9 @@ export class DefFeature {
     /**
      * Parse def feature
      * @param {Parser} parser
-     * @param {LanguageKernel} parser
      * @returns {DefFeature | undefined}
      */
-    static parse(parser, kernel) {
+    static parse(parser) {
         if (!parser.matchToken("def")) return;
         var functionName = parser.requireElement("dotOrColonPath");
         var nameVal = functionName.evaluate(); // OK
@@ -40,7 +39,7 @@ export class DefFeature {
 
         if (parser.matchToken("finally")) {
             var finallyHandler = parser.requireElement("commandList");
-            kernel.ensureTerminated(finallyHandler);
+            parser.ensureTerminated(finallyHandler);
         }
 
         var functionFeature = {
@@ -101,11 +100,11 @@ export class DefFeature {
             },
         };
 
-        kernel.ensureTerminated(start);
+        parser.ensureTerminated(start);
 
         // terminate error handler if any
         if (errorHandler) {
-            kernel.ensureTerminated(errorHandler);
+            parser.ensureTerminated(errorHandler);
         }
 
         parser.setParent(start, functionFeature);

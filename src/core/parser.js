@@ -159,6 +159,10 @@ export class Parser {
         return this.kernel.setParent(elt, parent);
     }
 
+    ensureTerminated(commandList) {
+        return this.kernel.ensureTerminated(commandList);
+    }
+
     // Access to parser properties needed by grammars
     get possessivesDisabled() {
         return this.kernel.possessivesDisabled;

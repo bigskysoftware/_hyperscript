@@ -2174,6 +2174,9 @@ var Parser = class {
   setParent(elt, parent) {
     return this.kernel.setParent(elt, parent);
   }
+  ensureTerminated(commandList) {
+    return this.kernel.ensureTerminated(commandList);
+  }
   // Access to parser properties needed by grammars
   get possessivesDisabled() {
     return this.kernel.possessivesDisabled;
@@ -4746,7 +4749,7 @@ var TypeCheckExpression = class {
 };
 
 // src/parsetree/commands/setters.js
-function putInto(context2, root, prop, valueToPut, kernel) {
+function putInto(context2, root, prop, valueToPut, runtime) {
   if (root == null) {
     var value = context2.meta.runtime.resolveSymbol(prop, context2);
   } else {
@@ -4754,7 +4757,7 @@ function putInto(context2, root, prop, valueToPut, kernel) {
   }
   if (value instanceof Element || value instanceof HTMLDocument) {
     while (value.firstChild) value.removeChild(value.firstChild);
-    value.append(kernel.runtime.convertValue(valueToPut, "Fragment"));
+    value.append(runtime.convertValue(valueToPut, "Fragment"));
     context2.meta.runtime.processNode(value);
   } else {
     if (root == null) {
@@ -4991,7 +4994,7 @@ var PutCommand = class extends SetterCommand {
    * @param {Parser} parser
    * @returns {PutCommand | undefined}
    */
-  static parse(parser, kernel) {
+  static parse(parser) {
     if (!parser.matchToken("put")) return;
     var value = parser.requireElement("expression");
     var operationToken = parser.matchAnyToken("into", "before", "after");
@@ -5035,6 +5038,7 @@ var PutCommand = class extends SetterCommand {
     } else {
       rootExpr = target;
     }
+    var runtime = parser.runtime;
     var putCmd = {
       target,
       operation,
@@ -5043,7 +5047,7 @@ var PutCommand = class extends SetterCommand {
       args: [rootExpr, prop, value],
       op: function(context2, root, prop2, valueToPut) {
         if (symbolWrite) {
-          putInto(context2, root, prop2, valueToPut, kernel);
+          putInto(context2, root, prop2, valueToPut, runtime);
         } else {
           context2.meta.runtime.nullCheck(root, rootExpr);
           if (operation === "into") {
@@ -5059,7 +5063,7 @@ var PutCommand = class extends SetterCommand {
               root[prop2] = valueToPut;
             } else {
               context2.meta.runtime.implicitLoop(root, function(elt) {
-                putInto(context2, elt, prop2, valueToPut, kernel);
+                putInto(context2, elt, prop2, valueToPut, runtime);
               });
             }
           } else {
@@ -6474,23 +6478,23 @@ var PseudoCommand = class {
 
 // src/parsetree/commands/dom.js
 var HIDE_SHOW_STRATEGIES = {
-  display: function(op, element, arg, kernel) {
+  display: function(op, element, arg, runtime) {
     if (arg) {
       element.style.display = arg;
     } else if (op === "toggle") {
       if (getComputedStyle(element).display === "none") {
-        HIDE_SHOW_STRATEGIES.display("show", element, arg, kernel);
+        HIDE_SHOW_STRATEGIES.display("show", element, arg, runtime);
       } else {
-        HIDE_SHOW_STRATEGIES.display("hide", element, arg, kernel);
+        HIDE_SHOW_STRATEGIES.display("hide", element, arg, runtime);
       }
     } else if (op === "hide") {
-      const internalData = kernel.runtime.getInternalData(element);
+      const internalData = runtime.getInternalData(element);
       if (internalData.originalDisplay == null) {
         internalData.originalDisplay = element.style.display;
       }
       element.style.display = "none";
     } else {
-      const internalData = kernel.runtime.getInternalData(element);
+      const internalData = runtime.getInternalData(element);
       if (internalData.originalDisplay && internalData.originalDisplay !== "none") {
         element.style.display = internalData.originalDisplay;
       } else {
@@ -6539,7 +6543,7 @@ function parseShowHideTarget(parser) {
   }
   return target;
 }
-function resolveHideShowStrategy(kernel, parser, name, config2) {
+function resolveHideShowStrategy(parser, name, config2) {
   var configDefault = config2.defaultHideShowStrategy;
   var strategies = HIDE_SHOW_STRATEGIES;
   if (config2.hideShowStrategies) {
@@ -6730,14 +6734,15 @@ var RemoveCommand = class {
 };
 __publicField(RemoveCommand, "keyword", "remove");
 var ToggleCommand = class {
-  static parse(parser, kernel, config2) {
+  static parse(parser, config2) {
     if (!parser.matchToken("toggle")) return;
+    var runtime = parser.runtime;
     parser.matchAnyToken("the", "my");
     if (parser.currentToken().type === "STYLE_REF") {
       let styleRef = parser.consumeToken();
       var name = styleRef.value.substr(1);
       var visibility = true;
-      var hideShowStrategy = resolveHideShowStrategy(kernel, parser, name, config2);
+      var hideShowStrategy = resolveHideShowStrategy(parser, name, config2);
       if (parser.matchToken("of")) {
         parser.pushFollow("with");
         try {
@@ -6796,7 +6801,7 @@ var ToggleCommand = class {
         context2.meta.runtime.nullCheck(on, onExpr);
         if (visibility) {
           context2.meta.runtime.implicitLoop(on, function(target) {
-            hideShowStrategy("toggle", target, null, kernel);
+            hideShowStrategy("toggle", target, null, runtime);
           });
         } else if (between) {
           context2.meta.runtime.implicitLoop(on, function(target) {
@@ -6858,8 +6863,9 @@ var ToggleCommand = class {
 };
 __publicField(ToggleCommand, "keyword", "toggle");
 var HideCommand = class {
-  static parse(parser, kernel, config2) {
+  static parse(parser, config2) {
     if (!parser.matchToken("hide")) return;
+    var runtime = parser.runtime;
     var targetExpr = parseShowHideTarget(parser);
     var name = null;
     if (parser.matchToken("with")) {
@@ -6868,14 +6874,14 @@ var HideCommand = class {
         name = name.substr(1);
       }
     }
-    var hideShowStrategy = resolveHideShowStrategy(kernel, parser, name, config2);
+    var hideShowStrategy = resolveHideShowStrategy(parser, name, config2);
     return {
       target: targetExpr,
       args: [targetExpr],
       op: function(ctx, target) {
         ctx.meta.runtime.nullCheck(target, targetExpr);
         ctx.meta.runtime.implicitLoop(target, function(elt) {
-          hideShowStrategy("hide", elt, null, kernel);
+          hideShowStrategy("hide", elt, null, runtime);
         });
         return ctx.meta.runtime.findNext(this, ctx);
       }
@@ -6884,8 +6890,9 @@ var HideCommand = class {
 };
 __publicField(HideCommand, "keyword", "hide");
 var ShowCommand = class {
-  static parse(parser, kernel, config2) {
+  static parse(parser, config2) {
     if (!parser.matchToken("show")) return;
+    var runtime = parser.runtime;
     var targetExpr = parseShowHideTarget(parser);
     var name = null;
     if (parser.matchToken("with")) {
@@ -6905,7 +6912,7 @@ var ShowCommand = class {
     if (parser.matchToken("when")) {
       var when = parser.requireElement("expression");
     }
-    var hideShowStrategy = resolveHideShowStrategy(kernel, parser, name, config2);
+    var hideShowStrategy = resolveHideShowStrategy(parser, name, config2);
     return {
       target: targetExpr,
       when,
@@ -6917,13 +6924,13 @@ var ShowCommand = class {
             ctx.result = elt;
             let whenResult = ctx.meta.runtime.evaluateNoPromise(when, ctx);
             if (whenResult) {
-              hideShowStrategy("show", elt, arg, kernel);
+              hideShowStrategy("show", elt, arg, runtime);
             } else {
-              hideShowStrategy("hide", elt, null, kernel);
+              hideShowStrategy("hide", elt, null, runtime);
             }
             ctx.result = null;
           } else {
-            hideShowStrategy("show", elt, arg, kernel);
+            hideShowStrategy("show", elt, arg, runtime);
           }
         });
         return ctx.meta.runtime.findNext(this, ctx);
@@ -7336,10 +7343,9 @@ var SetFeature = class {
   /**
    * Parse set feature
    * @param {Parser} parser
-   * @param {LanguageKernel} kernel
    * @returns {SetFeature | undefined}
    */
-  static parse(parser, kernel) {
+  static parse(parser) {
     let setCmd = parser.parseElement("setCommand");
     if (setCmd) {
       if (setCmd.target.scope !== "element") {
@@ -7351,7 +7357,7 @@ var SetFeature = class {
           setCmd && setCmd.execute(runtime.makeContext(target, setFeature, target, null));
         }
       };
-      kernel.ensureTerminated(setCmd);
+      parser.ensureTerminated(setCmd);
       return setFeature;
     }
   }
@@ -7362,10 +7368,9 @@ var InitFeature = class {
   /**
    * Parse init feature
    * @param {Parser} parser
-   * @param {LanguageKernel} kernel
    * @returns {InitFeature | undefined}
    */
-  static parse(parser, kernel) {
+  static parse(parser) {
     if (!parser.matchToken("init")) return;
     var immediately = parser.matchToken("immediately");
     var start = parser.requireElement("commandList");
@@ -7382,7 +7387,7 @@ var InitFeature = class {
         }
       }
     };
-    kernel.ensureTerminated(start);
+    parser.ensureTerminated(start);
     parser.setParent(start, initFeature);
     return initFeature;
   }
@@ -7516,10 +7521,9 @@ var DefFeature = class {
   /**
    * Parse def feature
    * @param {Parser} parser
-   * @param {LanguageKernel} parser
    * @returns {DefFeature | undefined}
    */
-  static parse(parser, kernel) {
+  static parse(parser) {
     if (!parser.matchToken("def")) return;
     var functionName = parser.requireElement("dotOrColonPath");
     var nameVal = functionName.evaluate();
@@ -7543,7 +7547,7 @@ var DefFeature = class {
     }
     if (parser.matchToken("finally")) {
       var finallyHandler = parser.requireElement("commandList");
-      kernel.ensureTerminated(finallyHandler);
+      parser.ensureTerminated(finallyHandler);
     }
     var functionFeature = {
       displayName: funcName + "(" + args.map(function(arg) {
@@ -7591,9 +7595,9 @@ var DefFeature = class {
         runtime.assignToNamespace(target, nameSpace, funcName, func);
       }
     };
-    kernel.ensureTerminated(start);
+    parser.ensureTerminated(start);
     if (errorHandler) {
-      kernel.ensureTerminated(errorHandler);
+      parser.ensureTerminated(errorHandler);
     }
     parser.setParent(start, functionFeature);
     return functionFeature;
@@ -7616,10 +7620,9 @@ var OnFeature = class {
   /**
    * Parse on feature
    * @param {Parser} parser
-   * @param {LanguageKernel} kernel
    * @returns {OnFeature | undefined}
    */
-  static parse(parser, kernel) {
+  static parse(parser) {
     if (!parser.matchToken("on")) return;
     var every = false;
     if (parser.matchToken("every")) {
@@ -7781,16 +7784,16 @@ var OnFeature = class {
       }
     }
     var start = parser.requireElement("commandList");
-    kernel.ensureTerminated(start);
+    parser.ensureTerminated(start);
     var errorSymbol, errorHandler;
     if (parser.matchToken("catch")) {
       errorSymbol = parser.requireTokenType("IDENTIFIER").value;
       errorHandler = parser.requireElement("commandList");
-      kernel.ensureTerminated(errorHandler);
+      parser.ensureTerminated(errorHandler);
     }
     if (parser.matchToken("finally")) {
       var finallyHandler = parser.requireElement("commandList");
-      kernel.ensureTerminated(finallyHandler);
+      parser.ensureTerminated(finallyHandler);
     }
     var onFeature = {
       displayName,
@@ -7972,21 +7975,6 @@ var OnFeature = class {
 
 // src/_hyperscript.js
 var globalScope = typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : void 0;
-function parseJSON(jString) {
-  try {
-    return JSON.parse(jString);
-  } catch (error) {
-    logError(error);
-    return null;
-  }
-}
-function logError(msg) {
-  if (console.error) {
-    console.error(msg);
-  } else if (console.log) {
-    console.log("ERROR: ", msg);
-  }
-}
 var tokenizer_ = new Tokenizer();
 var runtime_ = new Runtime(globalScope);
 var kernel_ = new LanguageKernel();
@@ -8037,16 +8025,16 @@ kernel_.addGrammarElement("logicalOperator", LogicalOperator.parse);
 kernel_.addGrammarElement("logicalExpression", LogicalExpression.parse);
 kernel_.addGrammarElement("asyncExpression", AsyncExpression.parse);
 kernel_.addFeature("on", function(parser) {
-  return OnFeature.parse(parser, kernel_);
+  return OnFeature.parse(parser);
 });
 kernel_.addFeature("def", function(parser) {
-  return DefFeature.parse(parser, kernel_);
+  return DefFeature.parse(parser);
 });
 kernel_.addFeature("set", function(parser) {
-  return SetFeature.parse(parser, kernel_);
+  return SetFeature.parse(parser);
 });
 kernel_.addFeature("init", function(parser) {
-  return InitFeature.parse(parser, kernel_);
+  return InitFeature.parse(parser);
 });
 kernel_.addFeature("worker", WorkerFeature.parse);
 kernel_.addFeature("behavior", BehaviorFeature.parse);
@@ -8073,7 +8061,7 @@ kernel_.addCommands(
   AppendCommand
 );
 kernel_.addCommand("put", function(parser) {
-  return PutCommand.parse(parser, kernel_);
+  return PutCommand.parse(parser);
 });
 kernel_.addCommands(
   IfCommand,
@@ -8102,13 +8090,13 @@ kernel_.addCommands(
   MeasureCommand
 );
 kernel_.addCommand("toggle", function(parser) {
-  return ToggleCommand.parse(parser, kernel_, config);
+  return ToggleCommand.parse(parser, config);
 });
 kernel_.addCommand("hide", function(parser) {
-  return HideCommand.parse(parser, kernel_, config);
+  return HideCommand.parse(parser, config);
 });
 kernel_.addCommand("show", function(parser) {
-  return ShowCommand.parse(parser, kernel_, config);
+  return ShowCommand.parse(parser, config);
 });
 kernel_.addCommands(SettleCommand);
 kernel_.addCommand("transition", function(parser) {
@@ -8240,9 +8228,6 @@ function processNode(elt) {
   }
 }
 runtime_.processNode = processNode;
-function run(src, ctx) {
-  return evaluate(src, ctx);
-}
 function browserInit() {
   var scripts = Array.from(globalScope.document.querySelectorAll("script[type='text/hyperscript'][src]"));
   Promise.all(
@@ -8266,23 +8251,18 @@ function browserInit() {
       document.addEventListener("DOMContentLoaded", fn);
     }
   }
-  function getMetaConfig() {
-    var element = document.querySelector('meta[name="htmx-config"]');
+  function mergeMetaConfig() {
+    let element = document.querySelector('meta[name="htmx-config"]');
     if (element) {
-      return parseJSON(element.content);
+      let metaConfig = JSON.parse(element.content);
+      Object.assign(config, metaConfig);
     } else {
       return null;
     }
   }
-  function mergeMetaConfig() {
-    var metaConfig = getMetaConfig();
-    if (metaConfig) {
-      Object.assign(config, metaConfig);
-    }
-  }
 }
 var _hyperscript = Object.assign(
-  run,
+  evaluate,
   {
     config,
     use(plugin) {
