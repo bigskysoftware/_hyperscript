@@ -8163,8 +8163,6 @@ kernel_.addGrammarElement("hyperscript", function(parser) {
 });
 Tokens._parserRaiseError = LanguageKernel.raiseParseError;
 ElementCollection._runtime = runtime_;
-var processNode;
-var initElement;
 function evaluate(src, ctx, args) {
   class HyperscriptModule extends EventTarget {
     constructor(mod) {
@@ -8192,7 +8190,7 @@ function evaluate(src, ctx, args) {
     return element.evaluate(ctx);
   }
 }
-initElement = function(elt, target) {
+function initElement(elt, target) {
   if (elt.closest && elt.closest(config.disableSelector)) {
     return;
   }
@@ -8226,8 +8224,8 @@ initElement = function(elt, target) {
       }
     }
   }
-};
-processNode = function(elt) {
+}
+function processNode(elt) {
   var selector = runtime_.getScriptSelector();
   if (runtime_.matchesSelector(elt, selector)) {
     initElement(elt, elt);
@@ -8240,7 +8238,7 @@ processNode = function(elt) {
       initElement(elt2, elt2 instanceof HTMLScriptElement && elt2.type === "text/hyperscript" ? document.body : elt2);
     });
   }
-};
+}
 runtime_.processNode = processNode;
 function run(src, ctx) {
   return evaluate(src, ctx);

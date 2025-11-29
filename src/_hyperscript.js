@@ -2,71 +2,109 @@
 'use strict';
 
 // Import core modules
-import { Tokenizer, Tokens } from './core/tokenizer.js';
-import { LanguageKernel } from './core/kernel.js';
-import { Runtime, CookieJar } from './core/runtime.js';
-import { ElementCollection } from './core/runtime.js';
-import { config, conversions, initWebConversions } from './core/config.js';
+import {Tokenizer, Tokens} from './core/tokenizer.js';
+import {LanguageKernel} from './core/kernel.js';
+import {ElementCollection, Runtime} from './core/runtime.js';
+import {config, conversions, initWebConversions} from './core/config.js';
 
 // Expression imports
-import { IdRef, ClassRef, QueryRef, AttributeRef, StyleRef, StyleLiteral } from './parsetree/expressions/webliterals.js';
+import {AttributeRef, ClassRef, IdRef, QueryRef, StyleLiteral, StyleRef} from './parsetree/expressions/webliterals.js';
 import {
-    ParenthesizedExpression, BlockLiteral, NegativeNumber, LogicalNot, SymbolRef, BeepExpression,
-    PropertyAccess, OfExpression, PossessiveExpression, InExpression, AsExpression, FunctionCall,
-    AttributeRefAccess, ArrayIndex, MathOperator, MathExpression, ComparisonOperator,
-    ComparisonExpression, LogicalOperator, LogicalExpression, AsyncExpression, DotOrColonPath
+    ArrayIndex,
+    AsExpression,
+    AsyncExpression,
+    AttributeRefAccess,
+    BeepExpression,
+    BlockLiteral,
+    ComparisonExpression,
+    ComparisonOperator,
+    DotOrColonPath,
+    FunctionCall,
+    InExpression,
+    LogicalExpression,
+    LogicalNot,
+    LogicalOperator,
+    MathExpression,
+    MathOperator,
+    NegativeNumber,
+    OfExpression,
+    ParenthesizedExpression,
+    PossessiveExpression,
+    PropertyAccess,
+    SymbolRef
 } from './parsetree/expressions/expressions.js';
 import {
-    NakedString, StringLiteral, NumberLiteral, BooleanLiteral, NullLiteral,
-    ArrayLiteral, ObjectKey, ObjectLiteral, NamedArgumentList
+    ArrayLiteral,
+    BooleanLiteral,
+    NakedString,
+    NamedArgumentList,
+    NullLiteral,
+    NumberLiteral,
+    ObjectKey,
+    ObjectLiteral,
+    StringLiteral
 } from './parsetree/expressions/literals.js';
-import { ImplicitMeTarget } from './parsetree/expressions/targets.js';
-import { NoExpression, SomeExpression } from './parsetree/expressions/existentials.js';
-import { RelativePositionalExpression, PositionalExpression, ClosestExpr } from './parsetree/expressions/positional.js';
-import { StringPostfixExpression, TimeExpression, TypeCheckExpression } from './parsetree/expressions/postfix.js';
+import {ImplicitMeTarget} from './parsetree/expressions/targets.js';
+import {NoExpression, SomeExpression} from './parsetree/expressions/existentials.js';
+import {ClosestExpr, PositionalExpression, RelativePositionalExpression} from './parsetree/expressions/positional.js';
+import {StringPostfixExpression, TimeExpression, TypeCheckExpression} from './parsetree/expressions/postfix.js';
 
 // Command imports
 import {
-    LogCommand, BeepCommand, ThrowCommand, ReturnCommand, ExitCommand, HaltCommand,
-    MakeCommand, AppendCommand, PickCommand, FetchCommand, GoCommand
+    AppendCommand,
+    BeepCommand,
+    ExitCommand,
+    FetchCommand,
+    GoCommand,
+    HaltCommand,
+    LogCommand,
+    MakeCommand,
+    PickCommand,
+    ReturnCommand,
+    ThrowCommand
 } from './parsetree/commands/basic.js';
-import { SetCommand, DefaultCommand, IncrementCommand, DecrementCommand, PutCommand } from './parsetree/commands/setters.js';
-import { WaitCommand, TriggerCommand, SendCommand, EventName } from './parsetree/commands/events.js';
-import { IfCommand, RepeatCommand, ForCommand, ContinueCommand, BreakCommand, TellCommand } from './parsetree/commands/controlflow.js';
-import { JsBody, JsCommand, AsyncCommand, CallCommand, GetCommand } from './parsetree/commands/execution.js';
-import { PseudoCommand } from './parsetree/commands/pseudoCommand.js';
-import { AddCommand, RemoveCommand, ToggleCommand, HideCommand, ShowCommand, TakeCommand, MeasureCommand } from './parsetree/commands/dom.js';
-import { SettleCommand, TransitionCommand } from './parsetree/commands/animations.js';
+import {
+    DecrementCommand,
+    DefaultCommand,
+    IncrementCommand,
+    PutCommand,
+    SetCommand
+} from './parsetree/commands/setters.js';
+import {EventName, SendCommand, TriggerCommand, WaitCommand} from './parsetree/commands/events.js';
+import {
+    BreakCommand,
+    ContinueCommand,
+    ForCommand,
+    IfCommand,
+    RepeatCommand,
+    TellCommand
+} from './parsetree/commands/controlflow.js';
+import {AsyncCommand, CallCommand, GetCommand, JsBody, JsCommand} from './parsetree/commands/execution.js';
+import {PseudoCommand} from './parsetree/commands/pseudoCommand.js';
+import {
+    AddCommand,
+    HideCommand,
+    MeasureCommand,
+    RemoveCommand,
+    ShowCommand,
+    TakeCommand,
+    ToggleCommand
+} from './parsetree/commands/dom.js';
+import {SettleCommand, TransitionCommand} from './parsetree/commands/animations.js';
 
 // Feature imports
-import { SetFeature } from './parsetree/features/set.js';
-import { InitFeature } from './parsetree/features/init.js';
-import { WorkerFeature } from './parsetree/features/worker.js';
-import { BehaviorFeature } from './parsetree/features/behavior.js';
-import { InstallFeature } from './parsetree/features/install.js';
-import { JsFeature } from './parsetree/features/js.js';
-import { DefFeature } from './parsetree/features/def.js';
-import { OnFeature } from './parsetree/features/on.js';
+import {SetFeature} from './parsetree/features/set.js';
+import {InitFeature} from './parsetree/features/init.js';
+import {WorkerFeature} from './parsetree/features/worker.js';
+import {BehaviorFeature} from './parsetree/features/behavior.js';
+import {InstallFeature} from './parsetree/features/install.js';
+import {JsFeature} from './parsetree/features/js.js';
+import {DefFeature} from './parsetree/features/def.js';
+import {OnFeature} from './parsetree/features/on.js';
 
 const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'undefined' ? global : this);
 
 /**
-     * parseJSON parses a JSON string into a corresponding value.  If the
-     * value passed in is not valid JSON, then it logs an error and returns `null`.
-     *
-     * @param {string} jString
-     * @returns any
-     */
-    function parseJSON(jString) {
-        try {
-            return JSON.parse(jString);
-        } catch (error) {
-            logError(error);
-            return null;
-        }
-    }
-
-    /**
      * logError writes an error message to the Javascript console.  It can take any
      * value, but msg should commonly be a simple string.
      * @param {*} msg
@@ -290,14 +328,12 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
             },
         };
     });
+    // ===== END TODO: Move To Kernel =====
 
     // Set up the LanguageKernel.raiseParseError callback for Tokens
     Tokens._parserRaiseError = LanguageKernel.raiseParseError;
     // Set up the Runtime reference for ElementCollection
     ElementCollection._runtime = runtime_;
-
-    // Forward declarations for functions that need to be referenced before definition
-    let processNode, initElement;
 
     /**
      * @param {string} src
@@ -340,7 +376,7 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
      * @param {Element} elt
      * @param {Element} [target]
      */
-    initElement = function(elt, target) {
+    function initElement(elt, target) {
         if (elt.closest && elt.closest(config.disableSelector)) {
             return;
         }
@@ -379,7 +415,7 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
     /**
      * @param {HTMLElement} elt
      */
-    processNode = function(elt) {
+    function processNode(elt) {
         var selector = runtime_.getScriptSelector();
         if (runtime_.matchesSelector(elt, selector)) {
             initElement(elt, elt);
@@ -396,15 +432,6 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
 
     // Add processNode to runtime for backward compatibility with grammars
     runtime_.processNode = processNode;
-
-    /**
-     *
-     * @param {string} src
-     * @param {Partial<Context>} [ctx]
-     */
-    function run(src, ctx) {
-        return evaluate(src, ctx)
-    }
 
     function browserInit() {
         /** @type {HTMLScriptElement[]} */
@@ -437,20 +464,13 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
             }
         }
 
-        function getMetaConfig() {
-            /** @type {HTMLMetaElement} */
-            var element = document.querySelector('meta[name="htmx-config"]');
+        function mergeMetaConfig() {
+            let element = document.querySelector('meta[name="htmx-config"]');
             if (element) {
-                return parseJSON(element.content);
+                let metaConfig = JSON.parse(element.content);
+                Object.assign(config, metaConfig);
             } else {
                 return null;
-            }
-        }
-
-        function mergeMetaConfig() {
-            var metaConfig = getMetaConfig();
-            if (metaConfig) {
-                Object.assign(config, metaConfig);
             }
         }
     }
@@ -493,7 +513,7 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
      * @type {Hyperscript}
      */
     const _hyperscript = Object.assign(
-        run,
+        {'run' : evaluate},
         {
             config,
 
