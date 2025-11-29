@@ -4,32 +4,92 @@
 // Import core modules
 import {Tokenizer, Tokens} from './core/tokenizer.js';
 import {LanguageKernel} from './core/kernel.js';
-import {ElementCollection, Runtime, HyperscriptModule} from './core/runtime.js';
+import {ElementCollection, HyperscriptModule, Runtime} from './core/runtime.js';
 import {config, conversions, initWebConversions} from './core/config.js';
 
 // Expression imports
 import {AttributeRef, ClassRef, IdRef, QueryRef, StyleLiteral, StyleRef} from './parsetree/expressions/webliterals.js';
-import {ArrayIndex, AsExpression, AsyncExpression, AttributeRefAccess, BeepExpression,
-    BlockLiteral, ComparisonExpression, ComparisonOperator, DotOrColonPath, FunctionCall, InExpression,
-    LogicalExpression, LogicalNot, LogicalOperator, MathExpression, MathOperator, NegativeNumber,
-    OfExpression, ParenthesizedExpression, PossessiveExpression, PropertyAccess, SymbolRef
+import {
+    ArrayIndex,
+    AsExpression,
+    AsyncExpression,
+    AttributeRefAccess,
+    BeepExpression,
+    BlockLiteral,
+    ComparisonExpression,
+    ComparisonOperator,
+    DotOrColonPath,
+    FunctionCall,
+    InExpression,
+    LogicalExpression,
+    LogicalNot,
+    LogicalOperator,
+    MathExpression,
+    MathOperator,
+    NegativeNumber,
+    OfExpression,
+    ParenthesizedExpression,
+    PossessiveExpression,
+    PropertyAccess,
+    SymbolRef
 } from './parsetree/expressions/expressions.js';
-import {ArrayLiteral, BooleanLiteral, NakedString, NamedArgumentList, NullLiteral, NumberLiteral,
-    ObjectKey, ObjectLiteral, StringLiteral} from './parsetree/expressions/literals.js';
+import {
+    ArrayLiteral,
+    BooleanLiteral,
+    NakedString,
+    NamedArgumentList,
+    NullLiteral,
+    NumberLiteral,
+    ObjectKey,
+    ObjectLiteral,
+    StringLiteral
+} from './parsetree/expressions/literals.js';
 import {ImplicitMeTarget} from './parsetree/expressions/targets.js';
 import {NoExpression, SomeExpression} from './parsetree/expressions/existentials.js';
 import {ClosestExpr, PositionalExpression, RelativePositionalExpression} from './parsetree/expressions/positional.js';
 import {StringPostfixExpression, TimeExpression, TypeCheckExpression} from './parsetree/expressions/postfix.js';
 
 // Command imports
-import {AppendCommand, BeepCommand, ExitCommand, FetchCommand, GoCommand, HaltCommand, LogCommand,
-    MakeCommand, PickCommand, ReturnCommand, ThrowCommand} from './parsetree/commands/basic.js';
-import {DecrementCommand, DefaultCommand, IncrementCommand, PutCommand, SetCommand} from './parsetree/commands/setters.js';
+import {
+    AppendCommand,
+    BeepCommand,
+    ExitCommand,
+    FetchCommand,
+    GoCommand,
+    HaltCommand,
+    LogCommand,
+    MakeCommand,
+    PickCommand,
+    ReturnCommand,
+    ThrowCommand
+} from './parsetree/commands/basic.js';
+import {
+    DecrementCommand,
+    DefaultCommand,
+    IncrementCommand,
+    PutCommand,
+    SetCommand
+} from './parsetree/commands/setters.js';
 import {EventName, SendCommand, TriggerCommand, WaitCommand} from './parsetree/commands/events.js';
-import {BreakCommand, ContinueCommand, ForCommand, IfCommand, RepeatCommand, TellCommand} from './parsetree/commands/controlflow.js';
+import {
+    BreakCommand,
+    ContinueCommand,
+    ForCommand,
+    IfCommand,
+    RepeatCommand,
+    TellCommand
+} from './parsetree/commands/controlflow.js';
 import {AsyncCommand, CallCommand, GetCommand, JsBody, JsCommand} from './parsetree/commands/execution.js';
 import {PseudoCommand} from './parsetree/commands/pseudoCommand.js';
-import {AddCommand, HideCommand, MeasureCommand, RemoveCommand, ShowCommand, TakeCommand, ToggleCommand} from './parsetree/commands/dom.js';
+import {
+    AddCommand,
+    HideCommand,
+    MeasureCommand,
+    RemoveCommand,
+    ShowCommand,
+    TakeCommand,
+    ToggleCommand
+} from './parsetree/commands/dom.js';
 import {SettleCommand, TransitionCommand} from './parsetree/commands/animations.js';
 
 // Feature imports
@@ -217,49 +277,6 @@ function evaluate(src, ctx, args) {
     }
 }
 
-
-async function browserInit() {
-    function ready(fn) {
-        if (document.readyState !== "loading") {
-            setTimeout(fn);
-        } else {
-            document.addEventListener("DOMContentLoaded", fn);
-        }
-    }
-
-    function mergeMetaConfig() {
-        let element = document.querySelector('meta[name="htmx-config"]');
-        if (element) {
-            let metaConfig = JSON.parse(element.content);
-            Object.assign(config, metaConfig);
-        }
-    }
-
-    // Load external hyperscript files
-    const scripts = Array.from(globalScope.document.querySelectorAll("script[type='text/hyperscript'][src]"));
-    const scriptTexts = await Promise.all(
-        scripts.map(async (script) => {
-            const res = await fetch(script.src);
-            return res.text();
-        })
-    );
-
-    // Evaluate loaded scripts
-    scriptTexts.forEach(sc => _hyperscript(sc));
-
-    // Wait for DOM ready, then initialize
-    ready(() => {
-        mergeMetaConfig();
-        runtime.processNode(document.documentElement);
-
-        document.dispatchEvent(new Event("hyperscript:ready"));
-
-        globalScope.document.addEventListener("htmx:load", (/** @type {CustomEvent} */ evt) => {
-            runtime.processNode(evt.detail.elt);
-        });
-    });
-}
-
 /**
  * @typedef {Object} HyperscriptAPI
  *
@@ -322,13 +339,52 @@ const _hyperscript = Object.assign(
         process: (elt) => runtime.processNode(elt),
         processNode: (elt) => runtime.processNode(elt),
         version: "0.9.14",
-        browserInit,
     }
 )
 
+function ready(fn) {
+    if (document.readyState !== "loading") {
+        setTimeout(fn);
+    } else {
+        document.addEventListener("DOMContentLoaded", fn);
+    }
+}
+
+function mergeMetaConfig() {
+    let element = document.querySelector('meta[name="htmx-config"]');
+    if (element) {
+        let metaConfig = JSON.parse(element.content);
+        Object.assign(config, metaConfig);
+    }
+}
+
 // Auto-initialize in browser
 if (typeof document !== 'undefined') {
-    _hyperscript.browserInit();
+    (async function () {
+        mergeMetaConfig();
+
+        // Load external hyperscript files
+        let scriptNodes = globalScope.document.querySelectorAll("script[type='text/hyperscript'][src]");
+        const scripts = Array.from(scriptNodes);
+        const scriptTexts = await Promise.all(
+            scripts.map(async (script) => {
+                const res = await fetch(script.src);
+                return res.text();
+            })
+        );
+
+        // Evaluate loaded scripts
+        scriptTexts.forEach(sc => _hyperscript(sc));
+
+        // Wait for DOM ready, then initialize
+        ready(() => {
+            runtime.processNode(document.documentElement);
+            document.dispatchEvent(new Event("hyperscript:ready"));
+            globalScope.document.addEventListener("htmx:load", (/** @type {CustomEvent} */ evt) => {
+                runtime.processNode(evt.detail.elt);
+            });
+        });
+    })();
 }
 
 // Also set on global for script tag usage

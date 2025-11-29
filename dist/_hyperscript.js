@@ -8312,40 +8312,6 @@ function evaluate(src, ctx, args) {
     return element.evaluate(ctx);
   }
 }
-function browserInit() {
-  return __async(this, null, function* () {
-    function ready(fn) {
-      if (document.readyState !== "loading") {
-        setTimeout(fn);
-      } else {
-        document.addEventListener("DOMContentLoaded", fn);
-      }
-    }
-    function mergeMetaConfig() {
-      let element = document.querySelector('meta[name="htmx-config"]');
-      if (element) {
-        let metaConfig = JSON.parse(element.content);
-        Object.assign(config, metaConfig);
-      }
-    }
-    const scripts = Array.from(globalScope.document.querySelectorAll("script[type='text/hyperscript'][src]"));
-    const scriptTexts = yield Promise.all(
-      scripts.map((script) => __async(null, null, function* () {
-        const res = yield fetch(script.src);
-        return res.text();
-      }))
-    );
-    scriptTexts.forEach((sc) => _hyperscript(sc));
-    ready(() => {
-      mergeMetaConfig();
-      runtime.processNode(document.documentElement);
-      document.dispatchEvent(new Event("hyperscript:ready"));
-      globalScope.document.addEventListener("htmx:load", (evt) => {
-        runtime.processNode(evt.detail.elt);
-      });
-    });
-  });
-}
 var _hyperscript = Object.assign(
   evaluate,
   {
@@ -8371,12 +8337,45 @@ var _hyperscript = Object.assign(
     parse: (src) => kernel.parse(tokenizer, src),
     process: (elt) => runtime.processNode(elt),
     processNode: (elt) => runtime.processNode(elt),
-    version: "0.9.14",
-    browserInit
+    version: "0.9.14"
   }
 );
+function ready(fn) {
+  if (document.readyState !== "loading") {
+    setTimeout(fn);
+  } else {
+    document.addEventListener("DOMContentLoaded", fn);
+  }
+}
+function mergeMetaConfig() {
+  let element = document.querySelector('meta[name="htmx-config"]');
+  if (element) {
+    let metaConfig = JSON.parse(element.content);
+    Object.assign(config, metaConfig);
+  }
+}
 if (typeof document !== "undefined") {
-  _hyperscript.browserInit();
+  (function() {
+    return __async(this, null, function* () {
+      mergeMetaConfig();
+      let scriptNodes = globalScope.document.querySelectorAll("script[type='text/hyperscript'][src]");
+      const scripts = Array.from(scriptNodes);
+      const scriptTexts = yield Promise.all(
+        scripts.map((script) => __async(null, null, function* () {
+          const res = yield fetch(script.src);
+          return res.text();
+        }))
+      );
+      scriptTexts.forEach((sc) => _hyperscript(sc));
+      ready(() => {
+        runtime.processNode(document.documentElement);
+        document.dispatchEvent(new Event("hyperscript:ready"));
+        globalScope.document.addEventListener("htmx:load", (evt) => {
+          runtime.processNode(evt.detail.elt);
+        });
+      });
+    });
+  })();
 }
 if (typeof self !== "undefined") {
   self._hyperscript = _hyperscript;
