@@ -1268,11 +1268,26 @@ export class AsyncExpression {
  * Parses: identifier.identifier.identifier OR identifier:identifier:identifier
  * Returns: joined path string
  */
+/**
+ * DotOrColonPathNode - Represents a dot or colon separated path
+ */
+class DotOrColonPathNode {
+    constructor(path, separator) {
+        this.type = "dotOrColonPath";
+        this.path = path;
+        this.separator = separator;
+    }
+
+    evaluate() {
+        return this.path.join(this.separator ? this.separator : "");
+    }
+}
+
 export class DotOrColonPath {
     /**
      * Parse dot or colon separated path
      * @param {Parser} parser
-     * @returns {{type: string, path: string[], evaluate: function(): string} | undefined}
+     * @returns {DotOrColonPathNode | undefined}
      */
     static parse(parser) {
         var root = parser.matchTokenType("IDENTIFIER");
@@ -1286,13 +1301,7 @@ export class DotOrColonPath {
                 } while (parser.matchOpToken(separator.value));
             }
 
-            return {
-                type: "dotOrColonPath",
-                path: path,
-                evaluate: function () {
-                    return path.join(separator ? separator.value : "");
-                },
-            };
+            return new DotOrColonPathNode(path, separator ? separator.value : null);
         }
     }
 }

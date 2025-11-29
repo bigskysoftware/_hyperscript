@@ -13,6 +13,25 @@ const STRING_POSTFIXES = [
 ];
 
 /**
+ * StringPostfixExpressionNode - String postfix expression node
+ */
+class StringPostfixExpressionNode {
+    constructor(root, postfix) {
+        this.type = "stringPostfix";
+        this.postfix = postfix;
+        this.args = [root];
+    }
+
+    op(context, val) {
+        return "" + val + this.postfix;
+    }
+
+    evaluate(context) {
+        return context.meta.runtime.unifiedEval(this, context);
+    }
+}
+
+/**
  * String postfix expression (CSS units or %)
  */
 export class StringPostfixExpression {
@@ -20,35 +39,45 @@ export class StringPostfixExpression {
      * Parse string postfix expression
      * @param {Parser} parser
      * @param {Object} root - the root expression to apply postfix to
-     * @returns {Object | undefined}
+     * @returns {StringPostfixExpressionNode | undefined}
      */
     static parse(parser, root) {
         let stringPostfix = parser.tokens.matchAnyToken.apply(parser.tokens, STRING_POSTFIXES) || parser.matchOpToken("%");
         if (!stringPostfix) return;
 
-        return {
-            type: "stringPostfix",
-            postfix: stringPostfix.value,
-            args: [root],
-            op: function (context, val) {
-                return "" + val + stringPostfix.value;
-            },
-            evaluate: function (context) {
-                return context.meta.runtime.unifiedEval(this, context);
-            },
-        };
+        return new StringPostfixExpressionNode(root, stringPostfix.value);
     }
 }
 
 /**
  * Time expression (s/seconds or ms/milliseconds)
  */
+/**
+ * TimeExpressionNode - Time expression node
+ */
+class TimeExpressionNode {
+    constructor(root, timeFactor) {
+        this.type = "timeExpression";
+        this.time = root;
+        this.factor = timeFactor;
+        this.args = [root];
+    }
+
+    op(context, val) {
+        return val * this.factor;
+    }
+
+    evaluate(context) {
+        return context.meta.runtime.unifiedEval(this, context);
+    }
+}
+
 export class TimeExpression {
     /**
      * Parse time expression
      * @param {Parser} parser
      * @param {Object} root - the root expression to apply time factor to
-     * @returns {Object | undefined}
+     * @returns {TimeExpressionNode | undefined}
      */
     static parse(parser, root) {
         var timeFactor = null;
@@ -59,18 +88,32 @@ export class TimeExpression {
         }
         if (!timeFactor) return;
 
-        return {
-            type: "timeExpression",
-            time: root,
-            factor: timeFactor,
-            args: [root],
-            op: function (context, val) {
-                return val * timeFactor;
-            },
-            evaluate: function (context) {
-                return context.meta.runtime.unifiedEval(this, context);
-            },
-        };
+        return new TimeExpressionNode(root, timeFactor);
+    }
+}
+
+/**
+ * TypeCheckExpressionNode - Type check expression node
+ */
+class TypeCheckExpressionNode {
+    constructor(root, typeName, nullOk) {
+        this.type = "typeCheck";
+        this.typeName = typeName;
+        this.nullOk = nullOk;
+        this.args = [root];
+    }
+
+    op(context, val) {
+        var passed = context.meta.runtime.typeCheck(val, this.typeName.value, this.nullOk);
+        if (passed) {
+            return val;
+        } else {
+            throw new Error("Typecheck failed!  Expected: " + this.typeName.value);
+        }
+    }
+
+    evaluate(context) {
+        return context.meta.runtime.unifiedEval(this, context);
     }
 }
 
@@ -82,7 +125,7 @@ export class TypeCheckExpression {
      * Parse type check expression
      * @param {Parser} parser
      * @param {Object} root - the root expression to type check
-     * @returns {Object | undefined}
+     * @returns {TypeCheckExpressionNode | undefined}
      */
     static parse(parser, root) {
         if (!parser.matchOpToken(":")) return;
@@ -91,22 +134,6 @@ export class TypeCheckExpression {
         if (!typeName.value) return;
         var nullOk = !parser.matchOpToken("!");
 
-        return {
-            type: "typeCheck",
-            typeName: typeName,
-            nullOk: nullOk,
-            args: [root],
-            op: function (context, val) {
-                var passed = context.meta.runtime.typeCheck(val, this.typeName.value, nullOk);
-                if (passed) {
-                    return val;
-                } else {
-                    throw new Error("Typecheck failed!  Expected: " + typeName.value);
-                }
-            },
-            evaluate: function (context) {
-                return context.meta.runtime.unifiedEval(this, context);
-            },
-        };
+        return new TypeCheckExpressionNode(root, typeName, nullOk);
     }
 }

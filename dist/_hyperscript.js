@@ -2806,11 +2806,33 @@ __publicField(_LanguageKernel, "Tokenizer", Tokenizer);
 var LanguageKernel = _LanguageKernel;
 
 // src/parsetree/expressions/webliterals.js
+var IdRefTemplateNode = class {
+  constructor(innerExpression) {
+    this.type = "idRefTemplate";
+    this.args = [innerExpression];
+  }
+  op(context2, arg) {
+    return context2.meta.runtime.getRootNode(context2.me).getElementById(arg);
+  }
+  evaluate(context2) {
+    return context2.meta.runtime.unifiedEval(this, context2);
+  }
+};
+var IdRefNode = class {
+  constructor(css, value) {
+    this.type = "idRef";
+    this.css = css;
+    this.value = value;
+  }
+  evaluate(context2) {
+    return context2.meta.runtime.getRootNode(context2.me).getElementById(this.value);
+  }
+};
 var IdRef = class {
   /**
    * Parse an ID reference
    * @param {Parser} parser
-   * @returns {any | undefined}
+   * @returns {IdRefTemplateNode | IdRefNode | undefined}
    */
   static parse(parser) {
     var _a, _b;
@@ -2822,34 +2844,40 @@ var IdRef = class {
       var templateValue = elementId.value.substring(2);
       var innerTokens = Tokenizer2.tokenize(templateValue);
       var innerExpression = parser.kernel.requireElement("expression", innerTokens);
-      return {
-        type: "idRefTemplate",
-        args: [innerExpression],
-        op: function(context2, arg) {
-          return context2.meta.runtime.getRootNode(context2.me).getElementById(arg);
-        },
-        evaluate: function(context2) {
-          return context2.meta.runtime.unifiedEval(this, context2);
-        }
-      };
+      return new IdRefTemplateNode(innerExpression);
     } else {
       const value = elementId.value.substring(1);
-      return {
-        type: "idRef",
-        css: elementId.value,
-        value,
-        evaluate: function(context2) {
-          return context2.meta.runtime.getRootNode(context2.me).getElementById(value);
-        }
-      };
+      return new IdRefNode(elementId.value, value);
     }
+  }
+};
+var ClassRefTemplateNode = class {
+  constructor(innerExpression) {
+    this.type = "classRefTemplate";
+    this.args = [innerExpression];
+  }
+  op(context2, arg) {
+    return new ElementCollection("." + arg, context2.me, true, context2.meta.runtime);
+  }
+  evaluate(context2) {
+    return context2.meta.runtime.unifiedEval(this, context2);
+  }
+};
+var ClassRefNode = class {
+  constructor(css, className) {
+    this.type = "classRef";
+    this.css = css;
+    this.className = className;
+  }
+  evaluate(context2) {
+    return new ElementCollection(this.css, context2.me, true, context2.meta.runtime);
   }
 };
 var ClassRef = class {
   /**
    * Parse a class reference
    * @param {Parser} parser
-   * @returns {any | undefined}
+   * @returns {ClassRefTemplateNode | ClassRefNode | undefined}
    */
   static parse(parser) {
     var _a, _b;
@@ -2861,35 +2889,37 @@ var ClassRef = class {
       var templateValue = classRef.value.substring(2);
       var innerTokens = Tokenizer2.tokenize(templateValue);
       var innerExpression = parser.kernel.requireElement("expression", innerTokens);
-      return {
-        type: "classRefTemplate",
-        args: [innerExpression],
-        op: function(context2, arg) {
-          return new ElementCollection("." + arg, context2.me, true, context2.meta.runtime);
-        },
-        evaluate: function(context2) {
-          return context2.meta.runtime.unifiedEval(this, context2);
-        }
-      };
+      return new ClassRefTemplateNode(innerExpression);
     } else {
       const css = classRef.value;
       const className = css.substr(1);
-      return {
-        type: "classRef",
-        css,
-        className,
-        evaluate: function(context2) {
-          return new ElementCollection(css, context2.me, true, context2.meta.runtime);
-        }
-      };
+      return new ClassRefNode(css, className);
     }
+  }
+};
+var QueryRefNode = class {
+  constructor(css, args, template) {
+    this.type = "queryRef";
+    this.css = css;
+    this.args = args;
+    this.template = template;
+  }
+  op(context2, ...args) {
+    if (this.template) {
+      return new TemplatedQueryElementCollection(this.css, context2.me, args, context2.meta.runtime);
+    } else {
+      return new ElementCollection(this.css, context2.me, false, context2.meta.runtime);
+    }
+  }
+  evaluate(context2) {
+    return context2.meta.runtime.unifiedEval(this, context2);
   }
 };
 var QueryRef = class {
   /**
    * Parse a query reference
    * @param {Parser} parser
-   * @returns {any | undefined}
+   * @returns {QueryRefNode | undefined}
    */
   static parse(parser) {
     var _a, _b;
@@ -2912,28 +2942,31 @@ var QueryRef = class {
       innerTokens = Tokenizer2.tokenize(queryValue, true);
       args = parser.kernel.parseStringTemplate(innerTokens);
     }
-    return {
-      type: "queryRef",
-      css: queryValue,
-      args,
-      op: function(context2, ...args2) {
-        if (template) {
-          return new TemplatedQueryElementCollection(queryValue, context2.me, args2, context2.meta.runtime);
-        } else {
-          return new ElementCollection(queryValue, context2.me, false, context2.meta.runtime);
-        }
-      },
-      evaluate: function(context2) {
-        return context2.meta.runtime.unifiedEval(this, context2);
-      }
-    };
+    return new QueryRefNode(queryValue, args, template);
+  }
+};
+var AttributeRefNode = class {
+  constructor(name, css, value) {
+    this.type = "attributeRef";
+    this.name = name;
+    this.css = css;
+    this.value = value;
+  }
+  op(context2) {
+    var target = context2.you || context2.me;
+    if (target) {
+      return target.getAttribute(this.name);
+    }
+  }
+  evaluate(context2) {
+    return context2.meta.runtime.unifiedEval(this, context2);
   }
 };
 var AttributeRef = class {
   /**
    * Parse an attribute reference
    * @param {Parser} parser
-   * @returns {any | undefined}
+   * @returns {AttributeRefNode | undefined}
    */
   static parse(parser) {
     var attributeRef = parser.matchTokenType("ATTRIBUTE_REF");
@@ -2954,28 +2987,44 @@ var AttributeRef = class {
         value = value.substring(1, value.length - 1);
       }
     }
-    return {
-      type: "attributeRef",
-      name,
-      css,
-      value,
-      op: function(context2) {
-        var target = context2.you || context2.me;
-        if (target) {
-          return target.getAttribute(name);
-        }
-      },
-      evaluate: function(context2) {
-        return context2.meta.runtime.unifiedEval(this, context2);
-      }
-    };
+    return new AttributeRefNode(name, css, value);
+  }
+};
+var ComputedStyleRefNode = class {
+  constructor(name) {
+    this.type = "computedStyleRef";
+    this.name = name;
+  }
+  op(context2) {
+    var target = context2.you || context2.me;
+    if (target) {
+      return context2.meta.runtime.resolveComputedStyle(target, this.name);
+    }
+  }
+  evaluate(context2) {
+    return context2.meta.runtime.unifiedEval(this, context2);
+  }
+};
+var StyleRefNode = class {
+  constructor(name) {
+    this.type = "styleRef";
+    this.name = name;
+  }
+  op(context2) {
+    var target = context2.you || context2.me;
+    if (target) {
+      return context2.meta.runtime.resolveStyle(target, this.name);
+    }
+  }
+  evaluate(context2) {
+    return context2.meta.runtime.unifiedEval(this, context2);
   }
 };
 var StyleRef = class {
   /**
    * Parse a style reference
    * @param {Parser} parser
-   * @returns {any | undefined}
+   * @returns {ComputedStyleRefNode | StyleRefNode | undefined}
    */
   static parse(parser) {
     var styleRef = parser.matchTokenType("STYLE_REF");
@@ -2984,41 +3033,36 @@ var StyleRef = class {
     var styleProp = styleRef.value.substr(1);
     if (styleProp.startsWith("computed-")) {
       styleProp = styleProp.substr("computed-".length);
-      return {
-        type: "computedStyleRef",
-        name: styleProp,
-        op: function(context2) {
-          var target = context2.you || context2.me;
-          if (target) {
-            return context2.meta.runtime.resolveComputedStyle(target, styleProp);
-          }
-        },
-        evaluate: function(context2) {
-          return context2.meta.runtime.unifiedEval(this, context2);
-        }
-      };
+      return new ComputedStyleRefNode(styleProp);
     } else {
-      return {
-        type: "styleRef",
-        name: styleProp,
-        op: function(context2) {
-          var target = context2.you || context2.me;
-          if (target) {
-            return context2.meta.runtime.resolveStyle(target, styleProp);
-          }
-        },
-        evaluate: function(context2) {
-          return context2.meta.runtime.unifiedEval(this, context2);
-        }
-      };
+      return new StyleRefNode(styleProp);
     }
+  }
+};
+var StyleLiteralNode = class {
+  constructor(stringParts, exprs) {
+    this.type = "styleLiteral";
+    this.stringParts = stringParts;
+    this.args = [exprs];
+  }
+  op(ctx, exprs) {
+    var rv = "";
+    const stringParts = this.stringParts;
+    stringParts.forEach(function(part, idx) {
+      rv += part;
+      if (idx in exprs) rv += exprs[idx];
+    });
+    return rv;
+  }
+  evaluate(ctx) {
+    return ctx.meta.runtime.unifiedEval(this, ctx);
   }
 };
 var StyleLiteral = class {
   /**
    * Parse a style literal
    * @param {Parser} parser
-   * @returns {any | undefined}
+   * @returns {StyleLiteralNode | undefined}
    */
   static parse(parser) {
     if (!parser.matchOpToken("{")) return;
@@ -3041,21 +3085,7 @@ var StyleLiteral = class {
       }
       stringParts[stringParts.length - 1] += parser.lastWhitespace();
     }
-    return {
-      type: "styleLiteral",
-      args: [exprs],
-      op: function(ctx, exprs2) {
-        var rv = "";
-        stringParts.forEach(function(part, idx) {
-          rv += part;
-          if (idx in exprs2) rv += exprs2[idx];
-        });
-        return rv;
-      },
-      evaluate: function(ctx) {
-        return ctx.meta.runtime.unifiedEval(this, ctx);
-      }
-    };
+    return new StyleLiteralNode(stringParts, exprs);
   }
 };
 
@@ -4094,11 +4124,21 @@ var AsyncExpression = class _AsyncExpression {
     };
   }
 };
+var DotOrColonPathNode = class {
+  constructor(path, separator) {
+    this.type = "dotOrColonPath";
+    this.path = path;
+    this.separator = separator;
+  }
+  evaluate() {
+    return this.path.join(this.separator ? this.separator : "");
+  }
+};
 var DotOrColonPath = class {
   /**
    * Parse dot or colon separated path
    * @param {Parser} parser
-   * @returns {{type: string, path: string[], evaluate: function(): string} | undefined}
+   * @returns {DotOrColonPathNode | undefined}
    */
   static parse(parser) {
     var root = parser.matchTokenType("IDENTIFIER");
@@ -4110,13 +4150,7 @@ var DotOrColonPath = class {
           path.push(parser.requireTokenType("IDENTIFIER", "NUMBER").value);
         } while (parser.matchOpToken(separator.value));
       }
-      return {
-        type: "dotOrColonPath",
-        path,
-        evaluate: function() {
-          return path.join(separator ? separator.value : "");
-        }
-      };
+      return new DotOrColonPathNode(path, separator ? separator.value : null);
     }
   }
 };
@@ -4855,27 +4889,44 @@ var STRING_POSTFIXES = [
   "pt",
   "px"
 ];
+var StringPostfixExpressionNode = class {
+  constructor(root, postfix) {
+    this.type = "stringPostfix";
+    this.postfix = postfix;
+    this.args = [root];
+  }
+  op(context2, val) {
+    return "" + val + this.postfix;
+  }
+  evaluate(context2) {
+    return context2.meta.runtime.unifiedEval(this, context2);
+  }
+};
 var StringPostfixExpression = class {
   /**
    * Parse string postfix expression
    * @param {Parser} parser
    * @param {Object} root - the root expression to apply postfix to
-   * @returns {Object | undefined}
+   * @returns {StringPostfixExpressionNode | undefined}
    */
   static parse(parser, root) {
     let stringPostfix = parser.tokens.matchAnyToken.apply(parser.tokens, STRING_POSTFIXES) || parser.matchOpToken("%");
     if (!stringPostfix) return;
-    return {
-      type: "stringPostfix",
-      postfix: stringPostfix.value,
-      args: [root],
-      op: function(context2, val) {
-        return "" + val + stringPostfix.value;
-      },
-      evaluate: function(context2) {
-        return context2.meta.runtime.unifiedEval(this, context2);
-      }
-    };
+    return new StringPostfixExpressionNode(root, stringPostfix.value);
+  }
+};
+var TimeExpressionNode = class {
+  constructor(root, timeFactor) {
+    this.type = "timeExpression";
+    this.time = root;
+    this.factor = timeFactor;
+    this.args = [root];
+  }
+  op(context2, val) {
+    return val * this.factor;
+  }
+  evaluate(context2) {
+    return context2.meta.runtime.unifiedEval(this, context2);
   }
 };
 var TimeExpression = class {
@@ -4883,7 +4934,7 @@ var TimeExpression = class {
    * Parse time expression
    * @param {Parser} parser
    * @param {Object} root - the root expression to apply time factor to
-   * @returns {Object | undefined}
+   * @returns {TimeExpressionNode | undefined}
    */
   static parse(parser, root) {
     var timeFactor = null;
@@ -4893,18 +4944,26 @@ var TimeExpression = class {
       timeFactor = 1;
     }
     if (!timeFactor) return;
-    return {
-      type: "timeExpression",
-      time: root,
-      factor: timeFactor,
-      args: [root],
-      op: function(context2, val) {
-        return val * timeFactor;
-      },
-      evaluate: function(context2) {
-        return context2.meta.runtime.unifiedEval(this, context2);
-      }
-    };
+    return new TimeExpressionNode(root, timeFactor);
+  }
+};
+var TypeCheckExpressionNode = class {
+  constructor(root, typeName, nullOk) {
+    this.type = "typeCheck";
+    this.typeName = typeName;
+    this.nullOk = nullOk;
+    this.args = [root];
+  }
+  op(context2, val) {
+    var passed = context2.meta.runtime.typeCheck(val, this.typeName.value, this.nullOk);
+    if (passed) {
+      return val;
+    } else {
+      throw new Error("Typecheck failed!  Expected: " + this.typeName.value);
+    }
+  }
+  evaluate(context2) {
+    return context2.meta.runtime.unifiedEval(this, context2);
   }
 };
 var TypeCheckExpression = class {
@@ -4912,30 +4971,14 @@ var TypeCheckExpression = class {
    * Parse type check expression
    * @param {Parser} parser
    * @param {Object} root - the root expression to type check
-   * @returns {Object | undefined}
+   * @returns {TypeCheckExpressionNode | undefined}
    */
   static parse(parser, root) {
     if (!parser.matchOpToken(":")) return;
     var typeName = parser.requireTokenType("IDENTIFIER");
     if (!typeName.value) return;
     var nullOk = !parser.matchOpToken("!");
-    return {
-      type: "typeCheck",
-      typeName,
-      nullOk,
-      args: [root],
-      op: function(context2, val) {
-        var passed = context2.meta.runtime.typeCheck(val, this.typeName.value, nullOk);
-        if (passed) {
-          return val;
-        } else {
-          throw new Error("Typecheck failed!  Expected: " + typeName.value);
-        }
-      },
-      evaluate: function(context2) {
-        return context2.meta.runtime.unifiedEval(this, context2);
-      }
-    };
+    return new TypeCheckExpressionNode(root, typeName, nullOk);
   }
 };
 
@@ -5651,11 +5694,57 @@ function parsePickRange(parser) {
   else if (parser.matchToken("exclusive")) rv.includeStart = false;
   return rv;
 }
+var PickCommandRange = class {
+  constructor(root, range) {
+    this.type = "pickCommand";
+    this.args = [root, range.from, range.to];
+    this.range = range;
+  }
+  op(ctx, root, from, to) {
+    if (this.range.toEnd) to = root.length;
+    if (!this.range.includeStart) from++;
+    if (this.range.includeEnd) to++;
+    if (to == null || to == void 0) to = from + 1;
+    ctx.result = root.slice(from, to);
+    return ctx.meta.runtime.findNext(this, ctx);
+  }
+  execute(ctx) {
+    return ctx.meta.runtime.unifiedExec(this, ctx);
+  }
+};
+var PickCommandMatch = class {
+  constructor(root, re, flags) {
+    this.type = "pickCommand";
+    this.args = [root, re];
+    this.flags = flags;
+  }
+  op(ctx, root, re) {
+    ctx.result = new RegExp(re, this.flags).exec(root);
+    return ctx.meta.runtime.findNext(this, ctx);
+  }
+  execute(ctx) {
+    return ctx.meta.runtime.unifiedExec(this, ctx);
+  }
+};
+var PickCommandMatches = class {
+  constructor(root, re, flags) {
+    this.type = "pickCommand";
+    this.args = [root, re];
+    this.flags = flags;
+  }
+  op(ctx, root, re) {
+    ctx.result = new RegExpIterable(re, this.flags, root);
+    return ctx.meta.runtime.findNext(this, ctx);
+  }
+  execute(ctx) {
+    return ctx.meta.runtime.unifiedExec(this, ctx);
+  }
+};
 var PickCommand = class {
   /**
    * Parse pick command
    * @param {Parser} parser
-   * @returns {PickCommand | undefined}
+   * @returns {PickCommandRange | PickCommandMatch | PickCommandMatches | undefined}
    */
   static parse(parser) {
     if (!parser.matchToken("pick")) return;
@@ -5664,17 +5753,7 @@ var PickCommand = class {
       const range = parsePickRange(parser);
       parser.requireToken("from");
       const root = parser.requireElement("expression");
-      return {
-        args: [root, range.from, range.to],
-        op(ctx, root2, from, to) {
-          if (range.toEnd) to = root2.length;
-          if (!range.includeStart) from++;
-          if (range.includeEnd) to++;
-          if (to == null || to == void 0) to = from + 1;
-          ctx.result = root2.slice(from, to);
-          return ctx.meta.runtime.findNext(this, ctx);
-        }
-      };
+      return new PickCommandRange(root, range);
     }
     if (parser.matchToken("match")) {
       parser.matchToken("of");
@@ -5685,13 +5764,7 @@ var PickCommand = class {
       }
       parser.requireToken("from");
       const root = parser.parseElement("expression");
-      return {
-        args: [root, re],
-        op(ctx, root2, re2) {
-          ctx.result = new RegExp(re2, flags).exec(root2);
-          return ctx.meta.runtime.findNext(this, ctx);
-        }
-      };
+      return new PickCommandMatch(root, re, flags);
     }
     if (parser.matchToken("matches")) {
       parser.matchToken("of");
@@ -5702,13 +5775,7 @@ var PickCommand = class {
       }
       parser.requireToken("from");
       const root = parser.parseElement("expression");
-      return {
-        args: [root, re],
-        op(ctx, root2, re2) {
-          ctx.result = new RegExpIterable(re2, flags, root2);
-          return ctx.meta.runtime.findNext(this, ctx);
-        }
-      };
+      return new PickCommandMatches(root, re, flags);
     }
   }
 };
@@ -5815,11 +5882,68 @@ var FetchCommand = class {
   }
 };
 __publicField(FetchCommand, "keyword", "fetch");
+var GoCommandNode = class {
+  constructor(target, offset, back, url, newWindow, plusOrMinus, scrollOptions) {
+    this.type = "goCommand";
+    this.target = target;
+    this.args = [target, offset];
+    this.back = back;
+    this.url = url;
+    this.newWindow = newWindow;
+    this.plusOrMinus = plusOrMinus;
+    this.scrollOptions = scrollOptions;
+  }
+  op(ctx, to, offset) {
+    if (this.back) {
+      window.history.back();
+    } else if (this.url) {
+      if (to) {
+        if (this.newWindow) {
+          window.open(to);
+        } else {
+          window.location.href = to;
+        }
+      }
+    } else {
+      const plusOrMinus = this.plusOrMinus;
+      const scrollOptions = this.scrollOptions;
+      ctx.meta.runtime.implicitLoop(to, function(target) {
+        if (target === window) {
+          target = document.body;
+        }
+        if (plusOrMinus) {
+          let boundingRect = target.getBoundingClientRect();
+          let scrollShim = document.createElement("div");
+          let actualOffset = plusOrMinus.value === "+" ? offset : offset * -1;
+          let offsetX = scrollOptions.inline == "start" || scrollOptions.inline == "end" ? actualOffset : 0;
+          let offsetY = scrollOptions.block == "start" || scrollOptions.block == "end" ? actualOffset : 0;
+          scrollShim.style.position = "absolute";
+          scrollShim.style.top = boundingRect.top + window.scrollY + offsetY + "px";
+          scrollShim.style.left = boundingRect.left + window.scrollX + offsetX + "px";
+          scrollShim.style.height = boundingRect.height + "px";
+          scrollShim.style.width = boundingRect.width + "px";
+          scrollShim.style.zIndex = "" + Number.MIN_SAFE_INTEGER;
+          scrollShim.style.opacity = "0";
+          document.body.appendChild(scrollShim);
+          setTimeout(function() {
+            document.body.removeChild(scrollShim);
+          }, 100);
+          target = scrollShim;
+        }
+        target.scrollIntoView(scrollOptions);
+      });
+    }
+    return ctx.meta.runtime.findNext(this, ctx);
+  }
+  execute(ctx) {
+    return ctx.meta.runtime.unifiedExec(this, ctx);
+  }
+};
 var GoCommand = class {
   /**
    * Parse go command
    * @param {Parser} parser
-   * @returns {GoCommand | undefined}
+   * @returns {GoCommandNode | undefined}
    */
   static parse(parser) {
     if (parser.matchToken("go")) {
@@ -5885,50 +6009,7 @@ var GoCommand = class {
           }
         }
       }
-      var goCmd = {
-        target,
-        args: [target, offset],
-        op: function(ctx, to, offset2) {
-          if (back) {
-            window.history.back();
-          } else if (url) {
-            if (to) {
-              if (newWindow) {
-                window.open(to);
-              } else {
-                window.location.href = to;
-              }
-            }
-          } else {
-            context.meta.runtime.implicitLoop(to, function(target2) {
-              if (target2 === window) {
-                target2 = document.body;
-              }
-              if (plusOrMinus) {
-                let boundingRect = target2.getBoundingClientRect();
-                let scrollShim = document.createElement("div");
-                let actualOffset = plusOrMinus.value === "+" ? offset2 : offset2 * -1;
-                let offsetX = scrollOptions.inline == "start" || scrollOptions.inline == "end" ? actualOffset : 0;
-                let offsetY = scrollOptions.block == "start" || scrollOptions.block == "end" ? actualOffset : 0;
-                scrollShim.style.position = "absolute";
-                scrollShim.style.top = boundingRect.top + window.scrollY + offsetY + "px";
-                scrollShim.style.left = boundingRect.left + window.scrollX + offsetX + "px";
-                scrollShim.style.height = boundingRect.height + "px";
-                scrollShim.style.width = boundingRect.width + "px";
-                scrollShim.style.zIndex = "" + Number.MIN_SAFE_INTEGER;
-                scrollShim.style.opacity = "0";
-                document.body.appendChild(scrollShim);
-                setTimeout(function() {
-                  document.body.removeChild(scrollShim);
-                }, 100);
-                target2 = scrollShim;
-              }
-              target2.scrollIntoView(scrollOptions);
-            });
-          }
-          return context.meta.runtime.findNext(goCmd, ctx);
-        }
-      };
+      var goCmd = new GoCommandNode(target, offset, back, url, newWindow, plusOrMinus, scrollOptions);
       return goCmd;
     }
   }
@@ -6086,20 +6167,24 @@ var SendCommand = class {
   }
 };
 __publicField(SendCommand, "keyword", "send");
+var EventNameNode = class {
+  constructor(value) {
+    this.value = value;
+  }
+  evaluate() {
+    return this.value;
+  }
+};
 var EventName = class {
   /**
    * Parse event name (string literal or dot/colon path)
    * @param {Parser} parser
-   * @returns {{evaluate: function(): string} | undefined}
+   * @returns {EventNameNode | DotOrColonPathNode | undefined}
    */
   static parse(parser) {
     var token;
     if (token = parser.matchTokenType("STRING")) {
-      return {
-        evaluate: function() {
-          return token.value;
-        }
-      };
+      return new EventNameNode(token.value);
     }
     return parser.parseElement("dotOrColonPath");
   }

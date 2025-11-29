@@ -477,13 +477,77 @@ function parsePickRange(parser) {
  *         pick [the] match[es] of <regex> from <expr>
  * Executes: Extracts specified range or matches from collection/string
  */
+/**
+ * PickCommandRange - Pick items/characters from a range
+ */
+class PickCommandRange {
+    constructor(root, range) {
+        this.type = "pickCommand";
+        this.args = [root, range.from, range.to];
+        this.range = range;
+    }
+
+    op(ctx, root, from, to) {
+        if (this.range.toEnd) to = root.length;
+        if (!this.range.includeStart) from++;
+        if (this.range.includeEnd) to++;
+        if (to == null || to == undefined) to = from + 1;
+        ctx.result = root.slice(from, to);
+        return ctx.meta.runtime.findNext(this, ctx);
+    }
+
+    execute(ctx) {
+        return ctx.meta.runtime.unifiedExec(this, ctx);
+    }
+}
+
+/**
+ * PickCommandMatch - Pick regex match
+ */
+class PickCommandMatch {
+    constructor(root, re, flags) {
+        this.type = "pickCommand";
+        this.args = [root, re];
+        this.flags = flags;
+    }
+
+    op(ctx, root, re) {
+        ctx.result = new RegExp(re, this.flags).exec(root);
+        return ctx.meta.runtime.findNext(this, ctx);
+    }
+
+    execute(ctx) {
+        return ctx.meta.runtime.unifiedExec(this, ctx);
+    }
+}
+
+/**
+ * PickCommandMatches - Pick all regex matches
+ */
+class PickCommandMatches {
+    constructor(root, re, flags) {
+        this.type = "pickCommand";
+        this.args = [root, re];
+        this.flags = flags;
+    }
+
+    op(ctx, root, re) {
+        ctx.result = new RegExpIterable(re, this.flags, root);
+        return ctx.meta.runtime.findNext(this, ctx);
+    }
+
+    execute(ctx) {
+        return ctx.meta.runtime.unifiedExec(this, ctx);
+    }
+}
+
 export class PickCommand {
     static keyword = "pick";
 
     /**
      * Parse pick command
      * @param {Parser} parser
-     * @returns {PickCommand | undefined}
+     * @returns {PickCommandRange | PickCommandMatch | PickCommandMatches | undefined}
      */
     static parse(parser) {
         if (!parser.matchToken("pick")) return;
@@ -497,17 +561,7 @@ export class PickCommand {
             parser.requireToken("from");
             const root = parser.requireElement("expression");
 
-            return {
-                args: [root, range.from, range.to],
-                op(ctx, root, from, to) {
-                    if (range.toEnd) to = root.length;
-                    if (!range.includeStart) from++;
-                    if (range.includeEnd) to++;
-                    if (to == null || to == undefined) to = from + 1;
-                    ctx.result = root.slice(from, to);
-                    return ctx.meta.runtime.findNext(this, ctx);
-                }
-            }
+            return new PickCommandRange(root, range);
         }
 
         if (parser.matchToken("match")) {
@@ -521,13 +575,7 @@ export class PickCommand {
             parser.requireToken("from");
             const root = parser.parseElement("expression");
 
-            return {
-                args: [root, re],
-                op(ctx, root, re) {
-                    ctx.result = new RegExp(re, flags).exec(root);
-                    return ctx.meta.runtime.findNext(this, ctx);
-                }
-            }
+            return new PickCommandMatch(root, re, flags);
         }
 
         if (parser.matchToken("matches")) {
@@ -541,13 +589,7 @@ export class PickCommand {
             parser.requireToken("from");
             const root = parser.parseElement("expression");
 
-            return {
-                args: [root, re],
-                op(ctx, root, re) {
-                    ctx.result = new RegExpIterable(re, flags, root);
-                    return ctx.meta.runtime.findNext(this, ctx);
-                }
-            }
+            return new PickCommandMatches(root, re, flags);
         }
     }
 }
@@ -684,13 +726,87 @@ export class FetchCommand {
  * Parses: go back | go [to] url <url> [in new window] | go [to] [the] [top|middle|bottom] [left|center|right] of <element> [+/- <offset>px] [smoothly|instantly]
  * Executes: Navigate browser history, URL, or scroll to element
  */
+/**
+ * GoCommandNode - Go command node
+ */
+class GoCommandNode {
+    constructor(target, offset, back, url, newWindow, plusOrMinus, scrollOptions) {
+        this.type = "goCommand";
+        this.target = target;
+        this.args = [target, offset];
+        this.back = back;
+        this.url = url;
+        this.newWindow = newWindow;
+        this.plusOrMinus = plusOrMinus;
+        this.scrollOptions = scrollOptions;
+    }
+
+    op(ctx, to, offset) {
+        if (this.back) {
+            window.history.back();
+        } else if (this.url) {
+            if (to) {
+                if (this.newWindow) {
+                    window.open(to);
+                } else {
+                    window.location.href = to;
+                }
+            }
+        } else {
+            const plusOrMinus = this.plusOrMinus;
+            const scrollOptions = this.scrollOptions;
+            ctx.meta.runtime.implicitLoop(to, function (target) {
+
+                if (target === window) {
+                    target = document.body;
+                }
+
+                if(plusOrMinus) {
+                    // a scroll w/ an offset of some sort
+                    let boundingRect = target.getBoundingClientRect();
+
+                    let scrollShim = document.createElement("div");
+
+                    let actualOffset = plusOrMinus.value === "+" ? offset : offset * -1;
+
+                    let offsetX = scrollOptions.inline == "start" || scrollOptions.inline == "end" ? actualOffset : 0;
+
+                    let offsetY = scrollOptions.block == "start" || scrollOptions.block == "end" ? actualOffset : 0;
+
+                    scrollShim.style.position = "absolute";
+                    scrollShim.style.top = (boundingRect.top + window.scrollY + offsetY) + "px";
+                    scrollShim.style.left = (boundingRect.left + window.scrollX + offsetX) + "px";
+                    scrollShim.style.height = boundingRect.height + "px";
+                    scrollShim.style.width = boundingRect.width + "px";
+                    scrollShim.style.zIndex = "" + Number.MIN_SAFE_INTEGER;
+                    scrollShim.style.opacity = "0";
+
+                    document.body.appendChild(scrollShim);
+                    setTimeout(function () {
+                        document.body.removeChild(scrollShim);
+                    }, 100);
+
+                    target = scrollShim;
+                }
+
+                target.scrollIntoView(scrollOptions);
+            });
+        }
+        return ctx.meta.runtime.findNext(this, ctx);
+    }
+
+    execute(ctx) {
+        return ctx.meta.runtime.unifiedExec(this, ctx);
+    }
+}
+
 export class GoCommand {
     static keyword = "go";
 
     /**
      * Parse go command
      * @param {Parser} parser
-     * @returns {GoCommand | undefined}
+     * @returns {GoCommandNode | undefined}
      */
     static parse(parser) {
         if (parser.matchToken("go")) {
@@ -763,61 +879,7 @@ export class GoCommand {
                 }
             }
 
-            var goCmd = {
-                target: target,
-                args: [target, offset],
-                op: function (ctx, to, offset) {
-                    if (back) {
-                        window.history.back();
-                    } else if (url) {
-                        if (to) {
-                            if (newWindow) {
-                                window.open(to);
-                            } else {
-                                window.location.href = to;
-                            }
-                        }
-                    } else {
-                        context.meta.runtime.implicitLoop(to, function (target) {
-
-                            if (target === window) {
-                                target = document.body;
-                            }
-
-                            if(plusOrMinus) {
-                                // a scroll w/ an offset of some sort
-                                let boundingRect = target.getBoundingClientRect();
-
-                                let scrollShim = document.createElement("div");
-
-                                let actualOffset = plusOrMinus.value === "+" ? offset : offset * -1;
-
-                                let offsetX = scrollOptions.inline == "start" || scrollOptions.inline == "end" ? actualOffset : 0;
-
-                                let offsetY = scrollOptions.block == "start" || scrollOptions.block == "end" ? actualOffset : 0;
-
-                                scrollShim.style.position = "absolute";
-                                scrollShim.style.top = (boundingRect.top + window.scrollY + offsetY) + "px";
-                                scrollShim.style.left = (boundingRect.left + window.scrollX + offsetX) + "px";
-                                scrollShim.style.height = boundingRect.height + "px";
-                                scrollShim.style.width = boundingRect.width + "px";
-                                scrollShim.style.zIndex = "" + Number.MIN_SAFE_INTEGER;
-                                scrollShim.style.opacity = "0";
-
-                                document.body.appendChild(scrollShim);
-                                setTimeout(function () {
-                                    document.body.removeChild(scrollShim);
-                                }, 100);
-
-                                target = scrollShim;
-                            }
-
-                            target.scrollIntoView(scrollOptions);
-                        });
-                    }
-                    return context.meta.runtime.findNext(goCmd, ctx);
-                },
-            };
+            var goCmd = new GoCommandNode(target, offset, back, url, newWindow, plusOrMinus, scrollOptions);
             return goCmd;
         }
     }

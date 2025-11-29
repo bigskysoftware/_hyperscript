@@ -5,6 +5,39 @@
 import { ElementCollection, TemplatedQueryElementCollection } from '../../core/runtime.js';
 
 /**
+ * IdRefTemplateNode - Template ID reference
+ */
+class IdRefTemplateNode {
+    constructor(innerExpression) {
+        this.type = "idRefTemplate";
+        this.args = [innerExpression];
+    }
+
+    op(context, arg) {
+        return context.meta.runtime.getRootNode(context.me).getElementById(arg);
+    }
+
+    evaluate(context) {
+        return context.meta.runtime.unifiedEval(this, context);
+    }
+}
+
+/**
+ * IdRefNode - Static ID reference
+ */
+class IdRefNode {
+    constructor(css, value) {
+        this.type = "idRef";
+        this.css = css;
+        this.value = value;
+    }
+
+    evaluate(context) {
+        return context.meta.runtime.getRootNode(context.me).getElementById(this.value);
+    }
+}
+
+/**
  * IdRef - Represents ID references (#foo or #${expr})
  *
  * Parses: #elementId | #${expression}
@@ -14,7 +47,7 @@ export class IdRef {
     /**
      * Parse an ID reference
      * @param {Parser} parser
-     * @returns {any | undefined}
+     * @returns {IdRefTemplateNode | IdRefNode | undefined}
      */
     static parse(parser) {
         const Tokenizer = parser.kernel.constructor.Tokenizer || window._hyperscript?.internals?.Tokenizer;
@@ -26,29 +59,44 @@ export class IdRef {
             var templateValue = elementId.value.substring(2);
             var innerTokens = Tokenizer.tokenize(templateValue);
             var innerExpression = parser.kernel.requireElement("expression", innerTokens);
-            return {
-                type: "idRefTemplate",
-                args: [innerExpression],
-                op: function (context, arg) {
-                    return context.meta.runtime.getRootNode(context.me).getElementById(arg);
-                },
-                evaluate: function (context) {
-                    return context.meta.runtime.unifiedEval(this, context);
-                },
-            };
+            return new IdRefTemplateNode(innerExpression);
         } else {
             const value = elementId.value.substring(1);
-            return {
-                type: "idRef",
-                css: elementId.value,
-                value: value,
-                evaluate: function (context) {
-                    return (
-                        context.meta.runtime.getRootNode(context.me).getElementById(value)
-                    );
-                },
-            };
+            return new IdRefNode(elementId.value, value);
         }
+    }
+}
+
+/**
+ * ClassRefTemplateNode - Template class reference
+ */
+class ClassRefTemplateNode {
+    constructor(innerExpression) {
+        this.type = "classRefTemplate";
+        this.args = [innerExpression];
+    }
+
+    op(context, arg) {
+        return new ElementCollection("." + arg, context.me, true, context.meta.runtime);
+    }
+
+    evaluate(context) {
+        return context.meta.runtime.unifiedEval(this, context);
+    }
+}
+
+/**
+ * ClassRefNode - Static class reference
+ */
+class ClassRefNode {
+    constructor(css, className) {
+        this.type = "classRef";
+        this.css = css;
+        this.className = className;
+    }
+
+    evaluate(context) {
+        return new ElementCollection(this.css, context.me, true, context.meta.runtime);
     }
 }
 
@@ -62,7 +110,7 @@ export class ClassRef {
     /**
      * Parse a class reference
      * @param {Parser} parser
-     * @returns {any | undefined}
+     * @returns {ClassRefTemplateNode | ClassRefNode | undefined}
      */
     static parse(parser) {
         const Tokenizer = parser.kernel.constructor.Tokenizer || window._hyperscript?.internals?.Tokenizer;
@@ -77,28 +125,36 @@ export class ClassRef {
             var templateValue = classRef.value.substring(2);
             var innerTokens = Tokenizer.tokenize(templateValue);
             var innerExpression = parser.kernel.requireElement("expression", innerTokens);
-            return {
-                type: "classRefTemplate",
-                args: [innerExpression],
-                op: function (context, arg) {
-                    return new ElementCollection("." + arg, context.me, true, context.meta.runtime)
-                },
-                evaluate: function (context) {
-                    return context.meta.runtime.unifiedEval(this, context);
-                },
-            };
+            return new ClassRefTemplateNode(innerExpression);
         } else {
             const css = classRef.value;
             const className = css.substr(1);
-            return {
-                type: "classRef",
-                css: css,
-                className: className,
-                evaluate: function (context) {
-                    return new ElementCollection(css, context.me, true, context.meta.runtime)
-                },
-            };
+            return new ClassRefNode(css, className);
         }
+    }
+}
+
+/**
+ * QueryRefNode - Query selector reference node
+ */
+class QueryRefNode {
+    constructor(css, args, template) {
+        this.type = "queryRef";
+        this.css = css;
+        this.args = args;
+        this.template = template;
+    }
+
+    op(context, ...args) {
+        if (this.template) {
+            return new TemplatedQueryElementCollection(this.css, context.me, args, context.meta.runtime);
+        } else {
+            return new ElementCollection(this.css, context.me, false, context.meta.runtime);
+        }
+    }
+
+    evaluate(context) {
+        return context.meta.runtime.unifiedEval(this, context);
     }
 }
 
@@ -112,7 +168,7 @@ export class QueryRef {
     /**
      * Parse a query reference
      * @param {Parser} parser
-     * @returns {any | undefined}
+     * @returns {QueryRefNode | undefined}
      */
     static parse(parser) {
         const Tokenizer = parser.kernel.constructor.Tokenizer || window._hyperscript?.internals?.Tokenizer;
@@ -139,21 +195,30 @@ export class QueryRef {
             args = parser.kernel.parseStringTemplate(innerTokens);
         }
 
-        return {
-            type: "queryRef",
-            css: queryValue,
-            args: args,
-            op: function (context, ...args) {
-                if (template) {
-                    return new TemplatedQueryElementCollection(queryValue, context.me, args, context.meta.runtime)
-                } else {
-                    return new ElementCollection(queryValue, context.me, false, context.meta.runtime)
-                }
-            },
-            evaluate: function (context) {
-                return context.meta.runtime.unifiedEval(this, context);
-            },
-        };
+        return new QueryRefNode(queryValue, args, template);
+    }
+}
+
+/**
+ * AttributeRefNode - Attribute reference node
+ */
+class AttributeRefNode {
+    constructor(name, css, value) {
+        this.type = "attributeRef";
+        this.name = name;
+        this.css = css;
+        this.value = value;
+    }
+
+    op(context) {
+        var target = context.you || context.me;
+        if (target) {
+            return target.getAttribute(this.name);
+        }
+    }
+
+    evaluate(context) {
+        return context.meta.runtime.unifiedEval(this, context);
     }
 }
 
@@ -167,7 +232,7 @@ export class AttributeRef {
     /**
      * Parse an attribute reference
      * @param {Parser} parser
-     * @returns {any | undefined}
+     * @returns {AttributeRefNode | undefined}
      */
     static parse(parser) {
         var attributeRef = parser.matchTokenType("ATTRIBUTE_REF");
@@ -189,21 +254,49 @@ export class AttributeRef {
                 value = value.substring(1, value.length - 1);
             }
         }
-        return {
-            type: "attributeRef",
-            name: name,
-            css: css,
-            value: value,
-            op: function (context) {
-                var target = context.you || context.me;
-                if (target) {
-                    return target.getAttribute(name);
-                }
-            },
-            evaluate: function (context) {
-                return context.meta.runtime.unifiedEval(this, context);
-            },
-        };
+        return new AttributeRefNode(name, css, value);
+    }
+}
+
+/**
+ * ComputedStyleRefNode - Computed style reference node
+ */
+class ComputedStyleRefNode {
+    constructor(name) {
+        this.type = "computedStyleRef";
+        this.name = name;
+    }
+
+    op(context) {
+        var target = context.you || context.me;
+        if (target) {
+            return context.meta.runtime.resolveComputedStyle(target, this.name);
+        }
+    }
+
+    evaluate(context) {
+        return context.meta.runtime.unifiedEval(this, context);
+    }
+}
+
+/**
+ * StyleRefNode - Style reference node
+ */
+class StyleRefNode {
+    constructor(name) {
+        this.type = "styleRef";
+        this.name = name;
+    }
+
+    op(context) {
+        var target = context.you || context.me;
+        if (target) {
+            return context.meta.runtime.resolveStyle(target, this.name);
+        }
+    }
+
+    evaluate(context) {
+        return context.meta.runtime.unifiedEval(this, context);
     }
 }
 
@@ -217,7 +310,7 @@ export class StyleRef {
     /**
      * Parse a style reference
      * @param {Parser} parser
-     * @returns {any | undefined}
+     * @returns {ComputedStyleRefNode | StyleRefNode | undefined}
      */
     static parse(parser) {
         var styleRef = parser.matchTokenType("STYLE_REF");
@@ -226,34 +319,37 @@ export class StyleRef {
         var styleProp = styleRef.value.substr(1);
         if (styleProp.startsWith("computed-")) {
             styleProp = styleProp.substr("computed-".length);
-            return {
-                type: "computedStyleRef",
-                name: styleProp,
-                op: function (context) {
-                    var target = context.you || context.me;
-                    if (target) {
-                        return context.meta.runtime.resolveComputedStyle(target, styleProp);
-                    }
-                },
-                evaluate: function (context) {
-                    return context.meta.runtime.unifiedEval(this, context);
-                },
-            };
+            return new ComputedStyleRefNode(styleProp);
         } else {
-            return {
-                type: "styleRef",
-                name: styleProp,
-                op: function (context) {
-                    var target = context.you || context.me;
-                    if (target) {
-                        return context.meta.runtime.resolveStyle(target, styleProp);
-                    }
-                },
-                evaluate: function (context) {
-                    return context.meta.runtime.unifiedEval(this, context);
-                },
-            };
+            return new StyleRefNode(styleProp);
         }
+    }
+}
+
+/**
+ * StyleLiteralNode - Style literal node
+ */
+class StyleLiteralNode {
+    constructor(stringParts, exprs) {
+        this.type = "styleLiteral";
+        this.stringParts = stringParts;
+        this.args = [exprs];
+    }
+
+    op(ctx, exprs) {
+        var rv = "";
+        const stringParts = this.stringParts;
+
+        stringParts.forEach(function (part, idx) {
+            rv += part;
+            if (idx in exprs) rv += exprs[idx];
+        });
+
+        return rv;
+    }
+
+    evaluate(ctx) {
+        return ctx.meta.runtime.unifiedEval(this, ctx);
     }
 }
 
@@ -267,7 +363,7 @@ export class StyleLiteral {
     /**
      * Parse a style literal
      * @param {Parser} parser
-     * @returns {any | undefined}
+     * @returns {StyleLiteralNode | undefined}
      */
     static parse(parser) {
         if (!parser.matchOpToken("{")) return;
@@ -295,23 +391,7 @@ export class StyleLiteral {
             stringParts[stringParts.length-1] += parser.lastWhitespace();
         }
 
-        return {
-            type: "styleLiteral",
-            args: [exprs],
-            op: function (ctx, exprs) {
-                var rv = "";
-
-                stringParts.forEach(function (part, idx) {
-                    rv += part;
-                    if (idx in exprs) rv += exprs[idx];
-                });
-
-                return rv;
-            },
-            evaluate: function(ctx) {
-                return ctx.meta.runtime.unifiedEval(this, ctx);
-            }
-        }
+        return new StyleLiteralNode(stringParts, exprs);
     }
 }
 

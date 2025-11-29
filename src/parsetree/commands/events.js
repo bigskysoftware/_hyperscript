@@ -204,20 +204,29 @@ export class SendCommand {
  * Parses: "string" OR dotOrColonPath
  * Returns: evaluable event name
  */
+/**
+ * EventNameNode - Represents an event name from a string literal
+ */
+class EventNameNode {
+    constructor(value) {
+        this.value = value;
+    }
+
+    evaluate() {
+        return this.value;
+    }
+}
+
 export class EventName {
     /**
      * Parse event name (string literal or dot/colon path)
      * @param {Parser} parser
-     * @returns {{evaluate: function(): string} | undefined}
+     * @returns {EventNameNode | DotOrColonPathNode | undefined}
      */
     static parse(parser) {
         var token;
         if ((token = parser.matchTokenType("STRING"))) {
-            return {
-                evaluate: function() {
-                    return token.value;
-                },
-            };
+            return new EventNameNode(token.value);
         }
 
         return parser.parseElement("dotOrColonPath");
