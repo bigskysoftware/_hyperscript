@@ -104,20 +104,6 @@ import {OnFeature} from './parsetree/features/on.js';
 
 const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'undefined' ? global : this);
 
-/**
-     * logError writes an error message to the Javascript console.  It can take any
-     * value, but msg should commonly be a simple string.
-     * @param {*} msg
-     */
-    function logError(msg) {
-        if (console.error) {
-            console.error(msg);
-        } else if (console.log) {
-            console.log("ERROR: ", msg);
-        }
-    }
-
-
     // Create lexer and runtime first
     const tokenizer_ = new Tokenizer();
     const runtime_ = new Runtime(globalScope);
@@ -261,6 +247,7 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
     kernel_.ASSIGNABLE_EXPRESSIONS.push("possessive");
 
     // Set up the LanguageKernel.raiseParseError callback for Tokens
+    // TODO need to rethink how tokenization errors are done
     Tokens._parserRaiseError = LanguageKernel.raiseParseError;
 
     /**
