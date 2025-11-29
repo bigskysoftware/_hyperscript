@@ -7597,6 +7597,49 @@ function parsePseudopossessiveTarget2(parser) {
   }
   return targets;
 }
+var SettleCommandImpl = class {
+  constructor(onExpr) {
+    this.type = "settleCmd";
+    this.onExpr = onExpr;
+    this.args = [onExpr];
+  }
+  op(context2, on) {
+    context2.meta.runtime.nullCheck(on, this.onExpr);
+    var resolve = null;
+    var resolved = false;
+    var transitionStarted = false;
+    var promise = new Promise((r) => {
+      resolve = r;
+    });
+    on.addEventListener(
+      "transitionstart",
+      () => {
+        transitionStarted = true;
+      },
+      { once: true }
+    );
+    setTimeout(() => {
+      if (!transitionStarted && !resolved) {
+        resolved = true;
+        resolve(context2.meta.runtime.findNext(this, context2));
+      }
+    }, 500);
+    on.addEventListener(
+      "transitionend",
+      () => {
+        if (!resolved) {
+          resolved = true;
+          resolve(context2.meta.runtime.findNext(this, context2));
+        }
+      },
+      { once: true }
+    );
+    return promise;
+  }
+  execute(context2) {
+    return context2.meta.runtime.unifiedExec(this, context2);
+  }
+};
 var SettleCommand = class {
   /**
    * Parse settle command
@@ -7610,49 +7653,106 @@ var SettleCommand = class {
       } else {
         var onExpr = parser.requireElement("implicitMeTarget");
       }
-      var settleCommand = {
-        type: "settleCmd",
-        args: [onExpr],
-        op: function(context2, on) {
-          context2.meta.runtime.nullCheck(on, onExpr);
-          var resolve = null;
-          var resolved = false;
-          var transitionStarted = false;
-          var promise = new Promise(function(r) {
-            resolve = r;
-          });
-          on.addEventListener(
-            "transitionstart",
-            function() {
-              transitionStarted = true;
-            },
-            { once: true }
-          );
-          setTimeout(function() {
-            if (!transitionStarted && !resolved) {
-              resolve(context2.meta.runtime.findNext(settleCommand, context2));
-            }
-          }, 500);
-          on.addEventListener(
-            "transitionend",
-            function() {
-              if (!resolved) {
-                resolve(context2.meta.runtime.findNext(settleCommand, context2));
-              }
-            },
-            { once: true }
-          );
-          return promise;
-        },
-        execute: function(context2) {
-          return context2.meta.runtime.unifiedExec(this, context2);
-        }
-      };
-      return settleCommand;
+      return new SettleCommandImpl(onExpr);
     }
   }
 };
 __publicField(SettleCommand, "keyword", "settle");
+var TransitionCommandImpl = class {
+  constructor(targetsExpr, to, properties, from, usingExpr, over) {
+    this.type = "transitionCommand";
+    this.to = to;
+    this.targetsExpr = targetsExpr;
+    this.properties = properties;
+    this.from = from;
+    this.usingExpr = usingExpr;
+    this.over = over;
+    this.args = [targetsExpr, properties, from, to, usingExpr, over];
+  }
+  op(context2, targets, properties, from, to, using, over) {
+    context2.meta.runtime.nullCheck(targets, this.targetsExpr);
+    var promises = [];
+    context2.meta.runtime.implicitLoop(targets, (target) => {
+      var promise = new Promise((resolve, reject) => {
+        var initialTransition = target.style.transition;
+        if (over) {
+          target.style.transition = "all " + over + "ms ease-in";
+        } else if (using) {
+          target.style.transition = using;
+        } else {
+          target.style.transition = config.defaultTransition;
+        }
+        var internalData = context2.meta.runtime.getInternalData(target);
+        var computedStyles = getComputedStyle(target);
+        var initialStyles = {};
+        for (var i = 0; i < computedStyles.length; i++) {
+          var name = computedStyles[i];
+          var initialValue = computedStyles[name];
+          initialStyles[name] = initialValue;
+        }
+        if (!internalData.initialStyles) {
+          internalData.initialStyles = initialStyles;
+        }
+        for (var i = 0; i < properties.length; i++) {
+          var property = properties[i];
+          var fromVal = from[i];
+          if (fromVal === "computed" || fromVal == null) {
+            target.style[property] = initialStyles[property];
+          } else {
+            target.style[property] = fromVal;
+          }
+        }
+        var transitionStarted = false;
+        var resolved = false;
+        target.addEventListener(
+          "transitionend",
+          () => {
+            if (!resolved) {
+              target.style.transition = initialTransition;
+              resolved = true;
+              resolve();
+            }
+          },
+          { once: true }
+        );
+        target.addEventListener(
+          "transitionstart",
+          () => {
+            transitionStarted = true;
+          },
+          { once: true }
+        );
+        setTimeout(() => {
+          if (!resolved && !transitionStarted) {
+            target.style.transition = initialTransition;
+            resolved = true;
+            resolve();
+          }
+        }, 100);
+        setTimeout(() => {
+          var autoProps = [];
+          for (var i2 = 0; i2 < properties.length; i2++) {
+            var property2 = properties[i2];
+            var toVal = to[i2];
+            if (toVal === "initial") {
+              var propertyValue = internalData.initialStyles[property2];
+              target.style[property2] = propertyValue;
+            } else {
+              target.style[property2] = toVal;
+            }
+          }
+        }, 0);
+      });
+      promises.push(promise);
+    });
+    return Promise.all(promises).then(() => {
+      return context2.meta.runtime.findNext(this, context2);
+    });
+  }
+  execute(ctx) {
+    return ctx.meta.runtime.unifiedExec(this, ctx);
+  }
+};
 var TransitionCommand = class {
   /**
    * Parse transition command
@@ -7702,91 +7802,7 @@ var TransitionCommand = class {
       } else if (parser.matchToken("using")) {
         var usingExpr = parser.requireElement("expression");
       }
-      var transition = {
-        to,
-        args: [targetsExpr, properties, from, to, usingExpr, over],
-        op: function(context2, targets, properties2, from2, to2, using, over2) {
-          context2.meta.runtime.nullCheck(targets, targetsExpr);
-          var promises = [];
-          context2.meta.runtime.implicitLoop(targets, function(target) {
-            var promise = new Promise(function(resolve, reject) {
-              var initialTransition = target.style.transition;
-              if (over2) {
-                target.style.transition = "all " + over2 + "ms ease-in";
-              } else if (using) {
-                target.style.transition = using;
-              } else {
-                target.style.transition = config.defaultTransition;
-              }
-              var internalData = context2.meta.runtime.getInternalData(target);
-              var computedStyles = getComputedStyle(target);
-              var initialStyles = {};
-              for (var i = 0; i < computedStyles.length; i++) {
-                var name = computedStyles[i];
-                var initialValue = computedStyles[name];
-                initialStyles[name] = initialValue;
-              }
-              if (!internalData.initialStyles) {
-                internalData.initialStyles = initialStyles;
-              }
-              for (var i = 0; i < properties2.length; i++) {
-                var property = properties2[i];
-                var fromVal = from2[i];
-                if (fromVal === "computed" || fromVal == null) {
-                  target.style[property] = initialStyles[property];
-                } else {
-                  target.style[property] = fromVal;
-                }
-              }
-              var transitionStarted = false;
-              var resolved = false;
-              target.addEventListener(
-                "transitionend",
-                function() {
-                  if (!resolved) {
-                    target.style.transition = initialTransition;
-                    resolved = true;
-                    resolve();
-                  }
-                },
-                { once: true }
-              );
-              target.addEventListener(
-                "transitionstart",
-                function() {
-                  transitionStarted = true;
-                },
-                { once: true }
-              );
-              setTimeout(function() {
-                if (!resolved && !transitionStarted) {
-                  target.style.transition = initialTransition;
-                  resolved = true;
-                  resolve();
-                }
-              }, 100);
-              setTimeout(function() {
-                var autoProps = [];
-                for (var i2 = 0; i2 < properties2.length; i2++) {
-                  var property2 = properties2[i2];
-                  var toVal = to2[i2];
-                  if (toVal === "initial") {
-                    var propertyValue = internalData.initialStyles[property2];
-                    target.style[property2] = propertyValue;
-                  } else {
-                    target.style[property2] = toVal;
-                  }
-                }
-              }, 0);
-            });
-            promises.push(promise);
-          });
-          return Promise.all(promises).then(function() {
-            return context2.meta.runtime.findNext(transition, context2);
-          });
-        }
-      };
-      return transition;
+      return new TransitionCommandImpl(targetsExpr, to, properties, from, usingExpr, over);
     }
   }
 };

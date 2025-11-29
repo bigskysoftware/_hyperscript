@@ -51,6 +51,59 @@ function parsePseudopossessiveTarget(parser) {
  * Parses: settle [on <element>]
  * Executes: Waits for CSS transitions to complete
  */
+class SettleCommandImpl {
+    constructor(onExpr) {
+        this.type = "settleCmd";
+        this.onExpr = onExpr;
+        this.args = [onExpr];
+    }
+
+    op(context, on) {
+        context.meta.runtime.nullCheck(on, this.onExpr);
+        var resolve = null;
+        var resolved = false;
+        var transitionStarted = false;
+
+        var promise = new Promise((r) => {
+            resolve = r;
+        });
+
+        // listen for a transition begin
+        on.addEventListener(
+            "transitionstart",
+            () => {
+                transitionStarted = true;
+            },
+            { once: true }
+        );
+
+        // if no transition begins in 500ms, cancel
+        setTimeout(() => {
+            if (!transitionStarted && !resolved) {
+                resolved = true;
+                resolve(context.meta.runtime.findNext(this, context));
+            }
+        }, 500);
+
+        // continue on a transition end
+        on.addEventListener(
+            "transitionend",
+            () => {
+                if (!resolved) {
+                    resolved = true;
+                    resolve(context.meta.runtime.findNext(this, context));
+                }
+            },
+            { once: true }
+        );
+        return promise;
+    }
+
+    execute(context) {
+        return context.meta.runtime.unifiedExec(this, context);
+    }
+}
+
 export class SettleCommand {
     static keyword = "settle";
 
@@ -67,52 +120,7 @@ export class SettleCommand {
                 var onExpr = parser.requireElement("implicitMeTarget");
             }
 
-            var settleCommand = {
-                type: "settleCmd",
-                args: [onExpr],
-                op: function (context, on) {
-                    context.meta.runtime.nullCheck(on, onExpr);
-                    var resolve = null;
-                    var resolved = false;
-                    var transitionStarted = false;
-
-                    var promise = new Promise(function (r) {
-                        resolve = r;
-                    });
-
-                    // listen for a transition begin
-                    on.addEventListener(
-                        "transitionstart",
-                        function () {
-                            transitionStarted = true;
-                        },
-                        { once: true }
-                    );
-
-                    // if no transition begins in 500ms, cancel
-                    setTimeout(function () {
-                        if (!transitionStarted && !resolved) {
-                            resolve(context.meta.runtime.findNext(settleCommand, context));
-                        }
-                    }, 500);
-
-                    // continue on a transition emd
-                    on.addEventListener(
-                        "transitionend",
-                        function () {
-                            if (!resolved) {
-                                resolve(context.meta.runtime.findNext(settleCommand, context));
-                            }
-                        },
-                        { once: true }
-                    );
-                    return promise;
-                },
-                execute: function (context) {
-                    return context.meta.runtime.unifiedExec(this, context);
-                },
-            };
-            return settleCommand;
+            return new SettleCommandImpl(onExpr);
         }
     }
 }
@@ -123,6 +131,114 @@ export class SettleCommand {
  * Parses: transition <element's> <property> [from <value>] to <value> [over <time>ms | using <transition>]
  * Executes: Performs CSS transitions on elements
  */
+class TransitionCommandImpl {
+    constructor(targetsExpr, to, properties, from, usingExpr, over) {
+        this.type = "transitionCommand";
+        this.to = to;
+        this.targetsExpr = targetsExpr;
+        this.properties = properties;
+        this.from = from;
+        this.usingExpr = usingExpr;
+        this.over = over;
+        this.args = [targetsExpr, properties, from, to, usingExpr, over];
+    }
+
+    op(context, targets, properties, from, to, using, over) {
+        context.meta.runtime.nullCheck(targets, this.targetsExpr);
+        var promises = [];
+        context.meta.runtime.implicitLoop(targets, (target) => {
+            var promise = new Promise((resolve, reject) => {
+                var initialTransition = target.style.transition;
+                if (over) {
+                    target.style.transition = "all " + over + "ms ease-in";
+                } else if (using) {
+                    target.style.transition = using;
+                } else {
+                    target.style.transition = config.defaultTransition;
+                }
+                var internalData = context.meta.runtime.getInternalData(target);
+                var computedStyles = getComputedStyle(target);
+
+                var initialStyles = {};
+                for (var i = 0; i < computedStyles.length; i++) {
+                    var name = computedStyles[i];
+                    var initialValue = computedStyles[name];
+                    initialStyles[name] = initialValue;
+                }
+
+                // store initial values
+                if (!internalData.initialStyles) {
+                    internalData.initialStyles = initialStyles;
+                }
+
+                for (var i = 0; i < properties.length; i++) {
+                    var property = properties[i];
+                    var fromVal = from[i];
+                    if (fromVal === "computed" || fromVal == null) {
+                        target.style[property] = initialStyles[property];
+                    } else {
+                        target.style[property] = fromVal;
+                    }
+                }
+
+                var transitionStarted = false;
+                var resolved = false;
+
+                target.addEventListener(
+                    "transitionend",
+                    () => {
+                        if (!resolved) {
+                            target.style.transition = initialTransition;
+                            resolved = true;
+                            resolve();
+                        }
+                    },
+                    { once: true }
+                );
+
+                target.addEventListener(
+                    "transitionstart",
+                    () => {
+                        transitionStarted = true;
+                    },
+                    { once: true }
+                );
+
+                // if no transition has started in 100ms, continue
+                setTimeout(() => {
+                    if (!resolved && !transitionStarted) {
+                        target.style.transition = initialTransition;
+                        resolved = true;
+                        resolve();
+                    }
+                }, 100);
+
+                setTimeout(() => {
+                    var autoProps = [];
+                    for (var i = 0; i < properties.length; i++) {
+                        var property = properties[i];
+                        var toVal = to[i];
+                        if (toVal === "initial") {
+                            var propertyValue = internalData.initialStyles[property];
+                            target.style[property] = propertyValue;
+                        } else {
+                            target.style[property] = toVal;
+                        }
+                    }
+                }, 0);
+            });
+            promises.push(promise);
+        });
+        return Promise.all(promises).then(() => {
+            return context.meta.runtime.findNext(this, context);
+        });
+    }
+
+    execute(ctx) {
+        return ctx.meta.runtime.unifiedExec(this, ctx);
+    }
+}
+
 export class TransitionCommand {
     static keyword = "transition";
 
@@ -181,105 +297,7 @@ export class TransitionCommand {
                 var usingExpr = parser.requireElement("expression");
             }
 
-            var transition = {
-                to: to,
-                args: [targetsExpr, properties, from, to, usingExpr, over],
-                op: function (context, targets, properties, from, to, using, over) {
-                    context.meta.runtime.nullCheck(targets, targetsExpr);
-                    var promises = [];
-                    context.meta.runtime.implicitLoop(targets, function (target) {
-                        var promise = new Promise(function (resolve, reject) {
-                            var initialTransition = target.style.transition;
-                            if (over) {
-                                target.style.transition = "all " + over + "ms ease-in";
-                            } else if (using) {
-                                target.style.transition = using;
-                            } else {
-                                target.style.transition = config.defaultTransition;
-                            }
-                            var internalData = context.meta.runtime.getInternalData(target);
-                            var computedStyles = getComputedStyle(target);
-
-                            var initialStyles = {};
-                            for (var i = 0; i < computedStyles.length; i++) {
-                                var name = computedStyles[i];
-                                var initialValue = computedStyles[name];
-                                initialStyles[name] = initialValue;
-                            }
-
-                            // store initial values
-                            if (!internalData.initialStyles) {
-                                internalData.initialStyles = initialStyles;
-                            }
-
-                            for (var i = 0; i < properties.length; i++) {
-                                var property = properties[i];
-                                var fromVal = from[i];
-                                if (fromVal === "computed" || fromVal == null) {
-                                    target.style[property] = initialStyles[property];
-                                } else {
-                                    target.style[property] = fromVal;
-                                }
-                            }
-                            //console.log("transition started", transition);
-
-                            var transitionStarted = false;
-                            var resolved = false;
-
-                            target.addEventListener(
-                                "transitionend",
-                                function () {
-                                    if (!resolved) {
-                                        //console.log("transition ended", transition);
-                                        target.style.transition = initialTransition;
-                                        resolved = true;
-                                        resolve();
-                                    }
-                                },
-                                { once: true }
-                            );
-
-                            target.addEventListener(
-                                "transitionstart",
-                                function () {
-                                    transitionStarted = true;
-                                },
-                                { once: true }
-                            );
-
-                            // it no transition has started in 100ms, continue
-                            setTimeout(function () {
-                                if (!resolved && !transitionStarted) {
-                                    //console.log("transition ended", transition);
-                                    target.style.transition = initialTransition;
-                                    resolved = true;
-                                    resolve();
-                                }
-                            }, 100);
-
-                            setTimeout(function () {
-                                var autoProps = [];
-                                for (var i = 0; i < properties.length; i++) {
-                                    var property = properties[i];
-                                    var toVal = to[i];
-                                    if (toVal === "initial") {
-                                        var propertyValue = internalData.initialStyles[property];
-                                        target.style[property] = propertyValue;
-                                    } else {
-                                        target.style[property] = toVal;
-                                    }
-                                    //console.log("set", property, "to", target.style[property], "on", target, "value passed in : ", toVal);
-                                }
-                            }, 0);
-                        });
-                        promises.push(promise);
-                    });
-                    return Promise.all(promises).then(function () {
-                        return context.meta.runtime.findNext(transition, context);
-                    });
-                },
-            };
-            return transition;
+            return new TransitionCommandImpl(targetsExpr, to, properties, from, usingExpr, over);
         }
     }
 }
