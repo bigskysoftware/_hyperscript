@@ -206,11 +206,9 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
 
     // Variable and value commands
     kernel_.addCommands(
-        SetCommand, DefaultCommand, IncrementCommand, DecrementCommand, AppendCommand
+        SetCommand, DefaultCommand, IncrementCommand, DecrementCommand, AppendCommand,
+        PutCommand
     );
-    kernel_.addCommand("put", function (parser) {
-        return PutCommand.parse(parser);
-    });
 
     // Control flow commands
     kernel_.addCommands(
@@ -240,14 +238,12 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
     // Initialize web-specific conversions
     initWebConversions(runtime_);
 
+    // Postfix expressions
+    kernel_.addPostfixExpression("stringPostfixExpression", StringPostfixExpression.parse);
+    kernel_.addPostfixExpression("timeExpression", TimeExpression.parse);
+    kernel_.addPostfixExpression("typeCheckExpression", TypeCheckExpression.parse);
+
     // ===== TODO: Move To Kernel =====
-    kernel_.addGrammarElement("postfixExpression", function (parser) {
-        var root = parser.parseElement("negativeNumber");
-        return StringPostfixExpression.parse(parser, root) ||
-               TimeExpression.parse(parser, root) ||
-               TypeCheckExpression.parse(parser, root) ||
-               root;
-    });
 
     kernel_.addGrammarElement("unaryExpression", function (parser) {
         parser.matchToken("the"); // optional "the"

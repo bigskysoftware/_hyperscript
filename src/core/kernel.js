@@ -118,6 +118,18 @@ export class LanguageKernel {
             return root;
         });
 
+        this.addGrammarElement("postfixExpression", function (parser) {
+            var root = parser.parseElement("negativeNumber");
+            for (var i = 0; i < parser.kernel.POSTFIX_EXPRESSIONS.length; i++) {
+                var postfixType = parser.kernel.POSTFIX_EXPRESSIONS[i];
+                var result = parser.kernel.parseElement(postfixType, parser.tokens, root);
+                if (result) {
+                    return result;
+                }
+            }
+            return root;
+        });
+
         this.addGrammarElement("indirectStatement", function (parser, root) {
             if (parser.matchToken("unless")) {
                 root.endToken = parser.lastMatch();
@@ -167,8 +179,12 @@ export class LanguageKernel {
 
     /** @type {string[]} */
     LEAF_EXPRESSIONS = [];
+
     /** @type {string[]} */
     INDIRECT_EXPRESSIONS = [];
+
+    /** @type {string[]} */
+    POSTFIX_EXPRESSIONS = [];
 
     /**
      * @param {*} parseElement
@@ -336,6 +352,15 @@ export class LanguageKernel {
      */
     addIndirectExpression(name, definition) {
         this.INDIRECT_EXPRESSIONS.push(name);
+        this.addGrammarElement(name, definition);
+    }
+
+    /**
+     * @param {string} name
+     * @param {ParseRule} definition
+     */
+    addPostfixExpression(name, definition) {
+        this.POSTFIX_EXPRESSIONS.push(name);
         this.addGrammarElement(name, definition);
     }
 

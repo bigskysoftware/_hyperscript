@@ -2219,6 +2219,8 @@ var _LanguageKernel = class _LanguageKernel {
     __publicField(this, "LEAF_EXPRESSIONS", []);
     /** @type {string[]} */
     __publicField(this, "INDIRECT_EXPRESSIONS", []);
+    /** @type {string[]} */
+    __publicField(this, "POSTFIX_EXPRESSIONS", []);
     this.possessivesDisabled = false;
     this.addGrammarElement("feature", function(parser) {
       if (parser.matchOpToken("(")) {
@@ -2281,6 +2283,17 @@ var _LanguageKernel = class _LanguageKernel {
         var indirect = parser.INDIRECT_EXPRESSIONS[i];
         root.endToken = parser.lastMatch();
         var result = parser.kernel.parseElement(indirect, parser.tokens, root);
+        if (result) {
+          return result;
+        }
+      }
+      return root;
+    });
+    this.addGrammarElement("postfixExpression", function(parser) {
+      var root = parser.parseElement("negativeNumber");
+      for (var i = 0; i < parser.kernel.POSTFIX_EXPRESSIONS.length; i++) {
+        var postfixType = parser.kernel.POSTFIX_EXPRESSIONS[i];
+        var result = parser.kernel.parseElement(postfixType, parser.tokens, root);
         if (result) {
           return result;
         }
@@ -2476,6 +2489,14 @@ var _LanguageKernel = class _LanguageKernel {
    */
   addIndirectExpression(name, definition) {
     this.INDIRECT_EXPRESSIONS.push(name);
+    this.addGrammarElement(name, definition);
+  }
+  /**
+   * @param {string} name
+   * @param {ParseRule} definition
+   */
+  addPostfixExpression(name, definition) {
+    this.POSTFIX_EXPRESSIONS.push(name);
     this.addGrammarElement(name, definition);
   }
   /**
@@ -8074,11 +8095,9 @@ kernel_.addCommands(
   DefaultCommand,
   IncrementCommand,
   DecrementCommand,
-  AppendCommand
+  AppendCommand,
+  PutCommand
 );
-kernel_.addCommand("put", function(parser) {
-  return PutCommand.parse(parser);
-});
 kernel_.addCommands(
   IfCommand,
   RepeatCommand,
@@ -8110,10 +8129,9 @@ kernel_.addCommands(
 );
 kernel_.addCommands(SettleCommand, TransitionCommand);
 initWebConversions(runtime_);
-kernel_.addGrammarElement("postfixExpression", function(parser) {
-  var root = parser.parseElement("negativeNumber");
-  return StringPostfixExpression.parse(parser, root) || TimeExpression.parse(parser, root) || TypeCheckExpression.parse(parser, root) || root;
-});
+kernel_.addPostfixExpression("stringPostfixExpression", StringPostfixExpression.parse);
+kernel_.addPostfixExpression("timeExpression", TimeExpression.parse);
+kernel_.addPostfixExpression("typeCheckExpression", TypeCheckExpression.parse);
 kernel_.addGrammarElement("unaryExpression", function(parser) {
   parser.matchToken("the");
   return parser.parseAnyOf(["beepExpression", "logicalNot", "relativePositionalExpression", "positionalExpression", "noExpression", "postfixExpression"]);
