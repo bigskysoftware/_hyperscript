@@ -14,6 +14,8 @@ import { SetCommand } from './setters.js';
  * Executes: Logs values to console or custom logger
  */
 export class LogCommand {
+    static keyword = "log";
+
     constructor(exprs, withExpr) {
         this.exprs = exprs;
         this.withExpr = withExpr;

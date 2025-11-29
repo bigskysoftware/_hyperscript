@@ -172,7 +172,7 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
     kernel_.addFeature("js", JsFeature.parse);
 
     // Basic commands
-    kernel_.addCommand("log", LogCommand.parse);
+    kernel_.addCommands(LogCommand);
     kernel_.addCommand("beep!", BeepCommand.parse);
     kernel_.addCommand("throw", ThrowCommand.parse);
     kernel_.addCommand("return", ReturnCommand.parse);

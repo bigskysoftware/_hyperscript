@@ -2385,6 +2385,9 @@ var _LanguageKernel = class _LanguageKernel {
    * @param {ParseRule} definition
    */
   addGrammarElement(name, definition) {
+    if (this.GRAMMAR[name]) {
+      throw new Error(`Grammar element '${name}' already exists`);
+    }
     this.GRAMMAR[name] = definition;
   }
   /**
@@ -2406,6 +2409,21 @@ var _LanguageKernel = class _LanguageKernel {
     };
     this.GRAMMAR[commandGrammarType] = commandDefinitionWrapper;
     this.COMMANDS[keyword] = commandDefinitionWrapper;
+  }
+  /**
+   * Register multiple command classes at once
+   * @param {...Function} commandClasses - Command classes with static keyword and parse properties
+   */
+  addCommands(...commandClasses) {
+    for (const CommandClass of commandClasses) {
+      if (!CommandClass.keyword) {
+        throw new Error(`Command class ${CommandClass.name} must have a static 'keyword' property`);
+      }
+      if (!CommandClass.parse) {
+        throw new Error(`Command class ${CommandClass.name} must have a static 'parse' method`);
+      }
+      this.addCommand(CommandClass.keyword, CommandClass.parse);
+    }
   }
   /**
    * @param {string} keyword
@@ -5061,7 +5079,7 @@ var PutCommand = class extends SetterCommand {
 };
 
 // src/parsetree/commands/basic.js
-var LogCommand = class _LogCommand {
+var _LogCommand = class _LogCommand {
   constructor(exprs, withExpr) {
     this.exprs = exprs;
     this.withExpr = withExpr;
@@ -5095,6 +5113,8 @@ var LogCommand = class _LogCommand {
     return ctx.meta.runtime.findNext(this, ctx);
   }
 };
+__publicField(_LogCommand, "keyword", "log");
+var LogCommand = _LogCommand;
 var BeepCommand = class _BeepCommand {
   constructor(exprs) {
     this.exprs = exprs;
@@ -7989,7 +8009,7 @@ kernel_.addFeature("behavior", BehaviorFeature.parse);
 kernel_.addFeature("install", InstallFeature.parse);
 kernel_.addGrammarElement("jsBody", JsBody.parse);
 kernel_.addFeature("js", JsFeature.parse);
-kernel_.addCommand("log", LogCommand.parse);
+kernel_.addCommands(LogCommand);
 kernel_.addCommand("beep!", BeepCommand.parse);
 kernel_.addCommand("throw", ThrowCommand.parse);
 kernel_.addCommand("return", ReturnCommand.parse);

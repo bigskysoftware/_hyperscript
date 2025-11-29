@@ -241,6 +241,9 @@ export class LanguageKernel {
      * @param {ParseRule} definition
      */
     addGrammarElement(name, definition) {
+        if (this.GRAMMAR[name]) {
+            throw new Error(`Grammar element '${name}' already exists`);
+        }
         this.GRAMMAR[name] = definition;
     }
 
@@ -263,6 +266,22 @@ export class LanguageKernel {
         };
         this.GRAMMAR[commandGrammarType] = commandDefinitionWrapper;
         this.COMMANDS[keyword] = commandDefinitionWrapper;
+    }
+
+    /**
+     * Register multiple command classes at once
+     * @param {...Function} commandClasses - Command classes with static keyword and parse properties
+     */
+    addCommands(...commandClasses) {
+        for (const CommandClass of commandClasses) {
+            if (!CommandClass.keyword) {
+                throw new Error(`Command class ${CommandClass.name} must have a static 'keyword' property`);
+            }
+            if (!CommandClass.parse) {
+                throw new Error(`Command class ${CommandClass.name} must have a static 'parse' method`);
+            }
+            this.addCommand(CommandClass.keyword, CommandClass.parse);
+        }
     }
 
     /**
