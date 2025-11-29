@@ -3,6 +3,8 @@
  * Web-specific commands for manipulating DOM classes, attributes, and visibility
  */
 
+import { config } from '../../core/config.js';
+
 /**
  * Hide/Show strategies for toggling element visibility
  */
@@ -80,7 +82,7 @@ function parseShowHideTarget(parser) {
 /**
  * Helper function to resolve hide/show strategy
  */
-function resolveHideShowStrategy(parser, name, config) {
+function resolveHideShowStrategy(parser, name) {
     var configDefault = config.defaultHideShowStrategy;
     var strategies = HIDE_SHOW_STRATEGIES;
     if (config.hideShowStrategies) {
@@ -303,7 +305,7 @@ export class RemoveCommand {
 export class ToggleCommand {
     static keyword = "toggle";
 
-    static parse(parser, config) {
+    static parse(parser) {
         if (!parser.matchToken("toggle")) return;
 
         var runtime = parser.runtime;
@@ -312,7 +314,7 @@ export class ToggleCommand {
             let styleRef = parser.consumeToken();
             var name = styleRef.value.substr(1);
             var visibility = true;
-            var hideShowStrategy = resolveHideShowStrategy(parser, name, config);
+            var hideShowStrategy = resolveHideShowStrategy(parser, name);
             if (parser.matchToken("of")) {
                 parser.pushFollow("with");
                 try {
@@ -444,7 +446,7 @@ export class ToggleCommand {
 export class HideCommand {
     static keyword = "hide";
 
-    static parse(parser, config) {
+    static parse(parser) {
         if (!parser.matchToken("hide")) return;
 
         var runtime = parser.runtime;
@@ -457,7 +459,7 @@ export class HideCommand {
                 name = name.substr(1);
             }
         }
-        var hideShowStrategy = resolveHideShowStrategy(parser, name, config);
+        var hideShowStrategy = resolveHideShowStrategy(parser, name);
 
         return {
             target: targetExpr,
@@ -482,7 +484,7 @@ export class HideCommand {
 export class ShowCommand {
     static keyword = "show";
 
-    static parse(parser, config) {
+    static parse(parser) {
         if (!parser.matchToken("show")) return;
 
         var runtime = parser.runtime;
@@ -510,7 +512,7 @@ export class ShowCommand {
             var when = parser.requireElement("expression");
         }
 
-        var hideShowStrategy = resolveHideShowStrategy(parser, name, config);
+        var hideShowStrategy = resolveHideShowStrategy(parser, name);
 
         return {
             target: targetExpr,

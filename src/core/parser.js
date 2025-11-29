@@ -123,7 +123,7 @@ export class Parser {
     // Kernel delegation methods
     // ===========================
 
-    parseElement(type, root) {
+    parseElement(type, root = null) {
         return this.kernel.parseElement(type, this.tokens, root);
     }
 

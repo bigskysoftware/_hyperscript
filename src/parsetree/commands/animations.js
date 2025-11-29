@@ -3,6 +3,8 @@
  * Commands for CSS transitions and animations (transition, settle)
  */
 
+import { config } from '../../core/config.js';
+
 /**
  * Helper function to parse pseudopossessive targets (the/its/my element's)
  */
@@ -127,10 +129,9 @@ export class TransitionCommand {
     /**
      * Parse transition command
      * @param {Parser} parser
-     * @param {Object} config - Parser configuration with defaultTransition
      * @returns {TransitionCommand | undefined}
      */
-    static parse(parser, config) {
+    static parse(parser) {
         if (parser.matchToken("transition")) {
             var targetsExpr = parsePseudopossessiveTarget(parser);
 

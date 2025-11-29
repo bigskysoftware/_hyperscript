@@ -241,23 +241,12 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
 
     // DOM manipulation commands
     kernel_.addCommands(
-        AddCommand, RemoveCommand, TakeCommand, MeasureCommand
+        AddCommand, RemoveCommand, TakeCommand, MeasureCommand,
+        ToggleCommand, HideCommand, ShowCommand
     );
-    kernel_.addCommand("toggle", function (parser) {
-        return ToggleCommand.parse(parser, config);
-    });
-    kernel_.addCommand("hide", function (parser) {
-        return HideCommand.parse(parser, config);
-    });
-    kernel_.addCommand("show", function (parser) {
-        return ShowCommand.parse(parser, config);
-    });
 
     // Animation commands
-    kernel_.addCommands(SettleCommand);
-    kernel_.addCommand("transition", function (parser) {
-        return TransitionCommand.parse(parser, config);
-    });
+    kernel_.addCommands(SettleCommand, TransitionCommand);
 
     // Initialize web-specific conversions
     initWebConversions(runtime_);

@@ -2147,7 +2147,7 @@ var Parser = class {
   // ===========================
   // Kernel delegation methods
   // ===========================
-  parseElement(type, root) {
+  parseElement(type, root = null) {
     return this.kernel.parseElement(type, this.tokens, root);
   }
   requireElement(type, message, root) {
@@ -6543,11 +6543,11 @@ function parseShowHideTarget(parser) {
   }
   return target;
 }
-function resolveHideShowStrategy(parser, name, config2) {
-  var configDefault = config2.defaultHideShowStrategy;
+function resolveHideShowStrategy(parser, name) {
+  var configDefault = config.defaultHideShowStrategy;
   var strategies = HIDE_SHOW_STRATEGIES;
-  if (config2.hideShowStrategies) {
-    strategies = Object.assign({}, strategies, config2.hideShowStrategies);
+  if (config.hideShowStrategies) {
+    strategies = Object.assign({}, strategies, config.hideShowStrategies);
   }
   name = name || configDefault || "display";
   var value = strategies[name];
@@ -6734,7 +6734,7 @@ var RemoveCommand = class {
 };
 __publicField(RemoveCommand, "keyword", "remove");
 var ToggleCommand = class {
-  static parse(parser, config2) {
+  static parse(parser) {
     if (!parser.matchToken("toggle")) return;
     var runtime = parser.runtime;
     parser.matchAnyToken("the", "my");
@@ -6742,7 +6742,7 @@ var ToggleCommand = class {
       let styleRef = parser.consumeToken();
       var name = styleRef.value.substr(1);
       var visibility = true;
-      var hideShowStrategy = resolveHideShowStrategy(parser, name, config2);
+      var hideShowStrategy = resolveHideShowStrategy(parser, name);
       if (parser.matchToken("of")) {
         parser.pushFollow("with");
         try {
@@ -6863,7 +6863,7 @@ var ToggleCommand = class {
 };
 __publicField(ToggleCommand, "keyword", "toggle");
 var HideCommand = class {
-  static parse(parser, config2) {
+  static parse(parser) {
     if (!parser.matchToken("hide")) return;
     var runtime = parser.runtime;
     var targetExpr = parseShowHideTarget(parser);
@@ -6874,7 +6874,7 @@ var HideCommand = class {
         name = name.substr(1);
       }
     }
-    var hideShowStrategy = resolveHideShowStrategy(parser, name, config2);
+    var hideShowStrategy = resolveHideShowStrategy(parser, name);
     return {
       target: targetExpr,
       args: [targetExpr],
@@ -6890,7 +6890,7 @@ var HideCommand = class {
 };
 __publicField(HideCommand, "keyword", "hide");
 var ShowCommand = class {
-  static parse(parser, config2) {
+  static parse(parser) {
     if (!parser.matchToken("show")) return;
     var runtime = parser.runtime;
     var targetExpr = parseShowHideTarget(parser);
@@ -6912,7 +6912,7 @@ var ShowCommand = class {
     if (parser.matchToken("when")) {
       var when = parser.requireElement("expression");
     }
-    var hideShowStrategy = resolveHideShowStrategy(parser, name, config2);
+    var hideShowStrategy = resolveHideShowStrategy(parser, name);
     return {
       target: targetExpr,
       when,
@@ -7202,10 +7202,9 @@ var TransitionCommand = class {
   /**
    * Parse transition command
    * @param {Parser} parser
-   * @param {Object} config - Parser configuration with defaultTransition
    * @returns {TransitionCommand | undefined}
    */
-  static parse(parser, config2) {
+  static parse(parser) {
     if (parser.matchToken("transition")) {
       var targetsExpr = parsePseudopossessiveTarget2(parser);
       var properties = [];
@@ -7262,7 +7261,7 @@ var TransitionCommand = class {
               } else if (using) {
                 target.style.transition = using;
               } else {
-                target.style.transition = config2.defaultTransition;
+                target.style.transition = config.defaultTransition;
               }
               var internalData = context2.meta.runtime.getInternalData(target);
               var computedStyles = getComputedStyle(target);
@@ -8087,21 +8086,12 @@ kernel_.addCommands(
   AddCommand,
   RemoveCommand,
   TakeCommand,
-  MeasureCommand
+  MeasureCommand,
+  ToggleCommand,
+  HideCommand,
+  ShowCommand
 );
-kernel_.addCommand("toggle", function(parser) {
-  return ToggleCommand.parse(parser, config);
-});
-kernel_.addCommand("hide", function(parser) {
-  return HideCommand.parse(parser, config);
-});
-kernel_.addCommand("show", function(parser) {
-  return ShowCommand.parse(parser, config);
-});
-kernel_.addCommands(SettleCommand);
-kernel_.addCommand("transition", function(parser) {
-  return TransitionCommand.parse(parser, config);
-});
+kernel_.addCommands(SettleCommand, TransitionCommand);
 initWebConversions(runtime_);
 kernel_.addGrammarElement("postfixExpression", function(parser) {
   var root = parser.parseElement("negativeNumber");
