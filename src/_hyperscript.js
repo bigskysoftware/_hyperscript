@@ -133,6 +133,9 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
     kernel_.addLeafExpression("parenthesized", ParenthesizedExpression.parse);
     kernel_.addLeafExpression("string", StringLiteral.parse);
     kernel_.addGrammarElement("nakedString", NakedString.parse);
+    kernel_.addGrammarElement("stringLike", function (parser) {
+        return parser.parseAnyOf(["string", "nakedString"]);
+    });
     kernel_.addLeafExpression("number", NumberLiteral.parse);
     kernel_.addLeafExpression("boolean", BooleanLiteral.parse);
     kernel_.addLeafExpression("null", NullLiteral.parse);
@@ -271,10 +274,6 @@ const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'und
             );
         }
         return expr;
-    });
-
-    kernel_.addGrammarElement("stringLike", function (parser) {
-        return parser.parseAnyOf(["string", "nakedString"]);
     });
 
     kernel_.addGrammarElement("hyperscript", function (parser) {
