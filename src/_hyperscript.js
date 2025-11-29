@@ -218,29 +218,7 @@ function evaluate(src, ctx, args) {
 }
 
 
-function browserInit() {
-    /** @type {HTMLScriptElement[]} */
-    var scripts = Array.from(globalScope.document.querySelectorAll("script[type='text/hyperscript'][src]"))
-    Promise.all(
-        scripts.map(function (script) {
-            return fetch(script.src)
-                .then(function (res) {
-                    return res.text();
-                });
-        })
-    )
-        .then(script_values => script_values.forEach(sc => _hyperscript(sc)))
-        .then(() => ready(function () {
-            mergeMetaConfig();
-            runtime.processNode(document.documentElement);
-
-            document.dispatchEvent(new Event("hyperscript:ready"));
-
-            globalScope.document.addEventListener("htmx:load", function (/** @type {CustomEvent} */ evt) {
-                runtime.processNode(evt.detail.elt);
-            });
-        }));
-
+async function browserInit() {
     function ready(fn) {
         if (document.readyState !== "loading") {
             setTimeout(fn);
@@ -254,10 +232,32 @@ function browserInit() {
         if (element) {
             let metaConfig = JSON.parse(element.content);
             Object.assign(config, metaConfig);
-        } else {
-            return null;
         }
     }
+
+    // Load external hyperscript files
+    const scripts = Array.from(globalScope.document.querySelectorAll("script[type='text/hyperscript'][src]"));
+    const scriptTexts = await Promise.all(
+        scripts.map(async (script) => {
+            const res = await fetch(script.src);
+            return res.text();
+        })
+    );
+
+    // Evaluate loaded scripts
+    scriptTexts.forEach(sc => _hyperscript(sc));
+
+    // Wait for DOM ready, then initialize
+    ready(() => {
+        mergeMetaConfig();
+        runtime.processNode(document.documentElement);
+
+        document.dispatchEvent(new Event("hyperscript:ready"));
+
+        globalScope.document.addEventListener("htmx:load", (/** @type {CustomEvent} */ evt) => {
+            runtime.processNode(evt.detail.elt);
+        });
+    });
 }
 
 /**
