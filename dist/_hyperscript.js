@@ -8295,16 +8295,17 @@ kernel.ASSIGNABLE_EXPRESSIONS.push("arrayIndex");
 kernel.ASSIGNABLE_EXPRESSIONS.push("possessive");
 Tokens._parserRaiseError = LanguageKernel.raiseParseError;
 function evaluate(src, ctx, args) {
-  var body = "document" in globalScope ? globalScope.document.body : new HyperscriptModule(args && args.module);
+  let body;
+  if ("document" in globalScope) {
+    body = globalScope.document.body;
+  } else {
+    body = new HyperscriptModule(args && args.module);
+  }
   ctx = Object.assign(runtime.makeContext(body, null, body, null), ctx || {});
-  var element = kernel.parse(tokenizer, src);
+  let element = kernel.parse(tokenizer, src);
   if (element.execute) {
     element.execute(ctx);
-    if (typeof ctx.meta.returnValue !== "undefined") {
-      return ctx.meta.returnValue;
-    } else {
-      return ctx.result;
-    }
+    return ctx.meta.returnValue !== void 0 ? ctx.meta.returnValue : ctx.result;
   } else if (element.apply) {
     element.apply(body, body, args, runtime);
     return runtime.getHyperscriptFeatures(body);
