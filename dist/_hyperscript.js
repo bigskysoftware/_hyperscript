@@ -4618,8 +4618,9 @@ function scanForwardArray(start, array, match, wrap) {
 function scanBackwardsArray(start, array, match, wrap) {
   return scanForwardArray(start, Array.from(array).reverse(), match, wrap);
 }
-var RelativePositionalExpression = class _RelativePositionalExpression {
+var RelativePositionalExpression = class _RelativePositionalExpression extends Expression {
   constructor(thingElt, from, forwardSearch, inSearch, wrapping, inElt, withinElt, operator) {
+    super();
     this.type = "relativePositionalExpression";
     this.thingElt = thingElt;
     this.from = from;
@@ -4708,12 +4709,10 @@ var RelativePositionalExpression = class _RelativePositionalExpression {
    * @param {Context} context
    * @returns {Element}
    */
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
-  }
 };
-var PositionalExpression = class _PositionalExpression {
+var PositionalExpression = class _PositionalExpression extends Expression {
   constructor(rhs, operator) {
+    super();
     this.type = "positionalExpression";
     this.rhs = rhs;
     this.operator = operator;
@@ -4757,12 +4756,10 @@ var PositionalExpression = class _PositionalExpression {
    * @param {Context} context
    * @returns {any}
    */
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
-  }
 };
-var ClosestExprNode = class {
+var ClosestExprNode = class extends Expression {
   constructor(parentSearch, expr, css, to) {
+    super();
     this.type = "closestExpr";
     this.parentSearch = parentSearch;
     this.expr = expr;
@@ -4795,7 +4792,7 @@ var ClosestExprNode = class {
     return ctx.meta.runtime.unifiedEval(this, ctx);
   }
 };
-var ClosestExpr = class {
+var ClosestExpr = class extends Expression {
   /**
    * Parse a closest expression
    * @param {Parser} parser

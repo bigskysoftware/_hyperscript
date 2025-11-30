@@ -4,6 +4,7 @@
  */
 
 import { Tokens } from '../../core/tokenizer.js';
+import { Expression } from '../base.js';
 
 /**
  * Helper function - scan forward in DOM tree for matching element
@@ -74,8 +75,9 @@ function scanBackwardsArray(start, array, match, wrap) {
  * Parses: next <div/> | previous <p/> | next <div/> from <expr> in <container>
  * Returns: matching element relative to starting point
  */
-export class RelativePositionalExpression {
+export class RelativePositionalExpression extends Expression {
     constructor(thingElt, from, forwardSearch, inSearch, wrapping, inElt, withinElt, operator) {
+        super();
         this.type = "relativePositionalExpression";
         this.thingElt = thingElt;
         this.from = from;
@@ -173,9 +175,6 @@ export class RelativePositionalExpression {
      * @param {Context} context
      * @returns {Element}
      */
-    evaluate(context) {
-        return context.meta.runtime.unifiedEval(this, context);
-    }
 }
 
 /**
@@ -184,8 +183,9 @@ export class RelativePositionalExpression {
  * Parses: first <expr> | last <expr> | random <expr>
  * Returns: selected element from collection
  */
-export class PositionalExpression {
+export class PositionalExpression extends Expression {
     constructor(rhs, operator) {
+        super();
         this.type = "positionalExpression";
         this.rhs = rhs;
         this.operator = operator;
@@ -232,16 +232,14 @@ export class PositionalExpression {
      * @param {Context} context
      * @returns {any}
      */
-    evaluate(context) {
-        return context.meta.runtime.unifiedEval(this, context);
-    }
 }
 
 /**
  * ClosestExprNode - Closest ancestor matching selector node
  */
-class ClosestExprNode {
+class ClosestExprNode extends Expression {
     constructor(parentSearch, expr, css, to) {
+        super();
         this.type = "closestExpr";
         this.parentSearch = parentSearch;
         this.expr = expr;
@@ -283,7 +281,7 @@ class ClosestExprNode {
  * Parses: closest <selector> [to element] | closest parent <selector> [to element]
  * Returns: Closest matching element
  */
-export class ClosestExpr {
+export class ClosestExpr extends Expression {
     /**
      * Parse a closest expression
      * @param {Parser} parser
