@@ -106,38 +106,6 @@ class MakeConstructorCommand extends Command {
     }
 }
 
-/**
- * AppendCommandImpl - Append operation implementation
- */
-class AppendCommandImpl extends Command {
-    constructor(value, targetExpr, setter) {
-        super();
-        this.value = value;
-        this.target = targetExpr;
-        this.setter = setter;
-        this.args = [targetExpr, value];
-    }
-
-    op(context, target, value) {
-        if (Array.isArray(target)) {
-            target.push(value);
-            return context.meta.runtime.findNext(this, context);
-        } else if (target instanceof Element) {
-            if (value instanceof Element) {
-                target.insertAdjacentElement("beforeend", value);
-            } else {
-                target.insertAdjacentHTML("beforeend", value);
-            }
-            context.meta.runtime.processNode(target);
-            return context.meta.runtime.findNext(this, context);
-        } else if(this.setter) {
-            context.result = (target || "") + value;
-            return this.setter;
-        } else {
-            throw Error("Unable to append a value!")
-        }
-    }
-}
 
 /**
  * LogCommand - Log values to console
@@ -454,8 +422,16 @@ export class MakeCommand {
  * Parses: append <value> [to <target>]
  * Executes: Appends value to array, string, or DOM element
  */
-export class AppendCommand {
+export class AppendCommand extends Command {
     static keyword = "append";
+
+    constructor(value, targetExpr, setter) {
+        super();
+        this.value = value;
+        this.target = targetExpr;
+        this.setter = setter;
+        this.args = [targetExpr, value];
+    }
 
     /**
      * Parse append command
@@ -481,13 +457,33 @@ export class AppendCommand {
             setter = SetCommand.makeSetter(parser, targetExpr, implicitResultSymbol);
         }
 
-        var command = new AppendCommandImpl(value, targetExpr, setter);
+        var command = new AppendCommand(value, targetExpr, setter);
 
         if (setter != null) {
             setter.parent = command;
         }
 
         return command;
+    }
+
+    op(context, target, value) {
+        if (Array.isArray(target)) {
+            target.push(value);
+            return context.meta.runtime.findNext(this, context);
+        } else if (target instanceof Element) {
+            if (value instanceof Element) {
+                target.insertAdjacentElement("beforeend", value);
+            } else {
+                target.insertAdjacentHTML("beforeend", value);
+            }
+            context.meta.runtime.processNode(target);
+            return context.meta.runtime.findNext(this, context);
+        } else if(this.setter) {
+            context.result = (target || "") + value;
+            return this.setter;
+        } else {
+            throw Error("Unable to append a value!")
+        }
     }
 }
 

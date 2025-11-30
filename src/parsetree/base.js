@@ -3,12 +3,23 @@
  */
 
 /**
+ * ParseElement - Root base class for all parse tree elements
+ *
+ * Provides common functionality for all parse tree nodes including
+ * expressions, commands, and features.
+ */
+export class ParseElement {
+    // Common base for all parse tree elements
+    // Can be extended with shared functionality in the future
+}
+
+/**
  * Expression - Base class for all expressions
  *
  * Delegates to Runtime.unifiedEval for evaluation.
  * Subclasses define op() and args for their logic.
  */
-export class Expression {
+export class Expression extends ParseElement {
     /**
      * Evaluate this expression using Runtime.unifiedEval
      *
@@ -26,7 +37,7 @@ export class Expression {
  * Delegates to Runtime.unifiedExec for execution.
  * Subclasses define op() and args for their logic.
  */
-export class Command {
+export class Command extends ParseElement {
     /**
      * Execute this command using Runtime.unifiedExec
      *
@@ -44,7 +55,7 @@ export class Command {
  * Features define behavior that is installed on elements.
  * Subclasses implement install() method for their specific logic.
  */
-export class Feature {
+export class Feature extends ParseElement {
     /**
      * Install this feature on a target element
      *

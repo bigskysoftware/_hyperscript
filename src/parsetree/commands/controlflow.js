@@ -143,7 +143,9 @@ class RepeatInitCommand extends Command {
  * Parses: if <expr> [then] <commands> [else|otherwise <commands>] [end]
  * Executes: Conditionally executes true or false branch based on expression
  */
-class IfCommandImpl extends Command {
+export class IfCommand extends Command {
+    static keyword = "if";
+
     constructor(expr, trueBranch, falseBranch) {
         super();
         this.type = "ifCommand";
@@ -152,20 +154,6 @@ class IfCommandImpl extends Command {
         this.falseBranch = falseBranch;
         this.args = [expr];
     }
-
-    op(context, exprValue) {
-        if (exprValue) {
-            return this.trueBranch;
-        } else if (this.falseBranch) {
-            return this.falseBranch;
-        } else {
-            return context.meta.runtime.findNext(this, context);
-        }
-    }
-}
-
-export class IfCommand {
-    static keyword = "if";
 
     /**
      * Parse if command
@@ -192,10 +180,20 @@ export class IfCommand {
             parser.requireToken("end");
         }
 
-        var ifCmd = new IfCommandImpl(expr, trueBranch, falseBranch);
+        var ifCmd = new IfCommand(expr, trueBranch, falseBranch);
         parser.setParent(trueBranch, ifCmd);
         parser.setParent(falseBranch, ifCmd);
         return ifCmd;
+    }
+
+    op(context, exprValue) {
+        if (exprValue) {
+            return this.trueBranch;
+        } else if (this.falseBranch) {
+            return this.falseBranch;
+        } else {
+            return context.meta.runtime.findNext(this, context);
+        }
     }
 }
 
@@ -337,11 +335,23 @@ export class ForCommand {
  * Parses: continue
  * Executes: Continues to next iteration of closest repeat loop
  */
-class ContinueCommandImpl extends Command {
+export class ContinueCommand extends Command {
+    static keyword = "continue";
+
     constructor(parser) {
         super();
         this.type = "continueCommand";
         this.parser = parser;
+    }
+
+    /**
+     * Parse continue command
+     * @param {Parser} parser
+     * @returns {ContinueCommand | undefined}
+     */
+    static parse(parser) {
+        if (!parser.matchToken("continue")) return;
+        return new ContinueCommand(parser);
     }
 
     op(context) {
@@ -357,31 +367,29 @@ class ContinueCommandImpl extends Command {
     }
 }
 
-export class ContinueCommand {
-    static keyword = "continue";
-
-    /**
-     * Parse continue command
-     * @param {Parser} parser
-     * @returns {ContinueCommand | undefined}
-     */
-    static parse(parser) {
-        if (!parser.matchToken("continue")) return;
-        return new ContinueCommandImpl(parser);
-    }
-}
-
 /**
  * BreakCommand - Break loop
  *
  * Parses: break
  * Executes: Exits closest repeat loop
  */
-class BreakCommandImpl extends Command {
+export class BreakCommand extends Command {
+    static keyword = "break";
+
     constructor(parser) {
         super();
         this.type = "breakCommand";
         this.parser = parser;
+    }
+
+    /**
+     * Parse break command
+     * @param {Parser} parser
+     * @returns {BreakCommand | undefined}
+     */
+    static parse(parser) {
+        if (!parser.matchToken("break")) return;
+        return new BreakCommand(parser);
     }
 
     op(context) {
@@ -397,27 +405,15 @@ class BreakCommandImpl extends Command {
     }
 }
 
-export class BreakCommand {
-    static keyword = "break";
-
-    /**
-     * Parse break command
-     * @param {Parser} parser
-     * @returns {BreakCommand | undefined}
-     */
-    static parse(parser) {
-        if (!parser.matchToken("break")) return;
-        return new BreakCommandImpl(parser);
-    }
-}
-
 /**
  * TellCommand - Send command to other element
  *
  * Parses: tell <expr> <commands> end
  * Executes: Executes commands with 'you' set to target element(s)
  */
-class TellCommandImpl extends Command {
+export class TellCommand extends Command {
+    static keyword = "tell";
+
     constructor(value, body, slot) {
         super();
         this.type = "tellCommand";
@@ -425,6 +421,25 @@ class TellCommandImpl extends Command {
         this.body = body;
         this.slot = slot;
         this.args = [value];
+    }
+
+    /**
+     * Parse tell command
+     * @param {Parser} parser
+     * @returns {TellCommand | undefined}
+     */
+    static parse(parser) {
+        var startToken = parser.currentToken();
+        if (!parser.matchToken("tell")) return;
+        var value = parser.requireElement("expression");
+        var body = parser.requireElement("commandList");
+        if (parser.hasMore() && !parser.featureStart(parser.currentToken())) {
+            parser.requireToken("end");
+        }
+        var slot = "tell_" + startToken.start;
+        var tellCmd = new TellCommand(value, body, slot);
+        parser.setParent(body, tellCmd);
+        return tellCmd;
     }
 
     resolveNext(context) {
@@ -455,28 +470,5 @@ class TellCommandImpl extends Command {
             value: value,
         };
         return this.resolveNext(context);
-    }
-}
-
-export class TellCommand {
-    static keyword = "tell";
-
-    /**
-     * Parse tell command
-     * @param {Parser} parser
-     * @returns {TellCommand | undefined}
-     */
-    static parse(parser) {
-        var startToken = parser.currentToken();
-        if (!parser.matchToken("tell")) return;
-        var value = parser.requireElement("expression");
-        var body = parser.requireElement("commandList");
-        if (parser.hasMore() && !parser.featureStart(parser.currentToken())) {
-            parser.requireToken("end");
-        }
-        var slot = "tell_" + startToken.start;
-        var tellCmd = new TellCommandImpl(value, body, slot);
-        parser.setParent(body, tellCmd);
-        return tellCmd;
     }
 }
