@@ -59,7 +59,9 @@ export class JsBody {
  * Parses: js [(inputs...)] <jsBody> end
  * Executes: Runs JavaScript code with optional inputs from hyperscript context
  */
-class JsCommandImpl extends Command {
+export class JsCommand extends Command {
+    static keyword = "js";
+
     constructor(jsSource, func, inputs) {
         super();
         this.type = "jsCommand";
@@ -67,29 +69,6 @@ class JsCommandImpl extends Command {
         this.function = func;
         this.inputs = inputs;
     }
-
-    op(context) {
-        var args = [];
-        this.inputs.forEach((input) => {
-            args.push(context.meta.runtime.resolveSymbol(input, context, 'default'));
-        });
-        var result = this.function.apply(context.meta.runtime.globalScope, args);
-        if (result && typeof result.then === "function") {
-            return new Promise((resolve) => {
-                result.then((actualResult) => {
-                    context.result = actualResult;
-                    resolve(context.meta.runtime.findNext(this, context));
-                });
-            });
-        } else {
-            context.result = result;
-            return context.meta.runtime.findNext(this, context);
-        }
-    }
-}
-
-export class JsCommand {
-    static keyword = "js";
 
     /**
      * Parse js command
@@ -117,7 +96,26 @@ export class JsCommand {
 
         var func = varargConstructor(Function, inputs.concat([jsBody.jsSource]));
 
-        return new JsCommandImpl(jsBody.jsSource, func, inputs);
+        return new JsCommand(jsBody.jsSource, func, inputs);
+    }
+
+    op(context) {
+        var args = [];
+        this.inputs.forEach((input) => {
+            args.push(context.meta.runtime.resolveSymbol(input, context, 'default'));
+        });
+        var result = this.function.apply(context.meta.runtime.globalScope, args);
+        if (result && typeof result.then === "function") {
+            return new Promise((resolve) => {
+                result.then((actualResult) => {
+                    context.result = actualResult;
+                    resolve(context.meta.runtime.findNext(this, context));
+                });
+            });
+        } else {
+            context.result = result;
+            return context.meta.runtime.findNext(this, context);
+        }
     }
 }
 
@@ -127,23 +125,14 @@ export class JsCommand {
  * Parses: async [do] <command[s]> [end]
  * Executes: Runs command(s) asynchronously via setTimeout
  */
-class AsyncCommandImpl extends Command {
+export class AsyncCommand extends Command {
+    static keyword = "async";
+
     constructor(body) {
         super();
         this.type = "asyncCommand";
         this.body = body;
     }
-
-    op(context) {
-        setTimeout(() => {
-            this.body.execute(context);
-        });
-        return context.meta.runtime.findNext(this, context);
-    }
-}
-
-export class AsyncCommand {
-    static keyword = "async";
 
     /**
      * Parse async command
@@ -164,9 +153,16 @@ export class AsyncCommand {
         } else {
             var body = parser.requireElement("command");
         }
-        var command = new AsyncCommandImpl(body);
+        var command = new AsyncCommand(body);
         parser.setParent(body, command);
         return command;
+    }
+
+    op(context) {
+        setTimeout(() => {
+            this.body.execute(context);
+        });
+        return context.meta.runtime.findNext(this, context);
     }
 }
 

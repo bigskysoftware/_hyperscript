@@ -113,10 +113,11 @@ class MakeConstructorCommand extends Command {
  * Parses: log expr1, expr2, ... [with customLogger]
  * Executes: Logs values to console or custom logger
  */
-export class LogCommand {
+export class LogCommand extends Command {
     static keyword = "log";
 
     constructor(exprs, withExpr) {
+        super();
         this.exprs = exprs;
         this.withExpr = withExpr;
         this.args = [withExpr, exprs];
@@ -158,10 +159,11 @@ export class LogCommand {
  * Parses: beep! expr1, expr2, ...
  * Executes: Logs values with debug formatting
  */
-export class BeepCommand {
+export class BeepCommand extends Command {
     static keyword = "beep!";
 
     constructor(exprs) {
+        super();
         this.exprs = exprs;
         this.args = [exprs];
     }
@@ -199,10 +201,11 @@ export class BeepCommand {
  * Parses: throw expression
  * Executes: Throws the evaluated expression
  */
-export class ThrowCommand {
+export class ThrowCommand extends Command {
     static keyword = "throw";
 
     constructor(expr) {
+        super();
         this.expr = expr;
         this.args = [expr];
     }
@@ -233,10 +236,11 @@ export class ThrowCommand {
  * Parses: return expression
  * Executes: Returns value and halts execution
  */
-export class ReturnCommand {
+export class ReturnCommand extends Command {
     static keyword = "return";
 
     constructor(value) {
+        super();
         this.value = value;
         this.args = [value];
     }
@@ -280,10 +284,11 @@ export class ReturnCommand {
  * Parses: exit
  * Executes: Exits and halts execution
  */
-export class ExitCommand {
+export class ExitCommand extends Command {
     static keyword = "exit";
 
     constructor() {
+        super();
         this.args = [undefined];
     }
 
@@ -321,10 +326,11 @@ export class ExitCommand {
  * Parses: halt [the event] [bubbling|default]
  * Executes: Stops event propagation/default
  */
-export class HaltCommand {
+export class HaltCommand extends Command {
     static keyword = "halt";
 
     constructor(bubbling, haltDefault, keepExecuting, exit) {
+        super();
         this.keepExecuting = keepExecuting;
         this.bubbling = bubbling;
         this.haltDefault = haltDefault;

@@ -358,7 +358,9 @@ export class RemoveCommand {
  * Parses: toggle .class on target | toggle @attr on target | toggle *visibility | toggle between .class1 and .class2
  * Executes: Toggles classes/attributes or visibility state
  */
-class ToggleCommandImpl extends Command {
+export class ToggleCommand extends Command {
+    static keyword = "toggle";
+
     constructor(classRef, classRef2, classRefs, attributeRef, onExpr, time, evt, from, visibility, between, hideShowStrategy) {
         super();
         this.type = "toggleCommand";
@@ -376,71 +378,6 @@ class ToggleCommandImpl extends Command {
         this.onExpr = onExpr;
         this.args = [onExpr, time, evt, from, classRef, classRef2, classRefs];
     }
-
-    toggle(context, on, classRef, classRef2, classRefs) {
-        context.meta.runtime.nullCheck(on, this.onExpr);
-        if (this.visibility) {
-            context.meta.runtime.implicitLoop(on, (target) => {
-                this.hideShowStrategy("toggle", target, null, context.meta.runtime);
-            });
-        } else if (this.between) {
-            context.meta.runtime.implicitLoop(on, (target) => {
-                if (target.classList.contains(classRef.className)) {
-                    target.classList.remove(classRef.className);
-                    target.classList.add(classRef2.className);
-                } else {
-                    target.classList.add(classRef.className);
-                    target.classList.remove(classRef2.className);
-                }
-            });
-        } else if (classRefs) {
-            context.meta.runtime.forEach(classRefs, (classRef) => {
-                context.meta.runtime.implicitLoop(on, (target) => {
-                    target.classList.toggle(classRef.className);
-                });
-            });
-        } else {
-            context.meta.runtime.implicitLoop(on, (target) => {
-                if (target.hasAttribute(this.attributeRef.name)) {
-                    target.removeAttribute(this.attributeRef.name);
-                } else {
-                    target.setAttribute(this.attributeRef.name, this.attributeRef.value);
-                }
-            });
-        }
-    }
-
-    op(context, on, time, evt, from, classRef, classRef2, classRefs) {
-        if (time) {
-            return new Promise((resolve) => {
-                this.toggle(context, on, classRef, classRef2, classRefs);
-                setTimeout(() => {
-                    this.toggle(context, on, classRef, classRef2, classRefs);
-                    resolve(context.meta.runtime.findNext(this, context));
-                }, time);
-            });
-        } else if (evt) {
-            return new Promise((resolve) => {
-                var target = from || context.me;
-                target.addEventListener(
-                    evt,
-                    () => {
-                        this.toggle(context, on, classRef, classRef2, classRefs);
-                        resolve(context.meta.runtime.findNext(this, context));
-                    },
-                    { once: true }
-                );
-                this.toggle(context, on, classRef, classRef2, classRefs);
-            });
-        } else {
-            this.toggle(context, on, classRef, classRef2, classRefs);
-            return context.meta.runtime.findNext(this, context);
-        }
-    }
-}
-
-export class ToggleCommand {
-    static keyword = "toggle";
 
     static parse(parser) {
         if (!parser.matchToken("toggle")) return;
@@ -511,7 +448,68 @@ export class ToggleCommand {
             }
         }
 
-        return new ToggleCommandImpl(classRef, classRef2, classRefs, attributeRef, onExpr, time, evt, from, visibility, between, hideShowStrategy);
+        return new ToggleCommand(classRef, classRef2, classRefs, attributeRef, onExpr, time, evt, from, visibility, between, hideShowStrategy);
+    }
+
+    toggle(context, on, classRef, classRef2, classRefs) {
+        context.meta.runtime.nullCheck(on, this.onExpr);
+        if (this.visibility) {
+            context.meta.runtime.implicitLoop(on, (target) => {
+                this.hideShowStrategy("toggle", target, null, context.meta.runtime);
+            });
+        } else if (this.between) {
+            context.meta.runtime.implicitLoop(on, (target) => {
+                if (target.classList.contains(classRef.className)) {
+                    target.classList.remove(classRef.className);
+                    target.classList.add(classRef2.className);
+                } else {
+                    target.classList.add(classRef.className);
+                    target.classList.remove(classRef2.className);
+                }
+            });
+        } else if (classRefs) {
+            context.meta.runtime.forEach(classRefs, (classRef) => {
+                context.meta.runtime.implicitLoop(on, (target) => {
+                    target.classList.toggle(classRef.className);
+                });
+            });
+        } else {
+            context.meta.runtime.implicitLoop(on, (target) => {
+                if (target.hasAttribute(this.attributeRef.name)) {
+                    target.removeAttribute(this.attributeRef.name);
+                } else {
+                    target.setAttribute(this.attributeRef.name, this.attributeRef.value);
+                }
+            });
+        }
+    }
+
+    op(context, on, time, evt, from, classRef, classRef2, classRefs) {
+        if (time) {
+            return new Promise((resolve) => {
+                this.toggle(context, on, classRef, classRef2, classRefs);
+                setTimeout(() => {
+                    this.toggle(context, on, classRef, classRef2, classRefs);
+                    resolve(context.meta.runtime.findNext(this, context));
+                }, time);
+            });
+        } else if (evt) {
+            return new Promise((resolve) => {
+                var target = from || context.me;
+                target.addEventListener(
+                    evt,
+                    () => {
+                        this.toggle(context, on, classRef, classRef2, classRefs);
+                        resolve(context.meta.runtime.findNext(this, context));
+                    },
+                    { once: true }
+                );
+                this.toggle(context, on, classRef, classRef2, classRefs);
+            });
+        } else {
+            this.toggle(context, on, classRef, classRef2, classRefs);
+            return context.meta.runtime.findNext(this, context);
+        }
     }
 }
 
@@ -521,7 +519,9 @@ export class ToggleCommand {
  * Parses: hide target [with display|visibility|opacity]
  * Executes: Hides target element using specified strategy
  */
-class HideCommandImpl extends Command {
+export class HideCommand extends Command {
+    static keyword = "hide";
+
     constructor(targetExpr, hideShowStrategy) {
         super();
         this.type = "hideCommand";
@@ -530,18 +530,6 @@ class HideCommandImpl extends Command {
         this.hideShowStrategy = hideShowStrategy;
         this.args = [targetExpr];
     }
-
-    op(ctx, target) {
-        ctx.meta.runtime.nullCheck(target, this.targetExpr);
-        ctx.meta.runtime.implicitLoop(target, (elt) => {
-            this.hideShowStrategy("hide", elt, null, ctx.meta.runtime);
-        });
-        return ctx.meta.runtime.findNext(this, ctx);
-    }
-}
-
-export class HideCommand {
-    static keyword = "hide";
 
     static parse(parser) {
         if (!parser.matchToken("hide")) return;
@@ -557,7 +545,15 @@ export class HideCommand {
         }
         var hideShowStrategy = resolveHideShowStrategy(parser, name);
 
-        return new HideCommandImpl(targetExpr, hideShowStrategy);
+        return new HideCommand(targetExpr, hideShowStrategy);
+    }
+
+    op(ctx, target) {
+        ctx.meta.runtime.nullCheck(target, this.targetExpr);
+        ctx.meta.runtime.implicitLoop(target, (elt) => {
+            this.hideShowStrategy("hide", elt, null, ctx.meta.runtime);
+        });
+        return ctx.meta.runtime.findNext(this, ctx);
     }
 }
 
@@ -567,7 +563,9 @@ export class HideCommand {
  * Parses: show target [with display|visibility|opacity] [:value] [when condition]
  * Executes: Shows target element using specified strategy
  */
-class ShowCommandImpl extends Command {
+export class ShowCommand extends Command {
+    static keyword = "show";
+
     constructor(targetExpr, when, arg, hideShowStrategy) {
         super();
         this.type = "showCommand";
@@ -578,29 +576,6 @@ class ShowCommandImpl extends Command {
         this.hideShowStrategy = hideShowStrategy;
         this.args = [targetExpr];
     }
-
-    op(ctx, target) {
-        ctx.meta.runtime.nullCheck(target, this.targetExpr);
-        ctx.meta.runtime.implicitLoop(target, (elt) => {
-            if (this.when) {
-                ctx.result = elt;
-                let whenResult = ctx.meta.runtime.evaluateNoPromise(this.when, ctx);
-                if (whenResult) {
-                    this.hideShowStrategy("show", elt, this.arg, ctx.meta.runtime);
-                } else {
-                    this.hideShowStrategy("hide", elt, null, ctx.meta.runtime);
-                }
-                ctx.result = null;
-            } else {
-                this.hideShowStrategy("show", elt, this.arg, ctx.meta.runtime);
-            }
-        });
-        return ctx.meta.runtime.findNext(this, ctx);
-    }
-}
-
-export class ShowCommand {
-    static keyword = "show";
 
     static parse(parser) {
         if (!parser.matchToken("show")) return;
@@ -631,7 +606,26 @@ export class ShowCommand {
 
         var hideShowStrategy = resolveHideShowStrategy(parser, name);
 
-        return new ShowCommandImpl(targetExpr, when, arg, hideShowStrategy);
+        return new ShowCommand(targetExpr, when, arg, hideShowStrategy);
+    }
+
+    op(ctx, target) {
+        ctx.meta.runtime.nullCheck(target, this.targetExpr);
+        ctx.meta.runtime.implicitLoop(target, (elt) => {
+            if (this.when) {
+                ctx.result = elt;
+                let whenResult = ctx.meta.runtime.evaluateNoPromise(this.when, ctx);
+                if (whenResult) {
+                    this.hideShowStrategy("show", elt, this.arg, ctx.meta.runtime);
+                } else {
+                    this.hideShowStrategy("hide", elt, null, ctx.meta.runtime);
+                }
+                ctx.result = null;
+            } else {
+                this.hideShowStrategy("show", elt, this.arg, ctx.meta.runtime);
+            }
+        });
+        return ctx.meta.runtime.findNext(this, ctx);
     }
 }
 
@@ -792,13 +786,34 @@ export class TakeCommand {
  * Parses: measure <element's> [property, ...]
  * Executes: Measures element bounds and scroll properties
  */
-class MeasureCommandImpl extends Command {
+export class MeasureCommand extends Command {
+    static keyword = "measure";
+
     constructor(targetExpr, propsToMeasure) {
         super();
         this.type = "measureCommand";
         this.properties = propsToMeasure;
         this.targetExpr = targetExpr;
         this.args = [targetExpr];
+    }
+
+    /**
+     * Parse measure command
+     * @param {Parser} parser
+     * @returns {MeasureCommand | undefined}
+     */
+    static parse(parser) {
+        if (!parser.matchToken("measure")) return;
+
+        var targetExpr = parsePseudopossessiveTarget(parser);
+
+        var propsToMeasure = [];
+        if (!parser.commandBoundary(parser.currentToken()))
+            do {
+                propsToMeasure.push(parser.matchTokenType("IDENTIFIER").value);
+            } while (parser.matchOpToken(","));
+
+        return new MeasureCommand(targetExpr, propsToMeasure);
     }
 
     op(ctx, target) {
@@ -840,28 +855,5 @@ class MeasureCommandImpl extends Command {
         });
 
         return ctx.meta.runtime.findNext(this, ctx);
-    }
-}
-
-export class MeasureCommand {
-    static keyword = "measure";
-
-    /**
-     * Parse measure command
-     * @param {Parser} parser
-     * @returns {MeasureCommand | undefined}
-     */
-    static parse(parser) {
-        if (!parser.matchToken("measure")) return;
-
-        var targetExpr = parsePseudopossessiveTarget(parser);
-
-        var propsToMeasure = [];
-        if (!parser.commandBoundary(parser.currentToken()))
-            do {
-                propsToMeasure.push(parser.matchTokenType("IDENTIFIER").value);
-            } while (parser.matchOpToken(","));
-
-        return new MeasureCommandImpl(targetExpr, propsToMeasure);
     }
 }

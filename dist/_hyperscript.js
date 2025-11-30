@@ -5387,8 +5387,9 @@ var MakeConstructorCommand = class extends Command {
     return ctx.meta.runtime.findNext(this, ctx);
   }
 };
-var _LogCommand = class _LogCommand {
+var _LogCommand = class _LogCommand extends Command {
   constructor(exprs, withExpr) {
+    super();
     this.exprs = exprs;
     this.withExpr = withExpr;
     this.args = [withExpr, exprs];
@@ -5423,8 +5424,9 @@ var _LogCommand = class _LogCommand {
 };
 __publicField(_LogCommand, "keyword", "log");
 var LogCommand = _LogCommand;
-var _BeepCommand = class _BeepCommand {
+var _BeepCommand = class _BeepCommand extends Command {
   constructor(exprs) {
+    super();
     this.exprs = exprs;
     this.args = [exprs];
   }
@@ -5455,8 +5457,9 @@ var _BeepCommand = class _BeepCommand {
 };
 __publicField(_BeepCommand, "keyword", "beep!");
 var BeepCommand = _BeepCommand;
-var _ThrowCommand = class _ThrowCommand {
+var _ThrowCommand = class _ThrowCommand extends Command {
   constructor(expr) {
+    super();
     this.expr = expr;
     this.args = [expr];
   }
@@ -5480,8 +5483,9 @@ var _ThrowCommand = class _ThrowCommand {
 };
 __publicField(_ThrowCommand, "keyword", "throw");
 var ThrowCommand = _ThrowCommand;
-var _ReturnCommand = class _ReturnCommand {
+var _ReturnCommand = class _ReturnCommand extends Command {
   constructor(value) {
+    super();
     this.value = value;
     this.args = [value];
   }
@@ -5518,8 +5522,9 @@ var _ReturnCommand = class _ReturnCommand {
 };
 __publicField(_ReturnCommand, "keyword", "return");
 var ReturnCommand = _ReturnCommand;
-var _ExitCommand = class _ExitCommand {
+var _ExitCommand = class _ExitCommand extends Command {
   constructor() {
+    super();
     this.args = [void 0];
   }
   /**
@@ -5550,8 +5555,9 @@ var _ExitCommand = class _ExitCommand {
 };
 __publicField(_ExitCommand, "keyword", "exit");
 var ExitCommand = _ExitCommand;
-var _HaltCommand = class _HaltCommand {
+var _HaltCommand = class _HaltCommand extends Command {
   constructor(bubbling, haltDefault, keepExecuting, exit) {
+    super();
     this.keepExecuting = keepExecuting;
     this.bubbling = bubbling;
     this.haltDefault = haltDefault;
@@ -6622,7 +6628,7 @@ var JsBody = class {
     };
   }
 };
-var JsCommandImpl = class extends Command {
+var _JsCommand = class _JsCommand extends Command {
   constructor(jsSource, func, inputs) {
     super();
     this.type = "jsCommand";
@@ -6630,26 +6636,6 @@ var JsCommandImpl = class extends Command {
     this.function = func;
     this.inputs = inputs;
   }
-  op(context) {
-    var args = [];
-    this.inputs.forEach((input) => {
-      args.push(context.meta.runtime.resolveSymbol(input, context, "default"));
-    });
-    var result = this.function.apply(context.meta.runtime.globalScope, args);
-    if (result && typeof result.then === "function") {
-      return new Promise((resolve) => {
-        result.then((actualResult) => {
-          context.result = actualResult;
-          resolve(context.meta.runtime.findNext(this, context));
-        });
-      });
-    } else {
-      context.result = result;
-      return context.meta.runtime.findNext(this, context);
-    }
-  }
-};
-var JsCommand = class {
   /**
    * Parse js command
    * @param {Parser} parser
@@ -6671,24 +6657,35 @@ var JsCommand = class {
     var jsBody = parser.requireElement("jsBody");
     parser.matchToken("end");
     var func = varargConstructor(Function, inputs.concat([jsBody.jsSource]));
-    return new JsCommandImpl(jsBody.jsSource, func, inputs);
+    return new _JsCommand(jsBody.jsSource, func, inputs);
+  }
+  op(context) {
+    var args = [];
+    this.inputs.forEach((input) => {
+      args.push(context.meta.runtime.resolveSymbol(input, context, "default"));
+    });
+    var result = this.function.apply(context.meta.runtime.globalScope, args);
+    if (result && typeof result.then === "function") {
+      return new Promise((resolve) => {
+        result.then((actualResult) => {
+          context.result = actualResult;
+          resolve(context.meta.runtime.findNext(this, context));
+        });
+      });
+    } else {
+      context.result = result;
+      return context.meta.runtime.findNext(this, context);
+    }
   }
 };
-__publicField(JsCommand, "keyword", "js");
-var AsyncCommandImpl = class extends Command {
+__publicField(_JsCommand, "keyword", "js");
+var JsCommand = _JsCommand;
+var _AsyncCommand = class _AsyncCommand extends Command {
   constructor(body) {
     super();
     this.type = "asyncCommand";
     this.body = body;
   }
-  op(context) {
-    setTimeout(() => {
-      this.body.execute(context);
-    });
-    return context.meta.runtime.findNext(this, context);
-  }
-};
-var AsyncCommand = class {
   /**
    * Parse async command
    * @param {Parser} parser
@@ -6705,12 +6702,19 @@ var AsyncCommand = class {
     } else {
       var body = parser.requireElement("command");
     }
-    var command = new AsyncCommandImpl(body);
+    var command = new _AsyncCommand(body);
     parser.setParent(body, command);
     return command;
   }
+  op(context) {
+    setTimeout(() => {
+      this.body.execute(context);
+    });
+    return context.meta.runtime.findNext(this, context);
+  }
 };
-__publicField(AsyncCommand, "keyword", "async");
+__publicField(_AsyncCommand, "keyword", "async");
+var AsyncCommand = _AsyncCommand;
 var CallOrGetCommandImpl = class extends Command {
   constructor(expr) {
     super();
@@ -7126,7 +7130,7 @@ var RemoveCommand = class {
   }
 };
 __publicField(RemoveCommand, "keyword", "remove");
-var ToggleCommandImpl = class extends Command {
+var _ToggleCommand = class _ToggleCommand extends Command {
   constructor(classRef, classRef2, classRefs, attributeRef, onExpr, time, evt, from, visibility, between, hideShowStrategy) {
     super();
     this.type = "toggleCommand";
@@ -7144,67 +7148,6 @@ var ToggleCommandImpl = class extends Command {
     this.onExpr = onExpr;
     this.args = [onExpr, time, evt, from, classRef, classRef2, classRefs];
   }
-  toggle(context, on, classRef, classRef2, classRefs) {
-    context.meta.runtime.nullCheck(on, this.onExpr);
-    if (this.visibility) {
-      context.meta.runtime.implicitLoop(on, (target) => {
-        this.hideShowStrategy("toggle", target, null, context.meta.runtime);
-      });
-    } else if (this.between) {
-      context.meta.runtime.implicitLoop(on, (target) => {
-        if (target.classList.contains(classRef.className)) {
-          target.classList.remove(classRef.className);
-          target.classList.add(classRef2.className);
-        } else {
-          target.classList.add(classRef.className);
-          target.classList.remove(classRef2.className);
-        }
-      });
-    } else if (classRefs) {
-      context.meta.runtime.forEach(classRefs, (classRef3) => {
-        context.meta.runtime.implicitLoop(on, (target) => {
-          target.classList.toggle(classRef3.className);
-        });
-      });
-    } else {
-      context.meta.runtime.implicitLoop(on, (target) => {
-        if (target.hasAttribute(this.attributeRef.name)) {
-          target.removeAttribute(this.attributeRef.name);
-        } else {
-          target.setAttribute(this.attributeRef.name, this.attributeRef.value);
-        }
-      });
-    }
-  }
-  op(context, on, time, evt, from, classRef, classRef2, classRefs) {
-    if (time) {
-      return new Promise((resolve) => {
-        this.toggle(context, on, classRef, classRef2, classRefs);
-        setTimeout(() => {
-          this.toggle(context, on, classRef, classRef2, classRefs);
-          resolve(context.meta.runtime.findNext(this, context));
-        }, time);
-      });
-    } else if (evt) {
-      return new Promise((resolve) => {
-        var target = from || context.me;
-        target.addEventListener(
-          evt,
-          () => {
-            this.toggle(context, on, classRef, classRef2, classRefs);
-            resolve(context.meta.runtime.findNext(this, context));
-          },
-          { once: true }
-        );
-        this.toggle(context, on, classRef, classRef2, classRefs);
-      });
-    } else {
-      this.toggle(context, on, classRef, classRef2, classRefs);
-      return context.meta.runtime.findNext(this, context);
-    }
-  }
-};
-var ToggleCommand = class {
   static parse(parser) {
     if (!parser.matchToken("toggle")) return;
     parser.matchAnyToken("the", "my");
@@ -7268,11 +7211,71 @@ var ToggleCommand = class {
         from = parser.requireElement("expression");
       }
     }
-    return new ToggleCommandImpl(classRef, classRef2, classRefs, attributeRef, onExpr, time, evt, from, visibility, between, hideShowStrategy);
+    return new _ToggleCommand(classRef, classRef2, classRefs, attributeRef, onExpr, time, evt, from, visibility, between, hideShowStrategy);
+  }
+  toggle(context, on, classRef, classRef2, classRefs) {
+    context.meta.runtime.nullCheck(on, this.onExpr);
+    if (this.visibility) {
+      context.meta.runtime.implicitLoop(on, (target) => {
+        this.hideShowStrategy("toggle", target, null, context.meta.runtime);
+      });
+    } else if (this.between) {
+      context.meta.runtime.implicitLoop(on, (target) => {
+        if (target.classList.contains(classRef.className)) {
+          target.classList.remove(classRef.className);
+          target.classList.add(classRef2.className);
+        } else {
+          target.classList.add(classRef.className);
+          target.classList.remove(classRef2.className);
+        }
+      });
+    } else if (classRefs) {
+      context.meta.runtime.forEach(classRefs, (classRef3) => {
+        context.meta.runtime.implicitLoop(on, (target) => {
+          target.classList.toggle(classRef3.className);
+        });
+      });
+    } else {
+      context.meta.runtime.implicitLoop(on, (target) => {
+        if (target.hasAttribute(this.attributeRef.name)) {
+          target.removeAttribute(this.attributeRef.name);
+        } else {
+          target.setAttribute(this.attributeRef.name, this.attributeRef.value);
+        }
+      });
+    }
+  }
+  op(context, on, time, evt, from, classRef, classRef2, classRefs) {
+    if (time) {
+      return new Promise((resolve) => {
+        this.toggle(context, on, classRef, classRef2, classRefs);
+        setTimeout(() => {
+          this.toggle(context, on, classRef, classRef2, classRefs);
+          resolve(context.meta.runtime.findNext(this, context));
+        }, time);
+      });
+    } else if (evt) {
+      return new Promise((resolve) => {
+        var target = from || context.me;
+        target.addEventListener(
+          evt,
+          () => {
+            this.toggle(context, on, classRef, classRef2, classRefs);
+            resolve(context.meta.runtime.findNext(this, context));
+          },
+          { once: true }
+        );
+        this.toggle(context, on, classRef, classRef2, classRefs);
+      });
+    } else {
+      this.toggle(context, on, classRef, classRef2, classRefs);
+      return context.meta.runtime.findNext(this, context);
+    }
   }
 };
-__publicField(ToggleCommand, "keyword", "toggle");
-var HideCommandImpl = class extends Command {
+__publicField(_ToggleCommand, "keyword", "toggle");
+var ToggleCommand = _ToggleCommand;
+var _HideCommand = class _HideCommand extends Command {
   constructor(targetExpr, hideShowStrategy) {
     super();
     this.type = "hideCommand";
@@ -7281,15 +7284,6 @@ var HideCommandImpl = class extends Command {
     this.hideShowStrategy = hideShowStrategy;
     this.args = [targetExpr];
   }
-  op(ctx, target) {
-    ctx.meta.runtime.nullCheck(target, this.targetExpr);
-    ctx.meta.runtime.implicitLoop(target, (elt) => {
-      this.hideShowStrategy("hide", elt, null, ctx.meta.runtime);
-    });
-    return ctx.meta.runtime.findNext(this, ctx);
-  }
-};
-var HideCommand = class {
   static parse(parser) {
     if (!parser.matchToken("hide")) return;
     var targetExpr = parseShowHideTarget(parser);
@@ -7301,11 +7295,19 @@ var HideCommand = class {
       }
     }
     var hideShowStrategy = resolveHideShowStrategy(parser, name);
-    return new HideCommandImpl(targetExpr, hideShowStrategy);
+    return new _HideCommand(targetExpr, hideShowStrategy);
+  }
+  op(ctx, target) {
+    ctx.meta.runtime.nullCheck(target, this.targetExpr);
+    ctx.meta.runtime.implicitLoop(target, (elt) => {
+      this.hideShowStrategy("hide", elt, null, ctx.meta.runtime);
+    });
+    return ctx.meta.runtime.findNext(this, ctx);
   }
 };
-__publicField(HideCommand, "keyword", "hide");
-var ShowCommandImpl = class extends Command {
+__publicField(_HideCommand, "keyword", "hide");
+var HideCommand = _HideCommand;
+var _ShowCommand = class _ShowCommand extends Command {
   constructor(targetExpr, when, arg, hideShowStrategy) {
     super();
     this.type = "showCommand";
@@ -7316,26 +7318,6 @@ var ShowCommandImpl = class extends Command {
     this.hideShowStrategy = hideShowStrategy;
     this.args = [targetExpr];
   }
-  op(ctx, target) {
-    ctx.meta.runtime.nullCheck(target, this.targetExpr);
-    ctx.meta.runtime.implicitLoop(target, (elt) => {
-      if (this.when) {
-        ctx.result = elt;
-        let whenResult = ctx.meta.runtime.evaluateNoPromise(this.when, ctx);
-        if (whenResult) {
-          this.hideShowStrategy("show", elt, this.arg, ctx.meta.runtime);
-        } else {
-          this.hideShowStrategy("hide", elt, null, ctx.meta.runtime);
-        }
-        ctx.result = null;
-      } else {
-        this.hideShowStrategy("show", elt, this.arg, ctx.meta.runtime);
-      }
-    });
-    return ctx.meta.runtime.findNext(this, ctx);
-  }
-};
-var ShowCommand = class {
   static parse(parser) {
     if (!parser.matchToken("show")) return;
     var targetExpr = parseShowHideTarget(parser);
@@ -7358,10 +7340,29 @@ var ShowCommand = class {
       var when = parser.requireElement("expression");
     }
     var hideShowStrategy = resolveHideShowStrategy(parser, name);
-    return new ShowCommandImpl(targetExpr, when, arg, hideShowStrategy);
+    return new _ShowCommand(targetExpr, when, arg, hideShowStrategy);
+  }
+  op(ctx, target) {
+    ctx.meta.runtime.nullCheck(target, this.targetExpr);
+    ctx.meta.runtime.implicitLoop(target, (elt) => {
+      if (this.when) {
+        ctx.result = elt;
+        let whenResult = ctx.meta.runtime.evaluateNoPromise(this.when, ctx);
+        if (whenResult) {
+          this.hideShowStrategy("show", elt, this.arg, ctx.meta.runtime);
+        } else {
+          this.hideShowStrategy("hide", elt, null, ctx.meta.runtime);
+        }
+        ctx.result = null;
+      } else {
+        this.hideShowStrategy("show", elt, this.arg, ctx.meta.runtime);
+      }
+    });
+    return ctx.meta.runtime.findNext(this, ctx);
   }
 };
-__publicField(ShowCommand, "keyword", "show");
+__publicField(_ShowCommand, "keyword", "show");
+var ShowCommand = _ShowCommand;
 function parsePseudopossessiveTarget(parser) {
   var targets;
   if (parser.matchToken("the") || parser.matchToken("element") || parser.matchToken("elements") || parser.currentToken().type === "CLASS_REF" || parser.currentToken().type === "ID_REF" || parser.currentToken().op && parser.currentToken().value === "<") {
@@ -7483,13 +7484,28 @@ var TakeCommand = class {
   }
 };
 __publicField(TakeCommand, "keyword", "take");
-var MeasureCommandImpl = class extends Command {
+var _MeasureCommand = class _MeasureCommand extends Command {
   constructor(targetExpr, propsToMeasure) {
     super();
     this.type = "measureCommand";
     this.properties = propsToMeasure;
     this.targetExpr = targetExpr;
     this.args = [targetExpr];
+  }
+  /**
+   * Parse measure command
+   * @param {Parser} parser
+   * @returns {MeasureCommand | undefined}
+   */
+  static parse(parser) {
+    if (!parser.matchToken("measure")) return;
+    var targetExpr = parsePseudopossessiveTarget(parser);
+    var propsToMeasure = [];
+    if (!parser.commandBoundary(parser.currentToken()))
+      do {
+        propsToMeasure.push(parser.matchTokenType("IDENTIFIER").value);
+      } while (parser.matchOpToken(","));
+    return new _MeasureCommand(targetExpr, propsToMeasure);
   }
   op(ctx, target) {
     ctx.meta.runtime.nullCheck(target, this.targetExpr);
@@ -7528,24 +7544,8 @@ var MeasureCommandImpl = class extends Command {
     return ctx.meta.runtime.findNext(this, ctx);
   }
 };
-var MeasureCommand = class {
-  /**
-   * Parse measure command
-   * @param {Parser} parser
-   * @returns {MeasureCommand | undefined}
-   */
-  static parse(parser) {
-    if (!parser.matchToken("measure")) return;
-    var targetExpr = parsePseudopossessiveTarget(parser);
-    var propsToMeasure = [];
-    if (!parser.commandBoundary(parser.currentToken()))
-      do {
-        propsToMeasure.push(parser.matchTokenType("IDENTIFIER").value);
-      } while (parser.matchOpToken(","));
-    return new MeasureCommandImpl(targetExpr, propsToMeasure);
-  }
-};
-__publicField(MeasureCommand, "keyword", "measure");
+__publicField(_MeasureCommand, "keyword", "measure");
+var MeasureCommand = _MeasureCommand;
 
 // src/parsetree/commands/animations.js
 var StyleRefValue = class extends Expression {
@@ -7588,12 +7588,27 @@ function parsePseudopossessiveTarget2(parser) {
   }
   return targets;
 }
-var SettleCommandImpl = class extends Command {
+var _SettleCommand = class _SettleCommand extends Command {
   constructor(onExpr) {
     super();
     this.type = "settleCmd";
     this.onExpr = onExpr;
     this.args = [onExpr];
+  }
+  /**
+   * Parse settle command
+   * @param {Parser} parser
+   * @returns {SettleCommand | undefined}
+   */
+  static parse(parser) {
+    if (parser.matchToken("settle")) {
+      if (!parser.commandBoundary(parser.currentToken())) {
+        var onExpr = parser.requireElement("expression");
+      } else {
+        var onExpr = parser.requireElement("implicitMeTarget");
+      }
+      return new _SettleCommand(onExpr);
+    }
   }
   op(context, on) {
     context.meta.runtime.nullCheck(on, this.onExpr);
@@ -7629,25 +7644,9 @@ var SettleCommandImpl = class extends Command {
     return promise;
   }
 };
-var SettleCommand = class {
-  /**
-   * Parse settle command
-   * @param {Parser} parser
-   * @returns {SettleCommand | undefined}
-   */
-  static parse(parser) {
-    if (parser.matchToken("settle")) {
-      if (!parser.commandBoundary(parser.currentToken())) {
-        var onExpr = parser.requireElement("expression");
-      } else {
-        var onExpr = parser.requireElement("implicitMeTarget");
-      }
-      return new SettleCommandImpl(onExpr);
-    }
-  }
-};
-__publicField(SettleCommand, "keyword", "settle");
-var TransitionCommandImpl = class extends Command {
+__publicField(_SettleCommand, "keyword", "settle");
+var SettleCommand = _SettleCommand;
+var _TransitionCommand = class _TransitionCommand extends Command {
   constructor(targetsExpr, to, properties, from, usingExpr, over) {
     super();
     this.type = "transitionCommand";
@@ -7658,6 +7657,47 @@ var TransitionCommandImpl = class extends Command {
     this.usingExpr = usingExpr;
     this.over = over;
     this.args = [targetsExpr, properties, from, to, usingExpr, over];
+  }
+  /**
+   * Parse transition command
+   * @param {Parser} parser
+   * @returns {TransitionCommand | undefined}
+   */
+  static parse(parser) {
+    if (parser.matchToken("transition")) {
+      var targetsExpr = parsePseudopossessiveTarget2(parser);
+      var properties = [];
+      var from = [];
+      var to = [];
+      var currentToken = parser.currentToken();
+      while (!parser.commandBoundary(currentToken) && currentToken.value !== "over" && currentToken.value !== "using") {
+        if (parser.currentToken().type === "STYLE_REF") {
+          let styleRef = parser.consumeToken();
+          let styleProp = styleRef.value.substr(1);
+          properties.push(new StyleRefValue(styleProp));
+        } else {
+          properties.push(parser.requireElement("stringLike"));
+        }
+        if (parser.matchToken("from")) {
+          from.push(parser.requireElement("expression"));
+        } else {
+          from.push(null);
+        }
+        parser.requireToken("to");
+        if (parser.matchToken("initial")) {
+          to.push(new InitialLiteral());
+        } else {
+          to.push(parser.requireElement("expression"));
+        }
+        currentToken = parser.currentToken();
+      }
+      if (parser.matchToken("over")) {
+        var over = parser.requireElement("expression");
+      } else if (parser.matchToken("using")) {
+        var usingExpr = parser.requireElement("expression");
+      }
+      return new _TransitionCommand(targetsExpr, to, properties, from, usingExpr, over);
+    }
   }
   op(context, targets, properties, from, to, using, over) {
     context.meta.runtime.nullCheck(targets, this.targetsExpr);
@@ -7740,50 +7780,8 @@ var TransitionCommandImpl = class extends Command {
     });
   }
 };
-var TransitionCommand = class {
-  /**
-   * Parse transition command
-   * @param {Parser} parser
-   * @returns {TransitionCommand | undefined}
-   */
-  static parse(parser) {
-    if (parser.matchToken("transition")) {
-      var targetsExpr = parsePseudopossessiveTarget2(parser);
-      var properties = [];
-      var from = [];
-      var to = [];
-      var currentToken = parser.currentToken();
-      while (!parser.commandBoundary(currentToken) && currentToken.value !== "over" && currentToken.value !== "using") {
-        if (parser.currentToken().type === "STYLE_REF") {
-          let styleRef = parser.consumeToken();
-          let styleProp = styleRef.value.substr(1);
-          properties.push(new StyleRefValue(styleProp));
-        } else {
-          properties.push(parser.requireElement("stringLike"));
-        }
-        if (parser.matchToken("from")) {
-          from.push(parser.requireElement("expression"));
-        } else {
-          from.push(null);
-        }
-        parser.requireToken("to");
-        if (parser.matchToken("initial")) {
-          to.push(new InitialLiteral());
-        } else {
-          to.push(parser.requireElement("expression"));
-        }
-        currentToken = parser.currentToken();
-      }
-      if (parser.matchToken("over")) {
-        var over = parser.requireElement("expression");
-      } else if (parser.matchToken("using")) {
-        var usingExpr = parser.requireElement("expression");
-      }
-      return new TransitionCommandImpl(targetsExpr, to, properties, from, usingExpr, over);
-    }
-  }
-};
-__publicField(TransitionCommand, "keyword", "transition");
+__publicField(_TransitionCommand, "keyword", "transition");
+var TransitionCommand = _TransitionCommand;
 
 // src/parsetree/features/set.js
 var _SetFeature = class _SetFeature extends Feature {

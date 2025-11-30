@@ -75,12 +75,31 @@ function parsePseudopossessiveTarget(parser) {
  * Parses: settle [on <element>]
  * Executes: Waits for CSS transitions to complete
  */
-class SettleCommandImpl extends Command {
+export class SettleCommand extends Command {
+    static keyword = "settle";
+
     constructor(onExpr) {
         super();
         this.type = "settleCmd";
         this.onExpr = onExpr;
         this.args = [onExpr];
+    }
+
+    /**
+     * Parse settle command
+     * @param {Parser} parser
+     * @returns {SettleCommand | undefined}
+     */
+    static parse(parser) {
+        if (parser.matchToken("settle")) {
+            if (!parser.commandBoundary(parser.currentToken())) {
+                var onExpr = parser.requireElement("expression");
+            } else {
+                var onExpr = parser.requireElement("implicitMeTarget");
+            }
+
+            return new SettleCommand(onExpr);
+        }
     }
 
     op(context, on) {
@@ -125,34 +144,15 @@ class SettleCommandImpl extends Command {
     }
 }
 
-export class SettleCommand {
-    static keyword = "settle";
-
-    /**
-     * Parse settle command
-     * @param {Parser} parser
-     * @returns {SettleCommand | undefined}
-     */
-    static parse(parser) {
-        if (parser.matchToken("settle")) {
-            if (!parser.commandBoundary(parser.currentToken())) {
-                var onExpr = parser.requireElement("expression");
-            } else {
-                var onExpr = parser.requireElement("implicitMeTarget");
-            }
-
-            return new SettleCommandImpl(onExpr);
-        }
-    }
-}
-
 /**
  * TransitionCommand - CSS transitions
  *
  * Parses: transition <element's> <property> [from <value>] to <value> [over <time>ms | using <transition>]
  * Executes: Performs CSS transitions on elements
  */
-class TransitionCommandImpl extends Command {
+export class TransitionCommand extends Command {
+    static keyword = "transition";
+
     constructor(targetsExpr, to, properties, from, usingExpr, over) {
         super();
         this.type = "transitionCommand";
@@ -163,6 +163,55 @@ class TransitionCommandImpl extends Command {
         this.usingExpr = usingExpr;
         this.over = over;
         this.args = [targetsExpr, properties, from, to, usingExpr, over];
+    }
+
+    /**
+     * Parse transition command
+     * @param {Parser} parser
+     * @returns {TransitionCommand | undefined}
+     */
+    static parse(parser) {
+        if (parser.matchToken("transition")) {
+            var targetsExpr = parsePseudopossessiveTarget(parser);
+
+            var properties = [];
+            var from = [];
+            var to = [];
+            var currentToken = parser.currentToken();
+            while (
+                !parser.commandBoundary(currentToken) &&
+                currentToken.value !== "over" &&
+                currentToken.value !== "using"
+            ) {
+                if (parser.currentToken().type === "STYLE_REF") {
+                    let styleRef = parser.consumeToken();
+                    let styleProp = styleRef.value.substr(1);
+                    properties.push(new StyleRefValue(styleProp));
+                } else {
+                    properties.push(parser.requireElement("stringLike"));
+                }
+
+                if (parser.matchToken("from")) {
+                    from.push(parser.requireElement("expression"));
+                } else {
+                    from.push(null);
+                }
+                parser.requireToken("to");
+                if (parser.matchToken("initial")) {
+                    to.push(new InitialLiteral());
+                } else {
+                    to.push(parser.requireElement("expression"));
+                }
+                currentToken = parser.currentToken();
+            }
+            if (parser.matchToken("over")) {
+                var over = parser.requireElement("expression");
+            } else if (parser.matchToken("using")) {
+                var usingExpr = parser.requireElement("expression");
+            }
+
+            return new TransitionCommand(targetsExpr, to, properties, from, usingExpr, over);
+        }
     }
 
     op(context, targets, properties, from, to, using, over) {
@@ -254,58 +303,5 @@ class TransitionCommandImpl extends Command {
         return Promise.all(promises).then(() => {
             return context.meta.runtime.findNext(this, context);
         });
-    }
-}
-
-export class TransitionCommand {
-    static keyword = "transition";
-
-    /**
-     * Parse transition command
-     * @param {Parser} parser
-     * @returns {TransitionCommand | undefined}
-     */
-    static parse(parser) {
-        if (parser.matchToken("transition")) {
-            var targetsExpr = parsePseudopossessiveTarget(parser);
-
-            var properties = [];
-            var from = [];
-            var to = [];
-            var currentToken = parser.currentToken();
-            while (
-                !parser.commandBoundary(currentToken) &&
-                currentToken.value !== "over" &&
-                currentToken.value !== "using"
-            ) {
-                if (parser.currentToken().type === "STYLE_REF") {
-                    let styleRef = parser.consumeToken();
-                    let styleProp = styleRef.value.substr(1);
-                    properties.push(new StyleRefValue(styleProp));
-                } else {
-                    properties.push(parser.requireElement("stringLike"));
-                }
-
-                if (parser.matchToken("from")) {
-                    from.push(parser.requireElement("expression"));
-                } else {
-                    from.push(null);
-                }
-                parser.requireToken("to");
-                if (parser.matchToken("initial")) {
-                    to.push(new InitialLiteral());
-                } else {
-                    to.push(parser.requireElement("expression"));
-                }
-                currentToken = parser.currentToken();
-            }
-            if (parser.matchToken("over")) {
-                var over = parser.requireElement("expression");
-            } else if (parser.matchToken("using")) {
-                var usingExpr = parser.requireElement("expression");
-            }
-
-            return new TransitionCommandImpl(targetsExpr, to, properties, from, usingExpr, over);
-        }
     }
 }
