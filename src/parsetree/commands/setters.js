@@ -3,6 +3,8 @@
  * Commands that modify values (set, default, increment, decrement, put)
  */
 
+import { Command } from '../base.js';
+
 /**
  * Helper function for put command - put content into element or symbol
  */
@@ -28,7 +30,7 @@ function putInto(context, root, prop, valueToPut) {
 /**
  * Base class for setter commands that provides common makeSetter logic
  */
-class SetterCommand {
+class SetterCommand extends Command {
     /**
      * Create a setter operation for a target
      * @param {*} helper - Parser helper

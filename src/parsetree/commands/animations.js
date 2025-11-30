@@ -3,6 +3,7 @@
  * Commands for CSS transitions and animations (transition, settle)
  */
 
+import { Command } from '../base.js';
 import { config } from '../../core/config.js';
 
 /**
@@ -51,8 +52,9 @@ function parsePseudopossessiveTarget(parser) {
  * Parses: settle [on <element>]
  * Executes: Waits for CSS transitions to complete
  */
-class SettleCommandImpl {
+class SettleCommandImpl extends Command {
     constructor(onExpr) {
+        super();
         this.type = "settleCmd";
         this.onExpr = onExpr;
         this.args = [onExpr];
@@ -98,10 +100,6 @@ class SettleCommandImpl {
         );
         return promise;
     }
-
-    execute(context) {
-        return context.meta.runtime.unifiedExec(this, context);
-    }
 }
 
 export class SettleCommand {
@@ -131,8 +129,9 @@ export class SettleCommand {
  * Parses: transition <element's> <property> [from <value>] to <value> [over <time>ms | using <transition>]
  * Executes: Performs CSS transitions on elements
  */
-class TransitionCommandImpl {
+class TransitionCommandImpl extends Command {
     constructor(targetsExpr, to, properties, from, usingExpr, over) {
+        super();
         this.type = "transitionCommand";
         this.to = to;
         this.targetsExpr = targetsExpr;
@@ -232,10 +231,6 @@ class TransitionCommandImpl {
         return Promise.all(promises).then(() => {
             return context.meta.runtime.findNext(this, context);
         });
-    }
-
-    execute(ctx) {
-        return ctx.meta.runtime.unifiedExec(this, ctx);
     }
 }
 

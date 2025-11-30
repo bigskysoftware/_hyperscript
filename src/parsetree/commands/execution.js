@@ -3,6 +3,7 @@
  * Commands for executing code (js, async, call, get)
  */
 
+import { Command } from '../base.js';
 import { Runtime } from '../../core/runtime.js';
 import { varargConstructor } from '../../core/runtime.js';
 
@@ -58,8 +59,9 @@ export class JsBody {
  * Parses: js [(inputs...)] <jsBody> end
  * Executes: Runs JavaScript code with optional inputs from hyperscript context
  */
-class JsCommandImpl {
+class JsCommandImpl extends Command {
     constructor(jsSource, func, inputs) {
+        super();
         this.type = "jsCommand";
         this.jsSource = jsSource;
         this.function = func;
@@ -83,10 +85,6 @@ class JsCommandImpl {
             context.result = result;
             return context.meta.runtime.findNext(this, context);
         }
-    }
-
-    execute(ctx) {
-        return ctx.meta.runtime.unifiedExec(this, ctx);
     }
 }
 
@@ -129,8 +127,9 @@ export class JsCommand {
  * Parses: async [do] <command[s]> [end]
  * Executes: Runs command(s) asynchronously via setTimeout
  */
-class AsyncCommandImpl {
+class AsyncCommandImpl extends Command {
     constructor(body) {
+        super();
         this.type = "asyncCommand";
         this.body = body;
     }
@@ -140,10 +139,6 @@ class AsyncCommandImpl {
             this.body.execute(context);
         });
         return context.meta.runtime.findNext(this, context);
-    }
-
-    execute(ctx) {
-        return ctx.meta.runtime.unifiedExec(this, ctx);
     }
 }
 
@@ -178,8 +173,9 @@ export class AsyncCommand {
 /**
  * Helper function to parse call/get commands
  */
-class CallOrGetCommandImpl {
+class CallOrGetCommandImpl extends Command {
     constructor(expr) {
+        super();
         this.type = "callCommand";
         this.expr = expr;
         this.args = [expr];
@@ -188,10 +184,6 @@ class CallOrGetCommandImpl {
     op(context, result) {
         context.result = result;
         return context.meta.runtime.findNext(this, context);
-    }
-
-    execute(ctx) {
-        return ctx.meta.runtime.unifiedExec(this, ctx);
     }
 }
 

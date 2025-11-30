@@ -3,6 +3,8 @@
  * Commands for event handling and waiting (wait, trigger, send)
  */
 
+import { Command } from '../base.js';
+
 /**
  * Helper function to parse event argument list
  */
@@ -31,8 +33,9 @@ function parseEventArgs(parser) {
 /**
  * WaitCommandEvent - Wait for event(s)
  */
-class WaitCommandEvent {
+class WaitCommandEvent extends Command {
     constructor(events, on) {
+        super();
         this.type = "waitCommand";
         this.event = events;
         this.on = on;
@@ -68,17 +71,14 @@ class WaitCommandEvent {
             }
         });
     }
-
-    execute(context) {
-        return context.meta.runtime.unifiedExec(this, context);
-    }
 }
 
 /**
  * WaitCommandTime - Wait for time duration
  */
-class WaitCommandTime {
+class WaitCommandTime extends Command {
     constructor(time) {
+        super();
         this.type = "waitCmd";
         this.time = time;
         this.args = [time];
@@ -90,10 +90,6 @@ class WaitCommandTime {
                 resolve(context.meta.runtime.findNext(this, context));
             }, timeValue);
         });
-    }
-
-    execute(context) {
-        return context.meta.runtime.unifiedExec(this, context);
     }
 }
 
@@ -148,8 +144,9 @@ export class WaitCommand {
 /**
  * SendCommandNode - Send/trigger event command node
  */
-class SendCommandNode {
+class SendCommandNode extends Command {
     constructor(eventName, details, toExpr) {
+        super();
         this.type = "sendCommand";
         this.eventName = eventName;
         this.details = details;
@@ -164,10 +161,6 @@ class SendCommandNode {
             context.meta.runtime.triggerEvent(target, eventName, details, context.me);
         });
         return context.meta.runtime.findNext(this, context);
-    }
-
-    execute(context) {
-        return context.meta.runtime.unifiedExec(this, context);
     }
 }
 

@@ -3,14 +3,17 @@
  * Commands for control flow (if, repeat, for, continue, break, tell)
  */
 
+import { Command } from '../base.js';
+
 /**
  * IfCommand - Conditional execution
  *
  * Parses: if <expr> [then] <commands> [else|otherwise <commands>] [end]
  * Executes: Conditionally executes true or false branch based on expression
  */
-class IfCommandImpl {
+class IfCommandImpl extends Command {
     constructor(expr, trueBranch, falseBranch) {
+        super();
         this.type = "ifCommand";
         this.expr = expr;
         this.trueBranch = trueBranch;
@@ -26,10 +29,6 @@ class IfCommandImpl {
         } else {
             return context.meta.runtime.findNext(this, context);
         }
-    }
-
-    execute(ctx) {
-        return ctx.meta.runtime.unifiedExec(this, ctx);
     }
 }
 
@@ -286,8 +285,9 @@ export class ForCommand {
  * Parses: continue
  * Executes: Continues to next iteration of closest repeat loop
  */
-class ContinueCommandImpl {
+class ContinueCommandImpl extends Command {
     constructor(parser) {
+        super();
         this.type = "continueCommand";
         this.parser = parser;
     }
@@ -302,10 +302,6 @@ class ContinueCommandImpl {
                 return parent.resolveNext(context);
             }
         }
-    }
-
-    execute(ctx) {
-        return ctx.meta.runtime.unifiedExec(this, ctx);
     }
 }
 
@@ -329,8 +325,9 @@ export class ContinueCommand {
  * Parses: break
  * Executes: Exits closest repeat loop
  */
-class BreakCommandImpl {
+class BreakCommandImpl extends Command {
     constructor(parser) {
+        super();
         this.type = "breakCommand";
         this.parser = parser;
     }
@@ -345,10 +342,6 @@ class BreakCommandImpl {
                 return context.meta.runtime.findNext(parent.parent, context);
             }
         }
-    }
-
-    execute(ctx) {
-        return ctx.meta.runtime.unifiedExec(this, ctx);
     }
 }
 
@@ -372,8 +365,9 @@ export class BreakCommand {
  * Parses: tell <expr> <commands> end
  * Executes: Executes commands with 'you' set to target element(s)
  */
-class TellCommandImpl {
+class TellCommandImpl extends Command {
     constructor(value, body, slot) {
+        super();
         this.type = "tellCommand";
         this.value = value;
         this.body = body;
@@ -409,10 +403,6 @@ class TellCommandImpl {
             value: value,
         };
         return this.resolveNext(context);
-    }
-
-    execute(ctx) {
-        return ctx.meta.runtime.unifiedExec(this, ctx);
     }
 }
 

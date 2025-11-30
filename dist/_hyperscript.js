@@ -4960,7 +4960,7 @@ function putInto(context2, root, prop, valueToPut) {
     }
   }
 }
-var SetterCommand = class {
+var SetterCommand = class extends Command {
   /**
    * Create a setter operation for a target
    * @param {*} helper - Parser helper
@@ -5989,8 +5989,9 @@ function parseEventArgs(parser) {
   }
   return args;
 }
-var WaitCommandEvent = class {
+var WaitCommandEvent = class extends Command {
   constructor(events, on) {
+    super();
     this.type = "waitCommand";
     this.event = events;
     this.on = on;
@@ -6024,12 +6025,10 @@ var WaitCommandEvent = class {
       }
     });
   }
-  execute(context2) {
-    return context2.meta.runtime.unifiedExec(this, context2);
-  }
 };
-var WaitCommandTime = class {
+var WaitCommandTime = class extends Command {
   constructor(time) {
+    super();
     this.type = "waitCmd";
     this.time = time;
     this.args = [time];
@@ -6040,9 +6039,6 @@ var WaitCommandTime = class {
         resolve(context2.meta.runtime.findNext(this, context2));
       }, timeValue);
     });
-  }
-  execute(context2) {
-    return context2.meta.runtime.unifiedExec(this, context2);
   }
 };
 var WaitCommand = class {
@@ -6087,8 +6083,9 @@ var WaitCommand = class {
   }
 };
 __publicField(WaitCommand, "keyword", "wait");
-var SendCommandNode = class {
+var SendCommandNode = class extends Command {
   constructor(eventName, details, toExpr) {
+    super();
     this.type = "sendCommand";
     this.eventName = eventName;
     this.details = details;
@@ -6102,9 +6099,6 @@ var SendCommandNode = class {
       context2.meta.runtime.triggerEvent(target, eventName, details, context2.me);
     });
     return context2.meta.runtime.findNext(this, context2);
-  }
-  execute(context2) {
-    return context2.meta.runtime.unifiedExec(this, context2);
   }
 };
 function parseSendCmd(cmdType, parser) {
@@ -6167,8 +6161,9 @@ var EventName = class {
 };
 
 // src/parsetree/commands/controlflow.js
-var IfCommandImpl = class {
+var IfCommandImpl = class extends Command {
   constructor(expr, trueBranch, falseBranch) {
+    super();
     this.type = "ifCommand";
     this.expr = expr;
     this.trueBranch = trueBranch;
@@ -6183,9 +6178,6 @@ var IfCommandImpl = class {
     } else {
       return context2.meta.runtime.findNext(this, context2);
     }
-  }
-  execute(ctx) {
-    return ctx.meta.runtime.unifiedExec(this, ctx);
   }
 };
 var IfCommand = class {
@@ -6404,8 +6396,9 @@ var ForCommand = class {
   }
 };
 __publicField(ForCommand, "keyword", "for");
-var ContinueCommandImpl = class {
+var ContinueCommandImpl = class extends Command {
   constructor(parser) {
+    super();
     this.type = "continueCommand";
     this.parser = parser;
   }
@@ -6418,9 +6411,6 @@ var ContinueCommandImpl = class {
         return parent.resolveNext(context2);
       }
     }
-  }
-  execute(ctx) {
-    return ctx.meta.runtime.unifiedExec(this, ctx);
   }
 };
 var ContinueCommand = class {
@@ -6435,8 +6425,9 @@ var ContinueCommand = class {
   }
 };
 __publicField(ContinueCommand, "keyword", "continue");
-var BreakCommandImpl = class {
+var BreakCommandImpl = class extends Command {
   constructor(parser) {
+    super();
     this.type = "breakCommand";
     this.parser = parser;
   }
@@ -6449,9 +6440,6 @@ var BreakCommandImpl = class {
         return context2.meta.runtime.findNext(parent.parent, context2);
       }
     }
-  }
-  execute(ctx) {
-    return ctx.meta.runtime.unifiedExec(this, ctx);
   }
 };
 var BreakCommand = class {
@@ -6466,8 +6454,9 @@ var BreakCommand = class {
   }
 };
 __publicField(BreakCommand, "keyword", "break");
-var TellCommandImpl = class {
+var TellCommandImpl = class extends Command {
   constructor(value, body, slot) {
+    super();
     this.type = "tellCommand";
     this.value = value;
     this.body = body;
@@ -6500,9 +6489,6 @@ var TellCommandImpl = class {
       value
     };
     return this.resolveNext(context2);
-  }
-  execute(ctx) {
-    return ctx.meta.runtime.unifiedExec(this, ctx);
   }
 };
 var TellCommand = class {
@@ -6566,8 +6552,9 @@ var JsBody = class {
     };
   }
 };
-var JsCommandImpl = class {
+var JsCommandImpl = class extends Command {
   constructor(jsSource, func, inputs) {
+    super();
     this.type = "jsCommand";
     this.jsSource = jsSource;
     this.function = func;
@@ -6590,9 +6577,6 @@ var JsCommandImpl = class {
       context2.result = result;
       return context2.meta.runtime.findNext(this, context2);
     }
-  }
-  execute(ctx) {
-    return ctx.meta.runtime.unifiedExec(this, ctx);
   }
 };
 var JsCommand = class {
@@ -6621,8 +6605,9 @@ var JsCommand = class {
   }
 };
 __publicField(JsCommand, "keyword", "js");
-var AsyncCommandImpl = class {
+var AsyncCommandImpl = class extends Command {
   constructor(body) {
+    super();
     this.type = "asyncCommand";
     this.body = body;
   }
@@ -6631,9 +6616,6 @@ var AsyncCommandImpl = class {
       this.body.execute(context2);
     });
     return context2.meta.runtime.findNext(this, context2);
-  }
-  execute(ctx) {
-    return ctx.meta.runtime.unifiedExec(this, ctx);
   }
 };
 var AsyncCommand = class {
@@ -6659,8 +6641,9 @@ var AsyncCommand = class {
   }
 };
 __publicField(AsyncCommand, "keyword", "async");
-var CallOrGetCommandImpl = class {
+var CallOrGetCommandImpl = class extends Command {
   constructor(expr) {
+    super();
     this.type = "callCommand";
     this.expr = expr;
     this.args = [expr];
@@ -6668,9 +6651,6 @@ var CallOrGetCommandImpl = class {
   op(context2, result) {
     context2.result = result;
     return context2.meta.runtime.findNext(this, context2);
-  }
-  execute(ctx) {
-    return ctx.meta.runtime.unifiedExec(this, ctx);
   }
 };
 function parseCallOrGet(parser) {
@@ -6708,8 +6688,9 @@ var GetCommand = class {
 __publicField(GetCommand, "keyword", "get");
 
 // src/parsetree/commands/pseudoCommand.js
-var PseudoCommandWithTarget = class {
+var PseudoCommandWithTarget = class extends Command {
   constructor(realRoot, root) {
+    super();
     this.type = "pseudoCommand";
     this.root = realRoot;
     this.argExressions = root.argExressions;
@@ -6727,12 +6708,10 @@ var PseudoCommandWithTarget = class {
     context2.result = func.apply(rootRoot, args);
     return context2.meta.runtime.findNext(this, context2);
   }
-  execute(context2) {
-    return context2.meta.runtime.unifiedExec(this, context2);
-  }
 };
-var PseudoCommandSimple = class {
+var PseudoCommandSimple = class extends Command {
   constructor(expr) {
+    super();
     this.type = "pseudoCommand";
     this.expr = expr;
     this.args = [expr];
@@ -6740,9 +6719,6 @@ var PseudoCommandSimple = class {
   op(context2, result) {
     context2.result = result;
     return context2.meta.runtime.findNext(this, context2);
-  }
-  execute(context2) {
-    return context2.meta.runtime.unifiedExec(this, context2);
   }
 };
 var PseudoCommand = class {
@@ -6861,8 +6837,9 @@ function resolveHideShowStrategy(parser, name) {
   }
   return value;
 }
-var AddCommandClass = class {
+var AddCommandClass = class extends Command {
   constructor(classRefs, toExpr, when) {
+    super();
     this.type = "addCommand";
     this.classRefs = classRefs;
     this.to = toExpr;
@@ -6892,12 +6869,10 @@ var AddCommandClass = class {
     });
     return context2.meta.runtime.findNext(this, context2);
   }
-  execute(ctx) {
-    return ctx.meta.runtime.unifiedExec(this, ctx);
-  }
 };
-var AddCommandAttribute = class {
+var AddCommandAttribute = class extends Command {
   constructor(attributeRef, toExpr, when) {
+    super();
     this.type = "addCmd";
     this.attributeRef = attributeRef;
     this.to = toExpr;
@@ -6926,12 +6901,10 @@ var AddCommandAttribute = class {
     });
     return context2.meta.runtime.findNext(this, context2);
   }
-  execute(ctx) {
-    return ctx.meta.runtime.unifiedExec(this, ctx);
-  }
 };
-var AddCommandCSS = class {
+var AddCommandCSS = class extends Command {
   constructor(cssDeclaration, toExpr) {
+    super();
     this.type = "addCmd";
     this.cssDeclaration = cssDeclaration;
     this.to = toExpr;
@@ -6944,9 +6917,6 @@ var AddCommandCSS = class {
       target.style.cssText += css;
     });
     return context2.meta.runtime.findNext(this, context2);
-  }
-  execute(ctx) {
-    return ctx.meta.runtime.unifiedExec(this, ctx);
   }
 };
 var AddCommand = class {
@@ -6990,8 +6960,9 @@ var AddCommand = class {
   }
 };
 __publicField(AddCommand, "keyword", "add");
-var RemoveCommandElement = class {
+var RemoveCommandElement = class extends Command {
   constructor(elementExpr, fromExpr) {
+    super();
     this.type = "removeCommand";
     this.elementExpr = elementExpr;
     this.from = fromExpr;
@@ -7006,12 +6977,10 @@ var RemoveCommandElement = class {
     });
     return context2.meta.runtime.findNext(this, context2);
   }
-  execute(ctx) {
-    return ctx.meta.runtime.unifiedExec(this, ctx);
-  }
 };
-var RemoveCommandClassOrAttr = class {
+var RemoveCommandClassOrAttr = class extends Command {
   constructor(classRefs, attributeRef, fromExpr) {
+    super();
     this.type = "removeCommand";
     this.classRefs = classRefs;
     this.attributeRef = attributeRef;
@@ -7035,9 +7004,6 @@ var RemoveCommandClassOrAttr = class {
       });
     }
     return context2.meta.runtime.findNext(this, context2);
-  }
-  execute(ctx) {
-    return ctx.meta.runtime.unifiedExec(this, ctx);
   }
 };
 var RemoveCommand = class {
@@ -7077,8 +7043,9 @@ var RemoveCommand = class {
   }
 };
 __publicField(RemoveCommand, "keyword", "remove");
-var ToggleCommandImpl = class {
+var ToggleCommandImpl = class extends Command {
   constructor(classRef, classRef2, classRefs, attributeRef, onExpr, time, evt, from, visibility, between, hideShowStrategy) {
+    super();
     this.type = "toggleCommand";
     this.classRef = classRef;
     this.classRef2 = classRef2;
@@ -7153,9 +7120,6 @@ var ToggleCommandImpl = class {
       return context2.meta.runtime.findNext(this, context2);
     }
   }
-  execute(ctx) {
-    return ctx.meta.runtime.unifiedExec(this, ctx);
-  }
 };
 var ToggleCommand = class {
   static parse(parser) {
@@ -7225,8 +7189,9 @@ var ToggleCommand = class {
   }
 };
 __publicField(ToggleCommand, "keyword", "toggle");
-var HideCommandImpl = class {
+var HideCommandImpl = class extends Command {
   constructor(targetExpr, hideShowStrategy) {
+    super();
     this.type = "hideCommand";
     this.target = targetExpr;
     this.targetExpr = targetExpr;
@@ -7239,9 +7204,6 @@ var HideCommandImpl = class {
       this.hideShowStrategy("hide", elt, null, ctx.meta.runtime);
     });
     return ctx.meta.runtime.findNext(this, ctx);
-  }
-  execute(ctx) {
-    return ctx.meta.runtime.unifiedExec(this, ctx);
   }
 };
 var HideCommand = class {
@@ -7260,8 +7222,9 @@ var HideCommand = class {
   }
 };
 __publicField(HideCommand, "keyword", "hide");
-var ShowCommandImpl = class {
+var ShowCommandImpl = class extends Command {
   constructor(targetExpr, when, arg, hideShowStrategy) {
+    super();
     this.type = "showCommand";
     this.target = targetExpr;
     this.targetExpr = targetExpr;
@@ -7287,9 +7250,6 @@ var ShowCommandImpl = class {
       }
     });
     return ctx.meta.runtime.findNext(this, ctx);
-  }
-  execute(ctx) {
-    return ctx.meta.runtime.unifiedExec(this, ctx);
   }
 };
 var ShowCommand = class {
@@ -7347,8 +7307,9 @@ function parsePseudopossessiveTarget(parser) {
   }
   return targets;
 }
-var TakeCommandClass = class {
+var TakeCommandClass = class extends Command {
   constructor(classRefs, fromExpr, forExpr) {
+    super();
     this.type = "takeCommand";
     this.classRefs = classRefs;
     this.from = fromExpr;
@@ -7375,12 +7336,10 @@ var TakeCommandClass = class {
     });
     return context2.meta.runtime.findNext(this, context2);
   }
-  execute(ctx) {
-    return ctx.meta.runtime.unifiedExec(this, ctx);
-  }
 };
-var TakeCommandAttribute = class {
+var TakeCommandAttribute = class extends Command {
   constructor(attributeRef, fromExpr, forExpr, replacementValue) {
+    super();
     this.type = "takeCommand";
     this.attributeRef = attributeRef;
     this.from = fromExpr;
@@ -7404,9 +7363,6 @@ var TakeCommandAttribute = class {
       target.setAttribute(this.attributeRef.name, this.attributeRef.value || "");
     });
     return context2.meta.runtime.findNext(this, context2);
-  }
-  execute(ctx) {
-    return ctx.meta.runtime.unifiedExec(this, ctx);
   }
 };
 var TakeCommand = class {
@@ -7451,8 +7407,9 @@ var TakeCommand = class {
   }
 };
 __publicField(TakeCommand, "keyword", "take");
-var MeasureCommandImpl = class {
+var MeasureCommandImpl = class extends Command {
   constructor(targetExpr, propsToMeasure) {
+    super();
     this.type = "measureCommand";
     this.properties = propsToMeasure;
     this.targetExpr = targetExpr;
@@ -7493,9 +7450,6 @@ var MeasureCommandImpl = class {
       else throw "No such measurement as " + prop;
     });
     return ctx.meta.runtime.findNext(this, ctx);
-  }
-  execute(ctx) {
-    return ctx.meta.runtime.unifiedExec(this, ctx);
   }
 };
 var MeasureCommand = class {
@@ -7546,8 +7500,9 @@ function parsePseudopossessiveTarget2(parser) {
   }
   return targets;
 }
-var SettleCommandImpl = class {
+var SettleCommandImpl = class extends Command {
   constructor(onExpr) {
+    super();
     this.type = "settleCmd";
     this.onExpr = onExpr;
     this.args = [onExpr];
@@ -7585,9 +7540,6 @@ var SettleCommandImpl = class {
     );
     return promise;
   }
-  execute(context2) {
-    return context2.meta.runtime.unifiedExec(this, context2);
-  }
 };
 var SettleCommand = class {
   /**
@@ -7607,8 +7559,9 @@ var SettleCommand = class {
   }
 };
 __publicField(SettleCommand, "keyword", "settle");
-var TransitionCommandImpl = class {
+var TransitionCommandImpl = class extends Command {
   constructor(targetsExpr, to, properties, from, usingExpr, over) {
+    super();
     this.type = "transitionCommand";
     this.to = to;
     this.targetsExpr = targetsExpr;
@@ -7697,9 +7650,6 @@ var TransitionCommandImpl = class {
     return Promise.all(promises).then(() => {
       return context2.meta.runtime.findNext(this, context2);
     });
-  }
-  execute(ctx) {
-    return ctx.meta.runtime.unifiedExec(this, ctx);
   }
 };
 var TransitionCommand = class {

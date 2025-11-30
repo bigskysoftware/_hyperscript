@@ -3,6 +3,7 @@
  * Web-specific commands for manipulating DOM classes, attributes, and visibility
  */
 
+import { Command } from '../base.js';
 import { config } from '../../core/config.js';
 
 /**
@@ -105,8 +106,9 @@ function resolveHideShowStrategy(parser, name) {
 /**
  * AddCommandClass - Add classes to elements
  */
-class AddCommandClass {
+class AddCommandClass extends Command {
     constructor(classRefs, toExpr, when) {
+        super();
         this.type = "addCommand";
         this.classRefs = classRefs;
         this.to = toExpr;
@@ -137,17 +139,14 @@ class AddCommandClass {
         });
         return context.meta.runtime.findNext(this, context);
     }
-
-    execute(ctx) {
-        return ctx.meta.runtime.unifiedExec(this, ctx);
-    }
 }
 
 /**
  * AddCommandAttribute - Add attribute to elements
  */
-class AddCommandAttribute {
+class AddCommandAttribute extends Command {
     constructor(attributeRef, toExpr, when) {
+        super();
         this.type = "addCmd";
         this.attributeRef = attributeRef;
         this.to = toExpr;
@@ -177,17 +176,14 @@ class AddCommandAttribute {
         });
         return context.meta.runtime.findNext(this, context);
     }
-
-    execute(ctx) {
-        return ctx.meta.runtime.unifiedExec(this, ctx);
-    }
 }
 
 /**
  * AddCommandCSS - Add CSS declaration to elements
  */
-class AddCommandCSS {
+class AddCommandCSS extends Command {
     constructor(cssDeclaration, toExpr) {
+        super();
         this.type = "addCmd";
         this.cssDeclaration = cssDeclaration;
         this.to = toExpr;
@@ -201,10 +197,6 @@ class AddCommandCSS {
             target.style.cssText += css;
         });
         return context.meta.runtime.findNext(this, context);
-    }
-
-    execute(ctx) {
-        return ctx.meta.runtime.unifiedExec(this, ctx);
     }
 }
 
@@ -264,8 +256,9 @@ export class AddCommand {
 /**
  * RemoveCommandElement - Remove element from DOM
  */
-class RemoveCommandElement {
+class RemoveCommandElement extends Command {
     constructor(elementExpr, fromExpr) {
+        super();
         this.type = "removeCommand";
         this.elementExpr = elementExpr;
         this.from = fromExpr;
@@ -281,17 +274,14 @@ class RemoveCommandElement {
         });
         return context.meta.runtime.findNext(this, context);
     }
-
-    execute(ctx) {
-        return ctx.meta.runtime.unifiedExec(this, ctx);
-    }
 }
 
 /**
  * RemoveCommandClassOrAttr - Remove class or attribute from elements
  */
-class RemoveCommandClassOrAttr {
+class RemoveCommandClassOrAttr extends Command {
     constructor(classRefs, attributeRef, fromExpr) {
+        super();
         this.type = "removeCommand";
         this.classRefs = classRefs;
         this.attributeRef = attributeRef;
@@ -316,10 +306,6 @@ class RemoveCommandClassOrAttr {
             });
         }
         return context.meta.runtime.findNext(this, context);
-    }
-
-    execute(ctx) {
-        return ctx.meta.runtime.unifiedExec(this, ctx);
     }
 }
 
@@ -371,8 +357,9 @@ export class RemoveCommand {
  * Parses: toggle .class on target | toggle @attr on target | toggle *visibility | toggle between .class1 and .class2
  * Executes: Toggles classes/attributes or visibility state
  */
-class ToggleCommandImpl {
+class ToggleCommandImpl extends Command {
     constructor(classRef, classRef2, classRefs, attributeRef, onExpr, time, evt, from, visibility, between, hideShowStrategy) {
+        super();
         this.type = "toggleCommand";
         this.classRef = classRef;
         this.classRef2 = classRef2;
@@ -448,10 +435,6 @@ class ToggleCommandImpl {
             this.toggle(context, on, classRef, classRef2, classRefs);
             return context.meta.runtime.findNext(this, context);
         }
-    }
-
-    execute(ctx) {
-        return ctx.meta.runtime.unifiedExec(this, ctx);
     }
 }
 
@@ -537,8 +520,9 @@ export class ToggleCommand {
  * Parses: hide target [with display|visibility|opacity]
  * Executes: Hides target element using specified strategy
  */
-class HideCommandImpl {
+class HideCommandImpl extends Command {
     constructor(targetExpr, hideShowStrategy) {
+        super();
         this.type = "hideCommand";
         this.target = targetExpr;
         this.targetExpr = targetExpr;
@@ -552,10 +536,6 @@ class HideCommandImpl {
             this.hideShowStrategy("hide", elt, null, ctx.meta.runtime);
         });
         return ctx.meta.runtime.findNext(this, ctx);
-    }
-
-    execute(ctx) {
-        return ctx.meta.runtime.unifiedExec(this, ctx);
     }
 }
 
@@ -586,8 +566,9 @@ export class HideCommand {
  * Parses: show target [with display|visibility|opacity] [:value] [when condition]
  * Executes: Shows target element using specified strategy
  */
-class ShowCommandImpl {
+class ShowCommandImpl extends Command {
     constructor(targetExpr, when, arg, hideShowStrategy) {
+        super();
         this.type = "showCommand";
         this.target = targetExpr;
         this.targetExpr = targetExpr;
@@ -614,10 +595,6 @@ class ShowCommandImpl {
             }
         });
         return ctx.meta.runtime.findNext(this, ctx);
-    }
-
-    execute(ctx) {
-        return ctx.meta.runtime.unifiedExec(this, ctx);
     }
 }
 
@@ -703,8 +680,9 @@ function parsePseudopossessiveTarget(parser) {
  * Parses: take <classes|attribute> [from <elements>] [for <target>]
  * Executes: Removes classes/attributes from source and adds to target
  */
-class TakeCommandClass {
+class TakeCommandClass extends Command {
     constructor(classRefs, fromExpr, forExpr) {
+        super();
         this.type = "takeCommand";
         this.classRefs = classRefs;
         this.from = fromExpr;
@@ -732,14 +710,11 @@ class TakeCommandClass {
         });
         return context.meta.runtime.findNext(this, context);
     }
-
-    execute(ctx) {
-        return ctx.meta.runtime.unifiedExec(this, ctx);
-    }
 }
 
-class TakeCommandAttribute {
+class TakeCommandAttribute extends Command {
     constructor(attributeRef, fromExpr, forExpr, replacementValue) {
+        super();
         this.type = "takeCommand";
         this.attributeRef = attributeRef;
         this.from = fromExpr;
@@ -764,10 +739,6 @@ class TakeCommandAttribute {
             target.setAttribute(this.attributeRef.name, this.attributeRef.value || "");
         });
         return context.meta.runtime.findNext(this, context);
-    }
-
-    execute(ctx) {
-        return ctx.meta.runtime.unifiedExec(this, ctx);
     }
 }
 
@@ -827,8 +798,9 @@ export class TakeCommand {
  * Parses: measure <element's> [property, ...]
  * Executes: Measures element bounds and scroll properties
  */
-class MeasureCommandImpl {
+class MeasureCommandImpl extends Command {
     constructor(targetExpr, propsToMeasure) {
+        super();
         this.type = "measureCommand";
         this.properties = propsToMeasure;
         this.targetExpr = targetExpr;
@@ -874,10 +846,6 @@ class MeasureCommandImpl {
         });
 
         return ctx.meta.runtime.findNext(this, ctx);
-    }
-
-    execute(ctx) {
-        return ctx.meta.runtime.unifiedExec(this, ctx);
     }
 }
 

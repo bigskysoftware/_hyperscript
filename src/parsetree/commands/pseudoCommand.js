@@ -1,8 +1,11 @@
+import { Command } from '../base.js';
+
 /**
  * PseudoCommandWithTarget - Function call with explicit target
  */
-class PseudoCommandWithTarget {
+class PseudoCommandWithTarget extends Command {
     constructor(realRoot, root) {
+        super();
         this.type = "pseudoCommand";
         this.root = realRoot;
         this.argExressions = root.argExressions;
@@ -21,17 +24,14 @@ class PseudoCommandWithTarget {
         context.result = func.apply(rootRoot, args);
         return context.meta.runtime.findNext(this, context);
     }
-
-    execute(context) {
-        return context.meta.runtime.unifiedExec(this, context);
-    }
 }
 
 /**
  * PseudoCommandSimple - Function call without explicit target
  */
-class PseudoCommandSimple {
+class PseudoCommandSimple extends Command {
     constructor(expr) {
+        super();
         this.type = "pseudoCommand";
         this.expr = expr;
         this.args = [expr];
@@ -40,10 +40,6 @@ class PseudoCommandSimple {
     op(context, result) {
         context.result = result;
         return context.meta.runtime.findNext(this, context);
-    }
-
-    execute(context) {
-        return context.meta.runtime.unifiedExec(this, context);
     }
 }
 
