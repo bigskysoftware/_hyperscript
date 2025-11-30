@@ -6,6 +6,7 @@
 import { varargConstructor } from '../../core/runtime.js';
 import { RegExpIterable } from '../../core/runtime.js';
 import { SetCommand } from './setters.js';
+import { Command } from '../base.js';
 
 /**
  * LogCommand - Log values to console
@@ -480,8 +481,9 @@ function parsePickRange(parser) {
 /**
  * PickCommandRange - Pick items/characters from a range
  */
-class PickCommandRange {
+class PickCommandRange extends Command {
     constructor(root, range) {
+        super();
         this.type = "pickCommand";
         this.args = [root, range.from, range.to];
         this.range = range;
@@ -495,17 +497,14 @@ class PickCommandRange {
         ctx.result = root.slice(from, to);
         return ctx.meta.runtime.findNext(this, ctx);
     }
-
-    execute(ctx) {
-        return ctx.meta.runtime.unifiedExec(this, ctx);
-    }
 }
 
 /**
  * PickCommandMatch - Pick regex match
  */
-class PickCommandMatch {
+class PickCommandMatch extends Command {
     constructor(root, re, flags) {
+        super();
         this.type = "pickCommand";
         this.args = [root, re];
         this.flags = flags;
@@ -515,17 +514,14 @@ class PickCommandMatch {
         ctx.result = new RegExp(re, this.flags).exec(root);
         return ctx.meta.runtime.findNext(this, ctx);
     }
-
-    execute(ctx) {
-        return ctx.meta.runtime.unifiedExec(this, ctx);
-    }
 }
 
 /**
  * PickCommandMatches - Pick all regex matches
  */
-class PickCommandMatches {
+class PickCommandMatches extends Command {
     constructor(root, re, flags) {
+        super();
         this.type = "pickCommand";
         this.args = [root, re];
         this.flags = flags;
@@ -534,10 +530,6 @@ class PickCommandMatches {
     op(ctx, root, re) {
         ctx.result = new RegExpIterable(re, this.flags, root);
         return ctx.meta.runtime.findNext(this, ctx);
-    }
-
-    execute(ctx) {
-        return ctx.meta.runtime.unifiedExec(this, ctx);
     }
 }
 
@@ -618,8 +610,9 @@ function parseConversionInfo(parser) {
 /**
  * FetchCommandNode - Fetch command node
  */
-class FetchCommandNode {
+class FetchCommandNode extends Command {
     constructor(url, args, type, conversion) {
+        super();
         this.type = "fetchCommand";
         this.url = url;
         this.argExpressions = args;
@@ -692,10 +685,6 @@ class FetchCommandNode {
                 context.me.removeEventListener('fetch:abort', abortListener);
             });
     }
-
-    execute(context) {
-        return context.meta.runtime.unifiedExec(this, context);
-    }
 }
 
 /**
@@ -747,8 +736,9 @@ export class FetchCommand {
 /**
  * GoCommandNode - Go command node
  */
-class GoCommandNode {
+class GoCommandNode extends Command {
     constructor(target, offset, back, url, newWindow, plusOrMinus, scrollOptions) {
+        super();
         this.type = "goCommand";
         this.target = target;
         this.args = [target, offset];
@@ -811,10 +801,6 @@ class GoCommandNode {
             });
         }
         return ctx.meta.runtime.findNext(this, ctx);
-    }
-
-    execute(ctx) {
-        return ctx.meta.runtime.unifiedExec(this, ctx);
     }
 }
 
