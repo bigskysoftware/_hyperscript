@@ -2828,6 +2828,18 @@ var Command = class {
     return context2.meta.runtime.unifiedExec(this, context2);
   }
 };
+var Feature = class {
+  /**
+   * Install this feature on a target element
+   *
+   * @param {Element} target - Target element to install on
+   * @param {Element} source - Source element where feature is defined
+   * @param {*} args - Installation arguments
+   * @param {Runtime} runtime - Runtime instance
+   */
+  install(target, source, args, runtime2) {
+  }
+};
 
 // src/parsetree/expressions/webliterals.js
 var IdRefTemplateNode = class extends Expression {
@@ -7708,8 +7720,9 @@ var TransitionCommand = class {
 __publicField(TransitionCommand, "keyword", "transition");
 
 // src/parsetree/features/set.js
-var _SetFeature = class _SetFeature {
+var _SetFeature = class _SetFeature extends Feature {
   constructor(setCmd) {
+    super();
     this.start = setCmd;
   }
   install(target, source, args, runtime2) {
@@ -7736,8 +7749,9 @@ __publicField(_SetFeature, "keyword", "set");
 var SetFeature = _SetFeature;
 
 // src/parsetree/features/init.js
-var _InitFeature = class _InitFeature {
+var _InitFeature = class _InitFeature extends Feature {
   constructor(start, immediately) {
+    super();
     this.start = start;
     this.immediately = immediately;
   }
@@ -7788,8 +7802,9 @@ var WorkerFeature = class {
 __publicField(WorkerFeature, "keyword", "worker");
 
 // src/parsetree/features/behavior.js
-var _BehaviorFeature = class _BehaviorFeature {
+var _BehaviorFeature = class _BehaviorFeature extends Feature {
   constructor(path, nameSpace, name, formalParams, hs) {
+    super();
     this.path = path;
     this.nameSpace = nameSpace;
     this.name = name;
@@ -7845,8 +7860,9 @@ __publicField(_BehaviorFeature, "keyword", "behavior");
 var BehaviorFeature = _BehaviorFeature;
 
 // src/parsetree/features/install.js
-var _InstallFeature = class _InstallFeature {
+var _InstallFeature = class _InstallFeature extends Feature {
   constructor(behaviorPath, behaviorNamespace, args) {
+    super();
     this.behaviorPath = behaviorPath;
     this.behaviorNamespace = behaviorNamespace;
     this.args = args;
@@ -7891,8 +7907,9 @@ __publicField(_InstallFeature, "keyword", "install");
 var InstallFeature = _InstallFeature;
 
 // src/parsetree/features/js.js
-var JsFeature = class _JsFeature {
+var JsFeature = class _JsFeature extends Feature {
   constructor(jsSource, func, exposedFunctionNames) {
+    super();
     this.jsSource = jsSource;
     this.function = func;
     this.exposedFunctionNames = exposedFunctionNames;
@@ -7917,8 +7934,9 @@ var JsFeature = class _JsFeature {
 };
 
 // src/parsetree/features/def.js
-var _DefFeature = class _DefFeature {
+var _DefFeature = class _DefFeature extends Feature {
   constructor(funcName, nameSpace, nameVal, args, start, errorHandler, errorSymbol, finallyHandler) {
+    super();
     this.displayName = funcName + "(" + args.map(function(arg) {
       return arg.value;
     }).join(", ") + ")";
@@ -8030,8 +8048,9 @@ function parseEventArgs2(parser) {
   }
   return args;
 }
-var _OnFeature = class _OnFeature {
+var _OnFeature = class _OnFeature extends Feature {
   constructor(displayName, events, start, every, errorHandler, errorSymbol, finallyHandler, queueAll, queueFirst, queueNone, queueLast) {
+    super();
     this.displayName = displayName;
     this.events = events;
     this.start = start;

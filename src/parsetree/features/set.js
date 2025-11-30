@@ -4,10 +4,14 @@
  * Parses: set <element-scoped-variable> to <value>
  * Executes: Sets initial value for element-scoped variable when element is processed
  */
-export class SetFeature {
+
+import { Feature } from '../base.js';
+
+export class SetFeature extends Feature {
     static keyword = "set";
 
     constructor(setCmd) {
+        super();
         this.start = setCmd;
     }
 

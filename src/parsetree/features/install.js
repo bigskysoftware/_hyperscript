@@ -4,10 +4,14 @@
  * Parses: install <behavior-path> [(args...)]
  * Executes: Applies the named behavior to the current element
  */
-export class InstallFeature {
+
+import { Feature } from '../base.js';
+
+export class InstallFeature extends Feature {
     static keyword = "install";
 
     constructor(behaviorPath, behaviorNamespace, args) {
+        super();
         this.behaviorPath = behaviorPath;
         this.behaviorNamespace = behaviorNamespace;
         this.args = args;

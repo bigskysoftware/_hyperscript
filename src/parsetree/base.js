@@ -37,3 +37,23 @@ export class Command {
         return context.meta.runtime.unifiedExec(this, context);
     }
 }
+
+/**
+ * Feature - Base class for all features
+ *
+ * Features define behavior that is installed on elements.
+ * Subclasses implement install() method for their specific logic.
+ */
+export class Feature {
+    /**
+     * Install this feature on a target element
+     *
+     * @param {Element} target - Target element to install on
+     * @param {Element} source - Source element where feature is defined
+     * @param {*} args - Installation arguments
+     * @param {Runtime} runtime - Runtime instance
+     */
+    install(target, source, args, runtime) {
+        // Subclasses override this method
+    }
+}

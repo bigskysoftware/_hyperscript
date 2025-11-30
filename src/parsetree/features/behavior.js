@@ -6,11 +6,13 @@
  */
 
 import { getOrInitObject } from '../../core/runtime.js';
+import { Feature } from '../base.js';
 
-export class BehaviorFeature {
+export class BehaviorFeature extends Feature {
     static keyword = "behavior";
 
     constructor(path, nameSpace, name, formalParams, hs) {
+        super();
         this.path = path;
         this.nameSpace = nameSpace;
         this.name = name;

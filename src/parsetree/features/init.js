@@ -4,10 +4,14 @@
  * Parses: init [immediately] <commands> end
  * Executes: Runs commands on element initialization
  */
-export class InitFeature {
+
+import { Feature } from '../base.js';
+
+export class InitFeature extends Feature {
     static keyword = "init";
 
     constructor(start, immediately) {
+        super();
         this.start = start;
         this.immediately = immediately;
     }

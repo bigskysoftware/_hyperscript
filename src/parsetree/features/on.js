@@ -13,6 +13,8 @@
  *   - Event count filtering
  */
 
+import { Feature } from '../base.js';
+
 /**
  * Parse event arguments
  * @param {Parser} parser
@@ -34,10 +36,11 @@ function parseEventArgs(parser) {
     return args;
 }
 
-export class OnFeature {
+export class OnFeature extends Feature {
     static keyword = "on";
 
     constructor(displayName, events, start, every, errorHandler, errorSymbol, finallyHandler, queueAll, queueFirst, queueNone, queueLast) {
+        super();
         this.displayName = displayName;
         this.events = events;
         this.start = start;

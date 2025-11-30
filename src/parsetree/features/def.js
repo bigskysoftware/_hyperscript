@@ -4,10 +4,14 @@
  * Parses: def <name>[(params...)] <commands> [catch <error> <commands>] [finally <commands>] end
  * Executes: Defines a function that can be called from hyperscript
  */
-export class DefFeature {
+
+import { Feature } from '../base.js';
+
+export class DefFeature extends Feature {
     static keyword = "def";
 
     constructor(funcName, nameSpace, nameVal, args, start, errorHandler, errorSymbol, finallyHandler) {
+        super();
         this.displayName =
             funcName +
             "(" +

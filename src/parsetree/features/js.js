@@ -4,8 +4,12 @@
  * Parses: js ... end
  * Executes: Evaluates JavaScript and exposes defined functions to global scope
  */
-export class JsFeature {
+
+import { Feature } from '../base.js';
+
+export class JsFeature extends Feature {
     constructor(jsSource, func, exposedFunctionNames) {
+        super();
         this.jsSource = jsSource;
         this.function = func;
         this.exposedFunctionNames = exposedFunctionNames;
