@@ -3091,7 +3091,7 @@ var StyleLiteral = class {
 };
 
 // src/parsetree/expressions/expressions.js
-var ParenthesizedExpression = class {
+var ParenthesizedExpression = class extends Expression {
   /**
    * Parse a parenthesized expression
    * @param {Parser} parser
@@ -3110,8 +3110,9 @@ var ParenthesizedExpression = class {
     }
   }
 };
-var BlockLiteral = class _BlockLiteral {
+var BlockLiteral = class _BlockLiteral extends Expression {
   constructor(args, expr) {
+    super();
     this.type = "blockLiteral";
     this.args = args;
     this.expr = expr;
@@ -3153,8 +3154,9 @@ var BlockLiteral = class _BlockLiteral {
     return returnFunc;
   }
 };
-var NegativeNumber = class _NegativeNumber {
+var NegativeNumber = class _NegativeNumber extends Expression {
   constructor(root) {
+    super();
     this.type = "negativeNumber";
     this.root = root;
     this.args = [root];
@@ -3183,12 +3185,10 @@ var NegativeNumber = class _NegativeNumber {
    * @param {Context} context
    * @returns {number}
    */
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
-  }
 };
-var LogicalNot = class _LogicalNot {
+var LogicalNot = class _LogicalNot extends Expression {
   constructor(root) {
+    super();
     this.type = "logicalNot";
     this.root = root;
     this.args = [root];
@@ -3214,12 +3214,10 @@ var LogicalNot = class _LogicalNot {
    * @param {Context} context
    * @returns {boolean}
    */
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
-  }
 };
-var SymbolRef = class _SymbolRef {
+var SymbolRef = class _SymbolRef extends Expression {
   constructor(token, scope, name) {
+    super();
     this.type = "symbol";
     this.token = token;
     this.scope = scope;
@@ -3265,12 +3263,14 @@ var SymbolRef = class _SymbolRef {
    * @param {Context} context
    * @returns {any}
    */
+  // TODO - Why is this not using op?
   evaluate(context2) {
     return context2.meta.runtime.resolveSymbol(this.name, context2, this.scope);
   }
 };
-var BeepExpression = class _BeepExpression {
+var BeepExpression = class _BeepExpression extends Expression {
   constructor(expression) {
+    super();
     this.type = "beepExpression";
     this.expression = expression;
     this.expression["booped"] = true;
@@ -3299,8 +3299,9 @@ var BeepExpression = class _BeepExpression {
     return value;
   }
 };
-var PropertyAccess = class _PropertyAccess {
+var PropertyAccess = class _PropertyAccess extends Expression {
   constructor(root, prop) {
+    super();
     this.type = "propertyAccess";
     this.root = root;
     this.prop = prop;
@@ -3330,12 +3331,10 @@ var PropertyAccess = class _PropertyAccess {
    * @param {Context} context
    * @returns {any}
    */
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
-  }
 };
-var OfExpression = class _OfExpression {
+var OfExpression = class _OfExpression extends Expression {
   constructor(prop, newRoot, attribute, expression, args, urRoot) {
+    super();
     this.type = "ofExpression";
     this.prop = prop;
     this.root = newRoot;
@@ -3411,12 +3410,10 @@ var OfExpression = class _OfExpression {
    * @param {Context} context
    * @returns {any}
    */
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
-  }
 };
-var PossessiveExpression = class _PossessiveExpression {
+var PossessiveExpression = class _PossessiveExpression extends Expression {
   constructor(root, attribute, prop) {
+    super();
     this.type = "possessive";
     this.root = root;
     this.attribute = attribute;
@@ -3473,12 +3470,10 @@ var PossessiveExpression = class _PossessiveExpression {
    * @param {Context} context
    * @returns {any}
    */
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
-  }
 };
-var InExpression = class _InExpression {
+var InExpression = class _InExpression extends Expression {
   constructor(root, target) {
+    super();
     this.type = "inExpression";
     this.root = root;
     this.target = target;
@@ -3534,12 +3529,10 @@ var InExpression = class _InExpression {
    * @param {Context} context
    * @returns {any}
    */
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
-  }
 };
-var AsExpression = class _AsExpression {
+var AsExpression = class _AsExpression extends Expression {
   constructor(root, conversion) {
+    super();
     this.type = "asExpression";
     this.root = root;
     this.conversion = conversion;
@@ -3569,12 +3562,10 @@ var AsExpression = class _AsExpression {
    * @param {Context} context
    * @returns {any}
    */
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
-  }
 };
-var FunctionCall = class _FunctionCall {
+var FunctionCall = class _FunctionCall extends Expression {
   constructor(root, argExpressions, args, isMethodCall) {
+    super();
     this.type = "functionCall";
     this.root = root;
     this.argExressions = argExpressions;
@@ -3632,12 +3623,10 @@ var FunctionCall = class _FunctionCall {
    * @param {Context} context
    * @returns {any}
    */
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
-  }
 };
-var AttributeRefAccess = class _AttributeRefAccess {
+var AttributeRefAccess = class _AttributeRefAccess extends Expression {
   constructor(root, attribute) {
+    super();
     this.type = "attributeRefAccess";
     this.root = root;
     this.attribute = attribute;
@@ -3666,9 +3655,6 @@ var AttributeRefAccess = class _AttributeRefAccess {
    * @param {Context} context
    * @returns {any}
    */
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
-  }
 };
 function sloppyContains(src, container, value) {
   if (container["contains"]) {
@@ -3688,8 +3674,9 @@ function sloppyMatches(src, target, toMatch) {
     throw Error("The value of " + src.sourceFor() + " does not have a match or matches method on it");
   }
 }
-var ArrayIndex = class _ArrayIndex {
+var ArrayIndex = class _ArrayIndex extends Expression {
   constructor(root, firstIndex, secondIndex, andBefore, andAfter) {
+    super();
     this.type = "arrayIndex";
     this.root = root;
     this.prop = firstIndex;
@@ -3758,12 +3745,10 @@ var ArrayIndex = class _ArrayIndex {
    * @param {Context} context
    * @returns {any}
    */
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
-  }
 };
-var MathOperator = class _MathOperator {
+var MathOperator = class _MathOperator extends Expression {
   constructor(lhs, operator, rhs) {
+    super();
     this.type = "mathOperator";
     this.lhs = lhs;
     this.rhs = rhs;
@@ -3812,11 +3797,8 @@ var MathOperator = class _MathOperator {
    * @param {Context} context
    * @returns {number}
    */
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
-  }
 };
-var MathExpression = class {
+var MathExpression = class extends Expression {
   /**
    * Parse math expression (dispatcher)
    * @param {Parser} parser
@@ -3826,8 +3808,9 @@ var MathExpression = class {
     return parser.parseAnyOf(["mathOperator", "unaryExpression"]);
   }
 };
-var ComparisonOperator = class _ComparisonOperator {
+var ComparisonOperator = class _ComparisonOperator extends Expression {
   constructor(lhs, operator, rhs, typeName, nullOk) {
+    super();
     this.type = "comparisonOperator";
     this.operator = operator;
     this.typeName = typeName;
@@ -4022,11 +4005,8 @@ var ComparisonOperator = class _ComparisonOperator {
    * @param {Context} context
    * @returns {boolean}
    */
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
-  }
 };
-var ComparisonExpression = class {
+var ComparisonExpression = class extends Expression {
   /**
    * Parse comparison expression (dispatcher)
    * @param {Parser} parser
@@ -4036,8 +4016,9 @@ var ComparisonExpression = class {
     return parser.parseAnyOf(["comparisonOperator", "mathExpression"]);
   }
 };
-var LogicalOperator = class _LogicalOperator {
+var LogicalOperator = class _LogicalOperator extends Expression {
   constructor(lhs, operator, rhs) {
+    super();
     this.type = "logicalOperator";
     this.operator = operator;
     this.lhs = lhs;
@@ -4084,7 +4065,7 @@ var LogicalOperator = class _LogicalOperator {
     return context2.meta.runtime.unifiedEval(this, context2, this.operator === "or");
   }
 };
-var LogicalExpression = class {
+var LogicalExpression = class extends Expression {
   /**
    * Parse logical expression (dispatcher)
    * @param {Parser} parser
@@ -4094,8 +4075,9 @@ var LogicalExpression = class {
     return parser.parseAnyOf(["logicalOperator", "mathExpression"]);
   }
 };
-var AsyncExpression = class _AsyncExpression {
+var AsyncExpression = class _AsyncExpression extends Expression {
   constructor(value) {
+    super();
     this.type = "asyncExpression";
     this.value = value;
   }
@@ -4117,6 +4099,7 @@ var AsyncExpression = class _AsyncExpression {
    * @param {Context} context
    * @returns {{asyncWrapper: boolean, value: any}}
    */
+  // TODO - Why is this not using op?
   evaluate(context2) {
     return {
       asyncWrapper: true,
@@ -4125,17 +4108,19 @@ var AsyncExpression = class _AsyncExpression {
     };
   }
 };
-var DotOrColonPathNode = class {
+var DotOrColonPathNode = class extends Expression {
   constructor(path, separator) {
+    super();
     this.type = "dotOrColonPath";
     this.path = path;
     this.separator = separator;
   }
+  // TODO - Why is this not using op?
   evaluate() {
     return this.path.join(this.separator ? this.separator : "");
   }
 };
-var DotOrColonPath = class {
+var DotOrColonPath = class extends Expression {
   /**
    * Parse dot or colon separated path
    * @param {Parser} parser

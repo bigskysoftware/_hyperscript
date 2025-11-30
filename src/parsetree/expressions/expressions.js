@@ -2,13 +2,15 @@
  * Basic expression parse tree elements
  */
 
+import { Expression } from '../base.js';
+
 /**
  * ParenthesizedExpression - Wraps an expression in parentheses
  *
  * Parses: (expression)
  * Returns: the inner expression
  */
-export class ParenthesizedExpression {
+export class ParenthesizedExpression extends Expression {
     /**
      * Parse a parenthesized expression
      * @param {Parser} parser
@@ -34,8 +36,9 @@ export class ParenthesizedExpression {
  * Parses: \x -> expr or \x, y -> expr
  * Returns: function that evaluates the expression with bound arguments
  */
-export class BlockLiteral {
+export class BlockLiteral extends Expression {
     constructor(args, expr) {
+        super();
         this.type = "blockLiteral";
         this.args = args;
         this.expr = expr;
@@ -88,8 +91,9 @@ export class BlockLiteral {
  * Parses: -expression
  * Returns: negated numeric value
  */
-export class NegativeNumber {
+export class NegativeNumber extends Expression {
     constructor(root) {
+        super();
         this.type = "negativeNumber";
         this.root = root;
         this.args = [root];
@@ -121,9 +125,6 @@ export class NegativeNumber {
      * @param {Context} context
      * @returns {number}
      */
-    evaluate(context) {
-        return context.meta.runtime.unifiedEval(this, context);
-    }
 }
 
 /**
@@ -132,8 +133,9 @@ export class NegativeNumber {
  * Parses: not expression
  * Returns: boolean negation
  */
-export class LogicalNot {
+export class LogicalNot extends Expression {
     constructor(root) {
+        super();
         this.type = "logicalNot";
         this.root = root;
         this.args = [root];
@@ -162,9 +164,6 @@ export class LogicalNot {
      * @param {Context} context
      * @returns {boolean}
      */
-    evaluate(context) {
-        return context.meta.runtime.unifiedEval(this, context);
-    }
 }
 
 /**
@@ -173,8 +172,9 @@ export class LogicalNot {
  * Parses: identifier | global identifier | local identifier | :identifier | $identifier
  * Returns: resolved symbol value
  */
-export class SymbolRef {
+export class SymbolRef extends Expression {
     constructor(token, scope, name) {
+        super();
         this.type = "symbol";
         this.token = token;
         this.scope = scope;
@@ -225,6 +225,7 @@ export class SymbolRef {
      * @param {Context} context
      * @returns {any}
      */
+    // TODO - Why is this not using op?
     evaluate(context) {
         return context.meta.runtime.resolveSymbol(this.name, context, this.scope);
     }
@@ -236,8 +237,9 @@ export class SymbolRef {
  * Parses: beep! expression
  * Returns: expression value (after logging to console)
  */
-export class BeepExpression {
+export class BeepExpression extends Expression {
     constructor(expression) {
+        super();
         this.type = "beepExpression";
         this.expression = expression;
         this.expression['booped'] = true;
@@ -275,8 +277,9 @@ export class BeepExpression {
  * Parses: expression.property
  * Returns: property value from the root expression
  */
-export class PropertyAccess {
+export class PropertyAccess extends Expression {
     constructor(root, prop) {
+        super();
         this.type = "propertyAccess";
         this.root = root;
         this.prop = prop;
@@ -309,9 +312,6 @@ export class PropertyAccess {
      * @param {Context} context
      * @returns {any}
      */
-    evaluate(context) {
-        return context.meta.runtime.unifiedEval(this, context);
-    }
 }
 
 /**
@@ -320,8 +320,9 @@ export class PropertyAccess {
  * Parses: property of expression
  * Returns: property value from the expression
  */
-export class OfExpression {
+export class OfExpression extends Expression {
     constructor(prop, newRoot, attribute, expression, args, urRoot) {
+        super();
         this.type = "ofExpression";
         this.prop = prop; // token
         this.root = newRoot;
@@ -404,9 +405,6 @@ export class OfExpression {
      * @param {Context} context
      * @returns {any}
      */
-    evaluate(context) {
-        return context.meta.runtime.unifiedEval(this, context);
-    }
 }
 
 /**
@@ -415,8 +413,9 @@ export class OfExpression {
  * Parses: expression's property | my property | its property
  * Returns: property value
  */
-export class PossessiveExpression {
+export class PossessiveExpression extends Expression {
     constructor(root, attribute, prop) {
+        super();
         this.type = "possessive";
         this.root = root;
         this.attribute = attribute;
@@ -482,9 +481,6 @@ export class PossessiveExpression {
      * @param {Context} context
      * @returns {any}
      */
-    evaluate(context) {
-        return context.meta.runtime.unifiedEval(this, context);
-    }
 }
 
 /**
@@ -493,8 +489,9 @@ export class PossessiveExpression {
  * Parses: expression in target
  * Returns: filtered elements or boolean
  */
-export class InExpression {
+export class InExpression extends Expression {
     constructor(root, target) {
+        super();
         this.type = "inExpression";
         this.root = root;
         this.target = target;
@@ -553,9 +550,6 @@ export class InExpression {
      * @param {Context} context
      * @returns {any}
      */
-    evaluate(context) {
-        return context.meta.runtime.unifiedEval(this, context);
-    }
 }
 
 /**
@@ -564,8 +558,9 @@ export class InExpression {
  * Parses: expression as Type
  * Returns: converted value
  */
-export class AsExpression {
+export class AsExpression extends Expression {
     constructor(root, conversion) {
+        super();
         this.type = "asExpression";
         this.root = root;
         this.conversion = conversion;
@@ -598,9 +593,6 @@ export class AsExpression {
      * @param {Context} context
      * @returns {any}
      */
-    evaluate(context) {
-        return context.meta.runtime.unifiedEval(this, context);
-    }
 }
 
 /**
@@ -609,8 +601,9 @@ export class AsExpression {
  * Parses: function(args) or object.method(args)
  * Returns: function result
  */
-export class FunctionCall {
+export class FunctionCall extends Expression {
     constructor(root, argExpressions, args, isMethodCall) {
+        super();
         this.type = "functionCall";
         this.root = root;
         this.argExressions = argExpressions;
@@ -672,9 +665,6 @@ export class FunctionCall {
      * @param {Context} context
      * @returns {any}
      */
-    evaluate(context) {
-        return context.meta.runtime.unifiedEval(this, context);
-    }
 }
 
 /**
@@ -683,8 +673,9 @@ export class FunctionCall {
  * Parses: expression@attribute
  * Returns: attribute value
  */
-export class AttributeRefAccess {
+export class AttributeRefAccess extends Expression {
     constructor(root, attribute) {
+        super();
         this.type = "attributeRefAccess";
         this.root = root;
         this.attribute = attribute;
@@ -716,9 +707,6 @@ export class AttributeRefAccess {
      * @param {Context} context
      * @returns {any}
      */
-    evaluate(context) {
-        return context.meta.runtime.unifiedEval(this, context);
-    }
 }
 
 /**
@@ -753,8 +741,9 @@ function sloppyMatches(src, target, toMatch) {
  * Parses: array[index] | array[start..end] | array[..end] | array[start..]
  * Returns: indexed value or slice
  */
-export class ArrayIndex {
+export class ArrayIndex extends Expression {
     constructor(root, firstIndex, secondIndex, andBefore, andAfter) {
+        super();
         this.type = "arrayIndex";
         this.root = root;
         this.prop = firstIndex;
@@ -829,9 +818,6 @@ export class ArrayIndex {
      * @param {Context} context
      * @returns {any}
      */
-    evaluate(context) {
-        return context.meta.runtime.unifiedEval(this, context);
-    }
 }
 
 /**
@@ -841,8 +827,9 @@ export class ArrayIndex {
  * Returns: computed result
  * Note: Enforces same operator throughout chain (must parenthesize mixed operators)
  */
-export class MathOperator {
+export class MathOperator extends Expression {
     constructor(lhs, operator, rhs) {
+        super();
         this.type = "mathOperator";
         this.lhs = lhs;
         this.rhs = rhs;
@@ -894,9 +881,6 @@ export class MathOperator {
      * @param {Context} context
      * @returns {number}
      */
-    evaluate(context) {
-        return context.meta.runtime.unifiedEval(this, context);
-    }
 }
 
 /**
@@ -905,7 +889,7 @@ export class MathOperator {
  * Parses: mathOperator | unaryExpression
  * Returns: result from selected parser
  */
-export class MathExpression {
+export class MathExpression extends Expression {
     /**
      * Parse math expression (dispatcher)
      * @param {Parser} parser
@@ -923,8 +907,9 @@ export class MathExpression {
  * Returns: boolean result
  * Supports: ==, !=, ===, !==, <, >, <=, >=, is, am, match, contain, include, exist, empty
  */
-export class ComparisonOperator {
+export class ComparisonOperator extends Expression {
     constructor(lhs, operator, rhs, typeName, nullOk) {
+        super();
         this.type = "comparisonOperator";
         this.operator = operator;
         this.typeName = typeName;
@@ -1125,9 +1110,6 @@ export class ComparisonOperator {
      * @param {Context} context
      * @returns {boolean}
      */
-    evaluate(context) {
-        return context.meta.runtime.unifiedEval(this, context);
-    }
 }
 
 /**
@@ -1136,7 +1118,7 @@ export class ComparisonOperator {
  * Parses: comparisonOperator | mathExpression
  * Returns: result from selected parser
  */
-export class ComparisonExpression {
+export class ComparisonExpression extends Expression {
     /**
      * Parse comparison expression (dispatcher)
      * @param {Parser} parser
@@ -1154,8 +1136,9 @@ export class ComparisonExpression {
  * Returns: boolean result
  * Note: Enforces same operator throughout chain (must parenthesize mixed operators)
  */
-export class LogicalOperator {
+export class LogicalOperator extends Expression {
     constructor(lhs, operator, rhs) {
+        super();
         this.type = "logicalOperator";
         this.operator = operator;
         this.lhs = lhs;
@@ -1212,7 +1195,7 @@ export class LogicalOperator {
  * Parses: logicalOperator | mathExpression
  * Returns: result from selected parser
  */
-export class LogicalExpression {
+export class LogicalExpression extends Expression {
     /**
      * Parse logical expression (dispatcher)
      * @param {Parser} parser
@@ -1229,8 +1212,9 @@ export class LogicalExpression {
  * Parses: async expression | logicalExpression
  * Returns: async-wrapped result or normal result
  */
-export class AsyncExpression {
+export class AsyncExpression extends Expression {
     constructor(value) {
+        super();
         this.type = "asyncExpression";
         this.value = value;
     }
@@ -1254,6 +1238,7 @@ export class AsyncExpression {
      * @param {Context} context
      * @returns {{asyncWrapper: boolean, value: any}}
      */
+    // TODO - Why is this not using op?
     evaluate(context) {
         return {
             asyncWrapper: true,
@@ -1271,19 +1256,21 @@ export class AsyncExpression {
 /**
  * DotOrColonPathNode - Represents a dot or colon separated path
  */
-class DotOrColonPathNode {
+class DotOrColonPathNode extends Expression {
     constructor(path, separator) {
+        super();
         this.type = "dotOrColonPath";
         this.path = path;
         this.separator = separator;
     }
 
+    // TODO - Why is this not using op?
     evaluate() {
         return this.path.join(this.separator ? this.separator : "");
     }
 }
 
-export class DotOrColonPath {
+export class DotOrColonPath extends Expression {
     /**
      * Parse dot or colon separated path
      * @param {Parser} parser
