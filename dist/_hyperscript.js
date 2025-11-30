@@ -7845,7 +7845,35 @@ __publicField(_BehaviorFeature, "keyword", "behavior");
 var BehaviorFeature = _BehaviorFeature;
 
 // src/parsetree/features/install.js
-var InstallFeature = class {
+var _InstallFeature = class _InstallFeature {
+  constructor(behaviorPath, behaviorNamespace, args) {
+    this.behaviorPath = behaviorPath;
+    this.behaviorNamespace = behaviorNamespace;
+    this.args = args;
+  }
+  install(target, source, installArgs, runtime2) {
+    const behaviorPath = this.behaviorPath;
+    const behaviorNamespace = this.behaviorNamespace;
+    const args = this.args;
+    const installFeature = this;
+    runtime2.unifiedEval(
+      {
+        args: [args],
+        op: function(ctx, args2) {
+          var behavior = runtime2.globalScope;
+          for (var i = 0; i < behaviorNamespace.length; i++) {
+            behavior = behavior[behaviorNamespace[i]];
+            if (typeof behavior !== "object" && typeof behavior !== "function")
+              throw new Error("No such behavior defined as " + behaviorPath);
+          }
+          if (!(behavior instanceof Function))
+            throw new Error(behaviorPath + " is not a behavior");
+          behavior(target, source, args2);
+        }
+      },
+      runtime2.makeContext(target, installFeature, target, null)
+    );
+  }
   /**
    * Parse install feature
    * @param {Parser} parser
@@ -7856,31 +7884,11 @@ var InstallFeature = class {
     var behaviorPath = parser.requireElement("dotOrColonPath").evaluate();
     var behaviorNamespace = behaviorPath.split(".");
     var args = parser.parseElement("namedArgumentList");
-    var installFeature;
-    return installFeature = {
-      install: function(target, source, installArgs, runtime2) {
-        runtime2.unifiedEval(
-          {
-            args: [args],
-            op: function(ctx, args2) {
-              var behavior = runtime2.globalScope;
-              for (var i = 0; i < behaviorNamespace.length; i++) {
-                behavior = behavior[behaviorNamespace[i]];
-                if (typeof behavior !== "object" && typeof behavior !== "function")
-                  throw new Error("No such behavior defined as " + behaviorPath);
-              }
-              if (!(behavior instanceof Function))
-                throw new Error(behaviorPath + " is not a behavior");
-              behavior(target, source, args2);
-            }
-          },
-          runtime2.makeContext(target, installFeature, target, null)
-        );
-      }
-    };
+    return new _InstallFeature(behaviorPath, behaviorNamespace, args);
   }
 };
-__publicField(InstallFeature, "keyword", "install");
+__publicField(_InstallFeature, "keyword", "install");
+var InstallFeature = _InstallFeature;
 
 // src/parsetree/features/js.js
 var JsFeature = class _JsFeature {
@@ -8022,7 +8030,196 @@ function parseEventArgs2(parser) {
   }
   return args;
 }
-var OnFeature = class {
+var _OnFeature = class _OnFeature {
+  constructor(displayName, events, start, every, errorHandler, errorSymbol, finallyHandler, queueAll, queueFirst, queueNone, queueLast) {
+    this.displayName = displayName;
+    this.events = events;
+    this.start = start;
+    this.every = every;
+    this.execCount = 0;
+    this.errorHandler = errorHandler;
+    this.errorSymbol = errorSymbol;
+    this.finallyHandler = finallyHandler;
+    this.queueAll = queueAll;
+    this.queueFirst = queueFirst;
+    this.queueNone = queueNone;
+    this.queueLast = queueLast;
+  }
+  execute(ctx) {
+    const onFeature = this;
+    const every = this.every;
+    const queueNone = this.queueNone;
+    const queueFirst = this.queueFirst;
+    const queueLast = this.queueLast;
+    const start = this.start;
+    let eventQueueInfo = ctx.meta.runtime.getEventQueueFor(ctx.me, onFeature);
+    if (eventQueueInfo.executing && every === false) {
+      if (queueNone || queueFirst && eventQueueInfo.queue.length > 0) {
+        return;
+      }
+      if (queueLast) {
+        eventQueueInfo.queue.length = 0;
+      }
+      eventQueueInfo.queue.push(ctx);
+      return;
+    }
+    onFeature.execCount++;
+    eventQueueInfo.executing = true;
+    ctx.meta.onHalt = function() {
+      eventQueueInfo.executing = false;
+      var queued = eventQueueInfo.queue.shift();
+      if (queued) {
+        setTimeout(function() {
+          onFeature.execute(queued);
+        }, 1);
+      }
+    };
+    ctx.meta.reject = function(err) {
+      console.error(err.message ? err.message : err);
+      console.error(err.stack);
+      var hypertrace = ctx.meta.runtime.getHyperTrace(ctx, err);
+      if (hypertrace) {
+        hypertrace.print();
+      }
+      ctx.meta.runtime.triggerEvent(ctx.me, "exception", {
+        error: err
+      });
+    };
+    start.execute(ctx);
+  }
+  install(elt, source, args, runtime2) {
+    const onFeature = this;
+    const displayName = this.displayName;
+    const errorHandler = this.errorHandler;
+    const errorSymbol = this.errorSymbol;
+    const finallyHandler = this.finallyHandler;
+    for (const eventSpec of onFeature.events) {
+      var targets;
+      if (eventSpec.elsewhere) {
+        targets = [document];
+      } else if (eventSpec.from) {
+        targets = eventSpec.from.evaluate(runtime2.makeContext(elt, onFeature, elt, null));
+      } else {
+        targets = [elt];
+      }
+      runtime2.implicitLoop(targets, function(target) {
+        var eventName = eventSpec.on;
+        if (target == null) {
+          console.warn("'%s' feature ignored because target does not exists:", displayName, elt);
+          return;
+        }
+        if (eventSpec.mutationSpec) {
+          eventName = "hyperscript:mutation";
+          const observer = new MutationObserver(function(mutationList, observer2) {
+            if (!onFeature.executing) {
+              runtime2.triggerEvent(target, eventName, {
+                mutationList,
+                observer: observer2
+              });
+            }
+          });
+          observer.observe(target, eventSpec.mutationSpec);
+        }
+        if (eventSpec.intersectionSpec) {
+          eventName = "hyperscript:intersection";
+          const observer = new IntersectionObserver(function(entries) {
+            for (const entry of entries) {
+              var detail = {
+                observer
+              };
+              detail = Object.assign(detail, entry);
+              detail["intersecting"] = entry.isIntersecting;
+              runtime2.triggerEvent(target, eventName, detail);
+            }
+          }, eventSpec.intersectionSpec);
+          observer.observe(target);
+        }
+        var addEventListener = target.addEventListener || target.on;
+        addEventListener.call(target, eventName, function listener(evt) {
+          if (typeof Node !== "undefined" && elt instanceof Node && target !== elt && !elt.isConnected) {
+            target.removeEventListener(eventName, listener);
+            return;
+          }
+          var ctx = runtime2.makeContext(elt, onFeature, elt, evt);
+          if (eventSpec.elsewhere && elt.contains(evt.target)) {
+            return;
+          }
+          if (eventSpec.from) {
+            ctx.result = target;
+          }
+          for (const arg of eventSpec.args) {
+            let eventValue = ctx.event[arg.value];
+            if (eventValue !== void 0) {
+              ctx.locals[arg.value] = eventValue;
+            } else if ("detail" in ctx.event) {
+              ctx.locals[arg.value] = ctx.event["detail"][arg.value];
+            }
+          }
+          ctx.meta.errorHandler = errorHandler;
+          ctx.meta.errorSymbol = errorSymbol;
+          ctx.meta.finallyHandler = finallyHandler;
+          if (eventSpec.filter) {
+            var initialCtx = ctx.meta.context;
+            ctx.meta.context = ctx.event;
+            try {
+              var value = eventSpec.filter.evaluate(ctx);
+              if (value) {
+              } else {
+                return;
+              }
+            } finally {
+              ctx.meta.context = initialCtx;
+            }
+          }
+          if (eventSpec.inExpr) {
+            var inElement = evt.target;
+            while (true) {
+              if (inElement.matches && inElement.matches(eventSpec.inExpr.css)) {
+                ctx.result = inElement;
+                break;
+              } else {
+                inElement = inElement.parentElement;
+                if (inElement == null) {
+                  return;
+                }
+              }
+            }
+          }
+          eventSpec.execCount++;
+          if (eventSpec.startCount) {
+            if (eventSpec.endCount) {
+              if (eventSpec.execCount < eventSpec.startCount || eventSpec.execCount > eventSpec.endCount) {
+                return;
+              }
+            } else if (eventSpec.unbounded) {
+              if (eventSpec.execCount < eventSpec.startCount) {
+                return;
+              }
+            } else if (eventSpec.execCount !== eventSpec.startCount) {
+              return;
+            }
+          }
+          if (eventSpec.debounceTime) {
+            if (eventSpec.debounced) {
+              clearTimeout(eventSpec.debounced);
+            }
+            eventSpec.debounced = setTimeout(function() {
+              onFeature.execute(ctx);
+            }, eventSpec.debounceTime);
+            return;
+          }
+          if (eventSpec.throttleTime) {
+            if (eventSpec.lastExec && Date.now() < eventSpec.lastExec + eventSpec.throttleTime) {
+              return;
+            } else {
+              eventSpec.lastExec = Date.now();
+            }
+          }
+          onFeature.execute(ctx);
+        });
+      });
+    }
+  }
   /**
    * Parse on feature
    * @param {Parser} parser
@@ -8201,184 +8398,13 @@ var OnFeature = class {
       var finallyHandler = parser.requireElement("commandList");
       parser.ensureTerminated(finallyHandler);
     }
-    var onFeature = {
-      displayName,
-      events,
-      start,
-      every,
-      execCount: 0,
-      errorHandler,
-      errorSymbol,
-      execute: function(ctx) {
-        let eventQueueInfo = ctx.meta.runtime.getEventQueueFor(ctx.me, onFeature);
-        if (eventQueueInfo.executing && every === false) {
-          if (queueNone || queueFirst && eventQueueInfo.queue.length > 0) {
-            return;
-          }
-          if (queueLast) {
-            eventQueueInfo.queue.length = 0;
-          }
-          eventQueueInfo.queue.push(ctx);
-          return;
-        }
-        onFeature.execCount++;
-        eventQueueInfo.executing = true;
-        ctx.meta.onHalt = function() {
-          eventQueueInfo.executing = false;
-          var queued = eventQueueInfo.queue.shift();
-          if (queued) {
-            setTimeout(function() {
-              onFeature.execute(queued);
-            }, 1);
-          }
-        };
-        ctx.meta.reject = function(err) {
-          console.error(err.message ? err.message : err);
-          console.error(err.stack);
-          var hypertrace = ctx.meta.runtime.getHyperTrace(ctx, err);
-          if (hypertrace) {
-            hypertrace.print();
-          }
-          ctx.meta.runtime.triggerEvent(ctx.me, "exception", {
-            error: err
-          });
-        };
-        start.execute(ctx);
-      },
-      install: function(elt, source, args2, runtime2) {
-        for (const eventSpec of onFeature.events) {
-          var targets;
-          if (eventSpec.elsewhere) {
-            targets = [document];
-          } else if (eventSpec.from) {
-            targets = eventSpec.from.evaluate(runtime2.makeContext(elt, onFeature, elt, null));
-          } else {
-            targets = [elt];
-          }
-          runtime2.implicitLoop(targets, function(target) {
-            var eventName2 = eventSpec.on;
-            if (target == null) {
-              console.warn("'%s' feature ignored because target does not exists:", displayName, elt);
-              return;
-            }
-            if (eventSpec.mutationSpec) {
-              eventName2 = "hyperscript:mutation";
-              const observer = new MutationObserver(function(mutationList, observer2) {
-                if (!onFeature.executing) {
-                  runtime2.triggerEvent(target, eventName2, {
-                    mutationList,
-                    observer: observer2
-                  });
-                }
-              });
-              observer.observe(target, eventSpec.mutationSpec);
-            }
-            if (eventSpec.intersectionSpec) {
-              eventName2 = "hyperscript:intersection";
-              const observer = new IntersectionObserver(function(entries) {
-                for (const entry of entries) {
-                  var detail = {
-                    observer
-                  };
-                  detail = Object.assign(detail, entry);
-                  detail["intersecting"] = entry.isIntersecting;
-                  runtime2.triggerEvent(target, eventName2, detail);
-                }
-              }, eventSpec.intersectionSpec);
-              observer.observe(target);
-            }
-            var addEventListener = target.addEventListener || target.on;
-            addEventListener.call(target, eventName2, function listener(evt) {
-              if (typeof Node !== "undefined" && elt instanceof Node && target !== elt && !elt.isConnected) {
-                target.removeEventListener(eventName2, listener);
-                return;
-              }
-              var ctx = runtime2.makeContext(elt, onFeature, elt, evt);
-              if (eventSpec.elsewhere && elt.contains(evt.target)) {
-                return;
-              }
-              if (eventSpec.from) {
-                ctx.result = target;
-              }
-              for (const arg of eventSpec.args) {
-                let eventValue = ctx.event[arg.value];
-                if (eventValue !== void 0) {
-                  ctx.locals[arg.value] = eventValue;
-                } else if ("detail" in ctx.event) {
-                  ctx.locals[arg.value] = ctx.event["detail"][arg.value];
-                }
-              }
-              ctx.meta.errorHandler = errorHandler;
-              ctx.meta.errorSymbol = errorSymbol;
-              ctx.meta.finallyHandler = finallyHandler;
-              if (eventSpec.filter) {
-                var initialCtx = ctx.meta.context;
-                ctx.meta.context = ctx.event;
-                try {
-                  var value = eventSpec.filter.evaluate(ctx);
-                  if (value) {
-                  } else {
-                    return;
-                  }
-                } finally {
-                  ctx.meta.context = initialCtx;
-                }
-              }
-              if (eventSpec.inExpr) {
-                var inElement = evt.target;
-                while (true) {
-                  if (inElement.matches && inElement.matches(eventSpec.inExpr.css)) {
-                    ctx.result = inElement;
-                    break;
-                  } else {
-                    inElement = inElement.parentElement;
-                    if (inElement == null) {
-                      return;
-                    }
-                  }
-                }
-              }
-              eventSpec.execCount++;
-              if (eventSpec.startCount) {
-                if (eventSpec.endCount) {
-                  if (eventSpec.execCount < eventSpec.startCount || eventSpec.execCount > eventSpec.endCount) {
-                    return;
-                  }
-                } else if (eventSpec.unbounded) {
-                  if (eventSpec.execCount < eventSpec.startCount) {
-                    return;
-                  }
-                } else if (eventSpec.execCount !== eventSpec.startCount) {
-                  return;
-                }
-              }
-              if (eventSpec.debounceTime) {
-                if (eventSpec.debounced) {
-                  clearTimeout(eventSpec.debounced);
-                }
-                eventSpec.debounced = setTimeout(function() {
-                  onFeature.execute(ctx);
-                }, eventSpec.debounceTime);
-                return;
-              }
-              if (eventSpec.throttleTime) {
-                if (eventSpec.lastExec && Date.now() < eventSpec.lastExec + eventSpec.throttleTime) {
-                  return;
-                } else {
-                  eventSpec.lastExec = Date.now();
-                }
-              }
-              onFeature.execute(ctx);
-            });
-          });
-        }
-      }
-    };
+    var onFeature = new _OnFeature(displayName, events, start, every, errorHandler, errorSymbol, finallyHandler, queueAll, queueFirst, queueNone, queueLast);
     parser.setParent(start, onFeature);
     return onFeature;
   }
 };
-__publicField(OnFeature, "keyword", "on");
+__publicField(_OnFeature, "keyword", "on");
+var OnFeature = _OnFeature;
 
 // src/_hyperscript.js
 var globalScope = typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : void 0;
