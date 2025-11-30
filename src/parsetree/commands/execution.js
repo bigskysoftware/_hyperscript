@@ -167,35 +167,20 @@ export class AsyncCommand extends Command {
 }
 
 /**
- * Helper function to parse call/get commands
+ * CallCommand - Call function
+ *
+ * Parses: call <functionCall>
+ * Executes: Calls function (must be a function invocation)
  */
-class CallOrGetCommandImpl extends Command {
+export class CallCommand extends Command {
+    static keyword = "call";
+
     constructor(expr) {
         super();
         this.type = "callCommand";
         this.expr = expr;
         this.args = [expr];
     }
-
-    op(context, result) {
-        context.result = result;
-        return context.meta.runtime.findNext(this, context);
-    }
-}
-
-function parseCallOrGet(parser) {
-    var expr = parser.requireElement("expression");
-    return new CallOrGetCommandImpl(expr);
-}
-
-/**
- * CallCommand - Call function
- *
- * Parses: call <functionCall>
- * Executes: Calls function (must be a function invocation)
- */
-export class CallCommand {
-    static keyword = "call";
 
     /**
      * Parse call command
@@ -204,11 +189,16 @@ export class CallCommand {
      */
     static parse(parser) {
         if (!parser.matchToken("call")) return;
-        var call = parseCallOrGet(parser);
-        if (call.expr && call.expr.type !== "functionCall") {
+        var expr = parser.requireElement("expression");
+        if (expr && expr.type !== "functionCall") {
             parser.raiseParseError("Must be a function invocation");
         }
-        return call;
+        return new CallCommand(expr);
+    }
+
+    op(context, result) {
+        context.result = result;
+        return context.meta.runtime.findNext(this, context);
     }
 }
 
@@ -218,8 +208,15 @@ export class CallCommand {
  * Parses: get <expression>
  * Executes: Evaluates expression and stores result
  */
-export class GetCommand {
+export class GetCommand extends Command {
     static keyword = "get";
+
+    constructor(expr) {
+        super();
+        this.type = "getCommand";
+        this.expr = expr;
+        this.args = [expr];
+    }
 
     /**
      * Parse get command
@@ -227,8 +224,13 @@ export class GetCommand {
      * @returns {GetCommand | undefined}
      */
     static parse(parser) {
-        if (parser.matchToken("get")) {
-            return parseCallOrGet(parser);
-        }
+        if (!parser.matchToken("get")) return;
+        var expr = parser.requireElement("expression");
+        return new GetCommand(expr);
+    }
+
+    op(context, result) {
+        context.result = result;
+        return context.meta.runtime.findNext(this, context);
     }
 }

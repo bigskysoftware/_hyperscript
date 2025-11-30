@@ -4990,16 +4990,34 @@ var DecrementOperation = class extends Expression {
     return newValue;
   }
 };
-var SetterCommandImpl = class extends Command {
-  constructor(target, symbolWrite, value, rootElt, prop, arrayWrite, attribute) {
+function putInto(context, root, prop, valueToPut) {
+  if (root == null) {
+    var value = context.meta.runtime.resolveSymbol(prop, context);
+  } else {
+    var value = root;
+  }
+  if (value instanceof Element || value instanceof HTMLDocument) {
+    while (value.firstChild) value.removeChild(value.firstChild);
+    value.append(context.meta.runtime.convertValue(valueToPut, "Fragment"));
+    context.meta.runtime.processNode(value);
+  } else {
+    if (root == null) {
+      context.meta.runtime.setSymbol(prop, context, null, valueToPut);
+    } else {
+      root[prop] = valueToPut;
+    }
+  }
+}
+var BaseSetterCommand = class _BaseSetterCommand extends Command {
+  constructor(target, value, rootElt, prop, attribute) {
     super();
     this.target = target;
-    this.symbolWrite = symbolWrite;
     this.value = value;
     this.rootElt = rootElt;
     this.prop = prop;
-    this.arrayWrite = arrayWrite;
     this.attribute = attribute;
+    this.symbolWrite = target.type === "symbol";
+    this.arrayWrite = target.type === "arrayIndex";
     this.args = [rootElt, prop, value];
   }
   op(context, root, prop, valueToSet) {
@@ -5030,8 +5048,157 @@ var SetterCommandImpl = class extends Command {
     }
     return context.meta.runtime.findNext(this, context);
   }
+  /**
+   * Create a setter command for a target and value
+   * @param {Parser} parser
+   * @param {*} target - Target expression to set
+   * @param {*} value - Value expression to assign
+   * @param {*} CommandClass - The command class to instantiate (defaults to BaseSetterCommand)
+   * @returns Setter command instance
+   */
+  static makeSetter(parser, target, value, CommandClass = _BaseSetterCommand) {
+    var symbolWrite = target.type === "symbol";
+    var attributeWrite = target.type === "attributeRef";
+    var styleWrite = target.type === "styleRef";
+    var arrayWrite = target.type === "arrayIndex";
+    if (!(attributeWrite || styleWrite || symbolWrite) && target.root == null) {
+      parser.raiseParseError("Can only put directly into symbols, not references");
+    }
+    var rootElt = null;
+    var prop = null;
+    var attribute = null;
+    if (symbolWrite) {
+    } else if (attributeWrite || styleWrite) {
+      rootElt = parser.requireElement("implicitMeTarget");
+      attribute = target;
+    } else if (arrayWrite) {
+      prop = target.firstIndex;
+      rootElt = target.root;
+    } else {
+      prop = target.prop ? target.prop.value : null;
+      attribute = target.attribute;
+      rootElt = target.root;
+    }
+    return new CommandClass(target, value, rootElt, prop, attribute);
+  }
 };
-var PutCommandImpl = class extends Command {
+var _SetCommand = class _SetCommand extends BaseSetterCommand {
+  constructor(target, value, rootElt, prop, attribute, objectLiteral = null) {
+    super(target, value, rootElt, prop, attribute);
+    this.objectLiteral = objectLiteral;
+    if (objectLiteral) {
+      this.args = [objectLiteral, target];
+    }
+  }
+  /**
+   * Parse set command
+   * @param {Parser} parser
+   * @returns {SetCommand | undefined}
+   */
+  static parse(parser) {
+    if (!parser.matchToken("set")) return;
+    if (parser.currentToken().type === "L_BRACE") {
+      var obj = parser.requireElement("objectLiteral");
+      parser.requireToken("on");
+      var target = parser.requireElement("expression");
+      var command = new _SetCommand(target, null, null, null, null, obj);
+      return command;
+    }
+    try {
+      parser.pushFollow("to");
+      var target = parser.requireElement("assignableExpression");
+    } finally {
+      parser.popFollow();
+    }
+    parser.requireToken("to");
+    var value = parser.requireElement("expression");
+    return BaseSetterCommand.makeSetter(parser, target, value, _SetCommand);
+  }
+  op(context, root, prop, valueToSet) {
+    if (this.objectLiteral) {
+      var obj = root;
+      var target = prop;
+      Object.assign(target, obj);
+      return context.meta.runtime.findNext(this, context);
+    } else {
+      return super.op(context, root, prop, valueToSet);
+    }
+  }
+};
+__publicField(_SetCommand, "keyword", "set");
+var SetCommand = _SetCommand;
+var _DefaultCommand = class _DefaultCommand extends Command {
+  constructor(target, value, setter) {
+    super();
+    this.target = target;
+    this.value = value;
+    this.setter = setter;
+    this.args = [target];
+  }
+  /**
+   * Parse default command
+   * @param {Parser} parser
+   * @returns {DefaultCommand | undefined}
+   */
+  static parse(parser) {
+    if (!parser.matchToken("default")) return;
+    var target = parser.requireElement("assignableExpression");
+    parser.requireToken("to");
+    var value = parser.requireElement("expression");
+    var setter = BaseSetterCommand.makeSetter(parser, target, value, SetCommand);
+    var defaultCmd = new _DefaultCommand(target, value, setter);
+    setter.parent = defaultCmd;
+    return defaultCmd;
+  }
+  op(context, targetValue) {
+    if (targetValue) {
+      return context.meta.runtime.findNext(this, context);
+    } else {
+      return this.setter;
+    }
+  }
+};
+__publicField(_DefaultCommand, "keyword", "default");
+var DefaultCommand = _DefaultCommand;
+var _IncrementCommand = class _IncrementCommand extends BaseSetterCommand {
+  /**
+   * Parse increment command
+   * @param {Parser} parser
+   * @returns {IncrementCommand | undefined}
+   */
+  static parse(parser) {
+    if (!parser.matchToken("increment")) return;
+    var amountExpr;
+    var target = parser.parseElement("assignableExpression");
+    if (parser.matchToken("by")) {
+      amountExpr = parser.requireElement("expression");
+    }
+    var implicitIncrementOp = new IncrementOperation(target, amountExpr);
+    return BaseSetterCommand.makeSetter(parser, target, implicitIncrementOp, _IncrementCommand);
+  }
+};
+__publicField(_IncrementCommand, "keyword", "increment");
+var IncrementCommand = _IncrementCommand;
+var _DecrementCommand = class _DecrementCommand extends BaseSetterCommand {
+  /**
+   * Parse decrement command
+   * @param {Parser} parser
+   * @returns {DecrementCommand | undefined}
+   */
+  static parse(parser) {
+    if (!parser.matchToken("decrement")) return;
+    var amountExpr;
+    var target = parser.parseElement("assignableExpression");
+    if (parser.matchToken("by")) {
+      amountExpr = parser.requireElement("expression");
+    }
+    var implicitDecrementOp = new DecrementOperation(target, amountExpr);
+    return BaseSetterCommand.makeSetter(parser, target, implicitDecrementOp, _DecrementCommand);
+  }
+};
+__publicField(_DecrementCommand, "keyword", "decrement");
+var DecrementCommand = _DecrementCommand;
+var _PutCommand = class _PutCommand extends Command {
   constructor(target, operation, value, rootExpr) {
     super();
     this.target = target;
@@ -5056,6 +5223,43 @@ var PutCommandImpl = class extends Command {
       this.prop = null;
     }
     this.args = [rootExpr, this.prop, value];
+  }
+  /**
+   * Parse put command
+   * @param {Parser} parser
+   * @returns {PutCommand | undefined}
+   */
+  static parse(parser) {
+    if (!parser.matchToken("put")) return;
+    var value = parser.requireElement("expression");
+    var operationToken = parser.matchAnyToken("into", "before", "after");
+    if (operationToken == null && parser.matchToken("at")) {
+      parser.matchToken("the");
+      operationToken = parser.matchAnyToken("start", "end");
+      parser.requireToken("of");
+    }
+    if (operationToken == null) {
+      parser.raiseParseError("Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
+    }
+    var target = parser.requireElement("expression");
+    var operation = operationToken.value;
+    var rootExpr;
+    if (target.type === "arrayIndex" && operation === "into") {
+      rootExpr = target.root;
+    } else if (target.prop && target.root && operation === "into") {
+      rootExpr = target.root;
+    } else if (target.type === "symbol" && operation === "into") {
+      rootExpr = null;
+    } else if (target.type === "attributeRef" && operation === "into") {
+      rootExpr = parser.requireElement("implicitMeTarget");
+    } else if (target.type === "styleRef" && operation === "into") {
+      rootExpr = parser.requireElement("implicitMeTarget");
+    } else if (target.attribute && operation === "into") {
+      rootExpr = target.root;
+    } else {
+      rootExpr = target;
+    }
+    return new _PutCommand(target, operation, value, rootExpr);
   }
   op(context, root, prop, valueToPut) {
     if (this.symbolWrite) {
@@ -5096,224 +5300,8 @@ var PutCommandImpl = class extends Command {
     return context.meta.runtime.findNext(this, context);
   }
 };
-function putInto(context, root, prop, valueToPut) {
-  if (root == null) {
-    var value = context.meta.runtime.resolveSymbol(prop, context);
-  } else {
-    var value = root;
-  }
-  if (value instanceof Element || value instanceof HTMLDocument) {
-    while (value.firstChild) value.removeChild(value.firstChild);
-    value.append(context.meta.runtime.convertValue(valueToPut, "Fragment"));
-    context.meta.runtime.processNode(value);
-  } else {
-    if (root == null) {
-      context.meta.runtime.setSymbol(prop, context, null, valueToPut);
-    } else {
-      root[prop] = valueToPut;
-    }
-  }
-}
-var SetterCommand = class extends Command {
-  /**
-   * Create a setter operation for a target
-   * @param {*} helper - Parser helper
-   * @param {*} target - Target expression to set
-   * @param {*} value - Value expression to assign
-   * @returns Setter command object
-   */
-  static makeSetter(parser, target, value) {
-    var symbolWrite = target.type === "symbol";
-    var attributeWrite = target.type === "attributeRef";
-    var styleWrite = target.type === "styleRef";
-    var arrayWrite = target.type === "arrayIndex";
-    if (!(attributeWrite || styleWrite || symbolWrite) && target.root == null) {
-      parser.raiseParseError("Can only put directly into symbols, not references");
-    }
-    var rootElt = null;
-    var prop = null;
-    if (symbolWrite) {
-    } else if (attributeWrite || styleWrite) {
-      rootElt = parser.requireElement("implicitMeTarget");
-      var attribute = target;
-    } else if (arrayWrite) {
-      prop = target.firstIndex;
-      rootElt = target.root;
-    } else {
-      prop = target.prop ? target.prop.value : null;
-      var attribute = target.attribute;
-      rootElt = target.root;
-    }
-    return new SetterCommandImpl(target, symbolWrite, value, rootElt, prop, arrayWrite, attribute);
-  }
-};
-var _SetCommand = class _SetCommand extends SetterCommand {
-  constructor(target, value, objectLiteral) {
-    super();
-    this.target = target;
-    this.value = value;
-    this.objectLiteral = objectLiteral;
-    if (objectLiteral) {
-      this.args = [objectLiteral, target];
-    } else {
-    }
-  }
-  /**
-   * Parse set command
-   * @param {Parser} parser
-   * @returns {SetCommand | undefined}
-   */
-  static parse(parser) {
-    if (!parser.matchToken("set")) return;
-    if (parser.currentToken().type === "L_BRACE") {
-      var obj = parser.requireElement("objectLiteral");
-      parser.requireToken("on");
-      var target = parser.requireElement("expression");
-      var command = new _SetCommand(target, null, obj);
-      command.op = function(ctx, obj2, target2) {
-        Object.assign(target2, obj2);
-        return ctx.meta.runtime.findNext(this, ctx);
-      };
-      return command;
-    }
-    try {
-      parser.pushFollow("to");
-      var target = parser.requireElement("assignableExpression");
-    } finally {
-      parser.popFollow();
-    }
-    parser.requireToken("to");
-    var value = parser.requireElement("expression");
-    return _SetCommand.makeSetter(parser, target, value);
-  }
-};
-__publicField(_SetCommand, "keyword", "set");
-var SetCommand = _SetCommand;
-var _DefaultCommand = class _DefaultCommand extends SetterCommand {
-  constructor(target, value, setter) {
-    super();
-    this.target = target;
-    this.value = value;
-    this.setter = setter;
-    this.args = [target];
-  }
-  /**
-   * Parse default command
-   * @param {Parser} parser
-   * @returns {DefaultCommand | undefined}
-   */
-  static parse(parser) {
-    if (!parser.matchToken("default")) return;
-    var target = parser.requireElement("assignableExpression");
-    parser.requireToken("to");
-    var value = parser.requireElement("expression");
-    var setter = SetCommand.makeSetter(parser, target, value);
-    var defaultCmd = new _DefaultCommand(target, value, setter);
-    defaultCmd.op = function(context, target2) {
-      if (target2) {
-        return context.meta.runtime.findNext(this, context);
-      } else {
-        return setter;
-      }
-    };
-    setter.parent = defaultCmd;
-    return defaultCmd;
-  }
-};
-__publicField(_DefaultCommand, "keyword", "default");
-var DefaultCommand = _DefaultCommand;
-var IncrementCommand = class extends SetterCommand {
-  constructor(target, amountExpr) {
-    super();
-    this.target = target;
-    this.amountExpr = amountExpr;
-  }
-  /**
-   * Parse increment command
-   * @param {Parser} parser
-   * @returns {IncrementCommand | undefined}
-   */
-  static parse(parser) {
-    if (!parser.matchToken("increment")) return;
-    var amountExpr;
-    var target = parser.parseElement("assignableExpression");
-    if (parser.matchToken("by")) {
-      amountExpr = parser.requireElement("expression");
-    }
-    var implicitIncrementOp = new IncrementOperation(target, amountExpr);
-    return SetCommand.makeSetter(parser, target, implicitIncrementOp);
-  }
-};
-__publicField(IncrementCommand, "keyword", "increment");
-var DecrementCommand = class extends SetterCommand {
-  constructor(target, amountExpr) {
-    super();
-    this.target = target;
-    this.amountExpr = amountExpr;
-  }
-  /**
-   * Parse decrement command
-   * @param {Parser} parser
-   * @returns {DecrementCommand | undefined}
-   */
-  static parse(parser) {
-    if (!parser.matchToken("decrement")) return;
-    var amountExpr;
-    var target = parser.parseElement("assignableExpression");
-    if (parser.matchToken("by")) {
-      amountExpr = parser.requireElement("expression");
-    }
-    var implicitDecrementOp = new DecrementOperation(target, amountExpr);
-    return SetCommand.makeSetter(parser, target, implicitDecrementOp);
-  }
-};
-__publicField(DecrementCommand, "keyword", "decrement");
-var PutCommand = class extends SetterCommand {
-  constructor(value, target, operation) {
-    super();
-    this.value = value;
-    this.target = target;
-    this.operation = operation;
-  }
-  /**
-   * Parse put command
-   * @param {Parser} parser
-   * @returns {PutCommand | undefined}
-   */
-  static parse(parser) {
-    if (!parser.matchToken("put")) return;
-    var value = parser.requireElement("expression");
-    var operationToken = parser.matchAnyToken("into", "before", "after");
-    if (operationToken == null && parser.matchToken("at")) {
-      parser.matchToken("the");
-      operationToken = parser.matchAnyToken("start", "end");
-      parser.requireToken("of");
-    }
-    if (operationToken == null) {
-      parser.raiseParseError("Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
-    }
-    var target = parser.requireElement("expression");
-    var operation = operationToken.value;
-    var rootExpr;
-    if (target.type === "arrayIndex" && operation === "into") {
-      rootExpr = target.root;
-    } else if (target.prop && target.root && operation === "into") {
-      rootExpr = target.root;
-    } else if (target.type === "symbol" && operation === "into") {
-      rootExpr = null;
-    } else if (target.type === "attributeRef" && operation === "into") {
-      rootExpr = parser.requireElement("implicitMeTarget");
-    } else if (target.type === "styleRef" && operation === "into") {
-      rootExpr = parser.requireElement("implicitMeTarget");
-    } else if (target.attribute && operation === "into") {
-      rootExpr = target.root;
-    } else {
-      rootExpr = target;
-    }
-    return new PutCommandImpl(target, operation, value, rootExpr);
-  }
-};
-__publicField(PutCommand, "keyword", "put");
+__publicField(_PutCommand, "keyword", "put");
+var PutCommand = _PutCommand;
 
 // src/parsetree/commands/basic.js
 var ImplicitResultSymbol = class extends Expression {
@@ -6715,23 +6703,13 @@ var _AsyncCommand = class _AsyncCommand extends Command {
 };
 __publicField(_AsyncCommand, "keyword", "async");
 var AsyncCommand = _AsyncCommand;
-var CallOrGetCommandImpl = class extends Command {
+var _CallCommand = class _CallCommand extends Command {
   constructor(expr) {
     super();
     this.type = "callCommand";
     this.expr = expr;
     this.args = [expr];
   }
-  op(context, result) {
-    context.result = result;
-    return context.meta.runtime.findNext(this, context);
-  }
-};
-function parseCallOrGet(parser) {
-  var expr = parser.requireElement("expression");
-  return new CallOrGetCommandImpl(expr);
-}
-var CallCommand = class {
   /**
    * Parse call command
    * @param {Parser} parser
@@ -6739,27 +6717,43 @@ var CallCommand = class {
    */
   static parse(parser) {
     if (!parser.matchToken("call")) return;
-    var call = parseCallOrGet(parser);
-    if (call.expr && call.expr.type !== "functionCall") {
+    var expr = parser.requireElement("expression");
+    if (expr && expr.type !== "functionCall") {
       parser.raiseParseError("Must be a function invocation");
     }
-    return call;
+    return new _CallCommand(expr);
+  }
+  op(context, result) {
+    context.result = result;
+    return context.meta.runtime.findNext(this, context);
   }
 };
-__publicField(CallCommand, "keyword", "call");
-var GetCommand = class {
+__publicField(_CallCommand, "keyword", "call");
+var CallCommand = _CallCommand;
+var _GetCommand = class _GetCommand extends Command {
+  constructor(expr) {
+    super();
+    this.type = "getCommand";
+    this.expr = expr;
+    this.args = [expr];
+  }
   /**
    * Parse get command
    * @param {Parser} parser
    * @returns {GetCommand | undefined}
    */
   static parse(parser) {
-    if (parser.matchToken("get")) {
-      return parseCallOrGet(parser);
-    }
+    if (!parser.matchToken("get")) return;
+    var expr = parser.requireElement("expression");
+    return new _GetCommand(expr);
+  }
+  op(context, result) {
+    context.result = result;
+    return context.meta.runtime.findNext(this, context);
   }
 };
-__publicField(GetCommand, "keyword", "get");
+__publicField(_GetCommand, "keyword", "get");
+var GetCommand = _GetCommand;
 
 // src/parsetree/commands/pseudoCommand.js
 var PseudoCommandWithTarget = class extends Command {
