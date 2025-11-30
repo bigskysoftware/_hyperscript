@@ -2817,6 +2817,17 @@ var Expression = class {
     return context2.meta.runtime.unifiedEval(this, context2);
   }
 };
+var Command = class {
+  /**
+   * Execute this command using Runtime.unifiedExec
+   *
+   * @param {Context} context - Execution context
+   * @returns {*} - Next command or Promise
+   */
+  execute(context2) {
+    return context2.meta.runtime.unifiedExec(this, context2);
+  }
+};
 
 // src/parsetree/expressions/webliterals.js
 var IdRefTemplateNode = class extends Expression {
@@ -4507,8 +4518,9 @@ var ImplicitMeTarget = class _ImplicitMeTarget {
 };
 
 // src/parsetree/expressions/existentials.js
-var NoExpression = class _NoExpression {
+var NoExpression = class _NoExpression extends Expression {
   constructor(root) {
+    super();
     this.type = "noExpression";
     this.root = root;
     this.args = [root];
@@ -4529,17 +4541,10 @@ var NoExpression = class _NoExpression {
   op(context2, val) {
     return context2.meta.runtime.isEmpty(val);
   }
-  /**
-   * Evaluate the no expression
-   * @param {Context} context
-   * @returns {boolean}
-   */
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
-  }
 };
-var SomeExpression = class _SomeExpression {
+var SomeExpression = class _SomeExpression extends Expression {
   constructor(root) {
+    super();
     this.type = "noExpression";
     this.root = root;
     this.args = [root];
@@ -4559,14 +4564,6 @@ var SomeExpression = class _SomeExpression {
    */
   op(context2, val) {
     return !context2.meta.runtime.isEmpty(val);
-  }
-  /**
-   * Evaluate the some expression
-   * @param {Context} context
-   * @returns {boolean}
-   */
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
   }
 };
 
@@ -4857,17 +4854,15 @@ var STRING_POSTFIXES = [
   "pt",
   "px"
 ];
-var StringPostfixExpressionNode = class {
+var StringPostfixExpressionNode = class extends Expression {
   constructor(root, postfix) {
+    super();
     this.type = "stringPostfix";
     this.postfix = postfix;
     this.args = [root];
   }
   op(context2, val) {
     return "" + val + this.postfix;
-  }
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
   }
 };
 var StringPostfixExpression = class {
@@ -4883,8 +4878,9 @@ var StringPostfixExpression = class {
     return new StringPostfixExpressionNode(root, stringPostfix.value);
   }
 };
-var TimeExpressionNode = class {
+var TimeExpressionNode = class extends Expression {
   constructor(root, timeFactor) {
+    super();
     this.type = "timeExpression";
     this.time = root;
     this.factor = timeFactor;
@@ -4892,9 +4888,6 @@ var TimeExpressionNode = class {
   }
   op(context2, val) {
     return val * this.factor;
-  }
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
   }
 };
 var TimeExpression = class {
@@ -4915,8 +4908,9 @@ var TimeExpression = class {
     return new TimeExpressionNode(root, timeFactor);
   }
 };
-var TypeCheckExpressionNode = class {
+var TypeCheckExpressionNode = class extends Expression {
   constructor(root, typeName, nullOk) {
+    super();
     this.type = "typeCheck";
     this.typeName = typeName;
     this.nullOk = nullOk;
@@ -4929,9 +4923,6 @@ var TypeCheckExpressionNode = class {
     } else {
       throw new Error("Typecheck failed!  Expected: " + this.typeName.value);
     }
-  }
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
   }
 };
 var TypeCheckExpression = class {
@@ -5662,8 +5653,9 @@ function parsePickRange(parser) {
   else if (parser.matchToken("exclusive")) rv.includeStart = false;
   return rv;
 }
-var PickCommandRange = class {
+var PickCommandRange = class extends Command {
   constructor(root, range) {
+    super();
     this.type = "pickCommand";
     this.args = [root, range.from, range.to];
     this.range = range;
@@ -5676,12 +5668,10 @@ var PickCommandRange = class {
     ctx.result = root.slice(from, to);
     return ctx.meta.runtime.findNext(this, ctx);
   }
-  execute(ctx) {
-    return ctx.meta.runtime.unifiedExec(this, ctx);
-  }
 };
-var PickCommandMatch = class {
+var PickCommandMatch = class extends Command {
   constructor(root, re, flags) {
+    super();
     this.type = "pickCommand";
     this.args = [root, re];
     this.flags = flags;
@@ -5690,12 +5680,10 @@ var PickCommandMatch = class {
     ctx.result = new RegExp(re, this.flags).exec(root);
     return ctx.meta.runtime.findNext(this, ctx);
   }
-  execute(ctx) {
-    return ctx.meta.runtime.unifiedExec(this, ctx);
-  }
 };
-var PickCommandMatches = class {
+var PickCommandMatches = class extends Command {
   constructor(root, re, flags) {
+    super();
     this.type = "pickCommand";
     this.args = [root, re];
     this.flags = flags;
@@ -5703,9 +5691,6 @@ var PickCommandMatches = class {
   op(ctx, root, re) {
     ctx.result = new RegExpIterable(re, this.flags, root);
     return ctx.meta.runtime.findNext(this, ctx);
-  }
-  execute(ctx) {
-    return ctx.meta.runtime.unifiedExec(this, ctx);
   }
 };
 var PickCommand = class {
@@ -5764,8 +5749,9 @@ function parseConversionInfo(parser) {
   }
   return { type, conversion };
 }
-var FetchCommandNode = class {
+var FetchCommandNode = class extends Command {
   constructor(url, args, type, conversion) {
+    super();
     this.type = "fetchCommand";
     this.url = url;
     this.argExpressions = args;
@@ -5831,9 +5817,6 @@ var FetchCommandNode = class {
       context2.me.removeEventListener("fetch:abort", abortListener);
     });
   }
-  execute(context2) {
-    return context2.meta.runtime.unifiedExec(this, context2);
-  }
 };
 var FetchCommand = class {
   /**
@@ -5862,8 +5845,9 @@ var FetchCommand = class {
   }
 };
 __publicField(FetchCommand, "keyword", "fetch");
-var GoCommandNode = class {
+var GoCommandNode = class extends Command {
   constructor(target, offset, back, url, newWindow, plusOrMinus, scrollOptions) {
+    super();
     this.type = "goCommand";
     this.target = target;
     this.args = [target, offset];
@@ -5914,9 +5898,6 @@ var GoCommandNode = class {
       });
     }
     return ctx.meta.runtime.findNext(this, ctx);
-  }
-  execute(ctx) {
-    return ctx.meta.runtime.unifiedExec(this, ctx);
   }
 };
 var GoCommand = class {
