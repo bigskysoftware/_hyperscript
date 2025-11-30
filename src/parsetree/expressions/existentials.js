@@ -3,14 +3,17 @@
  * Expressions that check for existence, emptiness, etc.
  */
 
+import { Expression } from '../base.js';
+
 /**
  * NoExpression - Represents the "no" keyword for empty/null checks
  *
  * Parses: no <expression>
  * Returns: true if the expression is empty/null, false otherwise
  */
-export class NoExpression {
+export class NoExpression extends Expression {
     constructor(root) {
+        super();
         this.type = "noExpression";
         this.root = root;
         this.args = [root];
@@ -33,15 +36,6 @@ export class NoExpression {
     op(context, val) {
         return context.meta.runtime.isEmpty(val);
     }
-
-    /**
-     * Evaluate the no expression
-     * @param {Context} context
-     * @returns {boolean}
-     */
-    evaluate(context) {
-        return context.meta.runtime.unifiedEval(this, context);
-    }
 }
 
 /**
@@ -50,8 +44,9 @@ export class NoExpression {
  * Parses: some <expression>
  * Returns: true if the expression is not empty/null, false otherwise
  */
-export class SomeExpression {
+export class SomeExpression extends Expression {
     constructor(root) {
+        super();
         this.type = "noExpression"; // Note: currently shares type with NoExpression
         this.root = root;
         this.args = [root];
@@ -73,14 +68,5 @@ export class SomeExpression {
      */
     op(context, val) {
         return !context.meta.runtime.isEmpty(val);
-    }
-
-    /**
-     * Evaluate the some expression
-     * @param {Context} context
-     * @returns {boolean}
-     */
-    evaluate(context) {
-        return context.meta.runtime.unifiedEval(this, context);
     }
 }

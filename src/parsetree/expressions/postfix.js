@@ -3,6 +3,8 @@
  * Handles CSS units, time expressions, and type checking
  */
 
+import { Expression } from '../base.js';
+
 // CSS unit postfixes
 // taken from https://drafts.csswg.org/css-values-4/#relative-length
 //        and https://drafts.csswg.org/css-values-4/#absolute-length
@@ -15,8 +17,9 @@ const STRING_POSTFIXES = [
 /**
  * StringPostfixExpressionNode - String postfix expression node
  */
-class StringPostfixExpressionNode {
+class StringPostfixExpressionNode extends Expression {
     constructor(root, postfix) {
+        super();
         this.type = "stringPostfix";
         this.postfix = postfix;
         this.args = [root];
@@ -24,10 +27,6 @@ class StringPostfixExpressionNode {
 
     op(context, val) {
         return "" + val + this.postfix;
-    }
-
-    evaluate(context) {
-        return context.meta.runtime.unifiedEval(this, context);
     }
 }
 
@@ -55,8 +54,9 @@ export class StringPostfixExpression {
 /**
  * TimeExpressionNode - Time expression node
  */
-class TimeExpressionNode {
+class TimeExpressionNode extends Expression {
     constructor(root, timeFactor) {
+        super();
         this.type = "timeExpression";
         this.time = root;
         this.factor = timeFactor;
@@ -65,10 +65,6 @@ class TimeExpressionNode {
 
     op(context, val) {
         return val * this.factor;
-    }
-
-    evaluate(context) {
-        return context.meta.runtime.unifiedEval(this, context);
     }
 }
 
@@ -95,8 +91,9 @@ export class TimeExpression {
 /**
  * TypeCheckExpressionNode - Type check expression node
  */
-class TypeCheckExpressionNode {
+class TypeCheckExpressionNode extends Expression {
     constructor(root, typeName, nullOk) {
+        super();
         this.type = "typeCheck";
         this.typeName = typeName;
         this.nullOk = nullOk;
@@ -110,10 +107,6 @@ class TypeCheckExpressionNode {
         } else {
             throw new Error("Typecheck failed!  Expected: " + this.typeName.value);
         }
-    }
-
-    evaluate(context) {
-        return context.meta.runtime.unifiedEval(this, context);
     }
 }
 
