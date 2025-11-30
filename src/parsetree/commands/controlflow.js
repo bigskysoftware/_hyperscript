@@ -6,6 +6,26 @@
 import { Command } from '../base.js';
 
 /**
+ * WaitATick - Wait for next event loop tick
+ * Used in event-based loops to allow events to trigger
+ */
+class WaitATick extends Command {
+    constructor() {
+        super();
+        this.type = "waitATick";
+    }
+
+    op(context) {
+        const self = this;
+        return new Promise(function (resolve) {
+            setTimeout(function () {
+                resolve(context.meta.runtime.findNext(self));
+            }, 0);
+        });
+    }
+}
+
+/**
  * IfCommand - Conditional execution
  *
  * Parses: if <expr> [then] <commands> [else|otherwise <commands>] [end]
@@ -121,16 +141,7 @@ function parseRepeatExpression(parser, startedWithForToken) {
         while (last.next) {
             last = last.next;
         }
-        var waitATick = {
-            type: "waitATick",
-            op: function () {
-                return new Promise(function (resolve) {
-                    setTimeout(function () {
-                        resolve(context.meta.runtime.findNext(waitATick));
-                    }, 0);
-                });
-            },
-        };
+        var waitATick = new WaitATick();
         last.next = waitATick;
     }
     if (parser.hasMore()) {

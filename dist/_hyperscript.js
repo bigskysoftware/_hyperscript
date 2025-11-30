@@ -1622,13 +1622,13 @@ var _Runtime = class _Runtime {
     var typeName = Object.prototype.toString.call(value).slice(8, -1);
     return typeName === typeString;
   }
-  getElementScope(context2) {
-    var elt = context2.meta && context2.meta.owner;
+  getElementScope(context) {
+    var elt = context.meta && context.meta.owner;
     if (elt) {
       var internalData = this.getInternalData(elt);
       var scopeName = "elementScope";
-      if (context2.meta.feature && context2.meta.feature.behavior) {
-        scopeName = context2.meta.feature.behavior + "Scope";
+      if (context.meta.feature && context.meta.feature.behavior) {
+        scopeName = context.meta.feature.behavior + "Scope";
       }
       var elementScope = getOrInitObject(internalData, scopeName);
       return elementScope;
@@ -1647,53 +1647,53 @@ var _Runtime = class _Runtime {
   * @param {any} context
   * @returns {boolean}
   */
-  isHyperscriptContext(context2) {
-    return context2 instanceof Context;
+  isHyperscriptContext(context) {
+    return context instanceof Context;
   }
   /**
   * @param {string} str
   * @param {Context} context
   * @returns {any}
   */
-  resolveSymbol(str, context2, type) {
+  resolveSymbol(str, context, type) {
     if (str === "me" || str === "my" || str === "I") {
-      return context2.me;
+      return context.me;
     }
     if (str === "it" || str === "its" || str === "result") {
-      return context2.result;
+      return context.result;
     }
     if (str === "you" || str === "your" || str === "yourself") {
-      return context2.you;
+      return context.you;
     } else {
       if (type === "global") {
         return this.globalScope[str];
       } else if (type === "element") {
-        var elementScope = this.getElementScope(context2);
+        var elementScope = this.getElementScope(context);
         return elementScope[str];
       } else if (type === "local") {
-        return context2.locals[str];
+        return context.locals[str];
       } else {
-        if (context2.meta && context2.meta.context) {
-          var fromMetaContext = context2.meta.context[str];
+        if (context.meta && context.meta.context) {
+          var fromMetaContext = context.meta.context[str];
           if (typeof fromMetaContext !== "undefined") {
             return fromMetaContext;
           }
-          if (context2.meta.context.detail) {
-            fromMetaContext = context2.meta.context.detail[str];
+          if (context.meta.context.detail) {
+            fromMetaContext = context.meta.context.detail[str];
             if (typeof fromMetaContext !== "undefined") {
               return fromMetaContext;
             }
           }
         }
-        if (this.isHyperscriptContext(context2) && !this.isReservedWord(str)) {
-          var fromContext = context2.locals[str];
+        if (this.isHyperscriptContext(context) && !this.isReservedWord(str)) {
+          var fromContext = context.locals[str];
         } else {
-          var fromContext = context2[str];
+          var fromContext = context[str];
         }
         if (typeof fromContext !== "undefined") {
           return fromContext;
         } else {
-          var elementScope = this.getElementScope(context2);
+          var elementScope = this.getElementScope(context);
           fromContext = elementScope[str];
           if (typeof fromContext !== "undefined") {
             return fromContext;
@@ -1704,27 +1704,27 @@ var _Runtime = class _Runtime {
       }
     }
   }
-  setSymbol(str, context2, type, value) {
+  setSymbol(str, context, type, value) {
     if (type === "global") {
       this.globalScope[str] = value;
     } else if (type === "element") {
-      var elementScope = this.getElementScope(context2);
+      var elementScope = this.getElementScope(context);
       elementScope[str] = value;
     } else if (type === "local") {
-      context2.locals[str] = value;
+      context.locals[str] = value;
     } else {
-      if (this.isHyperscriptContext(context2) && !this.isReservedWord(str) && typeof context2.locals[str] !== "undefined") {
-        context2.locals[str] = value;
+      if (this.isHyperscriptContext(context) && !this.isReservedWord(str) && typeof context.locals[str] !== "undefined") {
+        context.locals[str] = value;
       } else {
-        var elementScope = this.getElementScope(context2);
+        var elementScope = this.getElementScope(context);
         var fromContext = elementScope[str];
         if (typeof fromContext !== "undefined") {
           elementScope[str] = value;
         } else {
-          if (this.isHyperscriptContext(context2) && !this.isReservedWord(str)) {
-            context2.locals[str] = value;
+          if (this.isHyperscriptContext(context) && !this.isReservedWord(str)) {
+            context.locals[str] = value;
           } else {
-            context2[str] = value;
+            context[str] = value;
           }
         }
       }
@@ -1735,14 +1735,14 @@ var _Runtime = class _Runtime {
   * @param {Context} context
   * @returns {undefined | ASTNode}
   */
-  findNext(command, context2) {
+  findNext(command, context) {
     if (command) {
       if (command.resolveNext) {
-        return command.resolveNext(context2);
+        return command.resolveNext(context);
       } else if (command.next) {
         return command.next;
       } else {
-        return this.findNext(command.parent, context2);
+        return this.findNext(command.parent, context);
       }
     }
   }
@@ -2349,11 +2349,11 @@ var _LanguageKernel = class _LanguageKernel {
       }
       return {
         type: "emptyCommandListCommand",
-        op: function(context2) {
-          return context2.meta.runtime.findNext(this, context2);
+        op: function(context) {
+          return context.meta.runtime.findNext(this, context);
         },
-        execute: function(context2) {
-          return context2.meta.runtime.unifiedExec(this, context2);
+        execute: function(context) {
+          return context.meta.runtime.unifiedExec(this, context);
         }
       };
     });
@@ -2412,15 +2412,15 @@ var _LanguageKernel = class _LanguageKernel {
         var unless = {
           type: "unlessStatementModifier",
           args: [conditional],
-          op: function(context2, conditional2) {
+          op: function(context, conditional2) {
             if (conditional2) {
               return this.next;
             } else {
               return root;
             }
           },
-          execute: function(context2) {
-            return context2.meta.runtime.unifiedExec(this, context2);
+          execute: function(context) {
+            return context.meta.runtime.unifiedExec(this, context);
           }
         };
         root.parent = unless;
@@ -2541,9 +2541,9 @@ var _LanguageKernel = class _LanguageKernel {
       const commandElement = definition(parser);
       if (commandElement) {
         commandElement.type = commandGrammarType;
-        commandElement.execute = function(context2) {
-          context2.meta.command = commandElement;
-          return context2.meta.runtime.unifiedExec(this, context2);
+        commandElement.execute = function(context) {
+          context.meta.command = commandElement;
+          return context.meta.runtime.unifiedExec(this, context);
         };
         return commandElement;
       }
@@ -2785,10 +2785,10 @@ var _LanguageKernel = class _LanguageKernel {
   ensureTerminated(commandList) {
     var implicitReturn = {
       type: "implicitReturn",
-      op: function(context2) {
-        context2.meta.returned = true;
-        if (context2.meta.resolve) {
-          context2.meta.resolve();
+      op: function(context) {
+        context.meta.returned = true;
+        if (context.meta.resolve) {
+          context.meta.resolve();
         }
         return Runtime.HALT;
       },
@@ -2813,8 +2813,8 @@ var Expression = class {
    * @param {Context} context - Execution context
    * @returns {*} - Result value or Promise
    */
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
+  evaluate(context) {
+    return context.meta.runtime.unifiedEval(this, context);
   }
 };
 var Command = class {
@@ -2824,8 +2824,8 @@ var Command = class {
    * @param {Context} context - Execution context
    * @returns {*} - Next command or Promise
    */
-  execute(context2) {
-    return context2.meta.runtime.unifiedExec(this, context2);
+  execute(context) {
+    return context.meta.runtime.unifiedExec(this, context);
   }
 };
 var Feature = class {
@@ -2848,8 +2848,8 @@ var IdRefTemplateNode = class extends Expression {
     this.type = "idRefTemplate";
     this.args = [innerExpression];
   }
-  op(context2, arg) {
-    return context2.meta.runtime.getRootNode(context2.me).getElementById(arg);
+  op(context, arg) {
+    return context.meta.runtime.getRootNode(context.me).getElementById(arg);
   }
 };
 var IdRefNode = class extends Expression {
@@ -2859,8 +2859,8 @@ var IdRefNode = class extends Expression {
     this.css = css;
     this.value = value;
   }
-  evaluate(context2) {
-    return context2.meta.runtime.getRootNode(context2.me).getElementById(this.value);
+  evaluate(context) {
+    return context.meta.runtime.getRootNode(context.me).getElementById(this.value);
   }
 };
 var IdRef = class {
@@ -2892,8 +2892,8 @@ var ClassRefTemplateNode = class extends Expression {
     this.type = "classRefTemplate";
     this.args = [innerExpression];
   }
-  op(context2, arg) {
-    return new ElementCollection("." + arg, context2.me, true, context2.meta.runtime);
+  op(context, arg) {
+    return new ElementCollection("." + arg, context.me, true, context.meta.runtime);
   }
 };
 var ClassRefNode = class extends Expression {
@@ -2903,8 +2903,8 @@ var ClassRefNode = class extends Expression {
     this.css = css;
     this.className = className;
   }
-  evaluate(context2) {
-    return new ElementCollection(this.css, context2.me, true, context2.meta.runtime);
+  evaluate(context) {
+    return new ElementCollection(this.css, context.me, true, context.meta.runtime);
   }
 };
 var ClassRef = class {
@@ -2939,11 +2939,11 @@ var QueryRefNode = class extends Expression {
     this.args = args;
     this.template = template;
   }
-  op(context2, ...args) {
+  op(context, ...args) {
     if (this.template) {
-      return new TemplatedQueryElementCollection(this.css, context2.me, args, context2.meta.runtime);
+      return new TemplatedQueryElementCollection(this.css, context.me, args, context.meta.runtime);
     } else {
-      return new ElementCollection(this.css, context2.me, false, context2.meta.runtime);
+      return new ElementCollection(this.css, context.me, false, context.meta.runtime);
     }
   }
 };
@@ -2985,8 +2985,8 @@ var AttributeRefNode = class extends Expression {
     this.css = css;
     this.value = value;
   }
-  op(context2) {
-    var target = context2.you || context2.me;
+  op(context) {
+    var target = context.you || context.me;
     if (target) {
       return target.getAttribute(this.name);
     }
@@ -3026,10 +3026,10 @@ var ComputedStyleRefNode = class extends Expression {
     this.type = "computedStyleRef";
     this.name = name;
   }
-  op(context2) {
-    var target = context2.you || context2.me;
+  op(context) {
+    var target = context.you || context.me;
     if (target) {
-      return context2.meta.runtime.resolveComputedStyle(target, this.name);
+      return context.meta.runtime.resolveComputedStyle(target, this.name);
     }
   }
 };
@@ -3039,10 +3039,10 @@ var StyleRefNode = class extends Expression {
     this.type = "styleRef";
     this.name = name;
   }
-  op(context2) {
-    var target = context2.you || context2.me;
+  op(context) {
+    var target = context.you || context.me;
     if (target) {
-      return context2.meta.runtime.resolveStyle(target, this.name);
+      return context.meta.runtime.resolveStyle(target, this.name);
     }
   }
 };
@@ -3200,7 +3200,7 @@ var NegativeNumber = class _NegativeNumber extends Expression {
   /**
    * Op function for negation
    */
-  op(context2, value) {
+  op(context, value) {
     return -1 * value;
   }
   /**
@@ -3229,7 +3229,7 @@ var LogicalNot = class _LogicalNot extends Expression {
   /**
    * Op function for logical not
    */
-  op(context2, val) {
+  op(context, val) {
     return !val;
   }
   /**
@@ -3287,8 +3287,8 @@ var SymbolRef = class _SymbolRef extends Expression {
    * @returns {any}
    */
   // TODO - Why is this not using op?
-  evaluate(context2) {
-    return context2.meta.runtime.resolveSymbol(this.name, context2, this.scope);
+  evaluate(context) {
+    return context.meta.runtime.resolveSymbol(this.name, context, this.scope);
   }
 };
 var BeepExpression = class _BeepExpression extends Expression {
@@ -3345,8 +3345,8 @@ var PropertyAccess = class _PropertyAccess extends Expression {
   /**
    * Op function for property access
    */
-  op(context2, rootVal) {
-    var value = context2.meta.runtime.resolveProperty(rootVal, this.prop.value);
+  op(context, rootVal) {
+    var value = context.meta.runtime.resolveProperty(rootVal, this.prop.value);
     return value;
   }
   /**
@@ -3411,21 +3411,21 @@ var OfExpression = class _OfExpression extends Expression {
   /**
    * Op function for of expression
    */
-  op(context2, rootVal) {
+  op(context, rootVal) {
     var urRoot = this._urRoot;
     var prop = urRoot.name;
     var attribute = urRoot.type === "attributeRef";
     var style = urRoot.type === "styleRef" || urRoot.type === "computedStyleRef";
     if (attribute) {
-      return context2.meta.runtime.resolveAttribute(rootVal, prop);
+      return context.meta.runtime.resolveAttribute(rootVal, prop);
     } else if (style) {
       if (urRoot.type === "computedStyleRef") {
-        return context2.meta.runtime.resolveComputedStyle(rootVal, prop);
+        return context.meta.runtime.resolveComputedStyle(rootVal, prop);
       } else {
-        return context2.meta.runtime.resolveStyle(rootVal, prop);
+        return context.meta.runtime.resolveStyle(rootVal, prop);
       }
     } else {
-      return context2.meta.runtime.resolveProperty(rootVal, prop);
+      return context.meta.runtime.resolveProperty(rootVal, prop);
     }
   }
   /**
@@ -3473,18 +3473,18 @@ var PossessiveExpression = class _PossessiveExpression extends Expression {
   /**
    * Op function for possessive
    */
-  op(context2, rootVal) {
+  op(context, rootVal) {
     if (this.attribute) {
       var value;
       if (this.attribute.type === "computedStyleRef") {
-        value = context2.meta.runtime.resolveComputedStyle(rootVal, this.attribute["name"]);
+        value = context.meta.runtime.resolveComputedStyle(rootVal, this.attribute["name"]);
       } else if (this.attribute.type === "styleRef") {
-        value = context2.meta.runtime.resolveStyle(rootVal, this.attribute["name"]);
+        value = context.meta.runtime.resolveStyle(rootVal, this.attribute["name"]);
       } else {
-        value = context2.meta.runtime.resolveAttribute(rootVal, this.attribute.name);
+        value = context.meta.runtime.resolveAttribute(rootVal, this.attribute.name);
       }
     } else {
-      var value = context2.meta.runtime.resolveProperty(rootVal, this.prop.value);
+      var value = context.meta.runtime.resolveProperty(rootVal, this.prop.value);
     }
     return value;
   }
@@ -3517,10 +3517,10 @@ var InExpression = class _InExpression extends Expression {
   /**
    * Op function for in expression
    */
-  op(context2, rootVal, target) {
+  op(context, rootVal, target) {
     var returnArr = [];
     if (rootVal.css) {
-      context2.meta.runtime.implicitLoop(target, function(targetElt) {
+      context.meta.runtime.implicitLoop(target, function(targetElt) {
         var results = targetElt.querySelectorAll(rootVal.css);
         for (var i = 0; i < results.length; i++) {
           returnArr.push(results[i]);
@@ -3528,7 +3528,7 @@ var InExpression = class _InExpression extends Expression {
       });
     } else if (rootVal instanceof Element) {
       var within = false;
-      context2.meta.runtime.implicitLoop(target, function(targetElt) {
+      context.meta.runtime.implicitLoop(target, function(targetElt) {
         if (targetElt.contains(rootVal)) {
           within = true;
         }
@@ -3537,8 +3537,8 @@ var InExpression = class _InExpression extends Expression {
         return rootVal;
       }
     } else {
-      context2.meta.runtime.implicitLoop(rootVal, function(rootElt) {
-        context2.meta.runtime.implicitLoop(target, function(targetElt) {
+      context.meta.runtime.implicitLoop(rootVal, function(rootElt) {
+        context.meta.runtime.implicitLoop(target, function(targetElt) {
           if (rootElt === targetElt) {
             returnArr.push(rootElt);
           }
@@ -3577,8 +3577,8 @@ var AsExpression = class _AsExpression extends Expression {
   /**
    * Op function for as expression
    */
-  op(context2, rootVal) {
-    return context2.meta.runtime.convertValue(rootVal, this.conversion);
+  op(context, rootVal) {
+    return context.meta.runtime.convertValue(rootVal, this.conversion);
   }
   /**
    * Evaluate as expression
@@ -3622,21 +3622,21 @@ var FunctionCall = class _FunctionCall extends Expression {
   /**
    * Op function for function call
    */
-  op(context2, firstArg, argVals) {
+  op(context, firstArg, argVals) {
     if (this._isMethodCall) {
       var rootRoot = firstArg;
-      context2.meta.runtime.nullCheck(rootRoot, this._parseRoot.root);
+      context.meta.runtime.nullCheck(rootRoot, this._parseRoot.root);
       var func = rootRoot[this._parseRoot.prop.value];
-      context2.meta.runtime.nullCheck(func, this._parseRoot);
+      context.meta.runtime.nullCheck(func, this._parseRoot);
       if (func.hyperfunc) {
-        argVals.push(context2);
+        argVals.push(context);
       }
       return func.apply(rootRoot, argVals);
     } else {
       var func = firstArg;
-      context2.meta.runtime.nullCheck(func, this._parseRoot);
+      context.meta.runtime.nullCheck(func, this._parseRoot);
       if (func.hyperfunc) {
-        argVals.push(context2);
+        argVals.push(context);
       }
       return func.apply(null, argVals);
     }
@@ -3802,7 +3802,7 @@ var MathOperator = class _MathOperator extends Expression {
   /**
    * Op function for math operations
    */
-  op(context2, lhsVal, rhsVal) {
+  op(context, lhsVal, rhsVal) {
     if (this.operator === "+") {
       return lhsVal + rhsVal;
     } else if (this.operator === "-") {
@@ -3959,7 +3959,7 @@ var ComparisonOperator = class _ComparisonOperator extends Expression {
   /**
    * Op function for comparison operations
    */
-  op(context2, lhsVal, rhsVal) {
+  op(context, lhsVal, rhsVal) {
     const operator = this.operator;
     const lhs = this.lhs;
     const rhs = this.rhs;
@@ -4008,17 +4008,17 @@ var ComparisonOperator = class _ComparisonOperator extends Expression {
     } else if (operator === ">=") {
       return lhsVal >= rhsVal;
     } else if (operator === "empty") {
-      return context2.meta.runtime.isEmpty(lhsVal);
+      return context.meta.runtime.isEmpty(lhsVal);
     } else if (operator === "not empty") {
-      return !context2.meta.runtime.isEmpty(lhsVal);
+      return !context.meta.runtime.isEmpty(lhsVal);
     } else if (operator === "exist") {
-      return context2.meta.runtime.doesExist(lhsVal);
+      return context.meta.runtime.doesExist(lhsVal);
     } else if (operator === "not exist") {
-      return !context2.meta.runtime.doesExist(lhsVal);
+      return !context.meta.runtime.doesExist(lhsVal);
     } else if (operator === "a") {
-      return context2.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
+      return context.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
     } else if (operator === "not a") {
-      return !context2.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
+      return !context.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
     } else {
       throw "Unknown comparison : " + operator;
     }
@@ -4072,7 +4072,7 @@ var LogicalOperator = class _LogicalOperator extends Expression {
   /**
    * Op function for logical operations
    */
-  op(context2, lhsVal, rhsVal) {
+  op(context, lhsVal, rhsVal) {
     if (this.operator === "and") {
       return lhsVal && rhsVal;
     } else {
@@ -4084,8 +4084,8 @@ var LogicalOperator = class _LogicalOperator extends Expression {
    * @param {Context} context
    * @returns {boolean}
    */
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2, this.operator === "or");
+  evaluate(context) {
+    return context.meta.runtime.unifiedEval(this, context, this.operator === "or");
   }
 };
 var LogicalExpression = class extends Expression {
@@ -4123,10 +4123,10 @@ var AsyncExpression = class _AsyncExpression extends Expression {
    * @returns {{asyncWrapper: boolean, value: any}}
    */
   // TODO - Why is this not using op?
-  evaluate(context2) {
+  evaluate(context) {
     return {
       asyncWrapper: true,
-      value: this.value.evaluate(context2)
+      value: this.value.evaluate(context)
       //OK
     };
   }
@@ -4188,7 +4188,7 @@ var NakedString = class _NakedString extends Expression {
    * @param {Context} context
    * @returns {string}
    */
-  evaluate(context2) {
+  evaluate(context) {
     return this.tokens.map(function(t) {
       return t.value;
     }).join("");
@@ -4216,7 +4216,7 @@ var BooleanLiteral = class _BooleanLiteral extends Expression {
    * @param {Context} context
    * @returns {boolean}
    */
-  evaluate(context2) {
+  evaluate(context) {
     return this.value;
   }
 };
@@ -4240,7 +4240,7 @@ var NullLiteral = class _NullLiteral extends Expression {
    * @param {Context} context
    * @returns {null}
    */
-  evaluate(context2) {
+  evaluate(context) {
     return null;
   }
 };
@@ -4271,7 +4271,7 @@ var NumberLiteral = class _NumberLiteral extends Expression {
    * @param {Context} context
    * @returns {number}
    */
-  evaluate(context2) {
+  evaluate(context) {
     return this.value;
   }
 };
@@ -4313,7 +4313,7 @@ var StringLiteral = class _StringLiteral extends Expression {
   /**
    * Op function for template strings
    */
-  op(context2) {
+  op(context) {
     var returnStr = "";
     for (var i = 1; i < arguments.length; i++) {
       var val = arguments[i];
@@ -4328,11 +4328,11 @@ var StringLiteral = class _StringLiteral extends Expression {
    * @param {Context} context
    * @returns {string}
    */
-  evaluate(context2) {
+  evaluate(context) {
     if (this.args.length === 0) {
       return this.rawValue;
     } else {
-      return context2.meta.runtime.unifiedEval(this, context2);
+      return context.meta.runtime.unifiedEval(this, context);
     }
   }
 };
@@ -4363,7 +4363,7 @@ var ArrayLiteral = class _ArrayLiteral extends Expression {
   /**
    * Op function for array literal
    */
-  op(context2, values) {
+  op(context, values) {
     return values;
   }
 };
@@ -4408,9 +4408,9 @@ var ObjectKey = class _ObjectKey extends Expression {
    * @param {Context} context
    * @returns {string}
    */
-  evaluate(context2) {
+  evaluate(context) {
     if (this.expr) {
-      return context2.meta.runtime.unifiedEval(this, context2);
+      return context.meta.runtime.unifiedEval(this, context);
     } else {
       return this.key;
     }
@@ -4448,7 +4448,7 @@ var ObjectLiteral = class _ObjectLiteral extends Expression {
   /**
    * Op function for object literal
    */
-  op(context2, keys, values) {
+  op(context, keys, values) {
     var returnVal = {};
     for (var i = 0; i < keys.length; i++) {
       returnVal[keys[i]] = values[i];
@@ -4496,7 +4496,7 @@ var NamedArgumentList = class _NamedArgumentList extends Expression {
   /**
    * Op function for named arguments
    */
-  op(context2, values) {
+  op(context, values) {
     var returnVal = { _namedArgList_: true };
     for (var i = 0; i < values.length; i++) {
       var field = this.fields[i];
@@ -4524,8 +4524,8 @@ var ImplicitMeTarget = class _ImplicitMeTarget {
    * @param {Context} context
    * @returns {*}
    */
-  evaluate(context2) {
-    return context2.you || context2.me;
+  evaluate(context) {
+    return context.you || context.me;
   }
 };
 
@@ -4550,8 +4550,8 @@ var NoExpression = class _NoExpression extends Expression {
   /**
    * Op function for no expression
    */
-  op(context2, val) {
-    return context2.meta.runtime.isEmpty(val);
+  op(context, val) {
+    return context.meta.runtime.isEmpty(val);
   }
 };
 var SomeExpression = class _SomeExpression extends Expression {
@@ -4574,8 +4574,8 @@ var SomeExpression = class _SomeExpression extends Expression {
   /**
    * Op function for some expression
    */
-  op(context2, val) {
-    return !context2.meta.runtime.isEmpty(val);
+  op(context, val) {
+    return !context.meta.runtime.isEmpty(val);
   }
 };
 
@@ -4690,7 +4690,7 @@ var RelativePositionalExpression = class _RelativePositionalExpression extends E
   /**
    * Op function for relative positional
    */
-  op(context2, thing, from, inElt, withinElt) {
+  op(context, thing, from, inElt, withinElt) {
     var css = thing.css;
     if (css == null) {
       throw "Expected a CSS value to be returned by " + Tokens.sourceFor.apply(this.thingElt);
@@ -4742,7 +4742,7 @@ var PositionalExpression = class _PositionalExpression extends Expression {
   /**
    * Op function for positional
    */
-  op(context2, rhsVal) {
+  op(context, rhsVal) {
     if (rhsVal && !Array.isArray(rhsVal)) {
       if (rhsVal.children) {
         rhsVal = rhsVal.children;
@@ -4873,7 +4873,7 @@ var StringPostfixExpressionNode = class extends Expression {
     this.postfix = postfix;
     this.args = [root];
   }
-  op(context2, val) {
+  op(context, val) {
     return "" + val + this.postfix;
   }
 };
@@ -4898,7 +4898,7 @@ var TimeExpressionNode = class extends Expression {
     this.factor = timeFactor;
     this.args = [root];
   }
-  op(context2, val) {
+  op(context, val) {
     return val * this.factor;
   }
 };
@@ -4928,8 +4928,8 @@ var TypeCheckExpressionNode = class extends Expression {
     this.nullOk = nullOk;
     this.args = [root];
   }
-  op(context2, val) {
-    var passed = context2.meta.runtime.typeCheck(val, this.typeName.value, this.nullOk);
+  op(context, val) {
+    var passed = context.meta.runtime.typeCheck(val, this.typeName.value, this.nullOk);
     if (passed) {
       return val;
     } else {
@@ -4954,19 +4954,51 @@ var TypeCheckExpression = class {
 };
 
 // src/parsetree/commands/setters.js
-function putInto(context2, root, prop, valueToPut) {
+var IncrementOperation = class extends Expression {
+  constructor(target, amountExpr) {
+    super();
+    this.type = "implicitIncrementOp";
+    this.target = target;
+    this.amountExpr = amountExpr;
+    this.args = [target, amountExpr];
+  }
+  op(context, targetValue, amount) {
+    targetValue = targetValue ? parseFloat(targetValue) : 0;
+    amount = this.amountExpr ? parseFloat(amount) : 1;
+    var newValue = targetValue + amount;
+    context.result = newValue;
+    return newValue;
+  }
+};
+var DecrementOperation = class extends Expression {
+  constructor(target, amountExpr) {
+    super();
+    this.type = "implicitDecrementOp";
+    this.target = target;
+    this.amountExpr = amountExpr;
+    this.args = [target, amountExpr];
+  }
+  op(context, targetValue, amount) {
+    targetValue = targetValue ? parseFloat(targetValue) : 0;
+    amount = this.amountExpr ? parseFloat(amount) : 1;
+    var newValue = targetValue - amount;
+    context.result = newValue;
+    return newValue;
+  }
+};
+function putInto(context, root, prop, valueToPut) {
   if (root == null) {
-    var value = context2.meta.runtime.resolveSymbol(prop, context2);
+    var value = context.meta.runtime.resolveSymbol(prop, context);
   } else {
     var value = root;
   }
   if (value instanceof Element || value instanceof HTMLDocument) {
     while (value.firstChild) value.removeChild(value.firstChild);
-    value.append(context2.meta.runtime.convertValue(valueToPut, "Fragment"));
-    context2.meta.runtime.processNode(value);
+    value.append(context.meta.runtime.convertValue(valueToPut, "Fragment"));
+    context.meta.runtime.processNode(value);
   } else {
     if (root == null) {
-      context2.meta.runtime.setSymbol(prop, context2, null, valueToPut);
+      context.meta.runtime.setSymbol(prop, context, null, valueToPut);
     } else {
       root[prop] = valueToPut;
     }
@@ -5007,15 +5039,15 @@ var SetterCommand = class extends Command {
       symbolWrite,
       value,
       args: [rootElt, prop, value],
-      op: function(context2, root, prop2, valueToSet) {
+      op: function(context, root, prop2, valueToSet) {
         if (symbolWrite) {
-          context2.meta.runtime.setSymbol(target.name, context2, target.scope, valueToSet);
+          context.meta.runtime.setSymbol(target.name, context, target.scope, valueToSet);
         } else {
-          context2.meta.runtime.nullCheck(root, rootElt);
+          context.meta.runtime.nullCheck(root, rootElt);
           if (arrayWrite) {
             root[prop2] = valueToSet;
           } else {
-            context2.meta.runtime.implicitLoop(root, function(elt) {
+            context.meta.runtime.implicitLoop(root, function(elt) {
               if (attribute) {
                 if (attribute.type === "attributeRef") {
                   if (valueToSet == null) {
@@ -5032,7 +5064,7 @@ var SetterCommand = class extends Command {
             });
           }
         }
-        return context2.meta.runtime.findNext(this, context2);
+        return context.meta.runtime.findNext(this, context);
       }
     };
     return setCmd;
@@ -5100,9 +5132,9 @@ var _DefaultCommand = class _DefaultCommand extends SetterCommand {
     var value = parser.requireElement("expression");
     var setter = SetCommand.makeSetter(parser, target, value);
     var defaultCmd = new _DefaultCommand(target, value, setter);
-    defaultCmd.op = function(context2, target2) {
+    defaultCmd.op = function(context, target2) {
       if (target2) {
-        return context2.meta.runtime.findNext(this, context2);
+        return context.meta.runtime.findNext(this, context);
       } else {
         return setter;
       }
@@ -5131,21 +5163,7 @@ var IncrementCommand = class extends SetterCommand {
     if (parser.matchToken("by")) {
       amountExpr = parser.requireElement("expression");
     }
-    var implicitIncrementOp = {
-      type: "implicitIncrementOp",
-      target,
-      args: [target, amountExpr],
-      op: function(context2, targetValue, amount) {
-        targetValue = targetValue ? parseFloat(targetValue) : 0;
-        amount = amountExpr ? parseFloat(amount) : 1;
-        var newValue = targetValue + amount;
-        context2.result = newValue;
-        return newValue;
-      },
-      evaluate: function(context2) {
-        return context2.meta.runtime.unifiedEval(this, context2);
-      }
-    };
+    var implicitIncrementOp = new IncrementOperation(target, amountExpr);
     return SetCommand.makeSetter(parser, target, implicitIncrementOp);
   }
 };
@@ -5168,21 +5186,7 @@ var DecrementCommand = class extends SetterCommand {
     if (parser.matchToken("by")) {
       amountExpr = parser.requireElement("expression");
     }
-    var implicitDecrementOp = {
-      type: "implicitDecrementOp",
-      target,
-      args: [target, amountExpr],
-      op: function(context2, targetValue, amount) {
-        targetValue = targetValue ? parseFloat(targetValue) : 0;
-        amount = amountExpr ? parseFloat(amount) : 1;
-        var newValue = targetValue - amount;
-        context2.result = newValue;
-        return newValue;
-      },
-      evaluate: function(context2) {
-        return context2.meta.runtime.unifiedEval(this, context2);
-      }
-    };
+    var implicitDecrementOp = new DecrementOperation(target, amountExpr);
     return SetCommand.makeSetter(parser, target, implicitDecrementOp);
   }
 };
@@ -5249,43 +5253,43 @@ var PutCommand = class extends SetterCommand {
       symbolWrite,
       value,
       args: [rootExpr, prop, value],
-      op: function(context2, root, prop2, valueToPut) {
+      op: function(context, root, prop2, valueToPut) {
         if (symbolWrite) {
-          putInto(context2, root, prop2, valueToPut);
+          putInto(context, root, prop2, valueToPut);
         } else {
-          context2.meta.runtime.nullCheck(root, rootExpr);
+          context.meta.runtime.nullCheck(root, rootExpr);
           if (operation === "into") {
             if (attributeWrite) {
-              context2.meta.runtime.implicitLoop(root, function(elt) {
+              context.meta.runtime.implicitLoop(root, function(elt) {
                 elt.setAttribute(prop2, valueToPut);
               });
             } else if (styleWrite) {
-              context2.meta.runtime.implicitLoop(root, function(elt) {
+              context.meta.runtime.implicitLoop(root, function(elt) {
                 elt.style[prop2] = valueToPut;
               });
             } else if (arrayIndex) {
               root[prop2] = valueToPut;
             } else {
-              context2.meta.runtime.implicitLoop(root, function(elt) {
-                putInto(context2, elt, prop2, valueToPut);
+              context.meta.runtime.implicitLoop(root, function(elt) {
+                putInto(context, elt, prop2, valueToPut);
               });
             }
           } else {
             var op = operation === "before" ? Element.prototype.before : operation === "after" ? Element.prototype.after : operation === "start" ? Element.prototype.prepend : operation === "end" ? Element.prototype.append : Element.prototype.append;
-            context2.meta.runtime.implicitLoop(root, function(elt) {
+            context.meta.runtime.implicitLoop(root, function(elt) {
               op.call(
                 elt,
-                valueToPut instanceof Node ? valueToPut : context2.meta.runtime.convertValue(valueToPut, "Fragment")
+                valueToPut instanceof Node ? valueToPut : context.meta.runtime.convertValue(valueToPut, "Fragment")
               );
               if (elt.parentElement) {
-                context2.meta.runtime.processNode(elt.parentElement);
+                context.meta.runtime.processNode(elt.parentElement);
               } else {
-                context2.meta.runtime.processNode(elt);
+                context.meta.runtime.processNode(elt);
               }
             });
           }
         }
-        return context2.meta.runtime.findNext(this, context2);
+        return context.meta.runtime.findNext(this, context);
       }
     };
     return putCmd;
@@ -5294,6 +5298,15 @@ var PutCommand = class extends SetterCommand {
 __publicField(PutCommand, "keyword", "put");
 
 // src/parsetree/commands/basic.js
+var ImplicitResultSymbol = class extends Expression {
+  constructor() {
+    super();
+    this.type = "symbol";
+  }
+  evaluate(context) {
+    return context.meta.runtime.resolveSymbol("result", context);
+  }
+};
 var _LogCommand = class _LogCommand {
   constructor(exprs, withExpr) {
     this.exprs = exprs;
@@ -5409,10 +5422,10 @@ var _ReturnCommand = class _ReturnCommand {
   /**
    * Execute return command
    */
-  op(context2, value) {
-    var resolve = context2.meta.resolve;
-    context2.meta.returned = true;
-    context2.meta.returnValue = value;
+  op(context, value) {
+    var resolve = context.meta.resolve;
+    context.meta.returned = true;
+    context.meta.returnValue = value;
     if (resolve) {
       if (value) {
         resolve(value);
@@ -5420,7 +5433,7 @@ var _ReturnCommand = class _ReturnCommand {
         resolve();
       }
     }
-    return context2.meta.runtime.HALT;
+    return context.meta.runtime.HALT;
   }
 };
 __publicField(_ReturnCommand, "keyword", "return");
@@ -5441,10 +5454,10 @@ var _ExitCommand = class _ExitCommand {
   /**
    * Execute exit command
    */
-  op(context2, value) {
-    var resolve = context2.meta.resolve;
-    context2.meta.returned = true;
-    context2.meta.returnValue = value;
+  op(context, value) {
+    var resolve = context.meta.resolve;
+    context.meta.returned = true;
+    context.meta.returnValue = value;
     if (resolve) {
       if (value) {
         resolve(value);
@@ -5452,7 +5465,7 @@ var _ExitCommand = class _ExitCommand {
         resolve();
       }
     }
-    return context2.meta.runtime.HALT;
+    return context.meta.runtime.HALT;
   }
 };
 __publicField(_ExitCommand, "keyword", "exit");
@@ -5485,10 +5498,10 @@ var _HaltCommand = class _HaltCommand {
     }
     var exit = {
       args: [void 0],
-      op: function(context2, value) {
-        var resolve = context2.meta.resolve;
-        context2.meta.returned = true;
-        context2.meta.returnValue = value;
+      op: function(context, value) {
+        var resolve = context.meta.resolve;
+        context.meta.returned = true;
+        context.meta.returnValue = value;
         if (resolve) {
           if (value) {
             resolve(value);
@@ -5496,7 +5509,7 @@ var _HaltCommand = class _HaltCommand {
             resolve();
           }
         }
-        return context2.meta.runtime.HALT;
+        return context.meta.runtime.HALT;
       }
     };
     return new _HaltCommand(bubbling, haltDefault, keepExecuting, exit);
@@ -5594,12 +5607,7 @@ var AppendCommand = class {
     if (!parser.matchToken("append")) return;
     var targetExpr = null;
     var value = parser.requireElement("expression");
-    var implicitResultSymbol = {
-      type: "symbol",
-      evaluate: function(context2) {
-        return context2.meta.runtime.resolveSymbol("result", context2);
-      }
-    };
+    var implicitResultSymbol = new ImplicitResultSymbol();
     if (parser.matchToken("to")) {
       targetExpr = parser.requireElement("expression");
     } else {
@@ -5613,32 +5621,32 @@ var AppendCommand = class {
       value,
       target: targetExpr,
       args: [targetExpr, value],
-      op: function(context2, target, value2) {
+      op: function(context, target, value2) {
         if (Array.isArray(target)) {
           target.push(value2);
-          return context2.meta.runtime.findNext(this, context2);
+          return context.meta.runtime.findNext(this, context);
         } else if (target instanceof Element) {
           if (value2 instanceof Element) {
             target.insertAdjacentElement("beforeend", value2);
           } else {
             target.insertAdjacentHTML("beforeend", value2);
           }
-          context2.meta.runtime.processNode(
+          context.meta.runtime.processNode(
             /** @type {HTMLElement} */
             target
           );
-          return context2.meta.runtime.findNext(this, context2);
+          return context.meta.runtime.findNext(this, context);
         } else if (setter) {
-          context2.result = (target || "") + value2;
+          context.result = (target || "") + value2;
           return setter;
         } else {
           throw Error("Unable to append a value!");
         }
       },
-      execute: function(context2) {
-        return context2.meta.runtime.unifiedExec(
+      execute: function(context) {
+        return context.meta.runtime.unifiedExec(
           this,
-          context2
+          context
           /*, value, target*/
         );
       }
@@ -5771,20 +5779,20 @@ var FetchCommandNode = class extends Command {
     this.conversionType = type;
     this.conversion = conversion;
   }
-  op(context2, url, args) {
+  op(context, url, args) {
     const type = this.conversionType;
     const conversion = this.conversion;
     const fetchCmd = this;
     var detail = args || {};
-    detail["sender"] = context2.me;
+    detail["sender"] = context.me;
     detail["headers"] = detail["headers"] || {};
     var abortController = new AbortController();
-    let abortListener = context2.me.addEventListener("fetch:abort", function() {
+    let abortListener = context.me.addEventListener("fetch:abort", function() {
       abortController.abort();
     }, { once: true });
     detail["signal"] = abortController.signal;
-    context2.meta.runtime.triggerEvent(context2.me, "hyperscript:beforeFetch", detail);
-    context2.meta.runtime.triggerEvent(context2.me, "fetch:beforeRequest", detail);
+    context.meta.runtime.triggerEvent(context.me, "hyperscript:beforeFetch", detail);
+    context.meta.runtime.triggerEvent(context.me, "fetch:beforeRequest", detail);
     args = detail;
     var finished = false;
     if (args.timeout) {
@@ -5796,37 +5804,37 @@ var FetchCommandNode = class extends Command {
     }
     return fetch(url, args).then(function(resp) {
       let resultDetails = { response: resp };
-      context2.meta.runtime.triggerEvent(context2.me, "fetch:afterResponse", resultDetails);
+      context.meta.runtime.triggerEvent(context.me, "fetch:afterResponse", resultDetails);
       resp = resultDetails.response;
       if (type === "response") {
-        context2.result = resp;
-        context2.meta.runtime.triggerEvent(context2.me, "fetch:afterRequest", { result: resp });
+        context.result = resp;
+        context.meta.runtime.triggerEvent(context.me, "fetch:afterRequest", { result: resp });
         finished = true;
-        return context2.meta.runtime.findNext(fetchCmd, context2);
+        return context.meta.runtime.findNext(fetchCmd, context);
       }
       if (type === "json") {
         return resp.json().then(function(result) {
-          context2.result = result;
-          context2.meta.runtime.triggerEvent(context2.me, "fetch:afterRequest", { result });
+          context.result = result;
+          context.meta.runtime.triggerEvent(context.me, "fetch:afterRequest", { result });
           finished = true;
-          return context2.meta.runtime.findNext(fetchCmd, context2);
+          return context.meta.runtime.findNext(fetchCmd, context);
         });
       }
       return resp.text().then(function(result) {
-        if (conversion) result = context2.meta.runtime.convertValue(result, conversion);
-        if (type === "html") result = context2.meta.runtime.convertValue(result, "Fragment");
-        context2.result = result;
-        context2.meta.runtime.triggerEvent(context2.me, "fetch:afterRequest", { result });
+        if (conversion) result = context.meta.runtime.convertValue(result, conversion);
+        if (type === "html") result = context.meta.runtime.convertValue(result, "Fragment");
+        context.result = result;
+        context.meta.runtime.triggerEvent(context.me, "fetch:afterRequest", { result });
         finished = true;
-        return context2.meta.runtime.findNext(fetchCmd, context2);
+        return context.meta.runtime.findNext(fetchCmd, context);
       });
     }).catch(function(reason) {
-      context2.meta.runtime.triggerEvent(context2.me, "fetch:error", {
+      context.meta.runtime.triggerEvent(context.me, "fetch:error", {
         reason
       });
       throw reason;
     }).finally(function() {
-      context2.me.removeEventListener("fetch:abort", abortListener);
+      context.me.removeEventListener("fetch:abort", abortListener);
     });
   }
 };
@@ -6009,24 +6017,24 @@ var WaitCommandEvent = class extends Command {
     this.on = on;
     this.args = [on];
   }
-  op(context2, on) {
+  op(context, on) {
     const events = this.event;
-    var target = on ? on : context2.me;
+    var target = on ? on : context.me;
     if (!(target instanceof EventTarget))
       throw new Error("Not a valid event target: " + this.on.sourceFor());
     return new Promise((resolve) => {
       var resolved = false;
       for (const eventInfo of events) {
         var listener = (event) => {
-          context2.result = event;
+          context.result = event;
           if (eventInfo.args) {
             for (const arg of eventInfo.args) {
-              context2.locals[arg.value] = event[arg.value] || (event.detail ? event.detail[arg.value] : null);
+              context.locals[arg.value] = event[arg.value] || (event.detail ? event.detail[arg.value] : null);
             }
           }
           if (!resolved) {
             resolved = true;
-            resolve(context2.meta.runtime.findNext(this, context2));
+            resolve(context.meta.runtime.findNext(this, context));
           }
         };
         if (eventInfo.name) {
@@ -6045,10 +6053,10 @@ var WaitCommandTime = class extends Command {
     this.time = time;
     this.args = [time];
   }
-  op(context2, timeValue) {
+  op(context, timeValue) {
     return new Promise((resolve) => {
       setTimeout(() => {
-        resolve(context2.meta.runtime.findNext(this, context2));
+        resolve(context.meta.runtime.findNext(this, context));
       }, timeValue);
     });
   }
@@ -6105,12 +6113,12 @@ var SendCommandNode = class extends Command {
     this.args = [toExpr, eventName, details];
     this.toExpr = toExpr;
   }
-  op(context2, to, eventName, details) {
-    context2.meta.runtime.nullCheck(to, this.toExpr);
-    context2.meta.runtime.implicitLoop(to, function(target) {
-      context2.meta.runtime.triggerEvent(target, eventName, details, context2.me);
+  op(context, to, eventName, details) {
+    context.meta.runtime.nullCheck(to, this.toExpr);
+    context.meta.runtime.implicitLoop(to, function(target) {
+      context.meta.runtime.triggerEvent(target, eventName, details, context.me);
     });
-    return context2.meta.runtime.findNext(this, context2);
+    return context.meta.runtime.findNext(this, context);
   }
 };
 function parseSendCmd(cmdType, parser) {
@@ -6173,6 +6181,20 @@ var EventName = class {
 };
 
 // src/parsetree/commands/controlflow.js
+var WaitATick = class extends Command {
+  constructor() {
+    super();
+    this.type = "waitATick";
+  }
+  op(context) {
+    const self2 = this;
+    return new Promise(function(resolve) {
+      setTimeout(function() {
+        resolve(context.meta.runtime.findNext(self2));
+      }, 0);
+    });
+  }
+};
 var IfCommandImpl = class extends Command {
   constructor(expr, trueBranch, falseBranch) {
     super();
@@ -6182,13 +6204,13 @@ var IfCommandImpl = class extends Command {
     this.falseBranch = falseBranch;
     this.args = [expr];
   }
-  op(context2, exprValue) {
+  op(context, exprValue) {
     if (exprValue) {
       return this.trueBranch;
     } else if (this.falseBranch) {
       return this.falseBranch;
     } else {
-      return context2.meta.runtime.findNext(this, context2);
+      return context.meta.runtime.findNext(this, context);
     }
   }
 };
@@ -6270,16 +6292,7 @@ function parseRepeatExpression(parser, startedWithForToken) {
     while (last.next) {
       last = last.next;
     }
-    var waitATick = {
-      type: "waitATick",
-      op: function() {
-        return new Promise(function(resolve) {
-          setTimeout(function() {
-            resolve(context.meta.runtime.findNext(waitATick));
-          }, 0);
-        });
-      }
-    };
+    var waitATick = new WaitATick();
     last.next = waitATick;
   }
   if (parser.hasMore()) {
@@ -6307,15 +6320,15 @@ function parseRepeatExpression(parser, startedWithForToken) {
     },
     loop,
     args: [whileExpr, times],
-    op: function(context2, whileValue, times2) {
-      var iteratorInfo = context2.meta.iterators[slot];
+    op: function(context, whileValue, times2) {
+      var iteratorInfo = context.meta.iterators[slot];
       var keepLooping = false;
       var loopVal = null;
       if (this.forever) {
         keepLooping = true;
       } else if (this.until) {
         if (evt) {
-          keepLooping = context2.meta.iterators[slot].eventFired === false;
+          keepLooping = context.meta.iterators[slot].eventFired === false;
         } else {
           keepLooping = whileValue !== true;
         }
@@ -6330,18 +6343,18 @@ function parseRepeatExpression(parser, startedWithForToken) {
       }
       if (keepLooping) {
         if (iteratorInfo.value) {
-          context2.result = context2.locals[identifier] = loopVal;
+          context.result = context.locals[identifier] = loopVal;
         } else {
-          context2.result = iteratorInfo.index;
+          context.result = iteratorInfo.index;
         }
         if (indexIdentifier) {
-          context2.locals[indexIdentifier] = iteratorInfo.index;
+          context.locals[indexIdentifier] = iteratorInfo.index;
         }
         iteratorInfo.index++;
         return loop;
       } else {
-        context2.meta.iterators[slot] = null;
-        return context2.meta.runtime.findNext(this.parent, context2);
+        context.meta.iterators[slot] = null;
+        return context.meta.runtime.findNext(this.parent, context);
       }
     }
   };
@@ -6349,13 +6362,13 @@ function parseRepeatExpression(parser, startedWithForToken) {
   var repeatInit = {
     name: "repeatInit",
     args: [expression, evt, on],
-    op: function(context2, value, event, on2) {
+    op: function(context, value, event, on2) {
       var iteratorInfo = {
         index: 0,
         value,
         eventFired: false
       };
-      context2.meta.iterators[slot] = iteratorInfo;
+      context.meta.iterators[slot] = iteratorInfo;
       if (value) {
         if (value[Symbol.iterator]) {
           iteratorInfo.iterator = value[Symbol.iterator]();
@@ -6364,19 +6377,19 @@ function parseRepeatExpression(parser, startedWithForToken) {
         }
       }
       if (evt) {
-        var target = on2 || context2.me;
+        var target = on2 || context.me;
         target.addEventListener(
           event,
           function(e) {
-            context2.meta.iterators[slot].eventFired = true;
+            context.meta.iterators[slot].eventFired = true;
           },
           { once: true }
         );
       }
       return repeatCmd;
     },
-    execute: function(context2) {
-      return context2.meta.runtime.unifiedExec(this, context2);
+    execute: function(context) {
+      return context.meta.runtime.unifiedExec(this, context);
     }
   };
   parser.setParent(repeatCmd, repeatInit);
@@ -6414,13 +6427,13 @@ var ContinueCommandImpl = class extends Command {
     this.type = "continueCommand";
     this.parser = parser;
   }
-  op(context2) {
+  op(context) {
     for (var parent = this.parent; true; parent = parent.parent) {
       if (parent == void 0) {
         this.parser.raiseParseError("Command `continue` cannot be used outside of a `repeat` loop.");
       }
       if (parent.loop != void 0) {
-        return parent.resolveNext(context2);
+        return parent.resolveNext(context);
       }
     }
   }
@@ -6443,13 +6456,13 @@ var BreakCommandImpl = class extends Command {
     this.type = "breakCommand";
     this.parser = parser;
   }
-  op(context2) {
+  op(context) {
     for (var parent = this.parent; true; parent = parent.parent) {
       if (parent == void 0) {
         this.parser.raiseParseError("Command `break` cannot be used outside of a `repeat` loop.");
       }
       if (parent.loop != void 0) {
-        return context2.meta.runtime.findNext(parent.parent, context2);
+        return context.meta.runtime.findNext(parent.parent, context);
       }
     }
   }
@@ -6475,32 +6488,32 @@ var TellCommandImpl = class extends Command {
     this.slot = slot;
     this.args = [value];
   }
-  resolveNext(context2) {
-    var iterator = context2.meta.iterators[this.slot];
+  resolveNext(context) {
+    var iterator = context.meta.iterators[this.slot];
     if (iterator.index < iterator.value.length) {
-      context2.you = iterator.value[iterator.index++];
+      context.you = iterator.value[iterator.index++];
       return this.body;
     } else {
-      context2.you = iterator.originalYou;
+      context.you = iterator.originalYou;
       if (this.next) {
         return this.next;
       } else {
-        return context2.meta.runtime.findNext(this.parent, context2);
+        return context.meta.runtime.findNext(this.parent, context);
       }
     }
   }
-  op(context2, value) {
+  op(context, value) {
     if (value == null) {
       value = [];
     } else if (!(Array.isArray(value) || value instanceof NodeList)) {
       value = [value];
     }
-    context2.meta.iterators[this.slot] = {
-      originalYou: context2.you,
+    context.meta.iterators[this.slot] = {
+      originalYou: context.you,
       index: 0,
       value
     };
-    return this.resolveNext(context2);
+    return this.resolveNext(context);
   }
 };
 var TellCommand = class {
@@ -6572,22 +6585,22 @@ var JsCommandImpl = class extends Command {
     this.function = func;
     this.inputs = inputs;
   }
-  op(context2) {
+  op(context) {
     var args = [];
     this.inputs.forEach((input) => {
-      args.push(context2.meta.runtime.resolveSymbol(input, context2, "default"));
+      args.push(context.meta.runtime.resolveSymbol(input, context, "default"));
     });
-    var result = this.function.apply(context2.meta.runtime.globalScope, args);
+    var result = this.function.apply(context.meta.runtime.globalScope, args);
     if (result && typeof result.then === "function") {
       return new Promise((resolve) => {
         result.then((actualResult) => {
-          context2.result = actualResult;
-          resolve(context2.meta.runtime.findNext(this, context2));
+          context.result = actualResult;
+          resolve(context.meta.runtime.findNext(this, context));
         });
       });
     } else {
-      context2.result = result;
-      return context2.meta.runtime.findNext(this, context2);
+      context.result = result;
+      return context.meta.runtime.findNext(this, context);
     }
   }
 };
@@ -6623,11 +6636,11 @@ var AsyncCommandImpl = class extends Command {
     this.type = "asyncCommand";
     this.body = body;
   }
-  op(context2) {
+  op(context) {
     setTimeout(() => {
-      this.body.execute(context2);
+      this.body.execute(context);
     });
-    return context2.meta.runtime.findNext(this, context2);
+    return context.meta.runtime.findNext(this, context);
   }
 };
 var AsyncCommand = class {
@@ -6660,9 +6673,9 @@ var CallOrGetCommandImpl = class extends Command {
     this.expr = expr;
     this.args = [expr];
   }
-  op(context2, result) {
-    context2.result = result;
-    return context2.meta.runtime.findNext(this, context2);
+  op(context, result) {
+    context.result = result;
+    return context.meta.runtime.findNext(this, context);
   }
 };
 function parseCallOrGet(parser) {
@@ -6710,15 +6723,15 @@ var PseudoCommandWithTarget = class extends Command {
     this._root = root;
     this._realRoot = realRoot;
   }
-  op(context2, rootRoot, args) {
-    context2.meta.runtime.nullCheck(rootRoot, this._realRoot);
+  op(context, rootRoot, args) {
+    context.meta.runtime.nullCheck(rootRoot, this._realRoot);
     var func = rootRoot[this._root.root.name];
-    context2.meta.runtime.nullCheck(func, this._root);
+    context.meta.runtime.nullCheck(func, this._root);
     if (func.hyperfunc) {
-      args.push(context2);
+      args.push(context);
     }
-    context2.result = func.apply(rootRoot, args);
-    return context2.meta.runtime.findNext(this, context2);
+    context.result = func.apply(rootRoot, args);
+    return context.meta.runtime.findNext(this, context);
   }
 };
 var PseudoCommandSimple = class extends Command {
@@ -6728,9 +6741,9 @@ var PseudoCommandSimple = class extends Command {
     this.expr = expr;
     this.args = [expr];
   }
-  op(context2, result) {
-    context2.result = result;
-    return context2.meta.runtime.findNext(this, context2);
+  op(context, result) {
+    context.result = result;
+    return context.meta.runtime.findNext(this, context);
   }
 };
 var PseudoCommand = class {
@@ -6766,6 +6779,19 @@ var PseudoCommand = class {
     } else {
       return new PseudoCommandSimple(expr);
     }
+  }
+};
+
+// src/parsetree/expressions/pseudopossessive.js
+var PseudopossessiveIts = class extends Expression {
+  constructor(token) {
+    super();
+    this.type = "pseudopossessiveIts";
+    this.token = token;
+    this.name = token.value;
+  }
+  evaluate(context) {
+    return context.meta.runtime.resolveSymbol("it", context);
   }
 };
 
@@ -6859,27 +6885,27 @@ var AddCommandClass = class extends Command {
     this.when = when;
     this.toExpr = toExpr;
   }
-  op(context2, to, classRefs) {
+  op(context, to, classRefs) {
     const when = this.when;
     const toExpr = this.toExpr;
-    context2.meta.runtime.nullCheck(to, toExpr);
-    context2.meta.runtime.forEach(classRefs, function(classRef) {
-      context2.meta.runtime.implicitLoop(to, function(target) {
+    context.meta.runtime.nullCheck(to, toExpr);
+    context.meta.runtime.forEach(classRefs, function(classRef) {
+      context.meta.runtime.implicitLoop(to, function(target) {
         if (when) {
-          context2.result = target;
-          let whenResult = context2.meta.runtime.evaluateNoPromise(when, context2);
+          context.result = target;
+          let whenResult = context.meta.runtime.evaluateNoPromise(when, context);
           if (whenResult) {
             if (target instanceof Element) target.classList.add(classRef.className);
           } else {
             if (target instanceof Element) target.classList.remove(classRef.className);
           }
-          context2.result = null;
+          context.result = null;
         } else {
           if (target instanceof Element) target.classList.add(classRef.className);
         }
       });
     });
-    return context2.meta.runtime.findNext(this, context2);
+    return context.meta.runtime.findNext(this, context);
   }
 };
 var AddCommandAttribute = class extends Command {
@@ -6892,26 +6918,26 @@ var AddCommandAttribute = class extends Command {
     this.when = when;
     this.toExpr = toExpr;
   }
-  op(context2, to, attrRef) {
+  op(context, to, attrRef) {
     const when = this.when;
     const attributeRef = this.attributeRef;
     const toExpr = this.toExpr;
-    context2.meta.runtime.nullCheck(to, toExpr);
-    context2.meta.runtime.implicitLoop(to, function(target) {
+    context.meta.runtime.nullCheck(to, toExpr);
+    context.meta.runtime.implicitLoop(to, function(target) {
       if (when) {
-        context2.result = target;
-        let whenResult = context2.meta.runtime.evaluateNoPromise(when, context2);
+        context.result = target;
+        let whenResult = context.meta.runtime.evaluateNoPromise(when, context);
         if (whenResult) {
           target.setAttribute(attributeRef.name, attributeRef.value);
         } else {
           target.removeAttribute(attributeRef.name);
         }
-        context2.result = null;
+        context.result = null;
       } else {
         target.setAttribute(attributeRef.name, attributeRef.value);
       }
     });
-    return context2.meta.runtime.findNext(this, context2);
+    return context.meta.runtime.findNext(this, context);
   }
 };
 var AddCommandCSS = class extends Command {
@@ -6923,12 +6949,12 @@ var AddCommandCSS = class extends Command {
     this.args = [toExpr, cssDeclaration];
     this.toExpr = toExpr;
   }
-  op(context2, to, css) {
-    context2.meta.runtime.nullCheck(to, this.toExpr);
-    context2.meta.runtime.implicitLoop(to, function(target) {
+  op(context, to, css) {
+    context.meta.runtime.nullCheck(to, this.toExpr);
+    context.meta.runtime.implicitLoop(to, function(target) {
       target.style.cssText += css;
     });
-    return context2.meta.runtime.findNext(this, context2);
+    return context.meta.runtime.findNext(this, context);
   }
 };
 var AddCommand = class {
@@ -6980,14 +7006,14 @@ var RemoveCommandElement = class extends Command {
     this.from = fromExpr;
     this.args = [elementExpr, fromExpr];
   }
-  op(context2, element, from) {
-    context2.meta.runtime.nullCheck(element, this.elementExpr);
-    context2.meta.runtime.implicitLoop(element, function(target) {
+  op(context, element, from) {
+    context.meta.runtime.nullCheck(element, this.elementExpr);
+    context.meta.runtime.implicitLoop(element, function(target) {
       if (target.parentElement && (from == null || from.contains(target))) {
         target.parentElement.removeChild(target);
       }
     });
-    return context2.meta.runtime.findNext(this, context2);
+    return context.meta.runtime.findNext(this, context);
   }
 };
 var RemoveCommandClassOrAttr = class extends Command {
@@ -7000,22 +7026,22 @@ var RemoveCommandClassOrAttr = class extends Command {
     this.args = [classRefs, fromExpr];
     this.fromExpr = fromExpr;
   }
-  op(context2, classRefs, from) {
+  op(context, classRefs, from) {
     const attributeRef = this.attributeRef;
     const fromExpr = this.fromExpr;
-    context2.meta.runtime.nullCheck(from, fromExpr);
+    context.meta.runtime.nullCheck(from, fromExpr);
     if (classRefs) {
-      context2.meta.runtime.forEach(classRefs, function(classRef) {
-        context2.meta.runtime.implicitLoop(from, function(target) {
+      context.meta.runtime.forEach(classRefs, function(classRef) {
+        context.meta.runtime.implicitLoop(from, function(target) {
           target.classList.remove(classRef.className);
         });
       });
     } else {
-      context2.meta.runtime.implicitLoop(from, function(target) {
+      context.meta.runtime.implicitLoop(from, function(target) {
         target.removeAttribute(attributeRef.name);
       });
     }
-    return context2.meta.runtime.findNext(this, context2);
+    return context.meta.runtime.findNext(this, context);
   }
 };
 var RemoveCommand = class {
@@ -7073,14 +7099,14 @@ var ToggleCommandImpl = class extends Command {
     this.onExpr = onExpr;
     this.args = [onExpr, time, evt, from, classRef, classRef2, classRefs];
   }
-  toggle(context2, on, classRef, classRef2, classRefs) {
-    context2.meta.runtime.nullCheck(on, this.onExpr);
+  toggle(context, on, classRef, classRef2, classRefs) {
+    context.meta.runtime.nullCheck(on, this.onExpr);
     if (this.visibility) {
-      context2.meta.runtime.implicitLoop(on, (target) => {
-        this.hideShowStrategy("toggle", target, null, context2.meta.runtime);
+      context.meta.runtime.implicitLoop(on, (target) => {
+        this.hideShowStrategy("toggle", target, null, context.meta.runtime);
       });
     } else if (this.between) {
-      context2.meta.runtime.implicitLoop(on, (target) => {
+      context.meta.runtime.implicitLoop(on, (target) => {
         if (target.classList.contains(classRef.className)) {
           target.classList.remove(classRef.className);
           target.classList.add(classRef2.className);
@@ -7090,13 +7116,13 @@ var ToggleCommandImpl = class extends Command {
         }
       });
     } else if (classRefs) {
-      context2.meta.runtime.forEach(classRefs, (classRef3) => {
-        context2.meta.runtime.implicitLoop(on, (target) => {
+      context.meta.runtime.forEach(classRefs, (classRef3) => {
+        context.meta.runtime.implicitLoop(on, (target) => {
           target.classList.toggle(classRef3.className);
         });
       });
     } else {
-      context2.meta.runtime.implicitLoop(on, (target) => {
+      context.meta.runtime.implicitLoop(on, (target) => {
         if (target.hasAttribute(this.attributeRef.name)) {
           target.removeAttribute(this.attributeRef.name);
         } else {
@@ -7105,31 +7131,31 @@ var ToggleCommandImpl = class extends Command {
       });
     }
   }
-  op(context2, on, time, evt, from, classRef, classRef2, classRefs) {
+  op(context, on, time, evt, from, classRef, classRef2, classRefs) {
     if (time) {
       return new Promise((resolve) => {
-        this.toggle(context2, on, classRef, classRef2, classRefs);
+        this.toggle(context, on, classRef, classRef2, classRefs);
         setTimeout(() => {
-          this.toggle(context2, on, classRef, classRef2, classRefs);
-          resolve(context2.meta.runtime.findNext(this, context2));
+          this.toggle(context, on, classRef, classRef2, classRefs);
+          resolve(context.meta.runtime.findNext(this, context));
         }, time);
       });
     } else if (evt) {
       return new Promise((resolve) => {
-        var target = from || context2.me;
+        var target = from || context.me;
         target.addEventListener(
           evt,
           () => {
-            this.toggle(context2, on, classRef, classRef2, classRefs);
-            resolve(context2.meta.runtime.findNext(this, context2));
+            this.toggle(context, on, classRef, classRef2, classRefs);
+            resolve(context.meta.runtime.findNext(this, context));
           },
           { once: true }
         );
-        this.toggle(context2, on, classRef, classRef2, classRefs);
+        this.toggle(context, on, classRef, classRef2, classRefs);
       });
     } else {
-      this.toggle(context2, on, classRef, classRef2, classRefs);
-      return context2.meta.runtime.findNext(this, context2);
+      this.toggle(context, on, classRef, classRef2, classRefs);
+      return context.meta.runtime.findNext(this, context);
     }
   }
 };
@@ -7305,14 +7331,7 @@ function parsePseudopossessiveTarget(parser) {
     }
   } else if (parser.currentToken().type === "IDENTIFIER" && parser.currentToken().value === "its") {
     var identifier = parser.matchToken("its");
-    targets = {
-      type: "pseudopossessiveIts",
-      token: identifier,
-      name: identifier.value,
-      evaluate: function(context2) {
-        return context2.meta.runtime.resolveSymbol("it", context2);
-      }
-    };
+    targets = new PseudopossessiveIts(identifier);
   } else {
     parser.matchToken("my") || parser.matchToken("me");
     targets = parser.parseElement("implicitMeTarget");
@@ -7329,24 +7348,24 @@ var TakeCommandClass = class extends Command {
     this.forExpr = forExpr;
     this.args = [classRefs, fromExpr, forExpr];
   }
-  op(context2, classRefs, from, forElt) {
-    context2.meta.runtime.nullCheck(forElt, this.forExpr);
-    context2.meta.runtime.implicitLoop(classRefs, (classRef) => {
+  op(context, classRefs, from, forElt) {
+    context.meta.runtime.nullCheck(forElt, this.forExpr);
+    context.meta.runtime.implicitLoop(classRefs, (classRef) => {
       var clazz = classRef.className;
       if (from) {
-        context2.meta.runtime.implicitLoop(from, (target) => {
+        context.meta.runtime.implicitLoop(from, (target) => {
           target.classList.remove(clazz);
         });
       } else {
-        context2.meta.runtime.implicitLoop(classRef, (target) => {
+        context.meta.runtime.implicitLoop(classRef, (target) => {
           target.classList.remove(clazz);
         });
       }
-      context2.meta.runtime.implicitLoop(forElt, (target) => {
+      context.meta.runtime.implicitLoop(forElt, (target) => {
         target.classList.add(clazz);
       });
     });
-    return context2.meta.runtime.findNext(this, context2);
+    return context.meta.runtime.findNext(this, context);
   }
 };
 var TakeCommandAttribute = class extends Command {
@@ -7361,20 +7380,20 @@ var TakeCommandAttribute = class extends Command {
     this.replacementValue = replacementValue;
     this.args = [fromExpr, forExpr, replacementValue];
   }
-  op(context2, from, forElt, replacementValue) {
-    context2.meta.runtime.nullCheck(from, this.fromExpr);
-    context2.meta.runtime.nullCheck(forElt, this.forExpr);
-    context2.meta.runtime.implicitLoop(from, (target) => {
+  op(context, from, forElt, replacementValue) {
+    context.meta.runtime.nullCheck(from, this.fromExpr);
+    context.meta.runtime.nullCheck(forElt, this.forExpr);
+    context.meta.runtime.implicitLoop(from, (target) => {
       if (!replacementValue) {
         target.removeAttribute(this.attributeRef.name);
       } else {
         target.setAttribute(this.attributeRef.name, replacementValue);
       }
     });
-    context2.meta.runtime.implicitLoop(forElt, (target) => {
+    context.meta.runtime.implicitLoop(forElt, (target) => {
       target.setAttribute(this.attributeRef.name, this.attributeRef.value || "");
     });
-    return context2.meta.runtime.findNext(this, context2);
+    return context.meta.runtime.findNext(this, context);
   }
 };
 var TakeCommand = class {
@@ -7484,6 +7503,25 @@ var MeasureCommand = class {
 __publicField(MeasureCommand, "keyword", "measure");
 
 // src/parsetree/commands/animations.js
+var StyleRefValue = class extends Expression {
+  constructor(styleProp) {
+    super();
+    this.type = "styleRefValue";
+    this.styleProp = styleProp;
+  }
+  evaluate(context) {
+    return this.styleProp;
+  }
+};
+var InitialLiteral = class extends Expression {
+  constructor() {
+    super();
+    this.type = "initial_literal";
+  }
+  evaluate(context) {
+    return "initial";
+  }
+};
 function parsePseudopossessiveTarget2(parser) {
   var targets;
   if (parser.matchToken("the") || parser.matchToken("element") || parser.matchToken("elements") || parser.currentToken().type === "CLASS_REF" || parser.currentToken().type === "ID_REF" || parser.currentToken().op && parser.currentToken().value === "<") {
@@ -7498,14 +7536,7 @@ function parsePseudopossessiveTarget2(parser) {
     }
   } else if (parser.currentToken().type === "IDENTIFIER" && parser.currentToken().value === "its") {
     var identifier = parser.matchToken("its");
-    targets = {
-      type: "pseudopossessiveIts",
-      token: identifier,
-      name: identifier.value,
-      evaluate: function(context2) {
-        return context2.meta.runtime.resolveSymbol("it", context2);
-      }
-    };
+    targets = new PseudopossessiveIts(identifier);
   } else {
     parser.matchToken("my") || parser.matchToken("me");
     targets = parser.parseElement("implicitMeTarget");
@@ -7519,8 +7550,8 @@ var SettleCommandImpl = class extends Command {
     this.onExpr = onExpr;
     this.args = [onExpr];
   }
-  op(context2, on) {
-    context2.meta.runtime.nullCheck(on, this.onExpr);
+  op(context, on) {
+    context.meta.runtime.nullCheck(on, this.onExpr);
     var resolve = null;
     var resolved = false;
     var transitionStarted = false;
@@ -7537,7 +7568,7 @@ var SettleCommandImpl = class extends Command {
     setTimeout(() => {
       if (!transitionStarted && !resolved) {
         resolved = true;
-        resolve(context2.meta.runtime.findNext(this, context2));
+        resolve(context.meta.runtime.findNext(this, context));
       }
     }, 500);
     on.addEventListener(
@@ -7545,7 +7576,7 @@ var SettleCommandImpl = class extends Command {
       () => {
         if (!resolved) {
           resolved = true;
-          resolve(context2.meta.runtime.findNext(this, context2));
+          resolve(context.meta.runtime.findNext(this, context));
         }
       },
       { once: true }
@@ -7583,10 +7614,10 @@ var TransitionCommandImpl = class extends Command {
     this.over = over;
     this.args = [targetsExpr, properties, from, to, usingExpr, over];
   }
-  op(context2, targets, properties, from, to, using, over) {
-    context2.meta.runtime.nullCheck(targets, this.targetsExpr);
+  op(context, targets, properties, from, to, using, over) {
+    context.meta.runtime.nullCheck(targets, this.targetsExpr);
     var promises = [];
-    context2.meta.runtime.implicitLoop(targets, (target) => {
+    context.meta.runtime.implicitLoop(targets, (target) => {
       var promise = new Promise((resolve, reject) => {
         var initialTransition = target.style.transition;
         if (over) {
@@ -7596,7 +7627,7 @@ var TransitionCommandImpl = class extends Command {
         } else {
           target.style.transition = config.defaultTransition;
         }
-        var internalData = context2.meta.runtime.getInternalData(target);
+        var internalData = context.meta.runtime.getInternalData(target);
         var computedStyles = getComputedStyle(target);
         var initialStyles = {};
         for (var i = 0; i < computedStyles.length; i++) {
@@ -7660,7 +7691,7 @@ var TransitionCommandImpl = class extends Command {
       promises.push(promise);
     });
     return Promise.all(promises).then(() => {
-      return context2.meta.runtime.findNext(this, context2);
+      return context.meta.runtime.findNext(this, context);
     });
   }
 };
@@ -7681,12 +7712,7 @@ var TransitionCommand = class {
         if (parser.currentToken().type === "STYLE_REF") {
           let styleRef = parser.consumeToken();
           let styleProp = styleRef.value.substr(1);
-          properties.push({
-            type: "styleRefValue",
-            evaluate: function() {
-              return styleProp;
-            }
-          });
+          properties.push(new StyleRefValue(styleProp));
         } else {
           properties.push(parser.requireElement("stringLike"));
         }
@@ -7697,12 +7723,7 @@ var TransitionCommand = class {
         }
         parser.requireToken("to");
         if (parser.matchToken("initial")) {
-          to.push({
-            type: "initial_literal",
-            evaluate: function() {
-              return "initial";
-            }
-          });
+          to.push(new InitialLiteral());
         } else {
           to.push(parser.requireElement("expression"));
         }

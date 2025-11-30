@@ -6,7 +6,21 @@
 import { varargConstructor } from '../../core/runtime.js';
 import { RegExpIterable } from '../../core/runtime.js';
 import { SetCommand } from './setters.js';
-import { Command } from '../base.js';
+import { Command, Expression } from '../base.js';
+
+/**
+ * ImplicitResultSymbol - Represents the implicit "result" symbol
+ */
+class ImplicitResultSymbol extends Expression {
+    constructor() {
+        super();
+        this.type = "symbol";
+    }
+
+    evaluate(context) {
+        return context.meta.runtime.resolveSymbol("result", context);
+    }
+}
 
 /**
  * LogCommand - Log values to console
@@ -393,13 +407,7 @@ export class AppendCommand {
 
         var value = parser.requireElement("expression");
 
-        /** @type {ASTNode} */
-        var implicitResultSymbol = {
-            type: "symbol",
-            evaluate: function (context) {
-                return context.meta.runtime.resolveSymbol("result", context);
-            },
-        };
+        var implicitResultSymbol = new ImplicitResultSymbol();
 
         if (parser.matchToken("to")) {
             targetExpr = parser.requireElement("expression");

@@ -3,7 +3,49 @@
  * Commands that modify values (set, default, increment, decrement, put)
  */
 
-import { Command } from '../base.js';
+import { Command, Expression } from '../base.js';
+
+/**
+ * IncrementOperation - Calculates incremented value
+ */
+class IncrementOperation extends Expression {
+    constructor(target, amountExpr) {
+        super();
+        this.type = "implicitIncrementOp";
+        this.target = target;
+        this.amountExpr = amountExpr;
+        this.args = [target, amountExpr];
+    }
+
+    op(context, targetValue, amount) {
+        targetValue = targetValue ? parseFloat(targetValue) : 0;
+        amount = this.amountExpr ? parseFloat(amount) : 1;
+        var newValue = targetValue + amount;
+        context.result = newValue;
+        return newValue;
+    }
+}
+
+/**
+ * DecrementOperation - Calculates decremented value
+ */
+class DecrementOperation extends Expression {
+    constructor(target, amountExpr) {
+        super();
+        this.type = "implicitDecrementOp";
+        this.target = target;
+        this.amountExpr = amountExpr;
+        this.args = [target, amountExpr];
+    }
+
+    op(context, targetValue, amount) {
+        targetValue = targetValue ? parseFloat(targetValue) : 0;
+        amount = this.amountExpr ? parseFloat(amount) : 1;
+        var newValue = targetValue - amount;
+        context.result = newValue;
+        return newValue;
+    }
+}
 
 /**
  * Helper function for put command - put content into element or symbol
@@ -233,21 +275,7 @@ export class IncrementCommand extends SetterCommand {
             amountExpr = parser.requireElement("expression");
         }
 
-        var implicitIncrementOp = {
-            type: "implicitIncrementOp",
-            target: target,
-            args: [target, amountExpr],
-            op: function (context, targetValue, amount) {
-                targetValue = targetValue ? parseFloat(targetValue) : 0;
-                amount = amountExpr ? parseFloat(amount) : 1;
-                var newValue = targetValue + amount;
-                context.result = newValue;
-                return newValue;
-            },
-            evaluate: function (context) {
-                return context.meta.runtime.unifiedEval(this, context);
-            }
-        };
+        var implicitIncrementOp = new IncrementOperation(target, amountExpr);
 
         return SetCommand.makeSetter(parser, target, implicitIncrementOp);
     }
@@ -285,21 +313,7 @@ export class DecrementCommand extends SetterCommand {
             amountExpr = parser.requireElement("expression");
         }
 
-        var implicitDecrementOp = {
-            type: "implicitDecrementOp",
-            target: target,
-            args: [target, amountExpr],
-            op: function (context, targetValue, amount) {
-                targetValue = targetValue ? parseFloat(targetValue) : 0;
-                amount = amountExpr ? parseFloat(amount) : 1;
-                var newValue = targetValue - amount;
-                context.result = newValue;
-                return newValue;
-            },
-            evaluate: function (context) {
-                return context.meta.runtime.unifiedEval(this, context);
-            }
-        };
+        var implicitDecrementOp = new DecrementOperation(target, amountExpr);
 
         return SetCommand.makeSetter(parser, target, implicitDecrementOp);
     }

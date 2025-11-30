@@ -3,8 +3,38 @@
  * Commands for CSS transitions and animations (transition, settle)
  */
 
-import { Command } from '../base.js';
+import { Command, Expression } from '../base.js';
 import { config } from '../../core/config.js';
+import { PseudopossessiveIts } from '../expressions/pseudopossessive.js';
+
+/**
+ * StyleRefValue - Represents a style property name reference
+ */
+class StyleRefValue extends Expression {
+    constructor(styleProp) {
+        super();
+        this.type = "styleRefValue";
+        this.styleProp = styleProp;
+    }
+
+    evaluate(context) {
+        return this.styleProp;
+    }
+}
+
+/**
+ * InitialLiteral - Represents the "initial" keyword for transitions
+ */
+class InitialLiteral extends Expression {
+    constructor() {
+        super();
+        this.type = "initial_literal";
+    }
+
+    evaluate(context) {
+        return "initial";
+    }
+}
 
 /**
  * Helper function to parse pseudopossessive targets (the/its/my element's)
@@ -31,14 +61,7 @@ function parsePseudopossessiveTarget(parser) {
         }
     } else if (parser.currentToken().type === "IDENTIFIER" && parser.currentToken().value === "its") {
         var identifier = parser.matchToken("its");
-        targets = {
-            type: "pseudopossessiveIts",
-            token: identifier,
-            name: identifier.value,
-            evaluate: function (context) {
-                return context.meta.runtime.resolveSymbol("it", context);
-            },
-        };
+        targets = new PseudopossessiveIts(identifier);
     } else {
         parser.matchToken("my") || parser.matchToken("me"); // consume optional 'my'
         targets = parser.parseElement("implicitMeTarget");
@@ -258,12 +281,7 @@ export class TransitionCommand {
                 if (parser.currentToken().type === "STYLE_REF") {
                     let styleRef = parser.consumeToken();
                     let styleProp = styleRef.value.substr(1);
-                    properties.push({
-                        type: "styleRefValue",
-                        evaluate: function () {
-                            return styleProp;
-                        },
-                    });
+                    properties.push(new StyleRefValue(styleProp));
                 } else {
                     properties.push(parser.requireElement("stringLike"));
                 }
@@ -275,12 +293,7 @@ export class TransitionCommand {
                 }
                 parser.requireToken("to");
                 if (parser.matchToken("initial")) {
-                    to.push({
-                        type: "initial_literal",
-                        evaluate : function(){
-                            return "initial";
-                        }
-                    });
+                    to.push(new InitialLiteral());
                 } else {
                     to.push(parser.requireElement("expression"));
                 }

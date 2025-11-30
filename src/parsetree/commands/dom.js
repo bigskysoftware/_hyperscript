@@ -5,6 +5,7 @@
 
 import { Command } from '../base.js';
 import { config } from '../../core/config.js';
+import { PseudopossessiveIts } from '../expressions/pseudopossessive.js';
 
 /**
  * Hide/Show strategies for toggling element visibility
@@ -659,14 +660,7 @@ function parsePseudopossessiveTarget(parser) {
         }
     } else if (parser.currentToken().type === "IDENTIFIER" && parser.currentToken().value === "its") {
         var identifier = parser.matchToken("its");
-        targets = {
-            type: "pseudopossessiveIts",
-            token: identifier,
-            name: identifier.value,
-            evaluate: function (context) {
-                return context.meta.runtime.resolveSymbol("it", context);
-            },
-        };
+        targets = new PseudopossessiveIts(identifier);
     } else {
         parser.matchToken("my") || parser.matchToken("me"); // consume optional 'my'
         targets = parser.parseElement("implicitMeTarget");
