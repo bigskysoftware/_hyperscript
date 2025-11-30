@@ -257,15 +257,6 @@ export class ArrayLiteral extends Expression {
     op(context, values) {
         return values;
     }
-
-    /**
-     * Evaluate array value
-     * @param {Context} context
-     * @returns {Array}
-     */
-    evaluate(context) {
-        return context.meta.runtime.unifiedEval(this, context);
-    }
 }
 
 /**
@@ -374,15 +365,6 @@ export class ObjectLiteral extends Expression {
         }
         return returnVal;
     }
-
-    /**
-     * Evaluate to object value
-     * @param {Context} context
-     * @returns {Object}
-     */
-    evaluate(context) {
-        return context.meta.runtime.unifiedEval(this, context);
-    }
 }
 
 /**
@@ -441,14 +423,5 @@ export class NamedArgumentList extends Expression {
             returnVal[field.name.value] = values[i];
         }
         return returnVal;
-    }
-
-    /**
-     * Evaluate to named argument object
-     * @param {Context} context
-     * @returns {Object}
-     */
-    evaluate(context) {
-        return context.meta.runtime.unifiedEval(this, context);
     }
 }

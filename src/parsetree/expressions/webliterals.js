@@ -3,12 +3,14 @@
  * References to DOM elements and attributes
  */
 import { ElementCollection, TemplatedQueryElementCollection } from '../../core/runtime.js';
+import { Expression } from '../base.js';
 
 /**
  * IdRefTemplateNode - Template ID reference
  */
-class IdRefTemplateNode {
+class IdRefTemplateNode extends Expression {
     constructor(innerExpression) {
+        super();
         this.type = "idRefTemplate";
         this.args = [innerExpression];
     }
@@ -16,17 +18,14 @@ class IdRefTemplateNode {
     op(context, arg) {
         return context.meta.runtime.getRootNode(context.me).getElementById(arg);
     }
-
-    evaluate(context) {
-        return context.meta.runtime.unifiedEval(this, context);
-    }
 }
 
 /**
  * IdRefNode - Static ID reference
  */
-class IdRefNode {
+class IdRefNode extends Expression {
     constructor(css, value) {
+        super();
         this.type = "idRef";
         this.css = css;
         this.value = value;
@@ -70,8 +69,9 @@ export class IdRef {
 /**
  * ClassRefTemplateNode - Template class reference
  */
-class ClassRefTemplateNode {
+class ClassRefTemplateNode extends Expression {
     constructor(innerExpression) {
+        super();
         this.type = "classRefTemplate";
         this.args = [innerExpression];
     }
@@ -79,17 +79,14 @@ class ClassRefTemplateNode {
     op(context, arg) {
         return new ElementCollection("." + arg, context.me, true, context.meta.runtime);
     }
-
-    evaluate(context) {
-        return context.meta.runtime.unifiedEval(this, context);
-    }
 }
 
 /**
  * ClassRefNode - Static class reference
  */
-class ClassRefNode {
+class ClassRefNode extends Expression {
     constructor(css, className) {
+        super();
         this.type = "classRef";
         this.css = css;
         this.className = className;
@@ -137,8 +134,9 @@ export class ClassRef {
 /**
  * QueryRefNode - Query selector reference node
  */
-class QueryRefNode {
+class QueryRefNode extends Expression {
     constructor(css, args, template) {
+        super();
         this.type = "queryRef";
         this.css = css;
         this.args = args;
@@ -151,10 +149,6 @@ class QueryRefNode {
         } else {
             return new ElementCollection(this.css, context.me, false, context.meta.runtime);
         }
-    }
-
-    evaluate(context) {
-        return context.meta.runtime.unifiedEval(this, context);
     }
 }
 
@@ -202,8 +196,9 @@ export class QueryRef {
 /**
  * AttributeRefNode - Attribute reference node
  */
-class AttributeRefNode {
+class AttributeRefNode extends Expression {
     constructor(name, css, value) {
+        super();
         this.type = "attributeRef";
         this.name = name;
         this.css = css;
@@ -215,10 +210,6 @@ class AttributeRefNode {
         if (target) {
             return target.getAttribute(this.name);
         }
-    }
-
-    evaluate(context) {
-        return context.meta.runtime.unifiedEval(this, context);
     }
 }
 
@@ -261,8 +252,9 @@ export class AttributeRef {
 /**
  * ComputedStyleRefNode - Computed style reference node
  */
-class ComputedStyleRefNode {
+class ComputedStyleRefNode extends Expression {
     constructor(name) {
+        super();
         this.type = "computedStyleRef";
         this.name = name;
     }
@@ -273,17 +265,14 @@ class ComputedStyleRefNode {
             return context.meta.runtime.resolveComputedStyle(target, this.name);
         }
     }
-
-    evaluate(context) {
-        return context.meta.runtime.unifiedEval(this, context);
-    }
 }
 
 /**
  * StyleRefNode - Style reference node
  */
-class StyleRefNode {
+class StyleRefNode extends Expression {
     constructor(name) {
+        super();
         this.type = "styleRef";
         this.name = name;
     }
@@ -293,10 +282,6 @@ class StyleRefNode {
         if (target) {
             return context.meta.runtime.resolveStyle(target, this.name);
         }
-    }
-
-    evaluate(context) {
-        return context.meta.runtime.unifiedEval(this, context);
     }
 }
 
@@ -329,8 +314,9 @@ export class StyleRef {
 /**
  * StyleLiteralNode - Style literal node
  */
-class StyleLiteralNode {
+class StyleLiteralNode extends Expression {
     constructor(stringParts, exprs) {
+        super();
         this.type = "styleLiteral";
         this.stringParts = stringParts;
         this.args = [exprs];
@@ -346,10 +332,6 @@ class StyleLiteralNode {
         });
 
         return rv;
-    }
-
-    evaluate(ctx) {
-        return ctx.meta.runtime.unifiedEval(this, ctx);
     }
 }
 

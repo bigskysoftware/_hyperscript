@@ -2805,21 +2805,33 @@ var _LanguageKernel = class _LanguageKernel {
 __publicField(_LanguageKernel, "Tokenizer", Tokenizer);
 var LanguageKernel = _LanguageKernel;
 
+// src/parsetree/base.js
+var Expression = class {
+  /**
+   * Evaluate this expression using Runtime.unifiedEval
+   *
+   * @param {Context} context - Execution context
+   * @returns {*} - Result value or Promise
+   */
+  evaluate(context2) {
+    return context2.meta.runtime.unifiedEval(this, context2);
+  }
+};
+
 // src/parsetree/expressions/webliterals.js
-var IdRefTemplateNode = class {
+var IdRefTemplateNode = class extends Expression {
   constructor(innerExpression) {
+    super();
     this.type = "idRefTemplate";
     this.args = [innerExpression];
   }
   op(context2, arg) {
     return context2.meta.runtime.getRootNode(context2.me).getElementById(arg);
   }
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
-  }
 };
-var IdRefNode = class {
+var IdRefNode = class extends Expression {
   constructor(css, value) {
+    super();
     this.type = "idRef";
     this.css = css;
     this.value = value;
@@ -2851,20 +2863,19 @@ var IdRef = class {
     }
   }
 };
-var ClassRefTemplateNode = class {
+var ClassRefTemplateNode = class extends Expression {
   constructor(innerExpression) {
+    super();
     this.type = "classRefTemplate";
     this.args = [innerExpression];
   }
   op(context2, arg) {
     return new ElementCollection("." + arg, context2.me, true, context2.meta.runtime);
   }
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
-  }
 };
-var ClassRefNode = class {
+var ClassRefNode = class extends Expression {
   constructor(css, className) {
+    super();
     this.type = "classRef";
     this.css = css;
     this.className = className;
@@ -2897,8 +2908,9 @@ var ClassRef = class {
     }
   }
 };
-var QueryRefNode = class {
+var QueryRefNode = class extends Expression {
   constructor(css, args, template) {
+    super();
     this.type = "queryRef";
     this.css = css;
     this.args = args;
@@ -2910,9 +2922,6 @@ var QueryRefNode = class {
     } else {
       return new ElementCollection(this.css, context2.me, false, context2.meta.runtime);
     }
-  }
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
   }
 };
 var QueryRef = class {
@@ -2945,8 +2954,9 @@ var QueryRef = class {
     return new QueryRefNode(queryValue, args, template);
   }
 };
-var AttributeRefNode = class {
+var AttributeRefNode = class extends Expression {
   constructor(name, css, value) {
+    super();
     this.type = "attributeRef";
     this.name = name;
     this.css = css;
@@ -2957,9 +2967,6 @@ var AttributeRefNode = class {
     if (target) {
       return target.getAttribute(this.name);
     }
-  }
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
   }
 };
 var AttributeRef = class {
@@ -2990,8 +2997,9 @@ var AttributeRef = class {
     return new AttributeRefNode(name, css, value);
   }
 };
-var ComputedStyleRefNode = class {
+var ComputedStyleRefNode = class extends Expression {
   constructor(name) {
+    super();
     this.type = "computedStyleRef";
     this.name = name;
   }
@@ -3001,12 +3009,10 @@ var ComputedStyleRefNode = class {
       return context2.meta.runtime.resolveComputedStyle(target, this.name);
     }
   }
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
-  }
 };
-var StyleRefNode = class {
+var StyleRefNode = class extends Expression {
   constructor(name) {
+    super();
     this.type = "styleRef";
     this.name = name;
   }
@@ -3015,9 +3021,6 @@ var StyleRefNode = class {
     if (target) {
       return context2.meta.runtime.resolveStyle(target, this.name);
     }
-  }
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
   }
 };
 var StyleRef = class {
@@ -3039,8 +3042,9 @@ var StyleRef = class {
     }
   }
 };
-var StyleLiteralNode = class {
+var StyleLiteralNode = class extends Expression {
   constructor(stringParts, exprs) {
+    super();
     this.type = "styleLiteral";
     this.stringParts = stringParts;
     this.args = [exprs];
@@ -3053,9 +3057,6 @@ var StyleLiteralNode = class {
       if (idx in exprs) rv += exprs[idx];
     });
     return rv;
-  }
-  evaluate(ctx) {
-    return ctx.meta.runtime.unifiedEval(this, ctx);
   }
 };
 var StyleLiteral = class {
@@ -4155,19 +4156,6 @@ var DotOrColonPath = class {
   }
 };
 
-// src/parsetree/base.js
-var Expression = class {
-  /**
-   * Evaluate this expression using Runtime.unifiedEval
-   *
-   * @param {Context} context - Execution context
-   * @returns {*} - Result value or Promise
-   */
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
-  }
-};
-
 // src/parsetree/expressions/literals.js
 var NakedString = class _NakedString extends Expression {
   constructor(tokens) {
@@ -4370,14 +4358,6 @@ var ArrayLiteral = class _ArrayLiteral extends Expression {
   op(context2, values) {
     return values;
   }
-  /**
-   * Evaluate array value
-   * @param {Context} context
-   * @returns {Array}
-   */
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
-  }
 };
 var ObjectKey = class _ObjectKey extends Expression {
   constructor(key, expr, args) {
@@ -4467,14 +4447,6 @@ var ObjectLiteral = class _ObjectLiteral extends Expression {
     }
     return returnVal;
   }
-  /**
-   * Evaluate to object value
-   * @param {Context} context
-   * @returns {Object}
-   */
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
-  }
 };
 var NamedArgumentList = class _NamedArgumentList extends Expression {
   constructor(fields, valueExpressions) {
@@ -4523,14 +4495,6 @@ var NamedArgumentList = class _NamedArgumentList extends Expression {
       returnVal[field.name.value] = values[i];
     }
     return returnVal;
-  }
-  /**
-   * Evaluate to named argument object
-   * @param {Context} context
-   * @returns {Object}
-   */
-  evaluate(context2) {
-    return context2.meta.runtime.unifiedEval(this, context2);
   }
 };
 
