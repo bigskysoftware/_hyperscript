@@ -10,6 +10,36 @@ import { getOrInitObject } from '../../core/runtime.js';
 export class BehaviorFeature {
     static keyword = "behavior";
 
+    constructor(path, nameSpace, name, formalParams, hs) {
+        this.path = path;
+        this.nameSpace = nameSpace;
+        this.name = name;
+        this.formalParams = formalParams;
+        this.hs = hs;
+    }
+
+    install(target, source, args, runtime) {
+        const path = this.path;
+        const nameSpace = this.nameSpace;
+        const name = this.name;
+        const formalParams = this.formalParams;
+        const hs = this.hs;
+
+        runtime.assignToNamespace(
+            runtime.globalScope.document && runtime.globalScope.document.body,
+            nameSpace,
+            name,
+            function (target, source, innerArgs) {
+                var internalData = runtime.getInternalData(target);
+                var elementScope = getOrInitObject(internalData, path + "Scope");
+                for (var i = 0; i < formalParams.length; i++) {
+                    elementScope[formalParams[i]] = innerArgs[formalParams[i]];
+                }
+                hs.apply(target, source, null, runtime);
+            }
+        );
+    }
+
     /**
      * Parse behavior feature
      * @param {Parser} parser
@@ -34,22 +64,6 @@ export class BehaviorFeature {
             feature.behavior = path;
         }
 
-        return {
-            install: function (target, source, args, runtime) {
-                runtime.assignToNamespace(
-                    runtime.globalScope.document && runtime.globalScope.document.body,
-                    nameSpace,
-                    name,
-                    function (target, source, innerArgs) {
-                        var internalData = runtime.getInternalData(target);
-                        var elementScope = getOrInitObject(internalData, path + "Scope");
-                        for (var i = 0; i < formalParams.length; i++) {
-                            elementScope[formalParams[i]] = innerArgs[formalParams[i]];
-                        }
-                        hs.apply(target, source, null, runtime);
-                    }
-                );
-            },
-        };
+        return new BehaviorFeature(path, nameSpace, name, formalParams, hs);
     }
 }

@@ -7788,7 +7788,34 @@ var WorkerFeature = class {
 __publicField(WorkerFeature, "keyword", "worker");
 
 // src/parsetree/features/behavior.js
-var BehaviorFeature = class {
+var _BehaviorFeature = class _BehaviorFeature {
+  constructor(path, nameSpace, name, formalParams, hs) {
+    this.path = path;
+    this.nameSpace = nameSpace;
+    this.name = name;
+    this.formalParams = formalParams;
+    this.hs = hs;
+  }
+  install(target, source, args, runtime2) {
+    const path = this.path;
+    const nameSpace = this.nameSpace;
+    const name = this.name;
+    const formalParams = this.formalParams;
+    const hs = this.hs;
+    runtime2.assignToNamespace(
+      runtime2.globalScope.document && runtime2.globalScope.document.body,
+      nameSpace,
+      name,
+      function(target2, source2, innerArgs) {
+        var internalData = runtime2.getInternalData(target2);
+        var elementScope = getOrInitObject(internalData, path + "Scope");
+        for (var i = 0; i < formalParams.length; i++) {
+          elementScope[formalParams[i]] = innerArgs[formalParams[i]];
+        }
+        hs.apply(target2, source2, null, runtime2);
+      }
+    );
+  }
   /**
    * Parse behavior feature
    * @param {Parser} parser
@@ -7811,26 +7838,11 @@ var BehaviorFeature = class {
       var feature = hs.features[i];
       feature.behavior = path;
     }
-    return {
-      install: function(target, source, args, runtime2) {
-        runtime2.assignToNamespace(
-          runtime2.globalScope.document && runtime2.globalScope.document.body,
-          nameSpace,
-          name,
-          function(target2, source2, innerArgs) {
-            var internalData = runtime2.getInternalData(target2);
-            var elementScope = getOrInitObject(internalData, path + "Scope");
-            for (var i2 = 0; i2 < formalParams.length; i2++) {
-              elementScope[formalParams[i2]] = innerArgs[formalParams[i2]];
-            }
-            hs.apply(target2, source2, null, runtime2);
-          }
-        );
-      }
-    };
+    return new _BehaviorFeature(path, nameSpace, name, formalParams, hs);
   }
 };
-__publicField(BehaviorFeature, "keyword", "behavior");
+__publicField(_BehaviorFeature, "keyword", "behavior");
+var BehaviorFeature = _BehaviorFeature;
 
 // src/parsetree/features/install.js
 var InstallFeature = class {
