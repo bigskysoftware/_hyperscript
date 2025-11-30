@@ -7,6 +7,14 @@
 export class SetFeature {
     static keyword = "set";
 
+    constructor(setCmd) {
+        this.start = setCmd;
+    }
+
+    install(target, source, args, runtime) {
+        this.start && this.start.execute(runtime.makeContext(target, this, target, null));
+    }
+
     /**
      * Parse set feature
      * @param {Parser} parser
@@ -18,12 +26,7 @@ export class SetFeature {
             if (setCmd.target.scope !== "element") {
                 parser.raiseParseError("variables declared at the feature level must be element scoped.");
             }
-            let setFeature = {
-                start: setCmd,
-                install: function (target, source, args, runtime) {
-                    setCmd && setCmd.execute(runtime.makeContext(target, setFeature, target, null));
-                },
-            };
+            let setFeature = new SetFeature(setCmd);
             parser.ensureTerminated(setCmd);
             return setFeature;
         }

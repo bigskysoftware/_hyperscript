@@ -7708,7 +7708,13 @@ var TransitionCommand = class {
 __publicField(TransitionCommand, "keyword", "transition");
 
 // src/parsetree/features/set.js
-var SetFeature = class {
+var _SetFeature = class _SetFeature {
+  constructor(setCmd) {
+    this.start = setCmd;
+  }
+  install(target, source, args, runtime2) {
+    this.start && this.start.execute(runtime2.makeContext(target, this, target, null));
+  }
   /**
    * Parse set feature
    * @param {Parser} parser
@@ -7720,21 +7726,31 @@ var SetFeature = class {
       if (setCmd.target.scope !== "element") {
         parser.raiseParseError("variables declared at the feature level must be element scoped.");
       }
-      let setFeature = {
-        start: setCmd,
-        install: function(target, source, args, runtime2) {
-          setCmd && setCmd.execute(runtime2.makeContext(target, setFeature, target, null));
-        }
-      };
+      let setFeature = new _SetFeature(setCmd);
       parser.ensureTerminated(setCmd);
       return setFeature;
     }
   }
 };
-__publicField(SetFeature, "keyword", "set");
+__publicField(_SetFeature, "keyword", "set");
+var SetFeature = _SetFeature;
 
 // src/parsetree/features/init.js
-var InitFeature = class {
+var _InitFeature = class _InitFeature {
+  constructor(start, immediately) {
+    this.start = start;
+    this.immediately = immediately;
+  }
+  install(target, source, args, runtime2) {
+    let handler = () => {
+      this.start && this.start.execute(runtime2.makeContext(target, this, target, null));
+    };
+    if (this.immediately) {
+      handler();
+    } else {
+      setTimeout(handler, 0);
+    }
+  }
   /**
    * Parse init feature
    * @param {Parser} parser
@@ -7744,25 +7760,14 @@ var InitFeature = class {
     if (!parser.matchToken("init")) return;
     var immediately = parser.matchToken("immediately");
     var start = parser.requireElement("commandList");
-    var initFeature = {
-      start,
-      install: function(target, source, args, runtime2) {
-        let handler = function() {
-          start && start.execute(runtime2.makeContext(target, initFeature, target, null));
-        };
-        if (immediately) {
-          handler();
-        } else {
-          setTimeout(handler, 0);
-        }
-      }
-    };
+    var initFeature = new _InitFeature(start, immediately);
     parser.ensureTerminated(start);
     parser.setParent(start, initFeature);
     return initFeature;
   }
 };
-__publicField(InitFeature, "keyword", "init");
+__publicField(_InitFeature, "keyword", "init");
+var InitFeature = _InitFeature;
 
 // src/parsetree/features/worker.js
 var WorkerFeature = class {
@@ -7891,7 +7896,64 @@ var JsFeature = class {
 };
 
 // src/parsetree/features/def.js
-var DefFeature = class {
+var _DefFeature = class _DefFeature {
+  constructor(funcName, nameSpace, nameVal, args, start, errorHandler, errorSymbol, finallyHandler) {
+    this.displayName = funcName + "(" + args.map(function(arg) {
+      return arg.value;
+    }).join(", ") + ")";
+    this.name = funcName;
+    this.args = args;
+    this.start = start;
+    this.errorHandler = errorHandler;
+    this.errorSymbol = errorSymbol;
+    this.finallyHandler = finallyHandler;
+    this.nameSpace = nameSpace;
+    this.nameVal = nameVal;
+  }
+  install(target, source, funcArgs, runtime2) {
+    const args = this.args;
+    const start = this.start;
+    const errorHandler = this.errorHandler;
+    const errorSymbol = this.errorSymbol;
+    const finallyHandler = this.finallyHandler;
+    const nameVal = this.nameVal;
+    const nameSpace = this.nameSpace;
+    const funcName = this.name;
+    const functionFeature = this;
+    var func = function() {
+      var ctx = runtime2.makeContext(source, functionFeature, target, null);
+      ctx.meta.errorHandler = errorHandler;
+      ctx.meta.errorSymbol = errorSymbol;
+      ctx.meta.finallyHandler = finallyHandler;
+      for (var i = 0; i < args.length; i++) {
+        var name = args[i];
+        var argumentVal = arguments[i];
+        if (name) {
+          ctx.locals[name.value] = argumentVal;
+        }
+      }
+      ctx.meta.caller = arguments[args.length];
+      if (ctx.meta.caller) {
+        ctx.meta.callingCommand = ctx.meta.caller.meta.command;
+      }
+      var resolve, reject = null;
+      var promise = new Promise(function(theResolve, theReject) {
+        resolve = theResolve;
+        reject = theReject;
+      });
+      start.execute(ctx);
+      if (ctx.meta.returned) {
+        return ctx.meta.returnValue;
+      } else {
+        ctx.meta.resolve = resolve;
+        ctx.meta.reject = reject;
+        return promise;
+      }
+    };
+    func.hyperfunc = true;
+    func.hypername = nameVal;
+    runtime2.assignToNamespace(target, nameSpace, funcName, func);
+  }
   /**
    * Parse def feature
    * @param {Parser} parser
@@ -7923,52 +7985,7 @@ var DefFeature = class {
       var finallyHandler = parser.requireElement("commandList");
       parser.ensureTerminated(finallyHandler);
     }
-    var functionFeature = {
-      displayName: funcName + "(" + args.map(function(arg) {
-        return arg.value;
-      }).join(", ") + ")",
-      name: funcName,
-      args,
-      start,
-      errorHandler,
-      errorSymbol,
-      finallyHandler,
-      install: function(target, source, funcArgs, runtime2) {
-        var func = function() {
-          var ctx = runtime2.makeContext(source, functionFeature, target, null);
-          ctx.meta.errorHandler = errorHandler;
-          ctx.meta.errorSymbol = errorSymbol;
-          ctx.meta.finallyHandler = finallyHandler;
-          for (var i = 0; i < args.length; i++) {
-            var name = args[i];
-            var argumentVal = arguments[i];
-            if (name) {
-              ctx.locals[name.value] = argumentVal;
-            }
-          }
-          ctx.meta.caller = arguments[args.length];
-          if (ctx.meta.caller) {
-            ctx.meta.callingCommand = ctx.meta.caller.meta.command;
-          }
-          var resolve, reject = null;
-          var promise = new Promise(function(theResolve, theReject) {
-            resolve = theResolve;
-            reject = theReject;
-          });
-          start.execute(ctx);
-          if (ctx.meta.returned) {
-            return ctx.meta.returnValue;
-          } else {
-            ctx.meta.resolve = resolve;
-            ctx.meta.reject = reject;
-            return promise;
-          }
-        };
-        func.hyperfunc = true;
-        func.hypername = nameVal;
-        runtime2.assignToNamespace(target, nameSpace, funcName, func);
-      }
-    };
+    var functionFeature = new _DefFeature(funcName, nameSpace, nameVal, args, start, errorHandler, errorSymbol, finallyHandler);
     parser.ensureTerminated(start);
     if (errorHandler) {
       parser.ensureTerminated(errorHandler);
@@ -7977,7 +7994,8 @@ var DefFeature = class {
     return functionFeature;
   }
 };
-__publicField(DefFeature, "keyword", "def");
+__publicField(_DefFeature, "keyword", "def");
+var DefFeature = _DefFeature;
 
 // src/parsetree/features/on.js
 function parseEventArgs2(parser) {
