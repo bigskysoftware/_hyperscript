@@ -4986,6 +4986,112 @@ var DecrementOperation = class extends Expression {
     return newValue;
   }
 };
+var SetterCommandImpl = class extends Command {
+  constructor(target, symbolWrite, value, rootElt, prop, arrayWrite, attribute) {
+    super();
+    this.target = target;
+    this.symbolWrite = symbolWrite;
+    this.value = value;
+    this.rootElt = rootElt;
+    this.prop = prop;
+    this.arrayWrite = arrayWrite;
+    this.attribute = attribute;
+    this.args = [rootElt, prop, value];
+  }
+  op(context, root, prop, valueToSet) {
+    if (this.symbolWrite) {
+      context.meta.runtime.setSymbol(this.target.name, context, this.target.scope, valueToSet);
+    } else {
+      context.meta.runtime.nullCheck(root, this.rootElt);
+      if (this.arrayWrite) {
+        root[prop] = valueToSet;
+      } else {
+        const attribute = this.attribute;
+        context.meta.runtime.implicitLoop(root, function(elt) {
+          if (attribute) {
+            if (attribute.type === "attributeRef") {
+              if (valueToSet == null) {
+                elt.removeAttribute(attribute.name);
+              } else {
+                elt.setAttribute(attribute.name, valueToSet);
+              }
+            } else {
+              elt.style[attribute.name] = valueToSet;
+            }
+          } else {
+            elt[prop] = valueToSet;
+          }
+        });
+      }
+    }
+    return context.meta.runtime.findNext(this, context);
+  }
+};
+var PutCommandImpl = class extends Command {
+  constructor(target, operation, value, rootExpr) {
+    super();
+    this.target = target;
+    this.operation = operation;
+    this.value = value;
+    this.rootExpr = rootExpr;
+    this.symbolWrite = target.type === "symbol" && operation === "into";
+    this.arrayIndex = target.type === "arrayIndex";
+    this.attributeWrite = (target.type === "attributeRef" || target.attribute && target.attribute.type === "attributeRef") && operation === "into";
+    this.styleWrite = (target.type === "styleRef" || target.attribute && target.attribute.type === "styleRef") && operation === "into";
+    if (this.arrayIndex) {
+      this.prop = target.prop;
+    } else if (this.symbolWrite) {
+      this.prop = target.name;
+    } else if (target.type === "attributeRef" || target.type === "styleRef") {
+      this.prop = target.name;
+    } else if (target.attribute) {
+      this.prop = target.attribute.name;
+    } else if (target.prop) {
+      this.prop = target.prop.value;
+    } else {
+      this.prop = null;
+    }
+    this.args = [rootExpr, this.prop, value];
+  }
+  op(context, root, prop, valueToPut) {
+    if (this.symbolWrite) {
+      putInto(context, root, prop, valueToPut);
+    } else {
+      context.meta.runtime.nullCheck(root, this.rootExpr);
+      if (this.operation === "into") {
+        if (this.attributeWrite) {
+          context.meta.runtime.implicitLoop(root, function(elt) {
+            elt.setAttribute(prop, valueToPut);
+          });
+        } else if (this.styleWrite) {
+          context.meta.runtime.implicitLoop(root, function(elt) {
+            elt.style[prop] = valueToPut;
+          });
+        } else if (this.arrayIndex) {
+          root[prop] = valueToPut;
+        } else {
+          context.meta.runtime.implicitLoop(root, function(elt) {
+            putInto(context, elt, prop, valueToPut);
+          });
+        }
+      } else {
+        var op = this.operation === "before" ? Element.prototype.before : this.operation === "after" ? Element.prototype.after : this.operation === "start" ? Element.prototype.prepend : this.operation === "end" ? Element.prototype.append : Element.prototype.append;
+        context.meta.runtime.implicitLoop(root, function(elt) {
+          op.call(
+            elt,
+            valueToPut instanceof Node ? valueToPut : context.meta.runtime.convertValue(valueToPut, "Fragment")
+          );
+          if (elt.parentElement) {
+            context.meta.runtime.processNode(elt.parentElement);
+          } else {
+            context.meta.runtime.processNode(elt);
+          }
+        });
+      }
+    }
+    return context.meta.runtime.findNext(this, context);
+  }
+};
 function putInto(context, root, prop, valueToPut) {
   if (root == null) {
     var value = context.meta.runtime.resolveSymbol(prop, context);
@@ -5034,40 +5140,7 @@ var SetterCommand = class extends Command {
       var attribute = target.attribute;
       rootElt = target.root;
     }
-    var setCmd = {
-      target,
-      symbolWrite,
-      value,
-      args: [rootElt, prop, value],
-      op: function(context, root, prop2, valueToSet) {
-        if (symbolWrite) {
-          context.meta.runtime.setSymbol(target.name, context, target.scope, valueToSet);
-        } else {
-          context.meta.runtime.nullCheck(root, rootElt);
-          if (arrayWrite) {
-            root[prop2] = valueToSet;
-          } else {
-            context.meta.runtime.implicitLoop(root, function(elt) {
-              if (attribute) {
-                if (attribute.type === "attributeRef") {
-                  if (valueToSet == null) {
-                    elt.removeAttribute(attribute.name);
-                  } else {
-                    elt.setAttribute(attribute.name, valueToSet);
-                  }
-                } else {
-                  elt.style[attribute.name] = valueToSet;
-                }
-              } else {
-                elt[prop2] = valueToSet;
-              }
-            });
-          }
-        }
-        return context.meta.runtime.findNext(this, context);
-      }
-    };
-    return setCmd;
+    return new SetterCommandImpl(target, symbolWrite, value, rootElt, prop, arrayWrite, attribute);
   }
 };
 var _SetCommand = class _SetCommand extends SetterCommand {
@@ -5217,82 +5290,23 @@ var PutCommand = class extends SetterCommand {
     }
     var target = parser.requireElement("expression");
     var operation = operationToken.value;
-    var arrayIndex = false;
-    var symbolWrite = false;
-    var rootExpr = null;
-    var prop = null;
+    var rootExpr;
     if (target.type === "arrayIndex" && operation === "into") {
-      arrayIndex = true;
-      prop = target.prop;
       rootExpr = target.root;
     } else if (target.prop && target.root && operation === "into") {
-      prop = target.prop.value;
       rootExpr = target.root;
     } else if (target.type === "symbol" && operation === "into") {
-      symbolWrite = true;
-      prop = target.name;
+      rootExpr = null;
     } else if (target.type === "attributeRef" && operation === "into") {
-      var attributeWrite = true;
-      prop = target.name;
       rootExpr = parser.requireElement("implicitMeTarget");
     } else if (target.type === "styleRef" && operation === "into") {
-      var styleWrite = true;
-      prop = target.name;
       rootExpr = parser.requireElement("implicitMeTarget");
     } else if (target.attribute && operation === "into") {
-      var attributeWrite = target.attribute.type === "attributeRef";
-      var styleWrite = target.attribute.type === "styleRef";
-      prop = target.attribute.name;
       rootExpr = target.root;
     } else {
       rootExpr = target;
     }
-    var putCmd = {
-      target,
-      operation,
-      symbolWrite,
-      value,
-      args: [rootExpr, prop, value],
-      op: function(context, root, prop2, valueToPut) {
-        if (symbolWrite) {
-          putInto(context, root, prop2, valueToPut);
-        } else {
-          context.meta.runtime.nullCheck(root, rootExpr);
-          if (operation === "into") {
-            if (attributeWrite) {
-              context.meta.runtime.implicitLoop(root, function(elt) {
-                elt.setAttribute(prop2, valueToPut);
-              });
-            } else if (styleWrite) {
-              context.meta.runtime.implicitLoop(root, function(elt) {
-                elt.style[prop2] = valueToPut;
-              });
-            } else if (arrayIndex) {
-              root[prop2] = valueToPut;
-            } else {
-              context.meta.runtime.implicitLoop(root, function(elt) {
-                putInto(context, elt, prop2, valueToPut);
-              });
-            }
-          } else {
-            var op = operation === "before" ? Element.prototype.before : operation === "after" ? Element.prototype.after : operation === "start" ? Element.prototype.prepend : operation === "end" ? Element.prototype.append : Element.prototype.append;
-            context.meta.runtime.implicitLoop(root, function(elt) {
-              op.call(
-                elt,
-                valueToPut instanceof Node ? valueToPut : context.meta.runtime.convertValue(valueToPut, "Fragment")
-              );
-              if (elt.parentElement) {
-                context.meta.runtime.processNode(elt.parentElement);
-              } else {
-                context.meta.runtime.processNode(elt);
-              }
-            });
-          }
-        }
-        return context.meta.runtime.findNext(this, context);
-      }
-    };
-    return putCmd;
+    return new PutCommandImpl(target, operation, value, rootExpr);
   }
 };
 __publicField(PutCommand, "keyword", "put");
@@ -5305,6 +5319,96 @@ var ImplicitResultSymbol = class extends Expression {
   }
   evaluate(context) {
     return context.meta.runtime.resolveSymbol("result", context);
+  }
+};
+var ExitOperation = class extends Command {
+  constructor() {
+    super();
+    this.args = [void 0];
+  }
+  op(context, value) {
+    var resolve = context.meta.resolve;
+    context.meta.returned = true;
+    context.meta.returnValue = value;
+    if (resolve) {
+      if (value) {
+        resolve(value);
+      } else {
+        resolve();
+      }
+    }
+    return context.meta.runtime.HALT;
+  }
+};
+var MakeQueryRefCommand = class extends Command {
+  constructor(expr, target) {
+    super();
+    this.expr = expr;
+    this.target = target;
+  }
+  op(ctx) {
+    var match, tagname = "div", id, classes = [];
+    var re = /(?:(^|#|\.)([^#\. ]+))/g;
+    while (match = re.exec(this.expr.css)) {
+      if (match[1] === "") tagname = match[2].trim();
+      else if (match[1] === "#") id = match[2].trim();
+      else classes.push(match[2].trim());
+    }
+    var result = document.createElement(tagname);
+    if (id !== void 0) result.id = id;
+    for (var i = 0; i < classes.length; i++) {
+      var cls = classes[i];
+      result.classList.add(cls);
+    }
+    ctx.result = result;
+    if (this.target) {
+      ctx.meta.runtime.setSymbol(this.target.name, ctx, this.target.scope, result);
+    }
+    return ctx.meta.runtime.findNext(this, ctx);
+  }
+};
+var MakeConstructorCommand = class extends Command {
+  constructor(expr, args, target) {
+    super();
+    this.expr = expr;
+    this.constructorArgs = args;
+    this.target = target;
+    this.args = [expr, args];
+  }
+  op(ctx, expr, args) {
+    ctx.result = varargConstructor(expr, args);
+    if (this.target) {
+      ctx.meta.runtime.setSymbol(this.target.name, ctx, this.target.scope, ctx.result);
+    }
+    return ctx.meta.runtime.findNext(this, ctx);
+  }
+};
+var AppendCommandImpl = class extends Command {
+  constructor(value, targetExpr, setter) {
+    super();
+    this.value = value;
+    this.target = targetExpr;
+    this.setter = setter;
+    this.args = [targetExpr, value];
+  }
+  op(context, target, value) {
+    if (Array.isArray(target)) {
+      target.push(value);
+      return context.meta.runtime.findNext(this, context);
+    } else if (target instanceof Element) {
+      if (value instanceof Element) {
+        target.insertAdjacentElement("beforeend", value);
+      } else {
+        target.insertAdjacentHTML("beforeend", value);
+      }
+      context.meta.runtime.processNode(target);
+      return context.meta.runtime.findNext(this, context);
+    } else if (this.setter) {
+      context.result = (target || "") + value;
+      return this.setter;
+    } else {
+      throw Error("Unable to append a value!");
+    }
   }
 };
 var _LogCommand = class _LogCommand {
@@ -5496,22 +5600,7 @@ var _HaltCommand = class _HaltCommand {
     } else if (parser.matchToken("default")) {
       var haltDefault = true;
     }
-    var exit = {
-      args: [void 0],
-      op: function(context, value) {
-        var resolve = context.meta.resolve;
-        context.meta.returned = true;
-        context.meta.returnValue = value;
-        if (resolve) {
-          if (value) {
-            resolve(value);
-          } else {
-            resolve();
-          }
-        }
-        return context.meta.runtime.HALT;
-      }
-    };
+    var exit = new ExitOperation();
     return new _HaltCommand(bubbling, haltDefault, keepExecuting, exit);
   }
   /**
@@ -5556,43 +5645,10 @@ var MakeCommand = class {
     if (parser.matchToken("called")) {
       var target = parser.requireElement("symbol");
     }
-    var command;
     if (expr.type === "queryRef") {
-      command = {
-        op: function(ctx) {
-          var match, tagname = "div", id, classes = [];
-          var re = /(?:(^|#|\.)([^#\. ]+))/g;
-          while (match = re.exec(expr.css)) {
-            if (match[1] === "") tagname = match[2].trim();
-            else if (match[1] === "#") id = match[2].trim();
-            else classes.push(match[2].trim());
-          }
-          var result = document.createElement(tagname);
-          if (id !== void 0) result.id = id;
-          for (var i = 0; i < classes.length; i++) {
-            var cls = classes[i];
-            result.classList.add(cls);
-          }
-          ctx.result = result;
-          if (target) {
-            ctx.meta.runtime.setSymbol(target.name, ctx, target.scope, result);
-          }
-          return ctx.meta.runtime.findNext(this, ctx);
-        }
-      };
-      return command;
+      return new MakeQueryRefCommand(expr, target);
     } else {
-      command = {
-        args: [expr, args],
-        op: function(ctx, expr2, args2) {
-          ctx.result = varargConstructor(expr2, args2);
-          if (target) {
-            ctx.meta.runtime.setSymbol(target.name, ctx, target.scope, ctx.result);
-          }
-          return ctx.meta.runtime.findNext(this, ctx);
-        }
-      };
-      return command;
+      return new MakeConstructorCommand(expr, args, target);
     }
   }
 };
@@ -5617,40 +5673,7 @@ var AppendCommand = class {
     if (targetExpr.type === "symbol" || targetExpr.type === "attributeRef" || targetExpr.root != null) {
       setter = SetCommand.makeSetter(parser, targetExpr, implicitResultSymbol);
     }
-    var command = {
-      value,
-      target: targetExpr,
-      args: [targetExpr, value],
-      op: function(context, target, value2) {
-        if (Array.isArray(target)) {
-          target.push(value2);
-          return context.meta.runtime.findNext(this, context);
-        } else if (target instanceof Element) {
-          if (value2 instanceof Element) {
-            target.insertAdjacentElement("beforeend", value2);
-          } else {
-            target.insertAdjacentHTML("beforeend", value2);
-          }
-          context.meta.runtime.processNode(
-            /** @type {HTMLElement} */
-            target
-          );
-          return context.meta.runtime.findNext(this, context);
-        } else if (setter) {
-          context.result = (target || "") + value2;
-          return setter;
-        } else {
-          throw Error("Unable to append a value!");
-        }
-      },
-      execute: function(context) {
-        return context.meta.runtime.unifiedExec(
-          this,
-          context
-          /*, value, target*/
-        );
-      }
-    };
+    var command = new AppendCommandImpl(value, targetExpr, setter);
     if (setter != null) {
       setter.parent = command;
     }
@@ -6195,6 +6218,102 @@ var WaitATick = class extends Command {
     });
   }
 };
+var RepeatLoopCommand = class extends Command {
+  constructor(config2, loop) {
+    super();
+    this.identifier = config2.identifier;
+    this.indexIdentifier = config2.indexIdentifier;
+    this.slot = config2.slot;
+    this.expression = config2.expression;
+    this.forever = config2.forever;
+    this.times = config2.times;
+    this.until = config2.until;
+    this.event = config2.event;
+    this.on = config2.on;
+    this.whileExpr = config2.whileExpr;
+    this.loop = loop;
+    this.args = [config2.whileExpr, config2.times];
+  }
+  resolveNext() {
+    return this;
+  }
+  op(context, whileValue, times) {
+    var iteratorInfo = context.meta.iterators[this.slot];
+    var keepLooping = false;
+    var loopVal = null;
+    if (this.forever) {
+      keepLooping = true;
+    } else if (this.until) {
+      if (this.event) {
+        keepLooping = context.meta.iterators[this.slot].eventFired === false;
+      } else {
+        keepLooping = whileValue !== true;
+      }
+    } else if (this.whileExpr) {
+      keepLooping = whileValue;
+    } else if (times) {
+      keepLooping = iteratorInfo.index < times;
+    } else {
+      var nextValFromIterator = iteratorInfo.iterator.next();
+      keepLooping = !nextValFromIterator.done;
+      loopVal = nextValFromIterator.value;
+    }
+    if (keepLooping) {
+      if (iteratorInfo.value) {
+        context.result = context.locals[this.identifier] = loopVal;
+      } else {
+        context.result = iteratorInfo.index;
+      }
+      if (this.indexIdentifier) {
+        context.locals[this.indexIdentifier] = iteratorInfo.index;
+      }
+      iteratorInfo.index++;
+      return this.loop;
+    } else {
+      context.meta.iterators[this.slot] = null;
+      return context.meta.runtime.findNext(this.parent, context);
+    }
+  }
+};
+var RepeatInitCommand = class extends Command {
+  constructor(expression, evt, on, slot, repeatLoopCommand) {
+    super();
+    this.name = "repeatInit";
+    this.expression = expression;
+    this.evt = evt;
+    this.on = on;
+    this.slot = slot;
+    this.repeatLoopCommand = repeatLoopCommand;
+    this.args = [expression, evt, on];
+  }
+  op(context, value, event, on) {
+    var iteratorInfo = {
+      index: 0,
+      value,
+      eventFired: false
+    };
+    context.meta.iterators[this.slot] = iteratorInfo;
+    if (value) {
+      if (value[Symbol.iterator]) {
+        iteratorInfo.iterator = value[Symbol.iterator]();
+      } else {
+        iteratorInfo.iterator = Object.keys(value)[Symbol.iterator]();
+      }
+    }
+    if (this.evt) {
+      var target = on || context.me;
+      const slot = this.slot;
+      target.addEventListener(
+        event,
+        function(e) {
+          context.meta.iterators[slot].eventFired = true;
+        },
+        { once: true }
+      );
+    }
+    return this.repeatLoopCommand;
+  }
+};
 var IfCommandImpl = class extends Command {
   constructor(expr, trueBranch, falseBranch) {
     super();
@@ -6304,7 +6423,7 @@ function parseRepeatExpression(parser, startedWithForToken) {
   } else {
     var slot = identifier + "_" + innerStartToken.start;
   }
-  var repeatCmd = {
+  const loopConfig = {
     identifier,
     indexIdentifier,
     slot,
@@ -6314,86 +6433,13 @@ function parseRepeatExpression(parser, startedWithForToken) {
     until: isUntil,
     event: evt,
     on,
-    whileExpr,
-    resolveNext: function() {
-      return this;
-    },
-    loop,
-    args: [whileExpr, times],
-    op: function(context, whileValue, times2) {
-      var iteratorInfo = context.meta.iterators[slot];
-      var keepLooping = false;
-      var loopVal = null;
-      if (this.forever) {
-        keepLooping = true;
-      } else if (this.until) {
-        if (evt) {
-          keepLooping = context.meta.iterators[slot].eventFired === false;
-        } else {
-          keepLooping = whileValue !== true;
-        }
-      } else if (whileExpr) {
-        keepLooping = whileValue;
-      } else if (times2) {
-        keepLooping = iteratorInfo.index < times2;
-      } else {
-        var nextValFromIterator = iteratorInfo.iterator.next();
-        keepLooping = !nextValFromIterator.done;
-        loopVal = nextValFromIterator.value;
-      }
-      if (keepLooping) {
-        if (iteratorInfo.value) {
-          context.result = context.locals[identifier] = loopVal;
-        } else {
-          context.result = iteratorInfo.index;
-        }
-        if (indexIdentifier) {
-          context.locals[indexIdentifier] = iteratorInfo.index;
-        }
-        iteratorInfo.index++;
-        return loop;
-      } else {
-        context.meta.iterators[slot] = null;
-        return context.meta.runtime.findNext(this.parent, context);
-      }
-    }
+    whileExpr
   };
-  parser.setParent(loop, repeatCmd);
-  var repeatInit = {
-    name: "repeatInit",
-    args: [expression, evt, on],
-    op: function(context, value, event, on2) {
-      var iteratorInfo = {
-        index: 0,
-        value,
-        eventFired: false
-      };
-      context.meta.iterators[slot] = iteratorInfo;
-      if (value) {
-        if (value[Symbol.iterator]) {
-          iteratorInfo.iterator = value[Symbol.iterator]();
-        } else {
-          iteratorInfo.iterator = Object.keys(value)[Symbol.iterator]();
-        }
-      }
-      if (evt) {
-        var target = on2 || context.me;
-        target.addEventListener(
-          event,
-          function(e) {
-            context.meta.iterators[slot].eventFired = true;
-          },
-          { once: true }
-        );
-      }
-      return repeatCmd;
-    },
-    execute: function(context) {
-      return context.meta.runtime.unifiedExec(this, context);
-    }
-  };
-  parser.setParent(repeatCmd, repeatInit);
-  return repeatInit;
+  const repeatLoopCommand = new RepeatLoopCommand(loopConfig, loop);
+  const repeatInitCommand = new RepeatInitCommand(expression, evt, on, slot, repeatLoopCommand);
+  parser.setParent(loop, repeatLoopCommand);
+  parser.setParent(repeatLoopCommand, repeatInitCommand);
+  return repeatInitCommand;
 }
 var RepeatCommand = class {
   /**
@@ -7881,6 +7927,28 @@ __publicField(_BehaviorFeature, "keyword", "behavior");
 var BehaviorFeature = _BehaviorFeature;
 
 // src/parsetree/features/install.js
+var BehaviorInstallOperation = class extends Expression {
+  constructor(args, behaviorPath, behaviorNamespace, target, source, runtime2) {
+    super();
+    this.args = [args];
+    this.behaviorPath = behaviorPath;
+    this.behaviorNamespace = behaviorNamespace;
+    this.installTarget = target;
+    this.installSource = source;
+    this.runtime = runtime2;
+  }
+  op(ctx, args) {
+    var behavior = this.runtime.globalScope;
+    for (var i = 0; i < this.behaviorNamespace.length; i++) {
+      behavior = behavior[this.behaviorNamespace[i]];
+      if (typeof behavior !== "object" && typeof behavior !== "function")
+        throw new Error("No such behavior defined as " + this.behaviorPath);
+    }
+    if (!(behavior instanceof Function))
+      throw new Error(this.behaviorPath + " is not a behavior");
+    behavior(this.installTarget, this.installSource, args);
+  }
+};
 var _InstallFeature = class _InstallFeature extends Feature {
   constructor(behaviorPath, behaviorNamespace, args) {
     super();
@@ -7889,27 +7957,15 @@ var _InstallFeature = class _InstallFeature extends Feature {
     this.args = args;
   }
   install(target, source, installArgs, runtime2) {
-    const behaviorPath = this.behaviorPath;
-    const behaviorNamespace = this.behaviorNamespace;
-    const args = this.args;
-    const installFeature = this;
-    runtime2.unifiedEval(
-      {
-        args: [args],
-        op: function(ctx, args2) {
-          var behavior = runtime2.globalScope;
-          for (var i = 0; i < behaviorNamespace.length; i++) {
-            behavior = behavior[behaviorNamespace[i]];
-            if (typeof behavior !== "object" && typeof behavior !== "function")
-              throw new Error("No such behavior defined as " + behaviorPath);
-          }
-          if (!(behavior instanceof Function))
-            throw new Error(behaviorPath + " is not a behavior");
-          behavior(target, source, args2);
-        }
-      },
-      runtime2.makeContext(target, installFeature, target, null)
+    const operation = new BehaviorInstallOperation(
+      this.args,
+      this.behaviorPath,
+      this.behaviorNamespace,
+      target,
+      source,
+      runtime2
     );
+    runtime2.unifiedEval(operation, runtime2.makeContext(target, this, target, null));
   }
   /**
    * Parse install feature

@@ -23,6 +23,123 @@ class ImplicitResultSymbol extends Expression {
 }
 
 /**
+ * ExitOperation - Handles exit/return from function execution
+ */
+class ExitOperation extends Command {
+    constructor() {
+        super();
+        this.args = [undefined];
+    }
+
+    op(context, value) {
+        var resolve = context.meta.resolve;
+        context.meta.returned = true;
+        context.meta.returnValue = value;
+        if (resolve) {
+            if (value) {
+                resolve(value);
+            } else {
+                resolve();
+            }
+        }
+        return context.meta.runtime.HALT;
+    }
+}
+
+/**
+ * MakeQueryRefCommand - Create element from query reference
+ */
+class MakeQueryRefCommand extends Command {
+    constructor(expr, target) {
+        super();
+        this.expr = expr;
+        this.target = target;
+    }
+
+    op(ctx) {
+        var match,
+            tagname = "div",
+            id,
+            classes = [];
+        var re = /(?:(^|#|\.)([^#\. ]+))/g;
+        while ((match = re.exec(this.expr.css))) {
+            if (match[1] === "") tagname = match[2].trim();
+            else if (match[1] === "#") id = match[2].trim();
+            else classes.push(match[2].trim());
+        }
+
+        var result = document.createElement(tagname);
+        if (id !== undefined) result.id = id;
+        for (var i = 0; i < classes.length; i++) {
+            var cls = classes[i];
+            result.classList.add(cls)
+        }
+
+        ctx.result = result;
+        if (this.target){
+            ctx.meta.runtime.setSymbol(this.target.name, ctx, this.target.scope, result);
+        }
+
+        return ctx.meta.runtime.findNext(this, ctx);
+    }
+}
+
+/**
+ * MakeConstructorCommand - Create object from constructor
+ */
+class MakeConstructorCommand extends Command {
+    constructor(expr, args, target) {
+        super();
+        this.expr = expr;
+        this.constructorArgs = args;
+        this.target = target;
+        this.args = [expr, args];
+    }
+
+    op(ctx, expr, args) {
+        ctx.result = varargConstructor(expr, args);
+        if (this.target){
+            ctx.meta.runtime.setSymbol(this.target.name, ctx, this.target.scope, ctx.result);
+        }
+
+        return ctx.meta.runtime.findNext(this, ctx);
+    }
+}
+
+/**
+ * AppendCommandImpl - Append operation implementation
+ */
+class AppendCommandImpl extends Command {
+    constructor(value, targetExpr, setter) {
+        super();
+        this.value = value;
+        this.target = targetExpr;
+        this.setter = setter;
+        this.args = [targetExpr, value];
+    }
+
+    op(context, target, value) {
+        if (Array.isArray(target)) {
+            target.push(value);
+            return context.meta.runtime.findNext(this, context);
+        } else if (target instanceof Element) {
+            if (value instanceof Element) {
+                target.insertAdjacentElement("beforeend", value);
+            } else {
+                target.insertAdjacentHTML("beforeend", value);
+            }
+            context.meta.runtime.processNode(target);
+            return context.meta.runtime.findNext(this, context);
+        } else if(this.setter) {
+            context.result = (target || "") + value;
+            return this.setter;
+        } else {
+            throw Error("Unable to append a value!")
+        }
+    }
+}
+
+/**
  * LogCommand - Log values to console
  *
  * Parses: log expr1, expr2, ... [with customLogger]
@@ -266,23 +383,7 @@ export class HaltCommand {
         } else if (parser.matchToken("default")) {
             var haltDefault = true;
         }
-        // Parse exit as inline structure
-        var exit = {
-            args: [undefined],
-            op: function (context, value) {
-                var resolve = context.meta.resolve;
-                context.meta.returned = true;
-                context.meta.returnValue = value;
-                if (resolve) {
-                    if (value) {
-                        resolve(value);
-                    } else {
-                        resolve();
-                    }
-                }
-                return context.meta.runtime.HALT;
-            }
-        };
+        var exit = new ExitOperation();
         return new HaltCommand(bubbling, haltDefault, keepExecuting, exit);
     }
 
@@ -339,50 +440,10 @@ export class MakeCommand {
             var target = parser.requireElement("symbol");
         }
 
-        var command;
         if (expr.type === "queryRef") {
-            command = {
-                op: function (ctx) {
-                    var match,
-                        tagname = "div",
-                        id,
-                        classes = [];
-                    var re = /(?:(^|#|\.)([^#\. ]+))/g;
-                    while ((match = re.exec(expr.css))) {
-                        if (match[1] === "") tagname = match[2].trim();
-                        else if (match[1] === "#") id = match[2].trim();
-                        else classes.push(match[2].trim());
-                    }
-
-                    var result = document.createElement(tagname);
-                    if (id !== undefined) result.id = id;
-                    for (var i = 0; i < classes.length; i++) {
-                        var cls = classes[i];
-                        result.classList.add(cls)
-                    }
-
-                    ctx.result = result;
-                    if (target){
-                        ctx.meta.runtime.setSymbol(target.name, ctx, target.scope, result);
-                    }
-
-                    return ctx.meta.runtime.findNext(this, ctx);
-                },
-            };
-            return command;
+            return new MakeQueryRefCommand(expr, target);
         } else {
-            command = {
-                args: [expr, args],
-                op: function (ctx, expr, args) {
-                    ctx.result = varargConstructor(expr, args);
-                    if (target){
-                        ctx.meta.runtime.setSymbol(target.name, ctx, target.scope, ctx.result);
-                    }
-
-                    return ctx.meta.runtime.findNext(this, ctx);
-                },
-            };
-            return command;
+            return new MakeConstructorCommand(expr, args, target);
         }
     }
 }
@@ -420,33 +481,7 @@ export class AppendCommand {
             setter = SetCommand.makeSetter(parser, targetExpr, implicitResultSymbol);
         }
 
-        var command = {
-            value: value,
-            target: targetExpr,
-            args: [targetExpr, value],
-            op: function (context, target, value) {
-                if (Array.isArray(target)) {
-                    target.push(value);
-                    return context.meta.runtime.findNext(this, context);
-                } else if (target instanceof Element) {
-                    if (value instanceof Element) {
-                        target.insertAdjacentElement("beforeend", value); // insert at end, preserving existing content
-                    } else {
-                        target.insertAdjacentHTML("beforeend", value); // insert at end, preserving existing content
-                    }
-                    context.meta.runtime.processNode(/** @type {HTMLElement} */ (target)); // process parent so any new content works
-                    return context.meta.runtime.findNext(this, context);
-                } else if(setter) {
-                    context.result = (target || "") + value;
-                    return setter;
-                } else {
-                    throw Error("Unable to append a value!")
-                }
-            },
-            execute: function (context) {
-                return context.meta.runtime.unifiedExec(this, context/*, value, target*/);
-            },
-        };
+        var command = new AppendCommandImpl(value, targetExpr, setter);
 
         if (setter != null) {
             setter.parent = command;

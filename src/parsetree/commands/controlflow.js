@@ -26,6 +26,118 @@ class WaitATick extends Command {
 }
 
 /**
+ * RepeatLoopCommand - The actual loop iteration logic
+ */
+class RepeatLoopCommand extends Command {
+    constructor(config, loop) {
+        super();
+        this.identifier = config.identifier;
+        this.indexIdentifier = config.indexIdentifier;
+        this.slot = config.slot;
+        this.expression = config.expression;
+        this.forever = config.forever;
+        this.times = config.times;
+        this.until = config.until;
+        this.event = config.event;
+        this.on = config.on;
+        this.whileExpr = config.whileExpr;
+        this.loop = loop;
+        this.args = [config.whileExpr, config.times];
+    }
+
+    resolveNext() {
+        return this;
+    }
+
+    op(context, whileValue, times) {
+        var iteratorInfo = context.meta.iterators[this.slot];
+        var keepLooping = false;
+        var loopVal = null;
+
+        if (this.forever) {
+            keepLooping = true;
+        } else if (this.until) {
+            if (this.event) {
+                keepLooping = context.meta.iterators[this.slot].eventFired === false;
+            } else {
+                keepLooping = whileValue !== true;
+            }
+        } else if (this.whileExpr) {
+            keepLooping = whileValue;
+        } else if (times) {
+            keepLooping = iteratorInfo.index < times;
+        } else {
+            var nextValFromIterator = iteratorInfo.iterator.next();
+            keepLooping = !nextValFromIterator.done;
+            loopVal = nextValFromIterator.value;
+        }
+
+        if (keepLooping) {
+            if (iteratorInfo.value) {
+                context.result = context.locals[this.identifier] = loopVal;
+            } else {
+                context.result = iteratorInfo.index;
+            }
+            if (this.indexIdentifier) {
+                context.locals[this.indexIdentifier] = iteratorInfo.index;
+            }
+            iteratorInfo.index++;
+            return this.loop;
+        } else {
+            context.meta.iterators[this.slot] = null;
+            return context.meta.runtime.findNext(this.parent, context);
+        }
+    }
+}
+
+/**
+ * RepeatInitCommand - Initializes the loop iterator
+ */
+class RepeatInitCommand extends Command {
+    constructor(expression, evt, on, slot, repeatLoopCommand) {
+        super();
+        this.name = "repeatInit";
+        this.expression = expression;
+        this.evt = evt;
+        this.on = on;
+        this.slot = slot;
+        this.repeatLoopCommand = repeatLoopCommand;
+        this.args = [expression, evt, on];
+    }
+
+    op(context, value, event, on) {
+        var iteratorInfo = {
+            index: 0,
+            value: value,
+            eventFired: false,
+        };
+        context.meta.iterators[this.slot] = iteratorInfo;
+
+        if (value) {
+            if (value[Symbol.iterator]) {
+                iteratorInfo.iterator = value[Symbol.iterator]();
+            } else {
+                iteratorInfo.iterator = Object.keys(value)[Symbol.iterator]();
+            }
+        }
+
+        if (this.evt) {
+            var target = on || context.me;
+            const slot = this.slot;
+            target.addEventListener(
+                event,
+                function (e) {
+                    context.meta.iterators[slot].eventFired = true;
+                },
+                { once: true }
+            );
+        }
+
+        return this.repeatLoopCommand;
+    }
+}
+
+/**
  * IfCommand - Conditional execution
  *
  * Parses: if <expr> [then] <commands> [else|otherwise <commands>] [end]
@@ -155,7 +267,7 @@ function parseRepeatExpression(parser, startedWithForToken) {
         var slot = identifier + "_" + innerStartToken.start;
     }
 
-    var repeatCmd = {
+    const loopConfig = {
         identifier: identifier,
         indexIdentifier: indexIdentifier,
         slot: slot,
@@ -165,87 +277,16 @@ function parseRepeatExpression(parser, startedWithForToken) {
         until: isUntil,
         event: evt,
         on: on,
-        whileExpr: whileExpr,
-        resolveNext: function () {
-            return this;
-        },
-        loop: loop,
-        args: [whileExpr, times],
-        op: function (context, whileValue, times) {
-            var iteratorInfo = context.meta.iterators[slot];
-            var keepLooping = false;
-            var loopVal = null;
-            if (this.forever) {
-                keepLooping = true;
-            } else if (this.until) {
-                if (evt) {
-                    keepLooping = context.meta.iterators[slot].eventFired === false;
-                } else {
-                    keepLooping = whileValue !== true;
-                }
-            } else if (whileExpr) {
-                keepLooping = whileValue;
-            } else if (times) {
-                keepLooping = iteratorInfo.index < times;
-            } else {
-                var nextValFromIterator = iteratorInfo.iterator.next();
-                keepLooping = !nextValFromIterator.done;
-                loopVal = nextValFromIterator.value;
-            }
+        whileExpr: whileExpr
+    };
 
-            if (keepLooping) {
-                if (iteratorInfo.value) {
-                    context.result = context.locals[identifier] = loopVal;
-                } else {
-                    context.result = iteratorInfo.index;
-                }
-                if (indexIdentifier) {
-                    context.locals[indexIdentifier] = iteratorInfo.index;
-                }
-                iteratorInfo.index++;
-                return loop;
-            } else {
-                context.meta.iterators[slot] = null;
-                return context.meta.runtime.findNext(this.parent, context);
-            }
-        },
-    };
-    parser.setParent(loop, repeatCmd);
-    var repeatInit = {
-        name: "repeatInit",
-        args: [expression, evt, on],
-        op: function (context, value, event, on) {
-            var iteratorInfo = {
-                index: 0,
-                value: value,
-                eventFired: false,
-            };
-            context.meta.iterators[slot] = iteratorInfo;
-            if (value) {
-                if (value[Symbol.iterator]) {
-                    iteratorInfo.iterator = value[Symbol.iterator]();
-                } else {
-                    iteratorInfo.iterator = Object.keys(value)[Symbol.iterator]();
-                }
-            }
-            if (evt) {
-                var target = on || context.me;
-                target.addEventListener(
-                    event,
-                    function (e) {
-                        context.meta.iterators[slot].eventFired = true;
-                    },
-                    { once: true }
-                );
-            }
-            return repeatCmd; // continue to loop
-        },
-        execute: function (context) {
-            return context.meta.runtime.unifiedExec(this, context);
-        },
-    };
-    parser.setParent(repeatCmd, repeatInit);
-    return repeatInit;
+    const repeatLoopCommand = new RepeatLoopCommand(loopConfig, loop);
+    const repeatInitCommand = new RepeatInitCommand(expression, evt, on, slot, repeatLoopCommand);
+
+    parser.setParent(loop, repeatLoopCommand);
+    parser.setParent(repeatLoopCommand, repeatInitCommand);
+
+    return repeatInitCommand;
 }
 
 /**

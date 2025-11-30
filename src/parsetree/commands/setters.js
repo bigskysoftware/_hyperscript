@@ -48,6 +48,144 @@ class DecrementOperation extends Expression {
 }
 
 /**
+ * SetterCommandImpl - Implements setter operation
+ */
+class SetterCommandImpl extends Command {
+    constructor(target, symbolWrite, value, rootElt, prop, arrayWrite, attribute) {
+        super();
+        this.target = target;
+        this.symbolWrite = symbolWrite;
+        this.value = value;
+        this.rootElt = rootElt;
+        this.prop = prop;
+        this.arrayWrite = arrayWrite;
+        this.attribute = attribute;
+        this.args = [rootElt, prop, value];
+    }
+
+    op(context, root, prop, valueToSet) {
+        if (this.symbolWrite) {
+            context.meta.runtime.setSymbol(this.target.name, context, this.target.scope, valueToSet);
+        } else {
+            context.meta.runtime.nullCheck(root, this.rootElt);
+            if (this.arrayWrite) {
+                root[prop] = valueToSet;
+            } else {
+                const attribute = this.attribute;
+                context.meta.runtime.implicitLoop(root, function (elt) {
+                    if (attribute) {
+                        if (attribute.type === "attributeRef") {
+                            if (valueToSet == null) {
+                                elt.removeAttribute(attribute.name);
+                            } else {
+                                elt.setAttribute(attribute.name, valueToSet);
+                            }
+                        } else {
+                            elt.style[attribute.name] = valueToSet;
+                        }
+                    } else {
+                        elt[prop] = valueToSet;
+                    }
+                });
+            }
+        }
+        return context.meta.runtime.findNext(this, context);
+    }
+}
+
+/**
+ * PutCommandImpl - Implements put operation with multiple modes
+ */
+class PutCommandImpl extends Command {
+    constructor(target, operation, value, rootExpr) {
+        super();
+        this.target = target;
+        this.operation = operation;
+        this.value = value;
+        this.rootExpr = rootExpr;
+
+        // Derive flags from target type
+        this.symbolWrite = target.type === "symbol" && operation === "into";
+        this.arrayIndex = target.type === "arrayIndex";
+        this.attributeWrite = (target.type === "attributeRef" ||
+                              (target.attribute && target.attribute.type === "attributeRef")) &&
+                              operation === "into";
+        this.styleWrite = (target.type === "styleRef" ||
+                          (target.attribute && target.attribute.type === "styleRef")) &&
+                          operation === "into";
+
+        // Derive property/prop
+        if (this.arrayIndex) {
+            this.prop = target.prop;
+        } else if (this.symbolWrite) {
+            this.prop = target.name;
+        } else if (target.type === "attributeRef" || target.type === "styleRef") {
+            this.prop = target.name;
+        } else if (target.attribute) {
+            this.prop = target.attribute.name;
+        } else if (target.prop) {
+            this.prop = target.prop.value;
+        } else {
+            this.prop = null;
+        }
+
+        this.args = [rootExpr, this.prop, value];
+    }
+
+    op(context, root, prop, valueToPut) {
+        if (this.symbolWrite) {
+            putInto(context, root, prop, valueToPut);
+        } else {
+            context.meta.runtime.nullCheck(root, this.rootExpr);
+            if (this.operation === "into") {
+                if (this.attributeWrite) {
+                    context.meta.runtime.implicitLoop(root, function (elt) {
+                        elt.setAttribute(prop, valueToPut);
+                    });
+                } else if (this.styleWrite) {
+                    context.meta.runtime.implicitLoop(root, function (elt) {
+                        elt.style[prop] = valueToPut;
+                    });
+                } else if (this.arrayIndex) {
+                    root[prop] = valueToPut;
+                } else {
+                    context.meta.runtime.implicitLoop(root, function (elt) {
+                        putInto(context, elt, prop, valueToPut);
+                    });
+                }
+            } else {
+                var op =
+                    this.operation === "before"
+                        ? Element.prototype.before
+                        : this.operation === "after"
+                        ? Element.prototype.after
+                        : this.operation === "start"
+                        ? Element.prototype.prepend
+                        : this.operation === "end"
+                        ? Element.prototype.append
+                        : Element.prototype.append;
+
+                context.meta.runtime.implicitLoop(root, function (elt) {
+                    op.call(
+                        elt,
+                        valueToPut instanceof Node
+                            ? valueToPut
+                            : context.meta.runtime.convertValue(valueToPut, "Fragment")
+                    );
+                    // process any new content
+                    if (elt.parentElement) {
+                        context.meta.runtime.processNode(elt.parentElement);
+                    } else {
+                        context.meta.runtime.processNode(elt);
+                    }
+                });
+            }
+        }
+        return context.meta.runtime.findNext(this, context);
+    }
+}
+
+/**
  * Helper function for put command - put content into element or symbol
  */
 function putInto(context, root, prop, valueToPut) {
@@ -106,41 +244,7 @@ class SetterCommand extends Command {
             rootElt = target.root;
         }
 
-        /** @type {ASTNode} */
-        var setCmd = {
-            target: target,
-            symbolWrite: symbolWrite,
-            value: value,
-            args: [rootElt, prop, value],
-            op: function (context, root, prop, valueToSet) {
-                if (symbolWrite) {
-                    context.meta.runtime.setSymbol(target.name, context, target.scope, valueToSet);
-                } else {
-                    context.meta.runtime.nullCheck(root, rootElt);
-                    if (arrayWrite) {
-                        root[prop] = valueToSet;
-                    } else {
-                        context.meta.runtime.implicitLoop(root, function (elt) {
-                            if (attribute) {
-                                if (attribute.type === "attributeRef") {
-                                    if (valueToSet == null) {
-                                        elt.removeAttribute(attribute.name);
-                                    } else {
-                                        elt.setAttribute(attribute.name, valueToSet);
-                                    }
-                                } else {
-                                    elt.style[attribute.name] = valueToSet;
-                                }
-                            } else {
-                                elt[prop] = valueToSet;
-                            }
-                        });
-                    }
-                }
-                return context.meta.runtime.findNext(this, context);
-            },
-        };
-        return setCmd;
+        return new SetterCommandImpl(target, symbolWrite, value, rootElt, prop, arrayWrite, attribute);
     }
 }
 
@@ -360,96 +464,24 @@ export class PutCommand extends SetterCommand {
 
         var operation = operationToken.value;
 
-        var arrayIndex = false;
-        var symbolWrite = false;
-        var rootExpr = null;
-        var prop = null;
-
+        // Determine rootExpr based on target type
+        var rootExpr;
         if (target.type === "arrayIndex" && operation === "into") {
-            arrayIndex = true;
-            prop = target.prop;
             rootExpr = target.root;
-        }  else if (target.prop && target.root && operation === "into") {
-            prop = target.prop.value;
+        } else if (target.prop && target.root && operation === "into") {
             rootExpr = target.root;
         } else if (target.type === "symbol" && operation === "into") {
-            symbolWrite = true;
-            prop = target.name;
+            rootExpr = null;
         } else if (target.type === "attributeRef" && operation === "into") {
-            var attributeWrite = true;
-            prop = target.name;
             rootExpr = parser.requireElement("implicitMeTarget");
         } else if (target.type === "styleRef" && operation === "into") {
-            var styleWrite = true;
-            prop = target.name;
             rootExpr = parser.requireElement("implicitMeTarget");
         } else if (target.attribute && operation === "into") {
-            var attributeWrite = target.attribute.type === "attributeRef";
-            var styleWrite = target.attribute.type === "styleRef";
-            prop = target.attribute.name;
             rootExpr = target.root;
         } else {
             rootExpr = target;
         }
 
-        var putCmd = {
-            target: target,
-            operation: operation,
-            symbolWrite: symbolWrite,
-            value: value,
-            args: [rootExpr, prop, value],
-            op: function (context, root, prop, valueToPut) {
-                if (symbolWrite) {
-                    putInto(context, root, prop, valueToPut);
-                } else {
-                    context.meta.runtime.nullCheck(root, rootExpr);
-                    if (operation === "into") {
-                        if (attributeWrite) {
-                            context.meta.runtime.implicitLoop(root, function (elt) {
-                                elt.setAttribute(prop, valueToPut);
-                            });
-                        } else if (styleWrite) {
-                            context.meta.runtime.implicitLoop(root, function (elt) {
-                                elt.style[prop] = valueToPut;
-                            });
-                        } else if (arrayIndex) {
-                            root[prop] = valueToPut;
-                        } else {
-                            context.meta.runtime.implicitLoop(root, function (elt) {
-                                putInto(context, elt, prop, valueToPut);
-                            });
-                        }
-                    } else {
-                        var op =
-                            operation === "before"
-                                ? Element.prototype.before
-                                : operation === "after"
-                                ? Element.prototype.after
-                                : operation === "start"
-                                ? Element.prototype.prepend
-                                : operation === "end"
-                                ? Element.prototype.append
-                                : Element.prototype.append; // unreachable
-
-                        context.meta.runtime.implicitLoop(root, function (elt) {
-                            op.call(
-                                elt,
-                                valueToPut instanceof Node
-                                    ? valueToPut
-                                    : context.meta.runtime.convertValue(valueToPut, "Fragment")
-                            );
-                            // process any new content
-                            if (elt.parentElement) {
-                                context.meta.runtime.processNode(elt.parentElement);
-                            } else {
-                                context.meta.runtime.processNode(elt);
-                            }
-                        });
-                    }
-                }
-                return context.meta.runtime.findNext(this, context);
-            },
-        };
-        return putCmd;
+        return new PutCommandImpl(target, operation, value, rootExpr);
     }
 }

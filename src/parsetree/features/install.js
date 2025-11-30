@@ -6,6 +6,36 @@
  */
 
 import { Feature } from '../base.js';
+import { Expression } from '../base.js';
+
+/**
+ * BehaviorInstallOperation - Evaluates and installs a behavior
+ */
+class BehaviorInstallOperation extends Expression {
+    constructor(args, behaviorPath, behaviorNamespace, target, source, runtime) {
+        super();
+        this.args = [args];
+        this.behaviorPath = behaviorPath;
+        this.behaviorNamespace = behaviorNamespace;
+        this.installTarget = target;
+        this.installSource = source;
+        this.runtime = runtime;
+    }
+
+    op(ctx, args) {
+        var behavior = this.runtime.globalScope;
+        for (var i = 0; i < this.behaviorNamespace.length; i++) {
+            behavior = behavior[this.behaviorNamespace[i]];
+            if (typeof behavior !== "object" && typeof behavior !== "function")
+                throw new Error("No such behavior defined as " + this.behaviorPath);
+        }
+
+        if (!(behavior instanceof Function))
+            throw new Error(this.behaviorPath + " is not a behavior");
+
+        behavior(this.installTarget, this.installSource, args);
+    }
+}
 
 export class InstallFeature extends Feature {
     static keyword = "install";
@@ -18,30 +48,15 @@ export class InstallFeature extends Feature {
     }
 
     install(target, source, installArgs, runtime) {
-        const behaviorPath = this.behaviorPath;
-        const behaviorNamespace = this.behaviorNamespace;
-        const args = this.args;
-        const installFeature = this;
-
-        runtime.unifiedEval(
-            {
-                args: [args],
-                op: function (ctx, args) {
-                    var behavior = runtime.globalScope;
-                    for (var i = 0; i < behaviorNamespace.length; i++) {
-                        behavior = behavior[behaviorNamespace[i]];
-                        if (typeof behavior !== "object" && typeof behavior !== "function")
-                            throw new Error("No such behavior defined as " + behaviorPath);
-                    }
-
-                    if (!(behavior instanceof Function))
-                        throw new Error(behaviorPath + " is not a behavior");
-
-                    behavior(target, source, args);
-                },
-            },
-            runtime.makeContext(target, installFeature, target, null)
+        const operation = new BehaviorInstallOperation(
+            this.args,
+            this.behaviorPath,
+            this.behaviorNamespace,
+            target,
+            source,
+            runtime
         );
+        runtime.unifiedEval(operation, runtime.makeContext(target, this, target, null));
     }
 
     /**
