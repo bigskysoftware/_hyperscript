@@ -7,6 +7,77 @@
 export class DefFeature {
     static keyword = "def";
 
+    constructor(funcName, nameSpace, nameVal, args, start, errorHandler, errorSymbol, finallyHandler) {
+        this.displayName =
+            funcName +
+            "(" +
+            args
+                .map(function (arg) {
+                    return arg.value;
+                })
+                .join(", ") +
+            ")";
+        this.name = funcName;
+        this.args = args;
+        this.start = start;
+        this.errorHandler = errorHandler;
+        this.errorSymbol = errorSymbol;
+        this.finallyHandler = finallyHandler;
+        this.nameSpace = nameSpace;
+        this.nameVal = nameVal;
+    }
+
+    install(target, source, funcArgs, runtime) {
+        const args = this.args;
+        const start = this.start;
+        const errorHandler = this.errorHandler;
+        const errorSymbol = this.errorSymbol;
+        const finallyHandler = this.finallyHandler;
+        const nameVal = this.nameVal;
+        const nameSpace = this.nameSpace;
+        const funcName = this.name;
+        const functionFeature = this;
+
+        var func = function () {
+            // null, worker
+            var ctx = runtime.makeContext(source, functionFeature, target, null);
+
+            // install error handler if any
+            ctx.meta.errorHandler = errorHandler;
+            ctx.meta.errorSymbol = errorSymbol;
+            ctx.meta.finallyHandler = finallyHandler;
+
+            for (var i = 0; i < args.length; i++) {
+                var name = args[i];
+                var argumentVal = arguments[i];
+                if (name) {
+                    ctx.locals[name.value] = argumentVal;
+                }
+            }
+            ctx.meta.caller = arguments[args.length];
+            if (ctx.meta.caller) {
+                ctx.meta.callingCommand = ctx.meta.caller.meta.command;
+            }
+            var resolve,
+                reject = null;
+            var promise = new Promise(function (theResolve, theReject) {
+                resolve = theResolve;
+                reject = theReject;
+            });
+            start.execute(ctx);
+            if (ctx.meta.returned) {
+                return ctx.meta.returnValue;
+            } else {
+                ctx.meta.resolve = resolve;
+                ctx.meta.reject = reject;
+                return promise;
+            }
+        };
+        func.hyperfunc = true;
+        func.hypername = nameVal;
+        runtime.assignToNamespace(target, nameSpace, funcName, func);
+    }
+
     /**
      * Parse def feature
      * @param {Parser} parser
@@ -44,63 +115,7 @@ export class DefFeature {
             parser.ensureTerminated(finallyHandler);
         }
 
-        var functionFeature = {
-            displayName:
-                funcName +
-                "(" +
-                args
-                    .map(function (arg) {
-                        return arg.value;
-                    })
-                    .join(", ") +
-                ")",
-            name: funcName,
-            args: args,
-            start: start,
-            errorHandler: errorHandler,
-            errorSymbol: errorSymbol,
-            finallyHandler: finallyHandler,
-            install: function (target, source, funcArgs, runtime) {
-                var func = function () {
-                    // null, worker
-                    var ctx = runtime.makeContext(source, functionFeature, target, null);
-
-                    // install error handler if any
-                    ctx.meta.errorHandler = errorHandler;
-                    ctx.meta.errorSymbol = errorSymbol;
-                    ctx.meta.finallyHandler = finallyHandler;
-
-                    for (var i = 0; i < args.length; i++) {
-                        var name = args[i];
-                        var argumentVal = arguments[i];
-                        if (name) {
-                            ctx.locals[name.value] = argumentVal;
-                        }
-                    }
-                    ctx.meta.caller = arguments[args.length];
-                    if (ctx.meta.caller) {
-                        ctx.meta.callingCommand = ctx.meta.caller.meta.command;
-                    }
-                    var resolve,
-                        reject = null;
-                    var promise = new Promise(function (theResolve, theReject) {
-                        resolve = theResolve;
-                        reject = theReject;
-                    });
-                    start.execute(ctx);
-                    if (ctx.meta.returned) {
-                        return ctx.meta.returnValue;
-                    } else {
-                        ctx.meta.resolve = resolve;
-                        ctx.meta.reject = reject;
-                        return promise;
-                    }
-                };
-                func.hyperfunc = true;
-                func.hypername = nameVal;
-                runtime.assignToNamespace(target, nameSpace, funcName, func);
-            },
-        };
+        var functionFeature = new DefFeature(funcName, nameSpace, nameVal, args, start, errorHandler, errorSymbol, finallyHandler);
 
         parser.ensureTerminated(start);
 

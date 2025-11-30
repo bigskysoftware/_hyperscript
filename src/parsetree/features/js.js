@@ -5,6 +5,16 @@
  * Executes: Evaluates JavaScript and exposes defined functions to global scope
  */
 export class JsFeature {
+    constructor(jsSource, func, exposedFunctionNames) {
+        this.jsSource = jsSource;
+        this.function = func;
+        this.exposedFunctionNames = exposedFunctionNames;
+    }
+
+    install(target, source, args, runtime) {
+        Object.assign(runtime.globalScope, this.function());
+    }
+
     /**
      * Parse js feature
      * @param {Parser} parser
@@ -25,13 +35,6 @@ export class JsFeature {
             " } ";
         var func = new Function(jsSource);
 
-        return {
-            jsSource: jsSource,
-            function: func,
-            exposedFunctionNames: jsBody.exposedFunctionNames,
-            install: function (target, source, args, runtime) {
-                Object.assign(runtime.globalScope, func());
-            },
-        };
+        return new JsFeature(jsSource, func, jsBody.exposedFunctionNames);
     }
 }

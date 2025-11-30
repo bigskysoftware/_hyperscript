@@ -7871,7 +7871,15 @@ var InstallFeature = class {
 __publicField(InstallFeature, "keyword", "install");
 
 // src/parsetree/features/js.js
-var JsFeature = class {
+var JsFeature = class _JsFeature {
+  constructor(jsSource, func, exposedFunctionNames) {
+    this.jsSource = jsSource;
+    this.function = func;
+    this.exposedFunctionNames = exposedFunctionNames;
+  }
+  install(target, source, args, runtime2) {
+    Object.assign(runtime2.globalScope, this.function());
+  }
   /**
    * Parse js feature
    * @param {Parser} parser
@@ -7884,14 +7892,7 @@ var JsFeature = class {
       return name + ":" + name;
     }).join(",") + " } ";
     var func = new Function(jsSource);
-    return {
-      jsSource,
-      function: func,
-      exposedFunctionNames: jsBody.exposedFunctionNames,
-      install: function(target, source, args, runtime2) {
-        Object.assign(runtime2.globalScope, func());
-      }
-    };
+    return new _JsFeature(jsSource, func, jsBody.exposedFunctionNames);
   }
 };
 
