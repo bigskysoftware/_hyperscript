@@ -3,14 +3,17 @@
  * Simple value literals with no dependencies
  */
 
+import { Expression } from '../base.js';
+
 /**
  * NakedString - Represents unquoted strings (consumed until whitespace)
  *
  * Parses: bareword text
  * Returns: string value
  */
-export class NakedString {
+export class NakedString extends Expression {
     constructor(tokens) {
+        super();
         this.type = "nakedString";
         this.tokens = tokens;
     }
@@ -48,8 +51,9 @@ export class NakedString {
  * Parses: true | false
  * Returns: boolean value
  */
-export class BooleanLiteral {
+export class BooleanLiteral extends Expression {
     constructor(value) {
+        super();
         this.type = "boolean";
         this.value = value;
     }
@@ -82,8 +86,9 @@ export class BooleanLiteral {
  * Parses: null
  * Returns: null value
  */
-export class NullLiteral {
+export class NullLiteral extends Expression {
     constructor() {
+        super();
         this.type = "null";
     }
 
@@ -114,8 +119,9 @@ export class NullLiteral {
  * Parses: 42 | 3.14 | 1e10
  * Returns: number value
  */
-export class NumberLiteral {
+export class NumberLiteral extends Expression {
     constructor(value, numberToken) {
+        super();
         this.type = "number";
         this.value = value;
         this.numberToken = numberToken;
@@ -150,8 +156,9 @@ export class NumberLiteral {
  * Parses: "hello" | "hello ${name}"
  * Returns: string value
  */
-export class StringLiteral {
+export class StringLiteral extends Expression {
     constructor(stringToken, rawValue, args) {
+        super();
         this.type = "string";
         this.token = stringToken;
         this.rawValue = rawValue;
@@ -218,8 +225,9 @@ export class StringLiteral {
  * Parses: [1, 2, 3] | []
  * Returns: array value
  */
-export class ArrayLiteral {
+export class ArrayLiteral extends Expression {
     constructor(values) {
+        super();
         this.type = "arrayLiteral";
         this.values = values;
         this.args = [values];
@@ -266,8 +274,9 @@ export class ArrayLiteral {
  * Parses: "key" | key | [expression]
  * Returns: string key value
  */
-export class ObjectKey {
+export class ObjectKey extends Expression {
     constructor(key, expr, args) {
+        super();
         this.type = "objectKey";
         this.key = key;
         this.expr = expr;
@@ -324,8 +333,9 @@ export class ObjectKey {
  * Parses: {foo: bar, baz: qux} | {}
  * Returns: object value
  */
-export class ObjectLiteral {
+export class ObjectLiteral extends Expression {
     constructor(keyExpressions, valueExpressions) {
+        super();
         this.type = "objectLiteral";
         this.keyExpressions = keyExpressions;
         this.valueExpressions = valueExpressions;
@@ -381,8 +391,9 @@ export class ObjectLiteral {
  * Parses: foo: 1, bar: 2 or (foo: 1, bar: 2)
  * Returns: object with named arguments
  */
-export class NamedArgumentList {
+export class NamedArgumentList extends Expression {
     constructor(fields, valueExpressions) {
+        super();
         this.type = "namedArgumentList";
         this.fields = fields;
         this.args = [valueExpressions];

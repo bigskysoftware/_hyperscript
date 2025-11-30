@@ -4155,9 +4155,23 @@ var DotOrColonPath = class {
   }
 };
 
+// src/parsetree/base.js
+var Expression = class {
+  /**
+   * Evaluate this expression using Runtime.unifiedEval
+   *
+   * @param {Context} context - Execution context
+   * @returns {*} - Result value or Promise
+   */
+  evaluate(context2) {
+    return context2.meta.runtime.unifiedEval(this, context2);
+  }
+};
+
 // src/parsetree/expressions/literals.js
-var NakedString = class _NakedString {
+var NakedString = class _NakedString extends Expression {
   constructor(tokens) {
+    super();
     this.type = "nakedString";
     this.tokens = tokens;
   }
@@ -4184,8 +4198,9 @@ var NakedString = class _NakedString {
     }).join("");
   }
 };
-var BooleanLiteral = class _BooleanLiteral {
+var BooleanLiteral = class _BooleanLiteral extends Expression {
   constructor(value) {
+    super();
     this.type = "boolean";
     this.value = value;
   }
@@ -4209,8 +4224,9 @@ var BooleanLiteral = class _BooleanLiteral {
     return this.value;
   }
 };
-var NullLiteral = class _NullLiteral {
+var NullLiteral = class _NullLiteral extends Expression {
   constructor() {
+    super();
     this.type = "null";
   }
   /**
@@ -4232,8 +4248,9 @@ var NullLiteral = class _NullLiteral {
     return null;
   }
 };
-var NumberLiteral = class _NumberLiteral {
+var NumberLiteral = class _NumberLiteral extends Expression {
   constructor(value, numberToken) {
+    super();
     this.type = "number";
     this.value = value;
     this.numberToken = numberToken;
@@ -4262,8 +4279,9 @@ var NumberLiteral = class _NumberLiteral {
     return this.value;
   }
 };
-var StringLiteral = class _StringLiteral {
+var StringLiteral = class _StringLiteral extends Expression {
   constructor(stringToken, rawValue, args) {
+    super();
     this.type = "string";
     this.token = stringToken;
     this.rawValue = rawValue;
@@ -4322,8 +4340,9 @@ var StringLiteral = class _StringLiteral {
     }
   }
 };
-var ArrayLiteral = class _ArrayLiteral {
+var ArrayLiteral = class _ArrayLiteral extends Expression {
   constructor(values) {
+    super();
     this.type = "arrayLiteral";
     this.values = values;
     this.args = [values];
@@ -4360,8 +4379,9 @@ var ArrayLiteral = class _ArrayLiteral {
     return context2.meta.runtime.unifiedEval(this, context2);
   }
 };
-var ObjectKey = class _ObjectKey {
+var ObjectKey = class _ObjectKey extends Expression {
   constructor(key, expr, args) {
+    super();
     this.type = "objectKey";
     this.key = key;
     this.expr = expr;
@@ -4408,8 +4428,9 @@ var ObjectKey = class _ObjectKey {
     }
   }
 };
-var ObjectLiteral = class _ObjectLiteral {
+var ObjectLiteral = class _ObjectLiteral extends Expression {
   constructor(keyExpressions, valueExpressions) {
+    super();
     this.type = "objectLiteral";
     this.keyExpressions = keyExpressions;
     this.valueExpressions = valueExpressions;
@@ -4455,8 +4476,9 @@ var ObjectLiteral = class _ObjectLiteral {
     return context2.meta.runtime.unifiedEval(this, context2);
   }
 };
-var NamedArgumentList = class _NamedArgumentList {
+var NamedArgumentList = class _NamedArgumentList extends Expression {
   constructor(fields, valueExpressions) {
+    super();
     this.type = "namedArgumentList";
     this.fields = fields;
     this.args = [valueExpressions];
