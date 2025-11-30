@@ -2806,7 +2806,11 @@ __publicField(_LanguageKernel, "Tokenizer", Tokenizer);
 var LanguageKernel = _LanguageKernel;
 
 // src/parsetree/base.js
-var Expression = class {
+var ParseElement = class {
+  // Common base for all parse tree elements
+  // Can be extended with shared functionality in the future
+};
+var Expression = class extends ParseElement {
   /**
    * Evaluate this expression using Runtime.unifiedEval
    *
@@ -2817,7 +2821,7 @@ var Expression = class {
     return context.meta.runtime.unifiedEval(this, context);
   }
 };
-var Command = class {
+var Command = class extends ParseElement {
   /**
    * Execute this command using Runtime.unifiedExec
    *
@@ -2828,7 +2832,7 @@ var Command = class {
     return context.meta.runtime.unifiedExec(this, context);
   }
 };
-var Feature = class {
+var Feature = class extends ParseElement {
   /**
    * Install this feature on a target element
    *
@@ -5383,34 +5387,6 @@ var MakeConstructorCommand = class extends Command {
     return ctx.meta.runtime.findNext(this, ctx);
   }
 };
-var AppendCommandImpl = class extends Command {
-  constructor(value, targetExpr, setter) {
-    super();
-    this.value = value;
-    this.target = targetExpr;
-    this.setter = setter;
-    this.args = [targetExpr, value];
-  }
-  op(context, target, value) {
-    if (Array.isArray(target)) {
-      target.push(value);
-      return context.meta.runtime.findNext(this, context);
-    } else if (target instanceof Element) {
-      if (value instanceof Element) {
-        target.insertAdjacentElement("beforeend", value);
-      } else {
-        target.insertAdjacentHTML("beforeend", value);
-      }
-      context.meta.runtime.processNode(target);
-      return context.meta.runtime.findNext(this, context);
-    } else if (this.setter) {
-      context.result = (target || "") + value;
-      return this.setter;
-    } else {
-      throw Error("Unable to append a value!");
-    }
-  }
-};
 var _LogCommand = class _LogCommand {
   constructor(exprs, withExpr) {
     this.exprs = exprs;
@@ -5653,7 +5629,14 @@ var MakeCommand = class {
   }
 };
 __publicField(MakeCommand, "keyword", "make");
-var AppendCommand = class {
+var _AppendCommand = class _AppendCommand extends Command {
+  constructor(value, targetExpr, setter) {
+    super();
+    this.value = value;
+    this.target = targetExpr;
+    this.setter = setter;
+    this.args = [targetExpr, value];
+  }
   /**
    * Parse append command
    * @param {Parser} parser
@@ -5673,14 +5656,34 @@ var AppendCommand = class {
     if (targetExpr.type === "symbol" || targetExpr.type === "attributeRef" || targetExpr.root != null) {
       setter = SetCommand.makeSetter(parser, targetExpr, implicitResultSymbol);
     }
-    var command = new AppendCommandImpl(value, targetExpr, setter);
+    var command = new _AppendCommand(value, targetExpr, setter);
     if (setter != null) {
       setter.parent = command;
     }
     return command;
   }
+  op(context, target, value) {
+    if (Array.isArray(target)) {
+      target.push(value);
+      return context.meta.runtime.findNext(this, context);
+    } else if (target instanceof Element) {
+      if (value instanceof Element) {
+        target.insertAdjacentElement("beforeend", value);
+      } else {
+        target.insertAdjacentHTML("beforeend", value);
+      }
+      context.meta.runtime.processNode(target);
+      return context.meta.runtime.findNext(this, context);
+    } else if (this.setter) {
+      context.result = (target || "") + value;
+      return this.setter;
+    } else {
+      throw Error("Unable to append a value!");
+    }
+  }
 };
-__publicField(AppendCommand, "keyword", "append");
+__publicField(_AppendCommand, "keyword", "append");
+var AppendCommand = _AppendCommand;
 function parsePickRange(parser) {
   parser.matchToken("at") || parser.matchToken("from");
   const rv = { includeStart: true, includeEnd: false };
@@ -6314,7 +6317,7 @@ var RepeatInitCommand = class extends Command {
     return this.repeatLoopCommand;
   }
 };
-var IfCommandImpl = class extends Command {
+var _IfCommand = class _IfCommand extends Command {
   constructor(expr, trueBranch, falseBranch) {
     super();
     this.type = "ifCommand";
@@ -6323,17 +6326,6 @@ var IfCommandImpl = class extends Command {
     this.falseBranch = falseBranch;
     this.args = [expr];
   }
-  op(context, exprValue) {
-    if (exprValue) {
-      return this.trueBranch;
-    } else if (this.falseBranch) {
-      return this.falseBranch;
-    } else {
-      return context.meta.runtime.findNext(this, context);
-    }
-  }
-};
-var IfCommand = class {
   /**
    * Parse if command
    * @param {Parser} parser
@@ -6358,13 +6350,23 @@ var IfCommand = class {
     if (parser.hasMore() && !nestedIfStmt) {
       parser.requireToken("end");
     }
-    var ifCmd = new IfCommandImpl(expr, trueBranch, falseBranch);
+    var ifCmd = new _IfCommand(expr, trueBranch, falseBranch);
     parser.setParent(trueBranch, ifCmd);
     parser.setParent(falseBranch, ifCmd);
     return ifCmd;
   }
+  op(context, exprValue) {
+    if (exprValue) {
+      return this.trueBranch;
+    } else if (this.falseBranch) {
+      return this.falseBranch;
+    } else {
+      return context.meta.runtime.findNext(this, context);
+    }
+  }
 };
-__publicField(IfCommand, "keyword", "if");
+__publicField(_IfCommand, "keyword", "if");
+var IfCommand = _IfCommand;
 function parseRepeatExpression(parser, startedWithForToken) {
   var innerStartToken = parser.currentToken();
   var identifier;
@@ -6467,11 +6469,20 @@ var ForCommand = class {
   }
 };
 __publicField(ForCommand, "keyword", "for");
-var ContinueCommandImpl = class extends Command {
+var _ContinueCommand = class _ContinueCommand extends Command {
   constructor(parser) {
     super();
     this.type = "continueCommand";
     this.parser = parser;
+  }
+  /**
+   * Parse continue command
+   * @param {Parser} parser
+   * @returns {ContinueCommand | undefined}
+   */
+  static parse(parser) {
+    if (!parser.matchToken("continue")) return;
+    return new _ContinueCommand(parser);
   }
   op(context) {
     for (var parent = this.parent; true; parent = parent.parent) {
@@ -6484,23 +6495,22 @@ var ContinueCommandImpl = class extends Command {
     }
   }
 };
-var ContinueCommand = class {
-  /**
-   * Parse continue command
-   * @param {Parser} parser
-   * @returns {ContinueCommand | undefined}
-   */
-  static parse(parser) {
-    if (!parser.matchToken("continue")) return;
-    return new ContinueCommandImpl(parser);
-  }
-};
-__publicField(ContinueCommand, "keyword", "continue");
-var BreakCommandImpl = class extends Command {
+__publicField(_ContinueCommand, "keyword", "continue");
+var ContinueCommand = _ContinueCommand;
+var _BreakCommand = class _BreakCommand extends Command {
   constructor(parser) {
     super();
     this.type = "breakCommand";
     this.parser = parser;
+  }
+  /**
+   * Parse break command
+   * @param {Parser} parser
+   * @returns {BreakCommand | undefined}
+   */
+  static parse(parser) {
+    if (!parser.matchToken("break")) return;
+    return new _BreakCommand(parser);
   }
   op(context) {
     for (var parent = this.parent; true; parent = parent.parent) {
@@ -6513,19 +6523,9 @@ var BreakCommandImpl = class extends Command {
     }
   }
 };
-var BreakCommand = class {
-  /**
-   * Parse break command
-   * @param {Parser} parser
-   * @returns {BreakCommand | undefined}
-   */
-  static parse(parser) {
-    if (!parser.matchToken("break")) return;
-    return new BreakCommandImpl(parser);
-  }
-};
-__publicField(BreakCommand, "keyword", "break");
-var TellCommandImpl = class extends Command {
+__publicField(_BreakCommand, "keyword", "break");
+var BreakCommand = _BreakCommand;
+var _TellCommand = class _TellCommand extends Command {
   constructor(value, body, slot) {
     super();
     this.type = "tellCommand";
@@ -6533,6 +6533,24 @@ var TellCommandImpl = class extends Command {
     this.body = body;
     this.slot = slot;
     this.args = [value];
+  }
+  /**
+   * Parse tell command
+   * @param {Parser} parser
+   * @returns {TellCommand | undefined}
+   */
+  static parse(parser) {
+    var startToken = parser.currentToken();
+    if (!parser.matchToken("tell")) return;
+    var value = parser.requireElement("expression");
+    var body = parser.requireElement("commandList");
+    if (parser.hasMore() && !parser.featureStart(parser.currentToken())) {
+      parser.requireToken("end");
+    }
+    var slot = "tell_" + startToken.start;
+    var tellCmd = new _TellCommand(value, body, slot);
+    parser.setParent(body, tellCmd);
+    return tellCmd;
   }
   resolveNext(context) {
     var iterator = context.meta.iterators[this.slot];
@@ -6562,27 +6580,8 @@ var TellCommandImpl = class extends Command {
     return this.resolveNext(context);
   }
 };
-var TellCommand = class {
-  /**
-   * Parse tell command
-   * @param {Parser} parser
-   * @returns {TellCommand | undefined}
-   */
-  static parse(parser) {
-    var startToken = parser.currentToken();
-    if (!parser.matchToken("tell")) return;
-    var value = parser.requireElement("expression");
-    var body = parser.requireElement("commandList");
-    if (parser.hasMore() && !parser.featureStart(parser.currentToken())) {
-      parser.requireToken("end");
-    }
-    var slot = "tell_" + startToken.start;
-    var tellCmd = new TellCommandImpl(value, body, slot);
-    parser.setParent(body, tellCmd);
-    return tellCmd;
-  }
-};
-__publicField(TellCommand, "keyword", "tell");
+__publicField(_TellCommand, "keyword", "tell");
+var TellCommand = _TellCommand;
 
 // src/parsetree/commands/execution.js
 var JsBody = class {
