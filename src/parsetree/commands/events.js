@@ -142,9 +142,14 @@ export class WaitCommand {
 }
 
 /**
- * SendCommandNode - Send/trigger event command node
+ * SendCommand - Send event to target
+ *
+ * Parses: send <event> [to <target>]
+ * Executes: Sends event to target (or implicit me)
  */
-class SendCommandNode extends Command {
+export class SendCommand extends Command {
+    static keyword = "send";
+
     constructor(eventName, details, toExpr) {
         super();
         this.type = "sendCommand";
@@ -153,6 +158,26 @@ class SendCommandNode extends Command {
         this.to = toExpr;
         this.args = [toExpr, eventName, details];
         this.toExpr = toExpr;
+    }
+
+    /**
+     * Parse send command
+     * @param {Parser} parser
+     * @returns {SendCommand | undefined}
+     */
+    static parse(parser) {
+        if (!parser.matchToken("send")) return;
+
+        var eventName = parser.requireElement("eventName");
+        var details = parser.parseElement("namedArgumentList");
+
+        if (parser.matchToken("to")) {
+            var toExpr = parser.requireElement("expression");
+        } else {
+            var toExpr = parser.requireElement("implicitMeTarget");
+        }
+
+        return new SendCommand(eventName, details, toExpr);
     }
 
     op(context, to, eventName, details) {
@@ -165,29 +190,12 @@ class SendCommandNode extends Command {
 }
 
 /**
- * Helper function to parse send/trigger commands
- */
-function parseSendCmd(cmdType, parser) {
-    var eventName = parser.requireElement("eventName");
-
-    var details = parser.parseElement("namedArgumentList");
-    if ((cmdType === "send" && parser.matchToken("to")) ||
-        (cmdType === "trigger" && parser.matchToken("on"))) {
-        var toExpr = parser.requireElement("expression");
-    } else {
-        var toExpr = parser.requireElement("implicitMeTarget");
-    }
-
-    return new SendCommandNode(eventName, details, toExpr);
-}
-
-/**
  * TriggerCommand - Trigger event on target
  *
  * Parses: trigger <event> [on <target>]
  * Executes: Triggers event on target (or implicit me)
  */
-export class TriggerCommand {
+export class TriggerCommand extends SendCommand {
     static keyword = "trigger";
 
     /**
@@ -196,30 +204,18 @@ export class TriggerCommand {
      * @returns {TriggerCommand | undefined}
      */
     static parse(parser) {
-        if (parser.matchToken("trigger")) {
-            return parseSendCmd("trigger", parser);
-        }
-    }
-}
+        if (!parser.matchToken("trigger")) return;
 
-/**
- * SendCommand - Send event to target
- *
- * Parses: send <event> [to <target>]
- * Executes: Sends event to target (or implicit me)
- */
-export class SendCommand {
-    static keyword = "send";
+        var eventName = parser.requireElement("eventName");
+        var details = parser.parseElement("namedArgumentList");
 
-    /**
-     * Parse send command
-     * @param {Parser} parser
-     * @returns {SendCommand | undefined}
-     */
-    static parse(parser) {
-        if (parser.matchToken("send")) {
-            return parseSendCmd("send", parser);
+        if (parser.matchToken("on")) {
+            var toExpr = parser.requireElement("expression");
+        } else {
+            var toExpr = parser.requireElement("implicitMeTarget");
         }
+
+        return new TriggerCommand(eventName, details, toExpr);
     }
 }
 

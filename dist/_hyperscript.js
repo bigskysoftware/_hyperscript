@@ -6123,7 +6123,7 @@ var WaitCommand = class {
   }
 };
 __publicField(WaitCommand, "keyword", "wait");
-var SendCommandNode = class extends Command {
+var _SendCommand = class _SendCommand extends Command {
   constructor(eventName, details, toExpr) {
     super();
     this.type = "sendCommand";
@@ -6133,6 +6133,22 @@ var SendCommandNode = class extends Command {
     this.args = [toExpr, eventName, details];
     this.toExpr = toExpr;
   }
+  /**
+   * Parse send command
+   * @param {Parser} parser
+   * @returns {SendCommand | undefined}
+   */
+  static parse(parser) {
+    if (!parser.matchToken("send")) return;
+    var eventName = parser.requireElement("eventName");
+    var details = parser.parseElement("namedArgumentList");
+    if (parser.matchToken("to")) {
+      var toExpr = parser.requireElement("expression");
+    } else {
+      var toExpr = parser.requireElement("implicitMeTarget");
+    }
+    return new _SendCommand(eventName, details, toExpr);
+  }
   op(context, to, eventName, details) {
     context.meta.runtime.nullCheck(to, this.toExpr);
     context.meta.runtime.implicitLoop(to, function(target) {
@@ -6141,42 +6157,28 @@ var SendCommandNode = class extends Command {
     return context.meta.runtime.findNext(this, context);
   }
 };
-function parseSendCmd(cmdType, parser) {
-  var eventName = parser.requireElement("eventName");
-  var details = parser.parseElement("namedArgumentList");
-  if (cmdType === "send" && parser.matchToken("to") || cmdType === "trigger" && parser.matchToken("on")) {
-    var toExpr = parser.requireElement("expression");
-  } else {
-    var toExpr = parser.requireElement("implicitMeTarget");
-  }
-  return new SendCommandNode(eventName, details, toExpr);
-}
-var TriggerCommand = class {
+__publicField(_SendCommand, "keyword", "send");
+var SendCommand = _SendCommand;
+var _TriggerCommand = class _TriggerCommand extends SendCommand {
   /**
    * Parse trigger command
    * @param {Parser} parser
    * @returns {TriggerCommand | undefined}
    */
   static parse(parser) {
-    if (parser.matchToken("trigger")) {
-      return parseSendCmd("trigger", parser);
+    if (!parser.matchToken("trigger")) return;
+    var eventName = parser.requireElement("eventName");
+    var details = parser.parseElement("namedArgumentList");
+    if (parser.matchToken("on")) {
+      var toExpr = parser.requireElement("expression");
+    } else {
+      var toExpr = parser.requireElement("implicitMeTarget");
     }
+    return new _TriggerCommand(eventName, details, toExpr);
   }
 };
-__publicField(TriggerCommand, "keyword", "trigger");
-var SendCommand = class {
-  /**
-   * Parse send command
-   * @param {Parser} parser
-   * @returns {SendCommand | undefined}
-   */
-  static parse(parser) {
-    if (parser.matchToken("send")) {
-      return parseSendCmd("send", parser);
-    }
-  }
-};
-__publicField(SendCommand, "keyword", "send");
+__publicField(_TriggerCommand, "keyword", "trigger");
+var TriggerCommand = _TriggerCommand;
 var EventNameNode = class {
   constructor(value) {
     this.value = value;
