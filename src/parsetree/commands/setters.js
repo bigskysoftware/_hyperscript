@@ -51,12 +51,13 @@ class DecrementOperation extends Expression {
  * Helper function for put command - put content into element or symbol
  */
 function putInto(context, root, prop, valueToPut) {
-    if (root == null) {
+    if (root == null) {     // symbol, no element
         var value = context.meta.runtime.resolveSymbol(prop, context);
-    } else {
+    } else {                // there is an element
         var value = root;
     }
-    if (value instanceof Element || value instanceof HTMLDocument) {
+    // Either the symbol or element is null AND the value is an element or document (Was going in when both were non null)
+    if ((root == null || prop == null) && (value instanceof Element || value instanceof Document)) {
         while (value.firstChild) value.removeChild(value.firstChild);
         value.append(context.meta.runtime.convertValue(valueToPut, "Fragment"));
         context.meta.runtime.processNode(value);
@@ -64,6 +65,7 @@ function putInto(context, root, prop, valueToPut) {
         if (root == null) {
             context.meta.runtime.setSymbol(prop, context, null, valueToPut);
         } else {
+            // Our non-null case for both
             root[prop] = valueToPut
         }
     }
@@ -131,8 +133,9 @@ class BaseSetterCommand extends Command {
         var attributeWrite = target.type === "attributeRef";
         var styleWrite = target.type === "styleRef";
         var arrayWrite = target.type === "arrayIndex";
+        var refWrite = target.type === "idRef" || target.type === "queryRef" || target.type === "classRef";
 
-        if (!(attributeWrite || styleWrite || symbolWrite) && target.root == null) {
+        if (!(attributeWrite || styleWrite || symbolWrite || refWrite) && target.root == null) {
             parser.raiseParseError("Can only put directly into symbols, not references");
         }
 
@@ -243,7 +246,12 @@ export class DefaultCommand extends Command {
      */
     static parse(parser) {
         if (!parser.matchToken("default")) return;
-        var target = parser.requireElement("assignableExpression");
+        try {
+            parser.pushFollow("to");
+            var target = parser.requireElement("assignableExpression");
+        } finally {
+            parser.popFollow();
+        }
         parser.requireToken("to");
 
         var value = parser.requireElement("expression");
@@ -269,7 +277,7 @@ export class DefaultCommand extends Command {
  * Parses: increment target [by amount]
  * Executes: Adds amount (default 1) to target
  */
-export class IncrementCommand extends BaseSetterCommand {
+export class IncrementCommand extends BaseSetterCommand { // <- May be issue in here?
     static keyword = "increment";
 
     /**
@@ -314,7 +322,12 @@ export class DecrementCommand extends BaseSetterCommand {
         var amountExpr;
 
         // This is optional.  Defaults to "result"
-        var target = parser.parseElement("assignableExpression");
+        try {
+            parser.pushFollow("by");
+            var target = parser.parseElement("assignableExpression");
+        } finally {
+            parser.popFollow();
+        }
 
         // This is optional. Defaults to 1.
         if (parser.matchToken("by")) {

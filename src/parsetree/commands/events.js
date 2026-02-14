@@ -50,12 +50,12 @@ class WaitCommandEvent extends Command {
         return new Promise((resolve) => {
             var resolved = false;
             for (const eventInfo of events) {
-                var listener = (event) => {
-                    context.result = event;
+                var listener = (evt) => {
+                    context.result = evt;
                     if (eventInfo.args) {
                         for (const arg of eventInfo.args) {
                             context.locals[arg.value] =
-                                event[arg.value] || (event.detail ? event.detail[arg.value] : null);
+                                evt[arg.value] || (evt.detail ? evt.detail[arg.value] : null);
                         }
                     }
                     if (!resolved) {
@@ -65,8 +65,9 @@ class WaitCommandEvent extends Command {
                 };
                 if (eventInfo.name){
                     target.addEventListener(eventInfo.name, listener, {once: true});
-                } else if (eventInfo.time != null) {
-                    setTimeout(listener, eventInfo.time, eventInfo.time)
+                } else  {
+                    const timeValue = eventInfo.evaluate(context);
+                    setTimeout(listener, timeValue, timeValue)
                 }
             }
         });
@@ -111,9 +112,8 @@ export class WaitCommand {
             do {
                 var lookahead = parser.token(0);
                 if (lookahead.type === 'NUMBER' || lookahead.type === 'L_PAREN') {
-                    events.push({
-                        time: parser.requireElement('expression').evaluate() // TODO: do we want to allow async here?
-                    })
+                    events.push(parser.requireElement('expression')) // removed .evaluate(), i thought evaluate was based on the runtime and we don't have a runtime in the parsing phase yet
+
                 } else {
                     events.push({
                         name: parser.requireElement("dotOrColonPath", "Expected event name").evaluate(),
