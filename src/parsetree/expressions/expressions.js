@@ -296,7 +296,7 @@ export class PropertyAccess extends Expression {
         if (!parser.matchOpToken(".")) return;
         var prop = parser.requireTokenType("IDENTIFIER");
         var propertyAccess = new PropertyAccess(root, prop);
-        return parser.kernel.parseElement("indirectExpression", parser.tokens, propertyAccess);
+        return parser.kernel.parseElement("indirectExpression", parser, propertyAccess);
     }
 
     /**
@@ -375,7 +375,7 @@ export class OfExpression extends Expression {
             root = propertyAccess;
         }
 
-        return parser.kernel.parseElement("indirectExpression", parser.tokens, root);
+        return parser.kernel.parseElement("indirectExpression", parser, root);
     }
 
     /**
@@ -453,7 +453,7 @@ export class PossessiveExpression extends Expression {
                 }
             }
             var propertyAccess = new PossessiveExpression(root, attribute || style, prop);
-            return parser.kernel.parseElement("indirectExpression", parser.tokens, propertyAccess);
+            return parser.kernel.parseElement("indirectExpression", parser, propertyAccess);
         }
     }
 
@@ -508,7 +508,7 @@ export class InExpression extends Expression {
         if (!parser.matchToken("in")) return;
         var target = parser.requireElement("unaryExpression");
         var inExpression = new InExpression(root, target);
-        return parser.kernel.parseElement("indirectExpression", parser.tokens, inExpression);
+        return parser.kernel.parseElement("indirectExpression", parser, inExpression);
     }
 
     /**
@@ -578,7 +578,7 @@ export class AsExpression extends Expression {
         parser.matchToken("a") || parser.matchToken("an");
         var conversion = parser.requireElement("dotOrColonPath").evaluate(); // OK No promise
         var asExpression = new AsExpression(root, conversion);
-        return parser.kernel.parseElement("indirectExpression", parser.tokens, asExpression);
+        return parser.kernel.parseElement("indirectExpression", parser, asExpression);
     }
 
     /**
@@ -634,7 +634,7 @@ export class FunctionCall extends Expression {
         } else {
             functionCall = new FunctionCall(root, args, [root, args], false);
         }
-        return parser.kernel.parseElement("indirectExpression", parser.tokens, functionCall);
+        return parser.kernel.parseElement("indirectExpression", parser, functionCall);
     }
 
     /**
@@ -784,7 +784,7 @@ export class ArrayIndex extends Expression {
         parser.requireOpToken("]");
 
         var arrayIndex = new ArrayIndex(root, firstIndex, secondIndex, andBefore, andAfter);
-        return parser.kernel.parseElement("indirectExpression", parser.tokens, arrayIndex);
+        return parser.kernel.parseElement("indirectExpression", parser, arrayIndex);
     }
 
     /**

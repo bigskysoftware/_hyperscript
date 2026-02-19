@@ -36,8 +36,6 @@ export class LanguageKernel {
     static Tokenizer = Tokenizer;
 
     constructor() {
-        this.possessivesDisabled = false
-
         /* ============================================================================================ */
         /* Core hyperscript Grammar Elements                                                            */
         /* ============================================================================================ */
@@ -54,6 +52,7 @@ export class LanguageKernel {
             }
         });
 
+        // all parse elements that are not following the correct patter, want them to all look the same
         this.addGrammarElement("command", (parser) => {
             if (parser.matchOpToken("(")) {
                 const commandElement = parser.requireElement("command");
@@ -69,7 +68,7 @@ export class LanguageKernel {
                 commandElement = parser.parseElement("pseudoCommand");
             }
             if (commandElement) {
-                return this.parseElement("indirectStatement", parser.tokens, commandElement);
+                return this.parseElement("indirectStatement", parser, commandElement);
             }
 
             return commandElement;
@@ -110,7 +109,7 @@ export class LanguageKernel {
             for (var i = 0; i < this.INDIRECT_EXPRESSIONS.length; i++) {
                 var indirect = this.INDIRECT_EXPRESSIONS[i];
                 root.endToken = parser.lastMatch();
-                var result = this.parseElement(indirect, parser.tokens, root);
+                var result = this.parseElement(indirect, parser, root);
                 if (result) {
                     return result;
                 }
@@ -122,7 +121,7 @@ export class LanguageKernel {
             var root = parser.parseElement("negativeNumber");
             for (var i = 0; i < this.POSTFIX_EXPRESSIONS.length; i++) {
                 var postfixType = this.POSTFIX_EXPRESSIONS[i];
-                var result = this.parseElement(postfixType, parser.tokens, root);
+                var result = this.parseElement(postfixType, parser, root);
                 if (result) {
                     return result;
                 }
@@ -179,7 +178,7 @@ export class LanguageKernel {
         this.addGrammarElement("primaryExpression", (parser) => {
             var leaf = parser.parseElement("leaf");
             if (leaf) {
-                return this.parseElement("indirectExpression", parser.tokens, leaf);
+                return this.parseElement("indirectExpression", parser, leaf);
             }
             parser.raiseParseError("Unexpected value: " + parser.currentToken().value);
         });
@@ -252,15 +251,15 @@ export class LanguageKernel {
 
     /**
      * @param {string} type
-     * @param {Tokens} tokens
+     * @param {Parser} parser
      * @param {ASTNode?} root
      * @returns {ASTNode}
      */
-    parseElement(type, tokens, root = undefined) {
+    parseElement(type, parser, root = undefined) {
         var elementDefinition = this.GRAMMAR[type];
         if (elementDefinition) {
+            var tokens = parser.tokens;
             var start = tokens.currentToken();
-            var parser = new Parser(this, tokens);
             var parseElement = elementDefinition(parser, root);
             if (parseElement) {
                 this.initElt(parseElement, start, tokens);
@@ -277,27 +276,26 @@ export class LanguageKernel {
 
     /**
      * @param {string} type
-     * @param {Tokens} tokens
+     * @param {Parser} parser
      * @param {string} [message]
      * @param {*} [root]
      * @returns {ASTNode}
      */
-    requireElement(type, tokens, message, root) {
-        var result = this.parseElement(type, tokens, root);
-        if (!result) LanguageKernel.raiseParseError(tokens, message || "Expected " + type);
+    requireElement(type, parser, message, root) {
+        var result = this.parseElement(type, parser, root);
+        if (!result) LanguageKernel.raiseParseError(parser.tokens, message || "Expected " + type);
         return result;
     }
 
     /**
      * @param {string[]} types
-     * @param {Tokens} tokens
-     * @param {Runtime} [runtime]
+     * @param {Parser} parser
      * @returns {ASTNode}
      */
-    parseAnyOf(types, tokens) {
+    parseAnyOf(types, parser) {
         for (var i = 0; i < types.length; i++) {
             var type = types[i];
-            var expression = this.parseElement(type, tokens);
+            var expression = this.parseElement(type, parser);
             if (expression) {
                 return expression;
             }
@@ -486,7 +484,8 @@ export class LanguageKernel {
      * @returns {ASTNode}
      */
     parseHyperScript(tokens) {
-        var result = this.parseElement("hyperscript", tokens);
+        var parser = new Parser(this, tokens);
+        var result = this.parseElement("hyperscript", parser);
         if (tokens.hasMore()) this.raiseParseError(tokens);
         if (result) return result;
     }
@@ -498,17 +497,18 @@ export class LanguageKernel {
      */
     parse(tokenizer, src) {
         var tokens = tokenizer.tokenize(src);
+        var parser = new Parser(this, tokens);
         if (this.commandStart(tokens.currentToken())) {
-            var commandList = this.requireElement("commandList", tokens);
+            var commandList = this.requireElement("commandList", parser);
             if (tokens.hasMore()) LanguageKernel.raiseParseError(tokens);
             this.ensureTerminated(commandList);
             return commandList;
         } else if (this.featureStart(tokens.currentToken())) {
-            var hyperscript = this.requireElement("hyperscript", tokens);
+            var hyperscript = this.requireElement("hyperscript", parser);
             if (tokens.hasMore()) LanguageKernel.raiseParseError(tokens);
             return hyperscript;
         } else {
-            var expression = this.requireElement("expression", tokens);
+            var expression = this.requireElement("expression", parser);
             if (tokens.hasMore()) LanguageKernel.raiseParseError(tokens);
             return expression;
         }
@@ -566,10 +566,11 @@ export class LanguageKernel {
     }
 
     /**
-     * @param {Tokens} tokens
+     * @param {Parser} parser
      * @returns {(string | ASTNode)[]}
      */
-    parseStringTemplate(tokens) {
+    parseStringTemplate(parser) {
+        var tokens = parser.tokens;
         /** @type {(string | ASTNode)[]} */
         var returnArr = [""];
         do {
@@ -577,7 +578,7 @@ export class LanguageKernel {
             if (tokens.currentToken().value === "$") {
                 tokens.consumeToken();
                 var startingBrace = tokens.matchOpToken("{");
-                returnArr.push(this.requireElement("expression", tokens));
+                returnArr.push(this.requireElement("expression", parser));
                 if (startingBrace) {
                     tokens.requireOpToken("}");
                 }

@@ -181,7 +181,8 @@ export class StringLiteral extends Expression {
             const Tokenizer = parser.kernel.constructor.Tokenizer || window._hyperscript?.internals?.Tokenizer;
             if (Tokenizer) {
                 var innerTokens = Tokenizer.tokenize(rawValue, true);
-                args = parser.kernel.parseStringTemplate(innerTokens);
+                var innerParser = new parser.constructor(parser.kernel, innerTokens);
+                args = parser.kernel.parseStringTemplate(innerParser);
             } else {
                 args = [];
             }

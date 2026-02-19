@@ -13,6 +13,7 @@ export class Parser {
     constructor(kernel, tokens) {
         this.kernel = kernel;
         this.tokens = tokens;
+        this.possessivesDisabled = false;
     }
 
     // ===========================
@@ -124,15 +125,15 @@ export class Parser {
     // ===========================
 
     parseElement(type, root = null) {
-        return this.kernel.parseElement(type, this.tokens, root);
+        return this.kernel.parseElement(type, this, root);
     }
 
     requireElement(type, message, root) {
-        return this.kernel.requireElement(type, this.tokens, message, root);
+        return this.kernel.requireElement(type, this, message, root);
     }
 
     parseAnyOf(types) {
-        return this.kernel.parseAnyOf(types, this.tokens);
+        return this.kernel.parseAnyOf(types, this);
     }
 
     raiseParseError(message) {
@@ -140,7 +141,7 @@ export class Parser {
     }
 
     parseStringTemplate() {
-        return this.kernel.parseStringTemplate(this.tokens);
+        return this.kernel.parseStringTemplate(this);
     }
 
     commandBoundary(token) {
@@ -163,15 +164,7 @@ export class Parser {
         return this.kernel.ensureTerminated(commandList);
     }
 
-    // Access to parser properties needed by grammars
-    get possessivesDisabled() {
-        return this.kernel.possessivesDisabled;
-    }
-
-    set possessivesDisabled(value) {
-        this.kernel.possessivesDisabled = value;
-    }
-
+    // Access to kernel properties needed by grammars
     get GRAMMAR() {
         return this.kernel.GRAMMAR;
     }

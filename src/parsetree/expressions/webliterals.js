@@ -57,7 +57,8 @@ export class IdRef {
         if (elementId.template) {
             var templateValue = elementId.value.substring(2);
             var innerTokens = Tokenizer.tokenize(templateValue);
-            var innerExpression = parser.kernel.requireElement("expression", innerTokens);
+            var innerParser = new parser.constructor(parser.kernel, innerTokens);
+            var innerExpression = parser.kernel.requireElement("expression", innerParser);
             return new IdRefTemplateNode(innerExpression);
         } else {
             const value = elementId.value.substring(1);
@@ -121,7 +122,8 @@ export class ClassRef {
         if (classRef.template) {
             var templateValue = classRef.value.substring(2);
             var innerTokens = Tokenizer.tokenize(templateValue);
-            var innerExpression = parser.kernel.requireElement("expression", innerTokens);
+            var innerParser = new parser.constructor(parser.kernel, innerTokens);
+            var innerExpression = parser.kernel.requireElement("expression", innerParser);
             return new ClassRefTemplateNode(innerExpression);
         } else {
             const css = classRef.value;
@@ -186,7 +188,8 @@ export class QueryRef {
         if (/\$[^=]/.test(queryValue)) {
             template = true;
             innerTokens = Tokenizer.tokenize(queryValue, true);
-            args = parser.kernel.parseStringTemplate(innerTokens);
+            var innerParser = new parser.constructor(parser.kernel, innerTokens);
+            args = parser.kernel.parseStringTemplate(innerParser);
         }
 
         return new QueryRefNode(queryValue, args, template);
