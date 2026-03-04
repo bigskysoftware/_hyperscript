@@ -25,7 +25,7 @@ class StringPostfixExpressionNode extends Expression {
         this.args = [root];
     }
 
-    op(context, val) {
+    resolve(context, val) {
         return "" + val + this.postfix;
     }
 }
@@ -63,7 +63,7 @@ class TimeExpressionNode extends Expression {
         this.args = [root];
     }
 
-    op(context, val) {
+    resolve(context, val) {
         return val * this.factor;
     }
 }
@@ -100,7 +100,7 @@ class TypeCheckExpressionNode extends Expression {
         this.args = [root];
     }
 
-    op(context, val) {
+    resolve(context, val) {
         var passed = context.meta.runtime.typeCheck(val, this.typeName.value, this.nullOk);
         if (passed) {
             return val;

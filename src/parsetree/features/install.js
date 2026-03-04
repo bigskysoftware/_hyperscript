@@ -22,7 +22,7 @@ class BehaviorInstallOperation extends Expression {
         this.runtime = runtime;
     }
 
-    op(ctx, args) {
+    resolve(ctx, args) {
         var behavior = this.runtime.globalScope;
         for (var i = 0; i < this.behaviorNamespace.length; i++) {
             behavior = behavior[this.behaviorNamespace[i]];

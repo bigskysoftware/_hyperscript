@@ -15,7 +15,7 @@ class IdRefTemplateNode extends Expression {
         this.args = [innerExpression];
     }
 
-    op(context, arg) {
+    resolve(context, arg) {
         return context.meta.runtime.getRootNode(context.me).getElementById(arg);
     }
 }
@@ -77,7 +77,7 @@ class ClassRefTemplateNode extends Expression {
         this.args = [innerExpression];
     }
 
-    op(context, arg) {
+    resolve(context, arg) {
         return new ElementCollection("." + arg, context.me, true, context.meta.runtime);
     }
 }
@@ -145,7 +145,7 @@ class QueryRefNode extends Expression {
         this.template = template;
     }
 
-    op(context, ...args) {
+    resolve(context, ...args) {
         if (this.template) {
             return new TemplatedQueryElementCollection(this.css, context.me, args, context.meta.runtime);
         } else {
@@ -208,7 +208,7 @@ class AttributeRefNode extends Expression {
         this.value = value;
     }
 
-    op(context) {
+    resolve(context) {
         var target = context.you || context.me;
         if (target) {
             return target.getAttribute(this.name);
@@ -262,7 +262,7 @@ class ComputedStyleRefNode extends Expression {
         this.name = name;
     }
 
-    op(context) {
+    resolve(context) {
         var target = context.you || context.me;
         if (target) {
             return context.meta.runtime.resolveComputedStyle(target, this.name);
@@ -280,7 +280,7 @@ class StyleRefNode extends Expression {
         this.name = name;
     }
 
-    op(context) {
+    resolve(context) {
         var target = context.you || context.me;
         if (target) {
             return context.meta.runtime.resolveStyle(target, this.name);
@@ -325,7 +325,7 @@ class StyleLiteralNode extends Expression {
         this.args = [exprs];
     }
 
-    op(ctx, exprs) {
+    resolve(ctx, exprs) {
         var rv = "";
         const stringParts = this.stringParts;
 

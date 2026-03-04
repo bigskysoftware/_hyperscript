@@ -149,6 +149,8 @@ export class Tokens {
     peekToken(value, peek, type) {
         peek = peek || 0;
         type = type || "IDENTIFIER";
+
+        //TODO: This feels weird, should we really have to know the tokens value to see it?
         if(this.tokens[peek] && this.tokens[peek].value === value && this.tokens[peek].type === type){
             return this.tokens[peek];
         }
@@ -481,6 +483,7 @@ export class Tokenizer {
      * @returns {Token}
      */
     #makeToken(type, value) {
+        // Makes a single character token
         return {
             type: type,
             value: value || "",
@@ -496,7 +499,7 @@ export class Tokenizer {
      * @param {string} [value]
      * @returns {Token}
      */
-    #makeOpToken(type, value) {
+    #makeOpToken(type, value) { // Examples: +   -   *   /   =   ==   !=   <   >   <=   >=   &&   ||   !
         var token = this.#makeToken(type, value);
         token.op = true;
         return token;

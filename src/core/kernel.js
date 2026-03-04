@@ -3,6 +3,8 @@ import { Tokens, Tokenizer } from './tokenizer.js';
 import { Runtime } from './runtime.js';
 import { Parser } from './parser.js';
 
+// Change op to be used as "resolve"
+
 /**
  * @callback ParseRule
  * @param {LanguageKernel} parser
@@ -74,6 +76,8 @@ export class LanguageKernel {
             return commandElement;
         });
 
+
+        //TODO: Figure out what the fuck is going on here
         this.addGrammarElement("commandList", (parser) => {
             if (parser.hasMore()) {
                 var cmd = parser.parseElement("command");
@@ -86,7 +90,7 @@ export class LanguageKernel {
             }
             return {
                 type: "emptyCommandListCommand",
-                op: function(context){
+                resolve: function(context){
                     return context.meta.runtime.findNext(this, context);
                 },
                 execute: function (context) {
@@ -158,7 +162,7 @@ export class LanguageKernel {
                 var unless = {
                     type: "unlessStatementModifier",
                     args: [conditional],
-                    op: function (context, conditional) {
+                    resolve: function (context, conditional) {
                         if (conditional) {
                             return this.next;
                         } else {
@@ -534,6 +538,9 @@ export class LanguageKernel {
      * @returns {ParseRule}
      */
     commandStart(token) {
+        if (token.value === "render"){
+            console.log(this.COMMANDS);
+        }
         return this.COMMANDS[token.value || ""];
     }
 
@@ -601,7 +608,7 @@ export class LanguageKernel {
     ensureTerminated(commandList) {
         var implicitReturn = {
             type: "implicitReturn",
-            op: function (context) {
+            resolve: function (context) {
                 context.meta.returned = true;
                 if (context.meta.resolve) {
                     context.meta.resolve();

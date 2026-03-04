@@ -17,7 +17,7 @@ class ImplicitResultSymbol extends Expression {
         this.type = "symbol";
     }
 
-    evaluate(context) {
+    resolve(context) {
         return context.meta.runtime.resolveSymbol("result", context);
     }
 }
@@ -31,7 +31,7 @@ class ExitOperation extends Command {
         this.args = [undefined];
     }
 
-    op(context, value) {
+    resolve(context, value) {
         var resolve = context.meta.resolve;
         context.meta.returned = true;
         context.meta.returnValue = value;
@@ -56,7 +56,7 @@ class MakeQueryRefCommand extends Command {
         this.target = target;
     }
 
-    op(ctx) {
+    resolve(ctx) {
         var match,
             tagname = "div",
             id,
@@ -96,7 +96,7 @@ class MakeConstructorCommand extends Command {
         this.args = [expr, args];
     }
 
-    op(ctx, expr, args) {
+    resolve(ctx, expr, args) {
         ctx.result = varargConstructor(expr, args);
         if (this.target){
             ctx.meta.runtime.setSymbol(this.target.name, ctx, this.target.scope, ctx.result);
@@ -143,7 +143,7 @@ export class LogCommand extends Command {
     /**
      * Execute log command
      */
-    op(ctx, withExpr, values) {
+    resolve(ctx, withExpr, values) {
         if (withExpr) {
             withExpr.apply(null, values);
         } else {
@@ -185,7 +185,7 @@ export class BeepCommand extends Command {
     /**
      * Execute beep command
      */
-    op(ctx, values) {
+    resolve(ctx, values) {
         for (let i = 0; i < this.exprs.length; i++) {
             const expr = this.exprs[i];
             const val = values[i];
@@ -224,7 +224,7 @@ export class ThrowCommand extends Command {
     /**
      * Execute throw command
      */
-    op(ctx, expr) {
+    resolve(ctx, expr) {
         ctx.meta.runtime.registerHyperTrace(ctx, expr);
         throw expr;
     }
@@ -263,7 +263,7 @@ export class ReturnCommand extends Command {
     /**
      * Execute return command
      */
-    op(context, value) {
+    resolve(context, value) {
         var resolve = context.meta.resolve;
         context.meta.returned = true;
         context.meta.returnValue = value;
@@ -305,7 +305,7 @@ export class ExitCommand extends Command {
     /**
      * Execute exit command
      */
-    op(context, value) {
+    resolve(context, value) {
         var resolve = context.meta.resolve;
         context.meta.returned = true;
         context.meta.returnValue = value;
@@ -364,7 +364,7 @@ export class HaltCommand extends Command {
     /**
      * Execute halt command
      */
-    op(ctx) {
+    resolve(ctx) {
         if (ctx.event) {
             if (this.bubbling) {
                 ctx.event.stopPropagation();
@@ -472,7 +472,7 @@ export class AppendCommand extends Command {
         return command;
     }
 
-    op(context, target, value) {
+    resolve(context, target, value) {
         if (Array.isArray(target)) {
             target.push(value);
             return context.meta.runtime.findNext(this, context);
@@ -534,7 +534,7 @@ class PickCommandRange extends Command {
         this.range = range;
     }
 
-    op(ctx, root, from, to) {
+    resolve(ctx, root, from, to) {
         if (this.range.toEnd) to = root.length;
         if (!this.range.includeStart) from++;
         if (this.range.includeEnd) to++;
@@ -555,7 +555,7 @@ class PickCommandMatch extends Command {
         this.flags = flags;
     }
 
-    op(ctx, root, re) {
+    resolve(ctx, root, re) {
         ctx.result = new RegExp(re, this.flags).exec(root);
         return ctx.meta.runtime.findNext(this, ctx);
     }
@@ -572,7 +572,7 @@ class PickCommandMatches extends Command {
         this.flags = flags;
     }
 
-    op(ctx, root, re) {
+    resolve(ctx, root, re) {
         ctx.result = new RegExpIterable(re, this.flags, root);
         return ctx.meta.runtime.findNext(this, ctx);
     }
@@ -666,7 +666,7 @@ class FetchCommandNode extends Command {
         this.conversion = conversion;
     }
 
-    op(context, url, args) {
+    resolve(context, url, args) {
         const type = this.conversionType;
         const conversion = this.conversion;
         const fetchCmd = this;
@@ -794,7 +794,7 @@ class GoCommandNode extends Command {
         this.scrollOptions = scrollOptions;
     }
 
-    op(ctx, to, offset) {
+    resolve(ctx, to, offset) {
         if (this.back) {
             window.history.back();
         } else if (this.url) {

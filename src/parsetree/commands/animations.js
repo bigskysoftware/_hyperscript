@@ -102,7 +102,7 @@ export class SettleCommand extends Command {
         }
     }
 
-    op(context, on) {
+    resolve(context, on) {
         context.meta.runtime.nullCheck(on, this.onExpr);
         var resolve = null;
         var resolved = false;
@@ -214,7 +214,7 @@ export class TransitionCommand extends Command {
         }
     }
 
-    op(context, targets, properties, from, to, using, over) {
+    resolve(context, targets, properties, from, to, using, over) {
         context.meta.runtime.nullCheck(targets, this.targetsExpr);
         var promises = [];
         context.meta.runtime.implicitLoop(targets, (target) => {

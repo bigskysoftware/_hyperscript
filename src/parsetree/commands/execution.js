@@ -99,7 +99,7 @@ export class JsCommand extends Command {
         return new JsCommand(jsBody.jsSource, func, inputs);
     }
 
-    op(context) {
+    resolve(context) {
         var args = [];
         this.inputs.forEach((input) => {
             args.push(context.meta.runtime.resolveSymbol(input, context, 'default'));
@@ -158,7 +158,7 @@ export class AsyncCommand extends Command {
         return command;
     }
 
-    op(context) {
+    resolve(context) {
         setTimeout(() => {
             this.body.execute(context);
         });
@@ -196,7 +196,7 @@ export class CallCommand extends Command {
         return new CallCommand(expr);
     }
 
-    op(context, result) {
+    resolve(context, result) {
         context.result = result;
         return context.meta.runtime.findNext(this, context);
     }
@@ -229,7 +229,7 @@ export class GetCommand extends Command {
         return new GetCommand(expr);
     }
 
-    op(context, result) {
+    resolve(context, result) {
         context.result = result;
         return context.meta.runtime.findNext(this, context);
     }

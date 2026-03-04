@@ -33,7 +33,7 @@ export class NoExpression extends Expression {
     /**
      * Op function for no expression
      */
-    op(context, val) {
+    resolve(context, val) {
         return context.meta.runtime.isEmpty(val);
     }
 }
@@ -66,7 +66,7 @@ export class SomeExpression extends Expression {
     /**
      * Op function for some expression
      */
-    op(context, val) {
+    resolve(context, val) {
         return !context.meta.runtime.isEmpty(val);
     }
 }

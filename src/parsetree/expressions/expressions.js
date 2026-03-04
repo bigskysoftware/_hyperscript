@@ -116,7 +116,7 @@ export class NegativeNumber extends Expression {
     /**
      * Op function for negation
      */
-    op(context, value) {
+    resolve(context, value) {
         return -1 * value;
     }
 
@@ -155,7 +155,7 @@ export class LogicalNot extends Expression {
     /**
      * Op function for logical not
      */
-    op(context, val) {
+    resolve(context, val) {
         return !val;
     }
 
@@ -175,7 +175,7 @@ export class LogicalNot extends Expression {
 export class SymbolRef extends Expression {
     constructor(token, scope, name) {
         super();
-        this.type = "symbol";
+        this.type = "symbol"
         this.token = token;
         this.scope = scope;
         this.name = name;
@@ -225,8 +225,7 @@ export class SymbolRef extends Expression {
      * @param {Context} context
      * @returns {any}
      */
-    // TODO - Why is this not using op?
-    evaluate(context) {
+    resolve(context) {
         return context.meta.runtime.resolveSymbol(this.name, context, this.scope);
     }
 }
@@ -263,10 +262,9 @@ export class BeepExpression extends Expression {
      * @param {Context} ctx
      * @returns {any}
      */
-    evaluate(ctx) {
+    resolve(ctx) {
         let value = this.expression.evaluate(ctx);
-        let element = ctx.me;
-        ctx.meta.runtime.beepValueToConsole(element, this.expression, value);
+        ctx.meta.runtime.beepValueToConsole(ctx.me, this.expression, value);
         return value;
     }
 }
@@ -302,7 +300,7 @@ export class PropertyAccess extends Expression {
     /**
      * Op function for property access
      */
-    op(context, rootVal) {
+    resolve(context, rootVal) {
         var value = context.meta.runtime.resolveProperty(rootVal, this.prop.value);
         return value;
     }
@@ -381,7 +379,7 @@ export class OfExpression extends Expression {
     /**
      * Op function for of expression
      */
-    op(context, rootVal) {
+    resolve(context, rootVal) {
         var urRoot = this._urRoot;
         var prop = urRoot.name;
         var attribute = urRoot.type === "attributeRef";
@@ -460,7 +458,7 @@ export class PossessiveExpression extends Expression {
     /**
      * Op function for possessive
      */
-    op(context, rootVal) {
+    resolve(context, rootVal) {
         if (this.attribute) {
             var value
             if (this.attribute.type === 'computedStyleRef') {
@@ -514,7 +512,7 @@ export class InExpression extends Expression {
     /**
      * Op function for in expression
      */
-    op(context, rootVal, target) {
+    resolve(context, rootVal, target) {
         var returnArr = [];
         if (rootVal.css) {
             context.meta.runtime.implicitLoop(target, function (targetElt) {
@@ -584,7 +582,7 @@ export class AsExpression extends Expression {
     /**
      * Op function for as expression
      */
-    op(context, rootVal) {
+    resolve(context, rootVal) {
         return context.meta.runtime.convertValue(rootVal, this.conversion);
     }
 
@@ -640,7 +638,7 @@ export class FunctionCall extends Expression {
     /**
      * Op function for function call
      */
-    op(context, firstArg, argVals) {
+    resolve(context, firstArg, argVals) {
         if (this._isMethodCall) {
             var rootRoot = firstArg;
             context.meta.runtime.nullCheck(rootRoot, this._parseRoot.root);
@@ -697,7 +695,7 @@ export class AttributeRefAccess extends Expression {
     /**
      * Op function for attribute ref access
      */
-    op(_ctx, rootVal) {
+    resolve(_ctx, rootVal) {
         var value = _ctx.meta.runtime.resolveAttribute(rootVal, this.attribute.name);
         return value;
     }
@@ -790,7 +788,7 @@ export class ArrayIndex extends Expression {
     /**
      * Op function for array index
      */
-    op(_ctx, root, firstIndex, secondIndex) {
+    resolve(_ctx, root, firstIndex, secondIndex) {
         if (root == null) {
             return null;
         }
@@ -862,7 +860,7 @@ export class MathOperator extends Expression {
     /**
      * Op function for math operations
      */
-    op(context, lhsVal, rhsVal) {
+    resolve(context, lhsVal, rhsVal) {
         if (this.operator === "+") {
             return lhsVal + rhsVal;
         } else if (this.operator === "-") {
@@ -1039,7 +1037,7 @@ export class ComparisonOperator extends Expression {
     /**
      * Op function for comparison operations
      */
-    op(context, lhsVal, rhsVal) {
+    resolve(context, lhsVal, rhsVal) {
         const operator = this.operator;
         const lhs = this.lhs;
         const rhs = this.rhs;
@@ -1171,7 +1169,7 @@ export class LogicalOperator extends Expression {
     /**
      * Op function for logical operations
      */
-    op(context, lhsVal, rhsVal) {
+    resolve(context, lhsVal, rhsVal) {
         if (this.operator === "and") {
             return lhsVal && rhsVal;
         } else {
@@ -1239,10 +1237,10 @@ export class AsyncExpression extends Expression {
      * @returns {{asyncWrapper: boolean, value: any}}
      */
     // TODO - Why is this not using op?
-    evaluate(context) {
+    resolve(ctx) {
         return {
             asyncWrapper: true,
-            value: this.value.evaluate(context), //OK
+            value: this.value.evaluate(ctx),
         };
     }
 }
@@ -1265,8 +1263,14 @@ class DotOrColonPathNode extends Expression {
     }
 
     // TODO - Why is this not using op?
-    evaluate() {
+    evaluate(context) {
+        return this.resolve(context);
+    }
+
+    resolve(context) {
+        // context will be undefined at parse time, but defined at runtime.
         return this.path.join(this.separator ? this.separator : "");
+
     }
 }
 

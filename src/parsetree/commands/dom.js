@@ -118,7 +118,7 @@ class AddCommandClass extends Command {
         this.toExpr = toExpr;
     }
 
-    op(context, to, classRefs) {
+    resolve(context, to, classRefs) {
         const when = this.when;
         const toExpr = this.toExpr;
         context.meta.runtime.nullCheck(to, toExpr);
@@ -156,7 +156,7 @@ class AddCommandAttribute extends Command {
         this.toExpr = toExpr;
     }
 
-    op(context, to, attrRef) {
+    resolve(context, to, attrRef) {
         const when = this.when;
         const attributeRef = this.attributeRef;
         const toExpr = this.toExpr;
@@ -192,7 +192,7 @@ class AddCommandCSS extends Command {
         this.toExpr = toExpr;
     }
 
-    op(context, to, css) {
+    resolve(context, to, css) {
         context.meta.runtime.nullCheck(to, this.toExpr);
         context.meta.runtime.implicitLoop(to, function (target) {
             target.style.cssText += css;
@@ -266,7 +266,7 @@ class RemoveCommandElement extends Command {
         this.args = [elementExpr, fromExpr];
     }
 
-    op(context, element, from) {
+    resolve(context, element, from) {
         context.meta.runtime.nullCheck(element, this.elementExpr);
         context.meta.runtime.implicitLoop(element, function (target) {
             if (target.parentElement && (from == null || from.contains(target))) {
@@ -291,7 +291,7 @@ class RemoveCommandClassOrAttr extends Command {
         this.fromExpr = fromExpr;
     }
 
-    op(context, classRefs, from) {
+    resolve(context, classRefs, from) {
         const attributeRef = this.attributeRef;
         const fromExpr = this.fromExpr;
         context.meta.runtime.nullCheck(from, fromExpr);
@@ -484,7 +484,7 @@ export class ToggleCommand extends Command {
         }
     }
 
-    op(context, on, time, evt, from, classRef, classRef2, classRefs) {
+    resolve(context, on, time, evt, from, classRef, classRef2, classRefs) {
         if (time) {
             return new Promise((resolve) => {
                 this.toggle(context, on, classRef, classRef2, classRefs);
@@ -548,7 +548,7 @@ export class HideCommand extends Command {
         return new HideCommand(targetExpr, hideShowStrategy);
     }
 
-    op(ctx, target) {
+    resolve(ctx, target) {
         ctx.meta.runtime.nullCheck(target, this.targetExpr);
         ctx.meta.runtime.implicitLoop(target, (elt) => {
             this.hideShowStrategy("hide", elt, null, ctx.meta.runtime);
@@ -609,7 +609,7 @@ export class ShowCommand extends Command {
         return new ShowCommand(targetExpr, when, arg, hideShowStrategy);
     }
 
-    op(ctx, target) {
+    resolve(ctx, target) {
         ctx.meta.runtime.nullCheck(target, this.targetExpr);
         ctx.meta.runtime.implicitLoop(target, (elt) => {
             if (this.when) {
@@ -679,7 +679,7 @@ class TakeCommandClass extends Command {
         this.args = [classRefs, fromExpr, forExpr];
     }
 
-    op(context, classRefs, from, forElt) {
+    resolve(context, classRefs, from, forElt) {
         context.meta.runtime.nullCheck(forElt, this.forExpr);
         context.meta.runtime.implicitLoop(classRefs, (classRef) => {
             var clazz = classRef.className;
@@ -713,7 +713,7 @@ class TakeCommandAttribute extends Command {
         this.args = [fromExpr, forExpr, replacementValue];
     }
 
-    op(context, from, forElt, replacementValue) {
+    resolve(context, from, forElt, replacementValue) {
         context.meta.runtime.nullCheck(from, this.fromExpr);
         context.meta.runtime.nullCheck(forElt, this.forExpr);
         context.meta.runtime.implicitLoop(from, (target) => {
@@ -816,7 +816,7 @@ export class MeasureCommand extends Command {
         return new MeasureCommand(targetExpr, propsToMeasure);
     }
 
-    op(ctx, target) {
+    resolve(ctx, target) {
         ctx.meta.runtime.nullCheck(target, this.targetExpr);
         if (0 in target) target = target[0]; // not measuring multiple elts
         var rect = target.getBoundingClientRect();

@@ -14,7 +14,7 @@ class PseudoCommandWithTarget extends Command {
         this._realRoot = realRoot;  // Keep reference for op
     }
 
-    op(context, rootRoot, args) {
+    resolve(context, rootRoot, args) {
         context.meta.runtime.nullCheck(rootRoot, this._realRoot);
         var func = rootRoot[this._root.root.name];
         context.meta.runtime.nullCheck(func, this._root);
@@ -37,7 +37,7 @@ class PseudoCommandSimple extends Command {
         this.args = [expr];
     }
 
-    op(context, result) {
+    resolve(context, result) {
         context.result = result;
         return context.meta.runtime.findNext(this, context);
     }

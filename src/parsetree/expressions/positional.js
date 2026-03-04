@@ -145,7 +145,7 @@ export class RelativePositionalExpression extends Expression {
     /**
      * Op function for relative positional
      */
-    op(context, thing, from, inElt, withinElt) {
+    resolve(context, thing, from, inElt, withinElt) {
         var css = thing.css;
         if (css == null) {
             throw "Expected a CSS value to be returned by " + Tokens.sourceFor.apply(this.thingElt);
@@ -208,7 +208,7 @@ export class PositionalExpression extends Expression {
     /**
      * Op function for positional
      */
-    op(context, rhsVal) {
+    resolve(context, rhsVal) {
         if (rhsVal && !Array.isArray(rhsVal)) {
             if (rhsVal.children) {
                 rhsVal = rhsVal.children;
@@ -248,7 +248,7 @@ class ClosestExprNode extends Expression {
         this.args = [to];
     }
 
-    op(ctx, to) {
+    resolve(ctx, to) {
         if (to == null) {
             return null;
         } else {

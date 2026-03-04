@@ -15,7 +15,7 @@ class WaitATick extends Command {
         this.type = "waitATick";
     }
 
-    op(context) {
+    resolve(context) {
         const self = this;
         return new Promise(function (resolve) {
             setTimeout(function () {
@@ -49,7 +49,7 @@ class RepeatLoopCommand extends Command {
         return this;
     }
 
-    op(context, whileValue, times) {
+    resolve(context, whileValue, times) {
         var iteratorInfo = context.meta.iterators[this.slot];
         var keepLooping = false;
         var loopVal = null;
@@ -105,7 +105,7 @@ class RepeatInitCommand extends Command {
         this.args = [expression, evt, on];
     }
 
-    op(context, value, event, on) {
+    resolve(context, value, event, on) {
         var iteratorInfo = {
             index: 0,
             value: value,
@@ -186,7 +186,7 @@ export class IfCommand extends Command {
         return ifCmd;
     }
 
-    op(context, exprValue) {
+    resolve(context, exprValue) {
         if (exprValue) {
             return this.trueBranch;
         } else if (this.falseBranch) {
@@ -354,7 +354,7 @@ export class ContinueCommand extends Command {
         return new ContinueCommand(parser);
     }
 
-    op(context) {
+    resolve(context) {
         // scan for the closest repeat statement
         for (var parent = this.parent; true; parent = parent.parent) {
             if (parent == undefined) {
@@ -392,7 +392,7 @@ export class BreakCommand extends Command {
         return new BreakCommand(parser);
     }
 
-    op(context) {
+    resolve(context) {
         // scan for the closest repeat statement
         for (var parent = this.parent; true; parent = parent.parent) {
             if (parent == undefined) {
@@ -458,7 +458,7 @@ export class TellCommand extends Command {
         }
     }
 
-    op(context, value) {
+    resolve(context, value) {
         if (value == null) {
             value = [];
         } else if (!(Array.isArray(value) || value instanceof NodeList)) {

@@ -17,7 +17,7 @@ class IncrementOperation extends Expression {
         this.args = [target, amountExpr];
     }
 
-    op(context, targetValue, amount) {
+    resolve(context, targetValue, amount) {
         targetValue = targetValue ? parseFloat(targetValue) : 0;
         amount = this.amountExpr ? parseFloat(amount) : 1;
         var newValue = targetValue + amount;
@@ -38,7 +38,7 @@ class DecrementOperation extends Expression {
         this.args = [target, amountExpr];
     }
 
-    op(context, targetValue, amount) {
+    resolve(context, targetValue, amount) {
         targetValue = targetValue ? parseFloat(targetValue) : 0;
         amount = this.amountExpr ? parseFloat(amount) : 1;
         var newValue = targetValue - amount;
@@ -73,7 +73,7 @@ function putInto(context, root, prop, valueToPut) {
 
 /**
  * BaseSetterCommand - Base class for all setter commands
- * Contains common op() logic for setting values into targets
+ * Contains common resolve() logic for setting values into targets
  */
 class BaseSetterCommand extends Command {
     constructor(target, value, rootElt, prop, attribute) {
@@ -91,7 +91,7 @@ class BaseSetterCommand extends Command {
         this.args = [rootElt, prop, value];
     }
 
-    op(context, root, prop, valueToSet) {
+    resolve(context, root, prop, valueToSet) {
         if (this.symbolWrite) {
             context.meta.runtime.setSymbol(this.target.name, context, this.target.scope, valueToSet);
         } else {
@@ -208,7 +208,7 @@ export class SetCommand extends BaseSetterCommand {
         return BaseSetterCommand.makeSetter(parser, target, value, SetCommand);
     }
 
-    op(context, root, prop, valueToSet) {
+    resolve(context, root, prop, valueToSet) {
         // Object literal form uses different signature
         if (this.objectLiteral) {
             var obj = root; // first arg is actually the object literal
@@ -217,7 +217,7 @@ export class SetCommand extends BaseSetterCommand {
             return context.meta.runtime.findNext(this, context);
         } else {
             // Normal setter form
-            return super.op(context, root, prop, valueToSet);
+            return super.resolve(context, root, prop, valueToSet);
         }
     }
 }
@@ -262,7 +262,7 @@ export class DefaultCommand extends Command {
         return defaultCmd;
     }
 
-    op(context, targetValue) {
+    resolve(context, targetValue) {
         if (targetValue) {
             return context.meta.runtime.findNext(this, context);
         } else {
@@ -430,7 +430,7 @@ export class PutCommand extends Command {
         return new PutCommand(target, operation, value, rootExpr);
     }
 
-    op(context, root, prop, valueToPut) {
+    resolve(context, root, prop, valueToPut) {
         if (this.symbolWrite) {
             putInto(context, root, prop, valueToPut);
         } else {

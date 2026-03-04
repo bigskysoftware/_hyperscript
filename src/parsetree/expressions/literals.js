@@ -195,7 +195,7 @@ export class StringLiteral extends Expression {
     /**
      * Op function for template strings
      */
-    op(context) {
+    resolve(context) {
         var returnStr = "";
         for (var i = 1; i < arguments.length; i++) {
             var val = arguments[i];
@@ -255,7 +255,7 @@ export class ArrayLiteral extends Expression {
     /**
      * Op function for array literal
      */
-    op(context, values) {
+    resolve(context, values) {
         return values;
     }
 }
@@ -301,7 +301,7 @@ export class ObjectKey extends Expression {
     /**
      * Op function for computed keys
      */
-    op(ctx, expr) {
+    resolve(ctx, expr) {
         return expr;
     }
 
@@ -359,7 +359,7 @@ export class ObjectLiteral extends Expression {
     /**
      * Op function for object literal
      */
-    op(context, keys, values) {
+    resolve(context, keys, values) {
         var returnVal = {};
         for (var i = 0; i < keys.length; i++) {
             returnVal[keys[i]] = values[i];
@@ -417,7 +417,7 @@ export class NamedArgumentList extends Expression {
     /**
      * Op function for named arguments
      */
-    op(context, values) {
+    resolve(context, values) {
         var returnVal = { _namedArgList_: true };
         for (var i = 0; i < values.length; i++) {
             var field = this.fields[i];

@@ -518,7 +518,7 @@ export class Runtime {
                         this.unifiedExec(resolvedNext, ctx);
                     }).catch(reason => {
                         this.unifiedExec({ // Anonymous command to simply throw the exception
-                            op: function(){
+                            resolve: function(){
                                 throw reason;
                             }
                         }, ctx);
@@ -614,7 +614,7 @@ export class Runtime {
                                 this.unwrapAsyncs(values);
                             }
                             try {
-                                var apply = parseElement.op.apply(parseElement, values);
+                                var apply = parseElement.resolve.apply(parseElement, values);
                                 resolve(apply);
                             } catch (e) {
                                 reject(e);
@@ -628,7 +628,7 @@ export class Runtime {
                 if (wrappedAsyncs) {
                     this.unwrapAsyncs(args);
                 }
-                return parseElement.op.apply(parseElement, args);
+                return parseElement.resolve.apply(parseElement, args);
             }
         }
 

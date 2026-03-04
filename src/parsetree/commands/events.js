@@ -42,7 +42,7 @@ class WaitCommandEvent extends Command {
         this.args = [on];
     }
 
-    op(context, on) {
+    resolve(context, on) {
         const events = this.event;
         var target = on ? on : context.me;
         if (!(target instanceof EventTarget))
@@ -85,7 +85,7 @@ class WaitCommandTime extends Command {
         this.args = [time];
     }
 
-    op(context, timeValue) {
+    resolve(context, timeValue) {
         return new Promise((resolve) => {
             setTimeout(() => {
                 resolve(context.meta.runtime.findNext(this, context));
@@ -180,7 +180,7 @@ export class SendCommand extends Command {
         return new SendCommand(eventName, details, toExpr);
     }
 
-    op(context, to, eventName, details) {
+    resolve(context, to, eventName, details) {
         context.meta.runtime.nullCheck(to, this.toExpr);
         context.meta.runtime.implicitLoop(to, function (target) {
             context.meta.runtime.triggerEvent(target, eventName, details, context.me);
