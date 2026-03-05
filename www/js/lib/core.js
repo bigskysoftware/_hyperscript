@@ -5276,6 +5276,9 @@ if ("document" in globalScope) {
 			document.addEventListener("htmx:load", function (/** @type {CustomEvent} */ evt) {
 				_runtime.processNode(evt.detail.elt);
 			});
+			document.addEventListener("htmx:after:process", function (/** @type {CustomEvent} */ evt) {
+				_runtime.processNode(evt.target);
+			});
 		});
 	});
 }
