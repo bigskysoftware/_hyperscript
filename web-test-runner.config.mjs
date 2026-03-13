@@ -33,7 +33,7 @@ const config = {
 		<script src="node_modules/chai/chai.js"></script>
 		<script src="node_modules/sinon/pkg/sinon.js"></script>
 		<script type="module">
-			import _hyperscript from '../dist/_hyperscript.js';
+			import _hyperscript from '../src/_hyperscript.js';
 
 			// Set on global for tests
 			self._hyperscript = _hyperscript;
@@ -74,7 +74,7 @@ const config = {
   nodeResolve: false,
   coverage: true,
   coverageConfig: {
-    include: ['dist/_hyperscript.js','src/ext/hdb.js','src/ext/socket.js','src/ext/template.js','src/ext/worker.js']
+    include: ['src/**/*.js']
   },
   files: [
     'test/commands/**/*.js',
