@@ -17,35 +17,20 @@
     "src/*",
     "dist/*"
   ],
-  "type": "module",
-  "main": "dist/_hyperscript.js",
-  "module": "dist/_hyperscript.js",
+  "main": "dist/_hyperscript.min.js",
   "types": "dist/_hyperscript.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/_hyperscript.d.ts",
-      "default": "./dist/_hyperscript.js"
-    }
-  },
   "bin": {
-    "_hyperscript": "src/platform/node-hyperscript.js"
+    "_hyperscript": "src/node-hyperscript.js"
   },
   "scripts": {
-    "build:bundle": "node build.config.mjs",
-    "build:copy-ext": "cp src/ext/*.js dist/ext/",
-    "build:minify": "terser -m eval dist/_hyperscript.js > dist/_hyperscript.min.js",
-    "build:typings": "npx tsc --declaration dist/_hyperscript.js --allowJs --emitDeclarationOnly --skipLibCheck",
-    "build:compress": "gzip -k -f dist/_hyperscript.min.js",
-    "build": "npm run build:bundle && npm run build:copy-ext && npm run build:minify && npm run build:typings && npm run build:compress",
-    "dev": "node build.config.mjs --watch",
-    "test:debug": "web-test-runner --manual --open",
-    "types-check": "tsc",
-    "test": "npm run build:bundle && playwright install chromium && web-test-runner --browsers chromium --playwright",
-    "test:firefox": "npm run build:bundle && playwright install firefox && web-test-runner --concurrency 1 --browsers firefox --playwright",
-    "test:webkit": "npm run build:bundle && playwright install webkit && web-test-runner --browsers webkit --playwright",
-    "test:all": "npm run build:bundle && playwright install chromium firefox webkit && web-test-runner --concurrency 1 --browsers chromium firefox webkit --playwright",
+    "test": "npm run test:chrome",
+    "test:chrome": "web-test-runner --config web-test-runner.config.mjs --playwright --browsers chromium",
+    "test:firefox": "web-test-runner --config web-test-runner.config.mjs --playwright --browsers firefox",
+    "test:webkit": "web-test-runner --config web-test-runner.config.mjs --playwright --browsers webkit",
+    "test:all": "web-test-runner --config web-test-runner.config.mjs --playwright --browsers chromium firefox webkit --concurrency 1",
+    "dist": "cp -r src/* dist/ && npm run-script terser && npm run-script typings && gzip -k -f dist/_hyperscript.min.js > dist/_hyperscript.min.js.gz && exit",
+    "typings": "npx tsc --declaration dist/_hyperscript.js --allowJs --emitDeclarationOnly --skipLibCheck",
     "www": "node scripts/www.js",
-    "dist": "npm run build",
     "terser": "terser -m eval dist/_hyperscript.js > dist/_hyperscript.min.js && terser -m eval dist/hdb.js > dist/hdb.min.js"
   },
   "repository": {
@@ -53,20 +38,20 @@
     "url": "git+https://github.com/bigskysoftware/_hyperscript.git"
   },
   "devDependencies": {
-    "@11ty/eleventy": "^1.0.2",
+    "@11ty/eleventy": "^3.1.2",
     "@web/test-runner": "^0.20.2",
     "@web/test-runner-playwright": "^0.11.1",
-    "chai": "^4.5.0",
-    "esbuild": "^0.27.0",
-    "fs-extra": "^9.1.0",
+    "chai": "^4.2.0",
+    "fs-extra": "^9.0.0",
     "markdown-it": "^12.3.2",
     "markdown-it-anchor": "^8.4.1",
     "markdown-it-attrs": "^4.1.3",
-    "markdown-it-deflist": "^2.1.0",
     "markdown-it-table-of-contents": "^0.6.0",
-    "mocha": "^11.1.0",
-    "sinon": "^10.0.1",
-    "terser": "^5.14.1",
-    "typescript": "^5.8.3"
+    "mocha": "^11.7.5",
+    "sinon": "^9.0.2"
+  },
+  "dependencies": {
+    "markdown-it-deflist": "^2.1.0",
+    "terser": "^5.14.1"
   }
 }
