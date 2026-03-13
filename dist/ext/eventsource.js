@@ -47,8 +47,6 @@
 					eventSource: null,
 					listeners: [],
 					retryCount: 0,
-					closed: false,
-					reconnectTimeout: null,
 					open: function (url) {
 						// calculate default values for URL argument.
 						if (url == undefined) {
@@ -70,9 +68,6 @@
 							}
 						}
 
-						// Mark as not explicitly closed (allow reconnection)
-						stub.closed = false;
-
 						// Open the EventSource and get ready to populate event handlers
 						stub.eventSource = new EventSource(url, {
 							withCredentials: withCredentials,
@@ -83,17 +78,13 @@
 							stub.retryCount = 0;
 						});
 
-						// On connection error, use exponential backoff to retry
+						// On connection error, use exponential backoff to retry (random values from 1 second to 2^7 (128) seconds
 						stub.eventSource.addEventListener("error", function (event) {
-							// Close the EventSource to prevent the browser's native auto-reconnect,
-							// which does not use backoff and can cause rapid-fire retries.
-							stub.eventSource.close();
-
-							// Only reconnect if the user has not explicitly called close()
-							if (!stub.closed) {
+							// If the EventSource is closed, then try to reopen
+							if (stub.eventSource.readyState == EventSource.CLOSED) {
 								stub.retryCount = Math.min(7, stub.retryCount + 1);
-								var timeout = Math.random() * Math.pow(2, stub.retryCount) * 500;
-								stub.reconnectTimeout = window.setTimeout(stub.open, timeout);
+								var timeout = Math.random() * (2 ^ stub.retryCount) * 500;
+								window.setTimeout(stub.open, timeout);
 							}
 						});
 
@@ -104,11 +95,6 @@
 						}
 					},
 					close: function () {
-						stub.closed = true;
-						if (stub.reconnectTimeout != null) {
-							window.clearTimeout(stub.reconnectTimeout);
-							stub.reconnectTimeout = null;
-						}
 						if (stub.eventSource != undefined) {
 							stub.eventSource.close();
 						}

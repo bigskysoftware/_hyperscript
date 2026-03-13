@@ -10,8 +10,8 @@ export default function hdbPlugin(_hyperscript) {
 			this.bus = new EventTarget();
 		} // See below for methods
 
-		_hyperscript.addCommand("breakpoint", function (helper) {
-			if (!helper.matchToken("breakpoint")) return;
+		_hyperscript.addCommand("breakpoint", function (parser) {
+			if (!parser.matchToken("breakpoint")) return;
 
 			var hdb;
 
@@ -104,7 +104,7 @@ export default function hdbPlugin(_hyperscript) {
 			}
 			const next = command.next
 
-			const tok = _hyperscript.internals.lexer.tokenize(newCode)
+			const tok = _hyperscript.internals.tokenizer.tokenize(newCode)
 			const newcmd = _hyperscript.internals.parser.requireElement('command', tok)
 
 			console.log(newcmd)
