@@ -327,7 +327,10 @@ export class OnFeature extends Feature {
                     } while (parser.matchToken("and"));
                 }
             } else if (eventName === "mutation") {
-                mutationSpec = {};
+                mutationSpec = {
+                    attributeOldValue: true,
+                    characterDataOldValue: true,
+                };
                 if (parser.matchToken("of")) {
                     do {
                         if (parser.matchToken("anything")) {
@@ -339,12 +342,10 @@ export class OnFeature extends Feature {
                             mutationSpec["childList"] = true;
                         } else if (parser.matchToken("attributes")) {
                             mutationSpec["attributes"] = true;
-                            mutationSpec["attributeOldValue"] = true;
                         } else if (parser.matchToken("subtree")) {
                             mutationSpec["subtree"] = true;
                         } else if (parser.matchToken("characterData")) {
                             mutationSpec["characterData"] = true;
-                            mutationSpec["characterDataOldValue"] = true;
                         } else if (parser.currentToken().type === "ATTRIBUTE_REF") {
                             var attribute = parser.consumeToken();
                             if (mutationSpec["attributeFilter"] == null) {
