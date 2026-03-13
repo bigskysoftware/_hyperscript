@@ -57,46 +57,46 @@ export default function workerPlugin(_hyperscript) {
 		var blob = new Blob([workerCode], { type: "text/javascript" });
 		var workerUri = URL.createObjectURL(blob);
 
-		_hyperscript.addFeature("worker", function (helper) {
-			if (helper.matchToken("worker")) {
-				var name = helper.requireElement("dotOrColonPath");
+		_hyperscript.addFeature("worker", function (parser) {
+			if (parser.matchToken("worker")) {
+				var name = parser.requireElement("dotOrColonPath");
 				var qualifiedName = name.evaluate();
 				var nameSpace = qualifiedName.split(".");
 				var workerName = nameSpace.pop();
 
 				// Parse extra scripts
 				var extraScripts = [];
-				if (helper.matchOpToken("(")) {
-					if (helper.matchOpToken(")")) {
+				if (parser.matchOpToken("(")) {
+					if (parser.matchOpToken(")")) {
 						// no external scripts
 					} else {
 						do {
-							var extraScript = helper.requireTokenType("STRING").value;
+							var extraScript = parser.requireTokenType("STRING").value;
 							var absoluteUrl = new URL(extraScript, location.href).href;
 							extraScripts.push(absoluteUrl);
-						} while (helper.matchOpToken(","));
-						helper.requireOpToken(")");
+						} while (parser.matchOpToken(","));
+						parser.requireOpToken(")");
 					}
 				}
 
 				// Consume worker methods
 
 				var funcNames = [];
-				var bodyStartIndex = helper.consumed.length;
-				var bodyEndIndex = helper.consumed.length;
+				var bodyStartIndex = parser.consumed.length;
+				var bodyEndIndex = parser.consumed.length;
 				do {
 					var feature = parser.parseAnyOf(["defFeature", "jsFeature"], tokens);
 					if (feature) {
 						if (feature.type === "defFeature") {
 							funcNames.push(feature.name);
-							bodyEndIndex = helper.consumed.length;
+							bodyEndIndex = parser.consumed.length;
 						} else {
-							if (helper.hasMore()) continue;
+							if (parser.hasMore()) continue;
 						}
 					} else break;
-				} while (helper.matchToken("end") && helper.hasMore()); // worker end
+				} while (parser.matchToken("end") && parser.hasMore()); // worker end
 
-				var bodyTokens = helper.consumed.slice(bodyStartIndex, bodyEndIndex + 1);
+				var bodyTokens = parser.consumed.slice(bodyStartIndex, bodyEndIndex + 1);
 
 				// Create worker
 
@@ -109,7 +109,7 @@ export default function workerPlugin(_hyperscript) {
 					_hyperscript: _hyperscript.internals.runtime.hyperscriptUrl || document.currentScript?.src || '/dist/_hyperscript.js',
 					extraScripts: extraScripts,
 					tokens: bodyTokens,
-					source: helper.source,
+					source: parser.source,
 				});
 
 				var workerPromise = new Promise(function (resolve, reject) {

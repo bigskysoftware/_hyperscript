@@ -29,9 +29,9 @@ export default function templatePlugin(_hyperscript) {
 				args: [template_, templateArgs],
 				op: function (ctx, template, templateArgs) {
 					if (!(template instanceof Element)) throw new Error(template_.sourceFor() + " is not an element");
-					const context = _hyperscript.internals.runtime.makeContext()
-					context.locals = templateArgs;
-					ctx.result = renderTemplate(compileTemplate(template.innerHTML), context);
+					const renderCtx = Object.assign({}, ctx);
+					renderCtx.locals = Object.assign({}, ctx.locals, templateArgs);
+					ctx.result = renderTemplate(compileTemplate(template.innerHTML), renderCtx);
 					return ctx.meta.runtime.findNext(this, ctx);
 				},
 			};
@@ -75,6 +75,10 @@ export default function templatePlugin(_hyperscript) {
 }
 
 // Auto-register when imported
+console.log("registering against:", self._hyperscript === window._hyperscript);
+console.log("COMMANDS before:", Object.keys(self._hyperscript.internals.parser.COMMANDS));
+
 if (typeof self !== 'undefined' && self._hyperscript) {
 	self._hyperscript.use(templatePlugin);
 }
+//console.log("template.js loaded, self._hyperscript exists:", typeof self !== 'undefined' && !!self._hyperscript);

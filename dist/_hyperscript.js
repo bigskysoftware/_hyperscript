@@ -977,7 +977,7 @@ var config = {
 };
 
 // src/core/runtime.js
-var shouldAutoIterateSymbol = Symbol();
+var shouldAutoIterateSymbol = /* @__PURE__ */ Symbol();
 var ElementCollection = class {
   constructor(css, relativeToElement, escape, runtime2) {
     this._css = css;
@@ -1385,7 +1385,7 @@ var _Runtime = class _Runtime {
         }).catch((reason) => {
           this.unifiedExec({
             // Anonymous command to simply throw the exception
-            op: function() {
+            resolve: function() {
               throw reason;
             }
           }, ctx);
@@ -1477,7 +1477,7 @@ var _Runtime = class _Runtime {
             this.unwrapAsyncs(values);
           }
           try {
-            var apply = parseElement.op.apply(parseElement, values);
+            var apply = parseElement.resolve.apply(parseElement, values);
             resolve(apply);
           } catch (e) {
             reject(e);
@@ -1490,7 +1490,7 @@ var _Runtime = class _Runtime {
       if (wrappedAsyncs) {
         this.unwrapAsyncs(args);
       }
-      return parseElement.op.apply(parseElement, args);
+      return parseElement.resolve.apply(parseElement, args);
     }
   }
   /**
@@ -2150,6 +2150,7 @@ var Parser = class {
   constructor(kernel2, tokens) {
     this.kernel = kernel2;
     this.tokens = tokens;
+    this.possessivesDisabled = false;
   }
   // ===========================
   // Token delegation methods
@@ -2233,19 +2234,19 @@ var Parser = class {
   // Kernel delegation methods
   // ===========================
   parseElement(type, root = null) {
-    return this.kernel.parseElement(type, this.tokens, root);
+    return this.kernel.parseElement(type, this, root);
   }
   requireElement(type, message, root) {
-    return this.kernel.requireElement(type, this.tokens, message, root);
+    return this.kernel.requireElement(type, this, message, root);
   }
   parseAnyOf(types) {
-    return this.kernel.parseAnyOf(types, this.tokens);
+    return this.kernel.parseAnyOf(types, this);
   }
   raiseParseError(message) {
     return this.kernel.raiseParseError(this.tokens, message);
   }
   parseStringTemplate() {
-    return this.kernel.parseStringTemplate(this.tokens);
+    return this.kernel.parseStringTemplate(this);
   }
   commandBoundary(token) {
     return this.kernel.commandBoundary(token);
@@ -2262,13 +2263,7 @@ var Parser = class {
   ensureTerminated(commandList) {
     return this.kernel.ensureTerminated(commandList);
   }
-  // Access to parser properties needed by grammars
-  get possessivesDisabled() {
-    return this.kernel.possessivesDisabled;
-  }
-  set possessivesDisabled(value) {
-    this.kernel.possessivesDisabled = value;
-  }
+  // Access to kernel properties needed by grammars
   get GRAMMAR() {
     return this.kernel.GRAMMAR;
   }
@@ -2307,7 +2302,6 @@ var _LanguageKernel = class _LanguageKernel {
     __publicField(this, "TOP_EXPRESSIONS", []);
     /** @type {string[]} */
     __publicField(this, "ASSIGNABLE_EXPRESSIONS", []);
-    this.possessivesDisabled = false;
     this.addGrammarElement("feature", (parser) => {
       if (parser.matchOpToken("(")) {
         var featureElement = parser.requireElement("feature");
@@ -2333,7 +2327,7 @@ var _LanguageKernel = class _LanguageKernel {
         commandElement = parser.parseElement("pseudoCommand");
       }
       if (commandElement) {
-        return this.parseElement("indirectStatement", parser.tokens, commandElement);
+        return this.parseElement("indirectStatement", parser, commandElement);
       }
       return commandElement;
     });
@@ -2349,7 +2343,7 @@ var _LanguageKernel = class _LanguageKernel {
       }
       return {
         type: "emptyCommandListCommand",
-        op: function(context) {
+        resolve: function(context) {
           return context.meta.runtime.findNext(this, context);
         },
         execute: function(context) {
@@ -2368,7 +2362,7 @@ var _LanguageKernel = class _LanguageKernel {
       for (var i = 0; i < this.INDIRECT_EXPRESSIONS.length; i++) {
         var indirect = this.INDIRECT_EXPRESSIONS[i];
         root.endToken = parser.lastMatch();
-        var result = this.parseElement(indirect, parser.tokens, root);
+        var result = this.parseElement(indirect, parser, root);
         if (result) {
           return result;
         }
@@ -2379,7 +2373,7 @@ var _LanguageKernel = class _LanguageKernel {
       var root = parser.parseElement("negativeNumber");
       for (var i = 0; i < this.POSTFIX_EXPRESSIONS.length; i++) {
         var postfixType = this.POSTFIX_EXPRESSIONS[i];
-        var result = this.parseElement(postfixType, parser.tokens, root);
+        var result = this.parseElement(postfixType, parser, root);
         if (result) {
           return result;
         }
@@ -2412,7 +2406,7 @@ var _LanguageKernel = class _LanguageKernel {
         var unless = {
           type: "unlessStatementModifier",
           args: [conditional],
-          op: function(context, conditional2) {
+          resolve: function(context, conditional2) {
             if (conditional2) {
               return this.next;
             } else {
@@ -2431,7 +2425,7 @@ var _LanguageKernel = class _LanguageKernel {
     this.addGrammarElement("primaryExpression", (parser) => {
       var leaf = parser.parseElement("leaf");
       if (leaf) {
-        return this.parseElement("indirectExpression", parser.tokens, leaf);
+        return this.parseElement("indirectExpression", parser, leaf);
       }
       parser.raiseParseError("Unexpected value: " + parser.currentToken().value);
     });
@@ -2472,15 +2466,15 @@ var _LanguageKernel = class _LanguageKernel {
   }
   /**
    * @param {string} type
-   * @param {Tokens} tokens
+   * @param {Parser} parser
    * @param {ASTNode?} root
    * @returns {ASTNode}
    */
-  parseElement(type, tokens, root = void 0) {
+  parseElement(type, parser, root = void 0) {
     var elementDefinition = this.GRAMMAR[type];
     if (elementDefinition) {
+      var tokens = parser.tokens;
       var start = tokens.currentToken();
-      var parser = new Parser(this, tokens);
       var parseElement = elementDefinition(parser, root);
       if (parseElement) {
         this.initElt(parseElement, start, tokens);
@@ -2496,26 +2490,25 @@ var _LanguageKernel = class _LanguageKernel {
   }
   /**
    * @param {string} type
-   * @param {Tokens} tokens
+   * @param {Parser} parser
    * @param {string} [message]
    * @param {*} [root]
    * @returns {ASTNode}
    */
-  requireElement(type, tokens, message, root) {
-    var result = this.parseElement(type, tokens, root);
-    if (!result) _LanguageKernel.raiseParseError(tokens, message || "Expected " + type);
+  requireElement(type, parser, message, root) {
+    var result = this.parseElement(type, parser, root);
+    if (!result) _LanguageKernel.raiseParseError(parser.tokens, message || "Expected " + type);
     return result;
   }
   /**
    * @param {string[]} types
-   * @param {Tokens} tokens
-   * @param {Runtime} [runtime]
+   * @param {Parser} parser
    * @returns {ASTNode}
    */
-  parseAnyOf(types, tokens) {
+  parseAnyOf(types, parser) {
     for (var i = 0; i < types.length; i++) {
       var type = types[i];
-      var expression = this.parseElement(type, tokens);
+      var expression = this.parseElement(type, parser);
       if (expression) {
         return expression;
       }
@@ -2688,7 +2681,8 @@ var _LanguageKernel = class _LanguageKernel {
    * @returns {ASTNode}
    */
   parseHyperScript(tokens) {
-    var result = this.parseElement("hyperscript", tokens);
+    var parser = new Parser(this, tokens);
+    var result = this.parseElement("hyperscript", parser);
     if (tokens.hasMore()) this.raiseParseError(tokens);
     if (result) return result;
   }
@@ -2699,17 +2693,18 @@ var _LanguageKernel = class _LanguageKernel {
    */
   parse(tokenizer2, src) {
     var tokens = tokenizer2.tokenize(src);
+    var parser = new Parser(this, tokens);
     if (this.commandStart(tokens.currentToken())) {
-      var commandList = this.requireElement("commandList", tokens);
+      var commandList = this.requireElement("commandList", parser);
       if (tokens.hasMore()) _LanguageKernel.raiseParseError(tokens);
       this.ensureTerminated(commandList);
       return commandList;
     } else if (this.featureStart(tokens.currentToken())) {
-      var hyperscript = this.requireElement("hyperscript", tokens);
+      var hyperscript = this.requireElement("hyperscript", parser);
       if (tokens.hasMore()) _LanguageKernel.raiseParseError(tokens);
       return hyperscript;
     } else {
-      var expression = this.requireElement("expression", tokens);
+      var expression = this.requireElement("expression", parser);
       if (tokens.hasMore()) _LanguageKernel.raiseParseError(tokens);
       return expression;
     }
@@ -2733,6 +2728,9 @@ var _LanguageKernel = class _LanguageKernel {
    * @returns {ParseRule}
    */
   commandStart(token) {
+    if (token.value === "render") {
+      console.log(this.COMMANDS);
+    }
     return this.COMMANDS[token.value || ""];
   }
   /**
@@ -2753,17 +2751,18 @@ var _LanguageKernel = class _LanguageKernel {
     return false;
   }
   /**
-   * @param {Tokens} tokens
+   * @param {Parser} parser
    * @returns {(string | ASTNode)[]}
    */
-  parseStringTemplate(tokens) {
+  parseStringTemplate(parser) {
+    var tokens = parser.tokens;
     var returnArr = [""];
     do {
       returnArr.push(tokens.lastWhitespace());
       if (tokens.currentToken().value === "$") {
         tokens.consumeToken();
         var startingBrace = tokens.matchOpToken("{");
-        returnArr.push(this.requireElement("expression", tokens));
+        returnArr.push(this.requireElement("expression", parser));
         if (startingBrace) {
           tokens.requireOpToken("}");
         }
@@ -2785,7 +2784,7 @@ var _LanguageKernel = class _LanguageKernel {
   ensureTerminated(commandList) {
     var implicitReturn = {
       type: "implicitReturn",
-      op: function(context) {
+      resolve: function(context) {
         context.meta.returned = true;
         if (context.meta.resolve) {
           context.meta.resolve();
@@ -2852,7 +2851,7 @@ var IdRefTemplateNode = class extends Expression {
     this.type = "idRefTemplate";
     this.args = [innerExpression];
   }
-  op(context, arg) {
+  resolve(context, arg) {
     return context.meta.runtime.getRootNode(context.me).getElementById(arg);
   }
 };
@@ -2882,7 +2881,8 @@ var IdRef = class {
     if (elementId.template) {
       var templateValue = elementId.value.substring(2);
       var innerTokens = Tokenizer2.tokenize(templateValue);
-      var innerExpression = parser.kernel.requireElement("expression", innerTokens);
+      var innerParser = new parser.constructor(parser.kernel, innerTokens);
+      var innerExpression = parser.kernel.requireElement("expression", innerParser);
       return new IdRefTemplateNode(innerExpression);
     } else {
       const value = elementId.value.substring(1);
@@ -2896,7 +2896,7 @@ var ClassRefTemplateNode = class extends Expression {
     this.type = "classRefTemplate";
     this.args = [innerExpression];
   }
-  op(context, arg) {
+  resolve(context, arg) {
     return new ElementCollection("." + arg, context.me, true, context.meta.runtime);
   }
 };
@@ -2926,7 +2926,8 @@ var ClassRef = class {
     if (classRef.template) {
       var templateValue = classRef.value.substring(2);
       var innerTokens = Tokenizer2.tokenize(templateValue);
-      var innerExpression = parser.kernel.requireElement("expression", innerTokens);
+      var innerParser = new parser.constructor(parser.kernel, innerTokens);
+      var innerExpression = parser.kernel.requireElement("expression", innerParser);
       return new ClassRefTemplateNode(innerExpression);
     } else {
       const css = classRef.value;
@@ -2943,7 +2944,7 @@ var QueryRefNode = class extends Expression {
     this.args = args;
     this.template = template;
   }
-  op(context, ...args) {
+  resolve(context, ...args) {
     if (this.template) {
       return new TemplatedQueryElementCollection(this.css, context.me, args, context.meta.runtime);
     } else {
@@ -2976,7 +2977,8 @@ var QueryRef = class {
     if (/\$[^=]/.test(queryValue)) {
       template = true;
       innerTokens = Tokenizer2.tokenize(queryValue, true);
-      args = parser.kernel.parseStringTemplate(innerTokens);
+      var innerParser = new parser.constructor(parser.kernel, innerTokens);
+      args = parser.kernel.parseStringTemplate(innerParser);
     }
     return new QueryRefNode(queryValue, args, template);
   }
@@ -2989,7 +2991,7 @@ var AttributeRefNode = class extends Expression {
     this.css = css;
     this.value = value;
   }
-  op(context) {
+  resolve(context) {
     var target = context.you || context.me;
     if (target) {
       return target.getAttribute(this.name);
@@ -3030,7 +3032,7 @@ var ComputedStyleRefNode = class extends Expression {
     this.type = "computedStyleRef";
     this.name = name;
   }
-  op(context) {
+  resolve(context) {
     var target = context.you || context.me;
     if (target) {
       return context.meta.runtime.resolveComputedStyle(target, this.name);
@@ -3043,7 +3045,7 @@ var StyleRefNode = class extends Expression {
     this.type = "styleRef";
     this.name = name;
   }
-  op(context) {
+  resolve(context) {
     var target = context.you || context.me;
     if (target) {
       return context.meta.runtime.resolveStyle(target, this.name);
@@ -3076,7 +3078,7 @@ var StyleLiteralNode = class extends Expression {
     this.stringParts = stringParts;
     this.args = [exprs];
   }
-  op(ctx, exprs) {
+  resolve(ctx, exprs) {
     var rv = "";
     const stringParts = this.stringParts;
     stringParts.forEach(function(part, idx) {
@@ -3204,7 +3206,7 @@ var NegativeNumber = class _NegativeNumber extends Expression {
   /**
    * Op function for negation
    */
-  op(context, value) {
+  resolve(context, value) {
     return -1 * value;
   }
   /**
@@ -3233,7 +3235,7 @@ var LogicalNot = class _LogicalNot extends Expression {
   /**
    * Op function for logical not
    */
-  op(context, val) {
+  resolve(context, val) {
     return !val;
   }
   /**
@@ -3290,8 +3292,7 @@ var SymbolRef = class _SymbolRef extends Expression {
    * @param {Context} context
    * @returns {any}
    */
-  // TODO - Why is this not using op?
-  evaluate(context) {
+  resolve(context) {
     return context.meta.runtime.resolveSymbol(this.name, context, this.scope);
   }
 };
@@ -3319,10 +3320,9 @@ var BeepExpression = class _BeepExpression extends Expression {
    * @param {Context} ctx
    * @returns {any}
    */
-  evaluate(ctx) {
+  resolve(ctx) {
     let value = this.expression.evaluate(ctx);
-    let element = ctx.me;
-    ctx.meta.runtime.beepValueToConsole(element, this.expression, value);
+    ctx.meta.runtime.beepValueToConsole(ctx.me, this.expression, value);
     return value;
   }
 };
@@ -3344,12 +3344,12 @@ var PropertyAccess = class _PropertyAccess extends Expression {
     if (!parser.matchOpToken(".")) return;
     var prop = parser.requireTokenType("IDENTIFIER");
     var propertyAccess = new _PropertyAccess(root, prop);
-    return parser.kernel.parseElement("indirectExpression", parser.tokens, propertyAccess);
+    return parser.kernel.parseElement("indirectExpression", parser, propertyAccess);
   }
   /**
    * Op function for property access
    */
-  op(context, rootVal) {
+  resolve(context, rootVal) {
     var value = context.meta.runtime.resolveProperty(rootVal, this.prop.value);
     return value;
   }
@@ -3410,12 +3410,12 @@ var OfExpression = class _OfExpression extends Expression {
     } else {
       root = propertyAccess;
     }
-    return parser.kernel.parseElement("indirectExpression", parser.tokens, root);
+    return parser.kernel.parseElement("indirectExpression", parser, root);
   }
   /**
    * Op function for of expression
    */
-  op(context, rootVal) {
+  resolve(context, rootVal) {
     var urRoot = this._urRoot;
     var prop = urRoot.name;
     var attribute = urRoot.type === "attributeRef";
@@ -3471,13 +3471,13 @@ var PossessiveExpression = class _PossessiveExpression extends Expression {
         }
       }
       var propertyAccess = new _PossessiveExpression(root, attribute || style, prop);
-      return parser.kernel.parseElement("indirectExpression", parser.tokens, propertyAccess);
+      return parser.kernel.parseElement("indirectExpression", parser, propertyAccess);
     }
   }
   /**
    * Op function for possessive
    */
-  op(context, rootVal) {
+  resolve(context, rootVal) {
     if (this.attribute) {
       var value;
       if (this.attribute.type === "computedStyleRef") {
@@ -3516,12 +3516,12 @@ var InExpression = class _InExpression extends Expression {
     if (!parser.matchToken("in")) return;
     var target = parser.requireElement("unaryExpression");
     var inExpression = new _InExpression(root, target);
-    return parser.kernel.parseElement("indirectExpression", parser.tokens, inExpression);
+    return parser.kernel.parseElement("indirectExpression", parser, inExpression);
   }
   /**
    * Op function for in expression
    */
-  op(context, rootVal, target) {
+  resolve(context, rootVal, target) {
     var returnArr = [];
     if (rootVal.css) {
       context.meta.runtime.implicitLoop(target, function(targetElt) {
@@ -3576,12 +3576,12 @@ var AsExpression = class _AsExpression extends Expression {
     parser.matchToken("a") || parser.matchToken("an");
     var conversion = parser.requireElement("dotOrColonPath").evaluate();
     var asExpression = new _AsExpression(root, conversion);
-    return parser.kernel.parseElement("indirectExpression", parser.tokens, asExpression);
+    return parser.kernel.parseElement("indirectExpression", parser, asExpression);
   }
   /**
    * Op function for as expression
    */
-  op(context, rootVal) {
+  resolve(context, rootVal) {
     return context.meta.runtime.convertValue(rootVal, this.conversion);
   }
   /**
@@ -3621,12 +3621,12 @@ var FunctionCall = class _FunctionCall extends Expression {
     } else {
       functionCall = new _FunctionCall(root, args, [root, args], false);
     }
-    return parser.kernel.parseElement("indirectExpression", parser.tokens, functionCall);
+    return parser.kernel.parseElement("indirectExpression", parser, functionCall);
   }
   /**
    * Op function for function call
    */
-  op(context, firstArg, argVals) {
+  resolve(context, firstArg, argVals) {
     if (this._isMethodCall) {
       var rootRoot = firstArg;
       context.meta.runtime.nullCheck(rootRoot, this._parseRoot.root);
@@ -3673,7 +3673,7 @@ var AttributeRefAccess = class _AttributeRefAccess extends Expression {
   /**
    * Op function for attribute ref access
    */
-  op(_ctx, rootVal) {
+  resolve(_ctx, rootVal) {
     var value = _ctx.meta.runtime.resolveAttribute(rootVal, this.attribute.name);
     return value;
   }
@@ -3740,12 +3740,12 @@ var ArrayIndex = class _ArrayIndex extends Expression {
     }
     parser.requireOpToken("]");
     var arrayIndex = new _ArrayIndex(root, firstIndex, secondIndex, andBefore, andAfter);
-    return parser.kernel.parseElement("indirectExpression", parser.tokens, arrayIndex);
+    return parser.kernel.parseElement("indirectExpression", parser, arrayIndex);
   }
   /**
    * Op function for array index
    */
-  op(_ctx, root, firstIndex, secondIndex) {
+  resolve(_ctx, root, firstIndex, secondIndex) {
     if (root == null) {
       return null;
     }
@@ -3806,7 +3806,7 @@ var MathOperator = class _MathOperator extends Expression {
   /**
    * Op function for math operations
    */
-  op(context, lhsVal, rhsVal) {
+  resolve(context, lhsVal, rhsVal) {
     if (this.operator === "+") {
       return lhsVal + rhsVal;
     } else if (this.operator === "-") {
@@ -3963,7 +3963,7 @@ var ComparisonOperator = class _ComparisonOperator extends Expression {
   /**
    * Op function for comparison operations
    */
-  op(context, lhsVal, rhsVal) {
+  resolve(context, lhsVal, rhsVal) {
     const operator = this.operator;
     const lhs = this.lhs;
     const rhs = this.rhs;
@@ -4076,7 +4076,7 @@ var LogicalOperator = class _LogicalOperator extends Expression {
   /**
    * Op function for logical operations
    */
-  op(context, lhsVal, rhsVal) {
+  resolve(context, lhsVal, rhsVal) {
     if (this.operator === "and") {
       return lhsVal && rhsVal;
     } else {
@@ -4127,11 +4127,10 @@ var AsyncExpression = class _AsyncExpression extends Expression {
    * @returns {{asyncWrapper: boolean, value: any}}
    */
   // TODO - Why is this not using op?
-  evaluate(context) {
+  resolve(ctx) {
     return {
       asyncWrapper: true,
-      value: this.value.evaluate(context)
-      //OK
+      value: this.value.evaluate(ctx)
     };
   }
 };
@@ -4143,7 +4142,10 @@ var DotOrColonPathNode = class extends Expression {
     this.separator = separator;
   }
   // TODO - Why is this not using op?
-  evaluate() {
+  evaluate(context) {
+    return this.resolve(context);
+  }
+  resolve(context) {
     return this.path.join(this.separator ? this.separator : "");
   }
 };
@@ -4305,7 +4307,8 @@ var StringLiteral = class _StringLiteral extends Expression {
       const Tokenizer2 = parser.kernel.constructor.Tokenizer || ((_b = (_a = window._hyperscript) == null ? void 0 : _a.internals) == null ? void 0 : _b.Tokenizer);
       if (Tokenizer2) {
         var innerTokens = Tokenizer2.tokenize(rawValue, true);
-        args = parser.kernel.parseStringTemplate(innerTokens);
+        var innerParser = new parser.constructor(parser.kernel, innerTokens);
+        args = parser.kernel.parseStringTemplate(innerParser);
       } else {
         args = [];
       }
@@ -4317,7 +4320,7 @@ var StringLiteral = class _StringLiteral extends Expression {
   /**
    * Op function for template strings
    */
-  op(context) {
+  resolve(context) {
     var returnStr = "";
     for (var i = 1; i < arguments.length; i++) {
       var val = arguments[i];
@@ -4367,7 +4370,7 @@ var ArrayLiteral = class _ArrayLiteral extends Expression {
   /**
    * Op function for array literal
    */
-  op(context, values) {
+  resolve(context, values) {
     return values;
   }
 };
@@ -4404,7 +4407,7 @@ var ObjectKey = class _ObjectKey extends Expression {
   /**
    * Op function for computed keys
    */
-  op(ctx, expr) {
+  resolve(ctx, expr) {
     return expr;
   }
   /**
@@ -4452,7 +4455,7 @@ var ObjectLiteral = class _ObjectLiteral extends Expression {
   /**
    * Op function for object literal
    */
-  op(context, keys, values) {
+  resolve(context, keys, values) {
     var returnVal = {};
     for (var i = 0; i < keys.length; i++) {
       returnVal[keys[i]] = values[i];
@@ -4500,7 +4503,7 @@ var NamedArgumentList = class _NamedArgumentList extends Expression {
   /**
    * Op function for named arguments
    */
-  op(context, values) {
+  resolve(context, values) {
     var returnVal = { _namedArgList_: true };
     for (var i = 0; i < values.length; i++) {
       var field = this.fields[i];
@@ -4554,7 +4557,7 @@ var NoExpression = class _NoExpression extends Expression {
   /**
    * Op function for no expression
    */
-  op(context, val) {
+  resolve(context, val) {
     return context.meta.runtime.isEmpty(val);
   }
 };
@@ -4578,7 +4581,7 @@ var SomeExpression = class _SomeExpression extends Expression {
   /**
    * Op function for some expression
    */
-  op(context, val) {
+  resolve(context, val) {
     return !context.meta.runtime.isEmpty(val);
   }
 };
@@ -4694,7 +4697,7 @@ var RelativePositionalExpression = class _RelativePositionalExpression extends E
   /**
    * Op function for relative positional
    */
-  op(context, thing, from, inElt, withinElt) {
+  resolve(context, thing, from, inElt, withinElt) {
     var css = thing.css;
     if (css == null) {
       throw "Expected a CSS value to be returned by " + Tokens.sourceFor.apply(this.thingElt);
@@ -4746,7 +4749,7 @@ var PositionalExpression = class _PositionalExpression extends Expression {
   /**
    * Op function for positional
    */
-  op(context, rhsVal) {
+  resolve(context, rhsVal) {
     if (rhsVal && !Array.isArray(rhsVal)) {
       if (rhsVal.children) {
         rhsVal = rhsVal.children;
@@ -4780,7 +4783,7 @@ var ClosestExprNode = class extends Expression {
     this.to = to;
     this.args = [to];
   }
-  op(ctx, to) {
+  resolve(ctx, to) {
     if (to == null) {
       return null;
     } else {
@@ -4877,7 +4880,7 @@ var StringPostfixExpressionNode = class extends Expression {
     this.postfix = postfix;
     this.args = [root];
   }
-  op(context, val) {
+  resolve(context, val) {
     return "" + val + this.postfix;
   }
 };
@@ -4902,7 +4905,7 @@ var TimeExpressionNode = class extends Expression {
     this.factor = timeFactor;
     this.args = [root];
   }
-  op(context, val) {
+  resolve(context, val) {
     return val * this.factor;
   }
 };
@@ -4932,7 +4935,7 @@ var TypeCheckExpressionNode = class extends Expression {
     this.nullOk = nullOk;
     this.args = [root];
   }
-  op(context, val) {
+  resolve(context, val) {
     var passed = context.meta.runtime.typeCheck(val, this.typeName.value, this.nullOk);
     if (passed) {
       return val;
@@ -4966,7 +4969,7 @@ var IncrementOperation = class extends Expression {
     this.amountExpr = amountExpr;
     this.args = [target, amountExpr];
   }
-  op(context, targetValue, amount) {
+  resolve(context, targetValue, amount) {
     targetValue = targetValue ? parseFloat(targetValue) : 0;
     amount = this.amountExpr ? parseFloat(amount) : 1;
     var newValue = targetValue + amount;
@@ -4982,7 +4985,7 @@ var DecrementOperation = class extends Expression {
     this.amountExpr = amountExpr;
     this.args = [target, amountExpr];
   }
-  op(context, targetValue, amount) {
+  resolve(context, targetValue, amount) {
     targetValue = targetValue ? parseFloat(targetValue) : 0;
     amount = this.amountExpr ? parseFloat(amount) : 1;
     var newValue = targetValue - amount;
@@ -4996,7 +4999,7 @@ function putInto(context, root, prop, valueToPut) {
   } else {
     var value = root;
   }
-  if (value instanceof Element || value instanceof HTMLDocument) {
+  if ((root == null || prop == null) && (value instanceof Element || value instanceof Document)) {
     while (value.firstChild) value.removeChild(value.firstChild);
     value.append(context.meta.runtime.convertValue(valueToPut, "Fragment"));
     context.meta.runtime.processNode(value);
@@ -5020,7 +5023,7 @@ var BaseSetterCommand = class _BaseSetterCommand extends Command {
     this.arrayWrite = target.type === "arrayIndex";
     this.args = [rootElt, prop, value];
   }
-  op(context, root, prop, valueToSet) {
+  resolve(context, root, prop, valueToSet) {
     if (this.symbolWrite) {
       context.meta.runtime.setSymbol(this.target.name, context, this.target.scope, valueToSet);
     } else {
@@ -5061,7 +5064,8 @@ var BaseSetterCommand = class _BaseSetterCommand extends Command {
     var attributeWrite = target.type === "attributeRef";
     var styleWrite = target.type === "styleRef";
     var arrayWrite = target.type === "arrayIndex";
-    if (!(attributeWrite || styleWrite || symbolWrite) && target.root == null) {
+    var refWrite = target.type === "idRef" || target.type === "queryRef" || target.type === "classRef";
+    if (!(attributeWrite || styleWrite || symbolWrite || refWrite) && target.root == null) {
       parser.raiseParseError("Can only put directly into symbols, not references");
     }
     var rootElt = null;
@@ -5114,14 +5118,14 @@ var _SetCommand = class _SetCommand extends BaseSetterCommand {
     var value = parser.requireElement("expression");
     return BaseSetterCommand.makeSetter(parser, target, value, _SetCommand);
   }
-  op(context, root, prop, valueToSet) {
+  resolve(context, root, prop, valueToSet) {
     if (this.objectLiteral) {
       var obj = root;
       var target = prop;
       Object.assign(target, obj);
       return context.meta.runtime.findNext(this, context);
     } else {
-      return super.op(context, root, prop, valueToSet);
+      return super.resolve(context, root, prop, valueToSet);
     }
   }
 };
@@ -5142,7 +5146,12 @@ var _DefaultCommand = class _DefaultCommand extends Command {
    */
   static parse(parser) {
     if (!parser.matchToken("default")) return;
-    var target = parser.requireElement("assignableExpression");
+    try {
+      parser.pushFollow("to");
+      var target = parser.requireElement("assignableExpression");
+    } finally {
+      parser.popFollow();
+    }
     parser.requireToken("to");
     var value = parser.requireElement("expression");
     var setter = BaseSetterCommand.makeSetter(parser, target, value, SetCommand);
@@ -5150,7 +5159,7 @@ var _DefaultCommand = class _DefaultCommand extends Command {
     setter.parent = defaultCmd;
     return defaultCmd;
   }
-  op(context, targetValue) {
+  resolve(context, targetValue) {
     if (targetValue) {
       return context.meta.runtime.findNext(this, context);
     } else {
@@ -5177,6 +5186,7 @@ var _IncrementCommand = class _IncrementCommand extends BaseSetterCommand {
     return BaseSetterCommand.makeSetter(parser, target, implicitIncrementOp, _IncrementCommand);
   }
 };
+// <- May be issue in here?
 __publicField(_IncrementCommand, "keyword", "increment");
 var IncrementCommand = _IncrementCommand;
 var _DecrementCommand = class _DecrementCommand extends BaseSetterCommand {
@@ -5188,7 +5198,12 @@ var _DecrementCommand = class _DecrementCommand extends BaseSetterCommand {
   static parse(parser) {
     if (!parser.matchToken("decrement")) return;
     var amountExpr;
-    var target = parser.parseElement("assignableExpression");
+    try {
+      parser.pushFollow("by");
+      var target = parser.parseElement("assignableExpression");
+    } finally {
+      parser.popFollow();
+    }
     if (parser.matchToken("by")) {
       amountExpr = parser.requireElement("expression");
     }
@@ -5261,7 +5276,7 @@ var _PutCommand = class _PutCommand extends Command {
     }
     return new _PutCommand(target, operation, value, rootExpr);
   }
-  op(context, root, prop, valueToPut) {
+  resolve(context, root, prop, valueToPut) {
     if (this.symbolWrite) {
       putInto(context, root, prop, valueToPut);
     } else {
@@ -5309,7 +5324,7 @@ var ImplicitResultSymbol = class extends Expression {
     super();
     this.type = "symbol";
   }
-  evaluate(context) {
+  resolve(context) {
     return context.meta.runtime.resolveSymbol("result", context);
   }
 };
@@ -5318,7 +5333,7 @@ var ExitOperation = class extends Command {
     super();
     this.args = [void 0];
   }
-  op(context, value) {
+  resolve(context, value) {
     var resolve = context.meta.resolve;
     context.meta.returned = true;
     context.meta.returnValue = value;
@@ -5338,7 +5353,7 @@ var MakeQueryRefCommand = class extends Command {
     this.expr = expr;
     this.target = target;
   }
-  op(ctx) {
+  resolve(ctx) {
     var match, tagname = "div", id, classes = [];
     var re = /(?:(^|#|\.)([^#\. ]+))/g;
     while (match = re.exec(this.expr.css)) {
@@ -5367,7 +5382,7 @@ var MakeConstructorCommand = class extends Command {
     this.target = target;
     this.args = [expr, args];
   }
-  op(ctx, expr, args) {
+  resolve(ctx, expr, args) {
     ctx.result = varargConstructor(expr, args);
     if (this.target) {
       ctx.meta.runtime.setSymbol(this.target.name, ctx, this.target.scope, ctx.result);
@@ -5401,7 +5416,7 @@ var _LogCommand = class _LogCommand extends Command {
   /**
    * Execute log command
    */
-  op(ctx, withExpr, values) {
+  resolve(ctx, withExpr, values) {
     if (withExpr) {
       withExpr.apply(null, values);
     } else {
@@ -5434,7 +5449,7 @@ var _BeepCommand = class _BeepCommand extends Command {
   /**
    * Execute beep command
    */
-  op(ctx, values) {
+  resolve(ctx, values) {
     for (let i = 0; i < this.exprs.length; i++) {
       const expr = this.exprs[i];
       const val = values[i];
@@ -5464,7 +5479,7 @@ var _ThrowCommand = class _ThrowCommand extends Command {
   /**
    * Execute throw command
    */
-  op(ctx, expr) {
+  resolve(ctx, expr) {
     ctx.meta.runtime.registerHyperTrace(ctx, expr);
     throw expr;
   }
@@ -5494,7 +5509,7 @@ var _ReturnCommand = class _ReturnCommand extends Command {
   /**
    * Execute return command
    */
-  op(context, value) {
+  resolve(context, value) {
     var resolve = context.meta.resolve;
     context.meta.returned = true;
     context.meta.returnValue = value;
@@ -5527,7 +5542,7 @@ var _ExitCommand = class _ExitCommand extends Command {
   /**
    * Execute exit command
    */
-  op(context, value) {
+  resolve(context, value) {
     var resolve = context.meta.resolve;
     context.meta.returned = true;
     context.meta.returnValue = value;
@@ -5576,7 +5591,7 @@ var _HaltCommand = class _HaltCommand extends Command {
   /**
    * Execute halt command
    */
-  op(ctx) {
+  resolve(ctx) {
     if (ctx.event) {
       if (this.bubbling) {
         ctx.event.stopPropagation();
@@ -5656,7 +5671,7 @@ var _AppendCommand = class _AppendCommand extends Command {
     }
     return command;
   }
-  op(context, target, value) {
+  resolve(context, target, value) {
     if (Array.isArray(target)) {
       target.push(value);
       return context.meta.runtime.findNext(this, context);
@@ -5700,7 +5715,7 @@ var PickCommandRange = class extends Command {
     this.args = [root, range.from, range.to];
     this.range = range;
   }
-  op(ctx, root, from, to) {
+  resolve(ctx, root, from, to) {
     if (this.range.toEnd) to = root.length;
     if (!this.range.includeStart) from++;
     if (this.range.includeEnd) to++;
@@ -5716,7 +5731,7 @@ var PickCommandMatch = class extends Command {
     this.args = [root, re];
     this.flags = flags;
   }
-  op(ctx, root, re) {
+  resolve(ctx, root, re) {
     ctx.result = new RegExp(re, this.flags).exec(root);
     return ctx.meta.runtime.findNext(this, ctx);
   }
@@ -5728,7 +5743,7 @@ var PickCommandMatches = class extends Command {
     this.args = [root, re];
     this.flags = flags;
   }
-  op(ctx, root, re) {
+  resolve(ctx, root, re) {
     ctx.result = new RegExpIterable(re, this.flags, root);
     return ctx.meta.runtime.findNext(this, ctx);
   }
@@ -5799,7 +5814,7 @@ var FetchCommandNode = class extends Command {
     this.conversionType = type;
     this.conversion = conversion;
   }
-  op(context, url, args) {
+  resolve(context, url, args) {
     const type = this.conversionType;
     const conversion = this.conversion;
     const fetchCmd = this;
@@ -5897,7 +5912,7 @@ var GoCommandNode = class extends Command {
     this.plusOrMinus = plusOrMinus;
     this.scrollOptions = scrollOptions;
   }
-  op(ctx, to, offset) {
+  resolve(ctx, to, offset) {
     if (this.back) {
       window.history.back();
     } else if (this.url) {
@@ -6037,7 +6052,7 @@ var WaitCommandEvent = class extends Command {
     this.on = on;
     this.args = [on];
   }
-  op(context, on) {
+  resolve(context, on) {
     const events = this.event;
     var target = on ? on : context.me;
     if (!(target instanceof EventTarget))
@@ -6045,11 +6060,11 @@ var WaitCommandEvent = class extends Command {
     return new Promise((resolve) => {
       var resolved = false;
       for (const eventInfo of events) {
-        var listener = (event) => {
-          context.result = event;
+        var listener = (evt) => {
+          context.result = evt;
           if (eventInfo.args) {
             for (const arg of eventInfo.args) {
-              context.locals[arg.value] = event[arg.value] || (event.detail ? event.detail[arg.value] : null);
+              context.locals[arg.value] = evt[arg.value] || (evt.detail ? evt.detail[arg.value] : null);
             }
           }
           if (!resolved) {
@@ -6059,8 +6074,9 @@ var WaitCommandEvent = class extends Command {
         };
         if (eventInfo.name) {
           target.addEventListener(eventInfo.name, listener, { once: true });
-        } else if (eventInfo.time != null) {
-          setTimeout(listener, eventInfo.time, eventInfo.time);
+        } else {
+          const timeValue = eventInfo.evaluate(context);
+          setTimeout(listener, timeValue, timeValue);
         }
       }
     });
@@ -6073,7 +6089,7 @@ var WaitCommandTime = class extends Command {
     this.time = time;
     this.args = [time];
   }
-  op(context, timeValue) {
+  resolve(context, timeValue) {
     return new Promise((resolve) => {
       setTimeout(() => {
         resolve(context.meta.runtime.findNext(this, context));
@@ -6095,10 +6111,7 @@ var WaitCommand = class {
       do {
         var lookahead = parser.token(0);
         if (lookahead.type === "NUMBER" || lookahead.type === "L_PAREN") {
-          events.push({
-            time: parser.requireElement("expression").evaluate()
-            // TODO: do we want to allow async here?
-          });
+          events.push(parser.requireElement("expression"));
         } else {
           events.push({
             name: parser.requireElement("dotOrColonPath", "Expected event name").evaluate(),
@@ -6149,7 +6162,7 @@ var _SendCommand = class _SendCommand extends Command {
     }
     return new _SendCommand(eventName, details, toExpr);
   }
-  op(context, to, eventName, details) {
+  resolve(context, to, eventName, details) {
     context.meta.runtime.nullCheck(to, this.toExpr);
     context.meta.runtime.implicitLoop(to, function(target) {
       context.meta.runtime.triggerEvent(target, eventName, details, context.me);
@@ -6208,7 +6221,7 @@ var WaitATick = class extends Command {
     super();
     this.type = "waitATick";
   }
-  op(context) {
+  resolve(context) {
     const self2 = this;
     return new Promise(function(resolve) {
       setTimeout(function() {
@@ -6236,7 +6249,7 @@ var RepeatLoopCommand = class extends Command {
   resolveNext() {
     return this;
   }
-  op(context, whileValue, times) {
+  resolve(context, whileValue, times) {
     var iteratorInfo = context.meta.iterators[this.slot];
     var keepLooping = false;
     var loopVal = null;
@@ -6285,7 +6298,7 @@ var RepeatInitCommand = class extends Command {
     this.repeatLoopCommand = repeatLoopCommand;
     this.args = [expression, evt, on];
   }
-  op(context, value, event, on) {
+  resolve(context, value, event, on) {
     var iteratorInfo = {
       index: 0,
       value,
@@ -6351,7 +6364,7 @@ var _IfCommand = class _IfCommand extends Command {
     parser.setParent(falseBranch, ifCmd);
     return ifCmd;
   }
-  op(context, exprValue) {
+  resolve(context, exprValue) {
     if (exprValue) {
       return this.trueBranch;
     } else if (this.falseBranch) {
@@ -6480,7 +6493,7 @@ var _ContinueCommand = class _ContinueCommand extends Command {
     if (!parser.matchToken("continue")) return;
     return new _ContinueCommand(parser);
   }
-  op(context) {
+  resolve(context) {
     for (var parent = this.parent; true; parent = parent.parent) {
       if (parent == void 0) {
         this.parser.raiseParseError("Command `continue` cannot be used outside of a `repeat` loop.");
@@ -6508,7 +6521,7 @@ var _BreakCommand = class _BreakCommand extends Command {
     if (!parser.matchToken("break")) return;
     return new _BreakCommand(parser);
   }
-  op(context) {
+  resolve(context) {
     for (var parent = this.parent; true; parent = parent.parent) {
       if (parent == void 0) {
         this.parser.raiseParseError("Command `break` cannot be used outside of a `repeat` loop.");
@@ -6562,7 +6575,7 @@ var _TellCommand = class _TellCommand extends Command {
       }
     }
   }
-  op(context, value) {
+  resolve(context, value) {
     if (value == null) {
       value = [];
     } else if (!(Array.isArray(value) || value instanceof NodeList)) {
@@ -6649,7 +6662,7 @@ var _JsCommand = class _JsCommand extends Command {
     var func = varargConstructor(Function, inputs.concat([jsBody.jsSource]));
     return new _JsCommand(jsBody.jsSource, func, inputs);
   }
-  op(context) {
+  resolve(context) {
     var args = [];
     this.inputs.forEach((input) => {
       args.push(context.meta.runtime.resolveSymbol(input, context, "default"));
@@ -6696,7 +6709,7 @@ var _AsyncCommand = class _AsyncCommand extends Command {
     parser.setParent(body, command);
     return command;
   }
-  op(context) {
+  resolve(context) {
     setTimeout(() => {
       this.body.execute(context);
     });
@@ -6725,7 +6738,7 @@ var _CallCommand = class _CallCommand extends Command {
     }
     return new _CallCommand(expr);
   }
-  op(context, result) {
+  resolve(context, result) {
     context.result = result;
     return context.meta.runtime.findNext(this, context);
   }
@@ -6749,7 +6762,7 @@ var _GetCommand = class _GetCommand extends Command {
     var expr = parser.requireElement("expression");
     return new _GetCommand(expr);
   }
-  op(context, result) {
+  resolve(context, result) {
     context.result = result;
     return context.meta.runtime.findNext(this, context);
   }
@@ -6768,7 +6781,7 @@ var PseudoCommandWithTarget = class extends Command {
     this._root = root;
     this._realRoot = realRoot;
   }
-  op(context, rootRoot, args) {
+  resolve(context, rootRoot, args) {
     context.meta.runtime.nullCheck(rootRoot, this._realRoot);
     var func = rootRoot[this._root.root.name];
     context.meta.runtime.nullCheck(func, this._root);
@@ -6786,7 +6799,7 @@ var PseudoCommandSimple = class extends Command {
     this.expr = expr;
     this.args = [expr];
   }
-  op(context, result) {
+  resolve(context, result) {
     context.result = result;
     return context.meta.runtime.findNext(this, context);
   }
@@ -6930,7 +6943,7 @@ var AddCommandClass = class extends Command {
     this.when = when;
     this.toExpr = toExpr;
   }
-  op(context, to, classRefs) {
+  resolve(context, to, classRefs) {
     const when = this.when;
     const toExpr = this.toExpr;
     context.meta.runtime.nullCheck(to, toExpr);
@@ -6963,7 +6976,7 @@ var AddCommandAttribute = class extends Command {
     this.when = when;
     this.toExpr = toExpr;
   }
-  op(context, to, attrRef) {
+  resolve(context, to, attrRef) {
     const when = this.when;
     const attributeRef = this.attributeRef;
     const toExpr = this.toExpr;
@@ -6994,7 +7007,7 @@ var AddCommandCSS = class extends Command {
     this.args = [toExpr, cssDeclaration];
     this.toExpr = toExpr;
   }
-  op(context, to, css) {
+  resolve(context, to, css) {
     context.meta.runtime.nullCheck(to, this.toExpr);
     context.meta.runtime.implicitLoop(to, function(target) {
       target.style.cssText += css;
@@ -7051,7 +7064,7 @@ var RemoveCommandElement = class extends Command {
     this.from = fromExpr;
     this.args = [elementExpr, fromExpr];
   }
-  op(context, element, from) {
+  resolve(context, element, from) {
     context.meta.runtime.nullCheck(element, this.elementExpr);
     context.meta.runtime.implicitLoop(element, function(target) {
       if (target.parentElement && (from == null || from.contains(target))) {
@@ -7071,7 +7084,7 @@ var RemoveCommandClassOrAttr = class extends Command {
     this.args = [classRefs, fromExpr];
     this.fromExpr = fromExpr;
   }
-  op(context, classRefs, from) {
+  resolve(context, classRefs, from) {
     const attributeRef = this.attributeRef;
     const fromExpr = this.fromExpr;
     context.meta.runtime.nullCheck(from, fromExpr);
@@ -7241,7 +7254,7 @@ var _ToggleCommand = class _ToggleCommand extends Command {
       });
     }
   }
-  op(context, on, time, evt, from, classRef, classRef2, classRefs) {
+  resolve(context, on, time, evt, from, classRef, classRef2, classRefs) {
     if (time) {
       return new Promise((resolve) => {
         this.toggle(context, on, classRef, classRef2, classRefs);
@@ -7293,7 +7306,7 @@ var _HideCommand = class _HideCommand extends Command {
     var hideShowStrategy = resolveHideShowStrategy(parser, name);
     return new _HideCommand(targetExpr, hideShowStrategy);
   }
-  op(ctx, target) {
+  resolve(ctx, target) {
     ctx.meta.runtime.nullCheck(target, this.targetExpr);
     ctx.meta.runtime.implicitLoop(target, (elt) => {
       this.hideShowStrategy("hide", elt, null, ctx.meta.runtime);
@@ -7338,7 +7351,7 @@ var _ShowCommand = class _ShowCommand extends Command {
     var hideShowStrategy = resolveHideShowStrategy(parser, name);
     return new _ShowCommand(targetExpr, when, arg, hideShowStrategy);
   }
-  op(ctx, target) {
+  resolve(ctx, target) {
     ctx.meta.runtime.nullCheck(target, this.targetExpr);
     ctx.meta.runtime.implicitLoop(target, (elt) => {
       if (this.when) {
@@ -7390,7 +7403,7 @@ var TakeCommandClass = class extends Command {
     this.forExpr = forExpr;
     this.args = [classRefs, fromExpr, forExpr];
   }
-  op(context, classRefs, from, forElt) {
+  resolve(context, classRefs, from, forElt) {
     context.meta.runtime.nullCheck(forElt, this.forExpr);
     context.meta.runtime.implicitLoop(classRefs, (classRef) => {
       var clazz = classRef.className;
@@ -7422,7 +7435,7 @@ var TakeCommandAttribute = class extends Command {
     this.replacementValue = replacementValue;
     this.args = [fromExpr, forExpr, replacementValue];
   }
-  op(context, from, forElt, replacementValue) {
+  resolve(context, from, forElt, replacementValue) {
     context.meta.runtime.nullCheck(from, this.fromExpr);
     context.meta.runtime.nullCheck(forElt, this.forExpr);
     context.meta.runtime.implicitLoop(from, (target) => {
@@ -7503,7 +7516,7 @@ var _MeasureCommand = class _MeasureCommand extends Command {
       } while (parser.matchOpToken(","));
     return new _MeasureCommand(targetExpr, propsToMeasure);
   }
-  op(ctx, target) {
+  resolve(ctx, target) {
     ctx.meta.runtime.nullCheck(target, this.targetExpr);
     if (0 in target) target = target[0];
     var rect = target.getBoundingClientRect();
@@ -7606,7 +7619,7 @@ var _SettleCommand = class _SettleCommand extends Command {
       return new _SettleCommand(onExpr);
     }
   }
-  op(context, on) {
+  resolve(context, on) {
     context.meta.runtime.nullCheck(on, this.onExpr);
     var resolve = null;
     var resolved = false;
@@ -7695,7 +7708,7 @@ var _TransitionCommand = class _TransitionCommand extends Command {
       return new _TransitionCommand(targetsExpr, to, properties, from, usingExpr, over);
     }
   }
-  op(context, targets, properties, from, to, using, over) {
+  resolve(context, targets, properties, from, to, using, over) {
     context.meta.runtime.nullCheck(targets, this.targetsExpr);
     var promises = [];
     context.meta.runtime.implicitLoop(targets, (target) => {
@@ -7930,7 +7943,7 @@ var BehaviorInstallOperation = class extends Expression {
     this.installSource = source;
     this.runtime = runtime2;
   }
-  op(ctx, args) {
+  resolve(ctx, args) {
     var behavior = this.runtime.globalScope;
     for (var i = 0; i < this.behaviorNamespace.length; i++) {
       behavior = behavior[this.behaviorNamespace[i]];
@@ -8368,7 +8381,10 @@ var _OnFeature = class _OnFeature extends Feature {
           } while (parser.matchToken("and"));
         }
       } else if (eventName === "mutation") {
-        mutationSpec = {};
+        mutationSpec = {
+          attributeOldValue: true,
+          characterDataOldValue: true
+        };
         if (parser.matchToken("of")) {
           do {
             if (parser.matchToken("anything")) {
@@ -8380,12 +8396,10 @@ var _OnFeature = class _OnFeature extends Feature {
               mutationSpec["childList"] = true;
             } else if (parser.matchToken("attributes")) {
               mutationSpec["attributes"] = true;
-              mutationSpec["attributeOldValue"] = true;
             } else if (parser.matchToken("subtree")) {
               mutationSpec["subtree"] = true;
             } else if (parser.matchToken("characterData")) {
               mutationSpec["characterData"] = true;
-              mutationSpec["characterDataOldValue"] = true;
             } else if (parser.currentToken().type === "ATTRIBUTE_REF") {
               var attribute = parser.consumeToken();
               if (mutationSpec["attributeFilter"] == null) {
