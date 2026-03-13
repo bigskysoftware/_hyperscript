@@ -7,7 +7,7 @@ title: toggle - ///_hyperscript
 ### Syntax
 
 ```ebnf
-toggle ({<class-ref>} | <attribute-ref> | between <class-ref> and <class-ref>)
+toggle ({<class-ref>} | <attribute-ref> | between (<class-ref> | <attribute-ref>) and (<class-ref> | <attribute-ref>))
  [on <expression>]
   [(for <time expression>) |
    (until <event name> [from <expression>]]`
@@ -31,7 +31,7 @@ The `toggle` command allows you to toggle:
 on either the current element or, if a [target expression](/expressions)
 is provided, to the targeted element(s).
 
-You can use the form `toggle between .class1 and .class2` to flip between two classes.
+You can use the form `toggle between .class1 and .class2` to flip between two classes, or `toggle between [@attr1='value1'] and [@attr2='value2']` to flip between attributes.
 
 If you provide a `for <time expression>` the class or attribute will be toggled for that amount of time.
 
@@ -55,6 +55,14 @@ If you provide an `until <event name>` the class or attribute will be toggled un
 
 <button _="on click toggle between .enabled and .disabled">
   Toggle Me!
+</button>
+
+<button _="on click toggle between [@data-state='active'] and [@data-state='inactive']">
+  Toggle State!
+</button>
+
+<button _="on click toggle between [@enabled='true'] and [@disabled='true']">
+  Toggle Attributes!
 </button>
 
 <button _="on click toggle *display on the next <div/>">

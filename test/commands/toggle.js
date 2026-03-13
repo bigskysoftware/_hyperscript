@@ -196,4 +196,25 @@ describe("the toggle command", function () {
 		form.click();
 		form.classList.contains("group-[:nth-of-type(3)_&]:block").should.equal(false);
 	});
+
+	it("can toggle between two attribute values", function () {
+		var div = make("<div data-state='active' _='on click toggle between [@data-state=\"active\"] and [@data-state=\"inactive\"]'></div>");
+		div.getAttribute("data-state").should.equal("active");
+		div.click();
+		div.getAttribute("data-state").should.equal("inactive");
+		div.click();
+		div.getAttribute("data-state").should.equal("active");
+	});
+
+	it("can toggle between different attributes", function () {
+		var div = make("<div enabled='true' _='on click toggle between [@enabled=\"true\"] and [@disabled=\"true\"]'></div>");
+		div.getAttribute("enabled").should.equal("true");
+		div.hasAttribute("disabled").should.equal(false);
+		div.click();
+		div.hasAttribute("enabled").should.equal(false);
+		div.getAttribute("disabled").should.equal("true");
+		div.click();
+		div.getAttribute("enabled").should.equal("true");
+		div.hasAttribute("disabled").should.equal(false);
+	});
 });
