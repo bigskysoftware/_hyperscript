@@ -23,7 +23,11 @@
     "_hyperscript": "src/node-hyperscript.js"
   },
   "scripts": {
-    "test": "mocha-chrome test/index.html",
+    "test": "npm run test:chrome",
+    "test:chrome": "web-test-runner --config web-test-runner.config.mjs --playwright --browsers chromium",
+    "test:firefox": "web-test-runner --config web-test-runner.config.mjs --playwright --browsers firefox",
+    "test:webkit": "web-test-runner --config web-test-runner.config.mjs --playwright --browsers webkit",
+    "test:all": "web-test-runner --config web-test-runner.config.mjs --playwright --browsers chromium firefox webkit --concurrency 1",
     "dist": "cp -r src/* dist/ && npm run-script terser && npm run-script typings && gzip -k -f dist/_hyperscript.min.js > dist/_hyperscript.min.js.gz && exit",
     "typings": "npx tsc --declaration dist/_hyperscript.js --allowJs --emitDeclarationOnly --skipLibCheck",
     "www": "node scripts/www.js",
@@ -35,6 +39,8 @@
   },
   "devDependencies": {
     "@11ty/eleventy": "^3.1.2",
+    "@web/test-runner": "^0.20.2",
+    "@web/test-runner-playwright": "^0.11.1",
     "chai": "^4.2.0",
     "fs-extra": "^9.0.0",
     "markdown-it": "^12.3.2",
@@ -42,7 +48,6 @@
     "markdown-it-attrs": "^4.1.3",
     "markdown-it-table-of-contents": "^0.6.0",
     "mocha": "^11.7.5",
-    "mocha-chrome": "^2.2.0",
     "sinon": "^9.0.2"
   },
   "dependencies": {
