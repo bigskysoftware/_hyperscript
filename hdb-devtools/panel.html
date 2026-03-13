@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="./style.css"/>
+    <script src="vendor/_hyperscript.js"></script>
+    <script src="panel.js"></script>
+  </head>
+  <body>
+    <div class="hdb">
+
+  <header>
+    <h2 class="titlebar">HDB</h2>
+    <ul role="toolbar" class="toolbar" _="on pointerdown halt">
+      <li><button _="on click call continueExec()">
+        &#x23F5; Continue
+      </button>
+      <li><button _="on click call stepOver()">
+        &#8631; Step Over
+      </button>
+    </ul>
+  </header>
+
+  <section class="sec-code">
+
+    <div class="code-container">
+      <pre class="code language-hyperscript" _="
+        on click
+          if target matches .skip
+            get (target's @data-cmd) as Int
+            call skipTo(result)
+          end
+          if target matches .rewrite
+            set cmdNo to (target's @data-cmd) as Int
+            set span to the first <span[data-cmd='${cmdNo}'] />
+            put `<form class=rewrite><input id=cmd></form>` into the span
+          end
+        end
+
+        on submit
+          halt the event
+          get (closest @data-cmd to target) as Int
+          call hdb.rewrite(hdb.cmdMap[result], #cmd's value)
+        end
+      "><code></code></pre>
+    </div>
+  </section>
+
+  <section class="sec-console">
+
+    <ul id="console" role="list"> </ul>
+
+    <form id="console-form" data-hist="0" _="on submit
+        call evaluateExpression(#console-input's value)
+        send hdbUI:consoleEntry(input: #console-input's value) to #console
+        set #console-input's value to ''
+        set @data-hist to 0
+        set element oldContent to null
+        halt
+      end
+      on keydown[key is 'ArrowUp' or key is 'ArrowDown']
+        if no hdb.consoleHistory or exit end
+        if element oldContent is null set element oldContent to #console-input.value end
+        if event.key is 'ArrowUp' and hdb.consoleHistory.length > -@data-hist
+          decrement @data-hist
+        else if event.key is 'ArrowDown' and @data-hist < 0
+          increment @data-hist
+        end
+      end
+        
+      on input if @data-hist is '0' set element oldContent to #console-input.value">
+      <input id="console-input" placeholder="Enter an expression&hellip;"
+        autocomplete="off">
+    </form>
+  </section>
+
+  </div>
+
+  </body>
+</html>

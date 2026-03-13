@@ -1,0 +1,199 @@
+body {
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+  margin: 16px;
+  color: #333;
+}
+
+.hdb {
+  width: 100%;
+  max-height: calc(100% - 1em);
+  background-color: white;
+  font-family: sans-serif;
+  color: black;
+  display: flex;
+  flex-flow: column;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: .4em;
+}
+
+.titlebar {
+  margin: 0;
+  font-size: 1em;
+  touch-action: none;
+}
+
+.toolbar {
+  display: flex;
+  gap: .35em;
+
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.toolbar a,
+.toolbar button {
+  background: #2183ff;
+  border: 1px solid #3465a4;
+  box-shadow: 0 1px #b3c6ff inset, 0 .06em .06em #000;
+  border-radius: .2em;
+  font: inherit;
+  padding: .2em .3em;
+  color: white;
+  text-shadow: 0 1px black;
+  font-weight: bold;
+}
+
+.toolbar a:hover .toolbar a:focus,
+.toolbar button:hover,
+.toolbar button:focus {
+  background: #94c8ff;
+}
+
+.toolbar a:active,
+.toolbar button:active {
+  background: #3465a4;
+}
+
+.sec-code {
+  border-radius: .3em;
+  overflow: hidden;
+  box-shadow: 0 1px white inset, 0 .06em .06em #0008;
+  background: #bdf;
+  margin: 0 .4em;
+  border: 1px solid #3465a4;
+}
+
+.hdb h3 {
+  margin: 0;
+  font-size: 1em;
+  padding: .2em .4em 0 .4em;
+}
+
+.code-container {
+  display: grid;
+  line-height: 1.2em;
+  height: calc(12 * 1.2em);
+  border-radius: 0 0 .2em .2em;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #0003 transparent;
+}
+
+.code,
+#console,
+#console-input {
+  font-family: Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", Monaco, "Courier New", Courier, monospace;
+}
+
+.code {
+  width: 0;
+  margin: 0;
+  padding-left: 1ch;
+  tab-size: 2;
+  -moz-tab-size: 2;
+  -o-tab-size: 2;
+}
+
+.current {
+  font-weight: bold;
+  background: #abf;
+}
+
+.skip {
+  padding: 0;
+  margin: 2px;
+  border: 1px solid #3465a4;
+  border-radius: 50%;
+  color: #3465a4;
+  background: none;
+  font-weight: bold;
+  font-size: 1.2em;
+  width: calc(2ch / 1.2 - 4px);
+  height: calc(2ch / 1.2 - 4px);
+  line-height: 0.6;
+}
+
+.skip:hover {
+  background: #3465a4;
+  color: #bdf;
+}
+
+#console {
+  overflow-y: scroll;
+  scrollbar-width: thin;
+  scrollbar-color: #afc2db transparent;
+  height: calc(12 * 1.2em);
+  list-style: none;
+  padding-left: 0;
+  margin: 0 .4em .4em .4em;
+  position: relative;
+  word-wrap: break-word;
+}
+
+#console>*+* {
+  margin-top: .5em;
+}
+
+.console-entry>* {
+  display: block;
+}
+
+.console-entry .input {
+  color: #3465a4;
+}
+
+.console-entry .output {
+  color: #333;
+}
+
+.console-entry .input:before {
+  content: '>> '
+}
+
+.console-entry .output:before {
+  content: '<- '
+}
+
+#console-form {
+  margin: 0 .4em .4em .4em;
+}
+
+#console-input {
+  width: 100%;
+  font-size: inherit;
+}
+
+.token.tagname {
+  font-weight: bold;
+}
+
+.token.attr,
+.token.builtin,
+.token.italic {
+  font-style: italic;
+}
+
+.token.string {
+  opacity: .8;
+}
+
+.token.keyword {
+  color: #3465a4;
+}
+
+.token.bold,
+.token.punctuation,
+.token.operator {
+  font-weight: bold;
+}

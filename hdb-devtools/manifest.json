@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "hyperscript-debugger",
+  "version": "0.1.0",
+  "description": "DevTools extension for debugging _hyperscript",
+  "devtools_page": "devtools.html",
+  "permissions": ["scripting"],
+  "host_permissions": ["<all_urls>"],
+  "content_scripts": [{
+    "matches": ["<all_urls>"],
+    "js": ["content-script.js"],
+    "run_at": "document_start",
+    "world": "MAIN"
+  }],
+  "icons": {}
+}
