@@ -242,7 +242,7 @@ export class Context {
         this.locals = {
             cookies:CookieJar
         };
-        this.me = hyperscriptTarget,
+        this.me = hyperscriptTarget;
         this.you = undefined
         this.result = undefined
         this.event = event;

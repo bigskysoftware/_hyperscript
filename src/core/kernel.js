@@ -73,11 +73,10 @@ export class LanguageKernel {
                 return this.parseElement("indirectStatement", parser, commandElement);
             }
 
-            return commandElement;
+            return commandElement;      // returns a certain command's AST node
         });
 
 
-        //TODO: Figure out what the fuck is going on here
         this.addGrammarElement("commandList", (parser) => {
             if (parser.hasMore()) {
                 var cmd = parser.parseElement("command");
@@ -90,10 +89,10 @@ export class LanguageKernel {
             }
             return {
                 type: "emptyCommandListCommand",
-                resolve: function(context){
+                resolve(context){
                     return context.meta.runtime.findNext(this, context);
                 },
-                execute: function (context) {
+                execute(context) {
                     return context.meta.runtime.unifiedExec(this, context);
                 }
             }
@@ -331,11 +330,11 @@ export class LanguageKernel {
                     context.meta.command = commandElement;
                     return context.meta.runtime.unifiedExec(this, context);
                 };
-                return commandElement;
+                return commandElement;  // returns an AST node
             }
         };
-        this.GRAMMAR[commandGrammarType] = commandDefinitionWrapper;
-        this.COMMANDS[keyword] = commandDefinitionWrapper;
+        this.GRAMMAR[commandGrammarType] = commandDefinitionWrapper; // stores the node in the grammar
+        this.COMMANDS[keyword] = commandDefinitionWrapper;           // and in the command list
     }
 
     /**
