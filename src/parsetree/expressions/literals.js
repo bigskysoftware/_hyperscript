@@ -167,15 +167,9 @@ export class StringLiteral extends Expression {
         /** @type {any[]} */
         var args;
         if (stringToken.template) {
-            // Import Lexer from the helper's parser
-
-            if (Tokenizer) {
-                var innerTokens = Tokenizer.tokenize(rawValue, true);
-                var innerParser = new parser.constructor(parser.kernel, innerTokens);
-                args = parser.kernel.parseStringTemplate(innerParser);
-            } else {
-                args = [];
-            }
+            var innerTokens = Tokenizer.tokenize(rawValue, true);
+            var innerParser = parser.createChildParser(innerTokens);
+            args = innerParser.parseStringTemplate();
         } else {
             args = [];
         }

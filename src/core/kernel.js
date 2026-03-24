@@ -1,10 +1,20 @@
 // LanguageKernel - AST parsing for _hyperscript
 import { Tokens } from './tokenizer.js';
 import { Parser } from './parser.js';
-import { EmptyCommandListCommand, UnlessStatementModifier, HyperscriptProgram, ImplicitReturn } from '../parsetree/internals.js';
+import { EmptyCommandListCommand, UnlessStatementModifier, HyperscriptProgram } from '../parsetree/internals.js';
 import { Command, Feature } from '../parsetree/base.js';
 
 export class LanguageKernel {
+
+    GRAMMAR = {};
+    COMMANDS = {};
+    FEATURES = {};
+    LEAF_EXPRESSIONS = [];
+    INDIRECT_EXPRESSIONS = [];
+    POSTFIX_EXPRESSIONS = [];
+    UNARY_EXPRESSIONS = [];
+    TOP_EXPRESSIONS = [];
+    ASSIGNABLE_EXPRESSIONS = [];
 
     constructor() {
         // Top-level program structure
@@ -33,7 +43,7 @@ export class LanguageKernel {
             parser.requireOpToken(")");
             return featureElement;
         }
-        var featureDefinition = parser.FEATURES[parser.currentToken().value || ""];
+        var featureDefinition = this.FEATURES[parser.currentToken().value || ""];
         if (featureDefinition) {
             return featureDefinition(parser);
         }
@@ -45,7 +55,7 @@ export class LanguageKernel {
             parser.requireOpToken(")");
             return commandElement;
         }
-        var commandDefinition = parser.COMMANDS[parser.currentToken().value || ""];
+        var commandDefinition = this.COMMANDS[parser.currentToken().value || ""];
         let commandElement;
         if (commandDefinition) {
             commandElement = commandDefinition(parser);
@@ -72,7 +82,7 @@ export class LanguageKernel {
     }
 
     parseLeaf(parser) {
-        var result = parser.parseAnyOf(parser.LEAF_EXPRESSIONS);
+        var result = parser.parseAnyOf(this.LEAF_EXPRESSIONS);
         // symbol is last so it doesn't consume any constants
         if (result == null) {
             return parser.parseElement("symbol");
@@ -165,33 +175,6 @@ export class LanguageKernel {
         plugin(this)
         return this
     }
-
-    /** @type {Object<string,ParseRule>} */
-    GRAMMAR = {};
-
-    /** @type {Object<string,ParseRule>} */
-    COMMANDS = {};
-
-    /** @type {Object<string,ParseRule>} */
-    FEATURES = {};
-
-    /** @type {string[]} */
-    LEAF_EXPRESSIONS = [];
-
-    /** @type {string[]} */
-    INDIRECT_EXPRESSIONS = [];
-
-    /** @type {string[]} */
-    POSTFIX_EXPRESSIONS = [];
-
-    /** @type {string[]} */
-    UNARY_EXPRESSIONS = [];
-
-    /** @type {string[]} */
-    TOP_EXPRESSIONS = [];
-
-    /** @type {string[]} */
-    ASSIGNABLE_EXPRESSIONS = [];
 
     /**
      * @param {*} parseElement
@@ -443,7 +426,7 @@ export class LanguageKernel {
      */
     parseHyperScript(tokens) {
         var parser = new Parser(this, tokens);
-        var result = this.parseElement("hyperscript", parser);
+        var result = parser.parseElement("hyperscript");
         if (tokens.hasMore()) this.raiseParseError(tokens);
         if (result) return result;
     }
@@ -456,12 +439,12 @@ export class LanguageKernel {
     parse(tokenizer, src) {
         var tokens = tokenizer.tokenize(src);
         var parser = new Parser(this, tokens);
-        if (this.commandStart(tokens.currentToken())) {
+        if (parser.commandStart(tokens.currentToken())) {
             var commandList = this.requireElement("commandList", parser);
             if (tokens.hasMore()) LanguageKernel.raiseParseError(tokens);
-            this.ensureTerminated(commandList);
+            parser.ensureTerminated(commandList);
             return commandList;
-        } else if (this.featureStart(tokens.currentToken())) {
+        } else if (parser.featureStart(tokens.currentToken())) {
             var hyperscript = this.requireElement("hyperscript", parser);
             if (tokens.hasMore()) LanguageKernel.raiseParseError(tokens);
             return hyperscript;
@@ -472,97 +455,4 @@ export class LanguageKernel {
         }
     }
 
-    /**
-     * @param {ASTNode | undefined} elt
-     * @param {ASTNode} parent
-     */
-    setParent(elt, parent) {
-        if (typeof elt === 'object') {
-            elt.parent = parent;
-            if (typeof parent === 'object') {
-                parent.children = (parent.children || new Set());
-                parent.children.add(elt)
-            }
-            this.setParent(elt.next, parent);
-        }
-    }
-
-    /**
-     * @param {Token} token
-     * @returns {ParseRule}
-     */
-    commandStart(token) {
-        return this.COMMANDS[token.value || ""];
-    }
-
-    /**
-     * @param {Token} token
-     * @returns {ParseRule}
-     */
-    featureStart(token) {
-        return this.FEATURES[token.value || ""];
-    }
-
-    /**
-     * @param {Token} token
-     * @returns {boolean}
-     */
-    commandBoundary(token) {
-        if (
-            token.value == "end" ||
-            token.value == "then" ||
-            token.value == "else" ||
-            token.value == "otherwise" ||
-            token.value == ")" ||
-            this.commandStart(token) ||
-            this.featureStart(token) ||
-            token.type == "EOF"
-        ) {
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * @param {Parser} parser
-     * @returns {(string | ASTNode)[]}
-     */
-    parseStringTemplate(parser) {
-        var tokens = parser.tokens;
-        /** @type {(string | ASTNode)[]} */
-        var returnArr = [""];
-        do {
-            returnArr.push(tokens.lastWhitespace());
-            if (tokens.currentToken().value === "$") {
-                tokens.consumeToken();
-                var startingBrace = tokens.matchOpToken("{");
-                returnArr.push(this.requireElement("expression", parser));
-                if (startingBrace) {
-                    tokens.requireOpToken("}");
-                }
-                returnArr.push("");
-            } else if (tokens.currentToken().value === "\\") {
-                tokens.consumeToken(); // skip next
-                tokens.consumeToken();
-            } else {
-                var token = tokens.consumeToken();
-                returnArr[returnArr.length - 1] += token ? token.value : "";
-            }
-        } while (tokens.hasMore());
-        returnArr.push(tokens.lastWhitespace());
-        return returnArr;
-    }
-
-    /**
-     * @param {ASTNode} commandList
-     */
-    ensureTerminated(commandList) {
-        var implicitReturn = new ImplicitReturn();
-
-        var end = commandList;
-        while (end.next) {
-            end = end.next;
-        }
-        end.next = implicitReturn;
-    }
 }

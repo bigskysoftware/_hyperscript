@@ -1,15 +1,9 @@
 // Parser - Unified API for parsing operations
 // Encapsulates both LanguageKernel and Tokens to provide a single parameter to grammar functions
 
-/**
- * Parser wraps a LanguageKernel and Tokens instance to provide a unified API
- * for grammar parsing functions.
- */
+import { ImplicitReturn } from '../parsetree/internals.js';
+
 export class Parser {
-    /**
-     * @param {import('./kernel.js').LanguageKernel} kernel
-     * @param {import('./tokens.js').Tokens} tokens
-     */
     constructor(kernel, tokens) {
         this.kernel = kernel;
         this.tokens = tokens;
@@ -120,6 +114,10 @@ export class Parser {
         return this.tokens.list;
     }
 
+    createChildParser(tokens) {
+        return new Parser(this.kernel, tokens);
+    }
+
     // ===========================
     // Kernel delegation methods
     // ===========================
@@ -140,48 +138,75 @@ export class Parser {
         return this.kernel.raiseParseError(this.tokens, message);
     }
 
+    // ===========================
+    // Parser-owned methods
+    // ===========================
+
     parseStringTemplate() {
-        return this.kernel.parseStringTemplate(this);
+        var returnArr = [""];
+        do {
+            returnArr.push(this.lastWhitespace());
+            if (this.currentToken().value === "$") {
+                this.consumeToken();
+                var startingBrace = this.matchOpToken("{");
+                returnArr.push(this.requireElement("expression"));
+                if (startingBrace) {
+                    this.requireOpToken("}");
+                }
+                returnArr.push("");
+            } else if (this.currentToken().value === "\\") {
+                this.consumeToken(); // skip next
+                this.consumeToken();
+            } else {
+                var token = this.consumeToken();
+                returnArr[returnArr.length - 1] += token ? token.value : "";
+            }
+        } while (this.hasMore());
+        returnArr.push(this.lastWhitespace());
+        return returnArr;
     }
 
     commandBoundary(token) {
-        return this.kernel.commandBoundary(token);
+        if (
+            token.value == "end" ||
+            token.value == "then" ||
+            token.value == "else" ||
+            token.value == "otherwise" ||
+            token.value == ")" ||
+            this.commandStart(token) ||
+            this.featureStart(token) ||
+            token.type == "EOF"
+        ) {
+            return true;
+        }
+        return false;
     }
 
     commandStart(token) {
-        return this.kernel.commandStart(token);
+        return this.kernel.COMMANDS[token.value || ""];
     }
 
     featureStart(token) {
-        return this.kernel.featureStart(token);
+        return this.kernel.FEATURES[token.value || ""];
     }
 
     setParent(elt, parent) {
-        return this.kernel.setParent(elt, parent);
+        if (typeof elt === 'object') {
+            elt.parent = parent;
+            if (typeof parent === 'object') {
+                parent.children = (parent.children || new Set());
+                parent.children.add(elt)
+            }
+            this.setParent(elt.next, parent);
+        }
     }
 
     ensureTerminated(commandList) {
-        return this.kernel.ensureTerminated(commandList);
-    }
-
-    // Access to kernel properties needed by grammars
-    get GRAMMAR() {
-        return this.kernel.GRAMMAR;
-    }
-
-    get COMMANDS() {
-        return this.kernel.COMMANDS;
-    }
-
-    get FEATURES() {
-        return this.kernel.FEATURES;
-    }
-
-    get LEAF_EXPRESSIONS() {
-        return this.kernel.LEAF_EXPRESSIONS;
-    }
-
-    get INDIRECT_EXPRESSIONS() {
-        return this.kernel.INDIRECT_EXPRESSIONS;
+        var implicitReturn = new ImplicitReturn();
+        var end = commandList;
+        while (end.next) {
+            end = end.next;
+        }
+        end.next = implicitReturn;
     }
 }
