@@ -11,6 +11,9 @@ import { Expression } from '../base.js';
  * Returns: the inner expression
  */
 export class ParenthesizedExpression extends Expression {
+    static grammarName = "parenthesized";
+    static expressionType = "leaf";
+
     constructor(expr) {
         super();
         this.type = "parenthesized";
@@ -43,6 +46,9 @@ export class ParenthesizedExpression extends Expression {
  * Returns: function that evaluates the expression with bound arguments
  */
 export class BlockLiteral extends Expression {
+    static grammarName = "blockLiteral";
+    static expressionType = "leaf";
+
     constructor(params, expr) {
         super();
         this.type = "blockLiteral";
@@ -87,6 +93,8 @@ export class BlockLiteral extends Expression {
  * Returns: negated numeric value
  */
 export class NegativeNumber extends Expression {
+    static grammarName = "negativeNumber";
+
     constructor(root) {
         super();
         this.type = "negativeNumber";
@@ -129,6 +137,9 @@ export class NegativeNumber extends Expression {
  * Returns: boolean negation
  */
 export class LogicalNot extends Expression {
+    static grammarName = "logicalNot";
+    static expressionType = "unary";
+
     constructor(root) {
         super();
         this.type = "logicalNot";
@@ -168,6 +179,9 @@ export class LogicalNot extends Expression {
  * Returns: resolved symbol value
  */
 export class SymbolRef extends Expression {
+    static grammarName = "symbol";
+    static assignable = true;
+
     constructor(token, scope, name) {
         super();
         this.type = "symbol"
@@ -227,6 +241,9 @@ export class SymbolRef extends Expression {
  * Returns: expression value (after logging to console)
  */
 export class BeepExpression extends Expression {
+    static grammarName = "beepExpression";
+    static expressionType = "unary";
+
     constructor(expression) {
         super();
         this.type = "beepExpression";
@@ -256,6 +273,10 @@ export class BeepExpression extends Expression {
  * Returns: property value from the root expression
  */
 export class PropertyAccess extends Expression {
+    static grammarName = "propertyAccess";
+    static expressionType = "indirect";
+    static assignable = true;
+
     constructor(root, prop) {
         super();
         this.type = "propertyAccess";
@@ -299,6 +320,10 @@ export class PropertyAccess extends Expression {
  * Returns: property value from the expression
  */
 export class OfExpression extends Expression {
+    static grammarName = "ofExpression";
+    static expressionType = "indirect";
+    static assignable = true;
+
     constructor(prop, newRoot, attribute, expression, args, urRoot) {
         super();
         this.type = "ofExpression";
@@ -392,6 +417,10 @@ export class OfExpression extends Expression {
  * Returns: property value
  */
 export class PossessiveExpression extends Expression {
+    static grammarName = "possessive";
+    static expressionType = "indirect";
+    static assignable = true;
+
     constructor(root, attribute, prop) {
         super();
         this.type = "possessive";
@@ -468,6 +497,9 @@ export class PossessiveExpression extends Expression {
  * Returns: filtered elements or boolean
  */
 export class InExpression extends Expression {
+    static grammarName = "inExpression";
+    static expressionType = "indirect";
+
     constructor(root, target) {
         super();
         this.type = "inExpression";
@@ -537,6 +569,9 @@ export class InExpression extends Expression {
  * Returns: converted value
  */
 export class AsExpression extends Expression {
+    static grammarName = "asExpression";
+    static expressionType = "indirect";
+
     constructor(root, conversion) {
         super();
         this.type = "asExpression";
@@ -580,6 +615,9 @@ export class AsExpression extends Expression {
  * Returns: function result
  */
 export class FunctionCall extends Expression {
+    static grammarName = "functionCall";
+    static expressionType = "indirect";
+
     constructor(root, argExpressions, args, isMethodCall) {
         super();
         this.type = "functionCall";
@@ -652,6 +690,10 @@ export class FunctionCall extends Expression {
  * Returns: attribute value
  */
 export class AttributeRefAccess extends Expression {
+    static grammarName = "attributeRefAccess";
+    static expressionType = "indirect";
+    static assignable = true;
+
     constructor(root, attribute) {
         super();
         this.type = "attributeRefAccess";
@@ -694,6 +736,10 @@ export class AttributeRefAccess extends Expression {
  * Returns: indexed value or slice
  */
 export class ArrayIndex extends Expression {
+    static grammarName = "arrayIndex";
+    static expressionType = "indirect";
+    static assignable = true;
+
     constructor(root, firstIndex, secondIndex, andBefore, andAfter) {
         super();
         this.type = "arrayIndex";
@@ -780,6 +826,8 @@ export class ArrayIndex extends Expression {
  * Note: Enforces same operator throughout chain (must parenthesize mixed operators)
  */
 export class MathOperator extends Expression {
+    static grammarName = "mathOperator";
+
     constructor(lhs, operator, rhs) {
         super();
         this.type = "mathOperator";
@@ -843,6 +891,8 @@ export class MathOperator extends Expression {
  * Supports: ==, !=, ===, !==, <, >, <=, >=, is, am, match, contain, include, exist, empty
  */
 export class ComparisonOperator extends Expression {
+    static grammarName = "comparisonOperator";
+
     constructor(lhs, operator, rhs, typeName, nullOk) {
         super();
         this.type = "comparisonOperator";
@@ -1075,6 +1125,9 @@ export class ComparisonOperator extends Expression {
  * Note: Enforces same operator throughout chain (must parenthesize mixed operators)
  */
 export class LogicalOperator extends Expression {
+    static grammarName = "logicalOperator";
+    static expressionType = "top";
+
     constructor(lhs, operator, rhs) {
         super();
         this.type = "logicalOperator";
@@ -1157,6 +1210,8 @@ class DotOrColonPathNode extends Expression {
 }
 
 export class DotOrColonPath extends Expression {
+    static grammarName = "dotOrColonPath";
+
     /**
      * Parse dot or colon separated path
      * @param {Parser} parser

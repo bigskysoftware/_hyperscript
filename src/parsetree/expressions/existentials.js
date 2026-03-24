@@ -12,6 +12,9 @@ import { Expression } from '../base.js';
  * Returns: true if the expression is empty/null, false otherwise
  */
 export class NoExpression extends Expression {
+    static grammarName = "noExpression";
+    static expressionType = "unary";
+
     constructor(root) {
         super();
         this.type = "noExpression";
@@ -45,6 +48,9 @@ export class NoExpression extends Expression {
  * Returns: true if the expression is not empty/null, false otherwise
  */
 export class SomeExpression extends Expression {
+    static grammarName = "some";
+    static expressionType = "leaf";
+
     constructor(root) {
         super();
         this.type = "noExpression"; // Note: currently shares type with NoExpression

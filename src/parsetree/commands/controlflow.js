@@ -302,7 +302,7 @@ export class RepeatCommand extends Command {
  * Parses: for <identifier> in <expr> <commands> end
  * Executes: Iterates over expression values
  */
-export class ForCommand {
+export class ForCommand extends Command {
     static keyword = "for";
 
     /**

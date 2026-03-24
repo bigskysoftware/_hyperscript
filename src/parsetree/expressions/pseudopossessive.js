@@ -11,6 +11,8 @@ import { Expression } from '../base.js';
  * Resolves to the "it" symbol at runtime
  */
 export class PseudopossessiveIts extends Expression {
+    static grammarName = "pseudopossessiveIts";
+
     constructor(token) {
         super();
         this.type = "pseudopossessiveIts";

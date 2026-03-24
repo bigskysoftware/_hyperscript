@@ -12,6 +12,9 @@ import { Expression } from '../base.js';
  * Returns: Element with matching ID
  */
 export class IdRef extends Expression {
+    static grammarName = "idRef";
+    static expressionType = "leaf";
+
     constructor(variant, css, value, innerExpression) {
         super();
         this.variant = variant;
@@ -54,6 +57,9 @@ export class IdRef extends Expression {
  * Returns: ElementCollection with matching class
  */
 export class ClassRef extends Expression {
+    static grammarName = "classRef";
+    static expressionType = "leaf";
+
     constructor(variant, css, className, innerExpression) {
         super();
         this.variant = variant;
@@ -97,6 +103,9 @@ export class ClassRef extends Expression {
  * Returns: ElementCollection matching query
  */
 export class QueryRef extends Expression {
+    static grammarName = "queryRef";
+    static expressionType = "leaf";
+
     constructor(css, args, template) {
         super();
         this.type = "queryRef";
@@ -150,6 +159,10 @@ export class QueryRef extends Expression {
  * Returns: Attribute value or ElementCollection
  */
 export class AttributeRef extends Expression {
+    static grammarName = "attributeRef";
+    static expressionType = "leaf";
+    static assignable = true;
+
     constructor(name, css, value) {
         super();
         this.type = "attributeRef";
@@ -196,6 +209,10 @@ export class AttributeRef extends Expression {
  * Returns: Style property value (regular or computed)
  */
 export class StyleRef extends Expression {
+    static grammarName = "styleRef";
+    static expressionType = "leaf";
+    static assignable = true;
+
     constructor(variant, name) {
         super();
         this.variant = variant;
@@ -235,6 +252,8 @@ export class StyleRef extends Expression {
  * Returns: Interpolated CSS string
  */
 export class StyleLiteral extends Expression {
+    static grammarName = "styleLiteral";
+
     constructor(stringParts, exprs) {
         super();
         this.type = "styleLiteral";

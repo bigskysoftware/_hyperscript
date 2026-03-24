@@ -15,6 +15,9 @@ const STRING_POSTFIXES = [
 ];
 
 export class StringPostfixExpression extends Expression {
+    static grammarName = "stringPostfixExpression";
+    static expressionType = "postfix";
+
     constructor(root, postfix) {
         super();
         this.type = "stringPostfix";
@@ -35,6 +38,9 @@ export class StringPostfixExpression extends Expression {
 }
 
 export class TimeExpression extends Expression {
+    static grammarName = "timeExpression";
+    static expressionType = "postfix";
+
     constructor(root, timeFactor) {
         super();
         this.type = "timeExpression";
@@ -61,6 +67,9 @@ export class TimeExpression extends Expression {
 }
 
 export class TypeCheckExpression extends Expression {
+    static grammarName = "typeCheckExpression";
+    static expressionType = "postfix";
+
     constructor(root, typeName, nullOk) {
         super();
         this.type = "typeCheck";

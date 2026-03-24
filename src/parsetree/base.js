@@ -58,6 +58,7 @@ export class Command extends ParseElement {
      * @returns {*} - Next command or Promise
      */
     execute(context) {
+        context.meta.command = this;
         return context.meta.runtime.unifiedExec(this, context);
     }
 
@@ -98,6 +99,8 @@ export class Command extends ParseElement {
  * Subclasses implement install() method for their specific logic.
  */
 export class Feature extends ParseElement {
+    isFeature = true;
+
     /**
      * Install this feature on a target element
      *

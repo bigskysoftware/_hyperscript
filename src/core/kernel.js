@@ -3,6 +3,7 @@ import { Tokens, Tokenizer } from './tokenizer.js';
 import { Runtime } from './runtime.js';
 import { Parser } from './parser.js';
 import { EmptyCommandListCommand, UnlessStatementModifier, HyperscriptProgram, ImplicitReturn } from '../parsetree/internals.js';
+import { Command, Feature } from '../parsetree/base.js';
 
 // Change op to be used as "resolve"
 
@@ -302,15 +303,11 @@ export class LanguageKernel {
             const commandElement = definition(parser);
             if (commandElement) {
                 commandElement.type = commandGrammarType;
-                commandElement.execute = function (context) {
-                    context.meta.command = commandElement;
-                    return context.meta.runtime.unifiedExec(this, context);
-                };
-                return commandElement;  // returns an AST node
+                return commandElement;
             }
         };
-        this.GRAMMAR[commandGrammarType] = commandDefinitionWrapper; // stores the node in the grammar
-        this.COMMANDS[keyword] = commandDefinitionWrapper;           // and in the command list
+        this.GRAMMAR[commandGrammarType] = commandDefinitionWrapper;
+        this.COMMANDS[keyword] = commandDefinitionWrapper;
     }
 
     /**
@@ -356,7 +353,6 @@ export class LanguageKernel {
         var featureDefinitionWrapper = function (parser) {
             var featureElement = definition(parser);
             if (featureElement) {
-                featureElement.isFeature = true;
                 featureElement.keyword = keyword;
                 featureElement.type = featureGrammarType;
                 return featureElement;
@@ -364,6 +360,60 @@ export class LanguageKernel {
         };
         this.GRAMMAR[featureGrammarType] = featureDefinitionWrapper;
         this.FEATURES[keyword] = featureDefinitionWrapper;
+    }
+
+    /**
+     * Register a parse element class based on its static metadata.
+     * Commands need `static keyword`, expressions need `static grammarName`.
+     * @param {Function} ElementClass
+     */
+    registerParseElement(ElementClass) {
+        if (!ElementClass.parse) return;
+
+        const parse = ElementClass.parse.bind(ElementClass);
+
+        // Commands with keyword
+        if (ElementClass.keyword && ElementClass.prototype instanceof Command) {
+            this.addCommand(ElementClass.keyword, parse);
+            return;
+        }
+
+        // Features with keyword
+        if (ElementClass.keyword && ElementClass.prototype instanceof Feature) {
+            this.addFeature(ElementClass.keyword, parse);
+            return;
+        }
+
+        // Grammar elements with grammarName
+        const name = ElementClass.grammarName;
+        if (!name) return;
+
+        switch (ElementClass.expressionType) {
+            case 'leaf':     this.addLeafExpression(name, parse); break;
+            case 'indirect': this.addIndirectExpression(name, parse); break;
+            case 'unary':    this.addUnaryExpression(name, parse); break;
+            case 'top':      this.addTopExpression(name, parse); break;
+            case 'postfix':  this.addPostfixExpression(name, parse); break;
+            default:         this.addGrammarElement(name, parse); break;
+        }
+
+        if (ElementClass.assignable) {
+            this.ASSIGNABLE_EXPRESSIONS.push(name);
+        }
+    }
+
+    /**
+     * Register all exported parse element classes from a module.
+     * Iterates over module exports and registers any class with
+     * a static `parse` method and appropriate metadata.
+     * @param {Object} module - ES module namespace object
+     */
+    registerModule(module) {
+        for (const exported of Object.values(module)) {
+            if (typeof exported === 'function' && exported.parse) {
+                this.registerParseElement(exported);
+            }
+        }
     }
 
     /**

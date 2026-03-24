@@ -7,6 +7,8 @@ import { Command } from '../base.js';
  * Executes: Evaluates the function call and optional target expression
  */
 export class PseudoCommand extends Command {
+    static grammarName = "pseudoCommand";
+
     constructor(variant, expr, realRoot, root) {
         super();
         this.variant = variant;

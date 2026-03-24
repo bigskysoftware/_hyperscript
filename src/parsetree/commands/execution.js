@@ -12,6 +12,8 @@ import { varargConstructor } from '../../core/runtime.js';
  * Parses JavaScript code until 'end' keyword, extracting function names
  */
 export class JsBody {
+    static grammarName = "jsBody";
+
     constructor(jsSource, exposedFunctionNames) {
         this.type = "jsBody";
         this.jsSource = jsSource;

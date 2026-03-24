@@ -12,6 +12,8 @@ import { Expression } from '../base.js';
  * Returns: string value
  */
 export class NakedString extends Expression {
+    static grammarName = "nakedString";
+
     constructor(tokens) {
         super();
         this.type = "nakedString";
@@ -47,6 +49,9 @@ export class NakedString extends Expression {
  * Returns: boolean value
  */
 export class BooleanLiteral extends Expression {
+    static grammarName = "boolean";
+    static expressionType = "leaf";
+
     constructor(value) {
         super();
         this.type = "boolean";
@@ -77,6 +82,9 @@ export class BooleanLiteral extends Expression {
  * Returns: null value
  */
 export class NullLiteral extends Expression {
+    static grammarName = "null";
+    static expressionType = "leaf";
+
     constructor() {
         super();
         this.type = "null";
@@ -105,6 +113,9 @@ export class NullLiteral extends Expression {
  * Returns: number value
  */
 export class NumberLiteral extends Expression {
+    static grammarName = "number";
+    static expressionType = "leaf";
+
     constructor(value, numberToken) {
         super();
         this.type = "number";
@@ -137,6 +148,9 @@ export class NumberLiteral extends Expression {
  * Returns: string value
  */
 export class StringLiteral extends Expression {
+    static grammarName = "string";
+    static expressionType = "leaf";
+
     constructor(stringToken, rawValue, args) {
         super();
         this.type = "string";
@@ -194,6 +208,9 @@ export class StringLiteral extends Expression {
  * Returns: array value
  */
 export class ArrayLiteral extends Expression {
+    static grammarName = "arrayLiteral";
+    static expressionType = "leaf";
+
     constructor(values) {
         super();
         this.type = "arrayLiteral";
@@ -234,6 +251,8 @@ export class ArrayLiteral extends Expression {
  * Returns: string key value
  */
 export class ObjectKey extends Expression {
+    static grammarName = "objectKey";
+
     constructor(key, expr, args) {
         super();
         this.type = "objectKey";
@@ -280,6 +299,9 @@ export class ObjectKey extends Expression {
  * Returns: object value
  */
 export class ObjectLiteral extends Expression {
+    static grammarName = "objectLiteral";
+    static expressionType = "leaf";
+
     constructor(keyExpressions, valueExpressions) {
         super();
         this.type = "objectLiteral";
@@ -329,6 +351,8 @@ export class ObjectLiteral extends Expression {
  * Returns: object with named arguments
  */
 export class NamedArgumentList extends Expression {
+    static grammarName = "namedArgumentList";
+
     constructor(fields, valueExpressions) {
         super();
         this.type = "namedArgumentList";

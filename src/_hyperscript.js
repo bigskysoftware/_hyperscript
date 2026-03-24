@@ -7,97 +7,31 @@ import {LanguageKernel} from './core/kernel.js';
 import {ElementCollection, HyperscriptModule, Runtime} from './core/runtime.js';
 import {config, conversions} from './core/config.js';
 
-// Expression imports
-import {AttributeRef, ClassRef, IdRef, QueryRef, StyleLiteral, StyleRef} from './parsetree/expressions/webliterals.js';
-import {
-    ArrayIndex,
-    AsExpression,
-    AttributeRefAccess,
-    BeepExpression,
-    BlockLiteral,
-    ComparisonOperator,
-    DotOrColonPath,
-    FunctionCall,
-    InExpression,
-    LogicalNot,
-    LogicalOperator,
-    MathOperator,
-    NegativeNumber,
-    OfExpression,
-    ParenthesizedExpression,
-    PossessiveExpression,
-    PropertyAccess,
-    SymbolRef
-} from './parsetree/expressions/expressions.js';
-import {
-    ArrayLiteral,
-    BooleanLiteral,
-    NakedString,
-    NamedArgumentList,
-    NullLiteral,
-    NumberLiteral,
-    ObjectKey,
-    ObjectLiteral,
-    StringLiteral
-} from './parsetree/expressions/literals.js';
-import {ImplicitMeTarget} from './parsetree/expressions/targets.js';
-import {NoExpression, SomeExpression} from './parsetree/expressions/existentials.js';
-import {ClosestExpr, PositionalExpression, RelativePositionalExpression} from './parsetree/expressions/positional.js';
-import {StringPostfixExpression, TimeExpression, TypeCheckExpression} from './parsetree/expressions/postfix.js';
-import {PseudopossessiveIts} from './parsetree/expressions/pseudopossessive.js';
-
-// Command imports
-import {
-    AppendCommand,
-    BeepCommand,
-    ExitCommand,
-    FetchCommand,
-    GoCommand,
-    HaltCommand,
-    LogCommand,
-    MakeCommand,
-    PickCommand,
-    ReturnCommand,
-    ThrowCommand
-} from './parsetree/commands/basic.js';
-import {
-    DecrementCommand,
-    DefaultCommand,
-    IncrementCommand,
-    PutCommand,
-    SetCommand
-} from './parsetree/commands/setters.js';
-import {EventName, SendCommand, TriggerCommand, WaitCommand} from './parsetree/commands/events.js';
-import {
-    BreakCommand,
-    ContinueCommand,
-    ForCommand,
-    IfCommand,
-    RepeatCommand,
-    TellCommand
-} from './parsetree/commands/controlflow.js';
-import {CallCommand, GetCommand, JsBody, JsCommand} from './parsetree/commands/execution.js';
-import {PseudoCommand} from './parsetree/commands/pseudoCommand.js';
-import {
-    AddCommand,
-    HideCommand,
-    MeasureCommand,
-    RemoveCommand,
-    ShowCommand,
-    TakeCommand,
-    ToggleCommand
-} from './parsetree/commands/dom.js';
-import {SettleCommand, TransitionCommand} from './parsetree/commands/animations.js';
-
-// Feature imports
-import {SetFeature} from './parsetree/features/set.js';
-import {InitFeature} from './parsetree/features/init.js';
-import {WorkerFeature} from './parsetree/features/worker.js';
-import {BehaviorFeature} from './parsetree/features/behavior.js';
-import {InstallFeature} from './parsetree/features/install.js';
-import {JsFeature} from './parsetree/features/js.js';
-import {DefFeature} from './parsetree/features/def.js';
-import {OnFeature} from './parsetree/features/on.js';
+// Import parse element modules
+import * as Expressions from './parsetree/expressions/expressions.js';
+import * as Literals from './parsetree/expressions/literals.js';
+import * as WebLiterals from './parsetree/expressions/webliterals.js';
+import * as Postfix from './parsetree/expressions/postfix.js';
+import * as Positional from './parsetree/expressions/positional.js';
+import * as Existentials from './parsetree/expressions/existentials.js';
+import * as Targets from './parsetree/expressions/targets.js';
+import * as Pseudopossessive from './parsetree/expressions/pseudopossessive.js';
+import * as BasicCommands from './parsetree/commands/basic.js';
+import * as SetterCommands from './parsetree/commands/setters.js';
+import * as EventCommands from './parsetree/commands/events.js';
+import * as ControlFlow from './parsetree/commands/controlflow.js';
+import * as Execution from './parsetree/commands/execution.js';
+import * as PseudoCommandModule from './parsetree/commands/pseudoCommand.js';
+import * as DomCommands from './parsetree/commands/dom.js';
+import * as AnimationCommands from './parsetree/commands/animations.js';
+import * as OnFeatureModule from './parsetree/features/on.js';
+import * as DefFeatureModule from './parsetree/features/def.js';
+import * as SetFeatureModule from './parsetree/features/set.js';
+import * as InitFeatureModule from './parsetree/features/init.js';
+import * as WorkerFeatureModule from './parsetree/features/worker.js';
+import * as BehaviorFeatureModule from './parsetree/features/behavior.js';
+import * as InstallFeatureModule from './parsetree/features/install.js';
+import * as JsFeatureModule from './parsetree/features/js.js';
 
 const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'undefined' ? global : this);
 
@@ -109,128 +43,36 @@ const tokenizer = new Tokenizer();
 const runtime = new Runtime(globalScope, kernel, tokenizer);
 
 // ===== Grammar Registration =====
+// Register all parse elements from modules (expressions, commands, features)
+kernel.registerModule(Expressions);
+kernel.registerModule(Literals);
+kernel.registerModule(WebLiterals);
+kernel.registerModule(Postfix);
+kernel.registerModule(Positional);
+kernel.registerModule(Existentials);
+kernel.registerModule(Targets);
+kernel.registerModule(Pseudopossessive);
+kernel.registerModule(BasicCommands);
+kernel.registerModule(SetterCommands);
+kernel.registerModule(EventCommands);
+kernel.registerModule(ControlFlow);
+kernel.registerModule(Execution);
+kernel.registerModule(PseudoCommandModule);
+kernel.registerModule(DomCommands);
+kernel.registerModule(AnimationCommands);
+kernel.registerModule(OnFeatureModule);
+kernel.registerModule(DefFeatureModule);
+kernel.registerModule(SetFeatureModule);
+kernel.registerModule(InitFeatureModule);
+kernel.registerModule(WorkerFeatureModule);
+kernel.registerModule(BehaviorFeatureModule);
+kernel.registerModule(InstallFeatureModule);
+kernel.registerModule(JsFeatureModule);
 
-// Literals and basic expressions
-kernel.addLeafExpression("parenthesized", ParenthesizedExpression.parse);
-kernel.addLeafExpression("string", StringLiteral.parse);
-kernel.addGrammarElement("nakedString", NakedString.parse);
-kernel.addGrammarElement("stringLike", function (parser) {
-    return parser.parseAnyOf(["string", "nakedString"]);
-});
-kernel.addLeafExpression("number", NumberLiteral.parse);
-kernel.addLeafExpression("boolean", BooleanLiteral.parse);
-kernel.addLeafExpression("null", NullLiteral.parse);
-kernel.addLeafExpression("arrayLiteral", ArrayLiteral.parse);
-kernel.addLeafExpression("blockLiteral", BlockLiteral.parse);
-kernel.addLeafExpression("objectLiteral", ObjectLiteral.parse);
-kernel.addGrammarElement("objectKey", ObjectKey.parse);
-kernel.addGrammarElement("nakedNamedArgumentList", NamedArgumentList.parseNaked);
-kernel.addGrammarElement("namedArgumentList", NamedArgumentList.parse);
-
-// Web literals and references
-kernel.addLeafExpression("idRef", IdRef.parse);
-kernel.addLeafExpression("classRef", ClassRef.parse);
-kernel.addLeafExpression("queryRef", QueryRef.parse);
-kernel.addLeafExpression("attributeRef", AttributeRef.parse);
-kernel.addLeafExpression("styleRef", StyleRef.parse);
-kernel.addGrammarElement("styleLiteral", StyleLiteral.parse);
-
-// Symbols and identifiers
-kernel.addGrammarElement("symbol", SymbolRef.parse);
-kernel.addGrammarElement("implicitMeTarget", ImplicitMeTarget.parse);
-kernel.addGrammarElement("pseudopossessiveIts", PseudopossessiveIts.parse);
-kernel.addGrammarElement("dotOrColonPath", DotOrColonPath.parse);
-kernel.addGrammarElement("eventName", EventName.parse);
-
-// Indirect expressions (property access, function calls, etc.)
-kernel.addIndirectExpression("propertyAccess", PropertyAccess.parse);
-kernel.addIndirectExpression("of", OfExpression.parse);
-kernel.addIndirectExpression("possessive", PossessiveExpression.parse);
-kernel.addIndirectExpression("inExpression", InExpression.parse);
-kernel.addIndirectExpression("asExpression", AsExpression.parse);
-kernel.addIndirectExpression("functionCall", FunctionCall.parse);
-kernel.addIndirectExpression("attributeRefAccess", AttributeRefAccess.parse);
-kernel.addIndirectExpression("arrayIndex", ArrayIndex.parse);
-
-// Unary and logical expressions
-kernel.addUnaryExpression("beepExpression", BeepExpression.parse);
-kernel.addUnaryExpression("logicalNot", LogicalNot.parse);
-kernel.addUnaryExpression("noExpression", NoExpression.parse);
-kernel.addLeafExpression("some", SomeExpression.parse);
-kernel.addGrammarElement("negativeNumber", NegativeNumber.parse);
-
-// Positional expressions (unary)
-kernel.addUnaryExpression("relativePositionalExpression", RelativePositionalExpression.parse);
-kernel.addUnaryExpression("positionalExpression", PositionalExpression.parse);
-kernel.addLeafExpression("closestExpr", ClosestExpr.parse);
-
-// postfixExpression is also part of unary expressions (already registered as grammar element)
-// TODO this doesn't belong here I think
+// Special cases that can't be auto-registered
+kernel.addGrammarElement("nakedNamedArgumentList", Literals.NamedArgumentList.parseNaked);
+kernel.addGrammarElement("stringLike", (parser) => parser.parseAnyOf(["string", "nakedString"]));
 kernel.UNARY_EXPRESSIONS.push("postfixExpression");
-
-// Math, comparison, and logical expressions
-kernel.addGrammarElement("mathOperator", MathOperator.parse);
-kernel.addGrammarElement("comparisonOperator", ComparisonOperator.parse);
-kernel.addTopExpression("logicalOperator", LogicalOperator.parse);
-
-// Features
-kernel.addFeatures(
-    OnFeature, DefFeature, SetFeature, InitFeature,
-    WorkerFeature, BehaviorFeature, InstallFeature, JsFeature
-);
-kernel.addGrammarElement("jsBody", JsBody.parse);
-
-// Basic commands
-kernel.addCommands(
-    LogCommand, BeepCommand, ThrowCommand, ReturnCommand, ExitCommand, HaltCommand,
-    MakeCommand, PickCommand, FetchCommand, GoCommand
-);
-
-// Variable and value commands
-kernel.addCommands(
-    SetCommand, DefaultCommand, IncrementCommand, DecrementCommand, AppendCommand,
-    PutCommand
-);
-
-// Control flow commands
-kernel.addCommands(
-    IfCommand, RepeatCommand, ForCommand, ContinueCommand, BreakCommand, TellCommand
-);
-
-// Event commands
-kernel.addCommands(
-    WaitCommand, TriggerCommand, SendCommand
-);
-
-// Execution commands
-kernel.addCommands(
-    JsCommand, CallCommand, GetCommand
-);
-kernel.addGrammarElement("pseudoCommand", PseudoCommand.parse);
-
-// DOM manipulation commands
-kernel.addCommands(
-    AddCommand, RemoveCommand, TakeCommand, MeasureCommand,
-    ToggleCommand, HideCommand, ShowCommand
-);
-
-// Animation commands
-kernel.addCommands(SettleCommand, TransitionCommand);
-
-// Postfix expressions
-kernel.addPostfixExpression("stringPostfixExpression", StringPostfixExpression.parse);
-kernel.addPostfixExpression("timeExpression", TimeExpression.parse);
-kernel.addPostfixExpression("typeCheckExpression", TypeCheckExpression.parse);
-
-// TODO: this should be driven by the expressions themselves, not a list here
-kernel.ASSIGNABLE_EXPRESSIONS.push("symbol");
-kernel.ASSIGNABLE_EXPRESSIONS.push("ofExpression");  // "of" produces type "ofExpression"
-kernel.ASSIGNABLE_EXPRESSIONS.push("propertyAccess");
-kernel.ASSIGNABLE_EXPRESSIONS.push("attributeRefAccess");
-kernel.ASSIGNABLE_EXPRESSIONS.push("attributeRef");
-kernel.ASSIGNABLE_EXPRESSIONS.push("styleRef");
-kernel.ASSIGNABLE_EXPRESSIONS.push("arrayIndex");
-kernel.ASSIGNABLE_EXPRESSIONS.push("possessive");
 
 // Set up the LanguageKernel.raiseParseError callback for Tokens
 // TODO need to rethink how tokenization errors are done

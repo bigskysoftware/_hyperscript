@@ -189,6 +189,8 @@ export class TriggerCommand extends SendCommand {
  * EventNameNode - Represents an event name from a string literal
  */
 export class EventName extends Expression {
+    static grammarName = "eventName";
+
     constructor(value) {
         super();
         this.value = value;

@@ -12,6 +12,8 @@ import { Expression } from '../base.js';
  * Returns: context.you || context.me
  */
 export class ImplicitMeTarget extends Expression {
+    static grammarName = "implicitMeTarget";
+
     constructor() {
         super();
         this.type = "implicitMeTarget";

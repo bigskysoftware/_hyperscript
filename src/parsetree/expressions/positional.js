@@ -13,6 +13,9 @@ import { Expression } from '../base.js';
  * Returns: matching element relative to starting point
  */
 export class RelativePositionalExpression extends Expression {
+    static grammarName = "relativePositionalExpression";
+    static expressionType = "unary";
+
     constructor(thingElt, from, forwardSearch, inSearch, wrapping, inElt, withinElt, operator) {
         super();
         this.type = "relativePositionalExpression";
@@ -172,6 +175,9 @@ export class RelativePositionalExpression extends Expression {
  * Returns: selected element from collection
  */
 export class PositionalExpression extends Expression {
+    static grammarName = "positionalExpression";
+    static expressionType = "unary";
+
     constructor(rhs, operator) {
         super();
         this.type = "positionalExpression";
@@ -266,6 +272,9 @@ class ClosestExprNode extends Expression {
  * Returns: Closest matching element
  */
 export class ClosestExpr extends Expression {
+    static grammarName = "closestExpr";
+    static expressionType = "leaf";
+
     /**
      * Parse a closest expression
      * @param {Parser} parser
