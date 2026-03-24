@@ -14,10 +14,7 @@ const STRING_POSTFIXES = [
     'cm', 'mm', 'Q', 'pc', 'pt', 'px'
 ];
 
-/**
- * StringPostfixExpressionNode - String postfix expression node
- */
-class StringPostfixExpressionNode extends Expression {
+export class StringPostfixExpression extends Expression {
     constructor(root, postfix) {
         super();
         this.type = "stringPostfix";
@@ -25,36 +22,19 @@ class StringPostfixExpressionNode extends Expression {
         this.args = [root];
     }
 
+    static parse(parser, root) {
+        let stringPostfix = parser.tokens.matchAnyToken.apply(parser.tokens, STRING_POSTFIXES) || parser.matchOpToken("%");
+        if (!stringPostfix) return;
+
+        return new StringPostfixExpression(root, stringPostfix.value);
+    }
+
     resolve(context, val) {
         return "" + val + this.postfix;
     }
 }
 
-/**
- * String postfix expression (CSS units or %)
- */
-export class StringPostfixExpression {
-    /**
-     * Parse string postfix expression
-     * @param {Parser} parser
-     * @param {Object} root - the root expression to apply postfix to
-     * @returns {StringPostfixExpressionNode | undefined}
-     */
-    static parse(parser, root) {
-        let stringPostfix = parser.tokens.matchAnyToken.apply(parser.tokens, STRING_POSTFIXES) || parser.matchOpToken("%");
-        if (!stringPostfix) return;
-
-        return new StringPostfixExpressionNode(root, stringPostfix.value);
-    }
-}
-
-/**
- * Time expression (s/seconds or ms/milliseconds)
- */
-/**
- * TimeExpressionNode - Time expression node
- */
-class TimeExpressionNode extends Expression {
+export class TimeExpression extends Expression {
     constructor(root, timeFactor) {
         super();
         this.type = "timeExpression";
@@ -63,18 +43,6 @@ class TimeExpressionNode extends Expression {
         this.args = [root];
     }
 
-    resolve(context, val) {
-        return val * this.factor;
-    }
-}
-
-export class TimeExpression {
-    /**
-     * Parse time expression
-     * @param {Parser} parser
-     * @param {Object} root - the root expression to apply time factor to
-     * @returns {TimeExpressionNode | undefined}
-     */
     static parse(parser, root) {
         var timeFactor = null;
         if (parser.matchToken("s") || parser.matchToken("seconds")) {
@@ -84,20 +52,31 @@ export class TimeExpression {
         }
         if (!timeFactor) return;
 
-        return new TimeExpressionNode(root, timeFactor);
+        return new TimeExpression(root, timeFactor);
+    }
+
+    resolve(context, val) {
+        return val * this.factor;
     }
 }
 
-/**
- * TypeCheckExpressionNode - Type check expression node
- */
-class TypeCheckExpressionNode extends Expression {
+export class TypeCheckExpression extends Expression {
     constructor(root, typeName, nullOk) {
         super();
         this.type = "typeCheck";
         this.typeName = typeName;
         this.nullOk = nullOk;
         this.args = [root];
+    }
+
+    static parse(parser, root) {
+        if (!parser.matchOpToken(":")) return;
+
+        var typeName = parser.requireTokenType("IDENTIFIER");
+        if (!typeName.value) return;
+        var nullOk = !parser.matchOpToken("!");
+
+        return new TypeCheckExpression(root, typeName, nullOk);
     }
 
     resolve(context, val) {
@@ -107,26 +86,5 @@ class TypeCheckExpressionNode extends Expression {
         } else {
             throw new Error("Typecheck failed!  Expected: " + this.typeName.value);
         }
-    }
-}
-
-/**
- * Type check expression (:type or :type!)
- */
-export class TypeCheckExpression {
-    /**
-     * Parse type check expression
-     * @param {Parser} parser
-     * @param {Object} root - the root expression to type check
-     * @returns {TypeCheckExpressionNode | undefined}
-     */
-    static parse(parser, root) {
-        if (!parser.matchOpToken(":")) return;
-
-        var typeName = parser.requireTokenType("IDENTIFIER");
-        if (!typeName.value) return;
-        var nullOk = !parser.matchOpToken("!");
-
-        return new TypeCheckExpressionNode(root, typeName, nullOk);
     }
 }
