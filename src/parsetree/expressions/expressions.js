@@ -688,32 +688,6 @@ export class AttributeRefAccess extends Expression {
 }
 
 /**
- * Helper function for contains/includes operations
- */
-function sloppyContains(src, container, value) {
-    if (container['contains']) {
-        return container.contains(value);
-    } else if (container['includes']) {
-        return container.includes(value);
-    } else {
-        throw Error("The value of " + src.sourceFor() + " does not have a contains or includes method on it");
-    }
-}
-
-/**
- * Helper function for match/matches operations
- */
-function sloppyMatches(src, target, toMatch) {
-    if (target['match']) {
-        return !!target.match(toMatch);
-    } else if (target['matches']) {
-        return target.matches(toMatch);
-    } else {
-        throw Error("The value of " + src.sourceFor() + " does not have a match or matches method on it");
-    }
-}
-
-/**
  * ArrayIndex - Array/object indexing and slicing
  *
  * Parses: array[index] | array[start..end] | array[..end] | array[start..]
@@ -880,6 +854,26 @@ export class ComparisonOperator extends Expression {
         this.args = [lhs, rhs];
     }
 
+    sloppyContains(src, container, value) {
+        if (container['contains']) {
+            return container.contains(value);
+        } else if (container['includes']) {
+            return container.includes(value);
+        } else {
+            throw Error("The value of " + src.sourceFor() + " does not have a contains or includes method on it");
+        }
+    }
+
+    sloppyMatches(src, target, toMatch) {
+        if (target['match']) {
+            return !!target.match(toMatch);
+        } else if (target['matches']) {
+            return target.matches(toMatch);
+        } else {
+            throw Error("The value of " + src.sourceFor() + " does not have a match or matches method on it");
+        }
+    }
+
     /**
      * Parse comparison operator expression
      * @param {Parser} parser
@@ -1018,28 +1012,28 @@ export class ComparisonOperator extends Expression {
             return lhsVal !== rhsVal;
         }
         if (operator === "match") {
-            return lhsVal != null && sloppyMatches(lhs, lhsVal, rhsVal);
+            return lhsVal != null && this.sloppyMatches(lhs, lhsVal, rhsVal);
         }
         if (operator === "not match") {
-            return lhsVal == null || !sloppyMatches(lhs, lhsVal, rhsVal);
+            return lhsVal == null || !this.sloppyMatches(lhs, lhsVal, rhsVal);
         }
         if (operator === "in") {
-            return rhsVal != null && sloppyContains(rhs, rhsVal, lhsVal);
+            return rhsVal != null && this.sloppyContains(rhs, rhsVal, lhsVal);
         }
         if (operator === "not in") {
-            return rhsVal == null || !sloppyContains(rhs, rhsVal, lhsVal);
+            return rhsVal == null || !this.sloppyContains(rhs, rhsVal, lhsVal);
         }
         if (operator === "contain") {
-            return lhsVal != null && sloppyContains(lhs, lhsVal, rhsVal);
+            return lhsVal != null && this.sloppyContains(lhs, lhsVal, rhsVal);
         }
         if (operator === "not contain") {
-            return lhsVal == null || !sloppyContains(lhs, lhsVal, rhsVal);
+            return lhsVal == null || !this.sloppyContains(lhs, lhsVal, rhsVal);
         }
         if (operator === "include") {
-            return lhsVal != null && sloppyContains(lhs, lhsVal, rhsVal);
+            return lhsVal != null && this.sloppyContains(lhs, lhsVal, rhsVal);
         }
         if (operator === "not include") {
-            return lhsVal == null || !sloppyContains(lhs, lhsVal, rhsVal);
+            return lhsVal == null || !this.sloppyContains(lhs, lhsVal, rhsVal);
         }
         if (operator === "<") {
             return lhsVal < rhsVal;

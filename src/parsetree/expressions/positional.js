@@ -7,69 +7,6 @@ import { Tokens } from '../../core/tokenizer.js';
 import { Expression } from '../base.js';
 
 /**
- * Helper function - scan forward in DOM tree for matching element
- */
-function scanForwardQuery(start, root, match, wrap) {
-    var results = root.querySelectorAll(match);
-    for (var i = 0; i < results.length; i++) {
-        var elt = results[i];
-        if (elt.compareDocumentPosition(start) === Node.DOCUMENT_POSITION_PRECEDING) {
-            return elt;
-        }
-    }
-    if (wrap) {
-        return results[0];
-    }
-}
-
-/**
- * Helper function - scan backward in DOM tree for matching element
- */
-function scanBackwardsQuery(start, root, match, wrap) {
-    var results = root.querySelectorAll(match);
-    for (var i = results.length - 1; i >= 0; i--) {
-        var elt = results[i];
-        if (elt.compareDocumentPosition(start) === Node.DOCUMENT_POSITION_FOLLOWING) {
-            return elt;
-        }
-    }
-    if (wrap) {
-        return results[results.length - 1];
-    }
-}
-
-/**
- * Helper function - scan forward in array for matching element
- */
-function scanForwardArray(start, array, match, wrap) {
-    var matches = [];
-    for(var elt of array){
-        if (elt.matches(match) || elt === start) {
-            matches.push(elt);
-        }
-    }
-    for (var i = 0; i < matches.length - 1; i++) {
-        var elt = matches[i];
-        if (elt === start) {
-            return matches[i + 1];
-        }
-    }
-    if (wrap) {
-        var first = matches[0];
-        if (first && first.matches(match)) {
-            return first;
-        }
-    }
-}
-
-/**
- * Helper function - scan backward in array for matching element
- */
-function scanBackwardsArray(start, array, match, wrap) {
-    return scanForwardArray(start, Array.from(array).reverse(), match, wrap);
-}
-
-/**
  * RelativePositionalExpression - Relative DOM navigation
  *
  * Parses: next <div/> | previous <p/> | next <div/> from <expr> in <container>
@@ -145,6 +82,57 @@ export class RelativePositionalExpression extends Expression {
     /**
      * Op function for relative positional
      */
+    scanForwardQuery(start, root, match, wrap) {
+        var results = root.querySelectorAll(match);
+        for (var i = 0; i < results.length; i++) {
+            var elt = results[i];
+            if (elt.compareDocumentPosition(start) === Node.DOCUMENT_POSITION_PRECEDING) {
+                return elt;
+            }
+        }
+        if (wrap) {
+            return results[0];
+        }
+    }
+
+    scanBackwardsQuery(start, root, match, wrap) {
+        var results = root.querySelectorAll(match);
+        for (var i = results.length - 1; i >= 0; i--) {
+            var elt = results[i];
+            if (elt.compareDocumentPosition(start) === Node.DOCUMENT_POSITION_FOLLOWING) {
+                return elt;
+            }
+        }
+        if (wrap) {
+            return results[results.length - 1];
+        }
+    }
+
+    scanForwardArray(start, array, match, wrap) {
+        var matches = [];
+        for (var elt of array) {
+            if (elt.matches(match) || elt === start) {
+                matches.push(elt);
+            }
+        }
+        for (var i = 0; i < matches.length - 1; i++) {
+            var elt = matches[i];
+            if (elt === start) {
+                return matches[i + 1];
+            }
+        }
+        if (wrap) {
+            var first = matches[0];
+            if (first && first.matches(match)) {
+                return first;
+            }
+        }
+    }
+
+    scanBackwardsArray(start, array, match, wrap) {
+        return this.scanForwardArray(start, Array.from(array).reverse(), match, wrap);
+    }
+
     resolve(context, thing, from, inElt, withinElt) {
         var css = thing.css;
         if (css == null) {
@@ -154,17 +142,17 @@ export class RelativePositionalExpression extends Expression {
         if(this.inSearch) {
             if (inElt) {
                 if (this.forwardSearch) {
-                    return scanForwardArray(from, inElt, css, this.wrapping);
+                    return this.scanForwardArray(from, inElt, css, this.wrapping);
                 } else {
-                    return scanBackwardsArray(from, inElt, css, this.wrapping);
+                    return this.scanBackwardsArray(from, inElt, css, this.wrapping);
                 }
             }
         } else {
             if (withinElt) {
                 if (this.forwardSearch) {
-                    return scanForwardQuery(from, withinElt, css, this.wrapping);
+                    return this.scanForwardQuery(from, withinElt, css, this.wrapping);
                 } else {
-                    return scanBackwardsQuery(from, withinElt, css, this.wrapping);
+                    return this.scanBackwardsQuery(from, withinElt, css, this.wrapping);
                 }
             }
         }

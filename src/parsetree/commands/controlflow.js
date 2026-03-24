@@ -152,95 +152,7 @@ export class IfCommand extends Command {
     }
 }
 
-/**
- * Helper function to parse repeat/for expressions
- */
-function parseRepeatExpression(parser, startedWithForToken) {
-    var innerStartToken = parser.currentToken();
-    var identifier;
-    if (parser.matchToken("for") || startedWithForToken) {
-        var identifierToken = parser.requireTokenType("IDENTIFIER");
-        identifier = identifierToken.value;
-        parser.requireToken("in");
-        var expression = parser.requireElement("expression");
-    } else if (parser.matchToken("in")) {
-        identifier = "it";
-        var expression = parser.requireElement("expression");
-    } else if (parser.matchToken("while")) {
-        var whileExpr = parser.requireElement("expression");
-    } else if (parser.matchToken("until")) {
-        var isUntil = true;
-        if (parser.matchToken("event")) {
-            var evt = parser.requireElement("dotOrColonPath", "Expected event name");
-            if (parser.matchToken("from")) {
-                var on = parser.requireElement("expression");
-            }
-        } else {
-            var whileExpr = parser.requireElement("expression");
-        }
-    } else {
-        if (!parser.commandBoundary(parser.currentToken()) &&
-            parser.currentToken().value !== 'forever') {
-            var times = parser.requireElement("expression");
-            parser.requireToken("times");
-        } else {
-            parser.matchToken("forever"); // consume optional forever
-            var forever = true;
-        }
-    }
-
-    if (parser.matchToken("index")) {
-        var identifierToken = parser.requireTokenType("IDENTIFIER");
-        var indexIdentifier = identifierToken.value;
-    } else if (parser.matchToken("indexed")) {
-        parser.requireToken("by");
-        var identifierToken = parser.requireTokenType("IDENTIFIER");
-        var indexIdentifier = identifierToken.value;
-    }
-
-    var loop = parser.parseElement("commandList");
-    if (loop && evt) {
-        // if this is an event based loop, wait a tick at the end of the loop so that
-        // events have a chance to trigger in the loop condition o_O)))
-        var last = loop;
-        while (last.next) {
-            last = last.next;
-        }
-        var waitATick = new WaitATick();
-        last.next = waitATick;
-    }
-    if (parser.hasMore()) {
-        parser.requireToken("end");
-    }
-
-    if (identifier == null) {
-        identifier = "_implicit_repeat_" + innerStartToken.start;
-        var slot = identifier;
-    } else {
-        var slot = identifier + "_" + innerStartToken.start;
-    }
-
-    const loopConfig = {
-        identifier: identifier,
-        indexIdentifier: indexIdentifier,
-        slot: slot,
-        expression: expression,
-        forever: forever,
-        times: times,
-        until: isUntil,
-        event: evt,
-        on: on,
-        whileExpr: whileExpr
-    };
-
-    const repeatLoopCommand = new RepeatLoopCommand(loopConfig, loop);
-    const repeatCommand = new RepeatCommand(expression, evt, on, slot, repeatLoopCommand);
-
-    parser.setParent(loop, repeatLoopCommand);
-    parser.setParent(repeatLoopCommand, repeatCommand);
-
-    return repeatCommand;
-}
+// (parseRepeatExpression is now a static method on RepeatCommand)
 
 /**
  * RepeatCommand - Loop with various forms
@@ -261,9 +173,94 @@ export class RepeatCommand extends Command {
         this.args = [expression, evt, on];
     }
 
+    static parseRepeatExpression(parser, startedWithForToken) {
+        var innerStartToken = parser.currentToken();
+        var identifier;
+        if (parser.matchToken("for") || startedWithForToken) {
+            var identifierToken = parser.requireTokenType("IDENTIFIER");
+            identifier = identifierToken.value;
+            parser.requireToken("in");
+            var expression = parser.requireElement("expression");
+        } else if (parser.matchToken("in")) {
+            identifier = "it";
+            var expression = parser.requireElement("expression");
+        } else if (parser.matchToken("while")) {
+            var whileExpr = parser.requireElement("expression");
+        } else if (parser.matchToken("until")) {
+            var isUntil = true;
+            if (parser.matchToken("event")) {
+                var evt = parser.requireElement("dotOrColonPath", "Expected event name");
+                if (parser.matchToken("from")) {
+                    var on = parser.requireElement("expression");
+                }
+            } else {
+                var whileExpr = parser.requireElement("expression");
+            }
+        } else {
+            if (!parser.commandBoundary(parser.currentToken()) &&
+                parser.currentToken().value !== 'forever') {
+                var times = parser.requireElement("expression");
+                parser.requireToken("times");
+            } else {
+                parser.matchToken("forever"); // consume optional forever
+                var forever = true;
+            }
+        }
+
+        if (parser.matchToken("index")) {
+            var identifierToken = parser.requireTokenType("IDENTIFIER");
+            var indexIdentifier = identifierToken.value;
+        } else if (parser.matchToken("indexed")) {
+            parser.requireToken("by");
+            var identifierToken = parser.requireTokenType("IDENTIFIER");
+            var indexIdentifier = identifierToken.value;
+        }
+
+        var loop = parser.parseElement("commandList");
+        if (loop && evt) {
+            var last = loop;
+            while (last.next) {
+                last = last.next;
+            }
+            var waitATick = new WaitATick();
+            last.next = waitATick;
+        }
+        if (parser.hasMore()) {
+            parser.requireToken("end");
+        }
+
+        if (identifier == null) {
+            identifier = "_implicit_repeat_" + innerStartToken.start;
+            var slot = identifier;
+        } else {
+            var slot = identifier + "_" + innerStartToken.start;
+        }
+
+        const loopConfig = {
+            identifier: identifier,
+            indexIdentifier: indexIdentifier,
+            slot: slot,
+            expression: expression,
+            forever: forever,
+            times: times,
+            until: isUntil,
+            event: evt,
+            on: on,
+            whileExpr: whileExpr
+        };
+
+        const repeatLoopCommand = new RepeatLoopCommand(loopConfig, loop);
+        const repeatCommand = new RepeatCommand(expression, evt, on, slot, repeatLoopCommand);
+
+        parser.setParent(loop, repeatLoopCommand);
+        parser.setParent(repeatLoopCommand, repeatCommand);
+
+        return repeatCommand;
+    }
+
     static parse(parser) {
         if (parser.matchToken("repeat")) {
-            return parseRepeatExpression(parser, false);
+            return RepeatCommand.parseRepeatExpression(parser, false);
         }
     }
 
@@ -315,7 +312,7 @@ export class ForCommand {
      */
     static parse(parser) {
         if (parser.matchToken("for")) {
-            return parseRepeatExpression(parser, true);
+            return RepeatCommand.parseRepeatExpression(parser, true);
         }
     }
 }

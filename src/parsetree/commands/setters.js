@@ -47,29 +47,7 @@ class DecrementOperation extends Expression {
     }
 }
 
-/**
- * Helper function for put command - put content into element or symbol
- */
-function putInto(context, root, prop, valueToPut) {
-    if (root == null) {     // symbol, no element
-        var value = context.meta.runtime.resolveSymbol(prop, context);
-    } else {                // there is an element
-        var value = root;
-    }
-    // Either the symbol or element is null AND the value is an element or document (Was going in when both were non null)
-    if ((root == null || prop == null) && (value instanceof Element || value instanceof Document)) {
-        while (value.firstChild) value.removeChild(value.firstChild);
-        value.append(context.meta.runtime.convertValue(valueToPut, "Fragment"));
-        context.meta.runtime.processNode(value);
-    } else {
-        if (root == null) {
-            context.meta.runtime.setSymbol(prop, context, null, valueToPut);
-        } else {
-            // Our non-null case for both
-            root[prop] = valueToPut
-        }
-    }
-}
+// (putInto is now an instance method on PutCommand)
 
 /**
  * BaseSetterCommand - Base class for all setter commands
@@ -434,9 +412,28 @@ export class PutCommand extends Command {
         return new PutCommand(target, operation, value, rootExpr);
     }
 
+    putInto(context, root, prop, valueToPut) {
+        if (root == null) {
+            var value = context.meta.runtime.resolveSymbol(prop, context);
+        } else {
+            var value = root;
+        }
+        if ((root == null || prop == null) && (value instanceof Element || value instanceof Document)) {
+            while (value.firstChild) value.removeChild(value.firstChild);
+            value.append(context.meta.runtime.convertValue(valueToPut, "Fragment"));
+            context.meta.runtime.processNode(value);
+        } else {
+            if (root == null) {
+                context.meta.runtime.setSymbol(prop, context, null, valueToPut);
+            } else {
+                root[prop] = valueToPut
+            }
+        }
+    }
+
     resolve(context, root, prop, valueToPut) {
         if (this.symbolWrite) {
-            putInto(context, root, prop, valueToPut);
+            this.putInto(context, root, prop, valueToPut);
         } else {
             context.meta.runtime.nullCheck(root, this.rootExpr);
             if (this.operation === "into") {
@@ -451,8 +448,9 @@ export class PutCommand extends Command {
                 } else if (this.arrayIndex) {
                     root[prop] = valueToPut;
                 } else {
+                    var cmd = this;
                     context.meta.runtime.implicitLoop(root, function (elt) {
-                        putInto(context, elt, prop, valueToPut);
+                        cmd.putInto(context, elt, prop, valueToPut);
                     });
                 }
             } else {

@@ -474,25 +474,7 @@ export class AppendCommand extends Command {
 /**
  * Helper function to parse pick range syntax
  */
-function parsePickRange(parser) {
-    parser.matchToken("at") || parser.matchToken("from");
-    const rv = { includeStart: true, includeEnd: false }
-
-    rv.from = parser.matchToken("start") ? 0 : parser.requireElement("expression")
-
-    if (parser.matchToken("to") || parser.matchOpToken("..")) {
-      if (parser.matchToken("end")) {
-        rv.toEnd = true;
-      } else {
-        rv.to = parser.requireElement("expression");
-      }
-    }
-
-    if (parser.matchToken("inclusive")) rv.includeEnd = true;
-    else if (parser.matchToken("exclusive")) rv.includeStart = false;
-
-    return rv;
-}
+// (parsePickRange is now a static method on PickCommand)
 
 /**
  * PickCommand - Pick items, characters, or matches from collections/strings
@@ -516,6 +498,26 @@ export class PickCommand extends Command {
         }
     }
 
+    static parsePickRange(parser) {
+        parser.matchToken("at") || parser.matchToken("from");
+        const rv = { includeStart: true, includeEnd: false }
+
+        rv.from = parser.matchToken("start") ? 0 : parser.requireElement("expression")
+
+        if (parser.matchToken("to") || parser.matchOpToken("..")) {
+          if (parser.matchToken("end")) {
+            rv.toEnd = true;
+          } else {
+            rv.to = parser.requireElement("expression");
+          }
+        }
+
+        if (parser.matchToken("inclusive")) rv.includeEnd = true;
+        else if (parser.matchToken("exclusive")) rv.includeStart = false;
+
+        return rv;
+    }
+
     static parse(parser) {
         if (!parser.matchToken("pick")) return;
 
@@ -523,7 +525,7 @@ export class PickCommand extends Command {
 
         if (parser.matchToken("item") || parser.matchToken("items")
          || parser.matchToken("character") || parser.matchToken("characters")) {
-            const range = parsePickRange(parser);
+            const range = PickCommand.parsePickRange(parser);
 
             parser.requireToken("from");
             const root = parser.requireElement("expression");
@@ -579,27 +581,6 @@ export class PickCommand extends Command {
 }
 
 /**
- * Helper function to parse conversion info for fetch command
- */
-function parseConversionInfo(parser) {
-    var type = "text";
-    var conversion;
-    parser.matchToken("a") || parser.matchToken("an");
-    if (parser.matchToken("json") || parser.matchToken("Object")) {
-        type = "json";
-    } else if (parser.matchToken("response")) {
-        type = "response";
-    } else if (parser.matchToken("html")) {
-        type = "html";
-    } else if (parser.matchToken("text")) {
-        // default, ignore
-    } else {
-        conversion = parser.requireElement("dotOrColonPath").evaluate();
-    }
-    return {type, conversion};
-}
-
-/**
  * FetchCommand - HTTP fetch
  *
  * Parses: fetch <url> [as <type>] [with <args>]
@@ -617,12 +598,30 @@ export class FetchCommand extends Command {
         this.conversion = conversion;
     }
 
+    static parseConversionInfo(parser) {
+        var type = "text";
+        var conversion;
+        parser.matchToken("a") || parser.matchToken("an");
+        if (parser.matchToken("json") || parser.matchToken("Object")) {
+            type = "json";
+        } else if (parser.matchToken("response")) {
+            type = "response";
+        } else if (parser.matchToken("html")) {
+            type = "html";
+        } else if (parser.matchToken("text")) {
+            // default, ignore
+        } else {
+            conversion = parser.requireElement("dotOrColonPath").evaluate();
+        }
+        return {type, conversion};
+    }
+
     static parse(parser) {
         if (!parser.matchToken("fetch")) return;
         var url = parser.requireElement("stringLike");
 
         if (parser.matchToken("as")) {
-            var conversionInfo = parseConversionInfo(parser);
+            var conversionInfo = FetchCommand.parseConversionInfo(parser);
         }
 
         if (parser.matchToken("with") && parser.currentToken().value !== "{") {
@@ -632,7 +631,7 @@ export class FetchCommand extends Command {
         }
 
         if (conversionInfo == null && parser.matchToken("as")) {
-            conversionInfo = parseConversionInfo(parser);
+            conversionInfo = FetchCommand.parseConversionInfo(parser);
         }
 
         var type = conversionInfo ? conversionInfo.type : "text";
