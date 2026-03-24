@@ -653,17 +653,45 @@ function parseConversionInfo(parser) {
 }
 
 /**
- * FetchCommandNode - Fetch command node
+ * FetchCommand - HTTP fetch
+ *
+ * Parses: fetch <url> [as <type>] [with <args>]
+ * Executes: Performs HTTP fetch with optional response conversion
  */
-class FetchCommandNode extends Command {
-    constructor(url, args, type, conversion) {
+export class FetchCommand extends Command {
+    static keyword = "fetch";
+
+    constructor(url, argExprs, conversionType, conversion) {
         super();
-        this.type = "fetchCommand";
         this.url = url;
-        this.argExpressions = args;
-        this.args = [url, args];
-        this.conversionType = type;
+        this.argExpressions = argExprs;
+        this.args = [url, argExprs];
+        this.conversionType = conversionType;
         this.conversion = conversion;
+    }
+
+    static parse(parser) {
+        if (!parser.matchToken("fetch")) return;
+        var url = parser.requireElement("stringLike");
+
+        if (parser.matchToken("as")) {
+            var conversionInfo = parseConversionInfo(parser);
+        }
+
+        if (parser.matchToken("with") && parser.currentToken().value !== "{") {
+            var argExprs = parser.parseElement("nakedNamedArgumentList");
+        } else {
+            var argExprs = parser.parseElement("objectLiteral");
+        }
+
+        if (conversionInfo == null && parser.matchToken("as")) {
+            conversionInfo = parseConversionInfo(parser);
+        }
+
+        var type = conversionInfo ? conversionInfo.type : "text";
+        var conversion = conversionInfo ? conversionInfo.conversion : null;
+
+        return new FetchCommand(url, argExprs, type, conversion);
     }
 
     resolve(context, url, args) {
@@ -729,46 +757,6 @@ class FetchCommandNode extends Command {
             }).finally(function(){
                 context.me.removeEventListener('fetch:abort', abortListener);
             });
-    }
-}
-
-/**
- * FetchCommand - HTTP fetch
- *
- * Parses: fetch <url> [as <type>] [with <args>]
- * Executes: Performs HTTP fetch with optional response conversion
- */
-export class FetchCommand {
-    static keyword = "fetch";
-
-    /**
-     * Parse fetch command
-     * @param {Parser} parser
-     * @returns {FetchCommandNode | undefined}
-     */
-    static parse(parser) {
-        if (!parser.matchToken("fetch")) return;
-        var url = parser.requireElement("stringLike");
-
-        if (parser.matchToken("as")) {
-            var conversionInfo = parseConversionInfo(parser);
-        }
-
-        if (parser.matchToken("with") && parser.currentToken().value !== "{") {
-            var args = parser.parseElement("nakedNamedArgumentList");
-        } else {
-            var args = parser.parseElement("objectLiteral");
-        }
-
-        if (conversionInfo == null && parser.matchToken("as")) {
-            conversionInfo = parseConversionInfo(parser);
-        }
-
-        var type = conversionInfo ? conversionInfo.type : "text";
-        var conversion = conversionInfo ? conversionInfo.conversion : null
-
-        var fetchCmd = new FetchCommandNode(url, args, type, conversion);
-        return fetchCmd;
     }
 }
 
