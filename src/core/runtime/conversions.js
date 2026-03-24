@@ -1,34 +1,40 @@
 // Type conversions for _hyperscript
 
-function getInputInfo(node) {
-    try {
-        var result = {
-            name: node.name,
-            value: node.value,
-        };
-        if (result.name == undefined || result.value == undefined) {
-            return undefined;
+class HyperscriptFormData {
+    result = {};
+
+    addElement(node) {
+        if (node.name == undefined || node.value == undefined) return;
+        if (node.type === "radio" && !node.checked) return;
+
+        var name = node.name;
+        var value;
+
+        if (node.type === "checkbox") {
+            value = node.checked ? [node.value] : undefined;
+        } else if (node.type === "select-multiple") {
+            value = Array.from(node.querySelectorAll("option[selected]"), o => o.value);
+        } else {
+            value = node.value;
         }
-        if (node.type == "radio" && node.checked == false) {
-            return undefined;
+
+        if (value == undefined) return;
+
+        if (this.result[name] == undefined) {
+            this.result[name] = value;
+        } else if (Array.isArray(this.result[name]) && Array.isArray(value)) {
+            this.result[name] = this.result[name].concat(value);
         }
-        if (node.type == "checkbox") {
-            if (node.checked == false) {
-                result.value = undefined;
-            } else if (typeof result.value === "string") {
-                result.value = [result.value];
-            }
+    }
+
+    addContainer(node) {
+        if (node.name != undefined && node.value != undefined) {
+            this.addElement(node);
+            return;
         }
-        if (node.type == "select-multiple") {
-            var selected = node.querySelectorAll("option[selected]");
-            result.value = [];
-            for (var index = 0; index < selected.length; index++) {
-                result.value.push(selected[index].value);
-            }
+        if (node.querySelectorAll) {
+            node.querySelectorAll("input,select,textarea").forEach(child => this.addElement(child));
         }
-        return result;
-    } catch (e) {
-        return undefined;
     }
 }
 
@@ -49,43 +55,20 @@ export const conversions = {
                 return;
             }
             var conversion = str.split(":")[1];
-            var result = {};
+            var formData = new HyperscriptFormData();
 
-            function appendValue(node) {
-                var info = getInputInfo(node);
-                if (info == undefined) return;
-                if (result[info.name] == undefined) {
-                    result[info.name] = info.value;
-                    return;
-                }
-                if (Array.isArray(result[info.name]) && Array.isArray(info.value)) {
-                    result[info.name] = [].concat(result[info.name], info.value);
-                    return;
-                }
-            }
-
-            runtime.implicitLoop(node, (node) => {
-                var input = getInputInfo(node);
-                if (input !== undefined) {
-                    result[input.name] = input.value;
-                    return;
-                }
-                if (node.querySelectorAll != undefined) {
-                    var children = node.querySelectorAll("input,select,textarea");
-                    children.forEach(appendValue);
-                }
-            });
+            runtime.implicitLoop(node, (node) => formData.addContainer(node));
 
             if (conversion) {
                 if (conversion === "JSON") {
-                    return JSON.stringify(result);
+                    return JSON.stringify(formData.result);
                 } else if (conversion === "Form") {
-                    return new URLSearchParams(result).toString();
+                    return new URLSearchParams(formData.result).toString();
                 } else {
                     throw "Unknown conversion: " + conversion;
                 }
             } else {
-                return result;
+                return formData.result;
             }
         },
     ],
