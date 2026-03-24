@@ -1,4 +1,3 @@
-import { Runtime } from '../core/runtime.js';
 
 function genUUID() {
 		return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
@@ -111,7 +110,7 @@ export default function socketPlugin(_hyperscript) {
 					var implicitReturn = {
 						type: "implicitReturn",
 						op: function (context) {
-							return Runtime.HALT;
+							return context.meta.runtime.HALT;
 						},
 						execute: function (context) {
 							// do nothing
