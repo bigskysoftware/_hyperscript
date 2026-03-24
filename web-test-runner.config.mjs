@@ -2,8 +2,13 @@ import {
   summaryReporter,
   defaultReporter
 } from '@web/test-runner'
+import { playwrightLauncher } from '@web/test-runner-playwright'
 
 const config = {
+  browsers: [
+    playwrightLauncher({ product: 'chromium' }),
+  ],
+  concurrency: 10,
   testRunnerHtml: (testFramework) => `
 <!doctype html>
 <html lang="en">

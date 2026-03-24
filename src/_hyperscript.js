@@ -5,7 +5,7 @@
 import {Tokenizer} from './core/tokenizer.js';
 import {LanguageKernel} from './core/kernel.js';
 import {Parser} from './core/parser.js';
-import {HyperscriptModule, Runtime} from './core/runtime.js';
+import {HyperscriptModule, Runtime} from './core/runtime/runtime.js';
 import {config} from './core/config.js';
 
 // Import parse element modules

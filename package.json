@@ -23,11 +23,7 @@
     "_hyperscript": "src/node-hyperscript.js"
   },
   "scripts": {
-    "test": "npm run test:chrome",
-    "test:chrome": "web-test-runner --config web-test-runner.config.mjs --playwright --browsers chromium",
-    "test:firefox": "web-test-runner --config web-test-runner.config.mjs --playwright --browsers firefox",
-    "test:webkit": "web-test-runner --config web-test-runner.config.mjs --playwright --browsers webkit",
-    "test:all": "web-test-runner --config web-test-runner.config.mjs --playwright --browsers chromium firefox webkit --concurrency 1",
+    "test": "web-test-runner --config web-test-runner.config.mjs",
     "dist": "cp -r src/* dist/ && npm run-script terser && npm run-script typings && gzip -k -f dist/_hyperscript.min.js > dist/_hyperscript.min.js.gz && exit",
     "typings": "npx tsc --declaration dist/_hyperscript.js --allowJs --emitDeclarationOnly --skipLibCheck",
     "www": "node scripts/www.js",

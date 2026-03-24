@@ -3,8 +3,7 @@
  * Simple commands with no control flow, plus data manipulation commands
  */
 
-import { varargConstructor } from '../../core/runtime.js';
-import { RegExpIterable } from '../../core/runtime.js';
+import { varargConstructor, RegExpIterable } from '../../core/runtime/runtime.js';
 import { SetCommand } from './setters.js';
 import { Command, Expression } from '../base.js';
 

@@ -4,7 +4,7 @@
  */
 
 import { Command } from '../base.js';
-import { varargConstructor } from '../../core/runtime.js';
+import { varargConstructor } from '../../core/runtime/runtime.js';
 
 /**
  * JsBody - Parse JavaScript body for js feature/command

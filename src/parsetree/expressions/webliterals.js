@@ -2,7 +2,7 @@
  * Web-related literal parse tree elements
  * References to DOM elements and attributes
  */
-import { ElementCollection, TemplatedQueryElementCollection } from '../../core/runtime.js';
+import { ElementCollection, TemplatedQueryElementCollection } from '../../core/runtime/runtime.js';
 import { Expression } from '../base.js';
 import { Tokenizer } from '../../core/tokenizer.js';
 
