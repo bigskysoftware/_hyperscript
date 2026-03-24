@@ -12,10 +12,16 @@ import { varargConstructor } from '../../core/runtime.js';
  * Parses JavaScript code until 'end' keyword, extracting function names
  */
 export class JsBody {
+    constructor(jsSource, exposedFunctionNames) {
+        this.type = "jsBody";
+        this.jsSource = jsSource;
+        this.exposedFunctionNames = exposedFunctionNames;
+    }
+
     /**
      * Parse JavaScript body
      * @param {Parser} parser
-     * @returns {Object}
+     * @returns {JsBody}
      */
     static parse(parser) {
         var jsSourceStart = parser.currentToken().start;
@@ -44,11 +50,10 @@ export class JsBody {
         }
         var jsSourceEnd = jsLastToken.end + 1;
 
-        return {
-            type: "jsBody",
-            exposedFunctionNames: funcNames,
-            jsSource: parser.source.substring(jsSourceStart, jsSourceEnd),
-        };
+        return new JsBody(
+            parser.source.substring(jsSourceStart, jsSourceEnd),
+            funcNames
+        );
     }
 }
 
