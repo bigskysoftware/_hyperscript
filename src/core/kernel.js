@@ -2,6 +2,7 @@
 import { Tokens, Tokenizer } from './tokenizer.js';
 import { Runtime } from './runtime.js';
 import { Parser } from './parser.js';
+import { EmptyCommandListCommand, UnlessStatementModifier, HyperscriptProgram, ImplicitReturn } from '../parsetree/internals.js';
 
 // Change op to be used as "resolve"
 
@@ -87,15 +88,7 @@ export class LanguageKernel {
                     return cmd;
                 }
             }
-            return {
-                type: "emptyCommandListCommand",
-                resolve(context){
-                    return context.meta.runtime.findNext(this, context);
-                },
-                execute(context) {
-                    return context.meta.runtime.unifiedExec(this, context);
-                }
-            }
+            return new EmptyCommandListCommand();
         });
 
         this.addGrammarElement("leaf", (parser) => {
@@ -163,20 +156,7 @@ export class LanguageKernel {
             if (parser.matchToken("unless")) {
                 root.endToken = parser.lastMatch();
                 var conditional = parser.requireElement("expression");
-                var unless = {
-                    type: "unlessStatementModifier",
-                    args: [conditional],
-                    resolve: function (context, conditional) {
-                        if (conditional) {
-                            return this.next;
-                        } else {
-                            return root;
-                        }
-                    },
-                    execute: function (context) {
-                        return context.meta.runtime.unifiedExec(this, context);
-                    },
-                };
+                var unless = new UnlessStatementModifier(root, conditional);
                 root.parent = unless;
                 return unless;
             }
@@ -200,16 +180,7 @@ export class LanguageKernel {
                     parser.matchToken("end"); // optional end
                 }
             }
-            return {
-                type: "hyperscript",
-                features: features,
-                apply: function (target, source, args, runtime) {
-                    // no op
-                    for (const feature of features) {
-                        feature.install(target, source, args, runtime);
-                    }
-                },
-            };
+            return new HyperscriptProgram(features);
         });
     }
 
@@ -610,19 +581,7 @@ export class LanguageKernel {
      * @param {ASTNode} commandList
      */
     ensureTerminated(commandList) {
-        var implicitReturn = {
-            type: "implicitReturn",
-            resolve: function (context) {
-                context.meta.returned = true;
-                if (context.meta.resolve) {
-                    context.meta.resolve();
-                }
-                return Runtime.HALT;
-            },
-            execute: function (ctx) {
-                // do nothing
-            },
-        };
+        var implicitReturn = new ImplicitReturn();
 
         var end = commandList;
         while (end.next) {
