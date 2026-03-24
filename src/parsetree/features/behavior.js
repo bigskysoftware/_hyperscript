@@ -5,7 +5,6 @@
  * Executes: Registers a behavior that can be installed on elements
  */
 
-import { getOrInitObject } from '../../core/runtime/runtime.js';
 import { Feature } from '../base.js';
 
 export class BehaviorFeature extends Feature {
@@ -33,7 +32,7 @@ export class BehaviorFeature extends Feature {
             name,
             function (target, source, innerArgs) {
                 var internalData = runtime.getInternalData(target);
-                var elementScope = getOrInitObject(internalData, path + "Scope");
+                var elementScope = runtime.getOrInitObject(internalData, path + "Scope");
                 for (var i = 0; i < formalParams.length; i++) {
                     elementScope[formalParams[i]] = innerArgs[formalParams[i]];
                 }

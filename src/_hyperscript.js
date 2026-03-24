@@ -7,6 +7,7 @@ import {LanguageKernel} from './core/kernel.js';
 import {Parser} from './core/parser.js';
 import {HyperscriptModule, Runtime} from './core/runtime/runtime.js';
 import {config} from './core/config.js';
+import {conversions} from './core/runtime/conversions.js';
 
 // Import parse element modules
 import * as Expressions from './parsetree/expressions/expressions.js';
@@ -35,6 +36,9 @@ import * as InstallFeatureModule from './parsetree/features/install.js';
 import * as JsFeatureModule from './parsetree/features/js.js';
 
 const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'undefined' ? global : this);
+
+// Wire conversions into config for the public API
+config.conversions = conversions;
 
 // Create and configure kernel
 const kernel = new LanguageKernel();

@@ -3,7 +3,7 @@
  * Simple commands with no control flow, plus data manipulation commands
  */
 
-import { varargConstructor, RegExpIterable } from '../../core/runtime/runtime.js';
+import { RegExpIterable } from '../../core/runtime/collections.js';
 import { SetCommand } from './setters.js';
 import { Command, Expression } from '../base.js';
 
@@ -386,7 +386,7 @@ export class MakeCommand extends Command {
 
             ctx.result = result;
         } else {
-            ctx.result = varargConstructor(expr, args);
+            ctx.result = new expr(...args);
         }
 
         if (this.target) {

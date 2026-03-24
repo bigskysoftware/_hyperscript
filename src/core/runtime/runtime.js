@@ -1,9 +1,9 @@
 // Runtime - Execution engine for _hyperscript
-import { config, conversions } from '../config.js';
+import { config } from '../config.js';
+import { conversions, initWebConversions } from './conversions.js';
 import { Tokens } from '../tokenizer.js';
 import { CookieJar } from './cookies.js';
 import { ElementCollection, shouldAutoIterateSymbol } from './collections.js';
-import { initWebConversions } from './conversions.js';
 
 // Re-export for consumers
 export { ElementCollection, TemplatedQueryElementCollection, RegExpIterator, RegExpIterable,
@@ -35,20 +35,6 @@ export class Context {
     }
 }
 
-export function varargConstructor(Cls, args) {
-    return new (Cls.bind.apply(Cls, [Cls].concat(args)))();
-}
-
-export function getOrInitObject(root, prop) {
-    var value = root[prop];
-    if (value) {
-        return value;
-    } else {
-        var newObj = {};
-        root[prop] = newObj;
-        return newObj;
-    }
-}
 
 export class Runtime {
 
@@ -66,7 +52,7 @@ export class Runtime {
             this.#globalScope = globalScope;
             this.#kernel = kernel;
             this.#tokenizer = tokenizer;
-            initWebConversions(this);
+            this.#initWebConversions();
         }
 
         get globalScope() {
@@ -742,5 +728,24 @@ export class Runtime {
                 }
                 console.log("///_ BEEP! The expression (" + Tokens.sourceFor.call(expression).replace("beep! ", "") + ") evaluates to:", logValue, "of type " + typeName);
             }
+        }
+
+        // =================================================================
+        // Utilities
+        // =================================================================
+
+        getOrInitObject(root, prop) {
+            var value = root[prop];
+            if (value) {
+                return value;
+            } else {
+                var newObj = {};
+                root[prop] = newObj;
+                return newObj;
+            }
+        }
+
+        #initWebConversions() {
+            initWebConversions(this);
         }
 }

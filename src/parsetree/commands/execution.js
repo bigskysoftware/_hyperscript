@@ -4,7 +4,6 @@
  */
 
 import { Command } from '../base.js';
-import { varargConstructor } from '../../core/runtime/runtime.js';
 
 /**
  * JsBody - Parse JavaScript body for js feature/command
@@ -99,7 +98,7 @@ export class JsCommand extends Command {
         var jsBody = parser.requireElement("jsBody");
         parser.matchToken("end");
 
-        var func = varargConstructor(Function, inputs.concat([jsBody.jsSource]));
+        var func = new Function(...inputs, jsBody.jsSource);
 
         return new JsCommand(jsBody.jsSource, func, inputs);
     }
