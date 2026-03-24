@@ -1,6 +1,6 @@
 // Runtime - Execution engine for _hyperscript
 import { config } from '../config.js';
-import { conversions, initWebConversions } from './conversions.js';
+import { conversions } from './conversions.js';
 import { Tokens } from '../tokenizer.js';
 import { CookieJar } from './cookies.js';
 import { ElementCollection, shouldAutoIterateSymbol } from './collections.js';
@@ -52,7 +52,6 @@ export class Runtime {
             this.#globalScope = globalScope;
             this.#kernel = kernel;
             this.#tokenizer = tokenizer;
-            this.#initWebConversions();
         }
 
         get globalScope() {
@@ -455,7 +454,7 @@ export class Runtime {
             var dynamicResolvers = conversions.dynamicResolvers;
             for (var i = 0; i < dynamicResolvers.length; i++) {
                 var dynamicResolver = dynamicResolvers[i];
-                var converted = dynamicResolver(type, value);
+                var converted = dynamicResolver(type, value, this);
                 if (converted !== undefined) {
                     return converted;
                 }
@@ -465,7 +464,7 @@ export class Runtime {
             }
             var converter = conversions[type];
             if (converter) {
-                return converter(value);
+                return converter(value, this);
             }
             throw "Unknown conversion : " + type;
         }
@@ -745,7 +744,4 @@ export class Runtime {
             }
         }
 
-        #initWebConversions() {
-            initWebConversions(this);
-        }
 }
