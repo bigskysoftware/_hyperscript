@@ -1,21 +1,35 @@
-describe("the blockLiteral expression", function () {
-	it("basic block literals work", function () {
-		var result = evalHyperScript("\\-> true");
-		result().should.equal(true);
-	});
+import {test, expect} from '../fixtures.js'
 
-	it("basic identity works", function () {
-		var result = evalHyperScript("\\ x -> x");
-		result(true).should.equal(true);
-	});
+test.describe("the blockLiteral expression", () => {
 
-	it("basic two arg identity works", function () {
-		var result = evalHyperScript("\\ x, y -> y");
-		result(false, true).should.equal(true);
-	});
+	test("basic block literals work", async ({evaluate}) => {
+		const result = await evaluate(() => {
+			const fn = _hyperscript("\\-> true")
+			return fn()
+		})
+		expect(result).toBe(true)
+	})
 
-	it("can map an array", function () {
-		var result = evalHyperScript("['a', 'ab', 'abc'].map(\\ s -> s.length )");
-		result.should.deep.equal([1, 2, 3]);
-	});
-});
+	test("basic identity works", async ({evaluate}) => {
+		const result = await evaluate(() => {
+			const fn = _hyperscript("\\ x -> x")
+			return fn(true)
+		})
+		expect(result).toBe(true)
+	})
+
+	test("basic two arg identity works", async ({evaluate}) => {
+		const result = await evaluate(() => {
+			const fn = _hyperscript("\\ x, y -> y")
+			return fn(false, true)
+		})
+		expect(result).toBe(true)
+	})
+
+	test("can map an array", async ({evaluate}) => {
+		const result = await evaluate(() => {
+			return _hyperscript("['a', 'ab', 'abc'].map(\\ s -> s.length )")
+		})
+		expect(result).toEqual([1, 2, 3])
+	})
+})

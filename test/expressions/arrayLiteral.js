@@ -1,16 +1,19 @@
-describe("the arrayLiteral expression", function () {
-	it("empty array literals work", function () {
-		var result = evalHyperScript("[]");
-		result.should.deep.equal([]);
-	});
+import {test, expect} from '../fixtures.js'
 
-	it("one element array literal works", function () {
-		var result = evalHyperScript("[true]");
-		result.should.deep.equal([true]);
-	});
+test.describe("the arrayLiteral expression", () => {
 
-	it("multi element array literal works", function () {
-		var result = evalHyperScript("[true, false]");
-		result.should.deep.equal([true, false]);
-	});
-});
+	test("empty array literals work", async ({run}) => {
+		const result = await run("[]")
+		expect(result).toEqual([])
+	})
+
+	test("one element array literal works", async ({run}) => {
+		const result = await run("[true]")
+		expect(result).toEqual([true])
+	})
+
+	test("multi element array literal works", async ({run}) => {
+		const result = await run("[true, false]")
+		expect(result).toEqual([true, false])
+	})
+})

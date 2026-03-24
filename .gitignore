@@ -8,3 +8,5 @@ _site
 *.icloud
 /coverage/
 /tmp/
+test/.bundle/
+test-results/

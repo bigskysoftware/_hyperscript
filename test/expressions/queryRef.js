@@ -1,113 +1,90 @@
-describe("the queryRef expression", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
-	});
+import {test, expect} from '../fixtures.js'
 
-	it("basic queryRef works", function () {
-		var div = make("<div class='c1'></div>");
-		var value = evalHyperScript("<.c1/>");
-		Array.from(value)[0].should.equal(div);
-	});
+test.describe("the queryRef expression", () => {
 
-	it("basic queryRef works w/ multiple matches", function () {
-		var div = make(
-			"<div class='c1'></div>" +
-				"                  <div class='c1'></div>" +
-				"                  <div class='c1'></div>"
-		);
-		var value = evalHyperScript("<.c1/>");
-		Array.from(value).length.should.equal(3);
-	});
+	test("basic queryRef works", async ({html, evaluate}) => {
+		await html("<div class='c1'></div>")
+		const len = await evaluate(() => Array.from(_hyperscript("<.c1/>")).length)
+		expect(len).toBe(1)
+	})
 
-	it("basic queryRef works w/ properties", function () {
-		var div = make(
-			"<div title='t1'></div>" +
-				"                  <div title='t2'></div>" +
-				"                  <div title='t3'></div>"
-		);
-		var value = evalHyperScript("<[title=t2]/>");
-		Array.from(value).length.should.equal(1);
-	});
+	test("basic queryRef works w/ multiple matches", async ({html, evaluate}) => {
+		await html("<div class='c1'></div><div class='c1'></div><div class='c1'></div>")
+		const len = await evaluate(() => Array.from(_hyperscript("<.c1/>")).length)
+		expect(len).toBe(3)
+	})
 
-	it("basic queryRef works w/ funny selector", function () {
-		var div = make(
-			"<div title='t1'></div>" +
-				"                  <div title='t2'></div>" +
-				"                  <div title='t3'></div>"
-		);
-		var value = evalHyperScript("<:active/>");
-		Array.from(value).length.should.equal(0);
-	});
+	test("basic queryRef works w/ properties", async ({html, evaluate}) => {
+		await html("<div title='t1'></div><div title='t2'></div><div title='t3'></div>")
+		const len = await evaluate(() => Array.from(_hyperscript("<[title=t2]/>")).length)
+		expect(len).toBe(1)
+	})
 
-	it("basic queryRef works w/ div selector", function () {
-		var div = make(
-			"<div class='c1'></div>" +
-				"                  <div class='c2'></div>" +
-				"                  <div class='c3'></div>"
-		);
-		var value = evalHyperScript("<div.c1/>");
-		Array.from(value).length.should.equal(1);
-	});
+	test("basic queryRef works w/ funny selector", async ({html, evaluate}) => {
+		await html("<div title='t1'></div><div title='t2'></div><div title='t3'></div>")
+		const len = await evaluate(() => Array.from(_hyperscript("<:active/>")).length)
+		expect(len).toBe(0)
+	})
 
-	it("basic queryRef works w no match", function () {
-		var value = evalHyperScript("<.badClassThatDoesNotHaveAnyElements/>");
-		Array.from(value).length.should.equal(0);
-	});
+	test("basic queryRef works w/ div selector", async ({html, evaluate}) => {
+		await html("<div class='c1'></div><div class='c2'></div><div class='c3'></div>")
+		const len = await evaluate(() => Array.from(_hyperscript("<div.c1/>")).length)
+		expect(len).toBe(1)
+	})
 
-	it("basic queryRef works w properties w/ strings", function () {
-		var div = make(
-			"<div class='c1'></div>" +
-				"                  <div foo='bar' class='c2'></div>" +
-				"                  <div class='c3'></div>"
-		);
-		var value = evalHyperScript("<[foo='bar']/>");
-		Array.from(value).length.should.equal(1);
-	});
+	test("basic queryRef works w no match", async ({evaluate}) => {
+		const len = await evaluate(() => Array.from(_hyperscript("<.badClassThatDoesNotHaveAnyElements/>")).length)
+		expect(len).toBe(0)
+	})
 
-	it("queryRef w/ $ works ", function () {
-		var div = make(
-			"<div class='c1'></div>" +
-				"                  <div foo='bar' class='c2'></div>" +
-				"                  <div class='c3'></div>"
-		);
-		var value = evalHyperScript("<[foo='${x}']/>", { locals: { x: "bar" } });
-		Array.from(value).length.should.equal(1);
-	});
+	test("basic queryRef works w properties w/ strings", async ({html, evaluate}) => {
+		await html("<div class='c1'></div><div foo='bar' class='c2'></div><div class='c3'></div>")
+		const len = await evaluate(() => Array.from(_hyperscript("<[foo='bar']/>")).length)
+		expect(len).toBe(1)
+	})
 
-	it("queryRef w/ $ no curlies works", function () {
-		var div = make(
-			"<div id='t1'></div>" + "                  <div id='t2'></div>" + "                  <div id='t3'></div>"
-		);
-		var value = evalHyperScript("<#$id/>", { locals: { id: "t2" } });
-		Array.from(value)[0].should.equal(byId("t2"));
-	});
+	test("queryRef w/ $ works", async ({html, evaluate}) => {
+		await html("<div class='c1'></div><div foo='bar' class='c2'></div><div class='c3'></div>")
+		const len = await evaluate(() => {
+			return Array.from(_hyperscript("<[foo='${x}']/>", { locals: { x: "bar" } })).length
+		})
+		expect(len).toBe(1)
+	})
 
-	it("can interpolate elements into queries", function () {
-		var a = make("<div class='a'></div>");
-		var b = make("<div class='b'></div>");
-		var value = evalHyperScript("<${a} + div/>", { locals: { a } });
-		Array.from(value)[0].should.equal(b);
-	});
+	test("queryRef w/ $ no curlies works", async ({html, evaluate}) => {
+		await html("<div id='t1'></div><div id='t2'></div><div id='t3'></div>")
+		const result = await evaluate(() => {
+			const value = _hyperscript("<#$id/>", { locals: { id: "t2" } })
+			return Array.from(value)[0] === document.getElementById("t2")
+		})
+		expect(result).toBe(true)
+	})
 
-	it("queryRefs support colons properly", function () {
-		var b = make("<input class='foo' type='checkbox' checked='checked'>");
-		var value = evalHyperScript("<input.foo:checked/>");
-		Array.from(value).length.should.equal(1);
-	});
+	test("can interpolate elements into queries", async ({html, evaluate}) => {
+		await html("<div class='a'></div><div class='b'></div>")
+		const result = await evaluate(() => {
+			const a = document.querySelector('#work-area .a')
+			const value = _hyperscript("<${a} + div/>", { locals: { a } })
+			return Array.from(value)[0] === document.querySelector('#work-area .b')
+		})
+		expect(result).toBe(true)
+	})
 
-	it("queryRefs support tildes properly", function () {
-		var b = make("<div title='little flower'></div>");
-		var value = evalHyperScript("<[title~=\"flower\"]/>");
-		Array.from(value).length.should.equal(1);
-	});
+	test("queryRefs support colons properly", async ({html, evaluate}) => {
+		await html("<input class='foo' type='checkbox' checked='checked'>")
+		const len = await evaluate(() => Array.from(_hyperscript("<input.foo:checked/>")).length)
+		expect(len).toBe(1)
+	})
 
-	it("queryRefs support dollar properly", function () {
-		var b = make("<div title='little flower'></div>");
-		var value = evalHyperScript("<[title$=\"flower\"]/>");
-		Array.from(value).length.should.equal(1);
-	});
+	test("queryRefs support tildes properly", async ({html, evaluate}) => {
+		await html("<div title='little flower'></div>")
+		const len = await evaluate(() => Array.from(_hyperscript('<[title~="flower"]/>')).length)
+		expect(len).toBe(1)
+	})
 
-});
+	test("queryRefs support dollar properly", async ({html, evaluate}) => {
+		await html("<div title='little flower'></div>")
+		const len = await evaluate(() => Array.from(_hyperscript('<[title$="flower"]/>')).length)
+		expect(len).toBe(1)
+	})
+})

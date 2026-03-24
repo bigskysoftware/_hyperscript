@@ -1,28 +1,24 @@
-describe("the log command", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
+import {test, expect} from '../fixtures.js'
+
+test.describe("the log command", () => {
+
+	test("can log single item", async ({html, find}) => {
+		await html("<div _='on click log me'></div>");
+		await find('div').dispatchEvent('click');
 	});
 
-	it("can log single item", function () {
-		var d1 = make("<div _='on click log me'></div>");
-		d1.click();
+	test("can log multiple items", async ({html, find}) => {
+		await html("<div _='on click log me, my'></div>");
+		await find('div').dispatchEvent('click');
 	});
 
-	it("can log multiple items", function () {
-		var d1 = make("<div _='on click log me, my'></div>");
-		d1.click();
+	test("can log multiple items with debug", async ({html, find}) => {
+		await html("<div _='on click log me, my with console.debug'></div>");
+		await find('div').dispatchEvent('click');
 	});
 
-	it("can log multiple items with debug", function () {
-		var d1 = make("<div _='on click log me, my with console.debug'></div>");
-		d1.click();
-	});
-
-	it("can log multiple items with error", function () {
-		var d1 = make("<div _='on click log me, my with console.error'></div>");
-		d1.click();
+	test("can log multiple items with error", async ({html, find}) => {
+		await html("<div _='on click log me, my with console.error'></div>");
+		await find('div').dispatchEvent('click');
 	});
 });

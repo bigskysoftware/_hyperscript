@@ -1,194 +1,128 @@
-describe("the transition command", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
+import {test, expect} from '../fixtures.js'
+
+test.describe("the transition command", () => {
+
+	// Helper: click an element and synchronously read a style property before
+	// the transition progresses. Both happen in a single browser evaluate to
+	// avoid IPC latency between the click and the style read.
+	async function clickAndReadStyle(evaluate, selector, prop) {
+		return evaluate(({selector, prop}) => {
+			const el = document.querySelector(selector)
+			el.dispatchEvent(new Event('click', {bubbles: true}))
+			return el.style[prop]
+		}, {selector, prop})
+	}
+
+	test("can transition a single property on current element", async ({html, find, evaluate}) => {
+		await html("<div _='on click transition width from 0px to 100px'></div>");
+		const fromValue = await clickAndReadStyle(evaluate, '#work-area div', 'width')
+		expect(fromValue).toBe('0px');
+		await expect(find('div')).toHaveCSS('width', '100px');
 	});
 
-	it("can transition a single property on current element", function (done) {
-		var div = make("<div _='on click transition width from 0px to 100px'></div>");
-		div.style.width.should.equal("");
-		div.click();
-		div.style.width.should.equal("0px");
-		setTimeout(function () {
-			div.style.width.should.equal("100px");
-			done();
-		}, 20);
-	});
-
-	it("can transition with parameterized values", function (done) {
-		var div = make("<div _='on click " +
+	test("can transition with parameterized values", async ({html, find, evaluate}) => {
+		await html("<div _='on click " +
 			"                               set startWidth to 0" +
 			"                               set endWidth to 100" +
 			"                               transition width from (startWidth)px to (endWidth)px'></div>");
-		div.style.width.should.equal("");
-		div.click();
-		div.style.width.should.equal("0px");
-		setTimeout(function () {
-			div.style.width.should.equal("100px");
-			done();
-		}, 20);
+		const fromValue = await clickAndReadStyle(evaluate, '#work-area div', 'width')
+		expect(fromValue).toBe('0px');
+		await expect(find('div')).toHaveCSS('width', '100px');
 	});
 
-	it("can transition a single property on form", function (done) {
-		var form = make("<form _='on click transition width from 0px to 100px'></form>");
-		form.style.width.should.equal("");
-		form.click();
-		form.style.width.should.equal("0px");
-		setTimeout(function () {
-			form.style.width.should.equal("100px");
-			done();
-		}, 20);
+	test("can transition a single property on form", async ({html, find, evaluate}) => {
+		await html("<form _='on click transition width from 0px to 100px'></form>");
+		const fromValue = await clickAndReadStyle(evaluate, '#work-area form', 'width')
+		expect(fromValue).toBe('0px');
+		await expect(find('form')).toHaveCSS('width', '100px');
 	});
 
-	it("can transition a single property on current element with the my prefix", function (done) {
-		var div = make("<div _='on click transition my width from 0px to 100px'></div>");
-		div.style.width.should.equal("");
-		div.click();
-		div.style.width.should.equal("0px");
-		setTimeout(function () {
-			div.style.width.should.equal("100px");
-			done();
-		}, 20);
+	test("can transition a single property on current element with the my prefix", async ({html, find, evaluate}) => {
+		await html("<div _='on click transition my width from 0px to 100px'></div>");
+		const fromValue = await clickAndReadStyle(evaluate, '#work-area div', 'width')
+		expect(fromValue).toBe('0px');
+		await expect(find('div')).toHaveCSS('width', '100px');
 	});
 
-	it("can transition two properties on current element", function (done) {
-		var div = make("<div _='on click transition width from 0px to 100px height from 0px to 100px'></div>");
-		div.style.width.should.equal("");
-		div.style.height.should.equal("");
-		div.click();
-		div.style.width.should.equal("0px");
-		div.style.height.should.equal("0px");
-		setTimeout(function () {
-			div.style.width.should.equal("100px");
-			div.style.height.should.equal("100px");
-			done();
-		}, 20);
+	test("can transition two properties on current element", async ({html, find, evaluate}) => {
+		await html("<div _='on click transition width from 0px to 100px height from 0px to 100px'></div>");
+		const fromValues = await evaluate(() => {
+			const el = document.querySelector('#work-area div')
+			el.dispatchEvent(new Event('click', {bubbles: true}))
+			return {width: el.style.width, height: el.style.height}
+		})
+		expect(fromValues.width).toBe('0px');
+		expect(fromValues.height).toBe('0px');
+		await expect(find('div')).toHaveCSS('width', '100px');
+		await expect(find('div')).toHaveCSS('height', '100px');
 	});
 
-	it("can transition on another element", function (done) {
-		var div = make("<div _='on click transition element #foo width from 0px to 100px'></div>");
-		var div2 = make("<div id='foo'></div>");
-		div2.style.width.should.equal("");
-		div.click();
-		div2.style.width.should.equal("0px");
-		setTimeout(function () {
-			div2.style.width.should.equal("100px");
-			done();
-		}, 20);
+	test("can transition on another element", async ({html, find, evaluate}) => {
+		await html("<div _='on click transition element #foo width from 0px to 100px'></div><div id='foo'></div>");
+		await find('div').first().dispatchEvent('click');
+		await expect(find('#foo')).toHaveCSS('width', '100px');
 	});
 
-	it("can transition on another element no element prefix", function (done) {
-		var div = make("<div _='on click transition #foo width from 0px to 100px'></div>");
-		var div2 = make("<div id='foo'></div>");
-		div2.style.width.should.equal("");
-		div.click();
-		div2.style.width.should.equal("0px");
-		setTimeout(function () {
-			div2.style.width.should.equal("100px");
-			done();
-		}, 20);
+	test("can transition on another element no element prefix", async ({html, find, evaluate}) => {
+		await html("<div _='on click transition #foo width from 0px to 100px'></div><div id='foo'></div>");
+		await find('div').first().dispatchEvent('click');
+		await expect(find('#foo')).toHaveCSS('width', '100px');
 	});
 
-	it("can transition on another element no element prefix + possessive", function (done) {
-		var div = make('<div _="on click transition #foo\'s width from 0px to 100px"></div>');
-		var div2 = make("<div id='foo'></div>");
-		div2.style.width.should.equal("");
-		div.click();
-		div2.style.width.should.equal("0px");
-		setTimeout(function () {
-			div2.style.width.should.equal("100px");
-			done();
-		}, 20);
+	test("can transition on another element no element prefix + possessive", async ({html, find}) => {
+		await html('<div _="on click transition #foo\'s width from 0px to 100px"></div><div id="foo"></div>');
+		await find('div').first().dispatchEvent('click');
+		await expect(find('#foo')).toHaveCSS('width', '100px');
 	});
 
-	it("can transition on another element no element prefix with it", function (done) {
-		var div = make("<div _='on click get  #foo then transition its width from 0px to 100px'></div>");
-		var div2 = make("<div id='foo'></div>");
-		div2.style.width.should.equal("");
-		div.click();
-		div2.style.width.should.equal("0px");
-		setTimeout(function () {
-			div2.style.width.should.equal("100px");
-			done();
-		}, 20);
+	test("can transition on another element no element prefix with it", async ({html, find}) => {
+		await html("<div _='on click get  #foo then transition its width from 0px to 100px'></div><div id='foo'></div>");
+		await find('div').first().dispatchEvent('click');
+		await expect(find('#foo')).toHaveCSS('width', '100px');
 	});
 
-	it("can transition with a custom transition time", function (done) {
-		var div = make(
-			"<div _='on click transition element #foo width from 0px to 100px using \"width 2s ease-in\"'></div>"
+	test("can transition with a custom transition time", async ({html, find}) => {
+		await html(
+			"<div _='on click transition element #foo width from 0px to 100px using \"width 2s ease-in\"'></div><div id='foo'></div>"
 		);
-		var div2 = make("<div id='foo'></div>");
-		div2.style.width.should.equal("");
-		div.click();
-		div2.style.width.should.equal("0px");
-		setTimeout(function () {
-			div2.style.width.should.equal("100px");
-			done();
-		}, 20);
+		await find('div').first().dispatchEvent('click');
+		await expect(find('#foo')).toHaveCSS('width', '100px');
 	});
 
-	it("can transition with a custom transition time via the over syntax", function (done) {
-		var div = make("<div _='on click transition element #foo width from 0px to 100px over 2s'></div>");
-		var div2 = make("<div id='foo'></div>");
-		div2.style.width.should.equal("");
-		div.click();
-		div2.style.width.should.equal("0px");
-		setTimeout(function () {
-			div2.style.width.should.equal("100px");
-			done();
-		}, 20);
+	test("can transition with a custom transition time via the over syntax", async ({html, find}) => {
+		await html("<div _='on click transition element #foo width from 0px to 100px over 2s'></div><div id='foo'></div>");
+		await find('div').first().dispatchEvent('click');
+		await expect(find('#foo')).toHaveCSS('width', '100px');
 	});
 
-	it("can transition a single property on current element using style ref", function (done) {
-		var div = make("<div _='on click transition *width from 0px to 100px'></div>");
-		div.style.width.should.equal("");
-		div.click();
-		div.style.width.should.equal("0px");
-		setTimeout(function () {
-			div.style.width.should.equal("100px");
-			done();
-		}, 20);
+	test("can transition a single property on current element using style ref", async ({html, find, evaluate}) => {
+		await html("<div _='on click transition *width from 0px to 100px'></div>");
+		const fromValue = await clickAndReadStyle(evaluate, '#work-area div', 'width')
+		expect(fromValue).toBe('0px');
+		await expect(find('div')).toHaveCSS('width', '100px');
 	});
 
-	it("can transition a single property on form  using style ref", function (done) {
-		var form = make("<form _='on click transition *width from 0px to 100px'></form>");
-		form.style.width.should.equal("");
-		form.click();
-		form.style.width.should.equal("0px");
-		setTimeout(function () {
-			form.style.width.should.equal("100px");
-			done();
-		}, 20);
+	test("can transition a single property on form using style ref", async ({html, find, evaluate}) => {
+		await html("<form _='on click transition *width from 0px to 100px'></form>");
+		const fromValue = await clickAndReadStyle(evaluate, '#work-area form', 'width')
+		expect(fromValue).toBe('0px');
+		await expect(find('form')).toHaveCSS('width', '100px');
 	});
 
-	it("can transition a single property on current element with the my prefix  using style ref", function (done) {
-		var div = make("<div _='on click transition my *width from 0px to 100px'></div>");
-		div.style.width.should.equal("");
-		div.click();
-		div.style.width.should.equal("0px");
-		setTimeout(function () {
-			div.style.width.should.equal("100px");
-			done();
-		}, 20);
+	test("can transition a single property on current element with the my prefix using style ref", async ({html, find, evaluate}) => {
+		await html("<div _='on click transition my *width from 0px to 100px'></div>");
+		const fromValue = await clickAndReadStyle(evaluate, '#work-area div', 'width')
+		expect(fromValue).toBe('0px');
+		await expect(find('div')).toHaveCSS('width', '100px');
 	});
 
-
-	it("can use initial to transition to original value", function (done) {
-		var div = make("<div style='width: 10px' _='on click 1 transition my *width to 100px " +
+	test("can use initial to transition to original value", async ({html, find}) => {
+		await html("<div style='width: 10px' _='on click 1 transition my *width to 100px " +
 			"                                              on click 2 transition my *width to initial'></div>");
-		div.style.width.should.equal("10px");
-		div.click();
-		setTimeout(function () {
-			div.style.width.should.equal("100px");
-			div.click();
-			setTimeout(function () {
-				div.style.width.should.equal("10px");
-				done();
-			}, 20);
-		}, 20);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('width', '100px');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('width', '10px');
 	});
-
 
 });

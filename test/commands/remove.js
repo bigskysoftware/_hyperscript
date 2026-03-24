@@ -1,85 +1,72 @@
-describe("the remove command", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
+import {test, expect} from '../fixtures.js'
+
+test.describe("the remove command", () => {
+
+	test("can remove class ref on a single div", async ({html, find}) => {
+		await html("<div class='foo' _='on click remove .foo'></div>");
+		await expect(find('div')).toHaveClass(/foo/);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).not.toHaveClass(/foo/);
 	});
 
-	it("can remove class ref on a single div", function () {
-		var div = make("<div class='foo' _='on click remove .foo'></div>");
-		div.classList.contains("foo").should.equal(true);
-		div.click();
-		div.classList.contains("foo").should.equal(false);
+	test("can remove class ref on a single form", async ({html, find}) => {
+		await html("<form class='foo' _='on click remove .foo'></form>");
+		await expect(find('form')).toHaveClass(/foo/);
+		await find('form').dispatchEvent('click');
+		await expect(find('form')).not.toHaveClass(/foo/);
 	});
 
-	it("can remove class ref on a single form", function () {
-		var form = make("<form class='foo' _='on click remove .foo'></form>");
-		form.classList.contains("foo").should.equal(true);
-		form.click();
-		form.classList.contains("foo").should.equal(false);
+	test("can target another div for class ref", async ({html, find}) => {
+		await html("<div class='foo' id='bar'></div><div _='on click remove .foo from #bar'></div>");
+		await expect(find('#bar')).toHaveClass(/foo/);
+		await find('div:nth-of-type(2)').dispatchEvent('click');
+		await expect(find('#bar')).not.toHaveClass(/foo/);
 	});
 
-	it("can target another div for class ref", function () {
-		var bar = make("<div class='foo' id='bar'></div>");
-		var div = make("<div _='on click remove .foo from #bar'></div>");
-		bar.classList.contains("foo").should.equal(true);
-		div.classList.contains("foo").should.equal(false);
-		div.click();
-		bar.classList.contains("foo").should.equal(false);
-		div.classList.contains("foo").should.equal(false);
+	test("can remove non-class attributes", async ({html, find}) => {
+		await html("<div foo='bar' _='on click remove [@foo]'></div>");
+		await expect(find('div')).toHaveAttribute('foo', 'bar');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).not.toHaveAttribute('foo');
 	});
 
-	it("can remove non-class attributes", function () {
-		var div = make("<div foo='bar' _='on click remove [@foo]'></div>");
-		div.getAttribute("foo").should.equal("bar");
-		div.click();
-		div.hasAttribute("foo").should.equal(false);
+	test("can remove elements", async ({html, find, evaluate}) => {
+		await html("<div _='on click remove me'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCount(0);
 	});
 
-	it("can remove elements", function () {
-		var div = make("<div _='on click remove me'></div>");
-		assert.isNotNull(div.parentElement);
-		div.click();
-		assert.isNull(div.parentElement);
+	test("can remove other elements", async ({html, find}) => {
+		await html("<div _='on click remove #that'></div><div id='that'></div>");
+		await expect(find('#that')).toHaveCount(1);
+		await find('div').first().dispatchEvent('click');
+		await expect(find('#that')).toHaveCount(0);
 	});
 
-	it("can remove other elements", function () {
-		var div = make("<div _='on click remove #that'></div>");
-		var div2 = make("<div id='that'></div>");
-		assert.isNotNull(div2.parentElement);
-		div.click();
-		assert.isNull(div2.parentElement);
+	test("can remove parent element", async ({html, find}) => {
+		await html("<div id='p1'><button id='b1' _=\"on click remove my.parentElement\"></button></div>");
+		await expect(find('#p1')).toHaveCount(1);
+		await find('#b1').dispatchEvent('click');
+		await expect(find('#p1')).toHaveCount(0);
 	});
 
-	it("can remove parent element", function () {
-		var div = make("<div id='p1'><button  id='b1' _=\"on click remove my.parentElement\"></button></div> ");
-		var btn = byId("b1");
-		assert.isNotNull(div.parentElement);
-		btn.click();
-		assert.isNull(div.parentElement);
+	test("can remove multiple class refs", async ({html, find}) => {
+		await html("<div class='foo bar doh' _='on click remove .foo .bar'></div>");
+		await expect(find('div')).toHaveClass(/foo/);
+		await expect(find('div')).toHaveClass(/bar/);
+		await expect(find('div')).toHaveClass(/doh/);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).not.toHaveClass(/foo/);
+		await expect(find('div')).not.toHaveClass(/bar/);
+		await expect(find('div')).toHaveClass(/doh/);
 	});
 
-	it("can remove multiple class refs", function () {
-		var div = make("<div class='foo bar doh' _='on click remove .foo .bar'></div>");
-		div.classList.contains("foo").should.equal(true);
-		div.classList.contains("bar").should.equal(true);
-		div.classList.contains("doh").should.equal(true);
-		div.click();
-		div.classList.contains("foo").should.equal(false);
-		div.classList.contains("bar").should.equal(false);
-		div.classList.contains("doh").should.equal(true);
-	});
-
-	it("can remove query refs from specific things", function () {
-		var div = make("<div><div id='d1' _='on click remove <p/> from me'><p>foo</p>bar</div><p>doh</p></div>");
-		var d1 = byId('d1');
-		div.innerHTML.includes("foo").should.equal(true);
-		div.innerHTML.includes("bar").should.equal(true);
-		div.innerHTML.includes("doh").should.equal(true);
-		d1.click();
-		div.innerHTML.includes("foo").should.equal(false);
-		div.innerHTML.includes("bar").should.equal(true);
-		div.innerHTML.includes("doh").should.equal(true);
+	test("can remove query refs from specific things", async ({html, find, evaluate}) => {
+		await html("<div><div id='d1' _='on click remove <p/> from me'><p>foo</p>bar</div><p>doh</p></div>");
+		await find('#d1').dispatchEvent('click');
+		const outerHTML = await evaluate(() => document.querySelector('#work-area > div').innerHTML);
+		expect(outerHTML).not.toContain("foo");
+		expect(outerHTML).toContain("bar");
+		expect(outerHTML).toContain("doh");
 	});
 });

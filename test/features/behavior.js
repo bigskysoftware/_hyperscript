@@ -1,80 +1,73 @@
-describe("the behavior feature", function () {
-	it("can define behaviors", function () {
-		var behavior = make(
+import {test, expect} from '../fixtures.js'
+
+test.describe('the behavior feature', () => {
+
+	test('can define behaviors', async ({html, evaluate}) => {
+		await html(
 			"<script type=text/hyperscript>" +
-				"behavior TheBehaviorWeAreDefiningForHyperscriptTestingPurposes init log 'foo' end end" +
-				"</script>"
-		);
-		assert.property(window, "TheBehaviorWeAreDefiningForHyperscriptTestingPurposes");
-		delete window.TheBehaviorWeAreDefiningForHyperscriptTestingPurposes;
-	});
+			"behavior TheBehaviorWeAreDefiningForHyperscriptTestingPurposes init log 'foo' end end" +
+			"</script>"
+		)
+		const result = await evaluate(() => 'TheBehaviorWeAreDefiningForHyperscriptTestingPurposes' in window)
+		expect(result).toBe(true)
+	})
 
-	it("can install behaviors", function () {
-		var behavior = make(
-			"<script type=text/hyperscript>" + "behavior Behave on click add .foo end end" + "</script>"
-		);
-		var div = make("<div _='install Behave'></div>");
-		div.classList.contains("foo").should.equal(false);
-		div.click();
-		div.classList.contains("foo").should.equal(true);
-		delete window.Behave;
-	});
+	test('can install behaviors', async ({html, find}) => {
+		await html(
+			"<script type=text/hyperscript>behavior Behave on click add .foo end end</script>" +
+			"<div _='install Behave'></div>"
+		)
+		await expect(find('div')).not.toHaveClass(/foo/)
+		await find('div').dispatchEvent('click')
+		await expect(find('div')).toHaveClass(/foo/)
+	})
 
-	it("can pass arguments to behaviors", function () {
-		var behavior = make(
+	test('can pass arguments to behaviors', async ({html, find}) => {
+		await html(
 			"<script type=text/hyperscript>" +
-				"behavior Behave(foo, bar) on click put foo + bar into me end end" +
-				"</script>"
-		);
-		var div = make("<div _='install Behave(foo: 1, bar: 1)'></div>");
-		div.textContent.should.equal("");
-		div.click();
-		div.textContent.should.equal("2");
-		delete window.Behave;
-	});
+			"behavior Behave(foo, bar) on click put foo + bar into me end end" +
+			"</script>" +
+			"<div _='install Behave(foo: 1, bar: 1)'></div>"
+		)
+		await expect(find('div')).toHaveText('')
+		await find('div').dispatchEvent('click')
+		await expect(find('div')).toHaveText('2')
+	})
 
-	it("supports init blocks in behaviors", function (done) {
-		var behavior = make("<script type=text/hyperscript>" + "behavior Behave init add .foo to me end" + "</script>");
-		var div = make("<div _='install Behave'></div>");
-		setTimeout(() => {
-			div.classList.contains("foo").should.equal(true);
-			delete window.Behave;
-			done();
-		});
-	});
+	test('supports init blocks in behaviors', async ({html, find}) => {
+		await html(
+			"<script type=text/hyperscript>behavior Behave init add .foo to me end</script>" +
+			"<div _='install Behave'></div>"
+		)
+		await expect(find('div')).toHaveClass(/foo/)
+	})
 
-	it("can pass element arguments to listen to in behaviors", function () {
-		var behavior = make(
+	test('can pass element arguments to listen to in behaviors', async ({html, find}) => {
+		await html(
 			"<script type=text/hyperscript>" +
 			"behavior Behave(elt) on click from elt put 'foo' into me end end" +
-			"</script>"
-		);
-		var btn = make("<button id='b1'></button>");
-		var div = make("<div _='install Behave(elt: #b1)'></div>");
-		div.textContent.should.equal("");
-		btn.click();
-		div.textContent.should.equal("foo");
-		delete window.Behave;
-	});
+			"</script>" +
+			"<button id='b1'></button>" +
+			"<div _='install Behave(elt: #b1)'></div>"
+		)
+		await expect(find('div')).toHaveText('')
+		await find('#b1').dispatchEvent('click')
+		await expect(find('div')).toHaveText('foo')
+	})
 
-	it("can refer to arguments in init blocks", function (done) {
-		var behavior = make(
+	test('can refer to arguments in init blocks', async ({html, find}) => {
+		await html(
 			"<script type=text/hyperscript>" +
 			"behavior Behave(elt) init put 'foo' into elt end end" +
-			"</script>"
-		);
-		var div1 = make("<div id='d1'></div>");
-		var div2 = make("<div _='install Behave(elt: #d1)'></div>");
-		div1.textContent.should.equal("");
-		setTimeout(function () {
-			div1.textContent.should.equal("foo");
-			delete window.Behave;
-			done();
-		}, 10);
-	});
+			"</script>" +
+			"<div id='d1'></div>" +
+			"<div _='install Behave(elt: #d1)'></div>"
+		)
+		await expect(find('#d1')).toHaveText('foo')
+	})
 
-	it("can declare variables in init blocks", function (done) {
-		var behavior = make(
+	test('can declare variables in init blocks', async ({html, find}) => {
+		await html(
 			`<script type=text/hyperscript>
 				behavior Behave
 					init
@@ -87,18 +80,15 @@ describe("the behavior feature", function () {
 						put element's bar["count"] into me
 					end
 				end
-			</script>
-			`);
-		var div = make("<div _='install Behave'></div>");
-		div.textContent.should.equal("");
-		setTimeout(function () {
-			div.click();
-			div.textContent.should.equal("2");
-			div.click();
-			div.textContent.should.equal("3");
-			delete window.Behave;
-			done();
-		}, 20);
-	});
+			</script>` +
+			"<div _='install Behave'></div>"
+		)
+		await expect(find('div')).toHaveText('')
+		// Wait for init to complete
+		await find('div').dispatchEvent('click')
+		await expect(find('div')).toHaveText('2')
+		await find('div').dispatchEvent('click')
+		await expect(find('div')).toHaveText('3')
+	})
 
-});
+})

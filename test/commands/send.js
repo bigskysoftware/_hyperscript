@@ -1,74 +1,56 @@
-describe("the send command", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
+import {test, expect} from '../fixtures.js'
+
+test.describe("the send command", () => {
+
+	test("can send events", async ({html, find}) => {
+		await html("<div _='on click send foo to #bar'></div><div id='bar' _='on foo add .foo-sent'></div>");
+		await expect(find('#bar')).not.toHaveClass(/foo-sent/);
+		await find('div').first().dispatchEvent('click');
+		await expect(find('#bar')).toHaveClass(/foo-sent/);
 	});
 
-	it("can send events", function () {
-		var div = make("<div _='on click send foo to #bar'></div>");
-		var bar = make("<div id='bar' _='on foo add .foo-sent'></div>");
-		bar.classList.contains("foo-sent").should.equal(false);
-		div.click();
-		bar.classList.contains("foo-sent").should.equal(true);
+	test("can reference sender in events", async ({html, find}) => {
+		await html("<div _='on click log 0 send foo to #bar log 3'></div><div id='bar' _='on foo add .foo-sent to sender log 1, me, sender'></div>");
+		await find('div').first().dispatchEvent('click');
+		await expect(find('div').first()).toHaveClass(/foo-sent/);
 	});
 
-	it("can reference sender in events", function () {
-		var div = make("<div _='on click log 0 send foo to #bar log 3'></div>");
-		var bar = make("<div id='bar' _='on foo add .foo-sent to sender log 1, me, sender'></div>");
-		div.classList.contains("foo-sent").should.equal(false);
-		div.click();
-		console.log(div.classList);
-		div.classList.contains("foo-sent").should.equal(true);
-		console.log(div.classList);
+	test("can send events with args", async ({html, find}) => {
+		await html("<div _='on click send foo(x:42) to #bar'></div><div id='bar' _='on foo put event.detail.x into my.innerHTML'></div>");
+		await find('div').first().dispatchEvent('click');
+		await expect(find('#bar')).toHaveText("42");
 	});
 
-	it("can send events with args", function () {
-		var div = make("<div _='on click send foo(x:42) to #bar'></div>");
-		var bar = make("<div id='bar' _='on foo put event.detail.x into my.innerHTML'></div>");
-		bar.classList.contains("foo-sent").should.equal(false);
-		div.click();
-		bar.innerHTML.should.equal("42");
+	test("can send events with dots", async ({html, find}) => {
+		await html("<div _='on click send foo.bar to #bar'></div><div id='bar' _='on foo.bar add .foo-sent'></div>");
+		await expect(find('#bar')).not.toHaveClass(/foo-sent/);
+		await find('div').first().dispatchEvent('click');
+		await expect(find('#bar')).toHaveClass(/foo-sent/);
 	});
 
-	it("can send events with dots", function () {
-		var div = make("<div _='on click send foo.bar to #bar'></div>");
-		var bar = make("<div id='bar' _='on foo.bar add .foo-sent'></div>");
-		bar.classList.contains("foo-sent").should.equal(false);
-		div.click();
-		bar.classList.contains("foo-sent").should.equal(true);
+	test("can send events with dots with args", async ({html, find}) => {
+		await html("<div _='on click send foo.bar(x:42) to #bar'></div><div id='bar' _='on foo.bar put event.detail.x into my.innerHTML'></div>");
+		await find('div').first().dispatchEvent('click');
+		await expect(find('#bar')).toHaveText("42");
 	});
 
-	it("can send events with dots with args", function () {
-		var div = make("<div _='on click send foo.bar(x:42) to #bar'></div>");
-		var bar = make("<div id='bar' _='on foo.bar put event.detail.x into my.innerHTML'></div>");
-		bar.classList.contains("foo-sent").should.equal(false);
-		div.click();
-		bar.innerHTML.should.equal("42");
+	test("can send events with colons", async ({html, find}) => {
+		await html("<div _='on click send foo:bar to #bar'></div><div id='bar' _='on foo:bar add .foo-sent'></div>");
+		await expect(find('#bar')).not.toHaveClass(/foo-sent/);
+		await find('div').first().dispatchEvent('click');
+		await expect(find('#bar')).toHaveClass(/foo-sent/);
 	});
 
-	it("can send events with colons", function () {
-		var div = make("<div _='on click send foo:bar to #bar'></div>");
-		var bar = make("<div id='bar' _='on foo:bar add .foo-sent'></div>");
-		bar.classList.contains("foo-sent").should.equal(false);
-		div.click();
-		bar.classList.contains("foo-sent").should.equal(true);
+	test("can send events with colons with args", async ({html, find}) => {
+		await html("<div _='on click send foo:bar(x:42) to #bar'></div><div id='bar' _='on foo:bar put event.detail.x into my.innerHTML'></div>");
+		await find('div').first().dispatchEvent('click');
+		await expect(find('#bar')).toHaveText("42");
 	});
 
-	it("can send events with colons with args", function () {
-		var div = make("<div _='on click send foo:bar(x:42) to #bar'></div>");
-		var bar = make("<div id='bar' _='on foo:bar put event.detail.x into my.innerHTML'></div>");
-		bar.classList.contains("foo-sent").should.equal(false);
-		div.click();
-		bar.innerHTML.should.equal("42");
-	});
-
-	it("can send events to any expression", function () {
-		var div = make("<div _='def bar return #bar on click send foo to bar()'></div>");
-		var bar = make("<div id='bar' _='on foo add .foo-sent'></div>");
-		bar.classList.contains("foo-sent").should.equal(false);
-		div.click();
-		bar.classList.contains("foo-sent").should.equal(true);
+	test("can send events to any expression", async ({html, find}) => {
+		await html("<div _='def bar return #bar on click send foo to bar()'></div><div id='bar' _='on foo add .foo-sent'></div>");
+		await expect(find('#bar')).not.toHaveClass(/foo-sent/);
+		await find('div').first().dispatchEvent('click');
+		await expect(find('#bar')).toHaveClass(/foo-sent/);
 	});
 });

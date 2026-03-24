@@ -1,141 +1,131 @@
-describe("pseudoCommands", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
-	});
+import {test, expect} from '../fixtures.js'
 
-	it("Basic instance function with expression", function () {
-		var d1 = make(
+test.describe("pseudoCommands", () => {
+
+	test("Basic instance function with expression", async ({html, find, evaluate}) => {
+		await html(
 			"<div id='d1' _='on click getElementById(\"d1\") from the document " +
 				"                                          put the result into window.results'></div>"
 		);
-		d1.click();
-		var value = window.results;
-		delete window.results;
-		value.should.equal(d1);
+		await find('#d1').dispatchEvent('click');
+		const match = await evaluate(() => window.results === document.querySelector('#d1'));
+		expect(match).toBe(true);
 	});
 
-	it("Basic instance function with expression and with", function () {
-		var d1 = make(
+	test("Basic instance function with expression and with", async ({html, find, evaluate}) => {
+		await html(
 			"<div id='d1' _='on click getElementById(\"d1\") with the document " +
 				"                                          put result into window.results'></div>"
 		);
-		d1.click();
-		var value = window.results;
-		delete window.results;
-		value.should.equal(d1);
+		await find('#d1').dispatchEvent('click');
+		const match = await evaluate(() => window.results === document.querySelector('#d1'));
+		expect(match).toBe(true);
 	});
 
-	it("Basic instance function with expression and on", function () {
-		var d1 = make(
+	test("Basic instance function with expression and on", async ({html, find, evaluate}) => {
+		await html(
 			"<div id='d1' _='on click getElementById(\"d1\") on the document " +
 				"                                          put result into window.results'></div>"
 		);
-		d1.click();
-		var value = window.results;
-		delete window.results;
-		value.should.equal(d1);
+		await find('#d1').dispatchEvent('click');
+		const match = await evaluate(() => window.results === document.querySelector('#d1'));
+		expect(match).toBe(true);
 	});
 
-	it("Basic instance function with me target", function () {
-		var d1 = make(
+	test("Basic instance function with me target", async ({html, find, evaluate}) => {
+		await html(
 			"<div id='d1' _='on click foo() on me " +
 				"                                          put result into my bar'></div>"
 		);
-		d1.foo = function () {
-			return "foo";
-		};
-		d1.click();
-		d1.bar.should.equal("foo");
+		await evaluate(() => {
+			document.querySelector('#d1').foo = function () { return "foo"; };
+		});
+		await find('#d1').dispatchEvent('click');
+		const bar = await evaluate(() => document.querySelector('#d1').bar);
+		expect(bar).toBe("foo");
 	});
 
-	it("Can use functions defined outside of the current element", function () {
-		window.foo = function() {
-			return "foo";
-		}
-		var d1 = make(
+	test("Can use functions defined outside of the current element", async ({html, find, evaluate}) => {
+		await evaluate(() => {
+			window.foo = function() { return "foo"; };
+		});
+		await html(
 			"<div id='d1' _='on click foo() then" +
 				"                                          put result into my bar'></div>"
 		);
-		d1.click();
-		d1.bar.should.equal("foo");
-		delete window.foo;
+		await find('#d1').dispatchEvent('click');
+		const bar = await evaluate(() => document.querySelector('#d1').bar);
+		expect(bar).toBe("foo");
 	});
 
-	it("Basic instance function with me target no preposition", function () {
-		var d1 = make(
+	test("Basic instance function with me target no preposition", async ({html, find, evaluate}) => {
+		await html(
 			"<div id='d1' _='on click foo() me " +
 			"                                          put result into my bar'></div>"
 		);
-		d1.foo = function () {
-			return "foo";
-		};
-		d1.click();
-		d1.bar.should.equal("foo");
+		await evaluate(() => {
+			document.querySelector('#d1').foo = function () { return "foo"; };
+		});
+		await find('#d1').dispatchEvent('click');
+		const bar = await evaluate(() => document.querySelector('#d1').bar);
+		expect(bar).toBe("foo");
 	});
 
-	it("functions defined alongside can be invoked", function () {
-		var d1 = make(
+	test("functions defined alongside can be invoked", async ({html, find, evaluate}) => {
+		await html(
 			"<div id='d1' _='def foo() return \"foo\" end on click foo() then put result into my bar'></div>"
 		);
-		d1.click();
-		d1.bar.should.equal("foo");
+		await find('#d1').dispatchEvent('click');
+		const bar = await evaluate(() => document.querySelector('#d1').bar);
+		expect(bar).toBe("foo");
 	});
 
-	it("Can use indirect functions with a symbol root", function () {
-		window.bar = {
-			foo: function() {
-				return "foo";
-			}
-		}
-		var d1 = make(
+	test("Can use indirect functions with a symbol root", async ({html, find, evaluate}) => {
+		await evaluate(() => {
+			window.bar = { foo: function() { return "foo"; } };
+		});
+		await html(
 			"<div id='d1' _='on click bar.foo() then" +
 			"                                          put the result into my bar'></div>"
 		);
-		d1.click();
-		d1.bar.should.equal("foo");
-		delete window.bar;
+		await find('#d1').dispatchEvent('click');
+		const bar = await evaluate(() => document.querySelector('#d1').bar);
+		expect(bar).toBe("foo");
 	});
 
-	it("Can use indirect functions with a function root", function () {
-		window.bar = function() {
-			return {
-				foo: function() {
-					return "foo";
-				}
-			}
-		}
-		var d1 = make(
+	test("Can use indirect functions with a function root", async ({html, find, evaluate}) => {
+		await evaluate(() => {
+			window.bar = function() {
+				return { foo: function() { return "foo"; } };
+			};
+		});
+		await html(
 			"<div id='d1' _='on click bar().foo() then" +
 			"                                          put the result into my bar'></div>"
 		);
-		d1.click();
-		d1.bar.should.equal("foo");
-		delete window.bar;
+		await find('#d1').dispatchEvent('click');
+		const bar = await evaluate(() => document.querySelector('#d1').bar);
+		expect(bar).toBe("foo");
 	});
 
-	it("Can use nested indirect functions with a symbol root", function () {
-		window.bar = function() {
-			return {
-				foo: function() {
-					return "foo";
-				}
-			}
-		}
-		var d1 = make(
+	test("Can use nested indirect functions with a symbol root", async ({html, find, evaluate}) => {
+		await evaluate(() => {
+			window.bar = function() {
+				return { foo: function() { return "foo"; } };
+			};
+		});
+		await html(
 			"<div id='d1' _='on click window.bar().foo() then" +
 			"                                          put the result into my bar'></div>"
 		);
-		d1.click();
-		d1.bar.should.equal("foo");
-		delete window.bar;
+		await find('#d1').dispatchEvent('click');
+		const bar = await evaluate(() => document.querySelector('#d1').bar);
+		expect(bar).toBe("foo");
 	});
 
-	it("non-function pseudo-command is an error", function () {
-		var msg = getParseErrorFor("on click log me then foo.bar + bar");
-		startsWith(msg, "Pseudo-commands must be function calls");
+	test("non-function pseudo-command is an error", async ({error}) => {
+		const msg = await error("on click log me then foo.bar + bar");
+		expect(msg).toMatch(/^Pseudo-commands must be function calls/);
 	});
 
 });

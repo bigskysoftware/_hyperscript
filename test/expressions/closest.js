@@ -1,103 +1,114 @@
-describe("the closest expression", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
-	});
+import {test, expect} from '../fixtures.js'
 
-	it("basic query return values", function () {
-		var div3 = make("<div id='d3'><div id='d1'></div><div id='d2'></div></div>");
-		var div1 = byId("d1");
-		var div2 = byId("d2");
+test.describe("the closest expression", () => {
 
-		var result = evalHyperScript("closest <div/>", { me: div3 });
-		result.should.equal(div3);
+	test("basic query return values", async ({html, evaluate}) => {
+		await html("<div id='d3'><div id='d1'></div><div id='d2'></div></div>")
 
-		var result = evalHyperScript("closest <div/>", { me: div1 });
-		result.should.equal(div1);
+		let result = await evaluate(() => {
+			const div3 = document.getElementById('d3')
+			return _hyperscript("closest <div/>", { me: div3 }) === div3
+		})
+		expect(result).toBe(true)
 
-		var result = evalHyperScript("closest <div/> to #d3", { me: div1 });
-		result.should.equal(div3);
+		result = await evaluate(() => {
+			const div1 = document.getElementById('d1')
+			return _hyperscript("closest <div/>", { me: div1 }) === div1
+		})
+		expect(result).toBe(true)
 
-		var result = evalHyperScript("closest <div/> to my.parentElement", {
-			me: div1,
-		});
-		result.should.equal(div3);
+		result = await evaluate(() => {
+			const div1 = document.getElementById('d1')
+			const div3 = document.getElementById('d3')
+			return _hyperscript("closest <div/> to #d3", { me: div1 }) === div3
+		})
+		expect(result).toBe(true)
 
-		var result = evalHyperScript("closest <div/> to parentElement of me", {
-			me: div1,
-		});
-		result.should.equal(div3);
-	});
+		result = await evaluate(() => {
+			const div1 = document.getElementById('d1')
+			const div3 = document.getElementById('d3')
+			return _hyperscript("closest <div/> to my.parentElement", { me: div1 }) === div3
+		})
+		expect(result).toBe(true)
 
-	it("parent modifier works", function () {
-		var div3 = make("<div id='d3'><div id='d1'></div><div id='d2'></div></div>");
-		var div1 = byId("d1");
-		var div2 = byId("d2");
+		result = await evaluate(() => {
+			const div1 = document.getElementById('d1')
+			const div3 = document.getElementById('d3')
+			return _hyperscript("closest <div/> to parentElement of me", { me: div1 }) === div3
+		})
+		expect(result).toBe(true)
+	})
 
-		var result = evalHyperScript("closest parent <div/>", { me: div1 });
-		result.should.equal(div3);
+	test("parent modifier works", async ({html, evaluate}) => {
+		await html("<div id='d3'><div id='d1'></div><div id='d2'></div></div>")
 
-		var result = evalHyperScript("closest parent <div/>", { me: div2 });
-		result.should.equal(div3);
-	});
+		let result = await evaluate(() => {
+			const div1 = document.getElementById('d1')
+			const div3 = document.getElementById('d3')
+			return _hyperscript("closest parent <div/>", { me: div1 }) === div3
+		})
+		expect(result).toBe(true)
 
-	it("attributes resolve as attributes", function () {
-		var div3 = make("<div foo='bar' id='d3'><div id='d1'></div><div id='d2'></div></div>");
-		var div1 = byId("d1");
-		var div2 = byId("d2");
+		result = await evaluate(() => {
+			const div2 = document.getElementById('d2')
+			const div3 = document.getElementById('d3')
+			return _hyperscript("closest parent <div/>", { me: div2 }) === div3
+		})
+		expect(result).toBe(true)
+	})
 
-		var result = evalHyperScript("closest @foo", { me: div1 });
-		result.should.equal("bar");
+	test("attributes resolve as attributes", async ({html, evaluate}) => {
+		await html("<div foo='bar' id='d3'><div id='d1'></div><div id='d2'></div></div>")
 
-		var result = evalHyperScript("closest @foo", { me: div1 });
-		result.should.equal("bar");
-	});
+		const result = await evaluate(() => {
+			const div1 = document.getElementById('d1')
+			return _hyperscript("closest @foo", { me: div1 })
+		})
+		expect(result).toBe("bar")
+	})
 
-	it("attributes can be looked up and referred to in same expression", function () {
-		var div = make("<div foo='bar'>" + "<div id='d1' _='on click put closest @foo into me'></div>" + "</div>");
-		var d1 = byId("d1");
-		d1.innerHTML.should.equal("");
-		d1.click();
-		d1.innerHTML.should.equal("bar");
-	});
+	test("attributes can be looked up and referred to in same expression", async ({html, find}) => {
+		await html("<div foo='bar'><div id='d1' _='on click put closest @foo into me'></div></div>")
+		await expect(find('#d1')).toHaveText("")
+		await find('#d1').dispatchEvent('click')
+		await expect(find('#d1')).toHaveText("bar")
+	})
 
-	it("attributes can be set via the closest expression", function () {
-		var div = make("<div foo='bar'>" + "<div id='d1' _='on click set closest @foo to \"doh\"'></div>" + "</div>");
-		var d1 = byId("d1");
-		div.getAttribute("foo").should.equal("bar");
-		d1.click();
-		div.getAttribute("foo").should.equal("doh");
-	});
+	test("attributes can be set via the closest expression", async ({html, find, evaluate}) => {
+		await html("<div id='outerDiv' foo='bar'><div id='d1' _='on click set closest @foo to \"doh\"'></div></div>")
+		let value = await evaluate(() => document.getElementById('outerDiv').getAttribute("foo"))
+		expect(value).toBe("bar")
+		await find('#d1').dispatchEvent('click')
+		await expect.poll(() => evaluate(() => document.getElementById('outerDiv').getAttribute("foo"))).toBe("doh")
+	})
 
-	it("parenthesizing allows you to nest to modifiers properly", function () {
-		var div = make("<div foo='bar'>" + "<div id='d1'></div>" + "</div>");
-		var div2 = make("<div _='on click set (closest @foo to #d1) to \"doh\"'></div>");
-		div.getAttribute("foo").should.equal("bar");
-		div2.click();
-		div.getAttribute("foo").should.equal("doh");
-	});
+	test("parenthesizing allows you to nest to modifiers properly", async ({html, find, evaluate}) => {
+		await html("<div id='outerDiv' foo='bar'><div id='d1'></div></div><div id='div2' _='on click set (closest @foo to #d1) to \"doh\"'></div>")
+		let value = await evaluate(() => document.getElementById('outerDiv').getAttribute("foo"))
+		expect(value).toBe("bar")
+		await find('#div2').dispatchEvent('click')
+		await expect.poll(() => evaluate(() => document.getElementById('outerDiv').getAttribute("foo"))).toBe("doh")
+	})
 
-	it("attributes can be set via the closest expression", function () {
-		var div = make("<div foo='bar'>" + "<div id='d1' _='on click set closest @foo to \"doh\"'></div>" + "</div>");
-		var d1 = byId("d1");
-		div.getAttribute("foo").should.equal("bar");
-		d1.click();
-		div.getAttribute("foo").should.equal("doh");
-	});
+	test("attributes can be set via the closest expression 2", async ({html, find, evaluate}) => {
+		await html("<div id='outerDiv2' foo='bar'><div id='d1b' _='on click set closest @foo to \"doh\"'></div></div>")
+		let value = await evaluate(() => document.getElementById('outerDiv2').getAttribute("foo"))
+		expect(value).toBe("bar")
+		await find('#d1b').dispatchEvent('click')
+		await expect.poll(() => evaluate(() => document.getElementById('outerDiv2').getAttribute("foo"))).toBe("doh")
+	})
 
-	it("returns an array where appropriate", function () {
-		var div = make("<div id='d2' class='bar'><div id='d1' class='foo' _='on click add .doh to closest .bar to .foo'></div></div>" +
-			"                  <div id='d3' class='bar'><div class='foo'></div></div>");
-		var d1 = byId("d1");
-		var d2 = byId("d2");
-		var d3 = byId("d3");
-		d2.classList.contains("doh").should.equal(false);
-		d3.classList.contains("doh").should.equal(false);
-		d1.click();
-		d2.classList.contains("doh").should.equal(true);
-		d3.classList.contains("doh").should.equal(true);
-	});
-
-});
+	test("returns an array where appropriate", async ({html, find, evaluate}) => {
+		await html(
+			"<div id='d2' class='bar'><div id='d1' class='foo' _='on click add .doh to closest .bar to .foo'></div></div>" +
+			"<div id='d3' class='bar'><div class='foo'></div></div>"
+		)
+		let hasDoh = await evaluate(() => document.getElementById('d2').classList.contains("doh"))
+		expect(hasDoh).toBe(false)
+		hasDoh = await evaluate(() => document.getElementById('d3').classList.contains("doh"))
+		expect(hasDoh).toBe(false)
+		await find('#d1').dispatchEvent('click')
+		await expect.poll(() => evaluate(() => document.getElementById('d2').classList.contains("doh"))).toBe(true)
+		await expect.poll(() => evaluate(() => document.getElementById('d3').classList.contains("doh"))).toBe(true)
+	})
+})

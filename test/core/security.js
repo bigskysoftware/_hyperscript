@@ -1,15 +1,10 @@
-describe("security options", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
-	});
+import {test, expect} from '../fixtures.js'
 
-	it("on a single div", function () {
-		var div = make("<div disable-scripting>" + "<div id='d1' _='on click add .foo'></div>" + "</div>");
-		var innerDiv = byId("d1");
-		innerDiv.click();
-		innerDiv.classList.contains("foo").should.equal(false);
+test.describe("security options", () => {
+
+	test("on a single div", async ({html, find}) => {
+		await html("<div disable-scripting>" + "<div id='d1' _='on click add .foo'></div>" + "</div>");
+		await find('#d1').dispatchEvent('click');
+		await expect(find('#d1')).not.toHaveClass(/foo/);
 	});
 });

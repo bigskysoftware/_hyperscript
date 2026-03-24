@@ -1,636 +1,381 @@
-describe("the comparisonOperator expression", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
-	});
-
-	it("less than works", function () {
-		var result = evalHyperScript("1 < 2");
-		result.should.equal(true);
-
-		var result = evalHyperScript("2 < 1");
-		result.should.equal(false);
-
-		var result = evalHyperScript("2 < 2");
-		result.should.equal(false);
-	});
-
-	it("less than or equal works", function () {
-		var result = evalHyperScript("1 <= 2");
-		result.should.equal(true);
-
-		var result = evalHyperScript("2 <= 1");
-		result.should.equal(false);
-
-		var result = evalHyperScript("2 <= 2");
-		result.should.equal(true);
-	});
-
-	it("greater than works", function () {
-		var result = evalHyperScript("1 > 2");
-		result.should.equal(false);
-
-		var result = evalHyperScript("2 > 1");
-		result.should.equal(true);
-
-		var result = evalHyperScript("2 > 2");
-		result.should.equal(false);
-	});
-
-	it("greater than or equal works", function () {
-		var result = evalHyperScript("1 >= 2");
-		result.should.equal(false);
-
-		var result = evalHyperScript("2 >= 1");
-		result.should.equal(true);
-
-		var result = evalHyperScript("2 >= 2");
-		result.should.equal(true);
-	});
-
-	it("equal works", function () {
-		var result = evalHyperScript("1 == 2");
-		result.should.equal(false);
-
-		var result = evalHyperScript("2 == 1");
-		result.should.equal(false);
-
-		var result = evalHyperScript("2 == 2");
-		result.should.equal(true);
-	});
-
-	it("triple equal works", function () {
-		var result = evalHyperScript("1 === 2");
-		result.should.equal(false);
-
-		var result = evalHyperScript("2 === 1");
-		result.should.equal(false);
-
-		var result = evalHyperScript("2 === 2");
-		result.should.equal(true);
-	});
-
-	it("not equal works", function () {
-		var result = evalHyperScript("1 != 2");
-		result.should.equal(true);
-
-		var result = evalHyperScript("2 != 1");
-		result.should.equal(true);
-
-		var result = evalHyperScript("2 != 2");
-		result.should.equal(false);
-	});
-
-	it("triple not equal works", function () {
-		var result = evalHyperScript("1 !== 2");
-		result.should.equal(true);
-
-		var result = evalHyperScript("2 !== 1");
-		result.should.equal(true);
-
-		var result = evalHyperScript("2 !== 2");
-		result.should.equal(false);
-	});
-
-	it("is works", function () {
-		var result = evalHyperScript("1 is 2");
-		result.should.equal(false);
-
-		var result = evalHyperScript("2 is 1");
-		result.should.equal(false);
-
-		var result = evalHyperScript("2 is 2");
-		result.should.equal(true);
-	});
-
-	it("equals works", function () {
-		var result = evalHyperScript("1 equals 2");
-		result.should.equal(false);
-
-		var result = evalHyperScript("2 equals 1");
-		result.should.equal(false);
-
-		var result = evalHyperScript("2 equals 2");
-		result.should.equal(true);
-	});
-
-	it("is equal to works", function () {
-		var result = evalHyperScript("1 is equal to 2");
-		result.should.equal(false);
-
-		var result = evalHyperScript("2 is equal to 1");
-		result.should.equal(false);
-
-		var result = evalHyperScript("2 is equal to 2");
-		result.should.equal(true);
-	});
-
-	it("is really equal to works", function () {
-		var result = evalHyperScript("1 is really equal to 2");
-		result.should.equal(false);
-
-		var result = evalHyperScript("2 is really equal to 1");
-		result.should.equal(false);
-
-		var result = evalHyperScript("2 is really equal to '2'");
-		result.should.equal(false);
-
-		var result = evalHyperScript("2 is really equal to 2");
-		result.should.equal(true);
-	});
-
-	it("really equals works", function () {
-		var result = evalHyperScript("1 really equals 2");
-		result.should.equal(false);
-
-		var result = evalHyperScript("2 really equals 1");
-		result.should.equal(false);
-
-		var result = evalHyperScript("2 really equals 2");
-		result.should.equal(true);
-	});
-
-	it("is not works", function () {
-		var result = evalHyperScript("1 is not 2");
-		result.should.equal(true);
-
-		var result = evalHyperScript("2 is not 1");
-		result.should.equal(true);
-
-		var result = evalHyperScript("2 is not 2");
-		result.should.equal(false);
-	});
-
-	it("is not equal to works", function () {
-		var result = evalHyperScript("1 is not equal to 2");
-		result.should.equal(true);
-
-		var result = evalHyperScript("2 is not equal to 1");
-		result.should.equal(true);
-
-		var result = evalHyperScript("2 is not equal to 2");
-		result.should.equal(false);
-	});
-
-	it("is not really equal to works", function () {
-		var result = evalHyperScript("1 is not really equal to 2");
-		result.should.equal(true);
-
-		var result = evalHyperScript("2 is not really equal to 1");
-		result.should.equal(true);
-
-		var result = evalHyperScript("2 is not really equal to '2'");
-		result.should.equal(true);
-
-		var result = evalHyperScript("2 is not really equal to 2");
-		result.should.equal(false);
-	});
-
-	it("is in works", function () {
-		var result = evalHyperScript("1 is in [1, 2]");
-		result.should.equal(true);
-
-		var result = evalHyperScript("2 is in [1, 2]");
-		result.should.equal(true);
-
-		var result = evalHyperScript("3 is in [1, 2]");
-		result.should.equal(false);
-
-		var result = evalHyperScript("3 is in null");
-		result.should.equal(false);
-	});
-
-	it("is not in works", function () {
-		var result = evalHyperScript("1 is not in [1, 2]");
-		result.should.equal(false);
-
-		var result = evalHyperScript("2 is not in [1, 2]");
-		result.should.equal(false);
-
-		var result = evalHyperScript("3 is not in [1, 2]");
-		result.should.equal(true);
-
-		var result = evalHyperScript("3 is not in null");
-		result.should.equal(true);
-	});
-
-	it("I am in works", function () {
-		var result = evalHyperScript("I am in [1, 2]", { me: 1 });
-		result.should.equal(true);
-
-		var result = evalHyperScript("I am in [1, 2]", { me: 2 });
-		result.should.equal(true);
-
-		var result = evalHyperScript("I am in [1, 2]", { me: 3 });
-		result.should.equal(false);
-
-		var result = evalHyperScript("I am in null", { me: null });
-		result.should.equal(false);
-	});
-
-	it("I am not in works", function () {
-		var result = evalHyperScript("I am not in [1, 2]", { me: 1 });
-		result.should.equal(false);
-
-		var result = evalHyperScript("I am not in [1, 2]", { me: 2 });
-		result.should.equal(false);
-
-		var result = evalHyperScript("I am not in [1, 2]", { me: 3 });
-		result.should.equal(true);
-
-		var result = evalHyperScript("I am not in null", { me: null });
-		result.should.equal(true);
-	});
-
-	it("match works", function () {
-		var div = make("<div class='foo'></div>");
-		var result = evalHyperScript("I match .foo", { me: div });
-		result.should.equal(true);
-
-		var div = make("<div class='foo'></div>");
-		var result = evalHyperScript("x matches .foo", { locals: { x: div } });
-		result.should.equal(true);
-
-		var div = make("<div class='foo'></div>");
-		var result = evalHyperScript("I match .bar", { me: div });
-		result.should.equal(false);
-
-		var div = make("<div class='foo'></div>");
-		var result = evalHyperScript("x matches .bar", { locals: { x: div } });
-		result.should.equal(false);
-	});
-
-	it("does not match works", function () {
-		var div = make("<div class='foo'></div>");
-		var result = evalHyperScript("I do not match .foo", { me: div });
-		result.should.equal(false);
-
-		var div = make("<div class='foo'></div>");
-		var result = evalHyperScript("x does not match .foo", { locals: { x: div } });
-		result.should.equal(false);
-
-		var div = make("<div class='foo'></div>");
-		var result = evalHyperScript("I do not match .bar", { me: div });
-		result.should.equal(true);
-
-		var div = make("<div class='foo'></div>");
-		var result = evalHyperScript("x does not match .bar", { locals: { x: div } });
-		result.should.equal(true);
-	});
-
-	it("match works w/ strings", function () {
-		var result = evalHyperScript("'a' matches '.*'");
-		result.should.equal(true);
-
-		var result = evalHyperScript("'a' matches 'b'");
-		result.should.equal(false);
-	});
-
-	it("does not match works w/ strings", function () {
-		var result = evalHyperScript("'a' does not match '.*'");
-		result.should.equal(false);
-
-		var result = evalHyperScript("'a' does not match 'b'");
-		result.should.equal(true);
-	});
-
-	it("contains works with elts", function () {
-		var outer = make("<div><div id='d2'></div></div>");
-		var inner = byId("d2");
-
-		var result = evalHyperScript("I contain that", {
-			me: outer,
-			locals: { that: inner, }
-		});
-		result.should.equal(true);
-
-		var result = evalHyperScript("I contain that", {
-			me: inner,
-			locals: { that: outer, }
-		});
-		result.should.equal(false);
-
-		var result = evalHyperScript("that contains me", {
-			me: outer,
-			locals: { that: inner, }
-		});
-		result.should.equal(false);
-
-		var result = evalHyperScript("that contains me", {
-			me: inner,
-			locals: { that: outer, }
-		});
-		result.should.equal(true);
-	});
-
-	it("contains works with arrays", function () {
-		var outer = [1, 2, 3];
-		var inner = 1;
-
-		var result = evalHyperScript("I contain that", {
-			me: outer,
-			locals: { that: inner, }
-		});
-		result.should.equal(true);
-
-		var result = evalHyperScript("that contains me", {
-			me: inner,
-			locals: { that: outer, }
-		});
-		result.should.equal(true);
-	});
-
-	it("contains works with css literals", function () {
-
-		make("<div id='d1' class='outer'><div id='d2'></div></div>");
-
-		var result = evalHyperScript(".outer contains #d2");
-		result.should.equal(true);
-
-		var result = evalHyperScript("#d2 contains #d1");
-		result.should.equal(false);
-	});
-
-	it("include works", function () {
-		var outer = make("<div><div id='d2'></div></div>");
-		var inner = byId("d2");
-
-		var result = evalHyperScript("foo includes foobar", {
-			locals: {
-				foo: "foo",
-				foobar: "foobar",
-			}
-		});
-		result.should.equal(false);
-
-		var result = evalHyperScript("foobar includes foo", {
-			locals: {
-				foo: "foo",
-				foobar: "foobar",
-			}
-		});
-		result.should.equal(true);
-
-		var result = evalHyperScript("foo does not include foobar", {
-			locals: {
-				foo: "foo",
-				foobar: "foobar",
-			}
-		});
-		result.should.equal(true);
-
-		var result = evalHyperScript("foobar does not include foo", {
-			locals: {
-				foo: "foo",
-				foobar: "foobar",
-			}
-		});
-		result.should.equal(false);
-
-	});
-
-	it("includes works with arrays", function () {
-		var outer = [1, 2, 3];
-		var inner = 1;
-
-		var result = evalHyperScript("I include that", {
-			me: outer,
-			locals: { that: inner, }
-		});
-		result.should.equal(true);
-
-		var result = evalHyperScript("that includes me", {
-			me: inner,
-			locals: { that: outer, }
-		});
-		result.should.equal(true);
-	});
-
-	it("includes works with css literals", function () {
-
-		make("<div id='d1' class='outer'><div id='d2'></div></div>");
-
-		var result = evalHyperScript(".outer includes #d2");
-		result.should.equal(true);
-
-		var result = evalHyperScript("#d2 includes #d1");
-		result.should.equal(false);
-	});
-
-	it("does not contain works", function () {
-		var outer = make("<div><div id='d2'></div></div>");
-		var inner = byId("d2");
-
-		var result = evalHyperScript("I do not contain that", {
-			me: outer,
-			locals: { that: inner, }
-		});
-		result.should.equal(false);
-
-		var result = evalHyperScript("I do not contain that", {
-			me: inner,
-			locals: { that: outer, }
-		});
-		result.should.equal(true);
-
-		var result = evalHyperScript("that does not contains me", {
-			me: outer,
-			locals: { that: inner, }
-		});
-		result.should.equal(true);
-
-		var result = evalHyperScript("that does not contains me", {
-			me: inner,
-			locals: { that: outer, }
-		});
-		result.should.equal(false);
-	});
-
-	it("is empty works", function () {
-		var result = evalHyperScript("undefined is empty");
-		result.should.equal(true);
-
-		var result = evalHyperScript("'' is empty");
-		result.should.equal(true);
-
-		var result = evalHyperScript("[] is empty");
-		result.should.equal(true);
-
-		var result = evalHyperScript("'not empty' is empty");
-		result.should.equal(false);
-
-		var result = evalHyperScript("1000 is empty");
-		result.should.equal(false);
-
-		var result = evalHyperScript("[1,2,3] is empty");
-		result.should.equal(false);
-
-		var result = evalHyperScript(".aClassThatDoesNotExist is empty");
-		result.should.equal(true);
-	});
-
-	it("is not empty works", function () {
-		var result = evalHyperScript("undefined is not empty");
-		result.should.equal(false);
-
-		var result = evalHyperScript("'' is not empty");
-		result.should.equal(false);
-
-		var result = evalHyperScript("[] is not empty");
-		result.should.equal(false);
-
-		var result = evalHyperScript("'not empty' is not empty");
-		result.should.equal(true);
-
-		var result = evalHyperScript("1000 is not empty");
-		result.should.equal(true);
-
-		var result = evalHyperScript("[1,2,3] is not empty");
-		result.should.equal(true);
-	});
-
-	it("is a works", function () {
-		var result = evalHyperScript("null is a String");
-		result.should.equal(true);
-
-		var result = evalHyperScript("null is a String!");
-		result.should.equal(false);
-
-		var result = evalHyperScript("'' is a String!");
-		result.should.equal(true);
-	});
-
-	it("is not a works", function () {
-		var result = evalHyperScript("null is not a String");
-		result.should.equal(false);
-
-		var result = evalHyperScript("null is not a String!");
-		result.should.equal(true);
-
-		var result = evalHyperScript("'' is not a String!");
-		result.should.equal(false);
-	});
-
-	it("is an works", function () {
-		var result = evalHyperScript("null is an String");
-		result.should.equal(true);
-
-		var result = evalHyperScript("null is an String!");
-		result.should.equal(false);
-
-		var result = evalHyperScript("'' is an String!");
-		result.should.equal(true);
-	});
-
-	it("is not an works", function () {
-		var result = evalHyperScript("null is not an String");
-		result.should.equal(false);
-
-		var result = evalHyperScript("null is not an String!");
-		result.should.equal(true);
-
-		var result = evalHyperScript("'' is not an String!");
-		result.should.equal(false);
-	});
-
-	it("english less than works", function () {
-		var result = evalHyperScript("1 is less than 2");
-		result.should.equal(true);
-
-		var result = evalHyperScript("2 is less than 1");
-		result.should.equal(false);
-
-		var result = evalHyperScript("2 is less than 2");
-		result.should.equal(false);
-	});
-
-	it("english less than or equal works", function () {
-		var result = evalHyperScript("1 is less than or equal to 2");
-		result.should.equal(true);
-
-		var result = evalHyperScript("2 is less than or equal to 1");
-		result.should.equal(false);
-
-		var result = evalHyperScript("2 is less than or equal to 2");
-		result.should.equal(true);
-	});
-
-	it("english greater than works", function () {
-		var result = evalHyperScript("1 is greater than 2");
-		result.should.equal(false);
-
-		var result = evalHyperScript("2 is greater than 1");
-		result.should.equal(true);
-
-		var result = evalHyperScript("2 is greater than 2");
-		result.should.equal(false);
-	});
-
-	it("english greater than or equal works", function () {
-		var result = evalHyperScript("1 is greater than or equal to 2");
-		result.should.equal(false);
-
-		var result = evalHyperScript("2 is greater than or equal to 1");
-		result.should.equal(true);
-
-		var result = evalHyperScript("2 is greater than or equal to 2");
-		result.should.equal(true);
-	});
-
-	it("exists works", function () {
-			var result = evalHyperScript("undefined exists");
-			result.should.equal(false);
-
-			var result = evalHyperScript("null exists");
-			result.should.equal(false);
-
-			var result = evalHyperScript("#doesNotExist exists");
-			result.should.equal(false);
-
-			var result = evalHyperScript(".aClassThatDoesNotExist exists");
-			result.should.equal(false);
-
-			var result = evalHyperScript("<.aClassThatDoesNotExist/> exists");
-			result.should.equal(false);
-
-		var div = make(
-			"<div id='d1' class='c1'></div>\n" +
-			"                  <div id='d2' class='c1'></div>\n" +
-			"                  <div id='d3' class='c1'></div>\n"
-		);
-
-		var result = evalHyperScript("#d1 exists");
-		result.should.equal(true);
-
-		var result = evalHyperScript(".c1 exists");
-		result.should.equal(true);
-
-		var result = evalHyperScript("<body/> exists");
-		result.should.equal(true);
-	});
-
-	it("does not exist works", function () {
-		var result = evalHyperScript("undefined does not exist");
-		result.should.equal(true);
-
-		var result = evalHyperScript("null does not exist");
-		result.should.equal(true);
-
-		var result = evalHyperScript("#doesNotExist does not exist");
-		result.should.equal(true);
-
-		var result = evalHyperScript(".aClassThatDoesNotExist does not exist");
-		result.should.equal(true);
-
-		var result = evalHyperScript("<.aClassThatDoesNotExist/> does not exist");
-		result.should.equal(true);
-
-		var result = evalHyperScript("<body/> does not exist");
-		result.should.equal(false);
-	});
-
-
-
-});
+import {test, expect} from '../fixtures.js'
+
+test.describe("the comparisonOperator expression", () => {
+
+	test("less than works", async ({run}) => {
+		expect(await run("1 < 2")).toBe(true)
+		expect(await run("2 < 1")).toBe(false)
+		expect(await run("2 < 2")).toBe(false)
+	})
+
+	test("less than or equal works", async ({run}) => {
+		expect(await run("1 <= 2")).toBe(true)
+		expect(await run("2 <= 1")).toBe(false)
+		expect(await run("2 <= 2")).toBe(true)
+	})
+
+	test("greater than works", async ({run}) => {
+		expect(await run("1 > 2")).toBe(false)
+		expect(await run("2 > 1")).toBe(true)
+		expect(await run("2 > 2")).toBe(false)
+	})
+
+	test("greater than or equal works", async ({run}) => {
+		expect(await run("1 >= 2")).toBe(false)
+		expect(await run("2 >= 1")).toBe(true)
+		expect(await run("2 >= 2")).toBe(true)
+	})
+
+	test("equal works", async ({run}) => {
+		expect(await run("1 == 2")).toBe(false)
+		expect(await run("2 == 1")).toBe(false)
+		expect(await run("2 == 2")).toBe(true)
+	})
+
+	test("triple equal works", async ({run}) => {
+		expect(await run("1 === 2")).toBe(false)
+		expect(await run("2 === 1")).toBe(false)
+		expect(await run("2 === 2")).toBe(true)
+	})
+
+	test("not equal works", async ({run}) => {
+		expect(await run("1 != 2")).toBe(true)
+		expect(await run("2 != 1")).toBe(true)
+		expect(await run("2 != 2")).toBe(false)
+	})
+
+	test("triple not equal works", async ({run}) => {
+		expect(await run("1 !== 2")).toBe(true)
+		expect(await run("2 !== 1")).toBe(true)
+		expect(await run("2 !== 2")).toBe(false)
+	})
+
+	test("is works", async ({run}) => {
+		expect(await run("1 is 2")).toBe(false)
+		expect(await run("2 is 1")).toBe(false)
+		expect(await run("2 is 2")).toBe(true)
+	})
+
+	test("equals works", async ({run}) => {
+		expect(await run("1 equals 2")).toBe(false)
+		expect(await run("2 equals 1")).toBe(false)
+		expect(await run("2 equals 2")).toBe(true)
+	})
+
+	test("is equal to works", async ({run}) => {
+		expect(await run("1 is equal to 2")).toBe(false)
+		expect(await run("2 is equal to 1")).toBe(false)
+		expect(await run("2 is equal to 2")).toBe(true)
+	})
+
+	test("is really equal to works", async ({run}) => {
+		expect(await run("1 is really equal to 2")).toBe(false)
+		expect(await run("2 is really equal to 1")).toBe(false)
+		expect(await run("2 is really equal to '2'")).toBe(false)
+		expect(await run("2 is really equal to 2")).toBe(true)
+	})
+
+	test("really equals works", async ({run}) => {
+		expect(await run("1 really equals 2")).toBe(false)
+		expect(await run("2 really equals 1")).toBe(false)
+		expect(await run("2 really equals 2")).toBe(true)
+	})
+
+	test("is not works", async ({run}) => {
+		expect(await run("1 is not 2")).toBe(true)
+		expect(await run("2 is not 1")).toBe(true)
+		expect(await run("2 is not 2")).toBe(false)
+	})
+
+	test("is not equal to works", async ({run}) => {
+		expect(await run("1 is not equal to 2")).toBe(true)
+		expect(await run("2 is not equal to 1")).toBe(true)
+		expect(await run("2 is not equal to 2")).toBe(false)
+	})
+
+	test("is not really equal to works", async ({run}) => {
+		expect(await run("1 is not really equal to 2")).toBe(true)
+		expect(await run("2 is not really equal to 1")).toBe(true)
+		expect(await run("2 is not really equal to '2'")).toBe(true)
+		expect(await run("2 is not really equal to 2")).toBe(false)
+	})
+
+	test("is in works", async ({run}) => {
+		expect(await run("1 is in [1, 2]")).toBe(true)
+		expect(await run("2 is in [1, 2]")).toBe(true)
+		expect(await run("3 is in [1, 2]")).toBe(false)
+		expect(await run("3 is in null")).toBe(false)
+	})
+
+	test("is not in works", async ({run}) => {
+		expect(await run("1 is not in [1, 2]")).toBe(false)
+		expect(await run("2 is not in [1, 2]")).toBe(false)
+		expect(await run("3 is not in [1, 2]")).toBe(true)
+		expect(await run("3 is not in null")).toBe(true)
+	})
+
+	test("I am in works", async ({run}) => {
+		expect(await run("I am in [1, 2]", { me: 1 })).toBe(true)
+		expect(await run("I am in [1, 2]", { me: 2 })).toBe(true)
+		expect(await run("I am in [1, 2]", { me: 3 })).toBe(false)
+		expect(await run("I am in null", { me: null })).toBe(false)
+	})
+
+	test("I am not in works", async ({run}) => {
+		expect(await run("I am not in [1, 2]", { me: 1 })).toBe(false)
+		expect(await run("I am not in [1, 2]", { me: 2 })).toBe(false)
+		expect(await run("I am not in [1, 2]", { me: 3 })).toBe(true)
+		expect(await run("I am not in null", { me: null })).toBe(true)
+	})
+
+	test("match works", async ({html, evaluate}) => {
+		await html("<div id='mDiv' class='foo'></div>")
+		let result = await evaluate(() => {
+			const div = document.getElementById('mDiv')
+			return _hyperscript("I match .foo", { me: div })
+		})
+		expect(result).toBe(true)
+
+		result = await evaluate(() => {
+			const div = document.getElementById('mDiv')
+			return _hyperscript("x matches .foo", { locals: { x: div } })
+		})
+		expect(result).toBe(true)
+
+		result = await evaluate(() => {
+			const div = document.getElementById('mDiv')
+			return _hyperscript("I match .bar", { me: div })
+		})
+		expect(result).toBe(false)
+
+		result = await evaluate(() => {
+			const div = document.getElementById('mDiv')
+			return _hyperscript("x matches .bar", { locals: { x: div } })
+		})
+		expect(result).toBe(false)
+	})
+
+	test("does not match works", async ({html, evaluate}) => {
+		await html("<div id='mDiv' class='foo'></div>")
+		let result = await evaluate(() => {
+			const div = document.getElementById('mDiv')
+			return _hyperscript("I do not match .foo", { me: div })
+		})
+		expect(result).toBe(false)
+
+		result = await evaluate(() => {
+			const div = document.getElementById('mDiv')
+			return _hyperscript("x does not match .foo", { locals: { x: div } })
+		})
+		expect(result).toBe(false)
+
+		result = await evaluate(() => {
+			const div = document.getElementById('mDiv')
+			return _hyperscript("I do not match .bar", { me: div })
+		})
+		expect(result).toBe(true)
+
+		result = await evaluate(() => {
+			const div = document.getElementById('mDiv')
+			return _hyperscript("x does not match .bar", { locals: { x: div } })
+		})
+		expect(result).toBe(true)
+	})
+
+	test("match works w/ strings", async ({run}) => {
+		expect(await run("'a' matches '.*'")).toBe(true)
+		expect(await run("'a' matches 'b'")).toBe(false)
+	})
+
+	test("does not match works w/ strings", async ({run}) => {
+		expect(await run("'a' does not match '.*'")).toBe(false)
+		expect(await run("'a' does not match 'b'")).toBe(true)
+	})
+
+	test("contains works with elts", async ({html, evaluate}) => {
+		await html("<div id='outer'><div id='inner'></div></div>")
+
+		let result = await evaluate(() => {
+			const outer = document.getElementById('outer')
+			const inner = document.getElementById('inner')
+			return _hyperscript("I contain that", { me: outer, locals: { that: inner } })
+		})
+		expect(result).toBe(true)
+
+		result = await evaluate(() => {
+			const outer = document.getElementById('outer')
+			const inner = document.getElementById('inner')
+			return _hyperscript("I contain that", { me: inner, locals: { that: outer } })
+		})
+		expect(result).toBe(false)
+
+		result = await evaluate(() => {
+			const outer = document.getElementById('outer')
+			const inner = document.getElementById('inner')
+			return _hyperscript("that contains me", { me: outer, locals: { that: inner } })
+		})
+		expect(result).toBe(false)
+
+		result = await evaluate(() => {
+			const outer = document.getElementById('outer')
+			const inner = document.getElementById('inner')
+			return _hyperscript("that contains me", { me: inner, locals: { that: outer } })
+		})
+		expect(result).toBe(true)
+	})
+
+	test("contains works with arrays", async ({run}) => {
+		expect(await run("I contain that", { me: [1, 2, 3], locals: { that: 1 } })).toBe(true)
+		expect(await run("that contains me", { me: 1, locals: { that: [1, 2, 3] } })).toBe(true)
+	})
+
+	test("contains works with css literals", async ({html, run}) => {
+		await html("<div id='d1' class='outer'><div id='d2'></div></div>")
+		expect(await run(".outer contains #d2")).toBe(true)
+		expect(await run("#d2 contains #d1")).toBe(false)
+	})
+
+	test("include works", async ({run}) => {
+		expect(await run("foo includes foobar", { locals: { foo: "foo", foobar: "foobar" } })).toBe(false)
+		expect(await run("foobar includes foo", { locals: { foo: "foo", foobar: "foobar" } })).toBe(true)
+		expect(await run("foo does not include foobar", { locals: { foo: "foo", foobar: "foobar" } })).toBe(true)
+		expect(await run("foobar does not include foo", { locals: { foo: "foo", foobar: "foobar" } })).toBe(false)
+	})
+
+	test("includes works with arrays", async ({run}) => {
+		expect(await run("I include that", { me: [1, 2, 3], locals: { that: 1 } })).toBe(true)
+		expect(await run("that includes me", { me: 1, locals: { that: [1, 2, 3] } })).toBe(true)
+	})
+
+	test("includes works with css literals", async ({html, run}) => {
+		await html("<div id='d1' class='outer'><div id='d2'></div></div>")
+		expect(await run(".outer includes #d2")).toBe(true)
+		expect(await run("#d2 includes #d1")).toBe(false)
+	})
+
+	test("does not contain works", async ({html, evaluate}) => {
+		await html("<div id='outer'><div id='inner'></div></div>")
+
+		let result = await evaluate(() => {
+			const outer = document.getElementById('outer')
+			const inner = document.getElementById('inner')
+			return _hyperscript("I do not contain that", { me: outer, locals: { that: inner } })
+		})
+		expect(result).toBe(false)
+
+		result = await evaluate(() => {
+			const outer = document.getElementById('outer')
+			const inner = document.getElementById('inner')
+			return _hyperscript("I do not contain that", { me: inner, locals: { that: outer } })
+		})
+		expect(result).toBe(true)
+
+		result = await evaluate(() => {
+			const outer = document.getElementById('outer')
+			const inner = document.getElementById('inner')
+			return _hyperscript("that does not contains me", { me: outer, locals: { that: inner } })
+		})
+		expect(result).toBe(true)
+
+		result = await evaluate(() => {
+			const outer = document.getElementById('outer')
+			const inner = document.getElementById('inner')
+			return _hyperscript("that does not contains me", { me: inner, locals: { that: outer } })
+		})
+		expect(result).toBe(false)
+	})
+
+	test("is empty works", async ({run}) => {
+		expect(await run("undefined is empty")).toBe(true)
+		expect(await run("'' is empty")).toBe(true)
+		expect(await run("[] is empty")).toBe(true)
+		expect(await run("'not empty' is empty")).toBe(false)
+		expect(await run("1000 is empty")).toBe(false)
+		expect(await run("[1,2,3] is empty")).toBe(false)
+		expect(await run(".aClassThatDoesNotExist is empty")).toBe(true)
+	})
+
+	test("is not empty works", async ({run}) => {
+		expect(await run("undefined is not empty")).toBe(false)
+		expect(await run("'' is not empty")).toBe(false)
+		expect(await run("[] is not empty")).toBe(false)
+		expect(await run("'not empty' is not empty")).toBe(true)
+		expect(await run("1000 is not empty")).toBe(true)
+		expect(await run("[1,2,3] is not empty")).toBe(true)
+	})
+
+	test("is a works", async ({run}) => {
+		expect(await run("null is a String")).toBe(true)
+		expect(await run("null is a String!")).toBe(false)
+		expect(await run("'' is a String!")).toBe(true)
+	})
+
+	test("is not a works", async ({run}) => {
+		expect(await run("null is not a String")).toBe(false)
+		expect(await run("null is not a String!")).toBe(true)
+		expect(await run("'' is not a String!")).toBe(false)
+	})
+
+	test("is an works", async ({run}) => {
+		expect(await run("null is an String")).toBe(true)
+		expect(await run("null is an String!")).toBe(false)
+		expect(await run("'' is an String!")).toBe(true)
+	})
+
+	test("is not an works", async ({run}) => {
+		expect(await run("null is not an String")).toBe(false)
+		expect(await run("null is not an String!")).toBe(true)
+		expect(await run("'' is not an String!")).toBe(false)
+	})
+
+	test("english less than works", async ({run}) => {
+		expect(await run("1 is less than 2")).toBe(true)
+		expect(await run("2 is less than 1")).toBe(false)
+		expect(await run("2 is less than 2")).toBe(false)
+	})
+
+	test("english less than or equal works", async ({run}) => {
+		expect(await run("1 is less than or equal to 2")).toBe(true)
+		expect(await run("2 is less than or equal to 1")).toBe(false)
+		expect(await run("2 is less than or equal to 2")).toBe(true)
+	})
+
+	test("english greater than works", async ({run}) => {
+		expect(await run("1 is greater than 2")).toBe(false)
+		expect(await run("2 is greater than 1")).toBe(true)
+		expect(await run("2 is greater than 2")).toBe(false)
+	})
+
+	test("english greater than or equal works", async ({run}) => {
+		expect(await run("1 is greater than or equal to 2")).toBe(false)
+		expect(await run("2 is greater than or equal to 1")).toBe(true)
+		expect(await run("2 is greater than or equal to 2")).toBe(true)
+	})
+
+	test("exists works", async ({html, run}) => {
+		expect(await run("undefined exists")).toBe(false)
+		expect(await run("null exists")).toBe(false)
+		expect(await run("#doesNotExist exists")).toBe(false)
+		expect(await run(".aClassThatDoesNotExist exists")).toBe(false)
+		expect(await run("<.aClassThatDoesNotExist/> exists")).toBe(false)
+
+		await html(
+			"<div id='d1' class='c1'></div>" +
+			"<div id='d2' class='c1'></div>" +
+			"<div id='d3' class='c1'></div>"
+		)
+
+		expect(await run("#d1 exists")).toBe(true)
+		expect(await run(".c1 exists")).toBe(true)
+		expect(await run("<body/> exists")).toBe(true)
+	})
+
+	test("does not exist works", async ({run}) => {
+		expect(await run("undefined does not exist")).toBe(true)
+		expect(await run("null does not exist")).toBe(true)
+		expect(await run("#doesNotExist does not exist")).toBe(true)
+		expect(await run(".aClassThatDoesNotExist does not exist")).toBe(true)
+		expect(await run("<.aClassThatDoesNotExist/> does not exist")).toBe(true)
+		expect(await run("<body/> does not exist")).toBe(false)
+	})
+})

@@ -1,47 +1,31 @@
-describe("the init feature", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
-	});
+import {test, expect} from '../fixtures.js'
 
-	it("can define an init block inline", function (done) {
-		var div = make(
+test.describe('the init feature', () => {
+
+	test('can define an init block inline', async ({html, find}) => {
+		await html(
 			"<div _='init " +
-				"                 set my.foo to 42 " +
-				"               end" +
-				"               on click put my.foo into my.innerHTML'></div>"
-		);
-		setTimeout(function () {
-			div.click();
-			div.innerHTML.should.equal("42");
-			done();
-		}, 10);
-	});
+			"                 set my.foo to 42 " +
+			"               end" +
+			"               on click put my.foo into my.innerHTML'></div>"
+		)
+		await find('div').dispatchEvent('click')
+		await expect(find('div')).toHaveText('42')
+	})
 
-	it("can define an init block in a script", function (done) {
-		var div = make(
-			"<script type='text/hyperscript'>" + "  init" + "    set window.foo to 42" + "  end" + "</script>"
-		);
-		setTimeout(function () {
-			window.foo.should.equal(42);
-			delete window.foo;
-			done();
-		}, 10);
-	});
+	test('can define an init block in a script', async ({html, evaluate}) => {
+		await html("<script type='text/hyperscript'>  init    set window.foo to 42  end</script>")
+		await expect.poll(() => evaluate(() => window.foo)).toBe(42)
+	})
 
-	it("can initialize immediately", function (done) {
-		var div = make(
-			"<script type='text/hyperscript'>init set window.foo to 10" +
-			"                                init immediately set window.bar to window.foo </script>"
-		);
-		setTimeout(function () {
-			window.foo.should.equal(10);
-			should.equal(window.bar, undefined);
-			delete window.foo;
-			delete window.bar;
-			done();
-		}, 10);
-	});
-});
+	test('can initialize immediately', async ({html, evaluate}) => {
+		await html(
+			"<script type='text/hyperscript'>init set window.foo to 10 end" +
+			"                                init immediately set window.bar to window.foo end</script>"
+		)
+		await expect.poll(() => evaluate(() => window.foo)).toBe(10)
+		const bar = await evaluate(() => window.bar)
+		expect(bar).toBeUndefined()
+	})
+
+})

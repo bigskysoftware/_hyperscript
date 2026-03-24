@@ -1,6 +1,9 @@
-describe("the _hyperscript runtime", function () {
-	it("has proper stack", function () {
-		var script = make(
+import {test, expect} from '../fixtures.js'
+
+test.describe("the _hyperscript runtime", () => {
+
+	test("has proper stack", async ({html, evaluate}) => {
+		await html(
 			"<script type='text/hyperscript'>" +
 				"def foo() " +
 				"  return bar() " +
@@ -8,33 +11,28 @@ describe("the _hyperscript runtime", function () {
 				"def bar() " +
 				"  return meta.caller " +
 				"end " +
-				" " +
 				"</script>"
 		);
-		var result = foo();
-		result.meta.feature.name.should.equal("foo");
-		delete window.foo;
-		delete window.bar;
+		const name = await evaluate(() => foo().meta.feature.name);
+		expect(name).toBe("foo");
 	});
 
-	it("has proper stack from event handler", function () {
-		var script = make(
+	test("has proper stack from event handler", async ({html, find, evaluate}) => {
+		await html(
 			"<script type='text/hyperscript'>" +
 				"def bar() " +
 				"  log meta.caller " +
 				"  return meta.caller " +
 				"end " +
-				" " +
-				"</script>"
+				"</script>" +
+				"<div _='on click put bar().meta.feature.type into my.innerHTML'></div>"
 		);
-		var div = make("<div _='on click put bar().meta.feature.type into my.innerHTML'></div>");
-		div.click();
-		div.innerHTML.should.equal("onFeature");
-		delete window.bar;
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("onFeature");
 	});
 
-	it("hypertrace is reasonable", function () {
-		var script = make(
+	test("hypertrace is reasonable", async ({html, find, evaluate}) => {
+		await html(
 			"<script type='text/hyperscript'>" +
 				"def bar() " +
 				"  call baz('nope') " +
@@ -43,30 +41,26 @@ describe("the _hyperscript runtime", function () {
 				"def baz(str) " +
 				"  throw str " +
 				"end " +
-				" " +
-				"</script>"
+				"</script>" +
+				"<div _='on click call bar()'></div>"
 		);
-		var div = make("<div _='on click call bar()'></div>");
-		div.click();
-		delete window.bar;
-		delete window.baz;
+		// Should not crash
+		await find('div').dispatchEvent('click');
 	});
 
-	it("hypertrace from javascript is reasonable", function () {
-		window.baz = function (str) {
-			throw new Error(str);
-		};
-		var script = make(
-			"<script type='text/hyperscript'>" + "def bar() " + "  call baz('nope') " + "end " + " " + "</script>"
+	test("hypertrace from javascript is reasonable", async ({html, find, evaluate}) => {
+		await evaluate(() => {
+			window.baz = function (str) { throw new Error(str); };
+		});
+		await html(
+			"<script type='text/hyperscript'>def bar() call baz('nope') end</script>" +
+				"<div _='on click call bar()'></div>"
 		);
-		var div = make("<div _='on click call bar()'></div>");
-		div.click();
-		delete window.bar;
-		delete window.baz;
+		await find('div').dispatchEvent('click');
 	});
 
-	it("async hypertrace is reasonable", function (done) {
-		var script = make(
+	test("async hypertrace is reasonable", async ({html, find, evaluate}) => {
+		await html(
 			"<script type='text/hyperscript'>" +
 				"def bar() " +
 				"  call baz('nope') " +
@@ -76,20 +70,16 @@ describe("the _hyperscript runtime", function () {
 				"  wait 20ms " +
 				"  throw str " +
 				"end " +
-				" " +
-				"</script>"
+				"</script>" +
+				"<div _='on click call bar()'></div>"
 		);
-		var div = make("<div _='on click call bar()'></div>");
-		div.click();
-		setTimeout(function () {
-			delete window.bar;
-			delete window.baz;
-			done();
-		}, 100);
+		await find('div').dispatchEvent('click');
+		// Just wait a bit for the async to complete without crashing
+		await evaluate(() => new Promise(r => setTimeout(r, 100)));
 	});
 
-	it("arrays args are handled properly wrt Promises", function (done) {
-		var script = make(
+	test("arrays args are handled properly wrt Promises", async ({html, evaluate}) => {
+		await html(
 			"<script type='text/hyperscript'>" +
 				"def invokesArrayPromise() " +
 				"  return {" +
@@ -103,22 +93,16 @@ describe("the _hyperscript runtime", function () {
 				"  wait 20ms " +
 				"  return 'foo' " +
 				"end " +
-				" " +
 				"</script>"
 		);
-		invokesArrayPromise()
-			.then(function(result){
-				result.foo.should.equal('foo');
-				result.bar.should.equal('foo');
-				result.baz.should.equal('foo');
-				delete window.invokesArrayPromise;
-				delete window.stringPromise;
-				done();
-			})
+		const result = await evaluate(() => invokesArrayPromise());
+		expect(result.foo).toBe('foo');
+		expect(result.bar).toBe('foo');
+		expect(result.baz).toBe('foo');
 	});
 
-	it("scalar args are handled properly wrt Promises", function (done) {
-		var script = make(
+	test("scalar args are handled properly wrt Promises", async ({html, evaluate}) => {
+		await html(
 			"<script type='text/hyperscript'>" +
 				"def invokesScalarPromise() " +
 				"  return stringPromise()" +
@@ -128,15 +112,9 @@ describe("the _hyperscript runtime", function () {
 				"  wait 20ms " +
 				"  return 'foo' " +
 				"end " +
-				" " +
 				"</script>"
 		);
-		invokesScalarPromise()
-			.then(function(result){
-				result.should.equal('foo');
-				delete window.invokesScalarPromise;
-				delete window.stringPromise;
-				done();
-			})
+		const result = await evaluate(() => invokesScalarPromise());
+		expect(result).toBe('foo');
 	});
 });

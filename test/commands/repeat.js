@@ -1,86 +1,73 @@
-describe("the repeat command", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
-	});
+import {test, expect} from '../fixtures.js'
 
-	it("basic for loop works", function () {
-		var d1 = make(
+test.describe("the repeat command", () => {
+
+	test("basic for loop works", async ({html, find}) => {
+		await html(
 			"<div _='on click repeat for x in [1, 2, 3]" +
 				"                                    put x at end of me" +
 				"                                  end'></div>"
 		);
-		d1.click();
-		d1.innerHTML.should.equal("123");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("123");
 	});
 
-	it("basic for loop with null works", function () {
-		var d1 = make(
+	test("basic for loop with null works", async ({html, find}) => {
+		await html(
 			"<div _='on click repeat for x in null" +
 				"                                    put x at end of me" +
 				"                                  end'></div>"
 		);
-		d1.click();
-		d1.innerHTML.should.equal("");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("");
 	});
 
-	it("waiting in for loop works", function (done) {
-		var d1 = make(
+	test("waiting in for loop works", async ({html, find}) => {
+		await html(
 			"<div _='on click repeat for x in [1, 2, 3]\n" +
 				"                                    log me " +
 				"                                    put x at end of me\n" +
 				"                                    wait 1ms\n" +
 				"                                  end'></div>"
 		);
-		d1.click();
-		d1.innerHTML.should.equal("1");
-		setTimeout(function () {
-			d1.innerHTML.should.equal("123");
-			done();
-		}, 50);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("123");
 	});
 
-	it("basic raw for loop works", function () {
-		var d1 = make(
+	test("basic raw for loop works", async ({html, find}) => {
+		await html(
 			"<div _='on click for x in [1, 2, 3]" +
 				"                                    put x at end of me" +
 				"                                  end'></div>"
 		);
-		d1.click();
-		d1.innerHTML.should.equal("123");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("123");
 	});
 
-	it("basic raw for loop works", function () {
-		var d1 = make(
+	test("basic raw for loop with null works", async ({html, find}) => {
+		await html(
 			"<div _='on click for x in null" +
 				"                                    put x at end of me" +
 				"                                  end'></div>"
 		);
-		d1.click();
-		d1.innerHTML.should.equal("");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("");
 	});
 
-	it("waiting in raw for loop works", function (done) {
-		var d1 = make(
+	test("waiting in raw for loop works", async ({html, find}) => {
+		await html(
 			"<div _='on click for x in [1, 2, 3]\n" +
 				"                                    put x at end of me\n" +
 				"                                    wait 1ms\n" +
 				"                                  end'></div>"
 		);
-		d1.click();
-		d1.innerHTML.should.equal("1");
-		setTimeout(function () {
-			d1.innerHTML.should.equal("123");
-			done();
-		}, 40);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("123");
 	});
 
-	it("repeat forever works", function () {
-		make(
-			"" +
-				"<script type='text/hyperscript'>" +
+	test("repeat forever works", async ({html, find}) => {
+		await html(
+			"<script type='text/hyperscript'>" +
 				"  def repeatForeverWithReturn()" +
 				"    set retVal to 0" +
 				"    repeat forever" +
@@ -93,16 +80,13 @@ describe("the repeat command", function () {
 				"</script>" +
 				"<div id='d1' _='on click put repeatForeverWithReturn() into my.innerHTML'></div>"
 		);
-		var d1 = byId("d1");
-		d1.click();
-		d1.innerHTML.should.equal("5");
-		delete window.repeatForeverWithReturn;
+		await find('#d1').dispatchEvent('click');
+		await expect(find('#d1')).toHaveText("5");
 	});
 
-	it("repeat forever works w/o keyword", function () {
-		make(
-			"" +
-				"<script type='text/hyperscript'>" +
+	test("repeat forever works w/o keyword", async ({html, find}) => {
+		await html(
+			"<script type='text/hyperscript'>" +
 				"  def repeatForeverWithReturn()" +
 				"    set retVal to 0" +
 				"    repeat" +
@@ -115,46 +99,43 @@ describe("the repeat command", function () {
 				"</script>" +
 				"<div id='d1' _='on click put repeatForeverWithReturn() into my.innerHTML'></div>"
 		);
-		var d1 = byId("d1");
-		d1.click();
-		d1.innerHTML.should.equal("5");
-		delete window.repeatForeverWithReturn;
+		await find('#d1').dispatchEvent('click');
+		await expect(find('#d1')).toHaveText("5");
 	});
 
-	it("basic in loop works", function () {
-		var d1 = make(
+	test("basic in loop works", async ({html, find}) => {
+		await html(
 			"<div _='on click repeat in [1, 2, 3]" +
 				"                                    put it at end of me" +
 				"                                  end'></div>"
 		);
-		d1.click();
-		d1.innerHTML.should.equal("123");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("123");
 	});
 
-	it("index syntax works", function () {
-		var d1 = make(
+	test("index syntax works", async ({html, find}) => {
+		await html(
 			'<div _=\'on click repeat for x in ["a", "ab", "abc"] index i' +
 				"                                    put x + i at end of me" +
 				"                                  end'></div>"
 		);
-		d1.click();
-		d1.innerHTML.should.equal("a0ab1abc2");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("a0ab1abc2");
 	});
 
-	it("indexed by syntax works", function () {
-		var d1 = make(
+	test("indexed by syntax works", async ({html, find}) => {
+		await html(
 			'<div _=\'on click repeat for x in ["a", "ab", "abc"] indexed by i' +
 				"                                    put x + i at end of me" +
 				"                                  end'></div>"
 		);
-		d1.click();
-		d1.innerHTML.should.equal("a0ab1abc2");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("a0ab1abc2");
 	});
 
-	it("while keyword works", function () {
-		make(
-			"" +
-				"<script type='text/hyperscript'>" +
+	test("while keyword works", async ({html, find}) => {
+		await html(
+			"<script type='text/hyperscript'>" +
 				"  def repeatWhileTest()" +
 				"    set retVal to 0" +
 				"    repeat while retVal < 5" +
@@ -165,16 +146,13 @@ describe("the repeat command", function () {
 				"</script>" +
 				"<div id='d1' _='on click put repeatWhileTest() into my.innerHTML'></div>"
 		);
-		var d1 = byId("d1");
-		d1.click();
-		d1.innerHTML.should.equal("5");
-		delete window.repeatWhileTest;
+		await find('#d1').dispatchEvent('click');
+		await expect(find('#d1')).toHaveText("5");
 	});
 
-	it("until keyword works", function () {
-		make(
-			"" +
-				"<script type='text/hyperscript'>" +
+	test("until keyword works", async ({html, find}) => {
+		await html(
+			"<script type='text/hyperscript'>" +
 				"  def repeatUntilTest()" +
 				"    set retVal to 0" +
 				"    repeat until retVal == 5" +
@@ -185,16 +163,13 @@ describe("the repeat command", function () {
 				"</script>" +
 				"<div id='d1' _='on click put repeatUntilTest() into my.innerHTML'></div>"
 		);
-		var d1 = byId("d1");
-		d1.click();
-		d1.innerHTML.should.equal("5");
-		delete window.repeatUntilTest;
+		await find('#d1').dispatchEvent('click');
+		await expect(find('#d1')).toHaveText("5");
 	});
 
-	it("until event keyword works", function (done) {
-		var div = make("<div id='untilTest'></div>");
-		make(
-			"" +
+	test("until event keyword works", async ({html, find, evaluate}) => {
+		await html(
+			"<div id='untilTest'></div>" +
 				"<script type='text/hyperscript'>" +
 				"  def repeatUntilTest()" +
 				"    repeat until event click from #untilTest" +
@@ -202,22 +177,19 @@ describe("the repeat command", function () {
 				"    end" +
 				"    return 42" +
 				"  end" +
-				"</script>" +
-				""
+				"</script>"
 		);
-		var promise = repeatUntilTest();
-		div.click();
-		promise.then(function (value) {
-			value.should.equal(42);
-			delete window.repeatUntilTest;
-			done();
+		await evaluate(() => {
+			window._testPromise = repeatUntilTest();
 		});
+		await evaluate(() => document.querySelector('#untilTest').click());
+		const value = await evaluate(() => window._testPromise);
+		expect(value).toBe(42);
 	});
 
-	it("only executes the init expression once", function () {
-		make(
-			"" +
-				"<script type='text/hyperscript'>" +
+	test("only executes the init expression once", async ({html, find, evaluate}) => {
+		await html(
+			"<script type='text/hyperscript'>" +
 				"  def getArray()" +
 				"    set window.called to (window.called or 0) + 1" +
 				"    return [1, 2, 3]" +
@@ -225,18 +197,14 @@ describe("the repeat command", function () {
 				"</script>" +
 				"<div id='d1' _='on click for x in getArray() put x into my.innerHTML end'></div>"
 		);
-		var d1 = byId("d1");
-		d1.click();
-		d1.innerHTML.should.equal("3");
-		window.called.should.equal(1);
-		delete window.getArray;
-		delete window.called;
+		await find('#d1').dispatchEvent('click');
+		await expect(find('#d1')).toHaveText("3");
+		expect(await evaluate(() => window.called)).toBe(1);
 	});
 
-	it("can nest loops", function () {
-		make(
-			"" +
-				"<script type='text/hyperscript'>" +
+	test("can nest loops", async ({html, find}) => {
+		await html(
+			"<script type='text/hyperscript'>" +
 				"  def sprayInto(elt)" +
 				"    for x in [1, 2, 3]" +
 				"      for y in [1, 2, 3]" +
@@ -247,34 +215,32 @@ describe("the repeat command", function () {
 				"</script>" +
 				"<div id='d1' _='on click call sprayInto(me)'></div>"
 		);
-		var d1 = byId("d1");
-		d1.click();
-		d1.innerHTML.should.equal("123246369");
-		delete window.sprayInto;
+		await find('#d1').dispatchEvent('click');
+		await expect(find('#d1')).toHaveText("123246369");
 	});
 
-	it("basic times loop works", function () {
-		var d1 = make(
+	test("basic times loop works", async ({html, find}) => {
+		await html(
 			"<div _='on click repeat 3 times" +
 				'                                    put "a" at end of me' +
 				"                                  end'></div>"
 		);
-		d1.click();
-		d1.innerHTML.should.equal("aaa");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("aaa");
 	});
 
-	it("times loop with expression works", function () {
-		var d1 = make(
+	test("times loop with expression works", async ({html, find}) => {
+		await html(
 			"<div _='on click repeat 3 + 3 times" +
 				'                                    put "a" at end of me' +
 				"                                  end'></div>"
 		);
-		d1.click();
-		d1.innerHTML.should.equal("aaaaaa");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("aaaaaa");
 	});
 
-	it("loop continue works", function () {
-		var d1 = make(
+	test("loop continue works", async ({html, find}) => {
+		await html(
 			`<div _="on click
 				repeat 2 times
 					for x in ['A', 'B', 'C', 'D']
@@ -287,12 +253,12 @@ describe("the repeat command", function () {
 					end
 				end
 			"></div>`);
-		d1.click();
-		d1.innerHTML.should.equal("success A. success B. success C. expected D. success A. success B. success C. expected D. ");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("success A. success B. success C. expected D. success A. success B. success C. expected D. ");
 	});
 
-	it("loop break works", function () {
-		var d1 = make(
+	test("loop break works", async ({html, find}) => {
+		await html(
 			`<div _="on click
 				repeat 2 times
 					for x in ['A', 'B', 'C', 'D']
@@ -303,18 +269,18 @@ describe("the repeat command", function () {
 					end
 				end
 			"></div>`);
-		d1.click();
-		d1.innerHTML.should.equal("ABAB");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("ABAB");
 	});
 
-	it("basic property for loop works", function () {
-		var d1 = make(
+	test("basic property for loop works", async ({html, find}) => {
+		await html(
 			"<div _='on click set x to {foo:1, bar:2, baz:3}" +
 			"                 for prop in x " +
 			"                   put x[prop] at end of me" +
 			"                 end'></div>"
 		);
-		d1.click();
-		d1.innerHTML.should.equal("123");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("123");
 	});
 });

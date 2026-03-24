@@ -1,164 +1,147 @@
-describe("the show command", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
+import {test, expect} from '../fixtures.js'
+
+test.describe("the show command", () => {
+
+	test("can show element, with display:block by default", async ({html, find}) => {
+		await html("<div style='display:none' _='on click show me'></div>");
+		await expect(find('div')).toHaveCSS('display', 'none');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('display', 'block');
 	});
 
-	it("can show element, with display:block by default", function () {
-		var div = make("<div style=display:none _='on click show me'></div>");
-		getComputedStyle(div).display.should.equal("none");
-		div.click();
-		getComputedStyle(div).display.should.equal("block");
+	test("can show form, with display:block by default", async ({html, find}) => {
+		await html("<form style='display:none' _='on click show me'></form>");
+		await expect(find('form')).toHaveCSS('display', 'none');
+		await find('form').dispatchEvent('click');
+		await expect(find('form')).toHaveCSS('display', 'block');
 	});
 
-	it("can show form, with display:block by default", function () {
-		var form = make("<form style=display:none _='on click show me'></form>");
-		getComputedStyle(form).display.should.equal("none");
-		form.click();
-		getComputedStyle(form).display.should.equal("block");
+	test("can show element with display:block explicitly", async ({html, find}) => {
+		await html("<div style='display:none' _='on click show me with display'></div>");
+		await expect(find('div')).toHaveCSS('display', 'none');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('display', 'block');
 	});
 
-	it("can show element with display:block explicitly", function () {
-		var div = make("<div style=display:none _='on click show me with display'></div>");
-		getComputedStyle(div).display.should.equal("none");
-		div.click();
-		getComputedStyle(div).display.should.equal("block");
+	test("can show element with custom display value", async ({html, find}) => {
+		await html("<div style='display:none' _='on click show me with display: flex'></div>");
+		await expect(find('div')).toHaveCSS('display', 'none');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('display', 'flex');
 	});
 
-	it("can show element with custom display value", function () {
-		var div = make("<div style=display:none _='on click show me with display: flex'></div>");
-		getComputedStyle(div).display.should.equal("none");
-		div.click();
-		getComputedStyle(div).display.should.equal("flex");
+	test("can show element with inline-block display value", async ({html, find}) => {
+		await html("<div style='display:none' _='on click show me with display: inline-block'></div>");
+		await expect(find('div')).toHaveCSS('display', 'none');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('display', 'inline-block');
 	});
 
-	it("can show element with inline-block display value", function () {
-		var div = make("<div style=display:none _='on click show me with display: inline-block'></div>");
-		getComputedStyle(div).display.should.equal("none");
-		div.click();
-		getComputedStyle(div).display.should.equal("inline-block");
+	test("can show element with opacity:1", async ({html, find}) => {
+		await html("<div style='opacity:0' _='on click show me with opacity'></div>");
+		await expect(find('div')).toHaveCSS('opacity', '0');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('opacity', '1');
 	});
 
-	it("can show element with opacity:1", function () {
-		var div = make("<div style=opacity:0 _='on click show me with opacity'></div>");
-		getComputedStyle(div).opacity.should.equal("0");
-		div.click();
-		getComputedStyle(div).opacity.should.equal("1");
+	test("can show element with opacity style literal", async ({html, find}) => {
+		await html("<div style='opacity:0' _='on click show me with *opacity'></div>");
+		await expect(find('div')).toHaveCSS('opacity', '0');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('opacity', '1');
 	});
 
-	it("can show element with opacity style literal", function () {
-		var div = make("<div style=opacity:0 _='on click show me with *opacity'></div>");
-		getComputedStyle(div).opacity.should.equal("0");
-		div.click();
-		getComputedStyle(div).opacity.should.equal("1");
+	test("can show element, with visibility:visible", async ({html, find}) => {
+		await html("<div style='visibility:hidden' _='on click show me with visibility'></div>");
+		await expect(find('div')).toHaveCSS('visibility', 'hidden');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('visibility', 'visible');
 	});
 
-	it("can show element, with visibility:visible", function () {
-		var div = make("<div style=visibility:hidden _='on click show me with visibility'></div>");
-		getComputedStyle(div).visibility.should.equal("hidden");
-		div.click();
-		getComputedStyle(div).visibility.should.equal("visible");
+	test("can show other elements", async ({html, find}) => {
+		await html("<div style='display:none' class='showme'></div><div _='on click show .showme'></div>");
+		await expect(find('.showme')).toHaveCSS('display', 'none');
+		await find('div:nth-of-type(2)').dispatchEvent('click');
+		await expect(find('.showme')).toHaveCSS('display', 'block');
 	});
 
-	it("can show other elements", function () {
-		var showme = make("<div style=display:none class=showme></div>");
-		var div = make("<div _='on click show .showme'></div>");
-		getComputedStyle(showme).display.should.equal("none");
-		div.click();
-		getComputedStyle(showme).display.should.equal("block");
+	test("can show multiple elements with inline-block display value", async ({html, find}) => {
+		await html("<div _='on click show <#d1, #d2/> with display: inline-block'></div>" +
+			"<div style='display: none' id='d1'></div>" +
+			"<div style='display: none' id='d2'></div>");
+		await expect(find('#d1')).toBeHidden();
+		await expect(find('#d2')).toBeHidden();
+		await find('div').first().dispatchEvent('click');
+		await expect(find('#d1')).toHaveCSS('display', 'inline-block');
+		await expect(find('#d2')).toHaveCSS('display', 'inline-block');
 	});
 
-	it("can show multiple elements with inline-block display value", function () {
-		var div = make("<div _='on click show <#d1, #d2/> with display: inline-block'></div>");
-		var d1 = make("<div style='display: none' id='d1'></div>");
-		var d2 = make("<div style='display: none' id='d2'></div>");
-		getComputedStyle(d1).display.should.equal("none");
-		getComputedStyle(d2).display.should.equal("none");
-		div.click();
-		getComputedStyle(d1).display.should.equal("inline-block");
-		getComputedStyle(d2).display.should.equal("inline-block");
+	test("can show multiple elements as class with inline-block display value", async ({html, find}) => {
+		await html("<div _='on click show .c1 with display:inline-block'></div>" +
+			"<div style='display: none' id='d1' class='c1'></div>" +
+			"<div style='display: none' id='d2' class='c1'></div>");
+		await expect(find('#d1')).toBeHidden();
+		await expect(find('#d2')).toBeHidden();
+		await find('div').first().dispatchEvent('click');
+		await expect(find('#d1')).toHaveCSS('display', 'inline-block');
+		await expect(find('#d2')).toHaveCSS('display', 'inline-block');
 	});
 
-	it("can show multiple elements as class with inline-block display value", function () {
-		var div = make("<div _='on click show .c1 with display:inline-block'></div>");
-		var d1 = make("<div style='display: none' id='d1' class='c1'></div>");
-		var d2 = make("<div style='display: none' id='d2' class='c1'></div>");
-		getComputedStyle(d1).display.should.equal("none");
-		getComputedStyle(d2).display.should.equal("none");
-		div.click();
-		getComputedStyle(d1).display.should.equal("inline-block");
-		getComputedStyle(d2).display.should.equal("inline-block");
-	});
-
-	it("can use a when clause to show or hide an element", function () {
-		var div = make("<div _='on click " +
+	test("can use a when clause to show or hide an element", async ({html, find}) => {
+		await html("<div _='on click " +
 			"                              toggle .foo " +
 			"                              show when I match .foo'></div>");
-		div.classList.contains("foo").should.equal(false);
-		div.click();
-		div.classList.contains("foo").should.equal(true);
-		getComputedStyle(div).display.should.equal("block");
-		div.click();
-		div.classList.contains("foo").should.equal(false);
-		getComputedStyle(div).display.should.equal("none");
-		div.click();
-		div.classList.contains("foo").should.equal(true);
-		getComputedStyle(div).display.should.equal("block");
+		await expect(find('div')).not.toHaveClass(/foo/);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveClass(/foo/);
+		await expect(find('div')).toHaveCSS('display', 'block');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).not.toHaveClass(/foo/);
+		await expect(find('div')).toHaveCSS('display', 'none');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveClass(/foo/);
+		await expect(find('div')).toHaveCSS('display', 'block');
 	});
 
-	it("can use a when clause and a with clause to show or hide an element", function () {
-		var div = make("<div _='on click " +
+	test("can use a when clause and a with clause to show or hide an element", async ({html, find}) => {
+		await html("<div _='on click " +
 			"                              toggle .foo " +
 			"                              show with opacity when I match .foo'></div>");
-		div.classList.contains("foo").should.equal(false);
-		div.click();
-		div.classList.contains("foo").should.equal(true);
-		getComputedStyle(div).opacity.should.equal("1");
-		div.click();
-		div.classList.contains("foo").should.equal(false);
-		getComputedStyle(div).opacity.should.equal("0");
-		div.click();
-		div.classList.contains("foo").should.equal(true);
-		getComputedStyle(div).opacity.should.equal("1");
+		await expect(find('div')).not.toHaveClass(/foo/);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveClass(/foo/);
+		await expect(find('div')).toHaveCSS('opacity', '1');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).not.toHaveClass(/foo/);
+		await expect(find('div')).toHaveCSS('opacity', '0');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveClass(/foo/);
+		await expect(find('div')).toHaveCSS('opacity', '1');
 	});
 
-	it("can filter over a set of elements using the its symbol", function () {
-		var div = make("<div _='on click show <p/> in me when its innerText contains \"foo\"'>" +
+	test("can filter over a set of elements using the its symbol", async ({html, find}) => {
+		await html("<div _='on click show <p/> in me when its innerText contains \"foo\"'>" +
 			"<p id='p1'>foo</p>" +
 			"<p id='p2'>bar</p>" +
 			"<p id='p3'>foo</p>" +
 			"<p id='p4'>doh</p>" +
 			"</div>");
 
-		var p1 = byId("p1")
-		var p2 = byId("p2")
-		var p3 = byId("p3")
-		var p4 = byId("p4")
+		await find('div').dispatchEvent('click');
 
-		getComputedStyle(p1).display.should.equal("block");
-		getComputedStyle(p2).display.should.equal("block");
-		getComputedStyle(p3).display.should.equal("block");
-		getComputedStyle(p4).display.should.equal("block");
-
-		div.click();
-
-		getComputedStyle(p1).display.should.equal("block");
-		getComputedStyle(p2).display.should.equal("none");
-		getComputedStyle(p3).display.should.equal("block");
-		getComputedStyle(p4).display.should.equal("none");
-
-
+		await expect(find('#p1')).toBeVisible();
+		await expect(find('#p2')).toBeHidden();
+		await expect(find('#p3')).toBeVisible();
+		await expect(find('#p4')).toBeHidden();
 	});
 
-	it("starting off with display none does not stick", function () {
-		var div = make("<div style='display: none' _='on click toggle .foo show when I match .foo'></div>");
-		getComputedStyle(div).display.should.equal("none");
-		div.click();
-		getComputedStyle(div).display.should.equal("block");
-		div.click();
-		getComputedStyle(div).display.should.equal("none");
+	test("starting off with display none does not stick", async ({html, find}) => {
+		await html("<div style='display: none' _='on click toggle .foo show when I match .foo'></div>");
+		await expect(find('div')).toHaveCSS('display', 'none');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('display', 'block');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('display', 'none');
 	});
 
 });

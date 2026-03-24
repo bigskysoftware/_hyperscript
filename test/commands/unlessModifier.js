@@ -1,25 +1,21 @@
-describe("the unless command modifier", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
-	});
+import {test, expect} from '../fixtures.js'
 
-	it("unless modifier can conditionally execute a command", function () {
-		var div = make("<div _='on click toggle .foo unless I match .bar'></div>");
+test.describe("the unless command modifier", () => {
 
-		div.classList.contains("foo").should.equal(false);
-		div.click();
-		div.classList.contains("foo").should.equal(true);
-		div.click();
-		div.classList.contains("foo").should.equal(false);
+	test("unless modifier can conditionally execute a command", async ({html, find, evaluate}) => {
+		await html("<div _='on click toggle .foo unless I match .bar'></div>");
 
-		div.classList.add("bar");
-		div.classList.contains("foo").should.equal(false);
-		div.click();
-		div.classList.contains("foo").should.equal(false);
-		div.click();
-		div.classList.contains("foo").should.equal(false);
+		await expect(find('div')).not.toHaveClass(/foo/);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveClass(/foo/);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).not.toHaveClass(/foo/);
+
+		await evaluate(() => document.querySelector('#work-area div').classList.add("bar"));
+		await expect(find('div')).not.toHaveClass(/foo/);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).not.toHaveClass(/foo/);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).not.toHaveClass(/foo/);
 	});
 });

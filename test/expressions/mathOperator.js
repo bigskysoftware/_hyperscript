@@ -1,54 +1,48 @@
-describe("the mathOperator expression", function () {
-	it("addition works", function () {
-		var result = evalHyperScript("1 + 1");
-		result.should.equal(1 + 1);
-	});
+import {test, expect} from '../fixtures.js'
 
-	it("string concat works", function () {
-		var result = evalHyperScript("'a' + 'b'");
-		result.should.equal("ab");
-	});
+test.describe("the mathOperator expression", () => {
 
-	it("subtraction works", function () {
-		var result = evalHyperScript("1 - 1");
-		result.should.equal(1 - 1);
-	});
+	test("addition works", async ({run}) => {
+		expect(await run("1 + 1")).toBe(2)
+	})
 
-	it("multiplication works", function () {
-		var result = evalHyperScript("1 * 2");
-		result.should.equal(1 * 2);
-	});
+	test("string concat works", async ({run}) => {
+		expect(await run("'a' + 'b'")).toBe("ab")
+	})
 
-	it("division works", function () {
-		var result = evalHyperScript("1 / 2");
-		result.should.equal(1 / 2);
-	});
+	test("subtraction works", async ({run}) => {
+		expect(await run("1 - 1")).toBe(0)
+	})
 
-	it("mod works", function () {
-		var result = evalHyperScript("3 mod 2");
-		result.should.equal(3 % 2);
-	});
+	test("multiplication works", async ({run}) => {
+		expect(await run("1 * 2")).toBe(2)
+	})
 
-	it("addition works w/ more than one value", function () {
-		var result = evalHyperScript("1 + 2 + 3");
-		result.should.equal(1 + 2 + 3);
-	});
+	test("division works", async ({run}) => {
+		expect(await run("1 / 2")).toBe(0.5)
+	})
 
-	it("unparenthesized expressions with multiple operators cause an error", function () {
-		var result = getParseErrorFor("1 + 2 * 3");
-		result.indexOf("You must parenthesize math operations with different operators").should.equal(0);
-	});
+	test("mod works", async ({run}) => {
+		expect(await run("3 mod 2")).toBe(1)
+	})
 
-	it("parenthesized expressions with multiple operators work", function () {
-		var result = evalHyperScript("1 + (2 * 3)");
-		result.should.equal(1 + 2 * 3);
-	});
+	test("addition works w/ more than one value", async ({run}) => {
+		expect(await run("1 + 2 + 3")).toBe(6)
+	})
 
-	it("can use mixed expressions", function (done) {
-		var result = evalHyperScript("1 + promiseAnIntIn(10)");
-		result.then(function (value) {
-			value.should.equal(43);
-			done();
-		});
-	});
-});
+	test("unparenthesized expressions with multiple operators cause an error", async ({error}) => {
+		const msg = await error("1 + 2 * 3")
+		expect(msg).toMatch(/^You must parenthesize math operations with different operators/)
+	})
+
+	test("parenthesized expressions with multiple operators work", async ({run}) => {
+		expect(await run("1 + (2 * 3)")).toBe(7)
+	})
+
+	test("can use mixed expressions", async ({evaluate}) => {
+		const result = await evaluate(() => {
+			return _hyperscript("1 + promiseAnIntIn(10)").then(v => v)
+		})
+		expect(result).toBe(43)
+	})
+})

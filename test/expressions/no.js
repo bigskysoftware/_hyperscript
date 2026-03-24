@@ -1,26 +1,24 @@
-describe("the no expression", function () {
-	it("no returns true for null", function () {
-		var result = evalHyperScript("no null");
-		result.should.equal(true);
-	});
+import {test, expect} from '../fixtures.js'
 
-	it("no returns false for non-null", function () {
-		var result = evalHyperScript("no 'thing'");
-		result.should.equal(false);
-	});
+test.describe("the no expression", () => {
 
-	it("no returns true for empty array", function () {
-		var result = evalHyperScript("no []");
-		result.should.equal(true);
-	});
+	test("no returns true for null", async ({run}) => {
+		expect(await run("no null")).toBe(true)
+	})
 
-	it("no returns true for empty selector", function () {
-		var result = evalHyperScript("no .aClassThatDoesNotExist");
-		result.should.equal(true);
-	});
+	test("no returns false for non-null", async ({run}) => {
+		expect(await run("no 'thing'")).toBe(false)
+	})
 
-	it("no returns false for non-null", function () {
-		var result = evalHyperScript("no ['thing']");
-		result.should.equal(false);
-	});
-});
+	test("no returns true for empty array", async ({run}) => {
+		expect(await run("no []")).toBe(true)
+	})
+
+	test("no returns true for empty selector", async ({run}) => {
+		expect(await run("no .aClassThatDoesNotExist")).toBe(true)
+	})
+
+	test("no returns false for non-empty array", async ({run}) => {
+		expect(await run("no ['thing']")).toBe(false)
+	})
+})

@@ -1,46 +1,42 @@
-describe("the default command", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
+import {test, expect} from '../fixtures.js'
+
+test.describe("the default command", () => {
+
+	test("can default variables", async ({html, find}) => {
+		await html("<div id='d1' _='on click default x to \"foo\" then put x into me'></div>");
+		await find('#d1').dispatchEvent('click');
+		await expect(find('#d1')).toHaveText("foo");
 	});
 
-	it("can default variables", function () {
-		var d1 = make("<div id='d1' _='on click default x to \"foo\" then put x into me'></div>");
-		d1.click();
-		d1.innerHTML.should.equal("foo");
+	test("can default attributes", async ({html, find}) => {
+		await html("<div id='d1' _='on click default @foo to \"foo\" then put @foo into me'></div>");
+		await find('#d1').dispatchEvent('click');
+		await expect(find('#d1')).toHaveText("foo");
 	});
 
-	it("can default attributes", function () {
-		var d1 = make("<div id='d1' _='on click default @foo to \"foo\" then put @foo into me'></div>");
-		d1.click();
-		d1.innerHTML.should.equal("foo");
+	test("can default properties", async ({html, find}) => {
+		await html("<div id='d1' _='on click default me.foo to \"foo\" then put me.foo into me'></div>");
+		await find('#d1').dispatchEvent('click');
+		await expect(find('#d1')).toHaveText("foo");
 	});
 
-	it("can default properties", function () {
-		var d1 = make("<div id='d1' _='on click default me.foo to \"foo\" then put me.foo into me'></div>");
-		d1.click();
-		d1.innerHTML.should.equal("foo");
+	test("default variables respect existing values", async ({html, find}) => {
+		await html("<div id='d1' _='on click set x to \"bar\" then default x to \"foo\" then put x into me'></div>");
+		await find('#d1').dispatchEvent('click');
+		await expect(find('#d1')).toHaveText("bar");
 	});
 
-	it("default variables respect existing values", function () {
-		var d1 = make("<div id='d1' _='on click set x to \"bar\" then default x to \"foo\" then put x into me'></div>");
-		d1.click();
-		d1.innerHTML.should.equal("bar");
+	test("default attributes respect existing values", async ({html, find}) => {
+		await html("<div foo='bar' id='d1' _='on click default @foo to \"foo\" then put @foo into me'></div>");
+		await find('#d1').dispatchEvent('click');
+		await expect(find('#d1')).toHaveText("bar");
 	});
 
-	it("default attributes respect existing values", function () {
-		var d1 = make("<div foo='bar' id='d1' _='on click default @foo to \"foo\" then put @foo into me'></div>");
-		d1.click();
-		d1.innerHTML.should.equal("bar");
-	});
-
-	it("default properties respect existing values", function () {
-		var d1 = make(
+	test("default properties respect existing values", async ({html, find}) => {
+		await html(
 			"<div id='d1' _='on click set me.foo to \"bar\" then default me.foo to \"foo\" then put me.foo into me'></div>"
 		);
-		d1.click();
-		d1.innerHTML.should.equal("bar");
+		await find('#d1').dispatchEvent('click');
+		await expect(find('#d1')).toHaveText("bar");
 	});
 });

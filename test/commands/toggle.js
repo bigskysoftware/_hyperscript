@@ -1,199 +1,185 @@
-describe("the toggle command", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
+import {test, expect} from '../fixtures.js'
+
+test.describe("the toggle command", () => {
+
+	test("can toggle class ref on a single div", async ({html, find}) => {
+		await html("<div _='on click toggle .foo'></div>");
+		await expect(find('div')).not.toHaveClass(/foo/);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveClass(/foo/);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).not.toHaveClass(/foo/);
 	});
 
-	it("can toggle class ref on a single div", function () {
-		var div = make("<div _='on click toggle .foo'></div>");
-		div.classList.contains("foo").should.equal(false);
-		div.click();
-		div.classList.contains("foo").should.equal(true);
-		div.click();
-		div.classList.contains("foo").should.equal(false);
+	test("can toggle class ref on a single form", async ({html, find}) => {
+		await html("<form _='on click toggle .foo'></form>");
+		await expect(find('form')).not.toHaveClass(/foo/);
+		await find('form').dispatchEvent('click');
+		await expect(find('form')).toHaveClass(/foo/);
+		await find('form').dispatchEvent('click');
+		await expect(find('form')).not.toHaveClass(/foo/);
 	});
 
-	it("can toggle class ref on a single form", function () {
-		var form = make("<form _='on click toggle .foo'></form>");
-		form.classList.contains("foo").should.equal(false);
-		form.click();
-		form.classList.contains("foo").should.equal(true);
-		form.click();
-		form.classList.contains("foo").should.equal(false);
+	test("can target another div for class ref toggle", async ({html, find}) => {
+		await html("<div id='bar'></div><div _='on click toggle .foo on #bar'></div>");
+		await expect(find('#bar')).not.toHaveClass(/foo/);
+		await find('div:nth-of-type(2)').dispatchEvent('click');
+		await expect(find('#bar')).toHaveClass(/foo/);
+		await find('div:nth-of-type(2)').dispatchEvent('click');
+		await expect(find('#bar')).not.toHaveClass(/foo/);
 	});
 
-	it("can target another div for class ref toggle", function () {
-		var bar = make("<div id='bar'></div>");
-		var div = make("<div _='on click toggle .foo on #bar'></div>");
-		bar.classList.contains("foo").should.equal(false);
-		div.classList.contains("foo").should.equal(false);
-		div.click();
-		bar.classList.contains("foo").should.equal(true);
-		div.classList.contains("foo").should.equal(false);
-		div.click();
-		bar.classList.contains("foo").should.equal(false);
-		div.classList.contains("foo").should.equal(false);
+	test("can toggle non-class attributes", async ({html, find}) => {
+		await html("<div _='on click toggle [@foo=\"bar\"]'></div>");
+		await expect(find('div')).not.toHaveAttribute('foo');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveAttribute('foo', 'bar');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).not.toHaveAttribute('foo');
 	});
 
-	it("can toggle non-class attributes", function () {
-		var div = make("<div _='on click toggle [@foo=\"bar\"]'></div>");
-		div.hasAttribute("foo").should.equal(false);
-		div.click();
-		div.getAttribute("foo").should.equal("bar");
-		div.click();
-		div.hasAttribute("foo").should.equal(false);
+	test("can toggle non-class attributes on selects", async ({html, find}) => {
+		await html("<select _='on click toggle [@foo=\"bar\"]'></select>");
+		await expect(find('select')).not.toHaveAttribute('foo');
+		await find('select').dispatchEvent('click');
+		await expect(find('select')).toHaveAttribute('foo', 'bar');
+		await find('select').dispatchEvent('click');
+		await expect(find('select')).not.toHaveAttribute('foo');
 	});
 
-	it("can toggle non-class attributes on selects", function () {
-		var select = make("<select _='on click toggle [@foo=\"bar\"]'></select>");
-		select.hasAttribute("foo").should.equal(false);
-		select.click();
-		select.getAttribute("foo").should.equal("bar");
-		select.click();
-		select.hasAttribute("foo").should.equal(false);
+	test("can toggle for a fixed amount of time", async ({html, find}) => {
+		await html("<div _='on click toggle .foo for 10ms'></div>");
+		await expect(find('div')).not.toHaveClass(/foo/);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveClass(/foo/);
+		await expect(find('div')).not.toHaveClass(/foo/);
 	});
 
-	it("can toggle for a fixed amount of time", function (done) {
-		var div = make("<div _='on click toggle .foo for 10ms'></div>");
-		div.classList.contains("foo").should.equal(false);
-		div.click();
-		div.classList.contains("foo").should.equal(true);
-		setTimeout(function () {
-			div.classList.contains("foo").should.equal(false);
-			done();
-		}, 20);
+	test("can toggle until an event on another element", async ({html, find, evaluate}) => {
+		await html("<div id='d1'></div><div _='on click toggle .foo until foo from #d1'></div>");
+		await expect(find('div:nth-of-type(2)')).not.toHaveClass(/foo/);
+		await find('div:nth-of-type(2)').dispatchEvent('click');
+		await expect(find('div:nth-of-type(2)')).toHaveClass(/foo/);
+		await evaluate(() => document.querySelector('#d1').dispatchEvent(new CustomEvent("foo")));
+		await expect(find('div:nth-of-type(2)')).not.toHaveClass(/foo/);
 	});
 
-	it("can toggle until an event on another element", function (done) {
-		var d1 = make("<div id='d1'></div>");
-		var div = make("<div _='on click toggle .foo until foo from #d1'></div>");
-		div.classList.contains("foo").should.equal(false);
-		div.click();
-		div.classList.contains("foo").should.equal(true);
-		d1.dispatchEvent(new CustomEvent("foo"));
-		setTimeout(function () {
-			div.classList.contains("foo").should.equal(false);
-			done();
-		}, 1);
+	test("can toggle between two classes", async ({html, find}) => {
+		await html("<div class='foo' _='on click toggle between .foo and .bar'></div>");
+		await expect(find('div')).toHaveClass(/foo/);
+		await expect(find('div')).not.toHaveClass(/bar/);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).not.toHaveClass(/foo/);
+		await expect(find('div')).toHaveClass(/bar/);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveClass(/foo/);
+		await expect(find('div')).not.toHaveClass(/bar/);
 	});
 
-	it("can toggle between two classes", function () {
-		var div = make("<div class='foo' _='on click toggle between .foo and .bar'></div>");
-		div.classList.contains("foo").should.equal(true);
-		div.classList.contains("bar").should.equal(false);
-		div.click();
-		div.classList.contains("foo").should.equal(false);
-		div.classList.contains("bar").should.equal(true);
-		div.click();
-		div.classList.contains("foo").should.equal(true);
-		div.classList.contains("bar").should.equal(false);
+	test("can toggle multiple class refs", async ({html, find}) => {
+		await html("<div class='bar' _='on click toggle .foo .bar'></div>");
+		await expect(find('div')).not.toHaveClass(/foo/);
+		await expect(find('div')).toHaveClass(/bar/);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveClass(/foo/);
+		await expect(find('div')).not.toHaveClass(/bar/);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).not.toHaveClass(/foo/);
+		await expect(find('div')).toHaveClass(/bar/);
 	});
 
-	it("can toggle multiple class refs", function () {
-		var div = make("<div class='bar' _='on click toggle .foo .bar'></div>");
-		div.classList.contains("foo").should.equal(false);
-		div.classList.contains("bar").should.equal(true);
-		div.click();
-		div.classList.contains("foo").should.equal(true);
-		div.classList.contains("bar").should.equal(false);
-		div.click();
-		div.classList.contains("foo").should.equal(false);
-		div.classList.contains("bar").should.equal(true);
+	test("can toggle display", async ({html, find}) => {
+		await html("<div _='on click toggle *display'></div>");
+		await expect(find('div')).toHaveCSS('display', 'block');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('display', 'none');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('display', 'block');
 	});
 
-	it("can toggle display", function () {
-		var div = make("<div _='on click toggle *display'></div>");
-		getComputedStyle(div).display.should.equal("block");
-		div.click();
-		getComputedStyle(div).display.should.equal("none");
-		div.click();
-		getComputedStyle(div).display.should.equal("block");
+	test("can toggle opacity", async ({html, find}) => {
+		await html("<div _='on click toggle *opacity'></div>");
+		await expect(find('div')).toHaveCSS('opacity', '1');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('opacity', '0');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('opacity', '1');
 	});
 
-	it("can toggle opacity", function () {
-		var div = make("<div _='on click toggle *opacity'></div>");
-		getComputedStyle(div).opacity.should.equal("1");
-		div.click();
-		getComputedStyle(div).opacity.should.equal("0");
-		div.click();
-		getComputedStyle(div).opacity.should.equal("1");
+	test("can toggle visibility", async ({html, find}) => {
+		await html("<div _='on click toggle *visibility'></div>");
+		await expect(find('div')).toHaveCSS('visibility', 'visible');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('visibility', 'hidden');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('visibility', 'visible');
 	});
 
-	it("can toggle opacity", function () {
-		var div = make("<div _='on click toggle *visibility'></div>");
-		getComputedStyle(div).visibility.should.equal("visible");
-		div.click();
-		getComputedStyle(div).visibility.should.equal("hidden");
-		div.click();
-		getComputedStyle(div).visibility.should.equal("visible");
+	test("can toggle display w/ my", async ({html, find}) => {
+		await html("<div _='on click toggle my *display'></div>");
+		await expect(find('div')).toHaveCSS('display', 'block');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('display', 'none');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('display', 'block');
 	});
 
-	it("can toggle display w/ my", function () {
-		var div = make("<div _='on click toggle my *display'></div>");
-		getComputedStyle(div).display.should.equal("block");
-		div.click();
-		getComputedStyle(div).display.should.equal("none");
-		div.click();
-		getComputedStyle(div).display.should.equal("block");
+	test("can toggle opacity w/ my", async ({html, find}) => {
+		await html("<div _='on click toggle my *opacity'></div>");
+		await expect(find('div')).toHaveCSS('opacity', '1');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('opacity', '0');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('opacity', '1');
 	});
 
-	it("can toggle display w/ my", function () {
-		var div = make("<div _='on click toggle my *opacity'></div>");
-		getComputedStyle(div).opacity.should.equal("1");
-		div.click();
-		getComputedStyle(div).opacity.should.equal("0");
-		div.click();
-		getComputedStyle(div).opacity.should.equal("1");
+	test("can toggle visibility w/ my", async ({html, find}) => {
+		await html("<div _='on click toggle my *visibility'></div>");
+		await expect(find('div')).toHaveCSS('visibility', 'visible');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('visibility', 'hidden');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('visibility', 'visible');
 	});
 
-	it("can toggle display w/ my", function () {
-		var div = make("<div _='on click toggle my *visibility'></div>");
-		getComputedStyle(div).visibility.should.equal("visible");
-		div.click();
-		getComputedStyle(div).visibility.should.equal("hidden");
-		div.click();
-		getComputedStyle(div).visibility.should.equal("visible");
+	test("can toggle display on other elt", async ({html, find}) => {
+		await html("<div _='on click toggle the *display of #d2'></div><div id='d2'></div>");
+		await expect(find('#d2')).toHaveCSS('display', 'block');
+		await find('div').first().dispatchEvent('click');
+		await expect(find('#d2')).toHaveCSS('display', 'none');
+		await find('div').first().dispatchEvent('click');
+		await expect(find('#d2')).toHaveCSS('display', 'block');
 	});
 
-	it("can toggle display on other elt", function () {
-		var div = make("<div _='on click toggle the *display of #d2'></div>");
-		var div2 = make("<div id='d2'></div>");
-		getComputedStyle(div2).display.should.equal("block");
-		div.click();
-		getComputedStyle(div2).display.should.equal("none");
-		div.click();
-		getComputedStyle(div2).display.should.equal("block");
+	test("can toggle opacity on other elt", async ({html, find}) => {
+		await html("<div _='on click toggle the *opacity of #d2'></div><div id='d2'></div>");
+		await expect(find('#d2')).toHaveCSS('opacity', '1');
+		await find('div').first().dispatchEvent('click');
+		await expect(find('#d2')).toHaveCSS('opacity', '0');
+		await find('div').first().dispatchEvent('click');
+		await expect(find('#d2')).toHaveCSS('opacity', '1');
 	});
 
-	it("can toggle display on other elt", function () {
-		var div = make("<div _='on click toggle the *opacity of #d2'></div>");
-		var div2 = make("<div id='d2'></div>");
-		getComputedStyle(div2).opacity.should.equal("1");
-		div.click();
-		getComputedStyle(div2).opacity.should.equal("0");
-		div.click();
-		getComputedStyle(div2).opacity.should.equal("1");
+	test("can toggle visibility on other elt", async ({html, find}) => {
+		await html("<div _='on click toggle the *visibility of #d2'></div><div id='d2'></div>");
+		await expect(find('#d2')).toHaveCSS('visibility', 'visible');
+		await find('div').first().dispatchEvent('click');
+		await expect(find('#d2')).toHaveCSS('visibility', 'hidden');
+		await find('div').first().dispatchEvent('click');
+		await expect(find('#d2')).toHaveCSS('visibility', 'visible');
 	});
 
-	it("can toggle display on other elt", function () {
-		var div = make("<div _='on click toggle the *visibility of #d2'></div>");
-		var div2 = make("<div id='d2'></div>");
-		getComputedStyle(div2).visibility.should.equal("visible");
-		div.click();
-		getComputedStyle(div2).visibility.should.equal("hidden");
-		div.click();
-		getComputedStyle(div2).visibility.should.equal("visible");
-	});
-
-	it("can toggle crazy tailwinds class ref on a single form", function () {
-		var form = make("<form _='on click toggle .group-\\[:nth-of-type\\(3\\)_\\&\\]:block'></form>");
-		form.classList.contains("group-[:nth-of-type(3)_&]:block").should.equal(false);
-		form.click();
-		console.log(form, form.classList);
-		form.classList.contains("group-[:nth-of-type(3)_&]:block").should.equal(true);
-		form.click();
-		form.classList.contains("group-[:nth-of-type(3)_&]:block").should.equal(false);
+	test("can toggle crazy tailwinds class ref on a single form", async ({html, find, evaluate}) => {
+		await html("<form _='on click toggle .group-\\[:nth-of-type\\(3\\)_\\&\\]:block'></form>");
+		await find('form').dispatchEvent('click');
+		const hasClass = await evaluate(() =>
+			document.querySelector('#work-area form').classList.contains("group-[:nth-of-type(3)_&]:block")
+		);
+		expect(hasClass).toBe(true);
+		await find('form').dispatchEvent('click');
+		const hasClass2 = await evaluate(() =>
+			document.querySelector('#work-area form').classList.contains("group-[:nth-of-type(3)_&]:block")
+		);
+		expect(hasClass2).toBe(false);
 	});
 });

@@ -1,107 +1,102 @@
-describe("the append command", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
-	});
+import {test, expect} from '../fixtures.js'
 
-	it("can append a string to another string", function () {
-		var div = make(`<div _="on click
+test.describe("the append command", () => {
+
+	test("can append a string to another string", async ({html, find}) => {
+		await html(`<div _="on click
                             set value to 'Hello there.' then
                             append ' General Kenobi.' to value then
                             set my.innerHTML to value"></div>`);
-		div.click();
-		div.innerHTML.should.equal("Hello there. General Kenobi.");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("Hello there. General Kenobi.");
 	});
 
-	it("can append a value into an array", function () {
-		var div = make(`<div _="on click
+	test("can append a value into an array", async ({html, find}) => {
+		await html(`<div _="on click
                             set value to [1,2,3]
                             append 4 to value
                             set my.innerHTML to value as String"></div>`);
-		div.click();
-		div.innerHTML.should.equal("1,2,3,4");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("1,2,3,4");
 	});
 
-	it("can append a value to 'it'", function () {
-		var div = make(`<div _="on click
+	test("can append a value to 'it'", async ({html, find}) => {
+		await html(`<div _="on click
                             set result to [1,2,3]
                             append 4
                             put it as String into me"></div>`);
-		div.click();
-		div.innerHTML.should.equal("1,2,3,4");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("1,2,3,4");
 	});
 
-	it("can append a value to a DOM node", function () {
-		var div = make(`<div _="on click
+	test("can append a value to a DOM node", async ({html, find}) => {
+		await html(`<div _="on click
                             append '<span>This is my inner HTML</span>' to me
                             append '<b>With Tags</b>' to me"></div>`);
-		div.click();
-		div.innerHTML.should.equal("<span>This is my inner HTML</span><b>With Tags</b>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("This is my inner HTMLWith Tags");
 	});
 
-	it("can append a value to a DOM element", function () {
-		var div = make(`<div id="content" _="on click
+	test("can append a value to a DOM element", async ({html, find}) => {
+		await html(`<div id="content" _="on click
                             append 'Content' to #content"></div>`);
-		div.click();
-		div.innerHTML.should.equal("Content");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("Content");
 	});
 
-	it("can append a value to I", function () {
-		var div = make(`<div _="on click 
+	test("can append a value to I", async ({html, find}) => {
+		await html(`<div _="on click
                             append 'Content' to I"></div>`);
-		div.click();
-		div.innerHTML.should.equal("Content");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("Content");
 	});
 
-    it("can append a value to an object property", function () {
-        var div = make(`<div id="id" _="on click append '_new' to my id"></div>`);
-        div.click();
-        div.id.should.equal("id_new");
-    })
+	test("can append a value to an object property", async ({html, find, evaluate}) => {
+		await html(`<div id="id" _="on click append '_new' to my id"></div>`);
+		await find('div').dispatchEvent('click');
+		const id = await evaluate(() => document.querySelector('#work-area div').id);
+		expect(id).toBe("id_new");
+	});
 
-    it("multiple appends work", function () {
-        var div = make(`<div id="id" _="on click get 'foo' then append 'bar' then append 'doh' then append it to me"></div>`);
-        div.click();
-		div.innerHTML.should.equal("foobardoh");
-    })
+	test("multiple appends work", async ({html, find}) => {
+		await html(`<div id="id" _="on click get 'foo' then append 'bar' then append 'doh' then append it to me"></div>`);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("foobardoh");
+	});
 
-    it("append to undefined ignores the undefined", function () {
-        var div = make(`<div id="id" _="on click append 'bar' then append it to me"></div>`);
-        div.click();
-		div.innerHTML.should.equal("bar");
-    })
+	test("append to undefined ignores the undefined", async ({html, find}) => {
+		await html(`<div id="id" _="on click append 'bar' then append it to me"></div>`);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("bar");
+	});
 
-    it("append preserves existing content rather than overwriting it", function () {
-		var div = make(`<div _="on click append '<a>New Content</a>' to me"><button id="btn1">Click Me</button></div>`);
-		let btn = byId('btn1');
-		var clicks = 0;
-		btn.addEventListener('click', function() {
-			clicks++;
-		})
-        btn.click();
-		clicks.should.equal(1);
-		div.click();
-		div.innerHTML.should.contain("New Content");
-		btn.click();
-		btn.parentNode.should.equal(div);
-    })
+	test("append preserves existing content rather than overwriting it", async ({html, find, evaluate}) => {
+		await html(`<div _="on click append '<a>New Content</a>' to me"><button id="btn1">Click Me</button></div>`);
+		await evaluate(() => {
+			window.clicks = 0;
+			document.querySelector('#btn1').addEventListener('click', () => { window.clicks++; });
+		});
+		await evaluate(() => document.querySelector('#btn1').click());
+		expect(await evaluate(() => window.clicks)).toBe(1);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toContainText("New Content");
+		await evaluate(() => document.querySelector('#btn1').click());
+		const parentMatch = await evaluate(() => document.querySelector('#btn1').parentNode === document.querySelector('#work-area div'));
+		expect(parentMatch).toBe(true);
+	});
 
-    it("new content added by append will be live", function () {
-		var div = make(`<div _="on click append \`<button id='b1' _='on click increment window.temp'>Test</button>\` to me"></div>`);
-		div.click();
-		let btn = byId('b1');
-		btn.click();
-		window.temp.should.equal(1);
-		delete window.temp;
-    })
+	test("new content added by append will be live", async ({html, find, evaluate}) => {
+		await html("<div _=\"on click append `<button id='b1' _='on click increment window.temp'>Test</button>` to me\"></div>");
+		await find('div').dispatchEvent('click');
+		await find('#b1').dispatchEvent('click');
+		await expect.poll(() => evaluate(() => window.temp)).toBe(1);
+	});
 
-    it("new DOM content added by append will be live", function () {
-		var div = make(`<div _="on click make a <span.topping/> then append it to me"></div>`);
-		div.click();
-		let span = div.querySelector(".topping");
-		span.classList.contains("topping").should.equal(true);
-    })
+	test("new DOM content added by append will be live", async ({html, find, evaluate}) => {
+		await html(`<div _="on click make a <span.topping/> then append it to me"></div>`);
+		await find('div').dispatchEvent('click');
+		await expect(find('span.topping')).toHaveCount(1);
+		await expect(find('span.topping')).toHaveClass(/topping/);
+	});
 
 });

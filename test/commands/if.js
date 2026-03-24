@@ -1,132 +1,120 @@
-describe("the if command", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
+import {test, expect} from '../fixtures.js'
+
+test.describe("the if command", () => {
+
+	test("basic true branch works", async ({html, find}) => {
+		await html("<div _='on click if true put \"foo\" into me.innerHTML'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("foo");
 	});
 
-	it("basic true branch works", function () {
-		var d1 = make("<div _='on click if true put \"foo\" into me.innerHTML'></div>");
-		d1.click();
-		d1.innerHTML.should.equal("foo");
-	});
-
-	it("basic true branch works with multiple commands", function () {
-		var d1 = make(
+	test("basic true branch works with multiple commands", async ({html, find}) => {
+		await html(
 			"<div _='on click if true log me then " +
 				'                                  put "foo" into me.innerHTML\'></div>'
 		);
-		d1.click();
-		d1.innerHTML.should.equal("foo");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("foo");
 	});
 
-	it("basic true branch works with end", function () {
-		var d1 = make("<div _='on click if true put \"foo\" into me.innerHTML end'></div>");
-		d1.click();
-		d1.innerHTML.should.equal("foo");
+	test("basic true branch works with end", async ({html, find}) => {
+		await html("<div _='on click if true put \"foo\" into me.innerHTML end'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("foo");
 	});
 
-	it("basic true branch works with naked else", function () {
-		var d1 = make("<div _='on click if true put \"foo\" into me.innerHTML else'></div>");
-		d1.click();
-		d1.innerHTML.should.equal("foo");
+	test("basic true branch works with naked else", async ({html, find}) => {
+		await html("<div _='on click if true put \"foo\" into me.innerHTML else'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("foo");
 	});
 
-	it("basic true branch works with naked else end", function () {
-		var d1 = make("<div _='on click if true put \"foo\" into me.innerHTML else end'></div>");
-		d1.click();
-		d1.innerHTML.should.equal("foo");
+	test("basic true branch works with naked else end", async ({html, find}) => {
+		await html("<div _='on click if true put \"foo\" into me.innerHTML else end'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("foo");
 	});
 
-	it("basic else branch works", function () {
-		var d1 = make("<div _='on click if false else put \"foo\" into me.innerHTML'></div>");
-		d1.click();
-		d1.innerHTML.should.equal("foo");
+	test("basic else branch works", async ({html, find}) => {
+		await html("<div _='on click if false else put \"foo\" into me.innerHTML'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("foo");
 	});
 
-	it("basic else branch works with end", function () {
-		var d1 = make("<div _='on click if false else put \"foo\" into me.innerHTML end'></div>");
-		d1.click();
-		d1.innerHTML.should.equal("foo");
+	test("basic else branch works with end", async ({html, find}) => {
+		await html("<div _='on click if false else put \"foo\" into me.innerHTML end'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("foo");
 	});
 
-	it("basic else if branch works", function () {
-		var d1 = make("<div _='on click if false else if true put \"foo\" into me.innerHTML'></div>");
-		d1.click();
-		d1.innerHTML.should.equal("foo");
+	test("basic else if branch works", async ({html, find}) => {
+		await html("<div _='on click if false else if true put \"foo\" into me.innerHTML'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("foo");
 	});
 
-	it("basic else if branch works with end", function () {
-		var d1 = make(
+	test("basic else if branch works with end", async ({html, find}) => {
+		await html(
 			"<div _='on click if false " +
 				'                                  else if true put "foo" into me.innerHTML end\'></div>'
 		);
-		d1.click();
-		d1.innerHTML.should.equal("foo");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("foo");
 	});
 
-	it("otherwise alias works", function () {
-		var d1 = make("<div _='on click if false otherwise put \"foo\" into me.innerHTML'></div>");
-		d1.click();
-		d1.innerHTML.should.equal("foo");
-	});
-	
-	it("triple else if branch works", function () {
-		var d1 = make("<div _='on click if false else if false else put \"foo\" into me.innerHTML'></div>");
-		d1.click();
-		d1.innerHTML.should.equal("foo");
+	test("otherwise alias works", async ({html, find}) => {
+		await html("<div _='on click if false otherwise put \"foo\" into me.innerHTML'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("foo");
 	});
 
-	it("triple else if branch works with end", function () {
-		var d1 = make(
+	test("triple else if branch works", async ({html, find}) => {
+		await html("<div _='on click if false else if false else put \"foo\" into me.innerHTML'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("foo");
+	});
+
+	test("triple else if branch works with end", async ({html, find}) => {
+		await html(
 			"<div _='on click if false " +
 				"                                  else if false" +
 				'                                  else put "foo" into me.innerHTML end\'></div>'
 		);
-		d1.click();
-		d1.innerHTML.should.equal("foo");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("foo");
 	});
 
-	it("basic else branch works with multiple commands", function () {
-		var d1 = make(
+	test("basic else branch works with multiple commands", async ({html, find}) => {
+		await html(
 			'<div _=\'on click if false put "bar" into me.innerHTML' +
 				"                                  else log me then" +
 				'                                       put "foo" into me.innerHTML\'></div>'
 		);
-		d1.click();
-		d1.innerHTML.should.equal("foo");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("foo");
 	});
 
-	it("true branch with a wait works", function (done) {
-		var d1 = make("<div _='on click if true wait 10 ms then put \"foo\" into me.innerHTML'></div>");
-		d1.click();
-		d1.innerHTML.should.equal("");
-		setTimeout(function () {
-			d1.innerHTML.should.equal("foo");
-			done();
-		}, 20);
+	test("true branch with a wait works", async ({html, find}) => {
+		await html("<div _='on click if true wait 10 ms then put \"foo\" into me.innerHTML'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("foo");
 	});
 
-	it("false branch with a wait works", function (done) {
-		var d1 = make("<div _='on click if false else wait 10 ms then put \"foo\" into me.innerHTML'></div>");
-		d1.click();
-		d1.innerHTML.should.equal("");
-		setTimeout(function () {
-			d1.innerHTML.should.equal("foo");
-			done();
-		}, 20);
+	test("false branch with a wait works", async ({html, find}) => {
+		await html("<div _='on click if false else wait 10 ms then put \"foo\" into me.innerHTML'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("foo");
 	});
 
-	it("if properly passes execution along if child is not executed", function () {
-		var d1 = make("<div _='on click if false end put \"foo\" into me.innerHTML'></div>");
-		d1.click();
-		d1.innerHTML.should.equal("foo");
+	test("if properly passes execution along if child is not executed", async ({html, find}) => {
+		await html("<div _='on click if false end put \"foo\" into me.innerHTML'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("foo");
 	});
 
-	it("if properly supports nested if statements and end block", function () {
-		window.tmp = false
-		var d1 = make("<div _='on click \n" +
+	test("if properly supports nested if statements and end block", async ({html, find, evaluate}) => {
+		await evaluate(() => window.tmp = false);
+		await html("<div _='on click \n" +
 			"                      if window.tmp then\n" +
 			"                        put \"foo\" into me\n" +
 			"                      else if not window.tmp then\n" +
@@ -135,19 +123,17 @@ describe("the if command", function () {
 			"                  catch e\n" +
 			"                      // just here for the parsing...\n'" +
 			"</div>");
-		d1.click();
-		d1.innerHTML.should.equal("");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("");
 
-		window.tmp = true
-		d1.click();
-		d1.innerHTML.should.equal("foo");
-
-		delete window.tmp;
+		await evaluate(() => window.tmp = true);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("foo");
 	});
 
-	it("if on new line does not join w/ else", function () {
-		window.tmp = false
-		var d1 = make("<div _='on click \n" +
+	test("if on new line does not join w/ else", async ({html, find, evaluate}) => {
+		await evaluate(() => window.tmp = false);
+		await html("<div _='on click \n" +
 			"                      if window.tmp then\n" +
 			"                      else\n" +
 			"                        if window.tmp then" +
@@ -156,18 +142,16 @@ describe("the if command", function () {
 			"                      end\n" +
 			"                  '" +
 			"</div>");
-		d1.click();
-		d1.innerHTML.should.equal("foo");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("foo");
 
-		window.tmp = true
-		d1.innerHTML = "";
-		d1.click();
-		d1.innerHTML.should.equal("");
-
-		delete window.tmp;
+		await evaluate(() => window.tmp = true);
+		await evaluate(() => document.querySelector('#work-area div').innerHTML = "");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("");
 	});
 
-	it("passes the sieve test", function(){
+	test("passes the sieve test", async ({run}) => {
 		var str =
 			"if x is less than 10\n" +
 			"  if x is less than 3\n" +
@@ -189,20 +173,19 @@ describe("the if command", function () {
 			"  end\n" +
 			"else\n" +
 			"  return 10\n" +
-			"end"
+			"end";
 
-		evalHyperScript(str, {locals: {x: 1}}).should.equal(1);
-		evalHyperScript(str, {locals: {x: 2}}).should.equal(2);
-		evalHyperScript(str, {locals: {x: 3}}).should.equal(3);
-		evalHyperScript(str, {locals: {x: 4}}).should.equal(4);
-		evalHyperScript(str, {locals: {x: 5}}).should.equal(5);
-		evalHyperScript(str, {locals: {x: 6}}).should.equal(6);
-		evalHyperScript(str, {locals: {x: 6}}).should.equal(6);
-		evalHyperScript(str, {locals: {x: 7}}).should.equal(6);
-		evalHyperScript(str, {locals: {x: 8}}).should.equal(6);
-		evalHyperScript(str, {locals: {x: 9}}).should.equal(6);
-		evalHyperScript(str, {locals: {x: 10}}).should.equal(10);
-		evalHyperScript(str, {locals: {x: 11}}).should.equal(10);
+		expect(await run(str, {locals: {x: 1}})).toBe(1);
+		expect(await run(str, {locals: {x: 2}})).toBe(2);
+		expect(await run(str, {locals: {x: 3}})).toBe(3);
+		expect(await run(str, {locals: {x: 4}})).toBe(4);
+		expect(await run(str, {locals: {x: 5}})).toBe(5);
+		expect(await run(str, {locals: {x: 6}})).toBe(6);
+		expect(await run(str, {locals: {x: 7}})).toBe(6);
+		expect(await run(str, {locals: {x: 8}})).toBe(6);
+		expect(await run(str, {locals: {x: 9}})).toBe(6);
+		expect(await run(str, {locals: {x: 10}})).toBe(10);
+		expect(await run(str, {locals: {x: 11}})).toBe(10);
 	});
 
 });

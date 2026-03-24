@@ -1,32 +1,37 @@
-describe("the idRef expression", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
-	});
+import {test, expect} from '../fixtures.js'
 
-	it("basic id ref works", function () {
-		var div = make("<div id='d1'></div>");
-		var value = evalHyperScript("#d1");
-		value.should.equal(div);
-	});
+test.describe("the idRef expression", () => {
 
-	it("basic id ref works w no match", function () {
-		var div = make("<div></div>");
-		var value = evalHyperScript("#d1");
-		should.equal(value, null);
-	});
+	test("basic id ref works", async ({html, evaluate}) => {
+		await html("<div id='d1'></div>")
+		const result = await evaluate(() => {
+			const div = document.getElementById('d1')
+			return _hyperscript("#d1") === div
+		})
+		expect(result).toBe(true)
+	})
 
-	it("template id ref works", function () {
-		var div = make("<div id='d1'></div>");
-		var value = evalHyperScript("#{'d1'}");
-		value.should.equal(div);
-	});
+	test("basic id ref works w no match", async ({html, run}) => {
+		await html("<div></div>")
+		const result = await run("#d1")
+		expect(result).toBeNull()
+	})
 
-	it("id ref works from a disconnected element", function () {
-		var div = make("<div id='d1'></div>");
-		var value = evalHyperScript("#d1", { me: document.createElement('div') });
-		value.should.equal(div);
-	});
-});
+	test("template id ref works", async ({html, evaluate}) => {
+		await html("<div id='d1'></div>")
+		const result = await evaluate(() => {
+			const div = document.getElementById('d1')
+			return _hyperscript("#{'d1'}") === div
+		})
+		expect(result).toBe(true)
+	})
+
+	test("id ref works from a disconnected element", async ({html, evaluate}) => {
+		await html("<div id='d1'></div>")
+		const result = await evaluate(() => {
+			const div = document.getElementById('d1')
+			return _hyperscript("#d1", { me: document.createElement('div') }) === div
+		})
+		expect(result).toBe(true)
+	})
+})

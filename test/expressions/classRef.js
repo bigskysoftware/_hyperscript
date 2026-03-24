@@ -1,62 +1,84 @@
-describe("the classRef expression", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
-	});
+import {test, expect} from '../fixtures.js'
 
-	it("basic classRef works", function () {
-		var div = make("<div class='c1'></div>");
-		var value = evalHyperScript(".c1");
-		Array.from(value)[0].should.equal(div);
-	});
+test.describe("the classRef expression", () => {
 
-	it("basic classRef works w no match", function () {
-		var value = evalHyperScript(".badClassThatDoesNotHaveAnyElements");
-		Array.from(value).length.should.equal(0);
-	});
+	test("basic classRef works", async ({html, evaluate}) => {
+		await html("<div class='c1'></div>")
+		const result = await evaluate(() => {
+			const value = _hyperscript(".c1")
+			return Array.from(value).length
+		})
+		expect(result).toBe(1)
+	})
 
-	it("dashed class ref works", function () {
-		var div = make("<div class='c1-foo'></div>");
-		var value = evalHyperScript(".c1-foo");
-		Array.from(value)[0].should.equal(div);
-	});
+	test("basic classRef works w no match", async ({evaluate}) => {
+		const result = await evaluate(() => {
+			const value = _hyperscript(".badClassThatDoesNotHaveAnyElements")
+			return Array.from(value).length
+		})
+		expect(result).toBe(0)
+	})
 
-	it("colon class ref works", function () {
-		var div = make("<div class='c1:foo'></div>");
-		var value = evalHyperScript(".c1:foo");
-		Array.from(value)[0].should.equal(div);
-	});
+	test("dashed class ref works", async ({html, evaluate}) => {
+		await html("<div class='c1-foo'></div>")
+		const result = await evaluate(() => {
+			const value = _hyperscript(".c1-foo")
+			return Array.from(value).length
+		})
+		expect(result).toBe(1)
+	})
 
-	it("multiple colon class ref works", function () {
-		var div = make("<div class='c1:foo:bar'></div>");
-		var value = evalHyperScript(".c1:foo:bar");
-		Array.from(value)[0].should.equal(div);
-	});
+	test("colon class ref works", async ({html, evaluate}) => {
+		await html("<div class='c1:foo'></div>")
+		const result = await evaluate(() => {
+			const value = _hyperscript(".c1:foo")
+			return Array.from(value).length
+		})
+		expect(result).toBe(1)
+	})
 
-	it("template classRef works", function () {
-		var div = make("<div class='c1'></div>");
-		var value = evalHyperScript(".{'c1'}");
-		Array.from(value)[0].should.equal(div);
-	});
+	test("multiple colon class ref works", async ({html, evaluate}) => {
+		await html("<div class='c1:foo:bar'></div>")
+		const result = await evaluate(() => {
+			const value = _hyperscript(".c1:foo:bar")
+			return Array.from(value).length
+		})
+		expect(result).toBe(1)
+	})
 
-	it("leading minus class ref works", function () {
-        var div = make("<div class='-c1'></div>");
-        var value = evalHyperScript(".-c1");
-        Array.from(value)[0].should.equal(div);
-    });
+	test("template classRef works", async ({html, evaluate}) => {
+		await html("<div class='c1'></div>")
+		const result = await evaluate(() => {
+			const value = _hyperscript(".{'c1'}")
+			return Array.from(value).length
+		})
+		expect(result).toBe(1)
+	})
 
-	it("slashes in class references work", function () {
-        var div = make("<div class='-c1/22'></div>");
-        var value = evalHyperScript(".-c1\\/22");
-        Array.from(value)[0].should.equal(div);
-    });
+	test("leading minus class ref works", async ({html, evaluate}) => {
+		await html("<div class='-c1'></div>")
+		const result = await evaluate(() => {
+			const value = _hyperscript(".-c1")
+			return Array.from(value).length
+		})
+		expect(result).toBe(1)
+	})
 
-	it("tailwind insanity in class references work", function () {
-        var div = make("<div class='group-[:nth-of-type(3)_&]:block'></div>");
-        var value = evalHyperScript(".group-\\[:nth-of-type\\(3\\)_\\&\\]:block");
-        Array.from(value)[0].should.equal(div);
-    });
+	test("slashes in class references work", async ({html, evaluate}) => {
+		await html("<div class='-c1/22'></div>")
+		const result = await evaluate(() => {
+			const value = _hyperscript(".-c1\\/22")
+			return Array.from(value).length
+		})
+		expect(result).toBe(1)
+	})
 
-});
+	test("tailwind insanity in class references work", async ({html, evaluate}) => {
+		await html("<div class='group-[:nth-of-type(3)_&]:block'></div>")
+		const result = await evaluate(() => {
+			const value = _hyperscript(".group-\\[:nth-of-type\\(3\\)_\\&\\]:block")
+			return Array.from(value).length
+		})
+		expect(result).toBe(1)
+	})
+})

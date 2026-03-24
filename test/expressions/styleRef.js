@@ -1,126 +1,118 @@
-describe("the styleRef expression", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
-	});
+import {test, expect} from '../fixtures.js'
 
-	it("basic style ref works", function () {
-		var div = make("<div style='color: red; text-align: center; width: 10px'></div>");
+test.describe("the styleRef expression", () => {
 
-		var value = _hyperscript("*color", { me: div });
-		value.should.equal("red");
+	test("basic style ref works", async ({html, evaluate}) => {
+		await html("<div id='sDiv' style='color: red; text-align: center; width: 10px'></div>")
 
-		value = _hyperscript("*text-align", { me: div });
-		value.should.equal("center");
+		let value = await evaluate(() => _hyperscript("*color", { me: document.getElementById('sDiv') }))
+		expect(value).toBe("red")
 
-		value = _hyperscript("*width", { me: div });
-		value.should.equal("10px");
+		value = await evaluate(() => _hyperscript("*text-align", { me: document.getElementById('sDiv') }))
+		expect(value).toBe("center")
 
-		value = _hyperscript("*height", { me: div });
-		value.should.equal("");
+		value = await evaluate(() => _hyperscript("*width", { me: document.getElementById('sDiv') }))
+		expect(value).toBe("10px")
 
-		value = _hyperscript("*bad-prop", { me: div });
-		should.equal(value, undefined);
-	});
+		value = await evaluate(() => _hyperscript("*height", { me: document.getElementById('sDiv') }))
+		expect(value).toBe("")
 
-	it("calculated style ref works", function () {
-		var div = make("<div style='color: red; text-align: center; width: 10px'></div>");
+		value = await evaluate(() => _hyperscript("*bad-prop", { me: document.getElementById('sDiv') }))
+		expect(value).toBeUndefined()
+	})
 
-		var value = _hyperscript("*computed-color", { me: div });
-		value.should.equal("rgb(255, 0, 0)");
+	test("calculated style ref works", async ({html, evaluate}) => {
+		await html("<div id='sDiv' style='color: red; text-align: center; width: 10px'></div>")
 
-		value = _hyperscript("*computed-text-align", { me: div });
-		value.should.equal("center");
+		let value = await evaluate(() => _hyperscript("*computed-color", { me: document.getElementById('sDiv') }))
+		expect(value).toBe("rgb(255, 0, 0)")
 
-		value = _hyperscript("*computed-width", { me: div });
-		value.should.equal("10px");
+		value = await evaluate(() => _hyperscript("*computed-text-align", { me: document.getElementById('sDiv') }))
+		expect(value).toBe("center")
 
-		value = _hyperscript("*computed-height", { me: div });
-		value.should.equal("0px");
+		value = await evaluate(() => _hyperscript("*computed-width", { me: document.getElementById('sDiv') }))
+		expect(value).toBe("10px")
 
-		value = _hyperscript("*computed-bad-prop", { me: div });
-		should.equal(value, "");
-	});
+		value = await evaluate(() => _hyperscript("*computed-height", { me: document.getElementById('sDiv') }))
+		expect(value).toBe("0px")
 
-	it("possessive style ref works", function () {
-		var div = make("<div style='color: red; text-align: center; width: 10px'></div>");
+		value = await evaluate(() => _hyperscript("*computed-bad-prop", { me: document.getElementById('sDiv') }))
+		expect(value).toBe("")
+	})
 
-		var value = _hyperscript("my *color", { me: div });
-		value.should.equal("red");
+	test("possessive style ref works", async ({html, evaluate}) => {
+		await html("<div id='sDiv' style='color: red; text-align: center; width: 10px'></div>")
 
-		value = _hyperscript("my *text-align", { me: div });
-		value.should.equal("center");
+		let value = await evaluate(() => _hyperscript("my *color", { me: document.getElementById('sDiv') }))
+		expect(value).toBe("red")
 
-		value = _hyperscript("my *width", { me: div });
-		value.should.equal("10px");
+		value = await evaluate(() => _hyperscript("my *text-align", { me: document.getElementById('sDiv') }))
+		expect(value).toBe("center")
 
-		value = _hyperscript("its *height", { result: div });
-		value.should.equal("");
+		value = await evaluate(() => _hyperscript("my *width", { me: document.getElementById('sDiv') }))
+		expect(value).toBe("10px")
 
-		value = _hyperscript("my *bad-prop", { me: div });
-		should.equal(value, undefined);
-	});
+		value = await evaluate(() => _hyperscript("its *height", { result: document.getElementById('sDiv') }))
+		expect(value).toBe("")
 
-	it("of style ref works", function () {
-		var div = make("<div style='color: red; text-align: center; width: 10px'></div>");
+		value = await evaluate(() => _hyperscript("my *bad-prop", { me: document.getElementById('sDiv') }))
+		expect(value).toBeUndefined()
+	})
 
-		var value = _hyperscript("*color of me", { me: div });
-		value.should.equal("red");
+	test("of style ref works", async ({html, evaluate}) => {
+		await html("<div id='sDiv' style='color: red; text-align: center; width: 10px'></div>")
 
-		value = _hyperscript("*text-align of me", { me: div });
-		value.should.equal("center");
+		let value = await evaluate(() => _hyperscript("*color of me", { me: document.getElementById('sDiv') }))
+		expect(value).toBe("red")
 
-		value = _hyperscript("*width of me", { me: div });
-		value.should.equal("10px");
+		value = await evaluate(() => _hyperscript("*text-align of me", { me: document.getElementById('sDiv') }))
+		expect(value).toBe("center")
 
-		value = _hyperscript("*height of it", { result: div });
-		value.should.equal("");
+		value = await evaluate(() => _hyperscript("*width of me", { me: document.getElementById('sDiv') }))
+		expect(value).toBe("10px")
 
-		value = _hyperscript("*bad-prop of me", { me: div });
-		should.equal(value, undefined);
-	});
+		value = await evaluate(() => _hyperscript("*height of it", { result: document.getElementById('sDiv') }))
+		expect(value).toBe("")
 
+		value = await evaluate(() => _hyperscript("*bad-prop of me", { me: document.getElementById('sDiv') }))
+		expect(value).toBeUndefined()
+	})
 
-	it("calculated possessive style ref works", function () {
-		var div = make("<div style='color: red; text-align: center; width: 10px'></div>");
+	test("calculated possessive style ref works", async ({html, evaluate}) => {
+		await html("<div id='sDiv' style='color: red; text-align: center; width: 10px'></div>")
 
-		var value = _hyperscript("my *computed-color", { me: div });
-		value.should.equal("rgb(255, 0, 0)");
+		let value = await evaluate(() => _hyperscript("my *computed-color", { me: document.getElementById('sDiv') }))
+		expect(value).toBe("rgb(255, 0, 0)")
 
-		value = _hyperscript("my *computed-text-align", { me: div });
-		value.should.equal("center");
+		value = await evaluate(() => _hyperscript("my *computed-text-align", { me: document.getElementById('sDiv') }))
+		expect(value).toBe("center")
 
-		value = _hyperscript("my *computed-width", { me: div });
-		value.should.equal("10px");
+		value = await evaluate(() => _hyperscript("my *computed-width", { me: document.getElementById('sDiv') }))
+		expect(value).toBe("10px")
 
-		value = _hyperscript("its *computed-height", { result: div });
-		value.should.equal("0px");
+		value = await evaluate(() => _hyperscript("its *computed-height", { result: document.getElementById('sDiv') }))
+		expect(value).toBe("0px")
 
-		value = _hyperscript("my *computed-bad-prop", { me: div });
-		should.equal(value, '');
-	});
+		value = await evaluate(() => _hyperscript("my *computed-bad-prop", { me: document.getElementById('sDiv') }))
+		expect(value).toBe('')
+	})
 
-	it("calculated of style ref works", function () {
-		var div = make("<div style='color: red; text-align: center; width: 10px'></div>");
+	test("calculated of style ref works", async ({html, evaluate}) => {
+		await html("<div id='sDiv' style='color: red; text-align: center; width: 10px'></div>")
 
-		var value = _hyperscript("*computed-color of me", { me: div });
-		value.should.equal("rgb(255, 0, 0)");
+		let value = await evaluate(() => _hyperscript("*computed-color of me", { me: document.getElementById('sDiv') }))
+		expect(value).toBe("rgb(255, 0, 0)")
 
-		value = _hyperscript("*computed-text-align of me", { me: div });
-		value.should.equal("center");
+		value = await evaluate(() => _hyperscript("*computed-text-align of me", { me: document.getElementById('sDiv') }))
+		expect(value).toBe("center")
 
-		value = _hyperscript("*computed-width of me", { me: div });
-		value.should.equal("10px");
+		value = await evaluate(() => _hyperscript("*computed-width of me", { me: document.getElementById('sDiv') }))
+		expect(value).toBe("10px")
 
-		value = _hyperscript("*computed-height of it", { result: div });
-		value.should.equal("0px");
+		value = await evaluate(() => _hyperscript("*computed-height of it", { result: document.getElementById('sDiv') }))
+		expect(value).toBe("0px")
 
-		value = _hyperscript("*computed-bad-prop of me", { me: div });
-		should.equal(value, '');
-	});
-
-
-
-});
+		value = await evaluate(() => _hyperscript("*computed-bad-prop of me", { me: document.getElementById('sDiv') }))
+		expect(value).toBe('')
+	})
+})

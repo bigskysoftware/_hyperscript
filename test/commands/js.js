@@ -1,50 +1,43 @@
-describe("The (inline) js command", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
+import {test, expect} from '../fixtures.js'
+
+test.describe("The (inline) js command", () => {
+
+	test("can run js", async ({html, find, evaluate}) => {
+		await evaluate(() => window.testSuccess = false);
+		await html('<div _="on click js window.testSuccess = true end"></div>');
+		await find('div').dispatchEvent('click');
+		expect(await evaluate(() => window.testSuccess)).toBe(true);
 	});
 
-	it("can run js", function () {
-		window.testSuccess = false;
-		var div = make('<div _="on click js window.testSuccess = true end"></div>');
-		div.click();
-		assert.equal(window.testSuccess, true);
-		delete window.testSuccess;
+	test("can deal with empty input list", async ({html, find, evaluate}) => {
+		await evaluate(() => window.testSuccess = false);
+		await html('<div _="on click js() window.testSuccess = true end"></div>');
+		await find('div').dispatchEvent('click');
+		expect(await evaluate(() => window.testSuccess)).toBe(true);
 	});
 
-	it("can deal with empty input list", function () {
-		window.testSuccess = false;
-		var div = make('<div _="on click js() window.testSuccess = true end"></div>');
-		div.click();
-		assert.equal(window.testSuccess, true);
-		delete window.testSuccess;
+	test("can access values from _hyperscript", async ({html, find, evaluate}) => {
+		await evaluate(() => window.testSuccess = false);
+		await html("<div _='on click set t to true " + "       then js(t) window.testSuccess = t end'></div>");
+		await find('div').dispatchEvent('click');
+		expect(await evaluate(() => window.testSuccess)).toBe(true);
 	});
 
-	it("can access values from _hyperscript", function () {
-		window.testSuccess = false;
-		var div = make("<div _='on click set t to true " + "       then js(t) window.testSuccess = t end'></div>");
-		div.click();
-		assert.equal(window.testSuccess, true);
-		delete window.testSuccess;
-	});
-
-	it("can return values to _hyperscript", function () {
-		var div = make(
+	test("can return values to _hyperscript", async ({html, find}) => {
+		await html(
 			"<div _=\"on click js return 'test success' end " + '        then put it into my.innerHTML"></div>'
 		);
-		div.click();
-		div.innerHTML.should.equal("test success");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("test success");
 	});
 
-	it("can do both of the above", function () {
-		var div = make(
+	test("can do both of the above", async ({html, find}) => {
+		await html(
 			'<div _="on click set a to 1 ' +
 				"         then js(a) return a + 1 end " +
 				'         then put it into my.innerHTML"></div>'
 		);
-		div.click();
-		div.innerHTML.should.equal("2");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("2");
 	});
 });

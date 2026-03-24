@@ -1,97 +1,68 @@
-describe("the call command", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
-	});
+import {test, expect} from '../fixtures.js'
 
-	it("can call javascript instance functions", function () {
-		var d1 = make(
+test.describe("the call command", () => {
+
+	test("can call javascript instance functions", async ({html, find, evaluate}) => {
+		await html(
 			"<div id='d1' _='on click call document.getElementById(\"d1\") then" +
 				"                                          put it into window.results'></div>"
 		);
-		d1.click();
-		var value = window.results;
-		delete window.results;
-		value.should.equal(d1);
+		await find('#d1').dispatchEvent('click');
+		const match = await evaluate(() => window.results === document.querySelector('#d1'));
+		expect(match).toBe(true);
 	});
 
-	it("can call global javascript functions", function () {
-		var calledWith = null;
-		window.globalFunction = function (val) {
-			calledWith = val;
-		};
-		try {
-			var div = make("<div _='on click call globalFunction(\"foo\")'></div>");
-			div.click();
-			"foo".should.equal(calledWith);
-		} finally {
-			delete window.globalFunction;
-		}
+	test("can call global javascript functions", async ({html, find, evaluate}) => {
+		await evaluate(() => {
+			window.calledWith = null;
+			window.globalFunction = function (val) { window.calledWith = val; };
+		});
+		await html("<div _='on click call globalFunction(\"foo\")'></div>");
+		await find('div').dispatchEvent('click');
+		expect(await evaluate(() => window.calledWith)).toBe("foo");
 	});
 
-	it("can call no argument functions", function () {
-		var called = false;
-		window.globalFunction = function () {
-			called = true;
-		};
-		try {
-			var div = make("<div _='on click call globalFunction()'></div>");
-			div.click();
-			called.should.equal(true);
-		} finally {
-			delete window.globalFunction;
-		}
+	test("can call no argument functions", async ({html, find, evaluate}) => {
+		await evaluate(() => {
+			window.called = false;
+			window.globalFunction = function () { window.called = true; };
+		});
+		await html("<div _='on click call globalFunction()'></div>");
+		await find('div').dispatchEvent('click');
+		expect(await evaluate(() => window.called)).toBe(true);
 	});
 
-	it("can call functions w/ underscores", function () {
-		var called = false;
-		window.global_function = function () {
-			called = true;
-		};
-		try {
-			var div = make("<div _='on click call global_function()'></div>");
-			div.click();
-			called.should.equal(true);
-		} finally {
-			delete window.global_function;
-		}
+	test("can call functions w/ underscores", async ({html, find, evaluate}) => {
+		await evaluate(() => {
+			window.called = false;
+			window.global_function = function () { window.called = true; };
+		});
+		await html("<div _='on click call global_function()'></div>");
+		await find('div').dispatchEvent('click');
+		expect(await evaluate(() => window.called)).toBe(true);
 	});
 
-	it("can call functions w/ dollar signs", function () {
-		var called = false;
-		window.$ = function () {
-			called = true;
-		};
-		try {
-			var div = make("<div _='on click call $()'></div>");
-			div.click();
-			called.should.equal(true);
-		} finally {
-			delete window.$;
-		}
+	test("can call functions w/ dollar signs", async ({html, find, evaluate}) => {
+		await evaluate(() => {
+			window.called = false;
+			window.$ = function () { window.called = true; };
+		});
+		await html("<div _='on click call $()'></div>");
+		await find('div').dispatchEvent('click');
+		expect(await evaluate(() => window.called)).toBe(true);
 	});
 
-	it("call functions that return promises are waited on", function (done) {
-		var called = false;
-		window.promiseAnInt = function () {
-			return new Promise(function (finish) {
-				window.finish = finish;
-			});
-		};
-		try {
-			var div = make("<div _='on click call promiseAnInt() then put it into my.innerHTML'></div>");
-			div.click();
-			div.innerText.should.equal("");
-			finish(42);
-			setTimeout(function () {
-				div.innerText.should.equal("42");
-				done();
-			}, 20);
-		} finally {
-			delete window.promiseAnInt;
-			delete window.finish;
-		}
+	test("call functions that return promises are waited on", async ({html, find, evaluate}) => {
+		await evaluate(() => {
+			window.promiseAnInt = function () {
+				return new Promise(function (finish) {
+					window.finish = finish;
+				});
+			};
+		});
+		await html("<div _='on click call promiseAnInt() then put it into my.innerHTML'></div>");
+		await find('div').dispatchEvent('click');
+		await evaluate(() => window.finish(42));
+		await expect(find('div')).toHaveText("42");
 	});
 });

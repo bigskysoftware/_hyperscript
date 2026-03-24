@@ -1,45 +1,44 @@
-describe("the measure command", function () {
-	it("can measure me", function () {
-		var div = make(
+import {test, expect} from '../fixtures.js'
+
+test.describe("the measure command", () => {
+
+	test("can measure me", async ({html, find, evaluate}) => {
+		await html(
 			"<div style='all: initial; position: fixed; top: 89px' _='on click " +
 				"  measure me then set window.measurement to it'></div> "
 		);
-		div.click();
-		window.measurement.should.have.property("top");
-		Math.round(window.measurement.top).should.equal(89);
-		delete window.measurement;
+		await find('div').dispatchEvent('click');
+		const top = await evaluate(() => Math.round(window.measurement.top));
+		expect(top).toBe(89);
 	});
 
-	it("can measure another element", function () {
-		var div = make("<div id='other' style='all: initial; position: fixed; top: 89px'></div>");
-		var measure = make("<div _='on click measure #other then set window.measurement to it'></div> ");
-		measure.click();
-		window.measurement.should.have.property("top");
-		Math.round(window.measurement.top).should.equal(89);
-		delete window.measurement;
+	test("can measure another element", async ({html, find, evaluate}) => {
+		await html("<div id='other' style='all: initial; position: fixed; top: 89px'></div>" +
+			"<div _='on click measure #other then set window.measurement to it'></div> ");
+		await find('div:nth-of-type(2)').dispatchEvent('click');
+		const top = await evaluate(() => Math.round(window.measurement.top));
+		expect(top).toBe(89);
 	});
 
-	it("can assign measurements to locals", function () {
-		var measure = make(
+	test("can assign measurements to locals", async ({html, find, evaluate}) => {
+		await html(
 			"<div _='on click measure my x,y,left,top,right,bottom " +
 				"        set window.measurement to {left:left,top:top,right:right,bottom:bottom}'></div> "
 		);
-		measure.click();
-		window.measurement.should.have.property("top").that.exist;
-		window.measurement.should.have.property("left").that.exist;
-		window.measurement.should.have.property("right").that.exist;
-		window.measurement.should.have.property("bottom").that.exist;
-		delete window.measurement;
+		await find('div').dispatchEvent('click');
+		const hasProps = await evaluate(() => {
+			const m = window.measurement;
+			return m.hasOwnProperty('top') && m.hasOwnProperty('left') &&
+				m.hasOwnProperty('right') && m.hasOwnProperty('bottom');
+		});
+		expect(hasProps).toBe(true);
 	});
 
-	it("can measure all the supported properties", function () {
-		var measure = make(
+	test("can measure all the supported properties", async ({html, find}) => {
+		await html(
 			"<div _='on click measure x,y,left,top,right,bottom,width,height,bounds,scrollLeft,scrollTop,scrollLeftMax,scrollTopMax,scrollWidth,scrollHeight,scroll'></div>"
 		);
-		try {
-			measure.click();
-		} catch (e) {
-			fail("Should not have thrown");
-		}
+		// Should not throw
+		await find('div').dispatchEvent('click');
 	});
 });

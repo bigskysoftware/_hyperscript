@@ -1,107 +1,93 @@
-describe("_hyperscript runtime errors", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
-	});
+import {test, expect} from '../fixtures.js'
 
-	function ensureThrows(src, errorMsg) {
-		try {
-			_hyperscript(src);
-			throw Error("'" + src + "' should have thrown an exception but did not");
-		} catch (e) {
-			console.log(e);
-			e.message.should.equal(errorMsg);
-		}
-	}
+test.describe("_hyperscript runtime errors", () => {
 
-	it("reports basic function invocation null errors properly", function () {
-		ensureThrows("x()", "'x' is null");
-		ensureThrows("x.y()", "'x' is null");
-		ensureThrows("x.y.z()", "'x.y' is null");
+	test("reports basic function invocation null errors properly", async ({error}) => {
+		expect(await error("x()")).toBe("'x' is null");
+		expect(await error("x.y()")).toBe("'x' is null");
+		expect(await error("x.y.z()")).toBe("'x.y' is null");
 	});
 
-	it("reports basic function invocation null errors properly w/ possessives", function () {
-		ensureThrows("x's y()", "'x' is null");
-		ensureThrows("x's y's z()", "'x's y' is null");
+	test("reports basic function invocation null errors properly w/ possessives", async ({error}) => {
+		expect(await error("x's y()")).toBe("'x' is null");
+		expect(await error("x's y's z()")).toBe("'x's y' is null");
 	});
 
-	it("reports basic function invocation null errors properly w/ of", function () {
-		ensureThrows("z() of y of x", "'z' is null");
+	test("reports basic function invocation null errors properly w/ of", async ({error}) => {
+		expect(await error("z() of y of x")).toBe("'z' is null");
 	});
 
-	it("reports null errors on sets properly", function(){
-		ensureThrows("set x's y to true", "'x' is null");
-		ensureThrows("set x's @y to true", "'x' is null");
-	})
+	test("reports null errors on sets properly", async ({error}) => {
+		expect(await error("set x's y to true")).toBe("'x' is null");
+		expect(await error("set x's @y to true")).toBe("'x' is null");
+	});
 
-	it("reports null errors on settle command properly", function(){
-		ensureThrows("settle #doesntExist", "'#doesntExist' is null");
-	})
+	test("reports null errors on settle command properly", async ({error}) => {
+		expect(await error("settle #doesntExist")).toBe("'#doesntExist' is null");
+	});
 
-	it("reports null errors on add command properly", function(){
-		ensureThrows("add .foo to #doesntExist", "'#doesntExist' is null");
-		ensureThrows("add @foo to #doesntExist", "'#doesntExist' is null");
-		ensureThrows("add {display:none} to #doesntExist", "'#doesntExist' is null");
-	})
+	test("reports null errors on add command properly", async ({error}) => {
+		expect(await error("add .foo to #doesntExist")).toBe("'#doesntExist' is null");
+		expect(await error("add @foo to #doesntExist")).toBe("'#doesntExist' is null");
+		expect(await error("add {display:none} to #doesntExist")).toBe("'#doesntExist' is null");
+	});
 
-	it("reports null errors on remove command properly", function(){
-		ensureThrows("remove .foo from #doesntExist", "'#doesntExist' is null");
-		ensureThrows("remove @foo from #doesntExist", "'#doesntExist' is null");
-		ensureThrows("remove #doesntExist from #doesntExist", "'#doesntExist' is null");
-	})
+	test("reports null errors on remove command properly", async ({error}) => {
+		expect(await error("remove .foo from #doesntExist")).toBe("'#doesntExist' is null");
+		expect(await error("remove @foo from #doesntExist")).toBe("'#doesntExist' is null");
+		expect(await error("remove #doesntExist from #doesntExist")).toBe("'#doesntExist' is null");
+	});
 
-	it("reports null errors on toggle command properly", function(){
-		ensureThrows("toggle .foo on #doesntExist", "'#doesntExist' is null");
-		ensureThrows("toggle between .foo and .bar on #doesntExist", "'#doesntExist' is null");
-		ensureThrows("toggle @foo on #doesntExist", "'#doesntExist' is null");
-	})
+	test("reports null errors on toggle command properly", async ({error}) => {
+		expect(await error("toggle .foo on #doesntExist")).toBe("'#doesntExist' is null");
+		expect(await error("toggle between .foo and .bar on #doesntExist")).toBe("'#doesntExist' is null");
+		expect(await error("toggle @foo on #doesntExist")).toBe("'#doesntExist' is null");
+	});
 
-	it("reports null errors on show command properly", function(){
-		ensureThrows("show #doesntExist", "'#doesntExist' is null");
-	})
+	test("reports null errors on show command properly", async ({error}) => {
+		expect(await error("show #doesntExist")).toBe("'#doesntExist' is null");
+	});
 
-	it("reports null errors on hide command properly", function(){
-		ensureThrows("hide #doesntExist", "'#doesntExist' is null");
-	})
+	test("reports null errors on hide command properly", async ({error}) => {
+		expect(await error("hide #doesntExist")).toBe("'#doesntExist' is null");
+	});
 
-	it("reports null errors on put command properly", function(){
-		ensureThrows("put 'foo' into #doesntExist", "'#doesntExist' is null");
-		ensureThrows("put 'foo' into #doesntExist's innerHTML", "'#doesntExist' is null");
-		ensureThrows("put 'foo' into #doesntExist.innerHTML", "'#doesntExist' is null");
-		ensureThrows("put 'foo' before #doesntExist", "'#doesntExist' is null");
-		ensureThrows("put 'foo' after #doesntExist", "'#doesntExist' is null");
-		ensureThrows("put 'foo' at the start of #doesntExist", "'#doesntExist' is null");
-		ensureThrows("put 'foo' at the end of #doesntExist", "'#doesntExist' is null");
-	})
+	test("reports null errors on put command properly", async ({error}) => {
+		expect(await error("put 'foo' into #doesntExist")).toBe("'#doesntExist' is null");
+		expect(await error("put 'foo' into #doesntExist's innerHTML")).toBe("'#doesntExist' is null");
+		expect(await error("put 'foo' into #doesntExist.innerHTML")).toBe("'#doesntExist' is null");
+		expect(await error("put 'foo' before #doesntExist")).toBe("'#doesntExist' is null");
+		expect(await error("put 'foo' after #doesntExist")).toBe("'#doesntExist' is null");
+		expect(await error("put 'foo' at the start of #doesntExist")).toBe("'#doesntExist' is null");
+		expect(await error("put 'foo' at the end of #doesntExist")).toBe("'#doesntExist' is null");
+	});
 
-	it("reports null errors on transition command properly", function(){
-		ensureThrows("transition #doesntExist's visibility to 0", "'#doesntExist' is null");
-	})
+	test("reports null errors on transition command properly", async ({error}) => {
+		expect(await error("transition #doesntExist's visibility to 0")).toBe("'#doesntExist' is null");
+	});
 
-	it("reports null errors on send command properly", function(){
-		ensureThrows("send 'foo' to #doesntExist", "'#doesntExist' is null");
-	})
+	test("reports null errors on send command properly", async ({error}) => {
+		expect(await error("send 'foo' to #doesntExist")).toBe("'#doesntExist' is null");
+	});
 
-	it("reports null errors on trigger command properly", function(){
-		ensureThrows("trigger 'foo' on #doesntExist", "'#doesntExist' is null");
-	})
+	test("reports null errors on trigger command properly", async ({error}) => {
+		expect(await error("trigger 'foo' on #doesntExist")).toBe("'#doesntExist' is null");
+	});
 
-	it("reports null errors on increment command properly", function(){
-		ensureThrows("increment #doesntExist's innerHTML", "'#doesntExist' is null");
-	})
+	test("reports null errors on increment command properly", async ({error}) => {
+		expect(await error("increment #doesntExist's innerHTML")).toBe("'#doesntExist' is null");
+	});
 
-	it("reports null errors on decrement command properly", function(){
-		ensureThrows("decrement #doesntExist's innerHTML", "'#doesntExist' is null");
-	})
+	test("reports null errors on decrement command properly", async ({error}) => {
+		expect(await error("decrement #doesntExist's innerHTML")).toBe("'#doesntExist' is null");
+	});
 
-	it("reports null errors on default command properly", function(){
-		ensureThrows("default #doesntExist's innerHTML to 'foo'", "'#doesntExist' is null");
-	})
+	test("reports null errors on default command properly", async ({error}) => {
+		expect(await error("default #doesntExist's innerHTML to 'foo'")).toBe("'#doesntExist' is null");
+	});
 
-	it("reports null errors on measure command properly", function(){
-		ensureThrows("measure #doesntExist", "'#doesntExist' is null");
-	})
+	test("reports null errors on measure command properly", async ({error}) => {
+		expect(await error("measure #doesntExist")).toBe("'#doesntExist' is null");
+	});
 
 });

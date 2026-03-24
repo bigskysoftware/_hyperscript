@@ -1,11 +1,17 @@
-describe("the symbol expression", function () {
-	it("resolves local context properly", function () {
-		var result = evalHyperScript("foo", { locals: { foo: 42 } });
-		result.should.equal(42);
-	});
+import {test, expect} from '../fixtures.js'
 
-	it("resolves global context properly", function () {
-		var result = evalHyperScript("document", { locals : { foo: 42 } });
-		result.should.equal(document);
-	});
-});
+test.describe("the symbol expression", () => {
+
+	test("resolves local context properly", async ({run}) => {
+		const result = await run("foo", { locals: { foo: 42 } })
+		expect(result).toBe(42)
+	})
+
+	test("resolves global context properly", async ({evaluate}) => {
+		const result = await evaluate(() => {
+			const r = _hyperscript("document", { locals: { foo: 42 } })
+			return r === document
+		})
+		expect(result).toBe(true)
+	})
+})

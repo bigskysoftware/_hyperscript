@@ -1,36 +1,43 @@
-describe("the typecheck expression", function () {
-	it("can do basic string typecheck", function () {
-		var result = evalHyperScript("'foo' : String");
-		result.should.equal("foo");
-	});
+import {test, expect} from '../fixtures.js'
 
-	it("can do null as string typecheck", function () {
-		var result = evalHyperScript("null : String");
-		should.equal(result, null);
-	});
+test.describe("the typecheck expression", () => {
 
-	it("can do basic non-string typecheck failure", function () {
-		try {
-			var result = evalHyperScript("true : String");
-			throw new Error("should not reach");
-		} catch (e) {
-			console.log(e.message);
-			e.message.indexOf("Typecheck failed!").should.equal(0);
-		}
-	});
+	test("can do basic string typecheck", async ({run}) => {
+		const result = await run("'foo' : String")
+		expect(result).toBe("foo")
+	})
 
-	it("can do basic string non-null typecheck", function () {
-		var result = evalHyperScript("'foo' : String!");
-		result.should.equal("foo");
-	});
+	test("can do null as string typecheck", async ({run}) => {
+		const result = await run("null : String")
+		expect(result).toBeNull()
+	})
 
-	it("null causes null safe string check to fail", function () {
-		try {
-			var result = evalHyperScript("null : String!");
-			throw new Error("should not reach");
-		} catch (e) {
-			console.log(e.message);
-			e.message.indexOf("Typecheck failed!").should.equal(0);
-		}
-	});
-});
+	test("can do basic non-string typecheck failure", async ({evaluate}) => {
+		const msg = await evaluate(() => {
+			try {
+				_hyperscript("true : String")
+				return null
+			} catch (e) {
+				return e.message
+			}
+		})
+		expect(msg).toMatch(/^Typecheck failed!/)
+	})
+
+	test("can do basic string non-null typecheck", async ({run}) => {
+		const result = await run("'foo' : String!")
+		expect(result).toBe("foo")
+	})
+
+	test("null causes null safe string check to fail", async ({evaluate}) => {
+		const msg = await evaluate(() => {
+			try {
+				_hyperscript("null : String!")
+				return null
+			} catch (e) {
+				return e.message
+			}
+		})
+		expect(msg).toMatch(/^Typecheck failed!/)
+	})
+})

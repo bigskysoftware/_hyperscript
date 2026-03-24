@@ -1,31 +1,28 @@
-describe("the some expression", function () {
-	it("some returns false for null", function () {
-		var result = evalHyperScript("some null");
-		result.should.equal(false);
-	});
+import {test, expect} from '../fixtures.js'
 
-	it("some returns true for non-null", function () {
-		var result = evalHyperScript("some 'thing'");
-		result.should.equal(true);
-	});
+test.describe("the some expression", () => {
 
-	it("some returns false for empty array", function () {
-		var result = evalHyperScript("some []");
-		result.should.equal(false);
-	});
+	test("some returns false for null", async ({run}) => {
+		expect(await run("some null")).toBe(false)
+	})
 
-	it("some returns false for empty selector", function () {
-		var result = evalHyperScript("some .aClassThatDoesNotExist");
-		result.should.equal(false);
-	});
+	test("some returns true for non-null", async ({run}) => {
+		expect(await run("some 'thing'")).toBe(true)
+	})
 
-	it("some returns true for nonempty selector", function () {
-		var result = evalHyperScript("some <html/>");
-		result.should.equal(true);
-	});
+	test("some returns false for empty array", async ({run}) => {
+		expect(await run("some []")).toBe(false)
+	})
 
-	it("some returns true for filled array", function () {
-		var result = evalHyperScript("some ['thing']");
-		result.should.equal(true);
-	});
-});
+	test("some returns false for empty selector", async ({run}) => {
+		expect(await run("some .aClassThatDoesNotExist")).toBe(false)
+	})
+
+	test("some returns true for nonempty selector", async ({run}) => {
+		expect(await run("some <html/>")).toBe(true)
+	})
+
+	test("some returns true for filled array", async ({run}) => {
+		expect(await run("some ['thing']")).toBe(true)
+	})
+})

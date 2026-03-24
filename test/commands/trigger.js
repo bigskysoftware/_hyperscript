@@ -1,65 +1,58 @@
-describe("the trigger command", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
-	});
+import {test, expect} from '../fixtures.js'
 
-	it("can trigger events", function () {
-		var div = make(
+test.describe("the trigger command", () => {
+
+	test("can trigger events", async ({html, find}) => {
+		await html(
 			"<div _='on click trigger foo end" + "                          on foo add .foo-set end'></div>"
 		);
-		div.classList.contains("foo-set").should.equal(false);
-		div.click();
-		div.classList.contains("foo-set").should.equal(true);
+		await expect(find('div')).not.toHaveClass(/foo-set/);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveClass(/foo-set/);
 	});
 
-	it("can trigger events with args", function () {
-		var div = make(
+	test("can trigger events with args", async ({html, find}) => {
+		await html(
 			"<div _='on click trigger foo(x:42) end" +
 				"                          on foo(x) put x into my.innerHTML'></div>"
 		);
-		div.classList.contains("foo-sent").should.equal(false);
-		div.click();
-		div.innerHTML.should.equal("42");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("42");
 	});
 
-	it("can trigger events with dots", function () {
-		var div = make(
+	test("can trigger events with dots", async ({html, find}) => {
+		await html(
 			"<div _='on click trigger foo.bar end" + "                          on foo.bar add .foo-set end'></div>"
 		);
-		div.classList.contains("foo-set").should.equal(false);
-		div.click();
-		div.classList.contains("foo-set").should.equal(true);
+		await expect(find('div')).not.toHaveClass(/foo-set/);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveClass(/foo-set/);
 	});
 
-	it("can trigger events with dots with args", function () {
-		var div = make(
+	test("can trigger events with dots with args", async ({html, find}) => {
+		await html(
 			"<div _='on click trigger foo.bar(x:42) end" +
 				"                          on foo.bar(x) put x into my.innerHTML'></div>"
 		);
-		div.classList.contains("foo-sent").should.equal(false);
-		div.click();
-		div.innerHTML.should.equal("42");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("42");
 	});
 
-	it("can trigger events with colons", function () {
-		var div = make(
+	test("can trigger events with colons", async ({html, find}) => {
+		await html(
 			"<div _='on click trigger foo:bar end" + "                          on foo:bar add .foo-set end'></div>"
 		);
-		div.classList.contains("foo-set").should.equal(false);
-		div.click();
-		div.classList.contains("foo-set").should.equal(true);
+		await expect(find('div')).not.toHaveClass(/foo-set/);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveClass(/foo-set/);
 	});
 
-	it("can trigger events with dots with colons", function () {
-		var div = make(
+	test("can trigger events with dots with colons", async ({html, find}) => {
+		await html(
 			"<div _='on click trigger foo:bar(x:42) end" +
 				"                          on foo:bar(x) put x into my.innerHTML'></div>"
 		);
-		div.classList.contains("foo-sent").should.equal(false);
-		div.click();
-		div.innerHTML.should.equal("42");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("42");
 	});
 });

@@ -1,42 +1,40 @@
-describe("the objectLiteral expression", function () {
-	it("empty object literals work", function () {
-		var result = evalHyperScript("{}");
-		result.should.deep.equal({});
-	});
+import {test, expect} from '../fixtures.js'
 
-	it("one field object literal works", function () {
-		var result = evalHyperScript("{foo:true}");
-		result.should.deep.equal({ foo: true });
-	});
+test.describe("the objectLiteral expression", () => {
 
-	it("multi-field object literal works", function () {
-		var result = evalHyperScript("{foo:true, bar:false}");
-		result.should.deep.equal({ foo: true, bar: false });
-	});
+	test("empty object literals work", async ({run}) => {
+		expect(await run("{}")).toEqual({})
+	})
 
-	it("strings work in object literal field names", function () {
-		var result = evalHyperScript('{"foo":true, "bar":false}');
-		result.should.deep.equal({ foo: true, bar: false });
-	});
+	test("one field object literal works", async ({run}) => {
+		expect(await run("{foo:true}")).toEqual({ foo: true })
+	})
 
-	it("hyphens work in object literal field names", function () {
-		var result = evalHyperScript("{-foo:true, bar-baz:false}");
-		result.should.deep.equal({ "-foo": true, "bar-baz": false });
-	});
+	test("multi-field object literal works", async ({run}) => {
+		expect(await run("{foo:true, bar:false}")).toEqual({ foo: true, bar: false })
+	})
 
-	it("allows trailing commans", function () {
-		var result = evalHyperScript("{foo:true, bar-baz:false,}");
-		result.should.deep.equal({ "foo": true, "bar-baz": false });
-	});
+	test("strings work in object literal field names", async ({run}) => {
+		expect(await run('{"foo":true, "bar":false}')).toEqual({ foo: true, bar: false })
+	})
 
-	it("expressions work in object literal field names", function () {
-		window.foo = "bar";
-		window.bar = function () {
-			return "foo";
-		};
-		var result = evalHyperScript("{[foo]:true, [bar()]:false}");
-		result.should.deep.equal({ bar: true, foo: false });
-		delete window.foo;
-		delete window.bar;
-	});
-});
+	test("hyphens work in object literal field names", async ({run}) => {
+		expect(await run("{-foo:true, bar-baz:false}")).toEqual({ "-foo": true, "bar-baz": false })
+	})
+
+	test("allows trailing commas", async ({run}) => {
+		expect(await run("{foo:true, bar-baz:false,}")).toEqual({ "foo": true, "bar-baz": false })
+	})
+
+	test("expressions work in object literal field names", async ({evaluate}) => {
+		const result = await evaluate(() => {
+			window.foo = "bar"
+			window.bar = function () { return "foo" }
+			const r = _hyperscript("{[foo]:true, [bar()]:false}")
+			delete window.foo
+			delete window.bar
+			return r
+		})
+		expect(result).toEqual({ bar: true, foo: false })
+	})
+})

@@ -1,141 +1,113 @@
-describe("_hyperscript bootstrapping", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
+import {test, expect} from '../fixtures.js'
+
+test.describe("_hyperscript bootstrapping", () => {
+
+	test("on a single div", async ({html, find}) => {
+		await html("<div _='on click add .foo'></div>");
+		await expect(find('div')).not.toHaveClass(/foo/);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveClass(/foo/);
 	});
 
-	it("on a single div", function () {
-		var div = make("<div _='on click add .foo'></div>");
-		div.classList.contains("foo").should.equal(false);
-		div.click();
-		div.classList.contains("foo").should.equal(true);
+	test("toggles", async ({html, find}) => {
+		await html("<div _='on click toggle .foo'></div>");
+		await expect(find('div')).not.toHaveClass(/foo/);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveClass(/foo/);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).not.toHaveClass(/foo/);
 	});
 
-	it("toggles", function () {
-		var div = make("<div _='on click toggle .foo'></div>");
-		div.classList.contains("foo").should.equal(false);
-		div.click();
-		div.classList.contains("foo").should.equal(true);
-		div.click();
-		div.classList.contains("foo").should.equal(false);
+	test("can target another div", async ({html, find}) => {
+		await html("<div id='bar'></div><div _='on click add .foo to #bar'></div>");
+		await expect(find('#bar')).not.toHaveClass(/foo/);
+		await find('div:nth-of-type(2)').dispatchEvent('click');
+		await expect(find('#bar')).toHaveClass(/foo/);
 	});
 
-	it("can target another div", function () {
-		var bar = make("<div id='bar'></div>");
-		var div = make("<div _='on click add .foo to #bar'></div>");
-		bar.classList.contains("foo").should.equal(false);
-		div.classList.contains("foo").should.equal(false);
-		div.click();
-		bar.classList.contains("foo").should.equal(true);
-		div.classList.contains("foo").should.equal(false);
-	});
-
-	it("hyperscript can have more than one action ", function () {
-		var bar = make("<div id='bar'></div>");
-		var div = make(
+	test("hyperscript can have more than one action", async ({html, find}) => {
+		await html(
+			"<div id='bar'></div>" +
 			"<div _='on click " +
 				"                             add .foo to #bar then " +
 				"                             add .blah'></div>"
 		);
-		bar.classList.contains("foo").should.equal(false);
-		div.classList.contains("foo").should.equal(false);
-		bar.classList.contains("blah").should.equal(false);
-		div.classList.contains("blah").should.equal(false);
-		div.click();
-		bar.classList.contains("foo").should.equal(true);
-		div.classList.contains("foo").should.equal(false);
-		bar.classList.contains("blah").should.equal(false);
-		div.classList.contains("blah").should.equal(true);
+		await find('div:nth-of-type(2)').dispatchEvent('click');
+		await expect(find('#bar')).toHaveClass(/foo/);
+		await expect(find('#bar')).not.toHaveClass(/blah/);
+		await expect(find('div:nth-of-type(2)')).not.toHaveClass(/foo/);
+		await expect(find('div:nth-of-type(2)')).toHaveClass(/blah/);
 	});
 
-	it("can wait", function (finished) {
-		var div = make(
+	test("can wait", async ({html, find}) => {
+		await html(
 			"<div _='on click " +
 				"                             add .foo then " +
 				"                             wait 20ms then " +
 				"                             add .bar'></div>"
 		);
-		div.classList.contains("foo").should.equal(false);
-		div.classList.contains("bar").should.equal(false);
-		div.click();
-		div.classList.contains("foo").should.equal(true);
-		div.classList.contains("bar").should.equal(false);
-		setTimeout(function () {
-			div.classList.contains("foo").should.equal(true);
-			div.classList.contains("bar").should.equal(true);
-			finished();
-		}, 30);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveClass(/foo/);
+		await expect(find('div')).toHaveClass(/bar/);
 	});
 
-	it("can change non-class properties", function () {
-		var div = make("<div _='on click add [@foo=\"bar\"]'></div>");
-		div.hasAttribute("foo").should.equal(false);
-		div.click();
-		div.getAttribute("foo").should.equal("bar");
+	test("can change non-class properties", async ({html, find}) => {
+		await html("<div _='on click add [@foo=\"bar\"]'></div>");
+		await expect(find('div')).not.toHaveAttribute('foo');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveAttribute('foo', 'bar');
 	});
 
-	it("can send events", function () {
-		var div = make("<div _='on click send foo to #bar'></div>");
-		var bar = make("<div id='bar' _='on foo add .foo-sent'></div>");
-		bar.classList.contains("foo-sent").should.equal(false);
-		div.click();
-		bar.classList.contains("foo-sent").should.equal(true);
+	test("can send events", async ({html, find}) => {
+		await html("<div _='on click send foo to #bar'></div><div id='bar' _='on foo add .foo-sent'></div>");
+		await expect(find('#bar')).not.toHaveClass(/foo-sent/);
+		await find('div').first().dispatchEvent('click');
+		await expect(find('#bar')).toHaveClass(/foo-sent/);
 	});
 
-	it("can respond to events on other elements", function () {
-		var bar = make("<div id='bar'></div>");
-		var div = make("<div _='on click from #bar " + "                             add .clicked'></div>");
-		div.classList.contains("clicked").should.equal(false);
-		bar.click();
-		div.classList.contains("clicked").should.equal(true);
+	test("can respond to events on other elements", async ({html, find}) => {
+		await html("<div id='bar'></div>" +
+			"<div _='on click from #bar " + "                             add .clicked'></div>");
+		await expect(find('div:nth-of-type(2)')).not.toHaveClass(/clicked/);
+		await find('#bar').dispatchEvent('click');
+		await expect(find('div:nth-of-type(2)')).toHaveClass(/clicked/);
 	});
 
-	it("can take a class from other elements", function () {
-		var d1 = make("<div class='divs foo'></div>");
-		var d2 = make("<div class='divs' _='on click take .foo from .divs'></div>");
-		var d3 = make("<div  class='divs'></div>");
-		d1.classList.contains("foo").should.equal(true);
-		d2.classList.contains("foo").should.equal(false);
-		d3.classList.contains("foo").should.equal(false);
-		d2.click();
-		d1.classList.contains("foo").should.equal(false);
-		d2.classList.contains("foo").should.equal(true);
-		d3.classList.contains("foo").should.equal(false);
+	test("can take a class from other elements", async ({html, find}) => {
+		await html("<div class='divs foo'></div>" +
+			"<div class='divs' _='on click take .foo from .divs'></div>" +
+			"<div class='divs'></div>");
+		await find('.divs').nth(1).dispatchEvent('click');
+		await expect(find('.divs').first()).not.toHaveClass(/foo/);
+		await expect(find('.divs').nth(1)).toHaveClass(/foo/);
+		await expect(find('.divs').nth(2)).not.toHaveClass(/foo/);
 	});
 
-	it("can set properties", function () {
-		var d1 = make("<div id='d1' _='on click put \"foo\" into #d1.innerHTML'></div>");
-		d1.click();
-		d1.innerHTML.should.equal("foo");
+	test("can set properties", async ({html, find}) => {
+		await html("<div id='d1' _='on click put \"foo\" into #d1.innerHTML'></div>");
+		await find('#d1').dispatchEvent('click');
+		await expect(find('#d1')).toHaveText("foo");
 	});
 
-	it("can set styles", function () {
-		var d1 = make("<div _='on click put \"red\" into my.style.color'>lolwat</div>");
-		d1.click();
-		d1.style.color.should.equal("red");
+	test("can set styles", async ({html, find}) => {
+		await html("<div _='on click put \"red\" into my.style.color'>lolwat</div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('color', 'rgb(255, 0, 0)');
 	});
 
-	it("can send events with args", function () {
-		var div = make("<div _='on click send foo(x:42) to #bar'></div>");
-		var bar = make("<div id='bar' _='on foo put event.detail.x into my.innerHTML'></div>");
-		bar.classList.contains("foo-sent").should.equal(false);
-		div.click();
-		bar.innerHTML.should.equal("42");
+	test("can send events with args", async ({html, find}) => {
+		await html("<div _='on click send foo(x:42) to #bar'></div><div id='bar' _='on foo put event.detail.x into my.innerHTML'></div>");
+		await find('div').first().dispatchEvent('click');
+		await expect(find('#bar')).toHaveText("42");
 	});
 
-	it("can call functions", function () {
-		var calledWith = null;
-		window.globalFunction = function (val) {
-			calledWith = val;
-		};
-		try {
-			var div = make("<div _='on click call globalFunction(\"foo\")'></div>");
-			div.click();
-			"foo".should.equal(calledWith);
-		} finally {
-			delete window.globalFunction;
-		}
+	test("can call functions", async ({html, find, evaluate}) => {
+		await evaluate(() => {
+			window.calledWith = null;
+			window.globalFunction = function (val) { window.calledWith = val; };
+		});
+		await html("<div _='on click call globalFunction(\"foo\")'></div>");
+		await find('div').dispatchEvent('click');
+		expect(await evaluate(() => window.calledWith)).toBe("foo");
 	});
 });

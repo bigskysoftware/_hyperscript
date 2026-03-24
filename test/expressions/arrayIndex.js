@@ -1,119 +1,109 @@
-describe("array index operator", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
-	});
+import {test, expect} from '../fixtures.js'
 
-	it("can create an array literal", function () {
-		var result = evalHyperScript("[1, 2, 3]");
-		result.should.deep.equal([1, 2, 3]);
-	});
+test.describe("array index operator", () => {
 
-	it("can index an array value at the beginning of the array", function () {
-		var d1 = make(
+	test("can create an array literal", async ({run}) => {
+		const result = await run("[1, 2, 3]")
+		expect(result).toEqual([1, 2, 3])
+	})
+
+	test("can index an array value at the beginning of the array", async ({html, find}) => {
+		await html(
 			"<div id='d1' _='on click set newVar to [10, 20, 30] then put newVar[0] into #d1.innerHTML'></div>"
-		);
-		d1.click();
-		d1.innerHTML.should.equal("10");
-	});
+		)
+		await find('#d1').dispatchEvent('click')
+		await expect(find('#d1')).toHaveText("10")
+	})
 
-	it("can index an array value in the middle of the array", function () {
-		var d1 = make(
+	test("can index an array value in the middle of the array", async ({html, find}) => {
+		await html(
 			"<div id='d1' _='on click set newVar to [10, 20, 30] then put newVar[1] into #d1.innerHTML'></div>"
-		);
-		d1.click();
-		d1.innerHTML.should.equal("20");
-	});
+		)
+		await find('#d1').dispatchEvent('click')
+		await expect(find('#d1')).toHaveText("20")
+	})
 
-	it("can index an array value at the end of the array", function () {
-		var d1 = make(
+	test("can index an array value at the end of the array", async ({html, find}) => {
+		await html(
 			"<div id='d1' _='on click set newVar to [10, 20, 30] then put newVar[2] into #d1.innerHTML'></div>"
-		);
-		d1.click();
-		d1.innerHTML.should.equal("30");
-	});
+		)
+		await find('#d1').dispatchEvent('click')
+		await expect(find('#d1')).toHaveText("30")
+	})
 
-	it("can index an array value", function () {
-		var d1 = make(
+	test("can index an array value", async ({html, find}) => {
+		await html(
 			"<div id='d1' _='on click set newVar to [10, 20, 30] then put newVar[0] into #d1.innerHTML'></div>"
-		);
-		d1.click();
-		d1.innerHTML.should.equal("10");
-	});
+		)
+		await find('#d1').dispatchEvent('click')
+		await expect(find('#d1')).toHaveText("10")
+	})
 
-	it("can index an array value with an expression", function () {
-		var d1 = make(
+	test("can index an array value with an expression", async ({html, find}) => {
+		await html(
 			'<div id=\'d1\' _=\'on click set newVar to ["A", "B", "C"] then put newVar[1+1] into #d1.innerHTML\'></div>'
-		);
-		d1.click();
-		d1.innerHTML.should.equal("C");
-	});
+		)
+		await find('#d1').dispatchEvent('click')
+		await expect(find('#d1')).toHaveText("C")
+	})
 
-	it("can get the range of first values in an array", function () {
-		var d1 = make(`<div id="d1" _="on click set var to [0,1,2,3,4,5] then put var[..3] as String into #d1"></div>`);
-		d1.click();
-		d1.innerHTML.should.equal("0,1,2,3");
-	});
+	test("can get the range of first values in an array", async ({html, find}) => {
+		await html(`<div id="d1" _="on click set var to [0,1,2,3,4,5] then put var[..3] as String into #d1"></div>`)
+		await find('#d1').dispatchEvent('click')
+		await expect(find('#d1')).toHaveText("0,1,2,3")
+	})
 
-	it("can get the range of middle values in an array", function () {
-		var d1 = make(
+	test("can get the range of middle values in an array", async ({html, find}) => {
+		await html(
 			`<div id="d1" _="on click set var to [0,1,2,3,4,5] then put var[2 .. 3] as String into #d1"></div>`
-		);
-		d1.click();
-		d1.innerHTML.should.equal("2,3");
-	});
+		)
+		await find('#d1').dispatchEvent('click')
+		await expect(find('#d1')).toHaveText("2,3")
+	})
 
-	it("can get the range of middle values in an array WITHOUT EXTRA SPACES", function () {
-		var d1 = make(
+	test("can get the range of middle values in an array WITHOUT EXTRA SPACES", async ({html, find}) => {
+		await html(
 			`<div id="d1" _="on click set var to [0,1,2,3,4,5] then put var[2..3] as String into #d1"></div>`
-		);
-		d1.click();
-		d1.innerHTML.should.equal("2,3");
-	});
+		)
+		await find('#d1').dispatchEvent('click')
+		await expect(find('#d1')).toHaveText("2,3")
+	})
 
-	it("can get the range of middle values in an array using an expression", function () {
-		var d1 = make(
+	test("can get the range of middle values in an array using an expression", async ({html, find}) => {
+		await html(
 			`<div id="d1" _="on click set index to 3 then set var to [0,1,2,3,4,5] then put var[(index-1)..(index+1)] as String into #d1"></div>`
-		);
-		d1.click();
-		d1.innerHTML.should.equal("2,3,4");
-	});
+		)
+		await find('#d1').dispatchEvent('click')
+		await expect(find('#d1')).toHaveText("2,3,4")
+	})
 
-	it("can get the range of last values in an array", function () {
-		var d1 = make(
+	test("can get the range of last values in an array", async ({html, find}) => {
+		await html(
 			`<div id="d1" _="on click set var to [0,1,2,3,4,5] then put var[3 ..] as String into #d1"></div>`
-		);
-		d1.click();
-		d1.innerHTML.should.equal("3,4,5");
-	});
+		)
+		await find('#d1').dispatchEvent('click')
+		await expect(find('#d1')).toHaveText("3,4,5")
+	})
 
-	it("can get the range of last values in an array WITHOUT EXTRA SPACES", function () {
-		var d1 = make(`<div id="d1" _="on click set var to [0,1,2,3,4,5] then put var[3..] as String into #d1"></div>`);
-		d1.click();
-		d1.innerHTML.should.equal("3,4,5");
-	});
+	test("can get the range of last values in an array WITHOUT EXTRA SPACES", async ({html, find}) => {
+		await html(`<div id="d1" _="on click set var to [0,1,2,3,4,5] then put var[3..] as String into #d1"></div>`)
+		await find('#d1').dispatchEvent('click')
+		await expect(find('#d1')).toHaveText("3,4,5")
+	})
 
-	it("errors when index exceeds array length", function () {
-		var d1 = make(
+	test("errors when index exceeds array length", async ({html, find}) => {
+		await html(
 			"<div id='d1' _='on click set newVar to [10, 20, 30] then put newVar[10] into #d1.innerHTML'></div>"
-		);
-		try {
-			d1.click();
-		} catch (e) {
-			console.log(e);
-		}
-	});
+		)
+		// Original test just catches error and logs it; verify no crash
+		await find('#d1').dispatchEvent('click')
+	})
 
-	it("errors when indexed value is not an array", function () {
-		var d1 = make(
+	test("errors when indexed value is not an array", async ({html, find}) => {
+		await html(
 			"<div id='d1' _='on click set newVar to \"not-an-array\" then put newVar[0] into #d1.innerHTML'></div>"
-		);
-		try {
-			d1.click();
-		} catch (e) {
-			console.log(e);
-		}
-	});
-});
+		)
+		// Original test just catches error and logs it; verify no crash
+		await find('#d1').dispatchEvent('click')
+	})
+})

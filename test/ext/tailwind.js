@@ -1,100 +1,95 @@
-describe("tailwindcss extensions", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
-		_hyperscript.config.defaultHideShowStrategy = null;
-	});
+import {test, expect} from '../fixtures.js'
 
-	it("can hide element, with tailwindcss hidden class default strategy", function () {
-		_hyperscript.config.defaultHideShowStrategy = "twDisplay";
-		var div = make("<div _='on click hide'></div>");
-		div.classList.contains("hidden").should.equal(false);
-		div.click();
-		div.classList.contains("hidden").should.equal(true);
-	});
+test.describe('tailwindcss extensions', () => {
 
-	it("can hide element, with tailwindcss invisible class default strategy", function () {
-		_hyperscript.config.defaultHideShowStrategy = "twVisibility";
-		var div = make("<div _='on click hide'></div>");
-		div.classList.contains("invisible").should.equal(false);
-		div.click();
-		div.classList.contains("invisible").should.equal(true);
-	});
+	test('can hide element, with tailwindcss hidden class default strategy', async ({html, find, evaluate}) => {
+		await evaluate(() => _hyperscript.config.defaultHideShowStrategy = "twDisplay")
+		await html("<div _='on click hide'></div>")
+		await expect(find('div')).not.toHaveClass(/hidden/)
+		await find('div').dispatchEvent('click')
+		await expect(find('div')).toHaveClass(/hidden/)
+	})
 
-	it("can hide element, with tailwindcss opacity-0 class default strategy", function () {
-		_hyperscript.config.defaultHideShowStrategy = "twOpacity";
-		var div = make("<div _='on click hide'></div>");
-		div.classList.contains("opacity-0").should.equal(false);
-		div.click();
-		div.classList.contains("opacity-0").should.equal(true);
-	});
+	test('can hide element, with tailwindcss invisible class default strategy', async ({html, find, evaluate}) => {
+		await evaluate(() => _hyperscript.config.defaultHideShowStrategy = "twVisibility")
+		await html("<div _='on click hide'></div>")
+		await expect(find('div')).not.toHaveClass(/invisible/)
+		await find('div').dispatchEvent('click')
+		await expect(find('div')).toHaveClass(/invisible/)
+	})
 
-	it("can hide element, with tailwindcss hidden class", function () {
-		var div = make("<div _='on click hide with twDisplay'></div>");
-		div.classList.contains("hidden").should.equal(false);
-		div.click();
-		div.classList.contains("hidden").should.equal(true);
-	});
+	test('can hide element, with tailwindcss opacity-0 class default strategy', async ({html, find, evaluate}) => {
+		await evaluate(() => _hyperscript.config.defaultHideShowStrategy = "twOpacity")
+		await html("<div _='on click hide'></div>")
+		await expect(find('div')).not.toHaveClass(/opacity-0/)
+		await find('div').dispatchEvent('click')
+		await expect(find('div')).toHaveClass(/opacity-0/)
+	})
 
-	it("can hide element, with tailwindcss invisible class", function () {
-		var div = make("<div _='on click hide with twVisibility'></div>");
-		div.classList.contains("invisible").should.equal(false);
-		div.click();
-		div.classList.contains("invisible").should.equal(true);
-	});
+	test('can hide element, with tailwindcss hidden class', async ({html, find}) => {
+		await html("<div _='on click hide with twDisplay'></div>")
+		await expect(find('div')).not.toHaveClass(/hidden/)
+		await find('div').dispatchEvent('click')
+		await expect(find('div')).toHaveClass(/hidden/)
+	})
 
-	it("can hide element, with tailwindcss opacity-0 class", function () {
-		var div = make("<div _='on click hide with twOpacity'></div>");
-		div.classList.contains("opacity-0").should.equal(false);
-		div.click();
-		div.classList.contains("opacity-0").should.equal(true);
-	});
+	test('can hide element, with tailwindcss invisible class', async ({html, find}) => {
+		await html("<div _='on click hide with twVisibility'></div>")
+		await expect(find('div')).not.toHaveClass(/invisible/)
+		await find('div').dispatchEvent('click')
+		await expect(find('div')).toHaveClass(/invisible/)
+	})
 
+	test('can hide element, with tailwindcss opacity-0 class', async ({html, find}) => {
+		await html("<div _='on click hide with twOpacity'></div>")
+		await expect(find('div')).not.toHaveClass(/opacity-0/)
+		await find('div').dispatchEvent('click')
+		await expect(find('div')).toHaveClass(/opacity-0/)
+	})
 
-	it("can show element, with tailwindcss removing hidden class default strategy", function () {
-		_hyperscript.config.defaultHideShowStrategy = "twDisplay";
-		var div = make("<div class='hidden' _='on click show'></div>");
-		div.classList.contains("hidden").should.equal(true);
-		div.click();
-		div.classList.contains("hidden").should.equal(false);
-	});
+	test('can show element, with tailwindcss removing hidden class default strategy', async ({html, find, evaluate}) => {
+		await evaluate(() => _hyperscript.config.defaultHideShowStrategy = "twDisplay")
+		await html("<div class='hidden' _='on click show'></div>")
+		await expect(find('div')).toHaveClass(/hidden/)
+		await find('div').dispatchEvent('click')
+		await expect(find('div')).not.toHaveClass(/hidden/)
+	})
 
-	it("can show element, with tailwindcss removing invisible class default strategy", function () {
-		_hyperscript.config.defaultHideShowStrategy = "twVisibility";
-		var div = make("<div class='invisible' _='on click show'></div>");
-		div.classList.contains("invisible").should.equal(true);
-		div.click();
-		div.classList.contains("invisible").should.equal(false);
-	});
+	test('can show element, with tailwindcss removing invisible class default strategy', async ({html, find, evaluate}) => {
+		await evaluate(() => _hyperscript.config.defaultHideShowStrategy = "twVisibility")
+		await html("<div class='invisible' _='on click show'></div>")
+		await expect(find('div')).toHaveClass(/invisible/)
+		await find('div').dispatchEvent('click')
+		await expect(find('div')).not.toHaveClass(/invisible/)
+	})
 
-	it("can show element, with tailwindcss removing opacity-0 class default strategy", function () {
-		_hyperscript.config.defaultHideShowStrategy = "twOpacity";
-		var div = make("<div class='opacity-0' _='on click show'></div>");
-		div.classList.contains("opacity-0").should.equal(true);
-		div.click();
-		div.classList.contains("opacity-0").should.equal(false);
-	});
+	test('can show element, with tailwindcss removing opacity-0 class default strategy', async ({html, find, evaluate}) => {
+		await evaluate(() => _hyperscript.config.defaultHideShowStrategy = "twOpacity")
+		await html("<div class='opacity-0' _='on click show'></div>")
+		await expect(find('div')).toHaveClass(/opacity-0/)
+		await find('div').dispatchEvent('click')
+		await expect(find('div')).not.toHaveClass(/opacity-0/)
+	})
 
-	it("can show element, with tailwindcss removing hidden class", function () {
-		var div = make("<div class='hidden' _='on click show with twDisplay'></div>");
-		div.classList.contains("hidden").should.equal(true);
-		div.click();
-		div.classList.contains("hidden").should.equal(false);
-	});
+	test('can show element, with tailwindcss removing hidden class', async ({html, find}) => {
+		await html("<div class='hidden' _='on click show with twDisplay'></div>")
+		await expect(find('div')).toHaveClass(/hidden/)
+		await find('div').dispatchEvent('click')
+		await expect(find('div')).not.toHaveClass(/hidden/)
+	})
 
-	it("can show element, with tailwindcss removing invisible class", function () {
-		var div = make("<div class='invisible' _='on click show with twVisibility'></div>");
-		div.classList.contains("invisible").should.equal(true);
-		div.click();
-		div.classList.contains("invisible").should.equal(false);
-	});
+	test('can show element, with tailwindcss removing invisible class', async ({html, find}) => {
+		await html("<div class='invisible' _='on click show with twVisibility'></div>")
+		await expect(find('div')).toHaveClass(/invisible/)
+		await find('div').dispatchEvent('click')
+		await expect(find('div')).not.toHaveClass(/invisible/)
+	})
 
-	it("can show element, with tailwindcss removing opacity-0 class", function () {
-		var div = make("<div class='opacity-0' _='on click show with twOpacity'></div>");
-		div.classList.contains("opacity-0").should.equal(true);
-		div.click();
-		div.classList.contains("opacity-0").should.equal(false);
-	});
-});
+	test('can show element, with tailwindcss removing opacity-0 class', async ({html, find}) => {
+		await html("<div class='opacity-0' _='on click show with twOpacity'></div>")
+		await expect(find('div')).toHaveClass(/opacity-0/)
+		await find('div').dispatchEvent('click')
+		await expect(find('div')).not.toHaveClass(/opacity-0/)
+	})
+
+})

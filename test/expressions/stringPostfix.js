@@ -1,42 +1,23 @@
-describe("the string postfix expression", function () {
+import {test, expect} from '../fixtures.js'
 
-	it("handles basic postfix strings properly", function () {
+test.describe("the string postfix expression", () => {
 
-		var result = evalHyperScript("1em");
-		result.should.equal("1em");
+	test("handles basic postfix strings properly", async ({run}) => {
+		expect(await run("1em")).toBe("1em")
+		expect(await run("1px")).toBe("1px")
+		expect(await run("-1px")).toBe("-1px")
+		expect(await run("100%")).toBe("100%")
+	})
 
-		var result = evalHyperScript("1px");
-		result.should.equal("1px");
+	test("handles basic postfix strings with spaces properly", async ({run}) => {
+		expect(await run("1 em")).toBe("1em")
+		expect(await run("1 px")).toBe("1px")
+		expect(await run("100 %")).toBe("100%")
+	})
 
-		var result = evalHyperScript("-1px");
-		result.should.equal("-1px");
-
-		var result = evalHyperScript("100%");
-		result.should.equal("100%");
-	});
-
-	it("handles basic postfix strings with spaces properly", function () {
-
-		var result = evalHyperScript("1 em");
-		result.should.equal("1em");
-
-		var result = evalHyperScript("1 px");
-		result.should.equal("1px");
-
-		var result = evalHyperScript("100 %");
-		result.should.equal("100%");
-	});
-
-	it("handles expression roots properly", function () {
-
-		var result = evalHyperScript("(0 + 1) em");
-		result.should.equal("1em");
-
-		var result = evalHyperScript("(0 + 1) px");
-		result.should.equal("1px");
-
-		var result = evalHyperScript("(100 + 0) %");
-		result.should.equal("100%");
-	});
-
-});
+	test("handles expression roots properly", async ({run}) => {
+		expect(await run("(0 + 1) em")).toBe("1em")
+		expect(await run("(0 + 1) px")).toBe("1px")
+		expect(await run("(100 + 0) %")).toBe("100%")
+	})
+})

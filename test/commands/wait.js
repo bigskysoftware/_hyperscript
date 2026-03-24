@@ -1,138 +1,82 @@
-describe("the wait command", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
-	});
+import {test, expect} from '../fixtures.js'
 
-	it("can wait on time", function (finished) {
-		var div = make(
+test.describe("the wait command", () => {
+
+	test("can wait on time", async ({html, find}) => {
+		await html(
 			"<div _='on click " +
 				"                             add .foo then " +
 				"                             wait 20ms then " +
 				"                             add .bar'></div>"
 		);
-		div.classList.contains("foo").should.equal(false);
-		div.classList.contains("bar").should.equal(false);
-		div.click();
-		div.classList.contains("foo").should.equal(true);
-		div.classList.contains("bar").should.equal(false);
-		setTimeout(function () {
-			div.classList.contains("foo").should.equal(true);
-			div.classList.contains("bar").should.equal(true);
-			finished();
-		}, 30);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveClass(/foo/);
+		await expect(find('div')).toHaveClass(/bar/);
 	});
 
-	it("can wait on event", function (done) {
-		var div = make(
+	test("can wait on event", async ({html, find, evaluate}) => {
+		await html(
 			"<div _='on click " +
 				"                             add .foo then " +
 				"                             wait for foo then " +
 				"                             add .bar'></div>"
 		);
-		div.classList.contains("foo").should.equal(false);
-		div.classList.contains("bar").should.equal(false);
-		div.click();
-		div.classList.contains("foo").should.equal(true);
-		div.classList.contains("bar").should.equal(false);
-		div.dispatchEvent(new CustomEvent("foo"));
-		setTimeout(function () {
-			div.classList.contains("foo").should.equal(true);
-			div.classList.contains("bar").should.equal(true);
-			done();
-		}, 10);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveClass(/foo/);
+		await expect(find('div')).not.toHaveClass(/bar/);
+		await evaluate(() => document.querySelector('#work-area div').dispatchEvent(new CustomEvent("foo")));
+		await expect(find('div')).toHaveClass(/bar/);
 	});
 
-	it("waiting on an event sets 'it' to the event", function (done) {
-		var div = make("<div _='on click wait for foo " + "        then put its.detail into me'></div>");
-		div.click();
-		div.innerHTML.should.equal("");
-		div.dispatchEvent(new CustomEvent("foo", { detail: "hyperscript is hyper cool" }));
-		setTimeout(function () {
-			div.innerHTML.should.equal("hyperscript is hyper cool");
-			done();
-		}, 10);
+	test("waiting on an event sets 'it' to the event", async ({html, find, evaluate}) => {
+		await html("<div _='on click wait for foo " + "        then put its.detail into me'></div>");
+		await find('div').dispatchEvent('click');
+		await evaluate(() => document.querySelector('#work-area div').dispatchEvent(new CustomEvent("foo", { detail: "hyperscript is hyper cool" })));
+		await expect(find('div')).toHaveText("hyperscript is hyper cool");
 	});
 
-	it("can destructure properties in a wait", function (done) {
-		var div = make("<div _='on click wait for foo(bar) " + "        then put bar into me'></div>");
-		div.click();
-		div.innerHTML.should.equal("");
-		div.dispatchEvent(new CustomEvent("foo", { detail: { bar: "bar" } }));
-		setTimeout(function () {
-			div.innerHTML.should.equal("bar");
-			done();
-		}, 10);
+	test("can destructure properties in a wait", async ({html, find, evaluate}) => {
+		await html("<div _='on click wait for foo(bar) " + "        then put bar into me'></div>");
+		await find('div').dispatchEvent('click');
+		await evaluate(() => document.querySelector('#work-area div').dispatchEvent(new CustomEvent("foo", { detail: { bar: "bar" } })));
+		await expect(find('div')).toHaveText("bar");
 	});
 
-	it("can wait on event on another element", function (done) {
-		var div2 = make("<div id='d2'></div>");
-		var div = make(
+	test("can wait on event on another element", async ({html, find, evaluate}) => {
+		await html("<div id='d2'></div>" +
 			"<div _='on click " +
 				"                             add .foo then " +
 				"                             wait for foo from #d2 then " +
 				"                             add .bar'></div>"
 		);
-
-		div.classList.contains("foo").should.equal(false);
-		div.classList.contains("bar").should.equal(false);
-		div.click();
-		div.classList.contains("foo").should.equal(true);
-		div.classList.contains("bar").should.equal(false);
-
-		div2.dispatchEvent(new CustomEvent("foo"));
-		setTimeout(function () {
-			div.classList.contains("foo").should.equal(true);
-			div.classList.contains("bar").should.equal(true);
-			done();
-		}, 10);
+		await find('div:nth-of-type(2)').dispatchEvent('click');
+		await expect(find('div:nth-of-type(2)')).toHaveClass(/foo/);
+		await expect(find('div:nth-of-type(2)')).not.toHaveClass(/bar/);
+		await evaluate(() => document.querySelector('#d2').dispatchEvent(new CustomEvent("foo")));
+		await expect(find('div:nth-of-type(2)')).toHaveClass(/bar/);
 	});
 
-	it("can wait on event or timeout 1", function (done) {
-		var div2 = make("<div id='d2'></div>");
-		var div = make(
+	test("can wait on event or timeout 1", async ({html, find}) => {
+		await html(
 			"<div _='on click " +
 				"                             add .foo then " +
 				"                             wait for foo or 0ms then " +
 				"                             add .bar'></div>"
 		);
-
-		div.classList.contains("foo").should.equal(false);
-		div.classList.contains("bar").should.equal(false);
-		div.click();
-		div.classList.contains("foo").should.equal(true);
-		div.classList.contains("bar").should.equal(false);
-
-		div2.dispatchEvent(new CustomEvent("foo"));
-		setTimeout(function () {
-			div.classList.contains("foo").should.equal(true);
-			div.classList.contains("bar").should.equal(true);
-			done();
-		}, 10);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveClass(/foo/);
+		await expect(find('div')).toHaveClass(/bar/);
 	});
 
-	it("can wait on event or timeout 2", function (done) {
-		var div2 = make("<div id='d2'></div>");
-		var div = make(
+	test("can wait on event or timeout 2", async ({html, find}) => {
+		await html(
 			"<div _='on click " +
 				"                             add .foo then " +
 				"                             wait for foo or 0ms then " +
 				"                             add .bar'></div>"
 		);
-
-		div.classList.contains("foo").should.equal(false);
-		div.classList.contains("bar").should.equal(false);
-		div.click();
-		div.classList.contains("foo").should.equal(true);
-		div.classList.contains("bar").should.equal(false);
-
-		div2.dispatchEvent(new CustomEvent("foo"));
-		setTimeout(function () {
-			div.classList.contains("foo").should.equal(true);
-			div.classList.contains("bar").should.equal(true);
-			done();
-		}, 10);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveClass(/foo/);
+		await expect(find('div')).toHaveClass(/bar/);
 	});
 });

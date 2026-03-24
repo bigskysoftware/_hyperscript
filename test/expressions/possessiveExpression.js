@@ -1,144 +1,166 @@
-describe("possessiveExpression", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
-	});
+import {test, expect} from '../fixtures.js'
 
-	it("can access basic properties", function () {
-		var result = evalHyperScript("foo's foo", { locals: { foo: { foo: "foo" } } });
-		result.should.equal("foo");
-	});
+test.describe("possessiveExpression", () => {
 
-	it("is null safe", function () {
-		var result = evalHyperScript("foo's foo");
-		should.equal(result, undefined);
-	});
+	test("can access basic properties", async ({run}) => {
+		const result = await run("foo's foo", { locals: { foo: { foo: "foo" } } })
+		expect(result).toBe("foo")
+	})
 
-	it("can access my properties", function () {
-		var result = evalHyperScript("my foo", { me: { foo: "foo" } });
-		result.should.equal("foo");
-	});
+	test("is null safe", async ({run}) => {
+		const result = await run("foo's foo")
+		expect(result).toBeUndefined()
+	})
 
-	it("my property is null safe", function () {
-		var result = evalHyperScript("my foo");
-		should.equal(result, undefined);
-	});
+	test("can access my properties", async ({run}) => {
+		const result = await run("my foo", { me: { foo: "foo" } })
+		expect(result).toBe("foo")
+	})
 
-	it("can access its properties", function () {
-		var result = evalHyperScript("its foo", { result: { foo: "foo" } });
-		result.should.equal("foo");
-	});
+	test("my property is null safe", async ({run}) => {
+		const result = await run("my foo")
+		expect(result).toBeUndefined()
+	})
 
-	it("its property is null safe", function () {
-		var result = evalHyperScript("its foo");
-		should.equal(result, undefined);
-	});
+	test("can access its properties", async ({run}) => {
+		const result = await run("its foo", { result: { foo: "foo" } })
+		expect(result).toBe("foo")
+	})
 
-	it("can access properties on idrefs", function () {
-		make("<div id='foo' style='display: inline'></div>");
-		var result = evalHyperScript("the display of #foo's style");
-		result.should.equal("inline");
-	});
+	test("its property is null safe", async ({run}) => {
+		const result = await run("its foo")
+		expect(result).toBeUndefined()
+	})
 
-	it("can access properties on idrefs 2", function () {
-		make("<div id='foo' style='display: inline'></div>");
-		var result = evalHyperScript("#foo's style's display");
-		result.should.equal("inline");
-	});
+	test("can access properties on idrefs", async ({html, run}) => {
+		await html("<div id='foo' style='display: inline'></div>")
+		const result = await run("the display of #foo's style")
+		expect(result).toBe("inline")
+	})
 
-	it("can access properties on classrefs", function () {
-		make("<div class='foo' style='display: inline'></div>");
-		var result = evalHyperScript("the display of .foo's style");
-		result.should.deep.equal(["inline"]);
-	});
+	test("can access properties on idrefs 2", async ({html, run}) => {
+		await html("<div id='foo' style='display: inline'></div>")
+		const result = await run("#foo's style's display")
+		expect(result).toBe("inline")
+	})
 
-	it("can access properties on classrefs 2", function () {
-		make("<div class='foo' style='display: inline'></div>");
-		var result = evalHyperScript(".foo's style's display");
-		result.should.deep.equal(["inline"]);
-	});
+	test("can access properties on classrefs", async ({html, run}) => {
+		await html("<div class='foo' style='display: inline'></div>")
+		const result = await run("the display of .foo's style")
+		expect(result).toEqual(["inline"])
+	})
 
-	it("can access properties on queryrefs", function () {
-		make("<div class='foo' style='display: inline'></div>");
-		var result = evalHyperScript("the display of <.foo/>'s style");
-		result.should.deep.equal(["inline"]);
-	});
+	test("can access properties on classrefs 2", async ({html, run}) => {
+		await html("<div class='foo' style='display: inline'></div>")
+		const result = await run(".foo's style's display")
+		expect(result).toEqual(["inline"])
+	})
 
-	it("can access properties on queryrefs 2", function () {
-		make("<div class='foo' style='display: inline'></div>");
-		var result = evalHyperScript("<.foo/>'s style's display");
-		result.should.deep.equal(["inline"]);
-	});
+	test("can access properties on queryrefs", async ({html, run}) => {
+		await html("<div class='foo' style='display: inline'></div>")
+		const result = await run("the display of <.foo/>'s style")
+		expect(result).toEqual(["inline"])
+	})
 
-	it("can access basic attribute", function () {
-		var div = make("<div data-foo='bar'></div>");
-		var result = evalHyperScript("foo's [@data-foo]", { locals: { foo: div } });
-		result.should.equal("bar");
-	});
+	test("can access properties on queryrefs 2", async ({html, run}) => {
+		await html("<div class='foo' style='display: inline'></div>")
+		const result = await run("<.foo/>'s style's display")
+		expect(result).toEqual(["inline"])
+	})
 
-	it("can access my attribute", function () {
-		var div = make("<div data-foo='bar'></div>");
-		var result = evalHyperScript("my @data-foo", { me: div });
-		result.should.equal("bar");
-	});
+	test("can access basic attribute", async ({html, evaluate}) => {
+		await html("<div id='pDiv' data-foo='bar'></div>")
+		const result = await evaluate(() => {
+			const div = document.getElementById('pDiv')
+			return _hyperscript("foo's [@data-foo]", { locals: { foo: div } })
+		})
+		expect(result).toBe("bar")
+	})
 
-	it("can access multiple basic attributes", function () {
-		make("<div class='c1' data-foo='bar'></div><div class='c1' data-foo='bar'></div>");
-		var result = evalHyperScript(".c1's [@data-foo]");
-		result.should.deep.equal(["bar", "bar"]);
-	});
+	test("can access my attribute", async ({html, evaluate}) => {
+		await html("<div id='pDiv' data-foo='bar'></div>")
+		const result = await evaluate(() => {
+			const div = document.getElementById('pDiv')
+			return _hyperscript("my @data-foo", { me: div })
+		})
+		expect(result).toBe("bar")
+	})
 
-	it("can set basic attributes", function () {
-		var div = make("<div data-foo='bar'></div>");
-		var result = evalHyperScript("set foo's [@data-foo] to 'blah'", {
-			locals: { foo: div, }
-		});
-		div.getAttribute("data-foo").should.equal("blah");
-	});
+	test("can access multiple basic attributes", async ({html, run}) => {
+		await html("<div class='c1' data-foo='bar'></div><div class='c1' data-foo='bar'></div>")
+		const result = await run(".c1's [@data-foo]")
+		expect(result).toEqual(["bar", "bar"])
+	})
 
-	it("can set multiple basic attributes", function () {
-		make("<div id='d1' class='c1' data-foo='bar'></div><div id='d2' class='c1' data-foo='bar'></div>");
-		var result = evalHyperScript("set .c1's [@data-foo] to 'blah'");
-		byId('d1').getAttribute('data-foo').should.equal('blah')
-		byId('d2').getAttribute('data-foo').should.equal('blah')
-	});
+	test("can set basic attributes", async ({html, evaluate}) => {
+		await html("<div id='pDiv' data-foo='bar'></div>")
+		await evaluate(() => {
+			const div = document.getElementById('pDiv')
+			_hyperscript("set foo's [@data-foo] to 'blah'", { locals: { foo: div } })
+		})
+		const value = await evaluate(() => document.getElementById('pDiv').getAttribute("data-foo"))
+		expect(value).toBe("blah")
+	})
 
-	it("can access basic style", function () {
-		var div = make("<div style='color:red'></div>");
-		var result = evalHyperScript("foo's *color", { locals: { foo: div } });
-		result.should.equal("red");
-	});
+	test("can set multiple basic attributes", async ({html, evaluate}) => {
+		await html("<div id='d1' class='c1' data-foo='bar'></div><div id='d2' class='c1' data-foo='bar'></div>")
+		await evaluate(() => _hyperscript("set .c1's [@data-foo] to 'blah'"))
+		const v1 = await evaluate(() => document.getElementById('d1').getAttribute('data-foo'))
+		const v2 = await evaluate(() => document.getElementById('d2').getAttribute('data-foo'))
+		expect(v1).toBe('blah')
+		expect(v2).toBe('blah')
+	})
 
-	it("can access my style", function () {
-		var div = make("<div style='color:red'></div>");
-		var result = evalHyperScript("my *color", { me: div });
-		result.should.equal("red");
-	});
+	test("can access basic style", async ({html, evaluate}) => {
+		await html("<div id='pDiv' style='color:red'></div>")
+		const result = await evaluate(() => {
+			const div = document.getElementById('pDiv')
+			return _hyperscript("foo's *color", { locals: { foo: div } })
+		})
+		expect(result).toBe("red")
+	})
 
-	it("can access multiple basic styles", function () {
-		make("<div class='c1' style='color:red'></div><div class='c1' style='color:red'></div>");
-		var result = evalHyperScript(".c1's *color");
-		result.should.deep.equal(["red", "red"]);
-	});
+	test("can access my style", async ({html, evaluate}) => {
+		await html("<div id='pDiv' style='color:red'></div>")
+		const result = await evaluate(() => {
+			const div = document.getElementById('pDiv')
+			return _hyperscript("my *color", { me: div })
+		})
+		expect(result).toBe("red")
+	})
 
-	it("can set root styles", function () {
-		var div = make("<div style='color:red'></div>");
-		var result = evalHyperScript("set *color to 'blue'", {me: div});
-		div.style["color"].should.equal("blue");
-	});
+	test("can access multiple basic styles", async ({html, run}) => {
+		await html("<div class='c1' style='color:red'></div><div class='c1' style='color:red'></div>")
+		const result = await run(".c1's *color")
+		expect(result).toEqual(["red", "red"])
+	})
 
-	it("can set basic styles", function () {
-		var div = make("<div style='color:red'></div>");
-		var result = evalHyperScript("set foo's *color to 'blue'", { locals: { foo: div } });
-		div.style["color"].should.equal("blue");
-	});
+	test("can set root styles", async ({html, evaluate}) => {
+		await html("<div id='pDiv' style='color:red'></div>")
+		await evaluate(() => {
+			const div = document.getElementById('pDiv')
+			_hyperscript("set *color to 'blue'", { me: div })
+		})
+		const value = await evaluate(() => document.getElementById('pDiv').style.color)
+		expect(value).toBe("blue")
+	})
 
-	it("can set multiple basic styles", function () {
-		make("<div id='d1' class='c1' style='color:red'></div><div id='d2' class='c1' style='color:red'></div>");
-		var result = evalHyperScript("set .c1's *color to 'blue'");
-		byId('d1').style['color'].should.equal('blue')
-		byId('d2').style['color'].should.equal('blue')
-	});
-});
+	test("can set basic styles", async ({html, evaluate}) => {
+		await html("<div id='pDiv' style='color:red'></div>")
+		await evaluate(() => {
+			const div = document.getElementById('pDiv')
+			_hyperscript("set foo's *color to 'blue'", { locals: { foo: div } })
+		})
+		const value = await evaluate(() => document.getElementById('pDiv').style.color)
+		expect(value).toBe("blue")
+	})
+
+	test("can set multiple basic styles", async ({html, evaluate}) => {
+		await html("<div id='d1' class='c1' style='color:red'></div><div id='d2' class='c1' style='color:red'></div>")
+		await evaluate(() => _hyperscript("set .c1's *color to 'blue'"))
+		const v1 = await evaluate(() => document.getElementById('d1').style.color)
+		const v2 = await evaluate(() => document.getElementById('d2').style.color)
+		expect(v1).toBe('blue')
+		expect(v2).toBe('blue')
+	})
+})

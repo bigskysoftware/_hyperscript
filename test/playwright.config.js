@@ -1,0 +1,14 @@
+import { defineConfig } from '@playwright/test'
+
+export default defineConfig({
+    testDir: '.',
+    testMatch: '**/*.js',
+    testIgnore: ['fixtures.js', 'global-setup.js', 'entry.js', 'util/**', 'nuetests/**', 'index.html'],
+    globalSetup: './global-setup.js',
+    fullyParallel: true,
+    projects: [
+        { name: 'chromium', use: { browserName: 'chromium' } },
+    ],
+    retries: process.env.CI ? 1 : 0,
+    reporter: [['list']],
+})

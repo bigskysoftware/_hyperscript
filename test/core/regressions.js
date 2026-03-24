@@ -1,72 +1,70 @@
-describe("_hyperscript regressions", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
-	});
+import {test, expect} from '../fixtures.js'
 
-	it("can pick detail fields out by name", function () {
-		var div = make("<div id='d1'></div>");
-		var input = make(
+test.describe("_hyperscript regressions", () => {
+
+	test("can pick detail fields out by name", async ({html, find, evaluate}) => {
+		await html("<div id='d1'></div>" +
 			"<input debug='true' _='on onchange if my.value !== \"\" then trigger customEvt end end " +
 				"on customEvt log event then put my.value into #d1.innerHTML'/>"
 		);
-		div.innerHTML.should.equal("");
-		input.value = "foo";
-		input.dispatchEvent(new Event("onchange"));
-		input.value = "";
-		input.dispatchEvent(new Event("onchange"));
-		div.innerHTML.should.equal("foo");
-		input.value = "bar";
-		input.dispatchEvent(new Event("onchange"));
-		div.innerHTML.should.equal("bar");
+		await evaluate(() => {
+			const input = document.querySelector('#work-area input');
+			input.value = "foo";
+			input.dispatchEvent(new Event("onchange"));
+			input.value = "";
+			input.dispatchEvent(new Event("onchange"));
+		});
+		await expect(find('#d1')).toHaveText("foo");
+		await evaluate(() => {
+			const input = document.querySelector('#work-area input');
+			input.value = "bar";
+			input.dispatchEvent(new Event("onchange"));
+		});
+		await expect(find('#d1')).toHaveText("bar");
 	});
 
-	it("can trigger htmx events", function () {
-		var div1 = make("<div id='div1' _='on htmx:foo put \"foo\" into my.innerHTML'></div>");
-		var div2 = make("<div _='on click send htmx:foo to #div1'></div>");
-		div2.click();
-		div1.innerHTML.should.equal("foo");
+	test("can trigger htmx events", async ({html, find}) => {
+		await html("<div id='div1' _='on htmx:foo put \"foo\" into my.innerHTML'></div>" +
+			"<div _='on click send htmx:foo to #div1'></div>");
+		await find('div:nth-of-type(2)').dispatchEvent('click');
+		await expect(find('#div1')).toHaveText("foo");
 	});
 
-	it("can remove class by id", function () {
-		var form = make("<form class='hideme' id='email-form'></form>");
-		var div = make("<div _='on click remove .hideme from #email-form'></div>");
-		form.classList.contains("hideme").should.equal(true);
-		div.click();
-		form.classList.contains("hideme").should.equal(false);
+	test("can remove class by id", async ({html, find}) => {
+		await html("<form class='hideme' id='email-form'></form>" +
+			"<div _='on click remove .hideme from #email-form'></div>");
+		await expect(find('#email-form')).toHaveClass(/hideme/);
+		await find('div').dispatchEvent('click');
+		await expect(find('#email-form')).not.toHaveClass(/hideme/);
 	});
 
-	it("can remove by clicks elsewhere", function () {
-		var div = make("<div _='on click elsewhere remove me'></div>");
-		var div2 = make("<div></div>");
-		div2.click();
-		should.equal(div.parentNode, null);
+	test("can remove by clicks elsewhere", async ({html, find, evaluate}) => {
+		await html("<div id='target' _='on click elsewhere remove me'></div><div id='other'></div>");
+		await evaluate(() => document.querySelector('#other').click());
+		await expect(find('#target')).toHaveCount(0);
 	});
 
-	it("me and it is properly set when responding to events", function () {
-		var div2 = make("<div id='name'></div>");
-		var div = make("<div _='on click from #name set window.me to me set window.it to it'></div>");
-		div2.click();
-		window.me.should.equal(div);
-		window.it.should.equal(div2);
-		delete window.me;
-		delete window.it;
+	test("me and it is properly set when responding to events", async ({html, find, evaluate}) => {
+		await html("<div id='name'></div>" +
+			"<div _='on click from #name set window.me to me set window.it to it'></div>");
+		await find('#name').dispatchEvent('click');
+		const meMatch = await evaluate(() => window.me === document.querySelector('#work-area div:nth-of-type(2)'));
+		expect(meMatch).toBe(true);
+		const itMatch = await evaluate(() => window.it === document.querySelector('#name'));
+		expect(itMatch).toBe(true);
 	});
 
-	it("me symbol works in from expressions", function () {
-		var div = make(
+	test("me symbol works in from expressions", async ({html, find}) => {
+		await html(
 			"<div>" + "<div id='d1' _='on click from closest parent <div/> put \"Foo\" into me'></div>" + "</div>"
 		);
-		var d1 = byId("d1");
-		d1.innerHTML.should.equal("");
-		div.click();
-		d1.innerHTML.should.equal("Foo");
+		await expect(find('#d1')).toHaveText("");
+		await find('div').first().dispatchEvent('click');
+		await expect(find('#d1')).toHaveText("Foo");
 	});
 
-	it("can refer to function in init blocks", function (done) {
-		var div = make(
+	test("can refer to function in init blocks", async ({html, find}) => {
+		await html(
 			"<script type='text/hyperscript'>" +
 			"  init " +
 			"    call foo() " +
@@ -76,96 +74,87 @@ describe("_hyperscript regressions", function () {
 			"  end</script> " +
 			"<div id='d1'></div>"
 		);
-		var d1 = byId("d1");
-		setTimeout(function(){
-			d1.innerHTML.should.equal("here");
-			foo = null;
-			done();
-		}, 10)
+		await expect(find('#d1')).toHaveText("here");
 	});
 
-	it("can create a paragraph tag", function () {
-		var i1 = make("<input id='i1' value='foo'>");
-		var d2 = make("<div id='d2'></div>");
-		var div = make("<div _='on click make a <p/>  put #i1.value into its textContent put it.outerHTML at end of #d2'></div>");
-		div.click()
-		d2.innerHTML.should.equal("<p>foo</p>");
+	test("can create a paragraph tag", async ({html, find}) => {
+		await html("<input id='i1' value='foo'>" +
+			"<div id='d2'></div>" +
+			"<div _='on click make a <p/>  put #i1.value into its textContent put it.outerHTML at end of #d2'></div>");
+		await find('div:nth-of-type(2)').dispatchEvent('click');
+		await expect(find('#d2')).toContainText("foo");
 	});
 
-	it("async exception", function () {
-		var div = make("<div _='on click async transition opacity to 0 log \"hello!\"'></div>");
-		div.click()
+	test("async exception", async ({html, find}) => {
+		await html("<div _='on click async transition opacity to 0 log \"hello!\"'></div>");
+		await find('div').dispatchEvent('click');
 	});
 
-	it("return followed by boundary returns an error", function () {
-		var msg = getParseErrorFor("return end");
-		startsWith(msg, "'return' commands must return a value.  If you do not wish to return a value, use 'exit' instead.");
+	test("return followed by boundary returns an error", async ({error}) => {
+		var msg = await error("return end");
+		expect(msg).toMatch(/^'return' commands must return a value/);
 	});
 
-	it("extra chars cause error when evaling", function () {
-		var msg = getParseErrorFor("1!");
-		startsWith(msg, "Unexpected Token : !");
+	test("extra chars cause error when evaling", async ({error}) => {
+		var msg = await error("1!");
+		expect(msg).toMatch(/^Unexpected Token : !/);
 
-		msg = getParseErrorFor("return 1!");
-		startsWith(msg, "Unexpected Token : !");
+		msg = await error("return 1!");
+		expect(msg).toMatch(/^Unexpected Token : !/);
 
-		msg = getParseErrorFor("init set x to 1!");
-		startsWith(msg, "Unexpected Token : !");
+		msg = await error("init set x to 1!");
+		expect(msg).toMatch(/^Unexpected Token : !/);
 	});
 
-	it("string literals can dot-invoked against", function () {
-		_hyperscript("'foo'.length").should.equal(3);
-		_hyperscript("`foo`.length").should.equal(3);
-		_hyperscript("\"foo\".length").should.equal(3);
+	test("string literals can dot-invoked against", async ({run}) => {
+		expect(await run("'foo'.length")).toBe(3);
+		expect(await run("`foo`.length")).toBe(3);
+		expect(await run("\"foo\".length")).toBe(3);
 	});
 
-	it("button query in form", function () {
-		var form = make("<form _='on click get the <button/> in me then" +
+	test("button query in form", async ({html, find, evaluate}) => {
+		await html("<form _='on click get the <button/> in me then" +
 			"                                   set it @disabled to true'>" +
 			"  <button id='b1'>Button</button>" +
 			"</form>");
-		var btn = byId("b1");
-		form.click();
-		btn.disabled.should.equal(true);
+		await find('form').dispatchEvent('click');
+		const disabled = await evaluate(() => document.querySelector('#b1').disabled);
+		expect(disabled).toBe(true);
 	});
 
-	it("can invoke functions w/ numbers in name", function () {
-		window.select2 = function(){
-			return "select2";
-		}
-		var btn = make("<button _='on click put select2() into me'/>");
-		btn.click();
-		btn.innerText.should.equal("select2");
-		delete window.select2;
+	test("can invoke functions w/ numbers in name", async ({html, find, evaluate}) => {
+		await evaluate(() => {
+			window.select2 = function(){ return "select2"; };
+		});
+		await html("<button _='on click put select2() into me'/>");
+		await find('button').dispatchEvent('click');
+		await expect(find('button')).toHaveText("select2");
 	});
 
-	it("properly interpolates values", function () {
-		var btn = make("<button _='on click" +
+	test("properly interpolates values", async ({html, find}) => {
+		await html("<button _='on click" +
 			"                        set count to 1 " +
 			"                        set optName to `options_${count}_value`" +
-			"                        put optName into me'></button>")
-		btn.click();
-		btn.innerText.should.equal("options_1_value");
-	})
-
-	it("properly interpolates values 2", function () {
-		var btn = make("<button _='on click" +
-			"                        set trackingcode to `AB123456789KK` " +
-			"                        set pdfurl to `https://yyy.xxxxxx.com/path/out/${trackingcode}.pdf`" +
-			"                        put pdfurl into me'></button>")
-		btn.click();
-		btn.innerText.should.equal("https://yyy.xxxxxx.com/path/out/AB123456789KK.pdf");
-	})
-
-	it("listen for event on form", function () {
-		var form = make("<form>" +
-			"  <button id='b1' _='on click from closest <form/> put \"clicked\" into me'>Button</button>" +
-			"</form>");
-		var btn = byId("b1");
-		form.click();
-		btn.innerHTML.should.equal("clicked");
+			"                        put optName into me'></button>");
+		await find('button').dispatchEvent('click');
+		await expect(find('button')).toHaveText("options_1_value");
 	});
 
+	test("properly interpolates values 2", async ({html, find}) => {
+		await html("<button _='on click" +
+			"                        set trackingcode to `AB123456789KK` " +
+			"                        set pdfurl to `https://yyy.xxxxxx.com/path/out/${trackingcode}.pdf`" +
+			"                        put pdfurl into me'></button>");
+		await find('button').dispatchEvent('click');
+		await expect(find('button')).toHaveText("https://yyy.xxxxxx.com/path/out/AB123456789KK.pdf");
+	});
 
+	test("listen for event on form", async ({html, find}) => {
+		await html("<form>" +
+			"  <button id='b1' _='on click from closest <form/> put \"clicked\" into me'>Button</button>" +
+			"</form>");
+		await find('form').dispatchEvent('click');
+		await expect(find('#b1')).toHaveText("clicked");
+	});
 
 });

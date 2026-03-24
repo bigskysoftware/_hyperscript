@@ -1,60 +1,68 @@
-describe("the make command", function () {
-	it("can make objects", function () {
-		evalHyperScript(`make a WeakMap then set window.obj to it`);
-		window.obj.should.be.a("weakmap");
-		delete window.obj;
+import {test, expect} from '../fixtures.js'
+
+test.describe("the make command", () => {
+
+	test("can make objects", async ({run, evaluate}) => {
+		await run(`make a WeakMap then set window.obj to it`);
+		const isWeakMap = await evaluate(() => window.obj instanceof WeakMap);
+		expect(isWeakMap).toBe(true);
 	});
 
-	it("can make named objects", function () {
-		evalHyperScript(`make a WeakMap called wm then set window.obj to wm`);
-		window.obj.should.be.a("weakmap");
-		delete window.obj;
+	test("can make named objects", async ({run, evaluate}) => {
+		await run(`make a WeakMap called wm then set window.obj to wm`);
+		const isWeakMap = await evaluate(() => window.obj instanceof WeakMap);
+		expect(isWeakMap).toBe(true);
 	});
 
-	it("can make named objects w/ global scope", function () {
-		evalHyperScript(`make a WeakMap called $wm`);
-		window['$wm'].should.be.a("weakmap");
-		delete window['$wm'];
+	test("can make named objects w/ global scope", async ({run, evaluate}) => {
+		await run(`make a WeakMap called $wm`);
+		const isWeakMap = await evaluate(() => window['$wm'] instanceof WeakMap);
+		expect(isWeakMap).toBe(true);
 	});
 
-	it("can make objects with arguments", function () {
-		evalHyperScript(`
-			make a URL from "/playground/", "https://hyperscript.org/"
+	test("can make objects with arguments", async ({run, evaluate}) => {
+		await run(`make a URL from "/playground/", "https://hyperscript.org/"
 			set window.obj to it`);
-		window.obj.should.be.a("URL");
-		window.obj.href.should.equal("https://hyperscript.org/playground/");
-		delete window.obj;
+		const isURL = await evaluate(() => window.obj instanceof URL);
+		expect(isURL).toBe(true);
+		const href = await evaluate(() => window.obj.href);
+		expect(href).toBe("https://hyperscript.org/playground/");
 	});
 
-	it("can make named objects with arguments", function () {
-		evalHyperScript(`
-			make a URL from "/playground/", "https://hyperscript.org/" called u
+	test("can make named objects with arguments", async ({run, evaluate}) => {
+		await run(`make a URL from "/playground/", "https://hyperscript.org/" called u
 			set window.obj to u`);
-		window.obj.should.be.a("URL");
-		window.obj.href.should.equal("https://hyperscript.org/playground/");
-		delete window.obj;
+		const isURL = await evaluate(() => window.obj instanceof URL);
+		expect(isURL).toBe(true);
+		const href = await evaluate(() => window.obj.href);
+		expect(href).toBe("https://hyperscript.org/playground/");
 	});
 
-	it("can make elements", function () {
-		evalHyperScript(`make a <p/> set window.obj to it`);
-		window.obj.should.be.a("htmlparagraphelement");
-		delete window.obj;
+	test("can make elements", async ({run, evaluate}) => {
+		await run(`make a <p/> set window.obj to it`);
+		const tagName = await evaluate(() => window.obj.tagName);
+		expect(tagName).toBe("P");
 	});
 
-	it("can make elements with id and classes", function () {
-		evalHyperScript(`make a <p.a#id.b.c/> set window.obj to it`);
-		window.obj.should.be.a("htmlparagraphelement");
-		window.obj.id.should.equal("id");
-		assert(window.obj.classList.contains("a"));
-		assert(window.obj.classList.contains("b"));
-		assert(window.obj.classList.contains("c"));
-		delete window.obj;
+	test("can make elements with id and classes", async ({run, evaluate}) => {
+		await run(`make a <p.a#id.b.c/> set window.obj to it`);
+		const tagName = await evaluate(() => window.obj.tagName);
+		expect(tagName).toBe("P");
+		const id = await evaluate(() => window.obj.id);
+		expect(id).toBe("id");
+		const hasA = await evaluate(() => window.obj.classList.contains("a"));
+		expect(hasA).toBe(true);
+		const hasB = await evaluate(() => window.obj.classList.contains("b"));
+		expect(hasB).toBe(true);
+		const hasC = await evaluate(() => window.obj.classList.contains("c"));
+		expect(hasC).toBe(true);
 	});
 
-	it("creates a div by default", function () {
-		evalHyperScript(`make a <.a/> set window.obj to it`);
-		window.obj.should.be.a("htmldivelement");
-		assert(window.obj.classList.contains("a"));
-		delete window.obj;
+	test("creates a div by default", async ({run, evaluate}) => {
+		await run(`make a <.a/> set window.obj to it`);
+		const tagName = await evaluate(() => window.obj.tagName);
+		expect(tagName).toBe("DIV");
+		const hasA = await evaluate(() => window.obj.classList.contains("a"));
+		expect(hasA).toBe(true);
 	});
 });

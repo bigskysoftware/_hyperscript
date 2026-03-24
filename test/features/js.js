@@ -1,67 +1,42 @@
-describe("The (top-level) js feature", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
-	});
+import {test, expect} from '../fixtures.js'
 
-	it("can run js at the top level", function () {
-		window.testSuccess = false;
-		var script = make("<script type=text/hyperscript>" + "  js " + "    window.testSuccess = true " + "  end ");
-		assert.equal(window.testSuccess, true);
-		delete window.testSuccess;
-	});
+test.describe('The (top-level) js feature', () => {
 
-	it("can expose globals", function () {
-		var script = make(
-			"<script type=text/hyperscript>" + "  js " + "    return { foo: 'test succeeded' }; " + "  end "
-		);
-		assert.equal(window.foo, "test succeeded");
-		delete window.foo;
-	});
+	test('can run js at the top level', async ({html, evaluate}) => {
+		await evaluate(() => window.testSuccess = false)
+		await html("<script type=text/hyperscript>  js     window.testSuccess = true   end ")
+		const result = await evaluate(() => window.testSuccess)
+		expect(result).toBe(true)
+	})
 
-	it("can expose functions", function () {
-		var script = make(
-			"<script type=text/hyperscript>" +
-				"  js " +
-				"    function foo() { " +
-				"      return 'test succeeded'; " +
-				"    } " +
-				"    return { foo: foo }; " +
-				"  end "
-		);
-		assert.equal(window.foo(), "test succeeded");
-		delete window.foo;
-	});
+	test('can expose globals', async ({html, evaluate}) => {
+		await html("<script type=text/hyperscript>  js     return { foo: 'test succeeded' };   end ")
+		const result = await evaluate(() => window.foo)
+		expect(result).toBe('test succeeded')
+	})
 
-	it("can hide functions", function () {
-		var script = make(
-			"<script type=text/hyperscript>" +
-				"  js " +
-				"    function bar() {} " +
-				"    function foo() { " +
-				"      return 'test succeeded'; " +
-				"    } " +
-				"    return { foo: foo }; " +
-				"  end "
-		);
-		assert.equal(window.foo(), "test succeeded");
-		assert.notProperty(window, "bar");
-		delete window.foo;
-	});
+	test('can expose functions', async ({html, evaluate}) => {
+		await html("<script type=text/hyperscript>  js     function foo() {       return 'test succeeded';     }     return { foo: foo };   end ")
+		const result = await evaluate(() => window.foo())
+		expect(result).toBe('test succeeded')
+	})
 
-	it("does not expose variables", function () {
-		var script = make(
-			"<script type=text/hyperscript>" +
-				"  js " +
-				"    var foo = 'foo' " +
-				"    let bar = 'bar' " +
-				"    const baz = 'baz' " +
-				"  end "
-		);
-		assert.notProperty(window, "foo");
-		assert.notProperty(window, "bar");
-		assert.notProperty(window, "baz");
-	});
-});
+	test('can hide functions', async ({html, evaluate}) => {
+		await html("<script type=text/hyperscript>  js     function bar() {}     function foo() {       return 'test succeeded';     }     return { foo: foo };   end ")
+		const result = await evaluate(() => window.foo())
+		expect(result).toBe('test succeeded')
+		const hasBar = await evaluate(() => 'bar' in window)
+		expect(hasBar).toBe(false)
+	})
+
+	test('does not expose variables', async ({html, evaluate}) => {
+		await html("<script type=text/hyperscript>  js     var foo = 'foo'     let bar = 'bar'     const baz = 'baz'   end ")
+		const hasFoo = await evaluate(() => 'foo' in window)
+		const hasBar = await evaluate(() => 'bar' in window)
+		const hasBaz = await evaluate(() => 'baz' in window)
+		expect(hasFoo).toBe(false)
+		expect(hasBar).toBe(false)
+		expect(hasBaz).toBe(false)
+	})
+
+})

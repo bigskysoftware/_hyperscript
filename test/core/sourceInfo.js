@@ -1,59 +1,78 @@
-describe("the line info  parser", function () {
-	beforeEach(function () {
-		clearWorkArea();
-	});
-	afterEach(function () {
-		clearWorkArea();
-	});
+import {test, expect} from '../fixtures.js'
 
-	it("debug", function () {
-		var elt = _hyperscript.parse("<button.foo/>");
-		elt.sourceFor().should.equal("<button.foo/>");
+test.describe("the line info parser", () => {
+
+	test("debug", async ({evaluate}) => {
+		const src = await evaluate(() => _hyperscript.parse("<button.foo/>").sourceFor());
+		expect(src).toBe("<button.foo/>");
 	});
 
-	it("get source works for expressions", function () {
-		var elt = _hyperscript.parse("1");
-		elt.sourceFor().should.equal("1");
+	test("get source works for expressions", async ({evaluate}) => {
+		let result = await evaluate(() => {
+			let elt = _hyperscript.parse("1");
+			return elt.sourceFor();
+		});
+		expect(result).toBe("1");
 
-		elt = _hyperscript.parse("a.b");
-		elt.sourceFor().should.equal("a.b");
-		elt.root.sourceFor().should.equal("a");
+		result = await evaluate(() => {
+			let elt = _hyperscript.parse("a.b");
+			return { src: elt.sourceFor(), rootSrc: elt.root.sourceFor() };
+		});
+		expect(result.src).toBe("a.b");
+		expect(result.rootSrc).toBe("a");
 
-		elt = _hyperscript.parse("a.b()");
-		elt.sourceFor().should.equal("a.b()");
-		elt.root.sourceFor().should.equal("a.b");
-		elt.root.root.sourceFor().should.equal("a");
+		result = await evaluate(() => {
+			let elt = _hyperscript.parse("a.b()");
+			return {
+				src: elt.sourceFor(),
+				rootSrc: elt.root.sourceFor(),
+				rootRootSrc: elt.root.root.sourceFor()
+			};
+		});
+		expect(result.src).toBe("a.b()");
+		expect(result.rootSrc).toBe("a.b");
+		expect(result.rootRootSrc).toBe("a");
 
-		elt = _hyperscript.parse("<button.foo/>");
-		elt.sourceFor().should.equal("<button.foo/>");
+		result = await evaluate(() => _hyperscript.parse("<button.foo/>").sourceFor());
+		expect(result).toBe("<button.foo/>");
 
-		elt = _hyperscript.parse("x + y");
-		elt.sourceFor().should.equal("x + y");
-		elt.lhs.sourceFor().should.equal("x");
-		elt.rhs.sourceFor().should.equal("y");
+		result = await evaluate(() => {
+			let elt = _hyperscript.parse("x + y");
+			return { src: elt.sourceFor(), lhs: elt.lhs.sourceFor(), rhs: elt.rhs.sourceFor() };
+		});
+		expect(result.src).toBe("x + y");
+		expect(result.lhs).toBe("x");
+		expect(result.rhs).toBe("y");
 
-		elt = _hyperscript.parse("'foo'");
-		elt.sourceFor().should.equal("'foo'");
+		result = await evaluate(() => _hyperscript.parse("'foo'").sourceFor());
+		expect(result).toBe("'foo'");
 
-		elt = _hyperscript.parse(".foo");
-		elt.sourceFor().should.equal(".foo");
+		result = await evaluate(() => _hyperscript.parse(".foo").sourceFor());
+		expect(result).toBe(".foo");
 
-		elt = _hyperscript.parse("#bar");
-		elt.sourceFor().should.equal("#bar");
+		result = await evaluate(() => _hyperscript.parse("#bar").sourceFor());
+		expect(result).toBe("#bar");
 	});
 
-	it("get source works for statements", function () {
-		var elt = _hyperscript.parse("if true log 'it was true'");
-		elt.sourceFor().should.equal("if true log 'it was true'");
+	test("get source works for statements", async ({evaluate}) => {
+		let result = await evaluate(() => _hyperscript.parse("if true log 'it was true'").sourceFor());
+		expect(result).toBe("if true log 'it was true'");
 
-		var elt = _hyperscript.parse("for x in [1, 2, 3] log x then log x end");
-		elt.sourceFor().should.equal("for x in [1, 2, 3] log x then log x end");
+		result = await evaluate(() => _hyperscript.parse("for x in [1, 2, 3] log x then log x end").sourceFor());
+		expect(result).toBe("for x in [1, 2, 3] log x then log x end");
 	});
 
-	it("get line works for statements", function () {
-		var elt = _hyperscript.parse("if true\n  log 'it was true'\n    log 'it was true'");
-		elt.lineFor().should.equal("if true");
-		elt.trueBranch.lineFor().should.equal("  log 'it was true'");
-		elt.trueBranch.next.lineFor().should.equal("    log 'it was true'");
+	test("get line works for statements", async ({evaluate}) => {
+		const result = await evaluate(() => {
+			let elt = _hyperscript.parse("if true\n  log 'it was true'\n    log 'it was true'");
+			return {
+				line: elt.lineFor(),
+				trueBranchLine: elt.trueBranch.lineFor(),
+				nextLine: elt.trueBranch.next.lineFor()
+			};
+		});
+		expect(result.line).toBe("if true");
+		expect(result.trueBranchLine).toBe("  log 'it was true'");
+		expect(result.nextLine).toBe("    log 'it was true'");
 	});
 });
