@@ -856,23 +856,6 @@ export class MathOperator extends Expression {
 }
 
 /**
- * MathExpression - Dispatcher for math expressions
- *
- * Parses: mathOperator | unaryExpression
- * Returns: result from selected parser
- */
-export class MathExpression extends Expression {
-    /**
-     * Parse math expression (dispatcher)
-     * @param {Parser} parser
-     * @returns {any}
-     */
-    static parse(parser) {
-        return parser.parseAnyOf(["mathOperator", "unaryExpression"]);
-    }
-}
-
-/**
  * ComparisonOperator - Comparison operations
  *
  * Parses: expr == expr | expr < expr | expr is empty | expr matches pattern | etc.
@@ -897,7 +880,7 @@ export class ComparisonOperator extends Expression {
      * @returns {any}
      */
     static parse(parser) {
-        var expr = parser.parseElement("mathExpression");
+        var expr = parser.parseElement("mathOperator");
         var comparisonToken = parser.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==");
         var operator = comparisonToken ? comparisonToken.value : null;
         var hasRightValue = true;
@@ -997,7 +980,7 @@ export class ComparisonOperator extends Expression {
                 typeName = parser.requireTokenType("IDENTIFIER");
                 nullOk = !parser.matchOpToken("!");
             } else if (hasRightValue) {
-                rhs = parser.requireElement("mathExpression");
+                rhs = parser.requireElement("mathOperator");
                 if (operator === "match" || operator === "not match") {
                     rhs = rhs.css ? rhs.css : rhs;
                 }
@@ -1085,23 +1068,6 @@ export class ComparisonOperator extends Expression {
 }
 
 /**
- * ComparisonExpression - Dispatcher for comparison expressions
- *
- * Parses: comparisonOperator | mathExpression
- * Returns: result from selected parser
- */
-export class ComparisonExpression extends Expression {
-    /**
-     * Parse comparison expression (dispatcher)
-     * @param {Parser} parser
-     * @returns {any}
-     */
-    static parse(parser) {
-        return parser.parseAnyOf(["comparisonOperator", "mathExpression"]);
-    }
-}
-
-/**
  * LogicalOperator - Logical and/or operations
  *
  * Parses: expr and expr | expr or expr
@@ -1124,7 +1090,7 @@ export class LogicalOperator extends Expression {
      * @returns {any}
      */
     static parse(parser) {
-        var expr = parser.parseElement("comparisonExpression");
+        var expr = parser.parseElement("comparisonOperator");
         var logicalOp, initialLogicalOp = null;
         logicalOp = parser.matchToken("and") || parser.matchToken("or");
         while (logicalOp) {
@@ -1132,7 +1098,7 @@ export class LogicalOperator extends Expression {
             if (initialLogicalOp.value !== logicalOp.value) {
                 parser.raiseParseError("You must parenthesize logical operations with different operators");
             }
-            var rhs = parser.requireElement("comparisonExpression");
+            var rhs = parser.requireElement("comparisonOperator");
             const operator = logicalOp.value;
             expr = new LogicalOperator(expr, operator, rhs);
             logicalOp = parser.matchToken("and") || parser.matchToken("or");
@@ -1161,22 +1127,6 @@ export class LogicalOperator extends Expression {
     }
 }
 
-/**
- * LogicalExpression - Dispatcher for logical expressions
- *
- * Parses: logicalOperator | mathExpression
- * Returns: result from selected parser
- */
-export class LogicalExpression extends Expression {
-    /**
-     * Parse logical expression (dispatcher)
-     * @param {Parser} parser
-     * @returns {any}
-     */
-    static parse(parser) {
-        return parser.parseAnyOf(["logicalOperator", "mathExpression"]);
-    }
-}
 
 /**
  * DotOrColonPath - Path with dots or colons

@@ -15,15 +15,12 @@ import {
     AttributeRefAccess,
     BeepExpression,
     BlockLiteral,
-    ComparisonExpression,
     ComparisonOperator,
     DotOrColonPath,
     FunctionCall,
     InExpression,
-    LogicalExpression,
     LogicalNot,
     LogicalOperator,
-    MathExpression,
     MathOperator,
     NegativeNumber,
     OfExpression,
@@ -169,16 +166,10 @@ kernel.addLeafExpression("closestExpr", ClosestExpr.parse);
 // TODO this doesn't belong here I think
 kernel.UNARY_EXPRESSIONS.push("postfixExpression");
 
-// Math and comparison expressions
+// Math, comparison, and logical expressions
 kernel.addGrammarElement("mathOperator", MathOperator.parse);
-kernel.addGrammarElement("mathExpression", MathExpression.parse);
 kernel.addGrammarElement("comparisonOperator", ComparisonOperator.parse);
-kernel.addGrammarElement("comparisonExpression", ComparisonExpression.parse);
-
-// Logical expressions
-kernel.addGrammarElement("logicalOperator", LogicalOperator.parse);
-// Top-level expression — logicalExpression is the entry point for expression parsing
-kernel.addTopExpression("logicalExpression", LogicalExpression.parse);
+kernel.addTopExpression("logicalOperator", LogicalOperator.parse);
 
 // Features
 kernel.addFeatures(
