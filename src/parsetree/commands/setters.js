@@ -129,6 +129,8 @@ class BaseSetterCommand extends Command {
      * @returns Setter command instance
      */
     static makeSetter(parser, target, value, CommandClass = BaseSetterCommand) {
+        // Unwrap parenthesized expressions
+        while (target.type === "parenthesized") target = target.expr;
         var symbolWrite = target.type === "symbol";
         var attributeWrite = target.type === "attributeRef";
         var styleWrite = target.type === "styleRef";
@@ -406,6 +408,8 @@ export class PutCommand extends Command {
             parser.raiseParseError("Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
         }
         var target = parser.requireElement("expression");
+        // Unwrap parenthesized expressions
+        while (target.type === "parenthesized") target = target.expr;
 
         var operation = operationToken.value;
 

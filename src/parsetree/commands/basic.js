@@ -435,7 +435,9 @@ export class AppendCommand extends Command {
         }
 
         var setter = null;
-        if (targetExpr.type === "symbol" || targetExpr.type === "attributeRef" || targetExpr.root != null) {
+        var checkTarget = targetExpr;
+        while (checkTarget.type === "parenthesized") checkTarget = checkTarget.expr;
+        if (checkTarget.type === "symbol" || checkTarget.type === "attributeRef" || checkTarget.root != null) {
             setter = SetCommand.makeSetter(parser, targetExpr, implicitResultSymbol);
         }
 

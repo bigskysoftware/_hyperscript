@@ -11,11 +11,13 @@ import { Expression } from '../base.js';
  * Returns: the inner expression
  */
 export class ParenthesizedExpression extends Expression {
-    /**
-     * Parse a parenthesized expression
-     * @param {Parser} parser
-     * @returns {any | undefined}
-     */
+    constructor(expr) {
+        super();
+        this.type = "parenthesized";
+        this.expr = expr;
+        this.args = [expr];
+    }
+
     static parse(parser) {
         if (parser.matchOpToken("(")) {
             var follows = parser.clearFollows();
@@ -25,8 +27,12 @@ export class ParenthesizedExpression extends Expression {
                 parser.restoreFollows(follows);
             }
             parser.requireOpToken(")");
-            return expr;
+            return new ParenthesizedExpression(expr);
         }
+    }
+
+    resolve(context, value) {
+        return value;
     }
 }
 

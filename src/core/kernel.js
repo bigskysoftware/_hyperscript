@@ -145,11 +145,16 @@ export class LanguageKernel {
         this.addGrammarElement("assignableExpression", (parser) => {
             parser.matchToken("the"); // optional "the"
             var expr = parser.parseElement("primaryExpression");
-            if (expr && this.ASSIGNABLE_EXPRESSIONS.indexOf(expr.type) >= 0) {
+            // Unwrap parenthesized expressions for assignability check
+            var checkExpr = expr;
+            while (checkExpr && checkExpr.type === "parenthesized") {
+                checkExpr = checkExpr.expr;
+            }
+            if (checkExpr && this.ASSIGNABLE_EXPRESSIONS.indexOf(checkExpr.type) >= 0) {
                 return expr;
             } else {
                 parser.raiseParseError(
-                    "A target expression must be writable.  The expression type '" + (expr && expr.type) + "' is not."
+                    "A target expression must be writable.  The expression type '" + (checkExpr && checkExpr.type) + "' is not."
                 );
             }
         });
