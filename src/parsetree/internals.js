@@ -3,7 +3,6 @@
  */
 
 import { Command } from './base.js';
-import { Runtime } from '../core/runtime.js';
 
 /**
  * EmptyCommandListCommand - Placeholder for empty command lists
@@ -69,6 +68,6 @@ export class ImplicitReturn extends Command {
         if (context.meta.resolve) {
             context.meta.resolve();
         }
-        return Runtime.HALT;
+        return context.meta.runtime.HALT;
     }
 }
