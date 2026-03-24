@@ -109,7 +109,6 @@ export class QueryRef extends Expression {
 
     constructor(css, args, template) {
         super();
-        this.type = "queryRef";
         this.css = css;
         this.args = args;
         this.template = template;
@@ -166,7 +165,6 @@ export class AttributeRef extends Expression {
 
     constructor(name, css, value) {
         super();
-        this.type = "attributeRef";
         this.name = name;
         this.css = css;
         this.value = value;
@@ -257,7 +255,6 @@ export class StyleLiteral extends Expression {
 
     constructor(stringParts, exprs) {
         super();
-        this.type = "styleLiteral";
         this.stringParts = stringParts;
         this.args = [exprs];
     }

@@ -16,7 +16,6 @@ export class ImplicitMeTarget extends Expression {
 
     constructor() {
         super();
-        this.type = "implicitMeTarget";
     }
 
     static parse(parser) {

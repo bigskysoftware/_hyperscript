@@ -112,7 +112,6 @@ export class SendCommand extends Command {
 
     constructor(eventName, details, toExpr) {
         super();
-        this.type = "sendCommand";
         this.eventName = eventName;
         this.details = details;
         this.to = toExpr;

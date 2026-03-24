@@ -103,7 +103,6 @@ export class IfCommand extends Command {
 
     constructor(expr, trueBranch, falseBranch) {
         super();
-        this.type = "ifCommand";
         this.expr = expr;
         this.trueBranch = trueBranch;
         this.falseBranch = falseBranch;
@@ -328,7 +327,6 @@ export class ContinueCommand extends Command {
 
     constructor(parser) {
         super();
-        this.type = "continueCommand";
         this.parser = parser;
     }
 
@@ -366,7 +364,6 @@ export class BreakCommand extends Command {
 
     constructor(parser) {
         super();
-        this.type = "breakCommand";
         this.parser = parser;
     }
 
@@ -404,7 +401,6 @@ export class TellCommand extends Command {
 
     constructor(value, body, slot) {
         super();
-        this.type = "tellCommand";
         this.value = value;
         this.body = body;
         this.slot = slot;

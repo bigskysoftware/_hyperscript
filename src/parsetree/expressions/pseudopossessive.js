@@ -15,7 +15,6 @@ export class PseudopossessiveIts extends Expression {
 
     constructor(token) {
         super();
-        this.type = "pseudopossessiveIts";
         this.token = token;
         this.name = token.value;
     }

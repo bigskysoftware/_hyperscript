@@ -17,7 +17,6 @@ export class NakedString extends Expression {
 
     constructor(tokens) {
         super();
-        this.type = "nakedString";
         this.tokens = tokens;
     }
 
@@ -55,7 +54,6 @@ export class BooleanLiteral extends Expression {
 
     constructor(value) {
         super();
-        this.type = "boolean";
         this.value = value;
     }
 
@@ -88,7 +86,6 @@ export class NullLiteral extends Expression {
 
     constructor() {
         super();
-        this.type = "null";
     }
 
     /**
@@ -119,7 +116,6 @@ export class NumberLiteral extends Expression {
 
     constructor(value, numberToken) {
         super();
-        this.type = "number";
         this.value = value;
         this.numberToken = numberToken;
     }
@@ -154,7 +150,6 @@ export class StringLiteral extends Expression {
 
     constructor(stringToken, rawValue, args) {
         super();
-        this.type = "string";
         this.token = stringToken;
         this.rawValue = rawValue;
         this.args = args;
@@ -214,7 +209,6 @@ export class ArrayLiteral extends Expression {
 
     constructor(values) {
         super();
-        this.type = "arrayLiteral";
         this.values = values;
         this.args = [values];
     }
@@ -256,7 +250,6 @@ export class ObjectKey extends Expression {
 
     constructor(key, expr, args) {
         super();
-        this.type = "objectKey";
         this.key = key;
         this.expr = expr;
         this.args = args;
@@ -305,7 +298,6 @@ export class ObjectLiteral extends Expression {
 
     constructor(keyExpressions, valueExpressions) {
         super();
-        this.type = "objectLiteral";
         this.keyExpressions = keyExpressions;
         this.valueExpressions = valueExpressions;
         this.args = [keyExpressions, valueExpressions];
@@ -356,7 +348,6 @@ export class NamedArgumentList extends Expression {
 
     constructor(fields, valueExpressions) {
         super();
-        this.type = "namedArgumentList";
         this.fields = fields;
         this.args = [valueExpressions];
     }

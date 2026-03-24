@@ -70,7 +70,6 @@ export class JsCommand extends Command {
 
     constructor(jsSource, func, inputs) {
         super();
-        this.type = "jsCommand";
         this.jsSource = jsSource;
         this.function = func;
         this.inputs = inputs;
@@ -136,7 +135,6 @@ export class CallCommand extends Command {
 
     constructor(expr) {
         super();
-        this.type = "callCommand";
         this.expr = expr;
         this.args = [expr];
     }
@@ -172,7 +170,6 @@ export class GetCommand extends Command {
 
     constructor(expr) {
         super();
-        this.type = "getCommand";
         this.expr = expr;
         this.args = [expr];
     }

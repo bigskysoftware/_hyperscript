@@ -16,7 +16,6 @@ export class ParenthesizedExpression extends Expression {
 
     constructor(expr) {
         super();
-        this.type = "parenthesized";
         this.expr = expr;
         this.args = [expr];
     }
@@ -51,7 +50,6 @@ export class BlockLiteral extends Expression {
 
     constructor(params, expr) {
         super();
-        this.type = "blockLiteral";
         this.params = params;
         this.expr = expr;
     }
@@ -97,7 +95,6 @@ export class NegativeNumber extends Expression {
 
     constructor(root) {
         super();
-        this.type = "negativeNumber";
         this.root = root;
         this.args = [root];
     }
@@ -142,7 +139,6 @@ export class LogicalNot extends Expression {
 
     constructor(root) {
         super();
-        this.type = "logicalNot";
         this.root = root;
         this.args = [root];
     }
@@ -184,7 +180,6 @@ export class SymbolRef extends Expression {
 
     constructor(token, scope, name) {
         super();
-        this.type = "symbol"
         this.token = token;
         this.scope = scope;
         this.name = name;
@@ -246,7 +241,6 @@ export class BeepExpression extends Expression {
 
     constructor(expression) {
         super();
-        this.type = "beepExpression";
         this.expression = expression;
         this.expression['booped'] = true;
         this.args = [expression];
@@ -279,7 +273,6 @@ export class PropertyAccess extends Expression {
 
     constructor(root, prop) {
         super();
-        this.type = "propertyAccess";
         this.root = root;
         this.prop = prop;
         this.args = [root];
@@ -326,7 +319,6 @@ export class OfExpression extends Expression {
 
     constructor(prop, newRoot, attribute, expression, args, urRoot) {
         super();
-        this.type = "ofExpression";
         this.prop = prop; // token
         this.root = newRoot;
         this.attribute = attribute;
@@ -423,7 +415,6 @@ export class PossessiveExpression extends Expression {
 
     constructor(root, attribute, prop) {
         super();
-        this.type = "possessive";
         this.root = root;
         this.attribute = attribute;
         this.prop = prop;
@@ -502,7 +493,6 @@ export class InExpression extends Expression {
 
     constructor(root, target) {
         super();
-        this.type = "inExpression";
         this.root = root;
         this.target = target;
         this.args = [root, target];
@@ -574,7 +564,6 @@ export class AsExpression extends Expression {
 
     constructor(root, conversion) {
         super();
-        this.type = "asExpression";
         this.root = root;
         this.conversion = conversion;
         this.args = [root];
@@ -620,7 +609,6 @@ export class FunctionCall extends Expression {
 
     constructor(root, argExpressions, args, isMethodCall) {
         super();
-        this.type = "functionCall";
         this.root = root;
         this.argExressions = argExpressions;
         this.args = args;
@@ -696,7 +684,6 @@ export class AttributeRefAccess extends Expression {
 
     constructor(root, attribute) {
         super();
-        this.type = "attributeRefAccess";
         this.root = root;
         this.attribute = attribute;
         this.args = [root];
@@ -742,7 +729,6 @@ export class ArrayIndex extends Expression {
 
     constructor(root, firstIndex, secondIndex, andBefore, andAfter) {
         super();
-        this.type = "arrayIndex";
         this.root = root;
         this.prop = firstIndex;
         this.firstIndex = firstIndex;
@@ -830,7 +816,6 @@ export class MathOperator extends Expression {
 
     constructor(lhs, operator, rhs) {
         super();
-        this.type = "mathOperator";
         this.lhs = lhs;
         this.rhs = rhs;
         this.operator = operator;
@@ -895,7 +880,6 @@ export class ComparisonOperator extends Expression {
 
     constructor(lhs, operator, rhs, typeName, nullOk) {
         super();
-        this.type = "comparisonOperator";
         this.operator = operator;
         this.typeName = typeName;
         this.nullOk = nullOk;
@@ -1130,7 +1114,6 @@ export class LogicalOperator extends Expression {
 
     constructor(lhs, operator, rhs) {
         super();
-        this.type = "logicalOperator";
         this.operator = operator;
         this.lhs = lhs;
         this.rhs = rhs;

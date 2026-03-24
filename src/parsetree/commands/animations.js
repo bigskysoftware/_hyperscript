@@ -46,7 +46,6 @@ export class SettleCommand extends Command {
 
     constructor(onExpr) {
         super();
-        this.type = "settleCmd";
         this.onExpr = onExpr;
         this.args = [onExpr];
     }
@@ -121,7 +120,6 @@ export class TransitionCommand extends Command {
 
     constructor(targetsExpr, to, properties, from, usingExpr, over) {
         super();
-        this.type = "transitionCommand";
         this.to = to;
         this.targetsExpr = targetsExpr;
         this.properties = properties;

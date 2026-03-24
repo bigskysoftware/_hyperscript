@@ -317,7 +317,6 @@ export class ToggleCommand extends VisibilityCommand {
 
     constructor(classRef, classRef2, classRefs, attributeRef, onExpr, time, evt, from, visibility, between, hideShowStrategy) {
         super();
-        this.type = "toggleCommand";
         this.classRef = classRef;
         this.classRef2 = classRef2;
         this.classRefs = classRefs;
@@ -478,7 +477,6 @@ export class HideCommand extends VisibilityCommand {
 
     constructor(targetExpr, hideShowStrategy) {
         super();
-        this.type = "hideCommand";
         this.target = targetExpr;
         this.targetExpr = targetExpr;
         this.hideShowStrategy = hideShowStrategy;
@@ -522,7 +520,6 @@ export class ShowCommand extends VisibilityCommand {
 
     constructor(targetExpr, when, arg, hideShowStrategy) {
         super();
-        this.type = "showCommand";
         this.target = targetExpr;
         this.targetExpr = targetExpr;
         this.when = when;
@@ -705,7 +702,6 @@ export class MeasureCommand extends Command {
 
     constructor(targetExpr, propsToMeasure) {
         super();
-        this.type = "measureCommand";
         this.properties = propsToMeasure;
         this.targetExpr = targetExpr;
         this.args = [targetExpr];

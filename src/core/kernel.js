@@ -275,15 +275,8 @@ export class LanguageKernel {
      */
     addCommand(keyword, definition) {
         var commandGrammarType = keyword + "Command";
-        var commandDefinitionWrapper = function (parser) {
-            const commandElement = definition(parser);
-            if (commandElement) {
-                commandElement.type = commandGrammarType;
-                return commandElement;
-            }
-        };
-        this.GRAMMAR[commandGrammarType] = commandDefinitionWrapper;
-        this.COMMANDS[keyword] = commandDefinitionWrapper;
+        this.GRAMMAR[commandGrammarType] = definition;
+        this.COMMANDS[keyword] = definition;
     }
 
     /**
@@ -324,18 +317,8 @@ export class LanguageKernel {
      */
     addFeature(keyword, definition) {
         var featureGrammarType = keyword + "Feature";
-
-        /** @type {ParseRule} */
-        var featureDefinitionWrapper = function (parser) {
-            var featureElement = definition(parser);
-            if (featureElement) {
-                featureElement.keyword = keyword;
-                featureElement.type = featureGrammarType;
-                return featureElement;
-            }
-        };
-        this.GRAMMAR[featureGrammarType] = featureDefinitionWrapper;
-        this.FEATURES[keyword] = featureDefinitionWrapper;
+        this.GRAMMAR[featureGrammarType] = definition;
+        this.FEATURES[keyword] = definition;
     }
 
     /**

@@ -18,7 +18,6 @@ export class RelativePositionalExpression extends Expression {
 
     constructor(thingElt, from, forwardSearch, inSearch, wrapping, inElt, withinElt, operator) {
         super();
-        this.type = "relativePositionalExpression";
         this.thingElt = thingElt;
         this.from = from;
         this.forwardSearch = forwardSearch;
@@ -180,7 +179,6 @@ export class PositionalExpression extends Expression {
 
     constructor(rhs, operator) {
         super();
-        this.type = "positionalExpression";
         this.rhs = rhs;
         this.operator = operator;
         this.args = [rhs];

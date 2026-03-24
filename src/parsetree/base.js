@@ -30,15 +30,17 @@ export class ParseElement {
  * Expression - Base class for all expressions
  *
  * Delegates to Runtime.unifiedEval for evaluation.
- * Subclasses define op() and args for their logic.
+ * Subclasses define resolve() and args for their logic.
+ * Type is auto-derived from static grammarName.
  */
 export class Expression extends ParseElement {
-    /**
-     * Evaluate this expression using Runtime.unifiedEval
-     *
-     * @param {Context} context - Execution context
-     * @returns {*} - Result value or Promise
-     */
+    constructor() {
+        super();
+        if (this.constructor.grammarName) {
+            this.type = this.constructor.grammarName;
+        }
+    }
+
     evaluate(context) {
         return context.meta.runtime.unifiedEval(this, context);
     }
@@ -48,15 +50,17 @@ export class Expression extends ParseElement {
  * Command - Base class for all commands
  *
  * Delegates to Runtime.unifiedExec for execution.
- * Subclasses define op() and args for their logic.
+ * Subclasses define resolve() and args for their logic.
+ * Type is auto-derived from static keyword + "Command".
  */
 export class Command extends ParseElement {
-    /**
-     * Execute this command using Runtime.unifiedExec
-     *
-     * @param {Context} context - Execution context
-     * @returns {*} - Next command or Promise
-     */
+    constructor() {
+        super();
+        if (this.constructor.keyword) {
+            this.type = this.constructor.keyword + "Command";
+        }
+    }
+
     execute(context) {
         context.meta.command = this;
         return context.meta.runtime.unifiedExec(this, context);
@@ -97,18 +101,18 @@ export class Command extends ParseElement {
  *
  * Features define behavior that is installed on elements.
  * Subclasses implement install() method for their specific logic.
+ * Type is auto-derived from static keyword + "Feature".
  */
 export class Feature extends ParseElement {
     isFeature = true;
 
-    /**
-     * Install this feature on a target element
-     *
-     * @param {Element} target - Target element to install on
-     * @param {Element} source - Source element where feature is defined
-     * @param {*} args - Installation arguments
-     * @param {Runtime} runtime - Runtime instance
-     */
+    constructor() {
+        super();
+        if (this.constructor.keyword) {
+            this.type = this.constructor.keyword + "Feature";
+        }
+    }
+
     install(target, source, args, runtime) {
         // Subclasses override this method
     }

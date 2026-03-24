@@ -20,7 +20,6 @@ export class StringPostfixExpression extends Expression {
 
     constructor(root, postfix) {
         super();
-        this.type = "stringPostfix";
         this.postfix = postfix;
         this.args = [root];
     }
@@ -43,7 +42,6 @@ export class TimeExpression extends Expression {
 
     constructor(root, timeFactor) {
         super();
-        this.type = "timeExpression";
         this.time = root;
         this.factor = timeFactor;
         this.args = [root];
@@ -72,7 +70,6 @@ export class TypeCheckExpression extends Expression {
 
     constructor(root, typeName, nullOk) {
         super();
-        this.type = "typeCheck";
         this.typeName = typeName;
         this.nullOk = nullOk;
         this.args = [root];

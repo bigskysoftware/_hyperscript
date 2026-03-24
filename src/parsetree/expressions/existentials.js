@@ -17,7 +17,6 @@ export class NoExpression extends Expression {
 
     constructor(root) {
         super();
-        this.type = "noExpression";
         this.root = root;
         this.args = [root];
     }
@@ -53,7 +52,6 @@ export class SomeExpression extends Expression {
 
     constructor(root) {
         super();
-        this.type = "noExpression"; // Note: currently shares type with NoExpression
         this.root = root;
         this.args = [root];
     }
