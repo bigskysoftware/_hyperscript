@@ -14,8 +14,7 @@ export default function workerPlugin(_hyperscript) {
 						self.importScripts(e.data._hyperscript);
 						self.importScripts.apply(self, e.data.extraScripts);
 						const _hyperscript = self['_hyperscript']
-						var tokens = new _hyperscript.internals.Tokens(e.data.tokens, [], e.data.source);
-						var hyperscript = _hyperscript.internals.parser.parseElement("hyperscript", tokens);
+						var hyperscript = _hyperscript.parse(e.data.src);
 						hyperscript.apply(self, self);
 						postMessage({ type: "didInit" });
 						break;
@@ -97,6 +96,7 @@ export default function workerPlugin(_hyperscript) {
 				} while (parser.matchToken("end") && parser.hasMore()); // worker end
 
 				var bodyTokens = parser.consumed.slice(bodyStartIndex, bodyEndIndex + 1);
+				var bodySrc = parser.source.substring(bodyTokens[0].start, bodyTokens[bodyTokens.length - 1].end);
 
 				// Create worker
 
@@ -108,8 +108,7 @@ export default function workerPlugin(_hyperscript) {
 					type: "init",
 					_hyperscript: _hyperscript.internals.runtime.hyperscriptUrl || document.currentScript?.src || '/dist/_hyperscript.js',
 					extraScripts: extraScripts,
-					tokens: bodyTokens,
-					source: parser.source,
+					src: bodySrc,
 				});
 
 				var workerPromise = new Promise(function (resolve, reject) {

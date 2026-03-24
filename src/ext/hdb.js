@@ -105,7 +105,8 @@ export default function hdbPlugin(_hyperscript) {
 			const next = command.next
 
 			const tok = _hyperscript.internals.tokenizer.tokenize(newCode)
-			const newcmd = _hyperscript.internals.parser.requireElement('command', tok)
+			const parser = _hyperscript.internals.createParser(tok)
+			const newcmd = parser.requireElement('command')
 
 			console.log(newcmd)
 			newcmd.startToken = command.startToken
@@ -515,7 +516,7 @@ export default function hdbPlugin(_hyperscript) {
 			node.style.cssText = "all: initial";
 			shadow.innerHTML = ui;
 			document.body.appendChild(node);
-			_hyperscript.processNode(shadow.querySelector(".hdb"));
+			_hyperscript.process(shadow.querySelector(".hdb"));
 		};
 }
 

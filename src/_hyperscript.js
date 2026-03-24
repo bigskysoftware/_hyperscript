@@ -2,10 +2,11 @@
 'use strict';
 
 // Import core modules
-import {Tokenizer, Tokens} from './core/tokenizer.js';
+import {Tokenizer} from './core/tokenizer.js';
 import {LanguageKernel} from './core/kernel.js';
-import {ElementCollection, HyperscriptModule, Runtime} from './core/runtime.js';
-import {config, conversions} from './core/config.js';
+import {Parser} from './core/parser.js';
+import {HyperscriptModule, Runtime} from './core/runtime.js';
+import {config} from './core/config.js';
 
 // Import parse element modules
 import * as Expressions from './parsetree/expressions/expressions.js';
@@ -69,13 +70,8 @@ kernel.registerModule(BehaviorFeatureModule);
 kernel.registerModule(InstallFeatureModule);
 kernel.registerModule(JsFeatureModule);
 
+// ===== Public API =====
 
-/**
- * @param {string} src
- * @param {Partial<Context>} [ctx]
- * @param {Object} [args]
- * @returns {any}
- */
 function evaluate(src, ctx, args) {
     let body;
     if ('document' in globalScope) {
@@ -98,43 +94,6 @@ function evaluate(src, ctx, args) {
     }
 }
 
-/**
- * @typedef {Object} HyperscriptAPI
- *
- * @property {Object} config
- * @property {string} config.attributes
- * @property {string} config.defaultTransition
- * @property {string} config.disableSelector
- * @property {typeof conversions} config.conversions
- *
- * @property {Object} internals
- * @property {Tokenizer} internals.tokenizer
- * @property {typeof Tokenizer} internals.Tokenizer
- * @property {LanguageKernel} internals.parser
- * @property {typeof LanguageKernel} internals.Parser
- * @property {Runtime} internals.runtime
- * @property {typeof Runtime} internals.Runtime
- *
- * @property {typeof ElementCollection} ElementCollection
- *
- * @property {(keyword: string, definition: ParseRule) => void} addFeature
- * @property {(keyword: string, definition: ParseRule) => void} addCommand
- * @property {(keyword: string, definition: ParseRule) => void} addLeafExpression
- * @property {(keyword: string, definition: ParseRule) => void} addIndirectExpression
- *
- * @property {(src: string, ctx?: Partial<Context>, args?: Object) => any} evaluate
- * @property {(src: string) => ASTNode} parse
- * @property {(node: Element) => void} processNode
- *
- * @property {() => void} browserInit
- *
- *
- * @typedef {HyperscriptAPI & ((src: string, ctx?: Partial<Context>) => any)} Hyperscript
- */
-
-/**
- * @type {Hyperscript}
- */
 const _hyperscript = Object.assign(
     evaluate,
     {
@@ -145,23 +104,21 @@ const _hyperscript = Object.assign(
         },
 
         internals: {
-            tokenizer: tokenizer, parser: kernel, runtime: runtime,
-            Tokenizer, Tokens, Parser: LanguageKernel, Runtime,
+            tokenizer, runtime,
+            createParser: (tokens) => new Parser(kernel, tokens),
         },
-        ElementCollection,
 
         addFeature: kernel.addFeature.bind(kernel),
         addCommand: kernel.addCommand.bind(kernel),
         addLeafExpression: kernel.addLeafExpression.bind(kernel),
-        addIndirectExpression: kernel.addIndirectExpression.bind(kernel),
 
-        evaluate,
+        evaluate: evaluate,
         parse: (src) => kernel.parse(tokenizer, src),
         process: (elt) => runtime.processNode(elt),
-        processNode: (elt) => runtime.processNode(elt),
+        processNode: (elt) => runtime.processNode(elt), // deprecated alias
         version: "0.9.14",
     }
-)
+);
 
 function ready(fn) {
     if (document.readyState !== "loading") {
