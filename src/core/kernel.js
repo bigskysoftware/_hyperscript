@@ -6,15 +6,15 @@ import { Command, Feature } from '../parsetree/base.js';
 
 export class LanguageKernel {
 
-    GRAMMAR = {};
-    COMMANDS = {};
-    FEATURES = {};
-    LEAF_EXPRESSIONS = [];
-    INDIRECT_EXPRESSIONS = [];
-    POSTFIX_EXPRESSIONS = [];
-    UNARY_EXPRESSIONS = [];
-    TOP_EXPRESSIONS = [];
-    ASSIGNABLE_EXPRESSIONS = [];
+    #grammar = {};
+    #commands = {};
+    #features = {};
+    #leafExpressions = [];
+    #indirectExpressions = [];
+    #postfixExpressions = [];
+    #unaryExpressions = [];
+    #topExpressions = [];
+    #assignableExpressions = [];
 
     constructor() {
         // Top-level program structure
@@ -43,7 +43,7 @@ export class LanguageKernel {
             parser.requireOpToken(")");
             return featureElement;
         }
-        var featureDefinition = this.FEATURES[parser.currentToken().value || ""];
+        var featureDefinition = this.#features[parser.currentToken().value || ""];
         if (featureDefinition) {
             return featureDefinition(parser);
         }
@@ -55,7 +55,7 @@ export class LanguageKernel {
             parser.requireOpToken(")");
             return commandElement;
         }
-        var commandDefinition = this.COMMANDS[parser.currentToken().value || ""];
+        var commandDefinition = this.#commands[parser.currentToken().value || ""];
         let commandElement;
         if (commandDefinition) {
             commandElement = commandDefinition(parser);
@@ -82,7 +82,7 @@ export class LanguageKernel {
     }
 
     parseLeaf(parser) {
-        var result = parser.parseAnyOf(this.LEAF_EXPRESSIONS);
+        var result = parser.parseAnyOf(this.#leafExpressions);
         // symbol is last so it doesn't consume any constants
         if (result == null) {
             return parser.parseElement("symbol");
@@ -91,8 +91,8 @@ export class LanguageKernel {
     }
 
     parseIndirectExpression(parser, root) {
-        for (var i = 0; i < this.INDIRECT_EXPRESSIONS.length; i++) {
-            var indirect = this.INDIRECT_EXPRESSIONS[i];
+        for (var i = 0; i < this.#indirectExpressions.length; i++) {
+            var indirect = this.#indirectExpressions[i];
             root.endToken = parser.lastMatch();
             var result = this.parseElement(indirect, parser, root);
             if (result) {
@@ -104,8 +104,8 @@ export class LanguageKernel {
 
     parsePostfixExpression(parser) {
         var root = parser.parseElement("negativeNumber");
-        for (var i = 0; i < this.POSTFIX_EXPRESSIONS.length; i++) {
-            var postfixType = this.POSTFIX_EXPRESSIONS[i];
+        for (var i = 0; i < this.#postfixExpressions.length; i++) {
+            var postfixType = this.#postfixExpressions[i];
             var result = this.parseElement(postfixType, parser, root);
             if (result) {
                 return result;
@@ -116,12 +116,12 @@ export class LanguageKernel {
 
     parseUnaryExpression(parser) {
         parser.matchToken("the"); // optional "the"
-        return parser.parseAnyOf(this.UNARY_EXPRESSIONS) || parser.parseElement("postfixExpression");
+        return parser.parseAnyOf(this.#unaryExpressions) || parser.parseElement("postfixExpression");
     }
 
     parseExpression(parser) {
         parser.matchToken("the"); // optional "the"
-        return parser.parseAnyOf(this.TOP_EXPRESSIONS);
+        return parser.parseAnyOf(this.#topExpressions);
     }
 
     parseAssignableExpression(parser) {
@@ -131,7 +131,7 @@ export class LanguageKernel {
         while (checkExpr && checkExpr.type === "parenthesized") {
             checkExpr = checkExpr.expr;
         }
-        if (checkExpr && this.ASSIGNABLE_EXPRESSIONS.indexOf(checkExpr.type) >= 0) {
+        if (checkExpr && this.#assignableExpressions.indexOf(checkExpr.type) >= 0) {
             return expr;
         } else {
             parser.raiseParseError(
@@ -195,7 +195,7 @@ export class LanguageKernel {
      * @returns {ASTNode}
      */
     parseElement(type, parser, root = undefined) {
-        var elementDefinition = this.GRAMMAR[type];
+        var elementDefinition = this.#grammar[type];
         if (elementDefinition) {
             var tokens = parser.tokens;
             var start = tokens.currentToken();
@@ -246,10 +246,10 @@ export class LanguageKernel {
      * @param {ParseRule} definition
      */
     addGrammarElement(name, definition) {
-        if (this.GRAMMAR[name]) {
+        if (this.#grammar[name]) {
             throw new Error(`Grammar element '${name}' already exists`);
         }
-        this.GRAMMAR[name] = definition;
+        this.#grammar[name] = definition;
     }
 
     /**
@@ -258,8 +258,8 @@ export class LanguageKernel {
      */
     addCommand(keyword, definition) {
         var commandGrammarType = keyword + "Command";
-        this.GRAMMAR[commandGrammarType] = definition;
-        this.COMMANDS[keyword] = definition;
+        this.#grammar[commandGrammarType] = definition;
+        this.#commands[keyword] = definition;
     }
 
     /**
@@ -300,8 +300,8 @@ export class LanguageKernel {
      */
     addFeature(keyword, definition) {
         var featureGrammarType = keyword + "Feature";
-        this.GRAMMAR[featureGrammarType] = definition;
-        this.FEATURES[keyword] = definition;
+        this.#grammar[featureGrammarType] = definition;
+        this.#features[keyword] = definition;
     }
 
     /**
@@ -340,7 +340,7 @@ export class LanguageKernel {
         }
 
         if (ElementClass.assignable) {
-            this.ASSIGNABLE_EXPRESSIONS.push(name);
+            this.#assignableExpressions.push(name);
         }
     }
 
@@ -363,7 +363,7 @@ export class LanguageKernel {
      * @param {ParseRule} definition
      */
     addLeafExpression(name, definition) {
-        this.LEAF_EXPRESSIONS.push(name);
+        this.#leafExpressions.push(name);
         this.addGrammarElement(name, definition);
     }
 
@@ -372,7 +372,7 @@ export class LanguageKernel {
      * @param {ParseRule} definition
      */
     addIndirectExpression(name, definition) {
-        this.INDIRECT_EXPRESSIONS.push(name);
+        this.#indirectExpressions.push(name);
         this.addGrammarElement(name, definition);
     }
 
@@ -381,7 +381,7 @@ export class LanguageKernel {
      * @param {ParseRule} definition
      */
     addPostfixExpression(name, definition) {
-        this.POSTFIX_EXPRESSIONS.push(name);
+        this.#postfixExpressions.push(name);
         this.addGrammarElement(name, definition);
     }
 
@@ -390,7 +390,7 @@ export class LanguageKernel {
      * @param {ParseRule} definition
      */
     addUnaryExpression(name, definition) {
-        this.UNARY_EXPRESSIONS.push(name);
+        this.#unaryExpressions.push(name);
         this.addGrammarElement(name, definition);
     }
 
@@ -399,7 +399,7 @@ export class LanguageKernel {
      * @param {ParseRule} definition
      */
     addTopExpression(name, definition) {
-        this.TOP_EXPRESSIONS.push(name);
+        this.#topExpressions.push(name);
         this.addGrammarElement(name, definition);
     }
 
@@ -408,6 +408,14 @@ export class LanguageKernel {
      * @param {string} [message]
      * @returns {never}
      */
+    commandStart(token) {
+        return this.#commands[token.value || ""];
+    }
+
+    featureStart(token) {
+        return this.#features[token.value || ""];
+    }
+
     static raiseParseError(tokens, message) {
         tokens.raiseError(tokens, message);
     }

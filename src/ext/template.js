@@ -75,9 +75,6 @@ export default function templatePlugin(_hyperscript) {
 }
 
 // Auto-register when imported
-console.log("registering against:", self._hyperscript === window._hyperscript);
-console.log("COMMANDS before:", Object.keys(self._hyperscript.internals.parser.COMMANDS));
-
 if (typeof self !== 'undefined' && self._hyperscript) {
 	self._hyperscript.use(templatePlugin);
 }

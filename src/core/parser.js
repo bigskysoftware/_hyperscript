@@ -183,11 +183,11 @@ export class Parser {
     }
 
     commandStart(token) {
-        return this.kernel.COMMANDS[token.value || ""];
+        return this.kernel.commandStart(token);
     }
 
     featureStart(token) {
-        return this.kernel.FEATURES[token.value || ""];
+        return this.kernel.featureStart(token);
     }
 
     setParent(elt, parent) {
