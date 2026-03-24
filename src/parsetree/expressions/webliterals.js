@@ -31,7 +31,7 @@ class IdRefNode extends Expression {
         this.value = value;
     }
 
-    evaluate(context) {
+    resolve(context) {
         return context.meta.runtime.getRootNode(context.me).getElementById(this.value);
     }
 }
@@ -93,7 +93,7 @@ class ClassRefNode extends Expression {
         this.className = className;
     }
 
-    evaluate(context) {
+    resolve(context) {
         return new ElementCollection(this.css, context.me, true, context.meta.runtime);
     }
 }

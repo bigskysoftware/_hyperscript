@@ -18,7 +18,7 @@ export class PseudopossessiveIts extends Expression {
         this.name = token.value;
     }
 
-    evaluate(context) {
+    resolve(context) {
         return context.meta.runtime.resolveSymbol("it", context);
     }
 }

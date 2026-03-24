@@ -37,51 +37,40 @@ export class ParenthesizedExpression extends Expression {
  * Returns: function that evaluates the expression with bound arguments
  */
 export class BlockLiteral extends Expression {
-    constructor(args, expr) {
+    constructor(params, expr) {
         super();
         this.type = "blockLiteral";
-        this.args = args;
+        this.params = params;
         this.expr = expr;
     }
 
-    /**
-     * Parse a block literal (lambda expression)
-     * @param {Parser} parser
-     * @returns {BlockLiteral | undefined}
-     */
     static parse(parser) {
         if (!parser.matchOpToken("\\")) return;
-        var args = [];
+        var params = [];
         var arg1 = parser.matchTokenType("IDENTIFIER");
         if (arg1) {
-            args.push(arg1);
+            params.push(arg1);
             while (parser.matchOpToken(",")) {
-                args.push(parser.requireTokenType("IDENTIFIER"));
+                params.push(parser.requireTokenType("IDENTIFIER"));
             }
         }
         // TODO compound op token
         parser.requireOpToken("-");
         parser.requireOpToken(">");
         var expr = parser.requireElement("expression");
-        return new BlockLiteral(args, expr);
+        return new BlockLiteral(params, expr);
     }
 
-    /**
-     * Evaluate to a function
-     * @param {Context} ctx
-     * @returns {Function}
-     */
-    evaluate(ctx) {
-        var args = this.args;
+    resolve(ctx) {
+        var params = this.params;
         var expr = this.expr;
-        var returnFunc = function () {
+        return function () {
             //TODO - push scope
-            for (var i = 0; i < args.length; i++) {
-                ctx.locals[args[i].value] = arguments[i];
+            for (var i = 0; i < params.length; i++) {
+                ctx.locals[params[i].value] = arguments[i];
             }
             return expr.evaluate(ctx); //OK
         };
-        return returnFunc;
     }
 }
 
@@ -220,11 +209,6 @@ export class SymbolRef extends Expression {
         }
     }
 
-    /**
-     * Evaluate symbol reference
-     * @param {Context} context
-     * @returns {any}
-     */
     resolve(context) {
         return context.meta.runtime.resolveSymbol(this.name, context, this.scope);
     }
@@ -242,13 +226,9 @@ export class BeepExpression extends Expression {
         this.type = "beepExpression";
         this.expression = expression;
         this.expression['booped'] = true;
+        this.args = [expression];
     }
 
-    /**
-     * Parse a beep expression
-     * @param {Parser} parser
-     * @returns {any | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("beep!")) return;
         var expression = parser.parseElement("unaryExpression");
@@ -257,13 +237,7 @@ export class BeepExpression extends Expression {
         }
     }
 
-    /**
-     * Evaluate expression and log to console
-     * @param {Context} ctx
-     * @returns {any}
-     */
-    resolve(ctx) {
-        let value = this.expression.evaluate(ctx);
+    resolve(ctx, value) {
         ctx.meta.runtime.beepValueToConsole(ctx.me, this.expression, value);
         return value;
     }
@@ -1221,15 +1195,14 @@ class DotOrColonPathNode extends Expression {
         this.separator = separator;
     }
 
-    // TODO - Why is this not using op?
-    evaluate(context) {
-        return this.resolve(context);
+    // Called at both parse time (no context) and runtime, so cannot use the
+    // default evaluate() which requires a context for unifiedEval.
+    evaluate() {
+        return this.path.join(this.separator ? this.separator : "");
     }
 
-    resolve(context) {
-        // context will be undefined at parse time, but defined at runtime.
+    resolve() {
         return this.path.join(this.separator ? this.separator : "");
-
     }
 }
 

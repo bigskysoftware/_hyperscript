@@ -269,10 +269,6 @@ class ClosestExprNode extends Expression {
             }
         }
     }
-
-    evaluate(ctx) {
-        return ctx.meta.runtime.unifiedEval(this, ctx);
-    }
 }
 
 /**

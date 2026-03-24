@@ -31,12 +31,7 @@ export class NakedString extends Expression {
         }
     }
 
-    /**
-     * Evaluate to joined token values
-     * @param {Context} context
-     * @returns {string}
-     */
-    evaluate(context) {
+    resolve(context) {
         return this.tokens
             .map(function (t) {
                 return t.value;
@@ -70,12 +65,7 @@ export class BooleanLiteral extends Expression {
         return new BooleanLiteral(value);
     }
 
-    /**
-     * Evaluate to boolean value
-     * @param {Context} context
-     * @returns {boolean}
-     */
-    evaluate(context) {
+    resolve(context) {
         return this.value;
     }
 }
@@ -103,12 +93,7 @@ export class NullLiteral extends Expression {
         }
     }
 
-    /**
-     * Evaluate to null
-     * @param {Context} context
-     * @returns {null}
-     */
-    evaluate(context) {
+    resolve(context) {
         return null;
     }
 }
@@ -140,12 +125,7 @@ export class NumberLiteral extends Expression {
         return new NumberLiteral(value, numberToken);
     }
 
-    /**
-     * Evaluate to numeric value
-     * @param {Context} context
-     * @returns {number}
-     */
-    evaluate(context) {
+    resolve(context) {
         return this.value;
     }
 }
@@ -192,10 +172,10 @@ export class StringLiteral extends Expression {
         return new StringLiteral(stringToken, rawValue, args);
     }
 
-    /**
-     * Op function for template strings
-     */
     resolve(context) {
+        if (this.args.length === 0) {
+            return this.rawValue;
+        }
         var returnStr = "";
         for (var i = 1; i < arguments.length; i++) {
             var val = arguments[i];
@@ -204,19 +184,6 @@ export class StringLiteral extends Expression {
             }
         }
         return returnStr;
-    }
-
-    /**
-     * Evaluate string value
-     * @param {Context} context
-     * @returns {string}
-     */
-    evaluate(context) {
-        if (this.args.length === 0) {
-            return this.rawValue;
-        } else {
-            return context.meta.runtime.unifiedEval(this, context);
-        }
     }
 }
 
@@ -298,24 +265,11 @@ export class ObjectKey extends Expression {
         }
     }
 
-    /**
-     * Op function for computed keys
-     */
     resolve(ctx, expr) {
-        return expr;
-    }
-
-    /**
-     * Evaluate to key string
-     * @param {Context} context
-     * @returns {string}
-     */
-    evaluate(context) {
         if (this.expr) {
-            return context.meta.runtime.unifiedEval(this, context);
-        } else {
-            return this.key;
+            return expr;
         }
+        return this.key;
     }
 }
 
