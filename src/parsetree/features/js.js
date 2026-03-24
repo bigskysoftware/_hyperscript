@@ -8,6 +8,8 @@
 import { Feature } from '../base.js';
 
 export class JsFeature extends Feature {
+    static keyword = "js";
+
     constructor(jsSource, func, exposedFunctionNames) {
         super();
         this.jsSource = jsSource;

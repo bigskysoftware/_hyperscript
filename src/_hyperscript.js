@@ -174,10 +174,9 @@ kernel.addTopExpression("logicalOperator", LogicalOperator.parse);
 // Features
 kernel.addFeatures(
     OnFeature, DefFeature, SetFeature, InitFeature,
-    WorkerFeature, BehaviorFeature, InstallFeature
+    WorkerFeature, BehaviorFeature, InstallFeature, JsFeature
 );
 kernel.addGrammarElement("jsBody", JsBody.parse);
-kernel.addFeature("js", JsFeature.parse);
 
 // Basic commands
 kernel.addCommands(

@@ -4,14 +4,12 @@
  * Parses: worker ...
  * Note: Requires the _hyperscript worker plugin to function
  */
-export class WorkerFeature {
+
+import { Feature } from '../base.js';
+
+export class WorkerFeature extends Feature {
     static keyword = "worker";
 
-    /**
-     * Parse worker feature
-     * @param {Parser} parser
-     * @returns {WorkerFeature | undefined}
-     */
     static parse(parser) {
         if (parser.matchToken("worker")) {
             parser.raiseParseError(
