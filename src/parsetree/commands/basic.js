@@ -46,66 +46,6 @@ class ExitOperation extends Command {
     }
 }
 
-/**
- * MakeQueryRefCommand - Create element from query reference
- */
-class MakeQueryRefCommand extends Command {
-    constructor(expr, target) {
-        super();
-        this.expr = expr;
-        this.target = target;
-    }
-
-    resolve(ctx) {
-        var match,
-            tagname = "div",
-            id,
-            classes = [];
-        var re = /(?:(^|#|\.)([^#\. ]+))/g;
-        while ((match = re.exec(this.expr.css))) {
-            if (match[1] === "") tagname = match[2].trim();
-            else if (match[1] === "#") id = match[2].trim();
-            else classes.push(match[2].trim());
-        }
-
-        var result = document.createElement(tagname);
-        if (id !== undefined) result.id = id;
-        for (var i = 0; i < classes.length; i++) {
-            var cls = classes[i];
-            result.classList.add(cls)
-        }
-
-        ctx.result = result;
-        if (this.target){
-            ctx.meta.runtime.setSymbol(this.target.name, ctx, this.target.scope, result);
-        }
-
-        return ctx.meta.runtime.findNext(this, ctx);
-    }
-}
-
-/**
- * MakeConstructorCommand - Create object from constructor
- */
-class MakeConstructorCommand extends Command {
-    constructor(expr, args, target) {
-        super();
-        this.expr = expr;
-        this.constructorArgs = args;
-        this.target = target;
-        this.args = [expr, args];
-    }
-
-    resolve(ctx, expr, args) {
-        ctx.result = varargConstructor(expr, args);
-        if (this.target){
-            ctx.meta.runtime.setSymbol(this.target.name, ctx, this.target.scope, ctx.result);
-        }
-
-        return ctx.meta.runtime.findNext(this, ctx);
-    }
-}
-
 
 /**
  * LogCommand - Log values to console
@@ -389,14 +329,18 @@ export class HaltCommand extends Command {
  * Parses: make [a|an] <expr> [from <args>] [called <symbol>]
  * Executes: Creates DOM elements from query refs or instantiates objects
  */
-export class MakeCommand {
+export class MakeCommand extends Command {
     static keyword = "make";
 
-    /**
-     * Parse make command
-     * @param {Parser} parser
-     * @returns {MakeCommand | undefined}
-     */
+    constructor(variant, expr, constructorArgs, target) {
+        super();
+        this.variant = variant;
+        this.expr = expr;
+        this.constructorArgs = constructorArgs;
+        this.target = target;
+        this.args = variant === "queryRef" ? [] : [expr, constructorArgs];
+    }
+
     static parse(parser) {
         if (!parser.matchToken("make")) return;
         parser.matchToken("a") || parser.matchToken("an");
@@ -415,10 +359,42 @@ export class MakeCommand {
         }
 
         if (expr.type === "queryRef") {
-            return new MakeQueryRefCommand(expr, target);
+            return new MakeCommand("queryRef", expr, null, target);
         } else {
-            return new MakeConstructorCommand(expr, args, target);
+            return new MakeCommand("constructor", expr, args, target);
         }
+    }
+
+    resolve(ctx, expr, args) {
+        if (this.variant === "queryRef") {
+            var match,
+                tagname = "div",
+                id,
+                classes = [];
+            var re = /(?:(^|#|\.)([^#\. ]+))/g;
+            while ((match = re.exec(this.expr.css))) {
+                if (match[1] === "") tagname = match[2].trim();
+                else if (match[1] === "#") id = match[2].trim();
+                else classes.push(match[2].trim());
+            }
+
+            var result = document.createElement(tagname);
+            if (id !== undefined) result.id = id;
+            for (var i = 0; i < classes.length; i++) {
+                var cls = classes[i];
+                result.classList.add(cls)
+            }
+
+            ctx.result = result;
+        } else {
+            ctx.result = varargConstructor(expr, args);
+        }
+
+        if (this.target) {
+            ctx.meta.runtime.setSymbol(this.target.name, ctx, this.target.scope, ctx.result);
+        }
+
+        return ctx.meta.runtime.findNext(this, ctx);
     }
 }
 
