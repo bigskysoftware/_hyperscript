@@ -128,7 +128,8 @@ export class LanguageKernel {
 
         this.addGrammarElement("unaryExpression", (parser) => {
             parser.matchToken("the"); // optional "the"
-            return parser.parseAnyOf(this.UNARY_EXPRESSIONS);
+            // Try registered unary expressions first, fall through to postfix
+            return parser.parseAnyOf(this.UNARY_EXPRESSIONS) || parser.parseElement("postfixExpression");
         });
 
         this.addGrammarElement("expression", (parser) => {
@@ -183,6 +184,9 @@ export class LanguageKernel {
             }
             return new HyperscriptProgram(features);
         });
+
+        // Set up parse error callback for tokenizer
+        Tokens._parserRaiseError = LanguageKernel.raiseParseError;
     }
 
     use(plugin) {

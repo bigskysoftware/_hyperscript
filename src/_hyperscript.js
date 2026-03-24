@@ -69,14 +69,6 @@ kernel.registerModule(BehaviorFeatureModule);
 kernel.registerModule(InstallFeatureModule);
 kernel.registerModule(JsFeatureModule);
 
-// Special cases that can't be auto-registered
-kernel.addGrammarElement("nakedNamedArgumentList", Literals.NamedArgumentList.parseNaked);
-kernel.addGrammarElement("stringLike", (parser) => parser.parseAnyOf(["string", "nakedString"]));
-kernel.UNARY_EXPRESSIONS.push("postfixExpression");
-
-// Set up the LanguageKernel.raiseParseError callback for Tokens
-// TODO need to rethink how tokenization errors are done
-Tokens._parserRaiseError = LanguageKernel.raiseParseError;
 
 /**
  * @param {string} src

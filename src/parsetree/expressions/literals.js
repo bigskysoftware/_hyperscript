@@ -404,3 +404,22 @@ export class NamedArgumentList extends Expression {
         return returnVal;
     }
 }
+
+/**
+ * NakedNamedArgumentList - Registration proxy for the naked (no parens) variant
+ */
+export class NakedNamedArgumentList extends Expression {
+    static grammarName = "nakedNamedArgumentList";
+    static parse = NamedArgumentList.parseNaked;
+}
+
+/**
+ * StringLike - Matches either a quoted string or a naked string
+ */
+export class StringLike extends Expression {
+    static grammarName = "stringLike";
+
+    static parse(parser) {
+        return parser.parseAnyOf(["string", "nakedString"]);
+    }
+}
