@@ -3,26 +3,7 @@
  * Commands for event handling and waiting (wait, trigger, send)
  */
 
-import { Command, Expression } from '../base.js';
-
-/**
- * Helper function to parse event argument list
- */
-function parseEventArgs(parser) {
-    var args = [];
-    // handle argument list (look ahead 3)
-    if (
-        parser.token(0).value === "(" &&
-        (parser.token(1).value === ")" || parser.token(2).value === "," || parser.token(2).value === ")")
-    ) {
-        parser.matchOpToken("(");
-        do {
-            args.push(parser.requireTokenType("IDENTIFIER"));
-        } while (parser.matchOpToken(","));
-        parser.requireOpToken(")");
-    }
-    return args;
-}
+import { Command, Expression, ParseElement } from '../base.js';
 
 /**
  * WaitCommand - Wait for time or event
@@ -56,7 +37,7 @@ export class WaitCommand extends Command {
                 } else {
                     events.push({
                         name: parser.requireElement("dotOrColonPath", "Expected event name").evaluate(),
-                        args: parseEventArgs(parser),
+                        args: ParseElement.parseEventArgs(parser),
                     });
                 }
             } while (parser.matchToken("or"));

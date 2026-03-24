@@ -9,8 +9,21 @@
  * expressions, commands, and features.
  */
 export class ParseElement {
-    // Common base for all parse tree elements
-    // Can be extended with shared functionality in the future
+    static parseEventArgs(parser) {
+        var args = [];
+        // handle argument list (look ahead 3)
+        if (
+            parser.token(0).value === "(" &&
+            (parser.token(1).value === ")" || parser.token(2).value === "," || parser.token(2).value === ")")
+        ) {
+            parser.matchOpToken("(");
+            do {
+                args.push(parser.requireTokenType("IDENTIFIER"));
+            } while (parser.matchOpToken(","));
+            parser.requireOpToken(")");
+        }
+        return args;
+    }
 }
 
 /**

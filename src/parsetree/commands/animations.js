@@ -5,7 +5,7 @@
 
 import { Command, Expression } from '../base.js';
 import { config } from '../../core/config.js';
-import { PseudopossessiveIts } from '../expressions/pseudopossessive.js';
+import { parsePseudopossessiveTarget } from './dom.js';
 
 /**
  * StyleRefValue - Represents a style property name reference
@@ -34,39 +34,6 @@ class InitialLiteral extends Expression {
     evaluate(context) {
         return "initial";
     }
-}
-
-/**
- * Helper function to parse pseudopossessive targets (the/its/my element's)
- */
-function parsePseudopossessiveTarget(parser) {
-    var targets;
-    if (
-        parser.matchToken("the") ||
-        parser.matchToken("element") ||
-        parser.matchToken("elements") ||
-        parser.currentToken().type === "CLASS_REF" ||
-        parser.currentToken().type === "ID_REF" ||
-        (parser.currentToken().op && parser.currentToken().value === "<")
-    ) {
-        parser.possessivesDisabled = true;
-        try {
-            targets = parser.parseElement("expression");
-        } finally {
-            delete parser.possessivesDisabled;
-        }
-        // optional possessive
-        if (parser.matchOpToken("'")) {
-            parser.requireToken("s");
-        }
-    } else if (parser.currentToken().type === "IDENTIFIER" && parser.currentToken().value === "its") {
-        var identifier = parser.matchToken("its");
-        targets = new PseudopossessiveIts(identifier);
-    } else {
-        parser.matchToken("my") || parser.matchToken("me"); // consume optional 'my'
-        targets = parser.parseElement("implicitMeTarget");
-    }
-    return targets;
 }
 
 /**

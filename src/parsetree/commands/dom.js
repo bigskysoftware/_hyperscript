@@ -68,34 +68,32 @@ const HIDE_SHOW_STRATEGIES = {
 };
 
 /**
- * Helper function to parse show/hide target
+ * VisibilityCommand - Base class for show/hide/toggle commands
+ * Provides shared parsing helpers for visibility-related commands
  */
-function parseShowHideTarget(parser) {
-    var target;
-    var currentTokenValue = parser.currentToken();
-    if (currentTokenValue.value === "when" || currentTokenValue.value === "with" || parser.commandBoundary(currentTokenValue)) {
-        target = parser.parseElement("implicitMeTarget");
-    } else {
-        target = parser.parseElement("expression");
+class VisibilityCommand extends Command {
+    static parseShowHideTarget(parser) {
+        var currentTokenValue = parser.currentToken();
+        if (currentTokenValue.value === "when" || currentTokenValue.value === "with" || parser.commandBoundary(currentTokenValue)) {
+            return parser.parseElement("implicitMeTarget");
+        } else {
+            return parser.parseElement("expression");
+        }
     }
-    return target;
-}
 
-/**
- * Helper function to resolve hide/show strategy
- */
-function resolveHideShowStrategy(parser, name) {
-    var configDefault = config.defaultHideShowStrategy;
-    var strategies = HIDE_SHOW_STRATEGIES;
-    if (config.hideShowStrategies) {
-        strategies = Object.assign({}, strategies, config.hideShowStrategies); // merge in user provided strategies
+    static resolveHideShowStrategy(parser, name) {
+        var configDefault = config.defaultHideShowStrategy;
+        var strategies = HIDE_SHOW_STRATEGIES;
+        if (config.hideShowStrategies) {
+            strategies = Object.assign({}, strategies, config.hideShowStrategies);
+        }
+        name = name || configDefault || "display";
+        var value = strategies[name];
+        if (value == null) {
+            parser.raiseParseError("Unknown show/hide strategy : " + name);
+        }
+        return value;
     }
-    name = name || configDefault || "display";
-    var value = strategies[name];
-    if (value == null) {
-        parser.raiseParseError("Unknown show/hide strategy : " + name);
-    }
-    return value;
 }
 
 /**
@@ -315,7 +313,7 @@ export class RemoveCommand extends Command {
  * Parses: toggle .class on target | toggle @attr on target | toggle *visibility | toggle between .class1 and .class2
  * Executes: Toggles classes/attributes or visibility state
  */
-export class ToggleCommand extends Command {
+export class ToggleCommand extends VisibilityCommand {
     static keyword = "toggle";
 
     constructor(classRef, classRef2, classRefs, attributeRef, onExpr, time, evt, from, visibility, between, hideShowStrategy) {
@@ -353,7 +351,7 @@ export class ToggleCommand extends Command {
             let styleRef = parser.consumeToken();
             var name = styleRef.value.substr(1);
             visibility = true;
-            hideShowStrategy = resolveHideShowStrategy(parser, name);
+            hideShowStrategy = VisibilityCommand.resolveHideShowStrategy(parser, name);
             if (parser.matchToken("of")) {
                 parser.pushFollow("with");
                 try {
@@ -476,7 +474,7 @@ export class ToggleCommand extends Command {
  * Parses: hide target [with display|visibility|opacity]
  * Executes: Hides target element using specified strategy
  */
-export class HideCommand extends Command {
+export class HideCommand extends VisibilityCommand {
     static keyword = "hide";
 
     constructor(targetExpr, hideShowStrategy) {
@@ -491,7 +489,7 @@ export class HideCommand extends Command {
     static parse(parser) {
         if (!parser.matchToken("hide")) return;
 
-        var targetExpr = parseShowHideTarget(parser);
+        var targetExpr = VisibilityCommand.parseShowHideTarget(parser);
 
         var name = null;
         if (parser.matchToken("with")) {
@@ -500,7 +498,7 @@ export class HideCommand extends Command {
                 name = name.substr(1);
             }
         }
-        var hideShowStrategy = resolveHideShowStrategy(parser, name);
+        var hideShowStrategy = VisibilityCommand.resolveHideShowStrategy(parser, name);
 
         return new HideCommand(targetExpr, hideShowStrategy);
     }
@@ -520,7 +518,7 @@ export class HideCommand extends Command {
  * Parses: show target [with display|visibility|opacity] [:value] [when condition]
  * Executes: Shows target element using specified strategy
  */
-export class ShowCommand extends Command {
+export class ShowCommand extends VisibilityCommand {
     static keyword = "show";
 
     constructor(targetExpr, when, arg, hideShowStrategy) {
@@ -537,7 +535,7 @@ export class ShowCommand extends Command {
     static parse(parser) {
         if (!parser.matchToken("show")) return;
 
-        var targetExpr = parseShowHideTarget(parser);
+        var targetExpr = VisibilityCommand.parseShowHideTarget(parser);
 
         var name = null;
         if (parser.matchToken("with")) {
@@ -561,7 +559,7 @@ export class ShowCommand extends Command {
             var when = parser.requireElement("expression");
         }
 
-        var hideShowStrategy = resolveHideShowStrategy(parser, name);
+        var hideShowStrategy = VisibilityCommand.resolveHideShowStrategy(parser, name);
 
         return new ShowCommand(targetExpr, when, arg, hideShowStrategy);
     }
@@ -587,9 +585,10 @@ export class ShowCommand extends Command {
 }
 
 /**
- * Helper function to parse pseudopossessive targets (the/its/my element's)
+ * Parse pseudopossessive targets (the/its/my element's)
+ * Shared by MeasureCommand and TransitionCommand
  */
-function parsePseudopossessiveTarget(parser) {
+export function parsePseudopossessiveTarget(parser) {
     var targets;
     if (
         parser.matchToken("the") ||

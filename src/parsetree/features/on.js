@@ -13,28 +13,7 @@
  *   - Event count filtering
  */
 
-import { Feature } from '../base.js';
-
-/**
- * Parse event arguments
- * @param {Parser} parser
- * @returns {Array}
- */
-function parseEventArgs(parser) {
-    var args = [];
-    // handle argument list (look ahead 3)
-    if (
-        parser.token(0).value === "(" &&
-        (parser.token(1).value === ")" || parser.token(2).value === "," || parser.token(2).value === ")")
-    ) {
-        parser.matchOpToken("(");
-        do {
-            args.push(parser.requireTokenType("IDENTIFIER"));
-        } while (parser.matchOpToken(","));
-        parser.requireOpToken(")");
-    }
-    return args;
-}
+import { Feature, ParseElement } from '../base.js';
 
 export class OnFeature extends Feature {
     static keyword = "on";
@@ -286,7 +265,7 @@ export class OnFeature extends Feature {
             } else {
                 displayName = "on " + eventName;
             }
-            var args = parseEventArgs(parser);
+            var args = ParseElement.parseEventArgs(parser);
 
             var filter = null;
             if (parser.matchOpToken("[")) {

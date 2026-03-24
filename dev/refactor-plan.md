@@ -9,5 +9,7 @@
 7. Clean up core
 8. Clean up registration of parse elements by organizing by type
 9. Standardize extension registration
-10. Move debug into core
-11. Update documents/site
+10. Remove all kernel data structure mutations in favor of structured
+11. Rework how assignment works (should defer to the elements themselves)
+11. Move debug into core
+12. Update documents/site
