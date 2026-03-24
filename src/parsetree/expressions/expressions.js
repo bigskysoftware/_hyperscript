@@ -1205,47 +1205,6 @@ export class LogicalExpression extends Expression {
 }
 
 /**
- * AsyncExpression - Async wrapper expression
- *
- * Parses: async expression | logicalExpression
- * Returns: async-wrapped result or normal result
- */
-export class AsyncExpression extends Expression {
-    constructor(value) {
-        super();
-        this.type = "asyncExpression";
-        this.value = value;
-    }
-
-    /**
-     * Parse async expression (dispatcher with optional async keyword)
-     * @param {Parser} parser
-     * @returns {AsyncExpression | any}
-     */
-    static parse(parser) {
-        if (parser.matchToken("async")) {
-            var value = parser.requireElement("logicalExpression");
-            return new AsyncExpression(value);
-        } else {
-            return parser.parseElement("logicalExpression");
-        }
-    }
-
-    /**
-     * Evaluate async expression (wraps result in async marker)
-     * @param {Context} context
-     * @returns {{asyncWrapper: boolean, value: any}}
-     */
-    // TODO - Why is this not using op?
-    resolve(ctx) {
-        return {
-            asyncWrapper: true,
-            value: this.value.evaluate(ctx),
-        };
-    }
-}
-
-/**
  * DotOrColonPath - Path with dots or colons
  *
  * Parses: identifier.identifier.identifier OR identifier:identifier:identifier

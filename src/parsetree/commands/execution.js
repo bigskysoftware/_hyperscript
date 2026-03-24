@@ -4,7 +4,6 @@
  */
 
 import { Command } from '../base.js';
-import { Runtime } from '../../core/runtime.js';
 import { varargConstructor } from '../../core/runtime.js';
 
 /**
@@ -116,53 +115,6 @@ export class JsCommand extends Command {
             context.result = result;
             return context.meta.runtime.findNext(this, context);
         }
-    }
-}
-
-/**
- * AsyncCommand - Execute command asynchronously
- *
- * Parses: async [do] <command[s]> [end]
- * Executes: Runs command(s) asynchronously via setTimeout
- */
-export class AsyncCommand extends Command {
-    static keyword = "async";
-
-    constructor(body) {
-        super();
-        this.type = "asyncCommand";
-        this.body = body;
-    }
-
-    /**
-     * Parse async command
-     * @param {Parser} parser
-     * @returns {AsyncCommand | undefined}
-     */
-    static parse(parser) {
-        if (!parser.matchToken("async")) return;
-        if (parser.matchToken("do")) {
-            var body = parser.requireElement("commandList");
-
-            // Append halt
-            var end = body;
-            while (end.next) end = end.next;
-            end.next = Runtime.HALT;
-
-            parser.requireToken("end");
-        } else {
-            var body = parser.requireElement("command");
-        }
-        var command = new AsyncCommand(body);
-        parser.setParent(body, command);
-        return command;
-    }
-
-    resolve(context) {
-        setTimeout(() => {
-            this.body.execute(context);
-        });
-        return context.meta.runtime.findNext(this, context);
     }
 }
 

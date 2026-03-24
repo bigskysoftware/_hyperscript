@@ -32,7 +32,7 @@ function genUUID() {
 export default function socketPlugin(_hyperscript) {
 
 		/** @type {(string | symbol)[]} */
-		var PROXY_BLACKLIST = ["then", "catch", "length", "asyncWrapper", "toJSON"];
+		var PROXY_BLACKLIST = ["then", "catch", "length", "toJSON"];
 
 		_hyperscript.addFeature("socket", function (parser) {
 			function getProxy(timeout) {

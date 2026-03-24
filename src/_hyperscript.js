@@ -12,7 +12,6 @@ import {AttributeRef, ClassRef, IdRef, QueryRef, StyleLiteral, StyleRef} from '.
 import {
     ArrayIndex,
     AsExpression,
-    AsyncExpression,
     AttributeRefAccess,
     BeepExpression,
     BlockLiteral,
@@ -79,7 +78,7 @@ import {
     RepeatCommand,
     TellCommand
 } from './parsetree/commands/controlflow.js';
-import {AsyncCommand, CallCommand, GetCommand, JsBody, JsCommand} from './parsetree/commands/execution.js';
+import {CallCommand, GetCommand, JsBody, JsCommand} from './parsetree/commands/execution.js';
 import {PseudoCommand} from './parsetree/commands/pseudoCommand.js';
 import {
     AddCommand,
@@ -178,10 +177,8 @@ kernel.addGrammarElement("comparisonExpression", ComparisonExpression.parse);
 
 // Logical expressions
 kernel.addGrammarElement("logicalOperator", LogicalOperator.parse);
-kernel.addGrammarElement("logicalExpression", LogicalExpression.parse);
-
-// Top-level expression (async expression is the only one currently)
-kernel.addTopExpression("asyncExpression", AsyncExpression.parse);
+// Top-level expression — logicalExpression is the entry point for expression parsing
+kernel.addTopExpression("logicalExpression", LogicalExpression.parse);
 
 // Features
 kernel.addFeatures(
@@ -215,7 +212,7 @@ kernel.addCommands(
 
 // Execution commands
 kernel.addCommands(
-    JsCommand, AsyncCommand, CallCommand, GetCommand
+    JsCommand, CallCommand, GetCommand
 );
 kernel.addGrammarElement("pseudoCommand", PseudoCommand.parse);
 

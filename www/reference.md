@@ -26,7 +26,6 @@ See [expressions](/expressions) for an overview.
 | name                                                                 | description                                        | example                         |
 |----------------------------------------------------------------------|----------------------------------------------------|---------------------------------|
 | [as expressions](/expressions/as)                                    | Converts an expression to a new value              | `"10" as Int`                   |
-| [async expressions](/expressions/async)                              | Evaluate an expression asynchronously              | `set x to async getPromise()`   |
 | [attribute reference](/expressions/attribute-ref)                    | An attribute reference                             | `[selected=true]`               |
 | [block literal](/expressions/block-literal)                          | Anonymous functions with an expression body        | `\ x -> x * x`                  |
 | [class reference](/expressions/class-reference)                      | A class reference                                  | `.active`                       |

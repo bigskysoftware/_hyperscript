@@ -161,7 +161,7 @@ function clearAllCookies() {
  */
 export const CookieJar = new Proxy({}, {
     get(target, prop) {
-        if (prop === 'then' || prop === 'asyncWrapper') { // ignore special symbols
+        if (prop === 'then') { // ignore special symbols
             return null;
         } else if (prop === 'length') {
             return getCookiesAsArray().length
@@ -465,23 +465,6 @@ export class Runtime {
             return arr;
         }
 
-        unwrapAsyncs(values) {
-            for (var i = 0; i < values.length; i++) {
-                var value = values[i];
-                if (value.asyncWrapper) {
-                    values[i] = value.value;
-                }
-                if (Array.isArray(value)) {
-                    for (var j = 0; j < value.length; j++) {
-                        var valueElement = value[j];
-                        if (valueElement.asyncWrapper) {
-                            value[j] = valueElement.value;
-                        }
-                    }
-                }
-            }
-        }
-
         static HALT = {};
         HALT = Runtime.HALT;
 
@@ -559,7 +542,6 @@ export class Runtime {
             /** @type any[] */
             var args = [ctx];
             var async = false;
-            var wrappedAsyncs = false;
 
             if (parseElement.args) {
                 for (var i = 0; i < parseElement.args.length; i++) {
@@ -571,24 +553,16 @@ export class Runtime {
                         for (var j = 0; j < argument.length; j++) {
                             var element = argument[j];
                             var value = element ? element.evaluate(ctx) : null; // OK
-                            if (value) {
-                                if (value.then) {
-                                    async = true;
-                                } else if (value.asyncWrapper) {
-                                    wrappedAsyncs = true;
-                                }
+                            if (value && value.then) {
+                                async = true;
                             }
                             arr.push(value);
                         }
                         args.push(arr);
                     } else if (argument.evaluate) {
                         var value = argument.evaluate(ctx); // OK
-                        if (value) {
-                            if (value.then) {
-                                async = true;
-                            } else if (value.asyncWrapper) {
-                                wrappedAsyncs = true;
-                            }
+                        if (value && value.then) {
+                            async = true;
                         }
                         args.push(value);
                         if (value) {
@@ -610,9 +584,6 @@ export class Runtime {
                     args = this.wrapArrays(args);
                     Promise.all(args)
                         .then(function (values) {
-                            if (wrappedAsyncs) {
-                                this.unwrapAsyncs(values);
-                            }
                             try {
                                 var apply = parseElement.resolve.apply(parseElement, values);
                                 resolve(apply);
@@ -625,9 +596,6 @@ export class Runtime {
                         });
                 });
             } else {
-                if (wrappedAsyncs) {
-                    this.unwrapAsyncs(args);
-                }
                 return parseElement.resolve.apply(parseElement, args);
             }
         }

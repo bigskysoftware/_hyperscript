@@ -305,39 +305,6 @@ syntax:
 
 Blocks start with a backslash, followed by args, then an `->` and then an expression value.
 
-## Async
-
-By default, hyperscript synchronizes on any [Promises](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise)
-that go through its runtime.  Consider the following code:
-
-```html
-<script type="text/hyperscript">
-def waitThenReturn10()
-    wait 10ms
-    return 10
-end
-</script>
-<button _="on click put 'The answer was $waitThenReturn10()' into my.innerHTML">
-  Click Me...
-</button>
-```
-
-Here we have an asynchronous function with a `wait` in it that will cause the function to return a Promise rather than
-the value.  Hyperscript will "pause" evaluation of the event handler until that promise resolves and can provide a
-value to the string expression, and then continue.  This is very cool and is usually what you want.
-
-However, there may be a case where you don't want hyperscript to pause and, instead, want to pass the raw promise on
-somewhere else.  To do this, you can use the `async` prefix for the expression
-
-```html
-<button _="on click call handleAPromise(async waitThenReturn10())">
-  Click Me...
-</button>
-```
-
-Here we pass the promise returned by `waitThenReturn10()` out to `handleAPromise()`, *as* a Promise, rather than resolving
-it.
-
 ## Time Expressions
 
 In a few places in the hyperscript grammar you can use "time expressions", which are just natural ways to specify
