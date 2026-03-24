@@ -1,7 +1,7 @@
 # Refactoring Plan
 
 1. ~~Rename op() -> resolve()~~
-2. Remove the `async` keyword
+2. ~~Remove the `async` keyword~~
 3. Re-implement the templates plugin
 4. Analyze all parse elements for inconsistencies (all should implement `resolve()` if at all possible)
 5. Remove all stand-alone functions in the project, encapsulating them in classes
