@@ -81,7 +81,7 @@ export class Command extends ParseElement {
             try {
                 targets = parser.parseElement("expression");
             } finally {
-                delete parser.possessivesDisabled;
+                parser.possessivesDisabled = false;
             }
             if (parser.matchOpToken("'")) {
                 parser.requireToken("s");

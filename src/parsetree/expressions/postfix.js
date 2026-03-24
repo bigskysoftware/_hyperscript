@@ -25,7 +25,7 @@ export class StringPostfixExpression extends Expression {
     }
 
     static parse(parser, root) {
-        let stringPostfix = parser.tokens.matchAnyToken.apply(parser.tokens, STRING_POSTFIXES) || parser.matchOpToken("%");
+        let stringPostfix = parser.matchAnyToken(...STRING_POSTFIXES) || parser.matchOpToken("%");
         if (!stringPostfix) return;
 
         return new StringPostfixExpression(root, stringPostfix.value);

@@ -4,10 +4,20 @@
 import { ImplicitReturn } from '../parsetree/internals.js';
 
 export class Parser {
+    #kernel;
+    #possessivesDisabled = false;
+
     constructor(kernel, tokens) {
-        this.kernel = kernel;
+        this.#kernel = kernel;
         this.tokens = tokens;
-        this.possessivesDisabled = false;
+    }
+
+    get possessivesDisabled() {
+        return this.#possessivesDisabled;
+    }
+
+    set possessivesDisabled(value) {
+        this.#possessivesDisabled = value;
     }
 
     // ===========================
@@ -115,7 +125,7 @@ export class Parser {
     }
 
     createChildParser(tokens) {
-        return new Parser(this.kernel, tokens);
+        return new Parser(this.#kernel, tokens);
     }
 
     // ===========================
@@ -123,19 +133,19 @@ export class Parser {
     // ===========================
 
     parseElement(type, root = null) {
-        return this.kernel.parseElement(type, this, root);
+        return this.#kernel.parseElement(type, this, root);
     }
 
     requireElement(type, message, root) {
-        return this.kernel.requireElement(type, this, message, root);
+        return this.#kernel.requireElement(type, this, message, root);
     }
 
     parseAnyOf(types) {
-        return this.kernel.parseAnyOf(types, this);
+        return this.#kernel.parseAnyOf(types, this);
     }
 
     raiseParseError(message) {
-        return this.kernel.raiseParseError(this.tokens, message);
+        return this.#kernel.raiseParseError(this.tokens, message);
     }
 
     // ===========================
@@ -183,11 +193,11 @@ export class Parser {
     }
 
     commandStart(token) {
-        return this.kernel.commandStart(token);
+        return this.#kernel.commandStart(token);
     }
 
     featureStart(token) {
-        return this.kernel.featureStart(token);
+        return this.#kernel.featureStart(token);
     }
 
     setParent(elt, parent) {
