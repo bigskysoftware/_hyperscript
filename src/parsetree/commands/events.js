@@ -3,7 +3,7 @@
  * Commands for event handling and waiting (wait, trigger, send)
  */
 
-import { Command } from '../base.js';
+import { Command, Expression } from '../base.js';
 
 /**
  * Helper function to parse event argument list
@@ -228,26 +228,21 @@ export class TriggerCommand extends SendCommand {
 /**
  * EventNameNode - Represents an event name from a string literal
  */
-class EventNameNode {
+export class EventName extends Expression {
     constructor(value) {
+        super();
         this.value = value;
     }
 
+    // Called at parse time without a context, so must override evaluate()
     evaluate() {
         return this.value;
     }
-}
 
-export class EventName {
-    /**
-     * Parse event name (string literal or dot/colon path)
-     * @param {Parser} parser
-     * @returns {EventNameNode | DotOrColonPathNode | undefined}
-     */
     static parse(parser) {
         var token;
         if ((token = parser.matchTokenType("STRING"))) {
-            return new EventNameNode(token.value);
+            return new EventName(token.value);
         }
 
         return parser.parseElement("dotOrColonPath");
