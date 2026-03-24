@@ -30,90 +30,29 @@ function parseEventArgs(parser) {
  * Parses: wait [a tick] | wait <time> | wait for [a] <event> [or <event>...] [from <target>]
  * Executes: Waits for specified time or events
  */
-/**
- * WaitCommandEvent - Wait for event(s)
- */
-class WaitCommandEvent extends Command {
-    constructor(events, on) {
-        super();
-        this.type = "waitCommand";
-        this.event = events;
-        this.on = on;
-        this.args = [on];
-    }
-
-    resolve(context, on) {
-        const events = this.event;
-        var target = on ? on : context.me;
-        if (!(target instanceof EventTarget))
-            throw new Error("Not a valid event target: " + this.on.sourceFor());
-        return new Promise((resolve) => {
-            var resolved = false;
-            for (const eventInfo of events) {
-                var listener = (evt) => {
-                    context.result = evt;
-                    if (eventInfo.args) {
-                        for (const arg of eventInfo.args) {
-                            context.locals[arg.value] =
-                                evt[arg.value] || (evt.detail ? evt.detail[arg.value] : null);
-                        }
-                    }
-                    if (!resolved) {
-                        resolved = true;
-                        resolve(context.meta.runtime.findNext(this, context));
-                    }
-                };
-                if (eventInfo.name){
-                    target.addEventListener(eventInfo.name, listener, {once: true});
-                } else  {
-                    const timeValue = eventInfo.evaluate(context);
-                    setTimeout(listener, timeValue, timeValue)
-                }
-            }
-        });
-    }
-}
-
-/**
- * WaitCommandTime - Wait for time duration
- */
-class WaitCommandTime extends Command {
-    constructor(time) {
-        super();
-        this.type = "waitCmd";
-        this.time = time;
-        this.args = [time];
-    }
-
-    resolve(context, timeValue) {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                resolve(context.meta.runtime.findNext(this, context));
-            }, timeValue);
-        });
-    }
-}
-
-export class WaitCommand {
+export class WaitCommand extends Command {
     static keyword = "wait";
 
-    /**
-     * Parse wait command
-     * @param {Parser} parser
-     * @returns {WaitCommandEvent | WaitCommandTime | undefined}
-     */
+    constructor(variant, events, on, time) {
+        super();
+        this.variant = variant;
+        this.event = events;
+        this.on = on;
+        this.time = time;
+        this.args = variant === "event" ? [on] : [time];
+    }
+
     static parse(parser) {
         if (!parser.matchToken("wait")) return;
 
-        // wait on event
+        // wait for event
         if (parser.matchToken("for")) {
             parser.matchToken("a"); // optional "a"
             var events = [];
             do {
                 var lookahead = parser.token(0);
                 if (lookahead.type === 'NUMBER' || lookahead.type === 'L_PAREN') {
-                    events.push(parser.requireElement('expression')) // removed .evaluate(), i thought evaluate was based on the runtime and we don't have a runtime in the parsing phase yet
-
+                    events.push(parser.requireElement('expression'))
                 } else {
                     events.push({
                         name: parser.requireElement("dotOrColonPath", "Expected event name").evaluate(),
@@ -126,7 +65,7 @@ export class WaitCommand {
                 var on = parser.requireElement("expression");
             }
 
-            return new WaitCommandEvent(events, on);
+            return new WaitCommand("event", events, on, null);
         } else {
             var time;
             if (parser.matchToken("a")) {
@@ -136,7 +75,47 @@ export class WaitCommand {
                 time = parser.requireElement("expression");
             }
 
-            return new WaitCommandTime(time);
+            return new WaitCommand("time", null, null, time);
+        }
+    }
+
+    resolve(context, resolvedArg) {
+        if (this.variant === "event") {
+            var target = resolvedArg ? resolvedArg : context.me;
+            if (!(target instanceof EventTarget))
+                throw new Error("Not a valid event target: " + this.on.sourceFor());
+            const events = this.event;
+            return new Promise((resolve) => {
+                var resolved = false;
+                for (const eventInfo of events) {
+                    var listener = (evt) => {
+                        context.result = evt;
+                        if (eventInfo.args) {
+                            for (const arg of eventInfo.args) {
+                                context.locals[arg.value] =
+                                    evt[arg.value] || (evt.detail ? evt.detail[arg.value] : null);
+                            }
+                        }
+                        if (!resolved) {
+                            resolved = true;
+                            resolve(context.meta.runtime.findNext(this, context));
+                        }
+                    };
+                    if (eventInfo.name){
+                        target.addEventListener(eventInfo.name, listener, {once: true});
+                    } else  {
+                        const timeValue = eventInfo.evaluate(context);
+                        setTimeout(listener, timeValue, timeValue)
+                    }
+                }
+            });
+        } else {
+            var timeValue = resolvedArg;
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    resolve(context.meta.runtime.findNext(this, context));
+                }, timeValue);
+            });
         }
     }
 }
