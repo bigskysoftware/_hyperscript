@@ -1,6 +1,7 @@
 // Runtime - Execution engine for _hyperscript
 import { config, conversions } from './config.js';
 import { Tokens } from './tokenizer.js';
+import { Reactivity } from './reactivity.js';
 
 // ============================================================================
 // Utility classes and symbols (from util.js)
@@ -303,6 +304,12 @@ export function varargConstructor(Cls, args) {
 // Runtime class
 // ============================================================================
 
+/** Hoisted getter for resolveProperty - avoids allocating a closure per call */
+const PROP_GETTER = (root, property) => root[property];
+
+/** Hoisted getter for resolveAttribute - avoids allocating a closure per call */
+const ATTR_GETTER = (root, property) => root.getAttribute && root.getAttribute(property);
+
 export class Runtime {
         /**
          *
@@ -317,6 +324,9 @@ export class Runtime {
 
             // Initialize web-specific conversions
             this.initWebConversions();
+
+            /** @type {Reactivity} Reactive effect system */
+            this.reactivity = new Reactivity(this);
         }
 
         /**
@@ -832,8 +842,10 @@ export class Runtime {
                 return context.you;
             } else {
                 if (type === "global") {
+                    if (this.reactivity._activeEffect) this.reactivity._trackSymbol(str, "global", context);
                     return this.globalScope[str];
                 } else if (type === "element") {
+                    if (this.reactivity._activeEffect) this.reactivity._trackSymbol(str, "element", context);
                     var elementScope = this.getElementScope(context);
                     return elementScope[str];
                 } else if (type === "local") {
@@ -861,15 +873,19 @@ export class Runtime {
                         var fromContext = context[str];
                     }
                     if (typeof fromContext !== "undefined") {
+                        // Found in locals/meta - don't track (ephemeral)
                         return fromContext;
                     } else {
                         // element scope
                         var elementScope = this.getElementScope(context);
                         fromContext = elementScope[str];
                         if (typeof fromContext !== "undefined") {
+                            if (this.reactivity._activeEffect) this.reactivity._trackSymbol(str, "element", context);
                             return fromContext;
                         } else {
-                            // global scope
+                            // Global scope (or not found - track as global
+                            // so we catch the first write)
+                            if (this.reactivity._activeEffect) this.reactivity._trackSymbol(str, "global", context);
                             return this.globalScope[str];
                         }
                     }
@@ -880,14 +896,17 @@ export class Runtime {
         setSymbol(str, context, type, value) {
             if (type === "global") {
                 this.globalScope[str] = value;
+                this.reactivity._notifySymbolSubscribers(str, "global", context);
             } else if (type === "element") {
                 var elementScope = this.getElementScope(context);
                 elementScope[str] = value;
+                this.reactivity._notifySymbolSubscribers(str, "element", context);
             } else if (type === "local") {
                 context.locals[str] = value;
+                // Don't notify - local scope is ephemeral
             } else {
                 if (this.isHyperscriptContext(context) && !this.isReservedWord(str) && typeof context.locals[str] !== "undefined") {
-                    // local scope
+                    // local scope - don't notify
                     context.locals[str] = value;
                 } else {
                     // element scope
@@ -895,9 +914,10 @@ export class Runtime {
                     var fromContext = elementScope[str];
                     if (typeof fromContext !== "undefined") {
                         elementScope[str] = value;
+                        this.reactivity._notifySymbolSubscribers(str, "element", context);
                     } else {
                         if (this.isHyperscriptContext(context) && !this.isReservedWord(str)) {
-                            // local scope
+                            // local scope - don't notify
                             context.locals[str] = value;
                         } else {
                             // direct set on normal JS object or top-level of context
@@ -906,6 +926,14 @@ export class Runtime {
                     }
                 }
             }
+        }
+
+        createEffect(computeFn, effectFn, options) {
+            return this.reactivity.createEffect(computeFn, effectFn, options);
+        }
+
+        disposeEffect(effect) {
+            return this.reactivity.disposeEffect(effect);
         }
 
         /**
@@ -935,8 +963,13 @@ export class Runtime {
         * @param {Object<string,any>} root
         * @param {string} property
         */
-        flatGet(root, property, getter) {
+        flatGet(root, property, getter, trackingType) {
             if (root != null) {
+                // Track the read if an effect is active
+                if (this.reactivity._activeEffect && trackingType && root instanceof Element) {
+                    this.reactivity._trackElementDep(trackingType, root, property);
+                }
+
                 var val = getter(root, property);
                 if (typeof val !== "undefined") {
                     return val;
@@ -946,6 +979,10 @@ export class Runtime {
                     // flat map
                     var result = [];
                     for (var component of root) {
+                        // Track each element in the collection
+                        if (this.reactivity._activeEffect && trackingType && component instanceof Element) {
+                            this.reactivity._trackElementDep(trackingType, component, property);
+                        }
                         var componentValue = getter(component, property);
                         result.push(componentValue);
                     }
@@ -955,11 +992,11 @@ export class Runtime {
         }
 
         resolveProperty(root, property) {
-            return this.flatGet(root, property, (root, property) => root[property] )
+            return this.flatGet(root, property, PROP_GETTER, "property")
         }
 
         resolveAttribute(root, property) {
-            return this.flatGet(root, property, (root, property) => root.getAttribute && root.getAttribute(property) )
+            return this.flatGet(root, property, ATTR_GETTER, "attribute")
         }
 
         /**

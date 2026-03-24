@@ -8,3 +8,4 @@ _site
 *.icloud
 /coverage/
 /tmp/
+.worktrees/

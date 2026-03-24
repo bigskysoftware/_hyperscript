@@ -101,6 +101,8 @@ import {InstallFeature} from './parsetree/features/install.js';
 import {JsFeature} from './parsetree/features/js.js';
 import {DefFeature} from './parsetree/features/def.js';
 import {OnFeature} from './parsetree/features/on.js';
+import {WhenFeature} from './parsetree/features/when.js';
+import {BindFeature} from './parsetree/features/bind.js';
 
 const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'undefined' ? global : this);
 
@@ -186,7 +188,8 @@ kernel.addTopExpression("asyncExpression", AsyncExpression.parse);
 // Features
 kernel.addFeatures(
     OnFeature, DefFeature, SetFeature, InitFeature,
-    WorkerFeature, BehaviorFeature, InstallFeature
+    WorkerFeature, BehaviorFeature, InstallFeature,
+    WhenFeature, BindFeature
 );
 kernel.addGrammarElement("jsBody", JsBody.parse);
 kernel.addFeature("js", JsFeature.parse);

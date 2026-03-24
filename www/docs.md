@@ -1180,6 +1180,42 @@ If you have logic that you wish to run when an element is initialized, you can u
 
 The `init` keyword should be followed by a set of commands to execute when the element is loaded.
 
+### Reactivity {#reactivity}
+
+The [`when`](/features/when) feature allows you to react to changes in variables, element properties, or
+attributes. The runtime automatically tracks what the expression reads and re-evaluates when any dependency
+changes.
+
+  ~~~ html
+  <input type="text" id="name" />
+  <h3 _="when #name.value changes
+             put 'Hello, ' + it into me"></h3>
+  <p _="when #name.value changes
+           put it's length + ' characters' into me"></p>
+  ~~~
+
+Both the `<h3>` and the `<p>` react to the same input. Neither element needs to know about
+the other, and you don't have to specify which event to listen for. The runtime handles it.
+
+The `it` keyword refers to the new value. You can watch variables, compound expressions, or multiple
+values with `or`:
+
+  ~~~ html
+  <div _="when ($x + $y) changes put it into me"></div>
+
+  <div _="when $a or $b changes put it into me"></div>
+  ~~~
+
+The [`bind`](/features/bind) feature provides declarative bindings built on top of `when`. Use
+`bind X to Y` for one-way derived values, or `bind X and Y` for two-way sync:
+
+  ~~~ html
+  <input _="bind $name and my.value" />
+  <input _="bind $name and my.value" />
+  ~~~
+
+See the [`when`](/features/when) and [`bind`](/features/bind) pages for full details.
+
 ### Functions {#functions}
 
 Functions in hyperscript are defined by using the [`def` keyword](/features/def).

@@ -3,15 +3,17 @@
 
 | name                                  | description                                                           | example                         |
 |---------------------------------------|-----------------------------------------------------------------------|---------------------------------|
-| [behavior](/features/behavior)        | Define cross-cutting behaviors that are applied to many HTML elements |                                 |
-| [def](/features/def)                  | Defines a function                                                    | [see details...](/features/def) |
-| [eventsource](/features/event-source) | Subscribe to Server Sent Events (SSE)                                 |                                 |
-| [js](/features/js)                    | Embed JavaScript code at the top level                                | [see details...](/features/js)  |
-| [set](/features/set)                  | Defines a new [element-scoped](/docs#names_and_scoping) variable      |                                 |
-| [init](/features/init)                | Initialization logic to be run when the code is first loaded          |                                 |
-| [on](/features/on)                    | Creates an event listener                                             | `on click log "clicked!"`       |
-| [socket](/features/socket)            | Create a Web Socket                                                   |                                 |
-| [worker](/features/worker)            | Create a Web Worker for asynchronous work                             |                                 |
+| [behavior](/features/behavior)        | Define cross-cutting behaviors that are applied to many HTML elements |                                           |
+| [def](/features/def)                  | Defines a function                                                    | [see details...](/features/def)           |
+| [eventsource](/features/event-source) | Subscribe to Server Sent Events (SSE)                                 |                                           |
+| [js](/features/js)                    | Embed JavaScript code at the top level                                | [see details...](/features/js)            |
+| [set](/features/set)                  | Defines a new [element-scoped](/docs#names_and_scoping) variable      |                                           |
+| [init](/features/init)                | Initialization logic to be run when the code is first loaded          |                                           |
+| [on](/features/on)                    | Creates an event listener                                             | `on click log "clicked!"`                 |
+| [when](/features/when)                | React to changes in variables, properties, or attributes              | `when $x changes ...`                     |
+| [bind](/features/bind)                | Reactive one-way or two-way binding (sugar over `when`)               | `bind @attr to $x`                        |
+| [socket](/features/socket)            | Create a Web Socket                                                   |                                           |
+| [worker](/features/worker)            | Create a Web Worker for asynchronous work                             |                                           |
 
 ## Commands
 
