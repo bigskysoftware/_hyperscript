@@ -766,13 +766,11 @@ export class FetchCommand extends Command {
  * Parses: go back | go [to] url <url> [in new window] | go [to] [the] [top|middle|bottom] [left|center|right] of <element> [+/- <offset>px] [smoothly|instantly]
  * Executes: Navigate browser history, URL, or scroll to element
  */
-/**
- * GoCommandNode - Go command node
- */
-class GoCommandNode extends Command {
+export class GoCommand extends Command {
+    static keyword = "go";
+
     constructor(target, offset, back, url, newWindow, plusOrMinus, scrollOptions) {
         super();
-        this.type = "goCommand";
         this.target = target;
         this.args = [target, offset];
         this.back = back;
@@ -782,69 +780,6 @@ class GoCommandNode extends Command {
         this.scrollOptions = scrollOptions;
     }
 
-    resolve(ctx, to, offset) {
-        if (this.back) {
-            window.history.back();
-        } else if (this.url) {
-            if (to) {
-                if (this.newWindow) {
-                    window.open(to);
-                } else {
-                    window.location.href = to;
-                }
-            }
-        } else {
-            const plusOrMinus = this.plusOrMinus;
-            const scrollOptions = this.scrollOptions;
-            ctx.meta.runtime.implicitLoop(to, function (target) {
-
-                if (target === window) {
-                    target = document.body;
-                }
-
-                if(plusOrMinus) {
-                    // a scroll w/ an offset of some sort
-                    let boundingRect = target.getBoundingClientRect();
-
-                    let scrollShim = document.createElement("div");
-
-                    let actualOffset = plusOrMinus.value === "+" ? offset : offset * -1;
-
-                    let offsetX = scrollOptions.inline == "start" || scrollOptions.inline == "end" ? actualOffset : 0;
-
-                    let offsetY = scrollOptions.block == "start" || scrollOptions.block == "end" ? actualOffset : 0;
-
-                    scrollShim.style.position = "absolute";
-                    scrollShim.style.top = (boundingRect.top + window.scrollY + offsetY) + "px";
-                    scrollShim.style.left = (boundingRect.left + window.scrollX + offsetX) + "px";
-                    scrollShim.style.height = boundingRect.height + "px";
-                    scrollShim.style.width = boundingRect.width + "px";
-                    scrollShim.style.zIndex = "" + Number.MIN_SAFE_INTEGER;
-                    scrollShim.style.opacity = "0";
-
-                    document.body.appendChild(scrollShim);
-                    setTimeout(function () {
-                        document.body.removeChild(scrollShim);
-                    }, 100);
-
-                    target = scrollShim;
-                }
-
-                target.scrollIntoView(scrollOptions);
-            });
-        }
-        return ctx.meta.runtime.findNext(this, ctx);
-    }
-}
-
-export class GoCommand {
-    static keyword = "go";
-
-    /**
-     * Parse go command
-     * @param {Parser} parser
-     * @returns {GoCommandNode | undefined}
-     */
     static parse(parser) {
         if (parser.matchToken("go")) {
             if (parser.matchToken("back")) {
@@ -916,8 +851,61 @@ export class GoCommand {
                 }
             }
 
-            var goCmd = new GoCommandNode(target, offset, back, url, newWindow, plusOrMinus, scrollOptions);
-            return goCmd;
+            return new GoCommand(target, offset, back, url, newWindow, plusOrMinus, scrollOptions);
         }
+    }
+
+    resolve(ctx, to, offset) {
+        if (this.back) {
+            window.history.back();
+        } else if (this.url) {
+            if (to) {
+                if (this.newWindow) {
+                    window.open(to);
+                } else {
+                    window.location.href = to;
+                }
+            }
+        } else {
+            const plusOrMinus = this.plusOrMinus;
+            const scrollOptions = this.scrollOptions;
+            ctx.meta.runtime.implicitLoop(to, function (target) {
+
+                if (target === window) {
+                    target = document.body;
+                }
+
+                if(plusOrMinus) {
+                    // a scroll w/ an offset of some sort
+                    let boundingRect = target.getBoundingClientRect();
+
+                    let scrollShim = document.createElement("div");
+
+                    let actualOffset = plusOrMinus.value === "+" ? offset : offset * -1;
+
+                    let offsetX = scrollOptions.inline == "start" || scrollOptions.inline == "end" ? actualOffset : 0;
+
+                    let offsetY = scrollOptions.block == "start" || scrollOptions.block == "end" ? actualOffset : 0;
+
+                    scrollShim.style.position = "absolute";
+                    scrollShim.style.top = (boundingRect.top + window.scrollY + offsetY) + "px";
+                    scrollShim.style.left = (boundingRect.left + window.scrollX + offsetX) + "px";
+                    scrollShim.style.height = boundingRect.height + "px";
+                    scrollShim.style.width = boundingRect.width + "px";
+                    scrollShim.style.zIndex = "" + Number.MIN_SAFE_INTEGER;
+                    scrollShim.style.opacity = "0";
+
+                    document.body.appendChild(scrollShim);
+                    setTimeout(function () {
+                        document.body.removeChild(scrollShim);
+                    }, 100);
+
+                    target = scrollShim;
+                }
+
+                target.scrollIntoView(scrollOptions);
+            });
+        }
+        return ctx.meta.runtime.findNext(this, ctx);
     }
 }
