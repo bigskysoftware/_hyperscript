@@ -10,10 +10,10 @@ export { ElementCollection, TemplatedQueryElementCollection, RegExpIterator, Reg
          HyperscriptModule, shouldAutoIterateSymbol } from './collections.js';
 
 export class Context {
-    constructor(owner, feature, hyperscriptTarget, event, runtime, globalScope) {
+    constructor(owner, feature, hyperscriptTarget, event, runtime, globalScope, kernel, tokenizer) {
         this.meta = {
-            parser: runtime.parser,
-            tokenizer: runtime.tokenizer,
+            parser: kernel,
+            tokenizer: tokenizer,
             runtime,
             owner: owner,
             feature: feature,
@@ -35,6 +35,10 @@ export class Context {
     }
 }
 
+export function varargConstructor(Cls, args) {
+    return new (Cls.bind.apply(Cls, [Cls].concat(args)))();
+}
+
 export function getOrInitObject(root, prop) {
     var value = root[prop];
     if (value) {
@@ -46,41 +50,27 @@ export function getOrInitObject(root, prop) {
     }
 }
 
-export function parseJSON(jString) {
-    try {
-        return JSON.parse(jString);
-    } catch (error) {
-        logError(error);
-        return null;
-    }
-}
-
-export function logError(msg) {
-    if (console.error) {
-        console.error(msg);
-    } else if (console.log) {
-        console.log("ERROR: ", msg);
-    }
-}
-
-export function varargConstructor(Cls, args) {
-    return new (Cls.bind.apply(Cls, [Cls].concat(args)))();
-}
-
-// ============================================================================
-// Runtime class
-// ============================================================================
-
 export class Runtime {
 
         static HALT = {};
         HALT = Runtime.HALT;
 
+        #kernel;
+        #tokenizer;
+        #globalScope;
+        #scriptAttrs = null;
+        #hyperscriptFeaturesMap = new WeakMap;
+        #internalDataMap = new WeakMap;
+
         constructor(globalScope, kernel, tokenizer) {
-            this.globalScope = globalScope;
-            this.parser = kernel;
-            this.tokenizer = tokenizer;
+            this.#globalScope = globalScope;
+            this.#kernel = kernel;
+            this.#tokenizer = tokenizer;
             initWebConversions(this);
+        }
+
+        get globalScope() {
+            return this.#globalScope;
         }
 
         // =================================================================
@@ -189,7 +179,7 @@ export class Runtime {
             }
             if (async) {
                 return new Promise((resolve, reject) => {
-                    args = this.wrapArrays(args);
+                    args = this.#wrapArrays(args);
                     Promise.all(args)
                         .then(function (values) {
                             try {
@@ -220,21 +210,32 @@ export class Runtime {
             }
         }
 
+        #wrapArrays(args) {
+            var arr = [];
+            for (var i = 0; i < args.length; i++) {
+                var arg = args[i];
+                if (Array.isArray(arg)) {
+                    arr.push(Promise.all(arg));
+                } else {
+                    arr.push(arg);
+                }
+            }
+            return arr;
+        }
+
         // =================================================================
         // Context and scope
         // =================================================================
 
         makeContext(owner, feature, hyperscriptTarget, event) {
-            return new Context(owner, feature, hyperscriptTarget, event, this, this.globalScope)
+            return new Context(owner, feature, hyperscriptTarget, event, this, this.#globalScope, this.#kernel, this.#tokenizer)
         }
 
-        hyperscriptFeaturesMap = new WeakMap
-
         getHyperscriptFeatures(elt) {
-            var hyperscriptFeatures = this.hyperscriptFeaturesMap.get(elt);
+            var hyperscriptFeatures = this.#hyperscriptFeaturesMap.get(elt);
             if (typeof hyperscriptFeatures === 'undefined') {
                 if (elt) {
-                    this.hyperscriptFeaturesMap.set(elt, hyperscriptFeatures = {});
+                    this.#hyperscriptFeaturesMap.set(elt, hyperscriptFeatures = {});
                 }
             }
             return hyperscriptFeatures;
@@ -251,11 +252,11 @@ export class Runtime {
         // Symbol and property resolution
         // =================================================================
 
-        isReservedWord(str) {
+        #isReservedWord(str) {
             return ["meta", "it", "result", "locals", "event", "target", "detail", "sender", "body"].includes(str)
         }
 
-        isHyperscriptContext(context) {
+        #isHyperscriptContext(context) {
             return context instanceof Context;
         }
 
@@ -270,9 +271,9 @@ export class Runtime {
                 return context.you;
             } else {
                 if (type === "global") {
-                    return this.globalScope[str];
+                    return this.#globalScope[str];
                 } else if (type === "element") {
-                    var elementScope = this.getElementScope(context);
+                    var elementScope = this.#getElementScope(context);
                     return elementScope[str];
                 } else if (type === "local") {
                     return context.locals[str];
@@ -289,7 +290,7 @@ export class Runtime {
                             }
                         }
                     }
-                    if (this.isHyperscriptContext(context) && !this.isReservedWord(str)) {
+                    if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str)) {
                         var fromContext = context.locals[str];
                     } else {
                         var fromContext = context[str];
@@ -297,12 +298,12 @@ export class Runtime {
                     if (typeof fromContext !== "undefined") {
                         return fromContext;
                     } else {
-                        var elementScope = this.getElementScope(context);
+                        var elementScope = this.#getElementScope(context);
                         fromContext = elementScope[str];
                         if (typeof fromContext !== "undefined") {
                             return fromContext;
                         } else {
-                            return this.globalScope[str];
+                            return this.#globalScope[str];
                         }
                     }
                 }
@@ -311,22 +312,22 @@ export class Runtime {
 
         setSymbol(str, context, type, value) {
             if (type === "global") {
-                this.globalScope[str] = value;
+                this.#globalScope[str] = value;
             } else if (type === "element") {
-                var elementScope = this.getElementScope(context);
+                var elementScope = this.#getElementScope(context);
                 elementScope[str] = value;
             } else if (type === "local") {
                 context.locals[str] = value;
             } else {
-                if (this.isHyperscriptContext(context) && !this.isReservedWord(str) && typeof context.locals[str] !== "undefined") {
+                if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str) && typeof context.locals[str] !== "undefined") {
                     context.locals[str] = value;
                 } else {
-                    var elementScope = this.getElementScope(context);
+                    var elementScope = this.#getElementScope(context);
                     var fromContext = elementScope[str];
                     if (typeof fromContext !== "undefined") {
                         elementScope[str] = value;
                     } else {
-                        if (this.isHyperscriptContext(context) && !this.isReservedWord(str)) {
+                        if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str)) {
                             context.locals[str] = value;
                         } else {
                             context[str] = value;
@@ -336,17 +337,15 @@ export class Runtime {
             }
         }
 
-        internalDataMap = new WeakMap
-
         getInternalData(elt) {
-            var internalData = this.internalDataMap.get(elt);
+            var internalData = this.#internalDataMap.get(elt);
             if (typeof internalData === 'undefined') {
-                this.internalDataMap.set(elt, internalData = {});
+                this.#internalDataMap.set(elt, internalData = {});
             }
             return internalData;
         }
 
-        getElementScope(context) {
+        #getElementScope(context) {
             var elt = context.meta && context.meta.owner;
             if (elt) {
                 var internalData = this.getInternalData(elt);
@@ -354,7 +353,11 @@ export class Runtime {
                 if (context.meta.feature && context.meta.feature.behavior) {
                     scopeName = context.meta.feature.behavior + "Scope";
                 }
-                var elementScope = getOrInitObject(internalData, scopeName);
+                var elementScope = internalData[scopeName];
+                if (!elementScope) {
+                    elementScope = {};
+                    internalData[scopeName] = elementScope;
+                }
                 return elementScope;
             } else {
                 return {};
@@ -398,7 +401,7 @@ export class Runtime {
         assignToNamespace(elt, nameSpace, name, value) {
             let root
             if (typeof document !== "undefined" && elt === document.body) {
-                root = this.globalScope;
+                root = this.#globalScope;
             } else {
                 root = this.getHyperscriptFeatures(elt);
             }
@@ -456,19 +459,6 @@ export class Runtime {
             } else {
                 func(value);
             }
-        }
-
-        wrapArrays(args) {
-            var arr = [];
-            for (var i = 0; i < args.length; i++) {
-                var arg = args[i];
-                if (Array.isArray(arg)) {
-                    arr.push(Promise.all(arg));
-                } else {
-                    arr.push(arg);
-                }
-            }
-            return arr;
         }
 
         // =================================================================
@@ -545,7 +535,7 @@ export class Runtime {
 
         makeEvent(eventName, detail) {
             var evt;
-            if (this.globalScope.Event && typeof this.globalScope.Event === "function") {
+            if (this.#globalScope.Event && typeof this.#globalScope.Event === "function") {
                 evt = new Event(eventName, {
                     bubbles: true,
                     cancelable: true,
@@ -600,18 +590,16 @@ export class Runtime {
         // DOM initialization
         // =================================================================
 
-        _scriptAttrs = null;
-
-        getScriptAttributes() {
-            if (this._scriptAttrs == null) {
-                this._scriptAttrs = config.attributes.replace(/ /g, "").split(",");
+        #getScriptAttributes() {
+            if (this.#scriptAttrs == null) {
+                this.#scriptAttrs = config.attributes.replace(/ /g, "").split(",");
             }
-            return this._scriptAttrs;
+            return this.#scriptAttrs;
         }
 
-        getScript(elt) {
-            for (var i = 0; i < this.getScriptAttributes().length; i++) {
-                var scriptAttribute = this.getScriptAttributes()[i];
+        #getScript(elt) {
+            for (var i = 0; i < this.#getScriptAttributes().length; i++) {
+                var scriptAttribute = this.#getScriptAttributes()[i];
                 if (elt.hasAttribute && elt.hasAttribute(scriptAttribute)) {
                     return elt.getAttribute(scriptAttribute);
                 }
@@ -622,27 +610,27 @@ export class Runtime {
             return null;
         }
 
-        getScriptSelector() {
-            return this.getScriptAttributes()
+        #getScriptSelector() {
+            return this.#getScriptAttributes()
                 .map(function (attribute) {
                     return "[" + attribute + "]";
                 })
                 .join(", ");
         }
 
-        initElement(elt, target) {
+        #initElement(elt, target) {
             if (elt.closest && elt.closest(config.disableSelector)) {
                 return;
             }
             var internalData = this.getInternalData(elt);
             if (!internalData.initialized) {
-                var src = this.getScript(elt);
+                var src = this.#getScript(elt);
                 if (src) {
                     try {
                         internalData.initialized = true;
                         internalData.script = src;
-                        var tokens = this.tokenizer.tokenize(src);
-                        var hyperScript = this.parser.parseHyperScript(tokens);
+                        var tokens = this.#tokenizer.tokenize(src);
+                        var hyperScript = this.#kernel.parseHyperScript(tokens);
                         if (!hyperScript) return;
                         hyperScript.apply(target || elt, elt, null, this);
                         setTimeout(() => {
@@ -667,16 +655,16 @@ export class Runtime {
         }
 
         processNode(elt) {
-            var selector = this.getScriptSelector();
+            var selector = this.#getScriptSelector();
             if (this.matchesSelector(elt, selector)) {
-                this.initElement(elt, elt);
+                this.#initElement(elt, elt);
             }
             if (elt instanceof HTMLScriptElement && elt.type === "text/hyperscript") {
-                this.initElement(elt, document.body);
+                this.#initElement(elt, document.body);
             }
             if (elt.querySelectorAll) {
                 this.forEach(elt.querySelectorAll(selector + ", [type='text/hyperscript']"), elt => {
-                    this.initElement(elt, elt instanceof HTMLScriptElement && elt.type === "text/hyperscript" ? document.body : elt);
+                    this.#initElement(elt, elt instanceof HTMLScriptElement && elt.type === "text/hyperscript" ? document.body : elt);
                 });
             }
         }
