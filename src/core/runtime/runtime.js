@@ -3,11 +3,11 @@ import { config } from '../config.js';
 import { conversions } from './conversions.js';
 import { Tokens } from '../tokenizer.js';
 import { CookieJar } from './cookies.js';
-import { ElementCollection, shouldAutoIterateSymbol } from './collections.js';
+import { ElementCollection, SHOULD_AUTO_ITERATE_SYM } from './collections.js';
 
 // Re-export for consumers
 export { ElementCollection, TemplatedQueryElementCollection, RegExpIterator, RegExpIterable,
-         HyperscriptModule, shouldAutoIterateSymbol } from './collections.js';
+         HyperscriptModule, SHOULD_AUTO_ITERATE_SYM } from './collections.js';
 
 export class Context {
     constructor(owner, feature, hyperscriptTarget, event, runtime, globalScope, kernel, tokenizer) {
@@ -418,7 +418,7 @@ export class Runtime {
         }
 
         shouldAutoIterate(value) {
-            return value != null && value[shouldAutoIterateSymbol] ||
+            return value != null && value[SHOULD_AUTO_ITERATE_SYM] ||
                 this.isArrayLike(value);
         }
 

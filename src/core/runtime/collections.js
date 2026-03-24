@@ -1,6 +1,6 @@
 // Collection utilities for _hyperscript
 
-export const shouldAutoIterateSymbol = Symbol()
+export const SHOULD_AUTO_ITERATE_SYM = Symbol()
 
 export class ElementCollection {
     constructor(css, relativeToElement, escape, runtime) {
@@ -8,7 +8,7 @@ export class ElementCollection {
         this.relativeToElement = relativeToElement;
         this.escape = escape;
         this._runtime = runtime;
-        this[shouldAutoIterateSymbol] = true;
+        this[SHOULD_AUTO_ITERATE_SYM] = true;
     }
 
     get css() {
