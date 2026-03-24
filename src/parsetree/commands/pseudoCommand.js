@@ -1,64 +1,27 @@
 import { Command } from '../base.js';
 
 /**
- * PseudoCommandWithTarget - Function call with explicit target
- */
-class PseudoCommandWithTarget extends Command {
-    constructor(realRoot, root) {
-        super();
-        this.type = "pseudoCommand";
-        this.root = realRoot;
-        this.argExressions = root.argExressions;
-        this.args = [realRoot, root.argExressions];
-        this._root = root;  // Keep reference for op
-        this._realRoot = realRoot;  // Keep reference for op
-    }
-
-    resolve(context, rootRoot, args) {
-        context.meta.runtime.nullCheck(rootRoot, this._realRoot);
-        var func = rootRoot[this._root.root.name];
-        context.meta.runtime.nullCheck(func, this._root);
-        if (func.hyperfunc) {
-            args.push(context);
-        }
-        context.result = func.apply(rootRoot, args);
-        return context.meta.runtime.findNext(this, context);
-    }
-}
-
-/**
- * PseudoCommandSimple - Function call without explicit target
- */
-class PseudoCommandSimple extends Command {
-    constructor(expr) {
-        super();
-        this.type = "pseudoCommand";
-        this.expr = expr;
-        this.args = [expr];
-    }
-
-    resolve(context, result) {
-        context.result = result;
-        return context.meta.runtime.findNext(this, context);
-    }
-}
-
-/**
  * PseudoCommand - Function call syntax that looks like a command
  *
  * Parses: <functionCall> [the|to|on|with|into|from|at|me <expression>]
- * Example: increment(x) by 1
- *          show(modal) to me
- *          call(func) with args
- *
  * Executes: Evaluates the function call and optional target expression
  */
-export class PseudoCommand {
-    /**
-     * Parse pseudo-command
-     * @param {Parser} parser
-     * @returns {PseudoCommandWithTarget | PseudoCommandSimple | undefined}
-     */
+export class PseudoCommand extends Command {
+    constructor(variant, expr, realRoot, root) {
+        super();
+        this.variant = variant;
+        this.expr = expr;
+        this._root = root;
+        this._realRoot = realRoot;
+        if (variant === "target") {
+            this.root = realRoot;
+            this.argExressions = root.argExressions;
+            this.args = [realRoot, root.argExressions];
+        } else {
+            this.args = [expr];
+        }
+    }
+
     static parse(parser) {
         let lookAhead = parser.token(1);
         if (!(lookAhead && lookAhead.op && (lookAhead.value === '.' || lookAhead.value === "("))) {
@@ -87,9 +50,26 @@ export class PseudoCommand {
         }
 
         if (realRoot) {
-            return new PseudoCommandWithTarget(realRoot, root);
+            return new PseudoCommand("target", expr, realRoot, root);
         } else {
-            return new PseudoCommandSimple(expr);
+            return new PseudoCommand("simple", expr, null, null);
         }
+    }
+
+    resolve(context, ...resolvedArgs) {
+        if (this.variant === "target") {
+            var rootRoot = resolvedArgs[0];
+            var args = resolvedArgs[1];
+            context.meta.runtime.nullCheck(rootRoot, this._realRoot);
+            var func = rootRoot[this._root.root.name];
+            context.meta.runtime.nullCheck(func, this._root);
+            if (func.hyperfunc) {
+                args.push(context);
+            }
+            context.result = func.apply(rootRoot, args);
+        } else {
+            context.result = resolvedArgs[0];
+        }
+        return context.meta.runtime.findNext(this, context);
     }
 }
