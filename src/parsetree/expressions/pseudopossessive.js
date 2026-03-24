@@ -18,6 +18,12 @@ export class PseudopossessiveIts extends Expression {
         this.name = token.value;
     }
 
+    static parse(parser) {
+        if (parser.currentToken().type === "IDENTIFIER" && parser.currentToken().value === "its") {
+            return new PseudopossessiveIts(parser.matchToken("its"));
+        }
+    }
+
     resolve(context) {
         return context.meta.runtime.resolveSymbol("it", context);
     }

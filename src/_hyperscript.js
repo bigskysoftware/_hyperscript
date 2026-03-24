@@ -44,6 +44,7 @@ import {ImplicitMeTarget} from './parsetree/expressions/targets.js';
 import {NoExpression, SomeExpression} from './parsetree/expressions/existentials.js';
 import {ClosestExpr, PositionalExpression, RelativePositionalExpression} from './parsetree/expressions/positional.js';
 import {StringPostfixExpression, TimeExpression, TypeCheckExpression} from './parsetree/expressions/postfix.js';
+import {PseudopossessiveIts} from './parsetree/expressions/pseudopossessive.js';
 
 // Command imports
 import {
@@ -137,6 +138,7 @@ kernel.addGrammarElement("styleLiteral", StyleLiteral.parse);
 // Symbols and identifiers
 kernel.addGrammarElement("symbol", SymbolRef.parse);
 kernel.addGrammarElement("implicitMeTarget", ImplicitMeTarget.parse);
+kernel.addGrammarElement("pseudopossessiveIts", PseudopossessiveIts.parse);
 kernel.addGrammarElement("dotOrColonPath", DotOrColonPath.parse);
 kernel.addGrammarElement("eventName", EventName.parse);
 

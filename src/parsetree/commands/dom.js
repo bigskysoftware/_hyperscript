@@ -5,7 +5,6 @@
 
 import { Command } from '../base.js';
 import { config } from '../../core/config.js';
-import { PseudopossessiveIts } from '../expressions/pseudopossessive.js';
 
 /**
  * Hide/Show strategies for toggling element visibility
@@ -584,39 +583,7 @@ export class ShowCommand extends VisibilityCommand {
     }
 }
 
-/**
- * Parse pseudopossessive targets (the/its/my element's)
- * Shared by MeasureCommand and TransitionCommand
- */
-export function parsePseudopossessiveTarget(parser) {
-    var targets;
-    if (
-        parser.matchToken("the") ||
-        parser.matchToken("element") ||
-        parser.matchToken("elements") ||
-        parser.currentToken().type === "CLASS_REF" ||
-        parser.currentToken().type === "ID_REF" ||
-        (parser.currentToken().op && parser.currentToken().value === "<")
-    ) {
-        parser.possessivesDisabled = true;
-        try {
-            targets = parser.parseElement("expression");
-        } finally {
-            delete parser.possessivesDisabled;
-        }
-        // optional possessive
-        if (parser.matchOpToken("'")) {
-            parser.requireToken("s");
-        }
-    } else if (parser.currentToken().type === "IDENTIFIER" && parser.currentToken().value === "its") {
-        var identifier = parser.matchToken("its");
-        targets = new PseudopossessiveIts(identifier);
-    } else {
-        parser.matchToken("my") || parser.matchToken("me"); // consume optional 'my'
-        targets = parser.parseElement("implicitMeTarget");
-    }
-    return targets;
-}
+// (parsePseudopossessiveTarget is now a static method on Command in base.js)
 
 /**
  * TakeCommand - Take classes or attributes from elements
@@ -752,7 +719,7 @@ export class MeasureCommand extends Command {
     static parse(parser) {
         if (!parser.matchToken("measure")) return;
 
-        var targetExpr = parsePseudopossessiveTarget(parser);
+        var targetExpr = Command.parsePseudopossessiveTarget(parser);
 
         var propsToMeasure = [];
         if (!parser.commandBoundary(parser.currentToken()))

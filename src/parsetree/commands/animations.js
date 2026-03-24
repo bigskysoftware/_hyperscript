@@ -5,7 +5,6 @@
 
 import { Command, Expression } from '../base.js';
 import { config } from '../../core/config.js';
-import { parsePseudopossessiveTarget } from './dom.js';
 
 /**
  * StyleRefValue - Represents a style property name reference
@@ -139,7 +138,7 @@ export class TransitionCommand extends Command {
      */
     static parse(parser) {
         if (parser.matchToken("transition")) {
-            var targetsExpr = parsePseudopossessiveTarget(parser);
+            var targetsExpr = Command.parsePseudopossessiveTarget(parser);
 
             var properties = [];
             var from = [];
