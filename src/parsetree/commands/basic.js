@@ -499,69 +499,21 @@ function parsePickRange(parser) {
  *         pick [the] match[es] of <regex> from <expr>
  * Executes: Extracts specified range or matches from collection/string
  */
-/**
- * PickCommandRange - Pick items/characters from a range
- */
-class PickCommandRange extends Command {
-    constructor(root, range) {
-        super();
-        this.type = "pickCommand";
-        this.args = [root, range.from, range.to];
-        this.range = range;
-    }
-
-    resolve(ctx, root, from, to) {
-        if (this.range.toEnd) to = root.length;
-        if (!this.range.includeStart) from++;
-        if (this.range.includeEnd) to++;
-        if (to == null || to == undefined) to = from + 1;
-        ctx.result = root.slice(from, to);
-        return ctx.meta.runtime.findNext(this, ctx);
-    }
-}
-
-/**
- * PickCommandMatch - Pick regex match
- */
-class PickCommandMatch extends Command {
-    constructor(root, re, flags) {
-        super();
-        this.type = "pickCommand";
-        this.args = [root, re];
-        this.flags = flags;
-    }
-
-    resolve(ctx, root, re) {
-        ctx.result = new RegExp(re, this.flags).exec(root);
-        return ctx.meta.runtime.findNext(this, ctx);
-    }
-}
-
-/**
- * PickCommandMatches - Pick all regex matches
- */
-class PickCommandMatches extends Command {
-    constructor(root, re, flags) {
-        super();
-        this.type = "pickCommand";
-        this.args = [root, re];
-        this.flags = flags;
-    }
-
-    resolve(ctx, root, re) {
-        ctx.result = new RegExpIterable(re, this.flags, root);
-        return ctx.meta.runtime.findNext(this, ctx);
-    }
-}
-
-export class PickCommand {
+export class PickCommand extends Command {
     static keyword = "pick";
 
-    /**
-     * Parse pick command
-     * @param {Parser} parser
-     * @returns {PickCommandRange | PickCommandMatch | PickCommandMatches | undefined}
-     */
+    constructor(variant, root, range, re, flags) {
+        super();
+        this.variant = variant;
+        this.range = range;
+        this.flags = flags;
+        if (variant === "range") {
+            this.args = [root, range.from, range.to];
+        } else {
+            this.args = [root, re];
+        }
+    }
+
     static parse(parser) {
         if (!parser.matchToken("pick")) return;
 
@@ -574,7 +526,7 @@ export class PickCommand {
             parser.requireToken("from");
             const root = parser.requireElement("expression");
 
-            return new PickCommandRange(root, range);
+            return new PickCommand("range", root, range, null, null);
         }
 
         if (parser.matchToken("match")) {
@@ -588,7 +540,7 @@ export class PickCommand {
             parser.requireToken("from");
             const root = parser.parseElement("expression");
 
-            return new PickCommandMatch(root, re, flags);
+            return new PickCommand("match", root, null, re, flags);
         }
 
         if (parser.matchToken("matches")) {
@@ -602,8 +554,25 @@ export class PickCommand {
             parser.requireToken("from");
             const root = parser.parseElement("expression");
 
-            return new PickCommandMatches(root, re, flags);
+            return new PickCommand("matches", root, null, re, flags);
         }
+    }
+
+    resolve(ctx, root, secondArg, thirdArg) {
+        if (this.variant === "range") {
+            var from = secondArg;
+            var to = thirdArg;
+            if (this.range.toEnd) to = root.length;
+            if (!this.range.includeStart) from++;
+            if (this.range.includeEnd) to++;
+            if (to == null || to == undefined) to = from + 1;
+            ctx.result = root.slice(from, to);
+        } else if (this.variant === "match") {
+            ctx.result = new RegExp(secondArg, this.flags).exec(root);
+        } else {
+            ctx.result = new RegExpIterable(secondArg, this.flags, root);
+        }
+        return ctx.meta.runtime.findNext(this, ctx);
     }
 }
 

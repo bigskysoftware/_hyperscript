@@ -104,105 +104,26 @@ function resolveHideShowStrategy(parser, name) {
  * Parses: add .class to target | add @attr to target | add {css} to target
  * Executes: Adds classes/attributes/CSS to target elements
  */
-/**
- * AddCommandClass - Add classes to elements
- */
-class AddCommandClass extends Command {
-    constructor(classRefs, toExpr, when) {
+export class AddCommand extends Command {
+    static keyword = "add";
+
+    constructor(variant, classRefs, attributeRef, cssDeclaration, toExpr, when) {
         super();
-        this.type = "addCommand";
+        this.variant = variant;
         this.classRefs = classRefs;
-        this.to = toExpr;
-        this.args = [toExpr, classRefs];
-        this.when = when;
-        this.toExpr = toExpr;
-    }
-
-    resolve(context, to, classRefs) {
-        const when = this.when;
-        const toExpr = this.toExpr;
-        context.meta.runtime.nullCheck(to, toExpr);
-        context.meta.runtime.forEach(classRefs, function (classRef) {
-            context.meta.runtime.implicitLoop(to, function (target) {
-                if (when) {
-                    context.result = target;
-                    let whenResult = context.meta.runtime.evaluateNoPromise(when, context);
-                    if (whenResult) {
-                        if (target instanceof Element) target.classList.add(classRef.className);
-                    } else {
-                        if (target instanceof Element) target.classList.remove(classRef.className);
-                    }
-                    context.result = null;
-                } else {
-                    if (target instanceof Element) target.classList.add(classRef.className);
-                }
-            });
-        });
-        return context.meta.runtime.findNext(this, context);
-    }
-}
-
-/**
- * AddCommandAttribute - Add attribute to elements
- */
-class AddCommandAttribute extends Command {
-    constructor(attributeRef, toExpr, when) {
-        super();
-        this.type = "addCmd";
         this.attributeRef = attributeRef;
-        this.to = toExpr;
-        this.args = [toExpr];
-        this.when = when;
-        this.toExpr = toExpr;
-    }
-
-    resolve(context, to, attrRef) {
-        const when = this.when;
-        const attributeRef = this.attributeRef;
-        const toExpr = this.toExpr;
-        context.meta.runtime.nullCheck(to, toExpr);
-        context.meta.runtime.implicitLoop(to, function (target) {
-            if (when) {
-                context.result = target;
-                let whenResult = context.meta.runtime.evaluateNoPromise(when, context);
-                if (whenResult) {
-                    target.setAttribute(attributeRef.name, attributeRef.value);
-                } else {
-                    target.removeAttribute(attributeRef.name);
-                }
-                context.result = null;
-            } else {
-                target.setAttribute(attributeRef.name, attributeRef.value);
-            }
-        });
-        return context.meta.runtime.findNext(this, context);
-    }
-}
-
-/**
- * AddCommandCSS - Add CSS declaration to elements
- */
-class AddCommandCSS extends Command {
-    constructor(cssDeclaration, toExpr) {
-        super();
-        this.type = "addCmd";
         this.cssDeclaration = cssDeclaration;
         this.to = toExpr;
-        this.args = [toExpr, cssDeclaration];
         this.toExpr = toExpr;
+        this.when = when;
+        if (variant === "class") {
+            this.args = [toExpr, classRefs];
+        } else if (variant === "attribute") {
+            this.args = [toExpr];
+        } else {
+            this.args = [toExpr, cssDeclaration];
+        }
     }
-
-    resolve(context, to, css) {
-        context.meta.runtime.nullCheck(to, this.toExpr);
-        context.meta.runtime.implicitLoop(to, function (target) {
-            target.style.cssText += css;
-        });
-        return context.meta.runtime.findNext(this, context);
-    }
-}
-
-export class AddCommand {
-    static keyword = "add";
 
     static parse(parser) {
         if (!parser.matchToken("add")) return;
@@ -239,12 +160,59 @@ export class AddCommand {
         }
 
         if (classRefs) {
-            return new AddCommandClass(classRefs, toExpr, when);
+            return new AddCommand("class", classRefs, null, null, toExpr, when);
         } else if (attributeRef) {
-            return new AddCommandAttribute(attributeRef, toExpr, when);
+            return new AddCommand("attribute", null, attributeRef, null, toExpr, when);
         } else {
-            return new AddCommandCSS(cssDeclaration, toExpr);
+            return new AddCommand("css", null, null, cssDeclaration, toExpr, null);
         }
+    }
+
+    resolve(context, to, secondArg) {
+        context.meta.runtime.nullCheck(to, this.toExpr);
+        if (this.variant === "class") {
+            var classRefs = secondArg;
+            const when = this.when;
+            context.meta.runtime.forEach(classRefs, function (classRef) {
+                context.meta.runtime.implicitLoop(to, function (target) {
+                    if (when) {
+                        context.result = target;
+                        let whenResult = context.meta.runtime.evaluateNoPromise(when, context);
+                        if (whenResult) {
+                            if (target instanceof Element) target.classList.add(classRef.className);
+                        } else {
+                            if (target instanceof Element) target.classList.remove(classRef.className);
+                        }
+                        context.result = null;
+                    } else {
+                        if (target instanceof Element) target.classList.add(classRef.className);
+                    }
+                });
+            });
+        } else if (this.variant === "attribute") {
+            const attributeRef = this.attributeRef;
+            const when = this.when;
+            context.meta.runtime.implicitLoop(to, function (target) {
+                if (when) {
+                    context.result = target;
+                    let whenResult = context.meta.runtime.evaluateNoPromise(when, context);
+                    if (whenResult) {
+                        target.setAttribute(attributeRef.name, attributeRef.value);
+                    } else {
+                        target.removeAttribute(attributeRef.name);
+                    }
+                    context.result = null;
+                } else {
+                    target.setAttribute(attributeRef.name, attributeRef.value);
+                }
+            });
+        } else {
+            var css = secondArg;
+            context.meta.runtime.implicitLoop(to, function (target) {
+                target.style.cssText += css;
+            });
+        }
+        return context.meta.runtime.findNext(this, context);
     }
 }
 
@@ -254,64 +222,23 @@ export class AddCommand {
  * Parses: remove .class from target | remove @attr from target | remove element [from container]
  * Executes: Removes classes/attributes or removes element from DOM
  */
-/**
- * RemoveCommandElement - Remove element from DOM
- */
-class RemoveCommandElement extends Command {
-    constructor(elementExpr, fromExpr) {
+export class RemoveCommand extends Command {
+    static keyword = "remove";
+
+    constructor(variant, elementExpr, classRefs, attributeRef, fromExpr) {
         super();
-        this.type = "removeCommand";
+        this.variant = variant;
         this.elementExpr = elementExpr;
-        this.from = fromExpr;
-        this.args = [elementExpr, fromExpr];
-    }
-
-    resolve(context, element, from) {
-        context.meta.runtime.nullCheck(element, this.elementExpr);
-        context.meta.runtime.implicitLoop(element, function (target) {
-            if (target.parentElement && (from == null || from.contains(target))) {
-                target.parentElement.removeChild(target);
-            }
-        });
-        return context.meta.runtime.findNext(this, context);
-    }
-}
-
-/**
- * RemoveCommandClassOrAttr - Remove class or attribute from elements
- */
-class RemoveCommandClassOrAttr extends Command {
-    constructor(classRefs, attributeRef, fromExpr) {
-        super();
-        this.type = "removeCommand";
         this.classRefs = classRefs;
         this.attributeRef = attributeRef;
         this.from = fromExpr;
-        this.args = [classRefs, fromExpr];
         this.fromExpr = fromExpr;
-    }
-
-    resolve(context, classRefs, from) {
-        const attributeRef = this.attributeRef;
-        const fromExpr = this.fromExpr;
-        context.meta.runtime.nullCheck(from, fromExpr);
-        if (classRefs) {
-            context.meta.runtime.forEach(classRefs, function (classRef) {
-                context.meta.runtime.implicitLoop(from, function (target) {
-                    target.classList.remove(classRef.className);
-                });
-            });
+        if (variant === "element") {
+            this.args = [elementExpr, fromExpr];
         } else {
-            context.meta.runtime.implicitLoop(from, function (target) {
-                target.removeAttribute(attributeRef.name);
-            });
+            this.args = [classRefs, fromExpr];
         }
-        return context.meta.runtime.findNext(this, context);
     }
-}
-
-export class RemoveCommand {
-    static keyword = "remove";
 
     static parse(parser) {
         if (!parser.matchToken("remove")) return;
@@ -345,10 +272,40 @@ export class RemoveCommand {
         }
 
         if (elementExpr) {
-            return new RemoveCommandElement(elementExpr, fromExpr);
+            return new RemoveCommand("element", elementExpr, null, null, fromExpr);
         } else {
-            return new RemoveCommandClassOrAttr(classRefs, attributeRef, fromExpr);
+            return new RemoveCommand("classOrAttr", null, classRefs, attributeRef, fromExpr);
         }
+    }
+
+    resolve(context, firstArg, secondArg) {
+        if (this.variant === "element") {
+            var element = firstArg;
+            var from = secondArg;
+            context.meta.runtime.nullCheck(element, this.elementExpr);
+            context.meta.runtime.implicitLoop(element, function (target) {
+                if (target.parentElement && (from == null || from.contains(target))) {
+                    target.parentElement.removeChild(target);
+                }
+            });
+        } else {
+            var classRefs = firstArg;
+            var from = secondArg;
+            context.meta.runtime.nullCheck(from, this.fromExpr);
+            if (classRefs) {
+                context.meta.runtime.forEach(classRefs, function (classRef) {
+                    context.meta.runtime.implicitLoop(from, function (target) {
+                        target.classList.remove(classRef.className);
+                    });
+                });
+            } else {
+                const attributeRef = this.attributeRef;
+                context.meta.runtime.implicitLoop(from, function (target) {
+                    target.removeAttribute(attributeRef.name);
+                });
+            }
+        }
+        return context.meta.runtime.findNext(this, context);
     }
 }
 
@@ -668,76 +625,26 @@ function parsePseudopossessiveTarget(parser) {
  * Parses: take <classes|attribute> [from <elements>] [for <target>]
  * Executes: Removes classes/attributes from source and adds to target
  */
-class TakeCommandClass extends Command {
-    constructor(classRefs, fromExpr, forExpr) {
+export class TakeCommand extends Command {
+    static keyword = "take";
+
+    constructor(variant, classRefs, attributeRef, fromExpr, forExpr, replacementValue) {
         super();
-        this.type = "takeCommand";
+        this.variant = variant;
         this.classRefs = classRefs;
-        this.from = fromExpr;
-        this.forElt = forExpr;
-        this.forExpr = forExpr;
-        this.args = [classRefs, fromExpr, forExpr];
-    }
-
-    resolve(context, classRefs, from, forElt) {
-        context.meta.runtime.nullCheck(forElt, this.forExpr);
-        context.meta.runtime.implicitLoop(classRefs, (classRef) => {
-            var clazz = classRef.className;
-            if (from) {
-                context.meta.runtime.implicitLoop(from, (target) => {
-                    target.classList.remove(clazz);
-                });
-            } else {
-                context.meta.runtime.implicitLoop(classRef, (target) => {
-                    target.classList.remove(clazz);
-                });
-            }
-            context.meta.runtime.implicitLoop(forElt, (target) => {
-                target.classList.add(clazz);
-            });
-        });
-        return context.meta.runtime.findNext(this, context);
-    }
-}
-
-class TakeCommandAttribute extends Command {
-    constructor(attributeRef, fromExpr, forExpr, replacementValue) {
-        super();
-        this.type = "takeCommand";
         this.attributeRef = attributeRef;
         this.from = fromExpr;
         this.fromExpr = fromExpr;
         this.forElt = forExpr;
         this.forExpr = forExpr;
         this.replacementValue = replacementValue;
-        this.args = [fromExpr, forExpr, replacementValue];
+        if (variant === "class") {
+            this.args = [classRefs, fromExpr, forExpr];
+        } else {
+            this.args = [fromExpr, forExpr, replacementValue];
+        }
     }
 
-    resolve(context, from, forElt, replacementValue) {
-        context.meta.runtime.nullCheck(from, this.fromExpr);
-        context.meta.runtime.nullCheck(forElt, this.forExpr);
-        context.meta.runtime.implicitLoop(from, (target) => {
-            if (!replacementValue) {
-                target.removeAttribute(this.attributeRef.name);
-            } else {
-                target.setAttribute(this.attributeRef.name, replacementValue);
-            }
-        });
-        context.meta.runtime.implicitLoop(forElt, (target) => {
-            target.setAttribute(this.attributeRef.name, this.attributeRef.value || "");
-        });
-        return context.meta.runtime.findNext(this, context);
-    }
-}
-
-export class TakeCommand {
-    static keyword = "take";
-
-    /**
-     * Parse take command
-     * @param {Parser} parser
-     * @returns {TakeCommand | undefined}
-     */
     static parse(parser) {
         if (parser.matchToken("take")) {
             let classRef = null;
@@ -772,11 +679,52 @@ export class TakeCommand {
             }
 
             if (weAreTakingClasses) {
-                return new TakeCommandClass(classRefs, fromExpr, forExpr);
+                return new TakeCommand("class", classRefs, null, fromExpr, forExpr, null);
             } else {
-                return new TakeCommandAttribute(attributeRef, fromExpr, forExpr, replacementValue);
+                return new TakeCommand("attribute", null, attributeRef, fromExpr, forExpr, replacementValue);
             }
         }
+    }
+
+    resolve(context, firstArg, secondArg, thirdArg) {
+        if (this.variant === "class") {
+            var classRefs = firstArg;
+            var from = secondArg;
+            var forElt = thirdArg;
+            context.meta.runtime.nullCheck(forElt, this.forExpr);
+            context.meta.runtime.implicitLoop(classRefs, (classRef) => {
+                var clazz = classRef.className;
+                if (from) {
+                    context.meta.runtime.implicitLoop(from, (target) => {
+                        target.classList.remove(clazz);
+                    });
+                } else {
+                    context.meta.runtime.implicitLoop(classRef, (target) => {
+                        target.classList.remove(clazz);
+                    });
+                }
+                context.meta.runtime.implicitLoop(forElt, (target) => {
+                    target.classList.add(clazz);
+                });
+            });
+        } else {
+            var from = firstArg;
+            var forElt = secondArg;
+            var replacementValue = thirdArg;
+            context.meta.runtime.nullCheck(from, this.fromExpr);
+            context.meta.runtime.nullCheck(forElt, this.forExpr);
+            context.meta.runtime.implicitLoop(from, (target) => {
+                if (!replacementValue) {
+                    target.removeAttribute(this.attributeRef.name);
+                } else {
+                    target.setAttribute(this.attributeRef.name, replacementValue);
+                }
+            });
+            context.meta.runtime.implicitLoop(forElt, (target) => {
+                target.setAttribute(this.attributeRef.name, this.attributeRef.value || "");
+            });
+        }
+        return context.meta.runtime.findNext(this, context);
     }
 }
 

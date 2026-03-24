@@ -90,52 +90,7 @@ class RepeatLoopCommand extends Command {
     }
 }
 
-/**
- * RepeatInitCommand - Initializes the loop iterator
- */
-class RepeatInitCommand extends Command {
-    constructor(expression, evt, on, slot, repeatLoopCommand) {
-        super();
-        this.name = "repeatInit";
-        this.expression = expression;
-        this.evt = evt;
-        this.on = on;
-        this.slot = slot;
-        this.repeatLoopCommand = repeatLoopCommand;
-        this.args = [expression, evt, on];
-    }
-
-    resolve(context, value, event, on) {
-        var iteratorInfo = {
-            index: 0,
-            value: value,
-            eventFired: false,
-        };
-        context.meta.iterators[this.slot] = iteratorInfo;
-
-        if (value) {
-            if (value[Symbol.iterator]) {
-                iteratorInfo.iterator = value[Symbol.iterator]();
-            } else {
-                iteratorInfo.iterator = Object.keys(value)[Symbol.iterator]();
-            }
-        }
-
-        if (this.evt) {
-            var target = on || context.me;
-            const slot = this.slot;
-            target.addEventListener(
-                event,
-                function (e) {
-                    context.meta.iterators[slot].eventFired = true;
-                },
-                { once: true }
-            );
-        }
-
-        return this.repeatLoopCommand;
-    }
-}
+// (RepeatCommand defined below after parseRepeatExpression)
 
 /**
  * IfCommand - Conditional execution
@@ -279,32 +234,68 @@ function parseRepeatExpression(parser, startedWithForToken) {
     };
 
     const repeatLoopCommand = new RepeatLoopCommand(loopConfig, loop);
-    const repeatInitCommand = new RepeatInitCommand(expression, evt, on, slot, repeatLoopCommand);
+    const repeatCommand = new RepeatCommand(expression, evt, on, slot, repeatLoopCommand);
 
     parser.setParent(loop, repeatLoopCommand);
-    parser.setParent(repeatLoopCommand, repeatInitCommand);
+    parser.setParent(repeatLoopCommand, repeatCommand);
 
-    return repeatInitCommand;
+    return repeatCommand;
 }
 
 /**
  * RepeatCommand - Loop with various forms
  *
  * Parses: repeat [for x in expr] | [in expr] | [while expr] | [until expr|event] | [n times] | [forever]
- * Executes: Loops according to the specified condition
+ * Executes: Initializes loop iterator then hands off to RepeatLoopCommand
  */
-export class RepeatCommand {
+export class RepeatCommand extends Command {
     static keyword = "repeat";
 
-    /**
-     * Parse repeat command
-     * @param {Parser} parser
-     * @returns {RepeatCommand | undefined}
-     */
+    constructor(expression, evt, on, slot, repeatLoopCommand) {
+        super();
+        this.expression = expression;
+        this.evt = evt;
+        this.on = on;
+        this.slot = slot;
+        this.repeatLoopCommand = repeatLoopCommand;
+        this.args = [expression, evt, on];
+    }
+
     static parse(parser) {
         if (parser.matchToken("repeat")) {
             return parseRepeatExpression(parser, false);
         }
+    }
+
+    resolve(context, value, event, on) {
+        var iteratorInfo = {
+            index: 0,
+            value: value,
+            eventFired: false,
+        };
+        context.meta.iterators[this.slot] = iteratorInfo;
+
+        if (value) {
+            if (value[Symbol.iterator]) {
+                iteratorInfo.iterator = value[Symbol.iterator]();
+            } else {
+                iteratorInfo.iterator = Object.keys(value)[Symbol.iterator]();
+            }
+        }
+
+        if (this.evt) {
+            var target = on || context.me;
+            const slot = this.slot;
+            target.addEventListener(
+                event,
+                function (e) {
+                    context.meta.iterators[slot].eventFired = true;
+                },
+                { once: true }
+            );
+        }
+
+        return this.repeatLoopCommand;
     }
 }
 
