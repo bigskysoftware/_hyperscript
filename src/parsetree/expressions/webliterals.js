@@ -4,6 +4,7 @@
  */
 import { ElementCollection, TemplatedQueryElementCollection } from '../../core/runtime.js';
 import { Expression } from '../base.js';
+import { Tokenizer } from '../../core/tokenizer.js';
 
 /**
  * IdRef - Represents ID references (#foo or #${expr})
@@ -25,7 +26,7 @@ export class IdRef extends Expression {
     }
 
     static parse(parser) {
-        const Tokenizer = parser.kernel.constructor.Tokenizer || window._hyperscript?.internals?.Tokenizer;
+
         var elementId = parser.matchTokenType("ID_REF");
         if (!elementId) return;
         if (!elementId.value) return;
@@ -70,7 +71,7 @@ export class ClassRef extends Expression {
     }
 
     static parse(parser) {
-        const Tokenizer = parser.kernel.constructor.Tokenizer || window._hyperscript?.internals?.Tokenizer;
+
         var classRef = parser.matchTokenType("CLASS_REF");
         if (!classRef) return;
         if (!classRef.value) return;
@@ -115,7 +116,7 @@ export class QueryRef extends Expression {
     }
 
     static parse(parser) {
-        const Tokenizer = parser.kernel.constructor.Tokenizer || window._hyperscript?.internals?.Tokenizer;
+
 
         var queryStart = parser.matchOpToken("<");
         if (!queryStart) return;

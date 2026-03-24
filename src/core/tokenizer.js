@@ -36,16 +36,30 @@ export class Tokens {
 
     /**
      * @param {Tokens} tokens
-     * @param {*} error
+     * @param {string} [message]
      * @returns {never}
      */
-    raiseError(tokens, error) {
-        // This will be set by LanguageKernel when it's initialized
-        if (Tokens._parserRaiseError) {
-            Tokens._parserRaiseError(tokens, error);
-        } else {
-            throw new Error(error);
-        }
+    raiseError(tokens, message) {
+        message =
+            (message || "Unexpected Token : " + tokens.currentToken().value) +
+            "\n\n" + Tokens.createParserContext(tokens);
+        var error = new Error(message);
+        error["tokens"] = tokens;
+        throw error;
+    }
+
+    /**
+     * @param {Tokens} tokens
+     * @returns {string}
+     */
+    static createParserContext(tokens) {
+        var currentToken = tokens.currentToken();
+        var source = tokens.source;
+        var lines = source.split("\n");
+        var line = currentToken && currentToken.line ? currentToken.line - 1 : lines.length - 1;
+        var contextLine = lines[line];
+        var offset = currentToken && currentToken.line ? currentToken.column : contextLine.length - 1;
+        return contextLine + "\n" + " ".repeat(offset) + "^^\n\n";
     }
 
     /**

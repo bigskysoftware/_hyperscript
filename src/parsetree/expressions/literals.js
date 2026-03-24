@@ -4,6 +4,7 @@
  */
 
 import { Expression } from '../base.js';
+import { Tokenizer } from '../../core/tokenizer.js';
 
 /**
  * NakedString - Represents unquoted strings (consumed until whitespace)
@@ -172,7 +173,7 @@ export class StringLiteral extends Expression {
         var args;
         if (stringToken.template) {
             // Import Lexer from the helper's parser
-            const Tokenizer = parser.kernel.constructor.Tokenizer || window._hyperscript?.internals?.Tokenizer;
+
             if (Tokenizer) {
                 var innerTokens = Tokenizer.tokenize(rawValue, true);
                 var innerParser = new parser.constructor(parser.kernel, innerTokens);

@@ -1,192 +1,164 @@
 // LanguageKernel - AST parsing for _hyperscript
-import { Tokens, Tokenizer } from './tokenizer.js';
-import { Runtime } from './runtime.js';
+import { Tokens } from './tokenizer.js';
 import { Parser } from './parser.js';
 import { EmptyCommandListCommand, UnlessStatementModifier, HyperscriptProgram, ImplicitReturn } from '../parsetree/internals.js';
 import { Command, Feature } from '../parsetree/base.js';
 
-// Change op to be used as "resolve"
-
-/**
- * @callback ParseRule
- * @param {LanguageKernel} parser
- * @param {Runtime} runtime
- * @param {Tokens} tokens
- * @param {*} [root]
- * @returns {ASTNode | undefined}
- *
- * @typedef {Object} ASTNode
- * @member {boolean} isFeature
- * @member {string} type
- * @member {any[]} args
- * @member {(this: ASTNode, ctx:Context, root:any, ...args:any) => any} op
- * @member {(this: ASTNode, context?:Context) => any} evaluate
- * @member {ASTNode} parent
- * @member {Set<ASTNode>} children
- * @member {ASTNode} root
- * @member {String} keyword
- * @member {Token} endToken
- * @member {ASTNode} next
- * @member {(context:Context) => ASTNode} resolveNext
- * @member {EventSource} eventSource
- * @member {(this: ASTNode) => void} install
- * @member {(this: ASTNode, context:Context) => void} execute
- * @member {(this: ASTNode, target: object, source: object, args?: Object) => void} apply
- *
- *
- */
-
 export class LanguageKernel {
-    static Tokenizer = Tokenizer;
 
     constructor() {
-        /* ============================================================================================ */
-        /* Core hyperscript Grammar Elements                                                            */
-        /* ============================================================================================ */
-        this.addGrammarElement("feature", (parser) => {
-            if (parser.matchOpToken("(")) {
-                var featureElement = parser.requireElement("feature");
-                parser.requireOpToken(")");
-                return featureElement;
+        // Top-level program structure
+        this.addGrammarElement("hyperscript", this.parseHyperscriptProgram.bind(this));
+        this.addGrammarElement("feature", this.parseFeature.bind(this));
+
+        // Command structure
+        this.addGrammarElement("commandList", this.parseCommandList.bind(this));
+        this.addGrammarElement("command", this.parseCommand.bind(this));
+        this.addGrammarElement("indirectStatement", this.parseIndirectStatement.bind(this));
+
+        // Expression precedence chain (top to bottom)
+        this.addGrammarElement("expression", this.parseExpression.bind(this));
+        this.addGrammarElement("assignableExpression", this.parseAssignableExpression.bind(this));
+        this.addGrammarElement("unaryExpression", this.parseUnaryExpression.bind(this));
+        this.addGrammarElement("postfixExpression", this.parsePostfixExpression.bind(this));
+        this.addGrammarElement("primaryExpression", this.parsePrimaryExpression.bind(this));
+        this.addGrammarElement("indirectExpression", this.parseIndirectExpression.bind(this));
+        this.addGrammarElement("leaf", this.parseLeaf.bind(this));
+
+    }
+
+    parseFeature(parser) {
+        if (parser.matchOpToken("(")) {
+            var featureElement = parser.requireElement("feature");
+            parser.requireOpToken(")");
+            return featureElement;
+        }
+        var featureDefinition = parser.FEATURES[parser.currentToken().value || ""];
+        if (featureDefinition) {
+            return featureDefinition(parser);
+        }
+    }
+
+    parseCommand(parser) {
+        if (parser.matchOpToken("(")) {
+            const commandElement = parser.requireElement("command");
+            parser.requireOpToken(")");
+            return commandElement;
+        }
+        var commandDefinition = parser.COMMANDS[parser.currentToken().value || ""];
+        let commandElement;
+        if (commandDefinition) {
+            commandElement = commandDefinition(parser);
+        } else if (parser.currentToken().type === "IDENTIFIER") {
+            commandElement = parser.parseElement("pseudoCommand");
+        }
+        if (commandElement) {
+            return this.parseElement("indirectStatement", parser, commandElement);
+        }
+        return commandElement;
+    }
+
+    parseCommandList(parser) {
+        if (parser.hasMore()) {
+            var cmd = parser.parseElement("command");
+            if (cmd) {
+                parser.matchToken("then");
+                const next = parser.parseElement("commandList");
+                if (next) cmd.next = next;
+                return cmd;
             }
+        }
+        return new EmptyCommandListCommand();
+    }
 
-            var featureDefinition = parser.FEATURES[parser.currentToken().value || ""];
-            if (featureDefinition) {
-                return featureDefinition(parser);
+    parseLeaf(parser) {
+        var result = parser.parseAnyOf(parser.LEAF_EXPRESSIONS);
+        // symbol is last so it doesn't consume any constants
+        if (result == null) {
+            return parser.parseElement("symbol");
+        }
+        return result;
+    }
+
+    parseIndirectExpression(parser, root) {
+        for (var i = 0; i < this.INDIRECT_EXPRESSIONS.length; i++) {
+            var indirect = this.INDIRECT_EXPRESSIONS[i];
+            root.endToken = parser.lastMatch();
+            var result = this.parseElement(indirect, parser, root);
+            if (result) {
+                return result;
             }
-        });
+        }
+        return root;
+    }
 
-        // all parse elements that are not following the correct patter, want them to all look the same
-        this.addGrammarElement("command", (parser) => {
-            if (parser.matchOpToken("(")) {
-                const commandElement = parser.requireElement("command");
-                parser.requireOpToken(")");
-                return commandElement;
+    parsePostfixExpression(parser) {
+        var root = parser.parseElement("negativeNumber");
+        for (var i = 0; i < this.POSTFIX_EXPRESSIONS.length; i++) {
+            var postfixType = this.POSTFIX_EXPRESSIONS[i];
+            var result = this.parseElement(postfixType, parser, root);
+            if (result) {
+                return result;
             }
+        }
+        return root;
+    }
 
-            var commandDefinition = parser.COMMANDS[parser.currentToken().value || ""];
-            let commandElement;
-            if (commandDefinition) {
-                commandElement = commandDefinition(parser);
-            } else if (parser.currentToken().type === "IDENTIFIER") {
-                commandElement = parser.parseElement("pseudoCommand");
+    parseUnaryExpression(parser) {
+        parser.matchToken("the"); // optional "the"
+        return parser.parseAnyOf(this.UNARY_EXPRESSIONS) || parser.parseElement("postfixExpression");
+    }
+
+    parseExpression(parser) {
+        parser.matchToken("the"); // optional "the"
+        return parser.parseAnyOf(this.TOP_EXPRESSIONS);
+    }
+
+    parseAssignableExpression(parser) {
+        parser.matchToken("the"); // optional "the"
+        var expr = parser.parseElement("primaryExpression");
+        var checkExpr = expr;
+        while (checkExpr && checkExpr.type === "parenthesized") {
+            checkExpr = checkExpr.expr;
+        }
+        if (checkExpr && this.ASSIGNABLE_EXPRESSIONS.indexOf(checkExpr.type) >= 0) {
+            return expr;
+        } else {
+            parser.raiseParseError(
+                "A target expression must be writable.  The expression type '" + (checkExpr && checkExpr.type) + "' is not."
+            );
+        }
+    }
+
+    parseIndirectStatement(parser, root) {
+        if (parser.matchToken("unless")) {
+            root.endToken = parser.lastMatch();
+            var conditional = parser.requireElement("expression");
+            var unless = new UnlessStatementModifier(root, conditional);
+            root.parent = unless;
+            return unless;
+        }
+        return root;
+    }
+
+    parsePrimaryExpression(parser) {
+        var leaf = parser.parseElement("leaf");
+        if (leaf) {
+            return this.parseElement("indirectExpression", parser, leaf);
+        }
+        parser.raiseParseError("Unexpected value: " + parser.currentToken().value);
+    }
+
+    parseHyperscriptProgram(parser) {
+        var features = [];
+        if (parser.hasMore()) {
+            while (parser.featureStart(parser.currentToken()) || parser.currentToken().value === "(") {
+                var feature = parser.requireElement("feature");
+                features.push(feature);
+                parser.matchToken("end"); // optional end
             }
-            if (commandElement) {
-                return this.parseElement("indirectStatement", parser, commandElement);
-            }
-
-            return commandElement;      // returns a certain command's AST node
-        });
-
-
-        this.addGrammarElement("commandList", (parser) => {
-            if (parser.hasMore()) {
-                var cmd = parser.parseElement("command");
-                if (cmd) {
-                    parser.matchToken("then");
-                    const next = parser.parseElement("commandList");
-                    if (next) cmd.next = next;
-                    return cmd;
-                }
-            }
-            return new EmptyCommandListCommand();
-        });
-
-        this.addGrammarElement("leaf", (parser) => {
-            var result = parser.parseAnyOf(parser.LEAF_EXPRESSIONS);
-            // symbol is last so it doesn't consume any constants
-            if (result == null) {
-                return parser.parseElement("symbol");
-            }
-
-            return result;
-        });
-
-        this.addGrammarElement("indirectExpression", (parser, root) => {
-            for (var i = 0; i < this.INDIRECT_EXPRESSIONS.length; i++) {
-                var indirect = this.INDIRECT_EXPRESSIONS[i];
-                root.endToken = parser.lastMatch();
-                var result = this.parseElement(indirect, parser, root);
-                if (result) {
-                    return result;
-                }
-            }
-            return root;
-        });
-
-        this.addGrammarElement("postfixExpression", (parser) => {
-            var root = parser.parseElement("negativeNumber");
-            for (var i = 0; i < this.POSTFIX_EXPRESSIONS.length; i++) {
-                var postfixType = this.POSTFIX_EXPRESSIONS[i];
-                var result = this.parseElement(postfixType, parser, root);
-                if (result) {
-                    return result;
-                }
-            }
-            return root;
-        });
-
-        this.addGrammarElement("unaryExpression", (parser) => {
-            parser.matchToken("the"); // optional "the"
-            // Try registered unary expressions first, fall through to postfix
-            return parser.parseAnyOf(this.UNARY_EXPRESSIONS) || parser.parseElement("postfixExpression");
-        });
-
-        this.addGrammarElement("expression", (parser) => {
-            parser.matchToken("the"); // optional "the"
-            return parser.parseAnyOf(this.TOP_EXPRESSIONS);
-        });
-
-        this.addGrammarElement("assignableExpression", (parser) => {
-            parser.matchToken("the"); // optional "the"
-            var expr = parser.parseElement("primaryExpression");
-            // Unwrap parenthesized expressions for assignability check
-            var checkExpr = expr;
-            while (checkExpr && checkExpr.type === "parenthesized") {
-                checkExpr = checkExpr.expr;
-            }
-            if (checkExpr && this.ASSIGNABLE_EXPRESSIONS.indexOf(checkExpr.type) >= 0) {
-                return expr;
-            } else {
-                parser.raiseParseError(
-                    "A target expression must be writable.  The expression type '" + (checkExpr && checkExpr.type) + "' is not."
-                );
-            }
-        });
-
-        this.addGrammarElement("indirectStatement", (parser, root) => {
-            if (parser.matchToken("unless")) {
-                root.endToken = parser.lastMatch();
-                var conditional = parser.requireElement("expression");
-                var unless = new UnlessStatementModifier(root, conditional);
-                root.parent = unless;
-                return unless;
-            }
-            return root;
-        });
-
-        this.addGrammarElement("primaryExpression", (parser) => {
-            var leaf = parser.parseElement("leaf");
-            if (leaf) {
-                return this.parseElement("indirectExpression", parser, leaf);
-            }
-            parser.raiseParseError("Unexpected value: " + parser.currentToken().value);
-        });
-
-        this.addGrammarElement("hyperscript", (parser) => {
-            var features = [];
-            if (parser.hasMore()) {
-                while (parser.featureStart(parser.currentToken()) || parser.currentToken().value === "(") {
-                    var feature = parser.requireElement("feature");
-                    features.push(feature);
-                    parser.matchToken("end"); // optional end
-                }
-            }
-            return new HyperscriptProgram(features);
-        });
-
-        // Set up parse error callback for tokenizer
-        Tokens._parserRaiseError = LanguageKernel.raiseParseError;
+        }
+        return new HyperscriptProgram(features);
     }
 
     use(plugin) {
@@ -466,42 +438,12 @@ export class LanguageKernel {
     }
 
     /**
-     * Register an expression as assignable (adds to both ASSIGNABLE_EXPRESSIONS and GRAMMAR)
-     * @param {string} name
-     * @param {ParseRule} definition
-     */
-    addAssignableExpression(name, definition) {
-        this.ASSIGNABLE_EXPRESSIONS.push(name);
-        this.addGrammarElement(name, definition);
-    }
-
-    /**
-     *
-     * @param {Tokens} tokens
-     * @returns string
-     */
-    static createParserContext(tokens) {
-        var currentToken = tokens.currentToken();
-        var source = tokens.source;
-        var lines = source.split("\n");
-        var line = currentToken && currentToken.line ? currentToken.line - 1 : lines.length - 1;
-        var contextLine = lines[line];
-        var offset = /** @type {number} */ (
-            currentToken && currentToken.line ? currentToken.column : contextLine.length - 1);
-        return contextLine + "\n" + " ".repeat(offset) + "^^\n\n";
-    }
-
-    /**
      * @param {Tokens} tokens
      * @param {string} [message]
      * @returns {never}
      */
     static raiseParseError(tokens, message) {
-        message =
-            (message || "Unexpected Token : " + tokens.currentToken().value) + "\n\n" + LanguageKernel.createParserContext(tokens);
-        var error = new Error(message);
-        error["tokens"] = tokens;
-        throw error;
+        tokens.raiseError(tokens, message);
     }
 
     /**
@@ -524,7 +466,7 @@ export class LanguageKernel {
     }
 
     /**
-     * @param {Tokenizer} tokenizer
+     * @param {*} tokenizer
      * @param {string} src
      * @returns {ASTNode}
      */
@@ -567,9 +509,6 @@ export class LanguageKernel {
      * @returns {ParseRule}
      */
     commandStart(token) {
-        if (token.value === "render"){
-            console.log(this.COMMANDS);
-        }
         return this.COMMANDS[token.value || ""];
     }
 
