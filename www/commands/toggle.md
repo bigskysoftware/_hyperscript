@@ -7,7 +7,7 @@ title: toggle - ///_hyperscript
 ### Syntax
 
 ```ebnf
-toggle ({<class-ref>} | <attribute-ref> | between <class-ref> and <class-ref>)
+toggle ({<class-ref>} | <attribute-ref> | between <class-ref> and <class-ref> | between <attribute-ref> and <attribute-ref>)
  [on <expression>]
   [(for <time expression>) |
    (until <event name> [from <expression>]]`
@@ -31,7 +31,7 @@ The `toggle` command allows you to toggle:
 on either the current element or, if a [target expression](/expressions)
 is provided, to the targeted element(s).
 
-You can use the form `toggle between .class1 and .class2` to flip between two classes.
+You can use the form `toggle between .class1 and .class2` to flip between two classes, or `toggle between @attr1='val1' and @attr2='val2'` to flip between two attributes.
 
 If you provide a `for <time expression>` the class or attribute will be toggled for that amount of time.
 
