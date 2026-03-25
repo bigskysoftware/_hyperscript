@@ -187,7 +187,7 @@ export class AttributeRef extends Expression {
         var value = split[1];
         if (value) {
             // strip quotes
-            if (value.startsWith('"')) {
+            if (value.startsWith('"') || value.startsWith("'")) {
                 value = value.substring(1, value.length - 1);
             }
         }

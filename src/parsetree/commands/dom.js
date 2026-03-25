@@ -309,18 +309,20 @@ export class RemoveCommand extends Command {
 export class ToggleCommand extends VisibilityCommand {
     static keyword = "toggle";
 
-    constructor(classRef, classRef2, classRefs, attributeRef, onExpr, time, evt, from, visibility, between, hideShowStrategy) {
+    constructor(classRef, classRef2, classRefs, attributeRef, attributeRef2, onExpr, time, evt, from, visibility, betweenClass, betweenAttr, hideShowStrategy) {
         super();
         this.classRef = classRef;
         this.classRef2 = classRef2;
         this.classRefs = classRefs;
         this.attributeRef = attributeRef;
+        this.attributeRef2 = attributeRef2;
         this.on = onExpr;
         this.time = time;
         this.evt = evt;
         this.from = from;
         this.visibility = visibility;
-        this.between = between;
+        this.betweenClass = betweenClass;
+        this.betweenAttr = betweenAttr;
         this.hideShowStrategy = hideShowStrategy;
         this.onExpr = onExpr;
         this.args = { on: onExpr, time, evt, from, classRef, classRef2, classRefs };
@@ -355,10 +357,20 @@ export class ToggleCommand extends VisibilityCommand {
                 onExpr = parser.requireElement("implicitMeTarget");
             }
         } else if (parser.matchToken("between")) {
-            between = true;
             classRef = parser.parseElement("classRef");
-            parser.requireToken("and");
-            classRef2 = parser.requireElement("classRef");
+            if (classRef != null) {
+                var betweenClass = true;
+                parser.requireToken("and");
+                classRef2 = parser.requireElement("classRef");
+            } else {
+                var betweenAttr = true;
+                var attributeRef = parser.parseElement("attributeRef");
+                if (attributeRef == null) {
+                    parser.raiseParseError("Expected either a class reference or attribute expression");
+                }
+                parser.requireToken("and");
+                var attributeRef2 = parser.requireElement("attributeRef");
+            }
         } else {
             classRef = parser.parseElement("classRef");
             if (classRef == null) {
@@ -395,7 +407,7 @@ export class ToggleCommand extends VisibilityCommand {
             }
         }
 
-        return new ToggleCommand(classRef, classRef2, classRefs, attributeRef, onExpr, time, evt, from, visibility, between, hideShowStrategy);
+        return new ToggleCommand(classRef, classRef2, classRefs, attributeRef, attributeRef2, onExpr, time, evt, from, visibility, betweenClass, betweenAttr, hideShowStrategy);
     }
 
     toggle(context, on, classRef, classRef2, classRefs) {
@@ -404,7 +416,7 @@ export class ToggleCommand extends VisibilityCommand {
             context.meta.runtime.implicitLoop(on, (target) => {
                 this.hideShowStrategy("toggle", target, null, context.meta.runtime);
             });
-        } else if (this.between) {
+        } else if (this.betweenClass) {
             context.meta.runtime.implicitLoop(on, (target) => {
                 if (target.classList.contains(classRef.className)) {
                     target.classList.remove(classRef.className);
@@ -412,6 +424,17 @@ export class ToggleCommand extends VisibilityCommand {
                 } else {
                     target.classList.add(classRef.className);
                     target.classList.remove(classRef2.className);
+                }
+            });
+        } else if (this.betweenAttr) {
+            context.meta.runtime.implicitLoop(on, (target) => {
+                if (target.hasAttribute(this.attributeRef.name) &&
+                    target.getAttribute(this.attributeRef.name) === this.attributeRef.value) {
+                    target.removeAttribute(this.attributeRef.name);
+                    target.setAttribute(this.attributeRef2.name, this.attributeRef2.value);
+                } else {
+                    if (target.hasAttribute(this.attributeRef2.name)) target.removeAttribute(this.attributeRef2.name);
+                    target.setAttribute(this.attributeRef.name, this.attributeRef.value);
                 }
             });
         } else if (classRefs) {
