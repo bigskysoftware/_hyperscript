@@ -1,144 +1,150 @@
-export default function hdbPlugin(_hyperscript) {
-		function HDB(ctx, runtime, breakpoint) {
-			this.ctx = ctx;
-			this.runtime = runtime;
-			this.cmd = breakpoint;
-			this._hyperscript = _hyperscript;
+import { Command } from '../parsetree/base.js';
 
-			this.cmdMap = [];
+let _hs;
 
-			this.bus = new EventTarget();
-		} // See below for methods
+class BreakpointCommand extends Command {
+	static keyword = "breakpoint";
 
-		_hyperscript.addCommand("breakpoint", function (parser) {
-			if (!parser.matchToken("breakpoint")) return;
+	static parse(parser) {
+		if (!parser.matchToken("breakpoint")) return;
+		return new BreakpointCommand();
+	}
 
-			var hdb;
+	resolve(ctx) {
+		var hdb;
+		globalThis.hdb = hdb = new HDB(ctx, ctx.meta.runtime, this);
+		try {
+			return hdb.break(ctx);
+		} catch (e) {
+			console.error(e, e.stack);
+		}
+	}
+}
 
-			return {
-				op: function (ctx) {
-					globalThis.hdb = hdb = new HDB(ctx, ctx.meta.runtime, this);
-					try {
-						return hdb.break(ctx);
-					} catch (e) {
-						console.error(e, e.stack);
+function HDB(ctx, runtime, breakpoint) {
+	this.ctx = ctx;
+	this.runtime = runtime;
+	this.cmd = breakpoint;
+	this._hyperscript = _hs;
+
+	this.cmdMap = [];
+
+	this.bus = new EventTarget();
+}
+
+HDB.prototype.break = function (ctx) {
+	console.log("=== HDB///_hyperscript/debugger ===");
+	this.ui();
+	return new Promise((resolve, reject) => {
+		this.bus.addEventListener(
+			"continue",
+			() => {
+				if (this.ctx !== ctx) {
+					// Context switch
+					for (var attr in ctx) {
+						delete ctx[attr];
 					}
-				},
-			};
-		});
-		HDB.prototype.break = function (ctx) {
-			console.log("=== HDB///_hyperscript/debugger ===");
-			this.ui();
-			return new Promise((resolve, reject) => {
-				this.bus.addEventListener(
-					"continue",
-					() => {
-						if (this.ctx !== ctx) {
-							// Context switch
-							for (var attr in ctx) {
-								delete ctx[attr];
-							}
-							Object.assign(ctx, this.ctx);
-						}
-						delete window['hdb'];
-						resolve(this.runtime.findNext(this.cmd, this.ctx));
-					},
-					{ once: true }
-				);
-			});
-		};
+					Object.assign(ctx, this.ctx);
+				}
+				delete window['hdb'];
+				resolve(this.runtime.findNext(this.cmd, this.ctx));
+			},
+			{ once: true }
+		);
+	});
+};
 
-		HDB.prototype.continueExec = function () {
-			this.bus.dispatchEvent(new Event("continue"));
-		};
+HDB.prototype.continueExec = function () {
+	this.bus.dispatchEvent(new Event("continue"));
+};
 
-		HDB.prototype.stepOver = function () {
-			if (!this.cmd) return this.continueExec();
-			var result =
-				this.cmd && this.cmd.type === "breakpointCommand"
-					? this.runtime.findNext(this.cmd, this.ctx)
-					: this.runtime.unifiedEval(this.cmd, this.ctx);
-			if (result.type === "implicitReturn") return this.stepOut();
-			if (result && result.then instanceof Function) {
-				return result.then(next => {
-					this.cmd = next;
-					this.bus.dispatchEvent(new Event("step"));
-					this.logCommand();
-				});
-			} else if (result.halt_flag) {
-				this.bus.dispatchEvent(new Event("continue"));
-			} else {
-				this.cmd = result;
-				this.bus.dispatchEvent(new Event("step"));
-				this.logCommand();
-			}
-		};
-
-		HDB.prototype.stepOut = function () {
-			if (!this.ctx.meta.caller) return this.continueExec();
-			var callingCmd = this.ctx.meta.callingCommand;
-			var oldMe = this.ctx.me;
-			this.ctx = this.ctx.meta.caller;
-			console.log(
-				"[hdb] stepping out into " + this.ctx.meta.feature.displayName)
-			if (this.ctx.me instanceof Element && this.ctx.me !== oldMe) {
-				console.log("[hdb] me: ", this.ctx.me)
-			}
-			this.cmd = this.runtime.findNext(callingCmd, this.ctx);
-			this.cmd = this.runtime.findNext(this.cmd, this.ctx);
-			this.logCommand();
+HDB.prototype.stepOver = function () {
+	if (!this.cmd) return this.continueExec();
+	var result =
+		this.cmd && this.cmd.type === "breakpointCommand"
+			? this.runtime.findNext(this.cmd, this.ctx)
+			: this.runtime.unifiedEval(this.cmd, this.ctx);
+	if (result.type === "implicitReturn") return this.stepOut();
+	if (result && result.then instanceof Function) {
+		return result.then(next => {
+			this.cmd = next;
 			this.bus.dispatchEvent(new Event("step"));
-		};
+			this.logCommand();
+		});
+	} else if (result.halt_flag) {
+		this.bus.dispatchEvent(new Event("continue"));
+	} else {
+		this.cmd = result;
+		this.bus.dispatchEvent(new Event("step"));
+		this.logCommand();
+	}
+};
 
-		HDB.prototype.skipTo = function (toCmd) {
-			this.cmd = toCmd.cmd
-			this.bus.dispatchEvent(new Event("skip"));
-		}
+HDB.prototype.stepOut = function () {
+	if (!this.ctx.meta.caller) return this.continueExec();
+	var callingCmd = this.ctx.meta.callingCommand;
+	var oldMe = this.ctx.me;
+	this.ctx = this.ctx.meta.caller;
+	console.log(
+		"[hdb] stepping out into " + this.ctx.meta.feature.displayName)
+	if (this.ctx.me instanceof Element && this.ctx.me !== oldMe) {
+		console.log("[hdb] me: ", this.ctx.me)
+	}
+	this.cmd = this.runtime.findNext(callingCmd, this.ctx);
+	this.cmd = this.runtime.findNext(this.cmd, this.ctx);
+	this.logCommand();
+	this.bus.dispatchEvent(new Event("step"));
+};
 
-		HDB.prototype.rewrite = function (command, newCode) {
-			console.log('##', command)
-			const parent = command.cmd.parent
-			let prev
-			for (prev of parent.children) {
-				if (prev.next === command.cmd) break;
-			}
-			const next = command.next
+HDB.prototype.skipTo = function (toCmd) {
+	this.cmd = toCmd.cmd
+	this.bus.dispatchEvent(new Event("skip"));
+}
 
-			const tok = _hyperscript.internals.tokenizer.tokenize(newCode)
-			const parser = _hyperscript.internals.createParser(tok)
-			const newcmd = parser.requireElement('command')
+HDB.prototype.rewrite = function (command, newCode) {
+	console.log('##', command)
+	const parent = command.cmd.parent
+	let prev
+	for (prev of parent.children) {
+		if (prev.next === command.cmd) break;
+	}
+	const next = command.next
 
-			console.log(newcmd)
-			newcmd.startToken = command.startToken
-			newcmd.endToken = command.endToken
-			newcmd.programSource = command.programSource
-			newcmd.sourceFor = function () { return newCode }
+	const tok = _hs.internals.tokenizer.tokenize(newCode)
+	const parser = _hs.internals.createParser(tok)
+	const newcmd = parser.requireElement('command')
 
-			prev.next = newcmd
-			newcmd.next = next
-			newcmd.parent = parent
+	console.log(newcmd)
+	newcmd.startToken = command.startToken
+	newcmd.endToken = command.endToken
+	newcmd.programSource = command.programSource
+	newcmd.sourceFor = function () { return newCode }
 
-			this.bus.dispatchEvent(new Event('step'))
-		}
+	prev.next = newcmd
+	newcmd.next = next
+	newcmd.parent = parent
 
-		HDB.prototype.logCommand = function () {
-			var hasSource = this.cmd.sourceFor instanceof Function;
-			var cmdSource = hasSource ? this.cmd.sourceFor() : '-- ' + this.cmd.type;
-			console.log("[hdb] current command: " + cmdSource)
-		}
+	this.bus.dispatchEvent(new Event('step'))
+}
 
-		HDB.prototype.traverse = function (ge) {
-			const rv = [];
+HDB.prototype.logCommand = function () {
+	var hasSource = this.cmd.sourceFor instanceof Function;
+	var cmdSource = hasSource ? this.cmd.sourceFor() : '-- ' + this.cmd.type;
+	console.log("[hdb] current command: " + cmdSource)
+}
 
-			(function recurse(ge) {
-				rv.push(ge);
-				if ('children' in ge) for (const child of ge.children) recurse(child);
-			})(ge);
+HDB.prototype.traverse = function (ge) {
+	const rv = [];
 
-			return rv;
-		}
+	(function recurse(ge) {
+		rv.push(ge);
+		if ('children' in ge) for (const child of ge.children) recurse(child);
+	})(ge);
 
-		var ui = `
+	return rv;
+}
+
+var ui = `
 <div class="hdb" _="
 	on load trigger update end
 	on step from hdb.bus trigger update end
@@ -510,14 +516,19 @@ export default function hdbPlugin(_hyperscript) {
 	</style>
 	</div>
 	`;
-		HDB.prototype.ui = function () {
-			var node = document.createElement("div");
-			var shadow = node.attachShadow({ mode: "open" });
-			node.style.cssText = "all: initial";
-			shadow.innerHTML = ui;
-			document.body.appendChild(node);
-			_hyperscript.process(shadow.querySelector(".hdb"));
-		};
+
+HDB.prototype.ui = function () {
+	var node = document.createElement("div");
+	var shadow = node.attachShadow({ mode: "open" });
+	node.style.cssText = "all: initial";
+	shadow.innerHTML = ui;
+	document.body.appendChild(node);
+	_hs.process(shadow.querySelector(".hdb"));
+};
+
+export default function hdbPlugin(_hyperscript) {
+	_hs = _hyperscript;
+	_hyperscript.addCommand(BreakpointCommand.keyword, BreakpointCommand.parse.bind(BreakpointCommand));
 }
 
 // Auto-register when imported
