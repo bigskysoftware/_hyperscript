@@ -33,7 +33,6 @@
     "test": "playwright test --config test/playwright.config.js",
     "dist": "npm run build && npm run typings",
     "typings": "npx tsc --declaration dist/_hyperscript.js --allowJs --emitDeclarationOnly --skipLibCheck",
-    "www": "node scripts/www.js"
   },
   "repository": {
     "type": "git",
