@@ -5,9 +5,10 @@
         "allowJs": true,
         "noEmit": true,
         "lib": ["dom", "dom.iterable"],
-        "moduleResolution": "node",
-        "target": "ES2015"
+        "module": "es2022",
+        "moduleResolution": "bundler",
+        "target": "ES2022"
     },
     "include": ["src/**/*.js"],
-    "exclude": ["src/platform/deno-hyperscript.js", "dist", "node_modules"]
+    "exclude": ["src/platform/deno-hyperscript.js"]
 }

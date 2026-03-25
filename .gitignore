@@ -1,12 +1,12 @@
 .idea
-/node_modules
-/coverage
-_site
-/HyperTalk Reference 2.4.pdf
 .DS_Store
 *~
 *.icloud
-/coverage/
-/tmp/
+node_modules/
+coverage/
+dist/
+tmp/
 test/.bundle/
 test-results/
+www/_site/
+www/_build/
