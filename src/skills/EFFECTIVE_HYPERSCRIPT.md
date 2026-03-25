@@ -14,6 +14,59 @@ functions, variables) that operate on that element.
 
 The language reads like English. Prefer natural phrasing over terse syntax.
 
+## Style: Write English, Not Code
+
+### `the` — Semantic Sugar
+
+The word `the` can be inserted almost anywhere for readability. It has no semantic meaning and is ignored by the parser:
+
+```hyperscript
+-- These are identical:
+set innerHTML of #d1 to "hello"
+set the innerHTML of the #d1 to "hello"
+
+get the first <li/> in the <ul/>
+get first <li/> in <ul/>
+```
+
+Always use `the` when it makes the line read more naturally.
+
+### Property Access: Prefer English Order
+
+_hyperscript offers three ways to access properties. Prefer the most readable form:
+
+**Possessives** — the standard form. Use `'s` for named elements, and `my`, `its`, `your` for the special implicit targets:
+
+```hyperscript
+set #output's innerHTML to "done"
+get the event's detail
+set the closest <div/>'s style to ""
+
+set my innerHTML to "hello"          -- "my" refers to me
+put its name into me                 -- "its" refers to it (the result)
+log your style.color                 -- "your" refers to you (in tell blocks)
+```
+
+**`of` expressions** — an alternative form that is particularly useful when you want to avoid the tight binding of possessives, since `of` binds more loosely:
+
+```hyperscript
+-- without "of", you'd need parentheses:
+get (the closest <ul/>)'s children
+
+-- with "of", it reads naturally:
+get the children of the closest <ul/>
+```
+
+**Dot notation** — good for method invocation and acceptable in general, although the other forms are preferred for readability:
+
+```hyperscript
+element.classList.add('active')      -- method calls: dot is natural
+element.dataset.id                   -- deeply nested access: dot is practical
+my.style.color                       -- acceptable but "my style's color" is more hyperscript-y
+```
+
+**Guideline:** If you can read the line aloud and it sounds like English, you've picked the right form. `#output's innerHTML` reads better than `#output.innerHTML`. Use `of` when possessives would require parentheses.
+
 ## Magic Symbols
 
 | Symbol                    | Meaning                                     |
