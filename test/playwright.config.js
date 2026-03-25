@@ -8,6 +8,8 @@ export default defineConfig({
     fullyParallel: true,
     projects: [
         { name: 'chromium', use: { browserName: 'chromium' } },
+        { name: 'firefox', use: { browserName: 'firefox' } },
+        { name: 'webkit', use: { browserName: 'webkit' } },
     ],
     retries: process.env.CI ? 1 : 0,
     reporter: [['list']],
