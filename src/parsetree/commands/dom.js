@@ -341,7 +341,7 @@ export class ToggleCommand extends VisibilityCommand {
 
         if (parser.currentToken().type === "STYLE_REF") {
             let styleRef = parser.consumeToken();
-            var name = styleRef.value.substr(1);
+            var name = styleRef.value.slice(1);
             visibility = true;
             hideShowStrategy = VisibilityCommand.resolveHideShowStrategy(parser, name);
             if (parser.matchToken("of")) {
@@ -485,8 +485,8 @@ export class HideCommand extends VisibilityCommand {
         var name = null;
         if (parser.matchToken("with")) {
             name = parser.requireTokenType("IDENTIFIER", "STYLE_REF").value;
-            if (name.indexOf("*") === 0) {
-                name = name.substr(1);
+            if (name.startsWith("*")) {
+                name = name.slice(1);
             }
         }
         var hideShowStrategy = VisibilityCommand.resolveHideShowStrategy(parser, name);
@@ -530,8 +530,8 @@ export class ShowCommand extends VisibilityCommand {
         var name = null;
         if (parser.matchToken("with")) {
             name = parser.requireTokenType("IDENTIFIER", "STYLE_REF").value;
-            if (name.indexOf("*") === 0) {
-                name = name.substr(1);
+            if (name.startsWith("*")) {
+                name = name.slice(1);
             }
         }
         var arg = null;

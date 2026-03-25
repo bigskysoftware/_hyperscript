@@ -330,7 +330,7 @@ export class OnFeature extends Feature {
                             if (mutationSpec["attributeFilter"] == null) {
                                 mutationSpec["attributeFilter"] = [];
                             }
-                            if (attribute.value.indexOf("@") == 0) {
+                            if (attribute.value.startsWith("@")) {
                                 mutationSpec["attributeFilter"].push(attribute.value.substring(1));
                             } else {
                                 parser.raiseParseError(

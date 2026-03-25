@@ -201,7 +201,7 @@ var ui = `
 
 	def truncate(str, len)
 		if str.length <= len return str end
-		return str.substr(0, len) + '…'
+		return str.slice(0, len) + '…'
 
 	def prettyPrint(obj)
 		if obj is null      return 'null'      end

@@ -83,7 +83,7 @@ export class ClassRef extends Expression {
             return new ClassRef("template", null, null, innerExpression);
         } else {
             const css = classRef.value;
-            const className = css.substr(1);
+            const className = css.slice(1);
             return new ClassRef("static", css, className, null);
         }
     }
@@ -176,7 +176,7 @@ export class AttributeRef extends Expression {
         if (!attributeRef) return;
         if (!attributeRef.value) return;
         var outerVal = attributeRef.value;
-        if (outerVal.indexOf("[") === 0) {
+        if (outerVal.startsWith("[")) {
             var innerValue = outerVal.substring(2, outerVal.length - 1);
         } else {
             var innerValue = outerVal.substring(1);
@@ -187,7 +187,7 @@ export class AttributeRef extends Expression {
         var value = split[1];
         if (value) {
             // strip quotes
-            if (value.indexOf('"') === 0) {
+            if (value.startsWith('"')) {
                 value = value.substring(1, value.length - 1);
             }
         }
@@ -233,9 +233,9 @@ export class StyleRef extends Expression {
         var styleRef = parser.matchTokenType("STYLE_REF");
         if (!styleRef) return;
         if (!styleRef.value) return;
-        var styleProp = styleRef.value.substr(1);
+        var styleProp = styleRef.value.slice(1);
         if (styleProp.startsWith("computed-")) {
-            styleProp = styleProp.substr("computed-".length);
+            styleProp = styleProp.slice("computed-".length);
             return new StyleRef("computed", styleProp);
         } else {
             return new StyleRef("style", styleProp);

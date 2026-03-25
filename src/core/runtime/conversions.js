@@ -44,14 +44,14 @@ export const conversions = {
         function(str, value) {
             if (str === "Fixed") {
                 return Number(value).toFixed();
-            } else if (str.indexOf("Fixed:") === 0) {
+            } else if (str.startsWith("Fixed:")) {
                 let num = str.split(":")[1];
                 return Number(value).toFixed(parseInt(num));
             }
         },
         // Values conversion - extracts form values from DOM nodes
         function(str, node, runtime) {
-            if (!(str === "Values" || str.indexOf("Values:") === 0)) {
+            if (!(str === "Values" || str.startsWith("Values:"))) {
                 return;
             }
             var conversion = str.split(":")[1];

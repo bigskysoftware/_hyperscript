@@ -11,7 +11,7 @@ function genUUID() {
 
 function parseUrl(url) {
 	var finalUrl = url;
-	if (finalUrl.indexOf("/") === 0) {  // complete absolute paths without scheme only
+	if (finalUrl.startsWith("/")) {  // complete absolute paths without scheme only
 		var basePart = window.location.hostname + (window.location.port ? ':' + window.location.port : '');
 		if (window.location.protocol === 'https:') {
 			finalUrl = "wss://" + basePart + finalUrl;
@@ -81,7 +81,7 @@ export class SocketFeature extends Feature {
 				{},
 				{
 					get: function (obj, property) {
-						if (PROXY_BLACKLIST.indexOf(property) >= 0) {
+						if (PROXY_BLACKLIST.includes(property)) {
 							return null;
 						} else if (property === "noTimeout") {
 							return getProxy(-1);

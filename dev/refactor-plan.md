@@ -13,6 +13,7 @@
 11. ~~Remove all kernel data structure mutations in favor of structured registration~~
 12. ~~Rework how assignment works (should defer to the elements themselves)~~
 13. ~~Move debug into core~~
-14. Check for any IE/ye olde API usages
-15. Update platform scripts
-16. Update documents/site
+14. ~~Check for any IE/ye olde API usages~~
+15. ~~Update platform scripts~~
+16. Final sweep
+17. Update documents/site

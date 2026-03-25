@@ -20,7 +20,7 @@ export class ElementCollection {
     }
 
     get className() {
-        return this._css.substr(1);
+        return this._css.slice(1);
     }
 
     get id() {

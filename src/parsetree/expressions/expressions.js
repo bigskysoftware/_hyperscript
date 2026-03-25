@@ -213,10 +213,10 @@ export class SymbolRef extends Expression {
                 name = ":" + name;
             }
             if (scope === "default") {
-                if (name.indexOf("$") === 0) {
+                if (name.startsWith("$")) {
                     scope = "global";
                 }
-                if (name.indexOf(":") === 0) {
+                if (name.startsWith(":")) {
                     scope = "element";
                 }
             }
@@ -694,7 +694,7 @@ export class FunctionCall extends Expression {
             if (target.hyperfunc) {
                 argVals.push(context);
             }
-            return target.apply(null, argVals);
+            return target(...argVals);
         }
     }
 

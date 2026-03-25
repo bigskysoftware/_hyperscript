@@ -83,7 +83,7 @@ export class Tokens {
      * @returns {Token | void}
      */
     matchToken(value, type) {
-        if (this.#follows.indexOf(value) !== -1) return;
+        if (this.#follows.includes(value)) return;
         type = type || "IDENTIFIER";
         if (this.currentToken() && this.currentToken().value === value && this.currentToken().type === type) {
             return this.consumeToken();
@@ -105,7 +105,7 @@ export class Tokens {
      * @returns {Token | void}
      */
     matchTokenType(...types) {
-        if (this.currentToken() && this.currentToken().type && types.indexOf(this.currentToken().type) >= 0) {
+        if (this.currentToken() && this.currentToken().type && types.includes(this.currentToken().type)) {
             return this.consumeToken();
         }
     }

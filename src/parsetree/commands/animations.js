@@ -149,7 +149,7 @@ export class TransitionCommand extends Command {
             ) {
                 if (parser.currentToken().type === "STYLE_REF") {
                     let styleRef = parser.consumeToken();
-                    let styleProp = styleRef.value.substr(1);
+                    let styleProp = styleRef.value.slice(1);
                     properties.push(new StyleRefValue(styleProp));
                 } else {
                     properties.push(parser.requireElement("stringLike"));

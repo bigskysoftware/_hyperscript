@@ -84,9 +84,9 @@ export class LogCommand extends Command {
      */
     resolve(ctx, { logger, values }) {
         if (logger) {
-            logger.apply(null, values);
+            logger(...values);
         } else {
-            console.log.apply(null, values);
+            console.log(...values);
         }
         return ctx.meta.runtime.findNext(this, ctx);
     }

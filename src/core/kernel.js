@@ -130,7 +130,7 @@ export class LanguageKernel {
         while (checkExpr && checkExpr.type === "parenthesized") {
             checkExpr = checkExpr.expr;
         }
-        if (checkExpr && this.#assignableExpressions.indexOf(checkExpr.type) >= 0) {
+        if (checkExpr && this.#assignableExpressions.includes(checkExpr.type)) {
             return expr;
         } else {
             parser.raiseParseError(
