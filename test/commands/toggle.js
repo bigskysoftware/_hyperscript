@@ -76,6 +76,26 @@ test.describe("the toggle command", () => {
 		await expect(find('div')).not.toHaveClass(/bar/);
 	});
 
+	test("can toggle between two attribute values", async ({html, find}) => {
+		await html("<div data-state='active' _=\"on click toggle between [@data-state='active'] and [@data-state='inactive']\"></div>");
+		await expect(find('div')).toHaveAttribute('data-state', 'active');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveAttribute('data-state', 'inactive');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveAttribute('data-state', 'active');
+	});
+
+	test("can toggle between different attributes", async ({html, find}) => {
+		await html("<div enabled='true' _=\"on click toggle between [@enabled='true'] and [@disabled='true']\"></div>");
+		await expect(find('div')).toHaveAttribute('enabled', 'true');
+		await find('div').dispatchEvent('click');
+		expect(await find('div').getAttribute('enabled')).toBeNull();
+		await expect(find('div')).toHaveAttribute('disabled', 'true');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveAttribute('enabled', 'true');
+		expect(await find('div').getAttribute('disabled')).toBeNull();
+	});
+
 	test("can toggle multiple class refs", async ({html, find}) => {
 		await html("<div class='bar' _='on click toggle .foo .bar'></div>");
 		await expect(find('div')).not.toHaveClass(/foo/);
