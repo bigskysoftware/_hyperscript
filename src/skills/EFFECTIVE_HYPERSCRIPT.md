@@ -4,9 +4,11 @@ A practical reference for writing _hyperscript — a scripting language for the 
 
 ## Core Concepts
 
-_hyperscript code lives in `_` attributes on HTML elements. Each element's script defines **features** (event handlers, functions, variables) that operate on that element.
+_hyperscript code lives in `_` attributes on HTML elements. Each element's script defines **features** (event handlers,
+functions, variables) that operate on that element.
 
 ```html
+
 <button _="on click add .active to me">Click Me</button>
 ```
 
@@ -14,16 +16,16 @@ The language reads like English. Prefer natural phrasing over terse syntax.
 
 ## Magic Symbols
 
-| Symbol | Meaning |
-|--------|---------|
-| `me`, `my`, `I` | The element the script is on |
-| `it`, `its`, `result` | Result of the last command |
-| `you`, `your`, `yourself` | Current target in a `tell` block |
-| `event` | The current event object (in `on` handlers) |
-| `target` | `event.target` |
-| `detail` | `event.detail` |
-| `sender` | Element that sent a custom event |
-| `body` | `document.body` |
+| Symbol                    | Meaning                                     |
+|---------------------------|---------------------------------------------|
+| `me`, `my`, `I`           | The element the script is on                |
+| `it`, `its`, `result`     | Result of the last command                  |
+| `you`, `your`, `yourself` | Current target in a `tell` block            |
+| `event`                   | The current event object (in `on` handlers) |
+| `target`                  | `event.target`                              |
+| `detail`                  | `event.detail`                              |
+| `sender`                  | Element that sent a custom event            |
+| `body`                    | `document.body`                             |
 
 ## Variable Scoping
 
@@ -36,7 +38,8 @@ set global x to 1     -- same as $x
 set local x to 1      -- explicitly local
 ```
 
-Element-scoped variables (`:x`) persist between event handler invocations on the same element. Use them for component state.
+Element-scoped variables (`:x`) persist between event handler invocations on the same element. Use them for component
+state.
 
 ## Features
 
@@ -98,8 +101,9 @@ end
 ```
 
 ```html
+
 <div _="install Removable(removeButton: #btn)">
-  <button id="btn">X</button>
+    <button id="btn">X</button>
 </div>
 ```
 
@@ -473,7 +477,8 @@ add .loaded to me
 put data into #result
 ```
 
-**`set` vs `put` for DOM elements.** `put X into el` clears the element's children and inserts X as HTML. `set el to X` overwrites the variable. Use `put` for DOM content, `set` for property/variable assignment:
+**`set` vs `put` for DOM elements.** `put X into el` clears the element's children and inserts X as HTML. `set el to X`
+overwrites the variable. Use `put` for DOM content, `set` for property/variable assignment:
 
 ```hyperscript
 put "hello" into me              -- clears me, inserts "hello" as HTML
@@ -492,7 +497,8 @@ set :count to 0
 on click increment :count then put :count into me end
 ```
 
-**Promises auto-resolve.** Any command that returns a Promise automatically waits. No `await` keyword exists or is needed:
+**Promises auto-resolve.** Any command that returns a Promise automatically waits. No `await` keyword exists or is
+needed:
 
 ```hyperscript
 fetch /api/data as json          -- automatically waits for response
@@ -513,35 +519,40 @@ on click queue none              -- ignore clicks while handling
 ### Component State
 
 ```html
+
 <div _="
   set :count to 0
   on click
     increment :count
     put :count into me
   end
-">0</div>
+">0
+</div>
 ```
 
 ### Event Delegation
 
 ```html
+
 <ul _="on click from <li/>
   take .selected from <li/> for target
 end">
-  <li>Item 1</li>
-  <li>Item 2</li>
+    <li>Item 1</li>
+    <li>Item 2</li>
 </ul>
 ```
 
 ### Async Workflows
 
 ```html
+
 <button _="on click
   add @disabled to me
   fetch /api/action as json
   put it.message into #result
   remove @disabled from me
-">Submit</button>
+">Submit
+</button>
 ```
 
 ### Debounced Search
@@ -556,6 +567,7 @@ end">
 ### Toggle with Cleanup
 
 ```html
+
 <div _="on click
   toggle .expanded on #panel
   toggle between @aria-expanded='true' and @aria-expanded='false'
@@ -565,14 +577,15 @@ end">
 ### Error Handling
 
 ```html
+
 <script type="text/hyperscript">
-def safeFetch(url)
-  fetch url as json
-  return it
-catch e
-  log "fetch failed: " + e
-  return null
-end
+    def safeFetch(url)
+      fetch url as json
+      return it
+    catch e
+      log "fetch failed: " + e
+      return null
+    end
 </script>
 ```
 
