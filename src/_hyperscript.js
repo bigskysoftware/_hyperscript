@@ -168,6 +168,9 @@ if (typeof document !== 'undefined') {
             globalScope.document.addEventListener("htmx:load", (/** @type {CustomEvent} */ evt) => {
                 runtime.processNode(evt.detail.elt);
             });
+            globalScope.document.addEventListener("htmx:after:process", (/** @type {CustomEvent} */ evt) => {
+                runtime.processNode(evt.target);
+            });
         });
     })();
 }
