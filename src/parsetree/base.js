@@ -9,6 +9,14 @@
  * expressions, commands, and features.
  */
 export class ParseElement {
+    sourceFor() {
+        return this.programSource.substring(this.startToken.start, this.endToken.end);
+    }
+
+    lineFor() {
+        return this.programSource.split("\n")[this.startToken.line - 1];
+    }
+
     static parseEventArgs(parser) {
         var args = [];
         // handle argument list (look ahead 3)

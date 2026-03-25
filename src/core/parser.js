@@ -44,12 +44,12 @@ export class Parser {
         return this.tokens.matchOpToken(value);
     }
 
-    requireTokenType(type1, type2, type3, type4) {
-        return this.tokens.requireTokenType(type1, type2, type3, type4);
+    requireTokenType(...types) {
+        return this.tokens.requireTokenType(...types);
     }
 
-    matchTokenType(type1, type2, type3, type4) {
-        return this.tokens.matchTokenType(type1, type2, type3, type4);
+    matchTokenType(...types) {
+        return this.tokens.matchTokenType(...types);
     }
 
     requireToken(value, type) {
@@ -84,8 +84,8 @@ export class Parser {
         return this.tokens.hasMore();
     }
 
-    token(n, dontIgnoreWhitespace) {
-        return this.tokens.token(n, dontIgnoreWhitespace);
+    token(n, includeWhitespace) {
+        return this.tokens.token(n, includeWhitespace);
     }
 
     currentToken() {

@@ -1,5 +1,4 @@
 // LanguageKernel - AST parsing for _hyperscript
-import { Tokens } from './tokenizer.js';
 import { Parser } from './parser.js';
 import { EmptyCommandListCommand, UnlessStatementModifier, HyperscriptProgram } from '../parsetree/internals.js';
 import { Command, Feature } from '../parsetree/base.js';
@@ -183,8 +182,6 @@ export class LanguageKernel {
      */
     initElt(parseElement, start, tokens) {
         parseElement.startToken = start;
-        parseElement.sourceFor = Tokens.sourceFor;
-        parseElement.lineFor = Tokens.lineFor;
         parseElement.programSource = tokens.source;
     }
 
@@ -417,7 +414,7 @@ export class LanguageKernel {
     }
 
     static raiseParseError(tokens, message) {
-        tokens.raiseError(tokens, message);
+        tokens.raiseError(message);
     }
 
     /**
@@ -425,7 +422,7 @@ export class LanguageKernel {
      * @param {string} [message]
      */
     raiseParseError(tokens, message) {
-        LanguageKernel.raiseParseError(tokens, message)
+        tokens.raiseError(message);
     }
 
     /**

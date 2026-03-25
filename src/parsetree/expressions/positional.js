@@ -3,7 +3,6 @@
  * DOM query and position-based selections
  */
 
-import { Tokens } from '../../core/tokenizer.js';
 import { Expression } from '../base.js';
 
 /**
@@ -138,7 +137,7 @@ export class RelativePositionalExpression extends Expression {
     resolve(context, { thing, from, inElt, withinElt }) {
         var css = thing.css;
         if (css == null) {
-            throw "Expected a CSS value to be returned by " + Tokens.sourceFor.apply(this.thingElt);
+            throw "Expected a CSS value to be returned by " + this.thingElt.sourceFor();
         }
 
         if(this.inSearch) {
