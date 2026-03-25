@@ -4,6 +4,7 @@
  */
 
 import { Expression } from '../base.js';
+import { AttributeRefAccess } from './expressions.js';
 
 /**
  * RelativePositionalExpression - Relative DOM navigation
@@ -278,11 +279,9 @@ export class ClosestExpr extends Expression {
 
         var closestExpr = new ClosestExprNode(parentSearch, expr, css, to);
 
-        // If we parsed an attributeRef, wrap the closestExpr
+        // If we parsed an attributeRef, create a new AttributeRefAccess with the correct root
         if (attributeRef) {
-            attributeRef.root = closestExpr;
-            attributeRef.args = { root: closestExpr };
-            return attributeRef;
+            return new AttributeRefAccess(closestExpr, attributeRef.attribute);
         } else {
             return closestExpr;
         }
