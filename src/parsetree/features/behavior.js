@@ -32,7 +32,8 @@ export class BehaviorFeature extends Feature {
             name,
             function (target, source, innerArgs) {
                 var internalData = runtime.getInternalData(target);
-                var elementScope = runtime.getOrInitObject(internalData, path + "Scope");
+                var scopeName = path + "Scope";
+                var elementScope = internalData[scopeName] || (internalData[scopeName] = {});
                 for (var i = 0; i < formalParams.length; i++) {
                     elementScope[formalParams[i]] = innerArgs[formalParams[i]];
                 }

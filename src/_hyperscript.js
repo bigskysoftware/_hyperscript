@@ -5,7 +5,8 @@
 import {Tokenizer} from './core/tokenizer.js';
 import {LanguageKernel} from './core/kernel.js';
 import {Parser} from './core/parser.js';
-import {HyperscriptModule, Runtime} from './core/runtime/runtime.js';
+import {Runtime} from './core/runtime/runtime.js';
+import {HyperscriptModule} from './core/runtime/collections.js';
 import {config} from './core/config.js';
 import {conversions} from './core/runtime/conversions.js';
 

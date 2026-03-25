@@ -1,13 +1,12 @@
 // Runtime - Execution engine for _hyperscript
 import { config } from '../config.js';
 import { conversions } from './conversions.js';
-import { Tokens } from '../tokenizer.js';
 import { CookieJar } from './cookies.js';
 import { ElementCollection, SHOULD_AUTO_ITERATE_SYM } from './collections.js';
 
-// Re-export for consumers
-export { ElementCollection, TemplatedQueryElementCollection, RegExpIterator, RegExpIterable,
-         HyperscriptModule, SHOULD_AUTO_ITERATE_SYM } from './collections.js';
+// cookie jar proxy for runtime
+let cookies = new CookieJar().proxy();
+
 
 export class Context {
     constructor(owner, feature, hyperscriptTarget, event, runtime, globalScope, kernel, tokenizer) {
@@ -21,7 +20,7 @@ export class Context {
             ctx: this
         }
         this.locals = {
-            cookies: CookieJar
+            cookies: cookies
         };
         this.me = hyperscriptTarget;
         this.you = undefined
@@ -349,7 +348,7 @@ export class Runtime {
             }
         }
 
-        flatGet(root, property, getter) {
+        #flatGet(root, property, getter) {
             if (root != null) {
                 var val = getter(root, property);
                 if (typeof val !== "undefined") {
@@ -367,19 +366,19 @@ export class Runtime {
         }
 
         resolveProperty(root, property) {
-            return this.flatGet(root, property, (root, property) => root[property] )
+            return this.#flatGet(root, property, (root, property) => root[property] )
         }
 
         resolveAttribute(root, property) {
-            return this.flatGet(root, property, (root, property) => root.getAttribute && root.getAttribute(property) )
+            return this.#flatGet(root, property, (root, property) => root.getAttribute && root.getAttribute(property) )
         }
 
         resolveStyle(root, property) {
-            return this.flatGet(root, property, (root, property) => root.style && root.style[property] )
+            return this.#flatGet(root, property, (root, property) => root.style && root.style[property] )
         }
 
         resolveComputedStyle(root, property) {
-            return this.flatGet(root, property, (root, property) => getComputedStyle(
+            return this.#flatGet(root, property, (root, property) => getComputedStyle(
                 /** @type {Element} */ (root)).getPropertyValue(property) )
         }
 
@@ -406,12 +405,12 @@ export class Runtime {
         // Collection and iteration utilities
         // =================================================================
 
-        isArrayLike(value) {
+        #isArrayLike(value) {
             return Array.isArray(value) ||
                 (typeof NodeList !== 'undefined' && (value instanceof NodeList || value instanceof HTMLCollection || value instanceof FileList));
         }
 
-        isIterable(value) {
+        #isIterable(value) {
             return typeof value === 'object'
                 && Symbol.iterator in value
                 && typeof value[Symbol.iterator] === 'function';
@@ -419,17 +418,17 @@ export class Runtime {
 
         shouldAutoIterate(value) {
             return value != null && value[SHOULD_AUTO_ITERATE_SYM] ||
-                this.isArrayLike(value);
+                this.#isArrayLike(value);
         }
 
         forEach(value, func) {
             if (value == null) {
                 // do nothing
-            } else if (this.isIterable(value)) {
+            } else if (this.#isIterable(value)) {
                 for (const nth of value) {
                     func(nth);
                 }
-            } else if (this.isArrayLike(value)) {
+            } else if (this.#isArrayLike(value)) {
                 for (var i = 0; i < value.length; i++) {
                     func(value[i]);
                 }
@@ -472,7 +471,7 @@ export class Runtime {
         evaluateNoPromise(elt, ctx) {
             let result = elt.evaluate(ctx);
             if (result.next) {
-                throw new Error(Tokens.sourceFor.call(elt) + " returned a Promise in a context that they are not allowed.");
+                throw new Error(elt.sourceFor() + " returned a Promise in a context that they are not allowed.");
             }
             return result;
         }
@@ -513,24 +512,12 @@ export class Runtime {
         // =================================================================
 
         matchesSelector(elt, selector) {
-            var matchesFunction =
-                elt.matches || elt.matchesSelector || elt.msMatchesSelector || elt.mozMatchesSelector || elt.webkitMatchesSelector || elt.oMatchesSelector;
-            return matchesFunction && matchesFunction.call(elt, selector);
+            return elt.matches && elt.matches(selector);
         }
 
         makeEvent(eventName, detail) {
-            var evt;
-            if (this.#globalScope.Event && typeof this.#globalScope.Event === "function") {
-                evt = new Event(eventName, {
-                    bubbles: true,
-                    cancelable: true,
-                    composed: true,
-                });
-                evt['detail'] = detail;
-            } else {
-                evt = document.createEvent("CustomEvent");
-                evt.initCustomEvent(eventName, true, true, detail);
-            }
+            var evt = new Event(eventName, { bubbles: true, cancelable: true, composed: true });
+            evt['detail'] = detail;
             return evt;
         }
 
@@ -725,22 +712,7 @@ export class Runtime {
                 } else if (value instanceof ElementCollection) {
                     logValue = Array.from(value);
                 }
-                console.log("///_ BEEP! The expression (" + Tokens.sourceFor.call(expression).replace("beep! ", "") + ") evaluates to:", logValue, "of type " + typeName);
-            }
-        }
-
-        // =================================================================
-        // Utilities
-        // =================================================================
-
-        getOrInitObject(root, prop) {
-            var value = root[prop];
-            if (value) {
-                return value;
-            } else {
-                var newObj = {};
-                root[prop] = newObj;
-                return newObj;
+                console.log("///_ BEEP! The expression (" + expression.sourceFor().replace("beep! ", "") + ") evaluates to:", logValue, "of type " + typeName);
             }
         }
 
