@@ -112,4 +112,40 @@ test.describe("the increment command", () => {
 		await expect(find('div')).toHaveText("20");
 	});
 
+	test("can increment an array element", async ({html, find}) => {
+		await html(`<div _="on click set arr to [10, 20, 30] then increment arr[1] then put arr[1] into me"></div>`);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("21");
+	});
+
+	test("can decrement an array element", async ({html, find}) => {
+		await html(`<div _="on click set arr to [10, 20, 30] then decrement arr[1] then put arr[1] into me"></div>`);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("19");
+	});
+
+	test("can increment a possessive property", async ({html, find}) => {
+		await html(
+			`<div id="d1" _="on click increment #d1's innerHTML">5</div>`
+		);
+		await find('#d1').dispatchEvent('click');
+		await expect(find('#d1')).toHaveText("6");
+	});
+
+	test("can increment a property of expression", async ({html, find}) => {
+		await html(
+			`<div id="d1" _="on click increment innerHTML of #d1">5</div>`
+		);
+		await find('#d1').dispatchEvent('click');
+		await expect(find('#d1')).toHaveText("6");
+	});
+
+	test("can increment a style ref", async ({html, find}) => {
+		await html(
+			`<div _="on click set my *opacity to 0.5 then increment *opacity by 0.25 then put *opacity into me"></div>`
+		);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("0.75");
+	});
+
 });
