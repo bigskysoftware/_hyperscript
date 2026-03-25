@@ -123,6 +123,7 @@ const _hyperscript = Object.assign(
         parse: (src) => kernel.parse(tokenizer, src),
         process: (elt) => runtime.processNode(elt),
         processNode: (elt) => runtime.processNode(elt), // deprecated alias
+        cleanup: (elt) => runtime.cleanup(elt),
         version: "0.9.90",
     }
 );

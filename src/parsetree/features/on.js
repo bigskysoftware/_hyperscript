@@ -111,6 +111,10 @@ export class OnFeature extends Feature {
                   return;
                 }
 
+                var eltData = runtime.getInternalData(elt);
+                if (!eltData.listeners) eltData.listeners = [];
+                if (!eltData.observers) eltData.observers = [];
+
                 if (eventSpec.mutationSpec) {
                     eventName = "hyperscript:mutation";
                     const observer = new MutationObserver(function (mutationList, observer) {
@@ -122,6 +126,7 @@ export class OnFeature extends Feature {
                         }
                     });
                     observer.observe(target, eventSpec.mutationSpec);
+                    eltData.observers.push(observer);
                 }
 
                 if (eventSpec.intersectionSpec) {
@@ -137,10 +142,12 @@ export class OnFeature extends Feature {
                         }
                     }, eventSpec.intersectionSpec);
                     observer.observe(target);
+                    eltData.observers.push(observer);
                 }
 
                 var addEventListener = target.addEventListener || target.on;
-                addEventListener.call(target, eventName, function listener(evt) {
+                var handler;
+                addEventListener.call(target, eventName, handler = function listener(evt) {
                     // OK NO PROMISE
                     if (typeof Node !== 'undefined' && elt instanceof Node && target !== elt && !elt.isConnected) {
                         target.removeEventListener(eventName, listener);
@@ -246,6 +253,7 @@ export class OnFeature extends Feature {
                     // apply execute
                     onFeature.execute(ctx);
                 });
+                eltData.listeners.push({ target: target, event: eventName, handler: handler });
             });
         }
     }

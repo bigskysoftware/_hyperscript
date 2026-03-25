@@ -155,4 +155,62 @@ test.describe("_hyperscript bootstrapping", () => {
 		await find('div').dispatchEvent('click');
 		await expect(find('div')).toHaveClass(/bar/);
 	});
+
+	test("cleanup removes event listeners on the element", async ({html, find, evaluate}) => {
+		await html("<div _='on click add .foo'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveClass(/foo/);
+
+		// Cleanup and verify listener is gone
+		await evaluate(() => {
+			var div = document.querySelector('#work-area div');
+			_hyperscript.cleanup(div);
+			div.classList.remove('foo');
+			div.click();
+		});
+		await expect(find('div')).not.toHaveClass(/foo/);
+	});
+
+	test("cleanup removes cross-element event listeners", async ({html, find, evaluate}) => {
+		await html("<div id='source'></div><div id='target' _='on click from #source add .foo'></div>");
+
+		// Verify the cross-element listener works
+		await find('#source').dispatchEvent('click');
+		await expect(find('#target')).toHaveClass(/foo/);
+
+		// Cleanup target and verify listener on source is removed
+		var listenerRemoved = await evaluate(() => {
+			var source = document.getElementById('source');
+			var target = document.getElementById('target');
+			_hyperscript.cleanup(target);
+			target.classList.remove('foo');
+			source.click();
+			// If cleanup worked, target should NOT get .foo again
+			return !target.classList.contains('foo');
+		});
+		expect(listenerRemoved).toBe(true);
+	});
+
+	test("cleanup tracks listeners in elt._hyperscript", async ({html, find, evaluate}) => {
+		await html("<div _='on click add .foo'></div>");
+		var info = await evaluate(() => {
+			var div = document.querySelector('#work-area div');
+			return {
+				hasListeners: Array.isArray(div._hyperscript.listeners),
+				listenerCount: div._hyperscript.listeners.length,
+			};
+		});
+		expect(info.hasListeners).toBe(true);
+		expect(info.listenerCount).toBeGreaterThan(0);
+	});
+
+	test("cleanup clears elt._hyperscript", async ({html, find, evaluate}) => {
+		await html("<div _='on click add .foo'></div>");
+		var hasState = await evaluate(() => {
+			var div = document.querySelector('#work-area div');
+			_hyperscript.cleanup(div);
+			return '_hyperscript' in div;
+		});
+		expect(hasState).toBe(false);
+	});
 });

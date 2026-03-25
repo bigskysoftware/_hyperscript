@@ -588,6 +588,41 @@ export class Runtime {
             return hash;
         }
 
+        cleanup(elt) {
+            if (!elt._hyperscript) return;
+            var data = elt._hyperscript;
+
+            // Remove registered event listeners
+            if (data.listeners) {
+                for (var info of data.listeners) {
+                    info.target.removeEventListener(info.event, info.handler);
+                }
+            }
+
+            // Disconnect observers
+            if (data.observers) {
+                for (var observer of data.observers) {
+                    observer.disconnect();
+                }
+            }
+
+            // Clear debounce/throttle timers
+            if (data.eventState) {
+                for (var state of data.eventState.values()) {
+                    if (state.debounced) clearTimeout(state.debounced);
+                }
+            }
+
+            // Recursively clean children
+            if (elt.querySelectorAll) {
+                for (var child of elt.querySelectorAll('[_], [data-hs], [hyperscript]')) {
+                    this.cleanup(child);
+                }
+            }
+
+            delete elt._hyperscript;
+        }
+
         #initElement(elt, target) {
             if (elt.closest && elt.closest(config.disableSelector)) {
                 return;
@@ -598,6 +633,9 @@ export class Runtime {
             var hash = this.#hashScript(src);
             if (internalData.initialized) {
                 if (internalData.scriptHash === hash) return;
+                // Script changed (e.g. morph swap) — clean up and reinitialize
+                this.cleanup(elt);
+                internalData = this.getInternalData(elt);
             }
             internalData.initialized = true;
             internalData.scriptHash = hash;
