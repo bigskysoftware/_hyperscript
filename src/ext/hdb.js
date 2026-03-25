@@ -1,7 +1,5 @@
 import { Command } from '../parsetree/base.js';
 
-let _hs;
-
 class BreakpointCommand extends Command {
 	static keyword = "breakpoint";
 
@@ -25,7 +23,7 @@ function HDB(ctx, runtime, breakpoint) {
 	this.ctx = ctx;
 	this.runtime = runtime;
 	this.cmd = breakpoint;
-	this._hyperscript = _hs;
+	this._hyperscript = self._hyperscript;
 
 	this.cmdMap = [];
 
@@ -110,8 +108,8 @@ HDB.prototype.rewrite = function (command, newCode) {
 	}
 	const next = command.next
 
-	const tok = _hs.internals.tokenizer.tokenize(newCode)
-	const parser = _hs.internals.createParser(tok)
+	const tok = this._hyperscript.internals.tokenizer.tokenize(newCode)
+	const parser = this._hyperscript.internals.createParser(tok)
 	const newcmd = parser.requireElement('command')
 
 	console.log(newcmd)
@@ -523,11 +521,10 @@ HDB.prototype.ui = function () {
 	node.style.cssText = "all: initial";
 	shadow.innerHTML = ui;
 	document.body.appendChild(node);
-	_hs.process(shadow.querySelector(".hdb"));
+	this._hyperscript.process(shadow.querySelector(".hdb"));
 };
 
 export default function hdbPlugin(_hyperscript) {
-	_hs = _hyperscript;
 	_hyperscript.addCommand(BreakpointCommand.keyword, BreakpointCommand.parse.bind(BreakpointCommand));
 }
 

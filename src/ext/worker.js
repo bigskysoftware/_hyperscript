@@ -117,7 +117,7 @@ class WorkerFeature extends Feature {
 
 			worker.postMessage({
 				type: "init",
-				_hyperscript: _hs.internals.runtime.hyperscriptUrl || document.currentScript?.src || '/dist/_hyperscript.js',
+				_hyperscript: document.currentScript?.src || '/dist/_hyperscript.js',
 				extraScripts: extraScripts,
 				src: bodySrc,
 			});
@@ -167,10 +167,7 @@ class WorkerFeature extends Feature {
 	}
 }
 
-let _hs;
-
 export default function workerPlugin(_hyperscript) {
-	_hs = _hyperscript;
 	_hyperscript.addFeature(WorkerFeature.keyword, WorkerFeature.parse.bind(WorkerFeature));
 }
 

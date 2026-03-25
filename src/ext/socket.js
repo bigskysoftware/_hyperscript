@@ -25,8 +25,6 @@ function parseUrl(url) {
 /** @type {(string | symbol)[]} */
 var PROXY_BLACKLIST = ["then", "catch", "length", "toJSON"];
 
-let _hs;
-
 export class SocketFeature extends Feature {
 	static keyword = "socket";
 
@@ -39,6 +37,7 @@ export class SocketFeature extends Feature {
 	}
 
 	install(target, source, args, runtime) {
+		this.runtime = runtime;
 		runtime.assignToNamespace(target, this.nameSpace, this.socketName, this.socketObject);
 	}
 
@@ -163,7 +162,7 @@ export class SocketFeature extends Feature {
 			}
 
 			if (messageHandler) {
-				var context = _hs.internals.runtime.makeContext(socketObject, feature, socketObject);
+				var context = feature.runtime.makeContext(socketObject, feature, socketObject);
 				if (jsonMessages) {
 					if (dataAsJson) {
 						context.locals.message = dataAsJson;
@@ -196,7 +195,6 @@ export class SocketFeature extends Feature {
  * @param {import('../dist/_hyperscript').Hyperscript} _hyperscript
  */
 export default function socketPlugin(_hyperscript) {
-	_hs = _hyperscript;
 	_hyperscript.addFeature(SocketFeature.keyword, SocketFeature.parse.bind(SocketFeature));
 }
 

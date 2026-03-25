@@ -1,7 +1,5 @@
 import { Command, Expression } from '../parsetree/base.js';
 
-let _hs; // module-level reference for renderTemplate
-
 function compileTemplate(template) {
 	return template.replace(/(?:^|\n)([^@]*)@?/gm, function (match, p1) {
 		var templateStr = (" " + p1).replace(/([^\\])\$\{/g, "$1$${escape html ").substring(1);
@@ -13,7 +11,7 @@ function renderTemplate(template, ctx) {
 	var buf = [];
 	const renderCtx = Object.assign({}, ctx);
 	renderCtx.meta = Object.assign({ __ht_template_result: buf }, ctx.meta);
-	_hs.evaluate(template, renderCtx);
+	self._hyperscript.evaluate(template, renderCtx);
 	return buf.join("");
 }
 
@@ -93,7 +91,6 @@ class EscapeExpression extends Expression {
  * @param {import('../dist/_hyperscript').Hyperscript} _hyperscript
  */
 export default function templatePlugin(_hyperscript) {
-	_hs = _hyperscript;
 	_hyperscript.addCommand(RenderCommand.keyword, RenderCommand.parse.bind(RenderCommand));
 	_hyperscript.addLeafExpression(EscapeExpression.grammarName, EscapeExpression.parse.bind(EscapeExpression));
 }

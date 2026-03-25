@@ -4,8 +4,6 @@
 
 import { Feature } from '../parsetree/base.js';
 
-let _hs;
-
 export class EventSourceFeature extends Feature {
 	static keyword = "eventsource";
 
@@ -17,6 +15,7 @@ export class EventSourceFeature extends Feature {
 	}
 
 	install(target, source, args, runtime) {
+		this.runtime = runtime;
 		runtime.assignToNamespace(target, this.nameSpace, this.eventSourceName, this.stub);
 	}
 
@@ -160,7 +159,7 @@ export class EventSourceFeature extends Feature {
 function makeHandler(encoding, commandList, stub, feature) {
 	return function (evt) {
 		var data = decode(evt["data"], encoding);
-		var context = _hs.internals.runtime.makeContext(stub, feature, stub);
+		var context = feature.runtime.makeContext(stub, feature, stub);
 		context.event = evt;
 		context.result = data;
 		commandList.execute(context);
@@ -185,7 +184,6 @@ function decode(data, encoding) {
  * @param {import('../dist/_hyperscript').Hyperscript} _hyperscript
  */
 export default function eventsourcePlugin(_hyperscript) {
-	_hs = _hyperscript;
 	_hyperscript.addFeature(EventSourceFeature.keyword, EventSourceFeature.parse.bind(EventSourceFeature));
 }
 
