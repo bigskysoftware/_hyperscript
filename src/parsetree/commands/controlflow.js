@@ -109,11 +109,6 @@ export class IfCommand extends Command {
         this.args = { value: expr };
     }
 
-    /**
-     * Parse if command
-     * @param {Parser} parser
-     * @returns {IfCommand | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("if")) return;
         var expr = parser.requireElement("expression");
@@ -304,11 +299,6 @@ export class RepeatCommand extends Command {
 export class ForCommand extends Command {
     static keyword = "for";
 
-    /**
-     * Parse for command
-     * @param {Parser} parser
-     * @returns {ForCommand | undefined}
-     */
     static parse(parser) {
         if (parser.matchToken("for")) {
             return RepeatCommand.parseRepeatExpression(parser, true);
@@ -330,11 +320,6 @@ export class ContinueCommand extends Command {
         this.parser = parser;
     }
 
-    /**
-     * Parse continue command
-     * @param {Parser} parser
-     * @returns {ContinueCommand | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("continue")) return;
         return new ContinueCommand(parser);
@@ -367,11 +352,6 @@ export class BreakCommand extends Command {
         this.parser = parser;
     }
 
-    /**
-     * Parse break command
-     * @param {Parser} parser
-     * @returns {BreakCommand | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("break")) return;
         return new BreakCommand(parser);
@@ -407,11 +387,6 @@ export class TellCommand extends Command {
         this.args = { value };
     }
 
-    /**
-     * Parse tell command
-     * @param {Parser} parser
-     * @returns {TellCommand | undefined}
-     */
     static parse(parser) {
         var startToken = parser.currentToken();
         if (!parser.matchToken("tell")) return;

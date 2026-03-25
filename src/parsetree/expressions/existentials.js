@@ -21,20 +21,12 @@ export class NoExpression extends Expression {
         this.args = { value: root };
     }
 
-    /**
-     * Parse a no expression
-     * @param {Parser} parser
-     * @returns {NoExpression | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("no")) return;
         var root = parser.requireElement("unaryExpression");
         return new NoExpression(root);
     }
 
-    /**
-     * Op function for no expression
-     */
     resolve(context, { value: val }) {
         return context.meta.runtime.isEmpty(val);
     }
@@ -56,20 +48,12 @@ export class SomeExpression extends Expression {
         this.args = { value: root };
     }
 
-    /**
-     * Parse a some expression
-     * @param {Parser} parser
-     * @returns {SomeExpression | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("some")) return;
         var root = parser.requireElement("expression");
         return new SomeExpression(root);
     }
 
-    /**
-     * Op function for some expression
-     */
     resolve(context, { value: val }) {
         return !context.meta.runtime.isEmpty(val);
     }

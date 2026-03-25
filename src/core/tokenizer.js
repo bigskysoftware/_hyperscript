@@ -1,17 +1,5 @@
 // Tokenizer - Lexical analysis for _hyperscript
 
-/**
- * @typedef {Object} Token
- * @property {string} [type]
- * @property {string} value
- * @property {number} [start]
- * @property {number} [end]
- * @property {number} [column]
- * @property {number} [line]
- * @property {boolean} [op] `true` if this token represents an operator
- * @property {boolean} [template] `true` if this token is a template, for class refs, id refs, strings
- */
-
 // ============================================================
 // Tokens - Token stream with matching/consuming API
 // ============================================================
@@ -39,16 +27,10 @@ export class Tokens {
 
     // ----- Token access -----
 
-    /** @returns {Token} */
     currentToken() {
         return this.token(0);
     }
 
-    /**
-     * @param {number} n
-     * @param {boolean} [includeWhitespace]
-     * @returns {Token}
-     */
     token(n, includeWhitespace) {
         var token;
         var i = 0;
@@ -65,23 +47,16 @@ export class Tokens {
         return token || { type: "EOF", value: "<<<EOF>>>" };
     }
 
-    /** @returns {boolean} */
     hasMore() {
         return this.#tokens.length > 0;
     }
 
-    /** @returns {Token | null} */
     lastMatch() {
         return this.#lastConsumed;
     }
 
     // ----- Token matching -----
 
-    /**
-     * @param {string} value
-     * @param {string} [type]
-     * @returns {Token | void}
-     */
     matchToken(value, type) {
         if (this.#follows.includes(value)) return;
         type = type || "IDENTIFIER";
@@ -90,30 +65,18 @@ export class Tokens {
         }
     }
 
-    /**
-     * @param {string} value
-     * @returns {Token | void}
-     */
     matchOpToken(value) {
         if (this.currentToken() && this.currentToken().op && this.currentToken().value === value) {
             return this.consumeToken();
         }
     }
 
-    /**
-     * @param {...string} types
-     * @returns {Token | void}
-     */
     matchTokenType(...types) {
         if (this.currentToken() && this.currentToken().type && types.includes(this.currentToken().type)) {
             return this.consumeToken();
         }
     }
 
-    /**
-     * @param {...string} tokens
-     * @returns {Token | void}
-     */
     matchAnyToken(...tokens) {
         for (var i = 0; i < tokens.length; i++) {
             var match = this.matchToken(tokens[i]);
@@ -121,10 +84,6 @@ export class Tokens {
         }
     }
 
-    /**
-     * @param {...string} ops
-     * @returns {Token | void}
-     */
     matchAnyOpToken(...ops) {
         for (var i = 0; i < ops.length; i++) {
             var match = this.matchOpToken(ops[i]);
@@ -134,31 +93,18 @@ export class Tokens {
 
     // ----- Token requiring -----
 
-    /**
-     * @param {string} value
-     * @param {string} [type]
-     * @returns {Token}
-     */
     requireToken(value, type) {
         var token = this.matchToken(value, type);
         if (token) return token;
         this.raiseError("Expected '" + value + "' but found '" + this.currentToken().value + "'");
     }
 
-    /**
-     * @param {string} value
-     * @returns {Token}
-     */
     requireOpToken(value) {
         var token = this.matchOpToken(value);
         if (token) return token;
         this.raiseError("Expected '" + value + "' but found '" + this.currentToken().value + "'");
     }
 
-    /**
-     * @param {...string} types
-     * @returns {Token}
-     */
     requireTokenType(...types) {
         var token = this.matchTokenType(...types);
         if (token) return token;
@@ -167,7 +113,6 @@ export class Tokens {
 
     // ----- Token consuming -----
 
-    /** @returns {Token} */
     consumeToken() {
         var match = this.#tokens.shift();
         this.#consumed.push(match);
@@ -182,11 +127,6 @@ export class Tokens {
         }
     }
 
-    /**
-     * @param {string | null} value
-     * @param {string | null} [type]
-     * @returns {Token[]}
-     */
     consumeUntil(value, type) {
         var tokenList = [];
         var currentToken = this.token(0, true);
@@ -220,7 +160,6 @@ export class Tokens {
 
     // ----- Whitespace -----
 
-    /** @returns {string} */
     lastWhitespace() {
         var last = this.#consumed[this.#consumed.length - 1];
         return (last && last.type === "WHITESPACE") ? last.value : "";
@@ -248,10 +187,6 @@ export class Tokens {
 
     // ----- Error handling -----
 
-    /**
-     * @param {string} [message]
-     * @returns {never}
-     */
     raiseError(message) {
         message = (message || "Unexpected Token : " + this.currentToken().value) + "\n\n";
         var currentToken = this.currentToken();
@@ -348,20 +283,10 @@ export class Tokenizer {
         return c === "`" || c === "^";
     }
 
-    /**
-     * @param {string} string
-     * @param {boolean} [template]
-     * @returns {Tokens}
-     */
     static tokenize(string, template) {
         return new Tokenizer().tokenize(string, template);
     }
 
-    /**
-     * @param {string} string
-     * @param {boolean} [template]
-     * @returns {Tokens}
-     */
     tokenize(string, template) {
         this.#source = string;
         this.#position = 0;

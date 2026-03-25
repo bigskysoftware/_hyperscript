@@ -74,7 +74,6 @@ export class Command extends ParseElement {
         return context.meta.runtime.unifiedExec(this, context);
     }
 
-    // TODO - this needs to get moved somewhere else
     static parsePseudopossessiveTarget(parser) {
         var targets;
         if (

@@ -82,11 +82,6 @@ export class DefFeature extends Feature {
         runtime.assignToNamespace(target, nameSpace, funcName, func);
     }
 
-    /**
-     * Parse def feature
-     * @param {Parser} parser
-     * @returns {DefFeature | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("def")) return;
         var functionName = parser.requireElement("dotOrColonPath");

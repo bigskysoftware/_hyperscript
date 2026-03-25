@@ -28,11 +28,6 @@ export class RelativePositionalExpression extends Expression {
         this.args = { thing: thingElt, from, inElt, withinElt };
     }
 
-    /**
-     * Parse a relative positional expression
-     * @param {Parser} parser
-     * @returns {RelativePositionalExpression | undefined}
-     */
     static parse(parser) {
         var op = parser.matchAnyToken("next", "previous");
         if (!op) return;
@@ -80,9 +75,6 @@ export class RelativePositionalExpression extends Expression {
         );
     }
 
-    /**
-     * Op function for relative positional
-     */
     scanForwardQuery(start, root, match, wrap) {
         var results = root.querySelectorAll(match);
         for (var i = 0; i < results.length; i++) {
@@ -159,11 +151,6 @@ export class RelativePositionalExpression extends Expression {
         }
     }
 
-    /**
-     * Evaluate relative positional expression
-     * @param {Context} context
-     * @returns {Element}
-     */
 }
 
 /**
@@ -183,11 +170,6 @@ export class PositionalExpression extends Expression {
         this.args = { value: rhs };
     }
 
-    /**
-     * Parse a positional expression
-     * @param {Parser} parser
-     * @returns {PositionalExpression | undefined}
-     */
     static parse(parser) {
         var op = parser.matchAnyToken("first", "last", "random");
         if (!op) return;
@@ -196,9 +178,6 @@ export class PositionalExpression extends Expression {
         return new PositionalExpression(rhs, op.value);
     }
 
-    /**
-     * Op function for positional
-     */
     resolve(context, { value: rhsVal }) {
         if (rhsVal && !Array.isArray(rhsVal)) {
             if (rhsVal.children) {
@@ -218,11 +197,6 @@ export class PositionalExpression extends Expression {
         }
     }
 
-    /**
-     * Evaluate positional expression
-     * @param {Context} context
-     * @returns {any}
-     */
 }
 
 /**
@@ -272,11 +246,6 @@ export class ClosestExpr extends Expression {
     static grammarName = "closestExpr";
     static expressionType = "leaf";
 
-    /**
-     * Parse a closest expression
-     * @param {Parser} parser
-     * @returns {ClosestExprNode | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("closest")) return;
 

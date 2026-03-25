@@ -59,11 +59,6 @@ export class InstallFeature extends Feature {
         runtime.unifiedEval(operation, runtime.makeContext(target, this, target, null));
     }
 
-    /**
-     * Parse install feature
-     * @param {Parser} parser
-     * @returns {InstallFeature | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("install")) return;
         var behaviorPath = parser.requireElement("dotOrColonPath").evaluate();

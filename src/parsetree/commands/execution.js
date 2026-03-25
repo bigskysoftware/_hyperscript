@@ -19,11 +19,6 @@ export class JsBody {
         this.exposedFunctionNames = exposedFunctionNames;
     }
 
-    /**
-     * Parse JavaScript body
-     * @param {Parser} parser
-     * @returns {JsBody}
-     */
     static parse(parser) {
         var jsSourceStart = parser.currentToken().start;
         var jsLastToken = parser.currentToken();
@@ -74,11 +69,6 @@ export class JsCommand extends Command {
         this.inputs = inputs;
     }
 
-    /**
-     * Parse js command
-     * @param {Parser} parser
-     * @returns {JsCommand | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("js")) return;
         // Parse inputs
@@ -138,11 +128,6 @@ export class CallCommand extends Command {
         this.args = { result: expr };
     }
 
-    /**
-     * Parse call command
-     * @param {Parser} parser
-     * @returns {CallCommand | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("call")) return;
         var expr = parser.requireElement("expression");
@@ -173,11 +158,6 @@ export class GetCommand extends Command {
         this.args = { result: expr };
     }
 
-    /**
-     * Parse get command
-     * @param {Parser} parser
-     * @returns {GetCommand | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("get")) return;
         var expr = parser.requireElement("expression");

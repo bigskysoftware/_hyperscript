@@ -175,22 +175,11 @@ export class LanguageKernel {
         return this
     }
 
-    /**
-     * @param {*} parseElement
-     * @param {*} start
-     * @param {Tokens} tokens
-     */
     initElt(parseElement, start, tokens) {
         parseElement.startToken = start;
         parseElement.programSource = tokens.source;
     }
 
-    /**
-     * @param {string} type
-     * @param {Parser} parser
-     * @param {ASTNode?} root
-     * @returns {ASTNode}
-     */
     parseElement(type, parser, root = undefined) {
         var elementDefinition = this.#grammar[type];
         if (elementDefinition) {
@@ -210,24 +199,12 @@ export class LanguageKernel {
         }
     }
 
-    /**
-     * @param {string} type
-     * @param {Parser} parser
-     * @param {string} [message]
-     * @param {*} [root]
-     * @returns {ASTNode}
-     */
     requireElement(type, parser, message, root) {
         var result = this.parseElement(type, parser, root);
         if (!result) LanguageKernel.raiseParseError(parser.tokens, message || "Expected " + type);
         return result;
     }
 
-    /**
-     * @param {string[]} types
-     * @param {Parser} parser
-     * @returns {ASTNode}
-     */
     parseAnyOf(types, parser) {
         for (var i = 0; i < types.length; i++) {
             var type = types[i];
@@ -238,10 +215,6 @@ export class LanguageKernel {
         }
     }
 
-    /**
-     * @param {string} name
-     * @param {ParseRule} definition
-     */
     addGrammarElement(name, definition) {
         if (this.#grammar[name]) {
             throw new Error(`Grammar element '${name}' already exists`);
@@ -249,20 +222,12 @@ export class LanguageKernel {
         this.#grammar[name] = definition;
     }
 
-    /**
-     * @param {string} keyword
-     * @param {ParseRule} definition
-     */
     addCommand(keyword, definition) {
         var commandGrammarType = keyword + "Command";
         this.#grammar[commandGrammarType] = definition;
         this.#commands[keyword] = definition;
     }
 
-    /**
-     * Register multiple command classes at once
-     * @param {...Function} commandClasses - Command classes with static keyword and parse properties
-     */
     addCommands(...commandClasses) {
         for (const CommandClass of commandClasses) {
             if (!CommandClass.keyword) {
@@ -275,10 +240,6 @@ export class LanguageKernel {
         }
     }
 
-    /**
-     * Register multiple feature classes at once
-     * @param {...Function} featureClasses - Feature classes with static keyword and parse properties
-     */
     addFeatures(...featureClasses) {
         for (const FeatureClass of featureClasses) {
             if (!FeatureClass.keyword) {
@@ -291,10 +252,6 @@ export class LanguageKernel {
         }
     }
 
-    /**
-     * @param {string} keyword
-     * @param {ParseRule} definition
-     */
     addFeature(keyword, definition) {
         var featureGrammarType = keyword + "Feature";
         this.#grammar[featureGrammarType] = definition;
@@ -304,7 +261,6 @@ export class LanguageKernel {
     /**
      * Register a parse element class based on its static metadata.
      * Commands need `static keyword`, expressions need `static grammarName`.
-     * @param {Function} ElementClass
      */
     registerParseElement(ElementClass) {
         if (!ElementClass.parse) return;
@@ -345,7 +301,6 @@ export class LanguageKernel {
      * Register all exported parse element classes from a module.
      * Iterates over module exports and registers any class with
      * a static `parse` method and appropriate metadata.
-     * @param {Object} module - ES module namespace object
      */
     registerModule(module) {
         for (const exported of Object.values(module)) {
@@ -355,56 +310,31 @@ export class LanguageKernel {
         }
     }
 
-    /**
-     * @param {string} name
-     * @param {ParseRule} definition
-     */
     addLeafExpression(name, definition) {
         this.#leafExpressions.push(name);
         this.addGrammarElement(name, definition);
     }
 
-    /**
-     * @param {string} name
-     * @param {ParseRule} definition
-     */
     addIndirectExpression(name, definition) {
         this.#indirectExpressions.push(name);
         this.addGrammarElement(name, definition);
     }
 
-    /**
-     * @param {string} name
-     * @param {ParseRule} definition
-     */
     addPostfixExpression(name, definition) {
         this.#postfixExpressions.push(name);
         this.addGrammarElement(name, definition);
     }
 
-    /**
-     * @param {string} name
-     * @param {ParseRule} definition
-     */
     addUnaryExpression(name, definition) {
         this.#unaryExpressions.push(name);
         this.addGrammarElement(name, definition);
     }
 
-    /**
-     * @param {string} name
-     * @param {ParseRule} definition
-     */
     addTopExpression(name, definition) {
         this.#topExpressions.push(name);
         this.addGrammarElement(name, definition);
     }
 
-    /**
-     * @param {Tokens} tokens
-     * @param {string} [message]
-     * @returns {never}
-     */
     commandStart(token) {
         return this.#commands[token.value || ""];
     }
@@ -417,18 +347,10 @@ export class LanguageKernel {
         tokens.raiseError(message);
     }
 
-    /**
-     * @param {Tokens} tokens
-     * @param {string} [message]
-     */
     raiseParseError(tokens, message) {
         tokens.raiseError(message);
     }
 
-    /**
-     * @param {Tokens} tokens
-     * @returns {ASTNode}
-     */
     parseHyperScript(tokens) {
         var parser = new Parser(this, tokens);
         var result = parser.parseElement("hyperscript");
@@ -436,11 +358,6 @@ export class LanguageKernel {
         if (result) return result;
     }
 
-    /**
-     * @param {*} tokenizer
-     * @param {string} src
-     * @returns {ASTNode}
-     */
     parse(tokenizer, src) {
         var tokens = tokenizer.tokenize(src);
         var parser = new Parser(this, tokens);

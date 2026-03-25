@@ -118,11 +118,6 @@ export class SendCommand extends Command {
         this.toExpr = toExpr;
     }
 
-    /**
-     * Parse send command
-     * @param {Parser} parser
-     * @returns {SendCommand | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("send")) return;
 
@@ -156,11 +151,6 @@ export class SendCommand extends Command {
 export class TriggerCommand extends SendCommand {
     static keyword = "trigger";
 
-    /**
-     * Parse trigger command
-     * @param {Parser} parser
-     * @returns {TriggerCommand | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("trigger")) return;
 
@@ -178,13 +168,7 @@ export class TriggerCommand extends SendCommand {
 }
 
 /**
- * EventName - Parse an event name
- *
- * Parses: "string" OR dotOrColonPath
- * Returns: evaluable event name
- */
-/**
- * EventNameNode - Represents an event name from a string literal
+ * EventName - Represents an event name from a string literal or dotOrColonPath
  */
 export class EventName extends Expression {
     static grammarName = "eventName";

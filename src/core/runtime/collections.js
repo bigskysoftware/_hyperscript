@@ -24,7 +24,7 @@ export class ElementCollection {
     }
 
     get id() {
-        return this.className();
+        return this.className;
     }
 
     contains(elt) {

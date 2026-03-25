@@ -375,8 +375,7 @@ export class Runtime {
         }
 
         resolveComputedStyle(root, property) {
-            return this.#flatGet(root, property, (root, property) => getComputedStyle(
-                /** @type {Element} */ (root)).getPropertyValue(property) )
+            return this.#flatGet(root, property, (root, property) => getComputedStyle(root).getPropertyValue(property) )
         }
 
         assignToNamespace(elt, nameSpace, name, value) {

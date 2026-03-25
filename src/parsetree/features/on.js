@@ -242,11 +242,6 @@ export class OnFeature extends Feature {
         }
     }
 
-    /**
-     * Parse on feature
-     * @param {Parser} parser
-     * @returns {OnFeature | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("on")) return;
         var every = false;

@@ -41,10 +41,6 @@ export class SocketFeature extends Feature {
 		runtime.assignToNamespace(target, this.nameSpace, this.socketName, this.socketObject);
 	}
 
-	/**
-	 * @param {import('../../src/core/parser.js').Parser} parser
-	 * @returns {SocketFeature | undefined}
-	 */
 	static parse(parser) {
 		if (!parser.matchToken("socket")) return;
 
@@ -191,9 +187,6 @@ export class SocketFeature extends Feature {
 	}
 }
 
-/**
- * @param {import('../dist/_hyperscript').Hyperscript} _hyperscript
- */
 export default function socketPlugin(_hyperscript) {
 	_hyperscript.addFeature(SocketFeature.keyword, SocketFeature.parse.bind(SocketFeature));
 }

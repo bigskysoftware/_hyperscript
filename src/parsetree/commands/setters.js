@@ -26,11 +26,6 @@ export class SetCommand extends Command {
         }
     }
 
-    /**
-     * Parse set command
-     * @param {Parser} parser
-     * @returns {SetCommand | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("set")) return;
 
@@ -84,11 +79,6 @@ export class DefaultCommand extends Command {
         this.args = { targetValue: target };
     }
 
-    /**
-     * Parse default command
-     * @param {Parser} parser
-     * @returns {DefaultCommand | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("default")) return;
         try {
@@ -134,11 +124,6 @@ export class IncrementCommand extends Command {
         this.args = { targetValue: target, amount: amountExpr, ...target.lhs };
     }
 
-    /**
-     * Parse increment command
-     * @param {Parser} parser
-     * @returns {IncrementCommand | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("increment")) return;
         var amountExpr;
@@ -183,11 +168,6 @@ export class DecrementCommand extends Command {
         this.args = { targetValue: target, amount: amountExpr, ...target.lhs };
     }
 
-    /**
-     * Parse decrement command
-     * @param {Parser} parser
-     * @returns {DecrementCommand | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("decrement")) return;
         var amountExpr;
@@ -265,11 +245,6 @@ export class PutCommand extends Command {
         this.args = { root: rootExpr, prop: this.prop, value };
     }
 
-    /**
-     * Parse put command
-     * @param {Parser} parser
-     * @returns {PutCommand | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("put")) return;
 

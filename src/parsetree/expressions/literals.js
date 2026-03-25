@@ -20,11 +20,6 @@ export class NakedString extends Expression {
         this.tokens = tokens;
     }
 
-    /**
-     * Parse a naked string (unquoted string until whitespace)
-     * @param {Parser} parser
-     * @returns {NakedString | undefined}
-     */
     static parse(parser) {
         if (parser.hasMore()) {
             var tokenArr = parser.consumeUntilWhitespace();
@@ -57,11 +52,6 @@ export class BooleanLiteral extends Expression {
         this.value = value;
     }
 
-    /**
-     * Parse a boolean literal
-     * @param {Parser} parser
-     * @returns {BooleanLiteral | undefined}
-     */
     static parse(parser) {
         var booleanLiteral = parser.matchToken("true") || parser.matchToken("false");
         if (!booleanLiteral) return;
@@ -88,11 +78,6 @@ export class NullLiteral extends Expression {
         super();
     }
 
-    /**
-     * Parse a null literal
-     * @param {Parser} parser
-     * @returns {NullLiteral | undefined}
-     */
     static parse(parser) {
         if (parser.matchToken("null")) {
             return new NullLiteral();
@@ -120,11 +105,6 @@ export class NumberLiteral extends Expression {
         this.numberToken = numberToken;
     }
 
-    /**
-     * Parse a number literal
-     * @param {Parser} parser
-     * @returns {NumberLiteral | undefined}
-     */
     static parse(parser) {
         var number = parser.matchTokenType("NUMBER");
         if (!number) return;
@@ -155,11 +135,6 @@ export class StringLiteral extends Expression {
         this.args = args.length > 0 ? { parts: args } : null;
     }
 
-    /**
-     * Parse a string literal
-     * @param {Parser} parser
-     * @returns {StringLiteral | undefined}
-     */
     static parse(parser) {
         var stringToken = parser.matchTokenType("STRING");
         if (!stringToken) return;
@@ -207,11 +182,6 @@ export class ArrayLiteral extends Expression {
         this.args = { values };
     }
 
-    /**
-     * Parse an array literal
-     * @param {Parser} parser
-     * @returns {ArrayLiteral | undefined}
-     */
     static parse(parser) {
         if (!parser.matchOpToken("[")) return;
         var values = [];
@@ -225,9 +195,6 @@ export class ArrayLiteral extends Expression {
         return new ArrayLiteral(values);
     }
 
-    /**
-     * Op function for array literal
-     */
     resolve(context, { values }) {
         return values;
     }
@@ -249,11 +216,6 @@ export class ObjectKey extends Expression {
         this.args = args;
     }
 
-    /**
-     * Parse an object key
-     * @param {Parser} parser
-     * @returns {ObjectKey}
-     */
     static parse(parser) {
         var token;
         if ((token = parser.matchTokenType("STRING"))) {
@@ -297,11 +259,6 @@ export class ObjectLiteral extends Expression {
         this.args = { keys: keyExpressions, values: valueExpressions };
     }
 
-    /**
-     * Parse an object literal
-     * @param {Parser} parser
-     * @returns {ObjectLiteral | undefined}
-     */
     static parse(parser) {
         if (!parser.matchOpToken("{")) return;
         var keyExpressions = [];
@@ -319,9 +276,6 @@ export class ObjectLiteral extends Expression {
         return new ObjectLiteral(keyExpressions, valueExpressions);
     }
 
-    /**
-     * Op function for object literal
-     */
     resolve(context, { keys, values }) {
         var returnVal = {};
         for (var i = 0; i < keys.length; i++) {
@@ -346,11 +300,6 @@ export class NamedArgumentList extends Expression {
         this.args = { values: valueExpressions };
     }
 
-    /**
-     * Parse a naked named argument list (without parentheses)
-     * @param {Parser} parser
-     * @returns {NamedArgumentList}
-     */
     static parseNaked(parser) {
         var fields = [];
         var valueExpressions = [];
@@ -366,11 +315,6 @@ export class NamedArgumentList extends Expression {
         return new NamedArgumentList(fields, valueExpressions);
     }
 
-    /**
-     * Parse a named argument list with parentheses
-     * @param {Parser} parser
-     * @returns {NamedArgumentList | undefined}
-     */
     static parse(parser) {
         if (!parser.matchOpToken("(")) return;
         var elt = NamedArgumentList.parseNaked(parser);
@@ -378,9 +322,6 @@ export class NamedArgumentList extends Expression {
         return elt;
     }
 
-    /**
-     * Op function for named arguments
-     */
     resolve(context, { values }) {
         var returnVal = { _namedArgList_: true };
         for (var i = 0; i < values.length; i++) {

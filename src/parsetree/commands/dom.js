@@ -695,11 +695,6 @@ export class MeasureCommand extends Command {
         this.args = { target: targetExpr };
     }
 
-    /**
-     * Parse measure command
-     * @param {Parser} parser
-     * @returns {MeasureCommand | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("measure")) return;
 

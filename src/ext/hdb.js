@@ -44,7 +44,7 @@ HDB.prototype.break = function (ctx) {
 					}
 					Object.assign(ctx, this.ctx);
 				}
-				delete window['hdb'];
+				delete globalThis.hdb;
 				resolve(this.runtime.findNext(this.cmd, this.ctx));
 			},
 			{ once: true }

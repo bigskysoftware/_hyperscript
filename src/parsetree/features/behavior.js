@@ -42,11 +42,6 @@ export class BehaviorFeature extends Feature {
         );
     }
 
-    /**
-     * Parse behavior feature
-     * @param {Parser} parser
-     * @returns {BehaviorFeature | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("behavior")) return;
         var path = parser.requireElement("dotOrColonPath").evaluate();

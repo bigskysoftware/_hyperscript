@@ -99,11 +99,6 @@ export class NegativeNumber extends Expression {
         this.args = { value: root };
     }
 
-    /**
-     * Parse a negative number
-     * @param {Parser} parser
-     * @returns {NegativeNumber | any}
-     */
     static parse(parser) {
         if (parser.matchOpToken("-")) {
             var root = parser.requireElement("negativeNumber");
@@ -113,18 +108,9 @@ export class NegativeNumber extends Expression {
         }
     }
 
-    /**
-     * Op function for negation
-     */
     resolve(context, { value }) {
         return -1 * value;
     }
-
-    /**
-     * Evaluate negated value
-     * @param {Context} context
-     * @returns {number}
-     */
 }
 
 /**
@@ -143,29 +129,15 @@ export class LogicalNot extends Expression {
         this.args = { value: root };
     }
 
-    /**
-     * Parse a logical not expression
-     * @param {Parser} parser
-     * @returns {LogicalNot | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("not")) return;
         var root = parser.requireElement("unaryExpression");
         return new LogicalNot(root);
     }
 
-    /**
-     * Op function for logical not
-     */
     resolve(context, { value: val }) {
         return !val;
     }
-
-    /**
-     * Evaluate logical not
-     * @param {Context} context
-     * @returns {boolean}
-     */
 }
 
 /**
@@ -185,11 +157,6 @@ export class SymbolRef extends Expression {
         this.name = name;
     }
 
-    /**
-     * Parse a symbol reference
-     * @param {Parser} parser
-     * @returns {SymbolRef | undefined}
-     */
     static parse(parser) {
         var scope = "default";
         if (parser.matchToken("global")) {
@@ -284,12 +251,6 @@ export class PropertyAccess extends Expression {
         this.args = { root };
     }
 
-    /**
-     * Parse a property access expression
-     * @param {Parser} parser
-     * @param {any} root - The root expression
-     * @returns {any | undefined}
-     */
     static parse(parser, root) {
         if (!parser.matchOpToken(".")) return;
         var prop = parser.requireTokenType("IDENTIFIER");
@@ -297,9 +258,6 @@ export class PropertyAccess extends Expression {
         return parser.parseElement("indirectExpression", propertyAccess);
     }
 
-    /**
-     * Op function for property access
-     */
     resolve(context, { root: rootVal }) {
         var value = context.meta.runtime.resolveProperty(rootVal, this.prop.value);
         return value;
@@ -334,12 +292,6 @@ export class OfExpression extends Expression {
         this._urRoot = urRoot; // store the urRoot for op function
     }
 
-    /**
-     * Parse an of expression
-     * @param {Parser} parser
-     * @param {any} root - The property expression
-     * @returns {any | undefined}
-     */
     static parse(parser, root) {
         if (!parser.matchToken("of")) return;
         var newRoot = parser.requireElement("unaryExpression");
@@ -380,9 +332,6 @@ export class OfExpression extends Expression {
         return parser.parseElement("indirectExpression", root);
     }
 
-    /**
-     * Op function for of expression
-     */
     resolve(context, { root: rootVal }) {
         var urRoot = this._urRoot;
         var prop = urRoot.name;
@@ -418,12 +367,6 @@ export class OfExpression extends Expression {
             ctx.meta.runtime.implicitLoop(lhs.root, elt => { elt[prop] = value; });
         }
     }
-
-    /**
-     * Evaluate of expression
-     * @param {Context} context
-     * @returns {any}
-     */
 }
 
 /**
@@ -445,12 +388,6 @@ export class PossessiveExpression extends Expression {
         this.args = { root };
     }
 
-    /**
-     * Parse a possessive expression
-     * @param {Parser} parser
-     * @param {any} root
-     * @returns {any | undefined}
-     */
     static parse(parser, root) {
         if (parser.possessivesDisabled) {
             return;
@@ -479,12 +416,9 @@ export class PossessiveExpression extends Expression {
         }
     }
 
-    /**
-     * Op function for possessive
-     */
     resolve(context, { root: rootVal }) {
+        var value;
         if (this.attribute) {
-            var value
             if (this.attribute.type === 'computedStyleRef') {
                 value = context.meta.runtime.resolveComputedStyle(rootVal, this.attribute['name']);
             } else if (this.attribute.type === 'styleRef') {
@@ -493,7 +427,7 @@ export class PossessiveExpression extends Expression {
                 value = context.meta.runtime.resolveAttribute(rootVal, this.attribute.name);
             }
         } else {
-            var value = context.meta.runtime.resolveProperty(rootVal, this.prop.value);
+            value = context.meta.runtime.resolveProperty(rootVal, this.prop.value);
         }
         return value;
     }
@@ -534,12 +468,6 @@ export class InExpression extends Expression {
         this.args = { root, target };
     }
 
-    /**
-     * Parse an in expression
-     * @param {Parser} parser
-     * @param {any} root
-     * @returns {InExpression | undefined}
-     */
     static parse(parser, root) {
         if (!parser.matchToken("in")) return;
         var target = parser.requireElement("unaryExpression");
@@ -547,9 +475,6 @@ export class InExpression extends Expression {
         return parser.parseElement("indirectExpression", inExpression);
     }
 
-    /**
-     * Op function for in expression
-     */
     resolve(context, { root: rootVal, target }) {
         var returnArr = [];
         if (rootVal.css) {
@@ -580,12 +505,6 @@ export class InExpression extends Expression {
         }
         return returnArr;
     }
-
-    /**
-     * Evaluate in expression
-     * @param {Context} context
-     * @returns {any}
-     */
 }
 
 /**
@@ -605,12 +524,6 @@ export class AsExpression extends Expression {
         this.args = { root };
     }
 
-    /**
-     * Parse an as expression
-     * @param {Parser} parser
-     * @param {any} root
-     * @returns {AsExpression | undefined}
-     */
     static parse(parser, root) {
         if (!parser.matchToken("as")) return;
         parser.matchToken("a") || parser.matchToken("an");
@@ -619,18 +532,9 @@ export class AsExpression extends Expression {
         return parser.parseElement("indirectExpression", asExpression);
     }
 
-    /**
-     * Op function for as expression
-     */
     resolve(context, { root: rootVal }) {
         return context.meta.runtime.convertValue(rootVal, this.conversion);
     }
-
-    /**
-     * Evaluate as expression
-     * @param {Context} context
-     * @returns {any}
-     */
 }
 
 /**
@@ -646,18 +550,12 @@ export class FunctionCall extends Expression {
     constructor(root, argExpressions, args, isMethodCall) {
         super();
         this.root = root;
-        this.argExressions = argExpressions;
+        this.argExpressions = argExpressions;
         this.args = args;
         this._isMethodCall = isMethodCall;
         this._parseRoot = root; // Store original root from parse time (before mutations)
     }
 
-    /**
-     * Parse a function call
-     * @param {Parser} parser
-     * @param {any} root
-     * @returns {FunctionCall | undefined}
-     */
     static parse(parser, root) {
         if (!parser.matchOpToken("(")) return;
         var args = [];
@@ -677,9 +575,6 @@ export class FunctionCall extends Expression {
         return parser.parseElement("indirectExpression", functionCall);
     }
 
-    /**
-     * Op function for function call
-     */
     resolve(context, { target, argVals }) {
         if (this._isMethodCall) {
             context.meta.runtime.nullCheck(target, this._parseRoot.root);
@@ -697,12 +592,6 @@ export class FunctionCall extends Expression {
             return target(...argVals);
         }
     }
-
-    /**
-     * Evaluate function call
-     * @param {Context} context
-     * @returns {any}
-     */
 }
 
 /**
@@ -723,21 +612,12 @@ export class AttributeRefAccess extends Expression {
         this.args = { root };
     }
 
-    /**
-     * Parse an attribute ref access
-     * @param {Parser} parser
-     * @param {any} root
-     * @returns {AttributeRefAccess | undefined}
-     */
     static parse(parser, root) {
         var attribute = parser.parseElement("attributeRef");
         if (!attribute) return;
         return new AttributeRefAccess(root, attribute);
     }
 
-    /**
-     * Op function for attribute ref access
-     */
     resolve(_ctx, { root: rootVal }) {
         var value = _ctx.meta.runtime.resolveAttribute(rootVal, this.attribute.name);
         return value;
@@ -775,12 +655,6 @@ export class ArrayIndex extends Expression {
         this.args = { root, firstIndex, secondIndex };
     }
 
-    /**
-     * Parse an array index expression
-     * @param {Parser} parser
-     * @param {any} root
-     * @returns {any | undefined}
-     */
     static parse(parser, root) {
         if (!parser.matchOpToken("[")) return;
         var andBefore = false;
@@ -808,9 +682,6 @@ export class ArrayIndex extends Expression {
         return parser.parseElement("indirectExpression", arrayIndex);
     }
 
-    /**
-     * Op function for array index
-     */
     resolve(_ctx, { root, firstIndex, secondIndex }) {
         if (root == null) {
             return null;
@@ -840,12 +711,6 @@ export class ArrayIndex extends Expression {
         ctx.meta.runtime.nullCheck(lhs.root, this.root);
         lhs.root[lhs.index] = value;
     }
-
-    /**
-     * Evaluate array index
-     * @param {Context} context
-     * @returns {any}
-     */
 }
 
 /**
@@ -866,11 +731,6 @@ export class MathOperator extends Expression {
         this.args = { lhs, rhs };
     }
 
-    /**
-     * Parse math operator expression
-     * @param {Parser} parser
-     * @returns {any}
-     */
     static parse(parser) {
         var expr = parser.parseElement("unaryExpression");
         var mathOp, initialMathOp = null;
@@ -888,9 +748,6 @@ export class MathOperator extends Expression {
         return expr;
     }
 
-    /**
-     * Op function for math operations
-     */
     resolve(context, { lhs: lhsVal, rhs: rhsVal }) {
         if (this.operator === "+") {
             return lhsVal + rhsVal;
@@ -904,12 +761,6 @@ export class MathOperator extends Expression {
             return lhsVal % rhsVal;
         }
     }
-
-    /**
-     * Evaluate math operation
-     * @param {Context} context
-     * @returns {number}
-     */
 }
 
 /**
@@ -952,11 +803,6 @@ export class ComparisonOperator extends Expression {
         }
     }
 
-    /**
-     * Parse comparison operator expression
-     * @param {Parser} parser
-     * @returns {any}
-     */
     static parse(parser) {
         var expr = parser.parseElement("mathOperator");
         var comparisonToken = parser.matchAnyOpToken("<", ">", "<=", ">=", "==", "===", "!=", "!==");
@@ -1069,9 +915,6 @@ export class ComparisonOperator extends Expression {
         return expr;
     }
 
-    /**
-     * Op function for comparison operations
-     */
     resolve(context, { lhs: lhsVal, rhs: rhsVal }) {
         const operator = this.operator;
         const lhs = this.lhs;
@@ -1137,12 +980,6 @@ export class ComparisonOperator extends Expression {
             throw "Unknown comparison : " + operator;
         }
     }
-
-    /**
-     * Evaluate comparison
-     * @param {Context} context
-     * @returns {boolean}
-     */
 }
 
 /**
@@ -1164,11 +1001,6 @@ export class LogicalOperator extends Expression {
         this.args = { lhs, rhs };
     }
 
-    /**
-     * Parse logical operator expression
-     * @param {Parser} parser
-     * @returns {any}
-     */
     static parse(parser) {
         var expr = parser.parseElement("comparisonOperator");
         var logicalOp, initialLogicalOp = null;
@@ -1186,9 +1018,6 @@ export class LogicalOperator extends Expression {
         return expr;
     }
 
-    /**
-     * Op function for logical operations
-     */
     resolve(context, { lhs: lhsVal, rhs: rhsVal }) {
         if (this.operator === "and") {
             return lhsVal && rhsVal;
@@ -1197,11 +1026,6 @@ export class LogicalOperator extends Expression {
         }
     }
 
-    /**
-     * Evaluate logical operation
-     * @param {Context} context
-     * @returns {boolean}
-     */
     evaluate(context) {
         return context.meta.runtime.unifiedEval(this, context, this.operator === "or");
     }
@@ -1213,9 +1037,6 @@ export class LogicalOperator extends Expression {
  *
  * Parses: identifier.identifier.identifier OR identifier:identifier:identifier
  * Returns: joined path string
- */
-/**
- * DotOrColonPathNode - Represents a dot or colon separated path
  */
 class DotOrColonPathNode extends Expression {
     constructor(path, separator) {
@@ -1239,11 +1060,6 @@ class DotOrColonPathNode extends Expression {
 export class DotOrColonPath extends Expression {
     static grammarName = "dotOrColonPath";
 
-    /**
-     * Parse dot or colon separated path
-     * @param {Parser} parser
-     * @returns {DotOrColonPathNode | undefined}
-     */
     static parse(parser) {
         var root = parser.matchTokenType("IDENTIFIER");
         if (root) {

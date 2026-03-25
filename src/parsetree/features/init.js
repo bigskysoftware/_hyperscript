@@ -27,11 +27,6 @@ export class InitFeature extends Feature {
         }
     }
 
-    /**
-     * Parse init feature
-     * @param {Parser} parser
-     * @returns {InitFeature | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("init")) return;
 

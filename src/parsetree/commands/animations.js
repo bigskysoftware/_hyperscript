@@ -50,11 +50,6 @@ export class SettleCommand extends Command {
         this.args = { on: onExpr };
     }
 
-    /**
-     * Parse settle command
-     * @param {Parser} parser
-     * @returns {SettleCommand | undefined}
-     */
     static parse(parser) {
         if (parser.matchToken("settle")) {
             if (!parser.commandBoundary(parser.currentToken())) {
@@ -129,11 +124,6 @@ export class TransitionCommand extends Command {
         this.args = { targets: targetsExpr, properties, from, to, using: usingExpr, over };
     }
 
-    /**
-     * Parse transition command
-     * @param {Parser} parser
-     * @returns {TransitionCommand | undefined}
-     */
     static parse(parser) {
         if (parser.matchToken("transition")) {
             var targetsExpr = Command.parsePseudopossessiveTarget(parser);

@@ -21,11 +21,6 @@ export class JsFeature extends Feature {
         Object.assign(runtime.globalScope, this.function());
     }
 
-    /**
-     * Parse js feature
-     * @param {Parser} parser
-     * @returns {JsFeature | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("js")) return;
         var jsBody = parser.requireElement("jsBody");

@@ -17,8 +17,8 @@ export class PseudoCommand extends Command {
         this._realRoot = realRoot;
         if (variant === "target") {
             this.root = realRoot;
-            this.argExressions = root.argExressions;
-            this.args = { target: realRoot, argVals: root.argExressions };
+            this.argExpressions = root.argExpressions;
+            this.args = { target: realRoot, argVals: root.argExpressions };
         } else {
             this.args = { result: expr };
         }

@@ -62,11 +62,6 @@ export class LogCommand extends Command {
         this.args = { logger: withExpr, values: exprs };
     }
 
-    /**
-     * Parse log command
-     * @param {Parser} parser
-     * @returns {LogCommand | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("log")) return;
         var exprs = [parser.parseElement("expression")];
@@ -79,9 +74,6 @@ export class LogCommand extends Command {
         return new LogCommand(exprs, withExpr);
     }
 
-    /**
-     * Execute log command
-     */
     resolve(ctx, { logger, values }) {
         if (logger) {
             logger(...values);
@@ -107,11 +99,6 @@ export class BeepCommand extends Command {
         this.args = { values: exprs };
     }
 
-    /**
-     * Parse beep command
-     * @param {Parser} parser
-     * @returns {BeepCommand | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("beep!")) return;
         var exprs = [parser.parseElement("expression")];
@@ -121,9 +108,6 @@ export class BeepCommand extends Command {
         return new BeepCommand(exprs);
     }
 
-    /**
-     * Execute beep command
-     */
     resolve(ctx, { values }) {
         for (let i = 0; i < this.exprs.length; i++) {
             const expr = this.exprs[i];
@@ -149,20 +133,12 @@ export class ThrowCommand extends Command {
         this.args = { value: expr };
     }
 
-    /**
-     * Parse throw command
-     * @param {Parser} parser
-     * @returns {ThrowCommand | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("throw")) return;
         var expr = parser.requireElement("expression");
         return new ThrowCommand(expr);
     }
 
-    /**
-     * Execute throw command
-     */
     resolve(ctx, { value }) {
         ctx.meta.runtime.registerHyperTrace(ctx, value);
         throw value;
@@ -184,11 +160,6 @@ export class ReturnCommand extends Command {
         this.args = { value };
     }
 
-    /**
-     * Parse return command
-     * @param {Parser} parser
-     * @returns {ReturnCommand | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("return")) return;
         if (parser.commandBoundary(parser.currentToken())) {
@@ -199,9 +170,6 @@ export class ReturnCommand extends Command {
         return new ReturnCommand(value);
     }
 
-    /**
-     * Execute return command
-     */
     resolve(context, { value }) {
         var resolve = context.meta.resolve;
         context.meta.returned = true;
@@ -230,19 +198,11 @@ export class ExitCommand extends Command {
         super();
     }
 
-    /**
-     * Parse exit command
-     * @param {Parser} parser
-     * @returns {ExitCommand | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("exit")) return;
         return new ExitCommand();
     }
 
-    /**
-     * Execute exit command
-     */
     resolve(context) {
         var resolve = context.meta.resolve;
         context.meta.returned = true;
@@ -271,11 +231,6 @@ export class HaltCommand extends Command {
         this.exit = exit;
     }
 
-    /**
-     * Parse halt command
-     * @param {Parser} parser
-     * @returns {HaltCommand | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("halt")) return;
         if (parser.matchToken("the")) {
@@ -295,9 +250,6 @@ export class HaltCommand extends Command {
         return new HaltCommand(bubbling, haltDefault, keepExecuting, exit);
     }
 
-    /**
-     * Execute halt command
-     */
     resolve(ctx) {
         if (ctx.event) {
             if (this.bubbling) {
@@ -413,11 +365,6 @@ export class AppendCommand extends Command {
         }
     }
 
-    /**
-     * Parse append command
-     * @param {Parser} parser
-     * @returns {AppendCommand | undefined}
-     */
     static parse(parser) {
         if (!parser.matchToken("append")) return;
         var targetExpr = null;
@@ -458,11 +405,6 @@ export class AppendCommand extends Command {
         }
     }
 }
-
-/**
- * Helper function to parse pick range syntax
- */
-// (parsePickRange is now a static method on PickCommand)
 
 /**
  * PickCommand - Pick items, characters, or matches from collections/strings

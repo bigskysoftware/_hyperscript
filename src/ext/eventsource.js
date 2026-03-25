@@ -19,10 +19,6 @@ export class EventSourceFeature extends Feature {
 		runtime.assignToNamespace(target, this.nameSpace, this.eventSourceName, this.stub);
 	}
 
-	/**
-	 * @param {import('../../src/core/parser.js').Parser} parser
-	 * @returns {EventSourceFeature | undefined}
-	 */
 	static parse(parser) {
 		if (!parser.matchToken("eventsource")) return;
 
@@ -82,7 +78,7 @@ export class EventSourceFeature extends Feature {
 				stub.eventSource.addEventListener("error", function (event) {
 					if (stub.eventSource.readyState == EventSource.CLOSED) {
 						stub.retryCount = Math.min(7, stub.retryCount + 1);
-						var timeout = Math.random() * (2 ^ stub.retryCount) * 500;
+						var timeout = Math.random() * (2 ** stub.retryCount) * 500;
 						window.setTimeout(stub.open, timeout);
 					}
 				});
@@ -147,15 +143,6 @@ export class EventSourceFeature extends Feature {
 	}
 }
 
-/**
- * Makes an event handler function that executes the correct hyperscript commands.
- *
- * @param {string} encoding
- * @param {*} commandList
- * @param {*} stub
- * @param {EventSourceFeature} feature
- * @returns {(event: Event) => void}
- */
 function makeHandler(encoding, commandList, stub, feature) {
 	return function (evt) {
 		var data = decode(evt["data"], encoding);
@@ -166,13 +153,6 @@ function makeHandler(encoding, commandList, stub, feature) {
 	};
 }
 
-/**
- * Decodes/Unmarshals a string based on the selected encoding.
- *
- * @param {string} data
- * @param {string} encoding
- * @returns {string|object}
- */
 function decode(data, encoding) {
 	if (encoding == "json") {
 		return JSON.parse(data);
@@ -180,9 +160,6 @@ function decode(data, encoding) {
 	return data;
 }
 
-/**
- * @param {import('../dist/_hyperscript').Hyperscript} _hyperscript
- */
 export default function eventsourcePlugin(_hyperscript) {
 	_hyperscript.addFeature(EventSourceFeature.keyword, EventSourceFeature.parse.bind(EventSourceFeature));
 }

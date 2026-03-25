@@ -19,11 +19,6 @@ export class SetFeature extends Feature {
         this.start && this.start.execute(runtime.makeContext(target, this, target, null));
     }
 
-    /**
-     * Parse set feature
-     * @param {Parser} parser
-     * @returns {SetFeature | undefined}
-     */
     static parse(parser) {
         let setCmd = parser.parseElement("setCommand");
         if (setCmd) {
