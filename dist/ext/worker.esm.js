@@ -32,6 +32,23 @@ var Feature = class extends ParseElement {
   }
   install(target, source, args, runtime) {
   }
+  /**
+   * Parse optional catch/finally blocks after a command list.
+   * Returns { errorHandler, errorSymbol, finallyHandler }
+   */
+  static parseErrorAndFinally(parser) {
+    var errorSymbol, errorHandler, finallyHandler;
+    if (parser.matchToken("catch")) {
+      errorSymbol = parser.requireTokenType("IDENTIFIER").value;
+      errorHandler = parser.requireElement("commandList");
+      parser.ensureTerminated(errorHandler);
+    }
+    if (parser.matchToken("finally")) {
+      finallyHandler = parser.requireElement("commandList");
+      parser.ensureTerminated(finallyHandler);
+    }
+    return { errorHandler, errorSymbol, finallyHandler };
+  }
 };
 
 // src/ext/worker.js

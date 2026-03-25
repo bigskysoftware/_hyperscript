@@ -748,6 +748,23 @@ var Feature = class extends ParseElement {
   }
   install(target, source, args, runtime2) {
   }
+  /**
+   * Parse optional catch/finally blocks after a command list.
+   * Returns { errorHandler, errorSymbol, finallyHandler }
+   */
+  static parseErrorAndFinally(parser) {
+    var errorSymbol, errorHandler, finallyHandler;
+    if (parser.matchToken("catch")) {
+      errorSymbol = parser.requireTokenType("IDENTIFIER").value;
+      errorHandler = parser.requireElement("commandList");
+      parser.ensureTerminated(errorHandler);
+    }
+    if (parser.matchToken("finally")) {
+      finallyHandler = parser.requireElement("commandList");
+      parser.ensureTerminated(finallyHandler);
+    }
+    return { errorHandler, errorSymbol, finallyHandler };
+  }
 };
 
 // src/parsetree/internals.js
@@ -1178,7 +1195,8 @@ var _LanguageKernel = class _LanguageKernel {
       if (!CommandClass.parse) {
         throw new Error(`Command class ${CommandClass.name} must have a static 'parse' method`);
       }
-      this.addCommand(CommandClass.keyword, CommandClass.parse);
+      var keywords = Array.isArray(CommandClass.keyword) ? CommandClass.keyword : [CommandClass.keyword];
+      for (var kw of keywords) this.addCommand(kw, CommandClass.parse);
     }
   }
   addFeatures(...featureClasses) {
@@ -1205,11 +1223,13 @@ var _LanguageKernel = class _LanguageKernel {
     if (!ElementClass.parse) return;
     const parse = ElementClass.parse.bind(ElementClass);
     if (ElementClass.keyword && ElementClass.prototype instanceof Command) {
-      this.addCommand(ElementClass.keyword, parse);
+      var keywords = Array.isArray(ElementClass.keyword) ? ElementClass.keyword : [ElementClass.keyword];
+      for (var kw of keywords) this.addCommand(kw, parse);
       return;
     }
     if (ElementClass.keyword && ElementClass.prototype instanceof Feature) {
-      this.addFeature(ElementClass.keyword, parse);
+      var keywords = Array.isArray(ElementClass.keyword) ? ElementClass.keyword : [ElementClass.keyword];
+      for (var kw of keywords) this.addFeature(kw, parse);
       return;
     }
     const name = ElementClass.grammarName;
@@ -4040,9 +4060,7 @@ var ClosestExpr = class extends Expression {
     }
     var closestExpr = new ClosestExprNode(parentSearch, expr, css, to);
     if (attributeRef) {
-      attributeRef.root = closestExpr;
-      attributeRef.args = { root: closestExpr };
-      return attributeRef;
+      return new AttributeRefAccess(closestExpr, attributeRef.attribute);
     } else {
       return closestExpr;
     }
@@ -4164,20 +4182,6 @@ var ImplicitResultSymbol = class extends Expression {
   }
   set(ctx, lhs, value) {
     ctx.meta.runtime.setSymbol("result", ctx, null, value);
-  }
-};
-var ExitOperation = class extends Command {
-  constructor() {
-    super();
-  }
-  resolve(context) {
-    var resolve = context.meta.resolve;
-    context.meta.returned = true;
-    context.meta.returnValue = null;
-    if (resolve) {
-      resolve();
-    }
-    return context.meta.runtime.HALT;
   }
 };
 var _LogCommand = class _LogCommand extends Command {
@@ -4325,7 +4329,7 @@ var _HaltCommand = class _HaltCommand extends Command {
     } else if (parser.matchToken("default")) {
       var haltDefault = true;
     }
-    var exit = new ExitOperation();
+    var exit = new ExitCommand();
     return new _HaltCommand(bubbling, haltDefault, keepExecuting, exit);
   }
   resolve(ctx) {
@@ -5028,7 +5032,6 @@ var events_exports = {};
 __export(events_exports, {
   EventName: () => EventName,
   SendCommand: () => SendCommand,
-  TriggerCommand: () => TriggerCommand,
   WaitCommand: () => WaitCommand
 });
 var _WaitCommand = class _WaitCommand extends Command {
@@ -5121,10 +5124,11 @@ var _SendCommand = class _SendCommand extends Command {
     this.toExpr = toExpr;
   }
   static parse(parser) {
-    if (!parser.matchToken("send")) return;
+    var isTrigger = parser.matchToken("trigger");
+    if (!isTrigger && !parser.matchToken("send")) return;
     var eventName = parser.requireElement("eventName");
     var details = parser.parseElement("namedArgumentList");
-    if (parser.matchToken("to")) {
+    if (parser.matchToken(isTrigger ? "on" : "to")) {
       var toExpr = parser.requireElement("expression");
     } else {
       var toExpr = parser.requireElement("implicitMeTarget");
@@ -5139,23 +5143,8 @@ var _SendCommand = class _SendCommand extends Command {
     return context.meta.runtime.findNext(this, context);
   }
 };
-__publicField(_SendCommand, "keyword", "send");
+__publicField(_SendCommand, "keyword", ["send", "trigger"]);
 var SendCommand = _SendCommand;
-var _TriggerCommand = class _TriggerCommand extends SendCommand {
-  static parse(parser) {
-    if (!parser.matchToken("trigger")) return;
-    var eventName = parser.requireElement("eventName");
-    var details = parser.parseElement("namedArgumentList");
-    if (parser.matchToken("on")) {
-      var toExpr = parser.requireElement("expression");
-    } else {
-      var toExpr = parser.requireElement("implicitMeTarget");
-    }
-    return new _TriggerCommand(eventName, details, toExpr);
-  }
-};
-__publicField(_TriggerCommand, "keyword", "trigger");
-var TriggerCommand = _TriggerCommand;
 var _EventName = class _EventName extends Expression {
   constructor(value) {
     super();
@@ -5181,7 +5170,6 @@ var controlflow_exports = {};
 __export(controlflow_exports, {
   BreakCommand: () => BreakCommand,
   ContinueCommand: () => ContinueCommand,
-  ForCommand: () => ForCommand,
   IfCommand: () => IfCommand,
   RepeatCommand: () => RepeatCommand,
   TellCommand: () => TellCommand
@@ -5388,6 +5376,9 @@ var _RepeatCommand = class _RepeatCommand extends Command {
     return repeatCommand;
   }
   static parse(parser) {
+    if (parser.matchToken("for")) {
+      return _RepeatCommand.parseRepeatExpression(parser, true);
+    }
     if (parser.matchToken("repeat")) {
       return _RepeatCommand.parseRepeatExpression(parser, false);
     }
@@ -5420,56 +5411,36 @@ var _RepeatCommand = class _RepeatCommand extends Command {
     return this.repeatLoopCommand;
   }
 };
-__publicField(_RepeatCommand, "keyword", "repeat");
+__publicField(_RepeatCommand, "keyword", ["repeat", "for"]);
 var RepeatCommand = _RepeatCommand;
-var ForCommand = class extends Command {
-  static parse(parser) {
-    if (parser.matchToken("for")) {
-      return RepeatCommand.parseRepeatExpression(parser, true);
-    }
-  }
-};
-__publicField(ForCommand, "keyword", "for");
 var _ContinueCommand = class _ContinueCommand extends Command {
-  constructor(parser) {
-    super();
-    this.parser = parser;
-  }
   static parse(parser) {
     if (!parser.matchToken("continue")) return;
-    return new _ContinueCommand(parser);
+    return new _ContinueCommand();
   }
   resolve(context) {
-    for (var parent = this.parent; true; parent = parent.parent) {
-      if (parent == void 0) {
-        this.parser.raiseParseError("Command `continue` cannot be used outside of a `repeat` loop.");
-      }
+    for (var parent = this.parent; parent; parent = parent.parent) {
       if (parent.loop != void 0) {
         return parent.resolveNext(context);
       }
     }
+    throw new Error("Command `continue` cannot be used outside of a `repeat` loop.");
   }
 };
 __publicField(_ContinueCommand, "keyword", "continue");
 var ContinueCommand = _ContinueCommand;
 var _BreakCommand = class _BreakCommand extends Command {
-  constructor(parser) {
-    super();
-    this.parser = parser;
-  }
   static parse(parser) {
     if (!parser.matchToken("break")) return;
-    return new _BreakCommand(parser);
+    return new _BreakCommand();
   }
   resolve(context) {
-    for (var parent = this.parent; true; parent = parent.parent) {
-      if (parent == void 0) {
-        this.parser.raiseParseError("Command `break` cannot be used outside of a `repeat` loop.");
-      }
+    for (var parent = this.parent; parent; parent = parent.parent) {
       if (parent.loop != void 0) {
         return context.meta.runtime.findNext(parent.parent, context);
       }
     }
+    throw new Error("Command `break` cannot be used outside of a `repeat` loop.");
   }
 };
 __publicField(_BreakCommand, "keyword", "break");
@@ -5529,7 +5500,6 @@ var TellCommand = _TellCommand;
 // src/parsetree/commands/execution.js
 var execution_exports = {};
 __export(execution_exports, {
-  CallCommand: () => CallCommand,
   GetCommand: () => GetCommand,
   JsBody: () => JsBody,
   JsCommand: () => JsCommand
@@ -5619,27 +5589,6 @@ var _JsCommand = class _JsCommand extends Command {
 };
 __publicField(_JsCommand, "keyword", "js");
 var JsCommand = _JsCommand;
-var _CallCommand = class _CallCommand extends Command {
-  constructor(expr) {
-    super();
-    this.expr = expr;
-    this.args = { result: expr };
-  }
-  static parse(parser) {
-    if (!parser.matchToken("call")) return;
-    var expr = parser.requireElement("expression");
-    if (expr && expr.type !== "functionCall") {
-      parser.raiseParseError("Must be a function invocation");
-    }
-    return new _CallCommand(expr);
-  }
-  resolve(context, { result }) {
-    context.result = result;
-    return context.meta.runtime.findNext(this, context);
-  }
-};
-__publicField(_CallCommand, "keyword", "call");
-var CallCommand = _CallCommand;
 var _GetCommand = class _GetCommand extends Command {
   constructor(expr) {
     super();
@@ -5647,8 +5596,12 @@ var _GetCommand = class _GetCommand extends Command {
     this.args = { result: expr };
   }
   static parse(parser) {
-    if (!parser.matchToken("get")) return;
+    var isCall = parser.matchToken("call");
+    if (!isCall && !parser.matchToken("get")) return;
     var expr = parser.requireElement("expression");
+    if (isCall && expr && expr.type !== "functionCall") {
+      parser.raiseParseError("Must be a function invocation");
+    }
     return new _GetCommand(expr);
   }
   resolve(context, { result }) {
@@ -5656,7 +5609,7 @@ var _GetCommand = class _GetCommand extends Command {
     return context.meta.runtime.findNext(this, context);
   }
 };
-__publicField(_GetCommand, "keyword", "get");
+__publicField(_GetCommand, "keyword", ["get", "call"]);
 var GetCommand = _GetCommand;
 
 // src/parsetree/commands/pseudoCommand.js
@@ -6956,16 +6909,7 @@ var _OnFeature = class _OnFeature extends Feature {
     }
     var start = parser.requireElement("commandList");
     parser.ensureTerminated(start);
-    var errorSymbol, errorHandler;
-    if (parser.matchToken("catch")) {
-      errorSymbol = parser.requireTokenType("IDENTIFIER").value;
-      errorHandler = parser.requireElement("commandList");
-      parser.ensureTerminated(errorHandler);
-    }
-    if (parser.matchToken("finally")) {
-      var finallyHandler = parser.requireElement("commandList");
-      parser.ensureTerminated(finallyHandler);
-    }
+    var { errorHandler, errorSymbol, finallyHandler } = Feature.parseErrorAndFinally(parser);
     var onFeature = new _OnFeature(displayName, events, start, every, errorHandler, errorSymbol, finallyHandler, queueAll, queueFirst, queueNone, queueLast);
     parser.setParent(start, onFeature);
     return onFeature;
@@ -7055,15 +6999,7 @@ var _DefFeature = class _DefFeature extends Feature {
       }
     }
     var start = parser.requireElement("commandList");
-    var errorSymbol, errorHandler;
-    if (parser.matchToken("catch")) {
-      errorSymbol = parser.requireTokenType("IDENTIFIER").value;
-      errorHandler = parser.parseElement("commandList");
-    }
-    if (parser.matchToken("finally")) {
-      var finallyHandler = parser.requireElement("commandList");
-      parser.ensureTerminated(finallyHandler);
-    }
+    var { errorHandler, errorSymbol, finallyHandler } = Feature.parseErrorAndFinally(parser);
     var functionFeature = new _DefFeature(funcName, nameSpace, nameVal, args, start, errorHandler, errorSymbol, finallyHandler);
     parser.ensureTerminated(start);
     if (errorHandler) {
@@ -7218,18 +7154,17 @@ var install_exports = {};
 __export(install_exports, {
   InstallFeature: () => InstallFeature
 });
-var BehaviorInstallOperation = class extends Expression {
-  constructor(args, behaviorPath, behaviorNamespace, target, source, runtime2) {
+var _InstallFeature = class _InstallFeature extends Feature {
+  constructor(behaviorPath, behaviorNamespace, args) {
     super();
-    this.args = { behaviorArgs: args };
     this.behaviorPath = behaviorPath;
     this.behaviorNamespace = behaviorNamespace;
-    this.installTarget = target;
-    this.installSource = source;
-    this.runtime = runtime2;
+    this.behaviorArgs = args;
   }
-  resolve(ctx, { behaviorArgs }) {
-    var behavior = this.runtime.globalScope;
+  install(target, source, installArgs, runtime2) {
+    var ctx = runtime2.makeContext(target, this, target, null);
+    var behaviorArgs = this.behaviorArgs ? this.behaviorArgs.evaluate(ctx) : null;
+    var behavior = runtime2.globalScope;
     for (var i = 0; i < this.behaviorNamespace.length; i++) {
       behavior = behavior[this.behaviorNamespace[i]];
       if (typeof behavior !== "object" && typeof behavior !== "function")
@@ -7237,26 +7172,7 @@ var BehaviorInstallOperation = class extends Expression {
     }
     if (!(behavior instanceof Function))
       throw new Error(this.behaviorPath + " is not a behavior");
-    behavior(this.installTarget, this.installSource, behaviorArgs);
-  }
-};
-var _InstallFeature = class _InstallFeature extends Feature {
-  constructor(behaviorPath, behaviorNamespace, args) {
-    super();
-    this.behaviorPath = behaviorPath;
-    this.behaviorNamespace = behaviorNamespace;
-    this.args = args;
-  }
-  install(target, source, installArgs, runtime2) {
-    const operation = new BehaviorInstallOperation(
-      this.args,
-      this.behaviorPath,
-      this.behaviorNamespace,
-      target,
-      source,
-      runtime2
-    );
-    runtime2.unifiedEval(operation, runtime2.makeContext(target, this, target, null));
+    behavior(target, source, behaviorArgs);
   }
   static parse(parser) {
     if (!parser.matchToken("install")) return;
