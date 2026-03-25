@@ -5,4 +5,5 @@ export const config = {
     defaultTransition: "all 500ms ease-in",
     disableSelector: "[disable-scripting], [data-disable-scripting]",
     hideShowStrategies: {},
+    logAll: false,
 }

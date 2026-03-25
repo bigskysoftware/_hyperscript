@@ -515,6 +515,9 @@ export class Runtime {
             detail = detail || {};
             detail["sender"] = sender;
             var event = this.makeEvent(eventName, detail);
+            if (config.logAll) {
+                console.log(eventName, detail, elt);
+            }
             var eventResult = elt.dispatchEvent(event);
             return eventResult;
         }
@@ -590,6 +593,9 @@ export class Runtime {
 
         cleanup(elt) {
             if (!elt._hyperscript) return;
+
+            this.triggerEvent(elt, "hyperscript:before:cleanup");
+
             var data = elt._hyperscript;
 
             // Remove registered event listeners
@@ -615,11 +621,14 @@ export class Runtime {
 
             // Recursively clean children
             if (elt.querySelectorAll) {
-                for (var child of elt.querySelectorAll('[_], [data-hs], [hyperscript]')) {
+                for (var child of elt.querySelectorAll('[data-hyperscript-powered]')) {
                     this.cleanup(child);
                 }
             }
 
+            this.triggerEvent(elt, "hyperscript:after:cleanup");
+
+            elt.removeAttribute('data-hyperscript-powered');
             delete elt._hyperscript;
         }
 
@@ -637,6 +646,9 @@ export class Runtime {
                 this.cleanup(elt);
                 internalData = this.getInternalData(elt);
             }
+
+            if (!this.triggerEvent(elt, "hyperscript:before:init")) return;
+
             internalData.initialized = true;
             internalData.scriptHash = hash;
             try {
@@ -644,6 +656,8 @@ export class Runtime {
                 var hyperScript = this.#kernel.parseHyperScript(tokens);
                 if (!hyperScript) return;
                 hyperScript.apply(target || elt, elt, null, this);
+                elt.setAttribute('data-hyperscript-powered', 'true');
+                this.triggerEvent(elt, "hyperscript:after:init");
                 setTimeout(() => {
                     this.triggerEvent(target || elt, "load", {
                         hyperscript: true,

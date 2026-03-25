@@ -213,4 +213,79 @@ test.describe("_hyperscript bootstrapping", () => {
 		});
 		expect(hasState).toBe(false);
 	});
+
+	test("sets data-hyperscript-powered on initialized elements", async ({html, find}) => {
+		await html("<div _='on click add .foo'></div>");
+		await expect(find('div')).toHaveAttribute('data-hyperscript-powered', 'true');
+	});
+
+	test("cleanup removes data-hyperscript-powered", async ({html, find, evaluate}) => {
+		await html("<div _='on click add .foo'></div>");
+		await expect(find('div')).toHaveAttribute('data-hyperscript-powered', 'true');
+		await evaluate(() => {
+			_hyperscript.cleanup(document.querySelector('#work-area div'));
+		});
+		expect(await find('div').getAttribute('data-hyperscript-powered')).toBeNull();
+	});
+
+	test("fires hyperscript:before:init and hyperscript:after:init", async ({html, find, evaluate}) => {
+		var events = await evaluate(() => {
+			var events = [];
+			var wa = document.getElementById('work-area');
+			wa.addEventListener('hyperscript:before:init', () => events.push('before:init'));
+			wa.addEventListener('hyperscript:after:init', () => events.push('after:init'));
+			wa.innerHTML = "<div _='on click add .foo'></div>";
+			_hyperscript.processNode(wa);
+			return events;
+		});
+		expect(events).toEqual(['before:init', 'after:init']);
+	});
+
+	test("hyperscript:before:init can cancel initialization", async ({html, find, evaluate}) => {
+		var result = await evaluate(() => {
+			var wa = document.getElementById('work-area');
+			wa.addEventListener('hyperscript:before:init', (e) => e.preventDefault(), { once: true });
+			wa.innerHTML = "<div _='on click add .foo'></div>";
+			_hyperscript.processNode(wa);
+			var div = wa.querySelector('div');
+			return {
+				initialized: !!div._hyperscript?.initialized,
+				hasPowered: div.hasAttribute('data-hyperscript-powered'),
+			};
+		});
+		expect(result.initialized).toBe(false);
+		expect(result.hasPowered).toBe(false);
+	});
+
+	test("fires hyperscript:before:cleanup and hyperscript:after:cleanup", async ({html, find, evaluate}) => {
+		await html("<div _='on click add .foo'></div>");
+		var events = await evaluate(() => {
+			var events = [];
+			var div = document.querySelector('#work-area div');
+			div.addEventListener('hyperscript:before:cleanup', () => events.push('before:cleanup'));
+			div.addEventListener('hyperscript:after:cleanup', () => events.push('after:cleanup'));
+			_hyperscript.cleanup(div);
+			return events;
+		});
+		expect(events).toEqual(['before:cleanup', 'after:cleanup']);
+	});
+
+	test("logAll config logs events to console", async ({html, find, evaluate}) => {
+		var logged = await evaluate(() => {
+			var logs = [];
+			var origLog = console.log;
+			console.log = (...args) => logs.push(args[0]);
+			_hyperscript.config.logAll = true;
+			try {
+				var wa = document.getElementById('work-area');
+				wa.innerHTML = "<div _='on click add .foo'></div>";
+				_hyperscript.processNode(wa);
+			} finally {
+				_hyperscript.config.logAll = false;
+				console.log = origLog;
+			}
+			return logs.some(l => typeof l === 'string' && l.includes('hyperscript:'));
+		});
+		expect(logged).toBe(true);
+	});
 });
