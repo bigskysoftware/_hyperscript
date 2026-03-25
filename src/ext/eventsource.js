@@ -47,6 +47,8 @@ export class EventSourceFeature extends Feature {
 			eventSource: null,
 			listeners: [],
 			retryCount: 0,
+			closed: false,
+			reconnectTimeout: null,
 			open: function (url) {
 				if (url == undefined) {
 					if (stub.eventSource != null && stub.eventSource.url != undefined) {
@@ -65,21 +67,28 @@ export class EventSourceFeature extends Feature {
 					}
 				}
 
+				// Mark as not explicitly closed (allow reconnection)
+				stub.closed = false;
+
 				stub.eventSource = new EventSource(url, {
 					withCredentials: withCredentials,
 				});
 
 				// On successful connection, reset retry count
-				stub.eventSource.addEventListener("open", function (event) {
+				stub.eventSource.addEventListener("open", function () {
 					stub.retryCount = 0;
 				});
 
-				// On connection error, use exponential backoff to retry
-				stub.eventSource.addEventListener("error", function (event) {
-					if (stub.eventSource.readyState == EventSource.CLOSED) {
+				// On connection error, close to prevent browser's native auto-reconnect
+				// and use exponential backoff to retry
+				stub.eventSource.addEventListener("error", function () {
+					stub.eventSource.close();
+
+					// Only reconnect if the user has not explicitly called close()
+					if (!stub.closed) {
 						stub.retryCount = Math.min(7, stub.retryCount + 1);
 						var timeout = Math.random() * (2 ** stub.retryCount) * 500;
-						window.setTimeout(stub.open, timeout);
+						stub.reconnectTimeout = window.setTimeout(stub.open, timeout);
 					}
 				});
 
@@ -90,6 +99,11 @@ export class EventSourceFeature extends Feature {
 				}
 			},
 			close: function () {
+				stub.closed = true;
+				if (stub.reconnectTimeout) {
+					clearTimeout(stub.reconnectTimeout);
+					stub.reconnectTimeout = null;
+				}
 				if (stub.eventSource != undefined) {
 					stub.eventSource.close();
 				}
