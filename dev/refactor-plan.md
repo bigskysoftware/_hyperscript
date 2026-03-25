@@ -15,5 +15,7 @@
 13. ~~Move debug into core~~
 14. ~~Check for any IE/ye olde API usages~~
 15. ~~Update platform scripts~~
-16. Final sweep
+16. ~~Cleanup sweep~~
+17. ~~Clean up testing infrastructure~~
+18. Clean up dist
 17. Update documents/site
