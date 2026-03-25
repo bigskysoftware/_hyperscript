@@ -3622,7 +3622,7 @@
       var name = split[0];
       var value = split[1];
       if (value) {
-        if (value.startsWith('"')) {
+        if (value.startsWith('"') || value.startsWith("'")) {
           value = value.substring(1, value.length - 1);
         }
       }
@@ -5951,18 +5951,20 @@
   __publicField(_RemoveCommand, "keyword", "remove");
   var RemoveCommand = _RemoveCommand;
   var _ToggleCommand = class _ToggleCommand extends VisibilityCommand {
-    constructor(classRef, classRef2, classRefs, attributeRef, onExpr, time, evt, from, visibility, between, hideShowStrategy) {
+    constructor(classRef, classRef2, classRefs, attributeRef, attributeRef2, onExpr, time, evt, from, visibility, betweenClass, betweenAttr, hideShowStrategy) {
       super();
       this.classRef = classRef;
       this.classRef2 = classRef2;
       this.classRefs = classRefs;
       this.attributeRef = attributeRef;
+      this.attributeRef2 = attributeRef2;
       this.on = onExpr;
       this.time = time;
       this.evt = evt;
       this.from = from;
       this.visibility = visibility;
-      this.between = between;
+      this.betweenClass = betweenClass;
+      this.betweenAttr = betweenAttr;
       this.hideShowStrategy = hideShowStrategy;
       this.onExpr = onExpr;
       this.args = { on: onExpr, time, evt, from, classRef, classRef2, classRefs };
@@ -5994,10 +5996,20 @@
           onExpr = parser.requireElement("implicitMeTarget");
         }
       } else if (parser.matchToken("between")) {
-        between = true;
         classRef = parser.parseElement("classRef");
-        parser.requireToken("and");
-        classRef2 = parser.requireElement("classRef");
+        if (classRef != null) {
+          var betweenClass = true;
+          parser.requireToken("and");
+          classRef2 = parser.requireElement("classRef");
+        } else {
+          var betweenAttr = true;
+          var attributeRef = parser.parseElement("attributeRef");
+          if (attributeRef == null) {
+            parser.raiseParseError("Expected either a class reference or attribute expression");
+          }
+          parser.requireToken("and");
+          var attributeRef2 = parser.requireElement("attributeRef");
+        }
       } else {
         classRef = parser.parseElement("classRef");
         if (classRef == null) {
@@ -6030,7 +6042,7 @@
           from = parser.requireElement("expression");
         }
       }
-      return new _ToggleCommand(classRef, classRef2, classRefs, attributeRef, onExpr, time, evt, from, visibility, between, hideShowStrategy);
+      return new _ToggleCommand(classRef, classRef2, classRefs, attributeRef, attributeRef2, onExpr, time, evt, from, visibility, betweenClass, betweenAttr, hideShowStrategy);
     }
     toggle(context, on, classRef, classRef2, classRefs) {
       context.meta.runtime.nullCheck(on, this.onExpr);
@@ -6038,7 +6050,7 @@
         context.meta.runtime.implicitLoop(on, (target) => {
           this.hideShowStrategy("toggle", target, null, context.meta.runtime);
         });
-      } else if (this.between) {
+      } else if (this.betweenClass) {
         context.meta.runtime.implicitLoop(on, (target) => {
           if (target.classList.contains(classRef.className)) {
             target.classList.remove(classRef.className);
@@ -6046,6 +6058,16 @@
           } else {
             target.classList.add(classRef.className);
             target.classList.remove(classRef2.className);
+          }
+        });
+      } else if (this.betweenAttr) {
+        context.meta.runtime.implicitLoop(on, (target) => {
+          if (target.hasAttribute(this.attributeRef.name) && target.getAttribute(this.attributeRef.name) === this.attributeRef.value) {
+            target.removeAttribute(this.attributeRef.name);
+            target.setAttribute(this.attributeRef2.name, this.attributeRef2.value);
+          } else {
+            if (target.hasAttribute(this.attributeRef2.name)) target.removeAttribute(this.attributeRef2.name);
+            target.setAttribute(this.attributeRef.name, this.attributeRef.value);
           }
         });
       } else if (classRefs) {
@@ -7285,7 +7307,7 @@
       process: (elt) => runtime.processNode(elt),
       processNode: (elt) => runtime.processNode(elt),
       // deprecated alias
-      version: "0.9.14"
+      version: "0.9.90"
     }
   );
   function ready(fn) {
@@ -7320,6 +7342,9 @@
           document.dispatchEvent(new Event("hyperscript:ready"));
           globalScope.document.addEventListener("htmx:load", (evt) => {
             runtime.processNode(evt.detail.elt);
+          });
+          globalScope.document.addEventListener("htmx:after:process", (evt) => {
+            runtime.processNode(evt.target);
           });
         });
       });

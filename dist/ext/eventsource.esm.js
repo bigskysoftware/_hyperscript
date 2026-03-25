@@ -84,6 +84,8 @@ var _EventSourceFeature = class _EventSourceFeature extends Feature {
       eventSource: null,
       listeners: [],
       retryCount: 0,
+      closed: false,
+      reconnectTimeout: null,
       open: function(url) {
         if (url == void 0) {
           if (stub.eventSource != null && stub.eventSource.url != void 0) {
@@ -99,17 +101,19 @@ var _EventSourceFeature = class _EventSourceFeature extends Feature {
             return;
           }
         }
+        stub.closed = false;
         stub.eventSource = new EventSource(url, {
           withCredentials
         });
-        stub.eventSource.addEventListener("open", function(event) {
+        stub.eventSource.addEventListener("open", function() {
           stub.retryCount = 0;
         });
-        stub.eventSource.addEventListener("error", function(event) {
-          if (stub.eventSource.readyState == EventSource.CLOSED) {
+        stub.eventSource.addEventListener("error", function() {
+          stub.eventSource.close();
+          if (!stub.closed) {
             stub.retryCount = Math.min(7, stub.retryCount + 1);
             var timeout = Math.random() * __pow(2, stub.retryCount) * 500;
-            window.setTimeout(stub.open, timeout);
+            stub.reconnectTimeout = window.setTimeout(stub.open, timeout);
           }
         });
         for (var index = 0; index < stub.listeners.length; index++) {
@@ -118,6 +122,11 @@ var _EventSourceFeature = class _EventSourceFeature extends Feature {
         }
       },
       close: function() {
+        stub.closed = true;
+        if (stub.reconnectTimeout) {
+          clearTimeout(stub.reconnectTimeout);
+          stub.reconnectTimeout = null;
+        }
         if (stub.eventSource != void 0) {
           stub.eventSource.close();
         }
