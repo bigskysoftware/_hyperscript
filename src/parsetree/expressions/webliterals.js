@@ -200,6 +200,15 @@ export class AttributeRef extends Expression {
             return target.getAttribute(this.name);
         }
     }
+
+    get lhs() { return {}; }
+
+    set(ctx, lhs, value) {
+        var target = ctx.you || ctx.me;
+        if (target) {
+            value == null ? target.removeAttribute(this.name) : target.setAttribute(this.name, value);
+        }
+    }
 }
 
 /**
@@ -242,6 +251,13 @@ export class StyleRef extends Expression {
                 return context.meta.runtime.resolveStyle(target, this.name);
             }
         }
+    }
+
+    get lhs() { return {}; }
+
+    set(ctx, lhs, value) {
+        var target = ctx.you || ctx.me;
+        if (target) { target.style[this.name] = value; }
     }
 }
 

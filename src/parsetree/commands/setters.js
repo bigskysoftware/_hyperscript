@@ -3,158 +3,26 @@
  * Commands that modify values (set, default, increment, decrement, put)
  */
 
-import { Command, Expression } from '../base.js';
-
-/**
- * IncrementOperation - Calculates incremented value
- */
-class IncrementOperation extends Expression {
-    constructor(target, amountExpr) {
-        super();
-        this.type = "implicitIncrementOp";
-        this.target = target;
-        this.amountExpr = amountExpr;
-        this.args = { targetValue: target, amount: amountExpr };
-    }
-
-    resolve(context, { targetValue, amount }) {
-        targetValue = targetValue ? parseFloat(targetValue) : 0;
-        amount = this.amountExpr ? parseFloat(amount) : 1;
-        var newValue = targetValue + amount;
-        context.result = newValue;
-        return newValue;
-    }
-}
-
-/**
- * DecrementOperation - Calculates decremented value
- */
-class DecrementOperation extends Expression {
-    constructor(target, amountExpr) {
-        super();
-        this.type = "implicitDecrementOp";
-        this.target = target;
-        this.amountExpr = amountExpr;
-        this.args = { targetValue: target, amount: amountExpr };
-    }
-
-    resolve(context, { targetValue, amount }) {
-        targetValue = targetValue ? parseFloat(targetValue) : 0;
-        amount = this.amountExpr ? parseFloat(amount) : 1;
-        var newValue = targetValue - amount;
-        context.result = newValue;
-        return newValue;
-    }
-}
-
-// (putInto is now an instance method on PutCommand)
-
-/**
- * BaseSetterCommand - Base class for all setter commands
- * Contains common resolve() logic for setting values into targets
- */
-class BaseSetterCommand extends Command {
-    constructor(target, value, rootElt, prop, attribute) {
-        super();
-        this.target = target;
-        this.value = value;
-        this.rootElt = rootElt;
-        this.prop = prop;
-        this.attribute = attribute;
-
-        // Derive flags from target type
-        this.symbolWrite = target.type === "symbol";
-        this.arrayWrite = target.type === "arrayIndex";
-
-        this.args = { root: rootElt, prop, value };
-    }
-
-    resolve(context, { root, prop, value: valueToSet }) {
-        if (this.symbolWrite) {
-            context.meta.runtime.setSymbol(this.target.name, context, this.target.scope, valueToSet);
-        } else {
-            context.meta.runtime.nullCheck(root, this.rootElt);
-            if (this.arrayWrite) {
-                root[prop] = valueToSet;
-            } else {
-                const attribute = this.attribute;
-                context.meta.runtime.implicitLoop(root, function (elt) {
-                    if (attribute) {
-                        if (attribute.type === "attributeRef") {
-                            if (valueToSet == null) {
-                                elt.removeAttribute(attribute.name);
-                            } else {
-                                elt.setAttribute(attribute.name, valueToSet);
-                            }
-                        } else {
-                            elt.style[attribute.name] = valueToSet;
-                        }
-                    } else {
-                        elt[prop] = valueToSet;
-                    }
-                });
-            }
-        }
-        return context.meta.runtime.findNext(this, context);
-    }
-
-    /**
-     * Create a setter command for a target and value
-     * @param {Parser} parser
-     * @param {*} target - Target expression to set
-     * @param {*} value - Value expression to assign
-     * @param {*} CommandClass - The command class to instantiate (defaults to BaseSetterCommand)
-     * @returns Setter command instance
-     */
-    static makeSetter(parser, target, value, CommandClass = BaseSetterCommand) {
-        // Unwrap parenthesized expressions
-        while (target.type === "parenthesized") target = target.expr;
-        var symbolWrite = target.type === "symbol";
-        var attributeWrite = target.type === "attributeRef";
-        var styleWrite = target.type === "styleRef";
-        var arrayWrite = target.type === "arrayIndex";
-        var refWrite = target.type === "idRef" || target.type === "queryRef" || target.type === "classRef";
-
-        if (!(attributeWrite || styleWrite || symbolWrite || refWrite) && target.root == null) {
-            parser.raiseParseError("Can only put directly into symbols, not references");
-        }
-
-        var rootElt = null;
-        var prop = null;
-        var attribute = null;
-
-        if (symbolWrite) {
-            // rootElt is null
-        } else if (attributeWrite || styleWrite) {
-            rootElt = parser.requireElement("implicitMeTarget");
-            attribute = target;
-        } else if(arrayWrite) {
-            prop = target.firstIndex;
-            rootElt = target.root;
-        } else {
-            prop = target.prop ? target.prop.value : null;
-            attribute = target.attribute;
-            rootElt = target.root;
-        }
-
-        return new CommandClass(target, value, rootElt, prop, attribute);
-    }
-}
+import { Command } from '../base.js';
 
 /**
  * SetCommand - Set variable or property
  *
  * Parses: set {obj} on target  OR  set target to value
- * Executes: Assigns value to target
+ * Executes: Assigns value to target using target's lhs/set() contract
  */
-export class SetCommand extends BaseSetterCommand {
+export class SetCommand extends Command {
     static keyword = "set";
 
-    constructor(target, value, rootElt, prop, attribute, objectLiteral = null) {
-        super(target, value, rootElt, prop, attribute);
+    constructor(target, valueExpr, objectLiteral = null) {
+        super();
+        this.target = target;
         this.objectLiteral = objectLiteral;
+
         if (objectLiteral) {
             this.args = { obj: objectLiteral, setTarget: target };
+        } else {
+            this.args = { ...target.lhs, value: valueExpr };
         }
     }
 
@@ -171,9 +39,7 @@ export class SetCommand extends BaseSetterCommand {
             var obj = parser.requireElement("objectLiteral");
             parser.requireToken("on");
             var target = parser.requireElement("expression");
-
-            var command = new SetCommand(target, null, null, null, null, obj);
-            return command;
+            return new SetCommand(target, null, obj);
         }
 
         // set target to value form
@@ -183,19 +49,22 @@ export class SetCommand extends BaseSetterCommand {
         } finally {
             parser.popFollow();
         }
+        // Unwrap parenthesized expressions
+        while (target.type === "parenthesized") target = target.expr;
         parser.requireToken("to");
         var value = parser.requireElement("expression");
-        return BaseSetterCommand.makeSetter(parser, target, value, SetCommand);
+        return new SetCommand(target, value);
     }
 
     resolve(context, args) {
         if (this.objectLiteral) {
             var { obj, setTarget } = args;
             Object.assign(setTarget, obj);
-            return context.meta.runtime.findNext(this, context);
         } else {
-            return super.resolve(context, args);
+            var { value, ...lhs } = args;
+            this.target.set(context, lhs, value);
         }
+        return context.meta.runtime.findNext(this, context);
     }
 }
 
@@ -208,10 +77,9 @@ export class SetCommand extends BaseSetterCommand {
 export class DefaultCommand extends Command {
     static keyword = "default";
 
-    constructor(target, value, setter) {
+    constructor(target, setter) {
         super();
         this.target = target;
-        this.value = value;
         this.setter = setter;
         this.args = { targetValue: target };
     }
@@ -229,12 +97,14 @@ export class DefaultCommand extends Command {
         } finally {
             parser.popFollow();
         }
+        // Unwrap parenthesized expressions
+        while (target.type === "parenthesized") target = target.expr;
         parser.requireToken("to");
 
         var value = parser.requireElement("expression");
 
-        var setter = BaseSetterCommand.makeSetter(parser, target, value, SetCommand);
-        var defaultCmd = new DefaultCommand(target, value, setter);
+        var setter = new SetCommand(target, value);
+        var defaultCmd = new DefaultCommand(target, setter);
         setter.parent = defaultCmd;
         return defaultCmd;
     }
@@ -254,8 +124,15 @@ export class DefaultCommand extends Command {
  * Parses: increment target [by amount]
  * Executes: Adds amount (default 1) to target
  */
-export class IncrementCommand extends BaseSetterCommand { // <- May be issue in here?
+export class IncrementCommand extends Command {
     static keyword = "increment";
+
+    constructor(target, amountExpr) {
+        super();
+        this.target = target;
+        this.amountExpr = amountExpr;
+        this.args = { targetValue: target, amount: amountExpr, ...target.lhs };
+    }
 
     /**
      * Parse increment command
@@ -268,15 +145,25 @@ export class IncrementCommand extends BaseSetterCommand { // <- May be issue in 
 
         // This is optional.  Defaults to "result"
         var target = parser.parseElement("assignableExpression");
+        // Unwrap parenthesized expressions
+        while (target.type === "parenthesized") target = target.expr;
 
         // This is optional. Defaults to 1.
         if (parser.matchToken("by")) {
             amountExpr = parser.requireElement("expression");
         }
 
-        var implicitIncrementOp = new IncrementOperation(target, amountExpr);
+        return new IncrementCommand(target, amountExpr);
+    }
 
-        return BaseSetterCommand.makeSetter(parser, target, implicitIncrementOp, IncrementCommand);
+    resolve(context, args) {
+        var { targetValue, amount, ...lhs } = args;
+        targetValue = targetValue ? parseFloat(targetValue) : 0;
+        amount = this.amountExpr ? parseFloat(amount) : 1;
+        var newValue = targetValue + amount;
+        context.result = newValue;
+        this.target.set(context, lhs, newValue);
+        return context.meta.runtime.findNext(this, context);
     }
 }
 
@@ -286,8 +173,15 @@ export class IncrementCommand extends BaseSetterCommand { // <- May be issue in 
  * Parses: decrement target [by amount]
  * Executes: Subtracts amount (default 1) from target
  */
-export class DecrementCommand extends BaseSetterCommand {
+export class DecrementCommand extends Command {
     static keyword = "decrement";
+
+    constructor(target, amountExpr) {
+        super();
+        this.target = target;
+        this.amountExpr = amountExpr;
+        this.args = { targetValue: target, amount: amountExpr, ...target.lhs };
+    }
 
     /**
      * Parse decrement command
@@ -305,15 +199,25 @@ export class DecrementCommand extends BaseSetterCommand {
         } finally {
             parser.popFollow();
         }
+        // Unwrap parenthesized expressions
+        while (target.type === "parenthesized") target = target.expr;
 
         // This is optional. Defaults to 1.
         if (parser.matchToken("by")) {
             amountExpr = parser.requireElement("expression");
         }
 
-        var implicitDecrementOp = new DecrementOperation(target, amountExpr);
+        return new DecrementCommand(target, amountExpr);
+    }
 
-        return BaseSetterCommand.makeSetter(parser, target, implicitDecrementOp, DecrementCommand);
+    resolve(context, args) {
+        var { targetValue, amount, ...lhs } = args;
+        targetValue = targetValue ? parseFloat(targetValue) : 0;
+        amount = this.amountExpr ? parseFloat(amount) : 1;
+        var newValue = targetValue - amount;
+        context.result = newValue;
+        this.target.set(context, lhs, newValue);
+        return context.meta.runtime.findNext(this, context);
     }
 }
 

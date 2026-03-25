@@ -227,6 +227,12 @@ export class SymbolRef extends Expression {
     resolve(context) {
         return context.meta.runtime.resolveSymbol(this.name, context, this.scope);
     }
+
+    get lhs() { return {}; }
+
+    set(ctx, lhs, value) {
+        ctx.meta.runtime.setSymbol(this.name, ctx, this.scope, value);
+    }
 }
 
 /**
@@ -299,11 +305,12 @@ export class PropertyAccess extends Expression {
         return value;
     }
 
-    /**
-     * Evaluate property access
-     * @param {Context} context
-     * @returns {any}
-     */
+    get lhs() { return { root: this.root }; }
+
+    set(ctx, lhs, value) {
+        ctx.meta.runtime.nullCheck(lhs.root, this.root);
+        ctx.meta.runtime.implicitLoop(lhs.root, elt => { elt[this.prop.value] = value; });
+    }
 }
 
 /**
@@ -395,6 +402,23 @@ export class OfExpression extends Expression {
         }
     }
 
+    get lhs() { return { root: this.root }; }
+
+    set(ctx, lhs, value) {
+        ctx.meta.runtime.nullCheck(lhs.root, this.root);
+        var urRoot = this._urRoot;
+        var prop = urRoot.name;
+        if (urRoot.type === "attributeRef") {
+            ctx.meta.runtime.implicitLoop(lhs.root, elt => {
+                value == null ? elt.removeAttribute(prop) : elt.setAttribute(prop, value);
+            });
+        } else if (urRoot.type === "styleRef") {
+            ctx.meta.runtime.implicitLoop(lhs.root, elt => { elt.style[prop] = value; });
+        } else {
+            ctx.meta.runtime.implicitLoop(lhs.root, elt => { elt[prop] = value; });
+        }
+    }
+
     /**
      * Evaluate of expression
      * @param {Context} context
@@ -474,11 +498,23 @@ export class PossessiveExpression extends Expression {
         return value;
     }
 
-    /**
-     * Evaluate possessive expression
-     * @param {Context} context
-     * @returns {any}
-     */
+    get lhs() { return { root: this.root }; }
+
+    set(ctx, lhs, value) {
+        ctx.meta.runtime.nullCheck(lhs.root, this.root);
+        if (this.attribute) {
+            var name = this.attribute.name;
+            if (this.attribute.type === 'styleRef') {
+                ctx.meta.runtime.implicitLoop(lhs.root, elt => { elt.style[name] = value; });
+            } else {
+                ctx.meta.runtime.implicitLoop(lhs.root, elt => {
+                    value == null ? elt.removeAttribute(name) : elt.setAttribute(name, value);
+                });
+            }
+        } else {
+            ctx.meta.runtime.implicitLoop(lhs.root, elt => { elt[this.prop.value] = value; });
+        }
+    }
 }
 
 /**
@@ -707,11 +743,14 @@ export class AttributeRefAccess extends Expression {
         return value;
     }
 
-    /**
-     * Evaluate attribute ref access
-     * @param {Context} context
-     * @returns {any}
-     */
+    get lhs() { return { root: this.root }; }
+
+    set(ctx, lhs, value) {
+        ctx.meta.runtime.nullCheck(lhs.root, this.root);
+        ctx.meta.runtime.implicitLoop(lhs.root, elt => {
+            value == null ? elt.removeAttribute(this.attribute.name) : elt.setAttribute(this.attribute.name, value);
+        });
+    }
 }
 
 /**
@@ -793,6 +832,13 @@ export class ArrayIndex extends Expression {
         } else {
             return root[firstIndex];
         }
+    }
+
+    get lhs() { return { root: this.root, index: this.firstIndex }; }
+
+    set(ctx, lhs, value) {
+        ctx.meta.runtime.nullCheck(lhs.root, this.root);
+        lhs.root[lhs.index] = value;
     }
 
     /**

@@ -4,7 +4,6 @@
  */
 
 import { RegExpIterable } from '../../core/runtime/collections.js';
-import { SetCommand } from './setters.js';
 import { Command, Expression } from '../base.js';
 
 /**
@@ -18,6 +17,12 @@ class ImplicitResultSymbol extends Expression {
 
     resolve(context) {
         return context.meta.runtime.resolveSymbol("result", context);
+    }
+
+    get lhs() { return {}; }
+
+    set(ctx, lhs, value) {
+        ctx.meta.runtime.setSymbol("result", ctx, null, value);
     }
 }
 
@@ -396,12 +401,16 @@ export class MakeCommand extends Command {
 export class AppendCommand extends Command {
     static keyword = "append";
 
-    constructor(value, targetExpr, setter) {
+    constructor(value, targetExpr, assignable) {
         super();
         this.value = value;
-        this.target = targetExpr;
-        this.setter = setter;
-        this.args = { target: targetExpr, value };
+        this._target = targetExpr;
+        this.assignable = assignable;
+        if (assignable) {
+            this.args = { target: targetExpr, value, ...targetExpr.lhs };
+        } else {
+            this.args = { target: targetExpr, value };
+        }
     }
 
     /**
@@ -415,31 +424,21 @@ export class AppendCommand extends Command {
 
         var value = parser.requireElement("expression");
 
-        var implicitResultSymbol = new ImplicitResultSymbol();
-
         if (parser.matchToken("to")) {
             targetExpr = parser.requireElement("expression");
         } else {
-            targetExpr = implicitResultSymbol;
+            targetExpr = new ImplicitResultSymbol();
         }
 
-        var setter = null;
         var checkTarget = targetExpr;
         while (checkTarget.type === "parenthesized") checkTarget = checkTarget.expr;
-        if (checkTarget.type === "symbol" || checkTarget.type === "attributeRef" || checkTarget.root != null) {
-            setter = SetCommand.makeSetter(parser, targetExpr, implicitResultSymbol);
-        }
+        var assignable = checkTarget.set != null;
 
-        var command = new AppendCommand(value, targetExpr, setter);
-
-        if (setter != null) {
-            setter.parent = command;
-        }
-
-        return command;
+        return new AppendCommand(value, targetExpr, assignable);
     }
 
-    resolve(context, { target, value }) {
+    resolve(context, args) {
+        var { target, value, ...lhs } = args;
         if (Array.isArray(target)) {
             target.push(value);
             return context.meta.runtime.findNext(this, context);
@@ -451,9 +450,9 @@ export class AppendCommand extends Command {
             }
             context.meta.runtime.processNode(target);
             return context.meta.runtime.findNext(this, context);
-        } else if(this.setter) {
-            context.result = (target || "") + value;
-            return this.setter;
+        } else if(this.assignable) {
+            this._target.set(context, lhs, (target || "") + value);
+            return context.meta.runtime.findNext(this, context);
         } else {
             throw Error("Unable to append a value!")
         }
