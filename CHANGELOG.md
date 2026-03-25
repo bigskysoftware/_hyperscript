@@ -4,34 +4,46 @@
 
 ### Breaking Changes
 
-- **Extensions moved to `dist/ext/`** — `dist/hdb.js` → `dist/ext/hdb.js`, same for socket, template, worker, eventsource, tailwind
-- **`dist/_hyperscript.js` is now IIFE** (was UMD) — still works with plain `<script>` tags, no change needed for most users
-- **ESM available as `dist/_hyperscript.esm.js`** — use this for `import` statements
-- **`processNode()` deprecated** — use `process()` instead (alias still works)
+- Extensions moved to `dist/ext/` — `dist/hdb.js` → `dist/ext/hdb.js`, same for socket, template, worker, eventsource, tailwind
+- `dist/_hyperscript.js` is now IIFE (was UMD) — still works with plain `<script>` tags, no change needed for most users
+- ESM available as `dist/_hyperscript.esm.js` — use this for `import` statements
+- `processNode()` deprecated — use `process()` instead (alias still works)
 
 ### New Features
 
-- **`breakpoint` command in core** — pauses in browser DevTools without needing hdb extension
-- **`toggle between` attributes** — `toggle between [@data-state='active'] and [@data-state='inactive']`
-- **htmx 4 support** — listens for `htmx:after:process` event in addition to `htmx:load`
-- **Platform scripts** — `node-hyperscript.js`, `deno-hyperscript.js`, `bun-hyperscript.js` for running `.hs` files outside the browser
-- **Brotli-compressed builds** — `.br` files for all minified bundles
+- `breakpoint` command in core — pauses in browser DevTools without needing hdb extension
+- `toggle between` attributes — `toggle between [@data-state='active'] and [@data-state='inactive']`
+- htmx 4 support — listens for `htmx:after:process` event in addition to `htmx:load`
+  - htmx 4 morph swap support — `process()` detects when `_=` attribute changed (via script hash) and reinitializes automatically
+- `cleanup()` API — `_hyperscript.cleanup(elt)` removes all event listeners, disconnects observers, clears timers, recursively cleans children. Called automatically before reinitialization.
+- htmx inspired lifecycle events — `hyperscript:before:init`, `hyperscript:after:init`, `hyperscript:before:cleanup`, `hyperscript:after:cleanup` fired per element. `before:init` is cancelable via `preventDefault()`.
+- htmx inspired `data-hyperscript-powered` attribute — set on all initialized elements for fast querying and morph compatibility
+- htmx inspired `config.logAll` — when `true`, logs all hyperscript events to console (matches htmx's `logAll`)
+- Platform scripts — `node-hyperscript.js`, `deno-hyperscript.js`, `bun-hyperscript.js` for running `.hs` files outside the browser
 
 ### Internal
 
 - Complete ESM rewrite of all source files (45 modules)
+- **Element state on `elt._hyperscript`** — all hyperscript state stored directly on elements (inspectable in DevTools), aligned with htmx's `elt._htmx` pattern
 - Named args for all parse elements (`this.args = { name: expr }` and `resolve(ctx, { name })`)
 - Tokenizer cleanup — private fields, removed duplicate methods, ~50% smaller
 - All extensions converted to proper class-based parse elements
 - Removed IE/legacy browser compatibility code
 - Runtime split into focused modules (runtime, collections, conversions, cookies)
-- Test suite migrated to Playwright (~8s, from ~250s with old runner)
+- Parse tree is now immutable — mutable event state (execCount, debounced, lastExec) moved from parsed eventSpec objects to per-element storage
+- Event listeners and observers tracked in `elt._hyperscript.listeners` and `elt._hyperscript.observers` for proper cleanup
+- Test suite migrated to Playwright (~9s, from ~250s with old runner), 888 tests passing
+- IIFE + ESM dual builds with minified + brotli variants for core and all extensions
+- Clean dist structure: no source tree mirror, just bundled files
 
 ### Bug Fixes
 
 - Fixed EventSource reconnection backoff (`^` → `**` for exponentiation)
+- Fixed EventSource not using `closed` flag to prevent reconnection after explicit close
 - Fixed `AttributeRef` not stripping single-quoted values
 - Fixed `ElementCollection.id` getter calling `className` as a method
+- Fixed string throws (7 instances) — now throw proper `Error` objects with stack traces
+- Fixed silent failure when command doesn't return next element — now throws instead of logging and returning undefined
 
 ---
 
