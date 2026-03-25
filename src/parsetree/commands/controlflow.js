@@ -302,26 +302,18 @@ export class RepeatCommand extends Command {
 export class ContinueCommand extends Command {
     static keyword = "continue";
 
-    constructor(parser) {
-        super();
-        this.parser = parser;
-    }
-
     static parse(parser) {
         if (!parser.matchToken("continue")) return;
-        return new ContinueCommand(parser);
+        return new ContinueCommand();
     }
 
     resolve(context) {
-        // scan for the closest repeat statement
-        for (var parent = this.parent; true; parent = parent.parent) {
-            if (parent == undefined) {
-                this.parser.raiseParseError("Command `continue` cannot be used outside of a `repeat` loop.");
-            }
+        for (var parent = this.parent; parent; parent = parent.parent) {
             if (parent.loop != undefined) {
                 return parent.resolveNext(context);
             }
         }
+        throw new Error("Command `continue` cannot be used outside of a `repeat` loop.");
     }
 }
 
@@ -334,26 +326,18 @@ export class ContinueCommand extends Command {
 export class BreakCommand extends Command {
     static keyword = "break";
 
-    constructor(parser) {
-        super();
-        this.parser = parser;
-    }
-
     static parse(parser) {
         if (!parser.matchToken("break")) return;
-        return new BreakCommand(parser);
+        return new BreakCommand();
     }
 
     resolve(context) {
-        // scan for the closest repeat statement
-        for (var parent = this.parent; true; parent = parent.parent) {
-            if (parent == undefined) {
-                this.parser.raiseParseError("Command `break` cannot be used outside of a `repeat` loop.");
-            }
+        for (var parent = this.parent; parent; parent = parent.parent) {
             if (parent.loop != undefined) {
                 return context.meta.runtime.findNext(parent.parent, context);
             }
         }
+        throw new Error("Command `break` cannot be used outside of a `repeat` loop.");
     }
 }
 
