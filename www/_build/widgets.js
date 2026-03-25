@@ -1,5 +1,4 @@
-
-module.exports = function (config) {
+export function addWidgets(config) {
     config.addPairedShortcode('example', (content, caption) => {
         let rv = "<figure class='box'>\n\n"
         if (caption) rv += `<figcaption class="allcaps" >Example: ${caption}</figcaption>\n\n`

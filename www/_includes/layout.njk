@@ -18,15 +18,11 @@ title: ///_hyperscript
     <script src="https://unpkg.com/prismjs@1.25.0/components/prism-clike.min.js"></script>
     <script src="https://unpkg.com/prismjs@1.25.0/components/prism-javascript.min.js"></script>
     <script src="https://unpkg.com/prism-hyperscript@1.1.1/prism-hyperscript.js"></script>
-    <script src="/js/_hyperscript_w9y.min.js"></script>
+    <script src="/js/_hyperscript.min.js"></script>
 </head>
 <body>
 <header class="navbar">
-    {% if page.url.indexOf("/examples/") == 0 %}
-    <nav id="nav" class="navigation nav"> <!-- don't boost on demo pages, sinon hijacks everything :/ -->
-    {% else %}
-    <nav id="nav" class="navigation" hx-boost="true">
-    {% endif %}
+    <nav id="nav" class="navigation">
         <ul role="list" preload="mouseover" class="align-items:center">
             <li><a href="/"><img alt="///_hyperscript" src="/img/transparent_logo.png"></a>
             <li><a href="/docs/">docs</a>
