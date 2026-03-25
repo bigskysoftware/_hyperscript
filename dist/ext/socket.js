@@ -1,200 +1,203 @@
-import { Runtime } from '../core/runtime.js';
+(() => {
+  var __defProp = Object.defineProperty;
+  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 
-function genUUID() {
-		return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-			var r = (Math.random() * 16) | 0,
-				v = c == "x" ? r : (r & 0x3) | 0x8;
-			return v.toString(16);
-		});
-	}
+  // src/parsetree/base.js
+  var ParseElement = class {
+    sourceFor() {
+      return this.programSource.substring(this.startToken.start, this.endToken.end);
+    }
+    lineFor() {
+      return this.programSource.split("\n")[this.startToken.line - 1];
+    }
+    static parseEventArgs(parser) {
+      var args = [];
+      if (parser.token(0).value === "(" && (parser.token(1).value === ")" || parser.token(2).value === "," || parser.token(2).value === ")")) {
+        parser.matchOpToken("(");
+        do {
+          args.push(parser.requireTokenType("IDENTIFIER"));
+        } while (parser.matchOpToken(","));
+        parser.requireOpToken(")");
+      }
+      return args;
+    }
+  };
+  var Feature = class extends ParseElement {
+    constructor() {
+      super();
+      __publicField(this, "isFeature", true);
+      if (this.constructor.keyword) {
+        this.type = this.constructor.keyword + "Feature";
+      }
+    }
+    install(target, source, args, runtime) {
+    }
+  };
 
-	function parseUrl(url) {
-		var finalUrl = url;
-		if (finalUrl.indexOf("/") === 0) {  // complete absolute paths without scheme only
-			var basePart = window.location.hostname + (window.location.port ? ':' + window.location.port : '');
-			if (window.location.protocol === 'https:') {
-				finalUrl = "wss://" + basePart + finalUrl;
-			} else if (window.location.protocol === 'http:') {
-				finalUrl = "ws://" + basePart + finalUrl;
-			}
-		}
-		return finalUrl;
-	}
-
-	function createSocket(url) {
-		var parsedUrl = parseUrl(url.evaluate());
-		return new WebSocket(parsedUrl);
-	}
-
-/**
- * @param {import('../dist/_hyperscript').Hyperscript} _hyperscript
- */
-export default function socketPlugin(_hyperscript) {
-
-		/** @type {(string | symbol)[]} */
-		var PROXY_BLACKLIST = ["then", "catch", "length", "asyncWrapper", "toJSON"];
-
-		_hyperscript.addFeature("socket", function (parser) {
-			function getProxy(timeout) {
-				return new Proxy(
-					{},
-					{
-						get: function (obj, property) {
-							if (PROXY_BLACKLIST.indexOf(property) >= 0) {
-								return null;
-							} else if (property === "noTimeout") {
-								return getProxy(-1);
-							} else if (property === "timeout") {
-								return function (i) {
-									return getProxy(parseInt(i));
-								};
-							} else {
-								return function () {
-									var uuid = genUUID();
-									var args = [];
-									for (var i = 0; i < arguments.length; i++) {
-										args.push(arguments[i]);
-									}
-									var rpcInfo = {
-										iid: uuid,
-										function: property,
-										args: args,
-									};
-									socket = socket ? socket : createSocket(url); //recreate socket if needed
-									socket.send(JSON.stringify(rpcInfo));
-
-									var promise = new Promise(function (resolve, reject) {
-										promises[uuid] = {
-											resolve: resolve,
-											reject: reject,
-										};
-									});
-
-									if (timeout >= 0) {
-										setTimeout(function () {
-											if (promises[uuid]) {
-												promises[uuid].reject("Timed out");
-											}
-											delete promises[uuid];
-										}, timeout); // TODO configurable?
-									}
-									return promise;
-								};
-							}
-						},
-					}
-				);
-			}
-
-			if (parser.matchToken("socket")) {
-				var name = parser.requireElement("dotOrColonPath");
-				var qualifiedName = name.evaluate();
-				var nameSpace = qualifiedName.split(".");
-				var socketName = nameSpace.pop();
-
-				var promises = {};
-				var url = parser.requireElement("stringLike");
-
-				var defaultTimeout = 10000;
-				if (parser.matchToken("with")) {
-					parser.requireToken("timeout");
-					defaultTimeout = parser.requireElement("expression").evaluate();
-				}
-
-				if (parser.matchToken("on")) {
-					parser.requireToken("message");
-					if (parser.matchToken("as")) {
-						parser.requireToken("json");
-						var jsonMessages = true;
-					}
-					var messageHandler = parser.requireElement("commandList");
-					var implicitReturn = {
-						type: "implicitReturn",
-						op: function (context) {
-							return Runtime.HALT;
-						},
-						execute: function (context) {
-							// do nothing
-						},
-					};
-					var end = messageHandler;
-					while (end.next) {
-						end = end.next;
-					}
-					end.next = implicitReturn;
-					// TODO set parent?
-					// parser.setParent(implicitReturn, initFeature);
-				}
-
-				var socket = createSocket(url);
-				var rpcProxy = getProxy(defaultTimeout);
-
-				var socketObject = {
-					raw: socket,
-					dispatchEvent: function (evt) {
-						var details = evt.detail;
-						// remove hyperscript internals
-						delete details.sender;
-						delete details._namedArgList_;
-						socket.send(JSON.stringify(Object.assign({ type: evt.type }, details)));
-					},
-					rpc: rpcProxy,
-				};
-
-				var socketFeature = {
-					name: socketName,
-					socket: socketObject,
-					install: function (target, source, args, runtime) {
-						runtime.assignToNamespace(target, nameSpace, socketName, socketObject);
-					},
-				};
-
-				socket.onmessage = function (evt) {
-					var data = evt.data;
-					try {
-						var dataAsJson = JSON.parse(data);
-					} catch (e) {
-						// not JSON
-					}
-
-					// RPC reply
-					if (dataAsJson && dataAsJson.iid) {
-						if (dataAsJson.throw) {
-							promises[dataAsJson.iid].reject(dataAsJson.throw);
-						} else {
-							promises[dataAsJson.iid].resolve(dataAsJson.return);
-						}
-						delete promises[dataAsJson.iid];
-					}
-
-					if (messageHandler) {
-						var context = _hyperscript.internals.runtime.makeContext(socketObject, socketFeature, socketObject);
-						if (jsonMessages) {
-							if (dataAsJson) {
-								context.locals.message = dataAsJson;
-								context.result = dataAsJson;
-							} else {
-								throw "Received non-JSON message from socket: " + data;
-							}
-						} else {
-							context.locals.message = data;
-							context.result = data;
-						}
-						messageHandler.execute(context);
-					}
-				};
-
-				// clear socket on close to be recreated
-				socket.addEventListener("close", function (e) {
-					socket = null;
-				});
-
-				return socketFeature;
-			}
-		});
-}
-
-// Auto-register when imported
-if (typeof self !== 'undefined' && self._hyperscript) {
-	self._hyperscript.use(socketPlugin);
-}
+  // src/ext/socket.js
+  function genUUID() {
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
+      var r = Math.random() * 16 | 0, v = c == "x" ? r : r & 3 | 8;
+      return v.toString(16);
+    });
+  }
+  function parseUrl(url) {
+    var finalUrl = url;
+    if (finalUrl.startsWith("/")) {
+      var basePart = window.location.hostname + (window.location.port ? ":" + window.location.port : "");
+      if (window.location.protocol === "https:") {
+        finalUrl = "wss://" + basePart + finalUrl;
+      } else if (window.location.protocol === "http:") {
+        finalUrl = "ws://" + basePart + finalUrl;
+      }
+    }
+    return finalUrl;
+  }
+  var PROXY_BLACKLIST = ["then", "catch", "length", "toJSON"];
+  var _SocketFeature = class _SocketFeature extends Feature {
+    constructor(socketName, nameSpace, socketObject, messageHandler) {
+      super();
+      this.socketName = socketName;
+      this.nameSpace = nameSpace;
+      this.socketObject = socketObject;
+      this.messageHandler = messageHandler;
+    }
+    install(target, source, args, runtime) {
+      this.runtime = runtime;
+      runtime.assignToNamespace(target, this.nameSpace, this.socketName, this.socketObject);
+    }
+    static parse(parser) {
+      if (!parser.matchToken("socket")) return;
+      var name = parser.requireElement("dotOrColonPath");
+      var qualifiedName = name.evaluate();
+      var nameSpace = qualifiedName.split(".");
+      var socketName = nameSpace.pop();
+      var promises = {};
+      var url = parser.requireElement("stringLike");
+      var defaultTimeout = 1e4;
+      if (parser.matchToken("with")) {
+        parser.requireToken("timeout");
+        defaultTimeout = parser.requireElement("expression").evaluate();
+      }
+      var jsonMessages = false;
+      var messageHandler = null;
+      if (parser.matchToken("on")) {
+        parser.requireToken("message");
+        if (parser.matchToken("as")) {
+          parser.requireToken("json");
+          jsonMessages = true;
+        }
+        messageHandler = parser.requireElement("commandList");
+        parser.ensureTerminated(messageHandler);
+      }
+      var socket = new WebSocket(parseUrl(url.evaluate()));
+      function getProxy(timeout) {
+        return new Proxy(
+          {},
+          {
+            get: function(obj, property) {
+              if (PROXY_BLACKLIST.includes(property)) {
+                return null;
+              } else if (property === "noTimeout") {
+                return getProxy(-1);
+              } else if (property === "timeout") {
+                return function(i) {
+                  return getProxy(parseInt(i));
+                };
+              } else {
+                return function() {
+                  var uuid = genUUID();
+                  var args = [];
+                  for (var i = 0; i < arguments.length; i++) {
+                    args.push(arguments[i]);
+                  }
+                  var rpcInfo = {
+                    iid: uuid,
+                    function: property,
+                    args
+                  };
+                  socket = socket ? socket : new WebSocket(parseUrl(url.evaluate()));
+                  socket.send(JSON.stringify(rpcInfo));
+                  var promise = new Promise(function(resolve, reject) {
+                    promises[uuid] = {
+                      resolve,
+                      reject
+                    };
+                  });
+                  if (timeout >= 0) {
+                    setTimeout(function() {
+                      if (promises[uuid]) {
+                        promises[uuid].reject("Timed out");
+                      }
+                      delete promises[uuid];
+                    }, timeout);
+                  }
+                  return promise;
+                };
+              }
+            }
+          }
+        );
+      }
+      var rpcProxy = getProxy(defaultTimeout);
+      var socketObject = {
+        raw: socket,
+        dispatchEvent: function(evt) {
+          var details = evt.detail;
+          delete details.sender;
+          delete details._namedArgList_;
+          socket.send(JSON.stringify(Object.assign({ type: evt.type }, details)));
+        },
+        rpc: rpcProxy
+      };
+      var feature = new _SocketFeature(socketName, nameSpace, socketObject, messageHandler);
+      socket.onmessage = function(evt) {
+        var data = evt.data;
+        try {
+          var dataAsJson = JSON.parse(data);
+        } catch (e) {
+        }
+        if (dataAsJson && dataAsJson.iid) {
+          if (dataAsJson.throw) {
+            promises[dataAsJson.iid].reject(dataAsJson.throw);
+          } else {
+            promises[dataAsJson.iid].resolve(dataAsJson.return);
+          }
+          delete promises[dataAsJson.iid];
+        }
+        if (messageHandler) {
+          var context = feature.runtime.makeContext(socketObject, feature, socketObject);
+          if (jsonMessages) {
+            if (dataAsJson) {
+              context.locals.message = dataAsJson;
+              context.result = dataAsJson;
+            } else {
+              throw "Received non-JSON message from socket: " + data;
+            }
+          } else {
+            context.locals.message = data;
+            context.result = data;
+          }
+          messageHandler.execute(context);
+        }
+      };
+      socket.addEventListener("close", function(e) {
+        socket = null;
+      });
+      if (messageHandler) {
+        parser.setParent(messageHandler, feature);
+      }
+      return feature;
+    }
+  };
+  __publicField(_SocketFeature, "keyword", "socket");
+  var SocketFeature = _SocketFeature;
+  function socketPlugin(_hyperscript) {
+    _hyperscript.addFeature(SocketFeature.keyword, SocketFeature.parse.bind(SocketFeature));
+  }
+  if (typeof self !== "undefined" && self._hyperscript) {
+    self._hyperscript.use(socketPlugin);
+  }
+})();
+//# sourceMappingURL=socket.js.map

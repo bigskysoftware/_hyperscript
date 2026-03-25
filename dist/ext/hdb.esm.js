@@ -1,185 +1,184 @@
-(() => {
-  var __defProp = Object.defineProperty;
-  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-  var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+var __defProp = Object.defineProperty;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 
-  // src/parsetree/base.js
-  var ParseElement = class {
-    sourceFor() {
-      return this.programSource.substring(this.startToken.start, this.endToken.end);
-    }
-    lineFor() {
-      return this.programSource.split("\n")[this.startToken.line - 1];
-    }
-    static parseEventArgs(parser) {
-      var args = [];
-      if (parser.token(0).value === "(" && (parser.token(1).value === ")" || parser.token(2).value === "," || parser.token(2).value === ")")) {
-        parser.matchOpToken("(");
-        do {
-          args.push(parser.requireTokenType("IDENTIFIER"));
-        } while (parser.matchOpToken(","));
-        parser.requireOpToken(")");
-      }
-      return args;
-    }
-  };
-  var Command = class extends ParseElement {
-    constructor() {
-      super();
-      if (this.constructor.keyword) {
-        this.type = this.constructor.keyword + "Command";
-      }
-    }
-    execute(context) {
-      context.meta.command = this;
-      return context.meta.runtime.unifiedExec(this, context);
-    }
-    static parsePseudopossessiveTarget(parser) {
-      var targets;
-      if (parser.matchToken("the") || parser.matchToken("element") || parser.matchToken("elements") || parser.currentToken().type === "CLASS_REF" || parser.currentToken().type === "ID_REF" || parser.currentToken().op && parser.currentToken().value === "<") {
-        parser.possessivesDisabled = true;
-        try {
-          targets = parser.parseElement("expression");
-        } finally {
-          parser.possessivesDisabled = false;
-        }
-        if (parser.matchOpToken("'")) {
-          parser.requireToken("s");
-        }
-      } else if (parser.currentToken().type === "IDENTIFIER" && parser.currentToken().value === "its") {
-        targets = parser.parseElement("pseudopossessiveIts");
-      } else {
-        parser.matchToken("my") || parser.matchToken("me");
-        targets = parser.parseElement("implicitMeTarget");
-      }
-      return targets;
-    }
-  };
-
-  // src/ext/hdb.js
-  var _BreakpointCommand = class _BreakpointCommand extends Command {
-    static parse(parser) {
-      if (!parser.matchToken("breakpoint")) return;
-      return new _BreakpointCommand();
-    }
-    resolve(ctx) {
-      var hdb;
-      globalThis.hdb = hdb = new HDB(ctx, ctx.meta.runtime, this);
-      try {
-        return hdb.break(ctx);
-      } catch (e) {
-        console.error(e, e.stack);
-      }
-    }
-  };
-  __publicField(_BreakpointCommand, "keyword", "breakpoint");
-  var BreakpointCommand = _BreakpointCommand;
-  function HDB(ctx, runtime, breakpoint) {
-    this.ctx = ctx;
-    this.runtime = runtime;
-    this.cmd = breakpoint;
-    this._hyperscript = self._hyperscript;
-    this.cmdMap = [];
-    this.bus = new EventTarget();
+// src/parsetree/base.js
+var ParseElement = class {
+  sourceFor() {
+    return this.programSource.substring(this.startToken.start, this.endToken.end);
   }
-  HDB.prototype.break = function(ctx) {
-    console.log("=== HDB///_hyperscript/debugger ===");
-    this.ui();
-    return new Promise((resolve, reject) => {
-      this.bus.addEventListener(
-        "continue",
-        () => {
-          if (this.ctx !== ctx) {
-            for (var attr in ctx) {
-              delete ctx[attr];
-            }
-            Object.assign(ctx, this.ctx);
-          }
-          delete globalThis.hdb;
-          resolve(this.runtime.findNext(this.cmd, this.ctx));
-        },
-        { once: true }
-      );
-    });
-  };
-  HDB.prototype.continueExec = function() {
-    this.bus.dispatchEvent(new Event("continue"));
-  };
-  HDB.prototype.stepOver = function() {
-    if (!this.cmd) return this.continueExec();
-    var result = this.cmd && this.cmd.type === "breakpointCommand" ? this.runtime.findNext(this.cmd, this.ctx) : this.runtime.unifiedEval(this.cmd, this.ctx);
-    if (result.type === "implicitReturn") return this.stepOut();
-    if (result && result.then instanceof Function) {
-      return result.then((next) => {
-        this.cmd = next;
-        this.bus.dispatchEvent(new Event("step"));
-        this.logCommand();
-      });
-    } else if (result.halt_flag) {
-      this.bus.dispatchEvent(new Event("continue"));
+  lineFor() {
+    return this.programSource.split("\n")[this.startToken.line - 1];
+  }
+  static parseEventArgs(parser) {
+    var args = [];
+    if (parser.token(0).value === "(" && (parser.token(1).value === ")" || parser.token(2).value === "," || parser.token(2).value === ")")) {
+      parser.matchOpToken("(");
+      do {
+        args.push(parser.requireTokenType("IDENTIFIER"));
+      } while (parser.matchOpToken(","));
+      parser.requireOpToken(")");
+    }
+    return args;
+  }
+};
+var Command = class extends ParseElement {
+  constructor() {
+    super();
+    if (this.constructor.keyword) {
+      this.type = this.constructor.keyword + "Command";
+    }
+  }
+  execute(context) {
+    context.meta.command = this;
+    return context.meta.runtime.unifiedExec(this, context);
+  }
+  static parsePseudopossessiveTarget(parser) {
+    var targets;
+    if (parser.matchToken("the") || parser.matchToken("element") || parser.matchToken("elements") || parser.currentToken().type === "CLASS_REF" || parser.currentToken().type === "ID_REF" || parser.currentToken().op && parser.currentToken().value === "<") {
+      parser.possessivesDisabled = true;
+      try {
+        targets = parser.parseElement("expression");
+      } finally {
+        parser.possessivesDisabled = false;
+      }
+      if (parser.matchOpToken("'")) {
+        parser.requireToken("s");
+      }
+    } else if (parser.currentToken().type === "IDENTIFIER" && parser.currentToken().value === "its") {
+      targets = parser.parseElement("pseudopossessiveIts");
     } else {
-      this.cmd = result;
+      parser.matchToken("my") || parser.matchToken("me");
+      targets = parser.parseElement("implicitMeTarget");
+    }
+    return targets;
+  }
+};
+
+// src/ext/hdb.js
+var _BreakpointCommand = class _BreakpointCommand extends Command {
+  static parse(parser) {
+    if (!parser.matchToken("breakpoint")) return;
+    return new _BreakpointCommand();
+  }
+  resolve(ctx) {
+    var hdb;
+    globalThis.hdb = hdb = new HDB(ctx, ctx.meta.runtime, this);
+    try {
+      return hdb.break(ctx);
+    } catch (e) {
+      console.error(e, e.stack);
+    }
+  }
+};
+__publicField(_BreakpointCommand, "keyword", "breakpoint");
+var BreakpointCommand = _BreakpointCommand;
+function HDB(ctx, runtime, breakpoint) {
+  this.ctx = ctx;
+  this.runtime = runtime;
+  this.cmd = breakpoint;
+  this._hyperscript = self._hyperscript;
+  this.cmdMap = [];
+  this.bus = new EventTarget();
+}
+HDB.prototype.break = function(ctx) {
+  console.log("=== HDB///_hyperscript/debugger ===");
+  this.ui();
+  return new Promise((resolve, reject) => {
+    this.bus.addEventListener(
+      "continue",
+      () => {
+        if (this.ctx !== ctx) {
+          for (var attr in ctx) {
+            delete ctx[attr];
+          }
+          Object.assign(ctx, this.ctx);
+        }
+        delete globalThis.hdb;
+        resolve(this.runtime.findNext(this.cmd, this.ctx));
+      },
+      { once: true }
+    );
+  });
+};
+HDB.prototype.continueExec = function() {
+  this.bus.dispatchEvent(new Event("continue"));
+};
+HDB.prototype.stepOver = function() {
+  if (!this.cmd) return this.continueExec();
+  var result = this.cmd && this.cmd.type === "breakpointCommand" ? this.runtime.findNext(this.cmd, this.ctx) : this.runtime.unifiedEval(this.cmd, this.ctx);
+  if (result.type === "implicitReturn") return this.stepOut();
+  if (result && result.then instanceof Function) {
+    return result.then((next) => {
+      this.cmd = next;
       this.bus.dispatchEvent(new Event("step"));
       this.logCommand();
-    }
-  };
-  HDB.prototype.stepOut = function() {
-    if (!this.ctx.meta.caller) return this.continueExec();
-    var callingCmd = this.ctx.meta.callingCommand;
-    var oldMe = this.ctx.me;
-    this.ctx = this.ctx.meta.caller;
-    console.log(
-      "[hdb] stepping out into " + this.ctx.meta.feature.displayName
-    );
-    if (this.ctx.me instanceof Element && this.ctx.me !== oldMe) {
-      console.log("[hdb] me: ", this.ctx.me);
-    }
-    this.cmd = this.runtime.findNext(callingCmd, this.ctx);
-    this.cmd = this.runtime.findNext(this.cmd, this.ctx);
+    });
+  } else if (result.halt_flag) {
+    this.bus.dispatchEvent(new Event("continue"));
+  } else {
+    this.cmd = result;
+    this.bus.dispatchEvent(new Event("step"));
     this.logCommand();
-    this.bus.dispatchEvent(new Event("step"));
+  }
+};
+HDB.prototype.stepOut = function() {
+  if (!this.ctx.meta.caller) return this.continueExec();
+  var callingCmd = this.ctx.meta.callingCommand;
+  var oldMe = this.ctx.me;
+  this.ctx = this.ctx.meta.caller;
+  console.log(
+    "[hdb] stepping out into " + this.ctx.meta.feature.displayName
+  );
+  if (this.ctx.me instanceof Element && this.ctx.me !== oldMe) {
+    console.log("[hdb] me: ", this.ctx.me);
+  }
+  this.cmd = this.runtime.findNext(callingCmd, this.ctx);
+  this.cmd = this.runtime.findNext(this.cmd, this.ctx);
+  this.logCommand();
+  this.bus.dispatchEvent(new Event("step"));
+};
+HDB.prototype.skipTo = function(toCmd) {
+  this.cmd = toCmd.cmd;
+  this.bus.dispatchEvent(new Event("skip"));
+};
+HDB.prototype.rewrite = function(command, newCode) {
+  console.log("##", command);
+  const parent = command.cmd.parent;
+  let prev;
+  for (prev of parent.children) {
+    if (prev.next === command.cmd) break;
+  }
+  const next = command.next;
+  const tok = this._hyperscript.internals.tokenizer.tokenize(newCode);
+  const parser = this._hyperscript.internals.createParser(tok);
+  const newcmd = parser.requireElement("command");
+  console.log(newcmd);
+  newcmd.startToken = command.startToken;
+  newcmd.endToken = command.endToken;
+  newcmd.programSource = command.programSource;
+  newcmd.sourceFor = function() {
+    return newCode;
   };
-  HDB.prototype.skipTo = function(toCmd) {
-    this.cmd = toCmd.cmd;
-    this.bus.dispatchEvent(new Event("skip"));
-  };
-  HDB.prototype.rewrite = function(command, newCode) {
-    console.log("##", command);
-    const parent = command.cmd.parent;
-    let prev;
-    for (prev of parent.children) {
-      if (prev.next === command.cmd) break;
-    }
-    const next = command.next;
-    const tok = this._hyperscript.internals.tokenizer.tokenize(newCode);
-    const parser = this._hyperscript.internals.createParser(tok);
-    const newcmd = parser.requireElement("command");
-    console.log(newcmd);
-    newcmd.startToken = command.startToken;
-    newcmd.endToken = command.endToken;
-    newcmd.programSource = command.programSource;
-    newcmd.sourceFor = function() {
-      return newCode;
-    };
-    prev.next = newcmd;
-    newcmd.next = next;
-    newcmd.parent = parent;
-    this.bus.dispatchEvent(new Event("step"));
-  };
-  HDB.prototype.logCommand = function() {
-    var hasSource = this.cmd.sourceFor instanceof Function;
-    var cmdSource = hasSource ? this.cmd.sourceFor() : "-- " + this.cmd.type;
-    console.log("[hdb] current command: " + cmdSource);
-  };
-  HDB.prototype.traverse = function(ge) {
-    const rv = [];
-    (function recurse(ge2) {
-      rv.push(ge2);
-      if ("children" in ge2) for (const child of ge2.children) recurse(child);
-    })(ge);
-    return rv;
-  };
-  var ui = `
+  prev.next = newcmd;
+  newcmd.next = next;
+  newcmd.parent = parent;
+  this.bus.dispatchEvent(new Event("step"));
+};
+HDB.prototype.logCommand = function() {
+  var hasSource = this.cmd.sourceFor instanceof Function;
+  var cmdSource = hasSource ? this.cmd.sourceFor() : "-- " + this.cmd.type;
+  console.log("[hdb] current command: " + cmdSource);
+};
+HDB.prototype.traverse = function(ge) {
+  const rv = [];
+  (function recurse(ge2) {
+    rv.push(ge2);
+    if ("children" in ge2) for (const child of ge2.children) recurse(child);
+  })(ge);
+  return rv;
+};
+var ui = `
 <div class="hdb" _="
 	on load trigger update end
 	on step from hdb.bus trigger update end
@@ -551,19 +550,21 @@
 	</style>
 	</div>
 	`;
-  HDB.prototype.ui = function() {
-    var node = document.createElement("div");
-    var shadow = node.attachShadow({ mode: "open" });
-    node.style.cssText = "all: initial";
-    shadow.innerHTML = ui;
-    document.body.appendChild(node);
-    this._hyperscript.process(shadow.querySelector(".hdb"));
-  };
-  function hdbPlugin(_hyperscript) {
-    _hyperscript.addCommand(BreakpointCommand.keyword, BreakpointCommand.parse.bind(BreakpointCommand));
-  }
-  if (typeof self !== "undefined" && self._hyperscript) {
-    self._hyperscript.use(hdbPlugin);
-  }
-})();
-//# sourceMappingURL=hdb.js.map
+HDB.prototype.ui = function() {
+  var node = document.createElement("div");
+  var shadow = node.attachShadow({ mode: "open" });
+  node.style.cssText = "all: initial";
+  shadow.innerHTML = ui;
+  document.body.appendChild(node);
+  this._hyperscript.process(shadow.querySelector(".hdb"));
+};
+function hdbPlugin(_hyperscript) {
+  _hyperscript.addCommand(BreakpointCommand.keyword, BreakpointCommand.parse.bind(BreakpointCommand));
+}
+if (typeof self !== "undefined" && self._hyperscript) {
+  self._hyperscript.use(hdbPlugin);
+}
+export {
+  hdbPlugin as default
+};
+//# sourceMappingURL=hdb.esm.js.map

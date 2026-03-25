@@ -6,6 +6,7 @@
     "HTML"
   ],
   "version": "0.9.14",
+  "type": "module",
   "homepage": "https://hyperscript.org/",
   "bugs": {
     "url": "https://github.com/bigskysoftware/_hyperscript/issues"
@@ -14,20 +15,25 @@
   "files": [
     "LICENSE",
     "README.md",
-    "src/*",
     "dist/*"
   ],
-  "main": "dist/_hyperscript.min.js",
+  "main": "dist/_hyperscript.js",
+  "module": "dist/_hyperscript.js",
   "types": "dist/_hyperscript.d.ts",
+  "exports": {
+    ".": "./dist/_hyperscript.js",
+    "./ext/*": "./dist/ext/*"
+  },
   "bin": {
-    "_hyperscript": "src/node-hyperscript.js"
+    "_hyperscript": "dist/platform/node-hyperscript.js"
   },
   "scripts": {
+    "build": "node build.config.mjs",
+    "build:watch": "node build.config.mjs --watch",
     "test": "playwright test --config test/playwright.config.js",
-    "dist": "cp -r src/* dist/ && npm run-script terser && npm run-script typings && gzip -k -f dist/_hyperscript.min.js > dist/_hyperscript.min.js.gz && exit",
+    "dist": "npm run build && npm run typings",
     "typings": "npx tsc --declaration dist/_hyperscript.js --allowJs --emitDeclarationOnly --skipLibCheck",
-    "www": "node scripts/www.js",
-    "terser": "terser -m eval dist/_hyperscript.js > dist/_hyperscript.min.js && terser -m eval dist/hdb.js > dist/hdb.min.js"
+    "www": "node scripts/www.js"
   },
   "repository": {
     "type": "git",
@@ -37,15 +43,12 @@
     "@11ty/eleventy": "^3.1.2",
     "@playwright/test": "^1.58.2",
     "esbuild": "^0.27.4",
-    "fs-extra": "^9.0.0",
     "markdown-it": "^12.3.2",
     "markdown-it-anchor": "^8.4.1",
     "markdown-it-attrs": "^4.1.3",
-    "markdown-it-table-of-contents": "^0.6.0",
-    "serve": "^14.2.6"
-  },
-  "dependencies": {
     "markdown-it-deflist": "^2.1.0",
+    "markdown-it-table-of-contents": "^0.6.0",
+    "serve": "^14.2.6",
     "terser": "^5.14.1"
   }
 }

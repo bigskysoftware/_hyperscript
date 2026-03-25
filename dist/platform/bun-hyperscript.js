@@ -1,19 +1,21 @@
+#!/usr/bin/env bun
+
 import _hyperscript from '../_hyperscript.js';
 import { Feature } from '../parsetree/base.js';
-import * as path from 'jsr:@std/path';
+import path from 'node:path';
 
 const hsExt = '._hs';
 
-export function run(modulePath) {
+function run(modulePath) {
     modulePath = path.resolve(modulePath);
     const args = { module: { dir: path.dirname(modulePath), id: modulePath } };
-    return Deno.readTextFile(modulePath)
+    return Bun.file(modulePath).text()
         .then(code => _hyperscript.evaluate(code, {}, args))
         .catch(e => console.error("Cannot execute file:", e));
 }
 
-class ImportFeature extends Feature {
-    static keyword = "import";
+class RequireFeature extends Feature {
+    static keyword = "require";
 
     constructor(id, name) {
         super();
@@ -22,7 +24,7 @@ class ImportFeature extends Feature {
     }
 
     static parse(parser) {
-        if (!parser.matchToken("import")) return;
+        if (!parser.matchToken("require")) return;
         var id = parser.requireElement("nakedString").evaluate();
         var name;
         if (parser.matchToken("as")) {
@@ -30,7 +32,7 @@ class ImportFeature extends Feature {
         } else {
             name = path.basename(id).replace(/\.[^.]*$/, '');
         }
-        return new ImportFeature(id, name);
+        return new RequireFeature(id, name);
     }
 
     async install(target, source, args, runtime) {
@@ -43,10 +45,10 @@ class ImportFeature extends Feature {
         if (id.endsWith(hsExt)) {
             mod = await run(id);
         } else {
-            try {
-                await Deno.stat(id + hsExt);
+            var file = Bun.file(id + hsExt);
+            if (await file.exists()) {
                 mod = await run(id + hsExt);
-            } catch {
+            } else {
                 mod = await import(id);
             }
         }
@@ -54,8 +56,6 @@ class ImportFeature extends Feature {
     }
 }
 
-_hyperscript.addFeature(ImportFeature.keyword, ImportFeature.parse.bind(ImportFeature));
+_hyperscript.addFeature(RequireFeature.keyword, RequireFeature.parse.bind(RequireFeature));
 
-export default _hyperscript;
-
-if (import.meta.main) run(Deno.args[0]);
+run(process.argv[2]);
