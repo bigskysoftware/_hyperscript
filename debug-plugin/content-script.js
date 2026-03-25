@@ -28,26 +28,24 @@
     });
 
     function registerCommands(_hs) {
-        _hs.addCommand("breakpoint", function (parser, runtime, tokens) {
-            if (!tokens.matchToken("breakpoint")) return;
-
-            let hdb;
+        _hs.addCommand("breakpoint", function (parser) {
+            if (!parser.matchToken("breakpoint")) return;
 
             return {
-                op: function (ctx) {
-                    globalThis._hyperscript.hdb = hdb = HDB(
-                        ctx,
-                        runtime,
-                        this,
-                        _hs,
-                    );
+                type: "breakpointCommand",
+                execute: function (ctx) {
+                    ctx.meta.command = this;
+                    return ctx.meta.runtime.unifiedExec(this, ctx);
+                },
+                resolve: function (ctx) {
+                    globalThis._hyperscript.hdb = HDB(ctx, ctx.meta.runtime, this, _hs);
 
                     if (!_hs.debuggerOpen) {
-                        return runtime.findNext(this, ctx);
+                        return ctx.meta.runtime.findNext(this, ctx);
                     }
 
                     try {
-                        return hdb.break(ctx);
+                        return globalThis._hyperscript.hdb.break(ctx);
                     } catch (e) {
                         console.error(e, e.stack);
                     }
@@ -67,12 +65,12 @@
 
     function truncate(str, len) {
         if (str.length <= len) return str;
-        return str.substr(0, len) + "…";
+        return str.slice(0, len) + "…";
     }
 
     let hdbCounter = 0;
 
-    function HDB(ctx, runtime, breakpoint, _hyperscript, EXPERIMENTAL = false) {
+    function HDB(ctx, runtime, breakpoint, _hyperscript) {
         let cmd = breakpoint;
         let cmdMap = [];
         const bus = new EventTarget();
@@ -124,7 +122,7 @@
                     bus.dispatchEvent(new Event("step"));
                     logCommand();
                 });
-            } else if (result.halt_flag) {
+            } else if (result === runtime.HALT) {
                 bus.dispatchEvent(new Event("continue"));
             } else {
                 cmd = result;
@@ -160,7 +158,6 @@
         };
 
         const rewrite = function (command, newCode) {
-            console.log("##", command);
             const parent = command.cmd.parent;
             let prev;
             for (prev of parent.children) {
@@ -168,10 +165,10 @@
             }
             const next = command.next;
 
-            const tok = _hs.internals.lexer.tokenize(newCode);
-            const newcmd = _hs.internals.parser.requireElement("command", tok);
+            const tok = _hyperscript.internals.tokenizer.tokenize(newCode);
+            const parser = _hyperscript.internals.createParser(tok);
+            const newcmd = parser.requireElement("command");
 
-            console.log(newcmd);
             newcmd.startToken = command.startToken;
             newcmd.endToken = command.endToken;
             newcmd.programSource = command.programSource;
@@ -211,12 +208,12 @@
             // Traverse, finding starts
             const all = traverse(feat);
             for (let j = 0; j < all.length; j++) {
-                const cmd = all[j];
-                if (!cmd.startToken) continue;
+                const c = all[j];
+                if (!c.startToken) continue;
                 cmdMap.push({
-                    index: cmd.startToken.start,
+                    index: c.startToken.start,
                     widget: makeCommandWidget(cmdMap.length),
-                    cmd,
+                    cmd: c,
                 });
             }
 
@@ -255,14 +252,7 @@
                 i +
                 '"><button class="skip" data-cmd="' +
                 i +
-                '">&rdca;</button>';
-            if (EXPERIMENTAL) {
-                html +=
-                    '<button class="rewrite" data-cmd="' +
-                    i +
-                    '">Rewrite</button>';
-            }
-            html += "</span>";
+                '">&rdca;</button></span>';
             return html;
         };
 
@@ -274,12 +264,10 @@
                     : result.evaluate(ctx);
             }
 
-            const node = `<li class="console-entry">
-                <kbd><code class="input">${escapeHTML(input)}</code></kbd>
-                <samp class="output">${prettyPrint(output)}</samp>
-            </li>`;
-
-            return node;
+            return '<li class="console-entry">' +
+                '<kbd><code class="input">' + escapeHTML(input) + '</code></kbd>' +
+                '<samp class="output">' + prettyPrint(output) + '</samp>' +
+                '</li>';
         };
 
         const evaluateExpression = function (input) {
@@ -299,7 +287,7 @@
                     '&lt;<span class="token tagname">' +
                     obj.tagName.toLowerCase() +
                     "</span>";
-                for (attr of Array.from(obj.attributes)) {
+                for (const attr of Array.from(obj.attributes)) {
                     if (attr.specified)
                         result +=
                             ' <span class="token attr">' +

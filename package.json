@@ -33,7 +33,8 @@
     "test": "playwright test --config test/playwright.config.js",
     "dist": "npm run build && npm run typings",
     "typings": "npx tsc --declaration dist/_hyperscript.js --allowJs --emitDeclarationOnly --skipLibCheck",
-    "www": "npm run build && cp dist/_hyperscript.js dist/_hyperscript.min.js www/js/"
+    "www": "npm run build && cp dist/_hyperscript.js dist/_hyperscript.min.js www/js/",
+    "update-debug-plugin": "npm run build && cp dist/_hyperscript.js debug-plugin/vendor/_hyperscript.js"
   },
   "repository": {
     "type": "git",
