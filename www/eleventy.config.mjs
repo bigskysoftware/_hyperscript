@@ -3,7 +3,7 @@ import markdownItAnchor from "markdown-it-anchor";
 import markdownItDeflist from "markdown-it-deflist";
 import markdownItToc from "markdown-it-table-of-contents";
 import MarkdownIt from "markdown-it";
-import { addWidgets } from "./_build/widgets.js";
+import { addWidgets } from "./_build/widgets.mjs";
 
 export default function(config) {
     config.addPassthroughCopy("css");
