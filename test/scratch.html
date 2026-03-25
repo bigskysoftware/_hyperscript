@@ -1,92 +1,22 @@
 <!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<title>Mocha Tests</title>
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<link rel="stylesheet" href="../node_modules/mocha/mocha.css" />
-		<meta
-			http-equiv="cache-control"
-			content="no-cache, must-revalidate, post-check=0, pre-check=0"
-		/>
-		<meta http-equiv="cache-control" content="max-age=0" />
-		<meta http-equiv="expires" content="0" />
-		<meta http-equiv="expires" content="Tue, 01 Jan 1980 1:00:00 GMT" />
-		<meta http-equiv="pragma" content="no-cache" />
-		<meta
-			name="htmx-config"
-			content='{"historyEnabled":false,"defaultSettleDelay":0}'
-		/>
-	</head>
-	<body style="padding: 20px; font-family: sans-serif">
-		<h1 style="margin-top: 40px">core.js test suite</h1>
+<head>
+	<meta charset="utf-8">
+	<title>_hyperscript scratch</title>
+	<script type="module" src="../src/_hyperscript.js"></script>
+	<script type="module" src="../src/ext/hdb.js"></script>
+</head>
+<body>
 
-		<h2>Scratch Page</h2>
-		<ul>
-			<li>
-				<a href="playground/scratch.html">Scratch Page</a>
-			</li>
-		</ul>
+<h1>_hyperscript scratch pad</h1>
 
-		<h2>Mocha Test Suite</h2>
-		<a href="index.html">[RUN ALL]</a>
+<button _="on click put 'it works!' into the next <output/>">
+	Click me
+</button>
+<output></output>
 
-		<script src="../node_modules/chai/chai.js"></script>
-		<script src="../node_modules/mocha/mocha.js"></script>
-		<script src="../node_modules/sinon/pkg/sinon.js"></script>
-		<script type="module">
-			import _hyperscript from '../src/_hyperscript.js';
+<hr>
+<div id="work-area"></div>
 
-			// Set on global for tests
-			self._hyperscript = _hyperscript;
-			console.log('✓ _hyperscript loaded as ES module');
-
-			// Load extensions as modules
-			await import('../src/ext/worker.js');
-			await import('../src/ext/socket.js');
-			await import('../src/ext/template.js');
-			await import('../src/ext/hdb.js');
-			await import('../src/ext/tailwind.js');
-
-			// Signal that _hyperscript is ready
-			window.hyperscriptReady = true;
-			window.dispatchEvent(new Event('hyperscript-loaded'));
-		</script>
-
-		<script class="mocha-init">
-			mocha.setup({
-				ui: "bdd",
-				rootHooks: {
-					beforeEach(done) {
-						console.log(`${this?.currentTest?.parent?.title} - ${this?.currentTest?.title}`)
-						done()
-					},
-				},
-			})
-			mocha.checkLeaks();
-			should = chai.should();
-			assert = chai.assert;
-		</script>
-
-		<script src="util/util.js"></script>
-
-		<script src ="commands/fetch.js"></script>
-		<script src="templates/templates.js"></script>
-
-		<div id="mocha"></div>
-
-		<script class="mocha-exec">
-			// Wait for _hyperscript module to load before running tests
-			if (window.hyperscriptReady) {
-				mocha.run();
-			} else {
-				window.addEventListener('hyperscript-loaded', function() {
-					mocha.run();
-				});
-			}
-		</script>
-		<em>Work Area</em>
-		<hr />
-		<div id="work-area" hx-history-elt></div>
-	</body>
+</body>
 </html>

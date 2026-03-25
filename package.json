@@ -5,7 +5,7 @@
     "scripting",
     "HTML"
   ],
-  "version": "0.9.14",
+  "version": "0.9.90",
   "type": "module",
   "homepage": "https://hyperscript.org/",
   "bugs": {
@@ -32,7 +32,7 @@
     "build:watch": "node build.config.mjs --watch",
     "test": "playwright test --config test/playwright.config.js",
     "dist": "npm run build && npm run typings",
-    "typings": "npx tsc --declaration dist/_hyperscript.js --allowJs --emitDeclarationOnly --skipLibCheck",
+    "typings": "npx tsc --declaration dist/_hyperscript.js --allowJs --emitDeclarationOnly --skipLibCheck"
   },
   "repository": {
     "type": "git",
