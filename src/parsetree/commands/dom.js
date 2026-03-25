@@ -767,7 +767,7 @@ export class MeasureCommand extends Command {
 
         ctx.meta.runtime.forEach(this.properties, (prop) => {
             if (prop in ctx.result) ctx.locals[prop] = ctx.result[prop];
-            else throw "No such measurement as " + prop;
+            else throw new Error("No such measurement as " + prop);
         });
 
         return ctx.meta.runtime.findNext(this, ctx);

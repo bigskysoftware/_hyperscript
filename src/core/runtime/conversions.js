@@ -65,7 +65,7 @@ export const conversions = {
                 } else if (conversion === "Form") {
                     return new URLSearchParams(formData.result).toString();
                 } else {
-                    throw "Unknown conversion: " + conversion;
+                    throw new Error("Unknown conversion: " + conversion);
                 }
             } else {
                 return formData.result;

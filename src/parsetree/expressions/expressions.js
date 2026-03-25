@@ -977,7 +977,7 @@ export class ComparisonOperator extends Expression {
         } else if (operator === "not a") {
             return !context.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
         } else {
-            throw "Unknown comparison : " + operator;
+            throw new Error("Unknown comparison : " + operator);
         }
     }
 }

@@ -130,7 +130,7 @@ export class RelativePositionalExpression extends Expression {
     resolve(context, { thing, from, inElt, withinElt }) {
         var css = thing.css;
         if (css == null) {
-            throw "Expected a CSS value to be returned by " + this.thingElt.sourceFor();
+            throw new Error("Expected a CSS value to be returned by " + this.thingElt.sourceFor());
         }
 
         if(this.inSearch) {

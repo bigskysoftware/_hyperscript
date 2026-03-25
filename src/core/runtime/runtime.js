@@ -83,8 +83,7 @@ export class Runtime {
                     }
                 }
                 if (next == null) {
-                    console.error(command, " did not return a next element to execute! context: ", ctx);
-                    return;
+                    throw new Error("Command " + (command.type || "unknown") + " did not return a next element to execute");
                 } else if (next.then) {
                     next.then(resolvedNext => {
                         this.unifiedExec(resolvedNext, ctx);
@@ -461,7 +460,7 @@ export class Runtime {
             if (converter) {
                 return converter(value, this);
             }
-            throw "Unknown conversion : " + type;
+            throw new Error("Unknown conversion : " + type);
         }
 
         evaluateNoPromise(elt, ctx) {
