@@ -6,24 +6,22 @@
  */
 
 import { Feature } from '../base.js';
-import { Expression } from '../base.js';
 
-/**
- * BehaviorInstallOperation - Evaluates and installs a behavior
- */
-class BehaviorInstallOperation extends Expression {
-    constructor(args, behaviorPath, behaviorNamespace, target, source, runtime) {
+export class InstallFeature extends Feature {
+    static keyword = "install";
+
+    constructor(behaviorPath, behaviorNamespace, args) {
         super();
-        this.args = { behaviorArgs: args };
         this.behaviorPath = behaviorPath;
         this.behaviorNamespace = behaviorNamespace;
-        this.installTarget = target;
-        this.installSource = source;
-        this.runtime = runtime;
+        this.behaviorArgs = args;
     }
 
-    resolve(ctx, { behaviorArgs }) {
-        var behavior = this.runtime.globalScope;
+    install(target, source, installArgs, runtime) {
+        var ctx = runtime.makeContext(target, this, target, null);
+        var behaviorArgs = this.behaviorArgs ? this.behaviorArgs.evaluate(ctx) : null;
+
+        var behavior = runtime.globalScope;
         for (var i = 0; i < this.behaviorNamespace.length; i++) {
             behavior = behavior[this.behaviorNamespace[i]];
             if (typeof behavior !== "object" && typeof behavior !== "function")
@@ -33,30 +31,7 @@ class BehaviorInstallOperation extends Expression {
         if (!(behavior instanceof Function))
             throw new Error(this.behaviorPath + " is not a behavior");
 
-        behavior(this.installTarget, this.installSource, behaviorArgs);
-    }
-}
-
-export class InstallFeature extends Feature {
-    static keyword = "install";
-
-    constructor(behaviorPath, behaviorNamespace, args) {
-        super();
-        this.behaviorPath = behaviorPath;
-        this.behaviorNamespace = behaviorNamespace;
-        this.args = args;
-    }
-
-    install(target, source, installArgs, runtime) {
-        const operation = new BehaviorInstallOperation(
-            this.args,
-            this.behaviorPath,
-            this.behaviorNamespace,
-            target,
-            source,
-            runtime
-        );
-        runtime.unifiedEval(operation, runtime.makeContext(target, this, target, null));
+        behavior(target, source, behaviorArgs);
     }
 
     static parse(parser) {
