@@ -18,7 +18,7 @@ export class NoExpression extends Expression {
     constructor(root) {
         super();
         this.root = root;
-        this.args = [root];
+        this.args = { value: root };
     }
 
     /**
@@ -35,7 +35,7 @@ export class NoExpression extends Expression {
     /**
      * Op function for no expression
      */
-    resolve(context, val) {
+    resolve(context, { value: val }) {
         return context.meta.runtime.isEmpty(val);
     }
 }
@@ -53,7 +53,7 @@ export class SomeExpression extends Expression {
     constructor(root) {
         super();
         this.root = root;
-        this.args = [root];
+        this.args = { value: root };
     }
 
     /**
@@ -70,7 +70,7 @@ export class SomeExpression extends Expression {
     /**
      * Op function for some expression
      */
-    resolve(context, val) {
+    resolve(context, { value: val }) {
         return !context.meta.runtime.isEmpty(val);
     }
 }

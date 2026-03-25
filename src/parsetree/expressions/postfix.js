@@ -21,7 +21,7 @@ export class StringPostfixExpression extends Expression {
     constructor(root, postfix) {
         super();
         this.postfix = postfix;
-        this.args = [root];
+        this.args = { value: root };
     }
 
     static parse(parser, root) {
@@ -31,7 +31,7 @@ export class StringPostfixExpression extends Expression {
         return new StringPostfixExpression(root, stringPostfix.value);
     }
 
-    resolve(context, val) {
+    resolve(context, { value: val }) {
         return "" + val + this.postfix;
     }
 }
@@ -44,7 +44,7 @@ export class TimeExpression extends Expression {
         super();
         this.time = root;
         this.factor = timeFactor;
-        this.args = [root];
+        this.args = { value: root };
     }
 
     static parse(parser, root) {
@@ -59,7 +59,7 @@ export class TimeExpression extends Expression {
         return new TimeExpression(root, timeFactor);
     }
 
-    resolve(context, val) {
+    resolve(context, { value: val }) {
         return val * this.factor;
     }
 }
@@ -72,7 +72,7 @@ export class TypeCheckExpression extends Expression {
         super();
         this.typeName = typeName;
         this.nullOk = nullOk;
-        this.args = [root];
+        this.args = { value: root };
     }
 
     static parse(parser, root) {
@@ -85,7 +85,7 @@ export class TypeCheckExpression extends Expression {
         return new TypeCheckExpression(root, typeName, nullOk);
     }
 
-    resolve(context, val) {
+    resolve(context, { value: val }) {
         var passed = context.meta.runtime.typeCheck(val, this.typeName.value, this.nullOk);
         if (passed) {
             return val;

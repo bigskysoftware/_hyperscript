@@ -14,10 +14,10 @@ class IncrementOperation extends Expression {
         this.type = "implicitIncrementOp";
         this.target = target;
         this.amountExpr = amountExpr;
-        this.args = [target, amountExpr];
+        this.args = { targetValue: target, amount: amountExpr };
     }
 
-    resolve(context, targetValue, amount) {
+    resolve(context, { targetValue, amount }) {
         targetValue = targetValue ? parseFloat(targetValue) : 0;
         amount = this.amountExpr ? parseFloat(amount) : 1;
         var newValue = targetValue + amount;
@@ -35,10 +35,10 @@ class DecrementOperation extends Expression {
         this.type = "implicitDecrementOp";
         this.target = target;
         this.amountExpr = amountExpr;
-        this.args = [target, amountExpr];
+        this.args = { targetValue: target, amount: amountExpr };
     }
 
-    resolve(context, targetValue, amount) {
+    resolve(context, { targetValue, amount }) {
         targetValue = targetValue ? parseFloat(targetValue) : 0;
         amount = this.amountExpr ? parseFloat(amount) : 1;
         var newValue = targetValue - amount;
@@ -66,10 +66,10 @@ class BaseSetterCommand extends Command {
         this.symbolWrite = target.type === "symbol";
         this.arrayWrite = target.type === "arrayIndex";
 
-        this.args = [rootElt, prop, value];
+        this.args = { root: rootElt, prop, value };
     }
 
-    resolve(context, root, prop, valueToSet) {
+    resolve(context, { root, prop, value: valueToSet }) {
         if (this.symbolWrite) {
             context.meta.runtime.setSymbol(this.target.name, context, this.target.scope, valueToSet);
         } else {
@@ -154,7 +154,7 @@ export class SetCommand extends BaseSetterCommand {
         super(target, value, rootElt, prop, attribute);
         this.objectLiteral = objectLiteral;
         if (objectLiteral) {
-            this.args = [objectLiteral, target];
+            this.args = { obj: objectLiteral, setTarget: target };
         }
     }
 
@@ -188,16 +188,13 @@ export class SetCommand extends BaseSetterCommand {
         return BaseSetterCommand.makeSetter(parser, target, value, SetCommand);
     }
 
-    resolve(context, root, prop, valueToSet) {
-        // Object literal form uses different signature
+    resolve(context, args) {
         if (this.objectLiteral) {
-            var obj = root; // first arg is actually the object literal
-            var target = prop; // second arg is actually the target
-            Object.assign(target, obj);
+            var { obj, setTarget } = args;
+            Object.assign(setTarget, obj);
             return context.meta.runtime.findNext(this, context);
         } else {
-            // Normal setter form
-            return super.resolve(context, root, prop, valueToSet);
+            return super.resolve(context, args);
         }
     }
 }
@@ -216,7 +213,7 @@ export class DefaultCommand extends Command {
         this.target = target;
         this.value = value;
         this.setter = setter;
-        this.args = [target];
+        this.args = { targetValue: target };
     }
 
     /**
@@ -242,7 +239,7 @@ export class DefaultCommand extends Command {
         return defaultCmd;
     }
 
-    resolve(context, targetValue) {
+    resolve(context, { targetValue }) {
         if (targetValue) {
             return context.meta.runtime.findNext(this, context);
         } else {
@@ -361,7 +358,7 @@ export class PutCommand extends Command {
             this.prop = null;
         }
 
-        this.args = [rootExpr, this.prop, value];
+        this.args = { root: rootExpr, prop: this.prop, value };
     }
 
     /**
@@ -431,7 +428,7 @@ export class PutCommand extends Command {
         }
     }
 
-    resolve(context, root, prop, valueToPut) {
+    resolve(context, { root, prop, value: valueToPut }) {
         if (this.symbolWrite) {
             this.putInto(context, root, prop, valueToPut);
         } else {

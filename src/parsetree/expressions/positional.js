@@ -26,7 +26,7 @@ export class RelativePositionalExpression extends Expression {
         this.inElt = inElt;
         this.withinElt = withinElt;
         this.operator = operator;
-        this.args = [thingElt, from, inElt, withinElt];
+        this.args = { thing: thingElt, from, inElt, withinElt };
     }
 
     /**
@@ -135,7 +135,7 @@ export class RelativePositionalExpression extends Expression {
         return this.scanForwardArray(start, Array.from(array).reverse(), match, wrap);
     }
 
-    resolve(context, thing, from, inElt, withinElt) {
+    resolve(context, { thing, from, inElt, withinElt }) {
         var css = thing.css;
         if (css == null) {
             throw "Expected a CSS value to be returned by " + Tokens.sourceFor.apply(this.thingElt);
@@ -181,7 +181,7 @@ export class PositionalExpression extends Expression {
         super();
         this.rhs = rhs;
         this.operator = operator;
-        this.args = [rhs];
+        this.args = { value: rhs };
     }
 
     /**
@@ -200,7 +200,7 @@ export class PositionalExpression extends Expression {
     /**
      * Op function for positional
      */
-    resolve(context, rhsVal) {
+    resolve(context, { value: rhsVal }) {
         if (rhsVal && !Array.isArray(rhsVal)) {
             if (rhsVal.children) {
                 rhsVal = rhsVal.children;
@@ -237,10 +237,10 @@ class ClosestExprNode extends Expression {
         this.expr = expr;
         this.css = css;
         this.to = to;
-        this.args = [to];
+        this.args = { to };
     }
 
-    resolve(ctx, to) {
+    resolve(ctx, { to }) {
         if (to == null) {
             return null;
         } else {
@@ -313,7 +313,7 @@ export class ClosestExpr extends Expression {
         // If we parsed an attributeRef, wrap the closestExpr
         if (attributeRef) {
             attributeRef.root = closestExpr;
-            attributeRef.args = [closestExpr];
+            attributeRef.args = { root: closestExpr };
             return attributeRef;
         } else {
             return closestExpr;

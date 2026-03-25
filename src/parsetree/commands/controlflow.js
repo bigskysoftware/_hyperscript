@@ -42,14 +42,14 @@ class RepeatLoopCommand extends Command {
         this.on = config.on;
         this.whileExpr = config.whileExpr;
         this.loop = loop;
-        this.args = [config.whileExpr, config.times];
+        this.args = { whileValue: config.whileExpr, times: config.times };
     }
 
     resolveNext() {
         return this;
     }
 
-    resolve(context, whileValue, times) {
+    resolve(context, { whileValue, times }) {
         var iteratorInfo = context.meta.iterators[this.slot];
         var keepLooping = false;
         var loopVal = null;
@@ -106,7 +106,7 @@ export class IfCommand extends Command {
         this.expr = expr;
         this.trueBranch = trueBranch;
         this.falseBranch = falseBranch;
-        this.args = [expr];
+        this.args = { value: expr };
     }
 
     /**
@@ -140,7 +140,7 @@ export class IfCommand extends Command {
         return ifCmd;
     }
 
-    resolve(context, exprValue) {
+    resolve(context, { value: exprValue }) {
         if (exprValue) {
             return this.trueBranch;
         } else if (this.falseBranch) {
@@ -169,7 +169,7 @@ export class RepeatCommand extends Command {
         this.on = on;
         this.slot = slot;
         this.repeatLoopCommand = repeatLoopCommand;
-        this.args = [expression, evt, on];
+        this.args = { value: expression, event: evt, on };
     }
 
     static parseRepeatExpression(parser, startedWithForToken) {
@@ -263,7 +263,7 @@ export class RepeatCommand extends Command {
         }
     }
 
-    resolve(context, value, event, on) {
+    resolve(context, { value, event, on }) {
         var iteratorInfo = {
             index: 0,
             value: value,
@@ -404,7 +404,7 @@ export class TellCommand extends Command {
         this.value = value;
         this.body = body;
         this.slot = slot;
-        this.args = [value];
+        this.args = { value };
     }
 
     /**
@@ -442,7 +442,7 @@ export class TellCommand extends Command {
         }
     }
 
-    resolve(context, value) {
+    resolve(context, { value }) {
         if (value == null) {
             value = [];
         } else if (!(Array.isArray(value) || value instanceof NodeList)) {

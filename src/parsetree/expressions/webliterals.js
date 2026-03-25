@@ -22,7 +22,7 @@ export class IdRef extends Expression {
         this.type = variant === "template" ? "idRefTemplate" : "idRef";
         this.css = css;
         this.value = value;
-        this.args = variant === "template" ? [innerExpression] : [];
+        this.args = variant === "template" ? { expr: innerExpression } : null;
     }
 
     static parse(parser) {
@@ -42,9 +42,9 @@ export class IdRef extends Expression {
         }
     }
 
-    resolve(context, arg) {
+    resolve(context, { expr } = {}) {
         if (this.variant === "template") {
-            return context.meta.runtime.getRootNode(context.me).getElementById(arg);
+            return context.meta.runtime.getRootNode(context.me).getElementById(expr);
         } else {
             return context.meta.runtime.getRootNode(context.me).getElementById(this.value);
         }
@@ -67,7 +67,7 @@ export class ClassRef extends Expression {
         this.type = variant === "template" ? "classRefTemplate" : "classRef";
         this.css = css;
         this.className = className;
-        this.args = variant === "template" ? [innerExpression] : [];
+        this.args = variant === "template" ? { expr: innerExpression } : null;
     }
 
     static parse(parser) {
@@ -88,9 +88,9 @@ export class ClassRef extends Expression {
         }
     }
 
-    resolve(context, arg) {
+    resolve(context, { expr } = {}) {
         if (this.variant === "template") {
-            return new ElementCollection("." + arg, context.me, true, context.meta.runtime);
+            return new ElementCollection("." + expr, context.me, true, context.meta.runtime);
         } else {
             return new ElementCollection(this.css, context.me, true, context.meta.runtime);
         }
@@ -110,7 +110,8 @@ export class QueryRef extends Expression {
     constructor(css, args, template) {
         super();
         this.css = css;
-        this.args = args;
+        this.templateArgs = args;
+        this.args = template ? { parts: args } : null;
         this.template = template;
     }
 
@@ -143,9 +144,9 @@ export class QueryRef extends Expression {
         return new QueryRef(queryValue, args, template);
     }
 
-    resolve(context, ...args) {
+    resolve(context, { parts } = {}) {
         if (this.template) {
-            return new TemplatedQueryElementCollection(this.css, context.me, args, context.meta.runtime);
+            return new TemplatedQueryElementCollection(this.css, context.me, parts, context.meta.runtime);
         } else {
             return new ElementCollection(this.css, context.me, false, context.meta.runtime);
         }
@@ -256,7 +257,7 @@ export class StyleLiteral extends Expression {
     constructor(stringParts, exprs) {
         super();
         this.stringParts = stringParts;
-        this.args = [exprs];
+        this.args = { exprs };
     }
 
     static parse(parser) {
@@ -288,7 +289,7 @@ export class StyleLiteral extends Expression {
         return new StyleLiteral(stringParts, exprs);
     }
 
-    resolve(ctx, exprs) {
+    resolve(ctx, { exprs }) {
         var rv = "";
         const stringParts = this.stringParts;
 

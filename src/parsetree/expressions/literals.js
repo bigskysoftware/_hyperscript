@@ -152,7 +152,7 @@ export class StringLiteral extends Expression {
         super();
         this.token = stringToken;
         this.rawValue = rawValue;
-        this.args = args;
+        this.args = args.length > 0 ? { parts: args } : null;
     }
 
     /**
@@ -176,13 +176,13 @@ export class StringLiteral extends Expression {
         return new StringLiteral(stringToken, rawValue, args);
     }
 
-    resolve(context) {
-        if (this.args.length === 0) {
+    resolve(context, { parts } = {}) {
+        if (!parts || parts.length === 0) {
             return this.rawValue;
         }
         var returnStr = "";
-        for (var i = 1; i < arguments.length; i++) {
-            var val = arguments[i];
+        for (var i = 0; i < parts.length; i++) {
+            var val = parts[i];
             if (val !== undefined) {
                 returnStr += val;
             }
@@ -204,7 +204,7 @@ export class ArrayLiteral extends Expression {
     constructor(values) {
         super();
         this.values = values;
-        this.args = [values];
+        this.args = { values };
     }
 
     /**
@@ -228,7 +228,7 @@ export class ArrayLiteral extends Expression {
     /**
      * Op function for array literal
      */
-    resolve(context, values) {
+    resolve(context, { values }) {
         return values;
     }
 }
@@ -261,7 +261,7 @@ export class ObjectKey extends Expression {
         } else if (parser.matchOpToken("[")) {
             var expr = parser.parseElement("expression");
             parser.requireOpToken("]");
-            return new ObjectKey(null, expr, [expr]);
+            return new ObjectKey(null, expr, { value: expr });
         } else {
             var key = "";
             do {
@@ -272,9 +272,9 @@ export class ObjectKey extends Expression {
         }
     }
 
-    resolve(ctx, expr) {
+    resolve(ctx, { value } = {}) {
         if (this.expr) {
-            return expr;
+            return value;
         }
         return this.key;
     }
@@ -294,7 +294,7 @@ export class ObjectLiteral extends Expression {
         super();
         this.keyExpressions = keyExpressions;
         this.valueExpressions = valueExpressions;
-        this.args = [keyExpressions, valueExpressions];
+        this.args = { keys: keyExpressions, values: valueExpressions };
     }
 
     /**
@@ -322,7 +322,7 @@ export class ObjectLiteral extends Expression {
     /**
      * Op function for object literal
      */
-    resolve(context, keys, values) {
+    resolve(context, { keys, values }) {
         var returnVal = {};
         for (var i = 0; i < keys.length; i++) {
             returnVal[keys[i]] = values[i];
@@ -343,7 +343,7 @@ export class NamedArgumentList extends Expression {
     constructor(fields, valueExpressions) {
         super();
         this.fields = fields;
-        this.args = [valueExpressions];
+        this.args = { values: valueExpressions };
     }
 
     /**
@@ -381,7 +381,7 @@ export class NamedArgumentList extends Expression {
     /**
      * Op function for named arguments
      */
-    resolve(context, values) {
+    resolve(context, { values }) {
         var returnVal = { _namedArgList_: true };
         for (var i = 0; i < values.length; i++) {
             var field = this.fields[i];

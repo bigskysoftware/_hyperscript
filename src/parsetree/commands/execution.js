@@ -135,7 +135,7 @@ export class CallCommand extends Command {
     constructor(expr) {
         super();
         this.expr = expr;
-        this.args = [expr];
+        this.args = { result: expr };
     }
 
     /**
@@ -152,7 +152,7 @@ export class CallCommand extends Command {
         return new CallCommand(expr);
     }
 
-    resolve(context, result) {
+    resolve(context, { result }) {
         context.result = result;
         return context.meta.runtime.findNext(this, context);
     }
@@ -170,7 +170,7 @@ export class GetCommand extends Command {
     constructor(expr) {
         super();
         this.expr = expr;
-        this.args = [expr];
+        this.args = { result: expr };
     }
 
     /**
@@ -184,7 +184,7 @@ export class GetCommand extends Command {
         return new GetCommand(expr);
     }
 
-    resolve(context, result) {
+    resolve(context, { result }) {
         context.result = result;
         return context.meta.runtime.findNext(this, context);
     }

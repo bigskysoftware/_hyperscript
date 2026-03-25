@@ -114,11 +114,11 @@ export class AddCommand extends Command {
         this.toExpr = toExpr;
         this.when = when;
         if (variant === "class") {
-            this.args = [toExpr, classRefs];
+            this.args = { to: toExpr, classRefs };
         } else if (variant === "attribute") {
-            this.args = [toExpr];
+            this.args = { to: toExpr };
         } else {
-            this.args = [toExpr, cssDeclaration];
+            this.args = { to: toExpr, css: cssDeclaration };
         }
     }
 
@@ -165,10 +165,9 @@ export class AddCommand extends Command {
         }
     }
 
-    resolve(context, to, secondArg) {
+    resolve(context, { to, classRefs, css }) {
         context.meta.runtime.nullCheck(to, this.toExpr);
         if (this.variant === "class") {
-            var classRefs = secondArg;
             const when = this.when;
             context.meta.runtime.forEach(classRefs, function (classRef) {
                 context.meta.runtime.implicitLoop(to, function (target) {
@@ -204,7 +203,6 @@ export class AddCommand extends Command {
                 }
             });
         } else {
-            var css = secondArg;
             context.meta.runtime.implicitLoop(to, function (target) {
                 target.style.cssText += css;
             });
@@ -231,9 +229,9 @@ export class RemoveCommand extends Command {
         this.from = fromExpr;
         this.fromExpr = fromExpr;
         if (variant === "element") {
-            this.args = [elementExpr, fromExpr];
+            this.args = { element: elementExpr, from: fromExpr };
         } else {
-            this.args = [classRefs, fromExpr];
+            this.args = { classRefs, from: fromExpr };
         }
     }
 
@@ -275,10 +273,8 @@ export class RemoveCommand extends Command {
         }
     }
 
-    resolve(context, firstArg, secondArg) {
+    resolve(context, { element, classRefs, from }) {
         if (this.variant === "element") {
-            var element = firstArg;
-            var from = secondArg;
             context.meta.runtime.nullCheck(element, this.elementExpr);
             context.meta.runtime.implicitLoop(element, function (target) {
                 if (target.parentElement && (from == null || from.contains(target))) {
@@ -286,8 +282,6 @@ export class RemoveCommand extends Command {
                 }
             });
         } else {
-            var classRefs = firstArg;
-            var from = secondArg;
             context.meta.runtime.nullCheck(from, this.fromExpr);
             if (classRefs) {
                 context.meta.runtime.forEach(classRefs, function (classRef) {
@@ -329,7 +323,7 @@ export class ToggleCommand extends VisibilityCommand {
         this.between = between;
         this.hideShowStrategy = hideShowStrategy;
         this.onExpr = onExpr;
-        this.args = [onExpr, time, evt, from, classRef, classRef2, classRefs];
+        this.args = { on: onExpr, time, evt, from, classRef, classRef2, classRefs };
     }
 
     static parse(parser) {
@@ -437,7 +431,7 @@ export class ToggleCommand extends VisibilityCommand {
         }
     }
 
-    resolve(context, on, time, evt, from, classRef, classRef2, classRefs) {
+    resolve(context, { on, time, evt, from, classRef, classRef2, classRefs }) {
         if (time) {
             return new Promise((resolve) => {
                 this.toggle(context, on, classRef, classRef2, classRefs);
@@ -480,7 +474,7 @@ export class HideCommand extends VisibilityCommand {
         this.target = targetExpr;
         this.targetExpr = targetExpr;
         this.hideShowStrategy = hideShowStrategy;
-        this.args = [targetExpr];
+        this.args = { target: targetExpr };
     }
 
     static parse(parser) {
@@ -500,7 +494,7 @@ export class HideCommand extends VisibilityCommand {
         return new HideCommand(targetExpr, hideShowStrategy);
     }
 
-    resolve(ctx, target) {
+    resolve(ctx, { target }) {
         ctx.meta.runtime.nullCheck(target, this.targetExpr);
         ctx.meta.runtime.implicitLoop(target, (elt) => {
             this.hideShowStrategy("hide", elt, null, ctx.meta.runtime);
@@ -525,7 +519,7 @@ export class ShowCommand extends VisibilityCommand {
         this.when = when;
         this.arg = arg;
         this.hideShowStrategy = hideShowStrategy;
-        this.args = [targetExpr];
+        this.args = { target: targetExpr };
     }
 
     static parse(parser) {
@@ -560,7 +554,7 @@ export class ShowCommand extends VisibilityCommand {
         return new ShowCommand(targetExpr, when, arg, hideShowStrategy);
     }
 
-    resolve(ctx, target) {
+    resolve(ctx, { target }) {
         ctx.meta.runtime.nullCheck(target, this.targetExpr);
         ctx.meta.runtime.implicitLoop(target, (elt) => {
             if (this.when) {
@@ -602,9 +596,9 @@ export class TakeCommand extends Command {
         this.forExpr = forExpr;
         this.replacementValue = replacementValue;
         if (variant === "class") {
-            this.args = [classRefs, fromExpr, forExpr];
+            this.args = { classRefs, from: fromExpr, forElt: forExpr };
         } else {
-            this.args = [fromExpr, forExpr, replacementValue];
+            this.args = { from: fromExpr, forElt: forExpr, replacementValue };
         }
     }
 
@@ -649,11 +643,8 @@ export class TakeCommand extends Command {
         }
     }
 
-    resolve(context, firstArg, secondArg, thirdArg) {
+    resolve(context, { classRefs, from, forElt, replacementValue }) {
         if (this.variant === "class") {
-            var classRefs = firstArg;
-            var from = secondArg;
-            var forElt = thirdArg;
             context.meta.runtime.nullCheck(forElt, this.forExpr);
             context.meta.runtime.implicitLoop(classRefs, (classRef) => {
                 var clazz = classRef.className;
@@ -671,9 +662,6 @@ export class TakeCommand extends Command {
                 });
             });
         } else {
-            var from = firstArg;
-            var forElt = secondArg;
-            var replacementValue = thirdArg;
             context.meta.runtime.nullCheck(from, this.fromExpr);
             context.meta.runtime.nullCheck(forElt, this.forExpr);
             context.meta.runtime.implicitLoop(from, (target) => {
@@ -704,7 +692,7 @@ export class MeasureCommand extends Command {
         super();
         this.properties = propsToMeasure;
         this.targetExpr = targetExpr;
-        this.args = [targetExpr];
+        this.args = { target: targetExpr };
     }
 
     /**
@@ -726,7 +714,7 @@ export class MeasureCommand extends Command {
         return new MeasureCommand(targetExpr, propsToMeasure);
     }
 
-    resolve(ctx, target) {
+    resolve(ctx, { target }) {
         ctx.meta.runtime.nullCheck(target, this.targetExpr);
         if (0 in target) target = target[0]; // not measuring multiple elts
         var rect = target.getBoundingClientRect();

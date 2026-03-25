@@ -18,9 +18,9 @@ export class PseudoCommand extends Command {
         if (variant === "target") {
             this.root = realRoot;
             this.argExressions = root.argExressions;
-            this.args = [realRoot, root.argExressions];
+            this.args = { target: realRoot, argVals: root.argExressions };
         } else {
-            this.args = [expr];
+            this.args = { result: expr };
         }
     }
 
@@ -58,19 +58,17 @@ export class PseudoCommand extends Command {
         }
     }
 
-    resolve(context, ...resolvedArgs) {
+    resolve(context, { target, argVals, result }) {
         if (this.variant === "target") {
-            var rootRoot = resolvedArgs[0];
-            var args = resolvedArgs[1];
-            context.meta.runtime.nullCheck(rootRoot, this._realRoot);
-            var func = rootRoot[this._root.root.name];
+            context.meta.runtime.nullCheck(target, this._realRoot);
+            var func = target[this._root.root.name];
             context.meta.runtime.nullCheck(func, this._root);
             if (func.hyperfunc) {
-                args.push(context);
+                argVals.push(context);
             }
-            context.result = func.apply(rootRoot, args);
+            context.result = func.apply(target, argVals);
         } else {
-            context.result = resolvedArgs[0];
+            context.result = result;
         }
         return context.meta.runtime.findNext(this, context);
     }

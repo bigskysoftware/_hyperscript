@@ -17,7 +17,7 @@ export class ParenthesizedExpression extends Expression {
     constructor(expr) {
         super();
         this.expr = expr;
-        this.args = [expr];
+        this.args = { value: expr };
     }
 
     static parse(parser) {
@@ -33,7 +33,7 @@ export class ParenthesizedExpression extends Expression {
         }
     }
 
-    resolve(context, value) {
+    resolve(context, { value }) {
         return value;
     }
 }
@@ -96,7 +96,7 @@ export class NegativeNumber extends Expression {
     constructor(root) {
         super();
         this.root = root;
-        this.args = [root];
+        this.args = { value: root };
     }
 
     /**
@@ -116,7 +116,7 @@ export class NegativeNumber extends Expression {
     /**
      * Op function for negation
      */
-    resolve(context, value) {
+    resolve(context, { value }) {
         return -1 * value;
     }
 
@@ -140,7 +140,7 @@ export class LogicalNot extends Expression {
     constructor(root) {
         super();
         this.root = root;
-        this.args = [root];
+        this.args = { value: root };
     }
 
     /**
@@ -157,7 +157,7 @@ export class LogicalNot extends Expression {
     /**
      * Op function for logical not
      */
-    resolve(context, val) {
+    resolve(context, { value: val }) {
         return !val;
     }
 
@@ -243,7 +243,7 @@ export class BeepExpression extends Expression {
         super();
         this.expression = expression;
         this.expression['booped'] = true;
-        this.args = [expression];
+        this.args = { value: expression };
     }
 
     static parse(parser) {
@@ -254,7 +254,7 @@ export class BeepExpression extends Expression {
         }
     }
 
-    resolve(ctx, value) {
+    resolve(ctx, { value }) {
         ctx.meta.runtime.beepValueToConsole(ctx.me, this.expression, value);
         return value;
     }
@@ -275,7 +275,7 @@ export class PropertyAccess extends Expression {
         super();
         this.root = root;
         this.prop = prop;
-        this.args = [root];
+        this.args = { root };
     }
 
     /**
@@ -294,7 +294,7 @@ export class PropertyAccess extends Expression {
     /**
      * Op function for property access
      */
-    resolve(context, rootVal) {
+    resolve(context, { root: rootVal }) {
         var value = context.meta.runtime.resolveProperty(rootVal, this.prop.value);
         return value;
     }
@@ -356,7 +356,7 @@ export class OfExpression extends Expression {
             newRoot,
             attributeElt,
             root,
-            [newRoot],
+            { root: newRoot },
             urRoot
         );
 
@@ -365,7 +365,7 @@ export class OfExpression extends Expression {
         }
         if (childOfUrRoot) {
             childOfUrRoot.root = propertyAccess;
-            childOfUrRoot.args = [propertyAccess];
+            childOfUrRoot.args = { root: propertyAccess };
         } else {
             root = propertyAccess;
         }
@@ -376,7 +376,7 @@ export class OfExpression extends Expression {
     /**
      * Op function for of expression
      */
-    resolve(context, rootVal) {
+    resolve(context, { root: rootVal }) {
         var urRoot = this._urRoot;
         var prop = urRoot.name;
         var attribute = urRoot.type === "attributeRef";
@@ -418,7 +418,7 @@ export class PossessiveExpression extends Expression {
         this.root = root;
         this.attribute = attribute;
         this.prop = prop;
-        this.args = [root];
+        this.args = { root };
     }
 
     /**
@@ -458,7 +458,7 @@ export class PossessiveExpression extends Expression {
     /**
      * Op function for possessive
      */
-    resolve(context, rootVal) {
+    resolve(context, { root: rootVal }) {
         if (this.attribute) {
             var value
             if (this.attribute.type === 'computedStyleRef') {
@@ -495,7 +495,7 @@ export class InExpression extends Expression {
         super();
         this.root = root;
         this.target = target;
-        this.args = [root, target];
+        this.args = { root, target };
     }
 
     /**
@@ -514,7 +514,7 @@ export class InExpression extends Expression {
     /**
      * Op function for in expression
      */
-    resolve(context, rootVal, target) {
+    resolve(context, { root: rootVal, target }) {
         var returnArr = [];
         if (rootVal.css) {
             context.meta.runtime.implicitLoop(target, function (targetElt) {
@@ -566,7 +566,7 @@ export class AsExpression extends Expression {
         super();
         this.root = root;
         this.conversion = conversion;
-        this.args = [root];
+        this.args = { root };
     }
 
     /**
@@ -586,7 +586,7 @@ export class AsExpression extends Expression {
     /**
      * Op function for as expression
      */
-    resolve(context, rootVal) {
+    resolve(context, { root: rootVal }) {
         return context.meta.runtime.convertValue(rootVal, this.conversion);
     }
 
@@ -634,9 +634,9 @@ export class FunctionCall extends Expression {
 
         var functionCall;
         if (root.root) {
-            functionCall = new FunctionCall(root, args, [root.root, args], true);
+            functionCall = new FunctionCall(root, args, { target: root.root, argVals: args }, true);
         } else {
-            functionCall = new FunctionCall(root, args, [root, args], false);
+            functionCall = new FunctionCall(root, args, { target: root, argVals: args }, false);
         }
         return parser.parseElement("indirectExpression", functionCall);
     }
@@ -644,23 +644,21 @@ export class FunctionCall extends Expression {
     /**
      * Op function for function call
      */
-    resolve(context, firstArg, argVals) {
+    resolve(context, { target, argVals }) {
         if (this._isMethodCall) {
-            var rootRoot = firstArg;
-            context.meta.runtime.nullCheck(rootRoot, this._parseRoot.root);
-            var func = rootRoot[this._parseRoot.prop.value];
+            context.meta.runtime.nullCheck(target, this._parseRoot.root);
+            var func = target[this._parseRoot.prop.value];
             context.meta.runtime.nullCheck(func, this._parseRoot);
             if (func.hyperfunc) {
                 argVals.push(context);
             }
-            return func.apply(rootRoot, argVals);
+            return func.apply(target, argVals);
         } else {
-            var func = firstArg;
-            context.meta.runtime.nullCheck(func, this._parseRoot);
-            if (func.hyperfunc) {
+            context.meta.runtime.nullCheck(target, this._parseRoot);
+            if (target.hyperfunc) {
                 argVals.push(context);
             }
-            return func.apply(null, argVals);
+            return target.apply(null, argVals);
         }
     }
 
@@ -686,7 +684,7 @@ export class AttributeRefAccess extends Expression {
         super();
         this.root = root;
         this.attribute = attribute;
-        this.args = [root];
+        this.args = { root };
     }
 
     /**
@@ -704,7 +702,7 @@ export class AttributeRefAccess extends Expression {
     /**
      * Op function for attribute ref access
      */
-    resolve(_ctx, rootVal) {
+    resolve(_ctx, { root: rootVal }) {
         var value = _ctx.meta.runtime.resolveAttribute(rootVal, this.attribute.name);
         return value;
     }
@@ -735,7 +733,7 @@ export class ArrayIndex extends Expression {
         this.secondIndex = secondIndex;
         this.andBefore = andBefore;
         this.andAfter = andAfter;
-        this.args = [root, firstIndex, secondIndex];
+        this.args = { root, firstIndex, secondIndex };
     }
 
     /**
@@ -774,7 +772,7 @@ export class ArrayIndex extends Expression {
     /**
      * Op function for array index
      */
-    resolve(_ctx, root, firstIndex, secondIndex) {
+    resolve(_ctx, { root, firstIndex, secondIndex }) {
         if (root == null) {
             return null;
         }
@@ -819,7 +817,7 @@ export class MathOperator extends Expression {
         this.lhs = lhs;
         this.rhs = rhs;
         this.operator = operator;
-        this.args = [lhs, rhs];
+        this.args = { lhs, rhs };
     }
 
     /**
@@ -847,7 +845,7 @@ export class MathOperator extends Expression {
     /**
      * Op function for math operations
      */
-    resolve(context, lhsVal, rhsVal) {
+    resolve(context, { lhs: lhsVal, rhs: rhsVal }) {
         if (this.operator === "+") {
             return lhsVal + rhsVal;
         } else if (this.operator === "-") {
@@ -885,7 +883,7 @@ export class ComparisonOperator extends Expression {
         this.nullOk = nullOk;
         this.lhs = lhs;
         this.rhs = rhs;
-        this.args = [lhs, rhs];
+        this.args = { lhs, rhs };
     }
 
     sloppyContains(src, container, value) {
@@ -1028,7 +1026,7 @@ export class ComparisonOperator extends Expression {
     /**
      * Op function for comparison operations
      */
-    resolve(context, lhsVal, rhsVal) {
+    resolve(context, { lhs: lhsVal, rhs: rhsVal }) {
         const operator = this.operator;
         const lhs = this.lhs;
         const rhs = this.rhs;
@@ -1117,7 +1115,7 @@ export class LogicalOperator extends Expression {
         this.operator = operator;
         this.lhs = lhs;
         this.rhs = rhs;
-        this.args = [lhs, rhs];
+        this.args = { lhs, rhs };
     }
 
     /**
@@ -1145,7 +1143,7 @@ export class LogicalOperator extends Expression {
     /**
      * Op function for logical operations
      */
-    resolve(context, lhsVal, rhsVal) {
+    resolve(context, { lhs: lhsVal, rhs: rhsVal }) {
         if (this.operator === "and") {
             return lhsVal && rhsVal;
         } else {

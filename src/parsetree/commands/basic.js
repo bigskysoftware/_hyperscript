@@ -27,19 +27,14 @@ class ImplicitResultSymbol extends Expression {
 class ExitOperation extends Command {
     constructor() {
         super();
-        this.args = [undefined];
     }
 
-    resolve(context, value) {
+    resolve(context) {
         var resolve = context.meta.resolve;
         context.meta.returned = true;
-        context.meta.returnValue = value;
+        context.meta.returnValue = null;
         if (resolve) {
-            if (value) {
-                resolve(value);
-            } else {
-                resolve();
-            }
+            resolve();
         }
         return context.meta.runtime.HALT;
     }
@@ -59,7 +54,7 @@ export class LogCommand extends Command {
         super();
         this.exprs = exprs;
         this.withExpr = withExpr;
-        this.args = [withExpr, exprs];
+        this.args = { logger: withExpr, values: exprs };
     }
 
     /**
@@ -82,9 +77,9 @@ export class LogCommand extends Command {
     /**
      * Execute log command
      */
-    resolve(ctx, withExpr, values) {
-        if (withExpr) {
-            withExpr.apply(null, values);
+    resolve(ctx, { logger, values }) {
+        if (logger) {
+            logger.apply(null, values);
         } else {
             console.log.apply(null, values);
         }
@@ -104,7 +99,7 @@ export class BeepCommand extends Command {
     constructor(exprs) {
         super();
         this.exprs = exprs;
-        this.args = [exprs];
+        this.args = { values: exprs };
     }
 
     /**
@@ -124,7 +119,7 @@ export class BeepCommand extends Command {
     /**
      * Execute beep command
      */
-    resolve(ctx, values) {
+    resolve(ctx, { values }) {
         for (let i = 0; i < this.exprs.length; i++) {
             const expr = this.exprs[i];
             const val = values[i];
@@ -146,7 +141,7 @@ export class ThrowCommand extends Command {
     constructor(expr) {
         super();
         this.expr = expr;
-        this.args = [expr];
+        this.args = { value: expr };
     }
 
     /**
@@ -163,9 +158,9 @@ export class ThrowCommand extends Command {
     /**
      * Execute throw command
      */
-    resolve(ctx, expr) {
-        ctx.meta.runtime.registerHyperTrace(ctx, expr);
-        throw expr;
+    resolve(ctx, { value }) {
+        ctx.meta.runtime.registerHyperTrace(ctx, value);
+        throw value;
     }
 }
 
@@ -181,7 +176,7 @@ export class ReturnCommand extends Command {
     constructor(value) {
         super();
         this.value = value;
-        this.args = [value];
+        this.args = { value };
     }
 
     /**
@@ -202,7 +197,7 @@ export class ReturnCommand extends Command {
     /**
      * Execute return command
      */
-    resolve(context, value) {
+    resolve(context, { value }) {
         var resolve = context.meta.resolve;
         context.meta.returned = true;
         context.meta.returnValue = value;
@@ -228,7 +223,6 @@ export class ExitCommand extends Command {
 
     constructor() {
         super();
-        this.args = [undefined];
     }
 
     /**
@@ -244,16 +238,12 @@ export class ExitCommand extends Command {
     /**
      * Execute exit command
      */
-    resolve(context, value) {
+    resolve(context) {
         var resolve = context.meta.resolve;
         context.meta.returned = true;
-        context.meta.returnValue = value;
+        context.meta.returnValue = null;
         if (resolve) {
-            if (value) {
-                resolve(value);
-            } else {
-                resolve();
-            }
+            resolve();
         }
         return context.meta.runtime.HALT;
     }
@@ -337,7 +327,7 @@ export class MakeCommand extends Command {
         this.expr = expr;
         this.constructorArgs = constructorArgs;
         this.target = target;
-        this.args = variant === "queryRef" ? [] : [expr, constructorArgs];
+        this.args = variant === "queryRef" ? null : { expr, constructorArgs };
     }
 
     static parse(parser) {
@@ -364,7 +354,7 @@ export class MakeCommand extends Command {
         }
     }
 
-    resolve(ctx, expr, args) {
+    resolve(ctx, { expr, constructorArgs } = {}) {
         if (this.variant === "queryRef") {
             var match,
                 tagname = "div",
@@ -386,7 +376,7 @@ export class MakeCommand extends Command {
 
             ctx.result = result;
         } else {
-            ctx.result = new expr(...args);
+            ctx.result = new expr(...constructorArgs);
         }
 
         if (this.target) {
@@ -411,7 +401,7 @@ export class AppendCommand extends Command {
         this.value = value;
         this.target = targetExpr;
         this.setter = setter;
-        this.args = [targetExpr, value];
+        this.args = { target: targetExpr, value };
     }
 
     /**
@@ -449,7 +439,7 @@ export class AppendCommand extends Command {
         return command;
     }
 
-    resolve(context, target, value) {
+    resolve(context, { target, value }) {
         if (Array.isArray(target)) {
             target.push(value);
             return context.meta.runtime.findNext(this, context);
@@ -491,9 +481,9 @@ export class PickCommand extends Command {
         this.range = range;
         this.flags = flags;
         if (variant === "range") {
-            this.args = [root, range.from, range.to];
+            this.args = { root, from: range.from, to: range.to };
         } else {
-            this.args = [root, re];
+            this.args = { root, re };
         }
     }
 
@@ -561,19 +551,17 @@ export class PickCommand extends Command {
         }
     }
 
-    resolve(ctx, root, secondArg, thirdArg) {
+    resolve(ctx, { root, from, to, re }) {
         if (this.variant === "range") {
-            var from = secondArg;
-            var to = thirdArg;
             if (this.range.toEnd) to = root.length;
             if (!this.range.includeStart) from++;
             if (this.range.includeEnd) to++;
             if (to == null || to == undefined) to = from + 1;
             ctx.result = root.slice(from, to);
         } else if (this.variant === "match") {
-            ctx.result = new RegExp(secondArg, this.flags).exec(root);
+            ctx.result = new RegExp(re, this.flags).exec(root);
         } else {
-            ctx.result = new RegExpIterable(secondArg, this.flags, root);
+            ctx.result = new RegExpIterable(re, this.flags, root);
         }
         return ctx.meta.runtime.findNext(this, ctx);
     }
@@ -592,7 +580,7 @@ export class FetchCommand extends Command {
         super();
         this.url = url;
         this.argExpressions = argExprs;
-        this.args = [url, argExprs];
+        this.args = { url, options: argExprs };
         this.conversionType = conversionType;
         this.conversion = conversion;
     }
@@ -639,12 +627,12 @@ export class FetchCommand extends Command {
         return new FetchCommand(url, argExprs, type, conversion);
     }
 
-    resolve(context, url, args) {
+    resolve(context, { url, options }) {
         const type = this.conversionType;
         const conversion = this.conversion;
         const fetchCmd = this;
 
-        var detail = args || {};
+        var detail = options || {};
         detail["sender"] = context.me;
         detail["headers"] = detail["headers"] || {}
         var abortController = new AbortController();
@@ -654,16 +642,15 @@ export class FetchCommand extends Command {
         detail['signal'] = abortController.signal;
         context.meta.runtime.triggerEvent(context.me, "hyperscript:beforeFetch", detail);
         context.meta.runtime.triggerEvent(context.me, "fetch:beforeRequest", detail);
-        args = detail;
         var finished = false;
-        if (args.timeout) {
+        if (detail.timeout) {
             setTimeout(function () {
                 if (!finished) {
                     abortController.abort();
                 }
-            }, args.timeout);
+            }, detail.timeout);
         }
-        return fetch(url, args)
+        return fetch(url, detail)
             .then(function (resp) {
                 let resultDetails = {response:resp};
                 context.meta.runtime.triggerEvent(context.me, "fetch:afterResponse", resultDetails);
@@ -717,7 +704,7 @@ export class GoCommand extends Command {
     constructor(target, offset, back, url, newWindow, plusOrMinus, scrollOptions) {
         super();
         this.target = target;
-        this.args = [target, offset];
+        this.args = { target, offset };
         this.back = back;
         this.url = url;
         this.newWindow = newWindow;
@@ -800,7 +787,7 @@ export class GoCommand extends Command {
         }
     }
 
-    resolve(ctx, to, offset) {
+    resolve(ctx, { target: to, offset }) {
         if (this.back) {
             window.history.back();
         } else if (this.url) {

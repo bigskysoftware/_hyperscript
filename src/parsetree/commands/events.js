@@ -20,7 +20,7 @@ export class WaitCommand extends Command {
         this.event = events;
         this.on = on;
         this.time = time;
-        this.args = variant === "event" ? [on] : [time];
+        this.args = variant === "event" ? { on } : { time };
     }
 
     static parse(parser) {
@@ -60,9 +60,9 @@ export class WaitCommand extends Command {
         }
     }
 
-    resolve(context, resolvedArg) {
+    resolve(context, { on, time }) {
         if (this.variant === "event") {
-            var target = resolvedArg ? resolvedArg : context.me;
+            var target = on ? on : context.me;
             if (!(target instanceof EventTarget))
                 throw new Error("Not a valid event target: " + this.on.sourceFor());
             const events = this.event;
@@ -71,7 +71,7 @@ export class WaitCommand extends Command {
                 for (const eventInfo of events) {
                     var listener = (evt) => {
                         context.result = evt;
-                        if (eventInfo.args) {
+                        if (eventInfo.name && eventInfo.args) {
                             for (const arg of eventInfo.args) {
                                 context.locals[arg.value] =
                                     evt[arg.value] || (evt.detail ? evt.detail[arg.value] : null);
@@ -91,11 +91,10 @@ export class WaitCommand extends Command {
                 }
             });
         } else {
-            var timeValue = resolvedArg;
             return new Promise((resolve) => {
                 setTimeout(() => {
                     resolve(context.meta.runtime.findNext(this, context));
-                }, timeValue);
+                }, time);
             });
         }
     }
@@ -115,7 +114,7 @@ export class SendCommand extends Command {
         this.eventName = eventName;
         this.details = details;
         this.to = toExpr;
-        this.args = [toExpr, eventName, details];
+        this.args = { to: toExpr, eventName, details };
         this.toExpr = toExpr;
     }
 
@@ -139,7 +138,7 @@ export class SendCommand extends Command {
         return new SendCommand(eventName, details, toExpr);
     }
 
-    resolve(context, to, eventName, details) {
+    resolve(context, { to, eventName, details }) {
         context.meta.runtime.nullCheck(to, this.toExpr);
         context.meta.runtime.implicitLoop(to, function (target) {
             context.meta.runtime.triggerEvent(target, eventName, details, context.me);

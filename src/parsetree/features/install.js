@@ -14,7 +14,7 @@ import { Expression } from '../base.js';
 class BehaviorInstallOperation extends Expression {
     constructor(args, behaviorPath, behaviorNamespace, target, source, runtime) {
         super();
-        this.args = [args];
+        this.args = { behaviorArgs: args };
         this.behaviorPath = behaviorPath;
         this.behaviorNamespace = behaviorNamespace;
         this.installTarget = target;
@@ -22,7 +22,7 @@ class BehaviorInstallOperation extends Expression {
         this.runtime = runtime;
     }
 
-    resolve(ctx, args) {
+    resolve(ctx, { behaviorArgs }) {
         var behavior = this.runtime.globalScope;
         for (var i = 0; i < this.behaviorNamespace.length; i++) {
             behavior = behavior[this.behaviorNamespace[i]];
@@ -33,7 +33,7 @@ class BehaviorInstallOperation extends Expression {
         if (!(behavior instanceof Function))
             throw new Error(this.behaviorPath + " is not a behavior");
 
-        behavior(this.installTarget, this.installSource, args);
+        behavior(this.installTarget, this.installSource, behaviorArgs);
     }
 }
 

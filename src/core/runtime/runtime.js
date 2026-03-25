@@ -122,31 +122,36 @@ export class Runtime {
         }
 
         unifiedEval(parseElement, ctx, shortCircuitOnValue) {
-            var args = [ctx];
             var async = false;
+            var evaluatedArgs = {};
 
             if (parseElement.args) {
-                for (var i = 0; i < parseElement.args.length; i++) {
-                    var argument = parseElement.args[i];
+                for (var [name, argument] of Object.entries(parseElement.args)) {
                     if (argument == null) {
-                        args.push(null);
+                        evaluatedArgs[name] = null;
                     } else if (Array.isArray(argument)) {
                         var arr = [];
                         for (var j = 0; j < argument.length; j++) {
                             var element = argument[j];
-                            var value = element ? element.evaluate(ctx) : null;
-                            if (value && value.then) {
-                                async = true;
+                            if (element == null) {
+                                arr.push(null);
+                            } else if (element.evaluate) {
+                                var value = element.evaluate(ctx);
+                                if (value && value.then) {
+                                    async = true;
+                                }
+                                arr.push(value);
+                            } else {
+                                arr.push(element);
                             }
-                            arr.push(value);
                         }
-                        args.push(arr);
+                        evaluatedArgs[name] = arr;
                     } else if (argument.evaluate) {
                         var value = argument.evaluate(ctx);
                         if (value && value.then) {
                             async = true;
                         }
-                        args.push(value);
+                        evaluatedArgs[name] = value;
                         if (value) {
                             if (shortCircuitOnValue === true) {
                                 break;
@@ -157,18 +162,22 @@ export class Runtime {
                             }
                         }
                     } else {
-                        args.push(argument);
+                        evaluatedArgs[name] = argument;
                     }
                 }
             }
             if (async) {
                 return new Promise((resolve, reject) => {
-                    args = this.#wrapArrays(args);
-                    Promise.all(args)
-                        .then(function (values) {
+                    var keys = Object.keys(evaluatedArgs);
+                    var values = Object.values(evaluatedArgs).map(v =>
+                        Array.isArray(v) ? Promise.all(v) : v
+                    );
+                    Promise.all(values)
+                        .then(function (resolved) {
                             try {
-                                var apply = parseElement.resolve.apply(parseElement, values);
-                                resolve(apply);
+                                var finalArgs = {};
+                                keys.forEach((k, i) => finalArgs[k] = resolved[i]);
+                                resolve(parseElement.resolve(ctx, finalArgs));
                             } catch (e) {
                                 reject(e);
                             }
@@ -178,7 +187,7 @@ export class Runtime {
                         });
                 });
             } else {
-                return parseElement.resolve.apply(parseElement, args);
+                return parseElement.resolve(ctx, evaluatedArgs);
             }
         }
 
@@ -194,18 +203,6 @@ export class Runtime {
             }
         }
 
-        #wrapArrays(args) {
-            var arr = [];
-            for (var i = 0; i < args.length; i++) {
-                var arg = args[i];
-                if (Array.isArray(arg)) {
-                    arr.push(Promise.all(arg));
-                } else {
-                    arr.push(arg);
-                }
-            }
-            return arr;
-        }
 
         // =================================================================
         // Context and scope

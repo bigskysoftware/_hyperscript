@@ -26,10 +26,10 @@ export class UnlessStatementModifier extends Command {
         super();
         this.type = "unlessStatementModifier";
         this.root = root;
-        this.args = [conditional];
+        this.args = { conditional };
     }
 
-    resolve(context, conditional) {
+    resolve(context, { conditional }) {
         if (conditional) {
             return this.next;
         } else {

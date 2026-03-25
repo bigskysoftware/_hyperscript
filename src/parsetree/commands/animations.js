@@ -47,7 +47,7 @@ export class SettleCommand extends Command {
     constructor(onExpr) {
         super();
         this.onExpr = onExpr;
-        this.args = [onExpr];
+        this.args = { on: onExpr };
     }
 
     /**
@@ -67,7 +67,7 @@ export class SettleCommand extends Command {
         }
     }
 
-    resolve(context, on) {
+    resolve(context, { on }) {
         context.meta.runtime.nullCheck(on, this.onExpr);
         var resolve = null;
         var resolved = false;
@@ -126,7 +126,7 @@ export class TransitionCommand extends Command {
         this.from = from;
         this.usingExpr = usingExpr;
         this.over = over;
-        this.args = [targetsExpr, properties, from, to, usingExpr, over];
+        this.args = { targets: targetsExpr, properties, from, to, using: usingExpr, over };
     }
 
     /**
@@ -178,7 +178,7 @@ export class TransitionCommand extends Command {
         }
     }
 
-    resolve(context, targets, properties, from, to, using, over) {
+    resolve(context, { targets, properties, from, to, using, over }) {
         context.meta.runtime.nullCheck(targets, this.targetsExpr);
         var promises = [];
         context.meta.runtime.implicitLoop(targets, (target) => {
