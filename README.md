@@ -11,23 +11,21 @@ it is a companion project of <https://htmx.org>
 ## quickstart
 
 ```html
-
-<script src="https://unpkg.com/hyperscript.org@0.9.14"></script>
-
+<script src="https://unpkg.com/hyperscript.org"></script>
 
 <button _="on click toggle .clicked">
   Toggle the "clicked" class on me
 </button>
 
-
-<div _="on mouseOver toggle mouse-over on #foo">
-</div>
-
-<button _="on click call aJavascriptFunction() then
-           wait 10s then
-           call anotherJavascriptFunction()">
-           Do some stuff
+<button _="on click call alert('yep!') then wait 2s then remove me">
+  Click me
 </button>
+```
+
+## esm
+
+```js
+import _hyperscript from 'hyperscript.org'
 ```
 
 ## website & docs
@@ -37,7 +35,6 @@ it is a companion project of <https://htmx.org>
 
 ## contributing
 
-* please include test cases in [`/test`](https://github.com/bigskysoftware/_hyperscript/tree/dev/test) and docs in [`/www`](https://github.com/bigskysoftware/_hyperscript/tree/dev/www)
-  * you can run the test suite by viewing `test/index.html` in a browser.
-* development pull requests should be against the `dev` branch, docs fixes can be made directly against `master`
-* you can build _hyperscript as shown: `npm run dist`. building is not necessary during development to run tests.
+* please write tests in [`/test`](https://github.com/bigskysoftware/_hyperscript/tree/master/test) and docs in [`/www`](https://github.com/bigskysoftware/_hyperscript/tree/master/www)
+* run the test suite: `npm test`
+* build: `npm run build`
