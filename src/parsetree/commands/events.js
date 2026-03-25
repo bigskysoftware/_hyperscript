@@ -107,7 +107,7 @@ export class WaitCommand extends Command {
  * Executes: Sends event to target (or implicit me)
  */
 export class SendCommand extends Command {
-    static keyword = "send";
+    static keyword = ["send", "trigger"];
 
     constructor(eventName, details, toExpr) {
         super();
@@ -119,12 +119,13 @@ export class SendCommand extends Command {
     }
 
     static parse(parser) {
-        if (!parser.matchToken("send")) return;
+        var isTrigger = parser.matchToken("trigger");
+        if (!isTrigger && !parser.matchToken("send")) return;
 
         var eventName = parser.requireElement("eventName");
         var details = parser.parseElement("namedArgumentList");
 
-        if (parser.matchToken("to")) {
+        if (parser.matchToken(isTrigger ? "on" : "to")) {
             var toExpr = parser.requireElement("expression");
         } else {
             var toExpr = parser.requireElement("implicitMeTarget");
@@ -139,31 +140,6 @@ export class SendCommand extends Command {
             context.meta.runtime.triggerEvent(target, eventName, details, context.me);
         });
         return context.meta.runtime.findNext(this, context);
-    }
-}
-
-/**
- * TriggerCommand - Trigger event on target
- *
- * Parses: trigger <event> [on <target>]
- * Executes: Triggers event on target (or implicit me)
- */
-export class TriggerCommand extends SendCommand {
-    static keyword = "trigger";
-
-    static parse(parser) {
-        if (!parser.matchToken("trigger")) return;
-
-        var eventName = parser.requireElement("eventName");
-        var details = parser.parseElement("namedArgumentList");
-
-        if (parser.matchToken("on")) {
-            var toExpr = parser.requireElement("expression");
-        } else {
-            var toExpr = parser.requireElement("implicitMeTarget");
-        }
-
-        return new TriggerCommand(eventName, details, toExpr);
     }
 }
 

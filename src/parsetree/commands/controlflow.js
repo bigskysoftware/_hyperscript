@@ -155,7 +155,7 @@ export class IfCommand extends Command {
  * Executes: Initializes loop iterator then hands off to RepeatLoopCommand
  */
 export class RepeatCommand extends Command {
-    static keyword = "repeat";
+    static keyword = ["repeat", "for"];
 
     constructor(expression, evt, on, slot, repeatLoopCommand) {
         super();
@@ -253,6 +253,9 @@ export class RepeatCommand extends Command {
     }
 
     static parse(parser) {
+        if (parser.matchToken("for")) {
+            return RepeatCommand.parseRepeatExpression(parser, true);
+        }
         if (parser.matchToken("repeat")) {
             return RepeatCommand.parseRepeatExpression(parser, false);
         }
@@ -287,22 +290,6 @@ export class RepeatCommand extends Command {
         }
 
         return this.repeatLoopCommand;
-    }
-}
-
-/**
- * ForCommand - For loop (shares parser with repeat)
- *
- * Parses: for <identifier> in <expr> <commands> end
- * Executes: Iterates over expression values
- */
-export class ForCommand extends Command {
-    static keyword = "for";
-
-    static parse(parser) {
-        if (parser.matchToken("for")) {
-            return RepeatCommand.parseRepeatExpression(parser, true);
-        }
     }
 }
 

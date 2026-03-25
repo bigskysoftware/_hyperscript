@@ -114,43 +114,13 @@ export class JsCommand extends Command {
 }
 
 /**
- * CallCommand - Call function
+ * GetCommand - Evaluate expression and store result
  *
- * Parses: call <functionCall>
- * Executes: Calls function (must be a function invocation)
- */
-export class CallCommand extends Command {
-    static keyword = "call";
-
-    constructor(expr) {
-        super();
-        this.expr = expr;
-        this.args = { result: expr };
-    }
-
-    static parse(parser) {
-        if (!parser.matchToken("call")) return;
-        var expr = parser.requireElement("expression");
-        if (expr && expr.type !== "functionCall") {
-            parser.raiseParseError("Must be a function invocation");
-        }
-        return new CallCommand(expr);
-    }
-
-    resolve(context, { result }) {
-        context.result = result;
-        return context.meta.runtime.findNext(this, context);
-    }
-}
-
-/**
- * GetCommand - Get value (similar to call but no restriction)
- *
- * Parses: get <expression>
+ * Parses: get <expression> | call <functionCall>
  * Executes: Evaluates expression and stores result
  */
 export class GetCommand extends Command {
-    static keyword = "get";
+    static keyword = ["get", "call"];
 
     constructor(expr) {
         super();
@@ -159,8 +129,12 @@ export class GetCommand extends Command {
     }
 
     static parse(parser) {
-        if (!parser.matchToken("get")) return;
+        var isCall = parser.matchToken("call");
+        if (!isCall && !parser.matchToken("get")) return;
         var expr = parser.requireElement("expression");
+        if (isCall && expr && expr.type !== "functionCall") {
+            parser.raiseParseError("Must be a function invocation");
+        }
         return new GetCommand(expr);
     }
 

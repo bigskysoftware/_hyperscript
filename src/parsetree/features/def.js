@@ -103,16 +103,7 @@ export class DefFeature extends Feature {
 
         var start = parser.requireElement("commandList");
 
-        var errorSymbol, errorHandler;
-        if (parser.matchToken("catch")) {
-            errorSymbol = parser.requireTokenType("IDENTIFIER").value;
-            errorHandler = parser.parseElement("commandList");
-        }
-
-        if (parser.matchToken("finally")) {
-            var finallyHandler = parser.requireElement("commandList");
-            parser.ensureTerminated(finallyHandler);
-        }
+        var { errorHandler, errorSymbol, finallyHandler } = Feature.parseErrorAndFinally(parser);
 
         var functionFeature = new DefFeature(funcName, nameSpace, nameVal, args, start, errorHandler, errorSymbol, finallyHandler);
 

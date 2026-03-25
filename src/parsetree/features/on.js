@@ -419,17 +419,7 @@ export class OnFeature extends Feature {
         var start = parser.requireElement("commandList");
         parser.ensureTerminated(start);
 
-        var errorSymbol, errorHandler;
-        if (parser.matchToken("catch")) {
-            errorSymbol = parser.requireTokenType("IDENTIFIER").value;
-            errorHandler = parser.requireElement("commandList");
-            parser.ensureTerminated(errorHandler);
-        }
-
-        if (parser.matchToken("finally")) {
-            var finallyHandler = parser.requireElement("commandList");
-            parser.ensureTerminated(finallyHandler);
-        }
+        var { errorHandler, errorSymbol, finallyHandler } = Feature.parseErrorAndFinally(parser);
 
         var onFeature = new OnFeature(displayName, events, start, every, errorHandler, errorSymbol, finallyHandler, queueAll, queueFirst, queueNone, queueLast);
         parser.setParent(start, onFeature);

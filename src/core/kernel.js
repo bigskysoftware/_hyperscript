@@ -236,7 +236,8 @@ export class LanguageKernel {
             if (!CommandClass.parse) {
                 throw new Error(`Command class ${CommandClass.name} must have a static 'parse' method`);
             }
-            this.addCommand(CommandClass.keyword, CommandClass.parse);
+            var keywords = Array.isArray(CommandClass.keyword) ? CommandClass.keyword : [CommandClass.keyword];
+            for (var kw of keywords) this.addCommand(kw, CommandClass.parse);
         }
     }
 
@@ -267,15 +268,17 @@ export class LanguageKernel {
 
         const parse = ElementClass.parse.bind(ElementClass);
 
-        // Commands with keyword
+        // Commands with keyword (supports string or array of strings)
         if (ElementClass.keyword && ElementClass.prototype instanceof Command) {
-            this.addCommand(ElementClass.keyword, parse);
+            var keywords = Array.isArray(ElementClass.keyword) ? ElementClass.keyword : [ElementClass.keyword];
+            for (var kw of keywords) this.addCommand(kw, parse);
             return;
         }
 
-        // Features with keyword
+        // Features with keyword (supports string or array of strings)
         if (ElementClass.keyword && ElementClass.prototype instanceof Feature) {
-            this.addFeature(ElementClass.keyword, parse);
+            var keywords = Array.isArray(ElementClass.keyword) ? ElementClass.keyword : [ElementClass.keyword];
+            for (var kw of keywords) this.addFeature(kw, parse);
             return;
         }
 

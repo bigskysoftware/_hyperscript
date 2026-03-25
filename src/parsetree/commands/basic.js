@@ -27,26 +27,6 @@ class ImplicitResultSymbol extends Expression {
 }
 
 /**
- * ExitOperation - Handles exit/return from function execution
- */
-class ExitOperation extends Command {
-    constructor() {
-        super();
-    }
-
-    resolve(context) {
-        var resolve = context.meta.resolve;
-        context.meta.returned = true;
-        context.meta.returnValue = null;
-        if (resolve) {
-            resolve();
-        }
-        return context.meta.runtime.HALT;
-    }
-}
-
-
-/**
  * LogCommand - Log values to console
  *
  * Parses: log expr1, expr2, ... [with customLogger]
@@ -246,7 +226,7 @@ export class HaltCommand extends Command {
         } else if (parser.matchToken("default")) {
             var haltDefault = true;
         }
-        var exit = new ExitOperation();
+        var exit = new ExitCommand();
         return new HaltCommand(bubbling, haltDefault, keepExecuting, exit);
     }
 
