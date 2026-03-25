@@ -44,8 +44,6 @@ export class Runtime {
         #tokenizer;
         #globalScope;
         #scriptAttrs = null;
-        #hyperscriptFeaturesMap = new WeakMap;
-        #internalDataMap = new WeakMap;
 
         constructor(globalScope, kernel, tokenizer) {
             this.#globalScope = globalScope;
@@ -212,13 +210,11 @@ export class Runtime {
         }
 
         getHyperscriptFeatures(elt) {
-            var hyperscriptFeatures = this.#hyperscriptFeaturesMap.get(elt);
-            if (typeof hyperscriptFeatures === 'undefined') {
-                if (elt) {
-                    this.#hyperscriptFeaturesMap.set(elt, hyperscriptFeatures = {});
-                }
+            var data = this.getInternalData(elt);
+            if (!data.features) {
+                data.features = {};
             }
-            return hyperscriptFeatures;
+            return data.features;
         }
 
         addFeatures(owner, ctx) {
@@ -318,11 +314,10 @@ export class Runtime {
         }
 
         getInternalData(elt) {
-            var internalData = this.#internalDataMap.get(elt);
-            if (typeof internalData === 'undefined') {
-                this.#internalDataMap.set(elt, internalData = {});
+            if (!elt._hyperscript) {
+                elt._hyperscript = {};
             }
-            return internalData;
+            return elt._hyperscript;
         }
 
         #getElementScope(context) {
@@ -585,39 +580,48 @@ export class Runtime {
                 .join(", ");
         }
 
+        #hashScript(str) {
+            var hash = 5381;
+            for (var i = 0; i < str.length; i++) {
+                hash = ((hash << 5) + hash) + str.charCodeAt(i);
+            }
+            return hash;
+        }
+
         #initElement(elt, target) {
             if (elt.closest && elt.closest(config.disableSelector)) {
                 return;
             }
             var internalData = this.getInternalData(elt);
-            if (!internalData.initialized) {
-                var src = this.#getScript(elt);
-                if (src) {
-                    try {
-                        internalData.initialized = true;
-                        internalData.script = src;
-                        var tokens = this.#tokenizer.tokenize(src);
-                        var hyperScript = this.#kernel.parseHyperScript(tokens);
-                        if (!hyperScript) return;
-                        hyperScript.apply(target || elt, elt, null, this);
-                        setTimeout(() => {
-                            this.triggerEvent(target || elt, "load", {
-                                hyperscript: true,
-                            });
-                        }, 1);
-                    } catch (e) {
-                        this.triggerEvent(elt, "exception", {
-                            error: e,
-                        });
-                        console.error(
-                            "hyperscript errors were found on the following element:",
-                            elt,
-                            "\n\n",
-                            e.message,
-                            e.stack
-                        );
-                    }
-                }
+            var src = this.#getScript(elt);
+            if (!src) return;
+            var hash = this.#hashScript(src);
+            if (internalData.initialized) {
+                if (internalData.scriptHash === hash) return;
+            }
+            internalData.initialized = true;
+            internalData.scriptHash = hash;
+            try {
+                var tokens = this.#tokenizer.tokenize(src);
+                var hyperScript = this.#kernel.parseHyperScript(tokens);
+                if (!hyperScript) return;
+                hyperScript.apply(target || elt, elt, null, this);
+                setTimeout(() => {
+                    this.triggerEvent(target || elt, "load", {
+                        hyperscript: true,
+                    });
+                }, 1);
+            } catch (e) {
+                this.triggerEvent(elt, "exception", {
+                    error: e,
+                });
+                console.error(
+                    "hyperscript errors were found on the following element:",
+                    elt,
+                    "\n\n",
+                    e.message,
+                    e.stack
+                );
             }
         }
 

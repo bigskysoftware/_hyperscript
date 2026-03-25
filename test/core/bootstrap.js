@@ -110,4 +110,49 @@ test.describe("_hyperscript bootstrapping", () => {
 		await find('div').dispatchEvent('click');
 		expect(await evaluate(() => window.calledWith)).toBe("foo");
 	});
+
+	test("stores state on elt._hyperscript", async ({html, find, evaluate}) => {
+		await html("<div _='on click add .foo'></div>");
+		var state = await evaluate(() => {
+			var div = document.querySelector('#work-area div');
+			return {
+				hasProperty: '_hyperscript' in div,
+				initialized: div._hyperscript?.initialized,
+				hasScriptHash: typeof div._hyperscript?.scriptHash === 'number',
+			};
+		});
+		expect(state.hasProperty).toBe(true);
+		expect(state.initialized).toBe(true);
+		expect(state.hasScriptHash).toBe(true);
+	});
+
+	test("skips reinitialization if script unchanged", async ({html, find, evaluate}) => {
+		await html("<div _='on click add .foo'></div>");
+		// Process again — should be a no-op
+		var clickCount = await evaluate(() => {
+			var div = document.querySelector('#work-area div');
+			var count = 0;
+			div.addEventListener('click', () => count++);
+			_hyperscript.processNode(div);
+			div.click();
+			return count;
+		});
+		// Only 1 click handler should fire (the original), not 2
+		expect(clickCount).toBe(1);
+	});
+
+	test("reinitializes if script attribute changes", async ({html, find, evaluate}) => {
+		await html("<div _='on click add .foo'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveClass(/foo/);
+
+		// Change the script and reprocess (simulates morph swap)
+		await evaluate(() => {
+			var div = document.querySelector('#work-area div');
+			div.setAttribute('_', 'on click add .bar');
+			_hyperscript.processNode(div);
+		});
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveClass(/bar/);
+	});
 });

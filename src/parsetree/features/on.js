@@ -94,6 +94,14 @@ export class OnFeature extends Feature {
             } else {
                 targets = [elt];
             }
+            // Per-element event state (moved off parsed eventSpec)
+            var internalData = runtime.getInternalData(elt);
+            if (!internalData.eventState) internalData.eventState = new Map();
+            if (!internalData.eventState.has(eventSpec)) {
+                internalData.eventState.set(eventSpec, { execCount: 0, debounced: undefined, lastExec: undefined });
+            }
+            var eventState = internalData.eventState.get(eventSpec);
+
             runtime.implicitLoop(targets, function (target) {
                 // OK NO PROMISE
 
@@ -194,30 +202,30 @@ export class OnFeature extends Feature {
                     }
 
                     // verify counts
-                    eventSpec.execCount++;
+                    eventState.execCount++;
                     if (eventSpec.startCount) {
                         if (eventSpec.endCount) {
                             if (
-                                eventSpec.execCount < eventSpec.startCount ||
-                                eventSpec.execCount > eventSpec.endCount
+                                eventState.execCount < eventSpec.startCount ||
+                                eventState.execCount > eventSpec.endCount
                             ) {
                                 return;
                             }
                         } else if (eventSpec.unbounded) {
-                            if (eventSpec.execCount < eventSpec.startCount) {
+                            if (eventState.execCount < eventSpec.startCount) {
                                 return;
                             }
-                        } else if (eventSpec.execCount !== eventSpec.startCount) {
+                        } else if (eventState.execCount !== eventSpec.startCount) {
                             return;
                         }
                     }
 
                     //debounce
                     if (eventSpec.debounceTime) {
-                        if (eventSpec.debounced) {
-                            clearTimeout(eventSpec.debounced);
+                        if (eventState.debounced) {
+                            clearTimeout(eventState.debounced);
                         }
-                        eventSpec.debounced = setTimeout(function () {
+                        eventState.debounced = setTimeout(function () {
                             onFeature.execute(ctx);
                         }, eventSpec.debounceTime);
                         return;
@@ -226,12 +234,12 @@ export class OnFeature extends Feature {
                     // throttle
                     if (eventSpec.throttleTime) {
                         if (
-                            eventSpec.lastExec &&
-                            Date.now() < (eventSpec.lastExec + eventSpec.throttleTime)
+                            eventState.lastExec &&
+                            Date.now() < (eventState.lastExec + eventSpec.throttleTime)
                         ) {
                             return;
                         } else {
-                            eventSpec.lastExec = Date.now();
+                            eventState.lastExec = Date.now();
                         }
                     }
 
@@ -380,7 +388,6 @@ export class OnFeature extends Feature {
             }
 
             events.push({
-                execCount: 0,
                 every: every,
                 on: eventName,
                 args: args,
@@ -395,8 +402,6 @@ export class OnFeature extends Feature {
                 throttleTime: throttleTime,
                 mutationSpec: mutationSpec,
                 intersectionSpec: intersectionSpec,
-                debounced: undefined,
-                lastExec: undefined,
             });
         } while (parser.matchToken("or"));
 
