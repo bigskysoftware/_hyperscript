@@ -27,7 +27,7 @@ export class BehaviorFeature extends Feature {
         const hs = this.hs;
 
         runtime.assignToNamespace(
-            runtime.globalScope.document && runtime.globalScope.document.body,
+            null,
             nameSpace,
             name,
             function (target, source, innerArgs) {

@@ -374,7 +374,7 @@ export class Runtime {
 
         assignToNamespace(elt, nameSpace, name, value) {
             let root
-            if (typeof document !== "undefined" && elt === document.body) {
+            if (elt == null || (typeof document !== "undefined" && elt === document.body)) {
                 root = this.#globalScope;
             } else {
                 root = this.getHyperscriptFeatures(elt);
