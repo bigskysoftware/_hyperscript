@@ -124,14 +124,13 @@ This example will toggle the `data-theme='light'` property on `:root` so we can 
 
 ### Attribute Literals
 
-Finally, you can refer to an attribute with two syntaxes:
+You can refer to an attribute using the `@` syntax:
 
 ```html
 <div foo="bar" _="on click put @foo into me">Click Me</div>
-<div _="on click toggle [@foo='bar'] into me">Click Me</div>
 ```
 
-The short syntax, `@<attribute name>` can be used to get or set attribute values, and may be chained with
+The `@<attribute name>` syntax can be used to get or set attribute values, and may be chained with
 possessives:
 
 ```hyperscript
@@ -148,14 +147,14 @@ for anchor in <a/>
 end
 ```
 
-The longer syntax, surrounding the `@<attribute-name>` with square brackets, may be used for queries that require a
-value, or for commands like `toggle` or `add` that require a value
+You can also specify a value with the `@` syntax, which is useful for commands like `toggle` or `add`:
 
 ```hyperscript
-for anchor in [@href]
-  log anchor@href
-end
+toggle @foo="bar" on me
+add @disabled
 ```
+
+> **Deprecated:** The bracket syntax `[@foo]` / `[@foo="bar"]` is deprecated. Use `@foo` / `@foo="bar"` instead.
 
 ### In Expressions
 
