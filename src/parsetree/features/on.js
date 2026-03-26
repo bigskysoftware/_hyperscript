@@ -24,7 +24,6 @@ export class OnFeature extends Feature {
         this.events = events;
         this.start = start;
         this.every = every;
-        this.execCount = 0;
         this.errorHandler = errorHandler;
         this.errorSymbol = errorSymbol;
         this.finallyHandler = finallyHandler;
@@ -53,7 +52,6 @@ export class OnFeature extends Feature {
             eventQueueInfo.queue.push(ctx);
             return;
         }
-        onFeature.execCount++;
         eventQueueInfo.executing = true;
         ctx.meta.onHalt = function () {
             eventQueueInfo.executing = false;
