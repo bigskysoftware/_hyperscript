@@ -17,13 +17,14 @@ export class InitFeature extends Feature {
     }
 
     install(target, source, args, runtime) {
-        let handler = () => {
-            this.start && this.start.execute(runtime.makeContext(target, this, target, null));
+        var feature = this;
+        var handler = function () {
+            feature.start && feature.start.execute(runtime.makeContext(target, feature, target, null));
         };
         if (this.immediately) {
             handler();
         } else {
-            setTimeout(handler, 0);
+            queueMicrotask(handler);
         }
     }
 
