@@ -239,6 +239,7 @@ const OP_TABLE = {
     "]": "R_BRACKET",
     "=": "EQUALS",
     "~": "TILDE",
+    "^": "CARET",
 };
 
 export class Tokenizer {
@@ -280,7 +281,7 @@ export class Tokenizer {
     }
 
     #isReservedChar(c) {
-        return c === "`" || c === "^";
+        return c === "`";
     }
 
     static tokenize(string, template) {

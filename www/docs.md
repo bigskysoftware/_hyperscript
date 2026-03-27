@@ -304,9 +304,10 @@ If you click this button and open up the console, you should see `10` being logg
 
 #### Scoping {#scoping}
 
-hyperscript has three different variable scopes: `local`, `element`, and `global`.
+hyperscript has four different variable scopes: `local`, `element`, `dom`, and `global`.
 
 * Global variables are globally available (and should be used sparingly)
+* DOM variables are scoped to the element they are declared on and inherited by all descendant elements
 * Element variables are scoped to the element they are declared on, but shared across all features on that element
 * Local scoped variables are scoped to the currently executing feature
 
@@ -318,6 +319,7 @@ In order to make non-locally scoped variables easy to create and recognize in co
 supports the following naming conventions:
 
 * If a variable starts with the `$` character, it will default to the global scope
+* If a variable starts with the `^` character, it will default to the DOM scope
 * If a variable starts with the `:` character, it will default to the element scope
 
 By using these prefixes it is easy to tell differently scoped variables from one another without a lot of additional
@@ -325,7 +327,38 @@ syntax:
 
   ~~~ hyperscript
   set $foo to 10 -- sets a global named $foo
+  set ^baz to 30 -- sets a DOM scoped variable named ^baz
   set :bar to 20 -- sets an element scoped variable named :bar
+  ~~~
+
+DOM-scoped variables walk up the DOM tree to find the nearest ancestor where the variable is defined.
+If the variable doesn't exist yet, it is created on the current element. This makes them ideal for
+sharing state within a component subtree without polluting the global scope:
+
+  ~~~ html
+  <div class="counter" _="init set ^count to 0">
+    <button _="on click increment ^count">+1</button>
+    <output _="on click put ^count into me">
+  </div>
+  ~~~
+
+You can also target a specific element using the `on` clause to read or write a DOM-scoped variable
+on that element directly:
+
+  ~~~ hyperscript
+  set ^count on closest .counter to 0  -- write to a specific element
+  put ^count on closest .counter into me  -- read from a specific element
+  ~~~
+
+**Note:** Because `on` is also used to define event handlers, if `^var on <expr>` is the last thing
+in a feature block you must use an explicit `end` to avoid ambiguity:
+
+  ~~~ html
+  <!-- needs end because ^val on ... is the last expression -->
+  <div _="on click set ^val on closest .foo end">
+
+  <!-- no end needed — "to" terminates the on clause -->
+  <div _="on click set ^val on closest .foo to 10">
   ~~~
 
 Here is an example of a click handler that uses an element scoped variable to maintain a counter:
@@ -346,6 +379,10 @@ You may also use scope modifiers to give symbols particular scopes:
 * A variable with a `global` prefix is a global
   ~~~ hyperscript
   set global myGlobal to true
+  ~~~
+* A variable with a `dom` prefix is DOM-scoped (inherited by descendants)
+  ~~~ hyperscript
+  set dom myDomVar to true
   ~~~
 * A variable with an `element` prefix is element-scoped
   ~~~ hyperscript

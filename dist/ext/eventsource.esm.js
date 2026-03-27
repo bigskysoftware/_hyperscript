@@ -91,7 +91,7 @@ var _EventSourceFeature = class _EventSourceFeature extends Feature {
           if (stub.eventSource != null && stub.eventSource.url != void 0) {
             url = stub.eventSource.url;
           } else {
-            throw "no url defined for EventSource.";
+            throw new Error("no url defined for EventSource.");
           }
         }
         if (stub.eventSource != null) {
