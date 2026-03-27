@@ -236,7 +236,7 @@ export class Runtime {
             return context instanceof Context;
         }
 
-        resolveSymbol(str, context, type) {
+        resolveSymbol(str, context, type, targetElement) {
             if (str === "me" || str === "my" || str === "I") {
                 return context.me;
             }
@@ -251,6 +251,9 @@ export class Runtime {
                 } else if (type === "element") {
                     var elementScope = this.#getElementScope(context);
                     return elementScope[str];
+                } else if (type === "inherited") {
+                    var inherited = this.#resolveInherited(str, context, targetElement);
+                    return inherited.value;
                 } else if (type === "local") {
                     return context.locals[str];
                 } else {
@@ -286,12 +289,25 @@ export class Runtime {
             }
         }
 
-        setSymbol(str, context, type, value) {
+        setSymbol(str, context, type, value, targetElement) {
             if (type === "global") {
                 this.#globalScope[str] = value;
             } else if (type === "element") {
                 var elementScope = this.#getElementScope(context);
                 elementScope[str] = value;
+            } else if (type === "inherited") {
+                var inherited = this.#resolveInherited(str, context, targetElement);
+                if (inherited.element) {
+                    this.getInternalData(inherited.element).elementScope[str] = value;
+                } else {
+                    // Not found anywhere — create on target element or current element
+                    var owner = targetElement || (context.meta && context.meta.owner);
+                    if (owner) {
+                        var internalData = this.getInternalData(owner);
+                        if (!internalData.elementScope) internalData.elementScope = {};
+                        internalData.elementScope[str] = value;
+                    }
+                }
             } else if (type === "local") {
                 context.locals[str] = value;
             } else {
@@ -318,6 +334,18 @@ export class Runtime {
                 elt._hyperscript = {};
             }
             return elt._hyperscript;
+        }
+
+        #resolveInherited(str, context, startElement) {
+            var elt = startElement || (context.meta && context.meta.owner);
+            while (elt) {
+                var internalData = elt._hyperscript;
+                if (internalData && internalData.elementScope && str in internalData.elementScope) {
+                    return { value: internalData.elementScope[str], element: elt };
+                }
+                elt = elt.parentElement;
+            }
+            return { value: undefined, element: null };
         }
 
         #getElementScope(context) {

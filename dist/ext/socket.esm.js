@@ -189,7 +189,7 @@ var _SocketFeature = class _SocketFeature extends Feature {
             context.locals.message = dataAsJson;
             context.result = dataAsJson;
           } else {
-            throw "Received non-JSON message from socket: " + data;
+            throw new Error("Received non-JSON message from socket: " + data);
           }
         } else {
           context.locals.message = data;

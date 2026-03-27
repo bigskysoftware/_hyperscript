@@ -270,7 +270,8 @@
     "[": "L_BRACKET",
     "]": "R_BRACKET",
     "=": "EQUALS",
-    "~": "TILDE"
+    "~": "TILDE",
+    "^": "CARET"
   };
   var _source, _position, _column, _line, _lastToken, _templateBraceCount, _tokens2, _template, _Tokenizer_instances, isAlpha_fn, isNumeric_fn, isWhitespace_fn, isNewline_fn, isValidCSSChar_fn, isIdentifierChar_fn, isReservedChar_fn, currentChar_fn, nextChar_fn, charAt_fn, consumeChar_fn, inTemplate_fn, possiblePrecedingSymbol_fn, isValidSingleQuoteStringStart_fn, makeToken_fn, makeOpToken_fn, consumeComment_fn, consumeMultilineComment_fn, consumeWhitespace_fn, consumeClassReference_fn, consumeIdReference_fn, consumeAttributeReference_fn, consumeShortAttributeReference_fn, consumeStyleReference_fn, consumeTemplateIdentifier_fn, consumeIdentifier_fn, consumeNumber_fn, consumeOp_fn, consumeString_fn, consumeHexEscape_fn, isLineComment_fn, isBlockComment_fn, tokenize_fn;
   var _Tokenizer = class _Tokenizer {
@@ -330,7 +331,7 @@
     return c === "_" || c === "$";
   };
   isReservedChar_fn = function(c) {
-    return c === "`" || c === "^";
+    return c === "`";
   };
   // ----- Character access -----
   currentChar_fn = function() {
@@ -1345,7 +1346,8 @@
     attributes: "_, script, data-script",
     defaultTransition: "all 500ms ease-in",
     disableSelector: "[disable-scripting], [data-disable-scripting]",
-    hideShowStrategies: {}
+    hideShowStrategies: {},
+    logAll: false
   };
 
   // src/core/runtime/conversions.js
@@ -1407,7 +1409,7 @@
           } else if (conversion === "Form") {
             return new URLSearchParams(formData.result).toString();
           } else {
-            throw "Unknown conversion: " + conversion;
+            throw new Error("Unknown conversion: " + conversion);
           }
         } else {
           return formData.result;
@@ -1672,7 +1674,7 @@
       runtime2.addFeatures(owner, this);
     }
   };
-  var _kernel2, _tokenizer, _globalScope, _scriptAttrs, _hyperscriptFeaturesMap, _internalDataMap, _Runtime_instances, isReservedWord_fn, isHyperscriptContext_fn, getElementScope_fn, flatGet_fn, isArrayLike_fn, isIterable_fn, getScriptAttributes_fn, getScript_fn, getScriptSelector_fn, initElement_fn;
+  var _kernel2, _tokenizer, _globalScope, _scriptAttrs, _Runtime_instances, isReservedWord_fn, isHyperscriptContext_fn, resolveInherited_fn, getElementScope_fn, flatGet_fn, isArrayLike_fn, isIterable_fn, getScriptAttributes_fn, getScript_fn, getScriptSelector_fn, hashScript_fn, initElement_fn;
   var _Runtime = class _Runtime {
     constructor(globalScope2, kernel2, tokenizer2) {
       __privateAdd(this, _Runtime_instances);
@@ -1681,8 +1683,6 @@
       __privateAdd(this, _tokenizer);
       __privateAdd(this, _globalScope);
       __privateAdd(this, _scriptAttrs, null);
-      __privateAdd(this, _hyperscriptFeaturesMap, /* @__PURE__ */ new WeakMap());
-      __privateAdd(this, _internalDataMap, /* @__PURE__ */ new WeakMap());
       __privateSet(this, _globalScope, globalScope2);
       __privateSet(this, _kernel2, kernel2);
       __privateSet(this, _tokenizer, tokenizer2);
@@ -1715,8 +1715,7 @@
           }
         }
         if (next == null) {
-          console.error(command, " did not return a next element to execute! context: ", ctx);
-          return;
+          throw new Error("Command " + (command.type || "unknown") + " did not return a next element to execute");
         } else if (next.then) {
           next.then((resolvedNext) => {
             this.unifiedExec(resolvedNext, ctx);
@@ -1836,13 +1835,11 @@
       return new Context(owner, feature, hyperscriptTarget, event, this, __privateGet(this, _globalScope), __privateGet(this, _kernel2), __privateGet(this, _tokenizer));
     }
     getHyperscriptFeatures(elt) {
-      var hyperscriptFeatures = __privateGet(this, _hyperscriptFeaturesMap).get(elt);
-      if (typeof hyperscriptFeatures === "undefined") {
-        if (elt) {
-          __privateGet(this, _hyperscriptFeaturesMap).set(elt, hyperscriptFeatures = {});
-        }
+      var data = this.getInternalData(elt);
+      if (!data.features) {
+        data.features = {};
       }
-      return hyperscriptFeatures;
+      return data.features;
     }
     addFeatures(owner, ctx) {
       if (owner) {
@@ -1850,7 +1847,7 @@
         this.addFeatures(owner.parentElement, ctx);
       }
     }
-    resolveSymbol(str, context, type) {
+    resolveSymbol(str, context, type, targetElement) {
       if (str === "me" || str === "my" || str === "I") {
         return context.me;
       }
@@ -1865,6 +1862,9 @@
         } else if (type === "element") {
           var elementScope = __privateMethod(this, _Runtime_instances, getElementScope_fn).call(this, context);
           return elementScope[str];
+        } else if (type === "inherited") {
+          var inherited = __privateMethod(this, _Runtime_instances, resolveInherited_fn).call(this, str, context, targetElement);
+          return inherited.value;
         } else if (type === "local") {
           return context.locals[str];
         } else {
@@ -1899,12 +1899,24 @@
         }
       }
     }
-    setSymbol(str, context, type, value) {
+    setSymbol(str, context, type, value, targetElement) {
       if (type === "global") {
         __privateGet(this, _globalScope)[str] = value;
       } else if (type === "element") {
         var elementScope = __privateMethod(this, _Runtime_instances, getElementScope_fn).call(this, context);
         elementScope[str] = value;
+      } else if (type === "inherited") {
+        var inherited = __privateMethod(this, _Runtime_instances, resolveInherited_fn).call(this, str, context, targetElement);
+        if (inherited.element) {
+          this.getInternalData(inherited.element).elementScope[str] = value;
+        } else {
+          var owner = targetElement || context.meta && context.meta.owner;
+          if (owner) {
+            var internalData = this.getInternalData(owner);
+            if (!internalData.elementScope) internalData.elementScope = {};
+            internalData.elementScope[str] = value;
+          }
+        }
       } else if (type === "local") {
         context.locals[str] = value;
       } else {
@@ -1926,11 +1938,10 @@
       }
     }
     getInternalData(elt) {
-      var internalData = __privateGet(this, _internalDataMap).get(elt);
-      if (typeof internalData === "undefined") {
-        __privateGet(this, _internalDataMap).set(elt, internalData = {});
+      if (!elt._hyperscript) {
+        elt._hyperscript = {};
       }
-      return internalData;
+      return elt._hyperscript;
     }
     resolveProperty(root, property) {
       return __privateMethod(this, _Runtime_instances, flatGet_fn).call(this, root, property, (root2, property2) => root2[property2]);
@@ -1946,7 +1957,7 @@
     }
     assignToNamespace(elt, nameSpace, name, value) {
       let root;
-      if (typeof document !== "undefined" && elt === document.body) {
+      if (elt == null || typeof document !== "undefined" && elt === document.body) {
         root = __privateGet(this, _globalScope);
       } else {
         root = this.getHyperscriptFeatures(elt);
@@ -2005,7 +2016,7 @@
       if (converter) {
         return converter(value, this);
       }
-      throw "Unknown conversion : " + type;
+      throw new Error("Unknown conversion : " + type);
     }
     evaluateNoPromise(elt, ctx) {
       let result = elt.evaluate(ctx);
@@ -2056,6 +2067,9 @@
       detail = detail || {};
       detail["sender"] = sender;
       var event = this.makeEvent(eventName, detail);
+      if (config.logAll) {
+        console.log(eventName, detail, elt);
+      }
       var eventResult = elt.dispatchEvent(event);
       return eventResult;
     }
@@ -2084,6 +2098,34 @@
         eventQueuesForElt.set(onFeature, eventQueueForFeature);
       }
       return eventQueueForFeature;
+    }
+    cleanup(elt) {
+      if (!elt._hyperscript) return;
+      this.triggerEvent(elt, "hyperscript:before:cleanup");
+      var data = elt._hyperscript;
+      if (data.listeners) {
+        for (var info of data.listeners) {
+          info.target.removeEventListener(info.event, info.handler);
+        }
+      }
+      if (data.observers) {
+        for (var observer of data.observers) {
+          observer.disconnect();
+        }
+      }
+      if (data.eventState) {
+        for (var state of data.eventState.values()) {
+          if (state.debounced) clearTimeout(state.debounced);
+        }
+      }
+      if (elt.querySelectorAll) {
+        for (var child of elt.querySelectorAll("[data-hyperscript-powered]")) {
+          this.cleanup(child);
+        }
+      }
+      this.triggerEvent(elt, "hyperscript:after:cleanup");
+      elt.removeAttribute("data-hyperscript-powered");
+      delete elt._hyperscript;
     }
     processNode(elt) {
       var selector = __privateMethod(this, _Runtime_instances, getScriptSelector_fn).call(this);
@@ -2175,8 +2217,6 @@
   _tokenizer = new WeakMap();
   _globalScope = new WeakMap();
   _scriptAttrs = new WeakMap();
-  _hyperscriptFeaturesMap = new WeakMap();
-  _internalDataMap = new WeakMap();
   _Runtime_instances = new WeakSet();
   // =================================================================
   // Symbol and property resolution
@@ -2186,6 +2226,17 @@
   };
   isHyperscriptContext_fn = function(context) {
     return context instanceof Context;
+  };
+  resolveInherited_fn = function(str, context, startElement) {
+    var elt = startElement || context.meta && context.meta.owner;
+    while (elt) {
+      var internalData = elt._hyperscript;
+      if (internalData && internalData.elementScope && str in internalData.elementScope) {
+        return { value: internalData.elementScope[str], element: elt };
+      }
+      elt = elt.parentElement;
+    }
+    return { value: void 0, element: null };
   };
   getElementScope_fn = function(context) {
     var elt = context.meta && context.meta.owner;
@@ -2256,39 +2307,52 @@
       return "[" + attribute + "]";
     }).join(", ");
   };
+  hashScript_fn = function(str) {
+    var hash = 5381;
+    for (var i = 0; i < str.length; i++) {
+      hash = (hash << 5) + hash + str.charCodeAt(i);
+    }
+    return hash;
+  };
   initElement_fn = function(elt, target) {
     if (elt.closest && elt.closest(config.disableSelector)) {
       return;
     }
     var internalData = this.getInternalData(elt);
-    if (!internalData.initialized) {
-      var src = __privateMethod(this, _Runtime_instances, getScript_fn).call(this, elt);
-      if (src) {
-        try {
-          internalData.initialized = true;
-          internalData.script = src;
-          var tokens = __privateGet(this, _tokenizer).tokenize(src);
-          var hyperScript = __privateGet(this, _kernel2).parseHyperScript(tokens);
-          if (!hyperScript) return;
-          hyperScript.apply(target || elt, elt, null, this);
-          setTimeout(() => {
-            this.triggerEvent(target || elt, "load", {
-              hyperscript: true
-            });
-          }, 1);
-        } catch (e) {
-          this.triggerEvent(elt, "exception", {
-            error: e
-          });
-          console.error(
-            "hyperscript errors were found on the following element:",
-            elt,
-            "\n\n",
-            e.message,
-            e.stack
-          );
-        }
-      }
+    var src = __privateMethod(this, _Runtime_instances, getScript_fn).call(this, elt);
+    if (!src) return;
+    var hash = __privateMethod(this, _Runtime_instances, hashScript_fn).call(this, src);
+    if (internalData.initialized) {
+      if (internalData.scriptHash === hash) return;
+      this.cleanup(elt);
+      internalData = this.getInternalData(elt);
+    }
+    if (!this.triggerEvent(elt, "hyperscript:before:init")) return;
+    internalData.initialized = true;
+    internalData.scriptHash = hash;
+    try {
+      var tokens = __privateGet(this, _tokenizer).tokenize(src);
+      var hyperScript = __privateGet(this, _kernel2).parseHyperScript(tokens);
+      if (!hyperScript) return;
+      hyperScript.apply(target || elt, elt, null, this);
+      elt.setAttribute("data-hyperscript-powered", "true");
+      this.triggerEvent(elt, "hyperscript:after:init");
+      setTimeout(() => {
+        this.triggerEvent(target || elt, "load", {
+          hyperscript: true
+        });
+      }, 1);
+    } catch (e) {
+      this.triggerEvent(elt, "exception", {
+        error: e
+      });
+      console.error(
+        "hyperscript errors were found on the following element:",
+        elt,
+        "\n\n",
+        e.message,
+        e.stack
+      );
     }
   };
   __publicField(_Runtime, "HALT", {});
@@ -2415,11 +2479,12 @@
   __publicField(_LogicalNot, "expressionType", "unary");
   var LogicalNot = _LogicalNot;
   var _SymbolRef = class _SymbolRef extends Expression {
-    constructor(token, scope, name) {
+    constructor(token, scope, name, targetExpr) {
       super();
       this.token = token;
       this.scope = scope;
       this.name = name;
+      this.targetExpr = targetExpr || null;
     }
     static parse(parser) {
       var scope = "default";
@@ -2430,35 +2495,69 @@
         if (parser.matchOpToken("'")) {
           parser.requireToken("s");
         }
+      } else if (parser.matchToken("dom")) {
+        scope = "inherited";
       } else if (parser.matchToken("local")) {
         scope = "local";
       }
       let eltPrefix = parser.matchOpToken(":");
+      let caretPrefix = !eltPrefix && parser.matchOpToken("^");
       let identifier = parser.matchTokenType("IDENTIFIER");
       if (identifier && identifier.value) {
         var name = identifier.value;
         if (eltPrefix) {
           name = ":" + name;
+        } else if (caretPrefix) {
+          name = "^" + name;
         }
         if (scope === "default") {
           if (name.startsWith("$")) {
             scope = "global";
-          }
-          if (name.startsWith(":")) {
+          } else if (name.startsWith(":")) {
             scope = "element";
+          } else if (name.startsWith("^")) {
+            scope = "inherited";
           }
         }
-        return new _SymbolRef(identifier, scope, name);
+        var targetExpr = null;
+        if (scope === "inherited" && parser.matchToken("on")) {
+          parser.pushFollow("to");
+          parser.pushFollow("into");
+          parser.pushFollow("before");
+          parser.pushFollow("after");
+          parser.pushFollow("then");
+          try {
+            targetExpr = parser.requireElement("expression");
+          } finally {
+            parser.popFollow();
+            parser.popFollow();
+            parser.popFollow();
+            parser.popFollow();
+            parser.popFollow();
+          }
+        }
+        return new _SymbolRef(identifier, scope, name, targetExpr);
       }
     }
     resolve(context) {
-      return context.meta.runtime.resolveSymbol(this.name, context, this.scope);
+      return context.meta.runtime.resolveSymbol(
+        this.name,
+        context,
+        this.scope,
+        this.targetExpr ? this.targetExpr.evaluate(context) : null
+      );
     }
     get lhs() {
       return {};
     }
     set(ctx, lhs, value) {
-      ctx.meta.runtime.setSymbol(this.name, ctx, this.scope, value);
+      ctx.meta.runtime.setSymbol(
+        this.name,
+        ctx,
+        this.scope,
+        value,
+        this.targetExpr ? this.targetExpr.evaluate(ctx) : null
+      );
     }
   };
   __publicField(_SymbolRef, "grammarName", "symbol");
@@ -3128,7 +3227,7 @@
       } else if (operator === "not a") {
         return !context.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
       } else {
-        throw "Unknown comparison : " + operator;
+        throw new Error("Unknown comparison : " + operator);
       }
     }
   };
@@ -3942,7 +4041,7 @@
     resolve(context, { thing, from, inElt, withinElt }) {
       var css = thing.css;
       if (css == null) {
-        throw "Expected a CSS value to be returned by " + this.thingElt.sourceFor();
+        throw new Error("Expected a CSS value to be returned by " + this.thingElt.sourceFor());
       }
       if (this.inSearch) {
         if (inElt) {
@@ -6339,7 +6438,7 @@
       };
       ctx.meta.runtime.forEach(this.properties, (prop) => {
         if (prop in ctx.result) ctx.locals[prop] = ctx.result[prop];
-        else throw "No such measurement as " + prop;
+        else throw new Error("No such measurement as " + prop);
       });
       return ctx.meta.runtime.findNext(this, ctx);
     }
@@ -6585,7 +6684,6 @@
       this.events = events;
       this.start = start;
       this.every = every;
-      this.execCount = 0;
       this.errorHandler = errorHandler;
       this.errorSymbol = errorSymbol;
       this.finallyHandler = finallyHandler;
@@ -6612,7 +6710,6 @@
         eventQueueInfo.queue.push(ctx);
         return;
       }
-      onFeature.execCount++;
       eventQueueInfo.executing = true;
       ctx.meta.onHalt = function() {
         eventQueueInfo.executing = false;
@@ -6651,12 +6748,21 @@
         } else {
           targets = [elt];
         }
+        var internalData = runtime2.getInternalData(elt);
+        if (!internalData.eventState) internalData.eventState = /* @__PURE__ */ new Map();
+        if (!internalData.eventState.has(eventSpec)) {
+          internalData.eventState.set(eventSpec, { execCount: 0, debounced: void 0, lastExec: void 0 });
+        }
+        var eventState = internalData.eventState.get(eventSpec);
         runtime2.implicitLoop(targets, function(target) {
           var eventName = eventSpec.on;
           if (target == null) {
             console.warn("'%s' feature ignored because target does not exists:", displayName, elt);
             return;
           }
+          var eltData = runtime2.getInternalData(elt);
+          if (!eltData.listeners) eltData.listeners = [];
+          if (!eltData.observers) eltData.observers = [];
           if (eventSpec.mutationSpec) {
             eventName = "hyperscript:mutation";
             const observer = new MutationObserver(function(mutationList, observer2) {
@@ -6668,6 +6774,7 @@
               }
             });
             observer.observe(target, eventSpec.mutationSpec);
+            eltData.observers.push(observer);
           }
           if (eventSpec.intersectionSpec) {
             eventName = "hyperscript:intersection";
@@ -6682,9 +6789,11 @@
               }
             }, eventSpec.intersectionSpec);
             observer.observe(target);
+            eltData.observers.push(observer);
           }
           var addEventListener = target.addEventListener || target.on;
-          addEventListener.call(target, eventName, function listener(evt) {
+          var handler;
+          addEventListener.call(target, eventName, handler = function listener(evt) {
             if (typeof Node !== "undefined" && elt instanceof Node && target !== elt && !elt.isConnected) {
               target.removeEventListener(eventName, listener);
               return;
@@ -6734,38 +6843,39 @@
                 }
               }
             }
-            eventSpec.execCount++;
+            eventState.execCount++;
             if (eventSpec.startCount) {
               if (eventSpec.endCount) {
-                if (eventSpec.execCount < eventSpec.startCount || eventSpec.execCount > eventSpec.endCount) {
+                if (eventState.execCount < eventSpec.startCount || eventState.execCount > eventSpec.endCount) {
                   return;
                 }
               } else if (eventSpec.unbounded) {
-                if (eventSpec.execCount < eventSpec.startCount) {
+                if (eventState.execCount < eventSpec.startCount) {
                   return;
                 }
-              } else if (eventSpec.execCount !== eventSpec.startCount) {
+              } else if (eventState.execCount !== eventSpec.startCount) {
                 return;
               }
             }
             if (eventSpec.debounceTime) {
-              if (eventSpec.debounced) {
-                clearTimeout(eventSpec.debounced);
+              if (eventState.debounced) {
+                clearTimeout(eventState.debounced);
               }
-              eventSpec.debounced = setTimeout(function() {
+              eventState.debounced = setTimeout(function() {
                 onFeature.execute(ctx);
               }, eventSpec.debounceTime);
               return;
             }
             if (eventSpec.throttleTime) {
-              if (eventSpec.lastExec && Date.now() < eventSpec.lastExec + eventSpec.throttleTime) {
+              if (eventState.lastExec && Date.now() < eventState.lastExec + eventSpec.throttleTime) {
                 return;
               } else {
-                eventSpec.lastExec = Date.now();
+                eventState.lastExec = Date.now();
               }
             }
             onFeature.execute(ctx);
           });
+          eltData.listeners.push({ target, event: eventName, handler });
         });
       }
     }
@@ -6897,7 +7007,6 @@
           var throttleTime = timeExpr.evaluate({});
         }
         events.push({
-          execCount: 0,
           every,
           on: eventName,
           args,
@@ -6911,9 +7020,7 @@
           debounceTime,
           throttleTime,
           mutationSpec,
-          intersectionSpec,
-          debounced: void 0,
-          lastExec: void 0
+          intersectionSpec
         });
       } while (parser.matchToken("or"));
       var queueLast = true;
@@ -7136,7 +7243,7 @@
       const formalParams = this.formalParams;
       const hs = this.hs;
       runtime2.assignToNamespace(
-        runtime2.globalScope.document && runtime2.globalScope.document.body,
+        null,
         nameSpace,
         name,
         function(target2, source2, innerArgs) {
@@ -7307,6 +7414,7 @@
       process: (elt) => runtime.processNode(elt),
       processNode: (elt) => runtime.processNode(elt),
       // deprecated alias
+      cleanup: (elt) => runtime.cleanup(elt),
       version: "0.9.90"
     }
   );

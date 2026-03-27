@@ -150,11 +150,12 @@ export class SymbolRef extends Expression {
     static grammarName = "symbol";
     static assignable = true;
 
-    constructor(token, scope, name) {
+    constructor(token, scope, name, targetExpr) {
         super();
         this.token = token;
         this.scope = scope;
         this.name = name;
+        this.targetExpr = targetExpr || null;
     }
 
     static parse(parser) {
@@ -167,38 +168,63 @@ export class SymbolRef extends Expression {
             if (parser.matchOpToken("'")) {
                 parser.requireToken("s");
             }
+        } else if (parser.matchToken("dom")) {
+            scope = "inherited";
         } else if (parser.matchToken("local")) {
             scope = "local";
         }
 
         // TODO better look ahead here
         let eltPrefix = parser.matchOpToken(":");
+        let caretPrefix = !eltPrefix && parser.matchOpToken("^");
         let identifier = parser.matchTokenType("IDENTIFIER");
         if (identifier && identifier.value) {
             var name = identifier.value;
             if (eltPrefix) {
                 name = ":" + name;
+            } else if (caretPrefix) {
+                name = "^" + name;
             }
             if (scope === "default") {
                 if (name.startsWith("$")) {
                     scope = "global";
-                }
-                if (name.startsWith(":")) {
+                } else if (name.startsWith(":")) {
                     scope = "element";
+                } else if (name.startsWith("^")) {
+                    scope = "inherited";
                 }
             }
-            return new SymbolRef(identifier, scope, name);
+            var targetExpr = null;
+            if (scope === "inherited" && parser.matchToken("on")) {
+                parser.pushFollow("to");
+                parser.pushFollow("into");
+                parser.pushFollow("before");
+                parser.pushFollow("after");
+                parser.pushFollow("then");
+                try {
+                    targetExpr = parser.requireElement("expression");
+                } finally {
+                    parser.popFollow();
+                    parser.popFollow();
+                    parser.popFollow();
+                    parser.popFollow();
+                    parser.popFollow();
+                }
+            }
+            return new SymbolRef(identifier, scope, name, targetExpr);
         }
     }
 
     resolve(context) {
-        return context.meta.runtime.resolveSymbol(this.name, context, this.scope);
+        return context.meta.runtime.resolveSymbol(this.name, context, this.scope,
+            this.targetExpr ? this.targetExpr.evaluate(context) : null);
     }
 
     get lhs() { return {}; }
 
     set(ctx, lhs, value) {
-        ctx.meta.runtime.setSymbol(this.name, ctx, this.scope, value);
+        ctx.meta.runtime.setSymbol(this.name, ctx, this.scope, value,
+            this.targetExpr ? this.targetExpr.evaluate(ctx) : null);
     }
 }
 
