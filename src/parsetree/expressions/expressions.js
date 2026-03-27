@@ -267,7 +267,14 @@ export class PropertyAccess extends Expression {
 
     set(ctx, lhs, value) {
         ctx.meta.runtime.nullCheck(lhs.root, this.root);
-        ctx.meta.runtime.implicitLoop(lhs.root, elt => { elt[this.prop.value] = value; });
+        var runtime = ctx.meta.runtime;
+        runtime.implicitLoop(lhs.root, elt => {
+            if (elt instanceof Element) {
+                runtime.setProperty(elt, this.prop.value, value);
+            } else {
+                elt[this.prop.value] = value;
+            }
+        });
     }
 }
 
@@ -364,7 +371,14 @@ export class OfExpression extends Expression {
         } else if (urRoot.type === "styleRef") {
             ctx.meta.runtime.implicitLoop(lhs.root, elt => { elt.style[prop] = value; });
         } else {
-            ctx.meta.runtime.implicitLoop(lhs.root, elt => { elt[prop] = value; });
+            var runtime = ctx.meta.runtime;
+            runtime.implicitLoop(lhs.root, elt => {
+                if (elt instanceof Element) {
+                    runtime.setProperty(elt, prop, value);
+                } else {
+                    elt[prop] = value;
+                }
+            });
         }
     }
 }
@@ -446,7 +460,15 @@ export class PossessiveExpression extends Expression {
                 });
             }
         } else {
-            ctx.meta.runtime.implicitLoop(lhs.root, elt => { elt[this.prop.value] = value; });
+            var runtime = ctx.meta.runtime;
+            var prop = this.prop.value;
+            runtime.implicitLoop(lhs.root, elt => {
+                if (elt instanceof Element) {
+                    runtime.setProperty(elt, prop, value);
+                } else {
+                    elt[prop] = value;
+                }
+            });
         }
     }
 }

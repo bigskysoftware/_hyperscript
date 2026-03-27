@@ -143,6 +143,24 @@ _hyperscript has a super-easy way to write [web workers](/docs#workers).
 <div _="install Draggable(dragHandle: .titlebar)">
 ~~~
 
+## Built-in reactivity
+
+<div>
+
+**Watch any value and react when it changes.** Variables, element properties, attributes.
+The runtime tracks dependencies automatically.
+
+[Bind](/features/bind) values together for two-way sync with form inputs.
+
+</div>
+
+~~~html
+<input type="text" id="name" />
+<h1 _="when #name.value changes put it into me"></h1>
+
+<input _="bind $search and my.value" />
+~~~
+
 ## Remember [HyperCard](https://hypercard.org/HyperTalk%20Reference%202.4.pdf)?
 
 <div>

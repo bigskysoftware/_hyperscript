@@ -1180,6 +1180,37 @@ If you have logic that you wish to run when an element is initialized, you can u
 
 The `init` keyword should be followed by a set of commands to execute when the element is loaded.
 
+### Reactivity {#reactivity}
+
+For simple cases, [`on`](/features/on) is the right tool. But when a value can be
+changed from multiple places, or when you don't want to list every source of change,
+reactive features let you just declare what you want and it stays in sync.
+
+**[`always`](/features/always)** keeps the DOM in sync with values:
+
+  ~~~ html
+  <button _="on click increment $count">+1</button>
+  <button _="on click set $count to 0">Reset</button>
+  <output _="always put 'Count: ' + $count into me"></output>
+  ~~~
+
+**[`when`](/features/when)** reacts to changes with side effects or chained logic:
+
+  ~~~ html
+  <div _="when $source changes set $derived to (it * 2)"></div>
+  <output _="when $derived changes put it into me"></output>
+  ~~~
+
+**[`bind`](/features/bind)** keeps two values in sync (two-way):
+
+  ~~~ html
+  <input type="checkbox" id="dark-toggle" />
+  <body _="bind .dark and #dark-toggle's checked">
+  ~~~
+
+See the [`always`](/features/always), [`when`](/features/when), and [`bind`](/features/bind) pages
+for full details.
+
 ### Functions {#functions}
 
 Functions in hyperscript are defined by using the [`def` keyword](/features/def).

@@ -197,7 +197,7 @@ export class AttributeRef extends Expression {
     resolve(context) {
         var target = context.you || context.me;
         if (target) {
-            return target.getAttribute(this.name);
+            return context.meta.runtime.resolveAttribute(target, this.name);
         }
     }
 
