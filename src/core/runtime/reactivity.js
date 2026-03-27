@@ -32,8 +32,8 @@ function _sameValue(a, b) {
     return a === b ? (a !== 0 || 1 / a === 1 / b) : (a !== a && b !== b);
 }
 
-/** Per-element reactive state, keyed by DOM element */
-const elementState = new WeakMap();
+/** Per-object reactive state, keyed by any object (DOM element or plain JS object) */
+const objectState = new WeakMap();
 
 /**
  * Global symbol subscriptions: symbolName -> Set<Effect>
@@ -42,19 +42,19 @@ const elementState = new WeakMap();
  */
 const globalSubscriptions = new Map();
 
-/** Next ID to assign to an element for dependency dedup keys */
+/** Next ID to assign to an object for dependency dedup keys */
 let nextId = 0;
 
 /**
- * Get or create the reactive state object for a DOM element.
+ * Get or create the reactive state object for any object.
  * Assigns a stable unique ID on first access.
- * @param {Element} element
+ * @param {Object} obj - DOM element or plain JS object
  * @returns {{ id: string, subscriptions: Map|null, propertyHandler: Object|null }}
  */
-function getElementState(element) {
-    var state = elementState.get(element);
+function getObjectState(obj) {
+    var state = objectState.get(obj);
     if (!state) {
-        elementState.set(element, state = {
+        objectState.set(obj, state = {
             id: String(++nextId),
             subscriptions: null,
             propertyHandler: null,
@@ -102,22 +102,21 @@ export class Reactivity {
      */
     trackElementSymbol(name, element) {
         if (!element) return;
-        var elementId = getElementState(element).id;
+        var elementId = getObjectState(element).id;
         // e.g. deps.set("symbol:element::count:3", { type: "symbol", name: ":count", scope: "element", element: <div> })
         this._currentEffect.dependencies.set("symbol:element:" + name + ":" + elementId,
             { type: "symbol", name: name, scope: "element", element: element });
     }
 
     /**
-     * Track a DOM property read as a dependency.
-     * @param {Element} element
+     * Track a property read as a dependency.
+     * @param {Object} obj - DOM element or plain JS object
      * @param {string} name - Property name
      */
-    trackProperty(element, name) {
-        if (!(element instanceof Element)) return;
-        // e.g. deps.set("property:value:5", { type: "property", element: <input>, name: "value" })
-        this._currentEffect.dependencies.set("property:" + name + ":" + getElementState(element).id,
-            { type: "property", element: element, name: name });
+    trackProperty(obj, name) {
+        if (obj == null || typeof obj !== "object") return;
+        this._currentEffect.dependencies.set("property:" + name + ":" + getObjectState(obj).id,
+            { type: "property", object: obj, name: name });
     }
 
     /**
@@ -128,7 +127,7 @@ export class Reactivity {
     trackAttribute(element, name) {
         if (!(element instanceof Element)) return;
         // e.g. deps.set("attribute:data-title:2", { type: "attribute", element: <div>, name: "data-title" })
-        this._currentEffect.dependencies.set("attribute:" + name + ":" + getElementState(element).id,
+        this._currentEffect.dependencies.set("attribute:" + name + ":" + getObjectState(element).id,
             { type: "attribute", element: element, name: name });
     }
 
@@ -152,7 +151,7 @@ export class Reactivity {
      */
     notifyElementSymbol(name, element) {
         if (!element) return;
-        var state = getElementState(element);
+        var state = getObjectState(element);
         if (state.subscriptions) {
             var subs = state.subscriptions.get(name);
             if (subs) {
@@ -164,13 +163,13 @@ export class Reactivity {
     }
 
     /**
-     * Notify that a DOM element property was written programmatically.
-     * Schedules all effects watching properties on this element.
-     * @param {Element} element
+     * Notify that a property was written programmatically.
+     * Schedules all effects watching properties on this object.
+     * @param {Object} obj - DOM element or plain JS object
      */
-    notifyProperty(element) {
-        if (!(element instanceof Element)) return;
-        var state = elementState.get(element);
+    notifyProperty(obj) {
+        if (obj == null || typeof obj !== "object") return;
+        var state = objectState.get(obj);
         if (state && state.propertyHandler) {
             state.propertyHandler.queueAll();
         }
@@ -287,7 +286,7 @@ export class Reactivity {
                 globalSubscriptions.get(dep.name).add(effect);
 
             } else if (dep.type === "symbol" && dep.scope === "element") {
-                var state = getElementState(dep.element);
+                var state = getObjectState(dep.element);
                 if (!state.subscriptions) {
                     state.subscriptions = new Map();
                 }
@@ -300,7 +299,7 @@ export class Reactivity {
                 reactivity._subscribeAttributeDependency(dep.element, dep.name, effect);
 
             } else if (dep.type === "property") {
-                reactivity._subscribePropertyDependency(dep.element, dep.name, effect);
+                reactivity._subscribePropertyDependency(dep.object, dep.name, effect);
             }
         }
     }
@@ -314,7 +313,7 @@ export class Reactivity {
      */
     _subscribeAttributeDependency(element, attrName, effect) {
         var reactivity = this;
-        var state = getElementState(element);
+        var state = getObjectState(element);
 
         if (!state.attributeObservers) {
             state.attributeObservers = {};
@@ -340,16 +339,16 @@ export class Reactivity {
     }
 
     /**
-     * Subscribe to a DOM element property. Sets up persistent per-element
-     * event listeners. Extracted into its own method to create proper
-     * closure scope for each element/property.
-     * @param {Element} element
+     * Subscribe to a property on an object. For DOM elements, sets up
+     * persistent input/change event listeners. For plain objects, only
+     * the subscription map is used (notified via setProperty).
+     * @param {Object} obj - DOM element or plain JS object
      * @param {string} propName
      * @param {Effect} effect
      */
-    _subscribePropertyDependency(element, propName, effect) {
+    _subscribePropertyDependency(obj, propName, effect) {
         var reactivity = this;
-        var state = getElementState(element);
+        var state = getObjectState(obj);
 
         if (!state.propertyHandler) {
             var trackedEffects = new Set();
@@ -359,16 +358,22 @@ export class Reactivity {
                 }
             };
 
-            element.addEventListener("input", queueAll);
-            element.addEventListener("change", queueAll);
+            var remove;
+            if (obj instanceof Element) {
+                obj.addEventListener("input", queueAll);
+                obj.addEventListener("change", queueAll);
+                remove = function () {
+                    obj.removeEventListener("input", queueAll);
+                    obj.removeEventListener("change", queueAll);
+                };
+            } else {
+                remove = function () {};
+            }
 
             state.propertyHandler = {
                 effects: trackedEffects,
                 queueAll: queueAll,
-                remove: function () {
-                    element.removeEventListener("input", queueAll);
-                    element.removeEventListener("change", queueAll);
-                }
+                remove: remove,
             };
         }
         state.propertyHandler.effects.add(effect);
@@ -386,7 +391,7 @@ export class Reactivity {
                     }
                 }
             } else if (dep.type === "symbol" && dep.scope === "element") {
-                var state = getElementState(dep.element);
+                var state = getObjectState(dep.element);
                 if (state.subscriptions) {
                     var subs = state.subscriptions.get(dep.name);
                     if (subs) {
@@ -397,12 +402,12 @@ export class Reactivity {
                     }
                 }
             } else if (dep.type === "attribute" && dep.element) {
-                var state = getElementState(dep.element);
+                var state = getObjectState(dep.element);
                 if (state.attributeObservers && state.attributeObservers[dep.name]) {
                     state.attributeObservers[dep.name].effects.delete(effect);
                 }
-            } else if (dep.type === "property" && dep.element) {
-                var state = getElementState(dep.element);
+            } else if (dep.type === "property" && dep.object) {
+                var state = getObjectState(dep.object);
                 if (state.propertyHandler) {
                     state.propertyHandler.effects.delete(effect);
                 }
@@ -467,7 +472,7 @@ export class Reactivity {
         // Clean up per-element listeners and observers if no effects remain
         for (var [depKey, dep] of effect.dependencies) {
             if (dep.type === "attribute" && dep.element) {
-                var state = getElementState(dep.element);
+                var state = getObjectState(dep.element);
                 if (state.attributeObservers && state.attributeObservers[dep.name]) {
                     var obs = state.attributeObservers[dep.name];
                     if (obs.effects.size === 0) {
@@ -475,8 +480,8 @@ export class Reactivity {
                         delete state.attributeObservers[dep.name];
                     }
                 }
-            } else if (dep.type === "property" && dep.element) {
-                var state = getElementState(dep.element);
+            } else if (dep.type === "property" && dep.object) {
+                var state = getObjectState(dep.object);
                 if (state.propertyHandler && state.propertyHandler.effects.size === 0) {
                     state.propertyHandler.remove();
                     state.propertyHandler = null;

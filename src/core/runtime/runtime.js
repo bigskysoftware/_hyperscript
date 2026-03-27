@@ -413,14 +413,14 @@ export class Runtime {
         }
 
         /**
-         * Set a property on a DOM element and notify the reactivity system.
-         * @param {Element} element
+         * Set a property on an object and notify the reactivity system.
+         * @param {Object} obj - DOM element or plain JS object
          * @param {string} property
          * @param {any} value
          */
-        setProperty(element, property, value) {
-            element[property] = value;
-            reactivity.notifyProperty(element);
+        setProperty(obj, property, value) {
+            obj[property] = value;
+            reactivity.notifyProperty(obj);
         }
 
         resolveAttribute(root, property) {

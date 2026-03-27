@@ -295,11 +295,7 @@ export class PropertyAccess extends Expression {
         ctx.meta.runtime.nullCheck(lhs.root, this.root);
         var runtime = ctx.meta.runtime;
         runtime.implicitLoop(lhs.root, elt => {
-            if (elt instanceof Element) {
-                runtime.setProperty(elt, this.prop.value, value);
-            } else {
-                elt[this.prop.value] = value;
-            }
+            runtime.setProperty(elt, this.prop.value, value);
         });
     }
 }
@@ -399,11 +395,7 @@ export class OfExpression extends Expression {
         } else {
             var runtime = ctx.meta.runtime;
             runtime.implicitLoop(lhs.root, elt => {
-                if (elt instanceof Element) {
-                    runtime.setProperty(elt, prop, value);
-                } else {
-                    elt[prop] = value;
-                }
+                runtime.setProperty(elt, prop, value);
             });
         }
     }
@@ -489,11 +481,7 @@ export class PossessiveExpression extends Expression {
             var runtime = ctx.meta.runtime;
             var prop = this.prop.value;
             runtime.implicitLoop(lhs.root, elt => {
-                if (elt instanceof Element) {
-                    runtime.setProperty(elt, prop, value);
-                } else {
-                    elt[prop] = value;
-                }
+                runtime.setProperty(elt, prop, value);
             });
         }
     }
