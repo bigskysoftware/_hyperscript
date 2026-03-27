@@ -9,6 +9,7 @@ import {Runtime} from './core/runtime/runtime.js';
 import {HyperscriptModule} from './core/runtime/collections.js';
 import {config} from './core/config.js';
 import {conversions} from './core/runtime/conversions.js';
+import {reactivity} from './core/runtime/reactivity.js';
 
 // Import parse element modules
 import * as Expressions from './parsetree/expressions/expressions.js';
@@ -36,6 +37,9 @@ import * as WorkerFeatureModule from './parsetree/features/worker.js';
 import * as BehaviorFeatureModule from './parsetree/features/behavior.js';
 import * as InstallFeatureModule from './parsetree/features/install.js';
 import * as JsFeatureModule from './parsetree/features/js.js';
+import * as WhenFeatureModule from './parsetree/features/when.js';
+import * as BindFeatureModule from './parsetree/features/bind.js';
+import * as AlwaysFeatureModule from './parsetree/features/always.js';
 
 const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'undefined' ? global : this);
 
@@ -76,6 +80,9 @@ kernel.registerModule(WorkerFeatureModule);
 kernel.registerModule(BehaviorFeatureModule);
 kernel.registerModule(InstallFeatureModule);
 kernel.registerModule(JsFeatureModule);
+kernel.registerModule(WhenFeatureModule);
+kernel.registerModule(BindFeatureModule);
+kernel.registerModule(AlwaysFeatureModule);
 
 // ===== Public API =====
 
@@ -111,7 +118,7 @@ const _hyperscript = Object.assign(
         },
 
         internals: {
-            tokenizer, runtime,
+            tokenizer, runtime, reactivity,
             createParser: (tokens) => new Parser(kernel, tokens),
         },
 
