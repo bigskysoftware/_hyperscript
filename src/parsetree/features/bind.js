@@ -236,58 +236,18 @@ function _setAttr(elt, name, value) {
 }
 
 /**
- * Assign a value to a parsed expression target, mirroring what
- * the `set` command does for each target type.
- * @param {Runtime} runtime
- * @param {Object} target - The parsed expression to assign to
- * @param {Context} ctx - Execution context
- * @param {any} value - Value to assign
+ * Assign a value to a parsed expression target. Delegates to the
+ * expression's own set() method (same contract as the set command),
+ * with bind-specific coercion for classes and boolean attributes.
  */
 function _assignTo(runtime, target, ctx, value) {
-    if (target.type === "symbol") {
-        runtime.setSymbol(target.name, ctx, target.scope, value);
-    } else if (target.type === "attributeRef") {
+    if (target.type === "classRef") {
         var elt = ctx.you || ctx.me;
-        if (elt) {
-            _setAttr(elt, target.name, value);
-        }
-    } else if (target.type === "propertyAccess" || target.type === "possessive") {
-        var root = target.root ? target.root.evaluate(ctx) : ctx.me;
-        var prop = target.prop ? target.prop.value : target.name;
-        if (root != null) {
-            runtime.implicitLoop(root, function (elt) {
-                if (elt instanceof Element) {
-                    runtime.setProperty(elt, prop, value);
-                } else {
-                    elt[prop] = value;
-                }
-            });
-        }
-    } else if (target.type === "attributeRefAccess") {
-        var root = target.root ? target.root.evaluate(ctx) : ctx.me;
-        var attr = target.attribute ? target.attribute.name : target.name;
-        if (root != null) {
-            runtime.implicitLoop(root, function (elt) {
-                _setAttr(elt, attr, value);
-            });
-        }
-    } else if (target.type === "classRef") {
+        if (elt) value ? elt.classList.add(target.className) : elt.classList.remove(target.className);
+    } else if (target.type === "attributeRef" && typeof value === "boolean") {
         var elt = ctx.you || ctx.me;
-        if (elt) {
-            if (value) {
-                elt.classList.add(target.className);
-            } else {
-                elt.classList.remove(target.className);
-            }
-        }
-    } else if (target.type === "styleRef") {
-        var elt = ctx.you || ctx.me;
-        if (elt) {
-            elt.style[target.name] = value;
-        }
-    } else if (target.set) {
-        // Fallback: use the expression's own set() method (same as the set command).
-        // This handles ofExpression and any other assignable expression type.
+        if (elt) _setAttr(elt, target.name, value);
+    } else {
         var lhs = {};
         if (target.lhs) {
             for (var key in target.lhs) {
