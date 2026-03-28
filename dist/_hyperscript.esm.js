@@ -72,13 +72,73 @@ var __async = (__this, __arguments, generator) => {
 };
 
 // src/core/tokenizer.js
-var _tokens, _consumed, _lastConsumed, _follows;
+var ParseError = class {
+  constructor(message, token, source) {
+    var _a, _b;
+    this.message = message;
+    this.token = token;
+    this.source = source;
+    this.line = (_a = token == null ? void 0 : token.line) != null ? _a : null;
+    this.column = (_b = token == null ? void 0 : token.column) != null ? _b : null;
+  }
+};
+var ParseRecoverySentinel = class extends Error {
+  constructor(parseError) {
+    super(parseError.message);
+    this.parseError = parseError;
+  }
+};
+function formatErrors(errors) {
+  var _a, _b, _c, _d, _e;
+  if (!errors.length) return "";
+  var source = errors[0].source;
+  var lines = source.split("\n");
+  var byLine = /* @__PURE__ */ new Map();
+  for (var e of errors) {
+    var lineIdx = ((_a = e.token) == null ? void 0 : _a.line) ? e.token.line - 1 : lines.length - 1;
+    if (!byLine.has(lineIdx)) byLine.set(lineIdx, []);
+    byLine.get(lineIdx).push(e);
+  }
+  var maxLine = Math.max(...byLine.keys()) + 1;
+  var gutter = String(maxLine).length;
+  var pad = " ".repeat(gutter + 5);
+  var sortedLines = [...byLine.entries()].sort((a, b) => a[0] - b[0]);
+  var prevLineIdx = -1;
+  var out = "";
+  for (var [lineIdx, lineErrors] of sortedLines) {
+    if (prevLineIdx !== -1 && lineIdx > prevLineIdx + 1) {
+      out += " ".repeat(gutter + 1) + "...\n";
+    } else if (prevLineIdx === -1 && lineIdx > 0) {
+      out += " ".repeat(gutter + 1) + "...\n";
+    }
+    prevLineIdx = lineIdx;
+    var lineNum = String(lineIdx + 1).padStart(gutter);
+    var contextLine = lines[lineIdx] || "";
+    out += "  " + lineNum + " | " + contextLine + "\n";
+    lineErrors.sort((a, b) => (a.column || 0) - (b.column || 0));
+    var underlineChars = Array(contextLine.length + 10).fill(" ");
+    for (var e of lineErrors) {
+      var col = ((_b = e.token) == null ? void 0 : _b.line) ? e.token.column : contextLine.length - 1;
+      var len = Math.max(1, ((_d = (_c = e.token) == null ? void 0 : _c.value) == null ? void 0 : _d.length) || 1);
+      for (var i = 0; i < len; i++) underlineChars[col + i] = "^";
+    }
+    out += pad + underlineChars.join("").trimEnd() + "\n";
+    for (var e of lineErrors) {
+      var col = ((_e = e.token) == null ? void 0 : _e.line) ? e.token.column : 0;
+      out += pad + " ".repeat(col) + e.message + "\n";
+    }
+  }
+  return out;
+}
+var _tokens, _consumed, _lastConsumed, _follows, _errors, _recoveryMode;
 var Tokens = class {
   constructor(tokens, source) {
     __privateAdd(this, _tokens);
     __privateAdd(this, _consumed, []);
     __privateAdd(this, _lastConsumed, null);
     __privateAdd(this, _follows, []);
+    __privateAdd(this, _errors, []);
+    __privateAdd(this, _recoveryMode, false);
     __publicField(this, "source");
     __privateSet(this, _tokens, tokens);
     this.source = source;
@@ -89,6 +149,35 @@ var Tokens = class {
   }
   get consumed() {
     return __privateGet(this, _consumed);
+  }
+  // ----- Error recovery -----
+  enableRecovery() {
+    __privateSet(this, _recoveryMode, true);
+  }
+  get recoveryMode() {
+    return __privateGet(this, _recoveryMode);
+  }
+  get errors() {
+    return __privateGet(this, _errors);
+  }
+  // ----- Debug -----
+  toString() {
+    var _a;
+    var cur = this.currentToken();
+    var lines = this.source.split("\n");
+    var lineIdx = (cur == null ? void 0 : cur.line) ? cur.line - 1 : lines.length - 1;
+    var col = (cur == null ? void 0 : cur.line) ? cur.column : 0;
+    var contextLine = lines[lineIdx] || "";
+    var tokenLen = Math.max(1, ((_a = cur == null ? void 0 : cur.value) == null ? void 0 : _a.length) || 1);
+    var gutter = String(lineIdx + 1).length;
+    var out = "Tokens(";
+    out += __privateGet(this, _consumed).filter((t) => t.type !== "WHITESPACE").length + " consumed, ";
+    out += __privateGet(this, _tokens).filter((t) => t.type !== "WHITESPACE").length + " remaining";
+    out += ", line " + (lineIdx + 1) + ")\n";
+    out += "  " + String(lineIdx + 1).padStart(gutter) + " | " + contextLine + "\n";
+    out += " ".repeat(gutter + 5) + " ".repeat(col) + "^".repeat(tokenLen);
+    if (cur) out += " " + cur.type + " '" + cur.value + "'";
+    return out;
   }
   // ----- Token access -----
   currentToken() {
@@ -219,14 +308,21 @@ var Tokens = class {
   }
   // ----- Error handling -----
   raiseError(message) {
-    message = (message || "Unexpected Token : " + this.currentToken().value) + "\n\n";
+    var _a;
+    message = message || "Unexpected Token : " + this.currentToken().value;
     var currentToken = this.currentToken();
+    var parseError = new ParseError(message, currentToken, this.source);
+    if (__privateGet(this, _recoveryMode)) {
+      __privateGet(this, _errors).push(parseError);
+      throw new ParseRecoverySentinel(parseError);
+    }
     var lines = this.source.split("\n");
-    var line = currentToken && currentToken.line ? currentToken.line - 1 : lines.length - 1;
-    var contextLine = lines[line];
-    var offset = currentToken && currentToken.line ? currentToken.column : contextLine.length - 1;
-    message += contextLine + "\n" + " ".repeat(offset) + "^^\n\n";
-    var error = new Error(message);
+    var lineIdx = (currentToken == null ? void 0 : currentToken.line) ? currentToken.line - 1 : lines.length - 1;
+    var contextLine = lines[lineIdx] || "";
+    var col = (currentToken == null ? void 0 : currentToken.line) ? currentToken.column : contextLine.length - 1;
+    var tokenLen = Math.max(1, ((_a = currentToken == null ? void 0 : currentToken.value) == null ? void 0 : _a.length) || 1);
+    var formatted = message + "\n\n" + contextLine + "\n" + " ".repeat(col) + "^".repeat(tokenLen) + "\n";
+    var error = new Error(formatted);
     error["tokens"] = this;
     throw error;
   }
@@ -235,6 +331,8 @@ _tokens = new WeakMap();
 _consumed = new WeakMap();
 _lastConsumed = new WeakMap();
 _follows = new WeakMap();
+_errors = new WeakMap();
+_recoveryMode = new WeakMap();
 var OP_TABLE = {
   "+": "PLUS",
   "-": "MINUS",
@@ -800,11 +898,30 @@ var HyperscriptProgram = class {
   constructor(features) {
     this.type = "hyperscript";
     this.features = features;
+    this.errors = [];
   }
   apply(target, source, args, runtime2) {
     for (const feature of this.features) {
       feature.install(target, source, args, runtime2);
     }
+  }
+};
+var FailedFeature = class extends Feature {
+  constructor(error) {
+    super();
+    this.type = "failedFeature";
+    this.error = error;
+  }
+  install() {
+  }
+};
+var FailedCommand = class extends Command {
+  constructor(error) {
+    super();
+    this.type = "failedCommand";
+    this.error = error;
+  }
+  resolve() {
   }
 };
 var ImplicitReturn = class extends Command {
@@ -994,9 +1111,10 @@ _possessivesDisabled = new WeakMap();
 var Parser = _Parser;
 
 // src/core/kernel.js
-var _grammar, _commands, _features, _leafExpressions, _indirectExpressions, _postfixExpressions, _unaryExpressions, _topExpressions, _assignableExpressions;
+var _grammar, _commands, _features, _leafExpressions, _indirectExpressions, _postfixExpressions, _unaryExpressions, _topExpressions, _assignableExpressions, _LanguageKernel_instances, syncToFeature_fn, syncToCommand_fn;
 var _LanguageKernel = class _LanguageKernel {
   constructor() {
+    __privateAdd(this, _LanguageKernel_instances);
     __privateAdd(this, _grammar, {});
     __privateAdd(this, _commands, {});
     __privateAdd(this, _features, {});
@@ -1050,7 +1168,17 @@ var _LanguageKernel = class _LanguageKernel {
   }
   parseCommandList(parser) {
     if (parser.hasMore()) {
-      var cmd = parser.parseElement("command");
+      var cmd;
+      try {
+        cmd = parser.parseElement("command");
+      } catch (e) {
+        if (e instanceof ParseRecoverySentinel) {
+          cmd = new FailedCommand(e.parseError);
+          __privateMethod(this, _LanguageKernel_instances, syncToCommand_fn).call(this, parser);
+        } else {
+          throw e;
+        }
+      }
       if (cmd) {
         parser.matchToken("then");
         const next = parser.parseElement("commandList");
@@ -1132,10 +1260,36 @@ var _LanguageKernel = class _LanguageKernel {
   parseHyperscriptProgram(parser) {
     var features = [];
     if (parser.hasMore()) {
-      while (parser.featureStart(parser.currentToken()) || parser.currentToken().value === "(") {
-        var feature = parser.requireElement("feature");
-        features.push(feature);
-        parser.matchToken("end");
+      while (parser.currentToken().type !== "EOF") {
+        if (parser.featureStart(parser.currentToken()) || parser.currentToken().value === "(") {
+          try {
+            var feature = parser.requireElement("feature");
+            features.push(feature);
+            parser.matchToken("end");
+          } catch (e) {
+            if (e instanceof ParseRecoverySentinel) {
+              features.push(new FailedFeature(e.parseError));
+              __privateMethod(this, _LanguageKernel_instances, syncToFeature_fn).call(this, parser);
+            } else {
+              throw e;
+            }
+          }
+        } else if (parser.currentToken().value === "end") {
+          break;
+        } else if (parser.tokens.recoveryMode) {
+          try {
+            parser.raiseParseError("Unexpected token: " + parser.currentToken().value);
+          } catch (e) {
+            if (e instanceof ParseRecoverySentinel) {
+              features.push(new FailedFeature(e.parseError));
+              __privateMethod(this, _LanguageKernel_instances, syncToFeature_fn).call(this, parser);
+            } else {
+              throw e;
+            }
+          }
+        } else {
+          break;
+        }
       }
     }
     return new HyperscriptProgram(features);
@@ -1307,10 +1461,19 @@ var _LanguageKernel = class _LanguageKernel {
     tokens.raiseError(message);
   }
   parseHyperScript(tokens) {
+    tokens.enableRecovery();
     var parser = new Parser(this, tokens);
-    var result = parser.parseElement("hyperscript");
-    if (tokens.hasMore()) this.raiseParseError(tokens);
-    if (result) return result;
+    var result;
+    try {
+      result = parser.parseElement("hyperscript");
+      if (tokens.hasMore()) this.raiseParseError(tokens);
+    } catch (e) {
+      if (!(e instanceof ParseRecoverySentinel)) throw e;
+    }
+    if (result) {
+      result.errors = tokens.errors;
+      return result;
+    }
   }
   parse(tokenizer2, src) {
     var tokens = tokenizer2.tokenize(src);
@@ -1340,6 +1503,22 @@ _postfixExpressions = new WeakMap();
 _unaryExpressions = new WeakMap();
 _topExpressions = new WeakMap();
 _assignableExpressions = new WeakMap();
+_LanguageKernel_instances = new WeakSet();
+syncToFeature_fn = function(parser) {
+  parser.tokens.clearFollows();
+  while (parser.hasMore() && !parser.featureStart(parser.currentToken()) && parser.currentToken().value !== "end" && parser.currentToken().type !== "EOF") {
+    parser.tokens.consumeToken();
+  }
+};
+syncToCommand_fn = function(parser) {
+  parser.tokens.clearFollows();
+  while (parser.hasMore() && !parser.commandBoundary(parser.currentToken())) {
+    parser.tokens.consumeToken();
+  }
+  if (parser.hasMore() && parser.currentToken().value === "then") {
+    parser.tokens.consumeToken();
+  }
+};
 var LanguageKernel = _LanguageKernel;
 
 // src/core/config.js
@@ -2736,6 +2915,7 @@ hashScript_fn = function(str) {
   return hash;
 };
 initElement_fn = function(elt, target) {
+  var _a;
   if (elt.closest && elt.closest(config.disableSelector)) {
     return;
   }
@@ -2755,6 +2935,17 @@ initElement_fn = function(elt, target) {
     var tokens = __privateGet(this, _tokenizer).tokenize(src);
     var hyperScript = __privateGet(this, _kernel2).parseHyperScript(tokens);
     if (!hyperScript) return;
+    if ((_a = hyperScript.errors) == null ? void 0 : _a.length) {
+      this.triggerEvent(elt, "hyperscript:parse-error", {
+        errors: hyperScript.errors
+      });
+      console.error(
+        "hyperscript: " + hyperScript.errors.length + " parse error(s) on:",
+        elt,
+        "\n\n" + formatErrors(hyperScript.errors)
+      );
+      return;
+    }
     hyperScript.apply(target || elt, elt, null, this);
     elt.setAttribute("data-hyperscript-powered", "true");
     this.triggerEvent(elt, "hyperscript:after:init");
