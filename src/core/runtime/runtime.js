@@ -4,6 +4,7 @@ import { conversions } from './conversions.js';
 import { CookieJar } from './cookies.js';
 import { ElementCollection, SHOULD_AUTO_ITERATE_SYM } from './collections.js';
 import { reactivity } from './reactivity.js';
+import { formatErrors } from '../tokenizer.js';
 
 // cookie jar proxy for runtime
 let cookies = new CookieJar().proxy();
@@ -719,6 +720,19 @@ export class Runtime {
                 var tokens = this.#tokenizer.tokenize(src);
                 var hyperScript = this.#kernel.parseHyperScript(tokens);
                 if (!hyperScript) return;
+
+                if (hyperScript.errors?.length) {
+                    this.triggerEvent(elt, "hyperscript:parse-error", {
+                        errors: hyperScript.errors,
+                    });
+                    console.error(
+                        "hyperscript: " + hyperScript.errors.length + " parse error(s) on:",
+                        elt,
+                        "\n\n" + formatErrors(hyperScript.errors)
+                    );
+                    return;
+                }
+
                 hyperScript.apply(target || elt, elt, null, this);
                 elt.setAttribute('data-hyperscript-powered', 'true');
                 this.triggerEvent(elt, "hyperscript:after:init");
