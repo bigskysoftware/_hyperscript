@@ -706,6 +706,9 @@ var Expression = class extends ParseElement {
   evaluate(context) {
     return context.meta.runtime.unifiedEval(this, context);
   }
+  evalStatically() {
+    throw new Error("This expression cannot be evaluated statically: " + this.type);
+  }
 };
 var Command = class extends ParseElement {
   constructor() {
@@ -3255,7 +3258,7 @@ var _AsExpression = class _AsExpression extends Expression {
   static parse(parser, root) {
     if (!parser.matchToken("as")) return;
     parser.matchToken("a") || parser.matchToken("an");
-    var conversion = parser.requireElement("dotOrColonPath").evaluate();
+    var conversion = parser.requireElement("dotOrColonPath").evalStatically();
     var asExpression = new _AsExpression(root, conversion);
     return parser.parseElement("indirectExpression", asExpression);
   }
@@ -3700,9 +3703,7 @@ var DotOrColonPathNode = class extends Expression {
     this.path = path;
     this.separator = separator;
   }
-  // Called at both parse time (no context) and runtime, so cannot use the
-  // default evaluate() which requires a context for unifiedEval.
-  evaluate() {
+  evalStatically() {
     return this.path.join(this.separator ? this.separator : "");
   }
   resolve() {
@@ -3753,6 +3754,9 @@ var _NakedString = class _NakedString extends Expression {
       return new _NakedString(tokenArr);
     }
   }
+  evalStatically() {
+    return this.resolve();
+  }
   resolve(context) {
     return this.tokens.map(function(t) {
       return t.value;
@@ -3772,6 +3776,9 @@ var _BooleanLiteral = class _BooleanLiteral extends Expression {
     const value = booleanLiteral.value === "true";
     return new _BooleanLiteral(value);
   }
+  evalStatically() {
+    return this.value;
+  }
   resolve(context) {
     return this.value;
   }
@@ -3787,6 +3794,9 @@ var _NullLiteral = class _NullLiteral extends Expression {
     if (parser.matchToken("null")) {
       return new _NullLiteral();
     }
+  }
+  evalStatically() {
+    return null;
   }
   resolve(context) {
     return null;
@@ -3810,6 +3820,9 @@ var _NumberLiteral = class _NumberLiteral extends Expression {
       number.value
     );
     return new _NumberLiteral(value, numberToken);
+  }
+  evalStatically() {
+    return this.value;
   }
   resolve(context) {
     return this.value;
@@ -3841,6 +3854,10 @@ var _StringLiteral = class _StringLiteral extends Expression {
       args = [];
     }
     return new _StringLiteral(stringToken, rawValue, args);
+  }
+  evalStatically() {
+    if (this.args === null) return this.rawValue;
+    return super.evalStatically();
   }
   resolve(context, { parts } = {}) {
     if (!parts || parts.length === 0) {
@@ -3907,6 +3924,10 @@ var _ObjectKey = class _ObjectKey extends Expression {
       } while (token);
       return new _ObjectKey(key, null, null);
     }
+  }
+  evalStatically() {
+    if (!this.expr) return this.key;
+    return super.evalStatically();
   }
   resolve(ctx, { value } = {}) {
     if (this.expr) {
@@ -4317,6 +4338,9 @@ var _TimeExpression = class _TimeExpression extends Expression {
     }
     if (!timeFactor) return;
     return new _TimeExpression(root, timeFactor);
+  }
+  evalStatically() {
+    return this.time.evalStatically() * this.factor;
   }
   resolve(context, { value: val }) {
     return val * this.factor;
@@ -5076,7 +5100,7 @@ var _FetchCommand = class _FetchCommand extends Command {
       type = "html";
     } else if (parser.matchToken("text")) {
     } else {
-      conversion = parser.requireElement("dotOrColonPath").evaluate();
+      conversion = parser.requireElement("dotOrColonPath").evalStatically();
     }
     return { type, conversion };
   }
@@ -5577,7 +5601,7 @@ var _WaitCommand = class _WaitCommand extends Command {
           events.push(parser.requireElement("expression"));
         } else {
           events.push({
-            name: parser.requireElement("dotOrColonPath", "Expected event name").evaluate(),
+            name: parser.requireElement("dotOrColonPath", "Expected event name").evalStatically(),
             args: ParseElement.parseEventArgs(parser)
           });
         }
@@ -5673,8 +5697,10 @@ var _EventName = class _EventName extends Expression {
     super();
     this.value = value;
   }
-  // Called at parse time without a context, so must override evaluate()
-  evaluate() {
+  evalStatically() {
+    return this.value;
+  }
+  resolve(context) {
     return this.value;
   }
   static parse(parser) {
@@ -7311,7 +7337,7 @@ var _OnFeature = class _OnFeature extends Feature {
     var displayName = null;
     do {
       var on = parser.requireElement("eventName", "Expected event name");
-      var eventName = on.evaluate();
+      var eventName = on.evalStatically();
       if (displayName) {
         displayName = displayName + " or " + eventName;
       } else {
@@ -7341,14 +7367,14 @@ var _OnFeature = class _OnFeature extends Feature {
       if (eventName === "intersection") {
         intersectionSpec = {};
         if (parser.matchToken("with")) {
-          intersectionSpec["with"] = parser.requireElement("expression").evaluate();
+          intersectionSpec["with"] = parser.requireElement("expression").evalStatically();
         }
         if (parser.matchToken("having")) {
           do {
             if (parser.matchToken("margin")) {
-              intersectionSpec["rootMargin"] = parser.requireElement("stringLike").evaluate();
+              intersectionSpec["rootMargin"] = parser.requireElement("stringLike").evalStatically();
             } else if (parser.matchToken("threshold")) {
-              intersectionSpec["threshold"] = parser.requireElement("expression").evaluate();
+              intersectionSpec["threshold"] = parser.requireElement("expression").evalStatically();
             } else {
               parser.raiseParseError("Unknown intersection config specification");
             }
@@ -7422,11 +7448,11 @@ var _OnFeature = class _OnFeature extends Feature {
       if (parser.matchToken("debounced")) {
         parser.requireToken("at");
         var timeExpr = parser.requireElement("unaryExpression");
-        var debounceTime = timeExpr.evaluate({});
+        var debounceTime = timeExpr.evalStatically();
       } else if (parser.matchToken("throttled")) {
         parser.requireToken("at");
         var timeExpr = parser.requireElement("unaryExpression");
-        var throttleTime = timeExpr.evaluate({});
+        var throttleTime = timeExpr.evalStatically();
       }
       events.push({
         every,
@@ -7538,7 +7564,7 @@ var _DefFeature = class _DefFeature extends Feature {
   static parse(parser) {
     if (!parser.matchToken("def")) return;
     var functionName = parser.requireElement("dotOrColonPath");
-    var nameVal = functionName.evaluate();
+    var nameVal = functionName.evalStatically();
     var nameSpace = nameVal.split(".");
     var funcName = nameSpace.pop();
     var args = [];
@@ -7682,7 +7708,7 @@ var _BehaviorFeature = class _BehaviorFeature extends Feature {
   }
   static parse(parser) {
     if (!parser.matchToken("behavior")) return;
-    var path = parser.requireElement("dotOrColonPath").evaluate();
+    var path = parser.requireElement("dotOrColonPath").evalStatically();
     var nameSpace = path.split(".");
     var name = nameSpace.pop();
     var formalParams = [];
@@ -7730,7 +7756,7 @@ var _InstallFeature = class _InstallFeature extends Feature {
   }
   static parse(parser) {
     if (!parser.matchToken("install")) return;
-    var behaviorPath = parser.requireElement("dotOrColonPath").evaluate();
+    var behaviorPath = parser.requireElement("dotOrColonPath").evalStatically();
     var behaviorNamespace = behaviorPath.split(".");
     var args = parser.parseElement("namedArgumentList");
     return new _InstallFeature(behaviorPath, behaviorNamespace, args);

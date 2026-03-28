@@ -70,7 +70,7 @@
       var urlElement;
       var withCredentials = false;
       var name = parser.requireElement("dotOrColonPath");
-      var qualifiedName = name.evaluate();
+      var qualifiedName = name.evalStatically();
       var nameSpace = qualifiedName.split(".");
       var eventSourceName = nameSpace.pop();
       if (parser.matchToken("from")) {
@@ -146,10 +146,10 @@
       };
       var feature = new _EventSourceFeature(eventSourceName, nameSpace, stub);
       while (parser.matchToken("on")) {
-        var eventName = parser.requireElement("stringLike").evaluate();
+        var eventName = parser.requireElement("stringLike").evalStatically();
         var encoding = "";
         if (parser.matchToken("as")) {
-          encoding = parser.requireElement("stringLike").evaluate();
+          encoding = parser.requireElement("stringLike").evalStatically();
         }
         var commandList = parser.requireElement("commandList");
         parser.ensureTerminated(commandList);
@@ -161,7 +161,7 @@
       }
       parser.requireToken("end");
       if (urlElement != void 0) {
-        stub.open(urlElement.evaluate());
+        stub.open(urlElement.evalStatically());
       }
       return feature;
     }

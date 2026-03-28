@@ -563,7 +563,7 @@ export class AsExpression extends Expression {
     static parse(parser, root) {
         if (!parser.matchToken("as")) return;
         parser.matchToken("a") || parser.matchToken("an");
-        var conversion = parser.requireElement("dotOrColonPath").evaluate(); // OK No promise
+        var conversion = parser.requireElement("dotOrColonPath").evalStatically();
         var asExpression = new AsExpression(root, conversion);
         return parser.parseElement("indirectExpression", asExpression);
     }
@@ -1082,9 +1082,7 @@ class DotOrColonPathNode extends Expression {
         this.separator = separator;
     }
 
-    // Called at both parse time (no context) and runtime, so cannot use the
-    // default evaluate() which requires a context for unifiedEval.
-    evaluate() {
+    evalStatically() {
         return this.path.join(this.separator ? this.separator : "");
     }
 

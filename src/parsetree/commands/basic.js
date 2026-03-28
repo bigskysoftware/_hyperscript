@@ -519,7 +519,7 @@ export class FetchCommand extends Command {
         } else if (parser.matchToken("text")) {
             // default, ignore
         } else {
-            conversion = parser.requireElement("dotOrColonPath").evaluate();
+            conversion = parser.requireElement("dotOrColonPath").evalStatically();
         }
         return {type, conversion};
     }

@@ -267,7 +267,7 @@ export class OnFeature extends Feature {
         do {
             var on = parser.requireElement("eventName", "Expected event name");
 
-            var eventName = on.evaluate(); // OK No Promise
+            var eventName = on.evalStatically();
 
             if (displayName) {
                 displayName = displayName + " or " + eventName;
@@ -301,14 +301,14 @@ export class OnFeature extends Feature {
             if (eventName === "intersection") {
                 intersectionSpec = {};
                 if (parser.matchToken("with")) {
-                    intersectionSpec["with"] = parser.requireElement("expression").evaluate();
+                    intersectionSpec["with"] = parser.requireElement("expression").evalStatically();
                 }
                 if (parser.matchToken("having")) {
                     do {
                         if (parser.matchToken("margin")) {
-                            intersectionSpec["rootMargin"] = parser.requireElement("stringLike").evaluate();
+                            intersectionSpec["rootMargin"] = parser.requireElement("stringLike").evalStatically();
                         } else if (parser.matchToken("threshold")) {
-                            intersectionSpec["threshold"] = parser.requireElement("expression").evaluate();
+                            intersectionSpec["threshold"] = parser.requireElement("expression").evalStatically();
                         } else {
                             parser.raiseParseError("Unknown intersection config specification");
                         }
@@ -386,11 +386,11 @@ export class OnFeature extends Feature {
             if (parser.matchToken("debounced")) {
                 parser.requireToken("at");
                 var timeExpr = parser.requireElement("unaryExpression");
-                var debounceTime = timeExpr.evaluate({}); // OK No promise TODO make a literal time expr
+                var debounceTime = timeExpr.evalStatically();
             } else if (parser.matchToken("throttled")) {
                 parser.requireToken("at");
                 var timeExpr = parser.requireElement("unaryExpression");
-                var throttleTime = timeExpr.evaluate({}); // OK No promise TODO make a literal time expr
+                var throttleTime = timeExpr.evalStatically();
             }
 
             events.push({

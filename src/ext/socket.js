@@ -45,7 +45,7 @@ export class SocketFeature extends Feature {
 		if (!parser.matchToken("socket")) return;
 
 		var name = parser.requireElement("dotOrColonPath");
-		var qualifiedName = name.evaluate();
+		var qualifiedName = name.evalStatically();
 		var nameSpace = qualifiedName.split(".");
 		var socketName = nameSpace.pop();
 
@@ -55,7 +55,7 @@ export class SocketFeature extends Feature {
 		var defaultTimeout = 10000;
 		if (parser.matchToken("with")) {
 			parser.requireToken("timeout");
-			defaultTimeout = parser.requireElement("expression").evaluate();
+			defaultTimeout = parser.requireElement("expression").evalStatically();
 		}
 
 		var jsonMessages = false;
@@ -70,7 +70,7 @@ export class SocketFeature extends Feature {
 			parser.ensureTerminated(messageHandler);
 		}
 
-		var socket = new WebSocket(parseUrl(url.evaluate()));
+		var socket = new WebSocket(parseUrl(url.evalStatically()));
 
 		function getProxy(timeout) {
 			return new Proxy(
@@ -97,7 +97,7 @@ export class SocketFeature extends Feature {
 									function: property,
 									args: args,
 								};
-								socket = socket ? socket : new WebSocket(parseUrl(url.evaluate())); //recreate socket if needed
+								socket = socket ? socket : new WebSocket(parseUrl(url.evalStatically())); //recreate socket if needed
 								socket.send(JSON.stringify(rpcInfo));
 
 								var promise = new Promise(function (resolve, reject) {

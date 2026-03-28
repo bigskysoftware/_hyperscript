@@ -52,6 +52,10 @@ export class Expression extends ParseElement {
     evaluate(context) {
         return context.meta.runtime.unifiedEval(this, context);
     }
+
+    evalStatically() {
+        throw new Error("This expression cannot be evaluated statically: " + this.type);
+    }
 }
 
 /**

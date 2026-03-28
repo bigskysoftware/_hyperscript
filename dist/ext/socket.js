@@ -87,7 +87,7 @@
     static parse(parser) {
       if (!parser.matchToken("socket")) return;
       var name = parser.requireElement("dotOrColonPath");
-      var qualifiedName = name.evaluate();
+      var qualifiedName = name.evalStatically();
       var nameSpace = qualifiedName.split(".");
       var socketName = nameSpace.pop();
       var promises = {};
@@ -95,7 +95,7 @@
       var defaultTimeout = 1e4;
       if (parser.matchToken("with")) {
         parser.requireToken("timeout");
-        defaultTimeout = parser.requireElement("expression").evaluate();
+        defaultTimeout = parser.requireElement("expression").evalStatically();
       }
       var jsonMessages = false;
       var messageHandler = null;
@@ -108,7 +108,7 @@
         messageHandler = parser.requireElement("commandList");
         parser.ensureTerminated(messageHandler);
       }
-      var socket = new WebSocket(parseUrl(url.evaluate()));
+      var socket = new WebSocket(parseUrl(url.evalStatically()));
       function getProxy(timeout) {
         return new Proxy(
           {},
@@ -134,7 +134,7 @@
                     function: property,
                     args
                   };
-                  socket = socket ? socket : new WebSocket(parseUrl(url.evaluate()));
+                  socket = socket ? socket : new WebSocket(parseUrl(url.evalStatically()));
                   socket.send(JSON.stringify(rpcInfo));
                   var promise = new Promise(function(resolve, reject) {
                     promises[uuid] = {

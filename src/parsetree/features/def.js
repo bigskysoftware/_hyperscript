@@ -85,7 +85,7 @@ export class DefFeature extends Feature {
     static parse(parser) {
         if (!parser.matchToken("def")) return;
         var functionName = parser.requireElement("dotOrColonPath");
-        var nameVal = functionName.evaluate(); // OK
+        var nameVal = functionName.evalStatically();
         var nameSpace = nameVal.split(".");
         var funcName = nameSpace.pop();
 
