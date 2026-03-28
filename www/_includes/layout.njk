@@ -14,7 +14,10 @@ title: ///_hyperscript
     <link rel="stylesheet" href="/css/prism-htmx.css"/>
     <script src="/js/_hyperscript.js"></script>
 </head>
-<body>
+<body _="on keydown[key is 'k' and (metaKey or ctrlKey)]
+           halt the event
+           focus() on #search-input"
+>
 <header class="navbar">
     <nav>
         <a href="/" class="nav-logo"><span class="logo-slashes">///</span><span class="logo-underscore">_</span></a>
@@ -25,20 +28,95 @@ title: ///_hyperscript
         <ul class="nav-links">
             <li><a href="/docs/">docs</a>
             <li><a href="/reference/">reference</a>
-            <li><a href="/cookbook/">cookbook</a>
+            <li><a href="/patterns/">patterns</a>
             <li><a href="/playground/">try it!</a>
             <li><a href="/talk/">talk</a>
             <li class="nav-spacer"></li>
-            <li><form action="https://google.com/search">
-                <input type="hidden" name="q" value="site:hyperscript.org" />
-                <label><v-h>Search</v-h><input type="text" name="q" placeholder="🔍️" class="search-box" /></label>
-            </form>
+            <li><div class="search-wrapper">
+                <input type="text" id="search-input" class="search-box"
+                    _="init
+                         if navigator.platform matches 'Mac' or navigator.platform matches 'iP'
+                             set my placeholder to '⌘K'
+                         else
+                             set my placeholder to 'Ctrl+K'
+                         end
+                       end
+
+                       on keyup[key is not 'ArrowUp' and key is not 'ArrowDown' and key is not 'Escape' and key is not 'Enter'] debounced at 200ms
+                         if my value is ''
+                             set #search-results.innerHTML to ''
+                             add .hidden to #search-results
+                         else
+                             set val to my value
+                             set response to pagefind.search(val)
+                             set items to response.results[0 .. 9]
+                             set output to ''
+                             repeat for item in items
+                                 set info to item.data()
+                                 set output to output + '<a class=\'search-result\' href=\'' + info.url + '\'>'
+                                     + '<span class=\'search-result-title\'>' + info.meta.title + '</span>'
+                                     + '<span class=\'search-result-excerpt\'>' + info.excerpt + '</span>'
+                                     + '</a>'
+                             end
+                             put output into #search-results
+                             remove .hidden from #search-results
+                         end
+                       end
+
+                       on keydown[key is 'ArrowDown']
+                         halt the event
+                         set current to .search-result.selected in #search-results
+                         if current exists
+                             remove .selected from current
+                             set next to next <a.search-result/> from current
+                             if next exists add .selected to next
+                             else add .selected to first <a.search-result/> in #search-results
+                         else
+                             add .selected to first <a.search-result/> in #search-results
+                         end
+                       end
+
+                       on keydown[key is 'ArrowUp']
+                         halt the event
+                         set current to .search-result.selected in #search-results
+                         if current exists
+                             remove .selected from current
+                             set prev to previous <a.search-result/> from current
+                             if prev exists add .selected to prev
+                             else add .selected to last <a.search-result/> in #search-results
+                         else
+                             add .selected to last <a.search-result/> in #search-results
+                         end
+                       end
+
+                       on keydown[key is 'Enter']
+                         set current to .search-result.selected in #search-results
+                         if current exists go to current's @href end
+                       end
+
+                       on keydown[key is 'Escape']
+                         set my value to ''
+                         set #search-results.innerHTML to ''
+                         add .hidden to #search-results
+                         blur() me
+                       end
+
+                       on blur
+                         wait 200ms
+                         add .hidden to #search-results
+                       end"
+                />
+                <div id="search-results" class="search-results hidden"></div>
+            </div>
             <li><a href="https://github.com/bigskysoftware/_hyperscript" class="nav-github" aria-label="GitHub"><svg viewBox="0 0 16 16" width="20" height="20" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
         </ul>
     </nav>
 </header>
-<div class="container content">
+<div class="container content" data-pagefind-body>
     {{ content | safe }}
 </div>
+<script type="module">
+    window.pagefind = await import("/pagefind/pagefind.js");
+</script>
 </body>
 </html>

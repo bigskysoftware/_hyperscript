@@ -196,14 +196,82 @@ body {
 }
 .nav-github svg { display: block; }
 
-/* Search box */
+/* Search */
+.search-wrapper {
+    position: relative;
+}
 .search-box {
     width: 3em;
     transition: width 0.2s ease-in-out;
     font-size: 0.85rem;
     padding: 3px 6px;
+    font-family: var(--font);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    background: var(--bg);
 }
-.search-box:focus { width: 15em; }
+.search-box:focus {
+    width: 15em;
+    outline: 2px solid var(--accent);
+    outline-offset: -1px;
+}
+.search-results {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    width: 380px;
+    max-height: 70vh;
+    overflow-y: auto;
+    background: var(--bg);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    z-index: 1000;
+    padding: 4px;
+}
+.search-results.hidden { display: none; }
+.search-result {
+    display: block;
+    padding: 8px 10px;
+    text-decoration: none;
+    color: var(--text);
+    border-radius: 3px;
+    font-family: var(--font);
+}
+.search-result:hover,
+.search-result.selected {
+    background: var(--accent);
+    color: white;
+}
+.search-result:hover .search-result-excerpt,
+.search-result.selected .search-result-excerpt {
+    color: rgba(255,255,255,0.85);
+}
+.search-result + .search-result {
+    border-top: 1px solid var(--border);
+}
+.search-result-title {
+    display: block;
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-bottom: 2px;
+}
+.search-result-excerpt {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+.search-result-excerpt mark {
+    background: var(--warn-bg);
+    color: inherit;
+    padding: 0 1px;
+    border-radius: 2px;
+}
+.search-result:hover .search-result-excerpt mark,
+.search-result.selected .search-result-excerpt mark {
+    background: rgba(255,255,255,0.25);
+}
 
 /* Hamburger */
 .hamburger {
@@ -591,7 +659,6 @@ figure.box > :last-child {
 .example-code {
     background: var(--bg-subtle);
     padding: 0;
-    border-bottom: 1px solid var(--border);
     overflow-x: auto;
 }
 
@@ -603,6 +670,12 @@ figure.box > :last-child {
 .example-output {
     padding: 14px;
     background: var(--bg);
+    border-top: 1px solid var(--border);
+}
+
+.example-output:empty,
+.example-output:not(:has(button, input, output, div, span, p, a, form, select, textarea, table, img, ul, ol)) {
+    display: none;
 }
 
 /* Style bare buttons/inputs in example outputs */
@@ -883,10 +956,60 @@ v-h { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden;
     margin-bottom: 1.5rem;
 }
 
-.hero-code {
-    max-width: 480px;
+.hero-split {
+    display: flex;
+    gap: 1.5rem;
+    align-items: stretch;
     margin: 0 auto 1.2rem;
+    max-width: 720px;
     text-align: left;
+}
+
+.hero-code {
+    flex: 1;
+    margin: 0;
+    min-width: 0;
+}
+
+.hero-demo {
+    flex: 0 0 240px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    display: flex;
+    flex-direction: column;
+}
+
+.hero-demo input {
+    width: 100%;
+    font-size: 0.95rem !important;
+    padding: 6px 10px !important;
+    margin-bottom: 8px;
+    flex-shrink: 0;
+}
+
+.hero-demo ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    height: 200px;
+}
+
+.hero-demo li {
+    padding: 3px 0;
+    font-size: 0.88rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.hero-demo li:last-child {
+    border-bottom: none;
+}
+
+@media (max-width: 600px) {
+    .hero-split { flex-direction: column; }
+    .hero-demo { flex: none; }
 }
 
 /* ---- Install bar ---- */
@@ -960,8 +1083,9 @@ v-h { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden;
 .talk-link {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 10px;
-    padding: 8px 18px;
+    padding: 10px 18px;
     text-decoration: none;
     font-family: var(--font-heading);
     font-size: 1rem;

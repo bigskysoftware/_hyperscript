@@ -8,29 +8,70 @@ title: ///_hyperscript
     <h1>A scripting language for the web</h1>
     <p class="subtitle">Enhance HTML with concise DOM, event and async features. <strong>Make writing interactive HTML a joy.</strong></p>
 
-    <div class="window hero-code">
-        <div class="window-title">example.html</div>
-        <pre class="window-body"><code>on pointerdown
-  repeat until event pointerup from the document
-    set rand to Math.random() * 360
-    transition
-      *background-color
-      to `hsl($rand 100% 90%)`
-      over 250ms
-  end
-  transition *background-color to initial</code></pre>
-    </div>
-
-    <div style="text-align:center; margin: 1rem 0;">
-        <button class="btn btn-primary btn-lg"
-                _="on pointerdown
-                     repeat until event pointerup from the document
-                       set rand to Math.random() * 360
-                       transition *background-color to `hsl($rand 100% 90%)` over 250ms
-                     end
-                     transition *background-color to initial">
-            Try me: press and hold
-        </button>
+    <div class="hero-split">
+        <div class="window hero-code">
+            <div class="window-title">example.html</div>
+            <pre class="window-body"><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>input</span> <span class="token attr-name">type</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>text<span class="token punctuation">"</span></span>
+       <span class="token attr-name">placeholder</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>Search...<span class="token punctuation">"</span></span>
+       <span class="token special-attr"><span class="token attr-name">_</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span><span class="token value hyperscript language-hyperscript"><span class="token keyword"><span class="token hs-start bold">on</span></span> input
+            <span class="token keyword"><span class="token hs-start bold">show</span></span><span class="token selector"> &lt;li/&gt;</span> <span class="token keyword">in</span> <span class="token selector">#results</span>
+              <span class="token keyword">when</span> <span class="token builtin">its</span> textContent
+                <span class="token keyword">contains</span> <span class="token builtin">my</span> value</span><span class="token punctuation">"</span></span></span> <span class="token punctuation">/&gt;</span></span></code></pre>
+        </div>
+        <div class="hero-demo">
+            <input type="text" placeholder="Try it — type to search..."
+                   _="on input
+                        show <li:not(#no-match)/> in #hero-results when its textContent contains my value
+                        if (<li:not(#no-match):not([style*='display: none'])/> in #hero-results).length is 0
+                          show #no-match
+                        else
+                          hide #no-match
+                        end" />
+            <ul id="hero-results">
+                <li>Macintosh 128K</li>
+                <li>Macintosh 512K</li>
+                <li>Macintosh 512Ke</li>
+                <li>Macintosh Plus</li>
+                <li>Macintosh SE</li>
+                <li>Macintosh SE/30</li>
+                <li>Macintosh II</li>
+                <li>Macintosh IIx</li>
+                <li>Macintosh IIcx</li>
+                <li>Macintosh IIci</li>
+                <li>Macintosh IIfx</li>
+                <li>Macintosh Classic</li>
+                <li>Macintosh Classic II</li>
+                <li>Macintosh LC</li>
+                <li>Macintosh LC II</li>
+                <li>Macintosh LC III</li>
+                <li>Macintosh Color Classic</li>
+                <li>Macintosh Quadra 700</li>
+                <li>Macintosh Quadra 800</li>
+                <li>Macintosh Quadra 900</li>
+                <li>Macintosh Quadra 950</li>
+                <li>Macintosh Centris 610</li>
+                <li>Macintosh Centris 650</li>
+                <li>PowerBook 100</li>
+                <li>PowerBook 140</li>
+                <li>PowerBook 170</li>
+                <li>PowerBook 540c</li>
+                <li>PowerBook Duo 210</li>
+                <li>Power Macintosh 6100</li>
+                <li>Power Macintosh 7100</li>
+                <li>Power Macintosh 8100</li>
+                <li>Power Macintosh G3</li>
+                <li>Power Mac G4</li>
+                <li>Power Mac G4 Cube</li>
+                <li>Power Mac G5</li>
+                <li>iMac G3</li>
+                <li>iMac G4</li>
+                <li>iMac G5</li>
+                <li>iBook</li>
+                <li>eMac</li>
+                <li>Mac Mini</li>
+                <li id="no-match" style="display:none; color: var(--text-muted); border: none;">No models found.</li>
+            </ul>
+        </div>
     </div>
 
     <div style="text-align:center">

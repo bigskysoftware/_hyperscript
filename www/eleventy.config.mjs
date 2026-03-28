@@ -13,6 +13,15 @@ export default function(config) {
     config.addPassthroughCopy("js");
 
     config.addCollection('cookbook', coll => coll.getFilteredByGlob('cookbook/*'))
+    config.addCollection('patterns', coll => {
+        var order = { beginner: 0, intermediate: 1, advanced: 2 };
+        return coll.getFilteredByGlob('patterns/*').sort((a, b) => {
+            var da = order[a.data.difficulty] ?? 1;
+            var db = order[b.data.difficulty] ?? 1;
+            if (da !== db) return da - db;
+            return a.fileSlug.localeCompare(b.fileSlug);
+        });
+    })
 
     // Register custom hyperscript language with Prism (used by syntax highlight plugin)
     config.addPlugin(syntaxHighlight, {

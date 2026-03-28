@@ -708,6 +708,9 @@
     evaluate(context) {
       return context.meta.runtime.unifiedEval(this, context);
     }
+    evalStatically() {
+      throw new Error("This expression cannot be evaluated statically: " + this.type);
+    }
   };
   var Command = class extends ParseElement {
     constructor() {
@@ -3257,7 +3260,7 @@
     static parse(parser, root) {
       if (!parser.matchToken("as")) return;
       parser.matchToken("a") || parser.matchToken("an");
-      var conversion = parser.requireElement("dotOrColonPath").evaluate();
+      var conversion = parser.requireElement("dotOrColonPath").evalStatically();
       var asExpression = new _AsExpression(root, conversion);
       return parser.parseElement("indirectExpression", asExpression);
     }
@@ -3702,9 +3705,7 @@
       this.path = path;
       this.separator = separator;
     }
-    // Called at both parse time (no context) and runtime, so cannot use the
-    // default evaluate() which requires a context for unifiedEval.
-    evaluate() {
+    evalStatically() {
       return this.path.join(this.separator ? this.separator : "");
     }
     resolve() {
@@ -3755,6 +3756,9 @@
         return new _NakedString(tokenArr);
       }
     }
+    evalStatically() {
+      return this.resolve();
+    }
     resolve(context) {
       return this.tokens.map(function(t) {
         return t.value;
@@ -3774,6 +3778,9 @@
       const value = booleanLiteral.value === "true";
       return new _BooleanLiteral(value);
     }
+    evalStatically() {
+      return this.value;
+    }
     resolve(context) {
       return this.value;
     }
@@ -3789,6 +3796,9 @@
       if (parser.matchToken("null")) {
         return new _NullLiteral();
       }
+    }
+    evalStatically() {
+      return null;
     }
     resolve(context) {
       return null;
@@ -3812,6 +3822,9 @@
         number.value
       );
       return new _NumberLiteral(value, numberToken);
+    }
+    evalStatically() {
+      return this.value;
     }
     resolve(context) {
       return this.value;
@@ -3843,6 +3856,10 @@
         args = [];
       }
       return new _StringLiteral(stringToken, rawValue, args);
+    }
+    evalStatically() {
+      if (this.args === null) return this.rawValue;
+      return super.evalStatically();
     }
     resolve(context, { parts } = {}) {
       if (!parts || parts.length === 0) {
@@ -3909,6 +3926,10 @@
         } while (token);
         return new _ObjectKey(key, null, null);
       }
+    }
+    evalStatically() {
+      if (!this.expr) return this.key;
+      return super.evalStatically();
     }
     resolve(ctx, { value } = {}) {
       if (this.expr) {
@@ -4319,6 +4340,9 @@
       }
       if (!timeFactor) return;
       return new _TimeExpression(root, timeFactor);
+    }
+    evalStatically() {
+      return this.time.evalStatically() * this.factor;
     }
     resolve(context, { value: val }) {
       return val * this.factor;
@@ -5078,7 +5102,7 @@
         type = "html";
       } else if (parser.matchToken("text")) {
       } else {
-        conversion = parser.requireElement("dotOrColonPath").evaluate();
+        conversion = parser.requireElement("dotOrColonPath").evalStatically();
       }
       return { type, conversion };
     }
@@ -5579,7 +5603,7 @@
             events.push(parser.requireElement("expression"));
           } else {
             events.push({
-              name: parser.requireElement("dotOrColonPath", "Expected event name").evaluate(),
+              name: parser.requireElement("dotOrColonPath", "Expected event name").evalStatically(),
               args: ParseElement.parseEventArgs(parser)
             });
           }
@@ -5675,8 +5699,10 @@
       super();
       this.value = value;
     }
-    // Called at parse time without a context, so must override evaluate()
-    evaluate() {
+    evalStatically() {
+      return this.value;
+    }
+    resolve(context) {
       return this.value;
     }
     static parse(parser) {
@@ -7313,7 +7339,7 @@
       var displayName = null;
       do {
         var on = parser.requireElement("eventName", "Expected event name");
-        var eventName = on.evaluate();
+        var eventName = on.evalStatically();
         if (displayName) {
           displayName = displayName + " or " + eventName;
         } else {
@@ -7343,14 +7369,14 @@
         if (eventName === "intersection") {
           intersectionSpec = {};
           if (parser.matchToken("with")) {
-            intersectionSpec["with"] = parser.requireElement("expression").evaluate();
+            intersectionSpec["with"] = parser.requireElement("expression").evalStatically();
           }
           if (parser.matchToken("having")) {
             do {
               if (parser.matchToken("margin")) {
-                intersectionSpec["rootMargin"] = parser.requireElement("stringLike").evaluate();
+                intersectionSpec["rootMargin"] = parser.requireElement("stringLike").evalStatically();
               } else if (parser.matchToken("threshold")) {
-                intersectionSpec["threshold"] = parser.requireElement("expression").evaluate();
+                intersectionSpec["threshold"] = parser.requireElement("expression").evalStatically();
               } else {
                 parser.raiseParseError("Unknown intersection config specification");
               }
@@ -7424,11 +7450,11 @@
         if (parser.matchToken("debounced")) {
           parser.requireToken("at");
           var timeExpr = parser.requireElement("unaryExpression");
-          var debounceTime = timeExpr.evaluate({});
+          var debounceTime = timeExpr.evalStatically();
         } else if (parser.matchToken("throttled")) {
           parser.requireToken("at");
           var timeExpr = parser.requireElement("unaryExpression");
-          var throttleTime = timeExpr.evaluate({});
+          var throttleTime = timeExpr.evalStatically();
         }
         events.push({
           every,
@@ -7540,7 +7566,7 @@
     static parse(parser) {
       if (!parser.matchToken("def")) return;
       var functionName = parser.requireElement("dotOrColonPath");
-      var nameVal = functionName.evaluate();
+      var nameVal = functionName.evalStatically();
       var nameSpace = nameVal.split(".");
       var funcName = nameSpace.pop();
       var args = [];
@@ -7684,7 +7710,7 @@
     }
     static parse(parser) {
       if (!parser.matchToken("behavior")) return;
-      var path = parser.requireElement("dotOrColonPath").evaluate();
+      var path = parser.requireElement("dotOrColonPath").evalStatically();
       var nameSpace = path.split(".");
       var name = nameSpace.pop();
       var formalParams = [];
@@ -7732,7 +7758,7 @@
     }
     static parse(parser) {
       if (!parser.matchToken("install")) return;
-      var behaviorPath = parser.requireElement("dotOrColonPath").evaluate();
+      var behaviorPath = parser.requireElement("dotOrColonPath").evalStatically();
       var behaviorNamespace = behaviorPath.split(".");
       var args = parser.parseElement("namedArgumentList");
       return new _InstallFeature(behaviorPath, behaviorNamespace, args);
