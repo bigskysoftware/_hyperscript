@@ -499,6 +499,36 @@ export class Tokenizer {
         return token;
     }
 
+    #consumeTemplateLogic() {
+        var token = this.#makeToken("IDENTIFIER");
+        this.#consumeChar(); // Don't need the '#'
+        var value = ""
+
+        while(this.#isAlpha(this.#currentChar())) {
+            value += this.#consumeChar();
+        }
+
+        token.value = value;
+        token.end = this.#position;
+
+        return token;
+    }
+
+    #consumeTemplateLine() {
+        var token = this.#makeToken("TEMPLATE_LINE");
+        token.value = "TEMPLATE_LINE";
+        var content = "";
+        while (this.#currentChar() && !this.#isNewline(this.#currentChar())) {
+            content += this.#consumeChar();
+        }
+        if (this.#currentChar() && this.#isNewline(this.#currentChar())) {
+            content += "\n";
+        }
+        token.content = content;
+        token.end = this.#position;
+        return token;
+    }
+
     #consumeTemplateIdentifier() {
         var token = this.#makeToken("IDENTIFIER");
         var value = this.#consumeChar();
@@ -667,27 +697,33 @@ export class Tokenizer {
                 this.#currentChar() === "#" &&
                 (this.#isAlpha(this.#nextChar()) || this.#nextChar() === "{")
             ) {
-                if (this.#template && this.#templateMode === "indeterminant") {
+                if (this.#template === "lines" && this.#templateMode === "indeterminant") {
                     this.#templateMode = "command";
                     this.#tokens.push(this.#consumeTemplateLogic());
                 } else {
                     this.#tokens.push(this.#consumeIdReference());
                 }
+            } else if (this.#template === "lines" && this.#templateMode === "indeterminant" && this.#templateBraceCount === 0) {
+                this.#templateMode = "template";
+                this.#tokens.push(this.#consumeTemplateLine());
             } else if (this.#currentChar() === "[" && this.#nextChar() === "@") {
                 this.#tokens.push(this.#consumeAttributeReference());
             } else if (this.#currentChar() === "@") {
                 this.#tokens.push(this.#consumeShortAttributeReference());
             } else if (this.#currentChar() === "*" && this.#isAlpha(this.#nextChar())) {
                 this.#tokens.push(this.#consumeStyleReference());
-            } else if (this.#inTemplate() && (this.#isAlpha(this.#currentChar()) || this.#currentChar() === "\\")) {
+            } else if (this.#inTemplate() &&
+                      (this.#isAlpha(this.#currentChar()) || this.#currentChar() === "\\") &&
+                       this.#templateMode !== "command"
+            ) {
                 this.#tokens.push(this.#consumeTemplateIdentifier());
-            } else if (!this.#inTemplate() && (this.#isAlpha(this.#currentChar()) || this.#isIdentifierChar(this.#currentChar()))) {
+            } else if ((!this.#inTemplate() || this.#templateMode === "command") && (this.#isAlpha(this.#currentChar()) || this.#isIdentifierChar(this.#currentChar()))) {
                 this.#tokens.push(this.#consumeIdentifier());
             } else if (this.#isNumeric(this.#currentChar())) {
                 this.#tokens.push(this.#consumeNumber());
-            } else if (!this.#inTemplate() && (this.#currentChar() === '"' || this.#currentChar() === "`")) {
+            } else if ((!this.#inTemplate() || this.#templateMode === "command") && (this.#currentChar() === '"' || this.#currentChar() === "`")) {
                 this.#tokens.push(this.#consumeString());
-            } else if (!this.#inTemplate() && this.#currentChar() === "'") {
+            } else if ((!this.#inTemplate() || this.#templateMode === "command") && this.#currentChar() === "'") {
                 if (this.#isValidSingleQuoteStringStart()) {
                     this.#tokens.push(this.#consumeString());
                 } else {

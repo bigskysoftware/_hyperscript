@@ -1,20 +1,5 @@
 import { Command, Expression } from '../parsetree/base.js';
-import {Tokenizer} from "../core/tokenizer.js";
-
-function compileTemplate(template) {
-	return template.replace(/(?:^|\n)([^@]*)@?/gm, function (match, p1) {
-		var templateStr = (" " + p1).replace(/([^\\])\$\{/g, "$1$${escape html ").substring(1);
-		return "\ncall meta.__ht_template_result.push(`" + templateStr + "`)\n";
-	});
-}
-
-function renderTemplate(template, ctx) {
-	var buf = [];
-	const renderCtx = Object.assign({}, ctx);
-	renderCtx.meta = Object.assign({ __ht_template_result: buf }, ctx.meta);
-	self._hyperscript.evaluate(template, renderCtx);
-	return buf.join("");
-}
+import _hyperscript from "../_hyperscript.js";
 
 function escapeHTML(html) {
 	return String(html)
@@ -23,6 +8,67 @@ function escapeHTML(html) {
 		.replace(/>/g, "&gt;")
 		.replace(/\x22/g, "&quot;")
 		.replace(/\x27/g, "&#039;");
+}
+
+class TemplateTextCommand extends Command {
+	constructor(parts) {
+		super();
+		this.parts = parts;
+	}
+
+	static parse(parser) {
+		var tok = parser.currentToken();
+		if (tok.type !== "TEMPLATE_LINE") return;
+		parser.consumeToken();
+
+		var parts = [];
+		var raw = tok.content;
+		var i = 0;
+
+		while (i < raw.length) {
+			var nextDollar = raw.indexOf('${', i);
+			if (nextDollar === -1) {
+				if (i < raw.length) parts.push({ type: 'literal', value: raw.slice(i) });
+				break;
+			}
+			if (nextDollar > i) {
+				parts.push({ type: 'literal', value: raw.slice(i, nextDollar) });
+			}
+			var depth = 1;
+			var j = nextDollar + 2;
+			while (j < raw.length && depth > 0) {
+				if (raw[j] === '{') depth++;
+				else if (raw[j] === '}') depth--;
+				j++;
+			}
+			var exprStr = raw.slice(nextDollar + 2, j - 1);
+			var escape = true;
+			var trimmed = exprStr.trimStart();
+			if (trimmed.startsWith('unescaped ')) {
+				escape = false;
+				exprStr = trimmed.slice('unescaped '.length);
+			}
+			var exprTokens = _hyperscript.internals.tokenizer.tokenize(exprStr);
+			var exprParser = _hyperscript.internals.createParser(exprTokens);
+			var node = exprParser.requireElement("expression");
+			parts.push({ type: 'expr', node, escape });
+			i = j;
+		}
+
+		return new TemplateTextCommand(parts);
+	}
+
+	resolve(ctx) {
+		var result = this.parts.map(part => {
+			if (part.type === 'literal') return part.value;
+			var val = part.node.evaluate(ctx);
+			if (val === undefined || val === null) return '';
+			if (part.escape) return escapeHTML(String(val));
+			return String(val);
+		}).join('');
+		ctx.meta.__ht_template_result.push(result);
+		return ctx.meta.runtime.findNext(this, ctx);
+	}
 }
 
 class RenderCommand extends Command {
@@ -46,9 +92,19 @@ class RenderCommand extends Command {
 
 	resolve(ctx, { template, templateArgs }) {
 		if (!(template instanceof Element)) throw new Error(this.template_.sourceFor() + " is not an element");
-		const renderCtx = Object.assign({}, ctx);
+
+		var buf = [];
+		const renderCtx = ctx.meta.runtime.makeContext(ctx.me, null, ctx.me, null);
 		renderCtx.locals = Object.assign({}, ctx.locals, templateArgs);
-		ctx.result = renderTemplate(compileTemplate(template.innerHTML), renderCtx);
+		renderCtx.meta.__ht_template_result = buf;
+
+		var tokens = _hyperscript.internals.tokenizer.tokenize(template.innerHTML, "lines");
+		var parser = _hyperscript.internals.createParser(tokens);
+		var commandList = parser.parseElement("commandList");
+		parser.ensureTerminated(commandList);
+		commandList.execute(renderCtx);
+
+		ctx.result = buf.join("");
 		return ctx.meta.runtime.findNext(this, ctx);
 	}
 }
@@ -94,17 +150,10 @@ class EscapeExpression extends Expression {
 export default function templatePlugin(_hyperscript) {
 	_hyperscript.addCommand(RenderCommand.keyword, RenderCommand.parse.bind(RenderCommand));
 	_hyperscript.addLeafExpression(EscapeExpression.grammarName, EscapeExpression.parse.bind(EscapeExpression));
+	_hyperscript.addCommand("TEMPLATE_LINE", TemplateTextCommand.parse.bind(TemplateTextCommand));
 }
 
 // Auto-register when imported
 if (typeof self !== 'undefined' && self._hyperscript) {
 	self._hyperscript.use(templatePlugin);
 }
-
-
-// So for the token stream, what we need to do is have a mode set for the tokenizer that is one of three modes
-// template mode, command mode, indeterminant mode.
-
-// Each time we get a new line character, we go back to the indeterminant mode. We look at the first character of the line and
-// see if its a # or not. If it is a # we are in command mode, otherwise we are going to be in template mode. This will happen during
-// parsing.
