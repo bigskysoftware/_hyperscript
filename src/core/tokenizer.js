@@ -252,6 +252,7 @@ export class Tokenizer {
     #templateBraceCount = 0;
     #tokens = [];
     #template = false;
+    #templateMode;
 
     // ----- Character classification -----
 
@@ -296,6 +297,7 @@ export class Tokenizer {
         this.#templateBraceCount = 0;
         this.#tokens = [];
         this.#template = template || false;
+        this.#templateMode = "indeterminant";
         return this.#tokenize();
     }
 
@@ -395,6 +397,7 @@ export class Tokenizer {
             if (this.#isNewline(this.#currentChar())) {
                 this.#column = 0;
                 this.#line++;
+                this.#templateMode = "indeterminant";
             }
             value += this.#consumeChar();
         }
@@ -664,7 +667,12 @@ export class Tokenizer {
                 this.#currentChar() === "#" &&
                 (this.#isAlpha(this.#nextChar()) || this.#nextChar() === "{")
             ) {
-                this.#tokens.push(this.#consumeIdReference());
+                if (this.#template && this.#templateMode === "indeterminant") {
+                    this.#templateMode = "command";
+                    this.#tokens.push(this.#consumeTemplateLogic());
+                } else {
+                    this.#tokens.push(this.#consumeIdReference());
+                }
             } else if (this.#currentChar() === "[" && this.#nextChar() === "@") {
                 this.#tokens.push(this.#consumeAttributeReference());
             } else if (this.#currentChar() === "@") {

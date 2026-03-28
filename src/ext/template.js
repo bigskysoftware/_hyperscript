@@ -1,4 +1,5 @@
 import { Command, Expression } from '../parsetree/base.js';
+import {Tokenizer} from "../core/tokenizer.js";
 
 function compileTemplate(template) {
 	return template.replace(/(?:^|\n)([^@]*)@?/gm, function (match, p1) {
@@ -99,3 +100,11 @@ export default function templatePlugin(_hyperscript) {
 if (typeof self !== 'undefined' && self._hyperscript) {
 	self._hyperscript.use(templatePlugin);
 }
+
+
+// So for the token stream, what we need to do is have a mode set for the tokenizer that is one of three modes
+// template mode, command mode, indeterminant mode.
+
+// Each time we get a new line character, we go back to the indeterminant mode. We look at the first character of the line and
+// see if its a # or not. If it is a # we are in command mode, otherwise we are going to be in template mode. This will happen during
+// parsing.
