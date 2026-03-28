@@ -1012,6 +1012,26 @@ v-h { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden;
     .hero-demo { flex: none; }
 }
 
+/* ---- Features (homepage) ---- */
+
+.features {
+    max-width: 680px;
+    margin: 2rem auto;
+}
+
+.feature {
+    margin-bottom: 2.5rem;
+}
+
+.feature h2 {
+    font-size: 1.4rem;
+    margin-bottom: 0.4rem;
+}
+
+.feature p {
+    margin-bottom: 0.8rem;
+}
+
 /* ---- Install bar ---- */
 
 .install-bar {

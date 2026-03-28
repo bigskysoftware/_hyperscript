@@ -42,25 +42,25 @@ title: ///_hyperscript
                          end
                        end
 
-                       on keyup[key is not 'ArrowUp' and key is not 'ArrowDown' and key is not 'Escape' and key is not 'Enter'] debounced at 200ms
+                       on input debounced at 200ms
                          if my value is ''
-                             set #search-results.innerHTML to ''
-                             add .hidden to #search-results
-                         else
-                             set val to my value
-                             set response to pagefind.search(val)
-                             set items to response.results[0 .. 9]
-                             set output to ''
-                             repeat for item in items
-                                 set info to item.data()
-                                 set output to output + '<a class=\'search-result\' href=\'' + info.url + '\'>'
-                                     + '<span class=\'search-result-title\'>' + info.meta.title + '</span>'
-                                     + '<span class=\'search-result-excerpt\'>' + info.excerpt + '</span>'
-                                     + '</a>'
-                             end
-                             put output into #search-results
-                             remove .hidden from #search-results
+                           set #search-results.innerHTML to ''
+                           add .hidden to #search-results
+                           exit
                          end
+                         set val to my value
+                         set response to pagefind.search(val)
+                         set items to response.results[0 .. 9]
+                         set output to ''
+                         repeat for item in items
+                           set info to item.data()
+                           set output to output + '<a class=\'search-result\' href=\'' + info.url + '\'>'
+                               + '<span class=\'search-result-title\'>' + info.meta.title + '</span>'
+                               + '<span class=\'search-result-excerpt\'>' + info.excerpt + '</span>'
+                               + '</a>'
+                         end
+                         put output into #search-results
+                         remove .hidden from #search-results
                        end
 
                        on keydown[key is 'ArrowDown']
