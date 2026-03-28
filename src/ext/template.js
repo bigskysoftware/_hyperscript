@@ -59,15 +59,38 @@ class TemplateTextCommand extends Command {
 	}
 
 	resolve(ctx) {
-		var result = this.parts.map(part => {
-			if (part.type === 'literal') return part.value;
-			var val = part.node.evaluate(ctx);
-			if (val === undefined || val === null) return '';
-			if (part.escape) return escapeHTML(String(val));
-			return String(val);
-		}).join('');
-		ctx.meta.__ht_template_result.push(result);
-		return ctx.meta.runtime.findNext(this, ctx);
+		var vals = this.parts.map(part => {
+            if (part.type === 'literal') return part.value;
+            return part.node.evaluate(ctx);
+
+        });
+
+        var stringify = (val, part) => {
+            if (part.type === 'literal') return val;
+            if (val === undefined || val === null) return '';
+            if (part.escape) return escapeHTML(String(val));
+            return String(val);
+        };
+
+        if (vals.some(v => v && v.then)) {
+            return Promise.all(vals).then(resolved => {
+                ctx.meta.__ht_template_result.push(
+                    resolved.map((val, i) => stringify(val, this.parts[i])).join('')
+                );
+                return ctx.meta.runtime.findNext(this, ctx);
+            });
+        }
+
+        ctx.meta.__ht_template_result.push(
+            vals.map((val, i) => stringify(val, this.parts[i])).join('')
+        );
+        return ctx.meta.runtime.findNext(this, ctx);
+    //     if (val === undefined || val === null) return '';
+    //     if (part.escape) return escapeHTML(String(val));
+    //     return String(val);
+    // }).join('');
+	// 	ctx.meta.__ht_template_result.push(result);
+	// 	return ctx.meta.runtime.findNext(this, ctx);
 	}
 }
 
@@ -102,10 +125,23 @@ class RenderCommand extends Command {
 		var parser = _hyperscript.internals.createParser(tokens);
 		var commandList = parser.parseElement("commandList");
 		parser.ensureTerminated(commandList);
+
+		var resolve, reject;
+		var promise = new Promise(function(res, rej) { resolve = res; reject = rej; });
+
 		commandList.execute(renderCtx);
 
-		ctx.result = buf.join("");
-		return ctx.meta.runtime.findNext(this, ctx);
+		if (renderCtx.meta.returned) {
+			ctx.result = buf.join("");
+			return ctx.meta.runtime.findNext(this, ctx);
+		}
+
+		renderCtx.meta.resolve = resolve;
+		renderCtx.meta.reject = reject;
+		return promise.then(() => {
+			ctx.result = buf.join("");
+			return ctx.meta.runtime.findNext(this, ctx);
+		});
 	}
 }
 

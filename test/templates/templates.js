@@ -1,4 +1,5 @@
 import {test, expect} from '../fixtures.js'
+import _hyperscript from "../../src/_hyperscript.js";
 
 test.describe('Templating', () => {
 
@@ -72,6 +73,19 @@ test.describe('Templating', () => {
         })
         const res = await evaluate(() => window.res)
         expect(res).toBe('<p>Should be 2 -&gt; 2</p>\n<p>Should be 2 -&gt; 2</p>\n')
+    })
+
+    test ('handles async expressions', async ({html, evaluate}) => {
+        await html('<template>result: ${asyncFn()}</template>')
+        await evaluate(() => {
+            window.asyncFn = () => Promise.resolve(10)
+            const tmpl = document.querySelector('#work-area template')
+            return _hyperscript("render tmpl then put it into window.res", {
+                locals: { tmpl }
+            })
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('result: 10')
     })
 
     // test ('all characters escape correctly', async ({html, evaluate}) => {
