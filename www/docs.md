@@ -1,63 +1,128 @@
 
 <style>
 :root {
-  --line-length: 100ch;
+  --line-length: 120ch;
 }
-#toc sub-title {
-  display: inline-block;
+.docs-layout {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  max-width: 100ch;
+  margin: 0 auto;
 }
-#toc li {
-  margin: calc(.5*var(--gap));
+#toc-wrapper {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  font-size: 0.85rem;
+  flex-shrink: 0;
 }
-@media (min-width: 120ch) {
+#toc-header h1 {
+  font-size: 1.1rem;
+  margin: 0 0 2px 0;
+  text-align: center;
+}
+#toc-header h1 .header-anchor {
+  display: none;
+}
+#toc-header sub-title {
+  display: block;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+  font-family: var(--font-heading);
+}
+#docs-nav ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+#docs-nav li {
+  margin: 2px 0;
+  line-height: 1.4;
+}
+#docs-nav a {
+  text-decoration: none;
+  color: var(--text-muted);
+}
+#docs-nav a:hover {
+  color: var(--accent);
+}
+#docs-nav a.toc-active {
+  color: var(--accent);
+  font-weight: 600;
+}
+#docs-content {
+  min-width: 0;
+  flex: 1;
+  max-width: 80ch;
+}
+#docs-content pre {
+  overflow-x: auto;
+}
+@media (min-width: 100ch) {
   #toc-wrapper {
-    font-size: .9em;
-    float: left;
     position: sticky;
-    top: 0;
-    border: none;
-    margin: 0;
+    top: 60px;
+    width: 24ch;
+    max-height: calc(100vh - 80px);
+    display: flex;
+    flex-direction: column;
+    font-size: 0.8rem;
+    overflow: hidden;
   }
-
-  #toc {
-    overflow: auto;
-    max-height: 100vh;
-    margin-inline-end: var(--gap);
-    margin-inline-start: calc(2*var(--gap) - var(--gutter-width));
+  #toc-header {
+    flex-shrink: 0;
   }
-
-  #toc li {
-    margin: calc(.25*var(--gap));
+  #docs-nav {
+    overflow-y: auto;
+    flex: 1;
+    width: 100%;
+    margin: 0 -16px;
+    padding: 0 16px;
+    box-sizing: content-box;
   }
-  #docs-content {
-    display: flow-root;
-    max-width: calc(100vw - 24ch - 3 * var(--gap));
-  }
-  #skip-to-content {
-    display: none;
+  #docs-nav li {
+    margin: 1px 0;
   }
 }
-
+@media (max-width: 100ch) {
+  .docs-layout {
+    flex-direction: column;
+  }
+}
 #docs-content:target {
   outline: none;
 }
 </style>
 
+<div class="docs-layout">
 
-<header id="toc-wrapper" aria-labelledby="contents-h">
-<div id=toc>
+<aside id="toc-wrapper">
+<div id="toc-header">
 
 # _hyperscript <sub-title>documentation</sub-title> {.h2}
 
-[Skip to content](#docs-content){#skip-to-content}
+</div>
 
-<nav aria-label="Table of contents">
+<nav aria-label="Table of contents" id="docs-nav"
+     _="on intersection(intersecting) from <h2, h3, h4/> in #docs-content
+          if intersecting
+            get the id of the event's target
+            if it is not empty
+              set the link to the first <a[href='#${it}']/>
+              if the link exists
+                take .toc-active from <a/> in me for the link
+                link.scrollIntoView({block: 'nearest', behavior: 'smooth'})
+              end
+            end
+          end">
 
 [[toc]]
 
 </nav>
-</div>
-</header>
+</aside>
 
 <div id="docs-content">
 

@@ -1,0 +1,160 @@
+---
+layout: layout.njk
+title: ///_hyperscript
+---
+
+<div class="hero">
+    <div class="hero-title"><span class="hero-accent">_</span>hyper<span class="hero-accent">s</span>cript</div>
+    <h1>A scripting language for the web</h1>
+    <p class="subtitle">Enhance HTML with concise DOM, event and async features. <strong>Make writing interactive HTML a joy.</strong></p>
+
+    <div class="window hero-code">
+        <div class="window-title">example.html</div>
+        <pre class="window-body"><code>on pointerdown
+  repeat until event pointerup from the document
+    set rand to Math.random() * 360
+    transition
+      *background-color
+      to `hsl($rand 100% 90%)`
+      over 250ms
+  end
+  transition *background-color to initial</code></pre>
+    </div>
+
+    <div style="text-align:center; margin: 1rem 0;">
+        <button class="btn btn-primary btn-lg"
+                _="on pointerdown
+                     repeat until event pointerup from the document
+                       set rand to Math.random() * 360
+                       transition *background-color to `hsl($rand 100% 90%)` over 250ms
+                     end
+                     transition *background-color to initial">
+            Try me: press and hold
+        </button>
+    </div>
+
+    <div style="text-align:center">
+        <div class="install-bar"
+             _="on click
+                  writeText('<script src=&quot;https://unpkg.com/hyperscript.org@0.9.14&quot;></script>') on navigator.clipboard
+                  set old to #install-label's innerHTML
+                  put 'Copied!' into #install-label
+                  add .install-flash to me
+                  wait 1s
+                  put old into #install-label
+                  remove .install-flash from me">
+            <span class="install-label" id="install-label">Install</span>
+            <code class="install-code">&lt;script src="https://unpkg.com/hyperscript.org@0.9.14"&gt;&lt;/script&gt;</code>
+            <span class="install-copy">copy</span>
+        </div>
+    </div>
+
+</div>
+
+<div class="card-grid">
+    <div class="card">
+        <div class="card-title">Events</div>
+        <div class="card-body">
+<pre><code>&lt;button _="on click
+              send hello to &lt;form /&gt;"&gt;
+  Send
+&lt;/button&gt;
+
+&lt;form _="on hello
+           alert('got event')"&gt;</code></pre>
+            <p>Easily send and receive events.
+               <a href="/docs/#event_filters">Filter</a>,
+               <a href="/docs/#event_queueing">queue</a> or
+               <a href="/comparison/#debounced-input">debounce</a> them.</p>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-title">Async</div>
+        <div class="card-body">
+<pre><code>&lt;div _="on click
+          wait 5s
+          send hello to .target"&gt;
+
+&lt;div _="init
+          fetch /api as json
+          put result into me"&gt;</code></pre>
+            <p>No promises, async/await or callbacks. <strong>_hyperscript</strong> handles async transparently.</p>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-title">DOM</div>
+        <div class="card-body">
+<pre><code>&lt;div _="on click
+          tell &lt;p/&gt; in me
+            add .highlight"&gt;
+
+&lt;div _="on click
+          take .active from .tabs
+          for me"&gt;</code></pre>
+            <p>CSS selectors and positional operators make DOM access a breeze.</p>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-title">Reactivity</div>
+        <div class="card-body">
+<pre><code>&lt;input type="text" id="name" /&gt;
+&lt;h1 _="when #name.value
+          changes
+        put it into me"&gt;&lt;/h1&gt;</code></pre>
+            <p>Watch any value and react when it changes.
+               <a href="/features/bind">Bind</a> values for two-way sync.</p>
+        </div>
+    </div>
+</div>
+
+<h2>Enhance existing code</h2>
+
+<p><strong>_hyperscript</strong> works <a href="/docs/#js-migration">side by side with existing JavaScript</a>.
+<strong>You choose what and when to enhance.</strong>
+Use <a href="https://htmx.org/essays/locality-of-behaviour/">locality of behaviour</a>,
+or external <a href="/docs/#behaviors">behaviors</a>.</p>
+
+<div class="card-grid" style="grid-template-columns: 1fr 1fr;">
+    <div class="card">
+        <div class="card-title">JS Interop</div>
+        <div class="card-body">
+<pre><code>&lt;div _="init js
+          alert('Hello from JS!')
+        end"&gt;
+
+&lt;div _="init js(haystack)
+          return /needle/gi
+            .exec(haystack)
+        end"&gt;</code></pre>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-title">Debugging &amp; Extending</div>
+        <div class="card-body">
+<pre><code>on click breakpoint</code></pre>
+            <p>Graphically <a href="/docs#debugging">debug</a> and step through code as it runs.</p>
+            <p><strong>_hyperscript</strong> is natively <a href="/docs/#extending">extensible</a>
+            &mdash; add new commands or expressions using vanilla JS.</p>
+        </div>
+    </div>
+</div>
+
+<h2>Remember <a href="https://hypercard.org/HyperTalk%20Reference%202.4.pdf">HyperCard</a>?</h2>
+
+<p>An <a href="https://en.wikipedia.org/wiki/HyperTalk#Descendants_of_HyperTalk">xTalk</a> syntax
+inspired by HyperTalk and AppleScript, running natively in your browser.</p>
+
+<div class="card">
+    <div class="card-title">Behaviors</div>
+    <div class="card-body">
+<pre><code>&lt;div _="install Draggable(dragHandle: .titlebar)"&gt;</code></pre>
+        <p>Reusable behaviors that can be installed on any element.</p>
+    </div>
+</div>
+
+<aside class="box warn">
+    <p>hyperscript is under construction, working towards 1.0. While the syntax and
+    features are largely complete, we're focused on more tests and docs. Please join us at the
+    <a style="font-weight: bold" href="https://htmx.org/discord">#hyperscript discord channel</a>
+    &mdash; thank you!</p>
+</aside>

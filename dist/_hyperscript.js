@@ -1651,13 +1651,13 @@
   function _sameValue(a, b) {
     return a === b ? a !== 0 || 1 / a === 1 / b : a !== a && b !== b;
   }
-  var elementState = /* @__PURE__ */ new WeakMap();
+  var objectState = /* @__PURE__ */ new WeakMap();
   var globalSubscriptions = /* @__PURE__ */ new Map();
   var nextId = 0;
-  function getElementState(element) {
-    var state = elementState.get(element);
+  function getObjectState(obj) {
+    var state = objectState.get(obj);
     if (!state) {
-      elementState.set(element, state = {
+      objectState.set(obj, state = {
         id: String(++nextId),
         subscriptions: null,
         propertyHandler: null,
@@ -1697,22 +1697,22 @@
      */
     trackElementSymbol(name, element) {
       if (!element) return;
-      var elementId = getElementState(element).id;
+      var elementId = getObjectState(element).id;
       this._currentEffect.dependencies.set(
         "symbol:element:" + name + ":" + elementId,
         { type: "symbol", name, scope: "element", element }
       );
     }
     /**
-     * Track a DOM property read as a dependency.
-     * @param {Element} element
+     * Track a property read as a dependency.
+     * @param {Object} obj - DOM element or plain JS object
      * @param {string} name - Property name
      */
-    trackProperty(element, name) {
-      if (!(element instanceof Element)) return;
+    trackProperty(obj, name) {
+      if (obj == null || typeof obj !== "object") return;
       this._currentEffect.dependencies.set(
-        "property:" + name + ":" + getElementState(element).id,
-        { type: "property", element, name }
+        "property:" + name + ":" + getObjectState(obj).id,
+        { type: "property", object: obj, name }
       );
     }
     /**
@@ -1723,7 +1723,7 @@
     trackAttribute(element, name) {
       if (!(element instanceof Element)) return;
       this._currentEffect.dependencies.set(
-        "attribute:" + name + ":" + getElementState(element).id,
+        "attribute:" + name + ":" + getObjectState(element).id,
         { type: "attribute", element, name }
       );
     }
@@ -1746,7 +1746,7 @@
      */
     notifyElementSymbol(name, element) {
       if (!element) return;
-      var state = getElementState(element);
+      var state = getObjectState(element);
       if (state.subscriptions) {
         var subs = state.subscriptions.get(name);
         if (subs) {
@@ -1757,13 +1757,13 @@
       }
     }
     /**
-     * Notify that a DOM element property was written programmatically.
-     * Schedules all effects watching properties on this element.
-     * @param {Element} element
+     * Notify that a property was written programmatically.
+     * Schedules all effects watching properties on this object.
+     * @param {Object} obj - DOM element or plain JS object
      */
-    notifyProperty(element) {
-      if (!(element instanceof Element)) return;
-      var state = elementState.get(element);
+    notifyProperty(obj) {
+      if (obj == null || typeof obj !== "object") return;
+      var state = objectState.get(obj);
       if (state && state.propertyHandler) {
         state.propertyHandler.queueAll();
       }
@@ -1857,7 +1857,7 @@
           }
           globalSubscriptions.get(dep.name).add(effect);
         } else if (dep.type === "symbol" && dep.scope === "element") {
-          var state = getElementState(dep.element);
+          var state = getObjectState(dep.element);
           if (!state.subscriptions) {
             state.subscriptions = /* @__PURE__ */ new Map();
           }
@@ -1868,7 +1868,7 @@
         } else if (dep.type === "attribute") {
           reactivity2._subscribeAttributeDependency(dep.element, dep.name, effect);
         } else if (dep.type === "property") {
-          reactivity2._subscribePropertyDependency(dep.element, dep.name, effect);
+          reactivity2._subscribePropertyDependency(dep.object, dep.name, effect);
         }
       }
     }
@@ -1881,7 +1881,7 @@
      */
     _subscribeAttributeDependency(element, attrName, effect) {
       var reactivity2 = this;
-      var state = getElementState(element);
+      var state = getObjectState(element);
       if (!state.attributeObservers) {
         state.attributeObservers = {};
       }
@@ -1904,16 +1904,16 @@
       state.attributeObservers[attrName].effects.add(effect);
     }
     /**
-     * Subscribe to a DOM element property. Sets up persistent per-element
-     * event listeners. Extracted into its own method to create proper
-     * closure scope for each element/property.
-     * @param {Element} element
+     * Subscribe to a property on an object. For DOM elements, sets up
+     * persistent input/change event listeners. For plain objects, only
+     * the subscription map is used (notified via setProperty).
+     * @param {Object} obj - DOM element or plain JS object
      * @param {string} propName
      * @param {Effect} effect
      */
-    _subscribePropertyDependency(element, propName, effect) {
+    _subscribePropertyDependency(obj, propName, effect) {
       var reactivity2 = this;
-      var state = getElementState(element);
+      var state = getObjectState(obj);
       if (!state.propertyHandler) {
         var trackedEffects = /* @__PURE__ */ new Set();
         var queueAll = function() {
@@ -1921,15 +1921,22 @@
             reactivity2._scheduleEffect(eff);
           }
         };
-        element.addEventListener("input", queueAll);
-        element.addEventListener("change", queueAll);
+        var remove;
+        if (obj instanceof Element) {
+          obj.addEventListener("input", queueAll);
+          obj.addEventListener("change", queueAll);
+          remove = function() {
+            obj.removeEventListener("input", queueAll);
+            obj.removeEventListener("change", queueAll);
+          };
+        } else {
+          remove = function() {
+          };
+        }
         state.propertyHandler = {
           effects: trackedEffects,
           queueAll,
-          remove: function() {
-            element.removeEventListener("input", queueAll);
-            element.removeEventListener("change", queueAll);
-          }
+          remove
         };
       }
       state.propertyHandler.effects.add(effect);
@@ -1946,7 +1953,7 @@
             }
           }
         } else if (dep.type === "symbol" && dep.scope === "element") {
-          var state = getElementState(dep.element);
+          var state = getObjectState(dep.element);
           if (state.subscriptions) {
             var subs = state.subscriptions.get(dep.name);
             if (subs) {
@@ -1957,12 +1964,12 @@
             }
           }
         } else if (dep.type === "attribute" && dep.element) {
-          var state = getElementState(dep.element);
+          var state = getObjectState(dep.element);
           if (state.attributeObservers && state.attributeObservers[dep.name]) {
             state.attributeObservers[dep.name].effects.delete(effect);
           }
-        } else if (dep.type === "property" && dep.element) {
-          var state = getElementState(dep.element);
+        } else if (dep.type === "property" && dep.object) {
+          var state = getObjectState(dep.object);
           if (state.propertyHandler) {
             state.propertyHandler.effects.delete(effect);
           }
@@ -2015,7 +2022,7 @@
       this._unsubscribeEffect(effect);
       for (var [depKey, dep] of effect.dependencies) {
         if (dep.type === "attribute" && dep.element) {
-          var state = getElementState(dep.element);
+          var state = getObjectState(dep.element);
           if (state.attributeObservers && state.attributeObservers[dep.name]) {
             var obs = state.attributeObservers[dep.name];
             if (obs.effects.size === 0) {
@@ -2023,8 +2030,8 @@
               delete state.attributeObservers[dep.name];
             }
           }
-        } else if (dep.type === "property" && dep.element) {
-          var state = getElementState(dep.element);
+        } else if (dep.type === "property" && dep.object) {
+          var state = getObjectState(dep.object);
           if (state.propertyHandler && state.propertyHandler.effects.size === 0) {
             state.propertyHandler.remove();
             state.propertyHandler = null;
@@ -2349,14 +2356,14 @@
       return __privateMethod(this, _Runtime_instances, flatGet_fn).call(this, root, property, (root2, property2) => root2[property2]);
     }
     /**
-     * Set a property on a DOM element and notify the reactivity system.
-     * @param {Element} element
+     * Set a property on an object and notify the reactivity system.
+     * @param {Object} obj - DOM element or plain JS object
      * @param {string} property
      * @param {any} value
      */
-    setProperty(element, property, value) {
-      element[property] = value;
-      reactivity.notifyProperty(element);
+    setProperty(obj, property, value) {
+      obj[property] = value;
+      reactivity.notifyProperty(obj);
     }
     resolveAttribute(root, property) {
       if (reactivity.isTracking) reactivity.trackAttribute(root, property);
@@ -3022,11 +3029,7 @@
       ctx.meta.runtime.nullCheck(lhs.root, this.root);
       var runtime2 = ctx.meta.runtime;
       runtime2.implicitLoop(lhs.root, (elt) => {
-        if (elt instanceof Element) {
-          runtime2.setProperty(elt, this.prop.value, value);
-        } else {
-          elt[this.prop.value] = value;
-        }
+        runtime2.setProperty(elt, this.prop.value, value);
       });
     }
   };
@@ -3115,11 +3118,7 @@
       } else {
         var runtime2 = ctx.meta.runtime;
         runtime2.implicitLoop(lhs.root, (elt) => {
-          if (elt instanceof Element) {
-            runtime2.setProperty(elt, prop, value);
-          } else {
-            elt[prop] = value;
-          }
+          runtime2.setProperty(elt, prop, value);
         });
       }
     }
@@ -3192,11 +3191,7 @@
         var runtime2 = ctx.meta.runtime;
         var prop = this.prop.value;
         runtime2.implicitLoop(lhs.root, (elt) => {
-          if (elt instanceof Element) {
-            runtime2.setProperty(elt, prop, value);
-          } else {
-            elt[prop] = value;
-          }
+          runtime2.setProperty(elt, prop, value);
         });
       }
     }
@@ -7612,13 +7607,14 @@
       this.immediately = immediately;
     }
     install(target, source, args, runtime2) {
-      let handler = () => {
-        this.start && this.start.execute(runtime2.makeContext(target, this, target, null));
+      var feature = this;
+      var handler = function() {
+        feature.start && feature.start.execute(runtime2.makeContext(target, feature, target, null));
       };
       if (this.immediately) {
         handler();
       } else {
-        setTimeout(handler, 0);
+        queueMicrotask(handler);
       }
     }
     static parse(parser) {
@@ -8014,48 +8010,13 @@
     }
   }
   function _assignTo(runtime2, target, ctx, value) {
-    if (target.type === "symbol") {
-      runtime2.setSymbol(target.name, ctx, target.scope, value);
-    } else if (target.type === "attributeRef") {
+    if (target.type === "classRef") {
       var elt = ctx.you || ctx.me;
-      if (elt) {
-        _setAttr(elt, target.name, value);
-      }
-    } else if (target.type === "propertyAccess" || target.type === "possessive") {
-      var root = target.root ? target.root.evaluate(ctx) : ctx.me;
-      var prop = target.prop ? target.prop.value : target.name;
-      if (root != null) {
-        runtime2.implicitLoop(root, function(elt2) {
-          if (elt2 instanceof Element) {
-            runtime2.setProperty(elt2, prop, value);
-          } else {
-            elt2[prop] = value;
-          }
-        });
-      }
-    } else if (target.type === "attributeRefAccess") {
-      var root = target.root ? target.root.evaluate(ctx) : ctx.me;
-      var attr = target.attribute ? target.attribute.name : target.name;
-      if (root != null) {
-        runtime2.implicitLoop(root, function(elt2) {
-          _setAttr(elt2, attr, value);
-        });
-      }
-    } else if (target.type === "classRef") {
+      if (elt) value ? elt.classList.add(target.className) : elt.classList.remove(target.className);
+    } else if (target.type === "attributeRef" && typeof value === "boolean") {
       var elt = ctx.you || ctx.me;
-      if (elt) {
-        if (value) {
-          elt.classList.add(target.className);
-        } else {
-          elt.classList.remove(target.className);
-        }
-      }
-    } else if (target.type === "styleRef") {
-      var elt = ctx.you || ctx.me;
-      if (elt) {
-        elt.style[target.name] = value;
-      }
-    } else if (target.set) {
+      if (elt) _setAttr(elt, target.name, value);
+    } else {
       var lhs = {};
       if (target.lhs) {
         for (var key in target.lhs) {

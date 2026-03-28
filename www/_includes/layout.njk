@@ -2,39 +2,38 @@
 title: ///_hyperscript
 ---
 <!doctype html>
-<html lang="en" class="-no-dark-theme">
+<html lang="en">
 <head>
     <title>{{ title }}</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" type="image/x-icon" href="/img/favicon.ico">
-    <link rel="stylesheet" href="https://unpkg.com/missing.css@v0.2.1/missing.min.css"/>
-    <link rel="stylesheet" href="https://unpkg.com/missing.css@v0.2.1/missing-prism.min.css"/>
-    <link rel="stylesheet" href="/css/site.css"/>
-    <script src="https://unpkg.com/prismjs@1.25.0/components/prism-core.min.js"></script>
-    <script src="https://unpkg.com/prismjs@1.25.0/plugins/autoloader/prism-autoloader.min.js"></script>
-    <script src="https://unpkg.com/prismjs@1.25.0/components/prism-markup.min.js"></script>
-    <script src="https://unpkg.com/prismjs@1.25.0/components/prism-clike.min.js"></script>
-    <script src="https://unpkg.com/prismjs@1.25.0/components/prism-javascript.min.js"></script>
-    <script src="https://unpkg.com/prism-hyperscript@1.1.1/prism-hyperscript.js"></script>
-    <script src="/js/_hyperscript.min.js"></script>
+    <link rel="preload" href="/fonts/ChicagoFLF.ttf" as="font" type="font/ttf" crossorigin>
+    <link rel="preload" href="/fonts/IBMPlexSans-Regular.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="/css/os9.css"/>
+    <link rel="stylesheet" href="/css/prism-htmx.css"/>
+    <script src="/js/_hyperscript.js"></script>
 </head>
 <body>
 <header class="navbar">
-    <nav id="nav" class="navigation">
-        <ul role="list">
-            <li><a href="/"><img alt="///_hyperscript" src="/img/transparent_logo.png"></a>
+    <nav>
+        <a href="/" class="nav-logo"><span class="logo-slashes">///</span><span class="logo-underscore">_</span></a>
+        <button class="hamburger" aria-label="Menu"
+                _="on click toggle .nav-open on closest <nav/>">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
             <li><a href="/docs/">docs</a>
             <li><a href="/reference/">reference</a>
             <li><a href="/cookbook/">cookbook</a>
+            <li><a href="/playground/">try it!</a>
             <li><a href="/talk/">talk</a>
-            <li><a href="https://github.com/sponsors/bigskysoftware?o=esb">sponsor</a>
+            <li class="nav-spacer"></li>
             <li><form action="https://google.com/search">
                 <input type="hidden" name="q" value="site:hyperscript.org" />
                 <label><v-h>Search</v-h><input type="text" name="q" placeholder="🔍️" class="search-box" /></label>
             </form>
-            <li><a href="https://github.com/bigskysoftware/_hyperscript">github</a>
-            <li><iframe src="https://ghbtns.com/github-btn.html?user=bigskysoftware&repo=_hyperscript&type=star&count=true" frameborder="0" scrolling="0" class="github-stars" style="width:85px;height:20px;margin:auto" title="Star htmx on GitHub"></iframe>
+            <li><a href="https://github.com/bigskysoftware/_hyperscript" class="nav-github" aria-label="GitHub"><svg viewBox="0 0 16 16" width="20" height="20" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
         </ul>
     </nav>
 </header>

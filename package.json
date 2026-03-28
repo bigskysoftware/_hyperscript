@@ -43,6 +43,7 @@
   },
   "devDependencies": {
     "@11ty/eleventy": "^3.1.2",
+    "@11ty/eleventy-plugin-syntaxhighlight": "^5.0.2",
     "@playwright/test": "^1.58.2",
     "esbuild": "^0.27.4",
     "markdown-it": "^12.3.2",
