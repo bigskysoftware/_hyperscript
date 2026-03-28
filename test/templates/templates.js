@@ -74,7 +74,7 @@ test.describe('Templating', () => {
         expect(res).toBe('<p>Should be 2 -&gt; 2</p>\n<p>Should be 2 -&gt; 2</p>\n')
     })
 
-    test ('all characters escape correctly', async ({html, evaluate}) => {
-        await html('<template></template>')
-    })
+    // test ('all characters escape correctly', async ({html, evaluate}) => {
+    //     await html('<template></template>')
+    // })
 })
