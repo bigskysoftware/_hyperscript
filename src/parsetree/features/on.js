@@ -315,10 +315,7 @@ export class OnFeature extends Feature {
                     } while (parser.matchToken("and"));
                 }
             } else if (eventName === "mutation") {
-                mutationSpec = {
-                    attributeOldValue: true,
-                    characterDataOldValue: true,
-                };
+                mutationSpec = {};
                 if (parser.matchToken("of")) {
                     do {
                         if (parser.matchToken("anything")) {
@@ -350,10 +347,19 @@ export class OnFeature extends Feature {
                             parser.raiseParseError("Unknown mutation config specification");
                         }
                     } while (parser.matchToken("or"));
+                    // Enable oldValue recording for requested types
+                    if (mutationSpec["attributes"] || mutationSpec["attributeFilter"]) {
+                        mutationSpec["attributeOldValue"] = true;
+                    }
+                    if (mutationSpec["characterData"]) {
+                        mutationSpec["characterDataOldValue"] = true;
+                    }
                 } else {
                     mutationSpec["attributes"] = true;
                     mutationSpec["characterData"] = true;
                     mutationSpec["childList"] = true;
+                    mutationSpec["attributeOldValue"] = true;
+                    mutationSpec["characterDataOldValue"] = true;
                 }
             }
 

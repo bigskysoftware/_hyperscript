@@ -502,15 +502,13 @@ test.describe('the on feature', () => {
 		await expect(find('div')).toHaveText('Mutated')
 	})
 
-	test.fixme('can listen for childList mutation filter out other mutations', async ({html, find, evaluate}) => {
-		// TODO: mutation type filtering appears broken in the refactored runtime
+	test('can listen for childList mutation filter out other mutations', async ({html, find, evaluate}) => {
 		await html("<div _='on mutation of childList put \"Mutated\" into me'></div>")
 		await evaluate(() => document.querySelector('#work-area div').setAttribute("foo", "bar"))
 		await expect(find('div')).toHaveText('')
 	})
 
-	test.fixme('can listen for characterData mutation filter out other mutations', async ({html, find, evaluate}) => {
-		// TODO: mutation type filtering appears broken in the refactored runtime
+	test('can listen for characterData mutation filter out other mutations', async ({html, find, evaluate}) => {
 		await html("<div _='on mutation of characterData put \"Mutated\" into me'></div>")
 		await evaluate(() => document.querySelector('#work-area div').setAttribute("foo", "bar"))
 		await expect(find('div')).toHaveText('')
