@@ -102,4 +102,11 @@ test.describe("the pick command", () => {
 		expect(result).toEqual(["The"]);
 	});
 
+	test("does not hang on zero-length regex matches", async ({run, evaluate}) => {
+		await run(String.raw`pick matches of "\\d*" from haystack
+			set window.test to it`, {locals: {haystack: "a1b"}});
+		const result = await evaluate(() => Array.from(window.test).map(m => m[0]));
+		expect(result).toContain("1");
+	});
+
 });

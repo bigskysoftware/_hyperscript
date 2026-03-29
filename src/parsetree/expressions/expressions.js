@@ -923,7 +923,7 @@ export class ComparisonOperator extends Expression {
                     operator = "not match";
                 } else if (parser.matchToken("contains") || parser.matchToken("contain")) {
                     operator = "not contain";
-                } else if (parser.matchToken("exist") || parser.matchToken("exist")) {
+                } else if (parser.matchToken("exist")) {
                     operator = "not exist";
                     hasRightValue = false;
                 } else if (parser.matchToken("include")) {
