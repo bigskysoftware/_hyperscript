@@ -45,6 +45,13 @@ export class BindFeature extends Feature {
             right = parser.requireElement("expression");
         }
 
+        if (!_isAssignable(left)) {
+            parser.raiseParseError("bind requires a writable expression, but '" + left.type + "' cannot be assigned to");
+        }
+        if (right && !_isAssignable(right)) {
+            parser.raiseParseError("bind requires a writable expression, but '" + right.type + "' cannot be assigned to");
+        }
+
         return new BindFeature(left, right);
     }
 
@@ -65,6 +72,13 @@ export class BindFeature extends Feature {
             }
         });
     }
+}
+
+/** Check whether a parsed expression can be assigned to by bind */
+function _isAssignable(expr) {
+    if (expr.type === "classRef") return true;
+    if (expr.type === "attributeRef") return true;
+    return typeof expr.set === "function";
 }
 
 /**
