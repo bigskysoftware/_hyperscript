@@ -57,7 +57,7 @@ export function formatErrors(errors) {
 
         var underlineChars = Array(contextLine.length + 10).fill(" ");
         for (var e of lineErrors) {
-            var col = e.token?.line ? e.token.column : contextLine.length - 1;
+            var col = e.token?.line ? e.token.column : Math.max(0, contextLine.length - 1);
             var len = Math.max(1, e.token?.value?.length || 1);
             for (var i = 0; i < len; i++) underlineChars[col + i] = "^";
         }
@@ -307,7 +307,7 @@ export class Tokens {
         var lines = this.source.split("\n");
         var lineIdx = currentToken?.line ? currentToken.line - 1 : lines.length - 1;
         var contextLine = lines[lineIdx] || "";
-        var col = currentToken?.line ? currentToken.column : contextLine.length - 1;
+        var col = currentToken?.line ? currentToken.column : Math.max(0, contextLine.length - 1);
         var tokenLen = Math.max(1, currentToken?.value?.length || 1);
         var formatted = message + "\n\n" + contextLine + "\n" + " ".repeat(col) + "^".repeat(tokenLen) + "\n";
         var error = new Error(formatted);

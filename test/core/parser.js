@@ -152,4 +152,18 @@ test.describe("the _hyperscript parser", () => {
 		var msg = await error("add - to");
 		expect(msg).toMatch(/^Expected either a class reference or attribute expression/);
 	});
+
+	test("parse error at EOF on trailing newline does not crash", async ({evaluate}) => {
+		// source ending with \n means last line is empty; EOF token has no .line
+		var result = await evaluate((src) => {
+			try {
+				_hyperscript(src);
+				return "no-error";
+			} catch (e) {
+				if (e instanceof RangeError) return "RangeError: " + e.message;
+				return "ok: " + typeof e.message;
+			}
+		}, "set x to\n");
+		expect(result).toMatch(/^ok:/);
+	});
 });
