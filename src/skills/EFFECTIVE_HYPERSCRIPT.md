@@ -331,12 +331,13 @@ throw "error message"
 ### Navigation & Scrolling
 
 ```hyperscript
-go back                                 -- history.back()
-go to url "/page"                       -- navigate
-go to url "/page" in new window         -- window.open()
-go to #element                          -- scrollIntoView
-go to the top of #element smoothly      -- smooth scroll, top alignment
-go to the bottom of #element +50px      -- with offset
+go back                                  -- history.back()
+go to /page                              -- navigate
+go to /page in new window                -- window.open()
+go to "#hash"                            -- location.hash
+scroll to #element                       -- scrollIntoView
+scroll to the top of #element smoothly   -- smooth scroll, top alignment
+scroll to the bottom of #element +50px   -- with offset
 ```
 
 ### Animation

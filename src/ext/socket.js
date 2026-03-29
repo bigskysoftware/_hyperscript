@@ -50,7 +50,7 @@ export class SocketFeature extends Feature {
 		var socketName = nameSpace.pop();
 
 		var promises = {};
-		var url = parser.requireElement("stringLike");
+		var url = parser.parseURLOrExpression();
 
 		var defaultTimeout = 10000;
 		if (parser.matchToken("with")) {

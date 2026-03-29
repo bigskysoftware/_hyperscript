@@ -11,6 +11,8 @@
 - `as JSON` is now `JSON.parse` - replace `as JSON` with `as JSONString` if you were using it to stringify
 - `Values:JSON` and `Values:Form` removed - use `as Values | JSONString` and `as Values | FormEncoded`
 - `default` uses nullish check instead of truthy - no longer overwrites `0` and `false`
+- `go to url ...` deprecated - use `go to /path` or `go to "url"` instead
+- `go to the top of ...` scroll form deprecated - use `scroll to the top of ...` instead
 
 ### New Features
 
@@ -28,6 +30,16 @@
 - `fetch as JSON` accepted (in addition to `fetch as json`)
 - `when` clause on `remove` and `hide` commands (async-safe, matching `add`/`show`)
 - `remove {color} from me` clears inline CSS properties
+- `scroll to` command for scrolling elements into view (replaces scroll form of `go`)
+- `go to` accepts naked URLs (`go to /about`), no `url` keyword needed
+- `go to` dynamically dispatches: strings navigate, elements scroll, `#` strings set hash
+- `on first click` modifier - fires event handler only once
+- `repeat ... until x end` and `repeat ... while x end` bottom-tested loops
+- `pick first 3 of arr`, `pick last 2 of arr`, `pick random of arr` positional pick
+- `pick` supports `of` syntax (`pick items 1 to 3 of arr`)
+- `return` without a value (equivalent to `exit`)
+- `is a Element` works via instanceof fallback (in addition to exact type names)
+- `ignoring case` modifier on comparisons
 
 ### Internal
 

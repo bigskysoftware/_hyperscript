@@ -2,6 +2,7 @@
 // Encapsulates both LanguageKernel and Tokens to provide a single parameter to grammar functions
 
 import { ImplicitReturn } from '../parsetree/internals.js';
+import { NakedString } from '../parsetree/expressions/literals.js';
 
 export class Parser {
     #kernel;
@@ -209,6 +210,23 @@ export class Parser {
             }
             this.setParent(elt.next, parent);
         }
+    }
+
+    parseURLOrExpression() {
+        var cur = this.currentToken();
+        if (cur.value === "/" && cur.type === "DIVIDE") {
+            // starts with / — naked URL
+            var tokens = this.consumeUntilWhitespace();
+            this.matchTokenType("WHITESPACE");
+            return new NakedString(tokens);
+        }
+        if (cur.type === "IDENTIFIER" && (cur.value === "http" || cur.value === "https" || cur.value === "ws" || cur.value === "wss")) {
+            // starts with http/https — naked URL
+            var tokens = this.consumeUntilWhitespace();
+            this.matchTokenType("WHITESPACE");
+            return new NakedString(tokens);
+        }
+        return this.requireElement("expression");
     }
 
     ensureTerminated(commandList) {

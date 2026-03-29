@@ -10,7 +10,8 @@
 | default                            | Sets a variable to a value if it is currently undefined                       | `default x to 0`                                                                       |
 | exit                               | Exits the current handler without returning a value                           | `if x is null exit`                                                                     |
 | [fetch](/commands/fetch)           | Send a fetch request                                                          | `fetch /demo then put it into my.innerHTML`                                             |
-| [go](/commands/go)                 | Navigate to a new page or within a page                                       | `go to the top of the body smoothly`                                                    |
+| [go](/commands/go)                 | Navigate to a URL                                                             | `go to /about`, `go back`                                                               |
+| [scroll](/commands/scroll)         | Scroll an element into view                                                   | `scroll to the top of #section smoothly`                                                |
 | [halt](/commands/halt)             | Halts the current event (stopping propagate, etc.)                            | `halt`                                                                                  |
 | [hide](/commands/hide)             | Hide an element in the DOM                                                    | `hide me`                                                                               |
 | [if](/commands/if)                 | A conditional control flow command                                            | `if I match .selected then call alert('I\'m selected!')`                                |

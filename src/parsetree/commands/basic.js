@@ -584,7 +584,7 @@ export class FetchCommand extends Command {
 
     static parse(parser) {
         if (!parser.matchToken("fetch")) return;
-        var url = parser.requireElement("stringLike");
+        var url = parser.parseURLOrExpression();
 
         if (parser.matchToken("as")) {
             var conversionInfo = FetchCommand.parseConversionInfo(parser);
@@ -670,151 +670,184 @@ export class FetchCommand extends Command {
     }
 }
 
+function _parseScrollModifiers(parser) {
+    parser.matchToken("the");
+    var verticalPosition = parser.matchAnyToken("top", "middle", "bottom");
+    var horizontalPosition = parser.matchAnyToken("left", "center", "right");
+    if (verticalPosition || horizontalPosition) {
+        parser.requireToken("of");
+    }
+    var target = parser.requireElement("unaryExpression");
+
+    var plusOrMinus = parser.matchAnyOpToken("+", "-");
+    var offset;
+    if (plusOrMinus) {
+        parser.pushFollow("px");
+        try {
+            offset = parser.requireElement("expression");
+        } finally {
+            parser.popFollow();
+        }
+    }
+    parser.matchToken("px");
+
+    var smoothness = parser.matchAnyToken("smoothly", "instantly");
+
+    var scrollOptions = { block: "start", inline: "nearest" };
+
+    if (verticalPosition) {
+        if (verticalPosition.value === "top") scrollOptions.block = "start";
+        else if (verticalPosition.value === "bottom") scrollOptions.block = "end";
+        else if (verticalPosition.value === "middle") scrollOptions.block = "center";
+    }
+    if (horizontalPosition) {
+        if (horizontalPosition.value === "left") scrollOptions.inline = "start";
+        else if (horizontalPosition.value === "center") scrollOptions.inline = "center";
+        else if (horizontalPosition.value === "right") scrollOptions.inline = "end";
+    }
+    if (smoothness) {
+        if (smoothness.value === "smoothly") scrollOptions.behavior = "smooth";
+        else if (smoothness.value === "instantly") scrollOptions.behavior = "instant";
+    }
+
+    return { target, offset, plusOrMinus, scrollOptions };
+}
+
+function _resolveScroll(ctx, to, offset, plusOrMinus, scrollOptions) {
+    ctx.meta.runtime.implicitLoop(to, function (target) {
+        if (target === window) target = document.body;
+
+        if (plusOrMinus) {
+            var boundingRect = target.getBoundingClientRect();
+            var scrollShim = document.createElement("div");
+            var actualOffset = plusOrMinus.value === "+" ? offset : offset * -1;
+            var offsetX = scrollOptions.inline == "start" || scrollOptions.inline == "end" ? actualOffset : 0;
+            var offsetY = scrollOptions.block == "start" || scrollOptions.block == "end" ? actualOffset : 0;
+
+            scrollShim.style.position = "absolute";
+            scrollShim.style.top = (boundingRect.top + window.scrollY + offsetY) + "px";
+            scrollShim.style.left = (boundingRect.left + window.scrollX + offsetX) + "px";
+            scrollShim.style.height = boundingRect.height + "px";
+            scrollShim.style.width = boundingRect.width + "px";
+            scrollShim.style.zIndex = "" + Number.MIN_SAFE_INTEGER;
+            scrollShim.style.opacity = "0";
+
+            document.body.appendChild(scrollShim);
+            setTimeout(function () { document.body.removeChild(scrollShim); }, 100);
+            target = scrollShim;
+        }
+
+        target.scrollIntoView(scrollOptions);
+    });
+}
+
 /**
- * GoCommand - Navigate/scroll to location
+ * ScrollCommand - Scroll to element
  *
- * Parses: go back | go [to] url <url> [in new window] | go [to] [the] [top|middle|bottom] [left|center|right] of <element> [+/- <offset>px] [smoothly|instantly]
- * Executes: Navigate browser history, URL, or scroll to element
+ * Parses: scroll to [the] [top|middle|bottom] [left|center|right] [of] <expr> [+/- <offset>px] [smoothly|instantly]
+ */
+export class ScrollCommand extends Command {
+    static keyword = "scroll";
+
+    constructor(target, offset, plusOrMinus, scrollOptions) {
+        super();
+        this.target = target;
+        this.plusOrMinus = plusOrMinus;
+        this.scrollOptions = scrollOptions;
+        this.args = { target, offset };
+    }
+
+    static parse(parser) {
+        if (!parser.matchToken("scroll")) return;
+        parser.requireToken("to");
+        var scroll = _parseScrollModifiers(parser);
+        return new ScrollCommand(scroll.target, scroll.offset, scroll.plusOrMinus, scroll.scrollOptions);
+    }
+
+    resolve(ctx, { target: to, offset }) {
+        _resolveScroll(ctx, to, offset, this.plusOrMinus, this.scrollOptions);
+        return ctx.meta.runtime.findNext(this, ctx);
+    }
+}
+
+/**
+ * GoCommand - Navigate or scroll (scroll form deprecated, use ScrollCommand)
+ *
+ * Parses: go back | go [to] <url-or-expr> [in new window]
  */
 export class GoCommand extends Command {
     static keyword = "go";
 
-    constructor(target, offset, back, url, newWindow, plusOrMinus, scrollOptions) {
+    constructor(target, offset, back, newWindow, plusOrMinus, scrollOptions) {
         super();
         this.target = target;
         this.args = { target, offset };
         this.back = back;
-        this.url = url;
         this.newWindow = newWindow;
         this.plusOrMinus = plusOrMinus;
         this.scrollOptions = scrollOptions;
     }
 
     static parse(parser) {
-        if (parser.matchToken("go")) {
-            if (parser.matchToken("back")) {
-                var back = true;
-            } else {
-                parser.matchToken("to");
-                if (parser.matchToken("url")) {
-                    var target = parser.requireElement("stringLike");
-                    var url = true;
-                    if (parser.matchToken("in")) {
-                        parser.requireToken("new");
-                        parser.requireToken("window");
-                        var newWindow = true;
-                    }
-                } else {
-                    parser.matchToken("the"); // optional the
-                    var verticalPosition = parser.matchAnyToken("top", "middle", "bottom");
-                    var horizontalPosition = parser.matchAnyToken("left", "center", "right");
-                    if (verticalPosition || horizontalPosition) {
-                        parser.requireToken("of");
-                    }
-                    var target = parser.requireElement("unaryExpression");
+        if (!parser.matchToken("go")) return;
 
-                    var plusOrMinus = parser.matchAnyOpToken("+", "-");
-                    if (plusOrMinus) {
-                        parser.pushFollow("px");
-                        try {
-                            var offset = parser.requireElement("expression");
-                        } finally {
-                            parser.popFollow();
-                        }
-                    }
-                    parser.matchToken("px"); // optional px
-
-                    var smoothness = parser.matchAnyToken("smoothly", "instantly");
-
-                    var scrollOptions = {
-                        block: "start",
-                        inline: "nearest"
-                    };
-
-                    if (verticalPosition) {
-                        if (verticalPosition.value === "top") {
-                            scrollOptions.block = "start";
-                        } else if (verticalPosition.value === "bottom") {
-                            scrollOptions.block = "end";
-                        } else if (verticalPosition.value === "middle") {
-                            scrollOptions.block = "center";
-                        }
-                    }
-
-                    if (horizontalPosition) {
-                        if (horizontalPosition.value === "left") {
-                            scrollOptions.inline = "start";
-                        } else if (horizontalPosition.value === "center") {
-                            scrollOptions.inline = "center";
-                        } else if (horizontalPosition.value === "right") {
-                            scrollOptions.inline = "end";
-                        }
-                    }
-
-                    if (smoothness) {
-                        if (smoothness.value === "smoothly") {
-                            scrollOptions.behavior = "smooth";
-                        } else if (smoothness.value === "instantly") {
-                            scrollOptions.behavior = "instant";
-                        }
-                    }
-                }
-            }
-
-            return new GoCommand(target, offset, back, url, newWindow, plusOrMinus, scrollOptions);
+        if (parser.matchToken("back")) {
+            return new GoCommand(null, null, true);
         }
+
+        parser.matchToken("to");
+
+        // deprecated: go [to] url <stringLike>
+        if (parser.matchToken("url")) {
+            var target = parser.requireElement("stringLike");
+            var newWindow = false;
+            if (parser.matchToken("in")) {
+                parser.requireToken("new");
+                parser.requireToken("window");
+                newWindow = true;
+            }
+            return new GoCommand(target, null, false, newWindow);
+        }
+
+        // deprecated: go [to] [the] top/middle/bottom ... of <expr> (scroll form)
+        var cur = parser.currentToken();
+        if (cur.value === "the" || cur.value === "top" || cur.value === "middle" || cur.value === "bottom"
+            || cur.value === "left" || cur.value === "center" || cur.value === "right") {
+            var scroll = _parseScrollModifiers(parser);
+            return new GoCommand(scroll.target, scroll.offset, false, false, scroll.plusOrMinus, scroll.scrollOptions);
+        }
+
+        // new: go [to] <url-or-expression> [in new window]
+        var target = parser.parseURLOrExpression();
+        var newWindow = false;
+        if (parser.matchToken("in")) {
+            parser.requireToken("new");
+            parser.requireToken("window");
+            newWindow = true;
+        }
+        return new GoCommand(target, null, false, newWindow);
     }
 
     resolve(ctx, { target: to, offset }) {
         if (this.back) {
             window.history.back();
-        } else if (this.url) {
-            if (to) {
-                if (this.newWindow) {
-                    window.open(to);
+        } else if (this.scrollOptions) {
+            // deprecated scroll form
+            _resolveScroll(ctx, to, offset, this.plusOrMinus, this.scrollOptions);
+        } else if (to != null) {
+            if (to instanceof Element) {
+                // element -> scroll (backwards compat)
+                to.scrollIntoView({ block: "start", inline: "nearest" });
+            } else {
+                var str = String(to);
+                if (str.startsWith("#")) {
+                    window.location.hash = str;
+                } else if (this.newWindow) {
+                    window.open(str);
                 } else {
-                    window.location.href = to;
+                    window.location.href = str;
                 }
             }
-        } else {
-            const plusOrMinus = this.plusOrMinus;
-            const scrollOptions = this.scrollOptions;
-            ctx.meta.runtime.implicitLoop(to, function (target) {
-
-                if (target === window) {
-                    target = document.body;
-                }
-
-                if(plusOrMinus) {
-                    // a scroll w/ an offset of some sort
-                    let boundingRect = target.getBoundingClientRect();
-
-                    let scrollShim = document.createElement("div");
-
-                    let actualOffset = plusOrMinus.value === "+" ? offset : offset * -1;
-
-                    let offsetX = scrollOptions.inline == "start" || scrollOptions.inline == "end" ? actualOffset : 0;
-
-                    let offsetY = scrollOptions.block == "start" || scrollOptions.block == "end" ? actualOffset : 0;
-
-                    scrollShim.style.position = "absolute";
-                    scrollShim.style.top = (boundingRect.top + window.scrollY + offsetY) + "px";
-                    scrollShim.style.left = (boundingRect.left + window.scrollX + offsetX) + "px";
-                    scrollShim.style.height = boundingRect.height + "px";
-                    scrollShim.style.width = boundingRect.width + "px";
-                    scrollShim.style.zIndex = "" + Number.MIN_SAFE_INTEGER;
-                    scrollShim.style.opacity = "0";
-
-                    document.body.appendChild(scrollShim);
-                    setTimeout(function () {
-                        document.body.removeChild(scrollShim);
-                    }, 100);
-
-                    target = scrollShim;
-                }
-
-                target.scrollIntoView(scrollOptions);
-            });
         }
         return ctx.meta.runtime.findNext(this, ctx);
     }

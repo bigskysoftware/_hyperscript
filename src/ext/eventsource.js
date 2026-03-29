@@ -33,7 +33,7 @@ export class EventSourceFeature extends Feature {
 
 		// Get the URL of the EventSource
 		if (parser.matchToken("from")) {
-			urlElement = parser.requireElement("stringLike");
+			urlElement = parser.parseURLOrExpression();
 		}
 
 		// Get option to connect with/without credentials
