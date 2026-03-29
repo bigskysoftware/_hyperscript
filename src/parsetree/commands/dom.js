@@ -1035,3 +1035,89 @@ export class CloseCommand extends Command {
         return ctx.meta.runtime.findNext(this, ctx);
     }
 }
+
+/**
+ * SpeakCommand - Speak text using the Web Speech API
+ *
+ * Parses: speak <expr> [with voice <expr>] [with rate <expr>] [with pitch <expr>] [with volume <expr>]
+ */
+export class SpeakCommand extends Command {
+    static keyword = "speak";
+
+    constructor(text, voice, rate, pitch, volume) {
+        super();
+        this.voice = voice;
+        this.rate = rate;
+        this.pitch = pitch;
+        this.volume = volume;
+        this.args = { text, voice, rate, pitch, volume };
+    }
+
+    static parse(parser) {
+        if (!parser.matchToken("speak")) return;
+        var text = parser.requireElement("expression");
+        var voice = null, rate = null, pitch = null, volume = null;
+        while (parser.matchToken("with")) {
+            if (parser.matchToken("voice")) {
+                voice = parser.requireElement("expression");
+            } else if (parser.matchToken("rate")) {
+                rate = parser.requireElement("expression");
+            } else if (parser.matchToken("pitch")) {
+                pitch = parser.requireElement("expression");
+            } else if (parser.matchToken("volume")) {
+                volume = parser.requireElement("expression");
+            } else {
+                parser.raiseParseError("Expected voice, rate, pitch, or volume");
+            }
+        }
+        return new SpeakCommand(text, voice, rate, pitch, volume);
+    }
+
+    resolve(ctx, { text, voice, rate, pitch, volume }) {
+        var utterance = new SpeechSynthesisUtterance(String(text));
+        if (voice) {
+            var voices = speechSynthesis.getVoices();
+            var match = voices.find(v => v.name === voice);
+            if (match) utterance.voice = match;
+        }
+        if (rate != null) utterance.rate = rate;
+        if (pitch != null) utterance.pitch = pitch;
+        if (volume != null) utterance.volume = volume;
+        var cmd = this;
+        return new Promise(function (resolve) {
+            utterance.onend = function () {
+                resolve(ctx.meta.runtime.findNext(cmd, ctx));
+            };
+            speechSynthesis.speak(utterance);
+        });
+    }
+}
+
+/**
+ * SelectCommand - Select text in an input or textarea
+ *
+ * Parses: select [<expr>]
+ */
+export class SelectCommand extends Command {
+    static keyword = "select";
+
+    constructor(target) {
+        super();
+        this.args = { target };
+    }
+
+    static parse(parser) {
+        if (!parser.matchToken("select")) return;
+        var target = null;
+        if (!parser.commandBoundary(parser.currentToken())) {
+            target = parser.requireElement("expression");
+        }
+        return new SelectCommand(target);
+    }
+
+    resolve(ctx, { target }) {
+        var elt = target || ctx.me;
+        if (typeof elt.select === "function") elt.select();
+        return ctx.meta.runtime.findNext(this, ctx);
+    }
+}

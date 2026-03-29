@@ -42,6 +42,13 @@ export class Context {
                 configurable: true
             });
         }
+        if (typeof window !== "undefined" && window.getSelection) {
+            Object.defineProperty(this.locals, 'selection', {
+                get() { return window.getSelection().toString(); },
+                enumerable: true,
+                configurable: true
+            });
+        }
         this.me = hyperscriptTarget;
         this.you = undefined
         this.result = undefined
