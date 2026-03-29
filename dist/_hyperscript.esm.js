@@ -2559,10 +2559,14 @@ var reactivity = new Reactivity();
 // src/core/runtime/runtime.js
 var cookies = new CookieJar().proxy();
 function _applyWhenResults(elements, results, forwardFn, reverseFn) {
+  var matched = [];
   for (var i = 0; i < elements.length; i++) {
-    if (results[i]) forwardFn(elements[i]);
-    else reverseFn(elements[i]);
+    if (results[i]) {
+      forwardFn(elements[i]);
+      matched.push(elements[i]);
+    } else reverseFn(elements[i]);
   }
+  return matched;
 }
 var Context = class {
   constructor(owner, feature, hyperscriptTarget, event, runtime2, globalScope2, kernel2, tokenizer2) {
@@ -2949,16 +2953,15 @@ var _Runtime = class _Runtime {
       context.result = elt;
       return whenExpr.evaluate(context);
     });
-    context.result = null;
     var hasPromise = conditions.some(function(c) {
       return c && typeof c.then === "function";
     });
     if (hasPromise) {
       return Promise.all(conditions).then(function(results) {
-        _applyWhenResults(elements, results, forwardFn, reverseFn);
+        context.result = _applyWhenResults(elements, results, forwardFn, reverseFn);
       });
     } else {
-      _applyWhenResults(elements, conditions, forwardFn, reverseFn);
+      context.result = _applyWhenResults(elements, conditions, forwardFn, reverseFn);
     }
   }
   // =================================================================
