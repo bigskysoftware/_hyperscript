@@ -165,12 +165,9 @@ title: Patterns - ///_hyperscript
 <div class="patterns-toolbar">
     <input type="text" class="patterns-search" id="pattern-search" placeholder="Search patterns..."
            _="on input
-                remove @hidden from <.pattern-card/> when my value is empty or it's textContent contains my value ignoring case
-                if (<.pattern-card:not([hidden])/>).length is 0
-                    remove @hidden from #no-results
-                else
-                    add @hidden to #no-results
-                end" />
+                add @hidden to #no-results
+                remove @hidden from <.pattern-card/> when it's textContent contains my value ignoring case
+                remove @hidden from #no-results when the result is empty" />
     <div class="tag-filters">
         <button class="tag-btn active" data-tag="all"
                 _="on click

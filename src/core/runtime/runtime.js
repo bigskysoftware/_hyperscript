@@ -9,12 +9,14 @@ import { formatErrors } from '../tokenizer.js';
 // cookie jar proxy for runtime
 let cookies = new CookieJar().proxy();
 
-/** Apply forward/reverse functions based on when-clause results */
+/** Apply forward/reverse functions based on when-clause results, return matched elements */
 function _applyWhenResults(elements, results, forwardFn, reverseFn) {
+    var matched = [];
     for (var i = 0; i < elements.length; i++) {
-        if (results[i]) forwardFn(elements[i]);
+        if (results[i]) { forwardFn(elements[i]); matched.push(elements[i]); }
         else reverseFn(elements[i]);
     }
+    return matched;
 }
 
 
@@ -520,15 +522,14 @@ export class Runtime {
                 context.result = elt;
                 return whenExpr.evaluate(context);
             });
-            context.result = null;
 
             var hasPromise = conditions.some(function (c) { return c && typeof c.then === "function"; });
             if (hasPromise) {
                 return Promise.all(conditions).then(function (results) {
-                    _applyWhenResults(elements, results, forwardFn, reverseFn);
+                    context.result = _applyWhenResults(elements, results, forwardFn, reverseFn);
                 });
             } else {
-                _applyWhenResults(elements, conditions, forwardFn, reverseFn);
+                context.result = _applyWhenResults(elements, conditions, forwardFn, reverseFn);
             }
         }
 

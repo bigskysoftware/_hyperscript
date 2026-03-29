@@ -21,12 +21,9 @@ title: ///_hyperscript
         <div class="hero-demo">
             <input type="text" placeholder="Try it — type to search..."
                    _="on input
+                        hide #no-match
                         show <li:not(#no-match)/> in #hero-results when its textContent contains my value ignoring case
-                        if (<li:not(#no-match):not([style*='display: none'])/> in #hero-results).length is 0
-                          show #no-match
-                        else
-                          hide #no-match
-                        end" />
+                        show #no-match when the result is empty" />
             <ul id="hero-results">
                 <li>Macintosh 128K</li>
                 <li>Macintosh 512K</li>

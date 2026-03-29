@@ -134,4 +134,27 @@ test.describe("the add command", () => {
 		await expect(find('#c1')).toHaveClass(/foo/);
 		await expect(find('#c2')).toHaveClass(/foo/);
 	});
+
+	test("when clause sets result to matched elements", async ({html, find}) => {
+		await html(
+			"<div id='trigger' _='on click add .foo to .item when it matches .yes then if the result is empty show #none else hide #none'></div>" +
+			"<div id='d1' class='item yes'></div>" +
+			"<div id='d2' class='item'></div>" +
+			"<div id='none' style='display:none'></div>"
+		);
+		await find('#trigger').dispatchEvent('click');
+		// d1 matches .yes, so result is not empty -> #none stays hidden
+		await expect(find('#none')).toBeHidden();
+	});
+
+	test("when clause result is empty when nothing matches", async ({html, find}) => {
+		await html(
+			"<div id='trigger' _='on click add .foo to .item when it matches .nope then if the result is empty remove @hidden from #none'></div>" +
+			"<div id='d1' class='item'></div>" +
+			"<div id='none' hidden></div>"
+		);
+		await find('#trigger').dispatchEvent('click');
+		// nothing matches .nope, so result is empty -> #none shown
+		await expect(find('#none')).not.toHaveAttribute('hidden');
+	});
 });
