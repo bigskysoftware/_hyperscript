@@ -22,8 +22,9 @@ class HyperscriptFormData {
 
         if (this.result[name] == undefined) {
             this.result[name] = value;
-        } else if (Array.isArray(this.result[name]) && Array.isArray(value)) {
-            this.result[name] = this.result[name].concat(value);
+        } else {
+            var existing = Array.isArray(this.result[name]) ? this.result[name] : [this.result[name]];
+            this.result[name] = existing.concat(value);
         }
     }
 

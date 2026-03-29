@@ -88,6 +88,18 @@ test.describe("as operator", () => {
 		expect(result["test-name"]).toBe("test-value")
 	})
 
+	test("collects duplicate text inputs into an array", async ({evaluate}) => {
+		const result = await evaluate(() => {
+			const node = document.createElement("form")
+			node.innerHTML = `
+				<input name="tag" value="alpha">
+				<input name="tag" value="beta">
+				<input name="tag" value="gamma">`
+			return _hyperscript("x as Values", { locals: { x: node } })
+		})
+		expect(result.tag).toEqual(["alpha", "beta", "gamma"])
+	})
+
 	test("converts a form element into Values", async ({evaluate}) => {
 		const result = await evaluate(() => {
 			const node = document.createElement("form")
