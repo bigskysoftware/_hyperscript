@@ -257,4 +257,11 @@ test.describe("the put command", () => {
 		await find('div').dispatchEvent('click');
 	});
 
+	test("put null into attribute removes it", async ({html, find}) => {
+		await html("<div id='d1' foo='bar' _='on click put null into @foo'></div>");
+		await expect(find('#d1')).toHaveAttribute('foo', 'bar');
+		await find('#d1').dispatchEvent('click');
+		await expect(find('#d1')).not.toHaveAttribute('foo');
+	});
+
 });

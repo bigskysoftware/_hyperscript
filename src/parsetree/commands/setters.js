@@ -315,7 +315,11 @@ export class PutCommand extends Command {
             if (this.operation === "into") {
                 if (this.attributeWrite) {
                     context.meta.runtime.implicitLoop(root, function (elt) {
-                        elt.setAttribute(prop, valueToPut);
+                        if (valueToPut == null) {
+                            elt.removeAttribute(prop);
+                        } else {
+                            elt.setAttribute(prop, valueToPut);
+                        }
                     });
                 } else if (this.styleWrite) {
                     context.meta.runtime.implicitLoop(root, function (elt) {
