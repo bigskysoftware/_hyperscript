@@ -283,4 +283,40 @@ test.describe("the repeat command", () => {
 		await find('div').dispatchEvent('click');
 		await expect(find('div')).toHaveText("123");
 	});
+
+	test("bottom-tested repeat until", async ({html, find}) => {
+		await html(
+			"<div _='on click set x to 0 " +
+			"                 repeat " +
+			"                   set x to x + 1 " +
+			"                 until x is 3 end " +
+			"                 put x into me'></div>"
+		);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("3");
+	});
+
+	test("bottom-tested repeat while", async ({html, find}) => {
+		await html(
+			"<div _='on click set x to 0 " +
+			"                 repeat " +
+			"                   set x to x + 1 " +
+			"                 while x < 3 end " +
+			"                 put x into me'></div>"
+		);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("3");
+	});
+
+	test("bottom-tested loop always runs at least once", async ({html, find}) => {
+		await html(
+			"<div _='on click set x to 0 " +
+			"                 repeat " +
+			"                   set x to x + 1 " +
+			"                 until true end " +
+			"                 put x into me'></div>"
+		);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("1");
+	});
 });
