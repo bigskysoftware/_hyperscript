@@ -162,7 +162,7 @@ export class SymbolRef extends Expression {
         var scope = "default";
         if (parser.matchToken("global")) {
             scope = "global";
-        } else if (parser.matchToken("element") || parser.matchToken("module")) {
+        } else if (parser.matchToken("element")) {
             scope = "element";
             // optional possessive
             if (parser.matchOpToken("'")) {
