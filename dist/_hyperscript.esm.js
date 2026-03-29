@@ -6634,6 +6634,9 @@ var PseudoCommand = _PseudoCommand;
 var dom_exports = {};
 __export(dom_exports, {
   AddCommand: () => AddCommand,
+  BlurCommand: () => BlurCommand,
+  EmptyCommand: () => EmptyCommand,
+  FocusCommand: () => FocusCommand,
   HideCommand: () => HideCommand,
   MeasureCommand: () => MeasureCommand,
   RemoveCommand: () => RemoveCommand,
@@ -7421,6 +7424,69 @@ var _MeasureCommand = class _MeasureCommand extends Command {
 };
 __publicField(_MeasureCommand, "keyword", "measure");
 var MeasureCommand = _MeasureCommand;
+var _FocusCommand = class _FocusCommand extends Command {
+  constructor(target) {
+    super();
+    this.args = { target };
+  }
+  static parse(parser) {
+    if (!parser.matchToken("focus")) return;
+    var target = null;
+    if (!parser.commandBoundary(parser.currentToken())) {
+      target = parser.requireElement("expression");
+    }
+    return new _FocusCommand(target);
+  }
+  resolve(ctx, { target }) {
+    (target || ctx.me).focus();
+    return ctx.meta.runtime.findNext(this, ctx);
+  }
+};
+__publicField(_FocusCommand, "keyword", "focus");
+var FocusCommand = _FocusCommand;
+var _BlurCommand = class _BlurCommand extends Command {
+  constructor(target) {
+    super();
+    this.args = { target };
+  }
+  static parse(parser) {
+    if (!parser.matchToken("blur")) return;
+    var target = null;
+    if (!parser.commandBoundary(parser.currentToken())) {
+      target = parser.requireElement("expression");
+    }
+    return new _BlurCommand(target);
+  }
+  resolve(ctx, { target }) {
+    (target || ctx.me).blur();
+    return ctx.meta.runtime.findNext(this, ctx);
+  }
+};
+__publicField(_BlurCommand, "keyword", "blur");
+var BlurCommand = _BlurCommand;
+var _EmptyCommand = class _EmptyCommand extends Command {
+  constructor(target) {
+    super();
+    this.args = { target };
+  }
+  static parse(parser) {
+    if (!parser.matchToken("empty")) return;
+    var target = null;
+    if (!parser.commandBoundary(parser.currentToken())) {
+      target = parser.requireElement("expression");
+    }
+    return new _EmptyCommand(target);
+  }
+  resolve(ctx, { target }) {
+    var elt = target || ctx.me;
+    ctx.meta.runtime.implicitLoop(elt, function(e) {
+      while (e.firstChild) e.removeChild(e.firstChild);
+    });
+    return ctx.meta.runtime.findNext(this, ctx);
+  }
+};
+__publicField(_EmptyCommand, "keyword", "empty");
+var EmptyCommand = _EmptyCommand;
 
 // src/parsetree/commands/animations.js
 var animations_exports = {};

@@ -846,3 +846,90 @@ export class MeasureCommand extends Command {
         return ctx.meta.runtime.findNext(this, ctx);
     }
 }
+
+/**
+ * FocusCommand - Focus an element
+ *
+ * Parses: focus [<expr>]
+ */
+export class FocusCommand extends Command {
+    static keyword = "focus";
+
+    constructor(target) {
+        super();
+        this.args = { target };
+    }
+
+    static parse(parser) {
+        if (!parser.matchToken("focus")) return;
+        var target = null;
+        if (!parser.commandBoundary(parser.currentToken())) {
+            target = parser.requireElement("expression");
+        }
+        return new FocusCommand(target);
+    }
+
+    resolve(ctx, { target }) {
+        (target || ctx.me).focus();
+        return ctx.meta.runtime.findNext(this, ctx);
+    }
+}
+
+/**
+ * BlurCommand - Blur (unfocus) an element
+ *
+ * Parses: blur [<expr>]
+ */
+export class BlurCommand extends Command {
+    static keyword = "blur";
+
+    constructor(target) {
+        super();
+        this.args = { target };
+    }
+
+    static parse(parser) {
+        if (!parser.matchToken("blur")) return;
+        var target = null;
+        if (!parser.commandBoundary(parser.currentToken())) {
+            target = parser.requireElement("expression");
+        }
+        return new BlurCommand(target);
+    }
+
+    resolve(ctx, { target }) {
+        (target || ctx.me).blur();
+        return ctx.meta.runtime.findNext(this, ctx);
+    }
+}
+
+/**
+ * EmptyCommand - Clear an element's content
+ *
+ * Parses: empty [<expr>]
+ */
+export class EmptyCommand extends Command {
+    static keyword = "empty";
+
+    constructor(target) {
+        super();
+        this.args = { target };
+    }
+
+    static parse(parser) {
+        if (!parser.matchToken("empty")) return;
+        var target = null;
+        if (!parser.commandBoundary(parser.currentToken())) {
+            target = parser.requireElement("expression");
+        }
+        return new EmptyCommand(target);
+    }
+
+    resolve(ctx, { target }) {
+        var elt = target || ctx.me;
+        ctx.meta.runtime.implicitLoop(elt, function (e) {
+            while (e.firstChild) e.removeChild(e.firstChild);
+        });
+        return ctx.meta.runtime.findNext(this, ctx);
+    }
+}

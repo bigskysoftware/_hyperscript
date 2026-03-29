@@ -16,7 +16,7 @@ title: ///_hyperscript
 </head>
 <body _="on keydown[key is 'k' and (metaKey or ctrlKey)]
            halt the event
-           call #search-input.focus()
+           focus #search-input
          end"
 >
 <header class="navbar">
@@ -45,7 +45,7 @@ title: ///_hyperscript
 
                        on input debounced at 200ms
                          if my value is ''
-                           set #search-results.innerHTML to ''
+                           empty #search-results
                            add .hidden to #search-results
                            exit
                          end
@@ -105,9 +105,9 @@ title: ///_hyperscript
 
                        on keydown[key is 'Escape']
                          set my value to ''
-                         set #search-results.innerHTML to ''
+                         empty #search-results
                          add .hidden to #search-results
-                         call me.blur()
+                         blur
                        end
 
                        on blur

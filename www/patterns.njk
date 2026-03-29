@@ -165,13 +165,7 @@ title: Patterns - ///_hyperscript
 <div class="patterns-toolbar">
     <input type="text" class="patterns-search" id="pattern-search" placeholder="Search patterns..."
            _="on input
-                repeat for card in <.pattern-card/>
-                    if my value is empty or card's textContent contains my value ignoring case
-                        remove @hidden from card
-                    else
-                        add @hidden to card
-                    end
-                end
+                remove @hidden from <.pattern-card/> when my value is empty or it's textContent contains my value ignoring case
                 if (<.pattern-card:not([hidden])/>).length is 0
                     remove @hidden from #no-results
                 else
@@ -186,58 +180,31 @@ title: Patterns - ///_hyperscript
                      set #pattern-search's value to ''">all</button>
         <button class="tag-btn" data-tag="basics"
                 _="on click take .active from .tag-btn for me
-                     repeat for card in <.pattern-card/>
-                        if card.dataset.tags.includes('basics') remove @hidden from card
-                        else add @hidden to card
-                     end">basics</button>
+                     remove @hidden from <.pattern-card/> when it's dataset.tags contains 'basics'">basics</button>
         <button class="tag-btn" data-tag="dom"
                 _="on click take .active from .tag-btn for me
-                     repeat for card in <.pattern-card/>
-                        if card.dataset.tags.includes('dom') remove @hidden from card
-                        else add @hidden to card
-                     end">dom</button>
+                     remove @hidden from <.pattern-card/> when it's dataset.tags contains 'dom'">dom</button>
         <button class="tag-btn" data-tag="events"
                 _="on click take .active from .tag-btn for me
-                     repeat for card in <.pattern-card/>
-                        if card.dataset.tags.includes('events') remove @hidden from card
-                        else add @hidden to card
-                     end">events</button>
+                     remove @hidden from <.pattern-card/> when it's dataset.tags contains 'events'">events</button>
         <button class="tag-btn" data-tag="animation"
                 _="on click take .active from .tag-btn for me
-                     repeat for card in <.pattern-card/>
-                        if card.dataset.tags.includes('animation') remove @hidden from card
-                        else add @hidden to card
-                     end">animation</button>
+                     remove @hidden from <.pattern-card/> when it's dataset.tags contains 'animation'">animation</button>
         <button class="tag-btn" data-tag="async"
                 _="on click take .active from .tag-btn for me
-                     repeat for card in <.pattern-card/>
-                        if card.dataset.tags.includes('async') remove @hidden from card
-                        else add @hidden to card
-                     end">async</button>
+                     remove @hidden from <.pattern-card/> when it's dataset.tags contains 'async'">async</button>
         <button class="tag-btn" data-tag="forms"
                 _="on click take .active from .tag-btn for me
-                     repeat for card in <.pattern-card/>
-                        if card.dataset.tags.includes('forms') remove @hidden from card
-                        else add @hidden to card
-                     end">forms</button>
+                     remove @hidden from <.pattern-card/> when it's dataset.tags contains 'forms'">forms</button>
         <button class="tag-btn" data-tag="htmx"
                 _="on click take .active from .tag-btn for me
-                     repeat for card in <.pattern-card/>
-                        if card.dataset.tags.includes('htmx') remove @hidden from card
-                        else add @hidden to card
-                     end">htmx</button>
+                     remove @hidden from <.pattern-card/> when it's dataset.tags contains 'htmx'">htmx</button>
         <button class="tag-btn" data-tag="search"
                 _="on click take .active from .tag-btn for me
-                     repeat for card in <.pattern-card/>
-                        if card.dataset.tags.includes('search') remove @hidden from card
-                        else add @hidden to card
-                     end">search</button>
+                     remove @hidden from <.pattern-card/> when it's dataset.tags contains 'search'">search</button>
         <button class="tag-btn" data-tag="interaction"
                 _="on click take .active from .tag-btn for me
-                     repeat for card in <.pattern-card/>
-                        if card.dataset.tags.includes('interaction') remove @hidden from card
-                        else add @hidden to card
-                     end">interaction</button>
+                     remove @hidden from <.pattern-card/> when it's dataset.tags contains 'interaction'">interaction</button>
     </div>
 </div>
 
