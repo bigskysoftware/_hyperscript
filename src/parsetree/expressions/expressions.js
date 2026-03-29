@@ -814,11 +814,12 @@ export class MathOperator extends Expression {
 export class ComparisonOperator extends Expression {
     static grammarName = "comparisonOperator";
 
-    constructor(lhs, operator, rhs, typeName, nullOk) {
+    constructor(lhs, operator, rhs, typeName, nullOk, ignoringCase) {
         super();
         this.operator = operator;
         this.typeName = typeName;
         this.nullOk = nullOk;
+        this.ignoringCase = ignoringCase;
         this.lhs = lhs;
         this.rhs = rhs;
         this.args = { lhs, rhs };
@@ -950,8 +951,13 @@ export class ComparisonOperator extends Expression {
                     rhs = rhs.css ? rhs.css : rhs;
                 }
             }
+            var ignoringCase = false;
+            if (parser.matchToken("ignoring")) {
+                parser.requireToken("case");
+                ignoringCase = true;
+            }
             var lhs = expr;
-            expr = new ComparisonOperator(lhs, operator, rhs, typeName, nullOk);
+            expr = new ComparisonOperator(lhs, operator, rhs, typeName, nullOk, ignoringCase);
         }
         return expr;
     }
@@ -962,6 +968,11 @@ export class ComparisonOperator extends Expression {
         const rhs = this.rhs;
         const typeName = this.typeName;
         const nullOk = this.nullOk;
+
+        if (this.ignoringCase) {
+            if (typeof lhsVal === "string") lhsVal = lhsVal.toLowerCase();
+            if (typeof rhsVal === "string") rhsVal = rhsVal.toLowerCase();
+        }
 
         if (operator === "==") {
             return lhsVal == rhsVal;

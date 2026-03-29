@@ -396,4 +396,26 @@ test.describe("the comparisonOperator expression", () => {
 		expect(await run("<.aClassThatDoesNotExist/> does not exist")).toBe(true)
 		expect(await run("<body/> does not exist")).toBe(false)
 	})
+
+	test("is ignoring case works", async ({run}) => {
+		expect(await run("'Hello' is 'hello' ignoring case")).toBe(true)
+		expect(await run("'Hello' is 'HELLO' ignoring case")).toBe(true)
+		expect(await run("'Hello' is 'world' ignoring case")).toBe(false)
+	})
+
+	test("is not ignoring case works", async ({run}) => {
+		expect(await run("'Hello' is not 'world' ignoring case")).toBe(true)
+		expect(await run("'Hello' is not 'hello' ignoring case")).toBe(false)
+	})
+
+	test("contains ignoring case works", async ({run}) => {
+		expect(await run("'Hello World' contains 'hello' ignoring case")).toBe(true)
+		expect(await run("'Hello World' contains 'WORLD' ignoring case")).toBe(true)
+		expect(await run("'Hello World' contains 'missing' ignoring case")).toBe(false)
+	})
+
+	test("matches ignoring case works", async ({run}) => {
+		expect(await run("'Hello' matches 'hello' ignoring case")).toBe(true)
+		expect(await run("'Hello' matches 'HELLO' ignoring case")).toBe(true)
+	})
 })
