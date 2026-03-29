@@ -7,7 +7,7 @@ title: Try it! - ///_hyperscript
     /* Override container for full-bleed playground */
     .container.content { max-width: none; padding: 0; }
 
-    .playground { display: flex; flex-direction: column; height: calc(100vh - 52px); }
+    .playground { display: flex; flex-direction: column; height: calc(100dvh - 52px); overflow: hidden; }
 
     .playground-toolbar {
         background: var(--chrome-gradient);
@@ -46,7 +46,7 @@ title: Try it! - ///_hyperscript
 
     .playground-panes { flex: 1; display: flex; min-height: 0; }
     .pane-editor { flex: 1; display: flex; flex-direction: column; border-right: 1px solid var(--border); }
-    .pane-preview { flex: 1; display: flex; flex-direction: column; }
+    .pane-preview { flex: 1; display: flex; flex-direction: column; min-height: 0; }
     .pane-label {
         padding: 3px 10px;
         background: var(--bg-chrome);
@@ -58,8 +58,10 @@ title: Try it! - ///_hyperscript
         border-bottom: 1px solid var(--border);
         flex-shrink: 0;
     }
-    .preview-frame { flex: 1; background: white; border: none; }
-    .CodeMirror { flex: 1; height: auto; font-size: 13px; font-family: var(--mono-font); }
+    .preview-frame { flex: 1; background: white; border: none; min-height: 0; }
+    .pane-editor { background: #2e3440; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    .pane-editor .pane-label { background: #3b4252; color: #d8dee9; border-color: #4c566a; }
+    .CodeMirror { flex: 1; height: auto; font-size: 13px; font-family: var(--mono-font); font-weight: bold; }
 
     .playground-status {
         padding: 3px 12px;
@@ -71,16 +73,77 @@ title: Try it! - ///_hyperscript
     }
     .playground-status .error { color: #c00; }
 
-    /* Light-themed hyperscript tokens */
-    .cm-hs-keyword { color: #7b3fa0; }
-    .cm-hs-symbol-global { color: #3465a4; }
-    .cm-hs-symbol-element { color: #b35c00; }
-    .cm-hs-symbol-dom { color: #2e7d32; }
-    .cm-hs-symbol-inherited-attr { color: #8a6d00; }
-    .cm-hs-string { color: #c62828; }
-    .cm-hs-number { color: #b35c00; }
-    .cm-hs-operator { color: #555; }
-    .cm-hs-comment { color: #7a7a7a; font-style: italic; }
+    /* Dark-themed hyperscript tokens (for nord) */
+    .cm-hs-keyword { color: #b48ead; }
+    .cm-hs-symbol-global { color: #88c0d0; }
+    .cm-hs-symbol-element { color: #d08770; }
+    .cm-hs-symbol-dom { color: #a3be8c; }
+    .cm-hs-symbol-inherited-attr { color: #ebcb8b; }
+    .cm-hs-string { color: #a3be8c; }
+    .cm-hs-number { color: #d08770; }
+    .cm-hs-operator { color: #81a1c1; }
+    .cm-hs-comment { color: #616e88; font-style: italic; }
+
+    /* Console */
+    .pane-console {
+        display: flex;
+        flex-direction: column;
+        flex: 0 1 180px;
+        min-height: 80px;
+        background: #2e3440;
+        border-top: 1px solid #4c566a;
+    }
+    .pane-console .pane-label { background: #3b4252; color: #d8dee9; border-color: #4c566a; }
+    .pane-console { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    .console-output {
+        flex: 1;
+        overflow-y: auto;
+        padding: 6px 10px;
+        font-family: var(--mono-font);
+        font-size: 12px;
+        font-weight: bold;
+        color: #d8dee9;
+    }
+    .console-output .log { color: #d8dee9; }
+    .console-output .warn { color: #ebcb8b; }
+    .console-output .error { color: #bf616a; }
+    .console-output .result { color: #88c0d0; }
+    .console-output .separator { color: #4c566a; border-top: 1px solid #3b4252; margin: 4px 0; }
+    .console-output div { padding: 1px 0; white-space: pre-wrap; word-break: break-all; }
+    .console-input-line {
+        display: flex;
+        align-items: center;
+        border-top: 1px solid #4c566a;
+        padding: 4px 10px;
+        background: #3b4252;
+        flex-shrink: 0;
+    }
+    .console-prompt {
+        color: #88c0d0;
+        font-family: var(--mono-font);
+        font-size: 13px;
+        margin-right: 6px;
+        user-select: none;
+    }
+    textarea.console-input, textarea.console-input:focus {
+        flex: 1;
+        background: transparent;
+        border: none;
+        outline: none;
+        box-shadow: none;
+        color: #eceff4;
+        font-family: var(--mono-font);
+        font-size: 12px;
+        font-weight: bold;
+        padding: 0;
+        margin: 0;
+        border-radius: 0;
+        resize: none;
+        overflow: hidden;
+        line-height: 1.5;
+        height: 18px;
+    }
+    .console-input::placeholder { color: #616e88; }
 
     @media (max-width: 768px) {
         .playground-panes { flex-direction: column; }
@@ -91,6 +154,7 @@ title: Try it! - ///_hyperscript
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/lint/lint.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/hint/show-hint.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/theme/nord.min.css">
 
 <div class="playground">
     <div class="playground-toolbar">
@@ -121,6 +185,15 @@ title: Try it! - ///_hyperscript
         <div class="pane-preview">
             <div class="pane-label">Preview</div>
             <iframe id="preview" class="preview-frame"></iframe>
+            <div class="pane-console">
+                <div class="pane-label">Console</div>
+                <div class="console-output" id="console-output"></div>
+                <div class="console-input-line">
+                    <span class="console-prompt">&gt;</span>
+                    <textarea class="console-input" id="console-input" rows="1"
+                              placeholder="hyperscript expression or command..."></textarea>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -257,6 +330,7 @@ CodeMirror.registerHelper("hint", "html-hyperscript", hsHint);
 // ============================================================
 var cm = CodeMirror.fromTextArea(document.getElementById('editor'), {
     mode: 'html-hyperscript',
+    theme: 'nord',
     lineNumbers: true,
     tabSize: 2,
     indentWithTabs: false,
@@ -296,6 +370,8 @@ function run() {
     var html = cm.getValue();
     var iframe = document.getElementById('preview');
     lastErrors = [];
+    replLocals = {};
+    consoleAppend('separator', '');
 
     var doc = iframe.contentDocument;
     doc.open();
@@ -305,6 +381,18 @@ function run() {
         '<script src="' + scriptPath + '"><\/script>' +
         '<script>\n' +
         'window.addEventListener("error", function(e) { parent._playgroundError(e.message); });\n' +
+        'var _origLog = console.log;\n' +
+        'console.log = function() {\n' +
+        '  var msg = Array.from(arguments).map(function(a) { try { return typeof a === "object" ? JSON.stringify(a) : String(a); } catch(e) { return String(a); } }).join(" ");\n' +
+        '  parent._playgroundConsole("log", msg);\n' +
+        '  _origLog.apply(console, arguments);\n' +
+        '};\n' +
+        'var _origWarn = console.warn;\n' +
+        'console.warn = function() {\n' +
+        '  var msg = Array.from(arguments).map(function(a) { return String(a); }).join(" ");\n' +
+        '  parent._playgroundConsole("warn", msg);\n' +
+        '  _origWarn.apply(console, arguments);\n' +
+        '};\n' +
         'var _origErr = console.error;\n' +
         'console.error = function() {\n' +
         '  var msg = Array.from(arguments).map(function(a) { return typeof a === "string" ? a : ""; }).join(" ");\n' +
@@ -321,8 +409,7 @@ function run() {
     setTimeout(function () {
         var status = document.getElementById('status');
         if (lastErrors.length > 0) {
-            status.innerHTML = '<span class="error">' + lastErrors.length + ' error(s): ' +
-                lastErrors.map(function(e) { return e.split("\n")[0]; }).join(" | ") + '</span>';
+            status.innerHTML = '<span class="error">' + lastErrors.length + ' error(s)</span>';
         } else {
             status.innerHTML = 'Updated <span style="opacity:0.5">(' + new Date().toLocaleTimeString() + ')</span>';
         }
@@ -331,7 +418,114 @@ function run() {
 
 window._playgroundError = function (msg) {
     lastErrors.push(msg);
+    consoleAppend('error', msg);
 };
+
+window._playgroundConsole = function (level, msg) {
+    consoleAppend(level, msg);
+};
+
+// ============================================================
+// Console
+// ============================================================
+var consoleOutput = document.getElementById('console-output');
+var consoleInput = document.getElementById('console-input');
+var consoleHistory = [];
+var historyIndex = -1;
+var replLocals = {};
+
+var BLOCK_OPENERS = /\b(if|repeat|on|def|behavior|init|tell|for)\b/g;
+var BLOCK_CLOSERS = /\bend\b/g;
+
+function needsMoreInput(src) {
+    var opens = (src.match(BLOCK_OPENERS) || []).length;
+    var closes = (src.match(BLOCK_CLOSERS) || []).length;
+    return opens > closes;
+}
+
+function consoleAppend(cls, text) {
+    var el = document.createElement('div');
+    el.className = cls;
+    if (cls === 'separator') {
+        el.innerHTML = '&nbsp;';
+    } else {
+        el.textContent = text;
+    }
+    consoleOutput.appendChild(el);
+    consoleOutput.scrollTop = consoleOutput.scrollHeight;
+}
+
+function consoleEval(input) {
+    var lines = input.split('\n');
+    consoleAppend('log', '> ' + lines[0]);
+    for (var i = 1; i < lines.length; i++) {
+        consoleAppend('log', '... ' + lines[i]);
+    }
+    var iframe = document.getElementById('preview');
+    var hs = iframe.contentWindow && iframe.contentWindow._hyperscript;
+    if (!hs) {
+        consoleAppend('error', 'No preview running — press Run first');
+        return;
+    }
+    try {
+        var result = hs(input, { locals: replLocals });
+        if (result !== undefined) {
+            var display;
+            try { display = typeof result === 'object' ? JSON.stringify(result) : String(result); }
+            catch (e) { display = String(result); }
+            consoleAppend('result', display);
+        }
+    } catch (e) {
+        consoleAppend('error', e.message ? e.message.split('\n')[0] : String(e));
+    }
+}
+
+function autoSizeInput() {
+    consoleInput.style.height = '18px';
+    consoleInput.style.height = consoleInput.scrollHeight + 'px';
+}
+
+consoleInput.addEventListener('input', autoSizeInput);
+
+consoleInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+        var src = this.value.trim();
+        if (!src) return;
+        if (needsMoreInput(src) && !e.shiftKey) {
+            // Block incomplete — insert newline naturally
+            return;
+        }
+        if (!needsMoreInput(src)) {
+            // Complete — submit
+            e.preventDefault();
+            var input = this.value;
+            this.value = '';
+            autoSizeInput();
+            consoleHistory.push(input);
+            historyIndex = consoleHistory.length;
+            consoleEval(input);
+        }
+        // Shift+Enter always inserts newline (default behavior)
+    } else if (e.key === 'ArrowUp' && this.selectionStart === 0 && !this.value.includes('\n')) {
+        e.preventDefault();
+        if (historyIndex > 0) {
+            historyIndex--;
+            this.value = consoleHistory[historyIndex];
+            autoSizeInput();
+        }
+    } else if (e.key === 'ArrowDown' && this.selectionStart === this.value.length && !this.value.includes('\n')) {
+        e.preventDefault();
+        if (historyIndex < consoleHistory.length - 1) {
+            historyIndex++;
+            this.value = consoleHistory[historyIndex];
+            autoSizeInput();
+        } else {
+            historyIndex = consoleHistory.length;
+            this.value = '';
+            autoSizeInput();
+        }
+    }
+});
 
 // ============================================================
 // Controls
@@ -344,6 +538,7 @@ document.getElementById('clear-btn').addEventListener('click', function () {
     doc.open();
     doc.write('<!doctype html><html><body></body></html>');
     doc.close();
+    consoleOutput.innerHTML = '';
     document.getElementById('status').textContent = 'Cleared';
 });
 
