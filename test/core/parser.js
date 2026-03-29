@@ -153,6 +153,20 @@ test.describe("the _hyperscript parser", () => {
 		expect(msg).toMatch(/^Expected either a class reference or attribute expression/);
 	});
 
+	test("error positions are correct after multiline comments", async ({evaluate}) => {
+		// Error on line 3 should show line 3's source, not line 1's
+		var result = await evaluate(() => {
+			try {
+				_hyperscript("/* comment\nline2 */\nadd - to");
+				return "no-error";
+			} catch (e) {
+				return e.message;
+			}
+		});
+		// The error context should show "add - to" (line 3), not "/* comment" (line 1)
+		expect(result).toContain("add - to");
+	})
+
 	test("parse error at EOF on trailing newline does not crash", async ({evaluate}) => {
 		// source ending with \n means last line is empty; EOF token has no .line
 		var result = await evaluate((src) => {

@@ -432,7 +432,12 @@ export class Tokenizer {
     #consumeChar() {
         this.#lastToken = this.#currentChar();
         this.#position++;
-        this.#column++;
+        if (this.#lastToken === "\n") {
+            this.#line++;
+            this.#column = 0;
+        } else {
+            this.#column++;
+        }
         return this.#lastToken;
     }
 
@@ -508,10 +513,6 @@ export class Tokenizer {
         var ws = this.#makeToken("WHITESPACE");
         var value = "";
         while (this.#currentChar() && this.#isWhitespace(this.#currentChar())) {
-            if (this.#isNewline(this.#currentChar())) {
-                this.#column = 0;
-                this.#line++;
-            }
             value += this.#consumeChar();
         }
         ws.value = value;
