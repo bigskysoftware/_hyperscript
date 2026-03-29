@@ -45,6 +45,7 @@ I do not include <expr>
 <expr> is not a <type name>
 <expr> exists
 <expr> does not exist
+<comparison> ignoring case
 ```
 
 ### Description
@@ -60,7 +61,15 @@ The `is in` test effectively flips the left hand side and right hand side of the
 
 You can also test if a value exists or not using the `is empty` and `is not empty` comparisons. Hyperscript considers "empty" values to be `undefined`, `null`, empty strings, and zero length arrays and objects. This works in the same way as the [`no` expression](/expressions/no).
 
-Finally, you can test if a value is of a given type with the `is a` form
+Finally, you can test if a value is of a given type with the `is a` form.
+
+Any comparison can be made case-insensitive by appending `ignoring case`:
+
+```hyperscript
+  if name is "admin" ignoring case ...
+  if title contains "hello" ignoring case ...
+  if input matches "yes" ignoring case ...
+```
 
 Note that all comparison operators have the same precedence, but if multiple distinct operators are used the
 expression must be parenthesized to avoid ambiguity.
@@ -81,4 +90,8 @@ expression must be parenthesized to avoid ambiguity.
 >
   Check if active
 </div>
+
+<input _="on keyup
+            if my value is 'quit' ignoring case
+              put 'Goodbye!' into the next <output/>"/>
 ```
