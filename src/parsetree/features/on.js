@@ -259,8 +259,11 @@ export class OnFeature extends Feature {
     static parse(parser) {
         if (!parser.matchToken("on")) return;
         var every = false;
+        var first = false;
         if (parser.matchToken("every")) {
             every = true;
+        } else if (parser.matchToken("first")) {
+            first = true;
         }
         var events = [];
         var displayName = null;
@@ -283,7 +286,9 @@ export class OnFeature extends Feature {
             }
 
             var startCount, endCount ,unbounded;
-            if (parser.currentToken().type === "NUMBER") {
+            if (first) {
+                startCount = 1;
+            } else if (parser.currentToken().type === "NUMBER") {
                 var startCountToken = parser.consumeToken();
                 if (!startCountToken.value) return;
                 startCount = parseInt(startCountToken.value);

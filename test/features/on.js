@@ -425,6 +425,14 @@ test.describe('the on feature', () => {
 		expect(result).toBe(true)
 	})
 
+	test('on first click fires only once', async ({html, find}) => {
+		await html("<div _='on first click put 1 + my.innerHTML as Int into my.innerHTML'>0</div>")
+		await find('div').dispatchEvent('click')
+		await expect(find('div')).toHaveText('1')
+		await find('div').dispatchEvent('click')
+		await expect(find('div')).toHaveText('1')
+	})
+
 	test('can filter events based on count', async ({html, find}) => {
 		await html("<div _='on click 1 put 1 + my.innerHTML as Int into my.innerHTML'>0</div>")
 		await find('div').dispatchEvent('click')

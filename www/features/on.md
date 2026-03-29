@@ -10,14 +10,16 @@ is responding to the event.
 ### Syntax
 
 ```ebnf
-on [every] <event-name>[(<param-list>)][\[<filter>\]] [<count>] [from <expr>] [<debounce> | <throttle>]
-   { or [every] <event-name>[(<param-list>)][\[<filter>\]] [<count>] [from <expr>] [<debounce> | <throttle>] }
+on [every | first] <event-name>[(<param-list>)][\[<filter>\]] [<count>] [from <expr>] [<debounce> | <throttle>]
+   { or [every | first] <event-name>[(<param-list>)][\[<filter>\]] [<count>] [from <expr>] [<debounce> | <throttle>] }
     [queue (all | first | last | none)]
     {<command>}
 [end]
 ```
 
 If the `every` prefix is used, the event handler will not be synchronized (see [queueing](#queueing) below.)
+
+If the `first` prefix is used, the event handler will only fire once (equivalent to a count of `1`).
 
 The `event-name` can be a symbol, a dot-separated symbol or a string that names the event. The most obvious events
 of interest are are [standard HTML DOM events](https://www.w3schools.com/jsref/dom_obj_event.asp) such as click,
