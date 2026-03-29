@@ -1107,6 +1107,148 @@ class DotOrColonPathNode extends Expression {
     }
 }
 
+/**
+ * WhereExpression - Filter a collection
+ *
+ * Parses: <collection> where <condition using it/its>
+ */
+export class WhereExpression extends Expression {
+    static grammarName = "whereExpr";
+    static expressionType = "indirect";
+
+    constructor(root, condition) {
+        super();
+        this.root = root;
+        this.condition = condition;
+        this.args = { root };
+    }
+
+    static parse(parser, root) {
+        if (!parser.matchToken("where")) return;
+        parser.pushFollow("sorted");
+        parser.pushFollow("mapped");
+        try {
+            var condition = parser.requireElement("expression");
+        } finally {
+            parser.popFollow();
+            parser.popFollow();
+        }
+        var where = new WhereExpression(root, condition);
+        return parser.parseElement("indirectExpression", where);
+    }
+
+    resolve(context, { root: collection }) {
+        var saved = context.result;
+        var result = [];
+        var items = Array.from(collection);
+        for (var i = 0; i < items.length; i++) {
+            context.result = items[i];
+            if (this.condition.evaluate(context)) {
+                result.push(items[i]);
+            }
+        }
+        context.result = saved;
+        return result;
+    }
+}
+
+/**
+ * SortedByExpression - Sort a collection by a property
+ *
+ * Parses: <collection> sorted by <expression using it/its> [descending]
+ */
+export class SortedByExpression extends Expression {
+    static grammarName = "sortedByExpr";
+    static expressionType = "indirect";
+
+    constructor(root, key, descending) {
+        super();
+        this.root = root;
+        this.key = key;
+        this.descending = descending;
+        this.args = { root };
+    }
+
+    static parse(parser, root) {
+        if (!parser.matchToken("sorted")) return;
+        parser.requireToken("by");
+        parser.pushFollow("where");
+        parser.pushFollow("mapped");
+        try {
+            var key = parser.requireElement("expression");
+        } finally {
+            parser.popFollow();
+            parser.popFollow();
+        }
+        var descending = parser.matchToken("descending");
+        var sorted = new SortedByExpression(root, key, !!descending);
+        return parser.parseElement("indirectExpression", sorted);
+    }
+
+    resolve(context, { root: collection }) {
+        var saved = context.result;
+        var items = Array.from(collection);
+        var keys = [];
+        for (var i = 0; i < items.length; i++) {
+            context.result = items[i];
+            keys.push(this.key.evaluate(context));
+        }
+        context.result = saved;
+        var indices = items.map(function (_, i) { return i; });
+        var dir = this.descending ? -1 : 1;
+        indices.sort(function (a, b) {
+            var ka = keys[a], kb = keys[b];
+            if (ka == kb) return 0;
+            return (ka < kb ? -1 : 1) * dir;
+        });
+        return indices.map(function (i) { return items[i]; });
+    }
+}
+
+/**
+ * MappedToExpression - Map a collection to a projection
+ *
+ * Parses: <collection> mapped to <expression using it/its>
+ */
+export class MappedToExpression extends Expression {
+    static grammarName = "mappedToExpr";
+    static expressionType = "indirect";
+
+    constructor(root, projection) {
+        super();
+        this.root = root;
+        this.projection = projection;
+        this.args = { root };
+    }
+
+    static parse(parser, root) {
+        if (!parser.matchToken("mapped")) return;
+        parser.requireToken("to");
+        parser.pushFollow("where");
+        parser.pushFollow("sorted");
+        try {
+            var projection = parser.requireElement("expression");
+        } finally {
+            parser.popFollow();
+            parser.popFollow();
+        }
+        var mapped = new MappedToExpression(root, projection);
+        return parser.parseElement("indirectExpression", mapped);
+    }
+
+    resolve(context, { root: collection }) {
+        var saved = context.result;
+        var items = Array.from(collection);
+        var result = [];
+        for (var i = 0; i < items.length; i++) {
+            context.result = items[i];
+            result.push(this.projection.evaluate(context));
+        }
+        context.result = saved;
+        return result;
+    }
+}
+
 export class DotOrColonPath extends Expression {
     static grammarName = "dotOrColonPath";
 
