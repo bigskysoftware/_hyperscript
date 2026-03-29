@@ -512,6 +512,7 @@ export class InExpression extends Expression {
     }
 
     resolve(context, { root: rootVal, target }) {
+        if (rootVal == null) return [];
         var returnArr = [];
         if (rootVal.css) {
             context.meta.runtime.implicitLoop(target, function (targetElt) {
