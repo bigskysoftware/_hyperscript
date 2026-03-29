@@ -1103,7 +1103,7 @@ class DotOrColonPathNode extends Expression {
     }
 
     resolve() {
-        return this.path.join(this.separator ? this.separator : "");
+        return this.evalStatically();
     }
 }
 
