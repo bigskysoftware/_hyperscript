@@ -470,16 +470,17 @@ x as Int
 x as Float
 x as Number
 x as Date
-x as JSON
-x as Object                              -- JSON.parse
+x as JSON                                -- JSON.parse
+x as JSONString                          -- JSON.stringify
+x as Object                              -- JSON.parse for strings
 x as Array
 x as HTML                                -- parse as document fragment
 x as Fragment                            -- same
 x as Fixed                               -- toFixed()
 x as Fixed:2                             -- toFixed(2)
 x as Values                              -- form values as object
-x as Values:Form                         -- as FormData
-x as Values:JSON                         -- as JSON string
+x as Values | FormEncoded                -- form values as URL-encoded string
+x as Values | JSONString                 -- form values as JSON string
 ```
 
 ### Positional

@@ -547,7 +547,7 @@ export class InExpression extends Expression {
 /**
  * AsExpression - Type conversion expression
  *
- * Parses: expression as Type
+ * Parses: expression as Type [| Type]*
  * Returns: converted value
  */
 export class AsExpression extends Expression {
@@ -565,8 +565,12 @@ export class AsExpression extends Expression {
         if (!parser.matchToken("as")) return;
         parser.matchToken("a") || parser.matchToken("an");
         var conversion = parser.requireElement("dotOrColonPath").evalStatically();
-        var asExpression = new AsExpression(root, conversion);
-        return parser.parseElement("indirectExpression", asExpression);
+        var asExpr = new AsExpression(root, conversion);
+        while (parser.matchOpToken("|")) {
+            conversion = parser.requireElement("dotOrColonPath").evalStatically();
+            asExpr = new AsExpression(asExpr, conversion);
+        }
+        return parser.parseElement("indirectExpression", asExpr);
     }
 
     resolve(context, { root: rootVal }) {

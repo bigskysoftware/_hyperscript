@@ -568,7 +568,10 @@ export class Runtime {
                 return true;
             }
             var typeName = Object.prototype.toString.call(value).slice(8, -1);
-            return typeName === typeString;
+            if (typeName === typeString) return true;
+            // instanceof fallback for base classes
+            var ctor = typeof globalThis !== "undefined" && globalThis[typeString];
+            return typeof ctor === "function" && value instanceof ctor;
         }
 
         nullCheck(value, elt) {

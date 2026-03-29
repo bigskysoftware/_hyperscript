@@ -510,14 +510,14 @@ export class FetchCommand extends Command {
         var type = "text";
         var conversion;
         parser.matchToken("a") || parser.matchToken("an");
-        if (parser.matchToken("json") || parser.matchToken("Object")) {
+        if (parser.matchToken("json") || parser.matchToken("JSON") || parser.matchToken("Object")) {
             type = "json";
         } else if (parser.matchToken("response")) {
             type = "response";
-        } else if (parser.matchToken("html")) {
+        } else if (parser.matchToken("html") || parser.matchToken("HTML")) {
             type = "html";
-        } else if (parser.matchToken("text")) {
-            // default, ignore
+        } else if (parser.matchToken("text") || parser.matchToken("String")) {
+            // default
         } else {
             conversion = parser.requireElement("dotOrColonPath").evalStatically();
         }

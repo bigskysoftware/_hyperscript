@@ -328,6 +328,24 @@ test.describe("the comparisonOperator expression", () => {
 		expect(await run("'' is not an String!")).toBe(false)
 	})
 
+	test("is a works with instanceof fallback", async ({html, find, evaluate}) => {
+		await html("<div id='d1' _='on click if I am a Element put \"yes\" into me'></div>");
+		await find('#d1').dispatchEvent('click');
+		await expect(find('#d1')).toHaveText("yes");
+	})
+
+	test("is a Node works via instanceof", async ({html, find, evaluate}) => {
+		await html("<div id='d1' _='on click if I am a Node put \"yes\" into me'></div>");
+		await find('#d1').dispatchEvent('click');
+		await expect(find('#d1')).toHaveText("yes");
+	})
+
+	test("is not a works with instanceof fallback", async ({html, find}) => {
+		await html("<div id='d1' _='on click if \"hello\" is not a Element put \"yes\" into me'></div>");
+		await find('#d1').dispatchEvent('click');
+		await expect(find('#d1')).toHaveText("yes");
+	})
+
 	test("english less than works", async ({run}) => {
 		expect(await run("1 is less than 2")).toBe(true)
 		expect(await run("2 is less than 1")).toBe(false)

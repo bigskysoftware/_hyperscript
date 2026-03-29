@@ -7,7 +7,7 @@ title: fetch - ///_hyperscript
 ### Syntax
 
 ```ebnf
-fetch <stringLike> [ as [ a | an ]( json | Object | html | response ) ] [<object literal> | 'with' <naked named arguments>]
+fetch <stringLike> [ as [ a | an ]( json | JSON | html | HTML | response | text | String | CONVERSION ) ] [<object literal> | 'with' <naked named arguments>]
 ```
 
 ### Description
@@ -16,10 +16,10 @@ The `fetch` command issues a [fetch](https://developer.mozilla.org/en-US/docs/We
 given URL. The URL can either be a naked URL or a string literal.
 
 By default the result will be processed as text, but you can have it processed
-as JSON, as HTML, or as a raw response object by adding the `as json`, `as html`
+as JSON, as HTML, or as a raw response object by adding the `as JSON`, `as HTML`
 or `as response` modifiers.
 
-Additionally, you can use [conversions](/expressions/as) directly on the
+Additionally, you can use any [conversion](/expressions/as) directly on the
 response text.
 
 This command saves the result into the `it` variable.
@@ -64,7 +64,7 @@ If you need to fetch from a dynamically-generated URL, just use a [template lite
 
 ```hyperscript
 set userId to my [@data-userId]
-fetch `/users/${userId}/profile` as JSON
+fetch `/users/${userId}/profile` as JSON  -- parsed into an object
 ```
 
 ### Events

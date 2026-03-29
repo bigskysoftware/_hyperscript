@@ -8,6 +8,9 @@
 - `dist/_hyperscript.js` is now IIFE (was UMD) — still works with plain `<script>` tags, no change needed for most users
 - ESM available as `dist/_hyperscript.esm.js` — use this for `import` statements
 - `processNode()` deprecated — use `process()` instead (alias still works)
+- `as JSON` is now `JSON.parse` - replace `as JSON` with `as JSONString` if you were using it to stringify
+- `Values:JSON` and `Values:Form` removed - use `as Values | JSONString` and `as Values | FormEncoded`
+- `default` uses nullish check instead of truthy - no longer overwrites `0` and `false`
 
 ### New Features
 
@@ -20,6 +23,11 @@
 - htmx inspired `data-hyperscript-powered` attribute — set on all initialized elements for fast querying and morph compatibility
 - htmx inspired `config.logAll` — when `true`, logs all hyperscript events to console (matches htmx's `logAll`)
 - Platform scripts — `node-hyperscript.js`, `deno-hyperscript.js`, `bun-hyperscript.js` for running `.hs` files outside the browser
+- Pipe operator for conversions - chain with `|`: `#myForm as Values | JSONString`
+- `as JSON` parses a JSON string, `as JSONString` stringifies, `as FormEncoded` URL-encodes
+- `fetch as JSON` accepted (in addition to `fetch as json`)
+- `when` clause on `remove` and `hide` commands (async-safe, matching `add`/`show`)
+- `remove {color} from me` clears inline CSS properties
 
 ### Internal
 
