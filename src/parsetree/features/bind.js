@@ -74,6 +74,13 @@ export class BindFeature extends Feature {
     }
 }
 
+/** Register a listener for cleanup when the owning element is removed */
+function _registerListener(runtime, elt, listenerTarget, event, handler) {
+    var eltData = runtime.getInternalData(elt);
+    if (!eltData.listeners) eltData.listeners = [];
+    eltData.listeners.push({ target: listenerTarget, event: event, handler: handler });
+}
+
 /** Check whether a parsed expression can be assigned to by bind */
 function _isAssignable(expr) {
     if (expr.type === "classRef") return true;
@@ -163,7 +170,7 @@ function _shorthandBind(left, target, feature, runtime) {
     // Listen for the reset event and re-sync after the browser resets values.
     var form = target.closest("form");
     if (form) {
-        form.addEventListener("reset", function () {
+        var resetHandler = function () {
             setTimeout(function () {
                 if (!target.isConnected) return;
                 var val = target[propName];
@@ -171,7 +178,9 @@ function _shorthandBind(left, target, feature, runtime) {
                 var ctx = runtime.makeContext(target, feature, target, null);
                 _assignTo(runtime, left, ctx, val);
             }, 0);
-        });
+        };
+        form.addEventListener("reset", resetHandler);
+        _registerListener(runtime, target, form, "reset", resetHandler);
     }
 }
 
@@ -203,12 +212,14 @@ function _radioBind(left, target, feature, runtime) {
 
     // Effect 2: this radio is checked -> set variable to this radio's value
     // Only fires when this specific radio is clicked (change event).
-    target.addEventListener("change", function () {
+    var changeHandler = function () {
         if (target.checked) {
             var ctx = runtime.makeContext(target, feature, target, null);
             _assignTo(runtime, left, ctx, radioValue);
         }
-    });
+    };
+    target.addEventListener("change", changeHandler);
+    _registerListener(runtime, target, target, "change", changeHandler);
 }
 
 /**

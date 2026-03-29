@@ -500,4 +500,63 @@ test.describe('the bind feature', () => {
 		).toBe('75')
 	})
 
+	// ================================================================
+	// Cleanup
+	// ================================================================
+
+	test('radio change listener is removed on cleanup', async ({html, evaluate, run}) => {
+		await run("set $color to 'red'")
+		await html(
+			`<input type="radio" name="color" value="red" _="bind $color" checked />` +
+			`<input type="radio" name="color" value="blue" _="bind $color" />`
+		)
+		await evaluate(() => new Promise(r => setTimeout(r, 50)))
+
+		// Cleanup the blue radio
+		var blueRadio = await evaluate(() => {
+			var blue = document.querySelector('#work-area input[value=blue]')
+			_hyperscript.internals.runtime.cleanup(blue)
+			return true
+		})
+
+		// Click the cleaned-up blue radio — $color should NOT change
+		await evaluate(() => {
+			var blue = document.querySelector('#work-area input[value=blue]')
+			blue.checked = true
+			blue.dispatchEvent(new Event('change'))
+		})
+		await evaluate(() => new Promise(r => setTimeout(r, 50)))
+		var color = await run("$color")
+		expect(color).toBe('red')
+		await evaluate(() => { delete window.$color })
+	})
+
+	test('form reset listener is removed on cleanup', async ({html, evaluate, run}) => {
+		await run("set $val to 'initial'")
+		await html(
+			`<form>` +
+			`<input type="text" id="binput" value="initial" _="bind $val" />` +
+			`<button type="reset">Reset</button>` +
+			`</form>`
+		)
+		await evaluate(() => new Promise(r => setTimeout(r, 50)))
+
+		// Change value then cleanup the input
+		await run("set $val to 'changed'")
+		await evaluate(() => new Promise(r => setTimeout(r, 50)))
+		await evaluate(() => {
+			var input = document.querySelector('#work-area #binput')
+			_hyperscript.internals.runtime.cleanup(input)
+		})
+
+		// Reset the form — $val should NOT revert since listener was removed
+		await evaluate(() => {
+			document.querySelector('#work-area form').reset()
+		})
+		await evaluate(() => new Promise(r => setTimeout(r, 50)))
+		var val = await run("$val")
+		expect(val).toBe('changed')
+		await evaluate(() => { delete window.$val })
+	})
+
 })
