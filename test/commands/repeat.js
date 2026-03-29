@@ -319,4 +319,56 @@ test.describe("the repeat command", () => {
 		await find('div').dispatchEvent('click');
 		await expect(find('div')).toHaveText("1");
 	});
+
+	test("break exits a simple repeat loop", async ({html, find}) => {
+		await html(
+			`<div _="on click
+				set x to 0
+				repeat 10 times
+					set x to x + 1
+					if x is 3 break end
+				end
+				put x into me
+			"></div>`);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("3");
+	});
+
+	test("continue skips rest of iteration in simple repeat loop", async ({html, find}) => {
+		await html(
+			`<div _="on click
+				repeat for x in [1, 2, 3, 4, 5]
+					if x is 3 continue end
+					put x at end of me
+				end
+			"></div>`);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("1245");
+	});
+
+	test("break exits a for-in loop", async ({html, find}) => {
+		await html(
+			`<div _="on click
+				repeat for x in [1, 2, 3, 4, 5]
+					if x is 4 break end
+					put x at end of me
+				end
+			"></div>`);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("123");
+	});
+
+	test("break exits a while loop", async ({html, find}) => {
+		await html(
+			`<div _="on click
+				set x to 0
+				repeat while x < 100
+					set x to x + 1
+					if x is 5 break end
+				end
+				put x into me
+			"></div>`);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("5");
+	});
 });
