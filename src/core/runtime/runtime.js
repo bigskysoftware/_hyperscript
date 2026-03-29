@@ -34,6 +34,14 @@ export class Context {
         this.locals = {
             cookies: cookies
         };
+        if (typeof navigator !== "undefined" && navigator.clipboard) {
+            Object.defineProperty(this.locals, 'clipboard', {
+                get() { return navigator.clipboard.readText(); },
+                set(v) { navigator.clipboard.writeText(String(v)); },
+                enumerable: true,
+                configurable: true
+            });
+        }
         this.me = hyperscriptTarget;
         this.you = undefined
         this.result = undefined
