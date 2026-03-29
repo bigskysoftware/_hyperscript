@@ -40,4 +40,13 @@ test.describe("The (inline) js command", () => {
 		await find('div').dispatchEvent('click');
 		await expect(find('div')).toHaveText("2");
 	});
+
+	test("handles rejected promises without hanging", async ({html, find}) => {
+		await html(
+			"<div _='on click js return Promise.reject(\"boom\") end " +
+			"catch e put e into my.innerHTML'></div>"
+		);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("boom");
+	});
 });
