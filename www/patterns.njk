@@ -165,10 +165,8 @@ title: Patterns - ///_hyperscript
 <div class="patterns-toolbar">
     <input type="text" class="patterns-search" id="pattern-search" placeholder="Search patterns..."
            _="on input
-                set query to my value.toLowerCase()
                 repeat for card in <.pattern-card/>
-                    set text to card's textContent.toLowerCase()
-                    if query is empty or text.includes(query)
+                    if my value is empty or card's textContent contains my value ignoring case
                         remove @hidden from card
                     else
                         add @hidden to card

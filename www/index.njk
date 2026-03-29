@@ -21,7 +21,7 @@ title: ///_hyperscript
         <div class="hero-demo">
             <input type="text" placeholder="Try it — type to search..."
                    _="on input
-                        show <li:not(#no-match)/> in #hero-results when its textContent contains my value
+                        show <li:not(#no-match)/> in #hero-results when its textContent contains my value ignoring case
                         if (<li:not(#no-match):not([style*='display: none'])/> in #hero-results).length is 0
                           show #no-match
                         else
@@ -135,7 +135,7 @@ title: ///_hyperscript
 {% highlight "html" %}
 <button _="on click
               put 'Loading...' into me
-              fetch /api/data as json
+              fetch /api/data as JSON
               put result's name into me">
 
 <div _="on click wait 2s then remove me">

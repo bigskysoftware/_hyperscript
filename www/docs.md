@@ -1888,9 +1888,9 @@ is used:
 
 {% example "Going Around The Document" %}
 <button _="on click
-              go to the top of the body smoothly
+              scroll to the top of the body smoothly
               wait 2s
-              go to the bottom of me smoothly">
+              scroll to the bottom of me smoothly">
               Take A Trip
 </button>
 {% endexample %}
@@ -1898,7 +1898,7 @@ is used:
 You can also use it to navigate to another web page entirely:
 
 {% example "Going Elsewhere" %}
-<button _="on click go to url https://htmx.org">
+<button _="on click go to https://htmx.org">
               Go Check Out htmx
 </button>
 {% endexample %}

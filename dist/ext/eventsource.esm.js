@@ -73,7 +73,7 @@ var _EventSourceFeature = class _EventSourceFeature extends Feature {
     var nameSpace = qualifiedName.split(".");
     var eventSourceName = nameSpace.pop();
     if (parser.matchToken("from")) {
-      urlElement = parser.requireElement("stringLike");
+      urlElement = parser.parseURLOrExpression();
     }
     if (parser.matchToken("with")) {
       if (parser.matchToken("credentials")) {

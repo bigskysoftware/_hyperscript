@@ -91,7 +91,7 @@
       var nameSpace = qualifiedName.split(".");
       var socketName = nameSpace.pop();
       var promises = {};
-      var url = parser.requireElement("stringLike");
+      var url = parser.parseURLOrExpression();
       var defaultTimeout = 1e4;
       if (parser.matchToken("with")) {
         parser.requireToken("timeout");
