@@ -74,6 +74,12 @@ test.describe('the def feature', () => {
 		expect(result).toBeNull()
 	})
 
+	test('exit stops execution mid-function', async ({html, evaluate}) => {
+		await html("<script type='text/hyperscript'>def foo() set x to 1 then exit then set x to 2 then return x end</script>")
+		const result = await evaluate(() => foo())
+		expect(result).toBeNull()
+	})
+
 	test('can return without a value', async ({html, evaluate}) => {
 		await html("<script type='text/hyperscript'>def foo()   return end</script>")
 		const result = await evaluate(() => foo())
