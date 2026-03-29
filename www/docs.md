@@ -2376,7 +2376,7 @@ was "foo":
   // register for the command keyword "foo"
   _hyperscript.addCommand('foo', function(parser, runtime, tokens) {
 
-    // A foo command  must start with "foo".
+    // A foo command must start with "foo".
     if(!tokens.matchToken('foo')) return
 
     // Parse an expression.
@@ -2384,19 +2384,19 @@ was "foo":
 
     return {
       // All expressions needed by the command to execute.
-      // These will be evaluated and the result will be passed back to us.
-      args: [expr],
+      // These will be evaluated and the results passed to resolve().
+      args: { value: expr },
 
       // Implement the logic of the command.
       // Can be synchronous or asynchronous.
       // @param {Context} context The runtime context, contains local variables.
-      // @param {*} value The result of evaluating expr.
-      async op(context, value) {
+      // @param {Object} args The evaluated args, keyed by name.
+      resolve(context, { value }) {
         if (value == "foo") {
           console.log("A Wild Foo Was Found!")
         }
         // Return the next command to execute.
-        return runtime.findNext(this)
+        return runtime.findNext(this, context)
       }
     }
   })
