@@ -16,7 +16,8 @@ title: ///_hyperscript
 </head>
 <body _="on keydown[key is 'k' and (metaKey or ctrlKey)]
            halt the event
-           focus() on #search-input"
+           call #search-input.focus()
+         end"
 >
 <header class="navbar">
     <nav>
@@ -65,40 +66,48 @@ title: ///_hyperscript
 
                        on keydown[key is 'ArrowDown']
                          halt the event
-                         set current to .search-result.selected in #search-results
+                         set current to first <a.selected/> in #search-results
                          if current exists
                              remove .selected from current
-                             set next to next <a.search-result/> from current
-                             if next exists add .selected to next
-                             else add .selected to first <a.search-result/> in #search-results
+                             set nxt to current.nextElementSibling
+                             if nxt exists
+                                 add .selected to nxt
+                             else
+                                 add .selected to first <a/> in #search-results
+                             end
                          else
-                             add .selected to first <a.search-result/> in #search-results
+                             add .selected to first <a/> in #search-results
                          end
                        end
 
                        on keydown[key is 'ArrowUp']
                          halt the event
-                         set current to .search-result.selected in #search-results
+                         set current to first <a.selected/> in #search-results
                          if current exists
                              remove .selected from current
-                             set prev to previous <a.search-result/> from current
-                             if prev exists add .selected to prev
-                             else add .selected to last <a.search-result/> in #search-results
+                             set prv to current.previousElementSibling
+                             if prv exists
+                                 add .selected to prv
+                             else
+                                 add .selected to last <a/> in #search-results
+                             end
                          else
-                             add .selected to last <a.search-result/> in #search-results
+                             add .selected to last <a/> in #search-results
                          end
                        end
 
                        on keydown[key is 'Enter']
-                         set current to .search-result.selected in #search-results
-                         if current exists go to current's @href end
+                         set current to first <a.selected/> in #search-results
+                         if current exists
+                             set window.location to current.href
+                         end
                        end
 
                        on keydown[key is 'Escape']
                          set my value to ''
                          set #search-results.innerHTML to ''
                          add .hidden to #search-results
-                         blur() me
+                         call me.blur()
                        end
 
                        on blur
