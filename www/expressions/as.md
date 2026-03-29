@@ -17,6 +17,7 @@ Hyperscript provides a pluggable conversion system with the `as` expression. It 
 By default, hyperscript provides the following conversions:
 
 * `Array` - convert to Array
+* `Boolean` - convert to boolean
 * `Date` - convert to Date
 * `Float` - convert to float
 * `Fragment` - converts a string into an HTML Fragment

@@ -42,6 +42,13 @@ test.describe("as operator", () => {
 		expect(result).toBe(10.4)
 	})
 
+	test("converts value as Boolean", async ({run}) => {
+		expect(await run("1 as Boolean")).toBe(true)
+		expect(await run("0 as Boolean")).toBe(false)
+		expect(await run("'' as Boolean")).toBe(false)
+		expect(await run("'hello' as Boolean")).toBe(true)
+	})
+
 	test("converts value as Date", async ({evaluate}) => {
 		const result = await evaluate(() => {
 			const r = _hyperscript("1 as Date")

@@ -89,6 +89,9 @@ export const conversions = {
     Number: function (val) {
         return Number(val);
     },
+    Boolean: function (val) {
+        return !!val;
+    },
     Date: function (val) {
         return new Date(val);
     },
