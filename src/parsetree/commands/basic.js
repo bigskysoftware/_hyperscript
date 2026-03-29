@@ -557,9 +557,8 @@ export class FetchCommand extends Command {
         detail["sender"] = context.me;
         detail["headers"] = detail["headers"] || {}
         var abortController = new AbortController();
-        let abortListener = context.me.addEventListener('fetch:abort', function(){
-            abortController.abort();
-        }, {once: true});
+        var abortListener = function(){ abortController.abort(); };
+        context.me.addEventListener('fetch:abort', abortListener, {once: true});
         detail['signal'] = abortController.signal;
         context.meta.runtime.triggerEvent(context.me, "hyperscript:beforeFetch", detail);
         context.meta.runtime.triggerEvent(context.me, "fetch:beforeRequest", detail);
