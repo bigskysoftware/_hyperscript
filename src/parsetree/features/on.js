@@ -143,6 +143,23 @@ export class OnFeature extends Feature {
                     eltData.observers.push(observer);
                 }
 
+                if (eventSpec.resizeSpec) {
+                    eventName = "hyperscript:resize";
+                    const observer = new ResizeObserver(function (entries) {
+                        for (const entry of entries) {
+                            var detail = {
+                                width: entry.contentRect.width,
+                                height: entry.contentRect.height,
+                                contentRect: entry.contentRect,
+                                entry: entry,
+                            };
+                            runtime.triggerEvent(target, eventName, detail);
+                        }
+                    });
+                    observer.observe(target);
+                    eltData.observers.push(observer);
+                }
+
                 var addEventListener = target.addEventListener || target.on;
                 var handler;
                 addEventListener.call(target, eventName, handler = function listener(evt) {
@@ -302,8 +319,10 @@ export class OnFeature extends Feature {
                 }
             }
 
-            var intersectionSpec, mutationSpec;
-            if (eventName === "intersection") {
+            var intersectionSpec, mutationSpec, resizeSpec;
+            if (eventName === "resize") {
+                resizeSpec = true;
+            } else if (eventName === "intersection") {
                 intersectionSpec = {};
                 if (parser.matchToken("with")) {
                     intersectionSpec["with"] = parser.requireElement("expression").evalStatically();
@@ -419,6 +438,7 @@ export class OnFeature extends Feature {
                 throttleTime: throttleTime,
                 mutationSpec: mutationSpec,
                 intersectionSpec: intersectionSpec,
+                resizeSpec: resizeSpec,
             });
         } while (parser.matchToken("or"));
 
