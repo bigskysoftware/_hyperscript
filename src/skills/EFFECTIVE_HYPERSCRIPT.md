@@ -69,16 +69,19 @@ my.style.color                       -- acceptable but "my style's color" is mor
 
 ## Magic Symbols
 
-| Symbol                    | Meaning                                     |
-|---------------------------|---------------------------------------------|
-| `me`, `my`, `I`           | The element the script is on                |
-| `it`, `its`, `result`     | Result of the last command                  |
-| `you`, `your`, `yourself` | Current target in a `tell` block            |
-| `event`                   | The current event object (in `on` handlers) |
-| `target`                  | `event.target`                              |
-| `detail`                  | `event.detail`                              |
-| `sender`                  | Element that sent a custom event            |
-| `body`                    | `document.body`                             |
+| Symbol                    | Meaning                                      |
+|---------------------------|----------------------------------------------|
+| `me`, `my`, `I`           | The element the script is on                 |
+| `it`, `its`, `result`     | Result of the last command                   |
+| `you`, `your`, `yourself` | Current target in a `tell` block             |
+| `event`                   | The current event object (in `on` handlers)  |
+| `target`                  | `event.target`                               |
+| `detail`                  | `event.detail`                               |
+| `sender`                  | Element that sent a custom event             |
+| `body`                    | `document.body`                              |
+| `cookies`                 | Cookie jar (get/set/clear)                   |
+| `clipboard`               | System clipboard (async read, sync write)    |
+| `selection`               | Currently selected text (`window.getSelection().toString()`) |
 
 ## Variable Scoping
 
@@ -105,16 +108,19 @@ on click from closest <form/> ...
 on keyup[key is 'Escape'] ...          -- event filtering
 on click(clientX, clientY) ...          -- destructure event properties
 on every click ...                      -- allow concurrent handlers
+on first click ...                      -- fire only once
 on click debounced at 300ms ...
 on click throttled at 500ms ...
 on click queue all ...                  -- queue: all, first, last (default), none
 ```
 
-Mutation and intersection observers:
+Observers — mutation, intersection, and resize:
 
 ```hyperscript
 on mutation of @class from #target ...
+on mutation of anything ...                 -- watch all changes
 on intersection(intersecting) having threshold 0.5 ...
+on resize put detail.width into #size ...   -- ResizeObserver, detail has width/height
 ```
 
 ### Function Definitions — `def`
@@ -129,10 +135,11 @@ def utils.format(x)              -- namespaced function
 end
 ```
 
-Functions support `catch` and `finally`:
+Functions support bare `return` (returns null), `catch` and `finally`:
 
 ```hyperscript
 def riskyOp()
+  if not ready return end         -- early return, no value
   throw "oops"
 catch e
   log e
@@ -202,7 +209,7 @@ set *color to "red"                     -- style ref
 set arr[0] to "first"
 set {foo: 1, bar: 2} on myObj          -- bulk property set
 
-default x to 10                         -- only sets if x is falsy
+default x to 10                         -- only sets if x is null or empty string
 
 put "hello" into me                     -- DOM-aware: clears children, inserts as HTML
 put "hello" before me                   -- DOM insertion
@@ -211,6 +218,7 @@ put "hello" at start of me
 put "hello" at end of me
 put "hello" into x                      -- if x is an Element, clears and inserts
 put "hello" into my.innerHTML           -- property assignment
+put null into @foo                      -- removes the attribute
 
 increment x                             -- +1
 increment x by 5
@@ -231,6 +239,7 @@ add .highlight to <li/> when it is not me
 remove .active
 remove .active from #target
 remove @disabled from me
+remove {color; font-size} from me       -- remove CSS properties
 remove me                                -- removes the element from DOM
 
 toggle .active                           -- on me
@@ -244,11 +253,38 @@ toggle *opacity of #target
 
 take .active from .tabs for me           -- removes from all .tabs, adds to me
 
-show me                                  -- display: block
+show me                                  -- display: block (or showModal for <dialog>)
 show me with *opacity                    -- opacity: 1
-hide me                                  -- display: none
+show <li/> in #results when its textContent contains my value
+show #fallback when the result is empty  -- show fallback if no matches
+
+hide me                                  -- display: none (or close() for <dialog>)
 hide me with *visibility                 -- visibility: hidden
+
+focus #input                             -- focus an element
+blur #input                              -- unfocus an element
+empty #container                         -- remove all children
+select #input                            -- select text in input/textarea
+
+open #modal                              -- dialog: showModal(), details: open, popover: show
+close #modal                             -- dialog: close(), details: close, popover: hide
+open fullscreen #video                   -- requestFullscreen()
+close fullscreen                         -- document.exitFullscreen()
 ```
+
+### when Clause and Result Pattern
+
+The `when` clause on `add`, `remove`, `show`, and `hide` evaluates a condition per element. After
+execution, `the result` contains the array of elements that matched:
+
+```hyperscript
+on input
+  hide #no-match
+  show <li/> in #results when its textContent contains my value ignoring case
+  show #no-match when the result is empty
+```
+
+This pattern is common for search/filter UIs: show matching elements, then show a fallback if nothing matched.
 
 ### Control Flow
 
@@ -257,7 +293,7 @@ if x > 10
   log "big"
 else
   log "small"
-end
+end                                      -- `end` is always required for if blocks
 
 repeat for item in items
   put item at end of me
@@ -281,15 +317,19 @@ repeat forever
   if done break end
 end
 
-for item in items index i          -- with index variable
+repeat                                   -- bottom-tested loop
+  increment x
+until x is 10 end                        -- runs body at least once
+
+for item in items index i                -- with index variable
   log i + ": " + item
 end
 
-break                               -- exit innermost loop
-continue                            -- skip to next iteration
+break                                     -- exit innermost loop
+continue                                  -- skip to next iteration
 
 tell #target
-  add .active                       -- operates on #target (accessed as `you`)
+  add .active                             -- operates on #target (accessed as `you`)
   set your.innerHTML to "hello"
 end
 ```
@@ -318,7 +358,8 @@ get myFunc()                            -- same as call
 get x + 1                              -- get works with any expression
 
 return value                            -- return from def, sets result
-exit                                    -- return without a value
+return                                  -- return null
+exit                                    -- return without a value (same as bare return)
 
 halt                                    -- stop event propagation + default, exit handler
 halt the event                          -- stop propagation + default, continue execution
@@ -328,11 +369,23 @@ halt default                            -- preventDefault only, exit
 throw "error message"
 ```
 
+### Dialogs
+
+```hyperscript
+ask "What is your name?"                -- prompt(), result in `it`
+put it into #greeting
+
+answer "File saved!"                    -- alert()
+
+answer "Save changes?" with "Yes" or "No"  -- confirm(), result is chosen label
+if it is "Yes" ...
+```
+
 ### Navigation & Scrolling
 
 ```hyperscript
 go back                                  -- history.back()
-go to /page                              -- navigate
+go to /page                              -- navigate (naked URL)
 go to /page in new window                -- window.open()
 go to "#hash"                            -- location.hash
 scroll to #element                       -- scrollIntoView
@@ -352,10 +405,18 @@ settle                                   -- wait for CSS transitions to finish
 ### Fetching
 
 ```hyperscript
-fetch /api/data                          -- GET, result in `it`
-fetch /api/data as json                  -- auto-parse JSON
-fetch /api/data as html                  -- parse as document fragment
+fetch /api/data                          -- GET, naked URL, result in `it`
+fetch /api/data as JSON                  -- auto-parse JSON
+fetch /api/data as HTML                  -- parse as document fragment
 fetch /api/data with method: "POST", body: "data"
+```
+
+### Speech
+
+```hyperscript
+speak "Hello world"                      -- text-to-speech, waits for completion
+speak "Hello" with voice "Samantha"
+speak "Fast" with rate 2 with pitch 1.5
 ```
 
 ### Other Commands
@@ -449,15 +510,18 @@ obj@attr                                 -- attribute access on expression
 -- Math
 x + y    x - y    x * y    x / y    x mod y
 
--- Comparison
+-- Comparison (all support `ignoring case` postfix for string comparison)
 x == y    x != y    x < y    x > y    x <= y    x >= y
 x is y    x is not y
 x is empty    x is not empty
 x exists    x does not exist
-x is a String    x is not a Number
+x is a String    x is not a Number       -- also works with Element, Node, Error etc.
 x matches /regex/    x does not match /regex/
 x contains "sub"    x does not contain "sub"
 x includes item     x does not include item
+
+-- Case-insensitive comparison
+my value contains "search" ignoring case
 
 -- Logical
 x and y    x or y    not x
@@ -465,6 +529,34 @@ x and y    x or y    not x
 -- Existence
 no x                                     -- true if null/empty
 some x                                   -- true if not null/empty
+```
+
+### Collection Expressions
+
+Postfix expressions that operate on arrays and collections. They chain naturally and use `it`/`its`
+to refer to the current element:
+
+```hyperscript
+-- Filter
+items where its active
+items where it > 3
+<li/> in #list where it matches .visible
+
+-- Sort
+items sorted by its name
+items sorted by its age descending
+
+-- Map/Project
+items mapped to its name
+items mapped to (it * 2)
+
+-- Split/Join
+"a,b,c" split by ","
+items joined by ", "
+
+-- Chaining
+"banana,apple,cherry" split by "," sorted by it joined by ", "
+items where its active sorted by its name mapped to its id
 ```
 
 ### Type Conversion
@@ -487,6 +579,8 @@ x as Values                              -- form values as object
 x as Values | FormEncoded                -- form values as URL-encoded string
 x as Values | JSONString                 -- form values as JSON string
 ```
+
+The pipe operator `|` chains conversions left to right.
 
 ### Positional
 
@@ -525,12 +619,12 @@ cookies.clearAll()                       -- remove all
 
 ```hyperscript
 -- WRONG: `it` is overwritten by `add`
-fetch /api/data as json
+fetch /api/data as JSON
 add .loaded to me
 put it into #result              -- `it` is now the result of `add`, not fetch
 
 -- RIGHT: save to a variable
-fetch /api/data as json
+fetch /api/data as JSON
 set data to it
 add .loaded to me
 put data into #result
@@ -560,7 +654,7 @@ on click increment :count then put :count into me end
 needed:
 
 ```hyperscript
-fetch /api/data as json          -- automatically waits for response
+fetch /api/data as JSON          -- automatically waits for response
 set x to asyncFunction()         -- automatically waits for promise
 ```
 
@@ -571,6 +665,35 @@ on click                         -- if clicked again during execution, previous 
 on every click                   -- multiple clicks run concurrently
 on click queue all               -- multiple clicks queue up sequentially
 on click queue none              -- ignore clicks while handling
+```
+
+**`if` blocks always require `end`.** There is no single-line if form:
+
+```hyperscript
+-- WRONG: will fail to parse
+if x add .active
+
+-- RIGHT: always close with end
+if x add .active end
+```
+
+**`default` uses nullish+empty check, not truthiness.** `default x to 10` only sets `x` if it is `null`, `undefined`,
+or `""`. It preserves `0`, `false`, and other falsy-but-meaningful values:
+
+```hyperscript
+set x to 0
+default x to 10         -- x stays 0
+set x to false
+default x to true        -- x stays false
+set x to ""
+default x to "fallback"  -- x becomes "fallback" (empty string is treated as unset)
+```
+
+**`as JSON` is parse-only.** Use `as JSONString` to stringify:
+
+```hyperscript
+'{"name":"Alice"}' as JSON       -- parses to object
+{name: "Alice"} as JSONString    -- stringifies to '{"name":"Alice"}'
 ```
 
 ## Patterns
@@ -607,20 +730,32 @@ end">
 
 <button _="on click
   add @disabled to me
-  fetch /api/action as json
+  fetch /api/action as JSON
   put it.message into #result
   remove @disabled from me
 ">Submit
 </button>
 ```
 
-### Debounced Search
+### Debounced Search with Fallback
 
 ```html
-<input _="on keyup debounced at 300ms
-  fetch `/api/search?q=${my.value}` as json
-  put it as HTML into #results
+<input _="on input debounced at 300ms
+  hide #no-match
+  show <li/> in #results when its textContent contains my value ignoring case
+  show #no-match when the result is empty
 "/>
+```
+
+### Modal Dialog
+
+```html
+
+<button _="on click open #modal">Open</button>
+<dialog id="modal">
+  <p>Hello!</p>
+  <button _="on click close #modal">Close</button>
+</dialog>
 ```
 
 ### Toggle with Cleanup
@@ -639,13 +774,24 @@ end">
 
 <script type="text/hyperscript">
     def safeFetch(url)
-      fetch url as json
+      fetch url as JSON
       return it
     catch e
       log "fetch failed: " + e
       return null
     end
 </script>
+```
+
+### Collection Processing
+
+```html
+
+<button _="on click
+  set items to <li/> in #list
+  set names to items where it matches .active mapped to its textContent
+  put names joined by ', ' into #output
+">Show Active</button>
 ```
 
 ## Extensions
