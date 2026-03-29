@@ -525,7 +525,7 @@ export class Runtime {
 
         evaluateNoPromise(elt, ctx) {
             let result = elt.evaluate(ctx);
-            if (result.next) {
+            if (result && typeof result.then === "function") {
                 throw new Error(elt.sourceFor() + " returned a Promise in a context that they are not allowed.");
             }
             return result;
