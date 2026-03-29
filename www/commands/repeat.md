@@ -14,6 +14,8 @@ repeat until <expression> [index <identifier>] { <command> } end
 repeat until event <expression> [from <expression>] [index <identifier>] { <command> } end
 repeat <number> times [index <identifier>] { <command> } end
 repeat forever <expression> [index <identifier>] { <command> } end
+repeat { <command> } until <expression> end
+repeat { <command> } while <expression> end
 for <identifier> in <expression> [index <identifier>]
 ```
 
@@ -86,5 +88,16 @@ Here are examples of all the above forms:
     toggle .throb on #div
     wait 1s
   end
+
+  -- bottom-tested loop: body runs at least once
+  repeat
+    get the next <li/> from me
+    remove .highlight from it
+  until it is null end
+
+  -- bottom-tested with while
+  repeat
+    increment x
+  while x < 10 end
 
 ```
