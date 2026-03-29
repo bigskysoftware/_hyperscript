@@ -220,16 +220,19 @@ export class AddCommand extends Command {
 export class RemoveCommand extends Command {
     static keyword = "remove";
 
-    constructor(variant, elementExpr, classRefs, attributeRef, fromExpr) {
+    constructor(variant, elementExpr, classRefs, attributeRef, cssDeclaration, fromExpr) {
         super();
         this.variant = variant;
         this.elementExpr = elementExpr;
         this.classRefs = classRefs;
         this.attributeRef = attributeRef;
+        this.cssDeclaration = cssDeclaration;
         this.from = fromExpr;
         this.fromExpr = fromExpr;
         if (variant === "element") {
             this.args = { element: elementExpr, from: fromExpr };
+        } else if (variant === "css") {
+            this.args = { css: cssDeclaration, from: fromExpr };
         } else {
             this.args = { classRefs, from: fromExpr };
         }
@@ -240,15 +243,19 @@ export class RemoveCommand extends Command {
 
         var classRef = parser.parseElement("classRef");
         var attributeRef = null;
+        var cssDeclaration = null;
         var elementExpr = null;
         if (classRef == null) {
             attributeRef = parser.parseElement("attributeRef");
             if (attributeRef == null) {
-                elementExpr = parser.parseElement("expression");
-                if (elementExpr == null) {
-                    parser.raiseParseError(
-                        "Expected either a class reference, attribute expression or value expression"
-                    );
+                cssDeclaration = parser.parseElement("styleLiteral");
+                if (cssDeclaration == null) {
+                    elementExpr = parser.parseElement("expression");
+                    if (elementExpr == null) {
+                        parser.raiseParseError(
+                            "Expected either a class reference, attribute expression or value expression"
+                        );
+                    }
                 }
             }
         } else {
@@ -267,18 +274,28 @@ export class RemoveCommand extends Command {
         }
 
         if (elementExpr) {
-            return new RemoveCommand("element", elementExpr, null, null, fromExpr);
+            return new RemoveCommand("element", elementExpr, null, null, null, fromExpr);
+        } else if (cssDeclaration) {
+            return new RemoveCommand("css", null, null, null, cssDeclaration, fromExpr);
         } else {
-            return new RemoveCommand("classOrAttr", null, classRefs, attributeRef, fromExpr);
+            return new RemoveCommand("classOrAttr", null, classRefs, attributeRef, null, fromExpr);
         }
     }
 
-    resolve(context, { element, classRefs, from }) {
+    resolve(context, { element, classRefs, css, from }) {
         if (this.variant === "element") {
             context.meta.runtime.nullCheck(element, this.elementExpr);
             context.meta.runtime.implicitLoop(element, function (target) {
                 if (target.parentElement && (from == null || from.contains(target))) {
                     target.parentElement.removeChild(target);
+                }
+            });
+        } else if (this.variant === "css") {
+            context.meta.runtime.nullCheck(from, this.fromExpr);
+            var propNames = css.split(";").map(function (p) { return p.split(":")[0].trim(); }).filter(Boolean);
+            context.meta.runtime.implicitLoop(from, function (target) {
+                for (var i = 0; i < propNames.length; i++) {
+                    target.style.removeProperty(propNames[i]);
                 }
             });
         } else {
