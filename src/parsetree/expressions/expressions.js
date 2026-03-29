@@ -1108,32 +1108,65 @@ class DotOrColonPathNode extends Expression {
 }
 
 /**
- * WhereExpression - Filter a collection
+ * CollectionOp - Centralized parser for collection postfix expressions.
  *
- * Parses: <collection> where <condition using it/its>
+ * Handles: where, sorted by, mapped to, split by, joined by
+ *
+ * All collection keywords live in one list. When parsing the operand of any
+ * collection op, the OTHER keywords are pushed as follows so they act as
+ * boundaries. This is the single place to update when adding new collection ops.
  */
-export class WhereExpression extends Expression {
-    static grammarName = "whereExpr";
+const COLLECTION_KEYWORDS = ["where", "sorted", "mapped", "split", "joined"];
+
+function _parseCollectionOperand(parser, keyword) {
+    var follows = COLLECTION_KEYWORDS.filter(k => k !== keyword);
+    follows.forEach(f => parser.pushFollow(f));
+    try {
+        return parser.requireElement("expression");
+    } finally {
+        follows.forEach(() => parser.popFollow());
+    }
+}
+
+export class CollectionOp extends Expression {
+    static grammarName = "collectionOp";
     static expressionType = "indirect";
 
+    static parse(parser, root) {
+        if (parser.matchToken("where")) {
+            var condition = _parseCollectionOperand(parser, "where");
+            root = new WhereExpression(root, condition);
+        } else if (parser.matchToken("sorted")) {
+            parser.requireToken("by");
+            var key = _parseCollectionOperand(parser, "sorted");
+            var descending = parser.matchToken("descending");
+            root = new SortedByExpression(root, key, !!descending);
+        } else if (parser.matchToken("mapped")) {
+            parser.requireToken("to");
+            var projection = _parseCollectionOperand(parser, "mapped");
+            root = new MappedToExpression(root, projection);
+        } else if (parser.matchToken("split")) {
+            parser.requireToken("by");
+            var delimiter = _parseCollectionOperand(parser, "split");
+            root = new SplitByExpression(root, delimiter);
+        } else if (parser.matchToken("joined")) {
+            parser.requireToken("by");
+            var delimiter = _parseCollectionOperand(parser, "joined");
+            root = new JoinedByExpression(root, delimiter);
+        } else {
+            return;
+        }
+        return parser.parseElement("indirectExpression", root);
+    }
+}
+
+/** Filter a collection: <collection> where <condition using it/its> */
+class WhereExpression extends Expression {
     constructor(root, condition) {
         super();
         this.root = root;
         this.condition = condition;
         this.args = { root };
-    }
-
-    static parse(parser, root) {
-        if (!parser.matchToken("where")) return;
-        var follows = ["sorted", "mapped", "split", "joined"];
-        follows.forEach(f => parser.pushFollow(f));
-        try {
-            var condition = parser.requireElement("expression");
-        } finally {
-            follows.forEach(() => parser.popFollow());
-        }
-        var where = new WhereExpression(root, condition);
-        return parser.parseElement("indirectExpression", where);
     }
 
     resolve(context, { root: collection }) {
@@ -1151,36 +1184,14 @@ export class WhereExpression extends Expression {
     }
 }
 
-/**
- * SortedByExpression - Sort a collection by a property
- *
- * Parses: <collection> sorted by <expression using it/its> [descending]
- */
-export class SortedByExpression extends Expression {
-    static grammarName = "sortedByExpr";
-    static expressionType = "indirect";
-
+/** Sort a collection: <collection> sorted by <expr> [descending] */
+class SortedByExpression extends Expression {
     constructor(root, key, descending) {
         super();
         this.root = root;
         this.key = key;
         this.descending = descending;
         this.args = { root };
-    }
-
-    static parse(parser, root) {
-        if (!parser.matchToken("sorted")) return;
-        parser.requireToken("by");
-        var follows = ["where", "mapped", "split", "joined"];
-        follows.forEach(f => parser.pushFollow(f));
-        try {
-            var key = parser.requireElement("expression");
-        } finally {
-            follows.forEach(() => parser.popFollow());
-        }
-        var descending = parser.matchToken("descending");
-        var sorted = new SortedByExpression(root, key, !!descending);
-        return parser.parseElement("indirectExpression", sorted);
     }
 
     resolve(context, { root: collection }) {
@@ -1203,34 +1214,13 @@ export class SortedByExpression extends Expression {
     }
 }
 
-/**
- * MappedToExpression - Map a collection to a projection
- *
- * Parses: <collection> mapped to <expression using it/its>
- */
-export class MappedToExpression extends Expression {
-    static grammarName = "mappedToExpr";
-    static expressionType = "indirect";
-
+/** Map a collection: <collection> mapped to <expr> */
+class MappedToExpression extends Expression {
     constructor(root, projection) {
         super();
         this.root = root;
         this.projection = projection;
         this.args = { root };
-    }
-
-    static parse(parser, root) {
-        if (!parser.matchToken("mapped")) return;
-        parser.requireToken("to");
-        var follows = ["where", "sorted", "split", "joined"];
-        follows.forEach(f => parser.pushFollow(f));
-        try {
-            var projection = parser.requireElement("expression");
-        } finally {
-            follows.forEach(() => parser.popFollow());
-        }
-        var mapped = new MappedToExpression(root, projection);
-        return parser.parseElement("indirectExpression", mapped);
     }
 
     resolve(context, { root: collection }) {
@@ -1246,32 +1236,11 @@ export class MappedToExpression extends Expression {
     }
 }
 
-/**
- * SplitByExpression - Split a string by a delimiter
- *
- * Parses: <expr> split by <expr>
- */
-export class SplitByExpression extends Expression {
-    static grammarName = "splitByExpr";
-    static expressionType = "indirect";
-
+/** Split a string: <expr> split by <expr> */
+class SplitByExpression extends Expression {
     constructor(root, delimiter) {
         super();
         this.args = { root, delimiter };
-    }
-
-    static parse(parser, root) {
-        if (!parser.matchToken("split")) return;
-        parser.requireToken("by");
-        var follows = ["where", "sorted", "mapped", "joined"];
-        follows.forEach(f => parser.pushFollow(f));
-        try {
-            var delimiter = parser.requireElement("expression");
-        } finally {
-            follows.forEach(() => parser.popFollow());
-        }
-        var split = new SplitByExpression(root, delimiter);
-        return parser.parseElement("indirectExpression", split);
     }
 
     resolve(context, { root, delimiter }) {
@@ -1279,32 +1248,11 @@ export class SplitByExpression extends Expression {
     }
 }
 
-/**
- * JoinedByExpression - Join an array with a delimiter
- *
- * Parses: <expr> joined by <expr>
- */
-export class JoinedByExpression extends Expression {
-    static grammarName = "joinedByExpr";
-    static expressionType = "indirect";
-
+/** Join an array: <expr> joined by <expr> */
+class JoinedByExpression extends Expression {
     constructor(root, delimiter) {
         super();
         this.args = { root, delimiter };
-    }
-
-    static parse(parser, root) {
-        if (!parser.matchToken("joined")) return;
-        parser.requireToken("by");
-        var follows = ["where", "sorted", "mapped", "split"];
-        follows.forEach(f => parser.pushFollow(f));
-        try {
-            var delimiter = parser.requireElement("expression");
-        } finally {
-            follows.forEach(() => parser.popFollow());
-        }
-        var joined = new JoinedByExpression(root, delimiter);
-        return parser.parseElement("indirectExpression", joined);
     }
 
     resolve(context, { root, delimiter }) {
