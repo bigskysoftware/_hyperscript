@@ -555,8 +555,14 @@ Here is a table of available symbols:
 	the detail of the event that triggered the current handler, if any
 `sender`
 	the element that sent the current event, if any
+`you` `your` `yourself`
+	the current target in a [`tell`](/commands/tell) block
 `cookies`
     an [api](/expressions/cookies) to access cookies
+`clipboard`
+	the system clipboard (reads are async, writes are sync)
+`selection`
+	the currently selected text (`window.getSelection().toString()`)
 {% endsyntaxes %}
 
 Note that the `target` is the element that the event *originally* occurred on.
@@ -709,6 +715,37 @@ then the arguments, then an arrow `->`, followed by an expression:
   log lens
   ~~~
 
+##### Collection Expressions {#collections}
+
+For many common data manipulation tasks, hyperscript offers postfix collection expressions that read naturally and
+avoid the need for closures entirely.  Within these expressions, `it` and `its` refer to the current element:
+
+  ~~~ hyperscript
+  set evens to [1, 2, 3, 4, 5] where it mod 2 is 0    -- [2, 4]
+  set names to people sorted by its name                -- sort by name
+  set ids to items mapped to its id                     -- extract ids
+  ~~~
+
+You can split strings into arrays and join arrays into strings:
+
+  ~~~ hyperscript
+  set words to "hello world" split by " "               -- ["hello", "world"]
+  set csv to ["a", "b", "c"] joined by ", "             -- "a, b, c"
+  ~~~
+
+Collection expressions chain naturally:
+
+  ~~~ hyperscript
+  set result to "banana,apple,cherry" split by "," sorted by it joined by ", "
+  -- result is "apple, banana, cherry"
+  ~~~
+
+These can also be used with DOM queries:
+
+  ~~~ hyperscript
+  set visible to <li/> in #list where it matches .active
+  ~~~
+
 ### Control Flow
 
 Conditional control flow in hyperscript is done with the [if command](/commands/if) or the `unless` modifier.  The conditional expression
@@ -797,6 +834,14 @@ A small sampling is shown below:
 `[[collection]] is empty`
 	Tests if a collection is empty.
 {% endsyntaxes %}
+
+You can also append `ignoring case` to any comparison to make it case-insensitive:
+
+  ~~~ hyperscript
+  if my value contains "hello" ignoring case
+    ...
+  end
+  ~~~
 
 If the left hand side of the operator is `I`, then `is` can be replaced with `am`:
 
@@ -894,11 +939,45 @@ It supports a large number of variants, including a short hand `for` version:
     wait 2s
   end
 
+  -- a bottom-tested loop runs the body at least once
+  repeat
+    increment x
+  until x is 10 end
+
   ~~~
 
-Loops support both the [`break`](/commands/break) and [`continue`](/commands/continue) commands.
+Loops support the [`break`](/commands/break) and [`continue`](/commands/continue) commands:
+
+  ~~~ hyperscript
+  for item in items
+    if item is null continue end   -- skip nulls
+    if item is "stop" break end    -- exit loop
+    log item
+  end
+  ~~~
 
 You can also use events to signal when a loop ends, see [the async section on loops](#async_loops)
+
+#### Tell Blocks {#tell}
+
+The [`tell`](/commands/tell) command lets you address a different element for a series of commands.  Within a `tell`
+block, the symbols `you`, `your` and `yourself` refer to the target element, rather than having to repeat it:
+
+  ~~~ hyperscript
+  tell <button/> in me
+    add @disabled
+    set your.title to "Please wait..."
+  end
+  ~~~
+
+This is equivalent to:
+
+  ~~~ hyperscript
+  add @disabled to <button/> in me
+  set (<button/> in me)'s title to "Please wait..."
+  ~~~
+
+The `tell` command is particularly useful when you need to perform several operations on the same element.
 
 #### Aggregate Operations {#aggregate_operations}
 
@@ -1026,6 +1105,12 @@ Out of the box hyperscript offers a number of useful conversions:
 * `Values` - converts a Form (or other element) into a struct containing its input names/values
 * `Fixed<:N>` - convert to a fixed precision string representation of the number, with an optional precision of `N`
 
+You can chain conversions using the pipe operator:
+
+  ~~~ hyperscript
+  get <form/> as Values | JSONString  -- form values as a JSON string
+  ~~~
+
 You can also [add your own conversions](/expressions/as) to the language as well.
 
 ### Calling Functions {#calling-functions}
@@ -1088,7 +1173,7 @@ This is the beauty of hyperscript: you probably knew what it was doing immediate
 Event handlers have a *very* extensive syntax that allows you to, for example:
 
 * Control the queuing behavior of events (how do you want events to queue up when an event handler is running?)
-* Respond to events only in certain cases, either with counts (e.g. `on click 1`) or with event filters (`on keyup[key is 'Escape']`)
+* Respond to events only in certain cases, with the `first` modifier (e.g. `on first click`), counts (e.g. `on click 1`) or event filters (`on keyup[key is 'Escape']`)
 * Control debounce and throttle behavior
 * Respond to events from other elements or from `elsewhere` (i.e. outside the current element)
 
@@ -1270,6 +1355,26 @@ Here is a demo:
          if intersecting transition opacity to 1
          else transition opacity to 0 "
      src="https://placebear.com/200/300"/>
+
+##### Resize Events {#resize}
+
+You can listen for element resizes using the `on resize` form.  This uses the [Resize Observer](https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserver) API under the covers:
+
+  ~~~ html
+  <div _="on resize put `${detail.width}x${detail.height}` into #size">
+    Resize me
+  </div>
+  ~~~
+
+The `detail` object contains `width`, `height`, and the full `contentRect` from the resize entry.
+
+Like mutation and intersection events, the `from` clause can be used to observe a different element:
+
+  ~~~ html
+  <div _="on resize from #panel put detail.width into me">
+    --
+  </div>
+  ~~~
 
 ### Init Blocks {#init}
 
@@ -1721,6 +1826,30 @@ Finally, you can toggle the visibility of elements by toggling a style literal:
 </p>
 {% endexample %}
 
+##### Taking Classes & Attributes {#take}
+
+The [`take`](/commands/take) command removes a class (or attribute) from a set of elements and adds it to a target,
+making it perfect for "active item" patterns like tab bars and menus:
+
+{% example "Take a class" %}
+<ul _="on click from <li/>
+         take .selected from <li/> for the target">
+  <li>Tab 1</li>
+  <li>Tab 2</li>
+  <li>Tab 3</li>
+</ul>
+{% endexample %}
+
+<style>.selected { font-weight: bold; color: var(--accent); }</style>
+
+This removes `.selected` from all `<li>` elements and adds it to the one that was clicked.
+
+You can also take attributes with an optional replacement value:
+
+  ~~~ hyperscript
+  take @aria-selected with "true" from <li/> for the target
+  ~~~
+
 ##### Removing Content {#removing}
 
 You can also use the [`remove` command](/commands/remove) to remove content from the DOM:
@@ -1758,8 +1887,10 @@ or `opacity` with the following syntax:
 </button>
 {% endexample %}
 
-You can also apply a conditional to the `show` command to conditionally show elements that match a given condition by
-using a `when` clause:
+The `add`, `remove`, `show` and `hide` commands all support a `when` clause to conditionally apply to each element.
+After execution, `the result` contains the array of elements that matched the condition.
+
+Here is an example using `show ... when` to filter a list:
 
 {% example "Filter elements with `show ... when`" %}
 <input _="on keyup show <li/> in #color-list
@@ -1848,6 +1979,94 @@ Click Me To Get My Computed Width
 <output>--</output>
 {% endexample %}
 
+### Other DOM Operations {#other-dom}
+
+Hyperscript includes several additional commands for common DOM interactions:
+
+#### Focus & Blur {#focus-blur}
+
+The `focus` and `blur` commands set or remove keyboard focus:
+
+  ~~~ hyperscript
+  focus #name-input
+  blur me
+  ~~~
+
+Both default to `me` if no target is given.
+
+#### Empty {#empty}
+
+The `empty` command removes all children from an element:
+
+  ~~~ hyperscript
+  empty #results
+  ~~~
+
+#### Select {#select}
+
+The `select` command selects the text content of an input or textarea:
+
+  ~~~ hyperscript
+  select #search-input
+  ~~~
+
+#### Open & Close {#open-close}
+
+The `open` and `close` commands work with dialogs, details elements and popovers:
+
+  ~~~ hyperscript
+  open #my-dialog      -- calls showModal() on a <dialog>
+  close #my-dialog     -- calls close() on a <dialog>
+  open #my-details     -- sets open attribute on a <details>
+  close #my-details    -- removes open attribute from a <details>
+  ~~~
+
+For elements with a `popover` attribute, `open` and `close` call `showPopover()` and `hidePopover()` respectively.
+As a fallback, they call `.open()` and `.close()` on the target.
+
+You can also enter and exit fullscreen mode:
+
+  ~~~ hyperscript
+  open fullscreen #video
+  close fullscreen
+  ~~~
+
+#### Ask & Answer {#ask-answer}
+
+The `ask` and `answer` commands provide access to the browser's built-in dialogs:
+
+  ~~~ hyperscript
+  ask "What is your name?"
+  put it into #greeting
+
+  answer "File saved!"
+  ~~~
+
+`ask` wraps `prompt()` and places the result in `it`.  `answer` wraps `alert()` by default.
+
+With two choices, `answer` wraps `confirm()` and the result is the chosen label:
+
+  ~~~ hyperscript
+  answer "Save changes?" with "Yes" or "No"
+  if it is "Yes"
+    -- save...
+  end
+  ~~~
+
+### Speech {#speech}
+
+As a nod to [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf), hyperscript includes a `speak` command
+that uses the [Web Speech API](https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesis) for text-to-speech:
+
+  ~~~ hyperscript
+  speak "Hello world"
+  speak "Hello" with voice "Samantha"
+  speak "Quickly now" with rate 2 with pitch 1.5
+  ~~~
+
+The command is async-transparent: it waits for the utterance to finish before continuing to the next command.  You can
+configure `voice`, `rate`, `pitch`, and `volume` using `with` clauses.
+
 ## Remote Content {#remote-content}
 
 Hyperscript is primarily designed for front end scripting, local things like toggling a class on a div and so on,
@@ -1903,6 +2122,23 @@ You can also use it to navigate to another web page entirely:
               Go Check Out htmx
 </button>
 {% endexample %}
+
+### Scrolling {#scrolling}
+
+The [`scroll`](/commands/scroll) command scrolls an element into view:
+
+  ~~~ hyperscript
+  scroll to #target
+  scroll to the top of #target smoothly
+  scroll to the bottom of me instantly
+  ~~~
+
+You can specify vertical alignment (`top`, `middle`, `bottom`) and horizontal alignment (`left`, `center`, `right`),
+as well as an offset:
+
+  ~~~ hyperscript
+  scroll to the top of #target +50px smoothly
+  ~~~
 
 ## Async Transparency {#async}
 
