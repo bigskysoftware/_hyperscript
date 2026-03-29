@@ -72,11 +72,37 @@ test.describe("the default command", () => {
 		await expect(find('div')).toHaveText("existing");
 	});
 
-	test("can default style ref", async ({html, find}) => {
+	test("default preserves zero", async ({html, find}) => {
+		await html("<div _='on click set x to 0 then default x to 10 then put x into me'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("0");
+	});
+
+	test("default overwrites empty string", async ({html, find}) => {
+		await html(`<div _='on click set x to "" then default x to "fallback" then put x into me'></div>`);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("fallback");
+	});
+
+	test("default preserves false", async ({html, find}) => {
+		await html("<div _='on click set x to false then default x to true then put x into me'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("false");
+	});
+
+	test("can default style ref when unset", async ({html, find}) => {
 		await html(
-			`<div _="on click default *color to 'red'"></div>`
+			`<div _="on click default *background-color to 'red'"></div>`
 		);
 		await find('div').dispatchEvent('click');
-		await expect(find('div')).toHaveCSS('color', 'rgb(255, 0, 0)');
+		await expect(find('div')).toHaveCSS('background-color', 'rgb(255, 0, 0)');
+	});
+
+	test("default style ref preserves existing value", async ({html, find}) => {
+		await html(
+			`<div style="color: blue" _="on click default *color to 'red'"></div>`
+		);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('color', 'rgb(0, 0, 255)');
 	});
 });
