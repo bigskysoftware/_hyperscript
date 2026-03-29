@@ -380,28 +380,32 @@ export class AppendCommand extends Command {
             this._target.set(context, lhs, (target || "") + value);
             return context.meta.runtime.findNext(this, context);
         } else {
-            throw Error("Unable to append a value!")
+            throw new Error("Unable to append a value!")
         }
     }
 }
 
 /**
- * PickCommand - Pick items, characters, or matches from collections/strings
+ * PickCommand - Extract items from collections
  *
- * Parses: pick [the] item[s]|character[s] [at|from] <range> from <expr> |
- *         pick [the] match[es] of <regex> from <expr>
- * Executes: Extracts specified range or matches from collection/string
+ * Parses: pick first <n> of <expr>
+ *         pick last <n> of <expr>
+ *         pick random [<n>] of <expr>
+ *         pick [the] item[s]|character[s] <range> of|from <expr>
+ *         pick [the] match[es] [of] <regex> [|<flags>] of|from <expr>
  */
 export class PickCommand extends Command {
     static keyword = "pick";
 
-    constructor(variant, root, range, re, flags) {
+    constructor(variant, root, range, re, flags, count) {
         super();
         this.variant = variant;
         this.range = range;
         this.flags = flags;
         if (variant === "range") {
             this.args = { root, from: range.from, to: range.to };
+        } else if (variant === "first" || variant === "last" || variant === "random") {
+            this.args = { root, count };
         } else {
             this.args = { root, re };
         }
@@ -409,16 +413,16 @@ export class PickCommand extends Command {
 
     static parsePickRange(parser) {
         parser.matchToken("at") || parser.matchToken("from");
-        const rv = { includeStart: true, includeEnd: false }
+        var rv = { includeStart: true, includeEnd: false };
 
-        rv.from = parser.matchToken("start") ? 0 : parser.requireElement("expression")
+        rv.from = parser.matchToken("start") ? 0 : parser.requireElement("expression");
 
         if (parser.matchToken("to") || parser.matchOpToken("..")) {
-          if (parser.matchToken("end")) {
-            rv.toEnd = true;
-          } else {
-            rv.to = parser.requireElement("expression");
-          }
+            if (parser.matchToken("end")) {
+                rv.toEnd = true;
+            } else {
+                rv.to = parser.requireElement("expression");
+            }
         }
 
         if (parser.matchToken("inclusive")) rv.includeEnd = true;
@@ -427,52 +431,107 @@ export class PickCommand extends Command {
         return rv;
     }
 
+    static parseSource(parser) {
+        if (!parser.matchAnyToken("of", "from")) {
+            parser.raiseParseError("Expected 'of' or 'from'");
+        }
+        return parser.requireElement("expression");
+    }
+
     static parse(parser) {
         if (!parser.matchToken("pick")) return;
 
         parser.matchToken("the");
 
+        if (parser.matchToken("first")) {
+            parser.pushFollow("of");
+            parser.pushFollow("from");
+            try { var count = parser.requireElement("expression"); }
+            finally { parser.popFollow(); parser.popFollow(); }
+            var root = PickCommand.parseSource(parser);
+            return new PickCommand("first", root, null, null, null, count);
+        }
+
+        if (parser.matchToken("last")) {
+            parser.pushFollow("of");
+            parser.pushFollow("from");
+            try { var count = parser.requireElement("expression"); }
+            finally { parser.popFollow(); parser.popFollow(); }
+            var root = PickCommand.parseSource(parser);
+            return new PickCommand("last", root, null, null, null, count);
+        }
+
+        if (parser.matchToken("random")) {
+            var count = null;
+            if (parser.currentToken().type === "NUMBER") {
+                parser.pushFollow("of");
+                parser.pushFollow("from");
+                try { count = parser.requireElement("expression"); }
+                finally { parser.popFollow(); parser.popFollow(); }
+            }
+            var root = PickCommand.parseSource(parser);
+            return new PickCommand("random", root, null, null, null, count);
+        }
+
         if (parser.matchToken("item") || parser.matchToken("items")
          || parser.matchToken("character") || parser.matchToken("characters")) {
-            const range = PickCommand.parsePickRange(parser);
-
-            parser.requireToken("from");
-            const root = parser.requireElement("expression");
-
+            parser.pushFollow("of");
+            parser.pushFollow("from");
+            try { var range = PickCommand.parsePickRange(parser); }
+            finally { parser.popFollow(); parser.popFollow(); }
+            var root = PickCommand.parseSource(parser);
             return new PickCommand("range", root, range, null, null);
         }
 
         if (parser.matchToken("match")) {
             parser.matchToken("of");
-            const re = parser.parseElement("expression");
-            let flags = ""
-            if (parser.matchOpToken("|")) {
-                flags = parser.requireTokenType("IDENTIFIER").value;
-            }
-
-            parser.requireToken("from");
-            const root = parser.parseElement("expression");
-
+            parser.pushFollow("of");
+            parser.pushFollow("from");
+            try {
+                var re = parser.parseElement("expression");
+                var flags = "";
+                if (parser.matchOpToken("|")) {
+                    flags = parser.requireTokenType("IDENTIFIER").value;
+                }
+            } finally { parser.popFollow(); parser.popFollow(); }
+            var root = PickCommand.parseSource(parser);
             return new PickCommand("match", root, null, re, flags);
         }
 
         if (parser.matchToken("matches")) {
             parser.matchToken("of");
-            const re = parser.parseElement("expression");
-            let flags = "gu"
-            if (parser.matchOpToken("|")) {
-                flags = 'g' + parser.requireTokenType("IDENTIFIER").value.replace('g', '');
-            }
-
-            parser.requireToken("from");
-            const root = parser.parseElement("expression");
-
+            parser.pushFollow("of");
+            parser.pushFollow("from");
+            try {
+                var re = parser.parseElement("expression");
+                var flags = "gu";
+                if (parser.matchOpToken("|")) {
+                    flags = 'g' + parser.requireTokenType("IDENTIFIER").value.replace('g', '');
+                }
+            } finally { parser.popFollow(); parser.popFollow(); }
+            var root = PickCommand.parseSource(parser);
             return new PickCommand("matches", root, null, re, flags);
         }
     }
 
-    resolve(ctx, { root, from, to, re }) {
-        if (this.variant === "range") {
+    resolve(ctx, { root, from, to, re, count }) {
+        if (this.variant === "first") {
+            ctx.result = root.slice(0, count);
+        } else if (this.variant === "last") {
+            ctx.result = root.slice(-count);
+        } else if (this.variant === "random") {
+            if (count == null) {
+                ctx.result = root[Math.floor(Math.random() * root.length)];
+            } else {
+                var copy = Array.from(root);
+                var result = [];
+                for (var i = 0; i < count && copy.length > 0; i++) {
+                    var idx = Math.floor(Math.random() * copy.length);
+                    result.push(copy.splice(idx, 1)[0]);
+                }
+                ctx.result = result;
+            }
+        } else if (this.variant === "range") {
             if (this.range.toEnd) to = root.length;
             if (!this.range.includeStart) from++;
             if (this.range.includeEnd) to++;

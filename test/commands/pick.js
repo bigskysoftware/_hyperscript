@@ -109,4 +109,51 @@ test.describe("the pick command", () => {
 		expect(result).toContain("1");
 	});
 
+	// Positional pick
+
+	test("can pick first n items", async ({run, evaluate}) => {
+		await run(`pick first 3 of arr
+			set $test to it`, {locals: {arr: [10, 20, 30, 40, 50]}});
+		const result = await evaluate(() => window.$test);
+		expect(result).toEqual([10, 20, 30]);
+	});
+
+	test("can pick last n items", async ({run, evaluate}) => {
+		await run(`pick last 2 of arr
+			set $test to it`, {locals: {arr: [10, 20, 30, 40, 50]}});
+		const result = await evaluate(() => window.$test);
+		expect(result).toEqual([40, 50]);
+	});
+
+	test("can pick random item", async ({run, evaluate}) => {
+		await run(`pick random of arr
+			set $test to it`, {locals: {arr: [10, 20, 30]}});
+		const result = await evaluate(() => window.$test);
+		expect([10, 20, 30]).toContain(result);
+	});
+
+	test("can pick random n items", async ({run, evaluate}) => {
+		await run(`pick random 2 of arr
+			set $test to it`, {locals: {arr: [10, 20, 30, 40, 50]}});
+		const result = await evaluate(() => window.$test);
+		expect(result).toHaveLength(2);
+	});
+
+	// 'of' syntax for existing forms
+
+	test("can pick items using 'of' syntax", async ({run, evaluate}) => {
+		await run(`pick items 1 to 3 of arr
+			set $test to it`, {locals: {arr: [10, 11, 12, 13, 14, 15, 16]}});
+		const result = await evaluate(() => window.$test);
+		expect(result).toEqual([11, 12]);
+	});
+
+	test("can pick match using 'of' syntax", async ({run, evaluate}) => {
+		const haystack = "The 32 quick brown foxes";
+		await run(String.raw`pick match of "\\d+" of haystack
+			set window.test to it`, {locals: {haystack}});
+		const result = await evaluate(() => [...window.test]);
+		expect(result).toEqual(["32"]);
+	});
+
 });

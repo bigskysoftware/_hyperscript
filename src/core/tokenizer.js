@@ -530,7 +530,7 @@ export class Tokenizer {
                 value += this.#consumeChar();
             }
             if (this.#currentChar() !== "}") {
-                throw Error("Unterminated class reference");
+                throw new Error("Unterminated class reference");
             } else {
                 value += this.#consumeChar();
             }
@@ -555,7 +555,7 @@ export class Tokenizer {
                 value += this.#consumeChar();
             }
             if (this.#currentChar() !== "}") {
-                throw Error("Unterminated id reference");
+                throw new Error("Unterminated id reference");
             } else {
                 this.#consumeChar();
             }
@@ -722,7 +722,7 @@ export class Tokenizer {
                 else if (next === "x") {
                     const hex = this.#consumeHexEscape();
                     if (Number.isNaN(hex)) {
-                        throw Error("Invalid hexadecimal escape at [Line: " + token.line + ", Column: " + token.column + "]");
+                        throw new Error("Invalid hexadecimal escape at [Line: " + token.line + ", Column: " + token.column + "]");
                     }
                     value += String.fromCharCode(hex);
                 }
@@ -732,7 +732,7 @@ export class Tokenizer {
             }
         }
         if (this.#currentChar() !== startChar) {
-            throw Error("Unterminated string at [Line: " + token.line + ", Column: " + token.column + "]");
+            throw new Error("Unterminated string at [Line: " + token.line + ", Column: " + token.column + "]");
         } else {
             this.#consumeChar();
         }
@@ -814,7 +814,7 @@ export class Tokenizer {
                 this.#tokens.push(this.#makeToken("RESERVED", this.#consumeChar()));
             } else {
                 if (this.#position < this.#source.length) {
-                    throw Error("Unknown token: " + this.#currentChar() + " ");
+                    throw new Error("Unknown token: " + this.#currentChar() + " ");
                 }
             }
         }

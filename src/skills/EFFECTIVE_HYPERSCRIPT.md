@@ -375,10 +375,14 @@ append "<b>bold</b>" to me              -- DOM append
 measure me                               -- bounding rect → result
 measure #el's width, height              -- specific measurements
 
-pick match of /regex/ from str           -- first regex match
-pick matches of /regex/g from str        -- all matches
-pick items 2 to 5 from arr              -- array slice
-pick characters 0 to 3 from str         -- substring
+pick first 3 of arr                      -- first 3 items
+pick last 2 of arr                       -- last 2 items
+pick random of arr                       -- random element
+pick random 3 of arr                     -- 3 random elements
+pick items 2 to 5 of arr                 -- array slice
+pick characters 0 to 3 of str            -- substring
+pick match of /regex/ of str             -- first regex match
+pick matches of /regex/ of str           -- all matches
 
 breakpoint                               -- triggers debugger
 beep! expr                               -- logs expression with source info

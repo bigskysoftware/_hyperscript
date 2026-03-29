@@ -19,7 +19,7 @@
 | [log](/commands/log)               | Logs a given expression to the console, if possible                           | `log me`                                                                                |
 | [make](/commands/make)             | Creates a class instance or DOM element                                       | `make a Set from a, b. c`, `make a <p/> called para`                                    |
 | [measure](/commands/measure)       | Gets the measurements for a given element                                     | `measure me then log it`                                                                |
-| [pick](/commands/pick)             | Selects items from arrays, strings and regex match results                    | `pick match of "(\w+)" from str`                                                        |
+| [pick](/commands/pick)             | Selects items from arrays, strings and regex match results                    | `pick first 3 of arr`, `pick match of "(\w+)" of str`                                   |
 | [put](/commands/put)               | Puts a value into a given variable or property                                | `put "cool!" into me`                                                                   |
 | [remove](/commands/remove)         | Removes content                                                               | `log "bye, bye" then remove me`                                                         |
 | [repeat](/commands/repeat)         | Iterates                                                                      | `repeat for x in [1, 2, 3] log x end`                                                   |
