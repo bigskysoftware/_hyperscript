@@ -57,6 +57,23 @@ test.describe("the halt command", () => {
 		await expect(find('#inner')).not.toHaveClass(/continued/);
 	});
 
+	test("halt works outside of event context", async ({evaluate}) => {
+		// halt in init (no event) should not throw "did not return a next element"
+		var error = await evaluate(() => {
+			return new Promise(resolve => {
+				window.addEventListener('error', function handler(e) {
+					window.removeEventListener('error', handler);
+					resolve(e.message);
+				});
+				var wa = document.getElementById('work-area');
+				wa.innerHTML = "<div _='init halt'></div>";
+				_hyperscript.processNode(wa);
+				setTimeout(() => resolve(null), 200);
+			});
+		});
+		expect(error).toBeNull();
+	});
+
 	test("halt default only prevents default, not propagation", async ({html, find}) => {
 		await html(
 			"<div id='outer' _='on click add .outer-clicked'>" +

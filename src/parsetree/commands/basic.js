@@ -240,11 +240,11 @@ export class HaltCommand extends Command {
                 ctx.event.stopPropagation();
                 ctx.event.preventDefault();
             }
-            if (this.keepExecuting) {
-                return ctx.meta.runtime.findNext(this, ctx);
-            } else {
-                return this.exit;
-            }
+        }
+        if (this.keepExecuting) {
+            return ctx.meta.runtime.findNext(this, ctx);
+        } else {
+            return this.exit;
         }
     }
 }
