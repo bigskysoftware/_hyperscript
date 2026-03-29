@@ -2584,6 +2584,27 @@
       this.locals = {
         cookies
       };
+      if (typeof navigator !== "undefined" && navigator.clipboard) {
+        Object.defineProperty(this.locals, "clipboard", {
+          get() {
+            return navigator.clipboard.readText();
+          },
+          set(v) {
+            navigator.clipboard.writeText(String(v));
+          },
+          enumerable: true,
+          configurable: true
+        });
+      }
+      if (typeof window !== "undefined" && window.getSelection) {
+        Object.defineProperty(this.locals, "selection", {
+          get() {
+            return window.getSelection().toString();
+          },
+          enumerable: true,
+          configurable: true
+        });
+      }
       this.me = hyperscriptTarget;
       this.you = void 0;
       this.result = void 0;
@@ -3350,6 +3371,7 @@
     AttributeRefAccess: () => AttributeRefAccess,
     BeepExpression: () => BeepExpression,
     BlockLiteral: () => BlockLiteral,
+    CollectionOp: () => CollectionOp,
     ComparisonOperator: () => ComparisonOperator,
     DotOrColonPath: () => DotOrColonPath,
     FunctionCall: () => FunctionCall,
@@ -4285,7 +4307,136 @@
       return this.path.join(this.separator ? this.separator : "");
     }
     resolve() {
-      return this.path.join(this.separator ? this.separator : "");
+      return this.evalStatically();
+    }
+  };
+  var COLLECTION_KEYWORDS = ["where", "sorted", "mapped", "split", "joined"];
+  function _parseCollectionOperand(parser, keyword) {
+    var follows = COLLECTION_KEYWORDS.filter((k) => k !== keyword);
+    follows.forEach((f) => parser.pushFollow(f));
+    try {
+      return parser.requireElement("expression");
+    } finally {
+      follows.forEach(() => parser.popFollow());
+    }
+  }
+  var CollectionOp = class extends Expression {
+    static parse(parser, root) {
+      if (parser.matchToken("where")) {
+        var condition = _parseCollectionOperand(parser, "where");
+        root = new WhereExpression(root, condition);
+      } else if (parser.matchToken("sorted")) {
+        parser.requireToken("by");
+        var key = _parseCollectionOperand(parser, "sorted");
+        var descending = parser.matchToken("descending");
+        root = new SortedByExpression(root, key, !!descending);
+      } else if (parser.matchToken("mapped")) {
+        parser.requireToken("to");
+        var projection = _parseCollectionOperand(parser, "mapped");
+        root = new MappedToExpression(root, projection);
+      } else if (parser.matchToken("split")) {
+        parser.requireToken("by");
+        var delimiter = _parseCollectionOperand(parser, "split");
+        root = new SplitByExpression(root, delimiter);
+      } else if (parser.matchToken("joined")) {
+        parser.requireToken("by");
+        var delimiter = _parseCollectionOperand(parser, "joined");
+        root = new JoinedByExpression(root, delimiter);
+      } else {
+        return;
+      }
+      return parser.parseElement("indirectExpression", root);
+    }
+  };
+  __publicField(CollectionOp, "grammarName", "collectionOp");
+  __publicField(CollectionOp, "expressionType", "indirect");
+  var WhereExpression = class extends Expression {
+    constructor(root, condition) {
+      super();
+      this.root = root;
+      this.condition = condition;
+      this.args = { root };
+    }
+    resolve(context, { root: collection }) {
+      var saved = context.result;
+      var result = [];
+      var items = Array.from(collection);
+      for (var i = 0; i < items.length; i++) {
+        context.result = items[i];
+        if (this.condition.evaluate(context)) {
+          result.push(items[i]);
+        }
+      }
+      context.result = saved;
+      return result;
+    }
+  };
+  var SortedByExpression = class extends Expression {
+    constructor(root, key, descending) {
+      super();
+      this.root = root;
+      this.key = key;
+      this.descending = descending;
+      this.args = { root };
+    }
+    resolve(context, { root: collection }) {
+      var saved = context.result;
+      var items = Array.from(collection);
+      var keys = [];
+      for (var i = 0; i < items.length; i++) {
+        context.result = items[i];
+        keys.push(this.key.evaluate(context));
+      }
+      context.result = saved;
+      var indices = items.map(function(_, i2) {
+        return i2;
+      });
+      var dir = this.descending ? -1 : 1;
+      indices.sort(function(a, b) {
+        var ka = keys[a], kb = keys[b];
+        if (ka == kb) return 0;
+        return (ka < kb ? -1 : 1) * dir;
+      });
+      return indices.map(function(i2) {
+        return items[i2];
+      });
+    }
+  };
+  var MappedToExpression = class extends Expression {
+    constructor(root, projection) {
+      super();
+      this.root = root;
+      this.projection = projection;
+      this.args = { root };
+    }
+    resolve(context, { root: collection }) {
+      var saved = context.result;
+      var items = Array.from(collection);
+      var result = [];
+      for (var i = 0; i < items.length; i++) {
+        context.result = items[i];
+        result.push(this.projection.evaluate(context));
+      }
+      context.result = saved;
+      return result;
+    }
+  };
+  var SplitByExpression = class extends Expression {
+    constructor(root, delimiter) {
+      super();
+      this.args = { root, delimiter };
+    }
+    resolve(context, { root, delimiter }) {
+      return String(root).split(delimiter);
+    }
+  };
+  var JoinedByExpression = class extends Expression {
+    constructor(root, delimiter) {
+      super();
+      this.args = { root, delimiter };
+    }
+    resolve(context, { root, delimiter }) {
+      return Array.from(root).join(delimiter);
     }
   };
   var DotOrColonPath = class extends Expression {
@@ -5930,7 +6081,11 @@
         if (this.operation === "into") {
           if (this.attributeWrite) {
             context.meta.runtime.implicitLoop(root, function(elt) {
-              elt.setAttribute(prop, valueToPut);
+              if (valueToPut == null) {
+                elt.removeAttribute(prop);
+              } else {
+                elt.setAttribute(prop, valueToPut);
+              }
             });
           } else if (this.styleWrite) {
             context.meta.runtime.implicitLoop(root, function(elt) {
@@ -6639,18 +6794,34 @@
   var dom_exports = {};
   __export(dom_exports, {
     AddCommand: () => AddCommand,
+    AnswerCommand: () => AnswerCommand,
+    AskCommand: () => AskCommand,
     BlurCommand: () => BlurCommand,
+    CloseCommand: () => CloseCommand,
     EmptyCommand: () => EmptyCommand,
     FocusCommand: () => FocusCommand,
     HideCommand: () => HideCommand,
     MeasureCommand: () => MeasureCommand,
+    OpenCommand: () => OpenCommand,
     RemoveCommand: () => RemoveCommand,
+    SelectCommand: () => SelectCommand,
     ShowCommand: () => ShowCommand,
+    SpeakCommand: () => SpeakCommand,
     TakeCommand: () => TakeCommand,
     ToggleCommand: () => ToggleCommand
   });
   var HIDE_SHOW_STRATEGIES = {
     display: function(op, element, arg, runtime2) {
+      if (!arg && element instanceof HTMLDialogElement) {
+        if (op === "hide") element.close();
+        else if (op === "show") {
+          if (!element.open) element.showModal();
+        } else if (op === "toggle") {
+          if (element.open) element.close();
+          else element.showModal();
+        }
+        return;
+      }
       if (arg) {
         element.style.display = arg;
       } else if (op === "toggle") {
@@ -7492,6 +7663,205 @@
   };
   __publicField(_EmptyCommand, "keyword", "empty");
   var EmptyCommand = _EmptyCommand;
+  function _openElement(elt) {
+    if (elt instanceof HTMLDialogElement) {
+      if (!elt.open) elt.showModal();
+    } else if (elt instanceof HTMLDetailsElement) {
+      elt.open = true;
+    } else if (elt.hasAttribute && elt.hasAttribute("popover")) {
+      elt.showPopover();
+    } else if (typeof elt.open === "function") {
+      elt.open();
+    }
+  }
+  function _closeElement(elt) {
+    if (elt instanceof HTMLDialogElement) {
+      elt.close();
+    } else if (elt instanceof HTMLDetailsElement) {
+      elt.open = false;
+    } else if (elt.hasAttribute && elt.hasAttribute("popover")) {
+      elt.hidePopover();
+    } else if (typeof elt.close === "function") {
+      elt.close();
+    }
+  }
+  var _OpenCommand = class _OpenCommand extends Command {
+    constructor(target, fullscreen) {
+      super();
+      this.fullscreen = fullscreen;
+      this.args = { target };
+    }
+    static parse(parser) {
+      if (!parser.matchToken("open")) return;
+      var fullscreen = parser.matchToken("fullscreen");
+      var target = null;
+      if (!parser.commandBoundary(parser.currentToken())) {
+        target = parser.requireElement("expression");
+      }
+      return new _OpenCommand(target, !!fullscreen);
+    }
+    resolve(ctx, { target }) {
+      var elt = target || ctx.me;
+      if (this.fullscreen) {
+        return elt.requestFullscreen().then(() => {
+          return ctx.meta.runtime.findNext(this, ctx);
+        });
+      }
+      ctx.meta.runtime.implicitLoop(elt, _openElement);
+      return ctx.meta.runtime.findNext(this, ctx);
+    }
+  };
+  __publicField(_OpenCommand, "keyword", "open");
+  var OpenCommand = _OpenCommand;
+  var _CloseCommand = class _CloseCommand extends Command {
+    constructor(target, fullscreen) {
+      super();
+      this.fullscreen = fullscreen;
+      this.args = { target };
+    }
+    static parse(parser) {
+      if (!parser.matchToken("close")) return;
+      var fullscreen = parser.matchToken("fullscreen");
+      var target = null;
+      if (!parser.commandBoundary(parser.currentToken())) {
+        target = parser.requireElement("expression");
+      }
+      return new _CloseCommand(target, !!fullscreen);
+    }
+    resolve(ctx, { target }) {
+      if (this.fullscreen) {
+        return document.exitFullscreen().then(() => {
+          return ctx.meta.runtime.findNext(this, ctx);
+        });
+      }
+      var elt = target || ctx.me;
+      ctx.meta.runtime.implicitLoop(elt, _closeElement);
+      return ctx.meta.runtime.findNext(this, ctx);
+    }
+  };
+  __publicField(_CloseCommand, "keyword", "close");
+  var CloseCommand = _CloseCommand;
+  var _SpeakCommand = class _SpeakCommand extends Command {
+    constructor(text, voice, rate, pitch, volume) {
+      super();
+      this.voice = voice;
+      this.rate = rate;
+      this.pitch = pitch;
+      this.volume = volume;
+      this.args = { text, voice, rate, pitch, volume };
+    }
+    static parse(parser) {
+      if (!parser.matchToken("speak")) return;
+      var text = parser.requireElement("expression");
+      var voice = null, rate = null, pitch = null, volume = null;
+      while (parser.matchToken("with")) {
+        if (parser.matchToken("voice")) {
+          voice = parser.requireElement("expression");
+        } else if (parser.matchToken("rate")) {
+          rate = parser.requireElement("expression");
+        } else if (parser.matchToken("pitch")) {
+          pitch = parser.requireElement("expression");
+        } else if (parser.matchToken("volume")) {
+          volume = parser.requireElement("expression");
+        } else {
+          parser.raiseParseError("Expected voice, rate, pitch, or volume");
+        }
+      }
+      return new _SpeakCommand(text, voice, rate, pitch, volume);
+    }
+    resolve(ctx, { text, voice, rate, pitch, volume }) {
+      var utterance = new SpeechSynthesisUtterance(String(text));
+      if (voice) {
+        var voices = speechSynthesis.getVoices();
+        var match = voices.find((v) => v.name === voice);
+        if (match) utterance.voice = match;
+      }
+      if (rate != null) utterance.rate = rate;
+      if (pitch != null) utterance.pitch = pitch;
+      if (volume != null) utterance.volume = volume;
+      var cmd = this;
+      return new Promise(function(resolve) {
+        utterance.onend = function() {
+          resolve(ctx.meta.runtime.findNext(cmd, ctx));
+        };
+        speechSynthesis.speak(utterance);
+      });
+    }
+  };
+  __publicField(_SpeakCommand, "keyword", "speak");
+  var SpeakCommand = _SpeakCommand;
+  var _SelectCommand = class _SelectCommand extends Command {
+    constructor(target) {
+      super();
+      this.args = { target };
+    }
+    static parse(parser) {
+      if (!parser.matchToken("select")) return;
+      var target = null;
+      if (!parser.commandBoundary(parser.currentToken())) {
+        target = parser.requireElement("expression");
+      }
+      return new _SelectCommand(target);
+    }
+    resolve(ctx, { target }) {
+      var elt = target || ctx.me;
+      if (typeof elt.select === "function") elt.select();
+      return ctx.meta.runtime.findNext(this, ctx);
+    }
+  };
+  __publicField(_SelectCommand, "keyword", "select");
+  var SelectCommand = _SelectCommand;
+  var _AskCommand = class _AskCommand extends Command {
+    constructor(message) {
+      super();
+      this.args = { message };
+    }
+    static parse(parser) {
+      if (!parser.matchToken("ask")) return;
+      var message = parser.requireElement("expression");
+      return new _AskCommand(message);
+    }
+    resolve(ctx, { message }) {
+      ctx.result = prompt(String(message));
+      return ctx.meta.runtime.findNext(this, ctx);
+    }
+  };
+  __publicField(_AskCommand, "keyword", "ask");
+  var AskCommand = _AskCommand;
+  var _AnswerCommand = class _AnswerCommand extends Command {
+    constructor(message, choiceA, choiceB) {
+      super();
+      this.choiceA = choiceA;
+      this.choiceB = choiceB;
+      this.args = { message, choiceA, choiceB };
+    }
+    static parse(parser) {
+      if (!parser.matchToken("answer")) return;
+      var message = parser.requireElement("expression");
+      var choiceA = null, choiceB = null;
+      if (parser.matchToken("with")) {
+        parser.pushFollow("or");
+        try {
+          choiceA = parser.requireElement("expression");
+        } finally {
+          parser.popFollow();
+        }
+        parser.requireToken("or");
+        choiceB = parser.requireElement("expression");
+      }
+      return new _AnswerCommand(message, choiceA, choiceB);
+    }
+    resolve(ctx, { message, choiceA, choiceB }) {
+      if (choiceA) {
+        ctx.result = confirm(String(message)) ? choiceA : choiceB;
+      } else {
+        alert(String(message));
+      }
+      return ctx.meta.runtime.findNext(this, ctx);
+    }
+  };
+  __publicField(_AnswerCommand, "keyword", "answer");
+  var AnswerCommand = _AnswerCommand;
 
   // src/parsetree/commands/animations.js
   var animations_exports = {};
@@ -7834,6 +8204,22 @@
             observer.observe(target);
             eltData.observers.push(observer);
           }
+          if (eventSpec.resizeSpec) {
+            eventName = "hyperscript:resize";
+            const observer = new ResizeObserver(function(entries) {
+              for (const entry of entries) {
+                var detail = {
+                  width: entry.contentRect.width,
+                  height: entry.contentRect.height,
+                  contentRect: entry.contentRect,
+                  entry
+                };
+                runtime2.triggerEvent(target, eventName, detail);
+              }
+            });
+            observer.observe(target);
+            eltData.observers.push(observer);
+          }
           var addEventListener = target.addEventListener || target.on;
           var handler;
           addEventListener.call(target, eventName, handler = function listener(evt) {
@@ -7963,8 +8349,10 @@
             parser.requireToken("on");
           }
         }
-        var intersectionSpec, mutationSpec;
-        if (eventName === "intersection") {
+        var intersectionSpec, mutationSpec, resizeSpec;
+        if (eventName === "resize") {
+          resizeSpec = true;
+        } else if (eventName === "intersection") {
           intersectionSpec = {};
           if (parser.matchToken("with")) {
             intersectionSpec["with"] = parser.requireElement("expression").evalStatically();
@@ -8073,7 +8461,8 @@
           debounceTime,
           throttleTime,
           mutationSpec,
-          intersectionSpec
+          intersectionSpec,
+          resizeSpec
         });
       } while (parser.matchToken("or"));
       var queueLast = true;
