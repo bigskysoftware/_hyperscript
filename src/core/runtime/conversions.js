@@ -13,7 +13,7 @@ class HyperscriptFormData {
         if (node.type === "checkbox") {
             value = node.checked ? [node.value] : undefined;
         } else if (node.type === "select-multiple") {
-            value = Array.from(node.querySelectorAll("option[selected]"), o => o.value);
+            value = Array.from(node.options).filter(o => o.selected).map(o => o.value);
         } else {
             value = node.value;
         }

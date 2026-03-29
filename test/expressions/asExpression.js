@@ -175,6 +175,25 @@ test.describe("as operator", () => {
 		expect(result.animal[1]).toBe("raccoon")
 	})
 
+	test("converts multiple selects with programmatically changed selections", async ({evaluate}) => {
+		const result = await evaluate(() => {
+			const node = document.createElement("form")
+			node.innerHTML = `
+				<select name="animal" multiple>
+					<option value="dog" selected>Doggo</option>
+					<option value="cat">Kitteh</option>
+					<option value="raccoon" selected>Trash Panda</option>
+					<option value="possum">Sleepy Boi</option>
+				</select>`
+			var select = node.querySelector("select")
+			select.options[0].selected = false   // deselect dog
+			select.options[1].selected = true     // select cat
+			return _hyperscript("x as Values", { locals: { x: node } })
+		})
+		expect(result.animal[0]).toBe("cat")
+		expect(result.animal[1]).toBe("raccoon")
+	})
+
 	test("converts a complete form into Values", async ({evaluate}) => {
 		const result = await evaluate(() => {
 			const node = document.createElement("form")
