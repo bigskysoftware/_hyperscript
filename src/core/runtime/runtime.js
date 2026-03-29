@@ -9,6 +9,14 @@ import { formatErrors } from '../tokenizer.js';
 // cookie jar proxy for runtime
 let cookies = new CookieJar().proxy();
 
+/** Apply forward/reverse functions based on when-clause results */
+function _applyWhenResults(elements, results, forwardFn, reverseFn) {
+    for (var i = 0; i < elements.length; i++) {
+        if (results[i]) forwardFn(elements[i]);
+        else reverseFn(elements[i]);
+    }
+}
+
 
 export class Context {
     constructor(owner, feature, hyperscriptTarget, event, runtime, globalScope, kernel, tokenizer) {
@@ -497,6 +505,30 @@ export class Runtime {
                 for (const x of value) func(x);
             } else {
                 func(value);
+            }
+        }
+
+        /**
+         * Iterate over targets with a when condition, applying forward or reverse per element.
+         * Supports async conditions transparently -- returns a Promise if any condition is async.
+         */
+        implicitLoopWhen(targets, whenExpr, context, forwardFn, reverseFn) {
+            var elements = [];
+            this.implicitLoop(targets, function (elt) { elements.push(elt); });
+
+            var conditions = elements.map(function (elt) {
+                context.result = elt;
+                return whenExpr.evaluate(context);
+            });
+            context.result = null;
+
+            var hasPromise = conditions.some(function (c) { return c && typeof c.then === "function"; });
+            if (hasPromise) {
+                return Promise.all(conditions).then(function (results) {
+                    _applyWhenResults(elements, results, forwardFn, reverseFn);
+                });
+            } else {
+                _applyWhenResults(elements, conditions, forwardFn, reverseFn);
             }
         }
 

@@ -66,6 +66,16 @@ const HIDE_SHOW_STRATEGIES = {
     },
 };
 
+/** Extract property names from a CSS text string like "color: red; font-weight: bold" */
+function _cssPropertyNames(css) {
+    return css.split(";").map(function (p) { return p.split(":")[0].trim(); }).filter(Boolean);
+}
+
+/** Remove named CSS properties from an element */
+function _removeCssProperties(elt, propNames) {
+    for (var i = 0; i < propNames.length; i++) elt.style.removeProperty(propNames[i]);
+}
+
 /**
  * VisibilityCommand - Base class for show/hide/toggle commands
  * Provides shared parsing helpers for visibility-related commands
@@ -150,9 +160,6 @@ export class AddCommand extends Command {
         }
 
         if (parser.matchToken("when")) {
-            if (cssDeclaration) {
-                parser.raiseParseError("Only class and properties are supported with a when clause")
-            }
             var when = parser.requireElement("expression");
         }
 
@@ -166,48 +173,52 @@ export class AddCommand extends Command {
     }
 
     resolve(context, { to, classRefs, css }) {
-        context.meta.runtime.nullCheck(to, this.toExpr);
+        var runtime = context.meta.runtime;
+        var cmd = this;
+        runtime.nullCheck(to, this.toExpr);
+        var result;
         if (this.variant === "class") {
-            const when = this.when;
-            context.meta.runtime.forEach(classRefs, function (classRef) {
-                context.meta.runtime.implicitLoop(to, function (target) {
-                    if (when) {
-                        context.result = target;
-                        let whenResult = context.meta.runtime.evaluateNoPromise(when, context);
-                        if (whenResult) {
-                            if (target instanceof Element) target.classList.add(classRef.className);
-                        } else {
-                            if (target instanceof Element) target.classList.remove(classRef.className);
-                        }
-                        context.result = null;
-                    } else {
-                        if (target instanceof Element) target.classList.add(classRef.className);
-                    }
-                });
-            });
-        } else if (this.variant === "attribute") {
-            const attributeRef = this.attributeRef;
-            const when = this.when;
-            context.meta.runtime.implicitLoop(to, function (target) {
-                if (when) {
-                    context.result = target;
-                    let whenResult = context.meta.runtime.evaluateNoPromise(when, context);
-                    if (whenResult) {
-                        target.setAttribute(attributeRef.name, attributeRef.value);
-                    } else {
-                        target.removeAttribute(attributeRef.name);
-                    }
-                    context.result = null;
+            runtime.forEach(classRefs, function (classRef) {
+                if (cmd.when) {
+                    result = runtime.implicitLoopWhen(to, cmd.when, context,
+                        function (t) { if (t instanceof Element) t.classList.add(classRef.className); },
+                        function (t) { if (t instanceof Element) t.classList.remove(classRef.className); }
+                    );
                 } else {
-                    target.setAttribute(attributeRef.name, attributeRef.value);
+                    runtime.implicitLoop(to, function (t) {
+                        if (t instanceof Element) t.classList.add(classRef.className);
+                    });
                 }
             });
+        } else if (this.variant === "attribute") {
+            var attributeRef = this.attributeRef;
+            if (this.when) {
+                result = runtime.implicitLoopWhen(to, this.when, context,
+                    function (t) { t.setAttribute(attributeRef.name, attributeRef.value); },
+                    function (t) { t.removeAttribute(attributeRef.name); }
+                );
+            } else {
+                runtime.implicitLoop(to, function (t) {
+                    t.setAttribute(attributeRef.name, attributeRef.value);
+                });
+            }
         } else {
-            context.meta.runtime.implicitLoop(to, function (target) {
-                target.style.cssText += css;
-            });
+            if (this.when) {
+                var propNames = _cssPropertyNames(css);
+                result = runtime.implicitLoopWhen(to, this.when, context,
+                    function (t) { t.style.cssText += css; },
+                    function (t) { _removeCssProperties(t, propNames); }
+                );
+            } else {
+                runtime.implicitLoop(to, function (t) {
+                    t.style.cssText += css;
+                });
+            }
         }
-        return context.meta.runtime.findNext(this, context);
+        if (result && result.then) {
+            return result.then(function () { return runtime.findNext(cmd, context); });
+        }
+        return runtime.findNext(this, context);
     }
 }
 
@@ -220,7 +231,7 @@ export class AddCommand extends Command {
 export class RemoveCommand extends Command {
     static keyword = "remove";
 
-    constructor(variant, elementExpr, classRefs, attributeRef, cssDeclaration, fromExpr) {
+    constructor(variant, elementExpr, classRefs, attributeRef, cssDeclaration, fromExpr, when) {
         super();
         this.variant = variant;
         this.elementExpr = elementExpr;
@@ -229,6 +240,7 @@ export class RemoveCommand extends Command {
         this.cssDeclaration = cssDeclaration;
         this.from = fromExpr;
         this.fromExpr = fromExpr;
+        this.when = when;
         if (variant === "element") {
             this.args = { element: elementExpr, from: fromExpr };
         } else if (variant === "css") {
@@ -273,47 +285,72 @@ export class RemoveCommand extends Command {
             }
         }
 
+        if (parser.matchToken("when")) {
+            if (elementExpr) {
+                parser.raiseParseError("'when' clause is not supported when removing elements");
+            }
+            var when = parser.requireElement("expression");
+        }
+
         if (elementExpr) {
             return new RemoveCommand("element", elementExpr, null, null, null, fromExpr);
         } else if (cssDeclaration) {
-            return new RemoveCommand("css", null, null, null, cssDeclaration, fromExpr);
+            return new RemoveCommand("css", null, null, null, cssDeclaration, fromExpr, when);
         } else {
-            return new RemoveCommand("classOrAttr", null, classRefs, attributeRef, null, fromExpr);
+            return new RemoveCommand("classOrAttr", null, classRefs, attributeRef, null, fromExpr, when);
         }
     }
 
     resolve(context, { element, classRefs, css, from }) {
+        var runtime = context.meta.runtime;
+        var cmd = this;
+        var result;
         if (this.variant === "element") {
-            context.meta.runtime.nullCheck(element, this.elementExpr);
-            context.meta.runtime.implicitLoop(element, function (target) {
+            runtime.nullCheck(element, this.elementExpr);
+            runtime.implicitLoop(element, function (target) {
                 if (target.parentElement && (from == null || from.contains(target))) {
                     target.parentElement.removeChild(target);
                 }
             });
         } else if (this.variant === "css") {
-            context.meta.runtime.nullCheck(from, this.fromExpr);
-            var propNames = css.split(";").map(function (p) { return p.split(":")[0].trim(); }).filter(Boolean);
-            context.meta.runtime.implicitLoop(from, function (target) {
-                for (var i = 0; i < propNames.length; i++) {
-                    target.style.removeProperty(propNames[i]);
-                }
+            runtime.nullCheck(from, this.fromExpr);
+            var propNames = _cssPropertyNames(css);
+            runtime.implicitLoop(from, function (target) {
+                _removeCssProperties(target, propNames);
             });
         } else {
-            context.meta.runtime.nullCheck(from, this.fromExpr);
+            runtime.nullCheck(from, this.fromExpr);
             if (classRefs) {
-                context.meta.runtime.forEach(classRefs, function (classRef) {
-                    context.meta.runtime.implicitLoop(from, function (target) {
-                        target.classList.remove(classRef.className);
-                    });
+                runtime.forEach(classRefs, function (classRef) {
+                    if (cmd.when) {
+                        result = runtime.implicitLoopWhen(from, cmd.when, context,
+                            function (t) { t.classList.remove(classRef.className); },
+                            function (t) { t.classList.add(classRef.className); }
+                        );
+                    } else {
+                        runtime.implicitLoop(from, function (t) {
+                            t.classList.remove(classRef.className);
+                        });
+                    }
                 });
             } else {
-                const attributeRef = this.attributeRef;
-                context.meta.runtime.implicitLoop(from, function (target) {
-                    target.removeAttribute(attributeRef.name);
-                });
+                var attributeRef = this.attributeRef;
+                if (this.when) {
+                    result = runtime.implicitLoopWhen(from, this.when, context,
+                        function (t) { t.removeAttribute(attributeRef.name); },
+                        function (t) { t.setAttribute(attributeRef.name, attributeRef.value); }
+                    );
+                } else {
+                    runtime.implicitLoop(from, function (t) {
+                        t.removeAttribute(attributeRef.name);
+                    });
+                }
             }
         }
-        return context.meta.runtime.findNext(this, context);
+        if (result && result.then) {
+            return result.then(function () { return runtime.findNext(cmd, context); });
+        }
+        return runtime.findNext(this, context);
     }
 }
 
@@ -509,10 +546,11 @@ export class ToggleCommand extends VisibilityCommand {
 export class HideCommand extends VisibilityCommand {
     static keyword = "hide";
 
-    constructor(targetExpr, hideShowStrategy) {
+    constructor(targetExpr, when, hideShowStrategy) {
         super();
         this.target = targetExpr;
         this.targetExpr = targetExpr;
+        this.when = when;
         this.hideShowStrategy = hideShowStrategy;
         this.args = { target: targetExpr };
     }
@@ -529,17 +567,34 @@ export class HideCommand extends VisibilityCommand {
                 name = name.slice(1);
             }
         }
+
+        if (parser.matchToken("when")) {
+            var when = parser.requireElement("expression");
+        }
+
         var hideShowStrategy = VisibilityCommand.resolveHideShowStrategy(parser, name);
 
-        return new HideCommand(targetExpr, hideShowStrategy);
+        return new HideCommand(targetExpr, when, hideShowStrategy);
     }
 
     resolve(ctx, { target }) {
-        ctx.meta.runtime.nullCheck(target, this.targetExpr);
-        ctx.meta.runtime.implicitLoop(target, (elt) => {
-            this.hideShowStrategy("hide", elt, null, ctx.meta.runtime);
-        });
-        return ctx.meta.runtime.findNext(this, ctx);
+        var runtime = ctx.meta.runtime;
+        var cmd = this;
+        runtime.nullCheck(target, this.targetExpr);
+        if (this.when) {
+            var result = runtime.implicitLoopWhen(target, this.when, ctx,
+                function (elt) { cmd.hideShowStrategy("hide", elt, null, runtime); },
+                function (elt) { cmd.hideShowStrategy("show", elt, null, runtime); }
+            );
+            if (result && result.then) {
+                return result.then(function () { return runtime.findNext(cmd, ctx); });
+            }
+        } else {
+            runtime.implicitLoop(target, function (elt) {
+                cmd.hideShowStrategy("hide", elt, null, runtime);
+            });
+        }
+        return runtime.findNext(this, ctx);
     }
 }
 
@@ -595,22 +650,23 @@ export class ShowCommand extends VisibilityCommand {
     }
 
     resolve(ctx, { target }) {
-        ctx.meta.runtime.nullCheck(target, this.targetExpr);
-        ctx.meta.runtime.implicitLoop(target, (elt) => {
-            if (this.when) {
-                ctx.result = elt;
-                let whenResult = ctx.meta.runtime.evaluateNoPromise(this.when, ctx);
-                if (whenResult) {
-                    this.hideShowStrategy("show", elt, this.arg, ctx.meta.runtime);
-                } else {
-                    this.hideShowStrategy("hide", elt, null, ctx.meta.runtime);
-                }
-                ctx.result = null;
-            } else {
-                this.hideShowStrategy("show", elt, this.arg, ctx.meta.runtime);
+        var runtime = ctx.meta.runtime;
+        var cmd = this;
+        runtime.nullCheck(target, this.targetExpr);
+        if (this.when) {
+            var result = runtime.implicitLoopWhen(target, this.when, ctx,
+                function (elt) { cmd.hideShowStrategy("show", elt, cmd.arg, runtime); },
+                function (elt) { cmd.hideShowStrategy("hide", elt, null, runtime); }
+            );
+            if (result && result.then) {
+                return result.then(function () { return runtime.findNext(cmd, ctx); });
             }
-        });
-        return ctx.meta.runtime.findNext(this, ctx);
+        } else {
+            runtime.implicitLoop(target, function (elt) {
+                cmd.hideShowStrategy("show", elt, cmd.arg, runtime);
+            });
+        }
+        return runtime.findNext(this, ctx);
     }
 }
 

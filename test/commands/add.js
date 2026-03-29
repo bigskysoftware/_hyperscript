@@ -109,7 +109,7 @@ test.describe("the add command", () => {
 		await expect(find('#d3')).toHaveAttribute('rey');
 	});
 
-	test("rejects async expressions in when clause", async ({html, find, evaluate}) => {
+	test("supports async expressions in when clause", async ({html, find, evaluate}) => {
 		await evaluate(() => {
 			window.asyncCheck = function() {
 				return new Promise(r => setTimeout(() => r(true), 10));
@@ -119,14 +119,8 @@ test.describe("the add command", () => {
 			"<div id='trigger' _='on click add .foo to #d2 when asyncCheck()'></div>" +
 			"<div id='d2'></div>"
 		);
-		var errored = await evaluate(() => {
-			var caught = false;
-			var el = document.querySelector('#work-area #trigger');
-			el.addEventListener('exception', () => { caught = true; });
-			el.dispatchEvent(new Event('click'));
-			return caught;
-		});
-		expect(errored).toBe(true);
+		await find('#trigger').dispatchEvent('click');
+		await expect(find('#d2')).toHaveClass(/foo/);
 	});
 
 	test("can add to an HTMLCollection", async ({html, find}) => {
