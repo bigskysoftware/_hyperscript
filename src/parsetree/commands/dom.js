@@ -1121,3 +1121,70 @@ export class SelectCommand extends Command {
         return ctx.meta.runtime.findNext(this, ctx);
     }
 }
+
+/**
+ * AskCommand - Prompt the user for input
+ *
+ * Parses: ask <expr>
+ */
+export class AskCommand extends Command {
+    static keyword = "ask";
+
+    constructor(message) {
+        super();
+        this.args = { message };
+    }
+
+    static parse(parser) {
+        if (!parser.matchToken("ask")) return;
+        var message = parser.requireElement("expression");
+        return new AskCommand(message);
+    }
+
+    resolve(ctx, { message }) {
+        ctx.result = prompt(String(message));
+        return ctx.meta.runtime.findNext(this, ctx);
+    }
+}
+
+/**
+ * AnswerCommand - Show an alert or confirm dialog
+ *
+ * Parses: answer <expr> [with <expr> or <expr>]
+ */
+export class AnswerCommand extends Command {
+    static keyword = "answer";
+
+    constructor(message, choiceA, choiceB) {
+        super();
+        this.choiceA = choiceA;
+        this.choiceB = choiceB;
+        this.args = { message, choiceA, choiceB };
+    }
+
+    static parse(parser) {
+        if (!parser.matchToken("answer")) return;
+        var message = parser.requireElement("expression");
+        var choiceA = null, choiceB = null;
+        if (parser.matchToken("with")) {
+            parser.pushFollow("or");
+            try {
+                choiceA = parser.requireElement("expression");
+            } finally {
+                parser.popFollow();
+            }
+            parser.requireToken("or");
+            choiceB = parser.requireElement("expression");
+        }
+        return new AnswerCommand(message, choiceA, choiceB);
+    }
+
+    resolve(ctx, { message, choiceA, choiceB }) {
+        if (choiceA) {
+            ctx.result = confirm(String(message)) ? choiceA : choiceB;
+        } else {
+            alert(String(message));
+        }
+        return ctx.meta.runtime.findNext(this, ctx);
+    }
+}
