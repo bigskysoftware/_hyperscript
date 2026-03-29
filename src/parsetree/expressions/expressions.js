@@ -1125,13 +1125,12 @@ export class WhereExpression extends Expression {
 
     static parse(parser, root) {
         if (!parser.matchToken("where")) return;
-        parser.pushFollow("sorted");
-        parser.pushFollow("mapped");
+        var follows = ["sorted", "mapped", "split", "joined"];
+        follows.forEach(f => parser.pushFollow(f));
         try {
             var condition = parser.requireElement("expression");
         } finally {
-            parser.popFollow();
-            parser.popFollow();
+            follows.forEach(() => parser.popFollow());
         }
         var where = new WhereExpression(root, condition);
         return parser.parseElement("indirectExpression", where);
@@ -1172,13 +1171,12 @@ export class SortedByExpression extends Expression {
     static parse(parser, root) {
         if (!parser.matchToken("sorted")) return;
         parser.requireToken("by");
-        parser.pushFollow("where");
-        parser.pushFollow("mapped");
+        var follows = ["where", "mapped", "split", "joined"];
+        follows.forEach(f => parser.pushFollow(f));
         try {
             var key = parser.requireElement("expression");
         } finally {
-            parser.popFollow();
-            parser.popFollow();
+            follows.forEach(() => parser.popFollow());
         }
         var descending = parser.matchToken("descending");
         var sorted = new SortedByExpression(root, key, !!descending);
@@ -1224,13 +1222,12 @@ export class MappedToExpression extends Expression {
     static parse(parser, root) {
         if (!parser.matchToken("mapped")) return;
         parser.requireToken("to");
-        parser.pushFollow("where");
-        parser.pushFollow("sorted");
+        var follows = ["where", "sorted", "split", "joined"];
+        follows.forEach(f => parser.pushFollow(f));
         try {
             var projection = parser.requireElement("expression");
         } finally {
-            parser.popFollow();
-            parser.popFollow();
+            follows.forEach(() => parser.popFollow());
         }
         var mapped = new MappedToExpression(root, projection);
         return parser.parseElement("indirectExpression", mapped);
@@ -1246,6 +1243,72 @@ export class MappedToExpression extends Expression {
         }
         context.result = saved;
         return result;
+    }
+}
+
+/**
+ * SplitByExpression - Split a string by a delimiter
+ *
+ * Parses: <expr> split by <expr>
+ */
+export class SplitByExpression extends Expression {
+    static grammarName = "splitByExpr";
+    static expressionType = "indirect";
+
+    constructor(root, delimiter) {
+        super();
+        this.args = { root, delimiter };
+    }
+
+    static parse(parser, root) {
+        if (!parser.matchToken("split")) return;
+        parser.requireToken("by");
+        var follows = ["where", "sorted", "mapped", "joined"];
+        follows.forEach(f => parser.pushFollow(f));
+        try {
+            var delimiter = parser.requireElement("expression");
+        } finally {
+            follows.forEach(() => parser.popFollow());
+        }
+        var split = new SplitByExpression(root, delimiter);
+        return parser.parseElement("indirectExpression", split);
+    }
+
+    resolve(context, { root, delimiter }) {
+        return String(root).split(delimiter);
+    }
+}
+
+/**
+ * JoinedByExpression - Join an array with a delimiter
+ *
+ * Parses: <expr> joined by <expr>
+ */
+export class JoinedByExpression extends Expression {
+    static grammarName = "joinedByExpr";
+    static expressionType = "indirect";
+
+    constructor(root, delimiter) {
+        super();
+        this.args = { root, delimiter };
+    }
+
+    static parse(parser, root) {
+        if (!parser.matchToken("joined")) return;
+        parser.requireToken("by");
+        var follows = ["where", "sorted", "mapped", "split"];
+        follows.forEach(f => parser.pushFollow(f));
+        try {
+            var delimiter = parser.requireElement("expression");
+        } finally {
+            follows.forEach(() => parser.popFollow());
+        }
+        var joined = new JoinedByExpression(root, delimiter);
+        return parser.parseElement("indirectExpression", joined);
+    }
+
+    resolve(context, { root, delimiter }) {
+        return Array.from(root).join(delimiter);
     }
 }
 
