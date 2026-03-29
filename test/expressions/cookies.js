@@ -66,4 +66,17 @@ test.describe("the cookies identifier", () => {
 		expect(result.names).toContain('foo')
 		expect(result.values).toContain('bar')
 	})
+
+	test("length is 0 when no cookies are set", async ({page}) => {
+		const result = await page.evaluate(() => {
+			// Clear all cookies first
+			for (var c of document.cookie.split("; ")) {
+				var name = c.split("=")[0]
+				if (name) document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT"
+			}
+			return _hyperscript("cookies.length")
+		})
+		expect(result).toBe(0)
+	})
+
 })

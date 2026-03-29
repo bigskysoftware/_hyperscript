@@ -2,9 +2,10 @@
 
 export class CookieJar {
     #parseCookies() {
+        if (!document.cookie) return [];
         return document.cookie.split("; ").map(entry => {
-            var parts = entry.split("=");
-            return { name: parts[0], value: decodeURIComponent(parts[1]) };
+            var eq = entry.indexOf("=");
+            return { name: entry.slice(0, eq), value: decodeURIComponent(entry.slice(eq + 1)) };
         });
     }
 
