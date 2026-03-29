@@ -830,7 +830,7 @@ export class ComparisonOperator extends Expression {
         } else if (container['includes']) {
             return container.includes(value);
         } else {
-            throw Error("The value of " + src.sourceFor() + " does not have a contains or includes method on it");
+            throw new Error("The value of " + src.sourceFor() + " does not have a contains or includes method on it");
         }
     }
 
@@ -840,7 +840,7 @@ export class ComparisonOperator extends Expression {
         } else if (target['matches']) {
             return target.matches(toMatch);
         } else {
-            throw Error("The value of " + src.sourceFor() + " does not have a match or matches method on it");
+            throw new Error("The value of " + src.sourceFor() + " does not have a match or matches method on it");
         }
     }
 
