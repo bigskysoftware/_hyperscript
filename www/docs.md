@@ -174,7 +174,7 @@ front end scripting needs.
 Below you will find an overview of the various features, commands and expressions in hyperscript, as well as links to
 more detailed treatments of each them.
 
-Some other hypserscript resources you may want to check out are:
+Some other hyperscript resources you may want to check out are:
 
  * The [cookbook](/cookbook) for existing hyperscripts you can start using and modifying for your own needs.
  * The [VanillaJS/jQuery/hyperscript comparison](/comparison), which shows the differences between vanillajs, jQuery
@@ -188,7 +188,7 @@ OK, let's get started with hyperscript!
 Hyperscript is a dependency-free JavaScript library that can be included in a web page without any build step:
 
   ~~~ html
-  <script src="https://unpkg.com/hyperscript.org@0.9.14"></script>
+  <script src="https://unpkg.com/hyperscript.org"></script>
   ~~~
 
 If you are using a build step:
@@ -953,7 +953,7 @@ numbers:
   ~~~ hyperscript
   set x to 1
   increment x
-  puts x -- prints 2 to the console
+  log x -- prints 2 to the console
   ~~~
 
 A nice thing about the `increment` and `decrement` commands is that they will automatically handle string to number
@@ -1018,9 +1018,10 @@ Out of the box hyperscript offers a number of useful conversions:
 * `Fragment` - converts a string into an HTML Fragment
 * `HTML` - converts NodeLists and arrays to an HTML string
 * `Int` - convert to integer
-* `JSON` - convert to a JSON String
+* `JSON` - parse a JSON string into an object
+* `JSONString` - convert to a JSON string
 * `Number` - convert to number
-* `Object` - convert from a JSON String
+* `Object` - convert from a JSON string (or shallow copy an object)
 * `String` - convert to String
 * `Values` - converts a Form (or other element) into a struct containing its input names/values
 * `Fixed<:N>` - convert to a fixed precision string representation of the number, with an optional precision of `N`
