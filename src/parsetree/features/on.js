@@ -165,8 +165,8 @@ export class OnFeature extends Feature {
                         let eventValue = ctx.event[arg.value];
                         if (eventValue !== undefined) {
                             ctx.locals[arg.value] = eventValue;
-                        } else if ('detail' in ctx.event) {
-                            ctx.locals[arg.value] = ctx.event['detail'][arg.value];
+                        } else if (ctx.event.detail != null) {
+                            ctx.locals[arg.value] = ctx.event.detail[arg.value];
                         }
                     }
 

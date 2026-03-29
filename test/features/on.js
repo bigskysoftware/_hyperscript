@@ -97,6 +97,16 @@ test.describe('the on feature', () => {
 		await expect(find('#d2')).toHaveClass(/fromBar/)
 	})
 
+	test('handles custom events with null detail', async ({html, find, evaluate}) => {
+		await html(
+			"<div id='d1' _='on myEvent(foo) if foo put foo into me else put \"no-detail\" into me'></div>"
+		)
+		await evaluate(() => {
+			document.querySelector('#work-area #d1').dispatchEvent(new CustomEvent("myEvent"))
+		})
+		await expect(find('#d1')).toHaveText('no-detail')
+	})
+
 	test('can pick event properties out by name', async ({html, find}) => {
 		await html(
 			"<div id='d1' _='on click send fromBar to #d2'></div>" +
