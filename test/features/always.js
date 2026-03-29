@@ -289,4 +289,25 @@ test.describe('the always feature', () => {
 		await evaluate(() => { delete window.$username })
 	})
 
+	test('reactive effects are stopped on cleanup', async ({html, find, run, evaluate}) => {
+		await run("set $count to 0")
+		await html(`<div id="d1" _="always put $count into me"></div>`)
+		await expect.poll(() => find('#d1').textContent()).toBe('0')
+
+		// Clean up the element (but keep it in DOM to detect if effect still fires)
+		await evaluate(() => {
+			var el = document.querySelector('#work-area #d1')
+			_hyperscript.internals.runtime.cleanup(el)
+			el.textContent = 'cleaned'
+		})
+
+		// Change the variable — the effect should NOT fire since we cleaned up
+		await run("set $count to 99")
+		await evaluate(() => new Promise(r => setTimeout(r, 50)))
+
+		// If effects were properly stopped, text stays 'cleaned'
+		await expect(find('#d1')).toHaveText('cleaned')
+		await evaluate(() => { delete window.$count })
+	})
+
 })

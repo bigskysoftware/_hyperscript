@@ -684,6 +684,9 @@ export class Runtime {
                 }
             }
 
+            // Stop reactive effects
+            reactivity.stopElementEffects(elt);
+
             // Recursively clean children
             if (elt.querySelectorAll) {
                 for (var child of elt.querySelectorAll('[data-hyperscript-powered]')) {

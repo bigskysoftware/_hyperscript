@@ -72,6 +72,9 @@ export class Reactivity {
         /** @type {Set<Effect>} Effects waiting to run in the next microtask */
         this._pendingEffects = new Set();
 
+        /** @type {WeakMap<Element, Set<Effect>>} Effects by owning element */
+        this._elementEffects = new WeakMap();
+
         /** @type {boolean} Whether a microtask is scheduled to run pending effects */
         this._isRunScheduled = false;
     }
@@ -447,6 +450,16 @@ export class Reactivity {
         // Subscribe to tracked dependencies
         this._subscribeEffect(effect);
 
+        // Track effect by element for cleanup
+        if (effect.element) {
+            var set = this._elementEffects.get(effect.element);
+            if (!set) {
+                set = new Set();
+                this._elementEffects.set(effect.element, set);
+            }
+            set.add(effect);
+        }
+
         // Initial sync: if value already exists, call handler immediately.
         // Both undefined and null are treated as "no value yet" to support
         // left-side-wins initialization in bind.
@@ -489,6 +502,16 @@ export class Reactivity {
             }
         }
         this._pendingEffects.delete(effect);
+    }
+
+    /** Stop all reactive effects owned by an element. */
+    stopElementEffects(element) {
+        var set = this._elementEffects.get(element);
+        if (!set) return;
+        for (var effect of set) {
+            this.stopEffect(effect);
+        }
+        this._elementEffects.delete(element);
     }
 }
 
