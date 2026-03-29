@@ -64,44 +64,28 @@ export class SettleCommand extends Command {
 
     resolve(context, { on }) {
         context.meta.runtime.nullCheck(on, this.onExpr);
-        var resolve = null;
+        var cmd = this;
+        var elements = (on instanceof Element) ? [on] : Array.from(on);
+        return Promise.all(elements.map(_settleOne)).then(function () {
+            return context.meta.runtime.findNext(cmd, context);
+        });
+    }
+}
+
+function _settleOne(elt) {
+    return new Promise(function (resolve) {
         var resolved = false;
         var transitionStarted = false;
-
-        var promise = new Promise((r) => {
-            resolve = r;
-        });
-
-        // listen for a transition begin
-        on.addEventListener(
-            "transitionstart",
-            () => {
-                transitionStarted = true;
-            },
-            { once: true }
-        );
-
-        // if no transition begins in 500ms, cancel
-        setTimeout(() => {
-            if (!transitionStarted && !resolved) {
-                resolved = true;
-                resolve(context.meta.runtime.findNext(this, context));
-            }
+        elt.addEventListener("transitionstart", function () {
+            transitionStarted = true;
+        }, { once: true });
+        setTimeout(function () {
+            if (!transitionStarted && !resolved) { resolved = true; resolve(); }
         }, 500);
-
-        // continue on a transition end
-        on.addEventListener(
-            "transitionend",
-            () => {
-                if (!resolved) {
-                    resolved = true;
-                    resolve(context.meta.runtime.findNext(this, context));
-                }
-            },
-            { once: true }
-        );
-        return promise;
-    }
+        elt.addEventListener("transitionend", function () {
+            if (!resolved) { resolved = true; resolve(); }
+        }, { once: true });
+    });
 }
 
 /**
