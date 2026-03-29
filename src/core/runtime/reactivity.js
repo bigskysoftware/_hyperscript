@@ -261,6 +261,9 @@ export class Reactivity {
         // Subscribe to new deps
         this._subscribeEffect(effect);
 
+        // Clean up observers/listeners for deps that were dropped
+        this._cleanupOrphanedDeps(oldDeps);
+
         // Compare and fire (Object.is semantics: NaN === NaN, +0 !== -0)
         if (!_sameValue(newValue, effect._lastExpressionValue)) {
             effect._lastExpressionValue = newValue;
@@ -419,6 +422,31 @@ export class Reactivity {
     }
 
     /**
+     * Clean up MutationObservers and property listeners for deps with no remaining effects.
+     * @param {Map<string, Dependency>} deps
+     */
+    _cleanupOrphanedDeps(deps) {
+        for (var [depKey, dep] of deps) {
+            if (dep.type === "attribute" && dep.element) {
+                var state = getObjectState(dep.element);
+                if (state.attributeObservers && state.attributeObservers[dep.name]) {
+                    var obs = state.attributeObservers[dep.name];
+                    if (obs.effects.size === 0) {
+                        obs.observer.disconnect();
+                        delete state.attributeObservers[dep.name];
+                    }
+                }
+            } else if (dep.type === "property" && dep.object) {
+                var state = getObjectState(dep.object);
+                if (state.propertyHandler && state.propertyHandler.effects.size === 0) {
+                    state.propertyHandler.remove();
+                    state.propertyHandler = null;
+                }
+            }
+        }
+    }
+
+    /**
      * Create a reactive effect with automatic dependency tracking.
      * @param {() => any} expression - The watched expression
      * @param {(value: any) => void} handler - Called when the value changes
@@ -482,25 +510,7 @@ export class Reactivity {
         if (effect.isStopped) return;
         effect.isStopped = true;
         this._unsubscribeEffect(effect);
-        // Clean up per-element listeners and observers if no effects remain
-        for (var [depKey, dep] of effect.dependencies) {
-            if (dep.type === "attribute" && dep.element) {
-                var state = getObjectState(dep.element);
-                if (state.attributeObservers && state.attributeObservers[dep.name]) {
-                    var obs = state.attributeObservers[dep.name];
-                    if (obs.effects.size === 0) {
-                        obs.observer.disconnect();
-                        delete state.attributeObservers[dep.name];
-                    }
-                }
-            } else if (dep.type === "property" && dep.object) {
-                var state = getObjectState(dep.object);
-                if (state.propertyHandler && state.propertyHandler.effects.size === 0) {
-                    state.propertyHandler.remove();
-                    state.propertyHandler = null;
-                }
-            }
-        }
+        this._cleanupOrphanedDeps(effect.dependencies);
         this._pendingEffects.delete(effect);
     }
 
