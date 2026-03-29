@@ -913,7 +913,8 @@ tbody td:first-child {
 
 .center { text-align: center; }
 .monospace { font-family: var(--mono-font); }
-.allcaps { text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.82em; }
+.allcaps { text-transform: uppercase; letter-spacing: 0.05em; }
+:not(h1, h2, h3, h4, h5, h6).allcaps { font-size: 0.82em; }
 .crowded { padding: 0.3em 0.6em; }
 .padding { padding: var(--gap); }
 .padding-block { padding-block: var(--gap); }

@@ -6,7 +6,9 @@
 | [break](/commands/break)           | Breaks out of the current loop                                                | `repeat 3 times break end`                                                              |
 | [call/get](/commands/call)         | Evaluates an expression (e.g. a Javascript Function)                          | `call alert('yep, you can call javascript!')` <br/><br/> `get prompt('Enter your name')` |
 | [continue](/commands/continue)     | Skips the remainder of a loop and continues at the top of the next iteration. | `repeat 3 times continue end`                                                           |
-| [decrement](/commands/decrement)   | Subtracts a value to a variable, property, or attribute                       | `decrement counter`                                                                     |
+| [decrement](/commands/decrement)   | Subtracts a value from a variable, property, or attribute                     | `decrement counter`                                                                     |
+| default                            | Sets a variable to a value if it is currently undefined                       | `default x to 0`                                                                       |
+| exit                               | Exits the current handler without returning a value                           | `if x is null exit`                                                                     |
 | [fetch](/commands/fetch)           | Send a fetch request                                                          | `fetch /demo then put it into my.innerHTML`                                             |
 | [go](/commands/go)                 | Navigate to a new page or within a page                                       | `go to the top of the body smoothly`                                                    |
 | [halt](/commands/halt)             | Halts the current event (stopping propagate, etc.)                            | `halt`                                                                                  |
