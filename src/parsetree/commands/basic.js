@@ -142,10 +142,9 @@ export class ReturnCommand extends Command {
 
     static parse(parser) {
         if (!parser.matchToken("return")) return;
-        if (parser.commandBoundary(parser.currentToken())) {
-            parser.raiseParseError("'return' commands must return a value.  If you do not wish to return a value, use 'exit' instead.");
-        } else {
-            var value = parser.requireElement("expression");
+        var value;
+        if (!parser.commandBoundary(parser.currentToken())) {
+            value = parser.requireElement("expression");
         }
         return new ReturnCommand(value);
     }

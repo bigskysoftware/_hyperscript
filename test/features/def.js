@@ -74,6 +74,12 @@ test.describe('the def feature', () => {
 		expect(result).toBeNull()
 	})
 
+	test('can return without a value', async ({html, evaluate}) => {
+		await html("<script type='text/hyperscript'>def foo()   return end</script>")
+		const result = await evaluate(() => foo())
+		expect(result).toBeNull()
+	})
+
 	test('can return a value asynchronously', async ({html, find}) => {
 		await html(
 			"<script type='text/hyperscript'>def foo()   wait 1ms  return \"foo\" end</script>" +
