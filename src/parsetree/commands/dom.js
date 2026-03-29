@@ -11,6 +11,12 @@ import { config } from '../../core/config.js';
  */
 const HIDE_SHOW_STRATEGIES = {
     display: function (op, element, arg, runtime) {
+        if (!arg && element instanceof HTMLDialogElement) {
+            if (op === "hide") element.close();
+            else if (op === "show") { if (!element.open) element.showModal(); }
+            else if (op === "toggle") { if (element.open) element.close(); else element.showModal(); }
+            return;
+        }
         if (arg) {
             element.style.display = arg;
         } else if (op === "toggle") {
@@ -930,6 +936,102 @@ export class EmptyCommand extends Command {
         ctx.meta.runtime.implicitLoop(elt, function (e) {
             while (e.firstChild) e.removeChild(e.firstChild);
         });
+        return ctx.meta.runtime.findNext(this, ctx);
+    }
+}
+
+function _openElement(elt) {
+    if (elt instanceof HTMLDialogElement) {
+        if (!elt.open) elt.showModal();
+    } else if (elt instanceof HTMLDetailsElement) {
+        elt.open = true;
+    } else if (elt.hasAttribute && elt.hasAttribute("popover")) {
+        elt.showPopover();
+    } else if (typeof elt.open === "function") {
+        elt.open();
+    }
+}
+
+function _closeElement(elt) {
+    if (elt instanceof HTMLDialogElement) {
+        elt.close();
+    } else if (elt instanceof HTMLDetailsElement) {
+        elt.open = false;
+    } else if (elt.hasAttribute && elt.hasAttribute("popover")) {
+        elt.hidePopover();
+    } else if (typeof elt.close === "function") {
+        elt.close();
+    }
+}
+
+/**
+ * OpenCommand - Open dialogs, details, popovers, or enter fullscreen
+ *
+ * Parses: open [fullscreen] [<expr>]
+ */
+export class OpenCommand extends Command {
+    static keyword = "open";
+
+    constructor(target, fullscreen) {
+        super();
+        this.fullscreen = fullscreen;
+        this.args = { target };
+    }
+
+    static parse(parser) {
+        if (!parser.matchToken("open")) return;
+        var fullscreen = parser.matchToken("fullscreen");
+        var target = null;
+        if (!parser.commandBoundary(parser.currentToken())) {
+            target = parser.requireElement("expression");
+        }
+        return new OpenCommand(target, !!fullscreen);
+    }
+
+    resolve(ctx, { target }) {
+        var elt = target || ctx.me;
+        if (this.fullscreen) {
+            return elt.requestFullscreen().then(() => {
+                return ctx.meta.runtime.findNext(this, ctx);
+            });
+        }
+        ctx.meta.runtime.implicitLoop(elt, _openElement);
+        return ctx.meta.runtime.findNext(this, ctx);
+    }
+}
+
+/**
+ * CloseCommand - Close dialogs, details, popovers, or exit fullscreen
+ *
+ * Parses: close [fullscreen] [<expr>]
+ */
+export class CloseCommand extends Command {
+    static keyword = "close";
+
+    constructor(target, fullscreen) {
+        super();
+        this.fullscreen = fullscreen;
+        this.args = { target };
+    }
+
+    static parse(parser) {
+        if (!parser.matchToken("close")) return;
+        var fullscreen = parser.matchToken("fullscreen");
+        var target = null;
+        if (!parser.commandBoundary(parser.currentToken())) {
+            target = parser.requireElement("expression");
+        }
+        return new CloseCommand(target, !!fullscreen);
+    }
+
+    resolve(ctx, { target }) {
+        if (this.fullscreen) {
+            return document.exitFullscreen().then(() => {
+                return ctx.meta.runtime.findNext(this, ctx);
+            });
+        }
+        var elt = target || ctx.me;
+        ctx.meta.runtime.implicitLoop(elt, _closeElement);
         return ctx.meta.runtime.findNext(this, ctx);
     }
 }
