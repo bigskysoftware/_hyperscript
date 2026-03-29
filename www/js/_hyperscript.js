@@ -8089,6 +8089,12 @@
       if (parser.matchToken("and") || parser.matchToken("with") || parser.matchToken("to")) {
         right = parser.requireElement("expression");
       }
+      if (!_isAssignable(left)) {
+        parser.raiseParseError("bind requires a writable expression, but '" + left.type + "' cannot be assigned to");
+      }
+      if (right && !_isAssignable(right)) {
+        parser.raiseParseError("bind requires a writable expression, but '" + right.type + "' cannot be assigned to");
+      }
       return new _BindFeature(left, right);
     }
     constructor(left, right) {
@@ -8110,6 +8116,11 @@
   };
   __publicField(_BindFeature, "keyword", "bind");
   var BindFeature = _BindFeature;
+  function _isAssignable(expr) {
+    if (expr.type === "classRef") return true;
+    if (expr.type === "attributeRef") return true;
+    return typeof expr.set === "function";
+  }
   function _twoWayBind(left, right, target, feature, runtime2) {
     function read(expr) {
       if (expr.type === "classRef") {
