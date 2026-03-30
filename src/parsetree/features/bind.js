@@ -1,17 +1,13 @@
 /**
- * Bind Feature - Two-way reactive binding (sugar over `when ... changes`)
+ * Bind Feature - Reactive binding (sugar over `when ... changes`)
  *
- *   bind <variable> and <target>
- *   bind <variable> with <target>
- *     Two-way. Both sides stay in sync. Equivalent to:
- *       when <left> changes set <right> to it end
- *       when <right> changes set <left> to it
+ *   bind <left> and <right>
+ *   bind <left> with <right>
+ *   bind <left> to <right>
+ *     Two-way. Both sides stay in sync.
  *
- *   bind <variable>
- *     Shorthand on form elements. Auto-detects the bound property:
- *       input[type=checkbox/radio]    -> checked
- *       input[type=number/range]      -> valueAsNumber
- *       input, textarea, select       -> value
+ * If either side evaluates to a DOM element, bind auto-detects
+ * the appropriate property (value, checked, valueAsNumber, etc.).
  */
 
 import { Feature } from '../base.js';
@@ -40,17 +36,11 @@ export class BindFeature extends Feature {
             parser.popFollow();
         }
 
-        var right = null;
-        if (parser.matchToken("and") || parser.matchToken("with") || parser.matchToken("to")) {
-            right = parser.requireElement("expression");
+        if (!parser.matchToken("and") && !parser.matchToken("with") && !parser.matchToken("to")) {
+            parser.raiseParseError("bind requires a connector: 'and', 'with', or 'to'");
         }
 
-        if (!_isAssignable(left)) {
-            parser.raiseParseError("bind requires a writable expression, but '" + left.type + "' cannot be assigned to");
-        }
-        if (right && !_isAssignable(right)) {
-            parser.raiseParseError("bind requires a writable expression, but '" + right.type + "' cannot be assigned to");
-        }
+        var right = parser.requireElement("expression");
 
         return new BindFeature(left, right);
     }
@@ -59,16 +49,16 @@ export class BindFeature extends Feature {
         super();
         this.left = left;
         this.right = right;
-        this.displayName = right ? "bind ... and ..." : "bind (shorthand)";
+        this.displayName = "bind";
     }
 
     install(target, source, args, runtime) {
         var feature = this;
         queueMicrotask(function () {
-            if (feature.right) {
-                _twoWayBind(feature.left, feature.right, target, feature, runtime);
-            } else {
-                _shorthandBind(feature.left, target, feature, runtime);
+            try {
+                _bind(feature.left, feature.right, target, feature, runtime);
+            } catch (e) {
+                console.error(e.message || e);
             }
         });
     }
@@ -89,158 +79,177 @@ function _isAssignable(expr) {
 }
 
 /**
- * Two-way bind between two parsed expressions. Left side wins on init:
- * Effect 1 (left→right) runs first, establishing the initial state.
+ * Unified bind: resolve each side, create two effects. Left wins on init.
  */
-function _twoWayBind(left, right, target, feature, runtime) {
-    // Read the current value of a bind side. Class refs are read as
-    // booleans (does the element have this class?) rather than evaluated
-    // as expressions (which would return an ElementCollection).
-    // This mirrors how `add .dark` treats .dark as a class name, not
-    // as a query.
-    function read(expr) {
-        if (expr.type === "classRef") {
-            runtime.resolveAttribute(target, "class");
-            return target.classList.contains(expr.className);
-        }
-        return expr.evaluate(runtime.makeContext(target, feature, target, null));
+function _bind(left, right, target, feature, runtime) {
+    var ctx = runtime.makeContext(target, feature, target, null);
+
+    // Resolve each side: evaluate the expression, check if it's an element
+    var leftSide = _resolveSide(left, target, feature, runtime, ctx);
+    var rightSide = _resolveSide(right, target, feature, runtime, ctx);
+
+    // Validate assignability
+    if (!leftSide.element && !_isAssignable(left)) {
+        throw new Error("bind requires a writable expression on the left side, but '" + left.type + "' cannot be assigned to");
+    }
+    if (!rightSide.element && !_isAssignable(right)) {
+        throw new Error("bind requires a writable expression on the right side, but '" + right.type + "' cannot be assigned to");
     }
 
-    // Effect 1: left changes -> set right
+    // Effect 1: left -> right
     reactivity.createEffect(
-        function () { return read(left); },
-        function (newValue) {
-            var ctx = runtime.makeContext(target, feature, target, null);
-            _assignTo(runtime, right, ctx, newValue);
-        },
+        function () { return leftSide.read(); },
+        function (newValue) { rightSide.write(newValue); },
         { element: target }
     );
-    // Effect 2: right changes -> set left
+
+    // Effect 2: right -> left
     reactivity.createEffect(
-        function () { return read(right); },
-        function (newValue) {
-            var ctx = runtime.makeContext(target, feature, target, null);
-            _assignTo(runtime, left, ctx, newValue);
-        },
+        function () { return rightSide.read(); },
+        function (newValue) { leftSide.write(newValue); },
         { element: target }
     );
+
+    // form.reset() handling: if either side is a form element, listen for reset
+    _setupFormReset(leftSide, rightSide, target, runtime);
 }
 
 /**
- * Shorthand bind: auto-detect property from element type,
- * read/write it directly without a synthetic expression object.
+ * Evaluate an expression and create the appropriate side.
+ * If the expression resolves to a DOM element, create an element side.
+ * Otherwise, create an expression side.
  */
-function _shorthandBind(left, target, feature, runtime) {
-    var propName = _detectProperty(target);
+function _resolveSide(expr, target, feature, runtime, ctx) {
+    var value = expr.evaluate(ctx);
+    if (value instanceof Element) {
+        return _createElementSide(value, runtime);
+    }
+    return _createExpressionSide(expr, target, feature, runtime);
+}
 
-    // Radio buttons work fundamentally differently from other inputs.
-    // The variable holds the value of the selected radio in the group,
-    // not a per-element property. See _radioBind for details.
-    if (propName === "radio") {
-        return _radioBind(left, target, feature, runtime);
+/** Property lookup: INPUT:type -> property name, or TAG -> property name */
+var _bindProperty = {
+    "INPUT:checkbox": "checked",
+    "INPUT:number":   "valueAsNumber",
+    "INPUT:range":    "valueAsNumber",
+    "INPUT":          "value",
+    "TEXTAREA":       "value",
+    "SELECT":         "value",
+};
+
+/**
+ * Create a read/write side for a DOM element, auto-detecting the
+ * appropriate property based on element type.
+ */
+function _createElementSide(element, runtime) {
+    var tag = element.tagName;
+    var type = tag === "INPUT" ? (element.getAttribute("type") || "text") : null;
+
+    // Radio buttons have unique semantics: the variable holds the group's
+    // selected value, not a per-element property.
+    if (tag === "INPUT" && type === "radio") {
+        var radioValue = element.value;
+        return {
+            element: element,
+            read: function () {
+                var checked = runtime.resolveProperty(element, "checked");
+                return checked ? radioValue : undefined;
+            },
+            write: function (value) {
+                element.checked = (value === radioValue);
+            }
+        };
     }
 
-    // Effect 1: variable changes -> write property to element
-    reactivity.createEffect(
-        function () {
-            return left.evaluate(runtime.makeContext(target, feature, target, null));
-        },
-        function (newValue) {
-            target[propName] = newValue;
-        },
-        { element: target }
-    );
+    // Look up property by INPUT:type, then by TAG
+    var prop = _bindProperty[tag + ":" + type] || _bindProperty[tag];
 
-    var isNumeric = propName === "valueAsNumber";
+    // Contenteditable elements
+    if (!prop && element.hasAttribute("contenteditable") && element.getAttribute("contenteditable") !== "false") {
+        prop = "textContent";
+    }
 
-    // Effect 2: element property changes -> write to variable
-    reactivity.createEffect(
-        function () {
-            var val = runtime.resolveProperty(target, propName);
+    // Custom elements with a value property
+    if (!prop && tag.includes("-") && "value" in element) {
+        prop = "value";
+    }
+
+    if (!prop) {
+        throw new Error(
+            "bind cannot auto-detect a property for <" + tag.toLowerCase() + ">. " +
+            "Use an explicit property (e.g. 'bind $var to #el's value')."
+        );
+    }
+
+    var isNumeric = prop === "valueAsNumber";
+    return {
+        element: element,
+        read: function () {
+            var val = runtime.resolveProperty(element, prop);
             return (isNumeric && val !== val) ? null : val;
         },
-        function (newValue) {
-            var ctx = runtime.makeContext(target, feature, target, null);
-            _assignTo(runtime, left, ctx, newValue);
-        },
-        { element: target }
-    );
-
-    // form.reset() changes input values without firing input/change events.
-    // Listen for the reset event and re-sync after the browser resets values.
-    var form = target.closest("form");
-    if (form) {
-        var resetHandler = function () {
-            setTimeout(function () {
-                if (!target.isConnected) return;
-                var val = target[propName];
-                if (isNumeric && val !== val) val = null;
-                var ctx = runtime.makeContext(target, feature, target, null);
-                _assignTo(runtime, left, ctx, val);
-            }, 0);
-        };
-        form.addEventListener("reset", resetHandler);
-        _registerListener(runtime, target, form, "reset", resetHandler);
-    }
+        write: function (value) { element[prop] = value; }
+    };
 }
 
 /**
- * Radio button bind. Unlike normal bind which syncs a variable with a
- * single element's property, radio bind syncs a variable with a GROUP
- * of radio buttons that share the same name attribute.
- *
- * The variable holds the value of the selected radio (e.g. "red").
- * - User clicks a radio: variable is set to that radio's value attribute
- * - Variable changes: the radio whose value matches is checked, others unchecked
- *
- * Each radio in the group has its own bind. They all share the same variable.
+ * Create a read/write side for a parsed expression (variable, attribute, class, etc).
  */
-function _radioBind(left, target, feature, runtime) {
-    var radioValue = target.value;
-    var groupName = target.getAttribute("name");
+function _createExpressionSide(expr, target, feature, runtime) {
+    if (expr.type === "classRef") {
+        return {
+            read: function () {
+                runtime.resolveAttribute(target, "class");
+                return target.classList.contains(expr.className);
+            },
+            write: function (value) {
+                if (value) {
+                    target.classList.add(expr.className);
+                } else {
+                    target.classList.remove(expr.className);
+                }
+            }
+        };
+    }
 
-    // Effect 1: variable changes -> check/uncheck this radio
-    reactivity.createEffect(
-        function () {
-            return left.evaluate(runtime.makeContext(target, feature, target, null));
+    return {
+        read: function () {
+            return expr.evaluate(runtime.makeContext(target, feature, target, null));
         },
-        function (newValue) {
-            target.checked = (newValue === radioValue);
-        },
-        { element: target }
-    );
-
-    // Effect 2: this radio is checked -> set variable to this radio's value
-    // Only fires when this specific radio is clicked (change event).
-    var changeHandler = function () {
-        if (target.checked) {
+        write: function (value) {
             var ctx = runtime.makeContext(target, feature, target, null);
-            _assignTo(runtime, left, ctx, radioValue);
+            _assignTo(runtime, expr, ctx, value);
         }
     };
-    target.addEventListener("change", changeHandler);
-    _registerListener(runtime, target, target, "change", changeHandler);
 }
 
 /**
- * Detect the default property for shorthand bind based on element type.
- * @param {Element} element
- * @returns {string} Property name ("value", "checked", "valueAsNumber", or "radio")
+ * If either side wraps a form element, listen for the form's reset event
+ * and re-sync the binding afterward.
  */
-function _detectProperty(element) {
-    var tag = element.tagName;
-    if (tag === "INPUT") {
-        var type = element.getAttribute("type") || "text";
-        if (type === "radio") return "radio";
-        if (type === "checkbox") return "checked";
-        if (type === "number" || type === "range") return "valueAsNumber";
-        return "value";
-    }
-    if (tag === "TEXTAREA" || tag === "SELECT") return "value";
-    throw new Error(
-        "bind shorthand is not supported on <" + tag.toLowerCase() + "> elements. " +
-        "Use 'bind $var and my value' explicitly."
-    );
+function _setupFormReset(leftSide, rightSide, target, runtime) {
+    _addResetListener(leftSide, rightSide, target, runtime);
+    _addResetListener(rightSide, leftSide, target, runtime);
+}
+
+/**
+ * If source side has an element inside a form, listen for reset and
+ * re-sync source -> dest.
+ */
+function _addResetListener(source, dest, target, runtime) {
+    if (!source.element) return;
+    var form = source.element.closest("form");
+    if (!form) return;
+
+    var resetHandler = function () {
+        setTimeout(function () {
+            if (!target.isConnected) return;
+            var val = source.read();
+            dest.write(val);
+        }, 0);
+    };
+    form.addEventListener("reset", resetHandler);
+    _registerListener(runtime, target, form, "reset", resetHandler);
 }
 
 /** Set an attribute, handling booleans via presence/absence (or "true"/"false" for aria-*) */

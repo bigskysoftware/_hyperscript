@@ -55,7 +55,7 @@ test.describe('the bind feature', () => {
 	test('"with" is a synonym for "and"', async ({html, find, run, evaluate}) => {
 		await html(
 			`<input type="text" id="city-input" value="Paris" />` +
-			`<span _="bind $city with #city-input.value end
+			`<span _="bind $city to #city-input.value end
 			          when $city changes put it into me"></span>`
 		)
 		await expect(find('span')).toHaveText('Paris')
@@ -66,13 +66,13 @@ test.describe('the bind feature', () => {
 	})
 
 	// ================================================================
-	// Shorthand: bind $var
+	// Element auto-detect via 'to me'
 	// ================================================================
 
 	test('shorthand on text input binds to value', async ({html, find, run, evaluate}) => {
 		await html(
 			`<input type="text" value="hello"
-			        _="bind $greeting end
+			        _="bind $greeting to me end
 			           when $greeting changes put it into next <span/>"></input>` +
 			`<span></span>`
 		)
@@ -89,7 +89,7 @@ test.describe('the bind feature', () => {
 	test('shorthand on checkbox binds to checked', async ({html, find, run, evaluate}) => {
 		await run("set $isDarkMode to false")
 		await html(
-			`<input type="checkbox" _="bind $isDarkMode" />` +
+			`<input type="checkbox" _="bind $isDarkMode to me" />` +
 			`<span _="when $isDarkMode changes put it into me"></span>`
 		)
 		await expect.poll(() => find('span').textContent()).toBe('false')
@@ -104,7 +104,7 @@ test.describe('the bind feature', () => {
 
 	test('shorthand on textarea binds to value', async ({html, find, run, evaluate}) => {
 		await html(
-			`<textarea _="bind $bio">Hello world</textarea>` +
+			`<textarea _="bind $bio to me">Hello world</textarea>` +
 			`<span _="when $bio changes put it into me"></span>`
 		)
 		await expect.poll(() => find('span').textContent()).toBe('Hello world')
@@ -116,7 +116,7 @@ test.describe('the bind feature', () => {
 
 	test('shorthand on select binds to value', async ({html, find, run, evaluate}) => {
 		await html(
-			`<select _="bind $country">
+			`<select _="bind $country to me">
 			   <option value="us">United States</option>
 			   <option value="uk">United Kingdom</option>
 			   <option value="fr">France</option>
@@ -130,18 +130,18 @@ test.describe('the bind feature', () => {
 		await evaluate(() => { delete window.$country })
 	})
 
-	test('shorthand on unsupported element produces an error', async ({html, find, evaluate}) => {
+	test('unsupported element: bind to plain div errors', async ({html, find, evaluate}) => {
 		const error = await evaluate(() => {
 			return new Promise(resolve => {
 				var origError = console.error
 				console.error = function(msg) {
-					if (typeof msg === 'string' && msg.includes('bind shorthand')) {
+					if (typeof msg === 'string' && msg.includes('bind cannot auto-detect')) {
 						resolve(msg)
 					}
 					origError.apply(console, arguments)
 				}
 				var wa = document.getElementById('work-area')
-				wa.innerHTML = '<div _="bind $nope"></div>'
+				wa.innerHTML = '<div _="bind $nope to me"></div>'
 				_hyperscript.processNode(wa)
 				setTimeout(() => { console.error = origError; resolve(null) }, 500)
 			})
@@ -156,7 +156,7 @@ test.describe('the bind feature', () => {
 	test('shorthand on type=number preserves number type', async ({html, find, run, evaluate}) => {
 		await run("set $price to 42")
 		await html(
-			`<input type="number" _="bind $price" />` +
+			`<input type="number" _="bind $price to me" />` +
 			`<span _="when $price changes put it into me"></span>`
 		)
 		await new Promise(r => setTimeout(r, 200))
@@ -213,7 +213,7 @@ test.describe('the bind feature', () => {
 	// ================================================================
 
 	test('same value does not re-set input (prevents cursor jump)', async ({html, find, evaluate}) => {
-		await html(`<input type="text" value="hello" _="bind $message" />`)
+		await html(`<input type="text" value="hello" _="bind $message to me" />`)
 		await new Promise(r => setTimeout(r, 100))
 
 		const setterWasCalled = await evaluate(() => {
@@ -236,7 +236,7 @@ test.describe('the bind feature', () => {
 
 	test('external JS property write does not sync (known limitation)', async ({html, find, run, evaluate}) => {
 		await html(
-			`<input type="text" value="original" _="bind $searchTerm" />` +
+			`<input type="text" value="original" _="bind $searchTerm to me" />` +
 			`<span _="when $searchTerm changes put it into me"></span>`
 		)
 		await expect.poll(() => find('span').textContent()).toBe('original')
@@ -252,7 +252,7 @@ test.describe('the bind feature', () => {
 	test('form.reset() syncs variable back to default value', async ({html, find, run, evaluate}) => {
 		await html(
 			`<form id="test-form">` +
-			`  <input type="text" value="default" _="bind $formField" />` +
+			`  <input type="text" value="default" _="bind $formField to me" />` +
 			`</form>` +
 			`<span _="when $formField changes put it into me"></span>`
 		)
@@ -274,9 +274,9 @@ test.describe('the bind feature', () => {
 	test('clicking a radio sets the variable to its value', async ({html, find, run, evaluate}) => {
 		await run("set $color to 'red'")
 		await html(
-			`<input type="radio" name="color" value="red" _="bind $color" />` +
-			`<input type="radio" name="color" value="blue" _="bind $color" />` +
-			`<input type="radio" name="color" value="green" _="bind $color" />` +
+			`<input type="radio" name="color" value="red" _="bind $color to me" />` +
+			`<input type="radio" name="color" value="blue" _="bind $color to me" />` +
+			`<input type="radio" name="color" value="green" _="bind $color to me" />` +
 			`<span _="when $color changes put it into me"></span>`
 		)
 		await expect.poll(() => find('span').textContent()).toBe('red')
@@ -292,9 +292,9 @@ test.describe('the bind feature', () => {
 	test('setting variable programmatically checks the matching radio', async ({html, find, run, evaluate}) => {
 		await run("set $size to 'small'")
 		await html(
-			`<input type="radio" name="size" value="small" _="bind $size" />` +
-			`<input type="radio" name="size" value="medium" _="bind $size" />` +
-			`<input type="radio" name="size" value="large" _="bind $size" />`
+			`<input type="radio" name="size" value="small" _="bind $size to me" />` +
+			`<input type="radio" name="size" value="medium" _="bind $size to me" />` +
+			`<input type="radio" name="size" value="large" _="bind $size to me" />`
 		)
 		await new Promise(r => setTimeout(r, 100))
 		expect(await evaluate(() => document.querySelector('input[value="small"]').checked)).toBe(true)
@@ -312,9 +312,9 @@ test.describe('the bind feature', () => {
 	test('initial value checks the correct radio on load', async ({html, find, run, evaluate}) => {
 		await run("set $fruit to 'banana'")
 		await html(
-			`<input type="radio" name="fruit" value="apple" _="bind $fruit" />` +
-			`<input type="radio" name="fruit" value="banana" _="bind $fruit" />` +
-			`<input type="radio" name="fruit" value="cherry" _="bind $fruit" />`
+			`<input type="radio" name="fruit" value="apple" _="bind $fruit to me" />` +
+			`<input type="radio" name="fruit" value="banana" _="bind $fruit to me" />` +
+			`<input type="radio" name="fruit" value="cherry" _="bind $fruit to me" />`
 		)
 		await new Promise(r => setTimeout(r, 100))
 		expect(await evaluate(() => document.querySelector('input[value="apple"]').checked)).toBe(false)
@@ -501,14 +501,123 @@ test.describe('the bind feature', () => {
 	})
 
 	// ================================================================
+	// Element auto-detection
+	// ================================================================
+
+	test('bind variable to element by id auto-detects value', async ({html, find, run, evaluate}) => {
+		await html(
+			`<input type="text" id="name-field" value="" />` +
+			`<div _="bind $name to #name-field"></div>`
+		)
+		await run("set $name to 'Alice'")
+		await expect.poll(() => evaluate(() => document.getElementById('name-field').value)).toBe('Alice')
+
+		await evaluate(() => {
+			var input = document.getElementById('name-field')
+			input.value = 'Bob'
+			input.dispatchEvent(new Event('input', { bubbles: true }))
+		})
+		await expect.poll(() => evaluate(() => window.$name)).toBe('Bob')
+		await evaluate(() => { delete window.$name })
+	})
+
+	test('bind variable to checkbox by id auto-detects checked', async ({html, find, run, evaluate}) => {
+		await run("set $agreed to false")
+		await html(
+			`<input type="checkbox" id="agree-cb" />` +
+			`<div _="bind $agreed to #agree-cb"></div>`
+		)
+		await new Promise(r => setTimeout(r, 100))
+		expect(await evaluate(() => document.getElementById('agree-cb').checked)).toBe(false)
+
+		await run("set $agreed to true")
+		await expect.poll(() => evaluate(() => document.getElementById('agree-cb').checked)).toBe(true)
+		await evaluate(() => { delete window.$agreed })
+	})
+
+	test('bind variable to number input by id auto-detects valueAsNumber', async ({html, find, run, evaluate}) => {
+		await run("set $qty to 5")
+		await html(
+			`<input type="number" id="qty-input" />` +
+			`<div _="bind $qty to #qty-input"></div>`
+		)
+		await expect.poll(() => evaluate(() => document.getElementById('qty-input').valueAsNumber)).toBe(5)
+		expect(await evaluate(() => typeof window.$qty)).toBe('number')
+		await evaluate(() => { delete window.$qty })
+	})
+
+	test('bind element to element: both sides auto-detect', async ({html, find, evaluate}) => {
+		await html(
+			`<input type="range" id="range-slider" value="50" />` +
+			`<input type="number" _="bind me to #range-slider" />`
+		)
+		await new Promise(r => setTimeout(r, 100))
+		expect(await evaluate(() => document.querySelector('#work-area input[type=number]').valueAsNumber)).toBe(50)
+
+		await evaluate(() => {
+			var slider = document.getElementById('range-slider')
+			slider.value = '75'
+			slider.dispatchEvent(new Event('input', { bubbles: true }))
+		})
+		await expect.poll(() =>
+			evaluate(() => document.querySelector('#work-area input[type=number]').valueAsNumber)
+		).toBe(75)
+	})
+
+	test('element on left wins on init: prepopulated input pushes into variable', async ({html, find, run, evaluate}) => {
+		await html(`<input type="text" value="Bob" _="bind me to $name" />`)
+		await new Promise(r => setTimeout(r, 100))
+		expect(await evaluate(() => window.$name)).toBe('Bob')
+		expect(await evaluate(() => document.querySelector('#work-area input').value)).toBe('Bob')
+		await evaluate(() => { delete window.$name })
+	})
+
+	// ================================================================
+	// Contenteditable and custom elements
+	// ================================================================
+
+	test('bind to contenteditable element auto-detects textContent', async ({html, find, run, evaluate}) => {
+		await html(`<div contenteditable="true" _="bind $text to me">initial</div>`)
+		await new Promise(r => setTimeout(r, 100))
+		expect(await evaluate(() => window.$text)).toBe('initial')
+
+		await run("set $text to 'updated'")
+		await expect.poll(() =>
+			evaluate(() => document.querySelector('#work-area div[contenteditable]').textContent)
+		).toBe('updated')
+		await evaluate(() => { delete window.$text })
+	})
+
+	test('bind to custom element with value property auto-detects value', async ({html, find, run, evaluate}) => {
+		await evaluate(() => {
+			if (!customElements.get('test-input')) {
+				class TestInput extends HTMLElement {
+					constructor() { super(); this._value = ''; }
+					get value() { return this._value; }
+					set value(v) {
+						this._value = v;
+						this.dispatchEvent(new Event('input', { bubbles: true }));
+					}
+				}
+				customElements.define('test-input', TestInput);
+			}
+		})
+
+		await html(`<test-input _="bind $custom to me"></test-input>`)
+		await run("set $custom to 'hello'")
+		await expect.poll(() => evaluate(() => document.querySelector('#work-area test-input').value)).toBe('hello')
+		await evaluate(() => { delete window.$custom })
+	})
+
+	// ================================================================
 	// Cleanup
 	// ================================================================
 
 	test('radio change listener is removed on cleanup', async ({html, evaluate, run}) => {
 		await run("set $color to 'red'")
 		await html(
-			`<input type="radio" name="color" value="red" _="bind $color" checked />` +
-			`<input type="radio" name="color" value="blue" _="bind $color" />`
+			`<input type="radio" name="color" value="red" _="bind $color to me" checked />` +
+			`<input type="radio" name="color" value="blue" _="bind $color to me" />`
 		)
 		await evaluate(() => new Promise(r => setTimeout(r, 50)))
 
@@ -535,7 +644,7 @@ test.describe('the bind feature', () => {
 		await run("set $val to 'initial'")
 		await html(
 			`<form>` +
-			`<input type="text" id="binput" value="initial" _="bind $val" />` +
+			`<input type="text" id="binput" value="initial" _="bind $val to me" />` +
 			`<button type="reset">Reset</button>` +
 			`</form>`
 		)

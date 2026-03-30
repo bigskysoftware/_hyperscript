@@ -1,6 +1,6 @@
 import {test, expect} from '../fixtures.js'
 
-test.describe('the always feature', () => {
+test.describe('the live feature', () => {
 
 	// ================================================================
 	// Single statement
@@ -10,7 +10,7 @@ test.describe('the always feature', () => {
 		await run("set $price to 10")
 		await run("set $qty to 3")
 		await html(
-			`<div _="always set $total to ($price * $qty) end
+			`<div _="live set $total to ($price * $qty) end
 			         when $total changes put it into me"></div>`
 		)
 		await expect(find('div')).toHaveText('30')
@@ -22,7 +22,7 @@ test.describe('the always feature', () => {
 
 	test('updates DOM text reactively with put', async ({html, find, run, evaluate}) => {
 		await run("set $greeting to 'world'")
-		await html(`<div _="always put 'hello ' + $greeting into me"></div>`)
+		await html(`<div _="live put 'hello ' + $greeting into me"></div>`)
 		await expect.poll(() => find('div').textContent()).toBe('hello world')
 
 		await run("set $greeting to 'there'")
@@ -32,7 +32,7 @@ test.describe('the always feature', () => {
 
 	test('sets an attribute reactively', async ({html, find, run, evaluate}) => {
 		await run("set $theme to 'light'")
-		await html(`<div _="always set my @data-theme to $theme"></div>`)
+		await html(`<div _="live set my @data-theme to $theme"></div>`)
 		await expect(find('div')).toHaveAttribute('data-theme', 'light')
 
 		await run("set $theme to 'dark'")
@@ -42,7 +42,7 @@ test.describe('the always feature', () => {
 
 	test('sets a style reactively', async ({html, find, run, evaluate}) => {
 		await run("set $opacity to 1")
-		await html(`<div _="always set *opacity to $opacity">visible</div>`)
+		await html(`<div _="live set *opacity to $opacity">visible</div>`)
 		await new Promise(r => setTimeout(r, 100))
 
 		await run("set $opacity to 0.5")
@@ -55,7 +55,7 @@ test.describe('the always feature', () => {
 	test('puts a computed dollar amount into the DOM', async ({html, find, run, evaluate}) => {
 		await run("set $price to 10")
 		await run("set $qty to 2")
-		await html(`<div _="always put '$' + ($price * $qty) into me"></div>`)
+		await html(`<div _="live put '$' + ($price * $qty) into me"></div>`)
 		await expect.poll(() => find('div').textContent()).toBe('$20')
 
 		await run("set $qty to 5")
@@ -73,7 +73,7 @@ test.describe('the always feature', () => {
 		await html(
 			`<span id="w" _="when $doubleWidth changes put it into me"></span>` +
 			`<span id="h" _="when $doubleHeight changes put it into me"></span>` +
-			`<div _="always
+			`<div _="live
 			           set $doubleWidth to ($width * 2)
 			           set $doubleHeight to ($height * 2)
 			         end"></div>`
@@ -92,14 +92,14 @@ test.describe('the always feature', () => {
 		})
 	})
 
-	test('separate always statements create independent effects', async ({html, find, run, evaluate}) => {
+	test('separate live statements create independent effects', async ({html, find, run, evaluate}) => {
 		await run("set $width to 100")
 		await run("set $height to 200")
 		await html(
 			`<span id="w" _="when $doubleWidth changes put it into me"></span>` +
 			`<span id="h" _="when $doubleHeight changes put it into me"></span>` +
-			`<div _="always set $doubleWidth to ($width * 2) end
-			         always set $doubleHeight to ($height * 2)"></div>`
+			`<div _="live set $doubleWidth to ($width * 2) end
+			         live set $doubleHeight to ($height * 2)"></div>`
 		)
 		await expect.poll(() => find('#w').textContent()).toBe('200')
 		await expect.poll(() => find('#h').textContent()).toBe('400')
@@ -120,7 +120,7 @@ test.describe('the always feature', () => {
 		await run("set $qty to 3")
 		await run("set $tax to 5")
 		await html(
-			`<div _="always
+			`<div _="live
 			           set $subtotal to ($price * $qty)
 			           set $total to ($subtotal + $tax)
 			         end
@@ -140,13 +140,13 @@ test.describe('the always feature', () => {
 	})
 
 	// ================================================================
-	// if/else inside always
+	// if/else inside live
 	// ================================================================
 
 	test('toggles a class based on a boolean variable', async ({html, find, run, evaluate}) => {
 		await run("set $isActive to false")
 		await html(
-			`<div _="always
+			`<div _="live
 			           if $isActive add .active to me else remove .active from me end
 			         end">test</div>`
 		)
@@ -164,7 +164,7 @@ test.describe('the always feature', () => {
 	test('toggles display style based on a boolean variable', async ({html, find, run, evaluate}) => {
 		await run("set $isVisible to true")
 		await html(
-			`<div _="always
+			`<div _="live
 			           if $isVisible set *display to 'block' else set *display to 'none' end
 			         end">content</div>`
 		)
@@ -190,7 +190,7 @@ test.describe('the always feature', () => {
 
 	test('effects stop when element is removed from DOM', async ({html, find, run, evaluate}) => {
 		await run("set $message to 'initial'")
-		await html(`<div _="always put $message into me"></div>`)
+		await html(`<div _="live put $message into me"></div>`)
 		await expect.poll(() => find('div').textContent()).toBe('initial')
 
 		await evaluate(() => document.querySelector('#work-area div').remove())
@@ -208,7 +208,7 @@ test.describe('the always feature', () => {
 		await run("set $firstName to 'Alice'")
 		await run("set $lastName to 'Smith'")
 		await html(
-			`<div _="always
+			`<div _="live
 			           if $showFirst put $firstName into me else put $lastName into me end
 			         end"></div>`
 		)
@@ -241,12 +241,12 @@ test.describe('the always feature', () => {
 	// Multiple features on same element
 	// ================================================================
 
-	test('multiple always on same element work independently', async ({html, find, run, evaluate}) => {
+	test('multiple live on same element work independently', async ({html, find, run, evaluate}) => {
 		await run("set $firstName to 'Alice'")
 		await run("set $age to 30")
 		await html(
-			`<div _="always set my @data-name to $firstName end
-			         always set my @data-age to $age"></div>`
+			`<div _="live set my @data-name to $firstName end
+			         live set my @data-age to $age"></div>`
 		)
 		await expect(find('div')).toHaveAttribute('data-name', 'Alice')
 		await expect(find('div')).toHaveAttribute('data-age', '30')
@@ -257,10 +257,10 @@ test.describe('the always feature', () => {
 		await evaluate(() => { delete window.$firstName; delete window.$age })
 	})
 
-	test('always and when on same element do not interfere', async ({html, find, run, evaluate}) => {
+	test('live and when on same element do not interfere', async ({html, find, run, evaluate}) => {
 		await run("set $status to 'online'")
 		await html(
-			`<div _="always set my @data-status to $status end
+			`<div _="live set my @data-status to $status end
 			         when $status changes put 'Status: ' + it into me"></div>`
 		)
 		await expect(find('div')).toHaveAttribute('data-status', 'online')
@@ -272,12 +272,12 @@ test.describe('the always feature', () => {
 		await evaluate(() => { delete window.$status })
 	})
 
-	test('bind and always on same element do not interfere', async ({html, find, run, evaluate}) => {
+	test('bind and live on same element do not interfere', async ({html, find, run, evaluate}) => {
 		await run("set $username to 'alice'")
 		await html(
 			`<input type="text" value="alice"
-			        _="bind $username end
-			           always set my @data-mirror to $username" />` +
+			        _="bind $username to me end
+			           live set my @data-mirror to $username" />` +
 			`<span _="when $username changes put it into me"></span>`
 		)
 		await expect.poll(() => find('span').textContent()).toBe('alice')
@@ -291,7 +291,7 @@ test.describe('the always feature', () => {
 
 	test('reactive effects are stopped on cleanup', async ({html, find, run, evaluate}) => {
 		await run("set $count to 0")
-		await html(`<div id="d1" _="always put $count into me"></div>`)
+		await html(`<div id="d1" _="live put $count into me"></div>`)
 		await expect.poll(() => find('#d1').textContent()).toBe('0')
 
 		// Clean up the element (but keep it in DOM to detect if effect still fires)

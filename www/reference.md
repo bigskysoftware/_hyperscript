@@ -12,9 +12,9 @@ Features are top-level constructs that define the behavior of an element. Every 
 | [behavior](/features/behavior)        | Define cross-cutting behaviors that are applied to many HTML elements |                                           |
 | [install](/features/behavior)         | Install a behavior onto the current element                           | `install Draggable`                       |
 | [js](/features/js)                    | Embed JavaScript code at the top level                                | [see details...](/features/js)            |
-| [always](/features/always)            | Declare reactive commands that re-run when dependencies change        | `always set $total to ($price * $qty)`    |
+| [live](/features/live)                | Declare reactive commands that re-run when dependencies change        | `live set $total to ($price * $qty)`      |
 | [when](/features/when)                | React to value changes with side effects, async, or events            | `when $x changes ...`                     |
-| [bind](/features/bind)                | Two-way sync between any two values                                   | `bind .dark and #toggle's checked`        |
+| [bind](/features/bind)                | Two-way sync between values with element auto-detection               | `bind $name to me`                        |
 
 ### Extensions
 

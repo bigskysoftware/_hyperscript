@@ -1,9 +1,9 @@
 /**
- * Always Feature - Reactive commands that re-run when dependencies change
+ * Live Feature - Reactive commands that re-run when dependencies change
  *
- *   always set $total to ($price * $qty)
+ *   live set $total to ($price * $qty)
  *
- *   always
+ *   live
  *     set $subtotal to ($price * $qty)
  *     set $total to ($subtotal + $tax)
  *     if $total > 100 add .expensive to me else remove .expensive from me end
@@ -17,20 +17,20 @@
 import { Feature } from '../base.js';
 import { reactivity } from '../../core/runtime/reactivity.js';
 
-export class AlwaysFeature extends Feature {
-    static keyword = "always";
+export class LiveFeature extends Feature {
+    static keyword = "live";
 
     constructor(commands) {
         super();
         this.commands = commands;
-        this.displayName = "always";
+        this.displayName = "live";
     }
 
     static parse(parser) {
-        if (!parser.matchToken("always")) return;
+        if (!parser.matchToken("live")) return;
 
         var start = parser.requireElement("commandList");
-        var feature = new AlwaysFeature(start);
+        var feature = new LiveFeature(start);
         parser.ensureTerminated(start);
         parser.setParent(start, feature);
         return feature;

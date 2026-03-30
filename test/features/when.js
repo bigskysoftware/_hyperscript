@@ -438,7 +438,7 @@ test.describe('the when feature', () => {
 		await html(
 			`<span id="d-b" _="when $a changes set $b to (it * 2)"></span>` +
 			`<span id="d-c" _="when $a changes set $c to (it * 3)"></span>` +
-			`<div _="always increment :runs then put ($b + $c) + ' (runs:' + :runs + ')' into me"></div>`
+			`<div _="live increment :runs then put ($b + $c) + ' (runs:' + :runs + ')' into me"></div>`
 		)
 		await new Promise(r => setTimeout(r, 100))
 		await run("set $a to 10")

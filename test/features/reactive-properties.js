@@ -33,9 +33,9 @@ test.describe('reactive property tracking', () => {
 		await expect.poll(() => find('output').textContent()).toBe('updated')
 	})
 
-	test('always block tracks property reads on plain objects', async ({html, find, run, evaluate}) => {
+	test('live block tracks property reads on plain objects', async ({html, find, run, evaluate}) => {
 		await run("set $config to {label: 'initial'}")
-		await html(`<output _="always put $config's label into me"></output>`)
+		await html(`<output _="live put $config's label into me"></output>`)
 		await expect.poll(() => find('output').textContent()).toBe('initial')
 
 		await run("set $config's label to 'changed'")

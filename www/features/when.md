@@ -7,7 +7,7 @@ title: when - ///_hyperscript
 The `when` feature runs commands in response to a value change. Use it when you need to
 *react* with side effects or chained effects.
 
-For declaring relationships (derived values, DOM updates), see [`always`](/features/always).
+For declaring relationships (derived values, DOM updates), see [`live`](/features/live).
 For two-way sync, see [`bind`](/features/bind).
 
 ### Syntax
