@@ -276,7 +276,7 @@ test.describe('the live feature', () => {
 		await run("set $username to 'alice'")
 		await html(
 			`<input type="text" value="alice"
-			        _="bind $username end
+			        _="bind $username to me end
 			           live set my @data-mirror to $username" />` +
 			`<span _="when $username changes put it into me"></span>`
 		)

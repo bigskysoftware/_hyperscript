@@ -1,6 +1,6 @@
 # Reactivity Design Notes
 
-Internal reference for the reactive features: `always`, `when`, and `bind`.
+Internal reference for the reactive features: `live`, `when`, and `bind`.
 
 ## Why this works without explicit signals
 
@@ -50,7 +50,7 @@ should be aware that the tracking boundary is the _hyperscript runtime.
 Variables are not signals. `set $count to 0` just stores a value on
 `globalScope` (i.e. `window`). Nothing reactive happens.
 
-Reactivity is created by `always`, `when`, and `bind`. All three use
+Reactivity is created by `live`, `when`, and `bind`. All three use
 `createEffect()` under the hood, which evaluates code with tracking
 enabled. During that evaluation, `resolveSymbol` sees that an effect
 is active and records dependencies. Future writes via `setSymbol` notify
@@ -63,19 +63,21 @@ entirely in the effect and the subscription maps.
 
 Each serves a distinct purpose:
 
-- **`always`** declares relationships. The block runs as one unit with
+- **`live`** declares relationships. The block runs as one unit with
   automatic dependency tracking and re-runs when any dependency changes.
   Used for derived values, DOM updates, and conditional state. For
-  independent tracking, use separate `always` statements.
+  independent tracking, use separate `live` statements.
 
 - **`when`** reacts to changes. Watches a specific expression and runs a
   command body when the value changes. `it` refers to the new value. Used
   for side effects, async work, and events.
 
-- **`bind`** syncs two values bidirectionally. Includes same-value dedup to
-  prevent infinite loops. Used for form inputs and shared state.
+- **`bind`** syncs two values bidirectionally. Includes same-value dedup
+  to prevent infinite loops. When either side resolves to a DOM element,
+  the bound property is auto-detected. Used for form inputs and shared
+  state.
 
-`always` runs its entire command block inside the tracking context (the
+`live` runs its entire command block inside the tracking context (the
 block IS the effect). `when` separates the tracked expression from the
 handler commands. `bind` creates two `when`-style effects pointing at
 each other.
