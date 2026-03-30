@@ -64,7 +64,7 @@ test.describe('Templating', () => {
 	})
 
     test ('supports nested operations', async ({html, evaluate}) => {
-        await html('<template>#for x in stuff\n#if x === 2\n<p>Should be 2 -> ${x}</p>\n#end\n#end{</template>')
+        await html('<template>#for x in stuff\n#if x === 2\n<p>Should be 2 -> ${x}</p>\n#end\n#end</template>')
         await evaluate(() => {
             const tmpl = document.querySelector('#work-area template')
             _hyperscript("render tmpl with stuff: stuff then put it into window.res", {
@@ -176,5 +176,139 @@ test.describe('Templating', () => {
         })
         const res = await evaluate(() => window.res)
         expect(res).toBe('[][]')
+    })
+
+    test('empty template renders empty string', async ({html, evaluate}) => {
+        await html('<template></template>')
+        await evaluate(() => {
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl then put it into window.res", {
+                locals: { tmpl }
+            })
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('')
+    })
+
+    test('plain text with no expressions', async ({html, evaluate}) => {
+        await html('<template>just plain text\n</template>')
+        await evaluate(() => {
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl then put it into window.res", {
+                locals: { tmpl }
+            })
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('just plain text\n')
+    })
+
+    test('blank lines are consumed as whitespace', async ({html, evaluate}) => {
+        await html('<template>a\n\nb\n</template>')
+        await evaluate(() => {
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl then put it into window.res", {
+                locals: { tmpl }
+            })
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('a\nb\n')
+    })
+
+    test('renders into DOM element', async ({html, find, evaluate}) => {
+        await html('<template><b>${x}</b></template><div id="target"></div>')
+        await evaluate(() => {
+            const tmpl = document.querySelector('#work-area template')
+            const target = document.querySelector('#target')
+            _hyperscript("render tmpl with x: x then put it into window.res", {
+                locals: { x: "hello", tmpl }
+            })
+            target.innerHTML = window.res
+        })
+        await expect(find('#target b')).toHaveText('hello')
+    })
+
+    test('expression with math', async ({html, evaluate}) => {
+        await html('<template>${x + y}</template>')
+        await evaluate(() => {
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl with x: x, y: y then put it into window.res", {
+                locals: { x: 10, y: 20, tmpl }
+            })
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('30')
+    })
+
+    test('expression with function call', async ({html, evaluate}) => {
+        await html('<template>${fn()}</template>')
+        await evaluate(() => {
+            window.testFn = () => "called"
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl with fn: fn then put it into window.res", {
+                locals: { fn: window.testFn, tmpl }
+            })
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('called')
+    })
+
+    test('if false takes else branch', async ({html, evaluate}) => {
+        await html('<template>#if false\nyes\n#else\nno\n#end\n</template>')
+        await evaluate(() => {
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl then put it into window.res", {
+                locals: { tmpl }
+            })
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('no\n')
+    })
+
+    test('if with expression condition', async ({html, evaluate}) => {
+        await html('<template>#if x is greater than 5\nbig\n#else\nsmall\n#end\n</template>')
+        await evaluate(() => {
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl with x: x then put it into window.res", {
+                locals: { x: 10, tmpl }
+            })
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('big\n')
+    })
+
+    test('for loop with index', async ({html, evaluate}) => {
+        await html('<template>#for x in items\n${x}\n#end</template>')
+        await evaluate(() => {
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl with items: items then put it into window.res", {
+                locals: { items: ["a", "b", "c"], tmpl }
+            })
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('a\nb\nc\n')
+    })
+
+    test('for loop over empty array', async ({html, evaluate}) => {
+        await html('<template>before\n#for x in items\n${x}\n#end\nafter\n</template>')
+        await evaluate(() => {
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl with items: items then put it into window.res", {
+                locals: { items: [], tmpl }
+            })
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('before\nafter\n')
+    })
+
+    test('all html entities escaped', async ({html, evaluate}) => {
+        await html('<template>${x}</template>')
+        await evaluate(() => {
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl with x: x then put it into window.res", {
+                locals: { x: '<div class="a" data-x=\'b\'>&', tmpl }
+            })
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('&lt;div class=&quot;a&quot; data-x=&#039;b&#039;&gt;&amp;')
     })
 })
