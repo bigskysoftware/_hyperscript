@@ -194,6 +194,7 @@ title: Try it! - ///_hyperscript
             <option value="password_visibility">Password Toggle</option>
             <option value="colors">Color Cycle</option>
             <option value="search">Live Search</option>
+            <option value="todo_list">Reactive Todo List</option>
         </select>
         <button class="btn btn-sm" id="run-btn">Run (Ctrl+Enter)</button>
         <button class="btn btn-sm" id="share-btn">Share</button>
@@ -239,7 +240,7 @@ title: Try it! - ///_hyperscript
 // Built-in examples
 // ============================================================
 var BUILTIN_EXAMPLES = {
-    counter: '<h2>Counter</h2>\n<div _="init set ^count to 0">\n  <button _="on click increment ^count">+1</button>\n  <button _="on click decrement ^count">-1</button>\n  <input _="bind ^count" />\n</div>',
+    counter: '<h2>Counter</h2>\n<div _="init set ^count to 0">\n  <button _="on click increment ^count">+1</button>\n  <button _="on click decrement ^count">-1</button>\n  <input _="bind ^count to me" />\n</div>',
     colors: '<h2>Color Cycle</h2>\n<button style="padding:12px 24px;font-size:1.1rem;cursor:pointer"\n        _="on pointerdown\n             repeat until event pointerup from document\n               set rand to Math.random() * 360\n               transition #color-target\'s *background-color\n                 to `hsl(${rand} 100% 85%)` over 200ms\n             end\n             transition #color-target\'s *background-color to initial">\n  Press and hold\n</button>\n<div id="color-target" style="margin-top:1em;padding:2em;border:1px solid #ddd;border-radius:4px;text-align:center">Watch me change!</div>',
     search: '<h2>Live Search</h2>\n<input type="text" placeholder="Search..."\n       _="on input\n            show &lt;li/&gt; in #results\n              when its textContent contains my value" />\n<ul id="results">\n  <li>Apples</li>\n  <li>Bananas</li>\n  <li>Cherries</li>\n  <li>Dates</li>\n  <li>Elderberries</li>\n  <li>Figs</li>\n  <li>Grapes</li>\n</ul>',
 };

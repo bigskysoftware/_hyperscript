@@ -369,7 +369,7 @@ var OP_TABLE = {
   "~": "TILDE",
   "^": "CARET"
 };
-var _source, _position, _column, _line, _lastToken, _templateBraceCount, _tokens2, _template, _Tokenizer_instances, isAlpha_fn, isNumeric_fn, isWhitespace_fn, isNewline_fn, isValidCSSChar_fn, isIdentifierChar_fn, isReservedChar_fn, currentChar_fn, nextChar_fn, charAt_fn, consumeChar_fn, inTemplate_fn, possiblePrecedingSymbol_fn, isValidSingleQuoteStringStart_fn, makeToken_fn, makeOpToken_fn, consumeComment_fn, consumeMultilineComment_fn, consumeWhitespace_fn, consumeClassReference_fn, consumeIdReference_fn, consumeAttributeReference_fn, consumeShortAttributeReference_fn, consumeStyleReference_fn, consumeTemplateIdentifier_fn, consumeIdentifier_fn, consumeNumber_fn, consumeOp_fn, consumeString_fn, consumeHexEscape_fn, isLineComment_fn, isBlockComment_fn, tokenize_fn;
+var _source, _position, _column, _line, _lastToken, _templateBraceCount, _tokens2, _template, _templateMode, _Tokenizer_instances, isAlpha_fn, isNumeric_fn, isWhitespace_fn, isNewline_fn, isValidCSSChar_fn, isIdentifierChar_fn, isReservedChar_fn, currentChar_fn, nextChar_fn, charAt_fn, consumeChar_fn, inTemplate_fn, possiblePrecedingSymbol_fn, isValidSingleQuoteStringStart_fn, makeToken_fn, makeOpToken_fn, consumeComment_fn, consumeMultilineComment_fn, consumeWhitespace_fn, consumeClassReference_fn, consumeIdReference_fn, consumeAttributeReference_fn, consumeShortAttributeReference_fn, consumeStyleReference_fn, consumeTemplateLogic_fn, consumeTemplateLine_fn, consumeTemplateIdentifier_fn, consumeIdentifier_fn, consumeNumber_fn, consumeOp_fn, consumeString_fn, consumeHexEscape_fn, isLineComment_fn, isBlockComment_fn, tokenize_fn;
 var _Tokenizer = class _Tokenizer {
   constructor() {
     __privateAdd(this, _Tokenizer_instances);
@@ -382,6 +382,7 @@ var _Tokenizer = class _Tokenizer {
     __privateAdd(this, _templateBraceCount, 0);
     __privateAdd(this, _tokens2, []);
     __privateAdd(this, _template, false);
+    __privateAdd(this, _templateMode);
   }
   static tokenize(string, template) {
     return new _Tokenizer().tokenize(string, template);
@@ -395,6 +396,7 @@ var _Tokenizer = class _Tokenizer {
     __privateSet(this, _templateBraceCount, 0);
     __privateSet(this, _tokens2, []);
     __privateSet(this, _template, template || false);
+    __privateSet(this, _templateMode, "indeterminant");
     return __privateMethod(this, _Tokenizer_instances, tokenize_fn).call(this);
   }
 };
@@ -406,6 +408,7 @@ _lastToken = new WeakMap();
 _templateBraceCount = new WeakMap();
 _tokens2 = new WeakMap();
 _template = new WeakMap();
+_templateMode = new WeakMap();
 _Tokenizer_instances = new WeakSet();
 // ----- Character classification -----
 isAlpha_fn = function(c) {
@@ -503,6 +506,9 @@ consumeWhitespace_fn = function() {
   var ws = __privateMethod(this, _Tokenizer_instances, makeToken_fn).call(this, "WHITESPACE");
   var value = "";
   while (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) && __privateMethod(this, _Tokenizer_instances, isWhitespace_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
+    if (__privateMethod(this, _Tokenizer_instances, isNewline_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
+      __privateSet(this, _templateMode, "indeterminant");
+    }
     value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
   }
   ws.value = value;
@@ -594,6 +600,33 @@ consumeStyleReference_fn = function() {
     value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
   }
   token.value = value;
+  token.end = __privateGet(this, _position);
+  return token;
+};
+consumeTemplateLogic_fn = function() {
+  var token = __privateMethod(this, _Tokenizer_instances, makeToken_fn).call(this, "IDENTIFIER");
+  __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  var value = "";
+  while (__privateMethod(this, _Tokenizer_instances, isAlpha_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
+    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  }
+  token.value = value;
+  token.end = __privateGet(this, _position);
+  return token;
+};
+consumeTemplateLine_fn = function() {
+  var token = __privateMethod(this, _Tokenizer_instances, makeToken_fn).call(this, "TEMPLATE_LINE");
+  token.value = "TEMPLATE_LINE";
+  var content = "";
+  while (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) && !__privateMethod(this, _Tokenizer_instances, isNewline_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
+    content += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  }
+  if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) && __privateMethod(this, _Tokenizer_instances, isNewline_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
+    __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+    content += "\n";
+    __privateSet(this, _templateMode, "indeterminant");
+  }
+  token.content = content;
   token.end = __privateGet(this, _position);
   return token;
 };
@@ -734,22 +767,30 @@ tokenize_fn = function() {
     } else if (!__privateMethod(this, _Tokenizer_instances, possiblePrecedingSymbol_fn).call(this) && __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "." && (__privateMethod(this, _Tokenizer_instances, isAlpha_fn).call(this, __privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this)) || __privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this) === "{" || __privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this) === "-")) {
       __privateGet(this, _tokens2).push(__privateMethod(this, _Tokenizer_instances, consumeClassReference_fn).call(this));
     } else if (!__privateMethod(this, _Tokenizer_instances, possiblePrecedingSymbol_fn).call(this) && __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "#" && (__privateMethod(this, _Tokenizer_instances, isAlpha_fn).call(this, __privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this)) || __privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this) === "{")) {
-      __privateGet(this, _tokens2).push(__privateMethod(this, _Tokenizer_instances, consumeIdReference_fn).call(this));
+      if (__privateGet(this, _template) === "lines" && __privateGet(this, _templateMode) === "indeterminant") {
+        __privateSet(this, _templateMode, "command");
+        __privateGet(this, _tokens2).push(__privateMethod(this, _Tokenizer_instances, consumeTemplateLogic_fn).call(this));
+      } else {
+        __privateGet(this, _tokens2).push(__privateMethod(this, _Tokenizer_instances, consumeIdReference_fn).call(this));
+      }
+    } else if (__privateGet(this, _template) === "lines" && __privateGet(this, _templateMode) === "indeterminant" && __privateGet(this, _templateBraceCount) === 0) {
+      __privateSet(this, _templateMode, "template");
+      __privateGet(this, _tokens2).push(__privateMethod(this, _Tokenizer_instances, consumeTemplateLine_fn).call(this));
     } else if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "[" && __privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this) === "@") {
       __privateGet(this, _tokens2).push(__privateMethod(this, _Tokenizer_instances, consumeAttributeReference_fn).call(this));
     } else if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "@") {
       __privateGet(this, _tokens2).push(__privateMethod(this, _Tokenizer_instances, consumeShortAttributeReference_fn).call(this));
     } else if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "*" && __privateMethod(this, _Tokenizer_instances, isAlpha_fn).call(this, __privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this))) {
       __privateGet(this, _tokens2).push(__privateMethod(this, _Tokenizer_instances, consumeStyleReference_fn).call(this));
-    } else if (__privateMethod(this, _Tokenizer_instances, inTemplate_fn).call(this) && (__privateMethod(this, _Tokenizer_instances, isAlpha_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) || __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "\\")) {
+    } else if (__privateMethod(this, _Tokenizer_instances, inTemplate_fn).call(this) && (__privateMethod(this, _Tokenizer_instances, isAlpha_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) || __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "\\") && __privateGet(this, _templateMode) !== "command") {
       __privateGet(this, _tokens2).push(__privateMethod(this, _Tokenizer_instances, consumeTemplateIdentifier_fn).call(this));
-    } else if (!__privateMethod(this, _Tokenizer_instances, inTemplate_fn).call(this) && (__privateMethod(this, _Tokenizer_instances, isAlpha_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) || __privateMethod(this, _Tokenizer_instances, isIdentifierChar_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)))) {
+    } else if ((!__privateMethod(this, _Tokenizer_instances, inTemplate_fn).call(this) || __privateGet(this, _templateMode) === "command") && (__privateMethod(this, _Tokenizer_instances, isAlpha_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) || __privateMethod(this, _Tokenizer_instances, isIdentifierChar_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)))) {
       __privateGet(this, _tokens2).push(__privateMethod(this, _Tokenizer_instances, consumeIdentifier_fn).call(this));
     } else if (__privateMethod(this, _Tokenizer_instances, isNumeric_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
       __privateGet(this, _tokens2).push(__privateMethod(this, _Tokenizer_instances, consumeNumber_fn).call(this));
-    } else if (!__privateMethod(this, _Tokenizer_instances, inTemplate_fn).call(this) && (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === '"' || __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "`")) {
+    } else if ((!__privateMethod(this, _Tokenizer_instances, inTemplate_fn).call(this) || __privateGet(this, _templateMode) === "command") && (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === '"' || __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "`")) {
       __privateGet(this, _tokens2).push(__privateMethod(this, _Tokenizer_instances, consumeString_fn).call(this));
-    } else if (!__privateMethod(this, _Tokenizer_instances, inTemplate_fn).call(this) && __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "'") {
+    } else if ((!__privateMethod(this, _Tokenizer_instances, inTemplate_fn).call(this) || __privateGet(this, _templateMode) === "command") && __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "'") {
       if (__privateMethod(this, _Tokenizer_instances, isValidSingleQuoteStringStart_fn).call(this)) {
         __privateGet(this, _tokens2).push(__privateMethod(this, _Tokenizer_instances, consumeString_fn).call(this));
       } else {
@@ -8956,31 +8997,25 @@ var _BindFeature = class _BindFeature extends Feature {
       parser.popFollow();
       parser.popFollow();
     }
-    var right = null;
-    if (parser.matchToken("and") || parser.matchToken("with") || parser.matchToken("to")) {
-      right = parser.requireElement("expression");
+    if (!parser.matchToken("and") && !parser.matchToken("with") && !parser.matchToken("to")) {
+      parser.raiseParseError("bind requires a connector: 'and', 'with', or 'to'");
     }
-    if (!_isAssignable(left)) {
-      parser.raiseParseError("bind requires a writable expression, but '" + left.type + "' cannot be assigned to");
-    }
-    if (right && !_isAssignable(right)) {
-      parser.raiseParseError("bind requires a writable expression, but '" + right.type + "' cannot be assigned to");
-    }
+    var right = parser.requireElement("expression");
     return new _BindFeature(left, right);
   }
   constructor(left, right) {
     super();
     this.left = left;
     this.right = right;
-    this.displayName = right ? "bind ... and ..." : "bind (shorthand)";
+    this.displayName = "bind";
   }
   install(target, source, args, runtime2) {
     var feature = this;
     queueMicrotask(function() {
-      if (feature.right) {
-        _twoWayBind(feature.left, feature.right, target, feature, runtime2);
-      } else {
-        _shorthandBind(feature.left, target, feature, runtime2);
+      try {
+        _bind(feature.left, feature.right, target, feature, runtime2);
+      } catch (e) {
+        console.error(e.message || e);
       }
     });
   }
@@ -8997,110 +9032,134 @@ function _isAssignable(expr) {
   if (expr.type === "attributeRef") return true;
   return typeof expr.set === "function";
 }
-function _twoWayBind(left, right, target, feature, runtime2) {
-  function read(expr) {
-    if (expr.type === "classRef") {
-      runtime2.resolveAttribute(target, "class");
-      return target.classList.contains(expr.className);
-    }
-    return expr.evaluate(runtime2.makeContext(target, feature, target, null));
+function _bind(left, right, target, feature, runtime2) {
+  var ctx = runtime2.makeContext(target, feature, target, null);
+  var leftSide = _resolveSide(left, target, feature, runtime2, ctx);
+  var rightSide = _resolveSide(right, target, feature, runtime2, ctx);
+  if (!leftSide.element && !_isAssignable(left)) {
+    throw new Error("bind requires a writable expression on the left side, but '" + left.type + "' cannot be assigned to");
+  }
+  if (!rightSide.element && !_isAssignable(right)) {
+    throw new Error("bind requires a writable expression on the right side, but '" + right.type + "' cannot be assigned to");
   }
   reactivity.createEffect(
     function() {
-      return read(left);
+      return leftSide.read();
     },
     function(newValue) {
-      var ctx = runtime2.makeContext(target, feature, target, null);
-      _assignTo(runtime2, right, ctx, newValue);
+      rightSide.write(newValue);
     },
     { element: target }
   );
   reactivity.createEffect(
     function() {
-      return read(right);
+      return rightSide.read();
     },
     function(newValue) {
-      var ctx = runtime2.makeContext(target, feature, target, null);
-      _assignTo(runtime2, left, ctx, newValue);
+      leftSide.write(newValue);
     },
     { element: target }
   );
+  _setupFormReset(leftSide, rightSide, target, runtime2);
 }
-function _shorthandBind(left, target, feature, runtime2) {
-  var propName = _detectProperty(target);
-  if (propName === "radio") {
-    return _radioBind(left, target, feature, runtime2);
+function _resolveSide(expr, target, feature, runtime2, ctx) {
+  var value = expr.evaluate(ctx);
+  if (value instanceof Element) {
+    return _createElementSide(value, runtime2);
   }
-  reactivity.createEffect(
-    function() {
-      return left.evaluate(runtime2.makeContext(target, feature, target, null));
-    },
-    function(newValue) {
-      target[propName] = newValue;
-    },
-    { element: target }
-  );
-  var isNumeric = propName === "valueAsNumber";
-  reactivity.createEffect(
-    function() {
-      var val = runtime2.resolveProperty(target, propName);
+  return _createExpressionSide(expr, target, feature, runtime2);
+}
+var _bindProperty = {
+  "INPUT:checkbox": "checked",
+  "INPUT:number": "valueAsNumber",
+  "INPUT:range": "valueAsNumber",
+  "INPUT": "value",
+  "TEXTAREA": "value",
+  "SELECT": "value"
+};
+function _createElementSide(element, runtime2) {
+  var tag = element.tagName;
+  var type = tag === "INPUT" ? element.getAttribute("type") || "text" : null;
+  if (tag === "INPUT" && type === "radio") {
+    var radioValue = element.value;
+    return {
+      element,
+      read: function() {
+        var checked = runtime2.resolveProperty(element, "checked");
+        return checked ? radioValue : void 0;
+      },
+      write: function(value) {
+        element.checked = value === radioValue;
+      }
+    };
+  }
+  var prop = _bindProperty[tag + ":" + type] || _bindProperty[tag];
+  if (!prop && element.hasAttribute("contenteditable") && element.getAttribute("contenteditable") !== "false") {
+    prop = "textContent";
+  }
+  if (!prop && tag.includes("-") && "value" in element) {
+    prop = "value";
+  }
+  if (!prop) {
+    throw new Error(
+      "bind cannot auto-detect a property for <" + tag.toLowerCase() + ">. Use an explicit property (e.g. 'bind $var to #el's value')."
+    );
+  }
+  var isNumeric = prop === "valueAsNumber";
+  return {
+    element,
+    read: function() {
+      var val = runtime2.resolveProperty(element, prop);
       return isNumeric && val !== val ? null : val;
     },
-    function(newValue) {
-      var ctx = runtime2.makeContext(target, feature, target, null);
-      _assignTo(runtime2, left, ctx, newValue);
-    },
-    { element: target }
-  );
-  var form = target.closest("form");
-  if (form) {
-    var resetHandler = function() {
-      setTimeout(function() {
-        if (!target.isConnected) return;
-        var val = target[propName];
-        if (isNumeric && val !== val) val = null;
-        var ctx = runtime2.makeContext(target, feature, target, null);
-        _assignTo(runtime2, left, ctx, val);
-      }, 0);
-    };
-    form.addEventListener("reset", resetHandler);
-    _registerListener(runtime2, target, form, "reset", resetHandler);
-  }
-}
-function _radioBind(left, target, feature, runtime2) {
-  var radioValue = target.value;
-  var groupName = target.getAttribute("name");
-  reactivity.createEffect(
-    function() {
-      return left.evaluate(runtime2.makeContext(target, feature, target, null));
-    },
-    function(newValue) {
-      target.checked = newValue === radioValue;
-    },
-    { element: target }
-  );
-  var changeHandler = function() {
-    if (target.checked) {
-      var ctx = runtime2.makeContext(target, feature, target, null);
-      _assignTo(runtime2, left, ctx, radioValue);
+    write: function(value) {
+      element[prop] = value;
     }
   };
-  target.addEventListener("change", changeHandler);
-  _registerListener(runtime2, target, target, "change", changeHandler);
 }
-function _detectProperty(element) {
-  var tag = element.tagName;
-  if (tag === "INPUT") {
-    var type = element.getAttribute("type") || "text";
-    if (type === "radio") return "radio";
-    if (type === "checkbox") return "checked";
-    if (type === "number" || type === "range") return "valueAsNumber";
-    return "value";
+function _createExpressionSide(expr, target, feature, runtime2) {
+  if (expr.type === "classRef") {
+    return {
+      read: function() {
+        runtime2.resolveAttribute(target, "class");
+        return target.classList.contains(expr.className);
+      },
+      write: function(value) {
+        if (value) {
+          target.classList.add(expr.className);
+        } else {
+          target.classList.remove(expr.className);
+        }
+      }
+    };
   }
-  if (tag === "TEXTAREA" || tag === "SELECT") return "value";
-  throw new Error(
-    "bind shorthand is not supported on <" + tag.toLowerCase() + "> elements. Use 'bind $var and my value' explicitly."
-  );
+  return {
+    read: function() {
+      return expr.evaluate(runtime2.makeContext(target, feature, target, null));
+    },
+    write: function(value) {
+      var ctx = runtime2.makeContext(target, feature, target, null);
+      _assignTo(runtime2, expr, ctx, value);
+    }
+  };
+}
+function _setupFormReset(leftSide, rightSide, target, runtime2) {
+  _addResetListener(leftSide, rightSide, target, runtime2);
+  _addResetListener(rightSide, leftSide, target, runtime2);
+}
+function _addResetListener(source, dest, target, runtime2) {
+  if (!source.element) return;
+  var form = source.element.closest("form");
+  if (!form) return;
+  var resetHandler = function() {
+    setTimeout(function() {
+      if (!target.isConnected) return;
+      var val = source.read();
+      dest.write(val);
+    }, 0);
+  };
+  form.addEventListener("reset", resetHandler);
+  _registerListener(runtime2, target, form, "reset", resetHandler);
 }
 function _setAttr(elt, name, value) {
   if (typeof value === "boolean") {
@@ -9136,21 +9195,21 @@ function _assignTo(runtime2, target, ctx, value) {
   }
 }
 
-// src/parsetree/features/always.js
-var always_exports = {};
-__export(always_exports, {
-  AlwaysFeature: () => AlwaysFeature
+// src/parsetree/features/live.js
+var live_exports = {};
+__export(live_exports, {
+  LiveFeature: () => LiveFeature
 });
-var _AlwaysFeature = class _AlwaysFeature extends Feature {
+var _LiveFeature = class _LiveFeature extends Feature {
   constructor(commands) {
     super();
     this.commands = commands;
-    this.displayName = "always";
+    this.displayName = "live";
   }
   static parse(parser) {
-    if (!parser.matchToken("always")) return;
+    if (!parser.matchToken("live")) return;
     var start = parser.requireElement("commandList");
-    var feature = new _AlwaysFeature(start);
+    var feature = new _LiveFeature(start);
     parser.ensureTerminated(start);
     parser.setParent(start, feature);
     return feature;
@@ -9171,8 +9230,200 @@ var _AlwaysFeature = class _AlwaysFeature extends Feature {
     });
   }
 };
-__publicField(_AlwaysFeature, "keyword", "always");
-var AlwaysFeature = _AlwaysFeature;
+__publicField(_LiveFeature, "keyword", "live");
+var LiveFeature = _LiveFeature;
+
+// src/parsetree/commands/template.js
+var template_exports = {};
+__export(template_exports, {
+  EscapeExpression: () => EscapeExpression,
+  RenderCommand: () => RenderCommand,
+  TemplateTextCommand: () => TemplateTextCommand
+});
+function escapeHTML(html) {
+  return String(html).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\x22/g, "&quot;").replace(/\x27/g, "&#039;");
+}
+var _TemplateTextCommand = class _TemplateTextCommand extends Command {
+  constructor(parts, errors) {
+    super();
+    this.parts = parts;
+    this.errors = errors;
+  }
+  static parse(parser) {
+    var tok = parser.currentToken();
+    if (tok.type !== "TEMPLATE_LINE") return;
+    parser.consumeToken();
+    var parts = [];
+    var errors = [];
+    var raw = tok.content;
+    var i = 0;
+    while (i < raw.length) {
+      var nextDollar = raw.indexOf("${", i);
+      if (nextDollar === -1) {
+        if (i < raw.length) parts.push({ type: "literal", value: raw.slice(i) });
+        break;
+      }
+      if (nextDollar > i) {
+        parts.push({ type: "literal", value: raw.slice(i, nextDollar) });
+      }
+      var depth = 1;
+      var j = nextDollar + 2;
+      while (j < raw.length && depth > 0) {
+        if (raw[j] === "{") depth++;
+        else if (raw[j] === "}") depth--;
+        j++;
+      }
+      if (depth > 0) {
+        errors.push({ line: tok.line, message: "Unterminated ${} expression", expr: raw.slice(nextDollar) });
+        parts.push({ type: "literal", value: "" });
+        break;
+      }
+      var exprStr = raw.slice(nextDollar + 2, j - 1);
+      var escape = true;
+      var trimmed = exprStr.trimStart();
+      if (trimmed.startsWith("unescaped ")) {
+        escape = false;
+        exprStr = trimmed.slice("unescaped ".length);
+      }
+      try {
+        var exprTokens = new Tokenizer().tokenize(exprStr);
+        var exprParser = parser.createChildParser(exprTokens);
+        var node = exprParser.requireElement("expression");
+        parts.push({ type: "expr", node, escape });
+      } catch (e) {
+        errors.push({
+          line: tok.line,
+          column: tok.column + nextDollar,
+          message: e.message || String(e),
+          expr: exprStr
+        });
+        parts.push({ type: "literal", value: "" });
+      }
+      i = j;
+    }
+    return new _TemplateTextCommand(parts, errors);
+  }
+  resolve(ctx) {
+    var vals = this.parts.map((part) => {
+      if (part.type === "literal") return part.value;
+      return part.node.evaluate(ctx);
+    });
+    var stringify = (val, part) => {
+      if (part.type === "literal") return val;
+      if (val === void 0 || val === null) return "";
+      if (part.escape) return escapeHTML(String(val));
+      return String(val);
+    };
+    if (vals.some((v) => v && v.then)) {
+      return Promise.all(vals).then((resolved) => {
+        ctx.meta.__ht_template_result.push(
+          resolved.map((val, i) => stringify(val, this.parts[i])).join("")
+        );
+        return ctx.meta.runtime.findNext(this, ctx);
+      });
+    }
+    ctx.meta.__ht_template_result.push(
+      vals.map((val, i) => stringify(val, this.parts[i])).join("")
+    );
+    return ctx.meta.runtime.findNext(this, ctx);
+  }
+};
+__publicField(_TemplateTextCommand, "keyword", "TEMPLATE_LINE");
+var TemplateTextCommand = _TemplateTextCommand;
+var _RenderCommand = class _RenderCommand extends Command {
+  constructor(template_, templateArgs) {
+    super();
+    this.template_ = template_;
+    this.args = { template: template_, templateArgs };
+  }
+  static parse(parser) {
+    if (!parser.matchToken("render")) return;
+    var template_ = parser.requireElement("expression");
+    var templateArgs = {};
+    if (parser.matchToken("with")) {
+      templateArgs = parser.parseElement("nakedNamedArgumentList");
+    }
+    var cmd = new _RenderCommand(template_, templateArgs);
+    cmd._parser = parser;
+    return cmd;
+  }
+  resolve(ctx, { template, templateArgs }) {
+    if (!(template instanceof Element)) throw new Error(this.template_.sourceFor() + " is not an element");
+    var buf = [];
+    var runtime2 = ctx.meta.runtime;
+    var renderCtx = runtime2.makeContext(ctx.me, null, ctx.me, null);
+    renderCtx.locals = Object.assign({}, ctx.locals, templateArgs);
+    renderCtx.meta.__ht_template_result = buf;
+    var tokens = new Tokenizer().tokenize(template.innerHTML, "lines");
+    var parser = this._parser.createChildParser(tokens);
+    var commandList;
+    try {
+      commandList = parser.parseElement("commandList");
+      parser.ensureTerminated(commandList);
+    } catch (e) {
+      console.error("hyperscript template parse error:", e.message || e);
+      ctx.result = "";
+      return runtime2.findNext(this, ctx);
+    }
+    var errors = [];
+    var cmd = commandList;
+    while (cmd) {
+      if (cmd.errors && cmd.errors.length) errors.push(...cmd.errors);
+      cmd = cmd.next;
+    }
+    if (errors.length) {
+      for (var err of errors) {
+        console.error("hyperscript template error (line " + err.line + "): " + err.message + (err.expr ? " in ${" + err.expr + "}" : ""));
+      }
+    }
+    var resolve, reject;
+    var promise = new Promise(function(res, rej) {
+      resolve = res;
+      reject = rej;
+    });
+    commandList.execute(renderCtx);
+    if (renderCtx.meta.returned) {
+      ctx.result = buf.join("");
+      return runtime2.findNext(this, ctx);
+    }
+    renderCtx.meta.resolve = resolve;
+    renderCtx.meta.reject = reject;
+    return promise.then(() => {
+      ctx.result = buf.join("");
+      return runtime2.findNext(this, ctx);
+    });
+  }
+};
+__publicField(_RenderCommand, "keyword", "render");
+var RenderCommand = _RenderCommand;
+var _EscapeExpression = class _EscapeExpression extends Expression {
+  constructor(arg, unescaped, escapeType) {
+    super();
+    this.unescaped = unescaped;
+    this.escapeType = escapeType;
+    this.args = { value: arg };
+  }
+  static parse(parser) {
+    if (!parser.matchToken("escape")) return;
+    var escapeType = parser.matchTokenType("IDENTIFIER").value;
+    var unescaped = parser.matchToken("unescaped");
+    var arg = parser.requireElement("expression");
+    return new _EscapeExpression(arg, unescaped, escapeType);
+  }
+  resolve(ctx, { value }) {
+    if (this.unescaped) return value;
+    if (value === void 0) return "";
+    switch (this.escapeType) {
+      case "html":
+        return escapeHTML(value);
+      default:
+        throw new Error("Unknown escape: " + this.escapeType);
+    }
+  }
+};
+__publicField(_EscapeExpression, "grammarName", "escape");
+__publicField(_EscapeExpression, "expressionType", "leaf");
+var EscapeExpression = _EscapeExpression;
 
 // src/_hyperscript.js
 var globalScope = typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : void 0;
@@ -9206,7 +9457,8 @@ kernel.registerModule(install_exports);
 kernel.registerModule(js_exports);
 kernel.registerModule(when_exports);
 kernel.registerModule(bind_exports);
-kernel.registerModule(always_exports);
+kernel.registerModule(live_exports);
+kernel.registerModule(template_exports);
 function evaluate(src, ctx, args) {
   let body;
   if ("document" in globalScope) {

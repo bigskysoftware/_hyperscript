@@ -788,6 +788,7 @@ export class MathOperator extends Expression {
 
     resolve(context, { lhs: lhsVal, rhs: rhsVal }) {
         if (this.operator === "+") {
+            if (Array.isArray(lhsVal)) return lhsVal.concat(rhsVal);
             return lhsVal + rhsVal;
         } else if (this.operator === "-") {
             return lhsVal - rhsVal;
