@@ -641,7 +641,9 @@ export class Tokenizer {
             content += this.#consumeChar();
         }
         if (this.#currentChar() && this.#isNewline(this.#currentChar())) {
+            this.#consumeChar();
             content += "\n";
+            this.#templateMode = "indeterminant";
         }
         token.content = content;
         token.end = this.#position;
