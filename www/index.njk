@@ -169,13 +169,13 @@ on click
     <a href="/docs#debugging">stepping debugger</a>.</p>
 {% highlight "javascript" %}
 _hyperscript.addCommand("greet",
-  (parser, rt, tokens) => {
+  (parser) => {
     let name = parser.requireElement("expression")
     return {
       args: { name },
       resolve(ctx, { name }) {
         alert("Hello, " + name + "!")
-        return rt.findNext(this, ctx)
+        return ctx.meta.runtime.findNext(this, ctx)
       }
     }
   })
