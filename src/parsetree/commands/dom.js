@@ -1016,7 +1016,7 @@ export class OpenCommand extends Command {
     resolve(ctx, { target }) {
         var elt = target || ctx.me;
         if (this.fullscreen) {
-            return elt.requestFullscreen().then(() => {
+            return (target || document.documentElement).requestFullscreen().then(() => {
                 return ctx.meta.runtime.findNext(this, ctx);
             });
         }
