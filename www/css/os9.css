@@ -962,7 +962,7 @@ v-h { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden;
     gap: 1.5rem;
     align-items: stretch;
     margin: 0 auto 1.2rem;
-    max-width: 720px;
+    max-width: 960px;
     text-align: left;
 }
 
@@ -973,7 +973,7 @@ v-h { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden;
 }
 
 .hero-demo {
-    flex: 0 0 240px;
+    flex: 0 0 220px;
     background: var(--bg-subtle);
     border: 1px solid var(--border);
     border-radius: var(--radius);

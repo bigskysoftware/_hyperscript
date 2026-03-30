@@ -2578,6 +2578,7 @@ var Context = class {
     this.me = hyperscriptTarget;
     this.you = void 0;
     this.result = void 0;
+    this.beingTested = null;
     this.event = event;
     this.target = event ? event.target : null;
     this.detail = event ? event.detail : null;
@@ -2763,7 +2764,10 @@ var _Runtime = class _Runtime {
     if (str === "me" || str === "my" || str === "I") {
       return context.me;
     }
-    if (str === "it" || str === "its" || str === "result") {
+    if (str === "it" || str === "its") {
+      return context.beingTested != null ? context.beingTested : context.result;
+    }
+    if (str === "result") {
       return context.result;
     }
     if (str === "you" || str === "your" || str === "yourself") {
@@ -2943,9 +2947,10 @@ var _Runtime = class _Runtime {
       elements.push(elt);
     });
     var conditions = elements.map(function(elt) {
-      context.result = elt;
+      context.beingTested = elt;
       return whenExpr.evaluate(context);
     });
+    context.beingTested = null;
     var hasPromise = conditions.some(function(c) {
       return c && typeof c.then === "function";
     });
@@ -4012,7 +4017,7 @@ var _MathOperator = class _MathOperator extends Expression {
 __publicField(_MathOperator, "grammarName", "mathOperator");
 var MathOperator = _MathOperator;
 var _ComparisonOperator = class _ComparisonOperator extends Expression {
-  constructor(lhs, operator, rhs, typeName, nullOk, ignoringCase) {
+  constructor(lhs, operator, rhs, typeName, nullOk, ignoringCase, rhs2) {
     super();
     this.operator = operator;
     this.typeName = typeName;
@@ -4020,7 +4025,8 @@ var _ComparisonOperator = class _ComparisonOperator extends Expression {
     this.ignoringCase = ignoringCase;
     this.lhs = lhs;
     this.rhs = rhs;
-    this.args = { lhs, rhs };
+    this.rhs2 = rhs2;
+    this.args = { lhs, rhs, rhs2 };
   }
   sloppyContains(src, container, value) {
     if (container["contains"]) {
@@ -4057,6 +4063,8 @@ var _ComparisonOperator = class _ComparisonOperator extends Expression {
           } else if (parser.matchToken("empty")) {
             operator = "not empty";
             hasRightValue = false;
+          } else if (parser.matchToken("between")) {
+            operator = "not between";
           } else {
             if (parser.matchToken("really")) {
               operator = "!==";
@@ -4075,6 +4083,8 @@ var _ComparisonOperator = class _ComparisonOperator extends Expression {
         } else if (parser.matchToken("empty")) {
           operator = "empty";
           hasRightValue = false;
+        } else if (parser.matchToken("between")) {
+          operator = "between";
         } else if (parser.matchToken("less")) {
           parser.requireToken("than");
           if (parser.matchToken("or")) {
@@ -4117,6 +4127,16 @@ var _ComparisonOperator = class _ComparisonOperator extends Expression {
         operator = "contain";
       } else if (parser.matchToken("includes") || parser.matchToken("include")) {
         operator = "include";
+      } else if (parser.matchToken("starts")) {
+        parser.requireToken("with");
+        operator = "start with";
+      } else if (parser.matchToken("ends")) {
+        parser.requireToken("with");
+        operator = "end with";
+      } else if (parser.matchToken("precedes") || parser.matchToken("precede")) {
+        operator = "precede";
+      } else if (parser.matchToken("follows") || parser.matchToken("follow")) {
+        operator = "follow";
       } else if (parser.matchToken("do") || parser.matchToken("does")) {
         parser.requireToken("not");
         if (parser.matchToken("matches") || parser.matchToken("match")) {
@@ -4128,8 +4148,18 @@ var _ComparisonOperator = class _ComparisonOperator extends Expression {
           hasRightValue = false;
         } else if (parser.matchToken("include")) {
           operator = "not include";
+        } else if (parser.matchToken("start")) {
+          parser.requireToken("with");
+          operator = "not start with";
+        } else if (parser.matchToken("end")) {
+          parser.requireToken("with");
+          operator = "not end with";
+        } else if (parser.matchToken("precede")) {
+          operator = "not precede";
+        } else if (parser.matchToken("follow")) {
+          operator = "not follow";
         } else {
-          parser.raiseParseError("Expected matches or contains");
+          parser.raiseParseError("Expected matches, contains, starts with, ends with, precede, or follow");
         }
       }
     }
@@ -4144,17 +4174,22 @@ var _ComparisonOperator = class _ComparisonOperator extends Expression {
           rhs = rhs.css ? rhs.css : rhs;
         }
       }
+      var rhs2 = null;
+      if (operator === "between" || operator === "not between") {
+        parser.requireToken("and");
+        rhs2 = parser.requireElement("mathOperator");
+      }
       var ignoringCase = false;
       if (parser.matchToken("ignoring")) {
         parser.requireToken("case");
         ignoringCase = true;
       }
       var lhs = expr;
-      expr = new _ComparisonOperator(lhs, operator, rhs, typeName, nullOk, ignoringCase);
+      expr = new _ComparisonOperator(lhs, operator, rhs, typeName, nullOk, ignoringCase, rhs2);
     }
     return expr;
   }
-  resolve(context, { lhs: lhsVal, rhs: rhsVal }) {
+  resolve(context, { lhs: lhsVal, rhs: rhsVal, rhs2: rhs2Val }) {
     const operator = this.operator;
     const lhs = this.lhs;
     const rhs = this.rhs;
@@ -4197,6 +4232,36 @@ var _ComparisonOperator = class _ComparisonOperator extends Expression {
     }
     if (operator === "not include") {
       return lhsVal == null || !this.sloppyContains(lhs, lhsVal, rhsVal);
+    }
+    if (operator === "start with") {
+      return lhsVal != null && String(lhsVal).startsWith(rhsVal);
+    }
+    if (operator === "not start with") {
+      return lhsVal == null || !String(lhsVal).startsWith(rhsVal);
+    }
+    if (operator === "end with") {
+      return lhsVal != null && String(lhsVal).endsWith(rhsVal);
+    }
+    if (operator === "not end with") {
+      return lhsVal == null || !String(lhsVal).endsWith(rhsVal);
+    }
+    if (operator === "between") {
+      return lhsVal >= rhsVal && lhsVal <= rhs2Val;
+    }
+    if (operator === "not between") {
+      return lhsVal < rhsVal || lhsVal > rhs2Val;
+    }
+    if (operator === "precede") {
+      return lhsVal != null && rhsVal != null && (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+    }
+    if (operator === "not precede") {
+      return lhsVal == null || rhsVal == null || (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_FOLLOWING) === 0;
+    }
+    if (operator === "follow") {
+      return lhsVal != null && rhsVal != null && (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_PRECEDING) !== 0;
+    }
+    if (operator === "not follow") {
+      return lhsVal == null || rhsVal == null || (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_PRECEDING) === 0;
     }
     if (operator === "<") {
       return lhsVal < rhsVal;
@@ -4325,16 +4390,15 @@ var WhereExpression = class extends Expression {
     this.args = { root };
   }
   resolve(context, { root: collection }) {
-    var saved = context.result;
     var result = [];
     var items = Array.from(collection);
     for (var i = 0; i < items.length; i++) {
-      context.result = items[i];
+      context.beingTested = items[i];
       if (this.condition.evaluate(context)) {
         result.push(items[i]);
       }
     }
-    context.result = saved;
+    context.beingTested = null;
     return result;
   }
 };
@@ -4347,14 +4411,13 @@ var SortedByExpression = class extends Expression {
     this.args = { root };
   }
   resolve(context, { root: collection }) {
-    var saved = context.result;
     var items = Array.from(collection);
     var keys = [];
     for (var i = 0; i < items.length; i++) {
-      context.result = items[i];
+      context.beingTested = items[i];
       keys.push(this.key.evaluate(context));
     }
-    context.result = saved;
+    context.beingTested = null;
     var indices = items.map(function(_, i2) {
       return i2;
     });
@@ -4377,14 +4440,13 @@ var MappedToExpression = class extends Expression {
     this.args = { root };
   }
   resolve(context, { root: collection }) {
-    var saved = context.result;
     var items = Array.from(collection);
     var result = [];
     for (var i = 0; i < items.length; i++) {
-      context.result = items[i];
+      context.beingTested = items[i];
       result.push(this.projection.evaluate(context));
     }
-    context.result = saved;
+    context.beingTested = null;
     return result;
   }
 };

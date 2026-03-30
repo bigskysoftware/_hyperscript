@@ -11,61 +11,68 @@ title: ///_hyperscript
     <div class="hero-split">
         <div class="window hero-code">
             <div class="window-title">example.html</div>
-            <pre class="window-body"><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>input</span> <span class="token attr-name">type</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>text<span class="token punctuation">"</span></span>
-       <span class="token attr-name">placeholder</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>Search...<span class="token punctuation">"</span></span>
-       <span class="token special-attr"><span class="token attr-name">_</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span><span class="token value hyperscript language-hyperscript"><span class="token keyword"><span class="token hs-start bold">on</span></span> input
-            <span class="token keyword"><span class="token hs-start bold">show</span></span><span class="token selector"> &lt;li/&gt;</span> <span class="token keyword">in</span> <span class="token selector">#results</span>
-              <span class="token keyword">when</span> <span class="token builtin">its</span> textContent
-                <span class="token keyword">contains</span> <span class="token builtin">my</span> value</span><span class="token punctuation">"</span></span></span> <span class="token punctuation">/&gt;</span></span></code></pre>
+            <div class="window-body">
+{% highlight "html" %}
+<input type="text"
+       placeholder="Search..."
+       _="on input
+              hide #no-match
+              show <li:not(#no-match)/> in #hero-results
+                when its textContent contains my value
+                ignoring case
+              show #no-match when the result is empty" />
+{% endhighlight %}
+            </div>
         </div>
         <div class="hero-demo">
             <input type="text" placeholder="Try it — type to search..."
                    _="on input
                         hide #no-match
                         show <li:not(#no-match)/> in #hero-results when its textContent contains my value ignoring case
-                        show #no-match when the result is empty" />
+                        beep! the result
+                        show #no-match when beep! the result is empty" />
             <ul id="hero-results">
-                <li>Macintosh 128K</li>
-                <li>Macintosh 512K</li>
-                <li>Macintosh 512Ke</li>
-                <li>Macintosh Plus</li>
-                <li>Macintosh SE</li>
-                <li>Macintosh SE/30</li>
-                <li>Macintosh II</li>
-                <li>Macintosh IIx</li>
-                <li>Macintosh IIcx</li>
-                <li>Macintosh IIci</li>
-                <li>Macintosh IIfx</li>
-                <li>Macintosh Classic</li>
-                <li>Macintosh Classic II</li>
-                <li>Macintosh LC</li>
-                <li>Macintosh LC II</li>
-                <li>Macintosh LC III</li>
-                <li>Macintosh Color Classic</li>
-                <li>Macintosh Quadra 700</li>
-                <li>Macintosh Quadra 800</li>
-                <li>Macintosh Quadra 900</li>
-                <li>Macintosh Quadra 950</li>
-                <li>Macintosh Centris 610</li>
-                <li>Macintosh Centris 650</li>
-                <li>PowerBook 100</li>
-                <li>PowerBook 140</li>
-                <li>PowerBook 170</li>
-                <li>PowerBook 540c</li>
-                <li>PowerBook Duo 210</li>
-                <li>Power Macintosh 6100</li>
-                <li>Power Macintosh 7100</li>
-                <li>Power Macintosh 8100</li>
-                <li>Power Macintosh G3</li>
-                <li>Power Mac G4</li>
-                <li>Power Mac G4 Cube</li>
-                <li>Power Mac G5</li>
-                <li>iMac G3</li>
-                <li>iMac G4</li>
-                <li>iMac G5</li>
-                <li>iBook</li>
-                <li>eMac</li>
-                <li>Mac Mini</li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_128K">Macintosh 128K</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_512K">Macintosh 512K</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_512Ke">Macintosh 512Ke</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_Plus">Macintosh Plus</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_SE">Macintosh SE</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_SE/30">Macintosh SE/30</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_II">Macintosh II</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_IIx">Macintosh IIx</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_IIcx">Macintosh IIcx</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_IIci">Macintosh IIci</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_IIfx">Macintosh IIfx</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_Classic">Macintosh Classic</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_Classic_II">Macintosh Classic II</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_LC">Macintosh LC</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_LC_II">Macintosh LC II</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_LC_III">Macintosh LC III</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_Color_Classic">Macintosh Color Classic</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_Quadra_700">Macintosh Quadra 700</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_Quadra_800">Macintosh Quadra 800</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_Quadra_900">Macintosh Quadra 900</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_Quadra_950">Macintosh Quadra 950</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_Centris_610">Macintosh Centris 610</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_Centris_650">Macintosh Centris 650</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/PowerBook_100">PowerBook 100</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/PowerBook_140">PowerBook 140</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/PowerBook_170">PowerBook 170</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/PowerBook_540c">PowerBook 540c</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/PowerBook_Duo_210">PowerBook Duo 210</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Power_Macintosh_6100">Power Macintosh 6100</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Power_Macintosh_7100">Power Macintosh 7100</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Power_Macintosh_8100">Power Macintosh 8100</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Power_Macintosh_G3">Power Macintosh G3</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Power_Mac_G4">Power Mac G4</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Power_Mac_G4_Cube">Power Mac G4 Cube</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Power_Mac_G5">Power Mac G5</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/iMac_G3">iMac G3</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/iMac_G4">iMac G4</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/iMac_G5">iMac G5</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/iBook">iBook</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/eMac">eMac</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Mac_Mini">Mac Mini</a></li>
                 <li id="no-match" style="display:none; color: var(--text-muted); border: none;">No models found.</li>
             </ul>
         </div>
