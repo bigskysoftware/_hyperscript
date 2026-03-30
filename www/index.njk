@@ -1,0 +1,193 @@
+---
+layout: layout.njk
+title: ///_hyperscript
+---
+
+<div class="hero">
+    <div class="hero-title"><span class="hero-accent">_</span>hyper<span class="hero-accent">s</span>cript</div>
+    <h1>Finally... A scripting language for the web!</h1>
+    <p class="subtitle">Enhance HTML with concise DOM, event and async features. <strong>Make writing interactive HTML a joy.</strong></p>
+
+    <div class="hero-split">
+        <div class="window hero-code">
+            <div class="window-title">example.html</div>
+            <div class="window-body">
+{% highlight "html" %}
+<input type="text"
+       placeholder="Search..."
+       _="on input
+              hide #no-match
+              show <li:not(#no-match)/> in #hero-results
+                when its textContent contains my value
+                ignoring case
+              show #no-match when the result is empty" />
+{% endhighlight %}
+            </div>
+        </div>
+        <div class="hero-demo">
+            <input type="text" placeholder="Try it — type to search..."
+                   _="on input
+                        hide #no-match
+                        show <li:not(#no-match)/> in #hero-results when its textContent contains my value ignoring case
+                        beep! the result
+                        show #no-match when beep! the result is empty" />
+            <ul id="hero-results">
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_128K">Macintosh 128K</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_512K">Macintosh 512K</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_512Ke">Macintosh 512Ke</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_Plus">Macintosh Plus</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_SE">Macintosh SE</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_SE/30">Macintosh SE/30</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_II">Macintosh II</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_IIx">Macintosh IIx</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_IIcx">Macintosh IIcx</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_IIci">Macintosh IIci</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_IIfx">Macintosh IIfx</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_Classic">Macintosh Classic</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_Classic_II">Macintosh Classic II</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_LC">Macintosh LC</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_LC_II">Macintosh LC II</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_LC_III">Macintosh LC III</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_Color_Classic">Macintosh Color Classic</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_Quadra_700">Macintosh Quadra 700</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_Quadra_800">Macintosh Quadra 800</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_Quadra_900">Macintosh Quadra 900</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_Quadra_950">Macintosh Quadra 950</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_Centris_610">Macintosh Centris 610</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Macintosh_Centris_650">Macintosh Centris 650</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/PowerBook_100">PowerBook 100</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/PowerBook_140">PowerBook 140</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/PowerBook_170">PowerBook 170</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/PowerBook_540c">PowerBook 540c</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/PowerBook_Duo_210">PowerBook Duo 210</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Power_Macintosh_6100">Power Macintosh 6100</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Power_Macintosh_7100">Power Macintosh 7100</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Power_Macintosh_8100">Power Macintosh 8100</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Power_Macintosh_G3">Power Macintosh G3</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Power_Mac_G4">Power Mac G4</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Power_Mac_G4_Cube">Power Mac G4 Cube</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Power_Mac_G5">Power Mac G5</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/iMac_G3">iMac G3</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/iMac_G4">iMac G4</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/iMac_G5">iMac G5</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/iBook">iBook</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/eMac">eMac</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Mac_Mini">Mac Mini</a></li>
+                <li id="no-match" style="display:none; color: var(--text-muted); border: none;">No models found.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div style="text-align:center">
+        <div class="install-bar"
+             _="on click
+                  writeText('<script src=&quot;https://unpkg.com/hyperscript.org@0.9.14&quot;></script>') on navigator.clipboard
+                  set old to #install-label's innerHTML
+                  put 'Copied!' into #install-label
+                  add .install-flash to me
+                  wait 1s
+                  put old into #install-label
+                  remove .install-flash from me">
+            <span class="install-label" id="install-label">Install</span>
+            <code class="install-code">&lt;script src="https://unpkg.com/hyperscript.org@0.9.14"&gt;&lt;/script&gt;</code>
+            <span class="install-copy">copy</span>
+        </div>
+    </div>
+
+</div>
+
+<div class="features">
+
+<div class="feature">
+    <h2>DOM Native</h2>
+    <p>CSS selectors are first-class syntax. Reference elements by ID with <code>#foo</code>,
+    by class with <code>.bar</code>, or with full query selectors like <code>&lt;nav a.active/&gt;</code>.
+    No <code>querySelector</code> calls - just write selectors directly in your code.</p>
+{% highlight "html" %}
+<button _="on click add .highlight to <p/> in me">
+<div _="on click put 'Hello' into #output">
+<button _="on click take .active from .tabs for me">
+{% endhighlight %}
+</div>
+
+<div class="feature">
+    <h2>Event Oriented</h2>
+    <p>Every script starts with an event. Send events between elements, filter them with
+    conditions, queue or debounce them. Events are the backbone of hyperscript.</p>
+{% highlight "html" %}
+<button _="on click send hello to <form/>">
+<form _="on hello put 'Got it!' into me">
+<input _="on keyup[key is 'Escape'] set my value to ''">
+{% endhighlight %}
+</div>
+
+<div class="feature">
+    <h2>Reactive</h2>
+    <p>Watch any value - variables, properties, attributes - and react when it changes.
+    The runtime tracks dependencies automatically. <a href="/features/bind">Bind</a> values together for two-way sync.</p>
+{% highlight "html" %}
+<input type="text" id="name" />
+<h1 _="when #name.value changes put it into me"></h1>
+<input _="bind $search" />
+{% endhighlight %}
+</div>
+
+<div class="feature">
+    <h2>Async Transparent</h2>
+    <p>Write linear, top-to-bottom code. Waiting, fetching, and animating just work -
+    no promises, no callbacks, no async/await. Hyperscript handles it for you.</p>
+{% highlight "html" %}
+<button _="on click
+              put 'Loading...' into me
+              fetch /api/data as JSON
+              put the result's name into me">
+
+<div _="on click wait 2s then remove me">
+{% endhighlight %}
+</div>
+
+<div class="feature">
+    <h2>xTalk Syntax</h2>
+    <p>Inspired by <a href="https://hypercard.org/HyperTalk%20Reference%202.4.pdf">HyperTalk</a>, hyperscript reads like
+     English and embeds naturally in HTML. An <a href="https://en.wikipedia.org/wiki/HyperTalk#Descendants_of_HyperTalk">xTalk</a> language
+    for the modern web.</p>
+{% highlight "hyperscript" %}
+on click
+  if I match .active
+    remove .active from me
+    put 'Enable' into me
+  else
+    add .active to me
+    put 'Disable' into me
+{% endhighlight %}
+</div>
+
+<div class="feature">
+    <h2>Extensible</h2>
+    <p>Add custom commands, expressions, and features using vanilla JavaScript.
+    The language grows with your needs. There's even a built-in
+    <a href="/docs#debugging">stepping debugger</a>.</p>
+{% highlight "javascript" %}
+_hyperscript.addCommand("greet",
+  (parser, rt, tokens) => {
+    let name = parser.requireElement("expression")
+    return {
+      args: { name },
+      resolve(ctx, { name }) {
+        alert("Hello, " + name + "!")
+        return rt.findNext(this, ctx)
+      }
+    }
+  })
+// use it: <button _="on click greet 'World'">
+{% endhighlight %}
+</div>
+
+</div>
+
+<aside class="box warn">
+    <p>hyperscript is under construction, working towards 1.0. While the syntax and
+    features are largely complete, we're focused on more tests and docs. Please join us at the
+    <a style="font-weight: bold" href="https://htmx.org/discord">#hyperscript discord channel</a>
+    - thank you!</p>
+</aside>

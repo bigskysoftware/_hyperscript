@@ -1,12 +1,18 @@
 export function addWidgets(config) {
     config.addPairedShortcode('example', (content, caption) => {
-        let rv = "<figure class='box'>\n\n"
-        if (caption) rv += `<figcaption class="allcaps" >Example: ${caption}</figcaption>\n\n`
-        else rv += `<figcaption class="allcaps">Example</figcaption>\n\n`
-        rv += "  ~~~ html"
+        let rv = "<figure class='example-card'>\n"
+        if (caption) rv += `<figcaption class="window-title allcaps">Example: ${caption}</figcaption>\n`
+        else rv += `<figcaption class="window-title allcaps">Example</figcaption>\n`
+        rv += `<div class="example-body">\n`
+        rv += `<div class="example-code">\n\n`
+        rv += "~~~ html"
         rv += content
         rv += "~~~\n\n"
+        rv += `</div>\n`
+        rv += `<div class="example-output">\n`
         rv += content
+        rv += `</div>\n`
+        rv += `</div>\n`
         rv += "</figure>"
         return rv
     })

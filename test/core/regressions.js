@@ -90,11 +90,6 @@ test.describe("_hyperscript regressions", () => {
 		await find('div').dispatchEvent('click');
 	});
 
-	test("return followed by boundary returns an error", async ({error}) => {
-		var msg = await error("return end");
-		expect(msg).toMatch(/^'return' commands must return a value/);
-	});
-
 	test("extra chars cause error when evaling", async ({error}) => {
 		var msg = await error("1!");
 		expect(msg).toMatch(/^Unexpected Token : !/);

@@ -34,6 +34,22 @@ test.describe("the measure command", () => {
 		expect(hasProps).toBe(true);
 	});
 
+	test("can measure with possessive syntax", async ({html, find, evaluate}) => {
+		await html("<div id='other' style='all: initial; position: fixed; top: 89px'></div>" +
+			'<div _="on click measure #other\'s top then set window.measurement to {top: top}"></div>');
+		await find('div:nth-of-type(2)').dispatchEvent('click');
+		const top = await evaluate(() => Math.round(window.measurement.top));
+		expect(top).toBe(89);
+	});
+
+	test("can measure with of syntax", async ({html, find, evaluate}) => {
+		await html("<div id='other' style='all: initial; position: fixed; top: 89px'></div>" +
+			"<div _='on click measure top of #other then set window.measurement to {top: top}'></div>");
+		await find('div:nth-of-type(2)').dispatchEvent('click');
+		const top = await evaluate(() => Math.round(window.measurement.top));
+		expect(top).toBe(89);
+	});
+
 	test("can measure all the supported properties", async ({html, find}) => {
 		await html(
 			"<div _='on click measure x,y,left,top,right,bottom,width,height,bounds,scrollLeft,scrollTop,scrollLeftMax,scrollTopMax,scrollWidth,scrollHeight,scroll'></div>"

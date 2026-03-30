@@ -3,9 +3,21 @@ import { config } from '../config.js';
 import { conversions } from './conversions.js';
 import { CookieJar } from './cookies.js';
 import { ElementCollection, SHOULD_AUTO_ITERATE_SYM } from './collections.js';
+import { reactivity } from './reactivity.js';
+import { formatErrors } from '../tokenizer.js';
 
 // cookie jar proxy for runtime
 let cookies = new CookieJar().proxy();
+
+/** Apply forward/reverse functions based on when-clause results, return matched elements */
+function _applyWhenResults(elements, results, forwardFn, reverseFn) {
+    var matched = [];
+    for (var i = 0; i < elements.length; i++) {
+        if (results[i]) { forwardFn(elements[i]); matched.push(elements[i]); }
+        else reverseFn(elements[i]);
+    }
+    return matched;
+}
 
 
 export class Context {
@@ -22,9 +34,25 @@ export class Context {
         this.locals = {
             cookies: cookies
         };
+        if (typeof navigator !== "undefined" && navigator.clipboard) {
+            Object.defineProperty(this.locals, 'clipboard', {
+                get() { return navigator.clipboard.readText(); },
+                set(v) { navigator.clipboard.writeText(String(v)); },
+                enumerable: true,
+                configurable: true
+            });
+        }
+        if (typeof window !== "undefined" && window.getSelection) {
+            Object.defineProperty(this.locals, 'selection', {
+                get() { return window.getSelection().toString(); },
+                enumerable: true,
+                configurable: true
+            });
+        }
         this.me = hyperscriptTarget;
         this.you = undefined
         this.result = undefined
+        this.beingTested = null
         this.event = event;
         this.target = event ? event.target : null;
         this.detail = event ? event.detail : null;
@@ -49,6 +77,7 @@ export class Runtime {
             this.#globalScope = globalScope;
             this.#kernel = kernel;
             this.#tokenizer = tokenizer;
+
         }
 
         get globalScope() {
@@ -236,21 +265,32 @@ export class Runtime {
             return context instanceof Context;
         }
 
-        resolveSymbol(str, context, type) {
+        resolveSymbol(str, context, type, targetElement) {
             if (str === "me" || str === "my" || str === "I") {
                 return context.me;
             }
-            if (str === "it" || str === "its" || str === "result") {
+            if (str === "it" || str === "its") {
+                return context.beingTested != null ? context.beingTested : context.result;
+            }
+            if (str === "result") {
                 return context.result;
             }
             if (str === "you" || str === "your" || str === "yourself") {
                 return context.you;
             } else {
                 if (type === "global") {
+                    if (reactivity.isTracking) reactivity.trackGlobalSymbol(str);
                     return this.#globalScope[str];
                 } else if (type === "element") {
+                    if (reactivity.isTracking) reactivity.trackElementSymbol(str, context.meta.owner);
                     var elementScope = this.#getElementScope(context);
                     return elementScope[str];
+                } else if (type === "inherited") {
+                    var inherited = this.#resolveInherited(str, context, targetElement);
+                    if (reactivity.isTracking && inherited.element) {
+                        reactivity.trackElementSymbol(str, inherited.element);
+                    }
+                    return inherited.value;
                 } else if (type === "local") {
                     return context.locals[str];
                 } else {
@@ -272,13 +312,19 @@ export class Runtime {
                         var fromContext = context[str];
                     }
                     if (typeof fromContext !== "undefined") {
+                        // Found in locals/meta - don't track (ephemeral)
                         return fromContext;
                     } else {
+                        // element scope
                         var elementScope = this.#getElementScope(context);
                         fromContext = elementScope[str];
                         if (typeof fromContext !== "undefined") {
+                            if (reactivity.isTracking) reactivity.trackElementSymbol(str, context.meta.owner);
                             return fromContext;
                         } else {
+                            // Global scope (or not found - track as global
+                            // so we catch the first write)
+                            if (reactivity.isTracking) reactivity.trackGlobalSymbol(str);
                             return this.#globalScope[str];
                         }
                     }
@@ -286,26 +332,49 @@ export class Runtime {
             }
         }
 
-        setSymbol(str, context, type, value) {
+        setSymbol(str, context, type, value, targetElement) {
             if (type === "global") {
                 this.#globalScope[str] = value;
+                reactivity.notifyGlobalSymbol(str);
             } else if (type === "element") {
                 var elementScope = this.#getElementScope(context);
                 elementScope[str] = value;
+                reactivity.notifyElementSymbol(str, context.meta.owner);
+            } else if (type === "inherited") {
+                var inherited = this.#resolveInherited(str, context, targetElement);
+                if (inherited.element) {
+                    this.getInternalData(inherited.element).elementScope[str] = value;
+                    reactivity.notifyElementSymbol(str, inherited.element);
+                } else {
+                    // Not found anywhere — create on target element or current element
+                    var owner = targetElement || (context.meta && context.meta.owner);
+                    if (owner) {
+                        var internalData = this.getInternalData(owner);
+                        if (!internalData.elementScope) internalData.elementScope = {};
+                        internalData.elementScope[str] = value;
+                        reactivity.notifyElementSymbol(str, owner);
+                    }
+                }
             } else if (type === "local") {
                 context.locals[str] = value;
+                // Don't notify - local scope is ephemeral
             } else {
                 if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str) && typeof context.locals[str] !== "undefined") {
+                    // local scope - don't notify
                     context.locals[str] = value;
                 } else {
+                    // element scope
                     var elementScope = this.#getElementScope(context);
                     var fromContext = elementScope[str];
                     if (typeof fromContext !== "undefined") {
                         elementScope[str] = value;
+                        reactivity.notifyElementSymbol(str, context.meta.owner);
                     } else {
                         if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str)) {
+                            // local scope - don't notify
                             context.locals[str] = value;
                         } else {
+                            // direct set on normal JS object or top-level of context
                             context[str] = value;
                         }
                     }
@@ -318,6 +387,18 @@ export class Runtime {
                 elt._hyperscript = {};
             }
             return elt._hyperscript;
+        }
+
+        #resolveInherited(str, context, startElement) {
+            var elt = startElement || (context.meta && context.meta.owner);
+            while (elt) {
+                var internalData = elt._hyperscript;
+                if (internalData && internalData.elementScope && str in internalData.elementScope) {
+                    return { value: internalData.elementScope[str], element: elt };
+                }
+                elt = elt.parentElement;
+            }
+            return { value: undefined, element: null };
         }
 
         #getElementScope(context) {
@@ -357,19 +438,32 @@ export class Runtime {
         }
 
         resolveProperty(root, property) {
-            return this.#flatGet(root, property, (root, property) => root[property] )
+            if (reactivity.isTracking) reactivity.trackProperty(root, property);
+            return this.#flatGet(root, property, (root, property) => root[property])
+        }
+
+        /**
+         * Set a property on an object and notify the reactivity system.
+         * @param {Object} obj - DOM element or plain JS object
+         * @param {string} property
+         * @param {any} value
+         */
+        setProperty(obj, property, value) {
+            obj[property] = value;
+            reactivity.notifyProperty(obj);
         }
 
         resolveAttribute(root, property) {
-            return this.#flatGet(root, property, (root, property) => root.getAttribute && root.getAttribute(property) )
+            if (reactivity.isTracking) reactivity.trackAttribute(root, property);
+            return this.#flatGet(root, property, (root, property) => root.getAttribute && root.getAttribute(property))
         }
 
         resolveStyle(root, property) {
-            return this.#flatGet(root, property, (root, property) => root.style && root.style[property] )
+            return this.#flatGet(root, property, (root, property) => root.style && root.style[property])
         }
 
         resolveComputedStyle(root, property) {
-            return this.#flatGet(root, property, (root, property) => getComputedStyle(root).getPropertyValue(property) )
+            return this.#flatGet(root, property, (root, property) => getComputedStyle(root).getPropertyValue(property))
         }
 
         assignToNamespace(elt, nameSpace, name, value) {
@@ -435,6 +529,30 @@ export class Runtime {
             }
         }
 
+        /**
+         * Iterate over targets with a when condition, applying forward or reverse per element.
+         * Supports async conditions transparently -- returns a Promise if any condition is async.
+         */
+        implicitLoopWhen(targets, whenExpr, context, forwardFn, reverseFn) {
+            var elements = [];
+            this.implicitLoop(targets, function (elt) { elements.push(elt); });
+
+            var conditions = elements.map(function (elt) {
+                context.beingTested = elt;
+                return whenExpr.evaluate(context);
+            });
+            context.beingTested = null;
+
+            var hasPromise = conditions.some(function (c) { return c && typeof c.then === "function"; });
+            if (hasPromise) {
+                return Promise.all(conditions).then(function (results) {
+                    context.result = _applyWhenResults(elements, results, forwardFn, reverseFn);
+                });
+            } else {
+                context.result = _applyWhenResults(elements, conditions, forwardFn, reverseFn);
+            }
+        }
+
         // =================================================================
         // Type system
         // =================================================================
@@ -460,7 +578,7 @@ export class Runtime {
 
         evaluateNoPromise(elt, ctx) {
             let result = elt.evaluate(ctx);
-            if (result.next) {
+            if (result && typeof result.then === "function") {
                 throw new Error(elt.sourceFor() + " returned a Promise in a context that they are not allowed.");
             }
             return result;
@@ -471,7 +589,10 @@ export class Runtime {
                 return true;
             }
             var typeName = Object.prototype.toString.call(value).slice(8, -1);
-            return typeName === typeString;
+            if (typeName === typeString) return true;
+            // instanceof fallback for base classes
+            var ctor = typeof globalThis !== "undefined" && globalThis[typeString];
+            return typeof ctor === "function" && value instanceof ctor;
         }
 
         nullCheck(value, elt) {
@@ -619,6 +740,9 @@ export class Runtime {
                 }
             }
 
+            // Stop reactive effects
+            reactivity.stopElementEffects(elt);
+
             // Recursively clean children
             if (elt.querySelectorAll) {
                 for (var child of elt.querySelectorAll('[data-hyperscript-powered]')) {
@@ -655,6 +779,19 @@ export class Runtime {
                 var tokens = this.#tokenizer.tokenize(src);
                 var hyperScript = this.#kernel.parseHyperScript(tokens);
                 if (!hyperScript) return;
+
+                if (hyperScript.errors?.length) {
+                    this.triggerEvent(elt, "hyperscript:parse-error", {
+                        errors: hyperScript.errors,
+                    });
+                    console.error(
+                        "hyperscript: " + hyperScript.errors.length + " parse error(s) on:",
+                        elt,
+                        "\n\n" + formatErrors(hyperScript.errors)
+                    );
+                    return;
+                }
+
                 hyperScript.apply(target || elt, elt, null, this);
                 elt.setAttribute('data-hyperscript-powered', 'true');
                 this.triggerEvent(elt, "hyperscript:after:init");

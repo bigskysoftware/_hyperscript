@@ -42,6 +42,13 @@ test.describe("as operator", () => {
 		expect(result).toBe(10.4)
 	})
 
+	test("converts value as Boolean", async ({run}) => {
+		expect(await run("1 as Boolean")).toBe(true)
+		expect(await run("0 as Boolean")).toBe(false)
+		expect(await run("'' as Boolean")).toBe(false)
+		expect(await run("'hello' as Boolean")).toBe(true)
+	})
+
 	test("converts value as Date", async ({evaluate}) => {
 		const result = await evaluate(() => {
 			const r = _hyperscript("1 as Date")
@@ -58,9 +65,19 @@ test.describe("as operator", () => {
 		expect(result).toBe(new Date(1).getTime())
 	})
 
-	test("converts value as JSON", async ({run}) => {
-		const result = await run("{foo:'bar'} as JSON")
+	test("parses string as JSON to object", async ({run}) => {
+		const result = await run('\'{"foo":"bar"}\' as JSON')
+		expect(result["foo"]).toBe("bar")
+	})
+
+	test("converts value as JSONString", async ({run}) => {
+		const result = await run("{foo:'bar'} as JSONString")
 		expect(result).toBe('{"foo":"bar"}')
+	})
+
+	test("pipe operator chains conversions", async ({run}) => {
+		const result = await run("{foo:'bar'} as JSONString | JSON")
+		expect(result["foo"]).toBe("bar")
 	})
 
 	test("converts string as Object", async ({run}) => {
@@ -86,6 +103,18 @@ test.describe("as operator", () => {
 			return _hyperscript("x as Values", { locals: { x: node } })
 		})
 		expect(result["test-name"]).toBe("test-value")
+	})
+
+	test("collects duplicate text inputs into an array", async ({evaluate}) => {
+		const result = await evaluate(() => {
+			const node = document.createElement("form")
+			node.innerHTML = `
+				<input name="tag" value="alpha">
+				<input name="tag" value="beta">
+				<input name="tag" value="gamma">`
+			return _hyperscript("x as Values", { locals: { x: node } })
+		})
+		expect(result.tag).toEqual(["alpha", "beta", "gamma"])
 	})
 
 	test("converts a form element into Values", async ({evaluate}) => {
@@ -172,6 +201,25 @@ test.describe("as operator", () => {
 			return _hyperscript("x as Values", { locals: { x: node } })
 		})
 		expect(result.animal[0]).toBe("dog")
+		expect(result.animal[1]).toBe("raccoon")
+	})
+
+	test("converts multiple selects with programmatically changed selections", async ({evaluate}) => {
+		const result = await evaluate(() => {
+			const node = document.createElement("form")
+			node.innerHTML = `
+				<select name="animal" multiple>
+					<option value="dog" selected>Doggo</option>
+					<option value="cat">Kitteh</option>
+					<option value="raccoon" selected>Trash Panda</option>
+					<option value="possum">Sleepy Boi</option>
+				</select>`
+			var select = node.querySelector("select")
+			select.options[0].selected = false   // deselect dog
+			select.options[1].selected = true     // select cat
+			return _hyperscript("x as Values", { locals: { x: node } })
+		})
+		expect(result.animal[0]).toBe("cat")
 		expect(result.animal[1]).toBe("raccoon")
 	})
 
@@ -323,7 +371,7 @@ test.describe("as operator", () => {
 		expect(result).toBe("Bar1")
 	})
 
-	test("converts a form element into Values JSON", async ({evaluate}) => {
+	test("converts a form element into Values | JSONString", async ({evaluate}) => {
 		const result = await evaluate(() => {
 			const node = document.createElement("form")
 			node.innerHTML = `
@@ -333,12 +381,12 @@ test.describe("as operator", () => {
 					<input name="areaCode" value="213">
 					<input name="phone" value="555-1212">
 				</div>`
-			return _hyperscript("x as Values:JSON", { locals: { x: node } })
+			return _hyperscript("x as Values | JSONString", { locals: { x: node } })
 		})
 		expect(result).toBe('{"firstName":"John","lastName":"Connor","areaCode":"213","phone":"555-1212"}')
 	})
 
-	test("converts a form element into Values Form Data", async ({evaluate}) => {
+	test("converts a form element into Values | FormEncoded", async ({evaluate}) => {
 		const result = await evaluate(() => {
 			const node = document.createElement("form")
 			node.innerHTML = `
@@ -348,7 +396,7 @@ test.describe("as operator", () => {
 					<input name="areaCode" value="213">
 					<input name="phone" value="555-1212">
 				</div>`
-			return _hyperscript("x as Values:Form", { locals: { x: node } })
+			return _hyperscript("x as Values | FormEncoded", { locals: { x: node } })
 		})
 		expect(result).toBe('firstName=John&lastName=Connor&areaCode=213&phone=555-1212')
 	})

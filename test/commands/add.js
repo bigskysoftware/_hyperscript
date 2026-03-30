@@ -109,6 +109,20 @@ test.describe("the add command", () => {
 		await expect(find('#d3')).toHaveAttribute('rey');
 	});
 
+	test("supports async expressions in when clause", async ({html, find, evaluate}) => {
+		await evaluate(() => {
+			window.asyncCheck = function() {
+				return new Promise(r => setTimeout(() => r(true), 10));
+			}
+		});
+		await html(
+			"<div id='trigger' _='on click add .foo to #d2 when asyncCheck()'></div>" +
+			"<div id='d2'></div>"
+		);
+		await find('#trigger').dispatchEvent('click');
+		await expect(find('#d2')).toHaveClass(/foo/);
+	});
+
 	test("can add to an HTMLCollection", async ({html, find}) => {
 		await html(
 			"<div id='trigger' _='on click add .foo to the children of #bar'></div>" +
@@ -119,5 +133,28 @@ test.describe("the add command", () => {
 		await find('#trigger').dispatchEvent('click');
 		await expect(find('#c1')).toHaveClass(/foo/);
 		await expect(find('#c2')).toHaveClass(/foo/);
+	});
+
+	test("when clause sets result to matched elements", async ({html, find}) => {
+		await html(
+			"<div id='trigger' _='on click add .foo to .item when it matches .yes then if the result is empty show #none else hide #none'></div>" +
+			"<div id='d1' class='item yes'></div>" +
+			"<div id='d2' class='item'></div>" +
+			"<div id='none' style='display:none'></div>"
+		);
+		await find('#trigger').dispatchEvent('click');
+		// d1 matches .yes, so result is not empty -> #none stays hidden
+		await expect(find('#none')).toBeHidden();
+	});
+
+	test("when clause result is empty when nothing matches", async ({html, find}) => {
+		await html(
+			"<div id='trigger' _='on click add .foo to .item when it matches .nope then if the result is empty remove @hidden from #none'></div>" +
+			"<div id='d1' class='item'></div>" +
+			"<div id='none' hidden></div>"
+		);
+		await find('#trigger').dispatchEvent('click');
+		// nothing matches .nope, so result is empty -> #none shown
+		await expect(find('#none')).not.toHaveAttribute('hidden');
 	});
 });

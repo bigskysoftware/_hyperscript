@@ -97,6 +97,16 @@ test.describe('the on feature', () => {
 		await expect(find('#d2')).toHaveClass(/fromBar/)
 	})
 
+	test('handles custom events with null detail', async ({html, find, evaluate}) => {
+		await html(
+			"<div id='d1' _='on myEvent(foo) if foo put foo into me else put \"no-detail\" into me'></div>"
+		)
+		await evaluate(() => {
+			document.querySelector('#work-area #d1').dispatchEvent(new CustomEvent("myEvent"))
+		})
+		await expect(find('#d1')).toHaveText('no-detail')
+	})
+
 	test('can pick event properties out by name', async ({html, find}) => {
 		await html(
 			"<div id='d1' _='on click send fromBar to #d2'></div>" +
@@ -415,6 +425,14 @@ test.describe('the on feature', () => {
 		expect(result).toBe(true)
 	})
 
+	test('on first click fires only once', async ({html, find}) => {
+		await html("<div _='on first click put 1 + my.innerHTML as Int into my.innerHTML'>0</div>")
+		await find('div').dispatchEvent('click')
+		await expect(find('div')).toHaveText('1')
+		await find('div').dispatchEvent('click')
+		await expect(find('div')).toHaveText('1')
+	})
+
 	test('can filter events based on count', async ({html, find}) => {
 		await html("<div _='on click 1 put 1 + my.innerHTML as Int into my.innerHTML'>0</div>")
 		await find('div').dispatchEvent('click')
@@ -492,15 +510,13 @@ test.describe('the on feature', () => {
 		await expect(find('div')).toHaveText('Mutated')
 	})
 
-	test.fixme('can listen for childList mutation filter out other mutations', async ({html, find, evaluate}) => {
-		// TODO: mutation type filtering appears broken in the refactored runtime
+	test('can listen for childList mutation filter out other mutations', async ({html, find, evaluate}) => {
 		await html("<div _='on mutation of childList put \"Mutated\" into me'></div>")
 		await evaluate(() => document.querySelector('#work-area div').setAttribute("foo", "bar"))
 		await expect(find('div')).toHaveText('')
 	})
 
-	test.fixme('can listen for characterData mutation filter out other mutations', async ({html, find, evaluate}) => {
-		// TODO: mutation type filtering appears broken in the refactored runtime
+	test('can listen for characterData mutation filter out other mutations', async ({html, find, evaluate}) => {
 		await html("<div _='on mutation of characterData put \"Mutated\" into me'></div>")
 		await evaluate(() => document.querySelector('#work-area div').setAttribute("foo", "bar"))
 		await expect(find('div')).toHaveText('')

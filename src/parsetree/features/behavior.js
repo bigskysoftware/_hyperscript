@@ -44,7 +44,7 @@ export class BehaviorFeature extends Feature {
 
     static parse(parser) {
         if (!parser.matchToken("behavior")) return;
-        var path = parser.requireElement("dotOrColonPath").evaluate();
+        var path = parser.requireElement("dotOrColonPath").evalStatically();
         var nameSpace = path.split(".");
         var name = nameSpace.pop();
 

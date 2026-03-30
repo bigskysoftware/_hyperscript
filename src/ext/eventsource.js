@@ -27,13 +27,13 @@ export class EventSourceFeature extends Feature {
 
 		// Get the name we'll assign to this EventSource in the hyperscript context
 		var name = parser.requireElement("dotOrColonPath");
-		var qualifiedName = name.evaluate();
+		var qualifiedName = name.evalStatically();
 		var nameSpace = qualifiedName.split(".");
 		var eventSourceName = nameSpace.pop();
 
 		// Get the URL of the EventSource
 		if (parser.matchToken("from")) {
-			urlElement = parser.requireElement("stringLike");
+			urlElement = parser.parseURLOrExpression();
 		}
 
 		// Get option to connect with/without credentials
@@ -126,14 +126,14 @@ export class EventSourceFeature extends Feature {
 
 		// Parse each event listener and add it into the list
 		while (parser.matchToken("on")) {
-			var eventName = parser.requireElement("stringLike").evaluate();
+			var eventName = parser.requireElement("stringLike").evalStatically();
 
 			// default encoding is "" (autodetect)
 			var encoding = "";
 
 			// look for alternate encoding
 			if (parser.matchToken("as")) {
-				encoding = parser.requireElement("stringLike").evaluate();
+				encoding = parser.requireElement("stringLike").evalStatically();
 			}
 
 			var commandList = parser.requireElement("commandList");
@@ -150,7 +150,7 @@ export class EventSourceFeature extends Feature {
 
 		// If we have a URL element, connect to the remote server now
 		if (urlElement != undefined) {
-			stub.open(urlElement.evaluate());
+			stub.open(urlElement.evalStatically());
 		}
 
 		return feature;

@@ -20,12 +20,11 @@ test.describe('the init feature', () => {
 
 	test('can initialize immediately', async ({html, evaluate}) => {
 		await html(
-			"<script type='text/hyperscript'>init set window.foo to 10 end" +
-			"                                init immediately set window.bar to window.foo end</script>"
+			"<script type='text/hyperscript'>init immediately set window.bar to 42 end</script>"
 		)
-		await expect.poll(() => evaluate(() => window.foo)).toBe(10)
+		// immediately runs synchronously during processNode, so bar is set before the microtask
 		const bar = await evaluate(() => window.bar)
-		expect(bar).toBeUndefined()
+		expect(bar).toBe(42)
 	})
 
 })

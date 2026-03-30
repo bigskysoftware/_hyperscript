@@ -1,89 +1,662 @@
 ---
 layout: layout.njk
-title: ///_hyperscript
+title: Try it! - ///_hyperscript
 ---
 
-<h1>Playground</h1>
+<style>
+    /* Override container for full-bleed playground */
+    .container.content { max-width: none; padding: 0; }
 
-<p>Below is the hyperscript playground.  You can enter some HTML with hyperscript in it and click the load button
-   or hit ctrl-enter in the editor, and the code will be loaded into the content.  You can also look at the source
-   for this page, which is written entirely in hyperscript.  :)</p>
+    .playground { display: flex; flex-direction: column; height: calc(100dvh - 52px); overflow: hidden; }
 
-<div class="basicgrid">
-    <div class="col-2">
+    .playground-toolbar {
+        background: var(--chrome-gradient);
+        padding: 4px 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+    }
+    .playground-toolbar h2 {
+        font-size: 0.85rem;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .playground-toolbar h2::before {
+        content: '';
+        display: inline-block;
+        width: 14px;
+        height: 11px;
+        flex-shrink: 0;
+        opacity: 0.35;
+        background: repeating-linear-gradient(to bottom, var(--text) 0px, var(--text) 1px, transparent 1px, transparent 3px);
+    }
+    .toolbar-spacer { flex: 1; }
+    .toolbar-select {
+        font-family: var(--font-heading);
+        font-size: 0.82rem;
+        padding: 2px 6px;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius);
+        background: white;
+    }
 
-        <div class="tool-bar">
-            <h2 style="margin: 0;">HTML (ctrl-enter to load)</h2>
-            <label>
-                Load Example:
-                <select style="width: 10ch;"
-                        _="on change
-                             if my value is not 'Clear'
-                               fetch `/playground/${my value}`
-                               put it into #code.value
-                               send loadCode to #code
-                             else
-                               put '' into #code.value
-                               put '' into #contents">
-                    <option>Clear</option>
-                    <option value="hide_remove">Hide Then Remove</option>
-                    <option value="drag">Drag</option>
-                    <option value="modal">Modal</option>
-                    <option value="goto">Go To Buttons</option>
-                    <option value="input_mirroring">Input Mirror</option>
-                    <option value="password_visibility">Password Hiding</option>
-                </select>
-            </label>
-          </div>
-        <p><textarea id="code" class="monospace" rows="15" style="width: 100%;"
-                  _="on keyup[ctrlKey and key is 'Enter'] or loadCode
-                          transition #contents opacity to 0 over 10ms
-                          put my value into #contents
-                          transition #contents opacity to 1
-                          call _hyperscript.processNode(#contents)
+    .playground-panes { flex: 1; display: flex; min-height: 0; }
+    .pane-editor { flex: 1; display: flex; flex-direction: column; border-right: 1px solid var(--border); }
+    .pane-preview { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    .pane-label {
+        padding: 3px 10px;
+        background: var(--bg-chrome);
+        font-family: var(--font-heading);
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+    }
+    .preview-frame { flex: 1; background: white; border: none; min-height: 0; }
+    .pane-editor { background: #2e3440; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    .pane-editor .pane-label { background: #3b4252; color: #d8dee9; border-color: #4c566a; }
+    .CodeMirror { flex: 1; height: auto; font-size: 14px; font-family: var(--mono-font); font-weight: bold; }
 
-                     on exception from #contents
-                          send showError(error: the message of the event's detail's error) to #eval-contents"></textarea>
-        <div>
-            <button class="btn primary" _="on click send loadCode to #code">
-                Load HTML Into Content
-            </button>
+    .playground-status {
+        padding: 3px 12px;
+        background: var(--bg-chrome);
+        border-top: 1px solid var(--border);
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        flex-shrink: 0;
+    }
+    .playground-status .error { color: #c00; }
+
+    /* Dark-themed hyperscript tokens (for nord) */
+    .cm-hs-keyword { color: #b48ead; }
+    .cm-hs-symbol-global { color: #88c0d0; }
+    .cm-hs-symbol-element { color: #d08770; }
+    .cm-hs-symbol-dom { color: #a3be8c; }
+    .cm-hs-symbol-inherited-attr { color: #ebcb8b; }
+    .cm-hs-string { color: #a3be8c; }
+    .cm-hs-number { color: #d08770; }
+    .cm-hs-operator { color: #81a1c1; }
+    .cm-hs-comment { color: #616e88; font-style: italic; }
+
+    /* Console */
+    .pane-console {
+        display: flex;
+        flex-direction: column;
+        flex: 0 1 180px;
+        min-height: 80px;
+        background: #2e3440;
+        border-top: 1px solid #4c566a;
+    }
+    .pane-console .pane-label { background: #3b4252; color: #d8dee9; border-color: #4c566a; }
+    .pane-console { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    .console-output {
+        flex: 1;
+        overflow-y: auto;
+        padding: 6px 10px;
+        font-family: var(--mono-font);
+        font-size: 12px;
+        font-weight: bold;
+        color: #d8dee9;
+        background: #3b4252;
+    }
+    .console-output .log { color: #d8dee9; }
+    .console-output .warn { color: #ebcb8b; }
+    .console-output .error { color: #bf616a; }
+    .console-output .result { color: #88c0d0; }
+    .console-output .separator { color: #4c566a; border-top: 1px solid #3b4252; margin: 4px 0; }
+    .console-output div { padding: 1px 0; white-space: pre-wrap; word-break: break-all; }
+    .console-input-line {
+        display: flex;
+        align-items: center;
+        border-top: 1px solid #4c566a;
+        padding: 4px 10px;
+        background: #2e3440;
+        flex-shrink: 0;
+    }
+    .console-prompt {
+        color: #88c0d0;
+        font-family: var(--mono-font);
+        font-size: 13px;
+        margin-right: 6px;
+        user-select: none;
+    }
+    textarea.console-input, textarea.console-input:focus {
+        flex: 1;
+        background: transparent;
+        border: none;
+        outline: none;
+        box-shadow: none;
+        color: #eceff4;
+        font-family: var(--mono-font);
+        font-size: 12px;
+        font-weight: bold;
+        padding: 0;
+        margin: 0;
+        border-radius: 0;
+        resize: none;
+        overflow: hidden;
+        line-height: 1.5;
+        height: 18px;
+    }
+    .console-input::placeholder { color: #616e88; }
+
+    /* Resize handles */
+    .resize-handle-h {
+        width: 5px;
+        cursor: col-resize;
+        background: #3b4252;
+        flex-shrink: 0;
+        transition: background 0.15s;
+    }
+    .resize-handle-h:hover,
+    .resize-handle-h.dragging { background: #88c0d0; }
+
+    .resize-handle-v {
+        height: 5px;
+        cursor: row-resize;
+        background: #3b4252;
+        flex-shrink: 0;
+        transition: background 0.15s;
+    }
+    .resize-handle-v:hover,
+    .resize-handle-v.dragging { background: #88c0d0; }
+
+    @media (max-width: 768px) {
+        .playground-panes { flex-direction: column; }
+        .pane-editor { border-right: none; border-bottom: 1px solid var(--border); max-height: 50%; }
+        .resize-handle-h { display: none; }
+    }
+</style>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/lint/lint.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/hint/show-hint.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/theme/nord.min.css">
+
+<div class="playground">
+    <div class="playground-toolbar">
+        <h2>Playground</h2>
+        <div class="toolbar-spacer"></div>
+        <select id="examples" class="toolbar-select">
+            <option value="">Load example...</option>
+            <option value="counter">Counter</option>
+            <option value="hide_remove">Hide &amp; Remove</option>
+            <option value="drag">Drag &amp; Drop</option>
+            <option value="modal">Modal Dialog</option>
+            <option value="goto">Go To Buttons</option>
+            <option value="input_mirroring">Input Mirroring</option>
+            <option value="password_visibility">Password Toggle</option>
+            <option value="colors">Color Cycle</option>
+            <option value="search">Live Search</option>
+        </select>
+        <button class="btn btn-sm" id="run-btn">Run (Ctrl+Enter)</button>
+        <button class="btn btn-sm" id="share-btn">Share</button>
+        <button class="btn btn-sm" id="clear-btn">Clear</button>
+    </div>
+
+    <div class="playground-panes">
+        <div class="pane-editor">
+            <div class="pane-label">Editor</div>
+            <textarea id="editor"></textarea>
+        </div>
+        <div class="resize-handle-h" id="resize-h"></div>
+        <div class="pane-preview">
+            <div class="pane-label">Preview</div>
+            <iframe id="preview" class="preview-frame"></iframe>
+            <div class="resize-handle-v" id="resize-v"></div>
+            <div class="pane-console">
+                <div class="pane-label">Console</div>
+                <div class="console-output" id="console-output"></div>
+                <div class="console-input-line">
+                    <span class="console-prompt">&gt;</span>
+                    <textarea class="console-input" id="console-input" rows="1"
+                              placeholder="hyperscript expression or command..."></textarea>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="col-1">
-        <h2>Eval</h2>
-        <input placeholder="Enter an expression..." type="text"
-               _="def evalHyperscript(src)
-                    send showResult(result: JSON.stringify(_hyperscript(src), null, 2)) to #eval-contents
-                  catch e
-                    send showError(error: e.message) to #eval-contents
-                  end
 
-                  on keyup[key is 'Enter']
-                     if my value is not empty
-                       call evalHyperscript(my value)
-                     else
-                       send showResult(result: '') to #eval-contents
-                     end
-                     select() me"/>
-        <h2>Output</h2>
-        <div id="eval-contents" style="width: 100%; height:100%;font-family:'Courier New', monospace; overflow: auto; max-height: 230px"
-             _="on showResult(result)
-                   transition #eval-contents opacity to 0 over 50ms
-                   put result into me
-                   transition #eval-contents opacity to 1 over 50ms
-
-                on showError(error)
-                   log event
-                   trigger showResult(result: error)
-                   transition background-color to orangered over 100ms
-                   transition background-color to initial">
-
-        </div>
-        <small><a href="#" _="on click send showResult(result: '') to #eval-contents">clear</a></small>
-    </div>
+    <div class="playground-status" id="status">Ready &mdash; Ctrl+Enter to run, Ctrl+Space for autocomplete</div>
 </div>
-<div class="box">
-    <h2>Content</h2>
-    <div id="contents"></div>
-</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/mode/htmlmixed/htmlmixed.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/mode/css/css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/lint/lint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/hint/show-hint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/mode/overlay.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+<script>
+// ============================================================
+// Built-in examples
+// ============================================================
+var BUILTIN_EXAMPLES = {
+    counter: '<h2>Counter</h2>\n<div _="init set ^count to 0">\n  <button _="on click increment ^count">+1</button>\n  <button _="on click decrement ^count">-1</button>\n  <input _="bind ^count" />\n</div>',
+    colors: '<h2>Color Cycle</h2>\n<button style="padding:12px 24px;font-size:1.1rem;cursor:pointer"\n        _="on pointerdown\n             repeat until event pointerup from document\n               set rand to Math.random() * 360\n               transition #color-target\'s *background-color\n                 to `hsl(${rand} 100% 85%)` over 200ms\n             end\n             transition #color-target\'s *background-color to initial">\n  Press and hold\n</button>\n<div id="color-target" style="margin-top:1em;padding:2em;border:1px solid #ddd;border-radius:4px;text-align:center">Watch me change!</div>',
+    search: '<h2>Live Search</h2>\n<input type="text" placeholder="Search..."\n       _="on input\n            show &lt;li/&gt; in #results\n              when its textContent contains my value" />\n<ul id="results">\n  <li>Apples</li>\n  <li>Bananas</li>\n  <li>Cherries</li>\n  <li>Dates</li>\n  <li>Elderberries</li>\n  <li>Figs</li>\n  <li>Grapes</li>\n</ul>',
+};
+
+// ============================================================
+// Hyperscript overlay mode for CodeMirror
+// ============================================================
+var HS_KEYWORDS = [
+    "on", "init", "immediately", "end", "if", "else", "then", "set", "get",
+    "put", "into", "before", "after", "add", "remove", "toggle", "trigger",
+    "send", "take", "log", "call", "wait", "settle", "repeat", "for", "in",
+    "while", "until", "from", "to", "by", "increment", "decrement", "default",
+    "transition", "fetch", "throw", "return", "exit", "halt", "async", "tell",
+    "go", "hide", "show", "with", "when", "changes", "always", "bind", "and",
+    "or", "not", "no", "is", "am", "the", "a", "an", "of", "closest", "next",
+    "previous", "first", "last", "random", "as", "my", "me", "it", "its",
+    "you", "your", "yourself", "result", "event", "target", "detail", "sender",
+    "body", "true", "false", "null", "undefined", "global", "element", "local",
+    "dom", "live", "watch", "behavior", "install", "def", "js", "make",
+    "measure", "append", "pick", "match", "eventsource", "socket",
+];
+var HS_KEYWORD_SET = new Set(HS_KEYWORDS);
+
+CodeMirror.defineMode("html-hyperscript", function (config) {
+    return CodeMirror.overlayMode(
+        CodeMirror.getMode(config, "htmlmixed"),
+        {
+            token: function (stream) {
+                if (stream.match("--")) { stream.skipToEnd(); return "hs-comment"; }
+                if (stream.match(/^\^@[a-zA-Z_][\w-]*/)) return "hs-symbol-inherited-attr";
+                if (stream.match(/^\^[a-zA-Z_]\w*/)) return "hs-symbol-dom";
+                if (stream.match(/^\$[a-zA-Z_]\w*/)) return "hs-symbol-global";
+                if (stream.match(/^:[a-zA-Z_]\w*/)) return "hs-symbol-element";
+                stream.next();
+                return null;
+            }
+        }
+    );
+});
+
+// ============================================================
+// Linting
+// ============================================================
+function lintHyperscript(text) {
+    var errors = [];
+    var attrRegex = /_\s*=\s*"([^"]*)"/g;
+    var match;
+    var lines = text.split("\n");
+
+    while ((match = attrRegex.exec(text)) !== null) {
+        var hsSource = match[1];
+        hsSource = hsSource.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").replace(/&quot;/g, '"');
+        var attrStart = match.index + match[0].indexOf('"') + 1;
+
+        var charCount = 0;
+        var startLine = 0, startCol = 0;
+        for (var i = 0; i < lines.length; i++) {
+            if (charCount + lines[i].length >= attrStart) {
+                startLine = i;
+                startCol = attrStart - charCount;
+                break;
+            }
+            charCount += lines[i].length + 1;
+        }
+
+        try {
+            _hyperscript.parse(hsSource);
+        } catch (e) {
+            var msg = e.message.split("\n")[0];
+            errors.push({
+                from: CodeMirror.Pos(startLine, startCol),
+                to: CodeMirror.Pos(startLine, startCol + hsSource.length),
+                message: msg,
+                severity: "error"
+            });
+        }
+    }
+    return errors;
+}
+
+CodeMirror.registerHelper("lint", "html-hyperscript", lintHyperscript);
+
+// ============================================================
+// Autocomplete
+// ============================================================
+function hsHint(cm) {
+    var cursor = cm.getCursor();
+    var line = cm.getLine(cursor.line);
+    var end = cursor.ch;
+    var start = end;
+    while (start > 0 && /[\w$:^@]/.test(line.charAt(start - 1))) start--;
+    var word = line.slice(start, end).toLowerCase();
+
+    var before = line.slice(0, start);
+    if (!/_\s*=\s*"/.test(before) && !/_\s*=\s*'/.test(before)) return null;
+
+    var completions = HS_KEYWORDS.filter(function (kw) {
+        return kw.startsWith(word) && kw !== word;
+    });
+    if (completions.length === 0) return null;
+
+    return {
+        list: completions,
+        from: CodeMirror.Pos(cursor.line, start),
+        to: CodeMirror.Pos(cursor.line, end)
+    };
+}
+
+CodeMirror.registerHelper("hint", "html-hyperscript", hsHint);
+
+// ============================================================
+// Editor
+// ============================================================
+var cm = CodeMirror.fromTextArea(document.getElementById('editor'), {
+    mode: 'html-hyperscript',
+    theme: 'nord',
+    lineNumbers: true,
+    tabSize: 2,
+    indentWithTabs: false,
+    lineWrapping: true,
+    matchBrackets: true,
+    gutters: ["CodeMirror-lint-markers"],
+    lint: { getAnnotations: lintHyperscript, async: false },
+    extraKeys: {
+        'Ctrl-Enter': run,
+        'Cmd-Enter': run,
+        'Ctrl-Space': function (cm) { cm.showHint({ hint: hsHint }); },
+    }
+});
+
+// ============================================================
+// Load initial content: ?src= (LZ compressed) or default
+// ============================================================
+var params = new URLSearchParams(window.location.search);
+var sharedSrc = params.get('src');
+if (sharedSrc) {
+    try {
+        cm.setValue(LZString.decompressFromEncodedURIComponent(sharedSrc));
+    } catch (e) {
+        cm.setValue(BUILTIN_EXAMPLES.counter);
+    }
+} else {
+    cm.setValue(BUILTIN_EXAMPLES.counter);
+}
+
+// ============================================================
+// Preview
+// ============================================================
+var scriptPath = '/js/_hyperscript.min.js';
+var lastErrors = [];
+
+function run() {
+    var html = cm.getValue();
+    var iframe = document.getElementById('preview');
+    lastErrors = [];
+    replLocals = {};
+    consoleAppend('separator', '');
+
+    var doc = iframe.contentDocument;
+    doc.open();
+    doc.write(
+        '<!doctype html><html><head><meta charset="utf-8">' +
+        '<style>body{font-family:"IBM Plex Sans",-apple-system,system-ui,sans-serif;padding:16px;font-size:15px;}button{cursor:pointer;}</style>' +
+        '<script src="' + scriptPath + '"><\/script>' +
+        '<script>\n' +
+        'window.addEventListener("error", function(e) { parent._playgroundError(e.message); });\n' +
+        'var _origLog = console.log;\n' +
+        'console.log = function() {\n' +
+        '  var msg = Array.from(arguments).map(function(a) { try { return typeof a === "object" ? JSON.stringify(a) : String(a); } catch(e) { return String(a); } }).join(" ");\n' +
+        '  parent._playgroundConsole("log", msg);\n' +
+        '  _origLog.apply(console, arguments);\n' +
+        '};\n' +
+        'var _origWarn = console.warn;\n' +
+        'console.warn = function() {\n' +
+        '  var msg = Array.from(arguments).map(function(a) { return String(a); }).join(" ");\n' +
+        '  parent._playgroundConsole("warn", msg);\n' +
+        '  _origWarn.apply(console, arguments);\n' +
+        '};\n' +
+        'var _origErr = console.error;\n' +
+        'console.error = function() {\n' +
+        '  var msg = Array.from(arguments).map(function(a) { return typeof a === "string" ? a : ""; }).join(" ");\n' +
+        '  if (msg) parent._playgroundError(msg);\n' +
+        '  _origErr.apply(console, arguments);\n' +
+        '};\n' +
+        '<\/script>' +
+        '</head><body>' +
+        html +
+        '</body></html>'
+    );
+    doc.close();
+
+    setTimeout(function () {
+        var status = document.getElementById('status');
+        if (lastErrors.length > 0) {
+            status.innerHTML = '<span class="error">' + lastErrors.length + ' error(s)</span>';
+        } else {
+            status.innerHTML = 'Updated <span style="opacity:0.5">(' + new Date().toLocaleTimeString() + ')</span>';
+        }
+    }, 200);
+}
+
+window._playgroundError = function (msg) {
+    lastErrors.push(msg);
+    consoleAppend('error', msg);
+};
+
+window._playgroundConsole = function (level, msg) {
+    consoleAppend(level, msg);
+};
+
+// ============================================================
+// Console
+// ============================================================
+var consoleOutput = document.getElementById('console-output');
+var consoleInput = document.getElementById('console-input');
+var consoleHistory = [];
+var historyIndex = -1;
+var replLocals = {};
+
+var BLOCK_OPENERS = /\b(if|repeat|on|def|behavior|init|tell|for)\b/g;
+var BLOCK_CLOSERS = /\bend\b/g;
+
+function needsMoreInput(src) {
+    var opens = (src.match(BLOCK_OPENERS) || []).length;
+    var closes = (src.match(BLOCK_CLOSERS) || []).length;
+    return opens > closes;
+}
+
+function consoleAppend(cls, text) {
+    var el = document.createElement('div');
+    el.className = cls;
+    if (cls === 'separator') {
+        el.innerHTML = '&nbsp;';
+    } else {
+        el.textContent = text;
+    }
+    consoleOutput.appendChild(el);
+    consoleOutput.scrollTop = consoleOutput.scrollHeight;
+}
+
+function consoleEval(input) {
+    var lines = input.split('\n');
+    consoleAppend('log', '> ' + lines[0]);
+    for (var i = 1; i < lines.length; i++) {
+        consoleAppend('log', '... ' + lines[i]);
+    }
+    var iframe = document.getElementById('preview');
+    var hs = iframe.contentWindow && iframe.contentWindow._hyperscript;
+    if (!hs) {
+        consoleAppend('error', 'No preview running — press Run first');
+        return;
+    }
+    try {
+        var result = hs(input, { locals: replLocals });
+        if (result !== undefined) {
+            var display;
+            try { display = typeof result === 'object' ? JSON.stringify(result) : String(result); }
+            catch (e) { display = String(result); }
+            consoleAppend('result', display);
+        }
+    } catch (e) {
+        consoleAppend('error', e.message ? e.message.split('\n')[0] : String(e));
+    }
+}
+
+function autoSizeInput() {
+    consoleInput.style.height = '18px';
+    consoleInput.style.height = consoleInput.scrollHeight + 'px';
+}
+
+consoleInput.addEventListener('input', autoSizeInput);
+
+consoleInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+        var src = this.value.trim();
+        if (!src) return;
+        if (needsMoreInput(src) && !e.shiftKey) {
+            // Block incomplete — insert newline naturally
+            return;
+        }
+        if (!needsMoreInput(src)) {
+            // Complete — submit
+            e.preventDefault();
+            var input = this.value;
+            this.value = '';
+            autoSizeInput();
+            consoleHistory.push(input);
+            historyIndex = consoleHistory.length;
+            consoleEval(input);
+        }
+        // Shift+Enter always inserts newline (default behavior)
+    } else if (e.key === 'ArrowUp' && this.selectionStart === 0 && !this.value.includes('\n')) {
+        e.preventDefault();
+        if (historyIndex > 0) {
+            historyIndex--;
+            this.value = consoleHistory[historyIndex];
+            autoSizeInput();
+        }
+    } else if (e.key === 'ArrowDown' && this.selectionStart === this.value.length && !this.value.includes('\n')) {
+        e.preventDefault();
+        if (historyIndex < consoleHistory.length - 1) {
+            historyIndex++;
+            this.value = consoleHistory[historyIndex];
+            autoSizeInput();
+        } else {
+            historyIndex = consoleHistory.length;
+            this.value = '';
+            autoSizeInput();
+        }
+    }
+});
+
+// ============================================================
+// Controls
+// ============================================================
+document.getElementById('run-btn').addEventListener('click', run);
+
+document.getElementById('clear-btn').addEventListener('click', function () {
+    cm.setValue('');
+    var doc = document.getElementById('preview').contentDocument;
+    doc.open();
+    doc.write('<!doctype html><html><body></body></html>');
+    doc.close();
+    consoleOutput.innerHTML = '';
+    document.getElementById('status').textContent = 'Cleared';
+});
+
+document.getElementById('share-btn').addEventListener('click', function () {
+    var compressed = LZString.compressToEncodedURIComponent(cm.getValue());
+    var url = window.location.origin + window.location.pathname + '?src=' + compressed;
+    navigator.clipboard.writeText(url).then(function () {
+        document.getElementById('status').textContent = 'Share URL copied to clipboard!';
+    });
+});
+
+document.getElementById('examples').addEventListener('change', function () {
+    var val = this.value;
+    if (!val) return;
+    this.value = '';
+
+    if (BUILTIN_EXAMPLES[val]) {
+        cm.setValue(BUILTIN_EXAMPLES[val]);
+        run();
+        return;
+    }
+
+    // Fetch from /playground/ directory
+    fetch('/playground/' + val)
+        .then(function (r) { return r.text(); })
+        .then(function (text) {
+            cm.setValue(text);
+            run();
+        })
+        .catch(function () {
+            document.getElementById('status').innerHTML = '<span class="error">Failed to load example</span>';
+        });
+});
+
+// ============================================================
+// Resizable panes
+// ============================================================
+(function () {
+    var resizeH = document.getElementById('resize-h');
+    var resizeV = document.getElementById('resize-v');
+    var panes = document.querySelector('.playground-panes');
+    var editor = document.querySelector('.pane-editor');
+    var preview = document.querySelector('.pane-preview');
+    var previewFrame = document.getElementById('preview');
+    var consolePane = document.querySelector('.pane-console');
+
+    function startDrag(handle, onMove, onEnd) {
+        handle.classList.add('dragging');
+        // Cover iframe to prevent it from eating pointer events
+        previewFrame.style.pointerEvents = 'none';
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', function up() {
+            handle.classList.remove('dragging');
+            previewFrame.style.pointerEvents = '';
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', up);
+            if (onEnd) onEnd();
+        });
+    }
+
+    // Horizontal: editor | preview
+    resizeH.addEventListener('mousedown', function (e) {
+        e.preventDefault();
+        var panesRect = panes.getBoundingClientRect();
+        startDrag(resizeH, function (e) {
+            var x = e.clientX - panesRect.left;
+            var pct = (x / panesRect.width) * 100;
+            pct = Math.max(15, Math.min(85, pct));
+            editor.style.flex = 'none';
+            editor.style.width = pct + '%';
+            preview.style.flex = '1';
+        }, function () {
+            cm.refresh();
+        });
+    });
+
+    // Vertical: preview iframe | console
+    resizeV.addEventListener('mousedown', function (e) {
+        e.preventDefault();
+        var previewRect = preview.getBoundingClientRect();
+        startDrag(resizeV, function (e) {
+            var y = e.clientY - previewRect.top;
+            // Subtract the pane-label height (~24px)
+            var available = previewRect.height - 24;
+            var framePct = ((y - 24) / available) * 100;
+            framePct = Math.max(10, Math.min(90, framePct));
+            previewFrame.style.flex = 'none';
+            previewFrame.style.height = framePct + '%';
+            consolePane.style.flex = '1';
+        });
+    });
+})();
+
+// Initial run
+setTimeout(run, 100);
+</script>

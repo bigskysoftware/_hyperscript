@@ -59,6 +59,10 @@ export class TimeExpression extends Expression {
         return new TimeExpression(root, timeFactor);
     }
 
+    evalStatically() {
+        return this.time.evalStatically() * this.factor;
+    }
+
     resolve(context, { value: val }) {
         return val * this.factor;
     }

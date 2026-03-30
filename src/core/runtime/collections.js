@@ -85,7 +85,8 @@ export class RegExpIterator {
     next() {
         const match = this.re.exec(this.str);
         if (match === null) return { done: true };
-        else return { value: match };
+        if (match[0].length === 0) this.re.lastIndex++;
+        return { value: match };
     }
 }
 

@@ -328,6 +328,24 @@ test.describe("the comparisonOperator expression", () => {
 		expect(await run("'' is not an String!")).toBe(false)
 	})
 
+	test("is a works with instanceof fallback", async ({html, find, evaluate}) => {
+		await html("<div id='d1' _='on click if I am a Element put \"yes\" into me'></div>");
+		await find('#d1').dispatchEvent('click');
+		await expect(find('#d1')).toHaveText("yes");
+	})
+
+	test("is a Node works via instanceof", async ({html, find, evaluate}) => {
+		await html("<div id='d1' _='on click if I am a Node put \"yes\" into me'></div>");
+		await find('#d1').dispatchEvent('click');
+		await expect(find('#d1')).toHaveText("yes");
+	})
+
+	test("is not a works with instanceof fallback", async ({html, find}) => {
+		await html("<div id='d1' _='on click if \"hello\" is not a Element put \"yes\" into me'></div>");
+		await find('#d1').dispatchEvent('click');
+		await expect(find('#d1')).toHaveText("yes");
+	})
+
 	test("english less than works", async ({run}) => {
 		expect(await run("1 is less than 2")).toBe(true)
 		expect(await run("2 is less than 1")).toBe(false)
@@ -377,5 +395,171 @@ test.describe("the comparisonOperator expression", () => {
 		expect(await run(".aClassThatDoesNotExist does not exist")).toBe(true)
 		expect(await run("<.aClassThatDoesNotExist/> does not exist")).toBe(true)
 		expect(await run("<body/> does not exist")).toBe(false)
+	})
+
+	test("is ignoring case works", async ({run}) => {
+		expect(await run("'Hello' is 'hello' ignoring case")).toBe(true)
+		expect(await run("'Hello' is 'HELLO' ignoring case")).toBe(true)
+		expect(await run("'Hello' is 'world' ignoring case")).toBe(false)
+	})
+
+	test("is not ignoring case works", async ({run}) => {
+		expect(await run("'Hello' is not 'world' ignoring case")).toBe(true)
+		expect(await run("'Hello' is not 'hello' ignoring case")).toBe(false)
+	})
+
+	test("contains ignoring case works", async ({run}) => {
+		expect(await run("'Hello World' contains 'hello' ignoring case")).toBe(true)
+		expect(await run("'Hello World' contains 'WORLD' ignoring case")).toBe(true)
+		expect(await run("'Hello World' contains 'missing' ignoring case")).toBe(false)
+	})
+
+	test("matches ignoring case works", async ({run}) => {
+		expect(await run("'Hello' matches 'hello' ignoring case")).toBe(true)
+		expect(await run("'Hello' matches 'HELLO' ignoring case")).toBe(true)
+	})
+
+	test("starts with works", async ({run}) => {
+		expect(await run("'hello world' starts with 'hello'")).toBe(true)
+		expect(await run("'hello world' starts with 'world'")).toBe(false)
+		expect(await run("'hello' starts with 'hello'")).toBe(true)
+		expect(await run("'' starts with 'x'")).toBe(false)
+	})
+
+	test("ends with works", async ({run}) => {
+		expect(await run("'hello world' ends with 'world'")).toBe(true)
+		expect(await run("'hello world' ends with 'hello'")).toBe(false)
+		expect(await run("'hello' ends with 'hello'")).toBe(true)
+		expect(await run("'' ends with 'x'")).toBe(false)
+	})
+
+	test("does not start with works", async ({run}) => {
+		expect(await run("'hello world' does not start with 'hello'")).toBe(false)
+		expect(await run("'hello world' does not start with 'world'")).toBe(true)
+	})
+
+	test("does not end with works", async ({run}) => {
+		expect(await run("'hello world' does not end with 'world'")).toBe(false)
+		expect(await run("'hello world' does not end with 'hello'")).toBe(true)
+	})
+
+	test("starts with null is false", async ({run}) => {
+		expect(await run("null starts with 'x'")).toBe(false)
+		expect(await run("null does not start with 'x'")).toBe(true)
+	})
+
+	test("ends with null is false", async ({run}) => {
+		expect(await run("null ends with 'x'")).toBe(false)
+		expect(await run("null does not end with 'x'")).toBe(true)
+	})
+
+	test("starts with ignoring case works", async ({run}) => {
+		expect(await run("'Hello World' starts with 'hello' ignoring case")).toBe(true)
+		expect(await run("'Hello World' starts with 'HELLO' ignoring case")).toBe(true)
+		expect(await run("'Hello World' starts with 'world' ignoring case")).toBe(false)
+	})
+
+	test("ends with ignoring case works", async ({run}) => {
+		expect(await run("'Hello World' ends with 'world' ignoring case")).toBe(true)
+		expect(await run("'Hello World' ends with 'WORLD' ignoring case")).toBe(true)
+		expect(await run("'Hello World' ends with 'hello' ignoring case")).toBe(false)
+	})
+
+	test("starts with coerces to string", async ({run}) => {
+		expect(await run("123 starts with '12'")).toBe(true)
+		expect(await run("123 starts with '23'")).toBe(false)
+	})
+
+	test("ends with coerces to string", async ({run}) => {
+		expect(await run("123 ends with '23'")).toBe(true)
+		expect(await run("123 ends with '12'")).toBe(false)
+	})
+
+	test("is between works", async ({run}) => {
+		expect(await run("5 is between 1 and 10")).toBe(true)
+		expect(await run("1 is between 1 and 10")).toBe(true)
+		expect(await run("10 is between 1 and 10")).toBe(true)
+		expect(await run("0 is between 1 and 10")).toBe(false)
+		expect(await run("11 is between 1 and 10")).toBe(false)
+	})
+
+	test("is not between works", async ({run}) => {
+		expect(await run("5 is not between 1 and 10")).toBe(false)
+		expect(await run("0 is not between 1 and 10")).toBe(true)
+		expect(await run("11 is not between 1 and 10")).toBe(true)
+		expect(await run("1 is not between 1 and 10")).toBe(false)
+		expect(await run("10 is not between 1 and 10")).toBe(false)
+	})
+
+	test("between works with strings", async ({run}) => {
+		expect(await run("'b' is between 'a' and 'c'")).toBe(true)
+		expect(await run("'d' is between 'a' and 'c'")).toBe(false)
+	})
+
+	test("I am between works", async ({run}) => {
+		expect(await run("I am between 1 and 10", { me: 5 })).toBe(true)
+		expect(await run("I am between 1 and 10", { me: 0 })).toBe(false)
+	})
+
+	test("I am not between works", async ({run}) => {
+		expect(await run("I am not between 1 and 10", { me: 5 })).toBe(false)
+		expect(await run("I am not between 1 and 10", { me: 0 })).toBe(true)
+	})
+
+	test("precedes works", async ({html, evaluate}) => {
+		await html("<div id='a'></div><div id='b'></div><div id='c'></div>")
+		expect(await evaluate(() => _hyperscript("x precedes y", {
+			locals: { x: document.getElementById('a'), y: document.getElementById('b') }
+		}))).toBe(true)
+		expect(await evaluate(() => _hyperscript("x precedes y", {
+			locals: { x: document.getElementById('b'), y: document.getElementById('a') }
+		}))).toBe(false)
+		expect(await evaluate(() => _hyperscript("x precedes y", {
+			locals: { x: document.getElementById('a'), y: document.getElementById('c') }
+		}))).toBe(true)
+	})
+
+	test("follows works", async ({html, evaluate}) => {
+		await html("<div id='a'></div><div id='b'></div><div id='c'></div>")
+		expect(await evaluate(() => _hyperscript("x follows y", {
+			locals: { x: document.getElementById('b'), y: document.getElementById('a') }
+		}))).toBe(true)
+		expect(await evaluate(() => _hyperscript("x follows y", {
+			locals: { x: document.getElementById('a'), y: document.getElementById('b') }
+		}))).toBe(false)
+		expect(await evaluate(() => _hyperscript("x follows y", {
+			locals: { x: document.getElementById('c'), y: document.getElementById('a') }
+		}))).toBe(true)
+	})
+
+	test("does not precede works", async ({html, evaluate}) => {
+		await html("<div id='a'></div><div id='b'></div>")
+		expect(await evaluate(() => _hyperscript("x does not precede y", {
+			locals: { x: document.getElementById('b'), y: document.getElementById('a') }
+		}))).toBe(true)
+		expect(await evaluate(() => _hyperscript("x does not precede y", {
+			locals: { x: document.getElementById('a'), y: document.getElementById('b') }
+		}))).toBe(false)
+	})
+
+	test("does not follow works", async ({html, evaluate}) => {
+		await html("<div id='a'></div><div id='b'></div>")
+		expect(await evaluate(() => _hyperscript("x does not follow y", {
+			locals: { x: document.getElementById('a'), y: document.getElementById('b') }
+		}))).toBe(true)
+		expect(await evaluate(() => _hyperscript("x does not follow y", {
+			locals: { x: document.getElementById('b'), y: document.getElementById('a') }
+		}))).toBe(false)
+	})
+
+	test("precedes with null is false", async ({run}) => {
+		expect(await run("null precedes null")).toBe(false)
+		expect(await run("null does not precede null")).toBe(true)
+	})
+
+	test("I precede works", async ({html, find, evaluate}) => {
+		await html("<div id='a' _=\"on click if I precede #b put 'yes' into me\"></div><div id='b'></div>")
+		await find('#a').dispatchEvent('click')
+		await expect(find('#a')).toHaveText("yes")
 	})
 })

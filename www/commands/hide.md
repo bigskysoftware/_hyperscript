@@ -24,6 +24,11 @@ You can change the default hide/show strategy by setting `_hyperscript.config.de
 
 You can add new hide/show strategies by setting new values into the `_hyperscript.config.hideShowStrategies` object.
 
+The `when` clause allows you to filter what elements are hidden in the `target`.  The expression will be evaluated for
+each element in `target` and, if the result is true, the element will be hidden.  If it is false, the element will be
+shown.  The `it` symbol will be set to the current element, allowing you to express conditions against each element
+in `target`.
+
 ### Examples
 
 ```html
@@ -32,6 +37,10 @@ You can add new hide/show strategies by setting new values into the `_hyperscrip
 <div _="on click hide with opacity">Hide Me With Opacity!</div>
 
 <div _="on click hide #anotherDiv">Hide Another Div!</div>
+
+<div _="on click hide <div/> in me when it matches .hideable">
+  Conditionally Hide Children!
+</div>
 ```
 
 ### Tailwind CSS extensions

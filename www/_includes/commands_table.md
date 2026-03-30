@@ -6,9 +6,15 @@
 | [break](/commands/break)           | Breaks out of the current loop                                                | `repeat 3 times break end`                                                              |
 | [call/get](/commands/call)         | Evaluates an expression (e.g. a Javascript Function)                          | `call alert('yep, you can call javascript!')` <br/><br/> `get prompt('Enter your name')` |
 | [continue](/commands/continue)     | Skips the remainder of a loop and continues at the top of the next iteration. | `repeat 3 times continue end`                                                           |
-| [decrement](/commands/decrement)   | Subtracts a value to a variable, property, or attribute                       | `decrement counter`                                                                     |
+| [decrement](/commands/decrement)   | Subtracts a value from a variable, property, or attribute                     | `decrement counter`                                                                     |
+| [default](/commands/default)       | Sets a variable to a value if it is currently undefined                       | `default x to 0`                                                                        |
+| [empty](/commands/empty)           | Removes all child nodes from an element                                       | `empty #results`                                                                         |
+| [exit](/commands/exit)              | Exits the current handler without returning a value                           | `if x is null exit`                                                                      |
+| [focus](/commands/focus)           | Focuses an element                                                            | `focus #search-input`                                                                    |
+| [blur](/commands/blur)             | Removes focus from an element                                                 | `blur me`                                                                                |
 | [fetch](/commands/fetch)           | Send a fetch request                                                          | `fetch /demo then put it into my.innerHTML`                                             |
-| [go](/commands/go)                 | Navigate to a new page or within a page                                       | `go to the top of the body smoothly`                                                    |
+| [go](/commands/go)                 | Navigate to a URL                                                             | `go to /about`, `go back`                                                               |
+| [scroll](/commands/scroll)         | Scroll an element into view                                                   | `scroll to the top of #section smoothly`                                                |
 | [halt](/commands/halt)             | Halts the current event (stopping propagate, etc.)                            | `halt`                                                                                  |
 | [hide](/commands/hide)             | Hide an element in the DOM                                                    | `hide me`                                                                               |
 | [if](/commands/if)                 | A conditional control flow command                                            | `if I match .selected then call alert('I\'m selected!')`                                |
@@ -17,7 +23,7 @@
 | [log](/commands/log)               | Logs a given expression to the console, if possible                           | `log me`                                                                                |
 | [make](/commands/make)             | Creates a class instance or DOM element                                       | `make a Set from a, b. c`, `make a <p/> called para`                                    |
 | [measure](/commands/measure)       | Gets the measurements for a given element                                     | `measure me then log it`                                                                |
-| [pick](/commands/pick)             | Selects items from arrays, strings and regex match results                    | `pick match of "(\w+)" from str`                                                        |
+| [pick](/commands/pick)             | Selects items from arrays, strings and regex match results                    | `pick first 3 of arr`, `pick match of "(\w+)" of str`                                   |
 | [put](/commands/put)               | Puts a value into a given variable or property                                | `put "cool!" into me`                                                                   |
 | [remove](/commands/remove)         | Removes content                                                               | `log "bye, bye" then remove me`                                                         |
 | [repeat](/commands/repeat)         | Iterates                                                                      | `repeat for x in [1, 2, 3] log x end`                                                   |
@@ -30,5 +36,12 @@
 | [tell](/commands/tell)             | Temporarily sets a new implicit target value                                  | `tell <p/> add .highlight`                                                              |
 | [throw](/commands/throw)           | Throws an exception                                                           | `throw "Bad Value"`                                                                     |
 | [toggle](/commands/toggle)         | Toggles content on a target                                                   | `toggle .clicked on me`                                                                 |
-| [transition](/commands/transition) | Transitions properties on an element                                          | `transition opacity to 0`                                                               |
+| [transition](/commands/transition) | Transitions properties on an element                                          | `transition my *opacity to 0`                                                           |
 | [wait](/commands/wait)             | Waits for an event or a given amount of time before resuming the command list | `wait 2s then remove me`                                                                |
+| [open](/commands/open)              | Opens dialogs, details, popovers, or enters fullscreen                        | `open #my-dialog`, `open fullscreen`                                                    |
+| [close](/commands/close)            | Closes dialogs, details, popovers, or exits fullscreen                        | `close #my-dialog`, `close fullscreen`                                                  |
+| [select](/commands/select)          | Selects text in an input or textarea                                          | `select #search-input`                                                                  |
+| [ask](/commands/ask)                | Shows a browser prompt dialog, result in `it`                                 | `ask "Your name?"`                                                                      |
+| [answer](/commands/answer)          | Shows an alert or confirm dialog                                              | `answer "Save?" with "Yes" or "No"`                                                     |
+| [speak](/commands/speak)            | Text-to-speech via the Web Speech API                                         | `speak "Hello" with rate 2`                                                             |
+| [breakpoint](/commands/breakpoint)  | Pauses execution in the browser DevTools                                      | `breakpoint`                                                                            |

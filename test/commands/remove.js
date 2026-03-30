@@ -61,6 +61,40 @@ test.describe("the remove command", () => {
 		await expect(find('div')).toHaveClass(/doh/);
 	});
 
+	test("can filter class removal via the when clause", async ({html, find}) => {
+		await html(
+			"<div id='trigger' _='on click remove .highlight from .item when it matches .old'></div>" +
+			"<div id='d1' class='item old highlight'></div>" +
+			"<div id='d2' class='item highlight'></div>"
+		);
+		await find('#trigger').dispatchEvent('click');
+		// d1 matches .old -> remove .highlight
+		await expect(find('#d1')).not.toHaveClass(/highlight/);
+		// d2 does not match .old -> reverse (add .highlight, but it already has it)
+		await expect(find('#d2')).toHaveClass(/highlight/);
+	});
+
+	test("can remove CSS properties", async ({html, find, evaluate}) => {
+		await html("<div style='color: red; font-weight: bold;' _='on click remove {color} from me'></div>");
+		await find('div').dispatchEvent('click');
+		var style = await evaluate(() => document.querySelector('#work-area div').style.color);
+		expect(style).toBe('');
+		// font-weight should remain
+		var fw = await evaluate(() => document.querySelector('#work-area div').style.fontWeight);
+		expect(fw).toBe('bold');
+	});
+
+	test("can remove multiple CSS properties", async ({html, find, evaluate}) => {
+		await html("<div style='color: red; font-weight: bold; opacity: 0.5;' _='on click remove {color; font-weight} from me'></div>");
+		await find('div').dispatchEvent('click');
+		var color = await evaluate(() => document.querySelector('#work-area div').style.color);
+		var fw = await evaluate(() => document.querySelector('#work-area div').style.fontWeight);
+		var op = await evaluate(() => document.querySelector('#work-area div').style.opacity);
+		expect(color).toBe('');
+		expect(fw).toBe('');
+		expect(op).toBe('0.5');
+	});
+
 	test("can remove query refs from specific things", async ({html, find, evaluate}) => {
 		await html("<div><div id='d1' _='on click remove <p/> from me'><p>foo</p>bar</div><p>doh</p></div>");
 		await find('#d1').dispatchEvent('click');

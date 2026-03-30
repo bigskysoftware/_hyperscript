@@ -12,7 +12,7 @@ default <target> to <expr>
 
 ### Description
 
-The `default` command defaults a variable or property to a given value.
+The `default` command sets a variable or property to a given value if it is currently `null`, `undefined`, or empty string (`""`).
 
 ### Example
 

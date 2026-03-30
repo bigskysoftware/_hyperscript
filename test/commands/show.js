@@ -135,6 +135,35 @@ test.describe("the show command", () => {
 		await expect(find('#p4')).toBeHidden();
 	});
 
+	test("the result in a when clause refers to previous command result, not element being tested", async ({html, find}) => {
+		await html(
+			"<div _=\"on click " +
+			"  get 'found' " +
+			"  show <span/> in me when the result is 'found'\">" +
+			"<span id='s1' style='display:none'>A</span>" +
+			"<span id='s2' style='display:none'>B</span>" +
+			"</div>"
+		);
+		await find('div').dispatchEvent('click');
+		await expect(find('#s1')).toBeVisible();
+		await expect(find('#s2')).toBeVisible();
+	});
+
+	test("the result after show...when is the matched elements", async ({html, find}) => {
+		await html(
+			"<div _=\"on click " +
+			"  show <p/> in me when its textContent is 'yes' " +
+			"  if the result is empty put 'none' into #out " +
+			"  else put 'some' into #out\">" +
+			"<p style='display:none'>yes</p>" +
+			"<p style='display:none'>no</p>" +
+			"<span id='out'>--</span>" +
+			"</div>"
+		);
+		await find('div').dispatchEvent('click');
+		await expect(find('#out')).toHaveText("some");
+	});
+
 	test("starting off with display none does not stick", async ({html, find}) => {
 		await html("<div style='display: none' _='on click toggle .foo show when I match .foo'></div>");
 		await expect(find('div')).toHaveCSS('display', 'none');

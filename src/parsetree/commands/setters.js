@@ -67,7 +67,7 @@ export class SetCommand extends Command {
  * DefaultCommand - Set default value if undefined
  *
  * Parses: default target to value
- * Executes: Sets target to value only if target is falsy
+ * Executes: Sets target to value only if target is null or undefined
  */
 export class DefaultCommand extends Command {
     static keyword = "default";
@@ -100,7 +100,7 @@ export class DefaultCommand extends Command {
     }
 
     resolve(context, { targetValue }) {
-        if (targetValue) {
+        if (targetValue != null && targetValue !== "") {
             return context.meta.runtime.findNext(this, context);
         } else {
             return this.setter;
@@ -315,7 +315,11 @@ export class PutCommand extends Command {
             if (this.operation === "into") {
                 if (this.attributeWrite) {
                     context.meta.runtime.implicitLoop(root, function (elt) {
-                        elt.setAttribute(prop, valueToPut);
+                        if (valueToPut == null) {
+                            elt.removeAttribute(prop);
+                        } else {
+                            elt.setAttribute(prop, valueToPut);
+                        }
                     });
                 } else if (this.styleWrite) {
                     context.meta.runtime.implicitLoop(root, function (elt) {

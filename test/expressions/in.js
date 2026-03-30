@@ -64,4 +64,8 @@ test.describe("the in expression", () => {
 		const result = await run("the innerText of the first <p.foo/> in #d2 is 'bar'")
 		expect(result).toBe(true)
 	})
+
+	test("null value in array returns empty", async ({run}) => {
+		expect(await run("null in [1, 2, 3]")).toEqual([])
+	})
 })

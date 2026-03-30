@@ -13,7 +13,7 @@ class HyperscriptFormData {
         if (node.type === "checkbox") {
             value = node.checked ? [node.value] : undefined;
         } else if (node.type === "select-multiple") {
-            value = Array.from(node.querySelectorAll("option[selected]"), o => o.value);
+            value = Array.from(node.options).filter(o => o.selected).map(o => o.value);
         } else {
             value = node.value;
         }
@@ -22,8 +22,9 @@ class HyperscriptFormData {
 
         if (this.result[name] == undefined) {
             this.result[name] = value;
-        } else if (Array.isArray(this.result[name]) && Array.isArray(value)) {
-            this.result[name] = this.result[name].concat(value);
+        } else {
+            var existing = Array.isArray(this.result[name]) ? this.result[name] : [this.result[name]];
+            this.result[name] = existing.concat(value);
         }
     }
 
@@ -51,25 +52,10 @@ export const conversions = {
         },
         // Values conversion - extracts form values from DOM nodes
         function(str, node, runtime) {
-            if (!(str === "Values" || str.startsWith("Values:"))) {
-                return;
-            }
-            var conversion = str.split(":")[1];
+            if (str !== "Values") return;
             var formData = new HyperscriptFormData();
-
             runtime.implicitLoop(node, (node) => formData.addContainer(node));
-
-            if (conversion) {
-                if (conversion === "JSON") {
-                    return JSON.stringify(formData.result);
-                } else if (conversion === "Form") {
-                    return new URLSearchParams(formData.result).toString();
-                } else {
-                    throw new Error("Unknown conversion: " + conversion);
-                }
-            } else {
-                return formData.result;
-            }
+            return formData.result;
         },
     ],
     String: function (val) {
@@ -88,6 +74,9 @@ export const conversions = {
     Number: function (val) {
         return Number(val);
     },
+    Boolean: function (val) {
+        return !!val;
+    },
     Date: function (val) {
         return new Date(val);
     },
@@ -95,6 +84,9 @@ export const conversions = {
         return Array.from(val);
     },
     JSON: function (val) {
+        return JSON.parse(val);
+    },
+    JSONString: function (val) {
         return JSON.stringify(val);
     },
     Object: function (val) {
@@ -106,6 +98,9 @@ export const conversions = {
         } else {
             return Object.assign({}, val);
         }
+    },
+    FormEncoded: function (val) {
+        return new URLSearchParams(val).toString();
     },
     HTML: function (value) {
         var toHTML = (value) => {

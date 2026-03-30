@@ -36,7 +36,7 @@ export class WaitCommand extends Command {
                     events.push(parser.requireElement('expression'))
                 } else {
                     events.push({
-                        name: parser.requireElement("dotOrColonPath", "Expected event name").evaluate(),
+                        name: parser.requireElement("dotOrColonPath", "Expected event name").evalStatically(),
                         args: ParseElement.parseEventArgs(parser),
                     });
                 }
@@ -154,8 +154,11 @@ export class EventName extends Expression {
         this.value = value;
     }
 
-    // Called at parse time without a context, so must override evaluate()
-    evaluate() {
+    evalStatically() {
+        return this.value;
+    }
+
+    resolve(context) {
         return this.value;
     }
 

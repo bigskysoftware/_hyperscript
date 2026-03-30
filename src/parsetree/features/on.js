@@ -143,6 +143,23 @@ export class OnFeature extends Feature {
                     eltData.observers.push(observer);
                 }
 
+                if (eventSpec.resizeSpec) {
+                    eventName = "hyperscript:resize";
+                    const observer = new ResizeObserver(function (entries) {
+                        for (const entry of entries) {
+                            var detail = {
+                                width: entry.contentRect.width,
+                                height: entry.contentRect.height,
+                                contentRect: entry.contentRect,
+                                entry: entry,
+                            };
+                            runtime.triggerEvent(target, eventName, detail);
+                        }
+                    });
+                    observer.observe(target);
+                    eltData.observers.push(observer);
+                }
+
                 var addEventListener = target.addEventListener || target.on;
                 var handler;
                 addEventListener.call(target, eventName, handler = function listener(evt) {
@@ -165,8 +182,8 @@ export class OnFeature extends Feature {
                         let eventValue = ctx.event[arg.value];
                         if (eventValue !== undefined) {
                             ctx.locals[arg.value] = eventValue;
-                        } else if ('detail' in ctx.event) {
-                            ctx.locals[arg.value] = ctx.event['detail'][arg.value];
+                        } else if (ctx.event.detail != null) {
+                            ctx.locals[arg.value] = ctx.event.detail[arg.value];
                         }
                     }
 
@@ -259,15 +276,18 @@ export class OnFeature extends Feature {
     static parse(parser) {
         if (!parser.matchToken("on")) return;
         var every = false;
+        var first = false;
         if (parser.matchToken("every")) {
             every = true;
+        } else if (parser.matchToken("first")) {
+            first = true;
         }
         var events = [];
         var displayName = null;
         do {
             var on = parser.requireElement("eventName", "Expected event name");
 
-            var eventName = on.evaluate(); // OK No Promise
+            var eventName = on.evalStatically();
 
             if (displayName) {
                 displayName = displayName + " or " + eventName;
@@ -283,7 +303,9 @@ export class OnFeature extends Feature {
             }
 
             var startCount, endCount ,unbounded;
-            if (parser.currentToken().type === "NUMBER") {
+            if (first) {
+                startCount = 1;
+            } else if (parser.currentToken().type === "NUMBER") {
                 var startCountToken = parser.consumeToken();
                 if (!startCountToken.value) return;
                 startCount = parseInt(startCountToken.value);
@@ -297,28 +319,27 @@ export class OnFeature extends Feature {
                 }
             }
 
-            var intersectionSpec, mutationSpec;
-            if (eventName === "intersection") {
+            var intersectionSpec, mutationSpec, resizeSpec;
+            if (eventName === "resize") {
+                resizeSpec = true;
+            } else if (eventName === "intersection") {
                 intersectionSpec = {};
                 if (parser.matchToken("with")) {
-                    intersectionSpec["with"] = parser.requireElement("expression").evaluate();
+                    intersectionSpec["with"] = parser.requireElement("expression").evalStatically();
                 }
                 if (parser.matchToken("having")) {
                     do {
                         if (parser.matchToken("margin")) {
-                            intersectionSpec["rootMargin"] = parser.requireElement("stringLike").evaluate();
+                            intersectionSpec["rootMargin"] = parser.requireElement("stringLike").evalStatically();
                         } else if (parser.matchToken("threshold")) {
-                            intersectionSpec["threshold"] = parser.requireElement("expression").evaluate();
+                            intersectionSpec["threshold"] = parser.requireElement("expression").evalStatically();
                         } else {
                             parser.raiseParseError("Unknown intersection config specification");
                         }
                     } while (parser.matchToken("and"));
                 }
             } else if (eventName === "mutation") {
-                mutationSpec = {
-                    attributeOldValue: true,
-                    characterDataOldValue: true,
-                };
+                mutationSpec = {};
                 if (parser.matchToken("of")) {
                     do {
                         if (parser.matchToken("anything")) {
@@ -350,10 +371,19 @@ export class OnFeature extends Feature {
                             parser.raiseParseError("Unknown mutation config specification");
                         }
                     } while (parser.matchToken("or"));
+                    // Enable oldValue recording for requested types
+                    if (mutationSpec["attributes"] || mutationSpec["attributeFilter"]) {
+                        mutationSpec["attributeOldValue"] = true;
+                    }
+                    if (mutationSpec["characterData"]) {
+                        mutationSpec["characterDataOldValue"] = true;
+                    }
                 } else {
                     mutationSpec["attributes"] = true;
                     mutationSpec["characterData"] = true;
                     mutationSpec["childList"] = true;
+                    mutationSpec["attributeOldValue"] = true;
+                    mutationSpec["characterDataOldValue"] = true;
                 }
             }
 
@@ -386,11 +416,11 @@ export class OnFeature extends Feature {
             if (parser.matchToken("debounced")) {
                 parser.requireToken("at");
                 var timeExpr = parser.requireElement("unaryExpression");
-                var debounceTime = timeExpr.evaluate({}); // OK No promise TODO make a literal time expr
+                var debounceTime = timeExpr.evalStatically();
             } else if (parser.matchToken("throttled")) {
                 parser.requireToken("at");
                 var timeExpr = parser.requireElement("unaryExpression");
-                var throttleTime = timeExpr.evaluate({}); // OK No promise TODO make a literal time expr
+                var throttleTime = timeExpr.evalStatically();
             }
 
             events.push({
@@ -408,6 +438,7 @@ export class OnFeature extends Feature {
                 throttleTime: throttleTime,
                 mutationSpec: mutationSpec,
                 intersectionSpec: intersectionSpec,
+                resizeSpec: resizeSpec,
             });
         } while (parser.matchToken("or"));
 

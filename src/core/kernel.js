@@ -1,7 +1,8 @@
 // LanguageKernel - AST parsing for _hyperscript
 import { Parser } from './parser.js';
-import { EmptyCommandListCommand, UnlessStatementModifier, HyperscriptProgram } from '../parsetree/internals.js';
+import { EmptyCommandListCommand, UnlessStatementModifier, HyperscriptProgram, FailedFeature, FailedCommand } from '../parsetree/internals.js';
 import { Command, Feature } from '../parsetree/base.js';
+import { ParseRecoverySentinel } from './tokenizer.js';
 
 export class LanguageKernel {
 
@@ -69,7 +70,17 @@ export class LanguageKernel {
 
     parseCommandList(parser) {
         if (parser.hasMore()) {
-            var cmd = parser.parseElement("command");
+            var cmd;
+            try {
+                cmd = parser.parseElement("command");
+            } catch (e) {
+                if (e instanceof ParseRecoverySentinel) {
+                    cmd = new FailedCommand(e.parseError);
+                    this.#syncToCommand(parser);
+                } else {
+                    throw e;
+                }
+            }
             if (cmd) {
                 parser.matchToken("then");
                 const next = parser.parseElement("commandList");
@@ -161,10 +172,37 @@ export class LanguageKernel {
     parseHyperscriptProgram(parser) {
         var features = [];
         if (parser.hasMore()) {
-            while (parser.featureStart(parser.currentToken()) || parser.currentToken().value === "(") {
-                var feature = parser.requireElement("feature");
-                features.push(feature);
-                parser.matchToken("end"); // optional end
+            while (parser.currentToken().type !== "EOF") {
+                if (parser.featureStart(parser.currentToken()) || parser.currentToken().value === "(") {
+                    try {
+                        var feature = parser.requireElement("feature");
+                        features.push(feature);
+                        parser.matchToken("end"); // optional end
+                    } catch (e) {
+                        if (e instanceof ParseRecoverySentinel) {
+                            features.push(new FailedFeature(e.parseError));
+                            this.#syncToFeature(parser);
+                        } else {
+                            throw e;
+                        }
+                    }
+                } else if (parser.currentToken().value === "end") {
+                    break; // scope terminator (e.g. behavior body) — leave for outer parser
+                } else if (parser.tokens.recoveryMode) {
+                    // Unconsumed token between features — report and sync
+                    try {
+                        parser.raiseParseError("Unexpected token: " + parser.currentToken().value);
+                    } catch (e) {
+                        if (e instanceof ParseRecoverySentinel) {
+                            features.push(new FailedFeature(e.parseError));
+                            this.#syncToFeature(parser);
+                        } else {
+                            throw e;
+                        }
+                    }
+                } else {
+                    break;
+                }
             }
         }
         return new HyperscriptProgram(features);
@@ -355,10 +393,41 @@ export class LanguageKernel {
     }
 
     parseHyperScript(tokens) {
+        tokens.enableRecovery();
         var parser = new Parser(this, tokens);
-        var result = parser.parseElement("hyperscript");
-        if (tokens.hasMore()) this.raiseParseError(tokens);
-        if (result) return result;
+        var result;
+        try {
+            result = parser.parseElement("hyperscript");
+            if (tokens.hasMore()) this.raiseParseError(tokens);
+        } catch (e) {
+            if (!(e instanceof ParseRecoverySentinel)) throw e;
+        }
+        if (result) {
+            result.errors = tokens.errors;
+            return result;
+        }
+    }
+
+    #syncToFeature(parser) {
+        parser.tokens.clearFollows();
+        while (parser.hasMore() &&
+               !parser.featureStart(parser.currentToken()) &&
+               parser.currentToken().value !== "end" &&
+               parser.currentToken().type !== "EOF") {
+            parser.tokens.consumeToken();
+        }
+    }
+
+    #syncToCommand(parser) {
+        parser.tokens.clearFollows();
+        while (parser.hasMore() &&
+               !parser.commandBoundary(parser.currentToken())) {
+            parser.tokens.consumeToken();
+        }
+        // consume 'then' if that's what we landed on
+        if (parser.hasMore() && parser.currentToken().value === "then") {
+            parser.tokens.consumeToken();
+        }
     }
 
     parse(tokenizer, src) {
