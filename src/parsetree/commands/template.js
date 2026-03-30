@@ -1,5 +1,5 @@
-import { Command, Expression } from '../parsetree/base.js';
-import _hyperscript from "../_hyperscript.js";
+import { Command, Expression } from '../base.js';
+import { Tokenizer } from '../../core/tokenizer.js';
 
 function escapeHTML(html) {
     return String(html)
@@ -10,7 +10,16 @@ function escapeHTML(html) {
         .replace(/\x27/g, "&#039;");
 }
 
-class TemplateTextCommand extends Command {
+/**
+ * TemplateTextCommand - Handles template text lines with ${} interpolation
+ *
+ * Registered for the TEMPLATE_LINE token type. Parses ${expr} expressions
+ * out of template content, with HTML escaping by default.
+ * Use ${unescaped expr} to opt out of escaping.
+ */
+export class TemplateTextCommand extends Command {
+    static keyword = "TEMPLATE_LINE";
+
     constructor(parts, errors) {
         super();
         this.parts = parts;
@@ -56,8 +65,8 @@ class TemplateTextCommand extends Command {
                 exprStr = trimmed.slice('unescaped '.length);
             }
             try {
-                var exprTokens = _hyperscript.internals.tokenizer.tokenize(exprStr);
-                var exprParser = _hyperscript.internals.createParser(exprTokens);
+                var exprTokens = new Tokenizer().tokenize(exprStr);
+                var exprParser = parser.createChildParser(exprTokens);
                 var node = exprParser.requireElement("expression");
                 parts.push({ type: 'expr', node, escape });
             } catch (e) {
@@ -104,7 +113,14 @@ class TemplateTextCommand extends Command {
     }
 }
 
-class RenderCommand extends Command {
+/**
+ * RenderCommand - Render a template element
+ *
+ * Parses: render <expr> [with <namedArgs>]
+ * Executes: Tokenizes template innerHTML in "lines" mode, parses and executes
+ * the command list, collects output into result.
+ */
+export class RenderCommand extends Command {
     static keyword = "render";
 
     constructor(template_, templateArgs) {
@@ -120,19 +136,22 @@ class RenderCommand extends Command {
         if (parser.matchToken("with")) {
             templateArgs = parser.parseElement("nakedNamedArgumentList");
         }
-        return new RenderCommand(template_, templateArgs);
+        var cmd = new RenderCommand(template_, templateArgs);
+        cmd._parser = parser;
+        return cmd;
     }
 
     resolve(ctx, { template, templateArgs }) {
         if (!(template instanceof Element)) throw new Error(this.template_.sourceFor() + " is not an element");
 
         var buf = [];
-        const renderCtx = ctx.meta.runtime.makeContext(ctx.me, null, ctx.me, null);
+        var runtime = ctx.meta.runtime;
+        var renderCtx = runtime.makeContext(ctx.me, null, ctx.me, null);
         renderCtx.locals = Object.assign({}, ctx.locals, templateArgs);
         renderCtx.meta.__ht_template_result = buf;
 
-        var tokens = _hyperscript.internals.tokenizer.tokenize(template.innerHTML, "lines");
-        var parser = _hyperscript.internals.createParser(tokens);
+        var tokens = new Tokenizer().tokenize(template.innerHTML, "lines");
+        var parser = this._parser.createChildParser(tokens);
         var commandList;
         try {
             commandList = parser.parseElement("commandList");
@@ -140,7 +159,7 @@ class RenderCommand extends Command {
         } catch (e) {
             console.error("hyperscript template parse error:", e.message || e);
             ctx.result = "";
-            return ctx.meta.runtime.findNext(this, ctx);
+            return runtime.findNext(this, ctx);
         }
 
         // Collect expression-level errors from template text commands
@@ -164,19 +183,25 @@ class RenderCommand extends Command {
 
         if (renderCtx.meta.returned) {
             ctx.result = buf.join("");
-            return ctx.meta.runtime.findNext(this, ctx);
+            return runtime.findNext(this, ctx);
         }
 
         renderCtx.meta.resolve = resolve;
         renderCtx.meta.reject = reject;
         return promise.then(() => {
             ctx.result = buf.join("");
-            return ctx.meta.runtime.findNext(this, ctx);
+            return runtime.findNext(this, ctx);
         });
     }
 }
 
-class EscapeExpression extends Expression {
+/**
+ * EscapeExpression - Explicit HTML escaping expression
+ *
+ * Parses: escape html <expr>
+ * Returns: HTML-escaped string
+ */
+export class EscapeExpression extends Expression {
     static grammarName = "escape";
     static expressionType = "leaf";
 
@@ -190,12 +215,8 @@ class EscapeExpression extends Expression {
     static parse(parser) {
         if (!parser.matchToken("escape")) return;
         var escapeType = parser.matchTokenType("IDENTIFIER").value;
-
-        // hidden! for use in templates
         var unescaped = parser.matchToken("unescaped");
-
         var arg = parser.requireElement("expression");
-
         return new EscapeExpression(arg, unescaped, escapeType);
     }
 
@@ -209,18 +230,4 @@ class EscapeExpression extends Expression {
                 throw new Error("Unknown escape: " + this.escapeType);
         }
     }
-}
-
-/**
- * @param {import('../dist/_hyperscript').Hyperscript} _hyperscript
- */
-export default function templatePlugin(_hyperscript) {
-    _hyperscript.addCommand(RenderCommand.keyword, RenderCommand.parse.bind(RenderCommand));
-    _hyperscript.addLeafExpression(EscapeExpression.grammarName, EscapeExpression.parse.bind(EscapeExpression));
-    _hyperscript.addCommand("TEMPLATE_LINE", TemplateTextCommand.parse.bind(TemplateTextCommand));
-}
-
-// Auto-register when imported
-if (typeof self !== 'undefined' && self._hyperscript) {
-    self._hyperscript.use(templatePlugin);
 }

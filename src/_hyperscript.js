@@ -39,6 +39,7 @@ import * as JsFeatureModule from './parsetree/features/js.js';
 import * as WhenFeatureModule from './parsetree/features/when.js';
 import * as BindFeatureModule from './parsetree/features/bind.js';
 import * as AlwaysFeatureModule from './parsetree/features/always.js';
+import * as TemplateCommands from './parsetree/commands/template.js';
 
 const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'undefined' ? global : this);
 
@@ -81,6 +82,7 @@ kernel.registerModule(JsFeatureModule);
 kernel.registerModule(WhenFeatureModule);
 kernel.registerModule(BindFeatureModule);
 kernel.registerModule(AlwaysFeatureModule);
+kernel.registerModule(TemplateCommands);
 
 // ===== Public API =====
 
