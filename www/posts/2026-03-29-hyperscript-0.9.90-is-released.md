@@ -47,6 +47,32 @@ property (value, checked, valueAsNumber):
 The reactivity system includes automatic dependency tracking, circular dependency detection, and cleanup
 when elements are removed from the DOM.
 
+### Templates in Core
+
+The [`render`](/commands/render) command and template language are now built into core — no extension script needed.
+Templates use `<template>` elements with `${}` interpolation and `#`-prefixed control flow:
+
+```html
+<template id="user-card">
+#for user in users
+  <div class="card">
+    <h3>${user.name}</h3>
+    #if user.bio
+      <p>${user.bio}</p>
+    #end
+  </div>
+#end
+</template>
+
+<button _="on click
+  render #user-card with users: userData
+  put the result into #container">
+  Load Users
+</button>
+```
+
+Interpolated expressions are HTML-escaped by default. Use `${unescaped expr}` for raw output.
+
 ### New Commands
 
 #### open / close
@@ -268,14 +294,37 @@ All extension scripts have been reorganized into a `dist/ext/` subdirectory.
 <div class="upgrade-step">
 
 **Upgrade Step:** Search for `dist/hdb.js`, `dist/socket.js`, `dist/worker.js`, `dist/eventsource.js`,
-`dist/template.js`, `dist/tailwind.js` and replace with `dist/ext/hdb.js`, `dist/ext/socket.js`, etc.
+`dist/tailwind.js` and replace with `dist/ext/hdb.js`, `dist/ext/socket.js`, etc.
 
 </div>
 </div>
 
 <div class="upgrade-section">
 
-#### 2. transition requires \* style refs
+#### 2. Templates moved into core
+
+The template extension (`dist/template.js` or `dist/ext/template.js`) is no longer needed.
+The [`render`](/commands/render) command is now built into core. Also, the template command prefix has changed
+from `@` to `#`:
+
+```
+-- Before                     -- After
+@repeat in items              #for x in items
+@set x to "hello"             #set x to "hello"
+@end                          #end
+```
+
+<div class="upgrade-step">
+
+**Upgrade Step:** Remove any `<script>` tag that loads `template.js`. If your templates use `@` command
+prefixes, replace them with `#`. Replace `@repeat in Y` with `#for x in Y`.
+
+</div>
+</div>
+
+<div class="upgrade-section">
+
+#### 3. transition requires \* style refs
 
 The [`transition`](/commands/transition) command previously accepted bare identifiers like `width` and `opacity`
 as CSS property names. Now that hyperscript has [style literals](/docs#dom-literals) (`*width`, `*opacity`),
@@ -302,7 +351,7 @@ transition element #foo width to 100px       transition #foo's *width to 100px
 
 <div class="upgrade-section">
 
-#### 3. as JSON is now parse, not stringify
+#### 4. as JSON is now parse, not stringify
 
 In previous versions, [`as JSON`](/expressions/as) called `JSON.stringify()`. It now calls `JSON.parse()`,
 matching the natural reading of "interpret this as JSON". A new `as JSONString` conversion handles
@@ -318,7 +367,7 @@ If it was parsing a JSON string, no change needed.
 
 <div class="upgrade-section">
 
-#### 4. Values:JSON and Values:Form removed
+#### 5. Values:JSON and Values:Form removed
 
 The colon-based conversion modifiers have been replaced by the more general [pipe operator](/expressions/as).
 
@@ -332,7 +381,7 @@ The colon-based conversion modifiers have been replaced by the more general [pip
 
 <div class="upgrade-section">
 
-#### 5. default uses nullish check
+#### 6. default uses nullish check
 
 [`default`](/commands/default) previously used a truthy check, so `default x to 10` would overwrite `0` and
 `false`. It now uses a nullish+empty check: only `null`, `undefined`, and `""` are considered unset.
@@ -347,7 +396,7 @@ The colon-based conversion modifiers have been replaced by the more general [pip
 
 <div class="upgrade-section">
 
-#### 6. \[@ syntax deprecated
+#### 7. \[@ syntax deprecated
 
 The `[@attr]` bracket-style attribute access has been deprecated in favor of the
 [`@attr` literal](/expressions/attribute-ref).
@@ -361,7 +410,7 @@ The `[@attr]` bracket-style attribute access has been deprecated in favor of the
 
 <div class="upgrade-section">
 
-#### 7. go to url and scroll form deprecated
+#### 8. go to url and scroll form deprecated
 
 The `url` keyword in [`go to`](/commands/go) `url X` is no longer needed — `go to` now accepts naked URLs
 directly.
@@ -379,7 +428,7 @@ The scroll form `go to the top of ...` continues to work but has been superseded
 
 <div class="upgrade-section">
 
-#### 8. processNode() deprecated
+#### 9. processNode() deprecated
 
 The API has been renamed to `process()` to align with htmx's naming. The old name still works as an alias.
 
@@ -392,7 +441,7 @@ The API has been renamed to `process()` to align with htmx's naming. The old nam
 
 <div class="upgrade-section">
 
-#### 9. Bundle format changed
+#### 10. Bundle format changed
 
 `dist/_hyperscript.js` is now IIFE (was UMD). Plain `<script>` tags work unchanged.
 

@@ -2150,6 +2150,32 @@ as well as an offset:
 </button>
 {% endexample %}
 
+### Templates {#templates}
+
+The [`render`](/commands/render) command lets you generate HTML strings from `<template>` elements with interpolation
+and control flow:
+
+  ~~~ html
+  <template id="user-list">
+  <ul>
+  #for user in users
+    <li>${user.name} (${user.role})</li>
+  #end
+  </ul>
+  </template>
+  ~~~
+
+  ~~~ hyperscript
+  render #user-list with users: userData
+  put it into #container.innerHTML
+  ~~~
+
+Template lines are output as-is. `${expr}` interpolates hyperscript expressions with HTML escaping by default
+(use `${unescaped expr}` for raw output). Lines starting with `#` are control flow: `#for`, `#if`, `#else`, `#end`.
+
+Named arguments passed via `with` become local variables in the template. See the
+[`render` command](/commands/render) for full details.
+
 ## Async Transparency {#async}
 
 One of the most distinctive features of hyperscript is that it is "async transparent".  What that means is that,

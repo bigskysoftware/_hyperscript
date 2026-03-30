@@ -2,55 +2,91 @@
 title: render - ///_hyperscript
 ---
 
-## The `render` command
-
-### Installing
-
-Note: if you want the template command, you must include the /dist/template.js file in addition to the hyperscript script
-  ~~~ html
-  <script src="https://unpkg.com/hyperscript.org@0.9.14/dist/template.js"></script>
-  ~~~
+## The `render` Command
 
 ### Syntax
 
-`render <template> with (<arg list>)`
-
-where
-
-- `<template>` is an HTML element containing a template
+```ebnf
+render <template-element> [with <name>: <expr>, ...]
+```
 
 ### Description
 
-The `render` command implements a simple template language. This language has two rules:
+The `render` command implements a template language for generating HTML strings from `<template>` elements.
+The result is placed into `it` / `the result`.
 
-- You can use `${}` string interpolation, just like in [template literals](). However, bare `` `$var` `` interpolation is not supported.
-- Interpolated expressions will be HTML-escaped, unless they are preceded by `unescaped`.
-- Any line starting with `@` is executed as a \_hyperscript statement.
+Templates have three rules:
 
-The result of rendering the template will be stored in the `result` (or `it`) variable.
+- Lines are output as-is (template text)
+- `${expr}` interpolates a hyperscript expression, HTML-escaped by default. Use `${unescaped expr}` to output raw HTML.
+- Lines starting with `#` are control flow: `#for`, `#if`, `#else`, `#end`
 
-For example, if we want to render a list of colors:
+Named arguments passed via `with` are available as local variables inside the template.
 
-```html
-<button
-  _="on click
-    render #color-template with (colors: getColors())
-    then put it into #colors"
->
-  Get the colors
-</button>
+### Control Flow
+
+```
+#for item in collection
+  ...template lines...
+#end
+
+#if condition
+  ...template lines...
+#else
+  ...template lines...
+#end
 ```
 
-Our template might look like this:
+### Examples
+
+Render a list of colors:
 
 ```html
 <template id="color-template">
-  <ul>
-    @repeat in colors
-      @set bg to it
-      @set fg to getContrastingColor(it)
-      <li style="background: ${bg}; color: ${unescaped fg}">${bg}</li>
-    @end
-  </ul>
+#for color in colors
+  <li style="background: ${color}">${color}</li>
+#end
 </template>
+
+<button _="on click
+  render #color-template with colors: ['red', 'green', 'blue']
+  put it into #color-list">
+  Show Colors
+</button>
+<ul id="color-list"></ul>
+```
+
+Conditional rendering:
+
+```html
+<template id="greeting">
+#if name
+  <p>Hello, ${name}!</p>
+#else
+  <p>Hello, stranger!</p>
+#end
+</template>
+
+<button _="on click
+  render #greeting with name: 'World'
+  put it into #output">
+  Greet
+</button>
+<div id="output"></div>
+```
+
+Escaping and unescaped output:
+
+```html
+<template id="demo">
+  Escaped: ${html}
+  Raw: ${unescaped html}
+</template>
+```
+
+With `html` set to `"<b>bold</b>"`, this produces:
+
+```
+  Escaped: &lt;b&gt;bold&lt;/b&gt;
+  Raw: <b>bold</b>
 ```

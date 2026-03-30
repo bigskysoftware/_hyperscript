@@ -26,6 +26,7 @@
 | [pick](/commands/pick)             | Selects items from arrays, strings and regex match results                    | `pick first 3 of arr`, `pick match of "(\w+)" of str`                                   |
 | [put](/commands/put)               | Puts a value into a given variable or property                                | `put "cool!" into me`                                                                   |
 | [remove](/commands/remove)         | Removes content                                                               | `log "bye, bye" then remove me`                                                         |
+| [render](/commands/render)         | Renders an HTML template with interpolation                                   | `render #my-template with items: data`                                                  |
 | [repeat](/commands/repeat)         | Iterates                                                                      | `repeat for x in [1, 2, 3] log x end`                                                   |
 | [return](/commands/return)         | Returns a value                                                               | `return 42`                                                                             |
 | [send/trigger](/commands/send)     | Sends an event                                                                | `send customEvent to #a-div`                                                            |
