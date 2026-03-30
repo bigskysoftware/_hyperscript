@@ -37,6 +37,8 @@
     "www": "npm run build && cp dist/_hyperscript.js dist/_hyperscript.min.js www/js/",
     "www:search": "cd www && npx @11ty/eleventy && npx pagefind --site _site",
     "www:serve": "cd www && npx @11ty/eleventy && npx pagefind --site _site && npx serve _site",
+    "test:workers": "npx serve . -l 3000 -s & echo 'Open http://localhost:3000/test/manual/workers.html'",
+    "test:connections": "node test/manual/server.js",
     "update-debug-plugin": "npm run build && cp dist/_hyperscript.js debug-plugin/vendor/_hyperscript.js"
   },
   "repository": {
