@@ -515,14 +515,9 @@ export class Tokenizer {
         var ws = this.#makeToken("WHITESPACE");
         var value = "";
         while (this.#currentChar() && this.#isWhitespace(this.#currentChar())) {
-            // TODO MERGE
             if (this.#isNewline(this.#currentChar())) {
-                this.#column = 0;
-                this.#line++;
-                // This template mode needs to be moved...
                 this.#templateMode = "indeterminant";
             }
-            // TODO MERGE
             value += this.#consumeChar();
         }
         ws.value = value;
