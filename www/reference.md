@@ -72,7 +72,19 @@ See [expressions](/expressions) for an overview.
 | [logical operator](/expressions/logical-operator)                    | Logical operators                                  | `x and y` `not z` `a or false`        |
 | [no operator](/expressions/no)                                       | Emptiness/existence check                          | `no element.children`                  |
 | [as expression](/expressions/as)                                     | Converts an expression to a new type               | `"10" as Int`                          |
+| pipe operator                                                        | Chain conversions left to right                    | `x as Values \| JSONString`            |
 | in expression                                                        | Containment check                                  | `"foo" in myArray`                     |
+| ignoring case                                                        | Case-insensitive modifier for comparisons          | `x contains "hi" ignoring case`        |
+
+### Collection Expressions
+
+| name                                                                 | description                                        | example                                 |
+|----------------------------------------------------------------------|----------------------------------------------------|-----------------------------------------|
+| where                                                                | Filter a collection                                | `items where its active`               |
+| sorted by                                                            | Sort a collection                                  | `items sorted by its name`             |
+| mapped to                                                            | Map/project a collection                           | `items mapped to its id`               |
+| split by                                                             | Split a string into an array                       | `"a,b" split by ","`                   |
+| joined by                                                            | Join an array into a string                        | `items joined by ", "`                 |
 
 ### Literals
 
@@ -100,6 +112,8 @@ Magic values are special names that are automatically available in hyperscript c
 | [me](/expressions/me)   | Reference to the current element (aliases: `my`, `I`)       | `put 'clicked' into me`                         |
 | [you](/expressions/you) | Reference to a target element set by `tell`                 | `tell <p/> remove yourself`                     |
 | body                    | Reference to `document.body`                                | `put "Hello" into body`                         |
+| clipboard               | System clipboard (async read, sync write)                   | `put clipboard into me`, `set clipboard to "hi"`|
+| selection               | Currently selected text                                     | `put selection into #out`                       |
 
 ### Result Values
 

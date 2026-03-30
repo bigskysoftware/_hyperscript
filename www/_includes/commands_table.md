@@ -36,5 +36,12 @@
 | [tell](/commands/tell)             | Temporarily sets a new implicit target value                                  | `tell <p/> add .highlight`                                                              |
 | [throw](/commands/throw)           | Throws an exception                                                           | `throw "Bad Value"`                                                                     |
 | [toggle](/commands/toggle)         | Toggles content on a target                                                   | `toggle .clicked on me`                                                                 |
-| [transition](/commands/transition) | Transitions properties on an element                                          | `transition opacity to 0`                                                               |
+| [transition](/commands/transition) | Transitions properties on an element                                          | `transition my *opacity to 0`                                                           |
 | [wait](/commands/wait)             | Waits for an event or a given amount of time before resuming the command list | `wait 2s then remove me`                                                                |
+| [open](/commands/open)              | Opens dialogs, details, popovers, or enters fullscreen                        | `open #my-dialog`, `open fullscreen`                                                    |
+| [close](/commands/close)            | Closes dialogs, details, popovers, or exits fullscreen                        | `close #my-dialog`, `close fullscreen`                                                  |
+| [select](/commands/select)          | Selects text in an input or textarea                                          | `select #search-input`                                                                  |
+| [ask](/commands/ask)                | Shows a browser prompt dialog, result in `it`                                 | `ask "Your name?"`                                                                      |
+| [answer](/commands/answer)          | Shows an alert or confirm dialog                                              | `answer "Save?" with "Yes" or "No"`                                                     |
+| [speak](/commands/speak)            | Text-to-speech via the Web Speech API                                         | `speak "Hello" with rate 2`                                                             |
+| [breakpoint](/commands/breakpoint)  | Pauses execution in the browser DevTools                                      | `breakpoint`                                                                            |
