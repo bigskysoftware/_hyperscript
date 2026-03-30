@@ -7,9 +7,9 @@
 | [call/get](/commands/call)         | Evaluates an expression (e.g. a Javascript Function)                          | `call alert('yep, you can call javascript!')` <br/><br/> `get prompt('Enter your name')` |
 | [continue](/commands/continue)     | Skips the remainder of a loop and continues at the top of the next iteration. | `repeat 3 times continue end`                                                           |
 | [decrement](/commands/decrement)   | Subtracts a value from a variable, property, or attribute                     | `decrement counter`                                                                     |
-| default                            | Sets a variable to a value if it is currently undefined                       | `default x to 0`                                                                        |
+| [default](/commands/default)       | Sets a variable to a value if it is currently undefined                       | `default x to 0`                                                                        |
 | [empty](/commands/empty)           | Removes all child nodes from an element                                       | `empty #results`                                                                         |
-| exit                               | Exits the current handler without returning a value                           | `if x is null exit`                                                                      |
+| [exit](/commands/exit)              | Exits the current handler without returning a value                           | `if x is null exit`                                                                      |
 | [focus](/commands/focus)           | Focuses an element                                                            | `focus #search-input`                                                                    |
 | [blur](/commands/blur)             | Removes focus from an element                                                 | `blur me`                                                                                |
 | [fetch](/commands/fetch)           | Send a fetch request                                                          | `fetch /demo then put it into my.innerHTML`                                             |

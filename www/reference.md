@@ -10,7 +10,7 @@ Features are top-level constructs that define the behavior of an element. Every 
 | [init](/features/init)                | Initialization logic to be run when the code is first loaded          |                                           |
 | [set](/features/set)                  | Defines a new [element-scoped](/docs#names_and_scoping) variable      |                                           |
 | [behavior](/features/behavior)        | Define cross-cutting behaviors that are applied to many HTML elements |                                           |
-| [install](/features/install)          | Install a behavior onto the current element                           | `install Draggable`                       |
+| [install](/features/behavior)         | Install a behavior onto the current element                           | `install Draggable`                       |
 | [js](/features/js)                    | Embed JavaScript code at the top level                                | [see details...](/features/js)            |
 | [always](/features/always)            | Declare reactive commands that re-run when dependencies change        | `always set $total to ($price * $qty)`    |
 | [when](/features/when)                | React to value changes with side effects, async, or events            | `when $x changes ...`                     |
@@ -71,6 +71,7 @@ See [expressions](/expressions) for an overview.
 | [comparison operator](/expressions/comparison-operator)              | Comparison and type-checking operators              | `x == "foo"` `I match <:active/>`     |
 | [logical operator](/expressions/logical-operator)                    | Logical operators                                  | `x and y` `not z` `a or false`        |
 | [no operator](/expressions/no)                                       | Emptiness/existence check                          | `no element.children`                  |
+| some operator                                                        | Existence check (inverse of `no`)                  | `some <.results/>`                     |
 | [as expression](/expressions/as)                                     | Converts an expression to a new type               | `"10" as Int`                          |
 | pipe operator                                                        | Chain conversions left to right                    | `x as Values \| JSONString`            |
 | in expression                                                        | Containment check                                  | `"foo" in myArray`                     |
@@ -81,7 +82,7 @@ See [expressions](/expressions) for an overview.
 | name                                                                 | description                                        | example                                 |
 |----------------------------------------------------------------------|----------------------------------------------------|-----------------------------------------|
 | where                                                                | Filter a collection                                | `items where its active`               |
-| sorted by                                                            | Sort a collection                                  | `items sorted by its name`             |
+| sorted by                                                            | Sort a collection                                  | `items sorted by its name descending`  |
 | mapped to                                                            | Map/project a collection                           | `items mapped to its id`               |
 | split by                                                             | Split a string into an array                       | `"a,b" split by ","`                   |
 | joined by                                                            | Join an array into a string                        | `items joined by ", "`                 |
