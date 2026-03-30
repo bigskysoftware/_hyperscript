@@ -47,26 +47,6 @@ var Command = class extends ParseElement {
     context.meta.command = this;
     return context.meta.runtime.unifiedExec(this, context);
   }
-  static parsePseudopossessiveTarget(parser) {
-    var targets;
-    if (parser.matchToken("the") || parser.matchToken("element") || parser.matchToken("elements") || parser.currentToken().type === "CLASS_REF" || parser.currentToken().type === "ID_REF" || parser.currentToken().op && parser.currentToken().value === "<") {
-      parser.possessivesDisabled = true;
-      try {
-        targets = parser.parseElement("expression");
-      } finally {
-        parser.possessivesDisabled = false;
-      }
-      if (parser.matchOpToken("'")) {
-        parser.requireToken("s");
-      }
-    } else if (parser.currentToken().type === "IDENTIFIER" && parser.currentToken().value === "its") {
-      targets = parser.parseElement("pseudopossessiveIts");
-    } else {
-      parser.matchToken("my") || parser.matchToken("me");
-      targets = parser.parseElement("implicitMeTarget");
-    }
-    return targets;
-  }
 };
 
 // src/ext/template.js

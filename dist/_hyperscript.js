@@ -822,26 +822,6 @@
       context.meta.command = this;
       return context.meta.runtime.unifiedExec(this, context);
     }
-    static parsePseudopossessiveTarget(parser) {
-      var targets;
-      if (parser.matchToken("the") || parser.matchToken("element") || parser.matchToken("elements") || parser.currentToken().type === "CLASS_REF" || parser.currentToken().type === "ID_REF" || parser.currentToken().op && parser.currentToken().value === "<") {
-        parser.possessivesDisabled = true;
-        try {
-          targets = parser.parseElement("expression");
-        } finally {
-          parser.possessivesDisabled = false;
-        }
-        if (parser.matchOpToken("'")) {
-          parser.requireToken("s");
-        }
-      } else if (parser.currentToken().type === "IDENTIFIER" && parser.currentToken().value === "its") {
-        targets = parser.parseElement("pseudopossessiveIts");
-      } else {
-        parser.matchToken("my") || parser.matchToken("me");
-        targets = parser.parseElement("implicitMeTarget");
-      }
-      return targets;
-    }
   };
   var Feature = class extends ParseElement {
     constructor() {
@@ -1235,19 +1215,12 @@
   __publicField(StringLike, "grammarName", "stringLike");
 
   // src/core/parser.js
-  var _kernel, _possessivesDisabled;
+  var _kernel;
   var _Parser = class _Parser {
     constructor(kernel2, tokens) {
       __privateAdd(this, _kernel);
-      __privateAdd(this, _possessivesDisabled, false);
       __privateSet(this, _kernel, kernel2);
       this.tokens = tokens;
-    }
-    get possessivesDisabled() {
-      return __privateGet(this, _possessivesDisabled);
-    }
-    set possessivesDisabled(value) {
-      __privateSet(this, _possessivesDisabled, value);
     }
     // ===========================
     // Token delegation methods
@@ -1417,7 +1390,6 @@
     }
   };
   _kernel = new WeakMap();
-  _possessivesDisabled = new WeakMap();
   var Parser = _Parser;
 
   // src/core/kernel.js
@@ -1483,11 +1455,8 @@
           cmd = parser.parseElement("command");
         } catch (e) {
           if (e instanceof ParseRecoverySentinel) {
-            console.error("RECOVERY at token:", parser.currentToken().value, "pos:", parser.currentToken().start, "error:", e.parseError.message);
-            debugger;
             cmd = new FailedCommand(e.parseError);
             __privateMethod(this, _LanguageKernel_instances, syncToCommand_fn).call(this, parser);
-            console.error("SYNCED to token:", parser.currentToken().value);
           } else {
             throw e;
           }
@@ -1573,12 +1542,7 @@
     parseHyperscriptProgram(parser) {
       var features = [];
       if (parser.hasMore()) {
-        var _pLoopGuard = 0;
         while (parser.currentToken().type !== "EOF") {
-          if (++_pLoopGuard > 100) {
-            console.error("HANG: program parse loop, token:", parser.currentToken());
-            debugger;
-          }
           if (parser.featureStart(parser.currentToken()) || parser.currentToken().value === "(") {
             try {
               var feature = parser.requireElement("feature");
@@ -1830,12 +1794,7 @@
   };
   syncToCommand_fn = function(parser) {
     parser.tokens.clearFollows();
-    var _sLoopGuard = 0;
     while (parser.hasMore() && !parser.commandBoundary(parser.currentToken())) {
-      if (++_sLoopGuard > 200) {
-        console.error("HANG: syncToCommand loop, token:", parser.currentToken());
-        debugger;
-      }
       parser.tokens.consumeToken();
     }
     if (parser.hasMore() && parser.currentToken().value === "then") {
@@ -3735,9 +3694,6 @@
       this.args = { root };
     }
     static parse(parser, root) {
-      if (parser.possessivesDisabled) {
-        return;
-      }
       var apostrophe = parser.matchOpToken("'");
       if (apostrophe || root.type === "symbol" && (root.name === "my" || root.name === "its" || root.name === "your") && (parser.currentToken().type === "IDENTIFIER" || parser.currentToken().type === "ATTRIBUTE_REF" || parser.currentToken().type === "STYLE_REF")) {
         if (apostrophe) {
@@ -5126,29 +5082,6 @@
   };
   __publicField(_ImplicitMeTarget, "grammarName", "implicitMeTarget");
   var ImplicitMeTarget = _ImplicitMeTarget;
-
-  // src/parsetree/expressions/pseudopossessive.js
-  var pseudopossessive_exports = {};
-  __export(pseudopossessive_exports, {
-    PseudopossessiveIts: () => PseudopossessiveIts
-  });
-  var _PseudopossessiveIts = class _PseudopossessiveIts extends Expression {
-    constructor(token) {
-      super();
-      this.token = token;
-      this.name = token.value;
-    }
-    static parse(parser) {
-      if (parser.currentToken().type === "IDENTIFIER" && parser.currentToken().value === "its") {
-        return new _PseudopossessiveIts(parser.matchToken("its"));
-      }
-    }
-    resolve(context) {
-      return context.meta.runtime.resolveSymbol("it", context);
-    }
-  };
-  __publicField(_PseudopossessiveIts, "grammarName", "pseudopossessiveIts");
-  var PseudopossessiveIts = _PseudopossessiveIts;
 
   // src/parsetree/commands/basic.js
   var basic_exports = {};
@@ -7566,12 +7499,46 @@
     }
     static parse(parser) {
       if (!parser.matchToken("measure")) return;
-      var targetExpr = Command.parsePseudopossessiveTarget(parser);
+      var targetExpr;
       var propsToMeasure = [];
-      if (!parser.commandBoundary(parser.currentToken()))
-        do {
-          propsToMeasure.push(parser.matchTokenType("IDENTIFIER").value);
-        } while (parser.matchOpToken(","));
+      var MEASURE_PROPS = [
+        "x",
+        "y",
+        "left",
+        "top",
+        "right",
+        "bottom",
+        "width",
+        "height",
+        "bounds",
+        "scrollLeft",
+        "scrollTop",
+        "scrollLeftMax",
+        "scrollTopMax",
+        "scrollWidth",
+        "scrollHeight",
+        "scroll"
+      ];
+      if (parser.commandBoundary(parser.currentToken())) {
+        targetExpr = parser.parseElement("implicitMeTarget");
+      } else {
+        var expr = parser.requireElement("expression");
+        if (expr.type === "symbol" && MEASURE_PROPS.includes(expr.name)) {
+          targetExpr = parser.parseElement("implicitMeTarget");
+          propsToMeasure.push(expr.name);
+        } else if (expr.type === "possessive" && expr.prop) {
+          targetExpr = expr.root;
+          propsToMeasure.push(expr.prop.value);
+        } else if (expr.type === "ofExpression" && expr.prop) {
+          targetExpr = expr.root;
+          propsToMeasure.push(expr.prop.value);
+        } else {
+          targetExpr = expr;
+        }
+      }
+      while (parser.matchOpToken(",")) {
+        propsToMeasure.push(parser.requireTokenType("IDENTIFIER").value);
+      }
       return new _MeasureCommand(targetExpr, propsToMeasure);
     }
     resolve(ctx, { target }) {
@@ -7716,7 +7683,7 @@
     resolve(ctx, { target }) {
       var elt = target || ctx.me;
       if (this.fullscreen) {
-        return elt.requestFullscreen().then(() => {
+        return (target || document.documentElement).requestFullscreen().then(() => {
           return ctx.meta.runtime.findNext(this, ctx);
         });
       }
@@ -7882,6 +7849,18 @@
     SettleCommand: () => SettleCommand,
     TransitionCommand: () => TransitionCommand
   });
+  function _extractStyleProp(expr) {
+    if (expr.type === "styleRef") {
+      return { name: expr.name, target: null };
+    }
+    if (expr.type === "possessive" && expr.attribute && (expr.attribute.type === "styleRef" || expr.attribute.type === "computedStyleRef")) {
+      return { name: expr.attribute.name, target: expr.root };
+    }
+    if (expr.type === "ofExpression" && expr._urRoot && (expr._urRoot.type === "styleRef" || expr._urRoot.type === "computedStyleRef")) {
+      return { name: expr._urRoot.name, target: expr.root };
+    }
+    return null;
+  }
   var StyleRefValue = class extends Expression {
     constructor(styleProp) {
       super();
@@ -7962,23 +7941,36 @@
     }
     static parse(parser) {
       if (parser.matchToken("transition")) {
-        var targetsExpr = Command.parsePseudopossessiveTarget(parser);
+        var targetsExpr;
         var properties = [];
         var from = [];
         var to = [];
+        var firstExpr = parser.requireElement("expression");
+        var firstProp = _extractStyleProp(firstExpr);
+        if (firstProp) {
+          targetsExpr = firstProp.target || parser.parseElement("implicitMeTarget");
+          properties.push(new StyleRefValue(firstProp.name));
+        } else {
+          parser.raiseParseError("Expected a style reference (e.g. *opacity) for transition");
+        }
+        if (parser.matchToken("from")) {
+          from.push(parser.requireElement("expression"));
+        } else {
+          from.push(null);
+        }
+        parser.requireToken("to");
+        if (parser.matchToken("initial")) {
+          to.push(new InitialLiteral());
+        } else {
+          to.push(parser.requireElement("expression"));
+        }
         var currentToken = parser.currentToken();
-        var _tLoopGuard = 0;
         while (!parser.commandBoundary(currentToken) && currentToken.value !== "over" && currentToken.value !== "using") {
-          if (++_tLoopGuard > 50) {
-            console.error("HANG: transition parse loop, token:", currentToken);
-            debugger;
-          }
           if (parser.currentToken().type === "STYLE_REF") {
-            let styleRef = parser.consumeToken();
-            let styleProp = styleRef.value.slice(1);
-            properties.push(new StyleRefValue(styleProp));
+            var styleRef = parser.consumeToken();
+            properties.push(new StyleRefValue(styleRef.value.slice(1)));
           } else {
-            properties.push(parser.requireElement("stringLike"));
+            break;
           }
           if (parser.matchToken("from")) {
             from.push(parser.requireElement("expression"));
@@ -9135,7 +9127,6 @@
   kernel.registerModule(positional_exports);
   kernel.registerModule(existentials_exports);
   kernel.registerModule(targets_exports);
-  kernel.registerModule(pseudopossessive_exports);
   kernel.registerModule(basic_exports);
   kernel.registerModule(setters_exports);
   kernel.registerModule(events_exports);
