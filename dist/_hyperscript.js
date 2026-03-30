@@ -1483,8 +1483,11 @@
           cmd = parser.parseElement("command");
         } catch (e) {
           if (e instanceof ParseRecoverySentinel) {
+            console.error("RECOVERY at token:", parser.currentToken().value, "pos:", parser.currentToken().start, "error:", e.parseError.message);
+            debugger;
             cmd = new FailedCommand(e.parseError);
             __privateMethod(this, _LanguageKernel_instances, syncToCommand_fn).call(this, parser);
+            console.error("SYNCED to token:", parser.currentToken().value);
           } else {
             throw e;
           }
@@ -1570,7 +1573,12 @@
     parseHyperscriptProgram(parser) {
       var features = [];
       if (parser.hasMore()) {
+        var _pLoopGuard = 0;
         while (parser.currentToken().type !== "EOF") {
+          if (++_pLoopGuard > 100) {
+            console.error("HANG: program parse loop, token:", parser.currentToken());
+            debugger;
+          }
           if (parser.featureStart(parser.currentToken()) || parser.currentToken().value === "(") {
             try {
               var feature = parser.requireElement("feature");
@@ -1822,7 +1830,12 @@
   };
   syncToCommand_fn = function(parser) {
     parser.tokens.clearFollows();
+    var _sLoopGuard = 0;
     while (parser.hasMore() && !parser.commandBoundary(parser.currentToken())) {
+      if (++_sLoopGuard > 200) {
+        console.error("HANG: syncToCommand loop, token:", parser.currentToken());
+        debugger;
+      }
       parser.tokens.consumeToken();
     }
     if (parser.hasMore() && parser.currentToken().value === "then") {
@@ -7954,7 +7967,12 @@
         var from = [];
         var to = [];
         var currentToken = parser.currentToken();
+        var _tLoopGuard = 0;
         while (!parser.commandBoundary(currentToken) && currentToken.value !== "over" && currentToken.value !== "using") {
+          if (++_tLoopGuard > 50) {
+            console.error("HANG: transition parse loop, token:", currentToken);
+            debugger;
+          }
           if (parser.currentToken().type === "STYLE_REF") {
             let styleRef = parser.consumeToken();
             let styleProp = styleRef.value.slice(1);
