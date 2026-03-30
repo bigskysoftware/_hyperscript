@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>hyperscript Socket &amp; EventSource Tests</title>
+  <style>
+    body { font-family: system-ui; max-width: 70ch; margin: 2em auto; }
+    h2 { margin-top: 2em; border-bottom: 1px solid #ccc; padding-bottom: 0.3em; }
+    .test { padding: 0.5em; margin: 0.3em 0; border-radius: 4px; }
+    .pass { background: #d4edda; }
+    .fail { background: #f8d7da; }
+    .pending { background: #fff3cd; }
+    pre { background: #f5f5f5; padding: 0.5em; overflow-x: auto; }
+    #summary { margin-top: 1em; font-weight: bold; font-size: 1.1em; }
+  </style>
+</head>
+<body>
+  <h1>Socket &amp; EventSource Manual Tests</h1>
+  <p>Run with: <code>node test/manual/server.js</code>, then open
+     <code>http://localhost:3000/test/manual/connections.html</code></p>
+
+  <h2>EventSource Tests</h2>
+  <div id="sse-results"></div>
+
+  <h2>Socket Tests</h2>
+  <div id="ws-results"></div>
+
+  <div id="summary"></div>
+
+  <!-- Hidden elements used by hyperscript tests -->
+  <div id="sse-message" style="display:none"></div>
+  <div id="sse-tick-count" style="display:none">0</div>
+  <div id="sse-done" style="display:none"></div>
+  <div id="sse-greeting" style="display:none"></div>
+  <div id="sse-farewell" style="display:none"></div>
+  <div id="ws-welcome" style="display:none"></div>
+  <div id="ws-rpc-result" style="display:none"></div>
+  <div id="ws-greet-result" style="display:none"></div>
+  <div id="ws-event-echo" style="display:none"></div>
+
+  <script src="/dist/_hyperscript.js"></script>
+  <script src="/dist/ext/eventsource.js"></script>
+  <script src="/dist/ext/socket.js"></script>
+
+  <!-- EventSource: basic message -->
+  <script type="text/hyperscript">
+    eventsource BasicSSE from "/sse"
+      on "message" as string
+        put it into #sse-message
+      end
+      on "tick" as json
+        put it.count into #sse-tick-count
+      end
+      on "done" as string
+        put it into #sse-done
+      end
+    end
+  </script>
+
+  <!-- EventSource: named events -->
+  <script type="text/hyperscript">
+    eventsource NamedSSE from "/sse-named"
+      on "greeting" as json
+        put it.message into #sse-greeting
+      end
+      on "farewell" as json
+        put it.message into #sse-farewell
+      end
+    end
+  </script>
+
+  <!-- Socket: basic connection with message handler -->
+  <script type="text/hyperscript">
+    socket TestSocket ws://localhost:3000/ws
+      on message as json
+        if message.type is "welcome"
+          put message.message into #ws-welcome
+        end
+        if message.type starts with "echo:"
+          put message.detail.payload into #ws-event-echo
+        end
+      end
+    end
+  </script>
+
+  <script>
+    var passCount = 0, failCount = 0;
+
+    function report(container, name, passed, detail) {
+      var div = document.createElement('div');
+      div.className = 'test ' + (passed ? 'pass' : 'fail');
+      div.textContent = (passed ? 'PASS' : 'FAIL') + ': ' + name;
+      if (detail) {
+        var pre = document.createElement('pre');
+        pre.textContent = detail;
+        div.appendChild(pre);
+      }
+      document.getElementById(container).appendChild(div);
+      if (passed) passCount++; else failCount++;
+    }
+
+    function showSummary() {
+      document.getElementById('summary').textContent =
+        passCount + ' passed, ' + failCount + ' failed';
+    }
+
+    function waitFor(fn, timeout) {
+      timeout = timeout || 5000;
+      return new Promise(function(resolve, reject) {
+        var start = Date.now();
+        (function check() {
+          var result = fn();
+          if (result) { resolve(result); return; }
+          if (Date.now() - start > timeout) { reject(new Error('timeout')); return; }
+          setTimeout(check, 100);
+        })();
+      });
+    }
+
+    async function runSSETests() {
+      // Test 1: Basic SSE message received
+      try {
+        await waitFor(() => document.getElementById('sse-message').textContent === 'hello from SSE');
+        report('sse-results', 'receives basic message', true);
+      } catch (e) {
+        report('sse-results', 'receives basic message', false,
+          'Expected "hello from SSE", got "' + document.getElementById('sse-message').textContent + '"');
+      }
+
+      // Test 2: Named event with JSON parsing
+      try {
+        await waitFor(() => {
+          var count = parseInt(document.getElementById('sse-tick-count').textContent);
+          return count >= 1;
+        });
+        report('sse-results', 'receives named tick events as JSON', true);
+      } catch (e) {
+        report('sse-results', 'receives named tick events as JSON', false,
+          'tick count: ' + document.getElementById('sse-tick-count').textContent);
+      }
+
+      // Test 3: Multiple tick events accumulate
+      try {
+        await waitFor(() => {
+          var count = parseInt(document.getElementById('sse-tick-count').textContent);
+          return count >= 3;
+        }, 8000);
+        report('sse-results', 'receives multiple tick events', true);
+      } catch (e) {
+        report('sse-results', 'receives multiple tick events', false,
+          'tick count: ' + document.getElementById('sse-tick-count').textContent);
+      }
+
+      // Test 4: Done event fires
+      try {
+        await waitFor(() => document.getElementById('sse-done').textContent === 'finished', 10000);
+        report('sse-results', 'receives done event', true);
+      } catch (e) {
+        report('sse-results', 'receives done event', false,
+          'Got: "' + document.getElementById('sse-done').textContent + '"');
+      }
+
+      // Test 5: Named SSE - greeting
+      try {
+        await waitFor(() => document.getElementById('sse-greeting').textContent === 'hello');
+        report('sse-results', 'named event: greeting', true);
+      } catch (e) {
+        report('sse-results', 'named event: greeting', false,
+          'Got: "' + document.getElementById('sse-greeting').textContent + '"');
+      }
+
+      // Test 6: Named SSE - farewell
+      try {
+        await waitFor(() => document.getElementById('sse-farewell').textContent === 'goodbye', 5000);
+        report('sse-results', 'named event: farewell', true);
+      } catch (e) {
+        report('sse-results', 'named event: farewell', false,
+          'Got: "' + document.getElementById('sse-farewell').textContent + '"');
+      }
+    }
+
+    async function runWSTests() {
+      // Give socket time to connect and receive welcome
+      await new Promise(r => setTimeout(r, 1000));
+
+      // Test 1: WebSocket connects and receives welcome message
+      try {
+        await waitFor(() => document.getElementById('ws-welcome').textContent === 'connected');
+        report('ws-results', 'receives welcome message', true);
+      } catch (e) {
+        report('ws-results', 'receives welcome message', false,
+          'Got: "' + document.getElementById('ws-welcome').textContent + '"');
+      }
+
+      // Test 2: RPC add function
+      try {
+        var result = await TestSocket.rpc.add(20, 22);
+        var passed = result === 42;
+        report('ws-results', 'RPC: add(20, 22)', passed, 'Expected 42, got ' + result);
+      } catch (e) {
+        report('ws-results', 'RPC: add(20, 22)', false, e.toString());
+      }
+
+      // Test 3: RPC greet function
+      try {
+        var result = await TestSocket.rpc.greet('hyperscript');
+        var passed = result === 'Hello, hyperscript!';
+        report('ws-results', 'RPC: greet("hyperscript")', passed, 'Got: ' + result);
+      } catch (e) {
+        report('ws-results', 'RPC: greet("hyperscript")', false, e.toString());
+      }
+
+      // Test 4: RPC error handling
+      try {
+        await TestSocket.rpc.timeout(3000).failPlease();
+        report('ws-results', 'RPC: error rejection', false, 'Should have thrown');
+      } catch (e) {
+        var passed = e === 'intentional error';
+        report('ws-results', 'RPC: error rejection', passed, 'Got: ' + e);
+      }
+
+      // Test 5: Sending custom events via dispatchEvent
+      try {
+        TestSocket.dispatchEvent(new CustomEvent('ping', { detail: { payload: 'pong' } }));
+        await waitFor(() => document.getElementById('ws-event-echo').textContent === 'pong', 3000);
+        report('ws-results', 'dispatchEvent echo', true);
+      } catch (e) {
+        report('ws-results', 'dispatchEvent echo', false,
+          'Got: "' + document.getElementById('ws-event-echo').textContent + '"');
+      }
+
+      // Test 6: RPC from hyperscript
+      try {
+        var btn = document.createElement('button');
+        btn.id = 'rpc-btn';
+        btn.setAttribute('_', 'on click call TestSocket.rpc.add(10, 5) then put it into #ws-rpc-result');
+        document.body.appendChild(btn);
+        _hyperscript.processNode(btn);
+        btn.click();
+
+        await waitFor(() => document.getElementById('ws-rpc-result').textContent === '15', 3000);
+        report('ws-results', 'RPC from hyperscript', true);
+      } catch (e) {
+        report('ws-results', 'RPC from hyperscript', false,
+          'Got: "' + document.getElementById('ws-rpc-result').textContent + '"');
+      }
+    }
+
+    (async function() {
+      await Promise.all([runSSETests(), runWSTests()]);
+      showSummary();
+    })();
+  </script>
+</body>
+</html>
