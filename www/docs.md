@@ -696,6 +696,14 @@ Hyperscript arrays work very similarly to JavaScript arrays:
   log myArr[0]           -- logs "1"
   ~~~
 
+The `+` operator concatenates arrays, producing a new array without mutating the original:
+
+  ~~~ hyperscript
+  set a to [1, 2]
+  set b to a + [3, 4]    -- b is [1, 2, 3, 4], a is unchanged
+  set c to a + 5          -- c is [1, 2, 5]
+  ~~~
+
 You can use the `first`, `last` and `random` keywords, discussed [below](#positional), with arrays:
 
   ~~~ hyperscript
@@ -1022,7 +1030,9 @@ Hyperscript supports most of the regular math operators:
   set product to x * y
   ~~~
 
-with one exception, the modulo operator uses the keyword `mod`:
+The `+` operator also works with arrays, producing a new concatenated array (see [Arrays](#arrays)).
+
+The modulo operator uses the keyword `mod`:
   ~~~ hyperscript
   set x to 10 mod 3
   ~~~ 
