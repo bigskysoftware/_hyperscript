@@ -174,7 +174,7 @@ test.describe('the dom scope (^var)', () => {
 		await html(
 			`<div _="init set ^name to 'alice'">` +
 			`  <button _="on click set ^name to 'bob'">rename</button>` +
-			`  <output _="always put 'Hello ' + ^name into me">loading</output>` +
+			`  <output _="live put 'Hello ' + ^name into me">loading</output>` +
 			`</div>`
 		)
 		await expect.poll(() => find('output').textContent()).toBe('Hello alice')

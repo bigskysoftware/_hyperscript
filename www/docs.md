@@ -1404,12 +1404,12 @@ For simple cases, [`on`](/features/on) is the right tool. But when a value can b
 changed from multiple places, or when you don't want to list every source of change,
 reactive features let you just declare what you want and it stays in sync.
 
-**[`always`](/features/always)** keeps the DOM in sync with values:
+**[`live`](/features/live)** keeps the DOM in sync with values:
 
   ~~~ html
   <button _="on click increment $count">+1</button>
   <button _="on click set $count to 0">Reset</button>
-  <output _="always put 'Count: ' + $count into me"></output>
+  <output _="live put 'Count: ' + $count into me"></output>
   ~~~
 
 **[`when`](/features/when)** reacts to changes with side effects or chained logic:
@@ -1426,7 +1426,7 @@ reactive features let you just declare what you want and it stays in sync.
   <body _="bind .dark and #dark-toggle's checked">
   ~~~
 
-See the [`always`](/features/always), [`when`](/features/when), and [`bind`](/features/bind) pages
+See the [`live`](/features/live), [`when`](/features/when), and [`bind`](/features/bind) pages
 for full details.
 
 ### Functions {#functions}

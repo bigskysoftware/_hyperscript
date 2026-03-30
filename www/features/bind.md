@@ -7,7 +7,7 @@ title: bind - ///_hyperscript
 The `bind` feature keeps two values in sync (two-way). Use it for form inputs and
 shared state.
 
-For one-way derived values, see [`always`](/features/always).
+For one-way derived values, see [`live`](/features/live).
 For reacting to changes with side effects, see [`when`](/features/when).
 
 ### Syntax

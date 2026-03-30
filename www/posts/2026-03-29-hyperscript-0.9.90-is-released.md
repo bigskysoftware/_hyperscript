@@ -15,14 +15,14 @@ internal restructuring, a new reactivity system, many new commands and expressio
 The headline feature of this release is a new [reactivity system](/docs#reactivity) with three features that let you
 declare relationships between values and have them stay in sync automatically.
 
-#### always
+#### live
 
-Keeps the DOM in sync with values. Each command in an [`always`](/features/always) block becomes an independent
+Keeps the DOM in sync with values. Each command in a [`live`](/features/live) block becomes an independent
 tracked effect that re-runs when its dependencies change:
 
 ```html
 <button _="on click increment $count">+1</button>
-<output _="always put 'Count: ' + $count into me"></output>
+<output _="live put 'Count: ' + $count into me"></output>
 ```
 
 #### when ... changes
@@ -249,7 +249,7 @@ ideal for component state without polluting the global scope:
 ```html
 <div _="init set ^count to 0">
   <button _="on click increment ^count">+1</button>
-  <output _="always put ^count into me"></output>
+  <output _="live put ^count into me"></output>
 </div>
 ```
 
