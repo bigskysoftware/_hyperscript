@@ -418,4 +418,60 @@ test.describe("the comparisonOperator expression", () => {
 		expect(await run("'Hello' matches 'hello' ignoring case")).toBe(true)
 		expect(await run("'Hello' matches 'HELLO' ignoring case")).toBe(true)
 	})
+
+	test("starts with works", async ({run}) => {
+		expect(await run("'hello world' starts with 'hello'")).toBe(true)
+		expect(await run("'hello world' starts with 'world'")).toBe(false)
+		expect(await run("'hello' starts with 'hello'")).toBe(true)
+		expect(await run("'' starts with 'x'")).toBe(false)
+	})
+
+	test("ends with works", async ({run}) => {
+		expect(await run("'hello world' ends with 'world'")).toBe(true)
+		expect(await run("'hello world' ends with 'hello'")).toBe(false)
+		expect(await run("'hello' ends with 'hello'")).toBe(true)
+		expect(await run("'' ends with 'x'")).toBe(false)
+	})
+
+	test("does not start with works", async ({run}) => {
+		expect(await run("'hello world' does not start with 'hello'")).toBe(false)
+		expect(await run("'hello world' does not start with 'world'")).toBe(true)
+	})
+
+	test("does not end with works", async ({run}) => {
+		expect(await run("'hello world' does not end with 'world'")).toBe(false)
+		expect(await run("'hello world' does not end with 'hello'")).toBe(true)
+	})
+
+	test("starts with null is false", async ({run}) => {
+		expect(await run("null starts with 'x'")).toBe(false)
+		expect(await run("null does not start with 'x'")).toBe(true)
+	})
+
+	test("ends with null is false", async ({run}) => {
+		expect(await run("null ends with 'x'")).toBe(false)
+		expect(await run("null does not end with 'x'")).toBe(true)
+	})
+
+	test("starts with ignoring case works", async ({run}) => {
+		expect(await run("'Hello World' starts with 'hello' ignoring case")).toBe(true)
+		expect(await run("'Hello World' starts with 'HELLO' ignoring case")).toBe(true)
+		expect(await run("'Hello World' starts with 'world' ignoring case")).toBe(false)
+	})
+
+	test("ends with ignoring case works", async ({run}) => {
+		expect(await run("'Hello World' ends with 'world' ignoring case")).toBe(true)
+		expect(await run("'Hello World' ends with 'WORLD' ignoring case")).toBe(true)
+		expect(await run("'Hello World' ends with 'hello' ignoring case")).toBe(false)
+	})
+
+	test("starts with coerces to string", async ({run}) => {
+		expect(await run("123 starts with '12'")).toBe(true)
+		expect(await run("123 starts with '23'")).toBe(false)
+	})
+
+	test("ends with coerces to string", async ({run}) => {
+		expect(await run("123 ends with '23'")).toBe(true)
+		expect(await run("123 ends with '12'")).toBe(false)
+	})
 })

@@ -75,6 +75,7 @@ See [expressions](/expressions) for an overview.
 | [as expression](/expressions/as)                                     | Converts an expression to a new type               | `"10" as Int`                          |
 | pipe operator                                                        | Chain conversions left to right                    | `x as Values \| JSONString`            |
 | in expression                                                        | Containment check                                  | `"foo" in myArray`                     |
+| starts with / ends with                                              | String prefix/suffix check                         | `url starts with "https"`              |
 | ignoring case                                                        | Case-insensitive modifier for comparisons          | `x contains "hi" ignoring case`        |
 
 ### Collection Expressions

@@ -806,7 +806,7 @@ export class MathOperator extends Expression {
  *
  * Parses: expr == expr | expr < expr | expr is empty | expr matches pattern | etc.
  * Returns: boolean result
- * Supports: ==, !=, ===, !==, <, >, <=, >=, is, am, match, contain, include, exist, empty
+ * Supports: ==, !=, ===, !==, <, >, <=, >=, is, am, match, contain, include, start with, end with, exist, empty
  */
 export class ComparisonOperator extends Expression {
     static grammarName = "comparisonOperator";
@@ -920,6 +920,12 @@ export class ComparisonOperator extends Expression {
                 operator = "contain";
             } else if (parser.matchToken("includes") || parser.matchToken("include")) {
                 operator = "include";
+            } else if (parser.matchToken("starts")) {
+                parser.requireToken("with");
+                operator = "start with";
+            } else if (parser.matchToken("ends")) {
+                parser.requireToken("with");
+                operator = "end with";
             } else if (parser.matchToken("do") || parser.matchToken("does")) {
                 parser.requireToken("not");
                 if (parser.matchToken("matches") || parser.matchToken("match")) {
@@ -931,8 +937,14 @@ export class ComparisonOperator extends Expression {
                     hasRightValue = false;
                 } else if (parser.matchToken("include")) {
                     operator = "not include";
+                } else if (parser.matchToken("start")) {
+                    parser.requireToken("with");
+                    operator = "not start with";
+                } else if (parser.matchToken("end")) {
+                    parser.requireToken("with");
+                    operator = "not end with";
                 } else {
-                    parser.raiseParseError("Expected matches or contains");
+                    parser.raiseParseError("Expected matches, contains, starts with, or ends with");
                 }
             }
         }
@@ -1004,6 +1016,18 @@ export class ComparisonOperator extends Expression {
         }
         if (operator === "not include") {
             return lhsVal == null || !this.sloppyContains(lhs, lhsVal, rhsVal);
+        }
+        if (operator === "start with") {
+            return lhsVal != null && String(lhsVal).startsWith(rhsVal);
+        }
+        if (operator === "not start with") {
+            return lhsVal == null || !String(lhsVal).startsWith(rhsVal);
+        }
+        if (operator === "end with") {
+            return lhsVal != null && String(lhsVal).endsWith(rhsVal);
+        }
+        if (operator === "not end with") {
+            return lhsVal == null || !String(lhsVal).endsWith(rhsVal);
         }
         if (operator === "<") {
             return lhsVal < rhsVal;

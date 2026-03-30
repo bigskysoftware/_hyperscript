@@ -831,6 +831,10 @@ A small sampling is shown below:
 	Same as `>` and `<`, respectively.
 `[[collection]] is empty`
 	Tests if a collection is empty.
+`[[string]] starts with [[value]]`
+	Tests if a string starts with the given value.
+`[[string]] ends with [[value]]`
+	Tests if a string ends with the given value.
 {% endsyntaxes %}
 
 You can also append `ignoring case` to any comparison to make it case-insensitive:

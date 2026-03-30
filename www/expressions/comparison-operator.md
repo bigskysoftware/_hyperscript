@@ -39,6 +39,10 @@ I do not contain <expr>
 <expr> includes <expr>
 I do not include <expr>
 <expr> does not include <expr>
+<expr> starts with <expr>
+<expr> does not start with <expr>
+<expr> ends with <expr>
+<expr> does not end with <expr>
 <expr> is empty
 <expr> is not empty
 <expr> is a <type name>
@@ -54,7 +58,7 @@ Many comparison operators are similar to comparison operators in javascript. In 
 
 The `really` modifier switches a comparison to use `===` or `!==`, depending on what it modifies.
 
-Hyperscript also includes four additional operations, `match`, `contain`, `include`, `exists` and various syntaxes depending on what is being tested against. `match` will test if the left hand side matches the CSS query or Regular Expression string.  `contains` will test if the left hand side contains OR includes the right hand side (invoking `contains()` or `includes()`).  `includes` is identical to `contains`.  `exist` test if the left hand side
+Hyperscript also includes additional operations: `match`, `contain`, `include`, `starts with`, `ends with`, and `exists`, with various syntaxes depending on what is being tested. `match` will test if the left hand side matches the CSS query or Regular Expression string.  `contains` will test if the left hand side contains OR includes the right hand side (invoking `contains()` or `includes()`).  `includes` is identical to `contains`.  `starts with` and `ends with` test string prefixes and suffixes respectively.  `exist` tests if the left hand side
 is not null and, if it is a collection of elements, it contains any elements.
 
 The `is in` test effectively flips the left hand side and right hand side of the `contains` comparison.
@@ -94,4 +98,10 @@ expression must be parenthesized to avoid ambiguity.
 <input _="on keyup
             if my value is 'quit' ignoring case
               put 'Goodbye!' into the next <output/>"/>
+
+<input _="on keyup
+            if my value starts with 'http'
+              add .valid-url to me
+            else
+              remove .valid-url from me"/>
 ```
