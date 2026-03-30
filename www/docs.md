@@ -435,6 +435,13 @@ Here is an example of a click handler that uses an element scoped variable to ma
 
 This script also uses the implicit `it` symbol, which we will discuss [below](#special-names--symbols).
 
+You can also initialize element-scoped variables at the top level using the [`set` feature](/features/set):
+
+  ~~~ html
+  <div _="set :count to 0
+          on click increment :count then put :count into me">
+  ~~~
+
 #### Scoping Modifiers {#scoping_modifiers}
 
 You may also use scope modifiers to give symbols particular scopes:
@@ -1077,6 +1084,14 @@ The [`append`](/commands/append) command can append content to strings (as well 
     log it           -- log it to the console
   ~~~
 
+The [`pick`](/commands/pick) command selects items from arrays, strings, and regex match results:
+
+  ~~~ hyperscript
+  pick first 3 of arr        -- first 3 elements
+  pick random of arr          -- random element
+  pick match of "(\w+)" of str -- regex match
+  ~~~
+
 ### Conversions {#conversions}
 
 To convert values between different types, hyperscript has an [`as` operator](/expressions/as):
@@ -1122,6 +1137,14 @@ You can chain conversions using the pipe operator:
   ~~~
 
 You can also [add your own conversions](/expressions/as) to the language as well.
+
+You can assert that a value is of a given type using the postfix `:Type` syntax. This passes the value through
+unchanged, but throws if the type check fails. Add `!` to reject `null`:
+
+  ~~~ hyperscript
+  set name to getName():String   -- passes through if String, throws otherwise
+  set el to getEl():Element!     -- also throws if null
+  ~~~
 
 ### Calling Functions {#calling-functions}
 
@@ -1788,6 +1811,13 @@ It just reads better to us:
 {% endexample %}
 
 `set` is recommended for setting values into normal variables as well.
+
+The [`default`](/commands/default) command sets a variable only if it is currently null, undefined, or empty:
+
+  ~~~ hyperscript
+  default x to 10       -- only sets x if it has no value
+  default @count to 0   -- works with attributes too
+  ~~~
 
 #### Add, Remove & Toggle {#add-remove-toggle}
 
@@ -2642,7 +2672,7 @@ to trigger the debugger.
 
 Hyperscript has a pluggable grammar that allows you to define new features, commands and certain types of expressions.
 
-Here is an example that adds a new command, `foo`, that logs `"A Wild Foo Was Found!" if the value of its expression
+Here is an example that adds a new command, `foo`, that logs "A Wild Foo Was Found!" if the value of its expression
 was "foo":
 
   ~~~ javascript
