@@ -84,4 +84,11 @@ test.describe("chaining collection expressions", () => {
 		expect(result).toEqual(["Bob", "Charlie"]);
 	});
 
+	test("the result inside where refers to previous command result, not current element", async ({run}) => {
+		var result = await run(`get 3
+			then set arr to [1, 2, 3, 4, 5]
+			then return arr where it > the result`);
+		expect(result).toEqual([4, 5]);
+	});
+
 });
