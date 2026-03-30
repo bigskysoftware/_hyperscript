@@ -676,7 +676,6 @@ export class ShowCommand extends VisibilityCommand {
     }
 }
 
-// (parsePseudopossessiveTarget is now a static method on Command in base.js)
 
 /**
  * TakeCommand - Take classes or attributes from elements
@@ -800,13 +799,39 @@ export class MeasureCommand extends Command {
     static parse(parser) {
         if (!parser.matchToken("measure")) return;
 
-        var targetExpr = Command.parsePseudopossessiveTarget(parser);
-
+        var targetExpr;
         var propsToMeasure = [];
-        if (!parser.commandBoundary(parser.currentToken()))
-            do {
-                propsToMeasure.push(parser.matchTokenType("IDENTIFIER").value);
-            } while (parser.matchOpToken(","));
+
+        var MEASURE_PROPS = ["x", "y", "left", "top", "right", "bottom",
+            "width", "height", "bounds", "scrollLeft", "scrollTop",
+            "scrollLeftMax", "scrollTopMax", "scrollWidth", "scrollHeight", "scroll"];
+
+        if (parser.commandBoundary(parser.currentToken())) {
+            targetExpr = parser.parseElement("implicitMeTarget");
+        } else {
+            var expr = parser.requireElement("expression");
+            if (expr.type === "symbol" && MEASURE_PROPS.includes(expr.name)) {
+                // bare identifier like "top" — it's a measurement property, target is me
+                targetExpr = parser.parseElement("implicitMeTarget");
+                propsToMeasure.push(expr.name);
+            } else if (expr.type === "possessive" && expr.prop) {
+                // "my top" or "#el's top" — root is target, prop is first measurement
+                targetExpr = expr.root;
+                propsToMeasure.push(expr.prop.value);
+            } else if (expr.type === "ofExpression" && expr.prop) {
+                // "top of #el"
+                targetExpr = expr.root;
+                propsToMeasure.push(expr.prop.value);
+            } else {
+                // just a target, e.g. "measure me" or "measure #el"
+                targetExpr = expr;
+            }
+        }
+
+        // additional comma-separated measurement properties
+        while (parser.matchOpToken(",")) {
+            propsToMeasure.push(parser.requireTokenType("IDENTIFIER").value);
+        }
 
         return new MeasureCommand(targetExpr, propsToMeasure);
     }

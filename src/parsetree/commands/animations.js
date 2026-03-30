@@ -7,6 +7,28 @@ import { Command, Expression } from '../base.js';
 import { config } from '../../core/config.js';
 
 /**
+ * Extract the style property name and optional target from a parsed expression.
+ * Returns { name, target } or null if the expression doesn't contain a style ref.
+ */
+function _extractStyleProp(expr) {
+    // bare *opacity
+    if (expr.type === "styleRef") {
+        return { name: expr.name, target: null };
+    }
+    // my *opacity, #el's *opacity
+    if (expr.type === "possessive" && expr.attribute &&
+        (expr.attribute.type === "styleRef" || expr.attribute.type === "computedStyleRef")) {
+        return { name: expr.attribute.name, target: expr.root };
+    }
+    // *opacity of #el
+    if (expr.type === "ofExpression" && expr._urRoot &&
+        (expr._urRoot.type === "styleRef" || expr._urRoot.type === "computedStyleRef")) {
+        return { name: expr._urRoot.name, target: expr.root };
+    }
+    return null;
+}
+
+/**
  * StyleRefValue - Represents a style property name reference
  */
 class StyleRefValue extends Expression {
@@ -91,7 +113,7 @@ function _settleOne(elt) {
 /**
  * TransitionCommand - CSS transitions
  *
- * Parses: transition <element's> <property> [from <value>] to <value> [over <time>ms | using <transition>]
+ * Parses: transition [target's] *property [from value] to value [*prop2 ...] [over time | using transition]
  * Executes: Performs CSS transitions on elements
  */
 export class TransitionCommand extends Command {
@@ -110,11 +132,35 @@ export class TransitionCommand extends Command {
 
     static parse(parser) {
         if (parser.matchToken("transition")) {
-            var targetsExpr = Command.parsePseudopossessiveTarget(parser);
-
+            var targetsExpr;
             var properties = [];
             var from = [];
             var to = [];
+
+            // Parse the first property expression — could be bare *prop, my *prop,
+            // #el's *prop, *prop of #el, etc. Normal expression parsing handles all forms.
+            var firstExpr = parser.requireElement("expression");
+            var firstProp = _extractStyleProp(firstExpr);
+            if (firstProp) {
+                targetsExpr = firstProp.target || parser.parseElement("implicitMeTarget");
+                properties.push(new StyleRefValue(firstProp.name));
+            } else {
+                parser.raiseParseError("Expected a style reference (e.g. *opacity) for transition");
+            }
+
+            if (parser.matchToken("from")) {
+                from.push(parser.requireElement("expression"));
+            } else {
+                from.push(null);
+            }
+            parser.requireToken("to");
+            if (parser.matchToken("initial")) {
+                to.push(new InitialLiteral());
+            } else {
+                to.push(parser.requireElement("expression"));
+            }
+
+            // Parse additional properties (bare style refs only)
             var currentToken = parser.currentToken();
             while (
                 !parser.commandBoundary(currentToken) &&
@@ -122,11 +168,10 @@ export class TransitionCommand extends Command {
                 currentToken.value !== "using"
             ) {
                 if (parser.currentToken().type === "STYLE_REF") {
-                    let styleRef = parser.consumeToken();
-                    let styleProp = styleRef.value.slice(1);
-                    properties.push(new StyleRefValue(styleProp));
+                    var styleRef = parser.consumeToken();
+                    properties.push(new StyleRefValue(styleRef.value.slice(1)));
                 } else {
-                    properties.push(parser.requireElement("stringLike"));
+                    break;
                 }
 
                 if (parser.matchToken("from")) {
@@ -142,6 +187,7 @@ export class TransitionCommand extends Command {
                 }
                 currentToken = parser.currentToken();
             }
+
             if (parser.matchToken("over")) {
                 var over = parser.requireElement("expression");
             } else if (parser.matchToken("using")) {

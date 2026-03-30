@@ -6,19 +6,10 @@ import { NakedString } from '../parsetree/expressions/literals.js';
 
 export class Parser {
     #kernel;
-    #possessivesDisabled = false;
 
     constructor(kernel, tokens) {
         this.#kernel = kernel;
         this.tokens = tokens;
-    }
-
-    get possessivesDisabled() {
-        return this.#possessivesDisabled;
-    }
-
-    set possessivesDisabled(value) {
-        this.#possessivesDisabled = value;
     }
 
     // ===========================

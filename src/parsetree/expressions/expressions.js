@@ -421,9 +421,6 @@ export class PossessiveExpression extends Expression {
     }
 
     static parse(parser, root) {
-        if (parser.possessivesDisabled) {
-            return;
-        }
         var apostrophe = parser.matchOpToken("'");
         if (
             apostrophe ||
