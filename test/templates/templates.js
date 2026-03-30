@@ -88,6 +88,19 @@ test.describe('Templating', () => {
         expect(res).toBe('result: 10')
     })
 
+    test('async expressions in a loop resolve correctly', async ({html, evaluate}) => {
+        await html('<template>#for x in items\n${asyncFn(x)}\n#end</template>')
+        await evaluate(() => {
+            window.asyncFn = (v) => Promise.resolve("got:" + v)
+            const tmpl = document.querySelector('#work-area template')
+            return _hyperscript("render tmpl with items: items, asyncFn: asyncFn then put it into window.res", {
+                locals: { items: [1, 2, 3], asyncFn: window.asyncFn, tmpl }
+            })
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('got:1\ngot:2\ngot:3\n')
+    })
+
     test('recovers from bad expression in ${}', async ({html, evaluate}) => {
         await html('<template>before ${!!!} after</template>')
         var errors = []
