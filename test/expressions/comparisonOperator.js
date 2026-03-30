@@ -505,4 +505,61 @@ test.describe("the comparisonOperator expression", () => {
 		expect(await run("I am not between 1 and 10", { me: 5 })).toBe(false)
 		expect(await run("I am not between 1 and 10", { me: 0 })).toBe(true)
 	})
+
+	test("precedes works", async ({html, evaluate}) => {
+		await html("<div id='a'></div><div id='b'></div><div id='c'></div>")
+		expect(await evaluate(() => _hyperscript("x precedes y", {
+			locals: { x: document.getElementById('a'), y: document.getElementById('b') }
+		}))).toBe(true)
+		expect(await evaluate(() => _hyperscript("x precedes y", {
+			locals: { x: document.getElementById('b'), y: document.getElementById('a') }
+		}))).toBe(false)
+		expect(await evaluate(() => _hyperscript("x precedes y", {
+			locals: { x: document.getElementById('a'), y: document.getElementById('c') }
+		}))).toBe(true)
+	})
+
+	test("follows works", async ({html, evaluate}) => {
+		await html("<div id='a'></div><div id='b'></div><div id='c'></div>")
+		expect(await evaluate(() => _hyperscript("x follows y", {
+			locals: { x: document.getElementById('b'), y: document.getElementById('a') }
+		}))).toBe(true)
+		expect(await evaluate(() => _hyperscript("x follows y", {
+			locals: { x: document.getElementById('a'), y: document.getElementById('b') }
+		}))).toBe(false)
+		expect(await evaluate(() => _hyperscript("x follows y", {
+			locals: { x: document.getElementById('c'), y: document.getElementById('a') }
+		}))).toBe(true)
+	})
+
+	test("does not precede works", async ({html, evaluate}) => {
+		await html("<div id='a'></div><div id='b'></div>")
+		expect(await evaluate(() => _hyperscript("x does not precede y", {
+			locals: { x: document.getElementById('b'), y: document.getElementById('a') }
+		}))).toBe(true)
+		expect(await evaluate(() => _hyperscript("x does not precede y", {
+			locals: { x: document.getElementById('a'), y: document.getElementById('b') }
+		}))).toBe(false)
+	})
+
+	test("does not follow works", async ({html, evaluate}) => {
+		await html("<div id='a'></div><div id='b'></div>")
+		expect(await evaluate(() => _hyperscript("x does not follow y", {
+			locals: { x: document.getElementById('a'), y: document.getElementById('b') }
+		}))).toBe(true)
+		expect(await evaluate(() => _hyperscript("x does not follow y", {
+			locals: { x: document.getElementById('b'), y: document.getElementById('a') }
+		}))).toBe(false)
+	})
+
+	test("precedes with null is false", async ({run}) => {
+		expect(await run("null precedes null")).toBe(false)
+		expect(await run("null does not precede null")).toBe(true)
+	})
+
+	test("I precede works", async ({html, find, evaluate}) => {
+		await html("<div id='a' _=\"on click if I precede #b put 'yes' into me\"></div><div id='b'></div>")
+		await find('#a').dispatchEvent('click')
+		await expect(find('#a')).toHaveText("yes")
+	})
 })

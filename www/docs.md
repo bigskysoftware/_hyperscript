@@ -837,6 +837,10 @@ A small sampling is shown below:
 	Tests if a string ends with the given value.
 `[[x]] is between [[a]] and [[b]]`
 	Tests if a value is between two bounds (inclusive).
+`[[element]] precedes [[element]]`
+	Tests if an element comes before another in document order.
+`[[element]] follows [[element]]`
+	Tests if an element comes after another in document order.
 {% endsyntaxes %}
 
 You can also append `ignoring case` to any comparison to make it case-insensitive:

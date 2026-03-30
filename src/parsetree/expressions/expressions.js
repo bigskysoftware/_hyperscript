@@ -806,7 +806,7 @@ export class MathOperator extends Expression {
  *
  * Parses: expr == expr | expr < expr | expr is empty | expr matches pattern | etc.
  * Returns: boolean result
- * Supports: ==, !=, ===, !==, <, >, <=, >=, is, am, match, contain, include, start with, end with, between, exist, empty
+ * Supports: ==, !=, ===, !==, <, >, <=, >=, is, am, match, contain, include, start with, end with, between, precede, follow, exist, empty
  */
 export class ComparisonOperator extends Expression {
     static grammarName = "comparisonOperator";
@@ -931,6 +931,10 @@ export class ComparisonOperator extends Expression {
             } else if (parser.matchToken("ends")) {
                 parser.requireToken("with");
                 operator = "end with";
+            } else if (parser.matchToken("precedes") || parser.matchToken("precede")) {
+                operator = "precede";
+            } else if (parser.matchToken("follows") || parser.matchToken("follow")) {
+                operator = "follow";
             } else if (parser.matchToken("do") || parser.matchToken("does")) {
                 parser.requireToken("not");
                 if (parser.matchToken("matches") || parser.matchToken("match")) {
@@ -948,8 +952,12 @@ export class ComparisonOperator extends Expression {
                 } else if (parser.matchToken("end")) {
                     parser.requireToken("with");
                     operator = "not end with";
+                } else if (parser.matchToken("precede")) {
+                    operator = "not precede";
+                } else if (parser.matchToken("follow")) {
+                    operator = "not follow";
                 } else {
-                    parser.raiseParseError("Expected matches, contains, starts with, or ends with");
+                    parser.raiseParseError("Expected matches, contains, starts with, ends with, precede, or follow");
                 }
             }
         }
@@ -1044,6 +1052,22 @@ export class ComparisonOperator extends Expression {
         }
         if (operator === "not between") {
             return lhsVal < rhsVal || lhsVal > rhs2Val;
+        }
+        if (operator === "precede") {
+            return lhsVal != null && rhsVal != null &&
+                (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+        }
+        if (operator === "not precede") {
+            return lhsVal == null || rhsVal == null ||
+                (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_FOLLOWING) === 0;
+        }
+        if (operator === "follow") {
+            return lhsVal != null && rhsVal != null &&
+                (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_PRECEDING) !== 0;
+        }
+        if (operator === "not follow") {
+            return lhsVal == null || rhsVal == null ||
+                (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_PRECEDING) === 0;
         }
         if (operator === "<") {
             return lhsVal < rhsVal;

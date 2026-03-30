@@ -45,6 +45,10 @@ I do not include <expr>
 <expr> does not end with <expr>
 <expr> is between <expr> and <expr>
 <expr> is not between <expr> and <expr>
+<expr> precedes <expr>
+<expr> does not precede <expr>
+<expr> follows <expr>
+<expr> does not follow <expr>
 <expr> is empty
 <expr> is not empty
 <expr> is a <type name>
@@ -60,7 +64,7 @@ Many comparison operators are similar to comparison operators in javascript. In 
 
 The `really` modifier switches a comparison to use `===` or `!==`, depending on what it modifies.
 
-Hyperscript also includes additional operations: `match`, `contain`, `include`, `starts with`, `ends with`, and `exists`, with various syntaxes depending on what is being tested. `match` will test if the left hand side matches the CSS query or Regular Expression string.  `contains` will test if the left hand side contains OR includes the right hand side (invoking `contains()` or `includes()`).  `includes` is identical to `contains`.  `starts with` and `ends with` test string prefixes and suffixes respectively.  `is between X and Y` tests if a value falls within an inclusive range.  `exist` tests if the left hand side
+Hyperscript also includes additional operations: `match`, `contain`, `include`, `starts with`, `ends with`, and `exists`, with various syntaxes depending on what is being tested. `match` will test if the left hand side matches the CSS query or Regular Expression string.  `contains` will test if the left hand side contains OR includes the right hand side (invoking `contains()` or `includes()`).  `includes` is identical to `contains`.  `starts with` and `ends with` test string prefixes and suffixes respectively.  `is between X and Y` tests if a value falls within an inclusive range.  `precedes` and `follows` test DOM document order — whether one element appears before or after another in the document tree.  `exist` tests if the left hand side
 is not null and, if it is a collection of elements, it contains any elements.
 
 The `is in` test effectively flips the left hand side and right hand side of the `contains` comparison.
@@ -112,4 +116,10 @@ expression must be parenthesized to avoid ambiguity.
               remove .error from me
             else
               add .error to me"/>
+
+<div _="on click
+         if I precede #footer
+           log 'I am above the footer'">
+  Check Position
+</div>
 ```

@@ -77,6 +77,7 @@ See [expressions](/expressions) for an overview.
 | in expression                                                        | Containment check                                  | `"foo" in myArray`                     |
 | starts with / ends with                                              | String prefix/suffix check                         | `url starts with "https"`              |
 | is between                                                           | Inclusive range check                              | `x is between 1 and 10`               |
+| precedes / follows                                                   | DOM document-order check                           | `#a precedes #b`                       |
 | ignoring case                                                        | Case-insensitive modifier for comparisons          | `x contains "hi" ignoring case`        |
 
 ### Collection Expressions
