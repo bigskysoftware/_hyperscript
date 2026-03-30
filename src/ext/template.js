@@ -11,9 +11,10 @@ function escapeHTML(html) {
 }
 
 class TemplateTextCommand extends Command {
-	constructor(parts) {
+	constructor(parts, errors) {
 		super();
 		this.parts = parts;
+		this.errors = errors;
 	}
 
 	static parse(parser) {
@@ -22,6 +23,7 @@ class TemplateTextCommand extends Command {
 		parser.consumeToken();
 
 		var parts = [];
+		var errors = [];
 		var raw = tok.content;
 		var i = 0;
 
@@ -41,6 +43,11 @@ class TemplateTextCommand extends Command {
 				else if (raw[j] === '}') depth--;
 				j++;
 			}
+			if (depth > 0) {
+				errors.push({ line: tok.line, message: "Unterminated ${} expression", expr: raw.slice(nextDollar) });
+				parts.push({ type: 'literal', value: '' });
+				break;
+			}
 			var exprStr = raw.slice(nextDollar + 2, j - 1);
 			var escape = true;
 			var trimmed = exprStr.trimStart();
@@ -48,14 +55,24 @@ class TemplateTextCommand extends Command {
 				escape = false;
 				exprStr = trimmed.slice('unescaped '.length);
 			}
-			var exprTokens = _hyperscript.internals.tokenizer.tokenize(exprStr);
-			var exprParser = _hyperscript.internals.createParser(exprTokens);
-			var node = exprParser.requireElement("expression");
-			parts.push({ type: 'expr', node, escape });
+			try {
+				var exprTokens = _hyperscript.internals.tokenizer.tokenize(exprStr);
+				var exprParser = _hyperscript.internals.createParser(exprTokens);
+				var node = exprParser.requireElement("expression");
+				parts.push({ type: 'expr', node, escape });
+			} catch (e) {
+				errors.push({
+					line: tok.line,
+					column: tok.column + nextDollar,
+					message: e.message || String(e),
+					expr: exprStr
+				});
+				parts.push({ type: 'literal', value: '' });
+			}
 			i = j;
 		}
 
-		return new TemplateTextCommand(parts);
+		return new TemplateTextCommand(parts, errors);
 	}
 
 	resolve(ctx) {
@@ -85,12 +102,6 @@ class TemplateTextCommand extends Command {
             vals.map((val, i) => stringify(val, this.parts[i])).join('')
         );
         return ctx.meta.runtime.findNext(this, ctx);
-    //     if (val === undefined || val === null) return '';
-    //     if (part.escape) return escapeHTML(String(val));
-    //     return String(val);
-    // }).join('');
-	// 	ctx.meta.__ht_template_result.push(result);
-	// 	return ctx.meta.runtime.findNext(this, ctx);
 	}
 }
 
@@ -123,8 +134,29 @@ class RenderCommand extends Command {
 
 		var tokens = _hyperscript.internals.tokenizer.tokenize(template.innerHTML, "lines");
 		var parser = _hyperscript.internals.createParser(tokens);
-		var commandList = parser.parseElement("commandList");
-		parser.ensureTerminated(commandList);
+		var commandList;
+		try {
+			commandList = parser.parseElement("commandList");
+			parser.ensureTerminated(commandList);
+		} catch (e) {
+			console.error("hyperscript template parse error:", e.message || e);
+			ctx.result = "";
+			return ctx.meta.runtime.findNext(this, ctx);
+		}
+
+		// Collect expression-level errors from template text commands
+		var errors = [];
+		var cmd = commandList;
+		while (cmd) {
+			if (cmd.errors && cmd.errors.length) errors.push(...cmd.errors);
+			cmd = cmd.next;
+		}
+		if (errors.length) {
+			for (var err of errors) {
+				console.error("hyperscript template error (line " + err.line + "): " + err.message +
+					(err.expr ? " in ${" + err.expr + "}" : ""));
+			}
+		}
 
 		var resolve, reject;
 		var promise = new Promise(function(res, rej) { resolve = res; reject = rej; });

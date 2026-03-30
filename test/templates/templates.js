@@ -88,7 +88,93 @@ test.describe('Templating', () => {
         expect(res).toBe('result: 10')
     })
 
-    // test ('all characters escape correctly', async ({html, evaluate}) => {
-    //     await html('<template></template>')
-    // })
+    test('recovers from bad expression in ${}', async ({html, evaluate}) => {
+        await html('<template>before ${!!!} after</template>')
+        var errors = []
+        await evaluate(() => {
+            var origError = console.error
+            window.__capturedErrors = []
+            console.error = function() { window.__capturedErrors.push(Array.from(arguments).join(' ')) }
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl then put it into window.res", {
+                locals: { tmpl }
+            })
+            console.error = origError
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('before  after')
+        const captured = await evaluate(() => window.__capturedErrors)
+        expect(captured.length).toBeGreaterThan(0)
+        expect(captured[0]).toContain('template error')
+    })
+
+    test('recovers from unterminated ${}', async ({html, evaluate}) => {
+        await html('<template>before ${x after</template>')
+        await evaluate(() => {
+            var origError = console.error
+            window.__capturedErrors = []
+            console.error = function() { window.__capturedErrors.push(Array.from(arguments).join(' ')) }
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl then put it into window.res", {
+                locals: { tmpl }
+            })
+            console.error = origError
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('before ')
+        const captured = await evaluate(() => window.__capturedErrors)
+        expect(captured.length).toBeGreaterThan(0)
+        expect(captured[0]).toContain('Unterminated')
+    })
+
+    test('good expressions still render alongside bad ones', async ({html, evaluate}) => {
+        await html('<template>${x} ${!!!} ${y}</template>')
+        await evaluate(() => {
+            var origError = console.error
+            console.error = function() {}
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl with x: x, y: y then put it into window.res", {
+                locals: { x: "hello", y: "world", tmpl }
+            })
+            console.error = origError
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('hello  world')
+    })
+
+    test('multiple expressions on one line', async ({html, evaluate}) => {
+        await html('<template>${a} + ${b} = ${c}</template>')
+        await evaluate(() => {
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl with a: a, b: b, c: c then put it into window.res", {
+                locals: { a: 1, b: 2, c: 3, tmpl }
+            })
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('1 + 2 = 3')
+    })
+
+    test('expression with nested braces', async ({html, evaluate}) => {
+        await html('<template>${obj["key"]}</template>')
+        await evaluate(() => {
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl with obj: obj then put it into window.res", {
+                locals: { obj: { key: "val" }, tmpl }
+            })
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('val')
+    })
+
+    test('null and undefined render as empty', async ({html, evaluate}) => {
+        await html('<template>[${x}][${y}]</template>')
+        await evaluate(() => {
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl with x: x, y: y then put it into window.res", {
+                locals: { x: null, y: undefined, tmpl }
+            })
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('[][]')
+    })
 })
