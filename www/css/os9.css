@@ -384,14 +384,45 @@ code {
 
 pre { margin: 0; overflow-x: auto; }
 
-/* Code blocks */
+/* Code blocks — dark (Nord) */
 pre[class*="language-"] {
-    background: var(--bg-subtle);
-    border: 1px solid var(--border);
+    background: #2e3440;
+    border: 1px solid #3b4252;
     border-radius: var(--radius);
     padding: 12px 14px;
     margin: 1rem 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
+
+pre[class*="language-"] code {
+    color: #d8dee9;
+}
+
+pre[class*="language-"] .token.comment { color: #616e88; }
+pre[class*="language-"] .token.string,
+pre[class*="language-"] .token.attr-value { color: #a3be8c; }
+pre[class*="language-"] .token.punctuation,
+pre[class*="language-"] .token.operator { color: #d8dee9; }
+pre[class*="language-"] .token.entity,
+pre[class*="language-"] .token.url,
+pre[class*="language-"] .token.symbol,
+pre[class*="language-"] .token.number,
+pre[class*="language-"] .token.boolean,
+pre[class*="language-"] .token.variable,
+pre[class*="language-"] .token.constant,
+pre[class*="language-"] .token.property,
+pre[class*="language-"] .token.regex,
+pre[class*="language-"] .token.inserted { color: #d08770; }
+pre[class*="language-"] .token.atrule,
+pre[class*="language-"] .token.keyword,
+pre[class*="language-"] .token.attr-name { color: #81a1c1; }
+pre[class*="language-"] .token.function,
+pre[class*="language-"] .token.deleted { color: #88c0d0; }
+pre[class*="language-"] .token.tag,
+pre[class*="language-"] .token.selector { color: #b48ead; }
+pre[class*="language-"] .token.bold { color: #81a1c1; }
+pre[class*="language-"] .token.builtin { color: #ebcb8b; }
 
 /* Reset when inside example/window/card containers */
 .example-code pre[class*="language-"],
@@ -401,14 +432,13 @@ figure.box pre[class*="language-"] {
     border: none;
     border-radius: 0;
     margin: 0;
-    background: transparent;
 }
 
 pre code {
     background: none;
     padding: 0;
     font-size: 0.84rem;
-    font-weight: 500;
+    font-weight: bold;
     line-height: 1.55;
 }
 
@@ -970,6 +1000,11 @@ v-h { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden;
     flex: 1;
     margin: 0;
     min-width: 0;
+}
+
+.hero-code .window-body {
+    background: #2e3440;
+    padding: 0;
 }
 
 .hero-demo {
