@@ -474,4 +474,35 @@ test.describe("the comparisonOperator expression", () => {
 		expect(await run("123 ends with '23'")).toBe(true)
 		expect(await run("123 ends with '12'")).toBe(false)
 	})
+
+	test("is between works", async ({run}) => {
+		expect(await run("5 is between 1 and 10")).toBe(true)
+		expect(await run("1 is between 1 and 10")).toBe(true)
+		expect(await run("10 is between 1 and 10")).toBe(true)
+		expect(await run("0 is between 1 and 10")).toBe(false)
+		expect(await run("11 is between 1 and 10")).toBe(false)
+	})
+
+	test("is not between works", async ({run}) => {
+		expect(await run("5 is not between 1 and 10")).toBe(false)
+		expect(await run("0 is not between 1 and 10")).toBe(true)
+		expect(await run("11 is not between 1 and 10")).toBe(true)
+		expect(await run("1 is not between 1 and 10")).toBe(false)
+		expect(await run("10 is not between 1 and 10")).toBe(false)
+	})
+
+	test("between works with strings", async ({run}) => {
+		expect(await run("'b' is between 'a' and 'c'")).toBe(true)
+		expect(await run("'d' is between 'a' and 'c'")).toBe(false)
+	})
+
+	test("I am between works", async ({run}) => {
+		expect(await run("I am between 1 and 10", { me: 5 })).toBe(true)
+		expect(await run("I am between 1 and 10", { me: 0 })).toBe(false)
+	})
+
+	test("I am not between works", async ({run}) => {
+		expect(await run("I am not between 1 and 10", { me: 5 })).toBe(false)
+		expect(await run("I am not between 1 and 10", { me: 0 })).toBe(true)
+	})
 })

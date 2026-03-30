@@ -835,6 +835,8 @@ A small sampling is shown below:
 	Tests if a string starts with the given value.
 `[[string]] ends with [[value]]`
 	Tests if a string ends with the given value.
+`[[x]] is between [[a]] and [[b]]`
+	Tests if a value is between two bounds (inclusive).
 {% endsyntaxes %}
 
 You can also append `ignoring case` to any comparison to make it case-insensitive:

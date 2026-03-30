@@ -806,12 +806,12 @@ export class MathOperator extends Expression {
  *
  * Parses: expr == expr | expr < expr | expr is empty | expr matches pattern | etc.
  * Returns: boolean result
- * Supports: ==, !=, ===, !==, <, >, <=, >=, is, am, match, contain, include, start with, end with, exist, empty
+ * Supports: ==, !=, ===, !==, <, >, <=, >=, is, am, match, contain, include, start with, end with, between, exist, empty
  */
 export class ComparisonOperator extends Expression {
     static grammarName = "comparisonOperator";
 
-    constructor(lhs, operator, rhs, typeName, nullOk, ignoringCase) {
+    constructor(lhs, operator, rhs, typeName, nullOk, ignoringCase, rhs2) {
         super();
         this.operator = operator;
         this.typeName = typeName;
@@ -819,7 +819,8 @@ export class ComparisonOperator extends Expression {
         this.ignoringCase = ignoringCase;
         this.lhs = lhs;
         this.rhs = rhs;
-        this.args = { lhs, rhs };
+        this.rhs2 = rhs2;
+        this.args = { lhs, rhs, rhs2 };
     }
 
     sloppyContains(src, container, value) {
@@ -860,6 +861,8 @@ export class ComparisonOperator extends Expression {
                     } else if (parser.matchToken("empty")) {
                         operator = "not empty";
                         hasRightValue = false;
+                    } else if (parser.matchToken("between")) {
+                        operator = "not between";
                     } else {
                         if (parser.matchToken("really")) {
                             operator = "!==";
@@ -878,6 +881,8 @@ export class ComparisonOperator extends Expression {
                 } else if (parser.matchToken("empty")) {
                     operator = "empty";
                     hasRightValue = false;
+                } else if (parser.matchToken("between")) {
+                    operator = "between";
                 } else if (parser.matchToken("less")) {
                     parser.requireToken("than");
                     if (parser.matchToken("or")) {
@@ -960,18 +965,23 @@ export class ComparisonOperator extends Expression {
                     rhs = rhs.css ? rhs.css : rhs;
                 }
             }
+            var rhs2 = null;
+            if (operator === "between" || operator === "not between") {
+                parser.requireToken("and");
+                rhs2 = parser.requireElement("mathOperator");
+            }
             var ignoringCase = false;
             if (parser.matchToken("ignoring")) {
                 parser.requireToken("case");
                 ignoringCase = true;
             }
             var lhs = expr;
-            expr = new ComparisonOperator(lhs, operator, rhs, typeName, nullOk, ignoringCase);
+            expr = new ComparisonOperator(lhs, operator, rhs, typeName, nullOk, ignoringCase, rhs2);
         }
         return expr;
     }
 
-    resolve(context, { lhs: lhsVal, rhs: rhsVal }) {
+    resolve(context, { lhs: lhsVal, rhs: rhsVal, rhs2: rhs2Val }) {
         const operator = this.operator;
         const lhs = this.lhs;
         const rhs = this.rhs;
@@ -1028,6 +1038,12 @@ export class ComparisonOperator extends Expression {
         }
         if (operator === "not end with") {
             return lhsVal == null || !String(lhsVal).endsWith(rhsVal);
+        }
+        if (operator === "between") {
+            return lhsVal >= rhsVal && lhsVal <= rhs2Val;
+        }
+        if (operator === "not between") {
+            return lhsVal < rhsVal || lhsVal > rhs2Val;
         }
         if (operator === "<") {
             return lhsVal < rhsVal;
