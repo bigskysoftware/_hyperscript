@@ -61,7 +61,7 @@ title: Try it! - ///_hyperscript
     .preview-frame { flex: 1; background: white; border: none; min-height: 0; }
     .pane-editor { background: #2e3440; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
     .pane-editor .pane-label { background: #3b4252; color: #d8dee9; border-color: #4c566a; }
-    .CodeMirror { flex: 1; height: auto; font-size: 13px; font-family: var(--mono-font); font-weight: bold; }
+    .CodeMirror { flex: 1; height: auto; font-size: 14px; font-family: var(--mono-font); font-weight: bold; }
 
     .playground-status {
         padding: 3px 12px;
@@ -103,6 +103,7 @@ title: Try it! - ///_hyperscript
         font-size: 12px;
         font-weight: bold;
         color: #d8dee9;
+        background: #3b4252;
     }
     .console-output .log { color: #d8dee9; }
     .console-output .warn { color: #ebcb8b; }
@@ -115,7 +116,7 @@ title: Try it! - ///_hyperscript
         align-items: center;
         border-top: 1px solid #4c566a;
         padding: 4px 10px;
-        background: #3b4252;
+        background: #2e3440;
         flex-shrink: 0;
     }
     .console-prompt {
@@ -145,9 +146,31 @@ title: Try it! - ///_hyperscript
     }
     .console-input::placeholder { color: #616e88; }
 
+    /* Resize handles */
+    .resize-handle-h {
+        width: 5px;
+        cursor: col-resize;
+        background: #3b4252;
+        flex-shrink: 0;
+        transition: background 0.15s;
+    }
+    .resize-handle-h:hover,
+    .resize-handle-h.dragging { background: #88c0d0; }
+
+    .resize-handle-v {
+        height: 5px;
+        cursor: row-resize;
+        background: #3b4252;
+        flex-shrink: 0;
+        transition: background 0.15s;
+    }
+    .resize-handle-v:hover,
+    .resize-handle-v.dragging { background: #88c0d0; }
+
     @media (max-width: 768px) {
         .playground-panes { flex-direction: column; }
         .pane-editor { border-right: none; border-bottom: 1px solid var(--border); max-height: 50%; }
+        .resize-handle-h { display: none; }
     }
 </style>
 
@@ -182,9 +205,11 @@ title: Try it! - ///_hyperscript
             <div class="pane-label">Editor</div>
             <textarea id="editor"></textarea>
         </div>
+        <div class="resize-handle-h" id="resize-h"></div>
         <div class="pane-preview">
             <div class="pane-label">Preview</div>
             <iframe id="preview" class="preview-frame"></iframe>
+            <div class="resize-handle-v" id="resize-v"></div>
             <div class="pane-console">
                 <div class="pane-label">Console</div>
                 <div class="console-output" id="console-output"></div>
@@ -572,6 +597,65 @@ document.getElementById('examples').addEventListener('change', function () {
             document.getElementById('status').innerHTML = '<span class="error">Failed to load example</span>';
         });
 });
+
+// ============================================================
+// Resizable panes
+// ============================================================
+(function () {
+    var resizeH = document.getElementById('resize-h');
+    var resizeV = document.getElementById('resize-v');
+    var panes = document.querySelector('.playground-panes');
+    var editor = document.querySelector('.pane-editor');
+    var preview = document.querySelector('.pane-preview');
+    var previewFrame = document.getElementById('preview');
+    var consolePane = document.querySelector('.pane-console');
+
+    function startDrag(handle, onMove, onEnd) {
+        handle.classList.add('dragging');
+        // Cover iframe to prevent it from eating pointer events
+        previewFrame.style.pointerEvents = 'none';
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', function up() {
+            handle.classList.remove('dragging');
+            previewFrame.style.pointerEvents = '';
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', up);
+            if (onEnd) onEnd();
+        });
+    }
+
+    // Horizontal: editor | preview
+    resizeH.addEventListener('mousedown', function (e) {
+        e.preventDefault();
+        var panesRect = panes.getBoundingClientRect();
+        startDrag(resizeH, function (e) {
+            var x = e.clientX - panesRect.left;
+            var pct = (x / panesRect.width) * 100;
+            pct = Math.max(15, Math.min(85, pct));
+            editor.style.flex = 'none';
+            editor.style.width = pct + '%';
+            preview.style.flex = '1';
+        }, function () {
+            cm.refresh();
+        });
+    });
+
+    // Vertical: preview iframe | console
+    resizeV.addEventListener('mousedown', function (e) {
+        e.preventDefault();
+        var previewRect = preview.getBoundingClientRect();
+        startDrag(resizeV, function (e) {
+            var y = e.clientY - previewRect.top;
+            // Subtract the pane-label height (~24px)
+            var available = previewRect.height - 24;
+            var framePct = ((y - 24) / available) * 100;
+            framePct = Math.max(10, Math.min(90, framePct));
+            previewFrame.style.flex = 'none';
+            previewFrame.style.height = framePct + '%';
+            consolePane.style.flex = '1';
+        });
+    });
+})();
 
 // Initial run
 setTimeout(run, 100);
