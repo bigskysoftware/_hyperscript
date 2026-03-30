@@ -52,6 +52,7 @@ export class Context {
         this.me = hyperscriptTarget;
         this.you = undefined
         this.result = undefined
+        this.beingTested = null
         this.event = event;
         this.target = event ? event.target : null;
         this.detail = event ? event.detail : null;
@@ -268,7 +269,10 @@ export class Runtime {
             if (str === "me" || str === "my" || str === "I") {
                 return context.me;
             }
-            if (str === "it" || str === "its" || str === "result") {
+            if (str === "it" || str === "its") {
+                return context.beingTested != null ? context.beingTested : context.result;
+            }
+            if (str === "result") {
                 return context.result;
             }
             if (str === "you" || str === "your" || str === "yourself") {
@@ -534,9 +538,10 @@ export class Runtime {
             this.implicitLoop(targets, function (elt) { elements.push(elt); });
 
             var conditions = elements.map(function (elt) {
-                context.result = elt;
+                context.beingTested = elt;
                 return whenExpr.evaluate(context);
             });
+            context.beingTested = null;
 
             var hasPromise = conditions.some(function (c) { return c && typeof c.then === "function"; });
             if (hasPromise) {

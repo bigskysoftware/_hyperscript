@@ -1231,16 +1231,15 @@ class WhereExpression extends Expression {
     }
 
     resolve(context, { root: collection }) {
-        var saved = context.result;
         var result = [];
         var items = Array.from(collection);
         for (var i = 0; i < items.length; i++) {
-            context.result = items[i];
+            context.beingTested = items[i];
             if (this.condition.evaluate(context)) {
                 result.push(items[i]);
             }
         }
-        context.result = saved;
+        context.beingTested = null;
         return result;
     }
 }
@@ -1256,14 +1255,13 @@ class SortedByExpression extends Expression {
     }
 
     resolve(context, { root: collection }) {
-        var saved = context.result;
         var items = Array.from(collection);
         var keys = [];
         for (var i = 0; i < items.length; i++) {
-            context.result = items[i];
+            context.beingTested = items[i];
             keys.push(this.key.evaluate(context));
         }
-        context.result = saved;
+        context.beingTested = null;
         var indices = items.map(function (_, i) { return i; });
         var dir = this.descending ? -1 : 1;
         indices.sort(function (a, b) {
@@ -1285,14 +1283,13 @@ class MappedToExpression extends Expression {
     }
 
     resolve(context, { root: collection }) {
-        var saved = context.result;
         var items = Array.from(collection);
         var result = [];
         for (var i = 0; i < items.length; i++) {
-            context.result = items[i];
+            context.beingTested = items[i];
             result.push(this.projection.evaluate(context));
         }
-        context.result = saved;
+        context.beingTested = null;
         return result;
     }
 }
