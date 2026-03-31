@@ -2200,6 +2200,19 @@ as well as an offset:
   scroll to the top of #target +50px smoothly
   ~~~
 
+Use `in` to scroll within a specific container without affecting outer scroll:
+
+  ~~~ hyperscript
+  scroll to #item in #sidebar smoothly
+  ~~~
+
+The `scroll by` form scrolls by a relative amount.  The direction defaults to `down` if omitted:
+
+  ~~~ hyperscript
+  scroll down by 200px
+  scroll #panel left by 100px smoothly
+  ~~~
+
 {% example "Scrolling Around" %}
 <button _="on click
               scroll to the top of the body smoothly

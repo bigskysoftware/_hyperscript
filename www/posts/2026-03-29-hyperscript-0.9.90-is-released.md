@@ -141,14 +141,18 @@ speak "Hello world"
 speak "Quickly now" with rate 2 with pitch 1.5
 ```
 
-#### scroll to
+#### scroll
 
-[`scroll`](/commands/scroll) scrolls elements into view with alignment, offset, and smooth scrolling:
+[`scroll`](/commands/scroll) scrolls elements into view with alignment, offset, and smooth scrolling. Use `in` to
+scroll within a specific container, or `scroll by` for relative scrolling:
 
 ```hyperscript
 scroll to #target
 scroll to the top of #target smoothly
 scroll to the bottom of me +50px
+scroll to #item in #sidebar smoothly
+scroll down by 200px
+scroll #panel left by 100px
 ```
 
 #### breakpoint

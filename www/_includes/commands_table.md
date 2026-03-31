@@ -14,7 +14,7 @@
 | [blur](/commands/blur)             | Removes focus from an element                                                 | `blur me`                                                                                |
 | [fetch](/commands/fetch)           | Send a fetch request                                                          | `fetch /demo then put it into my.innerHTML`                                             |
 | [go](/commands/go)                 | Navigate to a URL                                                             | `go to /about`, `go back`                                                               |
-| [scroll](/commands/scroll)         | Scroll an element into view                                                   | `scroll to the top of #section smoothly`                                                |
+| [scroll](/commands/scroll)         | Scroll to an element or by a relative amount                                  | `scroll to #section smoothly`, `scroll down by 200px`                                   |
 | [halt](/commands/halt)             | Halts the current event (stopping propagate, etc.)                            | `halt`                                                                                  |
 | [hide](/commands/hide)             | Hide an element in the DOM                                                    | `hide me`                                                                               |
 | [if](/commands/if)                 | A conditional control flow command                                            | `if I match .selected then call alert('I\'m selected!')`                                |
