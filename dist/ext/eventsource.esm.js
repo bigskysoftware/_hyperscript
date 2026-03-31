@@ -1,8 +1,3 @@
-var __defProp = Object.defineProperty;
-var __pow = Math.pow;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
-
 // src/parsetree/base.js
 var ParseElement = class {
   sourceFor() {
@@ -24,9 +19,9 @@ var ParseElement = class {
   }
 };
 var Feature = class extends ParseElement {
+  isFeature = true;
   constructor() {
     super();
-    __publicField(this, "isFeature", true);
     if (this.constructor.keyword) {
       this.type = this.constructor.keyword + "Feature";
     }
@@ -53,7 +48,8 @@ var Feature = class extends ParseElement {
 };
 
 // src/ext/eventsource.js
-var _EventSourceFeature = class _EventSourceFeature extends Feature {
+var EventSourceFeature = class _EventSourceFeature extends Feature {
+  static keyword = "eventsource";
   constructor(eventSourceName, nameSpace, stub) {
     super();
     this.eventSourceName = eventSourceName;
@@ -112,7 +108,7 @@ var _EventSourceFeature = class _EventSourceFeature extends Feature {
           stub.eventSource.close();
           if (!stub.closed) {
             stub.retryCount = Math.min(7, stub.retryCount + 1);
-            var timeout = Math.random() * __pow(2, stub.retryCount) * 500;
+            var timeout = Math.random() * 2 ** stub.retryCount * 500;
             stub.reconnectTimeout = window.setTimeout(stub.open, timeout);
           }
         });
@@ -165,8 +161,6 @@ var _EventSourceFeature = class _EventSourceFeature extends Feature {
     return feature;
   }
 };
-__publicField(_EventSourceFeature, "keyword", "eventsource");
-var EventSourceFeature = _EventSourceFeature;
 function makeHandler(encoding, commandList, stub, feature) {
   return function(evt) {
     var data = decode(evt["data"], encoding);

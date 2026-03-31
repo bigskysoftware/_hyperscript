@@ -1,8 +1,4 @@
 (() => {
-  var __defProp = Object.defineProperty;
-  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-  var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
-
   // src/parsetree/base.js
   var ParseElement = class {
     sourceFor() {
@@ -37,7 +33,8 @@
   };
 
   // src/ext/hdb.js
-  var _BreakpointCommand = class _BreakpointCommand extends Command {
+  var BreakpointCommand = class _BreakpointCommand extends Command {
+    static keyword = "breakpoint";
     static parse(parser) {
       if (!parser.matchToken("breakpoint")) return;
       return new _BreakpointCommand();
@@ -52,8 +49,6 @@
       }
     }
   };
-  __publicField(_BreakpointCommand, "keyword", "breakpoint");
-  var BreakpointCommand = _BreakpointCommand;
   function HDB(ctx, runtime, breakpoint) {
     this.ctx = ctx;
     this.runtime = runtime;
