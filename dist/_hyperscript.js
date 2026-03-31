@@ -2029,428 +2029,6 @@
     }
   };
 
-  // src/core/runtime/reactivity.js
-  function _sameValue(a, b) {
-    return a === b ? a !== 0 || 1 / a === 1 / b : a !== a && b !== b;
-  }
-  var objectState = /* @__PURE__ */ new WeakMap();
-  var globalSubscriptions = /* @__PURE__ */ new Map();
-  var nextId = 0;
-  function getObjectState(obj) {
-    var state = objectState.get(obj);
-    if (!state) {
-      objectState.set(obj, state = {
-        id: String(++nextId),
-        subscriptions: null,
-        propertyHandler: null,
-        attributeObservers: null
-      });
-    }
-    return state;
-  }
-  var Reactivity = class {
-    constructor() {
-      this._currentEffect = null;
-      this._pendingEffects = /* @__PURE__ */ new Set();
-      this._elementEffects = /* @__PURE__ */ new WeakMap();
-      this._isRunScheduled = false;
-    }
-    /**
-     * Whether an effect is currently evaluating its expression().
-     * When true, reads (symbol/property/attribute) are recorded as dependencies.
-     * @returns {boolean}
-     */
-    get isTracking() {
-      return this._currentEffect !== null;
-    }
-    /**
-     * Track a global variable read as a dependency.
-     * @param {string} name - Variable name
-     */
-    trackGlobalSymbol(name) {
-      this._currentEffect.dependencies.set(
-        "symbol:global:" + name,
-        { type: "symbol", name, scope: "global" }
-      );
-    }
-    /**
-     * Track an element-scoped variable read as a dependency.
-     * @param {string} name - Variable name
-     * @param {Element} element - Owning element
-     */
-    trackElementSymbol(name, element) {
-      if (!element) return;
-      var elementId = getObjectState(element).id;
-      this._currentEffect.dependencies.set(
-        "symbol:element:" + name + ":" + elementId,
-        { type: "symbol", name, scope: "element", element }
-      );
-    }
-    /**
-     * Track a property read as a dependency.
-     * @param {Object} obj - DOM element or plain JS object
-     * @param {string} name - Property name
-     */
-    trackProperty(obj, name) {
-      if (obj == null || typeof obj !== "object") return;
-      this._currentEffect.dependencies.set(
-        "property:" + name + ":" + getObjectState(obj).id,
-        { type: "property", object: obj, name }
-      );
-    }
-    /**
-     * Track a DOM attribute read as a dependency.
-     * @param {Element} element
-     * @param {string} name - Attribute name
-     */
-    trackAttribute(element, name) {
-      if (!(element instanceof Element)) return;
-      this._currentEffect.dependencies.set(
-        "attribute:" + name + ":" + getObjectState(element).id,
-        { type: "attribute", element, name }
-      );
-    }
-    /**
-     * Notify that a global variable was written.
-     * @param {string} name - Variable name
-     */
-    notifyGlobalSymbol(name) {
-      var subs = globalSubscriptions.get(name);
-      if (subs) {
-        for (var effect of subs) {
-          this._scheduleEffect(effect);
-        }
-      }
-    }
-    /**
-     * Notify that an element-scoped variable was written.
-     * @param {string} name - Variable name
-     * @param {Element} element - Owning element
-     */
-    notifyElementSymbol(name, element) {
-      if (!element) return;
-      var state = getObjectState(element);
-      if (state.subscriptions) {
-        var subs = state.subscriptions.get(name);
-        if (subs) {
-          for (var effect of subs) {
-            this._scheduleEffect(effect);
-          }
-        }
-      }
-    }
-    /**
-     * Notify that a property was written programmatically.
-     * Schedules all effects watching properties on this object.
-     * @param {Object} obj - DOM element or plain JS object
-     */
-    notifyProperty(obj) {
-      if (obj == null || typeof obj !== "object") return;
-      var state = objectState.get(obj);
-      if (state && state.propertyHandler) {
-        state.propertyHandler.queueAll();
-      }
-    }
-    /**
-     * Add an effect to the pending set.
-     * Schedules a microtask to run them if one isn't already scheduled.
-     * @param {Effect} effect
-     */
-    _scheduleEffect(effect) {
-      if (effect.isStopped) return;
-      this._pendingEffects.add(effect);
-      if (!this._isRunScheduled) {
-        this._isRunScheduled = true;
-        var self2 = this;
-        queueMicrotask(function() {
-          self2._runPendingEffects();
-        });
-      }
-    }
-    /**
-     * Run all pending effects. Called once per microtask batch.
-     * Effects that re-trigger during this run are queued for the next batch.
-     */
-    _runPendingEffects() {
-      this._isRunScheduled = false;
-      var effects = Array.from(this._pendingEffects);
-      this._pendingEffects.clear();
-      for (var effect of effects) {
-        if (effect.isStopped) continue;
-        if (effect.element && !effect.element.isConnected) {
-          this.stopEffect(effect);
-          continue;
-        }
-        effect._consecutiveTriggers++;
-        if (effect._consecutiveTriggers > 100) {
-          console.error(
-            "Reactivity loop detected: an effect triggered 100 consecutive times without settling. This usually means an effect is modifying a variable it also depends on.",
-            effect.element || effect
-          );
-          continue;
-        }
-        this._runEffect(effect);
-      }
-      if (this._pendingEffects.size === 0) {
-        for (var i = 0; i < effects.length; i++) {
-          if (!effects[i].isStopped) effects[i]._consecutiveTriggers = 0;
-        }
-      }
-    }
-    /** @param {Effect} effect */
-    _runEffect(effect) {
-      this._unsubscribeEffect(effect);
-      var oldDeps = effect.dependencies;
-      effect.dependencies = /* @__PURE__ */ new Map();
-      var prev = this._currentEffect;
-      this._currentEffect = effect;
-      var newValue;
-      try {
-        newValue = effect.expression();
-      } catch (e) {
-        console.error("Error in reactive expression:", e);
-        effect.dependencies = oldDeps;
-        this._currentEffect = prev;
-        this._subscribeEffect(effect);
-        return;
-      }
-      this._currentEffect = prev;
-      this._subscribeEffect(effect);
-      this._cleanupOrphanedDeps(oldDeps);
-      if (!_sameValue(newValue, effect._lastExpressionValue)) {
-        effect._lastExpressionValue = newValue;
-        try {
-          effect.handler(newValue);
-        } catch (e) {
-          console.error("Error in reactive handler:", e);
-        }
-      }
-    }
-    /**
-     * Subscribe an effect to all its current deps.
-     * Symbols go into subscription maps, attributes get MutationObservers,
-     * properties use persistent per-element input/change listeners.
-     * @param {Effect} effect
-     */
-    _subscribeEffect(effect) {
-      var reactivity2 = this;
-      for (var [depKey, dep] of effect.dependencies) {
-        if (dep.type === "symbol" && dep.scope === "global") {
-          if (!globalSubscriptions.has(dep.name)) {
-            globalSubscriptions.set(dep.name, /* @__PURE__ */ new Set());
-          }
-          globalSubscriptions.get(dep.name).add(effect);
-        } else if (dep.type === "symbol" && dep.scope === "element") {
-          var state = getObjectState(dep.element);
-          if (!state.subscriptions) {
-            state.subscriptions = /* @__PURE__ */ new Map();
-          }
-          if (!state.subscriptions.has(dep.name)) {
-            state.subscriptions.set(dep.name, /* @__PURE__ */ new Set());
-          }
-          state.subscriptions.get(dep.name).add(effect);
-        } else if (dep.type === "attribute") {
-          reactivity2._subscribeAttributeDependency(dep.element, dep.name, effect);
-        } else if (dep.type === "property") {
-          reactivity2._subscribePropertyDependency(dep.object, dep.name, effect);
-        }
-      }
-    }
-    /**
-     * Subscribe to a DOM attribute. Sets up a persistent MutationObserver
-     * per element+attribute, shared across effects and re-runs.
-     * @param {Element} element
-     * @param {string} attrName
-     * @param {Effect} effect
-     */
-    _subscribeAttributeDependency(element, attrName, effect) {
-      var reactivity2 = this;
-      var state = getObjectState(element);
-      if (!state.attributeObservers) {
-        state.attributeObservers = {};
-      }
-      if (!state.attributeObservers[attrName]) {
-        var trackedEffects = /* @__PURE__ */ new Set();
-        var observer = new MutationObserver(function() {
-          for (var eff of trackedEffects) {
-            reactivity2._scheduleEffect(eff);
-          }
-        });
-        observer.observe(element, {
-          attributes: true,
-          attributeFilter: [attrName]
-        });
-        state.attributeObservers[attrName] = {
-          effects: trackedEffects,
-          observer
-        };
-      }
-      state.attributeObservers[attrName].effects.add(effect);
-    }
-    /**
-     * Subscribe to a property on an object. For DOM elements, sets up
-     * persistent input/change event listeners. For plain objects, only
-     * the subscription map is used (notified via setProperty).
-     * @param {Object} obj - DOM element or plain JS object
-     * @param {string} propName
-     * @param {Effect} effect
-     */
-    _subscribePropertyDependency(obj, propName, effect) {
-      var reactivity2 = this;
-      var state = getObjectState(obj);
-      if (!state.propertyHandler) {
-        var trackedEffects = /* @__PURE__ */ new Set();
-        var queueAll = function() {
-          for (var eff of trackedEffects) {
-            reactivity2._scheduleEffect(eff);
-          }
-        };
-        var remove;
-        if (obj instanceof Element) {
-          obj.addEventListener("input", queueAll);
-          obj.addEventListener("change", queueAll);
-          remove = function() {
-            obj.removeEventListener("input", queueAll);
-            obj.removeEventListener("change", queueAll);
-          };
-        } else {
-          remove = function() {
-          };
-        }
-        state.propertyHandler = {
-          effects: trackedEffects,
-          queueAll,
-          remove
-        };
-      }
-      state.propertyHandler.effects.add(effect);
-    }
-    /** @param {Effect} effect */
-    _unsubscribeEffect(effect) {
-      for (var [depKey, dep] of effect.dependencies) {
-        if (dep.type === "symbol" && dep.scope === "global") {
-          var subs = globalSubscriptions.get(dep.name);
-          if (subs) {
-            subs.delete(effect);
-            if (subs.size === 0) {
-              globalSubscriptions.delete(dep.name);
-            }
-          }
-        } else if (dep.type === "symbol" && dep.scope === "element") {
-          var state = getObjectState(dep.element);
-          if (state.subscriptions) {
-            var subs = state.subscriptions.get(dep.name);
-            if (subs) {
-              subs.delete(effect);
-              if (subs.size === 0) {
-                state.subscriptions.delete(dep.name);
-              }
-            }
-          }
-        } else if (dep.type === "attribute" && dep.element) {
-          var state = getObjectState(dep.element);
-          if (state.attributeObservers && state.attributeObservers[dep.name]) {
-            state.attributeObservers[dep.name].effects.delete(effect);
-          }
-        } else if (dep.type === "property" && dep.object) {
-          var state = getObjectState(dep.object);
-          if (state.propertyHandler) {
-            state.propertyHandler.effects.delete(effect);
-          }
-        }
-      }
-    }
-    /**
-     * Clean up MutationObservers and property listeners for deps with no remaining effects.
-     * @param {Map<string, Dependency>} deps
-     */
-    _cleanupOrphanedDeps(deps) {
-      for (var [depKey, dep] of deps) {
-        if (dep.type === "attribute" && dep.element) {
-          var state = getObjectState(dep.element);
-          if (state.attributeObservers && state.attributeObservers[dep.name]) {
-            var obs = state.attributeObservers[dep.name];
-            if (obs.effects.size === 0) {
-              obs.observer.disconnect();
-              delete state.attributeObservers[dep.name];
-            }
-          }
-        } else if (dep.type === "property" && dep.object) {
-          var state = getObjectState(dep.object);
-          if (state.propertyHandler && state.propertyHandler.effects.size === 0) {
-            state.propertyHandler.remove();
-            state.propertyHandler = null;
-          }
-        }
-      }
-    }
-    /**
-     * Create a reactive effect with automatic dependency tracking.
-     * @param {() => any} expression - The watched expression
-     * @param {(value: any) => void} handler - Called when the value changes
-     * @param {Object} [options]
-     * @param {Element} [options.element] - Auto-stop when element disconnects
-     * @returns {() => void} Stop function
-     */
-    createEffect(expression, handler, options) {
-      var effect = {
-        expression,
-        handler,
-        dependencies: /* @__PURE__ */ new Map(),
-        _lastExpressionValue: void 0,
-        element: options && options.element || null,
-        isStopped: false,
-        _consecutiveTriggers: 0
-      };
-      var prev = this._currentEffect;
-      this._currentEffect = effect;
-      try {
-        effect._lastExpressionValue = expression();
-      } catch (e) {
-        console.error("Error in reactive expression:", e);
-      }
-      this._currentEffect = prev;
-      this._subscribeEffect(effect);
-      if (effect.element) {
-        var set = this._elementEffects.get(effect.element);
-        if (!set) {
-          set = /* @__PURE__ */ new Set();
-          this._elementEffects.set(effect.element, set);
-        }
-        set.add(effect);
-      }
-      if (effect._lastExpressionValue != null) {
-        try {
-          handler(effect._lastExpressionValue);
-        } catch (e) {
-          console.error("Error in reactive handler:", e);
-        }
-      }
-      var reactivity2 = this;
-      return function stop() {
-        reactivity2.stopEffect(effect);
-      };
-    }
-    /** @param {Effect} effect */
-    stopEffect(effect) {
-      if (effect.isStopped) return;
-      effect.isStopped = true;
-      this._unsubscribeEffect(effect);
-      this._cleanupOrphanedDeps(effect.dependencies);
-      this._pendingEffects.delete(effect);
-    }
-    /** Stop all reactive effects owned by an element. */
-    stopElementEffects(element) {
-      var set = this._elementEffects.get(element);
-      if (!set) return;
-      for (var effect of set) {
-        this.stopEffect(effect);
-      }
-      this._elementEffects.delete(element);
-    }
-  };
-  var reactivity = new Reactivity();
-
   // src/core/runtime/runtime.js
   var cookies = new CookieJar().proxy();
   function _applyWhenResults(elements, results, forwardFn, reverseFn) {
@@ -2516,14 +2094,19 @@
     #kernel;
     #tokenizer;
     #globalScope;
+    #reactivity;
     #scriptAttrs = null;
-    constructor(globalScope2, kernel2, tokenizer2) {
+    constructor(globalScope2, kernel2, tokenizer2, reactivity2) {
       this.#globalScope = globalScope2;
       this.#kernel = kernel2;
       this.#tokenizer = tokenizer2;
+      this.#reactivity = reactivity2;
     }
     get globalScope() {
       return this.#globalScope;
+    }
+    get reactivity() {
+      return this.#reactivity;
     }
     // =================================================================
     // Core execution engine
@@ -2705,20 +2288,20 @@
         return context.you;
       } else {
         if (type === "global") {
-          if (reactivity.isTracking) reactivity.trackGlobalSymbol(str);
+          if (this.reactivity.isTracking) this.reactivity.trackGlobalSymbol(str);
           var val = this.#globalScope[str];
           this.#trackMutation(val);
           return val;
         } else if (type === "element") {
-          if (reactivity.isTracking) reactivity.trackElementSymbol(str, context.meta.owner);
+          if (this.reactivity.isTracking) this.reactivity.trackElementSymbol(str, context.meta.owner);
           var elementScope = this.#getElementScope(context);
           var val = elementScope[str];
           this.#trackMutation(val);
           return val;
         } else if (type === "inherited") {
           var inherited = this.#resolveInherited(str, context, targetElement);
-          if (reactivity.isTracking && inherited.element) {
-            reactivity.trackElementSymbol(str, inherited.element);
+          if (this.reactivity.isTracking && inherited.element) {
+            this.reactivity.trackElementSymbol(str, inherited.element);
           }
           this.#trackMutation(inherited.value);
           return inherited.value;
@@ -2748,11 +2331,11 @@
             var elementScope = this.#getElementScope(context);
             fromContext = elementScope[str];
             if (typeof fromContext !== "undefined") {
-              if (reactivity.isTracking) reactivity.trackElementSymbol(str, context.meta.owner);
+              if (this.reactivity.isTracking) this.reactivity.trackElementSymbol(str, context.meta.owner);
               this.#trackMutation(fromContext);
               return fromContext;
             } else {
-              if (reactivity.isTracking) reactivity.trackGlobalSymbol(str);
+              if (this.reactivity.isTracking) this.reactivity.trackGlobalSymbol(str);
               var val = this.#globalScope[str];
               this.#trackMutation(val);
               return val;
@@ -2764,23 +2347,23 @@
     setSymbol(str, context, type, value, targetElement) {
       if (type === "global") {
         this.#globalScope[str] = value;
-        reactivity.notifyGlobalSymbol(str);
+        this.reactivity.notifyGlobalSymbol(str);
       } else if (type === "element") {
         var elementScope = this.#getElementScope(context);
         elementScope[str] = value;
-        reactivity.notifyElementSymbol(str, context.meta.owner);
+        this.reactivity.notifyElementSymbol(str, context.meta.owner);
       } else if (type === "inherited") {
         var inherited = this.#resolveInherited(str, context, targetElement);
         if (inherited.element) {
           this.getInternalData(inherited.element).elementScope[str] = value;
-          reactivity.notifyElementSymbol(str, inherited.element);
+          this.reactivity.notifyElementSymbol(str, inherited.element);
         } else {
           var owner = targetElement || context.meta && context.meta.owner;
           if (owner) {
             var internalData = this.getInternalData(owner);
             if (!internalData.elementScope) internalData.elementScope = {};
             internalData.elementScope[str] = value;
-            reactivity.notifyElementSymbol(str, owner);
+            this.reactivity.notifyElementSymbol(str, owner);
           }
         }
       } else if (type === "local") {
@@ -2793,7 +2376,7 @@
           var fromContext = elementScope[str];
           if (typeof fromContext !== "undefined") {
             elementScope[str] = value;
-            reactivity.notifyElementSymbol(str, context.meta.owner);
+            this.reactivity.notifyElementSymbol(str, context.meta.owner);
           } else {
             if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str)) {
               context.locals[str] = value;
@@ -2816,6 +2399,17 @@
         var internalData = elt._hyperscript;
         if (internalData && internalData.elementScope && str in internalData.elementScope) {
           return { value: internalData.elementScope[str], element: elt };
+        }
+        var domScope = elt.getAttribute && elt.getAttribute("dom-scope");
+        if (domScope) {
+          if (domScope === "isolated") {
+            return { value: void 0, element: null };
+          }
+          var match = domScope.match(/^closest\s+(.+)/);
+          if (match) {
+            elt = elt.parentElement && elt.parentElement.closest(match[1]);
+            continue;
+          }
         }
         elt = elt.parentElement;
       }
@@ -2856,7 +2450,7 @@
       }
     }
     resolveProperty(root, property) {
-      if (reactivity.isTracking) reactivity.trackProperty(root, property);
+      if (this.reactivity.isTracking) this.reactivity.trackProperty(root, property);
       return this.#flatGet(root, property, (root2, property2) => root2[property2]);
     }
     /**
@@ -2867,7 +2461,7 @@
      */
     setProperty(obj, property, value) {
       obj[property] = value;
-      reactivity.notifyProperty(obj);
+      this.reactivity.notifyProperty(obj);
     }
     /**
      * Notify the reactivity system that an object was mutated in-place.
@@ -2875,7 +2469,7 @@
      * @param {Object} obj - The mutated object
      */
     notifyMutation(obj) {
-      reactivity.notifyProperty(obj);
+      this.reactivity.notifyProperty(obj);
     }
     /**
      * Check if a method call is known to mutate its receiver, and notify if so.
@@ -2891,12 +2485,12 @@
       }
     }
     #trackMutation(val) {
-      if (reactivity.isTracking && val != null && typeof val === "object") {
-        reactivity.trackProperty(val, "__mutation__");
+      if (this.reactivity.isTracking && val != null && typeof val === "object") {
+        this.reactivity.trackProperty(val, "__mutation__");
       }
     }
     resolveAttribute(root, property) {
-      if (reactivity.isTracking) reactivity.trackAttribute(root, property);
+      if (this.reactivity.isTracking) this.reactivity.trackAttribute(root, property);
       return this.#flatGet(root, property, (root2, property2) => root2.getAttribute && root2.getAttribute(property2));
     }
     resolveStyle(root, property) {
@@ -3137,7 +2731,7 @@
           if (state.debounced) clearTimeout(state.debounced);
         }
       }
-      reactivity.stopElementEffects(elt);
+      this.reactivity.stopElementEffects(elt);
       if (elt.querySelectorAll) {
         for (var child of elt.querySelectorAll("[data-hyperscript-powered]")) {
           this.cleanup(child);
@@ -3283,6 +2877,469 @@
         }
         console.log("///_ BEEP! The expression (" + expression.sourceFor().replace("beep! ", "") + ") evaluates to:", logValue, "of type " + typeName);
       }
+    }
+  };
+
+  // src/core/runtime/reactivity.js
+  function _sameValue(a, b) {
+    return a === b ? a !== 0 || 1 / a === 1 / b : a !== a && b !== b;
+  }
+  var Effect = class {
+    /**
+     * @param {() => any} expression - The watched expression
+     * @param {(v: any) => void} handler - Called when value changes
+     * @param {Element|null} element - Owner element; auto-stops when disconnected
+     * @param {Reactivity} reactivity - The owning reactivity system
+     */
+    constructor(expression, handler, element, reactivity2) {
+      this.expression = expression;
+      this.handler = handler;
+      this.element = element;
+      this._reactivity = reactivity2;
+      this.dependencies = /* @__PURE__ */ new Map();
+      this._lastValue = void 0;
+      this._isStopped = false;
+      this._consecutiveTriggers = 0;
+    }
+    /**
+     * First evaluation: track deps, subscribe, call handler if non-null.
+     * Both undefined and null are treated as "no value yet" to support
+     * left-side-wins initialization in bind.
+     */
+    initialize() {
+      var reactivity2 = this._reactivity;
+      var prev = reactivity2._currentEffect;
+      reactivity2._currentEffect = this;
+      try {
+        this._lastValue = this.expression();
+      } catch (e) {
+        console.error("Error in reactive expression:", e);
+      }
+      reactivity2._currentEffect = prev;
+      reactivity2._subscribeEffect(this);
+      if (this._lastValue != null) {
+        try {
+          this.handler(this._lastValue);
+        } catch (e) {
+          console.error("Error in reactive handler:", e);
+        }
+      }
+    }
+    /**
+     * Re-evaluate expression with dependency tracking, compare with last
+     * value, and call handler if changed. Returns false if circular
+     * guard tripped (caller should skip this effect).
+     * @returns {boolean} Whether the effect ran successfully
+     */
+    run() {
+      this._consecutiveTriggers++;
+      if (this._consecutiveTriggers > 100) {
+        console.error(
+          "Reactivity loop detected: an effect triggered 100 consecutive times without settling. This usually means an effect is modifying a variable it also depends on.",
+          this.element || this
+        );
+        return false;
+      }
+      var reactivity2 = this._reactivity;
+      reactivity2._unsubscribeEffect(this);
+      var oldDeps = this.dependencies;
+      this.dependencies = /* @__PURE__ */ new Map();
+      var prev = reactivity2._currentEffect;
+      reactivity2._currentEffect = this;
+      var newValue;
+      try {
+        newValue = this.expression();
+      } catch (e) {
+        console.error("Error in reactive expression:", e);
+        this.dependencies = oldDeps;
+        reactivity2._currentEffect = prev;
+        reactivity2._subscribeEffect(this);
+        return true;
+      }
+      reactivity2._currentEffect = prev;
+      reactivity2._subscribeEffect(this);
+      reactivity2._cleanupOrphanedDeps(oldDeps);
+      if (!_sameValue(newValue, this._lastValue)) {
+        this._lastValue = newValue;
+        try {
+          this.handler(newValue);
+        } catch (e) {
+          console.error("Error in reactive handler:", e);
+        }
+      }
+      return true;
+    }
+    /** Reset circular guard after cascade settles. */
+    resetTriggerCount() {
+      this._consecutiveTriggers = 0;
+    }
+    /** Stop this effect and clean up all subscriptions. */
+    stop() {
+      if (this._isStopped) return;
+      this._isStopped = true;
+      this._reactivity._unsubscribeEffect(this);
+      this._reactivity._cleanupOrphanedDeps(this.dependencies);
+      this._reactivity._pendingEffects.delete(this);
+    }
+  };
+  var Reactivity = class {
+    constructor() {
+      this._objectState = /* @__PURE__ */ new WeakMap();
+      this._globalSubscriptions = /* @__PURE__ */ new Map();
+      this._nextId = 0;
+      this._currentEffect = null;
+      this._pendingEffects = /* @__PURE__ */ new Set();
+      this._isRunScheduled = false;
+    }
+    /**
+     * Get or create the reactive state object for any object.
+     * Assigns a stable unique ID on first access.
+     * @param {Object} obj - DOM element or plain JS object
+     * @returns {{ id: string, subscriptions: Map|null, propertyHandler: Object|null }}
+     */
+    _getObjectState(obj) {
+      var state = this._objectState.get(obj);
+      if (!state) {
+        this._objectState.set(obj, state = {
+          id: String(++this._nextId),
+          subscriptions: null,
+          propertyHandler: null,
+          attributeObservers: null
+        });
+      }
+      return state;
+    }
+    /**
+     * Whether an effect is currently evaluating its expression().
+     * When true, reads (symbol/property/attribute) are recorded as dependencies.
+     * @returns {boolean}
+     */
+    get isTracking() {
+      return this._currentEffect !== null;
+    }
+    /**
+     * Track a global variable read as a dependency.
+     * @param {string} name - Variable name
+     */
+    trackGlobalSymbol(name) {
+      this._currentEffect.dependencies.set(
+        "symbol:global:" + name,
+        { type: "symbol", name, scope: "global" }
+      );
+    }
+    /**
+     * Track an element-scoped variable read as a dependency.
+     * @param {string} name - Variable name
+     * @param {Element} element - Owning element
+     */
+    trackElementSymbol(name, element) {
+      if (!element) return;
+      var elementId = this._getObjectState(element).id;
+      this._currentEffect.dependencies.set(
+        "symbol:element:" + name + ":" + elementId,
+        { type: "symbol", name, scope: "element", element }
+      );
+    }
+    /**
+     * Track a property read as a dependency.
+     * Subscription is coarse-grained (one handler per object, not per property),
+     * so the dep key uses "*" rather than the property name.
+     * @param {Object} obj - DOM element or plain JS object
+     * @param {string} name - Property name
+     */
+    trackProperty(obj, name) {
+      if (obj == null || typeof obj !== "object") return;
+      this._currentEffect.dependencies.set(
+        "property:" + this._getObjectState(obj).id,
+        { type: "property", object: obj, name }
+      );
+    }
+    /**
+     * Track a DOM attribute read as a dependency.
+     * @param {Element} element
+     * @param {string} name - Attribute name
+     */
+    trackAttribute(element, name) {
+      if (!(element instanceof Element)) return;
+      this._currentEffect.dependencies.set(
+        "attribute:" + name + ":" + this._getObjectState(element).id,
+        { type: "attribute", element, name }
+      );
+    }
+    /**
+     * Notify that a global variable was written.
+     * @param {string} name - Variable name
+     */
+    notifyGlobalSymbol(name) {
+      var subs = this._globalSubscriptions.get(name);
+      if (subs) {
+        for (var effect of subs) {
+          this._scheduleEffect(effect);
+        }
+      }
+    }
+    /**
+     * Notify that an element-scoped variable was written.
+     * @param {string} name - Variable name
+     * @param {Element} element - Owning element
+     */
+    notifyElementSymbol(name, element) {
+      if (!element) return;
+      var state = this._getObjectState(element);
+      if (state.subscriptions) {
+        var subs = state.subscriptions.get(name);
+        if (subs) {
+          for (var effect of subs) {
+            this._scheduleEffect(effect);
+          }
+        }
+      }
+    }
+    /**
+     * Notify that a property was written programmatically.
+     * Schedules all effects watching properties on this object.
+     * @param {Object} obj - DOM element or plain JS object
+     */
+    notifyProperty(obj) {
+      if (obj == null || typeof obj !== "object") return;
+      var state = this._objectState.get(obj);
+      if (state && state.propertyHandler) {
+        state.propertyHandler.queueAll();
+      }
+    }
+    /**
+     * Add an effect to the pending set.
+     * Schedules a microtask to run them if one isn't already scheduled.
+     * @param {Effect} effect
+     */
+    _scheduleEffect(effect) {
+      if (effect._isStopped) return;
+      this._pendingEffects.add(effect);
+      if (!this._isRunScheduled) {
+        this._isRunScheduled = true;
+        var self2 = this;
+        queueMicrotask(function() {
+          self2._runPendingEffects();
+        });
+      }
+    }
+    /**
+     * Run all pending effects. Called once per microtask batch.
+     * Effects that re-trigger during this run are queued for the next batch.
+     */
+    _runPendingEffects() {
+      this._isRunScheduled = false;
+      var effects = Array.from(this._pendingEffects);
+      this._pendingEffects.clear();
+      for (var i = 0; i < effects.length; i++) {
+        var effect = effects[i];
+        if (effect._isStopped) continue;
+        if (effect.element && !effect.element.isConnected) {
+          effect.stop();
+          continue;
+        }
+        effect.run();
+      }
+      if (this._pendingEffects.size === 0) {
+        for (var i = 0; i < effects.length; i++) {
+          if (!effects[i]._isStopped) effects[i].resetTriggerCount();
+        }
+      }
+    }
+    /**
+     * Subscribe an effect to all its current deps.
+     * Symbols go into subscription maps, attributes get MutationObservers,
+     * properties use persistent per-element input/change listeners.
+     * @param {Effect} effect
+     */
+    _subscribeEffect(effect) {
+      var reactivity2 = this;
+      for (var [depKey, dep] of effect.dependencies) {
+        if (dep.type === "symbol" && dep.scope === "global") {
+          if (!reactivity2._globalSubscriptions.has(dep.name)) {
+            reactivity2._globalSubscriptions.set(dep.name, /* @__PURE__ */ new Set());
+          }
+          reactivity2._globalSubscriptions.get(dep.name).add(effect);
+        } else if (dep.type === "symbol" && dep.scope === "element") {
+          var state = reactivity2._getObjectState(dep.element);
+          if (!state.subscriptions) {
+            state.subscriptions = /* @__PURE__ */ new Map();
+          }
+          if (!state.subscriptions.has(dep.name)) {
+            state.subscriptions.set(dep.name, /* @__PURE__ */ new Set());
+          }
+          state.subscriptions.get(dep.name).add(effect);
+        } else if (dep.type === "attribute") {
+          reactivity2._subscribeAttributeDependency(dep.element, dep.name, effect);
+        } else if (dep.type === "property") {
+          reactivity2._subscribePropertyDependency(dep.object, dep.name, effect);
+        }
+      }
+    }
+    /**
+     * Subscribe to a DOM attribute. Sets up a persistent MutationObserver
+     * per element+attribute, shared across effects and re-runs.
+     * @param {Element} element
+     * @param {string} attrName
+     * @param {Effect} effect
+     */
+    _subscribeAttributeDependency(element, attrName, effect) {
+      var reactivity2 = this;
+      var state = reactivity2._getObjectState(element);
+      if (!state.attributeObservers) {
+        state.attributeObservers = {};
+      }
+      if (!state.attributeObservers[attrName]) {
+        var trackedEffects = /* @__PURE__ */ new Set();
+        var observer = new MutationObserver(function() {
+          for (var eff of trackedEffects) {
+            reactivity2._scheduleEffect(eff);
+          }
+        });
+        observer.observe(element, {
+          attributes: true,
+          attributeFilter: [attrName]
+        });
+        state.attributeObservers[attrName] = {
+          effects: trackedEffects,
+          observer
+        };
+      }
+      state.attributeObservers[attrName].effects.add(effect);
+    }
+    /**
+     * Subscribe to a property on an object. For DOM elements, sets up
+     * persistent input/change event listeners. For plain objects, only
+     * the subscription map is used (notified via setProperty).
+     * @param {Object} obj - DOM element or plain JS object
+     * @param {string} propName
+     * @param {Effect} effect
+     */
+    _subscribePropertyDependency(obj, propName, effect) {
+      var reactivity2 = this;
+      var state = reactivity2._getObjectState(obj);
+      if (!state.propertyHandler) {
+        var trackedEffects = /* @__PURE__ */ new Set();
+        var queueAll = function() {
+          for (var eff of trackedEffects) {
+            reactivity2._scheduleEffect(eff);
+          }
+        };
+        var remove;
+        if (obj instanceof Element) {
+          obj.addEventListener("input", queueAll);
+          obj.addEventListener("change", queueAll);
+          remove = function() {
+            obj.removeEventListener("input", queueAll);
+            obj.removeEventListener("change", queueAll);
+          };
+        } else {
+          remove = function() {
+          };
+        }
+        state.propertyHandler = {
+          effects: trackedEffects,
+          queueAll,
+          remove
+        };
+      }
+      state.propertyHandler.effects.add(effect);
+    }
+    /** @param {Effect} effect */
+    _unsubscribeEffect(effect) {
+      var reactivity2 = this;
+      for (var [depKey, dep] of effect.dependencies) {
+        if (dep.type === "symbol" && dep.scope === "global") {
+          var subs = reactivity2._globalSubscriptions.get(dep.name);
+          if (subs) {
+            subs.delete(effect);
+            if (subs.size === 0) {
+              reactivity2._globalSubscriptions.delete(dep.name);
+            }
+          }
+        } else if (dep.type === "symbol" && dep.scope === "element") {
+          var state = reactivity2._getObjectState(dep.element);
+          if (state.subscriptions) {
+            var subs = state.subscriptions.get(dep.name);
+            if (subs) {
+              subs.delete(effect);
+              if (subs.size === 0) {
+                state.subscriptions.delete(dep.name);
+              }
+            }
+          }
+        } else if (dep.type === "attribute" && dep.element) {
+          var state = reactivity2._getObjectState(dep.element);
+          if (state.attributeObservers && state.attributeObservers[dep.name]) {
+            state.attributeObservers[dep.name].effects.delete(effect);
+          }
+        } else if (dep.type === "property" && dep.object) {
+          var state = reactivity2._getObjectState(dep.object);
+          if (state.propertyHandler) {
+            state.propertyHandler.effects.delete(effect);
+          }
+        }
+      }
+    }
+    /**
+     * Clean up MutationObservers and property listeners for deps with no remaining effects.
+     * @param {Map<string, Dependency>} deps
+     */
+    _cleanupOrphanedDeps(deps) {
+      var reactivity2 = this;
+      for (var [depKey, dep] of deps) {
+        if (dep.type === "attribute" && dep.element) {
+          var state = reactivity2._getObjectState(dep.element);
+          if (state.attributeObservers && state.attributeObservers[dep.name]) {
+            var obs = state.attributeObservers[dep.name];
+            if (obs.effects.size === 0) {
+              obs.observer.disconnect();
+              delete state.attributeObservers[dep.name];
+            }
+          }
+        } else if (dep.type === "property" && dep.object) {
+          var state = reactivity2._getObjectState(dep.object);
+          if (state.propertyHandler && state.propertyHandler.effects.size === 0) {
+            state.propertyHandler.remove();
+            state.propertyHandler = null;
+          }
+        }
+      }
+    }
+    /**
+     * Create a reactive effect with automatic dependency tracking.
+     * @param {() => any} expression - The watched expression
+     * @param {(value: any) => void} handler - Called when the value changes
+     * @param {Object} [options]
+     * @param {Element} [options.element] - Auto-stop when element disconnects
+     * @returns {() => void} Stop function
+     */
+    createEffect(expression, handler, options) {
+      var effect = new Effect(
+        expression,
+        handler,
+        options && options.element || null,
+        this
+      );
+      effect.initialize();
+      if (effect.element) {
+        var data = effect.element._hyperscript;
+        if (!data) data = effect.element._hyperscript = {};
+        if (!data.effects) data.effects = /* @__PURE__ */ new Set();
+        data.effects.add(effect);
+      }
+      return function() {
+        effect.stop();
+      };
+    }
+    /** Stop all reactive effects owned by an element. */
+    stopElementEffects(element) {
+      var data = element._hyperscript;
+      if (!data || !data.effects) return;
+      for (var effect of data.effects) {
+        effect.stop();
+      }
+      delete data.effects;
     }
   };
 
@@ -8863,7 +8920,7 @@
       queueMicrotask(function() {
         for (var i = 0; i < feature.exprs.length; i++) {
           (function(expr) {
-            reactivity.createEffect(
+            runtime2.reactivity.createEffect(
               function() {
                 return expr.evaluate(
                   runtime2.makeContext(target, feature, target, null)
@@ -8956,7 +9013,7 @@
     if (!rightSide.element && !_isAssignable(right)) {
       throw new Error("bind requires a writable expression on the right side, but '" + right.type + "' cannot be assigned to");
     }
-    reactivity.createEffect(
+    runtime2.reactivity.createEffect(
       function() {
         return leftSide.read();
       },
@@ -8965,7 +9022,7 @@
       },
       { element: target }
     );
-    reactivity.createEffect(
+    runtime2.reactivity.createEffect(
       function() {
         return rightSide.read();
       },
@@ -9132,7 +9189,7 @@
     install(target, source, args, runtime2) {
       var feature = this;
       queueMicrotask(function() {
-        reactivity.createEffect(
+        runtime2.reactivity.createEffect(
           function() {
             feature.commands.execute(
               runtime2.makeContext(target, feature, target, null)
@@ -9340,7 +9397,8 @@
   config.conversions = conversions;
   var kernel = new LanguageKernel();
   var tokenizer = new Tokenizer();
-  var runtime = new Runtime(globalScope, kernel, tokenizer);
+  var reactivity = new Reactivity();
+  var runtime = new Runtime(globalScope, kernel, tokenizer, reactivity);
   kernel.registerModule(expressions_exports);
   kernel.registerModule(literals_exports);
   kernel.registerModule(webliterals_exports);
