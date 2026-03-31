@@ -9,7 +9,7 @@ import {Runtime} from './core/runtime/runtime.js';
 import {HyperscriptModule} from './core/runtime/collections.js';
 import {config} from './core/config.js';
 import {conversions} from './core/runtime/conversions.js';
-import {reactivity} from './core/runtime/reactivity.js';
+import {Reactivity} from './core/runtime/reactivity.js';
 
 // Import parse element modules
 import * as Expressions from './parsetree/expressions/expressions.js';
@@ -49,9 +49,10 @@ config.conversions = conversions;
 // Create and configure kernel
 const kernel = new LanguageKernel();
 
-// Create tokenizer first, then runtime with kernel and tokenizer
+// Create subsystems and wire them together
 const tokenizer = new Tokenizer();
-const runtime = new Runtime(globalScope, kernel, tokenizer);
+const reactivity = new Reactivity();
+const runtime = new Runtime(globalScope, kernel, tokenizer, reactivity);
 
 // ===== Grammar Registration =====
 // Register all parse elements from modules (expressions, commands, features)

@@ -6,17 +6,6 @@
 // via DOM events and MutationObserver.
 
 /**
- * A reactive effect. Re-runs when its dependencies change.
- *
- * @typedef {Object} Effect
- * @property {() => any} expression     - The watched expression.       e.g. () => $price * $qty
- * @property {(v: any) => void} handler - Called when value changes.   e.g. (newValue) => { put newValue into me }
- * @property {Map<string, Dependency>} dependencies - What was read during expression().  e.g. { "symbol:global:$price" => {type:"symbol", ...} }
- * @property {Element|null} element    - Owner element; auto-stops when element disconnects
- * @property {boolean} isStopped       - True after stopEffect(); skips all further processing
- * @property {any} _lastExpressionValue - Last result of expression(), used to skip unchanged
- * @property {number} _consecutiveTriggers    - Counts consecutive triggers; stops runaway loops at 100
- *
  * A single tracked read, recording what was accessed during expression().
  *
  * @typedef {Object} Dependency
@@ -32,51 +21,184 @@ function _sameValue(a, b) {
     return a === b ? (a !== 0 || 1 / a === 1 / b) : (a !== a && b !== b);
 }
 
-/** Per-object reactive state, keyed by any object (DOM element or plain JS object) */
-const objectState = new WeakMap();
-
 /**
- * Global symbol subscriptions: symbolName -> Set<Effect>
- * When a global variable is written, all effects in its set are scheduled.
- * @type {Map<string, Set<Effect>>}
+ * A reactive effect. Re-runs when its dependencies change.
+ * Owns its full lifecycle: initialize, run, stop.
  */
-const globalSubscriptions = new Map();
+class Effect {
+    /**
+     * @param {() => any} expression - The watched expression
+     * @param {(v: any) => void} handler - Called when value changes
+     * @param {Element|null} element - Owner element; auto-stops when disconnected
+     * @param {Reactivity} reactivity - The owning reactivity system
+     */
+    constructor(expression, handler, element, reactivity) {
+        // What this effect does
+        this.expression = expression; // () => value — the watched expression, re-evaluated on dep change
+        this.handler = handler;       // (value) => void — called when expression result changes
 
-/** Next ID to assign to an object for dependency dedup keys */
-let nextId = 0;
+        // Where it lives
+        this.element = element;
+        this._reactivity = reactivity;
 
-/**
- * Get or create the reactive state object for any object.
- * Assigns a stable unique ID on first access.
- * @param {Object} obj - DOM element or plain JS object
- * @returns {{ id: string, subscriptions: Map|null, propertyHandler: Object|null }}
- */
-function getObjectState(obj) {
-    var state = objectState.get(obj);
-    if (!state) {
-        objectState.set(obj, state = {
-            id: String(++nextId),
-            subscriptions: null,
-            propertyHandler: null,
-            attributeObservers: null,
-        });
+        // Tracked state
+        this.dependencies = new Map();
+        this._lastValue = undefined;
+        this._isStopped = false;
+        this._consecutiveTriggers = 0;
     }
-    return state;
+
+    /**
+     * First evaluation: track deps, subscribe, call handler if non-null.
+     * Both undefined and null are treated as "no value yet" to support
+     * left-side-wins initialization in bind.
+     */
+    initialize() {
+        var reactivity = this._reactivity;
+
+        // Evaluate expression with tracking enabled — any symbol, property,
+        // or attribute reads during this call are recorded as dependencies.
+        var prev = reactivity._currentEffect;
+        reactivity._currentEffect = this;
+        try {
+            this._lastValue = this.expression();
+        } catch (e) {
+            console.error("Error in reactive expression:", e);
+        }
+        reactivity._currentEffect = prev;
+
+        // Wire up subscriptions so we're notified when dependencies change
+        reactivity._subscribeEffect(this);
+
+        // If we got a value, push it to the handler immediately.
+        // null/undefined means "no value yet" — skip to let the other
+        // side of a bind initialize first (left-side-wins semantics).
+        if (this._lastValue != null) {
+            try {
+                this.handler(this._lastValue);
+            } catch (e) {
+                console.error("Error in reactive handler:", e);
+            }
+        }
+    }
+
+    /**
+     * Re-evaluate expression with dependency tracking, compare with last
+     * value, and call handler if changed. Returns false if circular
+     * guard tripped (caller should skip this effect).
+     * @returns {boolean} Whether the effect ran successfully
+     */
+    run() {
+        this._consecutiveTriggers++;
+        if (this._consecutiveTriggers > 100) {
+            console.error(
+                "Reactivity loop detected: an effect triggered 100 consecutive " +
+                "times without settling. This usually means an effect is modifying " +
+                "a variable it also depends on.",
+                this.element || this
+            );
+            return false;
+        }
+
+        var reactivity = this._reactivity;
+
+        // Unsubscribe from current deps
+        reactivity._unsubscribeEffect(this);
+
+        // Re-run expression with tracking
+        var oldDeps = this.dependencies;
+        this.dependencies = new Map();
+
+        var prev = reactivity._currentEffect;
+        reactivity._currentEffect = this;
+        var newValue;
+        try {
+            newValue = this.expression();
+        } catch (e) {
+            console.error("Error in reactive expression:", e);
+            // Restore old dependencies on error
+            this.dependencies = oldDeps;
+            reactivity._currentEffect = prev;
+            reactivity._subscribeEffect(this);
+            return true;
+        }
+        reactivity._currentEffect = prev;
+
+        // Subscribe to new deps
+        reactivity._subscribeEffect(this);
+
+        // Clean up observers/listeners for deps that were dropped
+        reactivity._cleanupOrphanedDeps(oldDeps);
+
+        // Compare and fire (Object.is semantics: NaN === NaN, +0 !== -0)
+        if (!_sameValue(newValue, this._lastValue)) {
+            this._lastValue = newValue;
+            try {
+                this.handler(newValue);
+            } catch (e) {
+                console.error("Error in reactive handler:", e);
+            }
+        }
+        return true;
+    }
+
+    /** Reset circular guard after cascade settles. */
+    resetTriggerCount() {
+        this._consecutiveTriggers = 0;
+    }
+
+    /** Stop this effect and clean up all subscriptions. */
+    stop() {
+        if (this._isStopped) return;
+        this._isStopped = true;
+        this._reactivity._unsubscribeEffect(this);
+        this._reactivity._cleanupOrphanedDeps(this.dependencies);
+        this._reactivity._pendingEffects.delete(this);
+    }
 }
 
 export class Reactivity {
     constructor() {
+        /** Per-object reactive state, keyed by any object (DOM element or plain JS object) */
+        this._objectState = new WeakMap();
+
+        /**
+         * Global symbol subscriptions: symbolName -> Set<Effect>
+         * When a global variable is written, all effects in its set are scheduled.
+         * @type {Map<string, Set<Effect>>}
+         */
+        this._globalSubscriptions = new Map();
+
+        /** Next ID to assign to an object for dependency dedup keys */
+        this._nextId = 0;
+
         /** @type {Effect|null} The effect currently being evaluated */
         this._currentEffect = null;
 
         /** @type {Set<Effect>} Effects waiting to run in the next microtask */
         this._pendingEffects = new Set();
 
-        /** @type {WeakMap<Element, Set<Effect>>} Effects by owning element */
-        this._elementEffects = new WeakMap();
-
         /** @type {boolean} Whether a microtask is scheduled to run pending effects */
         this._isRunScheduled = false;
+    }
+
+    /**
+     * Get or create the reactive state object for any object.
+     * Assigns a stable unique ID on first access.
+     * @param {Object} obj - DOM element or plain JS object
+     * @returns {{ id: string, subscriptions: Map|null, propertyHandler: Object|null }}
+     */
+    _getObjectState(obj) {
+        var state = this._objectState.get(obj);
+        if (!state) {
+            this._objectState.set(obj, state = {
+                id: String(++this._nextId),
+                subscriptions: null,
+                propertyHandler: null,
+                attributeObservers: null,
+            });
+        }
+        return state;
     }
 
     /**
@@ -93,7 +215,6 @@ export class Reactivity {
      * @param {string} name - Variable name
      */
     trackGlobalSymbol(name) {
-        // e.g. deps.set("symbol:global:$count", { type: "symbol", name: "$count", scope: "global" })
         this._currentEffect.dependencies.set("symbol:global:" + name,
             { type: "symbol", name: name, scope: "global" });
     }
@@ -105,20 +226,21 @@ export class Reactivity {
      */
     trackElementSymbol(name, element) {
         if (!element) return;
-        var elementId = getObjectState(element).id;
-        // e.g. deps.set("symbol:element::count:3", { type: "symbol", name: ":count", scope: "element", element: <div> })
+        var elementId = this._getObjectState(element).id;
         this._currentEffect.dependencies.set("symbol:element:" + name + ":" + elementId,
             { type: "symbol", name: name, scope: "element", element: element });
     }
 
     /**
      * Track a property read as a dependency.
+     * Subscription is coarse-grained (one handler per object, not per property),
+     * so the dep key uses "*" rather than the property name.
      * @param {Object} obj - DOM element or plain JS object
      * @param {string} name - Property name
      */
     trackProperty(obj, name) {
         if (obj == null || typeof obj !== "object") return;
-        this._currentEffect.dependencies.set("property:" + name + ":" + getObjectState(obj).id,
+        this._currentEffect.dependencies.set("property:" + this._getObjectState(obj).id,
             { type: "property", object: obj, name: name });
     }
 
@@ -129,8 +251,7 @@ export class Reactivity {
      */
     trackAttribute(element, name) {
         if (!(element instanceof Element)) return;
-        // e.g. deps.set("attribute:data-title:2", { type: "attribute", element: <div>, name: "data-title" })
-        this._currentEffect.dependencies.set("attribute:" + name + ":" + getObjectState(element).id,
+        this._currentEffect.dependencies.set("attribute:" + name + ":" + this._getObjectState(element).id,
             { type: "attribute", element: element, name: name });
     }
 
@@ -139,7 +260,7 @@ export class Reactivity {
      * @param {string} name - Variable name
      */
     notifyGlobalSymbol(name) {
-        var subs = globalSubscriptions.get(name);
+        var subs = this._globalSubscriptions.get(name);
         if (subs) {
             for (var effect of subs) {
                 this._scheduleEffect(effect);
@@ -154,7 +275,7 @@ export class Reactivity {
      */
     notifyElementSymbol(name, element) {
         if (!element) return;
-        var state = getObjectState(element);
+        var state = this._getObjectState(element);
         if (state.subscriptions) {
             var subs = state.subscriptions.get(name);
             if (subs) {
@@ -172,7 +293,7 @@ export class Reactivity {
      */
     notifyProperty(obj) {
         if (obj == null || typeof obj !== "object") return;
-        var state = objectState.get(obj);
+        var state = this._objectState.get(obj);
         if (state && state.propertyHandler) {
             state.propertyHandler.queueAll();
         }
@@ -184,7 +305,7 @@ export class Reactivity {
      * @param {Effect} effect
      */
     _scheduleEffect(effect) {
-        if (effect.isStopped) return;
+        if (effect._isStopped) return;
         this._pendingEffects.add(effect);
         if (!this._isRunScheduled) {
             this._isRunScheduled = true;
@@ -202,75 +323,22 @@ export class Reactivity {
         // Copy because effects may re-schedule themselves during this run
         var effects = Array.from(this._pendingEffects);
         this._pendingEffects.clear();
-        for (var effect of effects) {
-            if (effect.isStopped) continue;
+        for (var i = 0; i < effects.length; i++) {
+            var effect = effects[i];
+            if (effect._isStopped) continue;
             // Auto-stop if owning element is disconnected
             if (effect.element && !effect.element.isConnected) {
-                this.stopEffect(effect);
+                effect.stop();
                 continue;
             }
-            // Circular dependency guard: count accumulates across microtask
-            // flushes so cross-microtask ping-pong (effect writes to own dep)
-            // is caught. Reset happens below when the cascade settles.
-            effect._consecutiveTriggers++;
-            if (effect._consecutiveTriggers > 100) {
-                console.error(
-                    "Reactivity loop detected: an effect triggered 100 consecutive " +
-                    "times without settling. This usually means an effect is modifying " +
-                    "a variable it also depends on.",
-                    effect.element || effect
-                );
-                continue;
-            }
-            this._runEffect(effect);
+            effect.run();
         }
         // Reset trigger counts when the cascade settles (no more pending
         // effects). Legitimate re-triggers on future user events start
         // fresh, while infinite cross-microtask loops accumulate to 100.
         if (this._pendingEffects.size === 0) {
             for (var i = 0; i < effects.length; i++) {
-                if (!effects[i].isStopped) effects[i]._consecutiveTriggers = 0;
-            }
-        }
-    }
-
-    /** @param {Effect} effect */
-    _runEffect(effect) {
-        // Unsubscribe from current deps
-        this._unsubscribeEffect(effect);
-
-        // Re-run expression with tracking
-        var oldDeps = effect.dependencies;
-        effect.dependencies = new Map();
-
-        var prev = this._currentEffect;
-        this._currentEffect = effect;
-        var newValue;
-        try {
-            newValue = effect.expression();
-        } catch (e) {
-            console.error("Error in reactive expression:", e);
-            // Restore old dependencies on error
-            effect.dependencies = oldDeps;
-            this._currentEffect = prev;
-            this._subscribeEffect(effect);
-            return;
-        }
-        this._currentEffect = prev;
-
-        // Subscribe to new deps
-        this._subscribeEffect(effect);
-
-        // Clean up observers/listeners for deps that were dropped
-        this._cleanupOrphanedDeps(oldDeps);
-
-        // Compare and fire (Object.is semantics: NaN === NaN, +0 !== -0)
-        if (!_sameValue(newValue, effect._lastExpressionValue)) {
-            effect._lastExpressionValue = newValue;
-            try {
-                effect.handler(newValue);
-            } catch (e) {
-                console.error("Error in reactive handler:", e);
+                if (!effects[i]._isStopped) effects[i].resetTriggerCount();
             }
         }
     }
@@ -286,13 +354,13 @@ export class Reactivity {
 
         for (var [depKey, dep] of effect.dependencies) {
             if (dep.type === "symbol" && dep.scope === "global") {
-                if (!globalSubscriptions.has(dep.name)) {
-                    globalSubscriptions.set(dep.name, new Set());
+                if (!reactivity._globalSubscriptions.has(dep.name)) {
+                    reactivity._globalSubscriptions.set(dep.name, new Set());
                 }
-                globalSubscriptions.get(dep.name).add(effect);
+                reactivity._globalSubscriptions.get(dep.name).add(effect);
 
             } else if (dep.type === "symbol" && dep.scope === "element") {
-                var state = getObjectState(dep.element);
+                var state = reactivity._getObjectState(dep.element);
                 if (!state.subscriptions) {
                     state.subscriptions = new Map();
                 }
@@ -319,7 +387,7 @@ export class Reactivity {
      */
     _subscribeAttributeDependency(element, attrName, effect) {
         var reactivity = this;
-        var state = getObjectState(element);
+        var state = reactivity._getObjectState(element);
 
         if (!state.attributeObservers) {
             state.attributeObservers = {};
@@ -354,7 +422,7 @@ export class Reactivity {
      */
     _subscribePropertyDependency(obj, propName, effect) {
         var reactivity = this;
-        var state = getObjectState(obj);
+        var state = reactivity._getObjectState(obj);
 
         if (!state.propertyHandler) {
             var trackedEffects = new Set();
@@ -387,17 +455,18 @@ export class Reactivity {
 
     /** @param {Effect} effect */
     _unsubscribeEffect(effect) {
+        var reactivity = this;
         for (var [depKey, dep] of effect.dependencies) {
             if (dep.type === "symbol" && dep.scope === "global") {
-                var subs = globalSubscriptions.get(dep.name);
+                var subs = reactivity._globalSubscriptions.get(dep.name);
                 if (subs) {
                     subs.delete(effect);
                     if (subs.size === 0) {
-                        globalSubscriptions.delete(dep.name);
+                        reactivity._globalSubscriptions.delete(dep.name);
                     }
                 }
             } else if (dep.type === "symbol" && dep.scope === "element") {
-                var state = getObjectState(dep.element);
+                var state = reactivity._getObjectState(dep.element);
                 if (state.subscriptions) {
                     var subs = state.subscriptions.get(dep.name);
                     if (subs) {
@@ -408,12 +477,12 @@ export class Reactivity {
                     }
                 }
             } else if (dep.type === "attribute" && dep.element) {
-                var state = getObjectState(dep.element);
+                var state = reactivity._getObjectState(dep.element);
                 if (state.attributeObservers && state.attributeObservers[dep.name]) {
                     state.attributeObservers[dep.name].effects.delete(effect);
                 }
             } else if (dep.type === "property" && dep.object) {
-                var state = getObjectState(dep.object);
+                var state = reactivity._getObjectState(dep.object);
                 if (state.propertyHandler) {
                     state.propertyHandler.effects.delete(effect);
                 }
@@ -426,9 +495,10 @@ export class Reactivity {
      * @param {Map<string, Dependency>} deps
      */
     _cleanupOrphanedDeps(deps) {
+        var reactivity = this;
         for (var [depKey, dep] of deps) {
             if (dep.type === "attribute" && dep.element) {
-                var state = getObjectState(dep.element);
+                var state = reactivity._getObjectState(dep.element);
                 if (state.attributeObservers && state.attributeObservers[dep.name]) {
                     var obs = state.attributeObservers[dep.name];
                     if (obs.effects.size === 0) {
@@ -437,7 +507,7 @@ export class Reactivity {
                     }
                 }
             } else if (dep.type === "property" && dep.object) {
-                var state = getObjectState(dep.object);
+                var state = reactivity._getObjectState(dep.object);
                 if (state.propertyHandler && state.propertyHandler.effects.size === 0) {
                     state.propertyHandler.remove();
                     state.propertyHandler = null;
@@ -455,74 +525,38 @@ export class Reactivity {
      * @returns {() => void} Stop function
      */
     createEffect(expression, handler, options) {
-        var effect = {
-            expression: expression,
-            handler: handler,
-            dependencies: new Map(),
-            _lastExpressionValue: undefined,
-            element: (options && options.element) || null,
-            isStopped: false,
-            _consecutiveTriggers: 0,
-        };
+        var effect = new Effect(
+            expression,
+            handler,
+            (options && options.element) || null,
+            this
+        );
 
-        // Initial tracked evaluation
-        var prev = this._currentEffect;
-        this._currentEffect = effect;
-        try {
-            effect._lastExpressionValue = expression();
-        } catch (e) {
-            console.error("Error in reactive expression:", e);
-        }
-        this._currentEffect = prev;
-
-        // Subscribe to tracked dependencies
-        this._subscribeEffect(effect);
+        effect.initialize();
 
         // Track effect by element for cleanup
         if (effect.element) {
-            var set = this._elementEffects.get(effect.element);
-            if (!set) {
-                set = new Set();
-                this._elementEffects.set(effect.element, set);
-            }
-            set.add(effect);
+            var data = effect.element._hyperscript;
+            if (!data) data = effect.element._hyperscript = {};
+            if (!data.effects) data.effects = new Set();
+            data.effects.add(effect);
         }
 
-        // Initial sync: if value already exists, call handler immediately.
-        // Both undefined and null are treated as "no value yet" to support
-        // left-side-wins initialization in bind.
-        if (effect._lastExpressionValue != null) {
-            try {
-                handler(effect._lastExpressionValue);
-            } catch (e) {
-                console.error("Error in reactive handler:", e);
-            }
-        }
-
-        var reactivity = this;
-        return function stop() {
-            reactivity.stopEffect(effect);
+        return function () {
+            effect.stop();
         };
-    }
-
-    /** @param {Effect} effect */
-    stopEffect(effect) {
-        if (effect.isStopped) return;
-        effect.isStopped = true;
-        this._unsubscribeEffect(effect);
-        this._cleanupOrphanedDeps(effect.dependencies);
-        this._pendingEffects.delete(effect);
     }
 
     /** Stop all reactive effects owned by an element. */
     stopElementEffects(element) {
-        var set = this._elementEffects.get(element);
-        if (!set) return;
-        for (var effect of set) {
-            this.stopEffect(effect);
+        var data = element._hyperscript;
+        if (!data || !data.effects) return;
+        for (var effect of data.effects) {
+            effect.stop();
         }
-        this._elementEffects.delete(element);
+        delete data.effects;
     }
 }
 
-export const reactivity = new Reactivity();
+// Reactivity instance is created by Runtime, not here.
+// See runtime.js constructor.

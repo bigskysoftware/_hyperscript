@@ -11,7 +11,6 @@
  */
 
 import { Feature } from '../base.js';
-import { reactivity } from '../../core/runtime/reactivity.js';
 
 export class BindFeature extends Feature {
     static keyword = "bind";
@@ -97,14 +96,14 @@ function _bind(left, right, target, feature, runtime) {
     }
 
     // Effect 1: left -> right
-    reactivity.createEffect(
+    runtime.reactivity.createEffect(
         function () { return leftSide.read(); },
         function (newValue) { rightSide.write(newValue); },
         { element: target }
     );
 
     // Effect 2: right -> left
-    reactivity.createEffect(
+    runtime.reactivity.createEffect(
         function () { return rightSide.read(); },
         function (newValue) { leftSide.write(newValue); },
         { element: target }
