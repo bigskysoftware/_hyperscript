@@ -280,16 +280,21 @@ export class Runtime {
             } else {
                 if (type === "global") {
                     if (reactivity.isTracking) reactivity.trackGlobalSymbol(str);
-                    return this.#globalScope[str];
+                    var val = this.#globalScope[str];
+                    this.#trackMutation(val);
+                    return val;
                 } else if (type === "element") {
                     if (reactivity.isTracking) reactivity.trackElementSymbol(str, context.meta.owner);
                     var elementScope = this.#getElementScope(context);
-                    return elementScope[str];
+                    var val = elementScope[str];
+                    this.#trackMutation(val);
+                    return val;
                 } else if (type === "inherited") {
                     var inherited = this.#resolveInherited(str, context, targetElement);
                     if (reactivity.isTracking && inherited.element) {
                         reactivity.trackElementSymbol(str, inherited.element);
                     }
+                    this.#trackMutation(inherited.value);
                     return inherited.value;
                 } else if (type === "local") {
                     return context.locals[str];
@@ -320,12 +325,15 @@ export class Runtime {
                         fromContext = elementScope[str];
                         if (typeof fromContext !== "undefined") {
                             if (reactivity.isTracking) reactivity.trackElementSymbol(str, context.meta.owner);
+                            this.#trackMutation(fromContext);
                             return fromContext;
                         } else {
                             // Global scope (or not found - track as global
                             // so we catch the first write)
                             if (reactivity.isTracking) reactivity.trackGlobalSymbol(str);
-                            return this.#globalScope[str];
+                            var val = this.#globalScope[str];
+                            this.#trackMutation(val);
+                            return val;
                         }
                     }
                 }
@@ -451,6 +459,35 @@ export class Runtime {
         setProperty(obj, property, value) {
             obj[property] = value;
             reactivity.notifyProperty(obj);
+        }
+
+        /**
+         * Notify the reactivity system that an object was mutated in-place.
+         * Call this after operations like push, splice, append, etc.
+         * @param {Object} obj - The mutated object
+         */
+        notifyMutation(obj) {
+            reactivity.notifyProperty(obj);
+        }
+
+        /**
+         * Check if a method call is known to mutate its receiver, and notify if so.
+         * @param {Object} target - The object the method was called on
+         * @param {string} methodName - The method name
+         */
+        maybeNotify(target, methodName) {
+            if (target == null || typeof target !== "object") return;
+            var typeName = target.constructor && target.constructor.name;
+            var methods = typeName && config.mutatingMethods[typeName];
+            if (methods && methods.includes(methodName)) {
+                this.notifyMutation(target);
+            }
+        }
+
+        #trackMutation(val) {
+            if (reactivity.isTracking && val != null && typeof val === "object") {
+                reactivity.trackProperty(val, "__mutation__");
+            }
         }
 
         resolveAttribute(root, property) {

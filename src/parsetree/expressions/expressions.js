@@ -616,12 +616,15 @@ export class FunctionCall extends Expression {
     resolve(context, { target, argVals }) {
         if (this._isMethodCall) {
             context.meta.runtime.nullCheck(target, this._parseRoot.root);
-            var func = target[this._parseRoot.prop.value];
+            var methodName = this._parseRoot.prop.value;
+            var func = target[methodName];
             context.meta.runtime.nullCheck(func, this._parseRoot);
             if (func.hyperfunc) {
                 argVals.push(context);
             }
-            return func.apply(target, argVals);
+            var result = func.apply(target, argVals);
+            context.meta.runtime.maybeNotify(target, methodName);
+            return result;
         } else {
             context.meta.runtime.nullCheck(target, this._parseRoot);
             if (target.hyperfunc) {

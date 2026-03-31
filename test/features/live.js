@@ -310,4 +310,58 @@ test.describe('the live feature', () => {
 		await evaluate(() => { delete window.$count })
 	})
 
+	// ================================================================
+	// Mutation notification
+	// ================================================================
+
+	test('append triggers live block', async ({html, find, run, evaluate}) => {
+		await run("set $items to ['a', 'b']")
+		await html(`<div _="live put $items.join(', ') into me"></div>`)
+		await expect.poll(() => find('div').textContent()).toBe('a, b')
+
+		await run("append 'c' to $items")
+		await expect.poll(() => find('div').textContent()).toBe('a, b, c')
+		await evaluate(() => { delete window.$items })
+	})
+
+	test('push via pseudo-command triggers live block', async ({html, find, run, evaluate}) => {
+		await run("set $items to ['a', 'b']")
+		await html(`<div _="live put $items.join(', ') into me"></div>`)
+		await expect.poll(() => find('div').textContent()).toBe('a, b')
+
+		await run("$items.push('c')")
+		await expect.poll(() => find('div').textContent()).toBe('a, b, c')
+		await evaluate(() => { delete window.$items })
+	})
+
+	test('push via call triggers live block', async ({html, find, run, evaluate}) => {
+		await run("set $items to ['a', 'b']")
+		await html(`<div _="live put $items.join(', ') into me"></div>`)
+		await expect.poll(() => find('div').textContent()).toBe('a, b')
+
+		await run("call $items.push('c')")
+		await expect.poll(() => find('div').textContent()).toBe('a, b, c')
+		await evaluate(() => { delete window.$items })
+	})
+
+	test('array + still works with live', async ({html, find, run, evaluate}) => {
+		await run("set $items to ['a', 'b']")
+		await html(`<div _="live put $items.join(', ') into me"></div>`)
+		await expect.poll(() => find('div').textContent()).toBe('a, b')
+
+		await run("set $items to $items + ['c']")
+		await expect.poll(() => find('div').textContent()).toBe('a, b, c')
+		await evaluate(() => { delete window.$items })
+	})
+
+	test('set property still works with live', async ({html, find, run, evaluate}) => {
+		await run("set $obj to {name: 'Alice'}")
+		await html(`<div _="live put $obj.name into me"></div>`)
+		await expect.poll(() => find('div').textContent()).toBe('Alice')
+
+		await run("set $obj.name to 'Bob'")
+		await expect.poll(() => find('div').textContent()).toBe('Bob')
+		await evaluate(() => { delete window.$obj })
+	})
+
 })

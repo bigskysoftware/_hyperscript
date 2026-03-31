@@ -367,6 +367,7 @@ export class AppendCommand extends Command {
         var { target, value, ...lhs } = args;
         if (Array.isArray(target)) {
             target.push(value);
+            context.meta.runtime.notifyMutation(target);
             return context.meta.runtime.findNext(this, context);
         } else if (target instanceof Element) {
             if (value instanceof Element) {
