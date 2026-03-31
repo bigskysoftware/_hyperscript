@@ -126,6 +126,8 @@ const _hyperscript = Object.assign(
         addFeature: kernel.addFeature.bind(kernel),
         addCommand: kernel.addCommand.bind(kernel),
         addLeafExpression: kernel.addLeafExpression.bind(kernel),
+        addBeforeProcessHook: (fn) => runtime.addBeforeProcessHook(fn),
+        addAfterProcessHook: (fn) => runtime.addAfterProcessHook(fn),
 
         evaluate: evaluate,
         parse: (src) => kernel.parse(tokenizer, src),
@@ -172,14 +174,28 @@ if (typeof document !== 'undefined') {
 
         // Wait for DOM ready, then initialize
         ready(() => {
-            runtime.processNode(document.documentElement);
+            _hyperscript.process(document.documentElement);
             document.dispatchEvent(new Event("hyperscript:ready"));
+
+            // htmx -> hyperscript: process new htmx content
+            var _processingFromHtmx = false;
             globalScope.document.addEventListener("htmx:load", (/** @type {CustomEvent} */ evt) => {
-                runtime.processNode(evt.detail.elt);
+                _processingFromHtmx = true;
+                _hyperscript.process(evt.detail.elt);
+                _processingFromHtmx = false;
             });
             globalScope.document.addEventListener("htmx:after:process", (/** @type {CustomEvent} */ evt) => {
-                runtime.processNode(evt.target);
+                _processingFromHtmx = true;
+                _hyperscript.process(evt.target);
+                _processingFromHtmx = false;
             });
+
+            // hyperscript -> htmx: notify htmx about hyperscript-inserted content
+            if (typeof htmx !== 'undefined') {
+                _hyperscript.addAfterProcessHook(function(elt) {
+                    if (!_processingFromHtmx) htmx.process(elt);
+                });
+            }
         });
     })();
 }

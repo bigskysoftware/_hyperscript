@@ -239,7 +239,7 @@ export class Reactivity {
      * @param {string} name - Property name
      */
     trackProperty(obj, name) {
-        if (obj == null || typeof obj !== "object") return;
+        if (obj == null || typeof obj !== "object" || obj._hsSkipTracking) return;
         this._currentEffect.dependencies.set("property:" + this._getObjectState(obj).id,
             { type: "property", object: obj, name: name });
     }
@@ -292,7 +292,7 @@ export class Reactivity {
      * @param {Object} obj - DOM element or plain JS object
      */
     notifyProperty(obj) {
-        if (obj == null || typeof obj !== "object") return;
+        if (obj == null || typeof obj !== "object" || obj._hsSkipTracking) return;
         var state = this._objectState.get(obj);
         if (state && state.propertyHandler) {
             state.propertyHandler.queueAll();

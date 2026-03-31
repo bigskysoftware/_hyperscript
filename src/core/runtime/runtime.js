@@ -295,8 +295,11 @@ export class Runtime {
                     return val;
                 } else if (type === "inherited") {
                     var inherited = this.#resolveInherited(str, context, targetElement);
-                    if (this.reactivity.isTracking && inherited.element) {
-                        this.reactivity.trackElementSymbol(str, inherited.element);
+                    if (this.reactivity.isTracking) {
+                        var trackElement = inherited.element || targetElement || context.meta?.owner;
+                        if (trackElement) {
+                            this.reactivity.trackElementSymbol(str, trackElement);
+                        }
                     }
                     this.#trackMutation(inherited.value);
                     return inherited.value;
@@ -868,7 +871,15 @@ export class Runtime {
             }
         }
 
+        #beforeProcessHooks = [];
+        #afterProcessHooks = [];
+
+        addBeforeProcessHook(fn) { this.#beforeProcessHooks.push(fn); }
+        addAfterProcessHook(fn) { this.#afterProcessHooks.push(fn); }
+
         processNode(elt) {
+            for (var fn of this.#beforeProcessHooks) fn(elt);
+
             var selector = this.#getScriptSelector();
             if (this.matchesSelector(elt, selector)) {
                 this.#initElement(elt, elt);
@@ -881,6 +892,8 @@ export class Runtime {
                     this.#initElement(elt, elt instanceof HTMLScriptElement && elt.type === "text/hyperscript" ? document.body : elt);
                 });
             }
+
+            for (var fn of this.#afterProcessHooks) fn(elt);
         }
 
         // =================================================================

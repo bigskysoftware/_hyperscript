@@ -4,7 +4,7 @@ test.describe('the component extension', () => {
 
 	test('registers a custom element from a template', async ({html, find}) => {
 		await html(`
-			<template hypercomp="test-hello">
+			<template hyper-component="test-hello">
 				<span>Hello World</span>
 			</template>
 			<test-hello></test-hello>
@@ -15,7 +15,7 @@ test.describe('the component extension', () => {
 	test('renders template expressions', async ({html, find, run, evaluate}) => {
 		await run("set $name to 'hyperscript'")
 		await html(`
-			<template hypercomp="test-greet">
+			<template hyper-component="test-greet">
 				<span>Hello ${"\x24"}{$name}!</span>
 			</template>
 			<test-greet></test-greet>
@@ -26,7 +26,7 @@ test.describe('the component extension', () => {
 
 	test('applies _ hyperscript to component instance', async ({html, find}) => {
 		await html(`
-			<template hypercomp="test-init" _="init set ^msg to 'initialized'">
+			<template hyper-component="test-init" _="init set ^msg to 'initialized'">
 				<span>${"\x24"}{^msg}</span>
 			</template>
 			<test-init></test-init>
@@ -36,7 +36,7 @@ test.describe('the component extension', () => {
 
 	test('processes _ on inner elements', async ({html, find}) => {
 		await html(`
-			<template hypercomp="test-inner" _="init set ^count to 0">
+			<template hyper-component="test-inner" _="init set ^count to 0">
 				<button _="on click increment ^count then put ^count into the next <span/>">+</button>
 				<span>0</span>
 			</template>
@@ -49,7 +49,7 @@ test.describe('the component extension', () => {
 
 	test('reactively updates template expressions', async ({html, find}) => {
 		await html(`
-			<template hypercomp="test-reactive" _="init set ^count to 0">
+			<template hyper-component="test-reactive" _="init set ^count to 0">
 				<button _="on click increment ^count">+</button>
 				<span>Count: ${"\x24"}{^count}</span>
 			</template>
@@ -62,7 +62,7 @@ test.describe('the component extension', () => {
 
 	test('supports multiple independent instances', async ({html, find}) => {
 		await html(`
-			<template hypercomp="test-multi" _="init set ^count to 0">
+			<template hyper-component="test-multi" _="init set ^count to 0">
 				<button _="on click increment ^count then put ^count into the next <span/>">+</button>
 				<span>0</span>
 			</template>
@@ -76,7 +76,7 @@ test.describe('the component extension', () => {
 
 	test('reads attributes via @', async ({html, find}) => {
 		await html(`
-			<template hypercomp="test-attrs" _="init set ^val to @data-start as Int">
+			<template hyper-component="test-attrs" _="init set ^val to @data-start as Int">
 				<span>${"\x24"}{^val}</span>
 			</template>
 			<test-attrs data-start="42"></test-attrs>
@@ -86,7 +86,7 @@ test.describe('the component extension', () => {
 
 	test('supports #for loops in template', async ({html, find}) => {
 		await html(`
-			<template hypercomp="test-loop" _="init set ^items to ['a', 'b', 'c']">
+			<template hyper-component="test-loop" _="init set ^items to ['a', 'b', 'c']">
 				<ul>
 				#for item in ^items
 					<li>${"\x24"}{item}</li>
@@ -101,7 +101,7 @@ test.describe('the component extension', () => {
 
 	test('supports #if conditionals in template', async ({html, find}) => {
 		await html(`
-			<template hypercomp="test-cond" _="init set ^show to true">
+			<template hyper-component="test-cond" _="init set ^show to true">
 				#if ^show
 					<span>visible</span>
 				#end
@@ -113,7 +113,7 @@ test.describe('the component extension', () => {
 
 	test('substitutes slot content into template', async ({html, find}) => {
 		await html(`
-			<template hypercomp="test-card">
+			<template hyper-component="test-card">
 				<div class="card"><slot/></div>
 			</template>
 			<test-card><p>Hello from slot</p></test-card>
@@ -123,7 +123,7 @@ test.describe('the component extension', () => {
 
 	test('blocks processing of inner hyperscript until render', async ({html, find}) => {
 		await html(`
-			<template hypercomp="test-block" _="init set ^msg to 'ready'">
+			<template hyper-component="test-block" _="init set ^msg to 'ready'">
 				<span _="on click put ^msg into me">click me</span>
 			</template>
 			<test-block></test-block>
@@ -135,7 +135,7 @@ test.describe('the component extension', () => {
 
 	test('supports named slots', async ({html, find}) => {
 		await html(`
-			<template hypercomp="test-named-slot">
+			<template hyper-component="test-named-slot">
 				<header><slot name="title"></slot></header>
 				<main><slot/></main>
 				<footer><slot name="footer"></slot></footer>
@@ -154,7 +154,7 @@ test.describe('the component extension', () => {
 	test('does not process slotted _ attributes prematurely', async ({html, find}) => {
 		await html(`
 			<div _="init set ^x to 42">
-				<template hypercomp="test-slot-hs">
+				<template hyper-component="test-slot-hs">
 					<div class="wrap"><slot/></div>
 				</template>
 				<test-slot-hs>
@@ -170,7 +170,7 @@ test.describe('the component extension', () => {
 	test('slotted content resolves ^var from outer scope, not component scope', async ({html, find}) => {
 		await html(`
 			<div _="init set ^outer to 'from-outside'">
-				<template hypercomp="test-scope-slot" _="init set ^outer to 'from-component'">
+				<template hyper-component="test-scope-slot" _="init set ^outer to 'from-component'">
 					<div class="inner"><slot/></div>
 				</template>
 				<test-scope-slot>
@@ -184,7 +184,7 @@ test.describe('the component extension', () => {
 	test('component isolation prevents ^var leaking inward', async ({html, find}) => {
 		await html(`
 			<div _="init set ^leaked to 'should-not-see'">
-				<template hypercomp="test-isolated" _="init set ^internal to 'component-only'">
+				<template hyper-component="test-isolated" _="init set ^internal to 'component-only'">
 					<span _="init if ^leaked is not undefined put 'leaked!' into me else put ^internal into me">waiting</span>
 				</template>
 				<test-isolated></test-isolated>
@@ -195,7 +195,7 @@ test.describe('the component extension', () => {
 
 	test('bind keeps ^var in sync with attribute changes', async ({html, find, evaluate}) => {
 		await html(`
-			<template hypercomp="test-bind-attr" _="bind ^count to @data-count">
+			<template hyper-component="test-bind-attr" _="bind ^count to @data-count">
 				<span>${"\x24"}{^count}</span>
 			</template>
 			<test-bind-attr data-count="5"></test-bind-attr>
@@ -203,6 +203,57 @@ test.describe('the component extension', () => {
 		await expect.poll(() => find('test-bind-attr span').textContent()).toBe('5')
 		await evaluate(() => document.querySelector('test-bind-attr').setAttribute('data-count', '99'))
 		await expect.poll(() => find('test-bind-attr span').textContent()).toBe('99')
+	})
+
+	test('args evaluates attribute as hyperscript in parent scope', async ({html, find, run, evaluate}) => {
+		await run("set $stuff to ['a', 'b', 'c']")
+		await html(`
+			<template hyper-component="test-args" _="init set ^list to args.items">
+				<ul>
+				#for item in ^list
+					<li>${"\x24"}{item}</li>
+				#end
+				</ul>
+			</template>
+			<test-args items="$stuff"></test-args>
+		`)
+		await expect.poll(() => find('test-args li').count()).toBe(3)
+		await expect.poll(() => find('test-args li').first().textContent()).toBe('a')
+		await evaluate(() => { delete window.$stuff })
+	})
+
+	test('args works with bind for reactive pass-through', async ({html, find, run}) => {
+		await run("set $count to 10")
+		await html(`
+			<template hyper-component="test-args-bind" _="bind ^val to args.count">
+				<span>${"\x24"}{^val}</span>
+			</template>
+			<test-args-bind count="$count"></test-args-bind>
+			<button _="on click increment $count">+</button>
+		`)
+		await expect.poll(() => find('test-args-bind span').textContent()).toBe('10')
+		await find('button').click()
+		await expect.poll(() => find('test-args-bind span').textContent()).toBe('11')
+	})
+
+	test('args bind is bidirectional — inner changes flow outward', async ({html, find, run, evaluate}) => {
+		await run("set $count to 10")
+		await html(`
+			<template hyper-component="test-args-bidir" _="bind ^count to args.count">
+				<span>${"\x24"}{^count}</span>
+				<button _="on click increment ^count">+</button>
+			</template>
+			<test-args-bidir count="$count"></test-args-bidir>
+			<p _="live put $count into me"></p>
+		`)
+		await expect.poll(() => find('test-args-bidir span').textContent()).toBe('10')
+		await expect.poll(() => find('p').textContent()).toBe('10')
+		await find('test-args-bidir button').click()
+		// Inner ^count should update
+		await expect.poll(() => find('test-args-bidir span').textContent()).toBe('11')
+		// Outer $count should also update via args write-back
+		await expect.poll(() => find('p').textContent(), { timeout: 2000 }).toBe('11')
+		await evaluate(() => { delete window.$count })
 	})
 
 })

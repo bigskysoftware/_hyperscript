@@ -1,11 +1,11 @@
 /**
  * Hyperscript Component Extension
  *
- * Registers custom elements from <template hypercomp="tag-name"> definitions.
+ * Registers custom elements from <template hyper-component="tag-name"> definitions.
  * Template bodies are rendered reactively using the existing template engine.
  *
  * Usage:
- *   <template hypercomp="my-counter" _="init set ^count to @initial-count as Integer">
+ *   <template hyper-component="my-counter" _="init set ^count to @initial-count as Integer">
  *     <button _="on click increment ^count">Increment</button>
  *     Count: ${^count}
  *   </template>
@@ -70,8 +70,62 @@ export default function componentPlugin(_hyperscript) {
         return source;
     }
 
+    function parseArg(componentEl, prop) {
+        if (typeof prop !== 'string') return null;
+        var cache = componentEl._argsCache || (componentEl._argsCache = {});
+        if (!cache[prop]) {
+            var attrValue = componentEl.getAttribute(prop);
+            if (attrValue == null) return null;
+            try {
+                cache[prop] = createParser(tokenizer.tokenize(attrValue)).requireElement("expression");
+            } catch (e) {
+                console.error("hyper-component: failed to parse args." + prop + ":", e.message);
+                return null;
+            }
+        }
+        return cache[prop];
+    }
+
+    function parentContext(componentEl) {
+        var parent = componentEl.parentElement;
+        return parent ? runtime.makeContext(parent, null, parent, null) : null;
+    }
+
+    /** Create an `args` proxy that lazily evaluates attribute strings as hyperscript in the parent scope */
+    function createArgs(componentEl) {
+        return new Proxy({ _hsSkipTracking: true }, {
+            get: function(_, prop) {
+                if (prop === '_hsSkipTracking') return true;
+                if (typeof prop !== 'string' || prop.startsWith('_')) return undefined;
+                var expr = parseArg(componentEl, prop);
+                if (!expr) return undefined;
+                var ctx = parentContext(componentEl);
+                return ctx ? expr.evaluate(ctx) : undefined;
+            },
+            set: function(_, prop, value) {
+                var expr = parseArg(componentEl, prop);
+                if (!expr || !expr.set) return false;
+                var ctx = parentContext(componentEl);
+                if (!ctx) return false;
+                var lhs = {};
+                if (expr.lhs) {
+                    for (var key in expr.lhs) {
+                        var e = expr.lhs[key];
+                        lhs[key] = e && e.evaluate ? e.evaluate(ctx) : e;
+                    }
+                }
+                expr.set(ctx, lhs, value);
+                return true;
+            }
+        });
+    }
+
     function registerComponent(templateEl, componentScript) {
-        const tagName = templateEl.getAttribute('hypercomp');
+        const tagName = templateEl.getAttribute('hyper-component');
+        if (!tagName.includes('-')) {
+            console.error("hyper-component name must contain a dash: '" + tagName + "'");
+            return;
+        }
         const templateSource = templateEl.innerHTML;
 
         // Parse template once to validate — actual rendering happens per instance
@@ -92,7 +146,11 @@ export default function componentPlugin(_hyperscript) {
                 this._scopeSelector = scopeSelector(this);
                 this.innerHTML = '';
 
-                // 1. Apply component-level hyperscript so init runs and sets up state
+                // 1. Inject `args` proxy into element scope, then apply component-level hyperscript
+                var internalData = runtime.getInternalData(this);
+                if (!internalData.elementScope) internalData.elementScope = {};
+                internalData.elementScope.args = createArgs(this);
+
                 if (componentScript) {
                     this.setAttribute('_', componentScript);
                     _hyperscript.process(this);
@@ -188,28 +246,23 @@ export default function componentPlugin(_hyperscript) {
         customElements.define(tagName, ComponentClass);
     }
 
-    // Hook into processNode to scan for component definitions
-    const originalProcess = _hyperscript.process.bind(_hyperscript);
-    const registered = new Set();
+    // Register a before-process hook to scan for component definitions
+    var registered = new Set();
 
-    _hyperscript.process = function(elt) {
-        // Scan for unregistered component templates before processing
-        if (elt && elt.querySelectorAll) {
-            elt.querySelectorAll('template[hypercomp]').forEach(tmpl => {
-                const tagName = tmpl.getAttribute('hypercomp');
-                if (!registered.has(tagName)) {
-                    registered.add(tagName);
-                    // Grab and strip _ before normal processNode sees it
-                    const script = tmpl.getAttribute('_') || '';
-                    tmpl.removeAttribute('_');
-                    registerComponent(tmpl, script);
-                }
-            });
-        }
-        return originalProcess(elt);
-    };
-    // Also alias the deprecated name
-    _hyperscript.processNode = _hyperscript.process;
+    _hyperscript.addBeforeProcessHook(function(elt) {
+        if (!elt || !elt.querySelectorAll) return;
+        elt.querySelectorAll('template[hyper-component]').forEach(function(tmpl) {
+            // Always strip _ to prevent normal processNode from running it on the template
+            var script = tmpl.getAttribute('_') || '';
+            tmpl.removeAttribute('_');
+
+            var tagName = tmpl.getAttribute('hyper-component');
+            if (!registered.has(tagName) && !customElements.get(tagName)) {
+                registered.add(tagName);
+                registerComponent(tmpl, script);
+            }
+        });
+    });
 }
 
 // Auto-register when loaded via script tag
