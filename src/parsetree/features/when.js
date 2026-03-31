@@ -7,7 +7,6 @@
  */
 
 import { Feature } from '../base.js';
-import { reactivity } from '../../core/runtime/reactivity.js';
 
 export class WhenFeature extends Feature {
     static keyword = "when";
@@ -71,7 +70,7 @@ export class WhenFeature extends Feature {
             // same command list, mirroring how `on` handles `or` for events.
             for (var i = 0; i < feature.exprs.length; i++) {
                 (function (expr) {
-                    reactivity.createEffect(
+                    runtime.reactivity.createEffect(
                         function () {
                             return expr.evaluate(
                                 runtime.makeContext(target, feature, target, null)

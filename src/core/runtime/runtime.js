@@ -3,7 +3,6 @@ import { config } from '../config.js';
 import { conversions } from './conversions.js';
 import { CookieJar } from './cookies.js';
 import { ElementCollection, SHOULD_AUTO_ITERATE_SYM } from './collections.js';
-import { reactivity } from './reactivity.js';
 import { formatErrors } from '../tokenizer.js';
 
 // cookie jar proxy for runtime
@@ -71,17 +70,22 @@ export class Runtime {
         #kernel;
         #tokenizer;
         #globalScope;
+        #reactivity;
         #scriptAttrs = null;
 
-        constructor(globalScope, kernel, tokenizer) {
+        constructor(globalScope, kernel, tokenizer, reactivity) {
             this.#globalScope = globalScope;
             this.#kernel = kernel;
             this.#tokenizer = tokenizer;
-
+            this.#reactivity = reactivity;
         }
 
         get globalScope() {
             return this.#globalScope;
+        }
+
+        get reactivity() {
+            return this.#reactivity;
         }
 
         // =================================================================
@@ -279,20 +283,20 @@ export class Runtime {
                 return context.you;
             } else {
                 if (type === "global") {
-                    if (reactivity.isTracking) reactivity.trackGlobalSymbol(str);
+                    if (this.reactivity.isTracking) this.reactivity.trackGlobalSymbol(str);
                     var val = this.#globalScope[str];
                     this.#trackMutation(val);
                     return val;
                 } else if (type === "element") {
-                    if (reactivity.isTracking) reactivity.trackElementSymbol(str, context.meta.owner);
+                    if (this.reactivity.isTracking) this.reactivity.trackElementSymbol(str, context.meta.owner);
                     var elementScope = this.#getElementScope(context);
                     var val = elementScope[str];
                     this.#trackMutation(val);
                     return val;
                 } else if (type === "inherited") {
                     var inherited = this.#resolveInherited(str, context, targetElement);
-                    if (reactivity.isTracking && inherited.element) {
-                        reactivity.trackElementSymbol(str, inherited.element);
+                    if (this.reactivity.isTracking && inherited.element) {
+                        this.reactivity.trackElementSymbol(str, inherited.element);
                     }
                     this.#trackMutation(inherited.value);
                     return inherited.value;
@@ -324,13 +328,13 @@ export class Runtime {
                         var elementScope = this.#getElementScope(context);
                         fromContext = elementScope[str];
                         if (typeof fromContext !== "undefined") {
-                            if (reactivity.isTracking) reactivity.trackElementSymbol(str, context.meta.owner);
+                            if (this.reactivity.isTracking) this.reactivity.trackElementSymbol(str, context.meta.owner);
                             this.#trackMutation(fromContext);
                             return fromContext;
                         } else {
                             // Global scope (or not found - track as global
                             // so we catch the first write)
-                            if (reactivity.isTracking) reactivity.trackGlobalSymbol(str);
+                            if (this.reactivity.isTracking) this.reactivity.trackGlobalSymbol(str);
                             var val = this.#globalScope[str];
                             this.#trackMutation(val);
                             return val;
@@ -343,16 +347,16 @@ export class Runtime {
         setSymbol(str, context, type, value, targetElement) {
             if (type === "global") {
                 this.#globalScope[str] = value;
-                reactivity.notifyGlobalSymbol(str);
+                this.reactivity.notifyGlobalSymbol(str);
             } else if (type === "element") {
                 var elementScope = this.#getElementScope(context);
                 elementScope[str] = value;
-                reactivity.notifyElementSymbol(str, context.meta.owner);
+                this.reactivity.notifyElementSymbol(str, context.meta.owner);
             } else if (type === "inherited") {
                 var inherited = this.#resolveInherited(str, context, targetElement);
                 if (inherited.element) {
                     this.getInternalData(inherited.element).elementScope[str] = value;
-                    reactivity.notifyElementSymbol(str, inherited.element);
+                    this.reactivity.notifyElementSymbol(str, inherited.element);
                 } else {
                     // Not found anywhere — create on target element or current element
                     var owner = targetElement || (context.meta && context.meta.owner);
@@ -360,7 +364,7 @@ export class Runtime {
                         var internalData = this.getInternalData(owner);
                         if (!internalData.elementScope) internalData.elementScope = {};
                         internalData.elementScope[str] = value;
-                        reactivity.notifyElementSymbol(str, owner);
+                        this.reactivity.notifyElementSymbol(str, owner);
                     }
                 }
             } else if (type === "local") {
@@ -376,7 +380,7 @@ export class Runtime {
                     var fromContext = elementScope[str];
                     if (typeof fromContext !== "undefined") {
                         elementScope[str] = value;
-                        reactivity.notifyElementSymbol(str, context.meta.owner);
+                        this.reactivity.notifyElementSymbol(str, context.meta.owner);
                     } else {
                         if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str)) {
                             // local scope - don't notify
@@ -446,7 +450,7 @@ export class Runtime {
         }
 
         resolveProperty(root, property) {
-            if (reactivity.isTracking) reactivity.trackProperty(root, property);
+            if (this.reactivity.isTracking) this.reactivity.trackProperty(root, property);
             return this.#flatGet(root, property, (root, property) => root[property])
         }
 
@@ -458,7 +462,7 @@ export class Runtime {
          */
         setProperty(obj, property, value) {
             obj[property] = value;
-            reactivity.notifyProperty(obj);
+            this.reactivity.notifyProperty(obj);
         }
 
         /**
@@ -467,7 +471,7 @@ export class Runtime {
          * @param {Object} obj - The mutated object
          */
         notifyMutation(obj) {
-            reactivity.notifyProperty(obj);
+            this.reactivity.notifyProperty(obj);
         }
 
         /**
@@ -485,13 +489,13 @@ export class Runtime {
         }
 
         #trackMutation(val) {
-            if (reactivity.isTracking && val != null && typeof val === "object") {
-                reactivity.trackProperty(val, "__mutation__");
+            if (this.reactivity.isTracking && val != null && typeof val === "object") {
+                this.reactivity.trackProperty(val, "__mutation__");
             }
         }
 
         resolveAttribute(root, property) {
-            if (reactivity.isTracking) reactivity.trackAttribute(root, property);
+            if (this.reactivity.isTracking) this.reactivity.trackAttribute(root, property);
             return this.#flatGet(root, property, (root, property) => root.getAttribute && root.getAttribute(property))
         }
 
@@ -778,7 +782,7 @@ export class Runtime {
             }
 
             // Stop reactive effects
-            reactivity.stopElementEffects(elt);
+            this.reactivity.stopElementEffects(elt);
 
             // Recursively clean children
             if (elt.querySelectorAll) {
