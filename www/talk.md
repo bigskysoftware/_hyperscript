@@ -1,5 +1,5 @@
 
-# hyperscript talk
+## hyperscript talk {.allcaps}
 
 <div class="talk-links">
   <a href="https://htmx.org/discord" class="talk-link">

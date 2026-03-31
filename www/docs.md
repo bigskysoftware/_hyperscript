@@ -1,7 +1,7 @@
 
 <style>
 :root {
-  --line-length: 120ch;
+  --line-length: min(120ch, 100%);
 }
 .docs-layout {
   display: flex;
@@ -90,6 +90,22 @@
 @media (max-width: 100ch) {
   .docs-layout {
     flex-direction: column;
+    max-width: 100%;
+  }
+  #toc-wrapper {
+    max-height: 40vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-width: 100%;
+  }
+  #docs-nav {
+    overflow-y: auto;
+    flex: 1;
+  }
+  #docs-content {
+    max-width: 100%;
+    overflow-x: auto;
   }
 }
 #docs-content:target {
@@ -114,7 +130,10 @@
               set the link to the first <a[href='#${it}']/>
               if the link exists
                 take .toc-active from <a/> in me for the link
-                link.scrollIntoView({block: 'nearest', behavior: 'smooth'})
+                set navTop to me.getBoundingClientRect().top
+                set linkTop to link.getBoundingClientRect().top
+                set offset to linkTop - navTop - (me.clientHeight / 2)
+                me.scrollBy({top: offset, behavior: 'smooth'})
               end
             end
           end">

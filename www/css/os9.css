@@ -302,20 +302,44 @@ body {
     .nav-links {
         display: none;
         flex-direction: column;
-        position: absolute;
-        top: 100%;
+        align-items: center;
+        position: fixed;
+        top: 0;
         left: 0;
         right: 0;
-        background: var(--bg-chrome);
-        border-bottom: 2px solid var(--border-strong);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        padding: 8px 0;
-        z-index: 99;
+        bottom: 0;
+        background: var(--bg);
+        padding: 48px 24px 24px;
+        z-index: 98;
+        gap: 0;
     }
     .nav-open .nav-links { display: flex; }
-    .nav-links li { width: 100%; }
-    .nav-links a { padding: 10px 20px; }
+    .nav-open .hamburger { position: fixed; top: 12px; right: 12px; z-index: 99; }
+    .nav-links li { width: 100%; text-align: center; }
+    .nav-links a {
+        display: block;
+        padding: 10px 20px;
+        font-size: 1.1rem;
+        border-bottom: 1px solid var(--border);
+    }
     .nav-spacer { display: none; }
+
+    /* Search full-width in mobile menu */
+    .nav-links .search-wrapper { width: 100%; padding: 10px 0; }
+    .nav-links .search-box,
+    .nav-links .search-box:focus {
+        width: 100%;
+        font-size: 1rem;
+        padding: 10px 14px;
+    }
+    .nav-links .search-results {
+        width: 100%;
+        left: 0;
+        right: 0;
+    }
+
+    /* GitHub icon */
+    .nav-links .nav-github { border-bottom: none; }
 
     /* Hamburger → X animation */
     .nav-open .hamburger span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
@@ -337,7 +361,7 @@ body {
     padding: 1.5rem 1rem;
 }
 
-.container.content h1:first-child {
+.container.content :is(h1, h2):first-child {
     margin-top: 0;
 }
 
@@ -815,6 +839,8 @@ table {
     border-radius: var(--radius);
     overflow: hidden;
     box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    display: block;
+    overflow-x: auto;
 }
 
 thead th {
@@ -967,7 +993,7 @@ v-h { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden;
 
 .hero-title {
     font-family: var(--font-heading);
-    font-size: 6rem;
+    font-size: clamp(2.5rem, 10vw, 6rem);
     font-weight: 700;
     letter-spacing: 0.02em;
     color: var(--text);
@@ -1044,7 +1070,9 @@ v-h { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden;
 }
 
 @media (max-width: 600px) {
-    .hero-split { flex-direction: column; }
+    .hero-split { flex-direction: column; max-width: 100%; }
+    .hero-code { overflow: hidden; }
+    .hero-code pre { overflow-x: auto; }
     .hero-demo { flex: none; }
 }
 
@@ -1082,6 +1110,7 @@ v-h { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden;
     margin: 0.5rem 0;
     cursor: pointer;
     transition: background 0.15s;
+    max-width: 100%;
 }
 
 .install-bar:hover {
@@ -1112,6 +1141,8 @@ v-h { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden;
     font-size: 0.86rem;
     color: var(--text-muted);
     flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .install-copy {
