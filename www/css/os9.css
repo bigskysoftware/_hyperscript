@@ -994,6 +994,29 @@ v-h { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden;
 
 .btn-sm { font-size: 0.78rem; padding: 3px 12px; }
 .btn-lg { font-size: 0.95rem; padding: 9px 28px; }
+.toast {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 0.4em;
+    background: var(--bg, #fff);
+    color: var(--fg, #1a1a1a);
+    border: 2px solid var(--border, #888);
+    box-shadow: 2px 2px 0 var(--border, #888);
+    padding: 0.4em 1em;
+    font-size: 0.78rem;
+    font-family: var(--font-body, 'IBM Plex Sans', sans-serif);
+    border-radius: var(--radius, 4px);
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 9999;
+    pointer-events: none;
+}
+.toast.show {
+    opacity: 1;
+}
 
 /* ---- Hero ---- */
 
