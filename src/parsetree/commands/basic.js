@@ -692,6 +692,11 @@ function _parseScrollModifiers(parser) {
     }
     parser.matchToken("px");
 
+    var container;
+    if (parser.matchToken("in")) {
+        container = parser.requireElement("unaryExpression");
+    }
+
     var smoothness = parser.matchAnyToken("smoothly", "instantly");
 
     var scrollOptions = { block: "start", inline: "nearest" };
@@ -711,12 +716,31 @@ function _parseScrollModifiers(parser) {
         else if (smoothness.value === "instantly") scrollOptions.behavior = "instant";
     }
 
-    return { target, offset, plusOrMinus, scrollOptions };
+    return { target, offset, plusOrMinus, scrollOptions, container };
 }
 
-function _resolveScroll(ctx, to, offset, plusOrMinus, scrollOptions) {
+function _parseSmoothness(parser) {
+    var smoothness = parser.matchAnyToken("smoothly", "instantly");
+    if (!smoothness) return undefined;
+    return smoothness.value === "smoothly" ? "smooth" : "instant";
+}
+
+function _resolveScroll(ctx, to, offset, plusOrMinus, scrollOptions, container) {
     ctx.meta.runtime.implicitLoop(to, function (target) {
         if (target === window) target = document.body;
+
+        // "scroll to #item in #container" — scroll within a specific container
+        if (container) {
+            var ctr = container instanceof Element ? container : container;
+            var top = target.offsetTop - ctr.offsetTop;
+            var left = target.offsetLeft - ctr.offsetLeft;
+            if (plusOrMinus) {
+                var adj = plusOrMinus.value === "+" ? offset : offset * -1;
+                top += adj;
+            }
+            ctr.scrollTo({ top, left, behavior: scrollOptions.behavior || "auto" });
+            return;
+        }
 
         if (plusOrMinus) {
             var boundingRect = target.getBoundingClientRect();
@@ -743,30 +767,73 @@ function _resolveScroll(ctx, to, offset, plusOrMinus, scrollOptions) {
 }
 
 /**
- * ScrollCommand - Scroll to element
+ * ScrollCommand - Scroll to element or scroll by amount
  *
- * Parses: scroll to [the] [top|middle|bottom] [left|center|right] [of] <expr> [+/- <offset>px] [smoothly|instantly]
+ * Parses:
+ *   scroll to [the] [top|middle|bottom] [left|center|right] [of] <expr> [+/- <offset>px] [in <container>] [smoothly|instantly]
+ *   scroll [<target>] [up|down|left|right] by <amount>px [smoothly|instantly]
  */
 export class ScrollCommand extends Command {
     static keyword = "scroll";
 
-    constructor(target, offset, plusOrMinus, scrollOptions) {
+    constructor(target, offset, plusOrMinus, scrollOptions, container, byMode) {
         super();
         this.target = target;
         this.plusOrMinus = plusOrMinus;
         this.scrollOptions = scrollOptions;
-        this.args = { target, offset };
+        this.byMode = byMode;
+        this.args = { target, offset, container };
     }
 
     static parse(parser) {
         if (!parser.matchToken("scroll")) return;
-        parser.requireToken("to");
-        var scroll = _parseScrollModifiers(parser);
-        return new ScrollCommand(scroll.target, scroll.offset, scroll.plusOrMinus, scroll.scrollOptions);
+
+        // scroll to ... form
+        if (parser.matchToken("to")) {
+            var scroll = _parseScrollModifiers(parser);
+            return new ScrollCommand(scroll.target, scroll.offset, scroll.plusOrMinus, scroll.scrollOptions, scroll.container);
+        }
+
+        // scroll [<target>] [up|down|left|right] by <amount>px [smoothly|instantly]
+        var direction = parser.matchAnyToken("up", "down", "left", "right");
+        var target;
+
+        if (!direction && parser.currentToken().value !== "by") {
+            target = parser.requireElement("unaryExpression");
+            direction = parser.matchAnyToken("up", "down", "left", "right");
+        }
+
+        parser.requireToken("by");
+
+        parser.pushFollow("px");
+        var offset;
+        try {
+            offset = parser.requireElement("expression");
+        } finally {
+            parser.popFollow();
+        }
+        parser.matchToken("px");
+
+        var behavior = _parseSmoothness(parser);
+        var scrollOptions = {};
+        if (behavior) scrollOptions.behavior = behavior;
+
+        var byMode = { direction: direction ? direction.value : "down" };
+        return new ScrollCommand(target, offset, null, scrollOptions, null, byMode);
     }
 
-    resolve(ctx, { target: to, offset }) {
-        _resolveScroll(ctx, to, offset, this.plusOrMinus, this.scrollOptions);
+    resolve(ctx, { target, offset, container }) {
+        if (this.byMode) {
+            var el = target || document.documentElement;
+            var dir = this.byMode.direction;
+            var top = (dir === "up" || dir === "down") ? (dir === "up" ? -offset : offset) : 0;
+            var left = (dir === "left" || dir === "right") ? (dir === "left" ? -offset : offset) : 0;
+            var opts = { top, left };
+            if (this.scrollOptions.behavior) opts.behavior = this.scrollOptions.behavior;
+            el.scrollBy(opts);
+        } else {
+            _resolveScroll(ctx, target, offset, this.plusOrMinus, this.scrollOptions, container);
+        }
         return ctx.meta.runtime.findNext(this, ctx);
     }
 }
