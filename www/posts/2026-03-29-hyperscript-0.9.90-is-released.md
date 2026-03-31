@@ -441,7 +441,22 @@ The API has been renamed to `process()` to align with htmx's naming. The old nam
 
 <div class="upgrade-section">
 
-#### 10. Bundle format changed
+#### 10. async keyword removed
+
+The async keyword was of limited utility and was confusing due to it having the opposite meaning of JavaScript.  It has
+been removed.  If you need to run an asynchrnous operation without blocking you can do so in JavaScript.
+
+<div class="upgrade-step">
+
+**Upgrade Step:** Remove `async` from your hyperscript code, moving any necessarily non-blocking async operations out
+to JavaScript.
+
+</div>
+</div>
+
+<div class="upgrade-section">
+
+#### 11. Bundle format changed
 
 `dist/_hyperscript.js` is now IIFE (was UMD). Plain `<script>` tags work unchanged.
 
