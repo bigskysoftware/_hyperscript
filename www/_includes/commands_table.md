@@ -32,6 +32,7 @@
 | [send/trigger](/commands/send)     | Sends an event                                                                | `send customEvent to #a-div`                                                            |
 | [set](/commands/set)               | Sets a variable or property to a given value                                  | `set x to 0`                                                                            |
 | [settle](/commands/settle)         | Waits for a transition to end on an element, if any                           | `add .fade-out then settle`                                                             |
+| [swap](/commands/swap)             | Exchanges the values of two assignable expressions                            | `swap x with y`                                                                         |
 | [show](/commands/show)             | Show an element in the DOM                                                    | `show #anotherDiv`                                                                      |
 | [take](/commands/take)             | Takes a class from a set of elements                                          | `take .active from .tabs`                                                               |
 | [tell](/commands/tell)             | Temporarily sets a new implicit target value                                  | `tell <p/> add .highlight`                                                              |

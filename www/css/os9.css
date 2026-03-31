@@ -195,6 +195,10 @@ body {
     padding: 8px 10px !important;
 }
 .nav-github svg { display: block; }
+.nav-github:hover {
+    background: none !important;
+    color: var(--accent) !important;
+}
 
 /* Search */
 .search-wrapper {

@@ -1089,6 +1089,14 @@ conversions and, therefore, can be used with numbers stored in attributes on the
        add @disabled -- disable after the 5th click
   ~~~
 
+The [`swap`](/commands/swap) command exchanges the values of any two assignable expressions — variables,
+properties, or array elements:
+
+  ~~~ hyperscript
+  swap x with y
+  swap arr[0] with arr[2]
+  ~~~
+
 ### Strings {#strings}
 
 Hyperscript supports strings that use either a single quotes or double quotes:
