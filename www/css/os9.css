@@ -399,11 +399,21 @@ ul {
 code {
     font-family: var(--mono-font);
     font-size: 0.88em;
-    font-weight: 500;
+    font-weight: 600;
     background: var(--bg-subtle);
     padding: 1px 5px;
     border-radius: 3px;
     color: #1a1a1a;
+}
+
+a:has(code) {
+    text-decoration: none;
+    border-bottom: none;
+}
+
+a code {
+    color: var(--accent);
+    border-bottom: none;
 }
 
 pre { margin: 0; overflow-x: auto; }
