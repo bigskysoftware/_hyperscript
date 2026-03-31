@@ -18,7 +18,7 @@ const shared = {
   bundle: true,
   sourcemap: true,
   platform: 'browser',
-  target: 'es2015',
+  target: 'es2022',
 }
 
 function builds(entryPoints, outOptions) {
