@@ -1,0 +1,35 @@
+<h2>Reactive Todo List</h2>
+
+<template id="todo-template">
+  #for item in items index i
+  <li>
+    ${item}
+    <button style="margin-left:8px;cursor:pointer"
+            _="on click $items.splice(${i}, 1)">x</button>
+  </li>
+  #end
+</template>
+
+<div _="init set $items to ['Buy groceries', 'Walk the dog', 'Write hyperscript']">
+  <div style="display:flex;gap:8px;margin-bottom:12px">
+    <input type="text" id="new-item" placeholder="Add an item..."
+           style="flex:1;padding:6px;font-size:1rem"
+           _="on add
+                if my value is not empty
+                  $items.push(my value)
+                  set my value to ''
+                end
+              on keydown[key=='Enter'] trigger add" />
+    <button style="padding:6px 16px;cursor:pointer"
+            _="on click send add to the previous <input/>">Add</button>
+  </div>
+
+  <ul id="todo-list"
+      _="live
+           render #todo-template with items: $items
+           put the result into me
+         end">
+  </ul>
+
+  <p _="live put $items.length + ' item(s)' into me"></p>
+</div>

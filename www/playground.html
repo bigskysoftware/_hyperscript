@@ -290,7 +290,24 @@ function lintHyperscript(text) {
     var match;
     var lines = text.split("\n");
 
+    // Build list of template tag ranges to skip
+    var templateRanges = [];
+    var tmplRegex = /<template[\s>]/gi;
+    var tmplMatch;
+    while ((tmplMatch = tmplRegex.exec(text)) !== null) {
+        var closeIdx = text.indexOf('</template>', tmplMatch.index);
+        if (closeIdx !== -1) {
+            templateRanges.push([tmplMatch.index, closeIdx + '</template>'.length]);
+        }
+    }
+
     while ((match = attrRegex.exec(text)) !== null) {
+        // Skip _ attributes inside <template> tags
+        var inTemplate = templateRanges.some(function (r) {
+            return match.index >= r[0] && match.index < r[1];
+        });
+        if (inTemplate) continue;
+
         var hsSource = match[1];
         hsSource = hsSource.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").replace(/&quot;/g, '"');
         var attrStart = match.index + match[0].indexOf('"') + 1;
