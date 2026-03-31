@@ -10,6 +10,8 @@ date: 2026-03-29
 We are pleased to present the 0.9.90 release of hyperscript. This is a significant release that includes a complete
 internal restructuring, a new reactivity system, many new commands and expressions, and improved error handling.
 
+There is an [Upgrade Guide](#upgrade-guide) at the bottom of this release note.
+
 ### Reactivity
 
 The headline feature of this release is a new [reactivity system](/docs#reactivity) with three features that let you
