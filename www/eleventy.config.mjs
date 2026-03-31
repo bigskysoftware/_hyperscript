@@ -119,6 +119,19 @@ export default function(config) {
     md.use(markdownItToc, {
         "includeLevel": [2,3,4,5,6]
     });
+    var defaultTableOpen = md.renderer.rules.table_open || function(tokens, idx, options, env, self) {
+        return self.renderToken(tokens, idx, options);
+    };
+    var defaultTableClose = md.renderer.rules.table_close || function(tokens, idx, options, env, self) {
+        return self.renderToken(tokens, idx, options);
+    };
+    md.renderer.rules.table_open = function(tokens, idx, options, env, self) {
+        return '<div class="table-wrap">' + defaultTableOpen(tokens, idx, options, env, self);
+    };
+    md.renderer.rules.table_close = function(tokens, idx, options, env, self) {
+        return defaultTableClose(tokens, idx, options, env, self) + '</div>';
+    };
+
     config.setLibrary("md", md)
 
     addWidgets(config);

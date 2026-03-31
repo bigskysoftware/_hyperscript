@@ -437,10 +437,14 @@ function run() {
         '  _origWarn.apply(console, arguments);\n' +
         '};\n' +
         'var _origErr = console.error;\n' +
+        'var _inError = false;\n' +
         'console.error = function() {\n' +
+        '  if (_inError) return;\n' +
+        '  _inError = true;\n' +
         '  var msg = Array.from(arguments).map(function(a) { return typeof a === "string" ? a : ""; }).join(" ");\n' +
         '  if (msg) parent._playgroundError(msg);\n' +
         '  _origErr.apply(console, arguments);\n' +
+        '  _inError = false;\n' +
         '};\n' +
         '<\/script>' +
         '</head><body>' +

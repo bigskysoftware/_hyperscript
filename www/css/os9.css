@@ -839,18 +839,21 @@ select:focus {
 
 /* ---- Tables ---- */
 
+.table-wrap {
+    overflow-x: auto;
+    margin: 1rem 0;
+}
+
 table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    margin: 1rem 0;
+    margin: 0;
     font-size: 1rem;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     overflow: hidden;
     box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-    display: block;
-    overflow-x: auto;
 }
 
 thead th {
