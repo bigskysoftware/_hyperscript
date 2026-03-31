@@ -107,6 +107,17 @@ on submit blur me
 on click empty #results
 ```
 
+#### swap
+
+[`swap`](/commands/swap) exchanges the values of two assignable expressions — variables, properties, array
+elements, or any combination:
+
+```hyperscript
+swap x with y
+swap arr[0] with arr[2]
+swap #a.textContent with #b.textContent
+```
+
 #### select
 
 Select the text content of an input or textarea:
