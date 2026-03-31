@@ -408,6 +408,19 @@ export class Runtime {
                 if (internalData && internalData.elementScope && str in internalData.elementScope) {
                     return { value: internalData.elementScope[str], element: elt };
                 }
+                // Check dom-scope attribute for scope control
+                var domScope = elt.getAttribute && elt.getAttribute('dom-scope');
+                if (domScope) {
+                    if (domScope === 'isolated') {
+                        return { value: undefined, element: null };
+                    }
+                    // "closest <selector>" — jump to matching ancestor
+                    var match = domScope.match(/^closest\s+(.+)/);
+                    if (match) {
+                        elt = elt.parentElement && elt.parentElement.closest(match[1]);
+                        continue;
+                    }
+                }
                 elt = elt.parentElement;
             }
             return { value: undefined, element: null };
