@@ -1,7 +1,7 @@
 <h2>Reactive Todo List</h2>
 
 <template id="todo-template">
-  #for item in items index i
+  #for item in $items index i
   <li>
     <span>${item}</span>
     <button class="delete" _="on click $items.splice(${i}, 1)">x</button>
@@ -23,9 +23,8 @@
 
   <ul id="todo-list"
       _="live
-           render #todo-template with items: $items
-           put the result into me
-         end">
+           render #todo-template
+           put the result into me">
   </ul>
 
   <p class="count" _="live put $items.length + ' item(s)' into me"></p>
