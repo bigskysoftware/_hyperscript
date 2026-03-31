@@ -1850,7 +1850,12 @@
     defaultTransition: "all 500ms ease-in",
     disableSelector: "[disable-scripting], [data-disable-scripting]",
     hideShowStrategies: {},
-    logAll: false
+    logAll: false,
+    mutatingMethods: {
+      Array: ["push", "pop", "shift", "unshift", "splice", "sort", "reverse", "fill", "copyWithin"],
+      Set: ["add", "delete", "clear"],
+      Map: ["set", "delete", "clear"]
+    }
   };
 
   // src/core/runtime/conversions.js
@@ -2630,7 +2635,7 @@
       runtime2.addFeatures(owner, this);
     }
   };
-  var _kernel2, _tokenizer, _globalScope, _scriptAttrs, _Runtime_instances, isReservedWord_fn, isHyperscriptContext_fn, resolveInherited_fn, getElementScope_fn, flatGet_fn, isArrayLike_fn, isIterable_fn, getScriptAttributes_fn, getScript_fn, getScriptSelector_fn, hashScript_fn, initElement_fn;
+  var _kernel2, _tokenizer, _globalScope, _scriptAttrs, _Runtime_instances, isReservedWord_fn, isHyperscriptContext_fn, resolveInherited_fn, getElementScope_fn, flatGet_fn, trackMutation_fn, isArrayLike_fn, isIterable_fn, getScriptAttributes_fn, getScript_fn, getScriptSelector_fn, hashScript_fn, initElement_fn;
   var _Runtime = class _Runtime {
     constructor(globalScope2, kernel2, tokenizer2) {
       __privateAdd(this, _Runtime_instances);
@@ -2818,16 +2823,21 @@
       } else {
         if (type === "global") {
           if (reactivity.isTracking) reactivity.trackGlobalSymbol(str);
-          return __privateGet(this, _globalScope)[str];
+          var val = __privateGet(this, _globalScope)[str];
+          __privateMethod(this, _Runtime_instances, trackMutation_fn).call(this, val);
+          return val;
         } else if (type === "element") {
           if (reactivity.isTracking) reactivity.trackElementSymbol(str, context.meta.owner);
           var elementScope = __privateMethod(this, _Runtime_instances, getElementScope_fn).call(this, context);
-          return elementScope[str];
+          var val = elementScope[str];
+          __privateMethod(this, _Runtime_instances, trackMutation_fn).call(this, val);
+          return val;
         } else if (type === "inherited") {
           var inherited = __privateMethod(this, _Runtime_instances, resolveInherited_fn).call(this, str, context, targetElement);
           if (reactivity.isTracking && inherited.element) {
             reactivity.trackElementSymbol(str, inherited.element);
           }
+          __privateMethod(this, _Runtime_instances, trackMutation_fn).call(this, inherited.value);
           return inherited.value;
         } else if (type === "local") {
           return context.locals[str];
@@ -2856,10 +2866,13 @@
             fromContext = elementScope[str];
             if (typeof fromContext !== "undefined") {
               if (reactivity.isTracking) reactivity.trackElementSymbol(str, context.meta.owner);
+              __privateMethod(this, _Runtime_instances, trackMutation_fn).call(this, fromContext);
               return fromContext;
             } else {
               if (reactivity.isTracking) reactivity.trackGlobalSymbol(str);
-              return __privateGet(this, _globalScope)[str];
+              var val = __privateGet(this, _globalScope)[str];
+              __privateMethod(this, _Runtime_instances, trackMutation_fn).call(this, val);
+              return val;
             }
           }
         }
@@ -2927,6 +2940,27 @@
     setProperty(obj, property, value) {
       obj[property] = value;
       reactivity.notifyProperty(obj);
+    }
+    /**
+     * Notify the reactivity system that an object was mutated in-place.
+     * Call this after operations like push, splice, append, etc.
+     * @param {Object} obj - The mutated object
+     */
+    notifyMutation(obj) {
+      reactivity.notifyProperty(obj);
+    }
+    /**
+     * Check if a method call is known to mutate its receiver, and notify if so.
+     * @param {Object} target - The object the method was called on
+     * @param {string} methodName - The method name
+     */
+    maybeNotify(target, methodName) {
+      if (target == null || typeof target !== "object") return;
+      var typeName = target.constructor && target.constructor.name;
+      var methods = typeName && config.mutatingMethods[typeName];
+      if (methods && methods.includes(methodName)) {
+        this.notifyMutation(target);
+      }
     }
     resolveAttribute(root, property) {
       if (reactivity.isTracking) reactivity.trackAttribute(root, property);
@@ -3281,6 +3315,11 @@
         }
         return result;
       }
+    }
+  };
+  trackMutation_fn = function(val) {
+    if (reactivity.isTracking && val != null && typeof val === "object") {
+      reactivity.trackProperty(val, "__mutation__");
     }
   };
   // =================================================================
@@ -3903,12 +3942,15 @@
     resolve(context, { target, argVals }) {
       if (this._isMethodCall) {
         context.meta.runtime.nullCheck(target, this._parseRoot.root);
-        var func = target[this._parseRoot.prop.value];
+        var methodName = this._parseRoot.prop.value;
+        var func = target[methodName];
         context.meta.runtime.nullCheck(func, this._parseRoot);
         if (func.hyperfunc) {
           argVals.push(context);
         }
-        return func.apply(target, argVals);
+        var result = func.apply(target, argVals);
+        context.meta.runtime.maybeNotify(target, methodName);
+        return result;
       } else {
         context.meta.runtime.nullCheck(target, this._parseRoot);
         if (target.hyperfunc) {
@@ -4045,6 +4087,7 @@
     }
     resolve(context, { lhs: lhsVal, rhs: rhsVal }) {
       if (this.operator === "+") {
+        if (Array.isArray(lhsVal)) return lhsVal.concat(rhsVal);
         return lhsVal + rhsVal;
       } else if (this.operator === "-") {
         return lhsVal - rhsVal;
@@ -5469,6 +5512,7 @@
       var _a = args, { target, value } = _a, lhs = __objRest(_a, ["target", "value"]);
       if (Array.isArray(target)) {
         target.push(value);
+        context.meta.runtime.notifyMutation(target);
         return context.meta.runtime.findNext(this, context);
       } else if (target instanceof Element) {
         if (value instanceof Element) {
@@ -6824,12 +6868,14 @@
     resolve(context, { target, argVals, result }) {
       if (this.variant === "target") {
         context.meta.runtime.nullCheck(target, this._realRoot);
-        var func = target[this._root.root.name];
+        var methodName = this._root.root.name;
+        var func = target[methodName];
         context.meta.runtime.nullCheck(func, this._root);
         if (func.hyperfunc) {
           argVals.push(context);
         }
         context.result = func.apply(target, argVals);
+        context.meta.runtime.maybeNotify(target, methodName);
       } else {
         context.result = result;
       }
