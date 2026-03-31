@@ -1,3 +1,4 @@
+import { execSync } from "child_process";
 import markdownItAttrs from "markdown-it-attrs";
 import markdownItAnchor from "markdown-it-anchor";
 import markdownItDeflist from "markdown-it-deflist";
@@ -121,4 +122,8 @@ export default function(config) {
     config.setLibrary("md", md)
 
     addWidgets(config);
+
+    config.on("eleventy.after", () => {
+        execSync("npx pagefind --site _site", { stdio: "inherit" });
+    });
 }
