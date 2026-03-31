@@ -15,7 +15,6 @@
  */
 
 import { Feature } from '../base.js';
-import { reactivity } from '../../core/runtime/reactivity.js';
 
 export class LiveFeature extends Feature {
     static keyword = "live";
@@ -39,7 +38,7 @@ export class LiveFeature extends Feature {
     install(target, source, args, runtime) {
         var feature = this;
         queueMicrotask(function () {
-            reactivity.createEffect(
+            runtime.reactivity.createEffect(
                 function () {
                     feature.commands.execute(
                         runtime.makeContext(target, feature, target, null)
