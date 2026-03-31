@@ -1,0 +1,218 @@
+/**
+ * Hyperscript Component Extension
+ *
+ * Registers custom elements from <template hypercomp="tag-name"> definitions.
+ * Template bodies are rendered reactively using the existing template engine.
+ *
+ * Usage:
+ *   <template hypercomp="my-counter" _="init set ^count to @initial-count as Integer">
+ *     <button _="on click increment ^count">Increment</button>
+ *     Count: ${^count}
+ *   </template>
+ *
+ *   <my-counter initial-count="5"></my-counter>
+ */
+
+import { Tokenizer } from '../core/tokenizer.js';
+
+export default function componentPlugin(_hyperscript) {
+    const { runtime, createParser, reactivity } = _hyperscript.internals;
+    const tokenizer = new Tokenizer();
+
+    var _scopeId = 0;
+
+    /** Build a CSS selector for the component's parent so slotted content can scope back to it */
+    function scopeSelector(componentEl) {
+        var parent = componentEl.parentElement;
+        if (!parent) return null;
+        if (!parent.hasAttribute('data-dom-scope-id')) {
+            parent.setAttribute('data-dom-scope-id', 'ds-' + (++_scopeId));
+        }
+        return '[data-dom-scope-id="' + parent.getAttribute('data-dom-scope-id') + '"]';
+    }
+
+    function substituteSlots(templateSource, slotContent, scopeSel) {
+        if (!slotContent) return templateSource;
+
+        // Parse slot content to separate named slots from default
+        var tmp = document.createElement('div');
+        tmp.innerHTML = slotContent;
+        var named = {};
+        var defaultParts = [];
+
+        // Annotate slotted elements with dom-scope to resolve ^var from outer context
+        for (var child of Array.from(tmp.childNodes)) {
+            if (child.nodeType === 1 && scopeSel && !child.hasAttribute('dom-scope')) {
+                child.setAttribute('dom-scope', 'closest ' + scopeSel);
+            }
+            var slotName = child.nodeType === 1 && child.getAttribute('slot');
+            if (slotName) {
+                child.removeAttribute('slot');
+                if (!named[slotName]) named[slotName] = '';
+                named[slotName] += child.outerHTML;
+            } else {
+                defaultParts.push(child.nodeType === 1 ? child.outerHTML :
+                                  child.nodeType === 3 ? child.textContent : '');
+            }
+        }
+
+        var defaultContent = defaultParts.join('');
+
+        // Replace named slots: <slot name="X"/> or <slot name="X"></slot>
+        var source = templateSource.replace(
+            /<slot\s+name\s*=\s*["']([^"']+)["']\s*\/?\s*>(\s*<\/slot>)?/g,
+            function(_, name) { return named[name] || ''; }
+        );
+
+        // Replace default slots: <slot/> or <slot></slot>
+        source = source.replace(/<slot\s*\/?\s*>(\s*<\/slot>)?/g, defaultContent);
+
+        return source;
+    }
+
+    function registerComponent(templateEl, componentScript) {
+        const tagName = templateEl.getAttribute('hypercomp');
+        const templateSource = templateEl.innerHTML;
+
+        // Parse template once to validate — actual rendering happens per instance
+        // (We reuse the render command's approach: tokenize in "lines" mode at render time)
+
+        const ComponentClass = class extends HTMLElement {
+            connectedCallback() {
+                // Skip if already initialized
+                if (this._hypercomp_initialized) return;
+                this._hypercomp_initialized = true;
+
+                // Isolate component scope — ^var resolution stops here
+                this.setAttribute('dom-scope', 'isolated');
+
+                // Capture slot content and clear children immediately,
+                // before processNode can recurse into them
+                this._slotContent = this.innerHTML;
+                this._scopeSelector = scopeSelector(this);
+                this.innerHTML = '';
+
+                // 1. Apply component-level hyperscript so init runs and sets up state
+                if (componentScript) {
+                    this.setAttribute('_', componentScript);
+                    _hyperscript.process(this);
+                }
+
+                // 2. Render template after synchronous init completes
+                const self = this;
+                var source = substituteSlots(templateSource, self._slotContent, self._scopeSelector);
+
+                queueMicrotask(function() {
+                    // Initial render — may return a promise if template has async expressions
+                    var result = self._renderTemplate(source);
+                    if (result && result.then) {
+                        result.then(function(html) {
+                            self._stampTemplate(html);
+                            self._setupReactiveEffect(source);
+                        });
+                    } else {
+                        self._stampTemplate(result);
+                        self._setupReactiveEffect(source);
+                    }
+                });
+            }
+
+            disconnectedCallback() {
+                reactivity.stopElementEffects(this);
+                // Clean up hyperscript on inner elements
+                if (this.querySelectorAll) {
+                    this.querySelectorAll('[data-hyperscript-powered]').forEach(el => {
+                        _hyperscript.cleanup(el);
+                    });
+                }
+                this._hypercomp_initialized = false;
+            }
+
+            _setupReactiveEffect(source) {
+                var self = this;
+                reactivity.createEffect(
+                    function() { return self._renderTemplate(source); },
+                    function(html) { self._stampTemplate(html); },
+                    { element: self }
+                );
+            }
+
+            _renderTemplate(source) {
+                // Reuse the existing template rendering infrastructure:
+                // tokenize in "lines" mode, parse as command list, execute to collect string output
+                var ctx = runtime.makeContext(this, null, this, null);
+
+                var buf = [];
+                ctx.meta.__ht_template_result = buf;
+
+                var tokens = tokenizer.tokenize(source, "lines");
+                var parser = createParser(tokens);
+                var commandList;
+                try {
+                    commandList = parser.parseElement("commandList");
+                    parser.ensureTerminated(commandList);
+                } catch (e) {
+                    console.error("hypercomp template parse error:", e.message || e);
+                    return "";
+                }
+
+                var resolve, reject;
+                var promise = new Promise(function(res, rej) { resolve = res; reject = rej; });
+
+                commandList.execute(ctx);
+
+                // Sync case — command list completed without going async
+                if (ctx.meta.returned || !ctx.meta.resolve) {
+                    return buf.join("");
+                }
+
+                // Async case — stash resolve/reject, return promise
+                ctx.meta.resolve = resolve;
+                ctx.meta.reject = reject;
+                return promise.then(function() { return buf.join(""); });
+            }
+
+            _stampTemplate(html) {
+                // Clean up existing inner hyperscript before replacing
+                this.querySelectorAll('[data-hyperscript-powered]').forEach(el => {
+                    _hyperscript.cleanup(el);
+                });
+
+                this.innerHTML = html;
+
+                // Process _ attributes on newly stamped inner elements
+                _hyperscript.process(this);
+            }
+        };
+
+        customElements.define(tagName, ComponentClass);
+    }
+
+    // Hook into processNode to scan for component definitions
+    const originalProcess = _hyperscript.process.bind(_hyperscript);
+    const registered = new Set();
+
+    _hyperscript.process = function(elt) {
+        // Scan for unregistered component templates before processing
+        if (elt && elt.querySelectorAll) {
+            elt.querySelectorAll('template[hypercomp]').forEach(tmpl => {
+                const tagName = tmpl.getAttribute('hypercomp');
+                if (!registered.has(tagName)) {
+                    registered.add(tagName);
+                    // Grab and strip _ before normal processNode sees it
+                    const script = tmpl.getAttribute('_') || '';
+                    tmpl.removeAttribute('_');
+                    registerComponent(tmpl, script);
+                }
+            });
+        }
+        return originalProcess(elt);
+    };
+    // Also alias the deprecated name
+    _hyperscript.processNode = _hyperscript.process;
+}
+
+// Auto-register when loaded via script tag
+if (typeof self !== 'undefined' && self._hyperscript) {
+    self._hyperscript.use(componentPlugin);
+}

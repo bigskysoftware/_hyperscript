@@ -5,5 +5,6 @@ import '../src/ext/tailwind.js'
 
 import '../src/ext/hdb.js'
 import '../src/ext/socket.js'
+import '../src/ext/component.js'
 
 export default _hyperscript
