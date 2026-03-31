@@ -3,25 +3,22 @@
 <template id="todo-template">
   #for item in items index i
   <li>
-    ${item}
-    <button style="margin-left:8px;cursor:pointer"
-            _="on click $items.splice(${i}, 1)">x</button>
+    <span>${item}</span>
+    <button class="delete" _="on click $items.splice(${i}, 1)">x</button>
   </li>
   #end
 </template>
 
 <div _="init set $items to ['Buy groceries', 'Walk the dog', 'Write hyperscript']">
-  <div style="display:flex;gap:8px;margin-bottom:12px">
-    <input type="text" id="new-item" placeholder="Add an item..."
-           style="flex:1;padding:6px;font-size:1rem"
+  <div class="add-row">
+    <input type="text" placeholder="Add an item..."
            _="on add
                 if my value is not empty
                   $items.push(my value)
                   set my value to ''
                 end
               on keydown[key=='Enter'] trigger add" />
-    <button style="padding:6px 16px;cursor:pointer"
-            _="on click send add to the previous <input/>">Add</button>
+    <button _="on click send add to the previous <input/>">Add</button>
   </div>
 
   <ul id="todo-list"
@@ -31,5 +28,20 @@
          end">
   </ul>
 
-  <p _="live put $items.length + ' item(s)' into me"></p>
+  <p class="count" _="live put $items.length + ' item(s)' into me"></p>
 </div>
+
+<style>
+  .add-row {
+    display: flex; gap: 8px; margin-bottom: 12px;
+    & input { flex: 1; padding: 6px; font-size: 1rem; }
+    & button { padding: 6px 16px; cursor: pointer; }
+  }
+  #todo-list {
+    padding-left: 0; list-style: none;
+    display: grid; grid-template-columns: max-content auto; gap: 4px 8px; align-items: center; width: fit-content;
+    & li { display: contents; }
+    & .delete { cursor: pointer; font-size: 0.8rem; line-height: 1; }
+  }
+  .count { color: #888; font-size: 0.9rem; }
+</style>
