@@ -364,4 +364,37 @@ test.describe('the live feature', () => {
 		await evaluate(() => { delete window.$obj })
 	})
 
+	test('property change on object in array triggers live re-render', async ({html, find, run, evaluate}) => {
+		await run("set $people to [{name: 'Alice'}, {name: 'Bob'}]")
+		await html(
+			`<template id="people-tmpl">#for p in people\n<span>\${p.name}</span>\n#end</template>` +
+			`<div _="live render #people-tmpl with people: $people then put it into my.innerHTML end"></div>`
+		)
+		await expect.poll(() => find('div').textContent()).toContain('Alice')
+		await expect.poll(() => find('div').textContent()).toContain('Bob')
+
+		await run("set $people[0].name to 'Charlie'")
+		await expect.poll(() => find('div').textContent()).toContain('Charlie')
+		await expect.poll(() => find('div').textContent()).toContain('Bob')
+		await evaluate(() => { delete window.$people })
+	})
+
+	test('push object then modify its property both trigger live', async ({html, find, run, evaluate}) => {
+		await run("set $items to [{label: 'first'}]")
+		await html(
+			`<template id="items-tmpl">#for item in items\n<span>\${item.label}</span>\n#end</template>` +
+			`<div _="live render #items-tmpl with items: $items then put it into my.innerHTML end"></div>`
+		)
+		await expect.poll(() => find('div').textContent()).toContain('first')
+
+		// Push triggers re-render
+		await run("call $items.push({label: 'second'})")
+		await expect.poll(() => find('div').textContent()).toContain('second')
+
+		// Modify property on new object triggers re-render
+		await run("set $items[1].label to 'updated'")
+		await expect.poll(() => find('div').textContent()).toContain('updated')
+		await evaluate(() => { delete window.$items })
+	})
+
 })
