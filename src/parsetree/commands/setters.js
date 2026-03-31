@@ -202,6 +202,48 @@ export class DecrementCommand extends Command {
 }
 
 /**
+ * SwapCommand - Swap two values
+ *
+ * Parses: swap target1 with target2
+ * Executes: Swaps the values of two assignable expressions
+ */
+export class SwapCommand extends Command {
+    static keyword = "swap";
+
+    constructor(target1, target2) {
+        super();
+        this.target1 = target1;
+        this.target2 = target2;
+        this.args = {
+            value1: target1, value2: target2,
+            root1: target1.lhs.root, index1: target1.lhs.index,
+            root2: target2.lhs.root, index2: target2.lhs.index,
+        };
+    }
+
+    static parse(parser) {
+        if (!parser.matchToken("swap")) return;
+        try {
+            parser.pushFollow("with");
+            var target1 = parser.requireElement("assignableExpression");
+        } finally {
+            parser.popFollow();
+        }
+        while (target1.type === "parenthesized") target1 = target1.expr;
+        parser.requireToken("with");
+        var target2 = parser.requireElement("assignableExpression");
+        while (target2.type === "parenthesized") target2 = target2.expr;
+        return new SwapCommand(target1, target2);
+    }
+
+    resolve(context, { value1, value2, root1, index1, root2, index2 }) {
+        this.target1.set(context, { root: root1, index: index1 }, value2);
+        this.target2.set(context, { root: root2, index: index2 }, value1);
+        return context.meta.runtime.findNext(this, context);
+    }
+}
+
+/**
  * PutCommand - Put value into/before/after target (web-specific)
  *
  * Parses: put expr into target | put expr before/after target | put expr at start/end of target

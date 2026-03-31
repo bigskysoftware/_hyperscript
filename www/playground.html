@@ -481,7 +481,7 @@ var consoleHistory = [];
 var historyIndex = -1;
 var replLocals = {};
 
-var BLOCK_OPENERS = /\b(if|repeat|on|def|behavior|init|tell|for)\b/g;
+var BLOCK_OPENERS = /(?<!\^[\w$]+\s)\b(if|repeat|on|def|behavior|init|tell|for)\b/g;
 var BLOCK_CLOSERS = /\bend\b/g;
 
 function needsMoreInput(src) {
@@ -590,12 +590,28 @@ document.getElementById('clear-btn').addEventListener('click', function () {
 });
 
 document.getElementById('share-btn').addEventListener('click', function () {
+    var btn = this;
     var compressed = LZString.compressToEncodedURIComponent(cm.getValue());
     var url = window.location.origin + window.location.pathname + '?src=' + compressed;
     navigator.clipboard.writeText(url).then(function () {
-        document.getElementById('status').textContent = 'Share URL copied to clipboard!';
+        showToast('Share URL copied!', btn);
     });
 });
+
+function showToast(msg, anchor) {
+    var existing = document.querySelector('.toast');
+    if (existing) existing.remove();
+    anchor.style.position = 'relative';
+    var toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = msg;
+    anchor.appendChild(toast);
+    requestAnimationFrame(function () { toast.classList.add('show'); });
+    setTimeout(function () {
+        toast.classList.remove('show');
+        toast.addEventListener('transitionend', function () { toast.remove(); });
+    }, 1500);
+}
 
 document.getElementById('examples').addEventListener('change', function () {
     var val = this.value;
