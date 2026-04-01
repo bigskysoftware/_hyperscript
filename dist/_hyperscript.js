@@ -219,7 +219,7 @@
     }
     // ----- Whitespace -----
     lastWhitespace() {
-      var last = this.#consumed[this.#consumed.length - 1];
+      var last = this.#consumed.at(-1);
       return last && last.type === "WHITESPACE" ? last.value : "";
     }
     // ----- Follow set management -----
@@ -371,7 +371,7 @@
     }
     #isValidSingleQuoteStringStart() {
       if (this.#tokens.length > 0) {
-        var prev = this.#tokens[this.#tokens.length - 1];
+        var prev = this.#tokens.at(-1);
         if (prev.type === "IDENTIFIER" || prev.type === "CLASS_REF" || prev.type === "ID_REF") {
           return false;
         }
@@ -770,6 +770,9 @@
       context.meta.command = this;
       return context.meta.runtime.unifiedExec(this, context);
     }
+    findNext(context) {
+      return context.meta.runtime.findNext(this, context);
+    }
   };
   var Feature = class extends ParseElement {
     isFeature = true;
@@ -807,7 +810,7 @@
       this.type = "emptyCommandListCommand";
     }
     resolve(context) {
-      return context.meta.runtime.findNext(this, context);
+      return this.findNext(context);
     }
   };
   var UnlessStatementModifier = class extends Command {
@@ -2029,428 +2032,6 @@
     }
   };
 
-  // src/core/runtime/reactivity.js
-  function _sameValue(a, b) {
-    return a === b ? a !== 0 || 1 / a === 1 / b : a !== a && b !== b;
-  }
-  var objectState = /* @__PURE__ */ new WeakMap();
-  var globalSubscriptions = /* @__PURE__ */ new Map();
-  var nextId = 0;
-  function getObjectState(obj) {
-    var state = objectState.get(obj);
-    if (!state) {
-      objectState.set(obj, state = {
-        id: String(++nextId),
-        subscriptions: null,
-        propertyHandler: null,
-        attributeObservers: null
-      });
-    }
-    return state;
-  }
-  var Reactivity = class {
-    constructor() {
-      this._currentEffect = null;
-      this._pendingEffects = /* @__PURE__ */ new Set();
-      this._elementEffects = /* @__PURE__ */ new WeakMap();
-      this._isRunScheduled = false;
-    }
-    /**
-     * Whether an effect is currently evaluating its expression().
-     * When true, reads (symbol/property/attribute) are recorded as dependencies.
-     * @returns {boolean}
-     */
-    get isTracking() {
-      return this._currentEffect !== null;
-    }
-    /**
-     * Track a global variable read as a dependency.
-     * @param {string} name - Variable name
-     */
-    trackGlobalSymbol(name) {
-      this._currentEffect.dependencies.set(
-        "symbol:global:" + name,
-        { type: "symbol", name, scope: "global" }
-      );
-    }
-    /**
-     * Track an element-scoped variable read as a dependency.
-     * @param {string} name - Variable name
-     * @param {Element} element - Owning element
-     */
-    trackElementSymbol(name, element) {
-      if (!element) return;
-      var elementId = getObjectState(element).id;
-      this._currentEffect.dependencies.set(
-        "symbol:element:" + name + ":" + elementId,
-        { type: "symbol", name, scope: "element", element }
-      );
-    }
-    /**
-     * Track a property read as a dependency.
-     * @param {Object} obj - DOM element or plain JS object
-     * @param {string} name - Property name
-     */
-    trackProperty(obj, name) {
-      if (obj == null || typeof obj !== "object") return;
-      this._currentEffect.dependencies.set(
-        "property:" + name + ":" + getObjectState(obj).id,
-        { type: "property", object: obj, name }
-      );
-    }
-    /**
-     * Track a DOM attribute read as a dependency.
-     * @param {Element} element
-     * @param {string} name - Attribute name
-     */
-    trackAttribute(element, name) {
-      if (!(element instanceof Element)) return;
-      this._currentEffect.dependencies.set(
-        "attribute:" + name + ":" + getObjectState(element).id,
-        { type: "attribute", element, name }
-      );
-    }
-    /**
-     * Notify that a global variable was written.
-     * @param {string} name - Variable name
-     */
-    notifyGlobalSymbol(name) {
-      var subs = globalSubscriptions.get(name);
-      if (subs) {
-        for (var effect of subs) {
-          this._scheduleEffect(effect);
-        }
-      }
-    }
-    /**
-     * Notify that an element-scoped variable was written.
-     * @param {string} name - Variable name
-     * @param {Element} element - Owning element
-     */
-    notifyElementSymbol(name, element) {
-      if (!element) return;
-      var state = getObjectState(element);
-      if (state.subscriptions) {
-        var subs = state.subscriptions.get(name);
-        if (subs) {
-          for (var effect of subs) {
-            this._scheduleEffect(effect);
-          }
-        }
-      }
-    }
-    /**
-     * Notify that a property was written programmatically.
-     * Schedules all effects watching properties on this object.
-     * @param {Object} obj - DOM element or plain JS object
-     */
-    notifyProperty(obj) {
-      if (obj == null || typeof obj !== "object") return;
-      var state = objectState.get(obj);
-      if (state && state.propertyHandler) {
-        state.propertyHandler.queueAll();
-      }
-    }
-    /**
-     * Add an effect to the pending set.
-     * Schedules a microtask to run them if one isn't already scheduled.
-     * @param {Effect} effect
-     */
-    _scheduleEffect(effect) {
-      if (effect.isStopped) return;
-      this._pendingEffects.add(effect);
-      if (!this._isRunScheduled) {
-        this._isRunScheduled = true;
-        var self2 = this;
-        queueMicrotask(function() {
-          self2._runPendingEffects();
-        });
-      }
-    }
-    /**
-     * Run all pending effects. Called once per microtask batch.
-     * Effects that re-trigger during this run are queued for the next batch.
-     */
-    _runPendingEffects() {
-      this._isRunScheduled = false;
-      var effects = Array.from(this._pendingEffects);
-      this._pendingEffects.clear();
-      for (var effect of effects) {
-        if (effect.isStopped) continue;
-        if (effect.element && !effect.element.isConnected) {
-          this.stopEffect(effect);
-          continue;
-        }
-        effect._consecutiveTriggers++;
-        if (effect._consecutiveTriggers > 100) {
-          console.error(
-            "Reactivity loop detected: an effect triggered 100 consecutive times without settling. This usually means an effect is modifying a variable it also depends on.",
-            effect.element || effect
-          );
-          continue;
-        }
-        this._runEffect(effect);
-      }
-      if (this._pendingEffects.size === 0) {
-        for (var i = 0; i < effects.length; i++) {
-          if (!effects[i].isStopped) effects[i]._consecutiveTriggers = 0;
-        }
-      }
-    }
-    /** @param {Effect} effect */
-    _runEffect(effect) {
-      this._unsubscribeEffect(effect);
-      var oldDeps = effect.dependencies;
-      effect.dependencies = /* @__PURE__ */ new Map();
-      var prev = this._currentEffect;
-      this._currentEffect = effect;
-      var newValue;
-      try {
-        newValue = effect.expression();
-      } catch (e) {
-        console.error("Error in reactive expression:", e);
-        effect.dependencies = oldDeps;
-        this._currentEffect = prev;
-        this._subscribeEffect(effect);
-        return;
-      }
-      this._currentEffect = prev;
-      this._subscribeEffect(effect);
-      this._cleanupOrphanedDeps(oldDeps);
-      if (!_sameValue(newValue, effect._lastExpressionValue)) {
-        effect._lastExpressionValue = newValue;
-        try {
-          effect.handler(newValue);
-        } catch (e) {
-          console.error("Error in reactive handler:", e);
-        }
-      }
-    }
-    /**
-     * Subscribe an effect to all its current deps.
-     * Symbols go into subscription maps, attributes get MutationObservers,
-     * properties use persistent per-element input/change listeners.
-     * @param {Effect} effect
-     */
-    _subscribeEffect(effect) {
-      var reactivity2 = this;
-      for (var [depKey, dep] of effect.dependencies) {
-        if (dep.type === "symbol" && dep.scope === "global") {
-          if (!globalSubscriptions.has(dep.name)) {
-            globalSubscriptions.set(dep.name, /* @__PURE__ */ new Set());
-          }
-          globalSubscriptions.get(dep.name).add(effect);
-        } else if (dep.type === "symbol" && dep.scope === "element") {
-          var state = getObjectState(dep.element);
-          if (!state.subscriptions) {
-            state.subscriptions = /* @__PURE__ */ new Map();
-          }
-          if (!state.subscriptions.has(dep.name)) {
-            state.subscriptions.set(dep.name, /* @__PURE__ */ new Set());
-          }
-          state.subscriptions.get(dep.name).add(effect);
-        } else if (dep.type === "attribute") {
-          reactivity2._subscribeAttributeDependency(dep.element, dep.name, effect);
-        } else if (dep.type === "property") {
-          reactivity2._subscribePropertyDependency(dep.object, dep.name, effect);
-        }
-      }
-    }
-    /**
-     * Subscribe to a DOM attribute. Sets up a persistent MutationObserver
-     * per element+attribute, shared across effects and re-runs.
-     * @param {Element} element
-     * @param {string} attrName
-     * @param {Effect} effect
-     */
-    _subscribeAttributeDependency(element, attrName, effect) {
-      var reactivity2 = this;
-      var state = getObjectState(element);
-      if (!state.attributeObservers) {
-        state.attributeObservers = {};
-      }
-      if (!state.attributeObservers[attrName]) {
-        var trackedEffects = /* @__PURE__ */ new Set();
-        var observer = new MutationObserver(function() {
-          for (var eff of trackedEffects) {
-            reactivity2._scheduleEffect(eff);
-          }
-        });
-        observer.observe(element, {
-          attributes: true,
-          attributeFilter: [attrName]
-        });
-        state.attributeObservers[attrName] = {
-          effects: trackedEffects,
-          observer
-        };
-      }
-      state.attributeObservers[attrName].effects.add(effect);
-    }
-    /**
-     * Subscribe to a property on an object. For DOM elements, sets up
-     * persistent input/change event listeners. For plain objects, only
-     * the subscription map is used (notified via setProperty).
-     * @param {Object} obj - DOM element or plain JS object
-     * @param {string} propName
-     * @param {Effect} effect
-     */
-    _subscribePropertyDependency(obj, propName, effect) {
-      var reactivity2 = this;
-      var state = getObjectState(obj);
-      if (!state.propertyHandler) {
-        var trackedEffects = /* @__PURE__ */ new Set();
-        var queueAll = function() {
-          for (var eff of trackedEffects) {
-            reactivity2._scheduleEffect(eff);
-          }
-        };
-        var remove;
-        if (obj instanceof Element) {
-          obj.addEventListener("input", queueAll);
-          obj.addEventListener("change", queueAll);
-          remove = function() {
-            obj.removeEventListener("input", queueAll);
-            obj.removeEventListener("change", queueAll);
-          };
-        } else {
-          remove = function() {
-          };
-        }
-        state.propertyHandler = {
-          effects: trackedEffects,
-          queueAll,
-          remove
-        };
-      }
-      state.propertyHandler.effects.add(effect);
-    }
-    /** @param {Effect} effect */
-    _unsubscribeEffect(effect) {
-      for (var [depKey, dep] of effect.dependencies) {
-        if (dep.type === "symbol" && dep.scope === "global") {
-          var subs = globalSubscriptions.get(dep.name);
-          if (subs) {
-            subs.delete(effect);
-            if (subs.size === 0) {
-              globalSubscriptions.delete(dep.name);
-            }
-          }
-        } else if (dep.type === "symbol" && dep.scope === "element") {
-          var state = getObjectState(dep.element);
-          if (state.subscriptions) {
-            var subs = state.subscriptions.get(dep.name);
-            if (subs) {
-              subs.delete(effect);
-              if (subs.size === 0) {
-                state.subscriptions.delete(dep.name);
-              }
-            }
-          }
-        } else if (dep.type === "attribute" && dep.element) {
-          var state = getObjectState(dep.element);
-          if (state.attributeObservers && state.attributeObservers[dep.name]) {
-            state.attributeObservers[dep.name].effects.delete(effect);
-          }
-        } else if (dep.type === "property" && dep.object) {
-          var state = getObjectState(dep.object);
-          if (state.propertyHandler) {
-            state.propertyHandler.effects.delete(effect);
-          }
-        }
-      }
-    }
-    /**
-     * Clean up MutationObservers and property listeners for deps with no remaining effects.
-     * @param {Map<string, Dependency>} deps
-     */
-    _cleanupOrphanedDeps(deps) {
-      for (var [depKey, dep] of deps) {
-        if (dep.type === "attribute" && dep.element) {
-          var state = getObjectState(dep.element);
-          if (state.attributeObservers && state.attributeObservers[dep.name]) {
-            var obs = state.attributeObservers[dep.name];
-            if (obs.effects.size === 0) {
-              obs.observer.disconnect();
-              delete state.attributeObservers[dep.name];
-            }
-          }
-        } else if (dep.type === "property" && dep.object) {
-          var state = getObjectState(dep.object);
-          if (state.propertyHandler && state.propertyHandler.effects.size === 0) {
-            state.propertyHandler.remove();
-            state.propertyHandler = null;
-          }
-        }
-      }
-    }
-    /**
-     * Create a reactive effect with automatic dependency tracking.
-     * @param {() => any} expression - The watched expression
-     * @param {(value: any) => void} handler - Called when the value changes
-     * @param {Object} [options]
-     * @param {Element} [options.element] - Auto-stop when element disconnects
-     * @returns {() => void} Stop function
-     */
-    createEffect(expression, handler, options) {
-      var effect = {
-        expression,
-        handler,
-        dependencies: /* @__PURE__ */ new Map(),
-        _lastExpressionValue: void 0,
-        element: options && options.element || null,
-        isStopped: false,
-        _consecutiveTriggers: 0
-      };
-      var prev = this._currentEffect;
-      this._currentEffect = effect;
-      try {
-        effect._lastExpressionValue = expression();
-      } catch (e) {
-        console.error("Error in reactive expression:", e);
-      }
-      this._currentEffect = prev;
-      this._subscribeEffect(effect);
-      if (effect.element) {
-        var set = this._elementEffects.get(effect.element);
-        if (!set) {
-          set = /* @__PURE__ */ new Set();
-          this._elementEffects.set(effect.element, set);
-        }
-        set.add(effect);
-      }
-      if (effect._lastExpressionValue != null) {
-        try {
-          handler(effect._lastExpressionValue);
-        } catch (e) {
-          console.error("Error in reactive handler:", e);
-        }
-      }
-      var reactivity2 = this;
-      return function stop() {
-        reactivity2.stopEffect(effect);
-      };
-    }
-    /** @param {Effect} effect */
-    stopEffect(effect) {
-      if (effect.isStopped) return;
-      effect.isStopped = true;
-      this._unsubscribeEffect(effect);
-      this._cleanupOrphanedDeps(effect.dependencies);
-      this._pendingEffects.delete(effect);
-    }
-    /** Stop all reactive effects owned by an element. */
-    stopElementEffects(element) {
-      var set = this._elementEffects.get(element);
-      if (!set) return;
-      for (var effect of set) {
-        this.stopEffect(effect);
-      }
-      this._elementEffects.delete(element);
-    }
-  };
-  var reactivity = new Reactivity();
-
   // src/core/runtime/runtime.js
   var cookies = new CookieJar().proxy();
   function _applyWhenResults(elements, results, forwardFn, reverseFn) {
@@ -2503,9 +2084,9 @@
       this.result = void 0;
       this.beingTested = null;
       this.event = event;
-      this.target = event ? event.target : null;
-      this.detail = event ? event.detail : null;
-      this.sender = event ? event.detail ? event.detail.sender : null : null;
+      this.target = event?.target ?? null;
+      this.detail = event?.detail ?? null;
+      this.sender = event?.detail?.sender ?? null;
       this.body = "document" in globalScope2 ? document.body : null;
       runtime2.addFeatures(owner, this);
     }
@@ -2516,14 +2097,19 @@
     #kernel;
     #tokenizer;
     #globalScope;
+    #reactivity;
     #scriptAttrs = null;
-    constructor(globalScope2, kernel2, tokenizer2) {
+    constructor(globalScope2, kernel2, tokenizer2, reactivity2) {
       this.#globalScope = globalScope2;
       this.#kernel = kernel2;
       this.#tokenizer = tokenizer2;
+      this.#reactivity = reactivity2;
     }
     get globalScope() {
       return this.#globalScope;
+    }
+    get reactivity() {
+      return this.#reactivity;
     }
     // =================================================================
     // Core execution engine
@@ -2692,116 +2278,96 @@
       return context instanceof Context;
     }
     resolveSymbol(str, context, type, targetElement) {
-      if (str === "me" || str === "my" || str === "I") {
-        return context.me;
+      if (str === "me" || str === "my" || str === "I") return context.me;
+      if (str === "it" || str === "its") return context.beingTested ?? context.result;
+      if (str === "result") return context.result;
+      if (str === "you" || str === "your" || str === "yourself") return context.you;
+      if (type === "global") {
+        if (this.reactivity.isTracking) this.reactivity.trackGlobalSymbol(str);
+        var val = this.#globalScope[str];
+        this.#trackMutation(val);
+        return val;
       }
-      if (str === "it" || str === "its") {
-        return context.beingTested != null ? context.beingTested : context.result;
+      if (type === "element") {
+        if (this.reactivity.isTracking) this.reactivity.trackElementSymbol(str, context.meta.owner);
+        var val = this.#getElementScope(context)[str];
+        this.#trackMutation(val);
+        return val;
       }
-      if (str === "result") {
-        return context.result;
+      if (type === "inherited") {
+        var inherited = this.#resolveInherited(str, context, targetElement);
+        if (this.reactivity.isTracking && inherited.element) {
+          this.reactivity.trackElementSymbol(str, inherited.element);
+        }
+        this.#trackMutation(inherited.value);
+        return inherited.value;
       }
-      if (str === "you" || str === "your" || str === "yourself") {
-        return context.you;
-      } else {
-        if (type === "global") {
-          if (reactivity.isTracking) reactivity.trackGlobalSymbol(str);
-          var val = this.#globalScope[str];
-          this.#trackMutation(val);
-          return val;
-        } else if (type === "element") {
-          if (reactivity.isTracking) reactivity.trackElementSymbol(str, context.meta.owner);
-          var elementScope = this.#getElementScope(context);
-          var val = elementScope[str];
-          this.#trackMutation(val);
-          return val;
-        } else if (type === "inherited") {
-          var inherited = this.#resolveInherited(str, context, targetElement);
-          if (reactivity.isTracking && inherited.element) {
-            reactivity.trackElementSymbol(str, inherited.element);
-          }
-          this.#trackMutation(inherited.value);
-          return inherited.value;
-        } else if (type === "local") {
-          return context.locals[str];
-        } else {
-          if (context.meta && context.meta.context) {
-            var fromMetaContext = context.meta.context[str];
-            if (typeof fromMetaContext !== "undefined") {
-              return fromMetaContext;
-            }
-            if (context.meta.context.detail) {
-              fromMetaContext = context.meta.context.detail[str];
-              if (typeof fromMetaContext !== "undefined") {
-                return fromMetaContext;
-              }
-            }
-          }
-          if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str)) {
-            var fromContext = context.locals[str];
-          } else {
-            var fromContext = context[str];
-          }
-          if (typeof fromContext !== "undefined") {
-            return fromContext;
-          } else {
-            var elementScope = this.#getElementScope(context);
-            fromContext = elementScope[str];
-            if (typeof fromContext !== "undefined") {
-              if (reactivity.isTracking) reactivity.trackElementSymbol(str, context.meta.owner);
-              this.#trackMutation(fromContext);
-              return fromContext;
-            } else {
-              if (reactivity.isTracking) reactivity.trackGlobalSymbol(str);
-              var val = this.#globalScope[str];
-              this.#trackMutation(val);
-              return val;
-            }
-          }
+      if (type === "local") return context.locals[str];
+      if (context.meta?.context) {
+        var fromMetaContext = context.meta.context[str];
+        if (typeof fromMetaContext !== "undefined") return fromMetaContext;
+        if (context.meta.context.detail) {
+          fromMetaContext = context.meta.context.detail[str];
+          if (typeof fromMetaContext !== "undefined") return fromMetaContext;
         }
       }
+      var fromContext = this.#isHyperscriptContext(context) && !this.#isReservedWord(str) ? context.locals[str] : context[str];
+      if (typeof fromContext !== "undefined") return fromContext;
+      var elementScope = this.#getElementScope(context);
+      fromContext = elementScope[str];
+      if (typeof fromContext !== "undefined") {
+        if (this.reactivity.isTracking) this.reactivity.trackElementSymbol(str, context.meta.owner);
+        this.#trackMutation(fromContext);
+        return fromContext;
+      }
+      if (this.reactivity.isTracking) this.reactivity.trackGlobalSymbol(str);
+      var val = this.#globalScope[str];
+      this.#trackMutation(val);
+      return val;
     }
     setSymbol(str, context, type, value, targetElement) {
       if (type === "global") {
         this.#globalScope[str] = value;
-        reactivity.notifyGlobalSymbol(str);
-      } else if (type === "element") {
-        var elementScope = this.#getElementScope(context);
-        elementScope[str] = value;
-        reactivity.notifyElementSymbol(str, context.meta.owner);
-      } else if (type === "inherited") {
+        this.reactivity.notifyGlobalSymbol(str);
+        return;
+      }
+      if (type === "element") {
+        this.#getElementScope(context)[str] = value;
+        this.reactivity.notifyElementSymbol(str, context.meta.owner);
+        return;
+      }
+      if (type === "inherited") {
         var inherited = this.#resolveInherited(str, context, targetElement);
         if (inherited.element) {
           this.getInternalData(inherited.element).elementScope[str] = value;
-          reactivity.notifyElementSymbol(str, inherited.element);
+          this.reactivity.notifyElementSymbol(str, inherited.element);
         } else {
-          var owner = targetElement || context.meta && context.meta.owner;
+          var owner = targetElement || context.meta?.owner;
           if (owner) {
             var internalData = this.getInternalData(owner);
             if (!internalData.elementScope) internalData.elementScope = {};
             internalData.elementScope[str] = value;
-            reactivity.notifyElementSymbol(str, owner);
+            this.reactivity.notifyElementSymbol(str, owner);
           }
         }
-      } else if (type === "local") {
+        return;
+      }
+      if (type === "local") {
+        context.locals[str] = value;
+        return;
+      }
+      if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str) && typeof context.locals[str] !== "undefined") {
+        context.locals[str] = value;
+        return;
+      }
+      var elementScope = this.#getElementScope(context);
+      if (typeof elementScope[str] !== "undefined") {
+        elementScope[str] = value;
+        this.reactivity.notifyElementSymbol(str, context.meta.owner);
+      } else if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str)) {
         context.locals[str] = value;
       } else {
-        if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str) && typeof context.locals[str] !== "undefined") {
-          context.locals[str] = value;
-        } else {
-          var elementScope = this.#getElementScope(context);
-          var fromContext = elementScope[str];
-          if (typeof fromContext !== "undefined") {
-            elementScope[str] = value;
-            reactivity.notifyElementSymbol(str, context.meta.owner);
-          } else {
-            if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str)) {
-              context.locals[str] = value;
-            } else {
-              context[str] = value;
-            }
-          }
-        }
+        context[str] = value;
       }
     }
     getInternalData(elt) {
@@ -2856,7 +2422,7 @@
       }
     }
     resolveProperty(root, property) {
-      if (reactivity.isTracking) reactivity.trackProperty(root, property);
+      if (this.reactivity.isTracking) this.reactivity.trackProperty(root, property);
       return this.#flatGet(root, property, (root2, property2) => root2[property2]);
     }
     /**
@@ -2867,7 +2433,7 @@
      */
     setProperty(obj, property, value) {
       obj[property] = value;
-      reactivity.notifyProperty(obj);
+      this.reactivity.notifyProperty(obj);
     }
     /**
      * Notify the reactivity system that an object was mutated in-place.
@@ -2875,7 +2441,7 @@
      * @param {Object} obj - The mutated object
      */
     notifyMutation(obj) {
-      reactivity.notifyProperty(obj);
+      this.reactivity.notifyProperty(obj);
     }
     /**
      * Check if a method call is known to mutate its receiver, and notify if so.
@@ -2891,12 +2457,12 @@
       }
     }
     #trackMutation(val) {
-      if (reactivity.isTracking && val != null && typeof val === "object") {
-        reactivity.trackProperty(val, "__mutation__");
+      if (this.reactivity.isTracking && val != null && typeof val === "object") {
+        this.reactivity.trackProperty(val, "__mutation__");
       }
     }
     resolveAttribute(root, property) {
-      if (reactivity.isTracking) reactivity.trackAttribute(root, property);
+      if (this.reactivity.isTracking) this.reactivity.trackAttribute(root, property);
       return this.#flatGet(root, property, (root2, property2) => root2.getAttribute && root2.getAttribute(property2));
     }
     resolveStyle(root, property) {
@@ -3090,13 +2656,14 @@
     // =================================================================
     #getScriptAttributes() {
       if (this.#scriptAttrs == null) {
-        this.#scriptAttrs = config.attributes.replace(/ /g, "").split(",");
+        this.#scriptAttrs = config.attributes.replaceAll(" ", "").split(",");
       }
       return this.#scriptAttrs;
     }
     #getScript(elt) {
-      for (var i = 0; i < this.#getScriptAttributes().length; i++) {
-        var scriptAttribute = this.#getScriptAttributes()[i];
+      var attrs = this.#getScriptAttributes();
+      for (var i = 0; i < attrs.length; i++) {
+        var scriptAttribute = attrs[i];
         if (elt.hasAttribute && elt.hasAttribute(scriptAttribute)) {
           return elt.getAttribute(scriptAttribute);
         }
@@ -3106,10 +2673,12 @@
       }
       return null;
     }
+    #scriptSelector;
     #getScriptSelector() {
-      return this.#getScriptAttributes().map(function(attribute) {
-        return "[" + attribute + "]";
-      }).join(", ");
+      if (!this.#scriptSelector) {
+        this.#scriptSelector = this.#getScriptAttributes().map((a) => "[" + a + "]").join(", ");
+      }
+      return this.#scriptSelector;
     }
     #hashScript(str) {
       var hash = 5381;
@@ -3137,7 +2706,7 @@
           if (state.debounced) clearTimeout(state.debounced);
         }
       }
-      reactivity.stopElementEffects(elt);
+      this.reactivity.stopElementEffects(elt);
       if (elt.querySelectorAll) {
         for (var child of elt.querySelectorAll("[data-hyperscript-powered]")) {
           this.cleanup(child);
@@ -3263,26 +2832,472 @@
     }
     beepValueToConsole(element, expression, value) {
       if (this.triggerEvent(element, "hyperscript:beep", { element, expression, value })) {
-        var typeName;
-        if (value) {
-          if (value instanceof ElementCollection) {
-            typeName = "ElementCollection";
-          } else if (value.constructor) {
-            typeName = value.constructor.name;
-          } else {
-            typeName = "unknown";
-          }
-        } else {
-          typeName = "object (null)";
-        }
-        var logValue = value;
-        if (typeName === "String") {
-          logValue = '"' + logValue + '"';
-        } else if (value instanceof ElementCollection) {
-          logValue = Array.from(value);
-        }
+        var typeName = !value ? "object (null)" : value instanceof ElementCollection ? "ElementCollection" : value.constructor?.name || "unknown";
+        var logValue = typeName === "String" ? '"' + value + '"' : value instanceof ElementCollection ? Array.from(value) : value;
         console.log("///_ BEEP! The expression (" + expression.sourceFor().replace("beep! ", "") + ") evaluates to:", logValue, "of type " + typeName);
       }
+    }
+  };
+
+  // src/core/runtime/reactivity.js
+  function _sameValue(a, b) {
+    return a === b ? a !== 0 || 1 / a === 1 / b : a !== a && b !== b;
+  }
+  var Effect = class {
+    /**
+     * @param {() => any} expression - The watched expression
+     * @param {(v: any) => void} handler - Called when value changes
+     * @param {Element|null} element - Owner element; auto-stops when disconnected
+     * @param {Reactivity} reactivity - The owning reactivity system
+     */
+    constructor(expression, handler, element, reactivity2) {
+      this.expression = expression;
+      this.handler = handler;
+      this.element = element;
+      this._reactivity = reactivity2;
+      this.dependencies = /* @__PURE__ */ new Map();
+      this._lastValue = void 0;
+      this._isStopped = false;
+      this._consecutiveTriggers = 0;
+    }
+    /**
+     * First evaluation: track deps, subscribe, call handler if non-null.
+     * Both undefined and null are treated as "no value yet" to support
+     * left-side-wins initialization in bind.
+     */
+    initialize() {
+      var reactivity2 = this._reactivity;
+      var prev = reactivity2._currentEffect;
+      reactivity2._currentEffect = this;
+      try {
+        this._lastValue = this.expression();
+      } catch (e) {
+        console.error("Error in reactive expression:", e);
+      }
+      reactivity2._currentEffect = prev;
+      reactivity2._subscribeEffect(this);
+      if (this._lastValue != null) {
+        try {
+          this.handler(this._lastValue);
+        } catch (e) {
+          console.error("Error in reactive handler:", e);
+        }
+      }
+    }
+    /**
+     * Re-evaluate expression with dependency tracking, compare with last
+     * value, and call handler if changed. Returns false if circular
+     * guard tripped (caller should skip this effect).
+     * @returns {boolean} Whether the effect ran successfully
+     */
+    run() {
+      this._consecutiveTriggers++;
+      if (this._consecutiveTriggers > 100) {
+        console.error(
+          "Reactivity loop detected: an effect triggered 100 consecutive times without settling. This usually means an effect is modifying a variable it also depends on.",
+          this.element || this
+        );
+        return false;
+      }
+      var reactivity2 = this._reactivity;
+      reactivity2._unsubscribeEffect(this);
+      var oldDeps = this.dependencies;
+      this.dependencies = /* @__PURE__ */ new Map();
+      var prev = reactivity2._currentEffect;
+      reactivity2._currentEffect = this;
+      var newValue;
+      try {
+        newValue = this.expression();
+      } catch (e) {
+        console.error("Error in reactive expression:", e);
+        this.dependencies = oldDeps;
+        reactivity2._currentEffect = prev;
+        reactivity2._subscribeEffect(this);
+        return true;
+      }
+      reactivity2._currentEffect = prev;
+      reactivity2._subscribeEffect(this);
+      reactivity2._cleanupOrphanedDeps(oldDeps);
+      if (!_sameValue(newValue, this._lastValue)) {
+        this._lastValue = newValue;
+        try {
+          this.handler(newValue);
+        } catch (e) {
+          console.error("Error in reactive handler:", e);
+        }
+      }
+      return true;
+    }
+    /** Reset circular guard after cascade settles. */
+    resetTriggerCount() {
+      this._consecutiveTriggers = 0;
+    }
+    /** Stop this effect and clean up all subscriptions. */
+    stop() {
+      if (this._isStopped) return;
+      this._isStopped = true;
+      this._reactivity._unsubscribeEffect(this);
+      this._reactivity._cleanupOrphanedDeps(this.dependencies);
+      this._reactivity._pendingEffects.delete(this);
+    }
+  };
+  var Reactivity = class {
+    constructor() {
+      this._objectState = /* @__PURE__ */ new WeakMap();
+      this._globalSubscriptions = /* @__PURE__ */ new Map();
+      this._nextId = 0;
+      this._currentEffect = null;
+      this._pendingEffects = /* @__PURE__ */ new Set();
+      this._isRunScheduled = false;
+    }
+    /**
+     * Get or create the reactive state object for any object.
+     * Assigns a stable unique ID on first access.
+     * @param {Object} obj - DOM element or plain JS object
+     * @returns {{ id: string, subscriptions: Map|null, propertyHandler: Object|null }}
+     */
+    _getObjectState(obj) {
+      var state = this._objectState.get(obj);
+      if (!state) {
+        this._objectState.set(obj, state = {
+          id: String(++this._nextId),
+          subscriptions: null,
+          propertyHandler: null,
+          attributeObservers: null
+        });
+      }
+      return state;
+    }
+    /**
+     * Whether an effect is currently evaluating its expression().
+     * When true, reads (symbol/property/attribute) are recorded as dependencies.
+     * @returns {boolean}
+     */
+    get isTracking() {
+      return this._currentEffect !== null;
+    }
+    /**
+     * Track a global variable read as a dependency.
+     * @param {string} name - Variable name
+     */
+    trackGlobalSymbol(name) {
+      this._currentEffect.dependencies.set(
+        "symbol:global:" + name,
+        { type: "symbol", name, scope: "global" }
+      );
+    }
+    /**
+     * Track an element-scoped variable read as a dependency.
+     * @param {string} name - Variable name
+     * @param {Element} element - Owning element
+     */
+    trackElementSymbol(name, element) {
+      if (!element) return;
+      var elementId = this._getObjectState(element).id;
+      this._currentEffect.dependencies.set(
+        "symbol:element:" + name + ":" + elementId,
+        { type: "symbol", name, scope: "element", element }
+      );
+    }
+    /**
+     * Track a property read as a dependency.
+     * Subscription is coarse-grained (one handler per object, not per property),
+     * so the dep key uses "*" rather than the property name.
+     * @param {Object} obj - DOM element or plain JS object
+     * @param {string} name - Property name
+     */
+    trackProperty(obj, name) {
+      if (obj == null || typeof obj !== "object") return;
+      this._currentEffect.dependencies.set(
+        "property:" + this._getObjectState(obj).id,
+        { type: "property", object: obj, name }
+      );
+    }
+    /**
+     * Track a DOM attribute read as a dependency.
+     * @param {Element} element
+     * @param {string} name - Attribute name
+     */
+    trackAttribute(element, name) {
+      if (!(element instanceof Element)) return;
+      this._currentEffect.dependencies.set(
+        "attribute:" + name + ":" + this._getObjectState(element).id,
+        { type: "attribute", element, name }
+      );
+    }
+    /**
+     * Notify that a global variable was written.
+     * @param {string} name - Variable name
+     */
+    notifyGlobalSymbol(name) {
+      var subs = this._globalSubscriptions.get(name);
+      if (subs) {
+        for (var effect of subs) {
+          this._scheduleEffect(effect);
+        }
+      }
+    }
+    /**
+     * Notify that an element-scoped variable was written.
+     * @param {string} name - Variable name
+     * @param {Element} element - Owning element
+     */
+    notifyElementSymbol(name, element) {
+      if (!element) return;
+      var state = this._getObjectState(element);
+      if (state.subscriptions) {
+        var subs = state.subscriptions.get(name);
+        if (subs) {
+          for (var effect of subs) {
+            this._scheduleEffect(effect);
+          }
+        }
+      }
+    }
+    /**
+     * Notify that a property was written programmatically.
+     * Schedules all effects watching properties on this object.
+     * @param {Object} obj - DOM element or plain JS object
+     */
+    notifyProperty(obj) {
+      if (obj == null || typeof obj !== "object") return;
+      var state = this._objectState.get(obj);
+      if (state && state.propertyHandler) {
+        state.propertyHandler.queueAll();
+      }
+    }
+    /**
+     * Add an effect to the pending set.
+     * Schedules a microtask to run them if one isn't already scheduled.
+     * @param {Effect} effect
+     */
+    _scheduleEffect(effect) {
+      if (effect._isStopped) return;
+      this._pendingEffects.add(effect);
+      if (!this._isRunScheduled) {
+        this._isRunScheduled = true;
+        var self2 = this;
+        queueMicrotask(function() {
+          self2._runPendingEffects();
+        });
+      }
+    }
+    /**
+     * Run all pending effects. Called once per microtask batch.
+     * Effects that re-trigger during this run are queued for the next batch.
+     */
+    _runPendingEffects() {
+      this._isRunScheduled = false;
+      var effects = Array.from(this._pendingEffects);
+      this._pendingEffects.clear();
+      for (var i = 0; i < effects.length; i++) {
+        var effect = effects[i];
+        if (effect._isStopped) continue;
+        if (effect.element && !effect.element.isConnected) {
+          effect.stop();
+          continue;
+        }
+        effect.run();
+      }
+      if (this._pendingEffects.size === 0) {
+        for (var i = 0; i < effects.length; i++) {
+          if (!effects[i]._isStopped) effects[i].resetTriggerCount();
+        }
+      }
+    }
+    /**
+     * Subscribe an effect to all its current deps.
+     * Symbols go into subscription maps, attributes get MutationObservers,
+     * properties use persistent per-element input/change listeners.
+     * @param {Effect} effect
+     */
+    _subscribeEffect(effect) {
+      var reactivity2 = this;
+      for (var [depKey, dep] of effect.dependencies) {
+        if (dep.type === "symbol" && dep.scope === "global") {
+          if (!reactivity2._globalSubscriptions.has(dep.name)) {
+            reactivity2._globalSubscriptions.set(dep.name, /* @__PURE__ */ new Set());
+          }
+          reactivity2._globalSubscriptions.get(dep.name).add(effect);
+        } else if (dep.type === "symbol" && dep.scope === "element") {
+          var state = reactivity2._getObjectState(dep.element);
+          if (!state.subscriptions) {
+            state.subscriptions = /* @__PURE__ */ new Map();
+          }
+          if (!state.subscriptions.has(dep.name)) {
+            state.subscriptions.set(dep.name, /* @__PURE__ */ new Set());
+          }
+          state.subscriptions.get(dep.name).add(effect);
+        } else if (dep.type === "attribute") {
+          reactivity2._subscribeAttributeDependency(dep.element, dep.name, effect);
+        } else if (dep.type === "property") {
+          reactivity2._subscribePropertyDependency(dep.object, dep.name, effect);
+        }
+      }
+    }
+    /**
+     * Subscribe to a DOM attribute. Sets up a persistent MutationObserver
+     * per element+attribute, shared across effects and re-runs.
+     * @param {Element} element
+     * @param {string} attrName
+     * @param {Effect} effect
+     */
+    _subscribeAttributeDependency(element, attrName, effect) {
+      var reactivity2 = this;
+      var state = reactivity2._getObjectState(element);
+      if (!state.attributeObservers) {
+        state.attributeObservers = {};
+      }
+      if (!state.attributeObservers[attrName]) {
+        var trackedEffects = /* @__PURE__ */ new Set();
+        var observer = new MutationObserver(function() {
+          for (var eff of trackedEffects) {
+            reactivity2._scheduleEffect(eff);
+          }
+        });
+        observer.observe(element, {
+          attributes: true,
+          attributeFilter: [attrName]
+        });
+        state.attributeObservers[attrName] = {
+          effects: trackedEffects,
+          observer
+        };
+      }
+      state.attributeObservers[attrName].effects.add(effect);
+    }
+    /**
+     * Subscribe to a property on an object. For DOM elements, sets up
+     * persistent input/change event listeners. For plain objects, only
+     * the subscription map is used (notified via setProperty).
+     * @param {Object} obj - DOM element or plain JS object
+     * @param {string} propName
+     * @param {Effect} effect
+     */
+    _subscribePropertyDependency(obj, propName, effect) {
+      var reactivity2 = this;
+      var state = reactivity2._getObjectState(obj);
+      if (!state.propertyHandler) {
+        var trackedEffects = /* @__PURE__ */ new Set();
+        var queueAll = function() {
+          for (var eff of trackedEffects) {
+            reactivity2._scheduleEffect(eff);
+          }
+        };
+        var remove;
+        if (obj instanceof Element) {
+          obj.addEventListener("input", queueAll);
+          obj.addEventListener("change", queueAll);
+          remove = function() {
+            obj.removeEventListener("input", queueAll);
+            obj.removeEventListener("change", queueAll);
+          };
+        } else {
+          remove = function() {
+          };
+        }
+        state.propertyHandler = {
+          effects: trackedEffects,
+          queueAll,
+          remove
+        };
+      }
+      state.propertyHandler.effects.add(effect);
+    }
+    /** @param {Effect} effect */
+    _unsubscribeEffect(effect) {
+      var reactivity2 = this;
+      for (var [depKey, dep] of effect.dependencies) {
+        if (dep.type === "symbol" && dep.scope === "global") {
+          var subs = reactivity2._globalSubscriptions.get(dep.name);
+          if (subs) {
+            subs.delete(effect);
+            if (subs.size === 0) {
+              reactivity2._globalSubscriptions.delete(dep.name);
+            }
+          }
+        } else if (dep.type === "symbol" && dep.scope === "element") {
+          var state = reactivity2._getObjectState(dep.element);
+          if (state.subscriptions) {
+            var subs = state.subscriptions.get(dep.name);
+            if (subs) {
+              subs.delete(effect);
+              if (subs.size === 0) {
+                state.subscriptions.delete(dep.name);
+              }
+            }
+          }
+        } else if (dep.type === "attribute" && dep.element) {
+          var state = reactivity2._getObjectState(dep.element);
+          if (state.attributeObservers && state.attributeObservers[dep.name]) {
+            state.attributeObservers[dep.name].effects.delete(effect);
+          }
+        } else if (dep.type === "property" && dep.object) {
+          var state = reactivity2._getObjectState(dep.object);
+          if (state.propertyHandler) {
+            state.propertyHandler.effects.delete(effect);
+          }
+        }
+      }
+    }
+    /**
+     * Clean up MutationObservers and property listeners for deps with no remaining effects.
+     * @param {Map<string, Dependency>} deps
+     */
+    _cleanupOrphanedDeps(deps) {
+      var reactivity2 = this;
+      for (var [depKey, dep] of deps) {
+        if (dep.type === "attribute" && dep.element) {
+          var state = reactivity2._getObjectState(dep.element);
+          if (state.attributeObservers && state.attributeObservers[dep.name]) {
+            var obs = state.attributeObservers[dep.name];
+            if (obs.effects.size === 0) {
+              obs.observer.disconnect();
+              delete state.attributeObservers[dep.name];
+            }
+          }
+        } else if (dep.type === "property" && dep.object) {
+          var state = reactivity2._getObjectState(dep.object);
+          if (state.propertyHandler && state.propertyHandler.effects.size === 0) {
+            state.propertyHandler.remove();
+            state.propertyHandler = null;
+          }
+        }
+      }
+    }
+    /**
+     * Create a reactive effect with automatic dependency tracking.
+     * @param {() => any} expression - The watched expression
+     * @param {(value: any) => void} handler - Called when the value changes
+     * @param {Object} [options]
+     * @param {Element} [options.element] - Auto-stop when element disconnects
+     * @returns {() => void} Stop function
+     */
+    createEffect(expression, handler, options) {
+      var effect = new Effect(
+        expression,
+        handler,
+        options && options.element || null,
+        this
+      );
+      effect.initialize();
+      if (effect.element) {
+        var data = effect.element._hyperscript ??= {};
+        data.effects ??= /* @__PURE__ */ new Set();
+        data.effects.add(effect);
+      }
+      return function() {
+        effect.stop();
+      };
+    }
+    /** Stop all reactive effects owned by an element. */
+    stopElementEffects(element) {
+      var data = element._hyperscript;
+      if (!data || !data.effects) return;
+      for (var effect of data.effects) {
+        effect.stop();
+      }
+      delete data.effects;
     }
   };
 
@@ -3383,7 +3398,7 @@
       }
     }
     resolve(context, { value }) {
-      return -1 * value;
+      return -value;
     }
   };
   var LogicalNot = class _LogicalNot extends Expression {
@@ -3525,8 +3540,7 @@
       return parser.parseElement("indirectExpression", propertyAccess);
     }
     resolve(context, { root: rootVal }) {
-      var value = context.meta.runtime.resolveProperty(rootVal, this.prop.value);
-      return value;
+      return context.meta.runtime.resolveProperty(rootVal, this.prop.value);
     }
     get lhs() {
       return { root: this.root };
@@ -3551,6 +3565,10 @@
       this.expression = expression;
       this.args = args;
       this._urRoot = urRoot;
+      this._prop = urRoot.name;
+      this._isAttribute = urRoot.type === "attributeRef";
+      this._isStyle = urRoot.type === "styleRef";
+      this._isComputed = urRoot.type === "computedStyleRef";
     }
     static parse(parser, root) {
       if (!parser.matchToken("of")) return;
@@ -3589,20 +3607,14 @@
       return parser.parseElement("indirectExpression", root);
     }
     resolve(context, { root: rootVal }) {
-      var urRoot = this._urRoot;
-      var prop = urRoot.name;
-      var attribute = urRoot.type === "attributeRef";
-      var style = urRoot.type === "styleRef" || urRoot.type === "computedStyleRef";
-      if (attribute) {
-        return context.meta.runtime.resolveAttribute(rootVal, prop);
-      } else if (style) {
-        if (urRoot.type === "computedStyleRef") {
-          return context.meta.runtime.resolveComputedStyle(rootVal, prop);
-        } else {
-          return context.meta.runtime.resolveStyle(rootVal, prop);
-        }
+      if (this._isAttribute) {
+        return context.meta.runtime.resolveAttribute(rootVal, this._prop);
+      } else if (this._isComputed) {
+        return context.meta.runtime.resolveComputedStyle(rootVal, this._prop);
+      } else if (this._isStyle) {
+        return context.meta.runtime.resolveStyle(rootVal, this._prop);
       } else {
-        return context.meta.runtime.resolveProperty(rootVal, prop);
+        return context.meta.runtime.resolveProperty(rootVal, this._prop);
       }
     }
     get lhs() {
@@ -3610,20 +3622,18 @@
     }
     set(ctx, lhs, value) {
       ctx.meta.runtime.nullCheck(lhs.root, this.root);
-      var urRoot = this._urRoot;
-      var prop = urRoot.name;
-      if (urRoot.type === "attributeRef") {
+      if (this._isAttribute) {
         ctx.meta.runtime.implicitLoop(lhs.root, (elt) => {
-          value == null ? elt.removeAttribute(prop) : elt.setAttribute(prop, value);
+          value == null ? elt.removeAttribute(this._prop) : elt.setAttribute(this._prop, value);
         });
-      } else if (urRoot.type === "styleRef") {
+      } else if (this._isStyle) {
         ctx.meta.runtime.implicitLoop(lhs.root, (elt) => {
-          elt.style[prop] = value;
+          elt.style[this._prop] = value;
         });
       } else {
         var runtime2 = ctx.meta.runtime;
         runtime2.implicitLoop(lhs.root, (elt) => {
-          runtime2.setProperty(elt, prop, value);
+          runtime2.setProperty(elt, this._prop, value);
         });
       }
     }
@@ -3833,8 +3843,7 @@
       return new _AttributeRefAccess(root, attribute);
     }
     resolve(_ctx, { root: rootVal }) {
-      var value = _ctx.meta.runtime.resolveAttribute(rootVal, this.attribute.name);
-      return value;
+      return _ctx.meta.runtime.resolveAttribute(rootVal, this.attribute.name);
     }
     get lhs() {
       return { root: this.root };
@@ -4137,93 +4146,37 @@
         if (typeof lhsVal === "string") lhsVal = lhsVal.toLowerCase();
         if (typeof rhsVal === "string") rhsVal = rhsVal.toLowerCase();
       }
-      if (operator === "==") {
-        return lhsVal == rhsVal;
-      } else if (operator === "!=") {
-        return lhsVal != rhsVal;
-      }
-      if (operator === "===") {
-        return lhsVal === rhsVal;
-      } else if (operator === "!==") {
-        return lhsVal !== rhsVal;
-      }
-      if (operator === "match") {
-        return lhsVal != null && this.sloppyMatches(lhs, lhsVal, rhsVal);
-      }
-      if (operator === "not match") {
-        return lhsVal == null || !this.sloppyMatches(lhs, lhsVal, rhsVal);
-      }
-      if (operator === "in") {
-        return rhsVal != null && this.sloppyContains(rhs, rhsVal, lhsVal);
-      }
-      if (operator === "not in") {
-        return rhsVal == null || !this.sloppyContains(rhs, rhsVal, lhsVal);
-      }
-      if (operator === "contain") {
-        return lhsVal != null && this.sloppyContains(lhs, lhsVal, rhsVal);
-      }
-      if (operator === "not contain") {
-        return lhsVal == null || !this.sloppyContains(lhs, lhsVal, rhsVal);
-      }
-      if (operator === "include") {
-        return lhsVal != null && this.sloppyContains(lhs, lhsVal, rhsVal);
-      }
-      if (operator === "not include") {
-        return lhsVal == null || !this.sloppyContains(lhs, lhsVal, rhsVal);
-      }
-      if (operator === "start with") {
-        return lhsVal != null && String(lhsVal).startsWith(rhsVal);
-      }
-      if (operator === "not start with") {
-        return lhsVal == null || !String(lhsVal).startsWith(rhsVal);
-      }
-      if (operator === "end with") {
-        return lhsVal != null && String(lhsVal).endsWith(rhsVal);
-      }
-      if (operator === "not end with") {
-        return lhsVal == null || !String(lhsVal).endsWith(rhsVal);
-      }
-      if (operator === "between") {
-        return lhsVal >= rhsVal && lhsVal <= rhs2Val;
-      }
-      if (operator === "not between") {
-        return lhsVal < rhsVal || lhsVal > rhs2Val;
-      }
-      if (operator === "precede") {
-        return lhsVal != null && rhsVal != null && (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
-      }
-      if (operator === "not precede") {
-        return lhsVal == null || rhsVal == null || (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_FOLLOWING) === 0;
-      }
-      if (operator === "follow") {
-        return lhsVal != null && rhsVal != null && (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_PRECEDING) !== 0;
-      }
-      if (operator === "not follow") {
-        return lhsVal == null || rhsVal == null || (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_PRECEDING) === 0;
-      }
-      if (operator === "<") {
-        return lhsVal < rhsVal;
-      } else if (operator === ">") {
-        return lhsVal > rhsVal;
-      } else if (operator === "<=") {
-        return lhsVal <= rhsVal;
-      } else if (operator === ">=") {
-        return lhsVal >= rhsVal;
-      } else if (operator === "empty") {
-        return context.meta.runtime.isEmpty(lhsVal);
-      } else if (operator === "not empty") {
-        return !context.meta.runtime.isEmpty(lhsVal);
-      } else if (operator === "exist") {
-        return context.meta.runtime.doesExist(lhsVal);
-      } else if (operator === "not exist") {
-        return !context.meta.runtime.doesExist(lhsVal);
-      } else if (operator === "a") {
-        return context.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
-      } else if (operator === "not a") {
-        return !context.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
-      } else {
-        throw new Error("Unknown comparison : " + operator);
-      }
+      if (operator === "==") return lhsVal == rhsVal;
+      if (operator === "!=") return lhsVal != rhsVal;
+      if (operator === "===") return lhsVal === rhsVal;
+      if (operator === "!==") return lhsVal !== rhsVal;
+      if (operator === "<") return lhsVal < rhsVal;
+      if (operator === ">") return lhsVal > rhsVal;
+      if (operator === "<=") return lhsVal <= rhsVal;
+      if (operator === ">=") return lhsVal >= rhsVal;
+      if (operator === "match") return lhsVal != null && this.sloppyMatches(lhs, lhsVal, rhsVal);
+      if (operator === "not match") return lhsVal == null || !this.sloppyMatches(lhs, lhsVal, rhsVal);
+      if (operator === "in") return rhsVal != null && this.sloppyContains(rhs, rhsVal, lhsVal);
+      if (operator === "not in") return rhsVal == null || !this.sloppyContains(rhs, rhsVal, lhsVal);
+      if (operator === "contain" || operator === "include") return lhsVal != null && this.sloppyContains(lhs, lhsVal, rhsVal);
+      if (operator === "not contain" || operator === "not include") return lhsVal == null || !this.sloppyContains(lhs, lhsVal, rhsVal);
+      if (operator === "start with") return lhsVal != null && String(lhsVal).startsWith(rhsVal);
+      if (operator === "not start with") return lhsVal == null || !String(lhsVal).startsWith(rhsVal);
+      if (operator === "end with") return lhsVal != null && String(lhsVal).endsWith(rhsVal);
+      if (operator === "not end with") return lhsVal == null || !String(lhsVal).endsWith(rhsVal);
+      if (operator === "between") return lhsVal >= rhsVal && lhsVal <= rhs2Val;
+      if (operator === "not between") return lhsVal < rhsVal || lhsVal > rhs2Val;
+      if (operator === "precede") return lhsVal != null && rhsVal != null && (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+      if (operator === "not precede") return lhsVal == null || rhsVal == null || (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_FOLLOWING) === 0;
+      if (operator === "follow") return lhsVal != null && rhsVal != null && (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_PRECEDING) !== 0;
+      if (operator === "not follow") return lhsVal == null || rhsVal == null || (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_PRECEDING) === 0;
+      if (operator === "empty") return context.meta.runtime.isEmpty(lhsVal);
+      if (operator === "not empty") return !context.meta.runtime.isEmpty(lhsVal);
+      if (operator === "exist") return context.meta.runtime.doesExist(lhsVal);
+      if (operator === "not exist") return !context.meta.runtime.doesExist(lhsVal);
+      if (operator === "a") return context.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
+      if (operator === "not a") return !context.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
+      throw new Error("Unknown comparison : " + operator);
     }
   };
   var LogicalOperator = class _LogicalOperator extends Expression {
@@ -4947,25 +4900,18 @@
       this.args = { to };
     }
     resolve(ctx, { to }) {
-      if (to == null) {
-        return null;
-      } else {
-        let result = [];
-        const css = this.css;
-        const parentSearch = this.parentSearch;
-        ctx.meta.runtime.implicitLoop(to, function(to2) {
-          if (parentSearch) {
-            result.push(to2.parentElement ? to2.parentElement.closest(css) : null);
-          } else {
-            result.push(to2.closest(css));
-          }
-        });
-        if (ctx.meta.runtime.shouldAutoIterate(to)) {
-          return result;
+      if (to == null) return null;
+      let result = [];
+      const css = this.css;
+      const parentSearch = this.parentSearch;
+      ctx.meta.runtime.implicitLoop(to, function(to2) {
+        if (parentSearch) {
+          result.push(to2.parentElement ? to2.parentElement.closest(css) : null);
         } else {
-          return result[0];
+          result.push(to2.closest(css));
         }
-      }
+      });
+      return ctx.meta.runtime.shouldAutoIterate(to) ? result : result[0];
     }
   };
   var ClosestExpr = class extends Expression {
@@ -5120,7 +5066,7 @@
       } else {
         console.log(...values);
       }
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
   var BeepCommand = class _BeepCommand extends Command {
@@ -5144,7 +5090,7 @@
         const val = values[i];
         ctx.meta.runtime.beepValueToConsole(ctx.me, expr, val);
       }
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
   var ThrowCommand = class _ThrowCommand extends Command {
@@ -5183,21 +5129,12 @@
       var resolve = context.meta.resolve;
       context.meta.returned = true;
       context.meta.returnValue = value;
-      if (resolve) {
-        if (value) {
-          resolve(value);
-        } else {
-          resolve();
-        }
-      }
+      if (resolve) resolve(value);
       return context.meta.runtime.HALT;
     }
   };
   var ExitCommand = class _ExitCommand extends Command {
     static keyword = "exit";
-    constructor() {
-      super();
-    }
     static parse(parser) {
       if (!parser.matchToken("exit")) return;
       return new _ExitCommand();
@@ -5250,7 +5187,7 @@
         }
       }
       if (this.keepExecuting) {
-        return ctx.meta.runtime.findNext(this, ctx);
+        return this.findNext(ctx);
       } else {
         return this.exit;
       }
@@ -5296,10 +5233,7 @@
         }
         var result = document.createElement(tagname);
         if (id !== void 0) result.id = id;
-        for (var i = 0; i < classes.length; i++) {
-          var cls = classes[i];
-          result.classList.add(cls);
-        }
+        result.classList.add(...classes);
         ctx.result = result;
       } else {
         ctx.result = new expr(...constructorArgs);
@@ -5307,7 +5241,7 @@
       if (this.target) {
         ctx.meta.runtime.setSymbol(this.target.name, ctx, this.target.scope, ctx.result);
       }
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
   var AppendCommand = class _AppendCommand extends Command {
@@ -5342,7 +5276,6 @@
       if (Array.isArray(target)) {
         target.push(value);
         context.meta.runtime.notifyMutation(target);
-        return context.meta.runtime.findNext(this, context);
       } else if (target instanceof Element) {
         if (value instanceof Element) {
           target.insertAdjacentElement("beforeend", value);
@@ -5350,13 +5283,12 @@
           target.insertAdjacentHTML("beforeend", value);
         }
         context.meta.runtime.processNode(target);
-        return context.meta.runtime.findNext(this, context);
       } else if (this.assignable) {
         this._target.set(context, lhs, (target || "") + value);
-        return context.meta.runtime.findNext(this, context);
       } else {
         throw new Error("Unable to append a value!");
       }
+      return this.findNext(context);
     }
   };
   var PickCommand = class _PickCommand extends Command {
@@ -5505,14 +5437,14 @@
         if (this.range.toEnd) to = root.length;
         if (!this.range.includeStart) from++;
         if (this.range.includeEnd) to++;
-        if (to == null || to == void 0) to = from + 1;
+        if (to == null) to = from + 1;
         ctx.result = root.slice(from, to);
       } else if (this.variant === "match") {
         ctx.result = new RegExp(re, this.flags).exec(root);
       } else {
         ctx.result = new RegExpIterable(re, this.flags, root);
       }
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
   var FetchCommand = class _FetchCommand extends Command {
@@ -5560,60 +5492,42 @@
       return new _FetchCommand(url, argExprs, type, conversion);
     }
     resolve(context, { url, options }) {
-      const type = this.conversionType;
-      const conversion = this.conversion;
-      const fetchCmd = this;
       var detail = options || {};
-      detail["sender"] = context.me;
-      detail["headers"] = detail["headers"] || {};
+      detail.sender = context.me;
+      detail.headers = detail.headers || {};
       var abortController = new AbortController();
-      var abortListener = function() {
-        abortController.abort();
-      };
+      var abortListener = () => abortController.abort();
       context.me.addEventListener("fetch:abort", abortListener, { once: true });
-      detail["signal"] = abortController.signal;
+      detail.signal = abortController.signal;
       context.meta.runtime.triggerEvent(context.me, "hyperscript:beforeFetch", detail);
       context.meta.runtime.triggerEvent(context.me, "fetch:beforeRequest", detail);
       var finished = false;
       if (detail.timeout) {
-        setTimeout(function() {
-          if (!finished) {
-            abortController.abort();
-          }
+        setTimeout(() => {
+          if (!finished) abortController.abort();
         }, detail.timeout);
       }
-      return fetch(url, detail).then(function(resp) {
-        let resultDetails = { response: resp };
+      var complete = (result) => {
+        context.result = result;
+        context.meta.runtime.triggerEvent(context.me, "fetch:afterRequest", { result });
+        finished = true;
+        return this.findNext(context);
+      };
+      return fetch(url, detail).then((resp) => {
+        var resultDetails = { response: resp };
         context.meta.runtime.triggerEvent(context.me, "fetch:afterResponse", resultDetails);
         resp = resultDetails.response;
-        if (type === "response") {
-          context.result = resp;
-          context.meta.runtime.triggerEvent(context.me, "fetch:afterRequest", { result: resp });
-          finished = true;
-          return context.meta.runtime.findNext(fetchCmd, context);
-        }
-        if (type === "json") {
-          return resp.json().then(function(result) {
-            context.result = result;
-            context.meta.runtime.triggerEvent(context.me, "fetch:afterRequest", { result });
-            finished = true;
-            return context.meta.runtime.findNext(fetchCmd, context);
-          });
-        }
-        return resp.text().then(function(result) {
-          if (conversion) result = context.meta.runtime.convertValue(result, conversion);
-          if (type === "html") result = context.meta.runtime.convertValue(result, "Fragment");
-          context.result = result;
-          context.meta.runtime.triggerEvent(context.me, "fetch:afterRequest", { result });
-          finished = true;
-          return context.meta.runtime.findNext(fetchCmd, context);
+        if (this.conversionType === "response") return complete(resp);
+        if (this.conversionType === "json") return resp.json().then(complete);
+        return resp.text().then((result) => {
+          if (this.conversion) result = context.meta.runtime.convertValue(result, this.conversion);
+          if (this.conversionType === "html") result = context.meta.runtime.convertValue(result, "Fragment");
+          return complete(result);
         });
-      }).catch(function(reason) {
-        context.meta.runtime.triggerEvent(context.me, "fetch:error", {
-          reason
-        });
+      }).catch((reason) => {
+        context.meta.runtime.triggerEvent(context.me, "fetch:error", { reason });
         throw reason;
-      }).finally(function() {
+      }).finally(() => {
         context.me.removeEventListener("fetch:abort", abortListener);
       });
     }
@@ -5643,20 +5557,12 @@
     }
     var smoothness = parser.matchAnyToken("smoothly", "instantly");
     var scrollOptions = { block: "start", inline: "nearest" };
-    if (verticalPosition) {
-      if (verticalPosition.value === "top") scrollOptions.block = "start";
-      else if (verticalPosition.value === "bottom") scrollOptions.block = "end";
-      else if (verticalPosition.value === "middle") scrollOptions.block = "center";
-    }
-    if (horizontalPosition) {
-      if (horizontalPosition.value === "left") scrollOptions.inline = "start";
-      else if (horizontalPosition.value === "center") scrollOptions.inline = "center";
-      else if (horizontalPosition.value === "right") scrollOptions.inline = "end";
-    }
-    if (smoothness) {
-      if (smoothness.value === "smoothly") scrollOptions.behavior = "smooth";
-      else if (smoothness.value === "instantly") scrollOptions.behavior = "instant";
-    }
+    var blockMap = { top: "start", bottom: "end", middle: "center" };
+    var inlineMap = { left: "start", center: "center", right: "end" };
+    var behaviorMap = { smoothly: "smooth", instantly: "instant" };
+    if (verticalPosition) scrollOptions.block = blockMap[verticalPosition.value];
+    if (horizontalPosition) scrollOptions.inline = inlineMap[horizontalPosition.value];
+    if (smoothness) scrollOptions.behavior = behaviorMap[smoothness.value];
     return { target, offset, plusOrMinus, scrollOptions, container };
   }
   function _parseSmoothness(parser) {
@@ -5749,7 +5655,7 @@
       } else {
         _resolveScroll(ctx, target, offset, this.plusOrMinus, this.scrollOptions, container);
       }
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
   var GoCommand = class _GoCommand extends Command {
@@ -5812,7 +5718,7 @@
           }
         }
       }
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
 
@@ -5865,7 +5771,7 @@
         var { value, ...lhs } = args;
         this.target.set(context, lhs, value);
       }
-      return context.meta.runtime.findNext(this, context);
+      return this.findNext(context);
     }
   };
   var DefaultCommand = class _DefaultCommand extends Command {
@@ -5894,7 +5800,7 @@
     }
     resolve(context, { targetValue }) {
       if (targetValue != null && targetValue !== "") {
-        return context.meta.runtime.findNext(this, context);
+        return this.findNext(context);
       } else {
         return this.setter;
       }
@@ -5925,7 +5831,7 @@
       var newValue = targetValue + amount;
       context.result = newValue;
       this.target.set(context, lhs, newValue);
-      return context.meta.runtime.findNext(this, context);
+      return this.findNext(context);
     }
   };
   var DecrementCommand = class _DecrementCommand extends Command {
@@ -5958,7 +5864,7 @@
       var newValue = targetValue - amount;
       context.result = newValue;
       this.target.set(context, lhs, newValue);
-      return context.meta.runtime.findNext(this, context);
+      return this.findNext(context);
     }
   };
   var SwapCommand = class _SwapCommand extends Command {
@@ -5993,7 +5899,7 @@
     resolve(context, { value1, value2, root1, index1, root2, index2 }) {
       this.target1.set(context, { root: root1, index: index1 }, value2);
       this.target2.set(context, { root: root2, index: index2 }, value1);
-      return context.meta.runtime.findNext(this, context);
+      return this.findNext(context);
     }
   };
   var PutCommand = class _PutCommand extends Command {
@@ -6101,7 +6007,13 @@
             });
           }
         } else {
-          var op = this.operation === "before" ? Element.prototype.before : this.operation === "after" ? Element.prototype.after : this.operation === "start" ? Element.prototype.prepend : this.operation === "end" ? Element.prototype.append : Element.prototype.append;
+          var ops = {
+            before: Element.prototype.before,
+            after: Element.prototype.after,
+            start: Element.prototype.prepend,
+            end: Element.prototype.append
+          };
+          var op = ops[this.operation] || Element.prototype.append;
           context.meta.runtime.implicitLoop(root, function(elt) {
             op.call(
               elt,
@@ -6115,7 +6027,7 @@
           });
         }
       }
-      return context.meta.runtime.findNext(this, context);
+      return this.findNext(context);
     }
   };
 
@@ -6185,7 +6097,7 @@
               }
               if (!resolved) {
                 resolved = true;
-                resolve(context.meta.runtime.findNext(this, context));
+                resolve(this.findNext(context));
               }
             };
             if (eventInfo.name) {
@@ -6199,7 +6111,7 @@
       } else {
         return new Promise((resolve) => {
           setTimeout(() => {
-            resolve(context.meta.runtime.findNext(this, context));
+            resolve(this.findNext(context));
           }, time);
         });
       }
@@ -6232,7 +6144,7 @@
       context.meta.runtime.implicitLoop(to, function(target) {
         context.meta.runtime.triggerEvent(target, eventName, details, context.me);
       });
-      return context.meta.runtime.findNext(this, context);
+      return this.findNext(context);
     }
   };
   var EventName = class _EventName extends Expression {
@@ -6271,11 +6183,8 @@
       this.type = "waitATick";
     }
     resolve(context) {
-      const self2 = this;
-      return new Promise(function(resolve) {
-        setTimeout(function() {
-          resolve(context.meta.runtime.findNext(self2));
-        }, 0);
+      return new Promise((resolve) => {
+        setTimeout(() => resolve(context.meta.runtime.findNext(this)), 0);
       });
     }
   };
@@ -6378,7 +6287,7 @@
       } else if (this.falseBranch) {
         return this.falseBranch;
       } else {
-        return context.meta.runtime.findNext(this, context);
+        return this.findNext(context);
       }
     }
   };
@@ -6672,21 +6581,16 @@
       return new _JsCommand(jsBody.jsSource, func, inputs);
     }
     resolve(context) {
-      var args = [];
-      this.inputs.forEach((input) => {
-        args.push(context.meta.runtime.resolveSymbol(input, context, "default"));
-      });
+      var args = this.inputs.map((input) => context.meta.runtime.resolveSymbol(input, context, "default"));
       var result = this.function.apply(context.meta.runtime.globalScope, args);
       if (result && typeof result.then === "function") {
-        return new Promise((resolve, reject) => {
-          result.then((actualResult) => {
-            context.result = actualResult;
-            resolve(context.meta.runtime.findNext(this, context));
-          }, reject);
+        return result.then((actualResult) => {
+          context.result = actualResult;
+          return this.findNext(context);
         });
       } else {
         context.result = result;
-        return context.meta.runtime.findNext(this, context);
+        return this.findNext(context);
       }
     }
   };
@@ -6708,7 +6612,7 @@
     }
     resolve(context, { result }) {
       context.result = result;
-      return context.meta.runtime.findNext(this, context);
+      return this.findNext(context);
     }
   };
 
@@ -6775,7 +6679,7 @@
       } else {
         context.result = result;
       }
-      return context.meta.runtime.findNext(this, context);
+      return this.findNext(context);
     }
   };
 
@@ -7299,7 +7203,7 @@
           this.toggle(context, on, classRef, classRef2, classRefs);
           setTimeout(() => {
             this.toggle(context, on, classRef, classRef2, classRefs);
-            resolve(context.meta.runtime.findNext(this, context));
+            resolve(this.findNext(context));
           }, time);
         });
       } else if (evt) {
@@ -7309,7 +7213,7 @@
             evt,
             () => {
               this.toggle(context, on, classRef, classRef2, classRefs);
-              resolve(context.meta.runtime.findNext(this, context));
+              resolve(this.findNext(context));
             },
             { once: true }
           );
@@ -7317,7 +7221,7 @@
         });
       } else {
         this.toggle(context, on, classRef, classRef2, classRefs);
-        return context.meta.runtime.findNext(this, context);
+        return this.findNext(context);
       }
     }
   };
@@ -7524,7 +7428,7 @@
           target.setAttribute(this.attributeRef.name, this.attributeRef.value || "");
         });
       }
-      return context.meta.runtime.findNext(this, context);
+      return this.findNext(context);
     }
   };
   var MeasureCommand = class _MeasureCommand extends Command {
@@ -7613,7 +7517,7 @@
         if (prop in ctx.result) ctx.locals[prop] = ctx.result[prop];
         else throw new Error("No such measurement as " + prop);
       });
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
   var FocusCommand = class _FocusCommand extends Command {
@@ -7632,7 +7536,7 @@
     }
     resolve(ctx, { target }) {
       (target || ctx.me).focus();
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
   var BlurCommand = class _BlurCommand extends Command {
@@ -7651,7 +7555,7 @@
     }
     resolve(ctx, { target }) {
       (target || ctx.me).blur();
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
   var EmptyCommand = class _EmptyCommand extends Command {
@@ -7671,9 +7575,9 @@
     resolve(ctx, { target }) {
       var elt = target || ctx.me;
       ctx.meta.runtime.implicitLoop(elt, function(e) {
-        while (e.firstChild) e.removeChild(e.firstChild);
+        e.replaceChildren();
       });
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
   function _openElement(elt) {
@@ -7718,11 +7622,11 @@
       var elt = target || ctx.me;
       if (this.fullscreen) {
         return (target || document.documentElement).requestFullscreen().then(() => {
-          return ctx.meta.runtime.findNext(this, ctx);
+          return this.findNext(ctx);
         });
       }
       ctx.meta.runtime.implicitLoop(elt, _openElement);
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
   var CloseCommand = class _CloseCommand extends Command {
@@ -7744,12 +7648,12 @@
     resolve(ctx, { target }) {
       if (this.fullscreen) {
         return document.exitFullscreen().then(() => {
-          return ctx.meta.runtime.findNext(this, ctx);
+          return this.findNext(ctx);
         });
       }
       var elt = target || ctx.me;
       ctx.meta.runtime.implicitLoop(elt, _closeElement);
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
   var SpeakCommand = class _SpeakCommand extends Command {
@@ -7817,7 +7721,7 @@
     resolve(ctx, { target }) {
       var elt = target || ctx.me;
       if (typeof elt.select === "function") elt.select();
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
   var AskCommand = class _AskCommand extends Command {
@@ -7833,7 +7737,7 @@
     }
     resolve(ctx, { message }) {
       ctx.result = prompt(String(message));
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
   var AnswerCommand = class _AnswerCommand extends Command {
@@ -7866,7 +7770,7 @@
       } else {
         alert(String(message));
       }
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
 
@@ -8097,7 +8001,7 @@
         promises.push(promise);
       });
       return Promise.all(promises).then(() => {
-        return context.meta.runtime.findNext(this, context);
+        return this.findNext(context);
       });
     }
   };
@@ -8115,7 +8019,7 @@
     }
     resolve(ctx) {
       debugger;
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
 
@@ -8285,10 +8189,7 @@
               ctx.meta.context = ctx.event;
               try {
                 var value = eventSpec.filter.evaluate(ctx);
-                if (value) {
-                } else {
-                  return;
-                }
+                if (!value) return;
               } finally {
                 ctx.meta.context = initialCtx;
               }
@@ -8571,7 +8472,7 @@
         if (ctx.meta.caller) {
           ctx.meta.callingCommand = ctx.meta.caller.meta.command;
         }
-        var resolve, reject = null;
+        var resolve, reject;
         var promise = new Promise(function(theResolve, theReject) {
           resolve = theResolve;
           reject = theReject;
@@ -8863,7 +8764,7 @@
       queueMicrotask(function() {
         for (var i = 0; i < feature.exprs.length; i++) {
           (function(expr) {
-            reactivity.createEffect(
+            runtime2.reactivity.createEffect(
               function() {
                 return expr.evaluate(
                   runtime2.makeContext(target, feature, target, null)
@@ -8956,7 +8857,7 @@
     if (!rightSide.element && !_isAssignable(right)) {
       throw new Error("bind requires a writable expression on the right side, but '" + right.type + "' cannot be assigned to");
     }
-    reactivity.createEffect(
+    runtime2.reactivity.createEffect(
       function() {
         return leftSide.read();
       },
@@ -8965,7 +8866,7 @@
       },
       { element: target }
     );
-    reactivity.createEffect(
+    runtime2.reactivity.createEffect(
       function() {
         return rightSide.read();
       },
@@ -9132,7 +9033,7 @@
     install(target, source, args, runtime2) {
       var feature = this;
       queueMicrotask(function() {
-        reactivity.createEffect(
+        runtime2.reactivity.createEffect(
           function() {
             feature.commands.execute(
               runtime2.makeContext(target, feature, target, null)
@@ -9154,7 +9055,7 @@
     TemplateTextCommand: () => TemplateTextCommand
   });
   function escapeHTML(html) {
-    return String(html).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\x22/g, "&quot;").replace(/\x27/g, "&#039;");
+    return String(html).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
   }
   var TemplateTextCommand = class _TemplateTextCommand extends Command {
     static keyword = "TEMPLATE_LINE";
@@ -9233,13 +9134,13 @@
           ctx.meta.__ht_template_result.push(
             resolved.map((val, i) => stringify(val, this.parts[i])).join("")
           );
-          return ctx.meta.runtime.findNext(this, ctx);
+          return this.findNext(ctx);
         });
       }
       ctx.meta.__ht_template_result.push(
         vals.map((val, i) => stringify(val, this.parts[i])).join("")
       );
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
   var RenderCommand = class _RenderCommand extends Command {
@@ -9340,7 +9241,8 @@
   config.conversions = conversions;
   var kernel = new LanguageKernel();
   var tokenizer = new Tokenizer();
-  var runtime = new Runtime(globalScope, kernel, tokenizer);
+  var reactivity = new Reactivity();
+  var runtime = new Runtime(globalScope, kernel, tokenizer, reactivity);
   kernel.registerModule(expressions_exports);
   kernel.registerModule(literals_exports);
   kernel.registerModule(webliterals_exports);
