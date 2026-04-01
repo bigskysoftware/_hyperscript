@@ -153,13 +153,7 @@ export class ReturnCommand extends Command {
         var resolve = context.meta.resolve;
         context.meta.returned = true;
         context.meta.returnValue = value;
-        if (resolve) {
-            if (value) {
-                resolve(value);
-            } else {
-                resolve();
-            }
-        }
+        if (resolve) resolve(value);
         return context.meta.runtime.HALT;
     }
 }
@@ -536,7 +530,7 @@ export class PickCommand extends Command {
             if (this.range.toEnd) to = root.length;
             if (!this.range.includeStart) from++;
             if (this.range.includeEnd) to++;
-            if (to == null || to == undefined) to = from + 1;
+            if (to == null) to = from + 1;
             ctx.result = root.slice(from, to);
         } else if (this.variant === "match") {
             ctx.result = new RegExp(re, this.flags).exec(root);

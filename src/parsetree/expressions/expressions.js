@@ -109,7 +109,7 @@ export class NegativeNumber extends Expression {
     }
 
     resolve(context, { value }) {
-        return -1 * value;
+        return -value;
     }
 }
 
@@ -285,8 +285,7 @@ export class PropertyAccess extends Expression {
     }
 
     resolve(context, { root: rootVal }) {
-        var value = context.meta.runtime.resolveProperty(rootVal, this.prop.value);
-        return value;
+        return context.meta.runtime.resolveProperty(rootVal, this.prop.value);
     }
 
     get lhs() { return { root: this.root }; }
@@ -660,8 +659,7 @@ export class AttributeRefAccess extends Expression {
     }
 
     resolve(_ctx, { root: rootVal }) {
-        var value = _ctx.meta.runtime.resolveAttribute(rootVal, this.attribute.name);
-        return value;
+        return _ctx.meta.runtime.resolveAttribute(rootVal, this.attribute.name);
     }
 
     get lhs() { return { root: this.root }; }
@@ -1027,16 +1025,10 @@ export class ComparisonOperator extends Expression {
         if (operator === "not in") {
             return rhsVal == null || !this.sloppyContains(rhs, rhsVal, lhsVal);
         }
-        if (operator === "contain") {
+        if (operator === "contain" || operator === "include") {
             return lhsVal != null && this.sloppyContains(lhs, lhsVal, rhsVal);
         }
-        if (operator === "not contain") {
-            return lhsVal == null || !this.sloppyContains(lhs, lhsVal, rhsVal);
-        }
-        if (operator === "include") {
-            return lhsVal != null && this.sloppyContains(lhs, lhsVal, rhsVal);
-        }
-        if (operator === "not include") {
+        if (operator === "not contain" || operator === "not include") {
             return lhsVal == null || !this.sloppyContains(lhs, lhsVal, rhsVal);
         }
         if (operator === "start with") {

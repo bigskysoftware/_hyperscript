@@ -53,9 +53,9 @@ export class Context {
         this.result = undefined
         this.beingTested = null
         this.event = event;
-        this.target = event ? event.target : null;
-        this.detail = event ? event.detail : null;
-        this.sender = event ? event.detail ? event.detail.sender : null : null;
+        this.target = event?.target ?? null;
+        this.detail = event?.detail ?? null;
+        this.sender = event?.detail?.sender ?? null;
         this.body = "document" in globalScope ? document.body : null;
         runtime.addFeatures(owner, this);
     }

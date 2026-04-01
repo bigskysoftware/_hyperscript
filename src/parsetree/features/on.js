@@ -198,11 +198,7 @@ export class OnFeature extends Feature {
                         ctx.meta.context = ctx.event;
                         try {
                             var value = eventSpec.filter.evaluate(ctx); //OK NO PROMISE
-                            if (value) {
-                                // match the javascript semantics for if statements
-                            } else {
-                                return;
-                            }
+                            if (!value) return;
                         } finally {
                             ctx.meta.context = initialCtx;
                         }

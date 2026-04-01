@@ -94,17 +94,12 @@ export class JsCommand extends Command {
     }
 
     resolve(context) {
-        var args = [];
-        this.inputs.forEach((input) => {
-            args.push(context.meta.runtime.resolveSymbol(input, context, 'default'));
-        });
+        var args = this.inputs.map(input => context.meta.runtime.resolveSymbol(input, context, 'default'));
         var result = this.function.apply(context.meta.runtime.globalScope, args);
         if (result && typeof result.then === "function") {
-            return new Promise((resolve, reject) => {
-                result.then((actualResult) => {
-                    context.result = actualResult;
-                    resolve(context.meta.runtime.findNext(this, context));
-                }, reject);
+            return result.then((actualResult) => {
+                context.result = actualResult;
+                return context.meta.runtime.findNext(this, context);
             });
         } else {
             context.result = result;
