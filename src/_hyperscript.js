@@ -54,10 +54,7 @@ const kernel = new LanguageKernel();
 const tokenizer = new Tokenizer();
 const reactivity = new Reactivity();
 const morphEngine = new Morph();
-const runtime = new Runtime(globalScope, kernel, tokenizer, reactivity);
-
-// Make morph engine available to the MorphCommand
-DomCommands.MorphCommand._morphEngine = morphEngine;
+const runtime = new Runtime(globalScope, kernel, tokenizer, reactivity, morphEngine);
 
 // ===== Grammar Registration =====
 // Register all parse elements from modules (expressions, commands, features)
@@ -124,7 +121,7 @@ const _hyperscript = Object.assign(
         },
 
         internals: {
-            tokenizer, runtime, reactivity, morphEngine,
+            tokenizer, runtime, reactivity,
             createParser: (tokens) => new Parser(kernel, tokens),
         },
 

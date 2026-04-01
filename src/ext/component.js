@@ -16,7 +16,7 @@
 import { Tokenizer } from '../core/tokenizer.js';
 
 export default function componentPlugin(_hyperscript) {
-    const { runtime, createParser, reactivity, morphEngine } = _hyperscript.internals;
+    const { runtime, createParser, reactivity } = _hyperscript.internals;
     const tokenizer = new Tokenizer();
 
     function substituteSlots(templateSource, slotContent, scopeSel) {
@@ -221,7 +221,7 @@ export default function componentPlugin(_hyperscript) {
                     this._hypercomp_stamped = true;
                 } else {
                     // Subsequent renders — morph to preserve DOM identity
-                    runtime.morph(this, html, morphEngine);
+                    runtime.morph(this, html);
                 }
             }
         };

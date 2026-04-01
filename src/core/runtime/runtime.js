@@ -71,13 +71,15 @@ export class Runtime {
         #tokenizer;
         #globalScope;
         #reactivity;
+        #morphEngine;
         #scriptAttrs = null;
 
-        constructor(globalScope, kernel, tokenizer, reactivity) {
+        constructor(globalScope, kernel, tokenizer, reactivity, morphEngine) {
             this.#globalScope = globalScope;
             this.#kernel = kernel;
             this.#tokenizer = tokenizer;
             this.#reactivity = reactivity;
+            this.#morphEngine = morphEngine;
         }
 
         get globalScope() {
@@ -475,8 +477,8 @@ export class Runtime {
             this.reactivity.notifyProperty(obj);
         }
 
-        morph(elt, content, morphEngine) {
-            morphEngine.morph(elt, content, {
+        morph(elt, content) {
+            this.#morphEngine.morph(elt, content, {
                 beforeNodeRemoved: (node) => {
                     if (node.nodeType === 1) this.cleanup(node);
                 },

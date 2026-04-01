@@ -1239,7 +1239,7 @@ export class MorphCommand extends Command {
 
     resolve(ctx, { target, content }) {
         ctx.meta.runtime.implicitLoop(target, function (elt) {
-            ctx.meta.runtime.morph(elt, content, MorphCommand._morphEngine);
+            ctx.meta.runtime.morph(elt, content);
         });
         return this.findNext(ctx);
     }
