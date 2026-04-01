@@ -167,10 +167,6 @@ export class ReturnCommand extends Command {
 export class ExitCommand extends Command {
     static keyword = "exit";
 
-    constructor() {
-        super();
-    }
-
     static parse(parser) {
         if (!parser.matchToken("exit")) return;
         return new ExitCommand();
@@ -359,7 +355,6 @@ export class AppendCommand extends Command {
         if (Array.isArray(target)) {
             target.push(value);
             context.meta.runtime.notifyMutation(target);
-            return context.meta.runtime.findNext(this, context);
         } else if (target instanceof Element) {
             if (value instanceof Element) {
                 target.insertAdjacentElement("beforeend", value);
@@ -367,13 +362,12 @@ export class AppendCommand extends Command {
                 target.insertAdjacentHTML("beforeend", value);
             }
             context.meta.runtime.processNode(target);
-            return context.meta.runtime.findNext(this, context);
         } else if(this.assignable) {
             this._target.set(context, lhs, (target || "") + value);
-            return context.meta.runtime.findNext(this, context);
         } else {
             throw new Error("Unable to append a value!")
         }
+        return context.meta.runtime.findNext(this, context);
     }
 }
 

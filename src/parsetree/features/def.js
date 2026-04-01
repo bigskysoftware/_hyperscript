@@ -62,8 +62,7 @@ export class DefFeature extends Feature {
             if (ctx.meta.caller) {
                 ctx.meta.callingCommand = ctx.meta.caller.meta.command;
             }
-            var resolve,
-                reject = null;
+            var resolve, reject;
             var promise = new Promise(function (theResolve, theReject) {
                 resolve = theResolve;
                 reject = theReject;
