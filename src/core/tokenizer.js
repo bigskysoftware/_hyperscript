@@ -269,7 +269,7 @@ export class Tokens {
     // ----- Whitespace -----
 
     lastWhitespace() {
-        var last = this.#consumed[this.#consumed.length - 1];
+        var last = this.#consumed.at(-1);
         return (last && last.type === "WHITESPACE") ? last.value : "";
     }
 
@@ -464,7 +464,7 @@ export class Tokenizer {
 
     #isValidSingleQuoteStringStart() {
         if (this.#tokens.length > 0) {
-            var prev = this.#tokens[this.#tokens.length - 1];
+            var prev = this.#tokens.at(-1);
             if (prev.type === "IDENTIFIER" || prev.type === "CLASS_REF" || prev.type === "ID_REF") {
                 return false;
             }

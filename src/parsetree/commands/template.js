@@ -3,11 +3,11 @@ import { Tokenizer } from '../../core/tokenizer.js';
 
 function escapeHTML(html) {
     return String(html)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/\x22/g, "&quot;")
-        .replace(/\x27/g, "&#039;");
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
 }
 
 /**

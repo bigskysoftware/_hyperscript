@@ -317,7 +317,11 @@ export class OfExpression extends Expression {
         this.attribute = attribute;
         this.expression = expression;
         this.args = args;
-        this._urRoot = urRoot; // store the urRoot for op function
+        this._urRoot = urRoot;
+        this._prop = urRoot.name;
+        this._isAttribute = urRoot.type === "attributeRef";
+        this._isStyle = urRoot.type === "styleRef";
+        this._isComputed = urRoot.type === "computedStyleRef";
     }
 
     static parse(parser, root) {
@@ -361,21 +365,14 @@ export class OfExpression extends Expression {
     }
 
     resolve(context, { root: rootVal }) {
-        var urRoot = this._urRoot;
-        var prop = urRoot.name;
-        var attribute = urRoot.type === "attributeRef";
-        var style = urRoot.type === "styleRef" || urRoot.type === "computedStyleRef";
-
-        if (attribute) {
-            return context.meta.runtime.resolveAttribute(rootVal, prop);
-        } else if (style) {
-            if (urRoot.type === "computedStyleRef") {
-                return context.meta.runtime.resolveComputedStyle(rootVal, prop);
-            } else {
-                return context.meta.runtime.resolveStyle(rootVal, prop);
-            }
+        if (this._isAttribute) {
+            return context.meta.runtime.resolveAttribute(rootVal, this._prop);
+        } else if (this._isComputed) {
+            return context.meta.runtime.resolveComputedStyle(rootVal, this._prop);
+        } else if (this._isStyle) {
+            return context.meta.runtime.resolveStyle(rootVal, this._prop);
         } else {
-            return context.meta.runtime.resolveProperty(rootVal, prop);
+            return context.meta.runtime.resolveProperty(rootVal, this._prop);
         }
     }
 
@@ -383,18 +380,16 @@ export class OfExpression extends Expression {
 
     set(ctx, lhs, value) {
         ctx.meta.runtime.nullCheck(lhs.root, this.root);
-        var urRoot = this._urRoot;
-        var prop = urRoot.name;
-        if (urRoot.type === "attributeRef") {
+        if (this._isAttribute) {
             ctx.meta.runtime.implicitLoop(lhs.root, elt => {
-                value == null ? elt.removeAttribute(prop) : elt.setAttribute(prop, value);
+                value == null ? elt.removeAttribute(this._prop) : elt.setAttribute(this._prop, value);
             });
-        } else if (urRoot.type === "styleRef") {
-            ctx.meta.runtime.implicitLoop(lhs.root, elt => { elt.style[prop] = value; });
+        } else if (this._isStyle) {
+            ctx.meta.runtime.implicitLoop(lhs.root, elt => { elt.style[this._prop] = value; });
         } else {
             var runtime = ctx.meta.runtime;
             runtime.implicitLoop(lhs.root, elt => {
-                runtime.setProperty(elt, prop, value);
+                runtime.setProperty(elt, this._prop, value);
             });
         }
     }
