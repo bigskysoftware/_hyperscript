@@ -64,7 +64,6 @@ function cloneValue(value) {
 	if (typeof value !== 'object') return value;
 	if (typeof Node !== 'undefined' && value instanceof Node) return value;
 	if (typeof Event !== 'undefined' && value instanceof Event) return value;
-	if (typeof value === 'function') return value;
 	if (Array.isArray(value)) return [...value];
 	if (value.constructor === Object) return { ...value };
 	return value;
@@ -313,19 +312,6 @@ class MutationBatcher {
 		this._paused = false;
 	}
 
-	/** Flush and discard all pending records */
-	flush() {
-		this._pendingRecords = [];
-		this._currentBatch = [];
-		if (this._observer) this._observer.takeRecords();
-	}
-
-	disconnect() {
-		if (this._observer) {
-			this._observer.disconnect();
-			this._observer = null;
-		}
-	}
 }
 
 // ==========================================================================
@@ -542,15 +528,7 @@ class Recorder {
 			ownerElement: ctx.meta.owner || null,
 			eventType: ctx.event ? ctx.event.type : null,
 			startStep: this._stepCounter,
-			endStep: null,
 		});
-	}
-
-	_endStream(streamId) {
-		const info = this._streams.get(streamId);
-		if (info && info.endStep === null) {
-			info.endStep = this._stepCounter - 1;
-		}
 	}
 }
 
@@ -568,10 +546,9 @@ function _safeSourceFor(command) {
 // ==========================================================================
 
 class TTD {
-	constructor(recorder, timeline, mutationBatcher, domRestorer) {
+	constructor(recorder, timeline, domRestorer) {
 		this._recorder = recorder;
 		this._timeline = timeline;
-		this._batcher = mutationBatcher;
 		this._restorer = domRestorer;
 
 		// Current position in the timeline for time travel navigation
@@ -786,6 +763,13 @@ class TTD {
 			}
 			console.log('--- Locals ---');
 			console.table(rows);
+			// Log non-primitive values so they're expandable in the console
+			for (const key of allKeys) {
+				const after = afterLocals[key];
+				if (after !== null && after !== undefined && typeof after === 'object') {
+					console.log('  ' + key + ':', after);
+				}
+			}
 		}
 
 		// Result
@@ -794,6 +778,10 @@ class TTD {
 				'Result:   ' + summarizeValue(step.snapshotBefore.result) +
 				'  ->  ' + summarizeValue(step.snapshotAfter.result)
 			);
+			const afterResult = step.snapshotAfter.result;
+			if (afterResult !== null && afterResult !== undefined && typeof afterResult === 'object') {
+				console.log('  result:', afterResult);
+			}
 		}
 
 		// DOM mutations
@@ -814,12 +802,16 @@ class TTD {
 		if (!step) return undefined;
 
 		const after = step.snapshotAfter.locals;
-		const rows = [];
-		for (const [key, value] of Object.entries(after)) {
-			rows.push({ Variable: key, Value: summarizeValue(value), Type: typeof value });
+		const keys = Object.keys(after);
+		if (keys.length === 0) {
+			console.log('[ttd] No locals at step ' + step.index);
+		} else {
+			console.group('[ttd] Locals at step ' + step.index + ':');
+			for (const key of keys) {
+				console.log('  ' + key + ':', after[key]);
+			}
+			console.groupEnd();
 		}
-		console.log('[ttd] Locals at step ' + step.index + ':');
-		console.table(rows);
 		return after;
 	}
 
@@ -942,7 +934,7 @@ class TTD {
 				Feature: info.featureName || '-',
 				Event: info.eventType || '-',
 				Owner: elementDescription(info.ownerElement),
-				Steps: info.startStep + ' - ' + (info.endStep !== null ? info.endStep : '(running)'),
+				Start: info.startStep,
 			});
 		}
 		console.table(rows);
@@ -1205,7 +1197,7 @@ export default function ttdPlugin(_hyperscript) {
 	const mutationBatcher = new MutationBatcher();
 	const recorder = new Recorder(timeline, mutationBatcher);
 	const domRestorer = new DomRestorer(mutationBatcher, runtime);
-	const ttd = new TTD(recorder, timeline, mutationBatcher, domRestorer);
+	const ttd = new TTD(recorder, timeline, domRestorer);
 
 	// Attach event listeners for recording
 	recorder.install();
