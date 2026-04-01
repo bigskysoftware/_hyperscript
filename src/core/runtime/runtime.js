@@ -329,18 +329,20 @@ export class Runtime {
             if (type === "global") {
                 this.#globalScope[str] = value;
                 this.reactivity.notifyGlobalSymbol(str);
-            } else if (type === "element") {
-                var elementScope = this.#getElementScope(context);
-                elementScope[str] = value;
+                return;
+            }
+            if (type === "element") {
+                this.#getElementScope(context)[str] = value;
                 this.reactivity.notifyElementSymbol(str, context.meta.owner);
-            } else if (type === "inherited") {
+                return;
+            }
+            if (type === "inherited") {
                 var inherited = this.#resolveInherited(str, context, targetElement);
                 if (inherited.element) {
                     this.getInternalData(inherited.element).elementScope[str] = value;
                     this.reactivity.notifyElementSymbol(str, inherited.element);
                 } else {
-                    // Not found anywhere — create on target element or current element
-                    var owner = targetElement || (context.meta && context.meta.owner);
+                    var owner = targetElement || context.meta?.owner;
                     if (owner) {
                         var internalData = this.getInternalData(owner);
                         if (!internalData.elementScope) internalData.elementScope = {};
@@ -348,30 +350,25 @@ export class Runtime {
                         this.reactivity.notifyElementSymbol(str, owner);
                     }
                 }
-            } else if (type === "local") {
+                return;
+            }
+            if (type === "local") {
                 context.locals[str] = value;
-                // Don't notify - local scope is ephemeral
+                return;
+            }
+            // default scope resolution
+            if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str) && typeof context.locals[str] !== "undefined") {
+                context.locals[str] = value;
+                return;
+            }
+            var elementScope = this.#getElementScope(context);
+            if (typeof elementScope[str] !== "undefined") {
+                elementScope[str] = value;
+                this.reactivity.notifyElementSymbol(str, context.meta.owner);
+            } else if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str)) {
+                context.locals[str] = value;
             } else {
-                if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str) && typeof context.locals[str] !== "undefined") {
-                    // local scope - don't notify
-                    context.locals[str] = value;
-                } else {
-                    // element scope
-                    var elementScope = this.#getElementScope(context);
-                    var fromContext = elementScope[str];
-                    if (typeof fromContext !== "undefined") {
-                        elementScope[str] = value;
-                        this.reactivity.notifyElementSymbol(str, context.meta.owner);
-                    } else {
-                        if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str)) {
-                            // local scope - don't notify
-                            context.locals[str] = value;
-                        } else {
-                            // direct set on normal JS object or top-level of context
-                            context[str] = value;
-                        }
-                    }
-                }
+                context[str] = value;
             }
         }
 
@@ -700,7 +697,7 @@ export class Runtime {
 
         #getScriptAttributes() {
             if (this.#scriptAttrs == null) {
-                this.#scriptAttrs = config.attributes.replace(/ /g, "").split(",");
+                this.#scriptAttrs = config.attributes.replaceAll(" ", "").split(",");
             }
             return this.#scriptAttrs;
         }
@@ -719,12 +716,12 @@ export class Runtime {
             return null;
         }
 
+        #scriptSelector;
         #getScriptSelector() {
-            return this.#getScriptAttributes()
-                .map(function (attribute) {
-                    return "[" + attribute + "]";
-                })
-                .join(", ");
+            if (!this.#scriptSelector) {
+                this.#scriptSelector = this.#getScriptAttributes().map(a => "[" + a + "]").join(", ");
+            }
+            return this.#scriptSelector;
         }
 
         #hashScript(str) {

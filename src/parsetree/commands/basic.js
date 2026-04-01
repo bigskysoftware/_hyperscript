@@ -593,64 +593,46 @@ export class FetchCommand extends Command {
     }
 
     resolve(context, { url, options }) {
-        const type = this.conversionType;
-        const conversion = this.conversion;
-        const fetchCmd = this;
-
         var detail = options || {};
-        detail["sender"] = context.me;
-        detail["headers"] = detail["headers"] || {}
+        detail.sender = context.me;
+        detail.headers = detail.headers || {};
         var abortController = new AbortController();
-        var abortListener = function(){ abortController.abort(); };
+        var abortListener = () => abortController.abort();
         context.me.addEventListener('fetch:abort', abortListener, {once: true});
-        detail['signal'] = abortController.signal;
+        detail.signal = abortController.signal;
         context.meta.runtime.triggerEvent(context.me, "hyperscript:beforeFetch", detail);
         context.meta.runtime.triggerEvent(context.me, "fetch:beforeRequest", detail);
         var finished = false;
         if (detail.timeout) {
-            setTimeout(function () {
-                if (!finished) {
-                    abortController.abort();
-                }
-            }, detail.timeout);
+            setTimeout(() => { if (!finished) abortController.abort(); }, detail.timeout);
         }
+
+        var complete = (result) => {
+            context.result = result;
+            context.meta.runtime.triggerEvent(context.me, "fetch:afterRequest", {result});
+            finished = true;
+            return this.findNext(context);
+        };
+
         return fetch(url, detail)
-            .then(function (resp) {
-                let resultDetails = {response:resp};
+            .then((resp) => {
+                var resultDetails = {response: resp};
                 context.meta.runtime.triggerEvent(context.me, "fetch:afterResponse", resultDetails);
                 resp = resultDetails.response;
 
-                if (type === "response") {
-                    context.result = resp;
-                    context.meta.runtime.triggerEvent(context.me, "fetch:afterRequest", {result:resp});
-                    finished = true;
-                    return context.meta.runtime.findNext(fetchCmd, context);
-                }
-                if (type === "json") {
-                    return resp.json().then(function (result) {
-                        context.result = result;
-                        context.meta.runtime.triggerEvent(context.me, "fetch:afterRequest", {result});
-                        finished = true;
-                        return context.meta.runtime.findNext(fetchCmd, context);
-                    });
-                }
-                return resp.text().then(function (result) {
-                    if (conversion) result = context.meta.runtime.convertValue(result, conversion);
-
-                    if (type === "html") result = context.meta.runtime.convertValue(result, "Fragment");
-
-                    context.result = result;
-                    context.meta.runtime.triggerEvent(context.me, "fetch:afterRequest", {result});
-                    finished = true;
-                    return context.meta.runtime.findNext(fetchCmd, context);
+                if (this.conversionType === "response") return complete(resp);
+                if (this.conversionType === "json") return resp.json().then(complete);
+                return resp.text().then((result) => {
+                    if (this.conversion) result = context.meta.runtime.convertValue(result, this.conversion);
+                    if (this.conversionType === "html") result = context.meta.runtime.convertValue(result, "Fragment");
+                    return complete(result);
                 });
             })
-            .catch(function (reason) {
-                context.meta.runtime.triggerEvent(context.me, "fetch:error", {
-                    reason: reason,
-                });
+            .catch((reason) => {
+                context.meta.runtime.triggerEvent(context.me, "fetch:error", {reason});
                 throw reason;
-            }).finally(function(){
+            })
+            .finally(() => {
                 context.me.removeEventListener('fetch:abort', abortListener);
             });
     }
