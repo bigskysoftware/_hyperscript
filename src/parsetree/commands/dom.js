@@ -1213,3 +1213,34 @@ export class AnswerCommand extends Command {
         return this.findNext(ctx);
     }
 }
+
+/**
+ * MorphCommand - Morph an element to match new content
+ *
+ * Parses: morph <target> to <content>
+ * Executes: Morphs the target element to match the new content,
+ *           preserving DOM node identity, focus, and event listeners
+ */
+export class MorphCommand extends Command {
+    static keyword = "morph";
+
+    constructor(target, content) {
+        super();
+        this.args = { target, content };
+    }
+
+    static parse(parser) {
+        if (!parser.matchToken("morph")) return;
+        var target = parser.requireElement("expression");
+        parser.requireToken("to");
+        var content = parser.requireElement("expression");
+        return new MorphCommand(target, content);
+    }
+
+    resolve(ctx, { target, content }) {
+        ctx.meta.runtime.implicitLoop(target, function (elt) {
+            ctx.meta.runtime.morph(elt, content, MorphCommand._morphEngine);
+        });
+        return this.findNext(ctx);
+    }
+}

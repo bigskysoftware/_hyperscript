@@ -10,6 +10,7 @@ import {HyperscriptModule} from './core/runtime/collections.js';
 import {config} from './core/config.js';
 import {conversions} from './core/runtime/conversions.js';
 import {Reactivity} from './core/runtime/reactivity.js';
+import {Morph} from './core/runtime/morph.js';
 
 // Import parse element modules
 import * as Expressions from './parsetree/expressions/expressions.js';
@@ -52,7 +53,11 @@ const kernel = new LanguageKernel();
 // Create subsystems and wire them together
 const tokenizer = new Tokenizer();
 const reactivity = new Reactivity();
+const morphEngine = new Morph();
 const runtime = new Runtime(globalScope, kernel, tokenizer, reactivity);
+
+// Make morph engine available to the MorphCommand
+DomCommands.MorphCommand._morphEngine = morphEngine;
 
 // ===== Grammar Registration =====
 // Register all parse elements from modules (expressions, commands, features)

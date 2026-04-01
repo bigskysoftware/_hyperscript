@@ -475,6 +475,20 @@ export class Runtime {
             this.reactivity.notifyProperty(obj);
         }
 
+        morph(elt, content, morphEngine) {
+            morphEngine.morph(elt, content, {
+                beforeNodeRemoved: (node) => {
+                    if (node.nodeType === 1) this.cleanup(node);
+                },
+                afterNodeAdded: (node) => {
+                    if (node.nodeType === 1) this.processNode(node);
+                },
+                afterNodeMorphed: (node) => {
+                    if (node.nodeType === 1) this.processNode(node);
+                }
+            });
+        }
+
         replaceInDom(target, value) {
             this.implicitLoop(target, (elt) => {
                 var parent = elt.parentElement;
