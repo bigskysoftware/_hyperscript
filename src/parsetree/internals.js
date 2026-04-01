@@ -14,7 +14,7 @@ export class EmptyCommandListCommand extends Command {
     }
 
     resolve(context) {
-        return context.meta.runtime.findNext(this, context);
+        return this.findNext(context);
     }
 }
 

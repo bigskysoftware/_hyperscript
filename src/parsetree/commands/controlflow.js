@@ -141,7 +141,7 @@ export class IfCommand extends Command {
         } else if (this.falseBranch) {
             return this.falseBranch;
         } else {
-            return context.meta.runtime.findNext(this, context);
+            return this.findNext(context);
         }
     }
 }

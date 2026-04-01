@@ -99,11 +99,11 @@ export class JsCommand extends Command {
         if (result && typeof result.then === "function") {
             return result.then((actualResult) => {
                 context.result = actualResult;
-                return context.meta.runtime.findNext(this, context);
+                return this.findNext(context);
             });
         } else {
             context.result = result;
-            return context.meta.runtime.findNext(this, context);
+            return this.findNext(context);
         }
     }
 }
@@ -135,6 +135,6 @@ export class GetCommand extends Command {
 
     resolve(context, { result }) {
         context.result = result;
-        return context.meta.runtime.findNext(this, context);
+        return this.findNext(context);
     }
 }

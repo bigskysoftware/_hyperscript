@@ -102,14 +102,14 @@ export class TemplateTextCommand extends Command {
                 ctx.meta.__ht_template_result.push(
                     resolved.map((val, i) => stringify(val, this.parts[i])).join('')
                 );
-                return ctx.meta.runtime.findNext(this, ctx);
+                return this.findNext(ctx);
             });
         }
 
         ctx.meta.__ht_template_result.push(
             vals.map((val, i) => stringify(val, this.parts[i])).join('')
         );
-        return ctx.meta.runtime.findNext(this, ctx);
+        return this.findNext(ctx);
     }
 }
 

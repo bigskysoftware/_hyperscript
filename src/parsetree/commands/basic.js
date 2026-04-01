@@ -60,7 +60,7 @@ export class LogCommand extends Command {
         } else {
             console.log(...values);
         }
-        return ctx.meta.runtime.findNext(this, ctx);
+        return this.findNext(ctx);
     }
 }
 
@@ -94,7 +94,7 @@ export class BeepCommand extends Command {
             const val = values[i];
             ctx.meta.runtime.beepValueToConsole(ctx.me, expr, val);
         }
-        return ctx.meta.runtime.findNext(this, ctx);
+        return this.findNext(ctx);
     }
 }
 
@@ -231,7 +231,7 @@ export class HaltCommand extends Command {
             }
         }
         if (this.keepExecuting) {
-            return ctx.meta.runtime.findNext(this, ctx);
+            return this.findNext(ctx);
         } else {
             return this.exit;
         }
@@ -306,7 +306,7 @@ export class MakeCommand extends Command {
             ctx.meta.runtime.setSymbol(this.target.name, ctx, this.target.scope, ctx.result);
         }
 
-        return ctx.meta.runtime.findNext(this, ctx);
+        return this.findNext(ctx);
     }
 }
 
@@ -367,7 +367,7 @@ export class AppendCommand extends Command {
         } else {
             throw new Error("Unable to append a value!")
         }
-        return context.meta.runtime.findNext(this, context);
+        return this.findNext(context);
     }
 }
 
@@ -528,7 +528,7 @@ export class PickCommand extends Command {
         } else {
             ctx.result = new RegExpIterable(re, this.flags, root);
         }
-        return ctx.meta.runtime.findNext(this, ctx);
+        return this.findNext(ctx);
     }
 }
 
@@ -811,7 +811,7 @@ export class ScrollCommand extends Command {
         } else {
             _resolveScroll(ctx, target, offset, this.plusOrMinus, this.scrollOptions, container);
         }
-        return ctx.meta.runtime.findNext(this, ctx);
+        return this.findNext(ctx);
     }
 }
 
@@ -894,6 +894,6 @@ export class GoCommand extends Command {
                 }
             }
         }
-        return ctx.meta.runtime.findNext(this, ctx);
+        return this.findNext(ctx);
     }
 }

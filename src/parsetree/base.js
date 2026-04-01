@@ -78,6 +78,10 @@ export class Command extends ParseElement {
         return context.meta.runtime.unifiedExec(this, context);
     }
 
+    findNext(context) {
+        return context.meta.runtime.findNext(this, context);
+    }
+
 }
 
 /**

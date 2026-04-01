@@ -20,6 +20,6 @@ export class BreakpointCommand extends Command {
 
     resolve(ctx) {
         debugger;
-        return ctx.meta.runtime.findNext(this, ctx);
+        return this.findNext(ctx);
     }
 }
