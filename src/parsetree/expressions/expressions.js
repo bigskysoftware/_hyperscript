@@ -998,91 +998,37 @@ export class ComparisonOperator extends Expression {
             if (typeof rhsVal === "string") rhsVal = rhsVal.toLowerCase();
         }
 
-        if (operator === "==") {
-            return lhsVal == rhsVal;
-        } else if (operator === "!=") {
-            return lhsVal != rhsVal;
-        }
-        if (operator === "===") {
-            return lhsVal === rhsVal;
-        } else if (operator === "!==") {
-            return lhsVal !== rhsVal;
-        }
-        if (operator === "match") {
-            return lhsVal != null && this.sloppyMatches(lhs, lhsVal, rhsVal);
-        }
-        if (operator === "not match") {
-            return lhsVal == null || !this.sloppyMatches(lhs, lhsVal, rhsVal);
-        }
-        if (operator === "in") {
-            return rhsVal != null && this.sloppyContains(rhs, rhsVal, lhsVal);
-        }
-        if (operator === "not in") {
-            return rhsVal == null || !this.sloppyContains(rhs, rhsVal, lhsVal);
-        }
-        if (operator === "contain" || operator === "include") {
-            return lhsVal != null && this.sloppyContains(lhs, lhsVal, rhsVal);
-        }
-        if (operator === "not contain" || operator === "not include") {
-            return lhsVal == null || !this.sloppyContains(lhs, lhsVal, rhsVal);
-        }
-        if (operator === "start with") {
-            return lhsVal != null && String(lhsVal).startsWith(rhsVal);
-        }
-        if (operator === "not start with") {
-            return lhsVal == null || !String(lhsVal).startsWith(rhsVal);
-        }
-        if (operator === "end with") {
-            return lhsVal != null && String(lhsVal).endsWith(rhsVal);
-        }
-        if (operator === "not end with") {
-            return lhsVal == null || !String(lhsVal).endsWith(rhsVal);
-        }
-        if (operator === "between") {
-            return lhsVal >= rhsVal && lhsVal <= rhs2Val;
-        }
-        if (operator === "not between") {
-            return lhsVal < rhsVal || lhsVal > rhs2Val;
-        }
-        if (operator === "precede") {
-            return lhsVal != null && rhsVal != null &&
-                (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
-        }
-        if (operator === "not precede") {
-            return lhsVal == null || rhsVal == null ||
-                (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_FOLLOWING) === 0;
-        }
-        if (operator === "follow") {
-            return lhsVal != null && rhsVal != null &&
-                (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_PRECEDING) !== 0;
-        }
-        if (operator === "not follow") {
-            return lhsVal == null || rhsVal == null ||
-                (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_PRECEDING) === 0;
-        }
-        if (operator === "<") {
-            return lhsVal < rhsVal;
-        } else if (operator === ">") {
-            return lhsVal > rhsVal;
-        } else if (operator === "<=") {
-            return lhsVal <= rhsVal;
-        } else if (operator === ">=") {
-            return lhsVal >= rhsVal;
-        } else if (operator === "empty") {
-            return context.meta.runtime.isEmpty(lhsVal);
-        } else if (operator === "not empty") {
-            return !context.meta.runtime.isEmpty(lhsVal);
-        } else if (operator === "exist") {
-            return context.meta.runtime.doesExist(lhsVal);
-        } else if (operator === "not exist") {
-            return !context.meta.runtime.doesExist(lhsVal);
-        } else if (operator === "a") {
-            return context.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
-        } else if (operator === "not a") {
-            return !context.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
-        } else {
-            throw new Error("Unknown comparison : " + operator);
-        }
+        if (operator === "==") return lhsVal == rhsVal;
+        if (operator === "!=") return lhsVal != rhsVal;
+        if (operator === "===") return lhsVal === rhsVal;
+        if (operator === "!==") return lhsVal !== rhsVal;
+        if (operator === "<") return lhsVal < rhsVal;
+        if (operator === ">") return lhsVal > rhsVal;
+        if (operator === "<=") return lhsVal <= rhsVal;
+        if (operator === ">=") return lhsVal >= rhsVal;
+        if (operator === "match") return lhsVal != null && this.sloppyMatches(lhs, lhsVal, rhsVal);
+        if (operator === "not match") return lhsVal == null || !this.sloppyMatches(lhs, lhsVal, rhsVal);
+        if (operator === "in") return rhsVal != null && this.sloppyContains(rhs, rhsVal, lhsVal);
+        if (operator === "not in") return rhsVal == null || !this.sloppyContains(rhs, rhsVal, lhsVal);
+        if (operator === "contain" || operator === "include") return lhsVal != null && this.sloppyContains(lhs, lhsVal, rhsVal);
+        if (operator === "not contain" || operator === "not include") return lhsVal == null || !this.sloppyContains(lhs, lhsVal, rhsVal);
+        if (operator === "start with") return lhsVal != null && String(lhsVal).startsWith(rhsVal);
+        if (operator === "not start with") return lhsVal == null || !String(lhsVal).startsWith(rhsVal);
+        if (operator === "end with") return lhsVal != null && String(lhsVal).endsWith(rhsVal);
+        if (operator === "not end with") return lhsVal == null || !String(lhsVal).endsWith(rhsVal);
+        if (operator === "between") return lhsVal >= rhsVal && lhsVal <= rhs2Val;
+        if (operator === "not between") return lhsVal < rhsVal || lhsVal > rhs2Val;
+        if (operator === "precede") return lhsVal != null && rhsVal != null && (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+        if (operator === "not precede") return lhsVal == null || rhsVal == null || (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_FOLLOWING) === 0;
+        if (operator === "follow") return lhsVal != null && rhsVal != null && (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_PRECEDING) !== 0;
+        if (operator === "not follow") return lhsVal == null || rhsVal == null || (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_PRECEDING) === 0;
+        if (operator === "empty") return context.meta.runtime.isEmpty(lhsVal);
+        if (operator === "not empty") return !context.meta.runtime.isEmpty(lhsVal);
+        if (operator === "exist") return context.meta.runtime.doesExist(lhsVal);
+        if (operator === "not exist") return !context.meta.runtime.doesExist(lhsVal);
+        if (operator === "a") return context.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
+        if (operator === "not a") return !context.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
+        throw new Error("Unknown comparison : " + operator);
     }
 }
 

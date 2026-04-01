@@ -536,9 +536,8 @@ export class Reactivity {
 
         // Track effect by element for cleanup
         if (effect.element) {
-            var data = effect.element._hyperscript;
-            if (!data) data = effect.element._hyperscript = {};
-            if (!data.effects) data.effects = new Set();
+            var data = effect.element._hyperscript ??= {};
+            data.effects ??= new Set();
             data.effects.add(effect);
         }
 
