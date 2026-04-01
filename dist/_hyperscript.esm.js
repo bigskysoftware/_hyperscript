@@ -2441,6 +2441,17 @@ var Runtime = class _Runtime {
   notifyMutation(obj) {
     this.reactivity.notifyProperty(obj);
   }
+  replaceInDom(target, value) {
+    this.implicitLoop(target, (elt) => {
+      var parent = elt.parentElement;
+      if (value instanceof Node) {
+        elt.replaceWith(value.cloneNode(true));
+      } else {
+        elt.replaceWith(this.convertValue(value, "Fragment"));
+      }
+      if (parent) this.processNode(parent);
+    });
+  }
   /**
    * Check if a method call is known to mutate its receiver, and notify if so.
    * @param {Object} target - The object the method was called on
@@ -3708,6 +3719,7 @@ var PossessiveExpression = class _PossessiveExpression extends Expression {
 var InExpression = class _InExpression extends Expression {
   static grammarName = "inExpression";
   static expressionType = "indirect";
+  static assignable = true;
   constructor(root, target) {
     super();
     this.root = root;
@@ -3750,6 +3762,13 @@ var InExpression = class _InExpression extends Expression {
       });
     }
     return returnArr;
+  }
+  get lhs() {
+    return { root: this.root, target: this.target };
+  }
+  set(ctx, lhs, value) {
+    var targets = this.resolve(ctx, lhs);
+    ctx.meta.runtime.replaceInDom(targets, value);
   }
 };
 var AsExpression = class _AsExpression extends Expression {
@@ -4384,6 +4403,7 @@ __export(webliterals_exports, {
 var IdRef = class _IdRef extends Expression {
   static grammarName = "idRef";
   static expressionType = "leaf";
+  static assignable = true;
   constructor(variant, css, value, innerExpression) {
     super();
     this.variant = variant;
@@ -4414,10 +4434,18 @@ var IdRef = class _IdRef extends Expression {
       return context.meta.runtime.getRootNode(context.me).getElementById(this.value);
     }
   }
+  get lhs() {
+    return {};
+  }
+  set(ctx, lhs, value) {
+    var target = this.resolve(ctx);
+    if (target) ctx.meta.runtime.replaceInDom(target, value);
+  }
 };
 var ClassRef = class _ClassRef extends Expression {
   static grammarName = "classRef";
   static expressionType = "leaf";
+  static assignable = true;
   constructor(variant, css, className, innerExpression) {
     super();
     this.variant = variant;
@@ -4449,10 +4477,18 @@ var ClassRef = class _ClassRef extends Expression {
       return new ElementCollection(this.css, context.me, true, context.meta.runtime);
     }
   }
+  get lhs() {
+    return {};
+  }
+  set(ctx, lhs, value) {
+    var targets = Array.from(this.resolve(ctx));
+    ctx.meta.runtime.replaceInDom(targets, value);
+  }
 };
 var QueryRef = class _QueryRef extends Expression {
   static grammarName = "queryRef";
   static expressionType = "leaf";
+  static assignable = true;
   constructor(css, args, template) {
     super();
     this.css = css;
@@ -4488,6 +4524,13 @@ var QueryRef = class _QueryRef extends Expression {
     } else {
       return new ElementCollection(this.css, context.me, false, context.meta.runtime);
     }
+  }
+  get lhs() {
+    return this.template ? { parts: this.templateArgs } : {};
+  }
+  set(ctx, lhs, value) {
+    var targets = Array.from(this.resolve(ctx, lhs));
+    ctx.meta.runtime.replaceInDom(targets, value);
   }
 };
 var AttributeRef = class _AttributeRef extends Expression {
@@ -4911,10 +4954,18 @@ var ClosestExprNode = class extends Expression {
     });
     return ctx.meta.runtime.shouldAutoIterate(to) ? result : result[0];
   }
+  get lhs() {
+    return { to: this.to };
+  }
+  set(ctx, lhs, value) {
+    var target = this.resolve(ctx, lhs);
+    if (target) ctx.meta.runtime.replaceInDom(target, value);
+  }
 };
 var ClosestExpr = class extends Expression {
   static grammarName = "closestExpr";
   static expressionType = "leaf";
+  static assignable = true;
   static parse(parser) {
     if (!parser.matchToken("closest")) return;
     var parentSearch = false;
@@ -5895,8 +5946,15 @@ var SwapCommand = class _SwapCommand extends Command {
     return new _SwapCommand(target1, target2);
   }
   resolve(context, { value1, value2, root1, index1, root2, index2 }) {
-    this.target1.set(context, { root: root1, index: index1 }, value2);
-    this.target2.set(context, { root: root2, index: index2 }, value1);
+    if (value1 instanceof Element && value2 instanceof Element) {
+      var placeholder = document.createComment("");
+      value1.replaceWith(placeholder);
+      value2.replaceWith(value1);
+      placeholder.replaceWith(value2);
+    } else {
+      this.target1.set(context, { root: root1, index: index1 }, value2);
+      this.target2.set(context, { root: root2, index: index2 }, value1);
+    }
     return this.findNext(context);
   }
 };

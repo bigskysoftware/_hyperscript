@@ -228,6 +228,12 @@ class ClosestExprNode extends Expression {
         })
         return ctx.meta.runtime.shouldAutoIterate(to) ? result : result[0];
     }
+
+    get lhs() { return { to: this.to }; }
+    set(ctx, lhs, value) {
+        var target = this.resolve(ctx, lhs);
+        if (target) ctx.meta.runtime.replaceInDom(target, value);
+    }
 }
 
 /**
@@ -239,6 +245,7 @@ class ClosestExprNode extends Expression {
 export class ClosestExpr extends Expression {
     static grammarName = "closestExpr";
     static expressionType = "leaf";
+    static assignable = true;
 
     static parse(parser) {
         if (!parser.matchToken("closest")) return;

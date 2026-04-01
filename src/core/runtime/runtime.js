@@ -452,6 +452,18 @@ export class Runtime {
             this.reactivity.notifyProperty(obj);
         }
 
+        replaceInDom(target, value) {
+            this.implicitLoop(target, (elt) => {
+                var parent = elt.parentElement;
+                if (value instanceof Node) {
+                    elt.replaceWith(value.cloneNode(true));
+                } else {
+                    elt.replaceWith(this.convertValue(value, "Fragment"));
+                }
+                if (parent) this.processNode(parent);
+            });
+        }
+
         /**
          * Check if a method call is known to mutate its receiver, and notify if so.
          * @param {Object} target - The object the method was called on

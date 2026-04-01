@@ -237,8 +237,16 @@ export class SwapCommand extends Command {
     }
 
     resolve(context, { value1, value2, root1, index1, root2, index2 }) {
-        this.target1.set(context, { root: root1, index: index1 }, value2);
-        this.target2.set(context, { root: root2, index: index2 }, value1);
+        if (value1 instanceof Element && value2 instanceof Element) {
+            // DOM swap needs placeholders to avoid position interference
+            var placeholder = document.createComment('');
+            value1.replaceWith(placeholder);
+            value2.replaceWith(value1);
+            placeholder.replaceWith(value2);
+        } else {
+            this.target1.set(context, { root: root1, index: index1 }, value2);
+            this.target2.set(context, { root: root2, index: index2 }, value1);
+        }
         return this.findNext(context);
     }
 }

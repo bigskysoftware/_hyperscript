@@ -487,6 +487,7 @@ export class PossessiveExpression extends Expression {
 export class InExpression extends Expression {
     static grammarName = "inExpression";
     static expressionType = "indirect";
+    static assignable = true;
 
     constructor(root, target) {
         super();
@@ -532,6 +533,12 @@ export class InExpression extends Expression {
             });
         }
         return returnArr;
+    }
+
+    get lhs() { return { root: this.root, target: this.target }; }
+    set(ctx, lhs, value) {
+        var targets = this.resolve(ctx, lhs);
+        ctx.meta.runtime.replaceInDom(targets, value);
     }
 }
 
