@@ -423,6 +423,13 @@ export class Runtime {
                         elt = elt.parentElement && elt.parentElement.closest(match[1]);
                         continue;
                     }
+                    // "parent of <selector>" — jump to the parent of the nearest matching ancestor
+                    match = domScope.match(/^parent\s+of\s+(.+)/);
+                    if (match) {
+                        var target = elt.closest(match[1]);
+                        elt = target && target.parentElement;
+                        continue;
+                    }
                 }
                 elt = elt.parentElement;
             }

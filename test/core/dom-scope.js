@@ -33,6 +33,17 @@ test.describe('dom-scope attribute', () => {
 		await expect.poll(() => find('span').textContent()).toBe('blocked')
 	})
 
+	test('parent of jumps past matching ancestor to its parent', async ({html, find}) => {
+		await html(`
+			<div class="outer" _="init set ^val to 'from-outer'">
+				<div class="middle" dom-scope="isolated" _="init set ^val to 'from-middle'">
+					<span dom-scope="parent of .middle" _="init put ^val into me">none</span>
+				</div>
+			</div>
+		`)
+		await expect.poll(() => find('span').textContent()).toBe('from-outer')
+	})
+
 	test('isolated allows setting ^var on the isolated element itself', async ({html, find}) => {
 		await html(`
 			<div _="init set ^outer to 'leaked'">

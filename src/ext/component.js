@@ -19,18 +19,6 @@ export default function componentPlugin(_hyperscript) {
     const { runtime, createParser, reactivity } = _hyperscript.internals;
     const tokenizer = new Tokenizer();
 
-    var _scopeId = 0;
-
-    /** Build a CSS selector for the component's parent so slotted content can scope back to it */
-    function scopeSelector(componentEl) {
-        var parent = componentEl.parentElement;
-        if (!parent) return null;
-        if (!parent.hasAttribute('data-dom-scope-id')) {
-            parent.setAttribute('data-dom-scope-id', 'ds-' + (++_scopeId));
-        }
-        return '[data-dom-scope-id="' + parent.getAttribute('data-dom-scope-id') + '"]';
-    }
-
     function substituteSlots(templateSource, slotContent, scopeSel) {
         if (!slotContent) return templateSource;
 
@@ -43,7 +31,7 @@ export default function componentPlugin(_hyperscript) {
         // Annotate slotted elements with dom-scope to resolve ^var from outer context
         for (var child of Array.from(tmp.childNodes)) {
             if (child.nodeType === 1 && scopeSel && !child.hasAttribute('dom-scope')) {
-                child.setAttribute('dom-scope', 'closest ' + scopeSel);
+                child.setAttribute('dom-scope', 'parent of ' + scopeSel);
             }
             var slotName = child.nodeType === 1 && child.getAttribute('slot');
             if (slotName) {
@@ -143,7 +131,6 @@ export default function componentPlugin(_hyperscript) {
                 // Capture slot content and clear children immediately,
                 // before processNode can recurse into them
                 this._slotContent = this.innerHTML;
-                this._scopeSelector = scopeSelector(this);
                 this.innerHTML = '';
 
                 // 1. Inject `args` proxy into element scope, then apply component-level hyperscript
@@ -158,7 +145,7 @@ export default function componentPlugin(_hyperscript) {
 
                 // 2. Render template after synchronous init completes
                 const self = this;
-                var source = substituteSlots(templateSource, self._slotContent, self._scopeSelector);
+                var source = substituteSlots(templateSource, self._slotContent, tagName);
 
                 queueMicrotask(function() {
                     // Initial render — may return a promise if template has async expressions
