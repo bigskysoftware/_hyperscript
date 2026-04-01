@@ -299,10 +299,7 @@ export class MakeCommand extends Command {
 
             var result = document.createElement(tagname);
             if (id !== undefined) result.id = id;
-            for (var i = 0; i < classes.length; i++) {
-                var cls = classes[i];
-                result.classList.add(cls)
-            }
+            result.classList.add(...classes);
 
             ctx.result = result;
         } else {
@@ -695,20 +692,12 @@ function _parseScrollModifiers(parser) {
 
     var scrollOptions = { block: "start", inline: "nearest" };
 
-    if (verticalPosition) {
-        if (verticalPosition.value === "top") scrollOptions.block = "start";
-        else if (verticalPosition.value === "bottom") scrollOptions.block = "end";
-        else if (verticalPosition.value === "middle") scrollOptions.block = "center";
-    }
-    if (horizontalPosition) {
-        if (horizontalPosition.value === "left") scrollOptions.inline = "start";
-        else if (horizontalPosition.value === "center") scrollOptions.inline = "center";
-        else if (horizontalPosition.value === "right") scrollOptions.inline = "end";
-    }
-    if (smoothness) {
-        if (smoothness.value === "smoothly") scrollOptions.behavior = "smooth";
-        else if (smoothness.value === "instantly") scrollOptions.behavior = "instant";
-    }
+    var blockMap = { top: "start", bottom: "end", middle: "center" };
+    var inlineMap = { left: "start", center: "center", right: "end" };
+    var behaviorMap = { smoothly: "smooth", instantly: "instant" };
+    if (verticalPosition) scrollOptions.block = blockMap[verticalPosition.value];
+    if (horizontalPosition) scrollOptions.inline = inlineMap[horizontalPosition.value];
+    if (smoothness) scrollOptions.behavior = behaviorMap[smoothness.value];
 
     return { target, offset, plusOrMinus, scrollOptions, container };
 }

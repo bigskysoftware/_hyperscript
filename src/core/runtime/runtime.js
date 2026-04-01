@@ -725,8 +725,9 @@ export class Runtime {
         }
 
         #getScript(elt) {
-            for (var i = 0; i < this.#getScriptAttributes().length; i++) {
-                var scriptAttribute = this.#getScriptAttributes()[i];
+            var attrs = this.#getScriptAttributes();
+            for (var i = 0; i < attrs.length; i++) {
+                var scriptAttribute = attrs[i];
                 if (elt.hasAttribute && elt.hasAttribute(scriptAttribute)) {
                     return elt.getAttribute(scriptAttribute);
                 }

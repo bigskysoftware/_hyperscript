@@ -376,16 +376,9 @@ export class PutCommand extends Command {
                     });
                 }
             } else {
-                var op =
-                    this.operation === "before"
-                        ? Element.prototype.before
-                        : this.operation === "after"
-                        ? Element.prototype.after
-                        : this.operation === "start"
-                        ? Element.prototype.prepend
-                        : this.operation === "end"
-                        ? Element.prototype.append
-                        : Element.prototype.append;
+                var ops = { before: Element.prototype.before, after: Element.prototype.after,
+                            start: Element.prototype.prepend, end: Element.prototype.append };
+                var op = ops[this.operation] || Element.prototype.append;
 
                 context.meta.runtime.implicitLoop(root, function (elt) {
                     op.call(

@@ -959,7 +959,7 @@ export class EmptyCommand extends Command {
     resolve(ctx, { target }) {
         var elt = target || ctx.me;
         ctx.meta.runtime.implicitLoop(elt, function (e) {
-            while (e.firstChild) e.removeChild(e.firstChild);
+            e.replaceChildren();
         });
         return ctx.meta.runtime.findNext(this, ctx);
     }
