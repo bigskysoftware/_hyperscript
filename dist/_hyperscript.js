@@ -219,7 +219,7 @@
     }
     // ----- Whitespace -----
     lastWhitespace() {
-      var last = this.#consumed[this.#consumed.length - 1];
+      var last = this.#consumed.at(-1);
       return last && last.type === "WHITESPACE" ? last.value : "";
     }
     // ----- Follow set management -----
@@ -371,7 +371,7 @@
     }
     #isValidSingleQuoteStringStart() {
       if (this.#tokens.length > 0) {
-        var prev = this.#tokens[this.#tokens.length - 1];
+        var prev = this.#tokens.at(-1);
         if (prev.type === "IDENTIFIER" || prev.type === "CLASS_REF" || prev.type === "ID_REF") {
           return false;
         }
@@ -770,6 +770,9 @@
       context.meta.command = this;
       return context.meta.runtime.unifiedExec(this, context);
     }
+    findNext(context) {
+      return context.meta.runtime.findNext(this, context);
+    }
   };
   var Feature = class extends ParseElement {
     isFeature = true;
@@ -807,7 +810,7 @@
       this.type = "emptyCommandListCommand";
     }
     resolve(context) {
-      return context.meta.runtime.findNext(this, context);
+      return this.findNext(context);
     }
   };
   var UnlessStatementModifier = class extends Command {
@@ -2081,9 +2084,9 @@
       this.result = void 0;
       this.beingTested = null;
       this.event = event;
-      this.target = event ? event.target : null;
-      this.detail = event ? event.detail : null;
-      this.sender = event ? event.detail ? event.detail.sender : null : null;
+      this.target = event?.target ?? null;
+      this.detail = event?.detail ?? null;
+      this.sender = event?.detail?.sender ?? null;
       this.body = "document" in globalScope2 ? document.body : null;
       runtime2.addFeatures(owner, this);
     }
@@ -2275,90 +2278,74 @@
       return context instanceof Context;
     }
     resolveSymbol(str, context, type, targetElement) {
-      if (str === "me" || str === "my" || str === "I") {
-        return context.me;
+      if (str === "me" || str === "my" || str === "I") return context.me;
+      if (str === "it" || str === "its") return context.beingTested ?? context.result;
+      if (str === "result") return context.result;
+      if (str === "you" || str === "your" || str === "yourself") return context.you;
+      if (type === "global") {
+        if (this.reactivity.isTracking) this.reactivity.trackGlobalSymbol(str);
+        var val = this.#globalScope[str];
+        this.#trackMutation(val);
+        return val;
       }
-      if (str === "it" || str === "its") {
-        return context.beingTested != null ? context.beingTested : context.result;
+      if (type === "element") {
+        if (this.reactivity.isTracking) this.reactivity.trackElementSymbol(str, context.meta.owner);
+        var val = this.#getElementScope(context)[str];
+        this.#trackMutation(val);
+        return val;
       }
-      if (str === "result") {
-        return context.result;
-      }
-      if (str === "you" || str === "your" || str === "yourself") {
-        return context.you;
-      } else {
-        if (type === "global") {
-          if (this.reactivity.isTracking) this.reactivity.trackGlobalSymbol(str);
-          var val = this.#globalScope[str];
-          this.#trackMutation(val);
-          return val;
-        } else if (type === "element") {
-          if (this.reactivity.isTracking) this.reactivity.trackElementSymbol(str, context.meta.owner);
-          var elementScope = this.#getElementScope(context);
-          var val = elementScope[str];
-          this.#trackMutation(val);
-          return val;
-        } else if (type === "inherited") {
-          var inherited = this.#resolveInherited(str, context, targetElement);
-          if (this.reactivity.isTracking && inherited.element) {
-            this.reactivity.trackElementSymbol(str, inherited.element);
-          }
-          this.#trackMutation(inherited.value);
-          return inherited.value;
-        } else if (type === "local") {
-          return context.locals[str];
-        } else {
-          if (context.meta && context.meta.context) {
-            var fromMetaContext = context.meta.context[str];
-            if (typeof fromMetaContext !== "undefined") {
-              return fromMetaContext;
-            }
-            if (context.meta.context.detail) {
-              fromMetaContext = context.meta.context.detail[str];
-              if (typeof fromMetaContext !== "undefined") {
-                return fromMetaContext;
-              }
-            }
-          }
-          if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str)) {
-            var fromContext = context.locals[str];
-          } else {
-            var fromContext = context[str];
-          }
-          if (typeof fromContext !== "undefined") {
-            return fromContext;
-          } else {
-            var elementScope = this.#getElementScope(context);
-            fromContext = elementScope[str];
-            if (typeof fromContext !== "undefined") {
-              if (this.reactivity.isTracking) this.reactivity.trackElementSymbol(str, context.meta.owner);
-              this.#trackMutation(fromContext);
-              return fromContext;
-            } else {
-              if (this.reactivity.isTracking) this.reactivity.trackGlobalSymbol(str);
-              var val = this.#globalScope[str];
-              this.#trackMutation(val);
-              return val;
-            }
+      if (type === "inherited") {
+        var inherited = this.#resolveInherited(str, context, targetElement);
+        if (this.reactivity.isTracking) {
+          var trackElement = inherited.element || targetElement || context.meta?.owner;
+          if (trackElement) {
+            this.reactivity.trackElementSymbol(str, trackElement);
           }
         }
+        this.#trackMutation(inherited.value);
+        return inherited.value;
       }
+      if (type === "local") return context.locals[str];
+      if (context.meta?.context) {
+        var fromMetaContext = context.meta.context[str];
+        if (typeof fromMetaContext !== "undefined") return fromMetaContext;
+        if (context.meta.context.detail) {
+          fromMetaContext = context.meta.context.detail[str];
+          if (typeof fromMetaContext !== "undefined") return fromMetaContext;
+        }
+      }
+      var fromContext = this.#isHyperscriptContext(context) && !this.#isReservedWord(str) ? context.locals[str] : context[str];
+      if (typeof fromContext !== "undefined") return fromContext;
+      var elementScope = this.#getElementScope(context);
+      fromContext = elementScope[str];
+      if (typeof fromContext !== "undefined") {
+        if (this.reactivity.isTracking) this.reactivity.trackElementSymbol(str, context.meta.owner);
+        this.#trackMutation(fromContext);
+        return fromContext;
+      }
+      if (this.reactivity.isTracking) this.reactivity.trackGlobalSymbol(str);
+      var val = this.#globalScope[str];
+      this.#trackMutation(val);
+      return val;
     }
     setSymbol(str, context, type, value, targetElement) {
       if (type === "global") {
         this.#globalScope[str] = value;
         this.reactivity.notifyGlobalSymbol(str);
-      } else if (type === "element") {
-        var elementScope = this.#getElementScope(context);
-        elementScope[str] = value;
+        return;
+      }
+      if (type === "element") {
+        this.#getElementScope(context)[str] = value;
         this.reactivity.notifyElementSymbol(str, context.meta.owner);
-      } else if (type === "inherited") {
+        return;
+      }
+      if (type === "inherited") {
         var inherited = this.#resolveInherited(str, context, targetElement);
         if (inherited.element) {
           this.getInternalData(inherited.element).elementScope[str] = value;
           this.reactivity.notifyElementSymbol(str, inherited.element);
         } else {
-          var owner = targetElement || context.meta && context.meta.owner;
+          var owner = targetElement || context.meta?.owner;
           if (owner) {
             var internalData = this.getInternalData(owner);
             if (!internalData.elementScope) internalData.elementScope = {};
@@ -2366,25 +2353,24 @@
             this.reactivity.notifyElementSymbol(str, owner);
           }
         }
-      } else if (type === "local") {
+        return;
+      }
+      if (type === "local") {
+        context.locals[str] = value;
+        return;
+      }
+      if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str) && typeof context.locals[str] !== "undefined") {
+        context.locals[str] = value;
+        return;
+      }
+      var elementScope = this.#getElementScope(context);
+      if (typeof elementScope[str] !== "undefined") {
+        elementScope[str] = value;
+        this.reactivity.notifyElementSymbol(str, context.meta.owner);
+      } else if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str)) {
         context.locals[str] = value;
       } else {
-        if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str) && typeof context.locals[str] !== "undefined") {
-          context.locals[str] = value;
-        } else {
-          var elementScope = this.#getElementScope(context);
-          var fromContext = elementScope[str];
-          if (typeof fromContext !== "undefined") {
-            elementScope[str] = value;
-            this.reactivity.notifyElementSymbol(str, context.meta.owner);
-          } else {
-            if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str)) {
-              context.locals[str] = value;
-            } else {
-              context[str] = value;
-            }
-          }
-        }
+        context[str] = value;
       }
     }
     getInternalData(elt) {
@@ -2408,6 +2394,12 @@
           var match = domScope.match(/^closest\s+(.+)/);
           if (match) {
             elt = elt.parentElement && elt.parentElement.closest(match[1]);
+            continue;
+          }
+          match = domScope.match(/^parent\s+of\s+(.+)/);
+          if (match) {
+            var target = elt.closest(match[1]);
+            elt = target && target.parentElement;
             continue;
           }
         }
@@ -2470,6 +2462,17 @@
      */
     notifyMutation(obj) {
       this.reactivity.notifyProperty(obj);
+    }
+    replaceInDom(target, value) {
+      this.implicitLoop(target, (elt) => {
+        var parent = elt.parentElement;
+        if (value instanceof Node) {
+          elt.replaceWith(value.cloneNode(true));
+        } else {
+          elt.replaceWith(this.convertValue(value, "Fragment"));
+        }
+        if (parent) this.processNode(parent);
+      });
     }
     /**
      * Check if a method call is known to mutate its receiver, and notify if so.
@@ -2684,13 +2687,14 @@
     // =================================================================
     #getScriptAttributes() {
       if (this.#scriptAttrs == null) {
-        this.#scriptAttrs = config.attributes.replace(/ /g, "").split(",");
+        this.#scriptAttrs = config.attributes.replaceAll(" ", "").split(",");
       }
       return this.#scriptAttrs;
     }
     #getScript(elt) {
-      for (var i = 0; i < this.#getScriptAttributes().length; i++) {
-        var scriptAttribute = this.#getScriptAttributes()[i];
+      var attrs = this.#getScriptAttributes();
+      for (var i = 0; i < attrs.length; i++) {
+        var scriptAttribute = attrs[i];
         if (elt.hasAttribute && elt.hasAttribute(scriptAttribute)) {
           return elt.getAttribute(scriptAttribute);
         }
@@ -2700,10 +2704,12 @@
       }
       return null;
     }
+    #scriptSelector;
     #getScriptSelector() {
-      return this.#getScriptAttributes().map(function(attribute) {
-        return "[" + attribute + "]";
-      }).join(", ");
+      if (!this.#scriptSelector) {
+        this.#scriptSelector = this.#getScriptAttributes().map((a) => "[" + a + "]").join(", ");
+      }
+      return this.#scriptSelector;
     }
     #hashScript(str) {
       var hash = 5381;
@@ -2793,7 +2799,16 @@
         );
       }
     }
+    #beforeProcessHooks = [];
+    #afterProcessHooks = [];
+    addBeforeProcessHook(fn) {
+      this.#beforeProcessHooks.push(fn);
+    }
+    addAfterProcessHook(fn) {
+      this.#afterProcessHooks.push(fn);
+    }
     processNode(elt) {
+      for (var fn of this.#beforeProcessHooks) fn(elt);
       var selector = this.#getScriptSelector();
       if (this.matchesSelector(elt, selector)) {
         this.#initElement(elt, elt);
@@ -2806,6 +2821,7 @@
           this.#initElement(elt2, elt2 instanceof HTMLScriptElement && elt2.type === "text/hyperscript" ? document.body : elt2);
         });
       }
+      for (var fn of this.#afterProcessHooks) fn(elt);
     }
     // =================================================================
     // Debug and tracing
@@ -2857,24 +2873,8 @@
     }
     beepValueToConsole(element, expression, value) {
       if (this.triggerEvent(element, "hyperscript:beep", { element, expression, value })) {
-        var typeName;
-        if (value) {
-          if (value instanceof ElementCollection) {
-            typeName = "ElementCollection";
-          } else if (value.constructor) {
-            typeName = value.constructor.name;
-          } else {
-            typeName = "unknown";
-          }
-        } else {
-          typeName = "object (null)";
-        }
-        var logValue = value;
-        if (typeName === "String") {
-          logValue = '"' + logValue + '"';
-        } else if (value instanceof ElementCollection) {
-          logValue = Array.from(value);
-        }
+        var typeName = !value ? "object (null)" : value instanceof ElementCollection ? "ElementCollection" : value.constructor?.name || "unknown";
+        var logValue = typeName === "String" ? '"' + value + '"' : value instanceof ElementCollection ? Array.from(value) : value;
         console.log("///_ BEEP! The expression (" + expression.sourceFor().replace("beep! ", "") + ") evaluates to:", logValue, "of type " + typeName);
       }
     }
@@ -3048,7 +3048,7 @@
      * @param {string} name - Property name
      */
     trackProperty(obj, name) {
-      if (obj == null || typeof obj !== "object") return;
+      if (obj == null || typeof obj !== "object" || obj._hsSkipTracking) return;
       this._currentEffect.dependencies.set(
         "property:" + this._getObjectState(obj).id,
         { type: "property", object: obj, name }
@@ -3101,7 +3101,7 @@
      * @param {Object} obj - DOM element or plain JS object
      */
     notifyProperty(obj) {
-      if (obj == null || typeof obj !== "object") return;
+      if (obj == null || typeof obj !== "object" || obj._hsSkipTracking) return;
       var state = this._objectState.get(obj);
       if (state && state.propertyHandler) {
         state.propertyHandler.queueAll();
@@ -3323,9 +3323,8 @@
       );
       effect.initialize();
       if (effect.element) {
-        var data = effect.element._hyperscript;
-        if (!data) data = effect.element._hyperscript = {};
-        if (!data.effects) data.effects = /* @__PURE__ */ new Set();
+        var data = effect.element._hyperscript ??= {};
+        data.effects ??= /* @__PURE__ */ new Set();
         data.effects.add(effect);
       }
       return function() {
@@ -3440,7 +3439,7 @@
       }
     }
     resolve(context, { value }) {
-      return -1 * value;
+      return -value;
     }
   };
   var LogicalNot = class _LogicalNot extends Expression {
@@ -3582,8 +3581,7 @@
       return parser.parseElement("indirectExpression", propertyAccess);
     }
     resolve(context, { root: rootVal }) {
-      var value = context.meta.runtime.resolveProperty(rootVal, this.prop.value);
-      return value;
+      return context.meta.runtime.resolveProperty(rootVal, this.prop.value);
     }
     get lhs() {
       return { root: this.root };
@@ -3608,6 +3606,10 @@
       this.expression = expression;
       this.args = args;
       this._urRoot = urRoot;
+      this._prop = urRoot.name;
+      this._isAttribute = urRoot.type === "attributeRef";
+      this._isStyle = urRoot.type === "styleRef";
+      this._isComputed = urRoot.type === "computedStyleRef";
     }
     static parse(parser, root) {
       if (!parser.matchToken("of")) return;
@@ -3646,20 +3648,14 @@
       return parser.parseElement("indirectExpression", root);
     }
     resolve(context, { root: rootVal }) {
-      var urRoot = this._urRoot;
-      var prop = urRoot.name;
-      var attribute = urRoot.type === "attributeRef";
-      var style = urRoot.type === "styleRef" || urRoot.type === "computedStyleRef";
-      if (attribute) {
-        return context.meta.runtime.resolveAttribute(rootVal, prop);
-      } else if (style) {
-        if (urRoot.type === "computedStyleRef") {
-          return context.meta.runtime.resolveComputedStyle(rootVal, prop);
-        } else {
-          return context.meta.runtime.resolveStyle(rootVal, prop);
-        }
+      if (this._isAttribute) {
+        return context.meta.runtime.resolveAttribute(rootVal, this._prop);
+      } else if (this._isComputed) {
+        return context.meta.runtime.resolveComputedStyle(rootVal, this._prop);
+      } else if (this._isStyle) {
+        return context.meta.runtime.resolveStyle(rootVal, this._prop);
       } else {
-        return context.meta.runtime.resolveProperty(rootVal, prop);
+        return context.meta.runtime.resolveProperty(rootVal, this._prop);
       }
     }
     get lhs() {
@@ -3667,20 +3663,18 @@
     }
     set(ctx, lhs, value) {
       ctx.meta.runtime.nullCheck(lhs.root, this.root);
-      var urRoot = this._urRoot;
-      var prop = urRoot.name;
-      if (urRoot.type === "attributeRef") {
+      if (this._isAttribute) {
         ctx.meta.runtime.implicitLoop(lhs.root, (elt) => {
-          value == null ? elt.removeAttribute(prop) : elt.setAttribute(prop, value);
+          value == null ? elt.removeAttribute(this._prop) : elt.setAttribute(this._prop, value);
         });
-      } else if (urRoot.type === "styleRef") {
+      } else if (this._isStyle) {
         ctx.meta.runtime.implicitLoop(lhs.root, (elt) => {
-          elt.style[prop] = value;
+          elt.style[this._prop] = value;
         });
       } else {
         var runtime2 = ctx.meta.runtime;
         runtime2.implicitLoop(lhs.root, (elt) => {
-          runtime2.setProperty(elt, prop, value);
+          runtime2.setProperty(elt, this._prop, value);
         });
       }
     }
@@ -3757,6 +3751,7 @@
   var InExpression = class _InExpression extends Expression {
     static grammarName = "inExpression";
     static expressionType = "indirect";
+    static assignable = true;
     constructor(root, target) {
       super();
       this.root = root;
@@ -3799,6 +3794,13 @@
         });
       }
       return returnArr;
+    }
+    get lhs() {
+      return { root: this.root, target: this.target };
+    }
+    set(ctx, lhs, value) {
+      var targets = this.resolve(ctx, lhs);
+      ctx.meta.runtime.replaceInDom(targets, value);
     }
   };
   var AsExpression = class _AsExpression extends Expression {
@@ -3890,8 +3892,7 @@
       return new _AttributeRefAccess(root, attribute);
     }
     resolve(_ctx, { root: rootVal }) {
-      var value = _ctx.meta.runtime.resolveAttribute(rootVal, this.attribute.name);
-      return value;
+      return _ctx.meta.runtime.resolveAttribute(rootVal, this.attribute.name);
     }
     get lhs() {
       return { root: this.root };
@@ -4194,93 +4195,37 @@
         if (typeof lhsVal === "string") lhsVal = lhsVal.toLowerCase();
         if (typeof rhsVal === "string") rhsVal = rhsVal.toLowerCase();
       }
-      if (operator === "==") {
-        return lhsVal == rhsVal;
-      } else if (operator === "!=") {
-        return lhsVal != rhsVal;
-      }
-      if (operator === "===") {
-        return lhsVal === rhsVal;
-      } else if (operator === "!==") {
-        return lhsVal !== rhsVal;
-      }
-      if (operator === "match") {
-        return lhsVal != null && this.sloppyMatches(lhs, lhsVal, rhsVal);
-      }
-      if (operator === "not match") {
-        return lhsVal == null || !this.sloppyMatches(lhs, lhsVal, rhsVal);
-      }
-      if (operator === "in") {
-        return rhsVal != null && this.sloppyContains(rhs, rhsVal, lhsVal);
-      }
-      if (operator === "not in") {
-        return rhsVal == null || !this.sloppyContains(rhs, rhsVal, lhsVal);
-      }
-      if (operator === "contain") {
-        return lhsVal != null && this.sloppyContains(lhs, lhsVal, rhsVal);
-      }
-      if (operator === "not contain") {
-        return lhsVal == null || !this.sloppyContains(lhs, lhsVal, rhsVal);
-      }
-      if (operator === "include") {
-        return lhsVal != null && this.sloppyContains(lhs, lhsVal, rhsVal);
-      }
-      if (operator === "not include") {
-        return lhsVal == null || !this.sloppyContains(lhs, lhsVal, rhsVal);
-      }
-      if (operator === "start with") {
-        return lhsVal != null && String(lhsVal).startsWith(rhsVal);
-      }
-      if (operator === "not start with") {
-        return lhsVal == null || !String(lhsVal).startsWith(rhsVal);
-      }
-      if (operator === "end with") {
-        return lhsVal != null && String(lhsVal).endsWith(rhsVal);
-      }
-      if (operator === "not end with") {
-        return lhsVal == null || !String(lhsVal).endsWith(rhsVal);
-      }
-      if (operator === "between") {
-        return lhsVal >= rhsVal && lhsVal <= rhs2Val;
-      }
-      if (operator === "not between") {
-        return lhsVal < rhsVal || lhsVal > rhs2Val;
-      }
-      if (operator === "precede") {
-        return lhsVal != null && rhsVal != null && (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
-      }
-      if (operator === "not precede") {
-        return lhsVal == null || rhsVal == null || (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_FOLLOWING) === 0;
-      }
-      if (operator === "follow") {
-        return lhsVal != null && rhsVal != null && (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_PRECEDING) !== 0;
-      }
-      if (operator === "not follow") {
-        return lhsVal == null || rhsVal == null || (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_PRECEDING) === 0;
-      }
-      if (operator === "<") {
-        return lhsVal < rhsVal;
-      } else if (operator === ">") {
-        return lhsVal > rhsVal;
-      } else if (operator === "<=") {
-        return lhsVal <= rhsVal;
-      } else if (operator === ">=") {
-        return lhsVal >= rhsVal;
-      } else if (operator === "empty") {
-        return context.meta.runtime.isEmpty(lhsVal);
-      } else if (operator === "not empty") {
-        return !context.meta.runtime.isEmpty(lhsVal);
-      } else if (operator === "exist") {
-        return context.meta.runtime.doesExist(lhsVal);
-      } else if (operator === "not exist") {
-        return !context.meta.runtime.doesExist(lhsVal);
-      } else if (operator === "a") {
-        return context.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
-      } else if (operator === "not a") {
-        return !context.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
-      } else {
-        throw new Error("Unknown comparison : " + operator);
-      }
+      if (operator === "==") return lhsVal == rhsVal;
+      if (operator === "!=") return lhsVal != rhsVal;
+      if (operator === "===") return lhsVal === rhsVal;
+      if (operator === "!==") return lhsVal !== rhsVal;
+      if (operator === "<") return lhsVal < rhsVal;
+      if (operator === ">") return lhsVal > rhsVal;
+      if (operator === "<=") return lhsVal <= rhsVal;
+      if (operator === ">=") return lhsVal >= rhsVal;
+      if (operator === "match") return lhsVal != null && this.sloppyMatches(lhs, lhsVal, rhsVal);
+      if (operator === "not match") return lhsVal == null || !this.sloppyMatches(lhs, lhsVal, rhsVal);
+      if (operator === "in") return rhsVal != null && this.sloppyContains(rhs, rhsVal, lhsVal);
+      if (operator === "not in") return rhsVal == null || !this.sloppyContains(rhs, rhsVal, lhsVal);
+      if (operator === "contain" || operator === "include") return lhsVal != null && this.sloppyContains(lhs, lhsVal, rhsVal);
+      if (operator === "not contain" || operator === "not include") return lhsVal == null || !this.sloppyContains(lhs, lhsVal, rhsVal);
+      if (operator === "start with") return lhsVal != null && String(lhsVal).startsWith(rhsVal);
+      if (operator === "not start with") return lhsVal == null || !String(lhsVal).startsWith(rhsVal);
+      if (operator === "end with") return lhsVal != null && String(lhsVal).endsWith(rhsVal);
+      if (operator === "not end with") return lhsVal == null || !String(lhsVal).endsWith(rhsVal);
+      if (operator === "between") return lhsVal >= rhsVal && lhsVal <= rhs2Val;
+      if (operator === "not between") return lhsVal < rhsVal || lhsVal > rhs2Val;
+      if (operator === "precede") return lhsVal != null && rhsVal != null && (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+      if (operator === "not precede") return lhsVal == null || rhsVal == null || (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_FOLLOWING) === 0;
+      if (operator === "follow") return lhsVal != null && rhsVal != null && (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_PRECEDING) !== 0;
+      if (operator === "not follow") return lhsVal == null || rhsVal == null || (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_PRECEDING) === 0;
+      if (operator === "empty") return context.meta.runtime.isEmpty(lhsVal);
+      if (operator === "not empty") return !context.meta.runtime.isEmpty(lhsVal);
+      if (operator === "exist") return context.meta.runtime.doesExist(lhsVal);
+      if (operator === "not exist") return !context.meta.runtime.doesExist(lhsVal);
+      if (operator === "a") return context.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
+      if (operator === "not a") return !context.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
+      throw new Error("Unknown comparison : " + operator);
     }
   };
   var LogicalOperator = class _LogicalOperator extends Expression {
@@ -4490,6 +4435,7 @@
   var IdRef = class _IdRef extends Expression {
     static grammarName = "idRef";
     static expressionType = "leaf";
+    static assignable = true;
     constructor(variant, css, value, innerExpression) {
       super();
       this.variant = variant;
@@ -4520,10 +4466,18 @@
         return context.meta.runtime.getRootNode(context.me).getElementById(this.value);
       }
     }
+    get lhs() {
+      return {};
+    }
+    set(ctx, lhs, value) {
+      var target = this.resolve(ctx);
+      if (target) ctx.meta.runtime.replaceInDom(target, value);
+    }
   };
   var ClassRef = class _ClassRef extends Expression {
     static grammarName = "classRef";
     static expressionType = "leaf";
+    static assignable = true;
     constructor(variant, css, className, innerExpression) {
       super();
       this.variant = variant;
@@ -4555,10 +4509,18 @@
         return new ElementCollection(this.css, context.me, true, context.meta.runtime);
       }
     }
+    get lhs() {
+      return {};
+    }
+    set(ctx, lhs, value) {
+      var targets = Array.from(this.resolve(ctx));
+      ctx.meta.runtime.replaceInDom(targets, value);
+    }
   };
   var QueryRef = class _QueryRef extends Expression {
     static grammarName = "queryRef";
     static expressionType = "leaf";
+    static assignable = true;
     constructor(css, args, template) {
       super();
       this.css = css;
@@ -4594,6 +4556,13 @@
       } else {
         return new ElementCollection(this.css, context.me, false, context.meta.runtime);
       }
+    }
+    get lhs() {
+      return this.template ? { parts: this.templateArgs } : {};
+    }
+    set(ctx, lhs, value) {
+      var targets = Array.from(this.resolve(ctx, lhs));
+      ctx.meta.runtime.replaceInDom(targets, value);
     }
   };
   var AttributeRef = class _AttributeRef extends Expression {
@@ -5004,30 +4973,31 @@
       this.args = { to };
     }
     resolve(ctx, { to }) {
-      if (to == null) {
-        return null;
-      } else {
-        let result = [];
-        const css = this.css;
-        const parentSearch = this.parentSearch;
-        ctx.meta.runtime.implicitLoop(to, function(to2) {
-          if (parentSearch) {
-            result.push(to2.parentElement ? to2.parentElement.closest(css) : null);
-          } else {
-            result.push(to2.closest(css));
-          }
-        });
-        if (ctx.meta.runtime.shouldAutoIterate(to)) {
-          return result;
+      if (to == null) return null;
+      let result = [];
+      const css = this.css;
+      const parentSearch = this.parentSearch;
+      ctx.meta.runtime.implicitLoop(to, function(to2) {
+        if (parentSearch) {
+          result.push(to2.parentElement ? to2.parentElement.closest(css) : null);
         } else {
-          return result[0];
+          result.push(to2.closest(css));
         }
-      }
+      });
+      return ctx.meta.runtime.shouldAutoIterate(to) ? result : result[0];
+    }
+    get lhs() {
+      return { to: this.to };
+    }
+    set(ctx, lhs, value) {
+      var target = this.resolve(ctx, lhs);
+      if (target) ctx.meta.runtime.replaceInDom(target, value);
     }
   };
   var ClosestExpr = class extends Expression {
     static grammarName = "closestExpr";
     static expressionType = "leaf";
+    static assignable = true;
     static parse(parser) {
       if (!parser.matchToken("closest")) return;
       var parentSearch = false;
@@ -5177,7 +5147,7 @@
       } else {
         console.log(...values);
       }
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
   var BeepCommand = class _BeepCommand extends Command {
@@ -5201,7 +5171,7 @@
         const val = values[i];
         ctx.meta.runtime.beepValueToConsole(ctx.me, expr, val);
       }
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
   var ThrowCommand = class _ThrowCommand extends Command {
@@ -5240,21 +5210,12 @@
       var resolve = context.meta.resolve;
       context.meta.returned = true;
       context.meta.returnValue = value;
-      if (resolve) {
-        if (value) {
-          resolve(value);
-        } else {
-          resolve();
-        }
-      }
+      if (resolve) resolve(value);
       return context.meta.runtime.HALT;
     }
   };
   var ExitCommand = class _ExitCommand extends Command {
     static keyword = "exit";
-    constructor() {
-      super();
-    }
     static parse(parser) {
       if (!parser.matchToken("exit")) return;
       return new _ExitCommand();
@@ -5307,7 +5268,7 @@
         }
       }
       if (this.keepExecuting) {
-        return ctx.meta.runtime.findNext(this, ctx);
+        return this.findNext(ctx);
       } else {
         return this.exit;
       }
@@ -5353,10 +5314,7 @@
         }
         var result = document.createElement(tagname);
         if (id !== void 0) result.id = id;
-        for (var i = 0; i < classes.length; i++) {
-          var cls = classes[i];
-          result.classList.add(cls);
-        }
+        result.classList.add(...classes);
         ctx.result = result;
       } else {
         ctx.result = new expr(...constructorArgs);
@@ -5364,7 +5322,7 @@
       if (this.target) {
         ctx.meta.runtime.setSymbol(this.target.name, ctx, this.target.scope, ctx.result);
       }
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
   var AppendCommand = class _AppendCommand extends Command {
@@ -5399,7 +5357,6 @@
       if (Array.isArray(target)) {
         target.push(value);
         context.meta.runtime.notifyMutation(target);
-        return context.meta.runtime.findNext(this, context);
       } else if (target instanceof Element) {
         if (value instanceof Element) {
           target.insertAdjacentElement("beforeend", value);
@@ -5407,13 +5364,12 @@
           target.insertAdjacentHTML("beforeend", value);
         }
         context.meta.runtime.processNode(target);
-        return context.meta.runtime.findNext(this, context);
       } else if (this.assignable) {
         this._target.set(context, lhs, (target || "") + value);
-        return context.meta.runtime.findNext(this, context);
       } else {
         throw new Error("Unable to append a value!");
       }
+      return this.findNext(context);
     }
   };
   var PickCommand = class _PickCommand extends Command {
@@ -5562,14 +5518,14 @@
         if (this.range.toEnd) to = root.length;
         if (!this.range.includeStart) from++;
         if (this.range.includeEnd) to++;
-        if (to == null || to == void 0) to = from + 1;
+        if (to == null) to = from + 1;
         ctx.result = root.slice(from, to);
       } else if (this.variant === "match") {
         ctx.result = new RegExp(re, this.flags).exec(root);
       } else {
         ctx.result = new RegExpIterable(re, this.flags, root);
       }
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
   var FetchCommand = class _FetchCommand extends Command {
@@ -5617,60 +5573,42 @@
       return new _FetchCommand(url, argExprs, type, conversion);
     }
     resolve(context, { url, options }) {
-      const type = this.conversionType;
-      const conversion = this.conversion;
-      const fetchCmd = this;
       var detail = options || {};
-      detail["sender"] = context.me;
-      detail["headers"] = detail["headers"] || {};
+      detail.sender = context.me;
+      detail.headers = detail.headers || {};
       var abortController = new AbortController();
-      var abortListener = function() {
-        abortController.abort();
-      };
+      var abortListener = () => abortController.abort();
       context.me.addEventListener("fetch:abort", abortListener, { once: true });
-      detail["signal"] = abortController.signal;
+      detail.signal = abortController.signal;
       context.meta.runtime.triggerEvent(context.me, "hyperscript:beforeFetch", detail);
       context.meta.runtime.triggerEvent(context.me, "fetch:beforeRequest", detail);
       var finished = false;
       if (detail.timeout) {
-        setTimeout(function() {
-          if (!finished) {
-            abortController.abort();
-          }
+        setTimeout(() => {
+          if (!finished) abortController.abort();
         }, detail.timeout);
       }
-      return fetch(url, detail).then(function(resp) {
-        let resultDetails = { response: resp };
+      var complete = (result) => {
+        context.result = result;
+        context.meta.runtime.triggerEvent(context.me, "fetch:afterRequest", { result });
+        finished = true;
+        return this.findNext(context);
+      };
+      return fetch(url, detail).then((resp) => {
+        var resultDetails = { response: resp };
         context.meta.runtime.triggerEvent(context.me, "fetch:afterResponse", resultDetails);
         resp = resultDetails.response;
-        if (type === "response") {
-          context.result = resp;
-          context.meta.runtime.triggerEvent(context.me, "fetch:afterRequest", { result: resp });
-          finished = true;
-          return context.meta.runtime.findNext(fetchCmd, context);
-        }
-        if (type === "json") {
-          return resp.json().then(function(result) {
-            context.result = result;
-            context.meta.runtime.triggerEvent(context.me, "fetch:afterRequest", { result });
-            finished = true;
-            return context.meta.runtime.findNext(fetchCmd, context);
-          });
-        }
-        return resp.text().then(function(result) {
-          if (conversion) result = context.meta.runtime.convertValue(result, conversion);
-          if (type === "html") result = context.meta.runtime.convertValue(result, "Fragment");
-          context.result = result;
-          context.meta.runtime.triggerEvent(context.me, "fetch:afterRequest", { result });
-          finished = true;
-          return context.meta.runtime.findNext(fetchCmd, context);
+        if (this.conversionType === "response") return complete(resp);
+        if (this.conversionType === "json") return resp.json().then(complete);
+        return resp.text().then((result) => {
+          if (this.conversion) result = context.meta.runtime.convertValue(result, this.conversion);
+          if (this.conversionType === "html") result = context.meta.runtime.convertValue(result, "Fragment");
+          return complete(result);
         });
-      }).catch(function(reason) {
-        context.meta.runtime.triggerEvent(context.me, "fetch:error", {
-          reason
-        });
+      }).catch((reason) => {
+        context.meta.runtime.triggerEvent(context.me, "fetch:error", { reason });
         throw reason;
-      }).finally(function() {
+      }).finally(() => {
         context.me.removeEventListener("fetch:abort", abortListener);
       });
     }
@@ -5700,20 +5638,12 @@
     }
     var smoothness = parser.matchAnyToken("smoothly", "instantly");
     var scrollOptions = { block: "start", inline: "nearest" };
-    if (verticalPosition) {
-      if (verticalPosition.value === "top") scrollOptions.block = "start";
-      else if (verticalPosition.value === "bottom") scrollOptions.block = "end";
-      else if (verticalPosition.value === "middle") scrollOptions.block = "center";
-    }
-    if (horizontalPosition) {
-      if (horizontalPosition.value === "left") scrollOptions.inline = "start";
-      else if (horizontalPosition.value === "center") scrollOptions.inline = "center";
-      else if (horizontalPosition.value === "right") scrollOptions.inline = "end";
-    }
-    if (smoothness) {
-      if (smoothness.value === "smoothly") scrollOptions.behavior = "smooth";
-      else if (smoothness.value === "instantly") scrollOptions.behavior = "instant";
-    }
+    var blockMap = { top: "start", bottom: "end", middle: "center" };
+    var inlineMap = { left: "start", center: "center", right: "end" };
+    var behaviorMap = { smoothly: "smooth", instantly: "instant" };
+    if (verticalPosition) scrollOptions.block = blockMap[verticalPosition.value];
+    if (horizontalPosition) scrollOptions.inline = inlineMap[horizontalPosition.value];
+    if (smoothness) scrollOptions.behavior = behaviorMap[smoothness.value];
     return { target, offset, plusOrMinus, scrollOptions, container };
   }
   function _parseSmoothness(parser) {
@@ -5806,7 +5736,7 @@
       } else {
         _resolveScroll(ctx, target, offset, this.plusOrMinus, this.scrollOptions, container);
       }
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
   var GoCommand = class _GoCommand extends Command {
@@ -5869,7 +5799,7 @@
           }
         }
       }
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
 
@@ -5922,7 +5852,7 @@
         var { value, ...lhs } = args;
         this.target.set(context, lhs, value);
       }
-      return context.meta.runtime.findNext(this, context);
+      return this.findNext(context);
     }
   };
   var DefaultCommand = class _DefaultCommand extends Command {
@@ -5951,7 +5881,7 @@
     }
     resolve(context, { targetValue }) {
       if (targetValue != null && targetValue !== "") {
-        return context.meta.runtime.findNext(this, context);
+        return this.findNext(context);
       } else {
         return this.setter;
       }
@@ -5982,7 +5912,7 @@
       var newValue = targetValue + amount;
       context.result = newValue;
       this.target.set(context, lhs, newValue);
-      return context.meta.runtime.findNext(this, context);
+      return this.findNext(context);
     }
   };
   var DecrementCommand = class _DecrementCommand extends Command {
@@ -6015,7 +5945,7 @@
       var newValue = targetValue - amount;
       context.result = newValue;
       this.target.set(context, lhs, newValue);
-      return context.meta.runtime.findNext(this, context);
+      return this.findNext(context);
     }
   };
   var SwapCommand = class _SwapCommand extends Command {
@@ -6048,9 +5978,16 @@
       return new _SwapCommand(target1, target2);
     }
     resolve(context, { value1, value2, root1, index1, root2, index2 }) {
-      this.target1.set(context, { root: root1, index: index1 }, value2);
-      this.target2.set(context, { root: root2, index: index2 }, value1);
-      return context.meta.runtime.findNext(this, context);
+      if (value1 instanceof Element && value2 instanceof Element) {
+        var placeholder = document.createComment("");
+        value1.replaceWith(placeholder);
+        value2.replaceWith(value1);
+        placeholder.replaceWith(value2);
+      } else {
+        this.target1.set(context, { root: root1, index: index1 }, value2);
+        this.target2.set(context, { root: root2, index: index2 }, value1);
+      }
+      return this.findNext(context);
     }
   };
   var PutCommand = class _PutCommand extends Command {
@@ -6158,7 +6095,13 @@
             });
           }
         } else {
-          var op = this.operation === "before" ? Element.prototype.before : this.operation === "after" ? Element.prototype.after : this.operation === "start" ? Element.prototype.prepend : this.operation === "end" ? Element.prototype.append : Element.prototype.append;
+          var ops = {
+            before: Element.prototype.before,
+            after: Element.prototype.after,
+            start: Element.prototype.prepend,
+            end: Element.prototype.append
+          };
+          var op = ops[this.operation] || Element.prototype.append;
           context.meta.runtime.implicitLoop(root, function(elt) {
             op.call(
               elt,
@@ -6172,7 +6115,7 @@
           });
         }
       }
-      return context.meta.runtime.findNext(this, context);
+      return this.findNext(context);
     }
   };
 
@@ -6242,7 +6185,7 @@
               }
               if (!resolved) {
                 resolved = true;
-                resolve(context.meta.runtime.findNext(this, context));
+                resolve(this.findNext(context));
               }
             };
             if (eventInfo.name) {
@@ -6256,7 +6199,7 @@
       } else {
         return new Promise((resolve) => {
           setTimeout(() => {
-            resolve(context.meta.runtime.findNext(this, context));
+            resolve(this.findNext(context));
           }, time);
         });
       }
@@ -6289,7 +6232,7 @@
       context.meta.runtime.implicitLoop(to, function(target) {
         context.meta.runtime.triggerEvent(target, eventName, details, context.me);
       });
-      return context.meta.runtime.findNext(this, context);
+      return this.findNext(context);
     }
   };
   var EventName = class _EventName extends Expression {
@@ -6328,11 +6271,8 @@
       this.type = "waitATick";
     }
     resolve(context) {
-      const self2 = this;
-      return new Promise(function(resolve) {
-        setTimeout(function() {
-          resolve(context.meta.runtime.findNext(self2));
-        }, 0);
+      return new Promise((resolve) => {
+        setTimeout(() => resolve(context.meta.runtime.findNext(this)), 0);
       });
     }
   };
@@ -6435,7 +6375,7 @@
       } else if (this.falseBranch) {
         return this.falseBranch;
       } else {
-        return context.meta.runtime.findNext(this, context);
+        return this.findNext(context);
       }
     }
   };
@@ -6729,21 +6669,16 @@
       return new _JsCommand(jsBody.jsSource, func, inputs);
     }
     resolve(context) {
-      var args = [];
-      this.inputs.forEach((input) => {
-        args.push(context.meta.runtime.resolveSymbol(input, context, "default"));
-      });
+      var args = this.inputs.map((input) => context.meta.runtime.resolveSymbol(input, context, "default"));
       var result = this.function.apply(context.meta.runtime.globalScope, args);
       if (result && typeof result.then === "function") {
-        return new Promise((resolve, reject) => {
-          result.then((actualResult) => {
-            context.result = actualResult;
-            resolve(context.meta.runtime.findNext(this, context));
-          }, reject);
+        return result.then((actualResult) => {
+          context.result = actualResult;
+          return this.findNext(context);
         });
       } else {
         context.result = result;
-        return context.meta.runtime.findNext(this, context);
+        return this.findNext(context);
       }
     }
   };
@@ -6765,7 +6700,7 @@
     }
     resolve(context, { result }) {
       context.result = result;
-      return context.meta.runtime.findNext(this, context);
+      return this.findNext(context);
     }
   };
 
@@ -6832,7 +6767,7 @@
       } else {
         context.result = result;
       }
-      return context.meta.runtime.findNext(this, context);
+      return this.findNext(context);
     }
   };
 
@@ -7356,7 +7291,7 @@
           this.toggle(context, on, classRef, classRef2, classRefs);
           setTimeout(() => {
             this.toggle(context, on, classRef, classRef2, classRefs);
-            resolve(context.meta.runtime.findNext(this, context));
+            resolve(this.findNext(context));
           }, time);
         });
       } else if (evt) {
@@ -7366,7 +7301,7 @@
             evt,
             () => {
               this.toggle(context, on, classRef, classRef2, classRefs);
-              resolve(context.meta.runtime.findNext(this, context));
+              resolve(this.findNext(context));
             },
             { once: true }
           );
@@ -7374,7 +7309,7 @@
         });
       } else {
         this.toggle(context, on, classRef, classRef2, classRefs);
-        return context.meta.runtime.findNext(this, context);
+        return this.findNext(context);
       }
     }
   };
@@ -7581,7 +7516,7 @@
           target.setAttribute(this.attributeRef.name, this.attributeRef.value || "");
         });
       }
-      return context.meta.runtime.findNext(this, context);
+      return this.findNext(context);
     }
   };
   var MeasureCommand = class _MeasureCommand extends Command {
@@ -7670,7 +7605,7 @@
         if (prop in ctx.result) ctx.locals[prop] = ctx.result[prop];
         else throw new Error("No such measurement as " + prop);
       });
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
   var FocusCommand = class _FocusCommand extends Command {
@@ -7689,7 +7624,7 @@
     }
     resolve(ctx, { target }) {
       (target || ctx.me).focus();
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
   var BlurCommand = class _BlurCommand extends Command {
@@ -7708,7 +7643,7 @@
     }
     resolve(ctx, { target }) {
       (target || ctx.me).blur();
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
   var EmptyCommand = class _EmptyCommand extends Command {
@@ -7728,9 +7663,9 @@
     resolve(ctx, { target }) {
       var elt = target || ctx.me;
       ctx.meta.runtime.implicitLoop(elt, function(e) {
-        while (e.firstChild) e.removeChild(e.firstChild);
+        e.replaceChildren();
       });
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
   function _openElement(elt) {
@@ -7775,11 +7710,11 @@
       var elt = target || ctx.me;
       if (this.fullscreen) {
         return (target || document.documentElement).requestFullscreen().then(() => {
-          return ctx.meta.runtime.findNext(this, ctx);
+          return this.findNext(ctx);
         });
       }
       ctx.meta.runtime.implicitLoop(elt, _openElement);
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
   var CloseCommand = class _CloseCommand extends Command {
@@ -7801,12 +7736,12 @@
     resolve(ctx, { target }) {
       if (this.fullscreen) {
         return document.exitFullscreen().then(() => {
-          return ctx.meta.runtime.findNext(this, ctx);
+          return this.findNext(ctx);
         });
       }
       var elt = target || ctx.me;
       ctx.meta.runtime.implicitLoop(elt, _closeElement);
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
   var SpeakCommand = class _SpeakCommand extends Command {
@@ -7874,7 +7809,7 @@
     resolve(ctx, { target }) {
       var elt = target || ctx.me;
       if (typeof elt.select === "function") elt.select();
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
   var AskCommand = class _AskCommand extends Command {
@@ -7890,7 +7825,7 @@
     }
     resolve(ctx, { message }) {
       ctx.result = prompt(String(message));
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
   var AnswerCommand = class _AnswerCommand extends Command {
@@ -7923,7 +7858,7 @@
       } else {
         alert(String(message));
       }
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
 
@@ -8154,7 +8089,7 @@
         promises.push(promise);
       });
       return Promise.all(promises).then(() => {
-        return context.meta.runtime.findNext(this, context);
+        return this.findNext(context);
       });
     }
   };
@@ -8172,7 +8107,7 @@
     }
     resolve(ctx) {
       debugger;
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
 
@@ -8342,10 +8277,7 @@
               ctx.meta.context = ctx.event;
               try {
                 var value = eventSpec.filter.evaluate(ctx);
-                if (value) {
-                } else {
-                  return;
-                }
+                if (!value) return;
               } finally {
                 ctx.meta.context = initialCtx;
               }
@@ -8628,7 +8560,7 @@
         if (ctx.meta.caller) {
           ctx.meta.callingCommand = ctx.meta.caller.meta.command;
         }
-        var resolve, reject = null;
+        var resolve, reject;
         var promise = new Promise(function(theResolve, theReject) {
           resolve = theResolve;
           reject = theReject;
@@ -9211,7 +9143,7 @@
     TemplateTextCommand: () => TemplateTextCommand
   });
   function escapeHTML(html) {
-    return String(html).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\x22/g, "&quot;").replace(/\x27/g, "&#039;");
+    return String(html).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
   }
   var TemplateTextCommand = class _TemplateTextCommand extends Command {
     static keyword = "TEMPLATE_LINE";
@@ -9290,13 +9222,13 @@
           ctx.meta.__ht_template_result.push(
             resolved.map((val, i) => stringify(val, this.parts[i])).join("")
           );
-          return ctx.meta.runtime.findNext(this, ctx);
+          return this.findNext(ctx);
         });
       }
       ctx.meta.__ht_template_result.push(
         vals.map((val, i) => stringify(val, this.parts[i])).join("")
       );
-      return ctx.meta.runtime.findNext(this, ctx);
+      return this.findNext(ctx);
     }
   };
   var RenderCommand = class _RenderCommand extends Command {
@@ -9462,6 +9394,8 @@
       addFeature: kernel.addFeature.bind(kernel),
       addCommand: kernel.addCommand.bind(kernel),
       addLeafExpression: kernel.addLeafExpression.bind(kernel),
+      addBeforeProcessHook: (fn) => runtime.addBeforeProcessHook(fn),
+      addAfterProcessHook: (fn) => runtime.addAfterProcessHook(fn),
       evaluate,
       parse: (src) => kernel.parse(tokenizer, src),
       process: (elt) => runtime.processNode(elt),
@@ -9498,14 +9432,24 @@
       );
       scriptTexts.forEach((sc) => _hyperscript(sc));
       ready(() => {
-        runtime.processNode(document.documentElement);
+        _hyperscript.process(document.documentElement);
         document.dispatchEvent(new Event("hyperscript:ready"));
+        var _processingFromHtmx = false;
         globalScope.document.addEventListener("htmx:load", (evt) => {
-          runtime.processNode(evt.detail.elt);
+          _processingFromHtmx = true;
+          _hyperscript.process(evt.detail.elt);
+          _processingFromHtmx = false;
         });
         globalScope.document.addEventListener("htmx:after:process", (evt) => {
-          runtime.processNode(evt.target);
+          _processingFromHtmx = true;
+          _hyperscript.process(evt.target);
+          _processingFromHtmx = false;
         });
+        if (typeof htmx !== "undefined") {
+          _hyperscript.addAfterProcessHook(function(elt) {
+            if (!_processingFromHtmx) htmx.process(elt);
+          });
+        }
       });
     })();
   }
