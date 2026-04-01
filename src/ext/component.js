@@ -16,7 +16,7 @@
 import { Tokenizer } from '../core/tokenizer.js';
 
 export default function componentPlugin(_hyperscript) {
-    const { runtime, createParser, reactivity } = _hyperscript.internals;
+    const { runtime, createParser, reactivity, morphEngine } = _hyperscript.internals;
     const tokenizer = new Tokenizer();
 
     function substituteSlots(templateSource, slotContent, scopeSel) {
@@ -164,13 +164,9 @@ export default function componentPlugin(_hyperscript) {
 
             disconnectedCallback() {
                 reactivity.stopElementEffects(this);
-                // Clean up hyperscript on inner elements
-                if (this.querySelectorAll) {
-                    this.querySelectorAll('[data-hyperscript-powered]').forEach(el => {
-                        _hyperscript.cleanup(el);
-                    });
-                }
+                runtime.cleanup(this);
                 this._hypercomp_initialized = false;
+                this._hypercomp_stamped = false;
             }
 
             _setupReactiveEffect(source) {
@@ -218,15 +214,15 @@ export default function componentPlugin(_hyperscript) {
             }
 
             _stampTemplate(html) {
-                // Clean up existing inner hyperscript before replacing
-                this.querySelectorAll('[data-hyperscript-powered]').forEach(el => {
-                    _hyperscript.cleanup(el);
-                });
-
-                this.innerHTML = html;
-
-                // Process _ attributes on newly stamped inner elements
-                _hyperscript.process(this);
+                if (!this._hypercomp_stamped) {
+                    // First render — just set innerHTML and process
+                    this.innerHTML = html;
+                    _hyperscript.process(this);
+                    this._hypercomp_stamped = true;
+                } else {
+                    // Subsequent renders — morph to preserve DOM identity
+                    runtime.morph(this, html, morphEngine);
+                }
             }
         };
 

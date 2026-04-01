@@ -124,7 +124,7 @@ const _hyperscript = Object.assign(
         },
 
         internals: {
-            tokenizer, runtime, reactivity,
+            tokenizer, runtime, reactivity, morphEngine,
             createParser: (tokens) => new Parser(kernel, tokens),
         },
 
