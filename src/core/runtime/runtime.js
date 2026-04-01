@@ -94,7 +94,7 @@ export class Runtime {
 
         unifiedExec(command, ctx) {
             while (true) {
-	        const target = ctx.meta.owner || ctx.me;
+	            const target = ctx.meta.owner || ctx.me;
             	const eventResult = this.triggerEvent(
                     target,
                     "hyperscript:beforeEval",
@@ -104,12 +104,12 @@ export class Runtime {
                     if (ctx.meta.onHalt) ctx.meta.onHalt();
                     return;
        	    	}
-   	        let afterFired = false;
+                let afterFired = false;
 
                 try {
                     var next = this.unifiedEval(command, ctx);
                 } catch (e) {
-		    this.triggerEvent(target, "hyperscript:afterEval", {
+		            this.triggerEvent(target, "hyperscript:afterEval", {
                         command: command,
                         ctx: ctx,
                         error: e,
@@ -133,7 +133,7 @@ export class Runtime {
                     }
                 }
 
-		// afterEval should only fire once per unifiedEval invocation. if unifiedEval threw, don't fire the event again
+		        // afterEval should only fire once per unifiedEval invocation. if unifiedEval threw, don't fire the event again
                 if (!afterFired) {
                     this.triggerEvent(target, "hyperscript:afterEval", {
                         command: command,
