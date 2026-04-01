@@ -15,6 +15,7 @@ import { Tokenizer } from '../../core/tokenizer.js';
 export class IdRef extends Expression {
     static grammarName = "idRef";
     static expressionType = "leaf";
+    static assignable = true;
 
     constructor(variant, css, value, innerExpression) {
         super();
@@ -49,6 +50,12 @@ export class IdRef extends Expression {
             return context.meta.runtime.getRootNode(context.me).getElementById(this.value);
         }
     }
+
+    get lhs() { return {}; }
+    set(ctx, lhs, value) {
+        var target = this.resolve(ctx);
+        if (target) ctx.meta.runtime.replaceInDom(target, value);
+    }
 }
 
 /**
@@ -60,6 +67,7 @@ export class IdRef extends Expression {
 export class ClassRef extends Expression {
     static grammarName = "classRef";
     static expressionType = "leaf";
+    static assignable = true;
 
     constructor(variant, css, className, innerExpression) {
         super();
@@ -95,6 +103,12 @@ export class ClassRef extends Expression {
             return new ElementCollection(this.css, context.me, true, context.meta.runtime);
         }
     }
+
+    get lhs() { return {}; }
+    set(ctx, lhs, value) {
+        var targets = Array.from(this.resolve(ctx));
+        ctx.meta.runtime.replaceInDom(targets, value);
+    }
 }
 
 /**
@@ -106,6 +120,7 @@ export class ClassRef extends Expression {
 export class QueryRef extends Expression {
     static grammarName = "queryRef";
     static expressionType = "leaf";
+    static assignable = true;
 
     constructor(css, args, template) {
         super();
@@ -150,6 +165,12 @@ export class QueryRef extends Expression {
         } else {
             return new ElementCollection(this.css, context.me, false, context.meta.runtime);
         }
+    }
+
+    get lhs() { return this.template ? { parts: this.templateArgs } : {}; }
+    set(ctx, lhs, value) {
+        var targets = Array.from(this.resolve(ctx, lhs));
+        ctx.meta.runtime.replaceInDom(targets, value);
     }
 }
 

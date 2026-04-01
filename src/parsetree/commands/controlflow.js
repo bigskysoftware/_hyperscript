@@ -16,11 +16,8 @@ class WaitATick extends Command {
     }
 
     resolve(context) {
-        const self = this;
-        return new Promise(function (resolve) {
-            setTimeout(function () {
-                resolve(context.meta.runtime.findNext(self));
-            }, 0);
+        return new Promise((resolve) => {
+            setTimeout(() => resolve(context.meta.runtime.findNext(this)), 0);
         });
     }
 }
@@ -144,7 +141,7 @@ export class IfCommand extends Command {
         } else if (this.falseBranch) {
             return this.falseBranch;
         } else {
-            return context.meta.runtime.findNext(this, context);
+            return this.findNext(context);
         }
     }
 }

@@ -60,7 +60,7 @@ export class LogCommand extends Command {
         } else {
             console.log(...values);
         }
-        return ctx.meta.runtime.findNext(this, ctx);
+        return this.findNext(ctx);
     }
 }
 
@@ -94,7 +94,7 @@ export class BeepCommand extends Command {
             const val = values[i];
             ctx.meta.runtime.beepValueToConsole(ctx.me, expr, val);
         }
-        return ctx.meta.runtime.findNext(this, ctx);
+        return this.findNext(ctx);
     }
 }
 
@@ -153,13 +153,7 @@ export class ReturnCommand extends Command {
         var resolve = context.meta.resolve;
         context.meta.returned = true;
         context.meta.returnValue = value;
-        if (resolve) {
-            if (value) {
-                resolve(value);
-            } else {
-                resolve();
-            }
-        }
+        if (resolve) resolve(value);
         return context.meta.runtime.HALT;
     }
 }
@@ -172,10 +166,6 @@ export class ReturnCommand extends Command {
  */
 export class ExitCommand extends Command {
     static keyword = "exit";
-
-    constructor() {
-        super();
-    }
 
     static parse(parser) {
         if (!parser.matchToken("exit")) return;
@@ -241,7 +231,7 @@ export class HaltCommand extends Command {
             }
         }
         if (this.keepExecuting) {
-            return ctx.meta.runtime.findNext(this, ctx);
+            return this.findNext(ctx);
         } else {
             return this.exit;
         }
@@ -305,10 +295,7 @@ export class MakeCommand extends Command {
 
             var result = document.createElement(tagname);
             if (id !== undefined) result.id = id;
-            for (var i = 0; i < classes.length; i++) {
-                var cls = classes[i];
-                result.classList.add(cls)
-            }
+            result.classList.add(...classes);
 
             ctx.result = result;
         } else {
@@ -319,7 +306,7 @@ export class MakeCommand extends Command {
             ctx.meta.runtime.setSymbol(this.target.name, ctx, this.target.scope, ctx.result);
         }
 
-        return ctx.meta.runtime.findNext(this, ctx);
+        return this.findNext(ctx);
     }
 }
 
@@ -368,7 +355,6 @@ export class AppendCommand extends Command {
         if (Array.isArray(target)) {
             target.push(value);
             context.meta.runtime.notifyMutation(target);
-            return context.meta.runtime.findNext(this, context);
         } else if (target instanceof Element) {
             if (value instanceof Element) {
                 target.insertAdjacentElement("beforeend", value);
@@ -376,13 +362,12 @@ export class AppendCommand extends Command {
                 target.insertAdjacentHTML("beforeend", value);
             }
             context.meta.runtime.processNode(target);
-            return context.meta.runtime.findNext(this, context);
         } else if(this.assignable) {
             this._target.set(context, lhs, (target || "") + value);
-            return context.meta.runtime.findNext(this, context);
         } else {
             throw new Error("Unable to append a value!")
         }
+        return this.findNext(context);
     }
 }
 
@@ -536,14 +521,14 @@ export class PickCommand extends Command {
             if (this.range.toEnd) to = root.length;
             if (!this.range.includeStart) from++;
             if (this.range.includeEnd) to++;
-            if (to == null || to == undefined) to = from + 1;
+            if (to == null) to = from + 1;
             ctx.result = root.slice(from, to);
         } else if (this.variant === "match") {
             ctx.result = new RegExp(re, this.flags).exec(root);
         } else {
             ctx.result = new RegExpIterable(re, this.flags, root);
         }
-        return ctx.meta.runtime.findNext(this, ctx);
+        return this.findNext(ctx);
     }
 }
 
@@ -608,64 +593,46 @@ export class FetchCommand extends Command {
     }
 
     resolve(context, { url, options }) {
-        const type = this.conversionType;
-        const conversion = this.conversion;
-        const fetchCmd = this;
-
         var detail = options || {};
-        detail["sender"] = context.me;
-        detail["headers"] = detail["headers"] || {}
+        detail.sender = context.me;
+        detail.headers = detail.headers || {};
         var abortController = new AbortController();
-        var abortListener = function(){ abortController.abort(); };
+        var abortListener = () => abortController.abort();
         context.me.addEventListener('fetch:abort', abortListener, {once: true});
-        detail['signal'] = abortController.signal;
+        detail.signal = abortController.signal;
         context.meta.runtime.triggerEvent(context.me, "hyperscript:beforeFetch", detail);
         context.meta.runtime.triggerEvent(context.me, "fetch:beforeRequest", detail);
         var finished = false;
         if (detail.timeout) {
-            setTimeout(function () {
-                if (!finished) {
-                    abortController.abort();
-                }
-            }, detail.timeout);
+            setTimeout(() => { if (!finished) abortController.abort(); }, detail.timeout);
         }
+
+        var complete = (result) => {
+            context.result = result;
+            context.meta.runtime.triggerEvent(context.me, "fetch:afterRequest", {result});
+            finished = true;
+            return this.findNext(context);
+        };
+
         return fetch(url, detail)
-            .then(function (resp) {
-                let resultDetails = {response:resp};
+            .then((resp) => {
+                var resultDetails = {response: resp};
                 context.meta.runtime.triggerEvent(context.me, "fetch:afterResponse", resultDetails);
                 resp = resultDetails.response;
 
-                if (type === "response") {
-                    context.result = resp;
-                    context.meta.runtime.triggerEvent(context.me, "fetch:afterRequest", {result:resp});
-                    finished = true;
-                    return context.meta.runtime.findNext(fetchCmd, context);
-                }
-                if (type === "json") {
-                    return resp.json().then(function (result) {
-                        context.result = result;
-                        context.meta.runtime.triggerEvent(context.me, "fetch:afterRequest", {result});
-                        finished = true;
-                        return context.meta.runtime.findNext(fetchCmd, context);
-                    });
-                }
-                return resp.text().then(function (result) {
-                    if (conversion) result = context.meta.runtime.convertValue(result, conversion);
-
-                    if (type === "html") result = context.meta.runtime.convertValue(result, "Fragment");
-
-                    context.result = result;
-                    context.meta.runtime.triggerEvent(context.me, "fetch:afterRequest", {result});
-                    finished = true;
-                    return context.meta.runtime.findNext(fetchCmd, context);
+                if (this.conversionType === "response") return complete(resp);
+                if (this.conversionType === "json") return resp.json().then(complete);
+                return resp.text().then((result) => {
+                    if (this.conversion) result = context.meta.runtime.convertValue(result, this.conversion);
+                    if (this.conversionType === "html") result = context.meta.runtime.convertValue(result, "Fragment");
+                    return complete(result);
                 });
             })
-            .catch(function (reason) {
-                context.meta.runtime.triggerEvent(context.me, "fetch:error", {
-                    reason: reason,
-                });
+            .catch((reason) => {
+                context.meta.runtime.triggerEvent(context.me, "fetch:error", {reason});
                 throw reason;
-            }).finally(function(){
+            })
+            .finally(() => {
                 context.me.removeEventListener('fetch:abort', abortListener);
             });
     }
@@ -701,20 +668,12 @@ function _parseScrollModifiers(parser) {
 
     var scrollOptions = { block: "start", inline: "nearest" };
 
-    if (verticalPosition) {
-        if (verticalPosition.value === "top") scrollOptions.block = "start";
-        else if (verticalPosition.value === "bottom") scrollOptions.block = "end";
-        else if (verticalPosition.value === "middle") scrollOptions.block = "center";
-    }
-    if (horizontalPosition) {
-        if (horizontalPosition.value === "left") scrollOptions.inline = "start";
-        else if (horizontalPosition.value === "center") scrollOptions.inline = "center";
-        else if (horizontalPosition.value === "right") scrollOptions.inline = "end";
-    }
-    if (smoothness) {
-        if (smoothness.value === "smoothly") scrollOptions.behavior = "smooth";
-        else if (smoothness.value === "instantly") scrollOptions.behavior = "instant";
-    }
+    var blockMap = { top: "start", bottom: "end", middle: "center" };
+    var inlineMap = { left: "start", center: "center", right: "end" };
+    var behaviorMap = { smoothly: "smooth", instantly: "instant" };
+    if (verticalPosition) scrollOptions.block = blockMap[verticalPosition.value];
+    if (horizontalPosition) scrollOptions.inline = inlineMap[horizontalPosition.value];
+    if (smoothness) scrollOptions.behavior = behaviorMap[smoothness.value];
 
     return { target, offset, plusOrMinus, scrollOptions, container };
 }
@@ -834,7 +793,7 @@ export class ScrollCommand extends Command {
         } else {
             _resolveScroll(ctx, target, offset, this.plusOrMinus, this.scrollOptions, container);
         }
-        return ctx.meta.runtime.findNext(this, ctx);
+        return this.findNext(ctx);
     }
 }
 
@@ -917,6 +876,6 @@ export class GoCommand extends Command {
                 }
             }
         }
-        return ctx.meta.runtime.findNext(this, ctx);
+        return this.findNext(ctx);
     }
 }

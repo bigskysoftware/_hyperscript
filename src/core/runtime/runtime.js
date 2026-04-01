@@ -53,9 +53,9 @@ export class Context {
         this.result = undefined
         this.beingTested = null
         this.event = event;
-        this.target = event ? event.target : null;
-        this.detail = event ? event.detail : null;
-        this.sender = event ? event.detail ? event.detail.sender : null : null;
+        this.target = event?.target ?? null;
+        this.detail = event?.detail ?? null;
+        this.sender = event?.detail?.sender ?? null;
         this.body = "document" in globalScope ? document.body : null;
         runtime.addFeatures(owner, this);
     }
@@ -270,99 +270,82 @@ export class Runtime {
         }
 
         resolveSymbol(str, context, type, targetElement) {
-            if (str === "me" || str === "my" || str === "I") {
-                return context.me;
+            if (str === "me" || str === "my" || str === "I") return context.me;
+            if (str === "it" || str === "its") return context.beingTested ?? context.result;
+            if (str === "result") return context.result;
+            if (str === "you" || str === "your" || str === "yourself") return context.you;
+
+            if (type === "global") {
+                if (this.reactivity.isTracking) this.reactivity.trackGlobalSymbol(str);
+                var val = this.#globalScope[str];
+                this.#trackMutation(val);
+                return val;
             }
-            if (str === "it" || str === "its") {
-                return context.beingTested != null ? context.beingTested : context.result;
+            if (type === "element") {
+                if (this.reactivity.isTracking) this.reactivity.trackElementSymbol(str, context.meta.owner);
+                var val = this.#getElementScope(context)[str];
+                this.#trackMutation(val);
+                return val;
             }
-            if (str === "result") {
-                return context.result;
-            }
-            if (str === "you" || str === "your" || str === "yourself") {
-                return context.you;
-            } else {
-                if (type === "global") {
-                    if (this.reactivity.isTracking) this.reactivity.trackGlobalSymbol(str);
-                    var val = this.#globalScope[str];
-                    this.#trackMutation(val);
-                    return val;
-                } else if (type === "element") {
-                    if (this.reactivity.isTracking) this.reactivity.trackElementSymbol(str, context.meta.owner);
-                    var elementScope = this.#getElementScope(context);
-                    var val = elementScope[str];
-                    this.#trackMutation(val);
-                    return val;
-                } else if (type === "inherited") {
-                    var inherited = this.#resolveInherited(str, context, targetElement);
-                    if (this.reactivity.isTracking) {
-                        var trackElement = inherited.element || targetElement || context.meta?.owner;
-                        if (trackElement) {
-                            this.reactivity.trackElementSymbol(str, trackElement);
-                        }
-                    }
-                    this.#trackMutation(inherited.value);
-                    return inherited.value;
-                } else if (type === "local") {
-                    return context.locals[str];
-                } else {
-                    if (context.meta && context.meta.context) {
-                        var fromMetaContext = context.meta.context[str];
-                        if (typeof fromMetaContext !== "undefined") {
-                            return fromMetaContext;
-                        }
-                        if (context.meta.context.detail) {
-                            fromMetaContext = context.meta.context.detail[str];
-                            if (typeof fromMetaContext !== "undefined") {
-                                return fromMetaContext;
-                            }
-                        }
-                    }
-                    if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str)) {
-                        var fromContext = context.locals[str];
-                    } else {
-                        var fromContext = context[str];
-                    }
-                    if (typeof fromContext !== "undefined") {
-                        // Found in locals/meta - don't track (ephemeral)
-                        return fromContext;
-                    } else {
-                        // element scope
-                        var elementScope = this.#getElementScope(context);
-                        fromContext = elementScope[str];
-                        if (typeof fromContext !== "undefined") {
-                            if (this.reactivity.isTracking) this.reactivity.trackElementSymbol(str, context.meta.owner);
-                            this.#trackMutation(fromContext);
-                            return fromContext;
-                        } else {
-                            // Global scope (or not found - track as global
-                            // so we catch the first write)
-                            if (this.reactivity.isTracking) this.reactivity.trackGlobalSymbol(str);
-                            var val = this.#globalScope[str];
-                            this.#trackMutation(val);
-                            return val;
-                        }
+            if (type === "inherited") {
+                var inherited = this.#resolveInherited(str, context, targetElement);
+                if (this.reactivity.isTracking) {
+                    var trackElement = inherited.element || targetElement || context.meta?.owner;
+                    if (trackElement) {
+                        this.reactivity.trackElementSymbol(str, trackElement);
                     }
                 }
+                this.#trackMutation(inherited.value);
+                return inherited.value;
             }
+            if (type === "local") return context.locals[str];
+
+            // default scope resolution
+            if (context.meta?.context) {
+                var fromMetaContext = context.meta.context[str];
+                if (typeof fromMetaContext !== "undefined") return fromMetaContext;
+                if (context.meta.context.detail) {
+                    fromMetaContext = context.meta.context.detail[str];
+                    if (typeof fromMetaContext !== "undefined") return fromMetaContext;
+                }
+            }
+            var fromContext = this.#isHyperscriptContext(context) && !this.#isReservedWord(str)
+                ? context.locals[str] : context[str];
+            if (typeof fromContext !== "undefined") return fromContext;
+
+            // element scope
+            var elementScope = this.#getElementScope(context);
+            fromContext = elementScope[str];
+            if (typeof fromContext !== "undefined") {
+                if (this.reactivity.isTracking) this.reactivity.trackElementSymbol(str, context.meta.owner);
+                this.#trackMutation(fromContext);
+                return fromContext;
+            }
+            // global scope (or not found — track as global so we catch the first write)
+            if (this.reactivity.isTracking) this.reactivity.trackGlobalSymbol(str);
+            var val = this.#globalScope[str];
+            this.#trackMutation(val);
+            return val;
         }
 
         setSymbol(str, context, type, value, targetElement) {
             if (type === "global") {
                 this.#globalScope[str] = value;
                 this.reactivity.notifyGlobalSymbol(str);
-            } else if (type === "element") {
-                var elementScope = this.#getElementScope(context);
-                elementScope[str] = value;
+                return;
+            }
+            if (type === "element") {
+                this.#getElementScope(context)[str] = value;
                 this.reactivity.notifyElementSymbol(str, context.meta.owner);
-            } else if (type === "inherited") {
+                return;
+            }
+            if (type === "inherited") {
                 var inherited = this.#resolveInherited(str, context, targetElement);
                 if (inherited.element) {
                     this.getInternalData(inherited.element).elementScope[str] = value;
                     this.reactivity.notifyElementSymbol(str, inherited.element);
                 } else {
-                    // Not found anywhere — create on target element or current element
-                    var owner = targetElement || (context.meta && context.meta.owner);
+                    var owner = targetElement || context.meta?.owner;
                     if (owner) {
                         var internalData = this.getInternalData(owner);
                         if (!internalData.elementScope) internalData.elementScope = {};
@@ -370,30 +353,25 @@ export class Runtime {
                         this.reactivity.notifyElementSymbol(str, owner);
                     }
                 }
-            } else if (type === "local") {
+                return;
+            }
+            if (type === "local") {
                 context.locals[str] = value;
-                // Don't notify - local scope is ephemeral
+                return;
+            }
+            // default scope resolution
+            if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str) && typeof context.locals[str] !== "undefined") {
+                context.locals[str] = value;
+                return;
+            }
+            var elementScope = this.#getElementScope(context);
+            if (typeof elementScope[str] !== "undefined") {
+                elementScope[str] = value;
+                this.reactivity.notifyElementSymbol(str, context.meta.owner);
+            } else if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str)) {
+                context.locals[str] = value;
             } else {
-                if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str) && typeof context.locals[str] !== "undefined") {
-                    // local scope - don't notify
-                    context.locals[str] = value;
-                } else {
-                    // element scope
-                    var elementScope = this.#getElementScope(context);
-                    var fromContext = elementScope[str];
-                    if (typeof fromContext !== "undefined") {
-                        elementScope[str] = value;
-                        this.reactivity.notifyElementSymbol(str, context.meta.owner);
-                    } else {
-                        if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str)) {
-                            // local scope - don't notify
-                            context.locals[str] = value;
-                        } else {
-                            // direct set on normal JS object or top-level of context
-                            context[str] = value;
-                        }
-                    }
-                }
+                context[str] = value;
             }
         }
 
@@ -495,6 +473,18 @@ export class Runtime {
          */
         notifyMutation(obj) {
             this.reactivity.notifyProperty(obj);
+        }
+
+        replaceInDom(target, value) {
+            this.implicitLoop(target, (elt) => {
+                var parent = elt.parentElement;
+                if (value instanceof Node) {
+                    elt.replaceWith(value.cloneNode(true));
+                } else {
+                    elt.replaceWith(this.convertValue(value, "Fragment"));
+                }
+                if (parent) this.processNode(parent);
+            });
         }
 
         /**
@@ -742,14 +732,15 @@ export class Runtime {
 
         #getScriptAttributes() {
             if (this.#scriptAttrs == null) {
-                this.#scriptAttrs = config.attributes.replace(/ /g, "").split(",");
+                this.#scriptAttrs = config.attributes.replaceAll(" ", "").split(",");
             }
             return this.#scriptAttrs;
         }
 
         #getScript(elt) {
-            for (var i = 0; i < this.#getScriptAttributes().length; i++) {
-                var scriptAttribute = this.#getScriptAttributes()[i];
+            var attrs = this.#getScriptAttributes();
+            for (var i = 0; i < attrs.length; i++) {
+                var scriptAttribute = attrs[i];
                 if (elt.hasAttribute && elt.hasAttribute(scriptAttribute)) {
                     return elt.getAttribute(scriptAttribute);
                 }
@@ -760,12 +751,12 @@ export class Runtime {
             return null;
         }
 
+        #scriptSelector;
         #getScriptSelector() {
-            return this.#getScriptAttributes()
-                .map(function (attribute) {
-                    return "[" + attribute + "]";
-                })
-                .join(", ");
+            if (!this.#scriptSelector) {
+                this.#scriptSelector = this.#getScriptAttributes().map(a => "[" + a + "]").join(", ");
+            }
+            return this.#scriptSelector;
         }
 
         #hashScript(str) {
@@ -956,24 +947,12 @@ export class Runtime {
 
         beepValueToConsole(element, expression, value) {
             if (this.triggerEvent(element, "hyperscript:beep", {element, expression, value})) {
-                var typeName;
-                if (value) {
-                    if (value instanceof ElementCollection) {
-                        typeName = "ElementCollection";
-                    } else if (value.constructor) {
-                        typeName = value.constructor.name;
-                    } else {
-                        typeName = "unknown";
-                    }
-                } else {
-                    typeName = "object (null)"
-                }
-                var logValue = value;
-                if (typeName === "String") {
-                    logValue = '"' + logValue + '"';
-                } else if (value instanceof ElementCollection) {
-                    logValue = Array.from(value);
-                }
+                var typeName = !value ? "object (null)"
+                    : value instanceof ElementCollection ? "ElementCollection"
+                    : value.constructor?.name || "unknown";
+                var logValue = typeName === "String" ? '"' + value + '"'
+                    : value instanceof ElementCollection ? Array.from(value)
+                    : value;
                 console.log("///_ BEEP! The expression (" + expression.sourceFor().replace("beep! ", "") + ") evaluates to:", logValue, "of type " + typeName);
             }
         }

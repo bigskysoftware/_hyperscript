@@ -59,7 +59,7 @@ export class SetCommand extends Command {
             var { value, ...lhs } = args;
             this.target.set(context, lhs, value);
         }
-        return context.meta.runtime.findNext(this, context);
+        return this.findNext(context);
     }
 }
 
@@ -101,7 +101,7 @@ export class DefaultCommand extends Command {
 
     resolve(context, { targetValue }) {
         if (targetValue != null && targetValue !== "") {
-            return context.meta.runtime.findNext(this, context);
+            return this.findNext(context);
         } else {
             return this.setter;
         }
@@ -148,7 +148,7 @@ export class IncrementCommand extends Command {
         var newValue = targetValue + amount;
         context.result = newValue;
         this.target.set(context, lhs, newValue);
-        return context.meta.runtime.findNext(this, context);
+        return this.findNext(context);
     }
 }
 
@@ -197,7 +197,7 @@ export class DecrementCommand extends Command {
         var newValue = targetValue - amount;
         context.result = newValue;
         this.target.set(context, lhs, newValue);
-        return context.meta.runtime.findNext(this, context);
+        return this.findNext(context);
     }
 }
 
@@ -237,9 +237,17 @@ export class SwapCommand extends Command {
     }
 
     resolve(context, { value1, value2, root1, index1, root2, index2 }) {
-        this.target1.set(context, { root: root1, index: index1 }, value2);
-        this.target2.set(context, { root: root2, index: index2 }, value1);
-        return context.meta.runtime.findNext(this, context);
+        if (value1 instanceof Element && value2 instanceof Element) {
+            // DOM swap needs placeholders to avoid position interference
+            var placeholder = document.createComment('');
+            value1.replaceWith(placeholder);
+            value2.replaceWith(value1);
+            placeholder.replaceWith(value2);
+        } else {
+            this.target1.set(context, { root: root1, index: index1 }, value2);
+            this.target2.set(context, { root: root2, index: index2 }, value1);
+        }
+        return this.findNext(context);
     }
 }
 
@@ -376,16 +384,9 @@ export class PutCommand extends Command {
                     });
                 }
             } else {
-                var op =
-                    this.operation === "before"
-                        ? Element.prototype.before
-                        : this.operation === "after"
-                        ? Element.prototype.after
-                        : this.operation === "start"
-                        ? Element.prototype.prepend
-                        : this.operation === "end"
-                        ? Element.prototype.append
-                        : Element.prototype.append;
+                var ops = { before: Element.prototype.before, after: Element.prototype.after,
+                            start: Element.prototype.prepend, end: Element.prototype.append };
+                var op = ops[this.operation] || Element.prototype.append;
 
                 context.meta.runtime.implicitLoop(root, function (elt) {
                     op.call(
@@ -403,6 +404,6 @@ export class PutCommand extends Command {
                 });
             }
         }
-        return context.meta.runtime.findNext(this, context);
+        return this.findNext(context);
     }
 }

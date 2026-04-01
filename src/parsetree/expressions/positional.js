@@ -215,25 +215,24 @@ class ClosestExprNode extends Expression {
     }
 
     resolve(ctx, { to }) {
-        if (to == null) {
-            return null;
-        } else {
-            let result = [];
-            const css = this.css;
-            const parentSearch = this.parentSearch;
-            ctx.meta.runtime.implicitLoop(to, function(to){
-                if (parentSearch) {
-                    result.push(to.parentElement ? to.parentElement.closest(css) : null);
-                } else {
-                    result.push(to.closest(css));
-                }
-            })
-            if (ctx.meta.runtime.shouldAutoIterate(to)) {
-                return result;
+        if (to == null) return null;
+        let result = [];
+        const css = this.css;
+        const parentSearch = this.parentSearch;
+        ctx.meta.runtime.implicitLoop(to, function(to){
+            if (parentSearch) {
+                result.push(to.parentElement ? to.parentElement.closest(css) : null);
             } else {
-                return result[0];
+                result.push(to.closest(css));
             }
-        }
+        })
+        return ctx.meta.runtime.shouldAutoIterate(to) ? result : result[0];
+    }
+
+    get lhs() { return { to: this.to }; }
+    set(ctx, lhs, value) {
+        var target = this.resolve(ctx, lhs);
+        if (target) ctx.meta.runtime.replaceInDom(target, value);
     }
 }
 
@@ -246,6 +245,7 @@ class ClosestExprNode extends Expression {
 export class ClosestExpr extends Expression {
     static grammarName = "closestExpr";
     static expressionType = "leaf";
+    static assignable = true;
 
     static parse(parser) {
         if (!parser.matchToken("closest")) return;

@@ -72,6 +72,6 @@ export class PseudoCommand extends Command {
         } else {
             context.result = result;
         }
-        return context.meta.runtime.findNext(this, context);
+        return this.findNext(context);
     }
 }

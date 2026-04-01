@@ -285,7 +285,7 @@ export class TransitionCommand extends Command {
             promises.push(promise);
         });
         return Promise.all(promises).then(() => {
-            return context.meta.runtime.findNext(this, context);
+            return this.findNext(context);
         });
     }
 }

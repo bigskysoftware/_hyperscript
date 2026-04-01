@@ -29,6 +29,9 @@ var Command = class extends ParseElement {
     context.meta.command = this;
     return context.meta.runtime.unifiedExec(this, context);
   }
+  findNext(context) {
+    return context.meta.runtime.findNext(this, context);
+  }
 };
 
 // src/ext/hdb.js

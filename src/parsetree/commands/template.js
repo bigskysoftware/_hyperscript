@@ -3,11 +3,11 @@ import { Tokenizer } from '../../core/tokenizer.js';
 
 function escapeHTML(html) {
     return String(html)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/\x22/g, "&quot;")
-        .replace(/\x27/g, "&#039;");
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
 }
 
 /**
@@ -102,14 +102,14 @@ export class TemplateTextCommand extends Command {
                 ctx.meta.__ht_template_result.push(
                     resolved.map((val, i) => stringify(val, this.parts[i])).join('')
                 );
-                return ctx.meta.runtime.findNext(this, ctx);
+                return this.findNext(ctx);
             });
         }
 
         ctx.meta.__ht_template_result.push(
             vals.map((val, i) => stringify(val, this.parts[i])).join('')
         );
-        return ctx.meta.runtime.findNext(this, ctx);
+        return this.findNext(ctx);
     }
 }
 

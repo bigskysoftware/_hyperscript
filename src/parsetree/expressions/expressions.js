@@ -109,7 +109,7 @@ export class NegativeNumber extends Expression {
     }
 
     resolve(context, { value }) {
-        return -1 * value;
+        return -value;
     }
 }
 
@@ -285,8 +285,7 @@ export class PropertyAccess extends Expression {
     }
 
     resolve(context, { root: rootVal }) {
-        var value = context.meta.runtime.resolveProperty(rootVal, this.prop.value);
-        return value;
+        return context.meta.runtime.resolveProperty(rootVal, this.prop.value);
     }
 
     get lhs() { return { root: this.root }; }
@@ -318,7 +317,11 @@ export class OfExpression extends Expression {
         this.attribute = attribute;
         this.expression = expression;
         this.args = args;
-        this._urRoot = urRoot; // store the urRoot for op function
+        this._urRoot = urRoot;
+        this._prop = urRoot.name;
+        this._isAttribute = urRoot.type === "attributeRef";
+        this._isStyle = urRoot.type === "styleRef";
+        this._isComputed = urRoot.type === "computedStyleRef";
     }
 
     static parse(parser, root) {
@@ -362,21 +365,14 @@ export class OfExpression extends Expression {
     }
 
     resolve(context, { root: rootVal }) {
-        var urRoot = this._urRoot;
-        var prop = urRoot.name;
-        var attribute = urRoot.type === "attributeRef";
-        var style = urRoot.type === "styleRef" || urRoot.type === "computedStyleRef";
-
-        if (attribute) {
-            return context.meta.runtime.resolveAttribute(rootVal, prop);
-        } else if (style) {
-            if (urRoot.type === "computedStyleRef") {
-                return context.meta.runtime.resolveComputedStyle(rootVal, prop);
-            } else {
-                return context.meta.runtime.resolveStyle(rootVal, prop);
-            }
+        if (this._isAttribute) {
+            return context.meta.runtime.resolveAttribute(rootVal, this._prop);
+        } else if (this._isComputed) {
+            return context.meta.runtime.resolveComputedStyle(rootVal, this._prop);
+        } else if (this._isStyle) {
+            return context.meta.runtime.resolveStyle(rootVal, this._prop);
         } else {
-            return context.meta.runtime.resolveProperty(rootVal, prop);
+            return context.meta.runtime.resolveProperty(rootVal, this._prop);
         }
     }
 
@@ -384,18 +380,16 @@ export class OfExpression extends Expression {
 
     set(ctx, lhs, value) {
         ctx.meta.runtime.nullCheck(lhs.root, this.root);
-        var urRoot = this._urRoot;
-        var prop = urRoot.name;
-        if (urRoot.type === "attributeRef") {
+        if (this._isAttribute) {
             ctx.meta.runtime.implicitLoop(lhs.root, elt => {
-                value == null ? elt.removeAttribute(prop) : elt.setAttribute(prop, value);
+                value == null ? elt.removeAttribute(this._prop) : elt.setAttribute(this._prop, value);
             });
-        } else if (urRoot.type === "styleRef") {
-            ctx.meta.runtime.implicitLoop(lhs.root, elt => { elt.style[prop] = value; });
+        } else if (this._isStyle) {
+            ctx.meta.runtime.implicitLoop(lhs.root, elt => { elt.style[this._prop] = value; });
         } else {
             var runtime = ctx.meta.runtime;
             runtime.implicitLoop(lhs.root, elt => {
-                runtime.setProperty(elt, prop, value);
+                runtime.setProperty(elt, this._prop, value);
             });
         }
     }
@@ -493,6 +487,7 @@ export class PossessiveExpression extends Expression {
 export class InExpression extends Expression {
     static grammarName = "inExpression";
     static expressionType = "indirect";
+    static assignable = true;
 
     constructor(root, target) {
         super();
@@ -538,6 +533,12 @@ export class InExpression extends Expression {
             });
         }
         return returnArr;
+    }
+
+    get lhs() { return { root: this.root, target: this.target }; }
+    set(ctx, lhs, value) {
+        var targets = this.resolve(ctx, lhs);
+        ctx.meta.runtime.replaceInDom(targets, value);
     }
 }
 
@@ -660,8 +661,7 @@ export class AttributeRefAccess extends Expression {
     }
 
     resolve(_ctx, { root: rootVal }) {
-        var value = _ctx.meta.runtime.resolveAttribute(rootVal, this.attribute.name);
-        return value;
+        return _ctx.meta.runtime.resolveAttribute(rootVal, this.attribute.name);
     }
 
     get lhs() { return { root: this.root }; }
@@ -1005,97 +1005,37 @@ export class ComparisonOperator extends Expression {
             if (typeof rhsVal === "string") rhsVal = rhsVal.toLowerCase();
         }
 
-        if (operator === "==") {
-            return lhsVal == rhsVal;
-        } else if (operator === "!=") {
-            return lhsVal != rhsVal;
-        }
-        if (operator === "===") {
-            return lhsVal === rhsVal;
-        } else if (operator === "!==") {
-            return lhsVal !== rhsVal;
-        }
-        if (operator === "match") {
-            return lhsVal != null && this.sloppyMatches(lhs, lhsVal, rhsVal);
-        }
-        if (operator === "not match") {
-            return lhsVal == null || !this.sloppyMatches(lhs, lhsVal, rhsVal);
-        }
-        if (operator === "in") {
-            return rhsVal != null && this.sloppyContains(rhs, rhsVal, lhsVal);
-        }
-        if (operator === "not in") {
-            return rhsVal == null || !this.sloppyContains(rhs, rhsVal, lhsVal);
-        }
-        if (operator === "contain") {
-            return lhsVal != null && this.sloppyContains(lhs, lhsVal, rhsVal);
-        }
-        if (operator === "not contain") {
-            return lhsVal == null || !this.sloppyContains(lhs, lhsVal, rhsVal);
-        }
-        if (operator === "include") {
-            return lhsVal != null && this.sloppyContains(lhs, lhsVal, rhsVal);
-        }
-        if (operator === "not include") {
-            return lhsVal == null || !this.sloppyContains(lhs, lhsVal, rhsVal);
-        }
-        if (operator === "start with") {
-            return lhsVal != null && String(lhsVal).startsWith(rhsVal);
-        }
-        if (operator === "not start with") {
-            return lhsVal == null || !String(lhsVal).startsWith(rhsVal);
-        }
-        if (operator === "end with") {
-            return lhsVal != null && String(lhsVal).endsWith(rhsVal);
-        }
-        if (operator === "not end with") {
-            return lhsVal == null || !String(lhsVal).endsWith(rhsVal);
-        }
-        if (operator === "between") {
-            return lhsVal >= rhsVal && lhsVal <= rhs2Val;
-        }
-        if (operator === "not between") {
-            return lhsVal < rhsVal || lhsVal > rhs2Val;
-        }
-        if (operator === "precede") {
-            return lhsVal != null && rhsVal != null &&
-                (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
-        }
-        if (operator === "not precede") {
-            return lhsVal == null || rhsVal == null ||
-                (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_FOLLOWING) === 0;
-        }
-        if (operator === "follow") {
-            return lhsVal != null && rhsVal != null &&
-                (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_PRECEDING) !== 0;
-        }
-        if (operator === "not follow") {
-            return lhsVal == null || rhsVal == null ||
-                (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_PRECEDING) === 0;
-        }
-        if (operator === "<") {
-            return lhsVal < rhsVal;
-        } else if (operator === ">") {
-            return lhsVal > rhsVal;
-        } else if (operator === "<=") {
-            return lhsVal <= rhsVal;
-        } else if (operator === ">=") {
-            return lhsVal >= rhsVal;
-        } else if (operator === "empty") {
-            return context.meta.runtime.isEmpty(lhsVal);
-        } else if (operator === "not empty") {
-            return !context.meta.runtime.isEmpty(lhsVal);
-        } else if (operator === "exist") {
-            return context.meta.runtime.doesExist(lhsVal);
-        } else if (operator === "not exist") {
-            return !context.meta.runtime.doesExist(lhsVal);
-        } else if (operator === "a") {
-            return context.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
-        } else if (operator === "not a") {
-            return !context.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
-        } else {
-            throw new Error("Unknown comparison : " + operator);
-        }
+        if (operator === "==") return lhsVal == rhsVal;
+        if (operator === "!=") return lhsVal != rhsVal;
+        if (operator === "===") return lhsVal === rhsVal;
+        if (operator === "!==") return lhsVal !== rhsVal;
+        if (operator === "<") return lhsVal < rhsVal;
+        if (operator === ">") return lhsVal > rhsVal;
+        if (operator === "<=") return lhsVal <= rhsVal;
+        if (operator === ">=") return lhsVal >= rhsVal;
+        if (operator === "match") return lhsVal != null && this.sloppyMatches(lhs, lhsVal, rhsVal);
+        if (operator === "not match") return lhsVal == null || !this.sloppyMatches(lhs, lhsVal, rhsVal);
+        if (operator === "in") return rhsVal != null && this.sloppyContains(rhs, rhsVal, lhsVal);
+        if (operator === "not in") return rhsVal == null || !this.sloppyContains(rhs, rhsVal, lhsVal);
+        if (operator === "contain" || operator === "include") return lhsVal != null && this.sloppyContains(lhs, lhsVal, rhsVal);
+        if (operator === "not contain" || operator === "not include") return lhsVal == null || !this.sloppyContains(lhs, lhsVal, rhsVal);
+        if (operator === "start with") return lhsVal != null && String(lhsVal).startsWith(rhsVal);
+        if (operator === "not start with") return lhsVal == null || !String(lhsVal).startsWith(rhsVal);
+        if (operator === "end with") return lhsVal != null && String(lhsVal).endsWith(rhsVal);
+        if (operator === "not end with") return lhsVal == null || !String(lhsVal).endsWith(rhsVal);
+        if (operator === "between") return lhsVal >= rhsVal && lhsVal <= rhs2Val;
+        if (operator === "not between") return lhsVal < rhsVal || lhsVal > rhs2Val;
+        if (operator === "precede") return lhsVal != null && rhsVal != null && (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+        if (operator === "not precede") return lhsVal == null || rhsVal == null || (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_FOLLOWING) === 0;
+        if (operator === "follow") return lhsVal != null && rhsVal != null && (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_PRECEDING) !== 0;
+        if (operator === "not follow") return lhsVal == null || rhsVal == null || (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_PRECEDING) === 0;
+        if (operator === "empty") return context.meta.runtime.isEmpty(lhsVal);
+        if (operator === "not empty") return !context.meta.runtime.isEmpty(lhsVal);
+        if (operator === "exist") return context.meta.runtime.doesExist(lhsVal);
+        if (operator === "not exist") return !context.meta.runtime.doesExist(lhsVal);
+        if (operator === "a") return context.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
+        if (operator === "not a") return !context.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
+        throw new Error("Unknown comparison : " + operator);
     }
 }
 

@@ -520,7 +520,7 @@ export class ToggleCommand extends VisibilityCommand {
                 this.toggle(context, on, classRef, classRef2, classRefs);
                 setTimeout(() => {
                     this.toggle(context, on, classRef, classRef2, classRefs);
-                    resolve(context.meta.runtime.findNext(this, context));
+                    resolve(this.findNext(context));
                 }, time);
             });
         } else if (evt) {
@@ -530,7 +530,7 @@ export class ToggleCommand extends VisibilityCommand {
                     evt,
                     () => {
                         this.toggle(context, on, classRef, classRef2, classRefs);
-                        resolve(context.meta.runtime.findNext(this, context));
+                        resolve(this.findNext(context));
                     },
                     { once: true }
                 );
@@ -538,7 +538,7 @@ export class ToggleCommand extends VisibilityCommand {
             });
         } else {
             this.toggle(context, on, classRef, classRef2, classRefs);
-            return context.meta.runtime.findNext(this, context);
+            return this.findNext(context);
         }
     }
 }
@@ -776,7 +776,7 @@ export class TakeCommand extends Command {
                 target.setAttribute(this.attributeRef.name, this.attributeRef.value || "");
             });
         }
-        return context.meta.runtime.findNext(this, context);
+        return this.findNext(context);
     }
 }
 
@@ -874,7 +874,7 @@ export class MeasureCommand extends Command {
             else throw new Error("No such measurement as " + prop);
         });
 
-        return ctx.meta.runtime.findNext(this, ctx);
+        return this.findNext(ctx);
     }
 }
 
@@ -902,7 +902,7 @@ export class FocusCommand extends Command {
 
     resolve(ctx, { target }) {
         (target || ctx.me).focus();
-        return ctx.meta.runtime.findNext(this, ctx);
+        return this.findNext(ctx);
     }
 }
 
@@ -930,7 +930,7 @@ export class BlurCommand extends Command {
 
     resolve(ctx, { target }) {
         (target || ctx.me).blur();
-        return ctx.meta.runtime.findNext(this, ctx);
+        return this.findNext(ctx);
     }
 }
 
@@ -959,9 +959,9 @@ export class EmptyCommand extends Command {
     resolve(ctx, { target }) {
         var elt = target || ctx.me;
         ctx.meta.runtime.implicitLoop(elt, function (e) {
-            while (e.firstChild) e.removeChild(e.firstChild);
+            e.replaceChildren();
         });
-        return ctx.meta.runtime.findNext(this, ctx);
+        return this.findNext(ctx);
     }
 }
 
@@ -1017,11 +1017,11 @@ export class OpenCommand extends Command {
         var elt = target || ctx.me;
         if (this.fullscreen) {
             return (target || document.documentElement).requestFullscreen().then(() => {
-                return ctx.meta.runtime.findNext(this, ctx);
+                return this.findNext(ctx);
             });
         }
         ctx.meta.runtime.implicitLoop(elt, _openElement);
-        return ctx.meta.runtime.findNext(this, ctx);
+        return this.findNext(ctx);
     }
 }
 
@@ -1052,12 +1052,12 @@ export class CloseCommand extends Command {
     resolve(ctx, { target }) {
         if (this.fullscreen) {
             return document.exitFullscreen().then(() => {
-                return ctx.meta.runtime.findNext(this, ctx);
+                return this.findNext(ctx);
             });
         }
         var elt = target || ctx.me;
         ctx.meta.runtime.implicitLoop(elt, _closeElement);
-        return ctx.meta.runtime.findNext(this, ctx);
+        return this.findNext(ctx);
     }
 }
 
@@ -1143,7 +1143,7 @@ export class SelectCommand extends Command {
     resolve(ctx, { target }) {
         var elt = target || ctx.me;
         if (typeof elt.select === "function") elt.select();
-        return ctx.meta.runtime.findNext(this, ctx);
+        return this.findNext(ctx);
     }
 }
 
@@ -1168,7 +1168,7 @@ export class AskCommand extends Command {
 
     resolve(ctx, { message }) {
         ctx.result = prompt(String(message));
-        return ctx.meta.runtime.findNext(this, ctx);
+        return this.findNext(ctx);
     }
 }
 
@@ -1210,6 +1210,6 @@ export class AnswerCommand extends Command {
         } else {
             alert(String(message));
         }
-        return ctx.meta.runtime.findNext(this, ctx);
+        return this.findNext(ctx);
     }
 }

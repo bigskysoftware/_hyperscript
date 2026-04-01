@@ -79,7 +79,7 @@ export class WaitCommand extends Command {
                         }
                         if (!resolved) {
                             resolved = true;
-                            resolve(context.meta.runtime.findNext(this, context));
+                            resolve(this.findNext(context));
                         }
                     };
                     if (eventInfo.name){
@@ -93,7 +93,7 @@ export class WaitCommand extends Command {
         } else {
             return new Promise((resolve) => {
                 setTimeout(() => {
-                    resolve(context.meta.runtime.findNext(this, context));
+                    resolve(this.findNext(context));
                 }, time);
             });
         }
@@ -139,7 +139,7 @@ export class SendCommand extends Command {
         context.meta.runtime.implicitLoop(to, function (target) {
             context.meta.runtime.triggerEvent(target, eventName, details, context.me);
         });
-        return context.meta.runtime.findNext(this, context);
+        return this.findNext(context);
     }
 }
 
