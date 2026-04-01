@@ -270,78 +270,59 @@ export class Runtime {
         }
 
         resolveSymbol(str, context, type, targetElement) {
-            if (str === "me" || str === "my" || str === "I") {
-                return context.me;
+            if (str === "me" || str === "my" || str === "I") return context.me;
+            if (str === "it" || str === "its") return context.beingTested ?? context.result;
+            if (str === "result") return context.result;
+            if (str === "you" || str === "your" || str === "yourself") return context.you;
+
+            if (type === "global") {
+                if (this.reactivity.isTracking) this.reactivity.trackGlobalSymbol(str);
+                var val = this.#globalScope[str];
+                this.#trackMutation(val);
+                return val;
             }
-            if (str === "it" || str === "its") {
-                return context.beingTested != null ? context.beingTested : context.result;
+            if (type === "element") {
+                if (this.reactivity.isTracking) this.reactivity.trackElementSymbol(str, context.meta.owner);
+                var val = this.#getElementScope(context)[str];
+                this.#trackMutation(val);
+                return val;
             }
-            if (str === "result") {
-                return context.result;
+            if (type === "inherited") {
+                var inherited = this.#resolveInherited(str, context, targetElement);
+                if (this.reactivity.isTracking && inherited.element) {
+                    this.reactivity.trackElementSymbol(str, inherited.element);
+                }
+                this.#trackMutation(inherited.value);
+                return inherited.value;
             }
-            if (str === "you" || str === "your" || str === "yourself") {
-                return context.you;
-            } else {
-                if (type === "global") {
-                    if (this.reactivity.isTracking) this.reactivity.trackGlobalSymbol(str);
-                    var val = this.#globalScope[str];
-                    this.#trackMutation(val);
-                    return val;
-                } else if (type === "element") {
-                    if (this.reactivity.isTracking) this.reactivity.trackElementSymbol(str, context.meta.owner);
-                    var elementScope = this.#getElementScope(context);
-                    var val = elementScope[str];
-                    this.#trackMutation(val);
-                    return val;
-                } else if (type === "inherited") {
-                    var inherited = this.#resolveInherited(str, context, targetElement);
-                    if (this.reactivity.isTracking && inherited.element) {
-                        this.reactivity.trackElementSymbol(str, inherited.element);
-                    }
-                    this.#trackMutation(inherited.value);
-                    return inherited.value;
-                } else if (type === "local") {
-                    return context.locals[str];
-                } else {
-                    if (context.meta && context.meta.context) {
-                        var fromMetaContext = context.meta.context[str];
-                        if (typeof fromMetaContext !== "undefined") {
-                            return fromMetaContext;
-                        }
-                        if (context.meta.context.detail) {
-                            fromMetaContext = context.meta.context.detail[str];
-                            if (typeof fromMetaContext !== "undefined") {
-                                return fromMetaContext;
-                            }
-                        }
-                    }
-                    if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str)) {
-                        var fromContext = context.locals[str];
-                    } else {
-                        var fromContext = context[str];
-                    }
-                    if (typeof fromContext !== "undefined") {
-                        // Found in locals/meta - don't track (ephemeral)
-                        return fromContext;
-                    } else {
-                        // element scope
-                        var elementScope = this.#getElementScope(context);
-                        fromContext = elementScope[str];
-                        if (typeof fromContext !== "undefined") {
-                            if (this.reactivity.isTracking) this.reactivity.trackElementSymbol(str, context.meta.owner);
-                            this.#trackMutation(fromContext);
-                            return fromContext;
-                        } else {
-                            // Global scope (or not found - track as global
-                            // so we catch the first write)
-                            if (this.reactivity.isTracking) this.reactivity.trackGlobalSymbol(str);
-                            var val = this.#globalScope[str];
-                            this.#trackMutation(val);
-                            return val;
-                        }
-                    }
+            if (type === "local") return context.locals[str];
+
+            // default scope resolution
+            if (context.meta?.context) {
+                var fromMetaContext = context.meta.context[str];
+                if (typeof fromMetaContext !== "undefined") return fromMetaContext;
+                if (context.meta.context.detail) {
+                    fromMetaContext = context.meta.context.detail[str];
+                    if (typeof fromMetaContext !== "undefined") return fromMetaContext;
                 }
             }
+            var fromContext = this.#isHyperscriptContext(context) && !this.#isReservedWord(str)
+                ? context.locals[str] : context[str];
+            if (typeof fromContext !== "undefined") return fromContext;
+
+            // element scope
+            var elementScope = this.#getElementScope(context);
+            fromContext = elementScope[str];
+            if (typeof fromContext !== "undefined") {
+                if (this.reactivity.isTracking) this.reactivity.trackElementSymbol(str, context.meta.owner);
+                this.#trackMutation(fromContext);
+                return fromContext;
+            }
+            // global scope (or not found — track as global so we catch the first write)
+            if (this.reactivity.isTracking) this.reactivity.trackGlobalSymbol(str);
+            var val = this.#globalScope[str];
+            this.#trackMutation(val);
+            return val;
         }
 
         setSymbol(str, context, type, value, targetElement) {
@@ -924,24 +905,12 @@ export class Runtime {
 
         beepValueToConsole(element, expression, value) {
             if (this.triggerEvent(element, "hyperscript:beep", {element, expression, value})) {
-                var typeName;
-                if (value) {
-                    if (value instanceof ElementCollection) {
-                        typeName = "ElementCollection";
-                    } else if (value.constructor) {
-                        typeName = value.constructor.name;
-                    } else {
-                        typeName = "unknown";
-                    }
-                } else {
-                    typeName = "object (null)"
-                }
-                var logValue = value;
-                if (typeName === "String") {
-                    logValue = '"' + logValue + '"';
-                } else if (value instanceof ElementCollection) {
-                    logValue = Array.from(value);
-                }
+                var typeName = !value ? "object (null)"
+                    : value instanceof ElementCollection ? "ElementCollection"
+                    : value.constructor?.name || "unknown";
+                var logValue = typeName === "String" ? '"' + value + '"'
+                    : value instanceof ElementCollection ? Array.from(value)
+                    : value;
                 console.log("///_ BEEP! The expression (" + expression.sourceFor().replace("beep! ", "") + ") evaluates to:", logValue, "of type " + typeName);
             }
         }
