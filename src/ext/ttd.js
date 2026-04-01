@@ -424,10 +424,10 @@ class DomRestorer {
 	}
 }
 
+
 // ==========================================================================
 // Recorder — Listens for hyperscript:beforeEval / hyperscript:afterEval
 //            events fired by the runtime to capture execution steps.
-//            No monkey-patching of runtime methods.
 // ==========================================================================
 
 class Recorder {
