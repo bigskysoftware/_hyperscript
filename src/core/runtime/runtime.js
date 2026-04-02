@@ -560,8 +560,7 @@ export class Runtime {
         }
 
         shouldAutoIterate(value) {
-            return value != null && value[SHOULD_AUTO_ITERATE_SYM] ||
-                this.#isArrayLike(value);
+            return (value != null && value[SHOULD_AUTO_ITERATE_SYM]) || this.#isArrayLike(value);
         }
 
         forEach(value, func) {
