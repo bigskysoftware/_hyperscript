@@ -1,0 +1,53 @@
+# Hyperscript Tools
+# Run with: just -f tools/justfile <recipe>
+# Or: cd tools && just <recipe>
+
+# Rebuild the shared IIFE from src/
+build-iife:
+    cd .. && npx esbuild src/_hyperscript.js --bundle --format=iife --platform=browser --target=es2022 --outfile=tools/common/_hyperscript.iife.js
+
+# Install all tool dependencies
+install:
+    cd lsp && npm install
+    cd vscode && npm install
+
+# Run the LSP server (for testing with editors)
+lsp:
+    node lsp/server.js
+
+# Run JetBrains plugin tests
+test-jetbrains:
+    cd jetbrains && ./gradlew test
+
+# Launch JetBrains sandbox IDE
+run-jetbrains:
+    cd jetbrains && ./gradlew runIde
+
+# Build JetBrains plugin
+build-jetbrains:
+    cd jetbrains && ./gradlew buildPlugin
+
+# Test the LSP server modules
+test-lsp:
+    node -e " \
+      const parser = require('./lsp/src/parser'); \
+      const regions = require('./lsp/src/regions'); \
+      const completions = require('./lsp/src/completions'); \
+      const hover = require('./lsp/src/hover'); \
+      parser.init(null); \
+      let r = parser.parse('on click toggle .foo'); \
+      console.assert(r.ok, 'valid parse failed'); \
+      r = parser.parse('on click toggle'); \
+      console.assert(!r.ok, 'invalid parse should fail'); \
+      console.assert(r.errors.length > 0, 'should have errors'); \
+      const regs = regions.extractRegions('<button _=\"on click\">'); \
+      console.assert(regs.length === 1, 'should find 1 region'); \
+      const items = completions.getCompletions('on click ', 9, new Set(), new Set()); \
+      console.assert(items.length > 0, 'should have completions'); \
+      console.assert(hover.getHover('toggle'), 'should have hover for toggle'); \
+      console.log('All LSP tests passed'); \
+    "
+
+# Launch VS Code with the extension for testing
+run-vscode:
+    "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code" --extensionDevelopmentPath="$(pwd)/vscode"

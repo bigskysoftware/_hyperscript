@@ -1,0 +1,397 @@
+{
+  "add": {
+    "category": "commands",
+    "syntax": "add <class-ref+ or attribute-ref or object-literal> [to <target-expression>] [when <expr>]",
+    "description": "The `add` command allows you to add a class (via a class ref), an attribute\n(via an attribute ref) or CSS attributes (via an object literal) to either the current element or to another element. The..."
+  },
+  "answer": {
+    "category": "commands",
+    "syntax": "answer <expression>\nanswer <expression> with <expression> or <expression>",
+    "description": "The `answer` command displays a browser dialog. In its simple form, it calls `alert()` with the given message."
+  },
+  "append": {
+    "category": "commands",
+    "syntax": "append <string> [to <string> | <array> | <HTML Element>]",
+    "description": "The `append` command adds a string value to the end of another string, array, or HTML Element. If no target variable is defined, then the standard `result` variable is used by default."
+  },
+  "ask": {
+    "category": "commands",
+    "syntax": "ask <expression>",
+    "description": "The `ask` command displays a browser `prompt()` dialog with the given message. The user's input is placed into\n`it` (the result)."
+  },
+  "beep": {
+    "category": "expressions",
+    "syntax": "beep! <unary expression>",
+    "description": "The `beep!` expression allows you to debug a partial expression value, logging its value to the console and otherwise\nacting like an identity function: it simply returns the inner value it logs. Th..."
+  },
+  "blur": {
+    "category": "commands",
+    "syntax": "blur [<expression>]",
+    "description": "The `blur` command removes focus from an element. If no target is given, it blurs the current element (`me`)."
+  },
+  "break": {
+    "category": "commands",
+    "syntax": "break",
+    "description": "The `break` command works inside any `repeat` block. It exits the loop."
+  },
+  "breakpoint": {
+    "category": "commands",
+    "syntax": "breakpoint",
+    "description": "The `breakpoint` command pauses execution in the browser DevTools by triggering the JavaScript `debugger`\nstatement. This is built in to core and does not require the hdb extension."
+  },
+  "call": {
+    "category": "commands",
+    "syntax": "call <expression>\nget <expression>",
+    "description": "The `call` command allows you evaluate an expression. The value of this expression will be put into the `it` variable."
+  },
+  "close": {
+    "category": "commands",
+    "syntax": "close [fullscreen] [<expression>]",
+    "description": "The `close` command closes an element. It automatically detects the element type and calls the right API:\n\n- `<dialog>` — calls `close()`\n- `<details>` — removes the `open` attribute\n- Elements wit..."
+  },
+  "continue": {
+    "category": "commands",
+    "syntax": "continue",
+    "description": "The `continue` command works inside any `repeat` block. It exits the current iteration of the loop and begins at the top of the next iteration."
+  },
+  "decrement": {
+    "category": "commands",
+    "syntax": "decrement <target> [by <number>]",
+    "description": "The `decrement` command subtracts from an existing variable, property, or attribute. It defaults to subtracting the value `1`, but this can be changed using the `by` modifier."
+  },
+  "default": {
+    "category": "commands",
+    "syntax": "default <target> to <expr>",
+    "description": "The `default` command sets a variable or property to a given value if it is currently `null`, `undefined`, or empty string (`\"\"`)."
+  },
+  "empty": {
+    "category": "commands",
+    "syntax": "empty [<expression>]",
+    "description": "The `empty` command removes all child nodes from an element. If no target is given, it empties the current element (`me`)."
+  },
+  "exit": {
+    "category": "commands",
+    "syntax": "exit",
+    "description": "The `exit` command exits the current event handler or function without returning a value. It is equivalent\nto `return` with no expression."
+  },
+  "fetch": {
+    "category": "commands",
+    "syntax": "fetch <stringLike> [ as [ a | an ]( json | JSON | html | HTML | response | text | String | CONVERSION ) ] [<object literal> | 'with' <naked named arguments>]",
+    "description": "The `fetch` command issues a fetch request to the\ngiven URL. The URL can either be a naked URL or a string literal."
+  },
+  "focus": {
+    "category": "commands",
+    "syntax": "focus [<expression>]",
+    "description": "The `focus` command focuses an element. If no target is given, it focuses the current element (`me`)."
+  },
+  "go": {
+    "category": "commands",
+    "syntax": "go [to] <url-or-expression> [in new window]\n go back",
+    "description": "The `go` command navigates to a URL or scrolls to an element. `go to` accepts a URL (string, template literal, or naked URL starting with `/` or `http`/`https`) and navigates to it."
+  },
+  "halt": {
+    "category": "commands",
+    "syntax": "halt [the event['s]] (bubbling|default)\nexit",
+    "description": "The `halt` command prevents an event from bubbling and/or from performing its default action. The form `halt the event` will halt both the bubbling and default for the event, but continue execution..."
+  },
+  "hide": {
+    "category": "commands",
+    "syntax": "hide [target] [with <hide-show-strategy>[: <argument>]] [when <expr>]",
+    "description": "The `hide` command allows you to hide an element in the DOM using various strategies. The default strategy is `display`."
+  },
+  "if": {
+    "category": "commands",
+    "syntax": "if <conditional> [then] <command-list> [(else | otherwise) <command-list>] end`",
+    "description": "The `if` command provides the standard if-statement control flow. Note that a leading `if` on a separate line from an `else` statement will be treated as a nested if within the else:\n\n```hyperscrip..."
+  },
+  "increment": {
+    "category": "commands",
+    "syntax": "increment <target> [by <number>]",
+    "description": "The `increment` command adds to an existing variable, property, or attribute. It defaults to adding the value `1`, but this can be changed using the `by` modifier."
+  },
+  "js": {
+    "category": "features",
+    "syntax": null,
+    "description": "**Note:** This page is about the top-level JS feature. \\_hyperscript also supports inline JS as a command, say, inside an event listener or function."
+  },
+  "log": {
+    "category": "commands",
+    "syntax": "log <expression> {, <expression>} [with <expression>]",
+    "description": "The `log` command logs an expression to `console.log` or whatever value is provided with the `with` clause."
+  },
+  "make": {
+    "category": "commands",
+    "syntax": "make (a|an) <expression> [from <arg-list>] [called <identifier>]\nmake (a|an) <query-ref>                    [called <identifier>]",
+    "description": "The `make` command can be used to create class instances or DOM elements. In the first form:\n\n```hyperscript\nmake a URL from \"/path/\", \"https://origin.example.com\"\n```\n\nis equal to the JavaScript `..."
+  },
+  "measure": {
+    "category": "commands",
+    "syntax": "measure <possessive> [measurement {, measurement}",
+    "description": "The `measure` command gets the measurements for a given element using `getBoundingClientRect()` as well as the\n`scroll*` properties. It will place the result into the `result` variable."
+  },
+  "open": {
+    "category": "commands",
+    "syntax": "open [fullscreen] [<expression>]",
+    "description": "The `open` command opens an element. It automatically detects the element type and calls the right API:\n\n- `<dialog>` — calls `showModal()`\n- `<details>` — sets the `open` attribute\n- Elements with..."
+  },
+  "pick": {
+    "category": "commands",
+    "syntax": "pick first <count> of <collection>\npick last <count> of <collection>\npick random [<count>] of <collection>",
+    "description": "Selects elements from a collection by position. `pick first` and `pick last` return slices from the start or end."
+  },
+  "pseudo-commands": {
+    "category": "commands",
+    "syntax": "<method name>(<arg list>) [(to | on | with | into | from | at)] <expression>",
+    "description": "Pseudo-commands allow you to treat a method on an object as a top level command. The method name must be followed by\nan argument list, then optional prepositional syntax to clarify the code, then a..."
+  },
+  "put": {
+    "category": "commands",
+    "syntax": "put <expression> (into | before | at [the] start of | at [the] end of | after)  <expression>`",
+    "description": "The `put` command allows you to insert content into a variable, property or the DOM. Content that is added to the DOM via the `put` command targeting DOM will have any hyperscript content within it..."
+  },
+  "remove": {
+    "category": "commands",
+    "syntax": "remove <class-ref+ or attribute-ref or object-literal or expression> [from <target-expression>] [when <expr>]",
+    "description": "The `remove` command allows you to remove an element from the DOM, or to remove\na class, property, or CSS properties from an element node. The `when` clause allows you to filter what elements have ..."
+  },
+  "render": {
+    "category": "commands",
+    "syntax": "render <template-element> [with <name>: <expr>, ...]",
+    "description": "The `render` command implements a template language for generating HTML strings from `<template>` elements. The result is placed into `it` / `the result`."
+  },
+  "repeat": {
+    "category": "commands",
+    "syntax": "repeat for <identifier> in <expression> [index <identifier>] { <command> } end\nrepeat in <expression> [index <identifier>] { <command> } end\nrepeat while <expression> [index <identifier>] { <command> } end\nrepeat until <expression> [index <identifier>] { <command> } end\nrepeat until event <expression> [from <expression>] [index <identifier>] { <command> } end\nrepeat <number> times [index <identifier>] { <command> } end\nrepeat forever <expression> [index <identifier>] { <command> } end\nrepeat { <command> } until <expression> end\nrepeat { <command> } while <expression> end\nfor <identifier> in <expression> [index <identifier>]",
+    "description": "The `repeat` command provides iteration in the hyperscript language. It is very flexible and supports many forms."
+  },
+  "return": {
+    "category": "commands",
+    "syntax": "return <expression>\nexit",
+    "description": "The `return` command returns a value from a function in hyperscript or stops an event handler from continuing. You may use the `exit` form to return no value."
+  },
+  "scroll": {
+    "category": "commands",
+    "syntax": "scroll to [the] [top|middle|bottom] [left|center|right] [of] <expr> [(+|-) <number> [px]] [in <container>] [smoothly|instantly]\nscroll [<target>] [up|down|left|right] by <number> [px] [smoothly|instantly]",
+    "description": "The `scroll` command has two forms:\n\n**Scroll to** scrolls an element into view. You can control the scroll position with vertical modifiers\n(`top`, `middle`, `bottom`) and horizontal modifiers (`l..."
+  },
+  "select": {
+    "category": "commands",
+    "syntax": "select [<expression>]",
+    "description": "The `select` command selects the text content of an input or textarea by calling `.select()` on the target element. If no target is given, defaults to `me`."
+  },
+  "send": {
+    "category": "commands",
+    "syntax": "send <event-name>[(<named arguments>)] [to <expression>]\n trigger <event-name>[(<named arguments>)] [on <expression>]",
+    "description": "The `send` command sends an event to the given target. Arguments can optionally be provided in a named argument list\nand will be passed in the `event.detail` object."
+  },
+  "set": {
+    "category": "features",
+    "syntax": "set <expression> to <expression>",
+    "description": "The `set` feature allows you to set an element scoped variable to a value. When used as a top-level feature, only\nelement-scoped variables are supported."
+  },
+  "settle": {
+    "category": "commands",
+    "syntax": "settle [<expression>]",
+    "description": "The `settle` command allows you to synchronize on the CSS transition of an element. It will listen for the\n`transitionend` even on the given element (or `me` if no element is given)."
+  },
+  "show": {
+    "category": "commands",
+    "syntax": "show [target] [with <hide-show-strategy>[: <argument>]] [when <expr>]",
+    "description": "The `show` command allows you to show an element in the DOM using various strategies. The default strategy is `display`."
+  },
+  "speak": {
+    "category": "commands",
+    "syntax": "speak <expression> [with voice <expression>] [with rate <expression>] [with pitch <expression>] [with volume <expression>]",
+    "description": "The `speak` command uses the Web Speech API\nto speak text aloud — a nod to HyperTalk. The command is async-transparent: it waits for the utterance to finish before continuing to the next command."
+  },
+  "swap": {
+    "category": "commands",
+    "syntax": "swap <assignable expression> with <assignable expression>",
+    "description": "The `swap` command exchanges the values of two assignable expressions. It works with any writable target: local variables, properties, array elements, or any combination of these."
+  },
+  "take": {
+    "category": "commands",
+    "syntax": "take <class-ref+ or attribute-ref [with <expression>]> [from <expression>] [for <expression>]",
+    "description": "The `take` command allows you to take a class or an attribute from a set of elements (or all elements) and add it to the current element (or the targeted element). When using `take` with attributes..."
+  },
+  "tell": {
+    "category": "commands",
+    "syntax": "tell <expression>\n  <statements>\nend",
+    "description": "The `tell` command can be used to temporarily change the default target for commands like `add`. Within `tell` blocks, keywords `you`, `your`, and `yourself` can be used to identify the individual ..."
+  },
+  "throw": {
+    "category": "commands",
+    "syntax": "throw <expression>",
+    "description": "The `throw` command throws an exception."
+  },
+  "toggle": {
+    "category": "commands",
+    "syntax": "toggle ({<class-ref>} | <attribute-ref> | between <class-ref> and <class-ref> | between <attribute-ref> and <attribute-ref>)\n [on <expression>]\n  [(for <time expression>) |\n   (until <event name> [from <expression>]]`\n\ntoggle [the | my] ('*opacity' | '*visibility' | '*display')\n [of <expression>]\n  [(for <time expression>) |\n   (until <event name> [from <expression>]]`",
+    "description": "The `toggle` command allows you to toggle:\n\n * A class or set of classes (via a class ref)\n\n* An attribute (via an attribute ref)\n\n* Or the visibility of an element via `opacity`, `visibility` or `..."
+  },
+  "transition": {
+    "category": "commands",
+    "syntax": "transition [[element] <transition target>]\n  {<property name> [from <string>} to <string>}\n[over <time expression> | using <expression>]",
+    "description": "The `transition` command allows you to transition properties on an element from one value to another. If you use the form `transition <transition target>` the transition will take place on the spec..."
+  },
+  "trigger": {
+    "category": "commands",
+    "syntax": null,
+    "description": null
+  },
+  "wait": {
+    "category": "commands",
+    "syntax": "wait (<time expression> | for (<event> [from <source>]) [or ...] )",
+    "description": "The `wait` command can either wait for an event to occur or for a fixed amount of time\n\nIn the form `wait for <event> {or <event>} [from <source>]` the hyperscript will pause until the element rece..."
+  },
+  "behavior": {
+    "category": "features",
+    "syntax": "behavior <name>(<parameter list>)\n  {<hyperscript>}\nend",
+    "description": "Behaviors allow you to bundle together some hyperscript code (that would normally go in the \\_ attribute of an element) so that it can be \"installed\" on any other. For instance, consider this disap..."
+  },
+  "bind": {
+    "category": "features",
+    "syntax": "bind <expression> to <expression>\nbind <expression> and <expression>\nbind <expression> with <expression>",
+    "description": null
+  },
+  "def": {
+    "category": "features",
+    "syntax": "def <function name>(<parameter list>)\n  {<command>}\n[catch <identifier>\n  {<command>}]\n[finally\n  {<command>}]\nend",
+    "description": null
+  },
+  "event-source": {
+    "category": "features",
+    "syntax": null,
+    "description": "Server Sent Events are a simple way for your web server to push information directly to your clients that is supported by all modern browsers. They provide real-time, uni-directional communication ..."
+  },
+  "init": {
+    "category": "features",
+    "syntax": "init [immediately]\n  {<command>}\nend",
+    "description": null
+  },
+  "live": {
+    "category": "features",
+    "syntax": "live <command>\n\nlive\n    {<command>}\nend",
+    "description": null
+  },
+  "on": {
+    "category": "features",
+    "syntax": "on [every | first] <event-name>[(<param-list>)][\\[<filter>\\]] [<count>] [from <expr>] [<debounce> | <throttle>]\n   { or [every | first] <event-name>[(<param-list>)][\\[<filter>\\]] [<count>] [from <expr>] [<debounce> | <throttle>] }\n    [queue (all | first | last | none)]\n    {<command>}\n[end]",
+    "description": "The `on` feature is the primary way to hook hyperscript into the DOM event system. It is typically placed on\nDOM elements directly, using the `_`, `script` or `data-script` attribute."
+  },
+  "socket": {
+    "category": "features",
+    "syntax": null,
+    "description": "Web Sockets provide a mechanism for two-way communication\nbetween a browser client and a server. Hyperscript provides a simple way to create them, as well as a simple\nRemote Procedure Call (RPC) me..."
+  },
+  "when": {
+    "category": "features",
+    "syntax": "when <expression> [or <expression>]* changes\n    {<command>}\n[end]",
+    "description": "The `when` feature watches an expression and runs its body whenever the expression's value changes. The `it` keyword inside the body refers to the new value of the expression."
+  },
+  "worker": {
+    "category": "features",
+    "syntax": null,
+    "description": "\\_hyperscript allows you to create Web Workers whose functions are exposed to the main thread. ```hyperscript\nworker Incrementer\n  js\n    function _increment(n) { return n + 1 }\n  end\n  def increme..."
+  },
+  "as": {
+    "category": "expressions",
+    "syntax": "<expression> as [ a | an ] CONVERSION [ | CONVERSION ]*",
+    "description": "Hyperscript provides a pluggable conversion system with the `as` expression. It will look up the conversion of the given name and apply it to the input expression."
+  },
+  "attribute-ref": {
+    "category": "expressions",
+    "syntax": null,
+    "description": "Attribute references are similar to CSS attribute references, and may or may not include a value."
+  },
+  "block-literal": {
+    "category": "expressions",
+    "syntax": null,
+    "description": "Block expressions are anonymous functions that return a value (the right hand side expression)."
+  },
+  "class-reference": {
+    "category": "expressions",
+    "syntax": null,
+    "description": "The class reference expression uses a syntax from CSS selectors to reference all elements with a given class. It typically\nevaluates to a NodeList of all matching classes, unless it is used as the\n..."
+  },
+  "closest": {
+    "category": "expressions",
+    "syntax": "closest <css expression> [to <expression>]",
+    "description": "The `closest` expression allows you to find the closest matching element to a given DOM element. By default\nit will use the current element."
+  },
+  "comparison-operator": {
+    "category": "expressions",
+    "syntax": "<expr> < <expr>\n<expr> is less than <expr>\n<expr> <= <expr>\n<expr> is less than or equal to <expr>\n<expr> > <expr>\n<expr> is greater than <expr>\n<expr> >= <expr>\n<expr> is greater than or equal to <expr>\n<expr> == <expr>\n<expr> === <expr>\n<expr> is <expr>\n<expr> is equal to <expr>\n<expr> is really equal to <expr>\n<expr> is not <expr>\n<expr> is not equal to <expr>\n<expr> is not really equal to <expr>\n<expr> equals <expr>\n<expr> really equals <expr>\n<expr> is empty\n<expr> is not empty\nI match <expr>\n<expr> matches <expr>\nI do not match <expr>\n<expr> does not match <expr>\nI contain <expr>\n<expr> contains <expr>\n<expr> is in <expr>\nI do not contain <expr>\n<expr> does not contain <expr>\n<expr> includes <expr>\nI do not include <expr>\n<expr> does not include <expr>\n<expr> starts with <expr>\n<expr> does not start with <expr>\n<expr> ends with <expr>\n<expr> does not end with <expr>\n<expr> is between <expr> and <expr>\n<expr> is not between <expr> and <expr>\n<expr> precedes <expr>\n<expr> does not precede <expr>\n<expr> follows <expr>\n<expr> does not follow <expr>\n<expr> is empty\n<expr> is not empty\n<expr> is a <type name>\n<expr> is not a <type name>\n<expr> exists\n<expr> does not exist\n<comparison> ignoring case",
+    "description": "Many comparison operators are similar to comparison operators in javascript. In addition to the usual comparison operators, hyperscript includes the english terms `is` and `is not` for `==` and `!=..."
+  },
+  "cookies": {
+    "category": "expressions",
+    "syntax": "cookies",
+    "description": "The cookies symbol is not a proper expression, but rather a value assigned, by default, to the `cookies` symbol. This\nvalue presents a better API than the standard `document.cookie`\nAPI, making coo..."
+  },
+  "id-reference": {
+    "category": "expressions",
+    "syntax": "#<id value>",
+    "description": "An id reference expression uses a syntax from to CSS selectors to reference elements by directly by the `id` property. It evaluates to a single\nnode in the DOM with the given identifier"
+  },
+  "it": {
+    "category": "expressions",
+    "syntax": "it",
+    "description": "Many hyperscript commands return a value which is stored in the local variable scope as `result` or `it`. Subsequent commands will often overwrite this value, so you'll need to store it in your own..."
+  },
+  "logical-operator": {
+    "category": "expressions",
+    "syntax": null,
+    "description": "Logical operators are similar to logical operators in javascript, but use the english words rather than symbols. Note that all logical operators have the same precedence, but if multiple distinct o..."
+  },
+  "me": {
+    "category": "expressions",
+    "syntax": "me\n  I",
+    "description": "Most hyperscript features run within the context of an HTML element. For example, `<div _=\"on click ...\">` is an event handler that runs in the context of the `<div>` that contains it."
+  },
+  "no": {
+    "category": "expressions",
+    "syntax": "no <expr>",
+    "description": "The `no` operator returns true if the value of the expression is `null`, `undefined` or\nan object of length 0 (an empty string or array). You can also accomplish this\nsame task using the `is empty`..."
+  },
+  "of": {
+    "category": "expressions",
+    "syntax": "<expression> of <expression>",
+    "description": "The `of` expression allows you to reverse the normal order of property accessors for clearer code. So this:\n\n```html\n<button _=\"on click call window.location.reload()\">\n  Reload the Location\n</butt..."
+  },
+  "positional": {
+    "category": "expressions",
+    "syntax": "(first | last | random) [(in | of | from)] <expression>",
+    "description": "Positional expressions allow you to select an element from an array or array-like object. If they are applied to a\nDOM element, the children of the DOM object will be used."
+  },
+  "possessive": {
+    "category": "expressions",
+    "syntax": "['my' | 'its' | <expressions>'s] <property>\n  ['my' | 'its' | <expressions>'s] attribute <stringLike>",
+    "description": "The possessive expression can be used in places to more clearly express intent when compared with the more typical\n`.` operator. The possessive expression can also be used to get and set attributes..."
+  },
+  "query-reference": {
+    "category": "expressions",
+    "syntax": null,
+    "description": "The query reference expression allows you to embed arbitrary CSS selectors in hyperscript. It will evaluate to all matching elements."
+  },
+  "relative-positional": {
+    "category": "expressions",
+    "syntax": "(next|previous) <css expression> [from <expression>] [within <expression>] [with wrapping]",
+    "description": "Relative positional expressions allow you to select an element relative to another element in the DOM, using the\n`next` and `previous` keywords. The command will scan forward (`next`) or backwards ..."
+  },
+  "string": {
+    "category": "expressions",
+    "syntax": null,
+    "description": "String expressions are similar to string expressions in javascript, and support both a quote and double quote delimiter. Hyperscript supports template literals\nlike in Javascript by using the back-..."
+  },
+  "time-expression": {
+    "category": "expressions",
+    "syntax": "<number> ['ms', 'milliseconds', 's', 'seconds']",
+    "description": "The time expression can be used in some commands to express a number of milliseconds in a clearer manner. If the numeric value is followed by `s` or `seconds` the number will be multiplied by 1000"
+  },
+  "you": {
+    "category": "expressions",
+    "syntax": "you",
+    "description": "The `you` reference is available within the tell command as a reference to current node being acted upon. If it makes the code more readable in English, `yourself` can be used as an alias."
+  }
+}

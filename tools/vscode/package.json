@@ -1,0 +1,46 @@
+{
+  "name": "hyperscript-vscode",
+  "displayName": "Hyperscript",
+  "description": "Syntax highlighting, diagnostics, completions, and navigation for _hyperscript",
+  "version": "0.1.0",
+  "publisher": "hyperscript",
+  "license": "BSD-2-Clause",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bigskysoftware/_hyperscript"
+  },
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": ["Programming Languages"],
+  "activationEvents": ["onLanguage:html", "onLanguage:hyperscript"],
+  "main": "./extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "hyperscript",
+        "aliases": ["Hyperscript", "hyperscript"],
+        "extensions": [".hs", "._hs"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "hyperscript",
+        "scopeName": "source.hyperscript",
+        "path": "./syntaxes/hyperscript.tmLanguage.json"
+      },
+      {
+        "scopeName": "inline.hyperscript",
+        "path": "./syntaxes/hyperscript-injection.tmLanguage.json",
+        "injectTo": ["text.html.basic", "text.html.derivative"],
+        "embeddedLanguages": {
+          "source.hyperscript": "hyperscript"
+        }
+      }
+    ]
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  }
+}

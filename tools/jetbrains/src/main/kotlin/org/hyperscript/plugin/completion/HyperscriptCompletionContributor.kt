@@ -245,10 +245,15 @@ private class HyperscriptCompletionProvider : CompletionProvider<CompletionParam
 
         // Try tree-based context first
         var ctx: CompletionContext? = null
+        var expectedTokens: List<String>? = null
         try {
             val project = parameters.position.project
             val service = project.service<GraalParserService>()
             val parseResult = service.parse(beforeCursor)
+            // Check for structured expected tokens from parse errors
+            if (parseResult.errors.isNotEmpty()) {
+                expectedTokens = parseResult.errors.first().expected
+            }
             if (parseResult.tree != null) {
                 ctx = contextFromTree(parseResult.tree, beforeCursor.length)
             }
@@ -274,6 +279,15 @@ private class HyperscriptCompletionProvider : CompletionProvider<CompletionParam
                 lastToken.first == "BAD_CHARACTER" && lastToken.second == "#") {
                 ctx = CompletionContext.CSS_ID
             }
+        }
+
+        // If the parser gave us structured expected tokens, use those directly
+        if (expectedTokens != null && ctx != CompletionContext.CSS_CLASS && ctx != CompletionContext.CSS_ID) {
+            for (token in expectedTokens) {
+                val el = LookupElementBuilder.create(token).withTypeText("expected").bold()
+                result.addElement(PrioritizedLookupElement.withPriority(el, 200.0))
+            }
+            return
         }
 
         when (ctx) {

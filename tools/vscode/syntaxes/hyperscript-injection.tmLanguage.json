@@ -1,0 +1,38 @@
+{
+  "scopeName": "inline.hyperscript",
+  "injectionSelector": "L:text.html",
+  "patterns": [
+    { "include": "#hs-attribute" },
+    { "include": "#hs-script-block" }
+  ],
+  "repository": {
+    "hs-attribute": {
+      "begin": "(_|hs|data-hs)\\s*=\\s*\"",
+      "end": "\"",
+      "beginCaptures": {
+        "0": { "name": "meta.attribute.hyperscript" }
+      },
+      "endCaptures": {
+        "0": { "name": "meta.attribute.hyperscript" }
+      },
+      "name": "meta.embedded.inline.hyperscript",
+      "contentName": "source.hyperscript",
+      "patterns": [{ "include": "source.hyperscript" }]
+    },
+    "hs-script-block": {
+      "begin": "(<script)\\s+(type\\s*=\\s*[\"']text/hyperscript[\"'])[^>]*(>)",
+      "end": "(</script>)",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.html" },
+        "2": { "name": "entity.other.attribute-name.html" },
+        "3": { "name": "punctuation.definition.tag.end.html" }
+      },
+      "endCaptures": {
+        "1": { "name": "punctuation.definition.tag.end.html" }
+      },
+      "name": "meta.embedded.block.hyperscript",
+      "contentName": "source.hyperscript",
+      "patterns": [{ "include": "source.hyperscript" }]
+    }
+  }
+}

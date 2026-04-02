@@ -45,12 +45,15 @@ intellijPlatform {
 
 tasks {
     // Copy the IIFE from tools/common into plugin resources before build
-    val copyIife by registering(Copy::class) {
+    val copyCommon by registering(Copy::class) {
         from("../common/_hyperscript.iife.js")
+        from("../common/docs.json")
+        from("../common/browser-stubs.js")
+        from("../common/tree-walker.js")
         into("src/main/resources/hyperscript")
     }
 
     processResources {
-        dependsOn(copyIife)
+        dependsOn(copyCommon)
     }
 }
