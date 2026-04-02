@@ -61,14 +61,15 @@ class GraalParserService(private val project: Project) {
                 .build()
 
             // Load shared browser stubs, IIFE, and tree walker from resources
-            val stubs = javaClass.getResourceAsStream("/hyperscript/browser-stubs.js")?.bufferedReader()?.readText()
-                ?: error("Could not load browser-stubs.js")
-            val walker = javaClass.getResourceAsStream("/hyperscript/tree-walker.js")?.bufferedReader()?.readText()
-                ?: error("Could not load tree-walker.js")
+            fun loadResource(name: String) = javaClass.getResourceAsStream("/hyperscript/$name")?.bufferedReader()?.readText()
+                ?: error("Could not load $name")
 
-            ctx.eval("js", stubs)
+            ctx.eval("js", loadResource("browser-stubs.js"))
             ctx.eval("js", iifeSource)
-            ctx.eval("js", walker)
+            ctx.eval("js", loadResource("tree-walker.js"))
+            ctx.eval("js", loadResource("completions.js"))
+            ctx.eval("js", loadResource("hover.js"))
+            ctx.eval("js", "__hsInitDocs(${loadResource("docs.json")})")
 
             context = ctx
             log.info("Hyperscript parser initialized successfully")
@@ -180,6 +181,69 @@ class GraalParserService(private val project: Project) {
         }
 
         return TreeNode(type, keyword, start, end, children)
+    }
+
+    data class CompletionItem(val label: String, val detail: String, val kind: String)
+
+    data class HoverResult(val keyword: String, val syntax: String?, val description: String, val category: String)
+
+    /**
+     * Get context-sensitive completions using shared JS logic.
+     */
+    @Synchronized
+    fun getCompletions(source: String, offset: Int, cssClasses: List<String>, cssIds: List<String>): List<CompletionItem> {
+        ensureInitialized()
+        val ctx = context ?: return emptyList()
+
+        return try {
+            val bindings = ctx.getBindings("js")
+            bindings.putMember("__src", source)
+            bindings.putMember("__offset", offset)
+            bindings.putMember("__cssClasses", cssClasses.toTypedArray())
+            bindings.putMember("__cssIds", cssIds.toTypedArray())
+            val result = ctx.eval("js", "__hsGetCompletions(__src, __offset, __cssClasses, __cssIds)")
+
+            val items = mutableListOf<CompletionItem>()
+            if (result.hasArrayElements()) {
+                for (i in 0 until result.arraySize) {
+                    val item = result.getArrayElement(i)
+                    items.add(CompletionItem(
+                        label = item.getMember("label").asString(),
+                        detail = item.getMember("detail").asString(),
+                        kind = item.getMember("kind").asString()
+                    ))
+                }
+            }
+            items
+        } catch (e: Exception) {
+            log.warn("Completion error", e)
+            emptyList()
+        }
+    }
+
+    /**
+     * Get hover documentation using shared JS logic.
+     */
+    @Synchronized
+    fun getHover(word: String): HoverResult? {
+        ensureInitialized()
+        val ctx = context ?: return null
+
+        return try {
+            ctx.getBindings("js").putMember("__word", word)
+            val result = ctx.eval("js", "__hsGetHover(__word)")
+            if (result.isNull) return null
+
+            HoverResult(
+                keyword = result.getMember("keyword").asString(),
+                syntax = result.getMember("syntax")?.let { if (it.isNull) null else it.asString() },
+                description = result.getMember("description").asString(),
+                category = result.getMember("category").asString()
+            )
+        } catch (e: Exception) {
+            log.warn("Hover error", e)
+            null
+        }
     }
 
     fun dispose() {

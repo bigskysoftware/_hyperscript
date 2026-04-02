@@ -1,16 +1,7 @@
 /**
- * Hover documentation provider.
- * Loads docs.json and returns markdown hover content for hyperscript keywords.
+ * Hover documentation provider — thin wrapper around shared hover.js
  */
-const path = require('path');
-const docs = require(path.join(__dirname, '..', '..', 'common', 'docs.json'));
-
-const ALIASES = {
-  'else': 'if', 'otherwise': 'if', 'end': null,
-  'then': null, 'the': null, 'a': null, 'an': null,
-  'my': 'possessive', 'its': 'possessive', 'your': 'you',
-  'yourself': 'you', 'I': 'me',
-};
+const parser = require('./parser');
 
 /**
  * Get hover content for a word.
@@ -18,26 +9,18 @@ const ALIASES = {
  * @returns {{ kind: string, value: string }|null}
  */
 function getHover(word) {
-  const lower = word.toLowerCase();
-  let entry = docs[lower] || docs[word];
-
-  if (!entry && ALIASES[word] !== undefined) {
-    const alias = ALIASES[word];
-    if (!alias) return null;
-    entry = docs[alias];
-  }
-
+  const entry = parser.getHover(word);
   if (!entry) return null;
 
   const lines = [];
-  lines.push(`### ${word}`);
+  lines.push('### ' + entry.keyword);
   if (entry.syntax) {
     lines.push('```hyperscript');
     lines.push(entry.syntax);
     lines.push('```');
   }
   lines.push(entry.description);
-  lines.push(`\n[Documentation](https://hyperscript.org/${entry.category}/${lower}/)`);
+  lines.push('\n[Documentation](https://hyperscript.org/' + entry.category + '/' + entry.keyword + '/)');
 
   return { kind: 'markdown', value: lines.join('\n') };
 }
