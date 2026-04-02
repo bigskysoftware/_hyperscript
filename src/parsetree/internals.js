@@ -2,7 +2,7 @@
  * Internal parse elements used by the kernel grammar
  */
 
-import { Command } from './base.js';
+import { Command, Feature } from './base.js';
 
 /**
  * EmptyCommandListCommand - Placeholder for empty command lists
@@ -14,7 +14,7 @@ export class EmptyCommandListCommand extends Command {
     }
 
     resolve(context) {
-        return context.meta.runtime.findNext(this, context);
+        return this.findNext(context);
     }
 }
 
@@ -45,6 +45,7 @@ export class HyperscriptProgram {
     constructor(features) {
         this.type = "hyperscript";
         this.features = features;
+        this.errors = [];
     }
 
     apply(target, source, args, runtime) {
@@ -52,6 +53,36 @@ export class HyperscriptProgram {
             feature.install(target, source, args, runtime);
         }
     }
+}
+
+/**
+ * FailedFeature - Placeholder for a feature that failed to parse.
+ * Allows the parser to continue and collect more errors.
+ * Never executed — element won't apply() if errors exist.
+ */
+export class FailedFeature extends Feature {
+    constructor(error) {
+        super();
+        this.type = "failedFeature";
+        this.error = error;
+    }
+
+    install() {}
+}
+
+/**
+ * FailedCommand - Placeholder for a command that failed to parse.
+ * Allows the parser to continue and collect more errors.
+ * Never executed — element won't apply() if errors exist.
+ */
+export class FailedCommand extends Command {
+    constructor(error) {
+        super();
+        this.type = "failedCommand";
+        this.error = error;
+    }
+
+    resolve() {}
 }
 
 /**

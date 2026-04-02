@@ -36,7 +36,7 @@ export class InstallFeature extends Feature {
 
     static parse(parser) {
         if (!parser.matchToken("install")) return;
-        var behaviorPath = parser.requireElement("dotOrColonPath").evaluate();
+        var behaviorPath = parser.requireElement("dotOrColonPath").evalStatically();
         var behaviorNamespace = behaviorPath.split(".");
         var args = parser.parseElement("namedArgumentList");
 

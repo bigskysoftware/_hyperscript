@@ -2,21 +2,517 @@
 <html lang="en">
 <head>
 	<meta charset="utf-8">
-	<title>_hyperscript scratch</title>
-	<script type="module" src="../src/_hyperscript.js"></script>
-	<script type="module" src="../src/ext/hdb.js"></script>
+	<title>_hyperscript scratch pad</title>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/theme/nord.min.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/lint/lint.min.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/hint/show-hint.min.css">
+	<style>
+		* { box-sizing: border-box; margin: 0; padding: 0; }
+		body { font-family: system-ui, sans-serif; height: 100vh; display: flex; flex-direction: column; background: #2e3440; color: #d8dee9; }
+		header { padding: 6px 16px; background: #3b4252; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #4c566a; }
+		header h1 { font-size: 14px; font-weight: 600; color: #eceff4; }
+		header button { padding: 3px 10px; border: 1px solid #4c566a; border-radius: 4px; background: #434c5e; color: #eceff4; cursor: pointer; font-size: 12px; }
+		header button:hover { background: #4c566a; }
+		.panes { flex: 1; display: flex; min-height: 0; }
+		.editor-pane { flex: 1; display: flex; flex-direction: column; }
+		.pane-label { padding: 3px 10px; background: #3b4252; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #81a1c1; border-bottom: 1px solid #4c566a; flex-shrink: 0; }
+		.CodeMirror { flex: 1; height: auto; font-size: 14px; font-weight: bold; }
+		.right-pane { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+		.preview-frame { flex: 1; background: #fff; border: none; min-height: 0; }
+
+		/* Resize handles */
+		.resize-handle-h { width: 5px; cursor: col-resize; background: #3b4252; flex-shrink: 0; transition: background 0.15s; }
+		.resize-handle-h:hover, .resize-handle-h.dragging { background: #88c0d0; }
+		.resize-handle-v { height: 5px; cursor: row-resize; background: #3b4252; flex-shrink: 0; transition: background 0.15s; }
+		.resize-handle-v:hover, .resize-handle-v.dragging { background: #88c0d0; }
+
+		/* Console */
+		.pane-console { display: flex; flex-direction: column; flex: 0 1 180px; min-height: 80px; background: #2e3440; border-top: 1px solid #4c566a; }
+		.console-output { flex: 1; overflow-y: auto; padding: 6px 10px; font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, monospace; font-size: 12px; font-weight: bold; color: #d8dee9; background: #3b4252; }
+		.console-output .log { color: #d8dee9; }
+		.console-output .warn { color: #ebcb8b; }
+		.console-output .error { color: #bf616a; }
+		.console-output .result { color: #88c0d0; }
+		.console-output .separator { color: #4c566a; border-top: 1px solid #3b4252; margin: 4px 0; }
+		.console-output div { padding: 1px 0; white-space: pre-wrap; word-break: break-all; }
+		.console-input-line { display: flex; align-items: center; border-top: 1px solid #4c566a; padding: 4px 10px; background: #2e3440; flex-shrink: 0; }
+		.console-prompt { color: #88c0d0; font-family: ui-monospace, monospace; font-size: 13px; margin-right: 6px; user-select: none; }
+		textarea.console-input, textarea.console-input:focus { flex: 1; background: transparent; border: none; outline: none; box-shadow: none; color: #eceff4; font-family: ui-monospace, monospace; font-size: 12px; font-weight: bold; padding: 0; margin: 0; border-radius: 0; resize: none; overflow: hidden; line-height: 1.5; height: 18px; }
+		.console-input::placeholder { color: #616e88; }
+
+		.status { padding: 3px 16px; background: #3b4252; border-top: 1px solid #4c566a; font-size: 12px; color: #81a1c1; display: flex; gap: 16px; flex-shrink: 0; }
+		.status .error { color: #bf616a; }
+
+		/* Lint gutter */
+		.CodeMirror-lint-marker-error { color: #bf616a; }
+		.CodeMirror-lint-tooltip { background: #3b4252; border: 1px solid #4c566a; color: #eceff4; }
+
+		/* Hyperscript tokens (nord palette) */
+		.cm-hs-keyword { color: #b48ead; }
+		.cm-hs-symbol-global { color: #88c0d0; }
+		.cm-hs-symbol-element { color: #d08770; }
+		.cm-hs-symbol-dom { color: #a3be8c; }
+		.cm-hs-symbol-inherited-attr { color: #ebcb8b; }
+		.cm-hs-string { color: #a3be8c; }
+		.cm-hs-number { color: #d08770; }
+		.cm-hs-operator { color: #81a1c1; }
+		.cm-hs-comment { color: #616e88; font-style: italic; }
+
+		@media (max-width: 768px) {
+			.panes { flex-direction: column; }
+			.editor-pane { border-right: none; border-bottom: 1px solid #4c566a; max-height: 50%; }
+			.resize-handle-h { display: none; }
+		}
+	</style>
 </head>
 <body>
 
-<h1>_hyperscript scratch pad</h1>
+<header>
+	<h1>_hyperscript scratch pad</h1>
+	<button id="run-btn">Run (Ctrl+Enter)</button>
+	<button id="clear-btn">Clear</button>
+	<span style="flex:1"></span>
+	<span style="font-size:11px;color:#616e88">src/ branch</span>
+</header>
 
-<button _="on click put 'it works!' into the next <output/>">
-	Click me
-</button>
-<output></output>
+<div class="panes">
+	<div class="editor-pane">
+		<div class="pane-label">Editor</div>
+		<textarea id="editor"></textarea>
+	</div>
+	<div class="resize-handle-h" id="resize-h"></div>
+	<div class="right-pane">
+		<div class="pane-label">Preview</div>
+		<iframe id="preview" class="preview-frame"></iframe>
+		<div class="resize-handle-v" id="resize-v"></div>
+		<div class="pane-console">
+			<div class="pane-label">Console</div>
+			<div class="console-output" id="console-output"></div>
+			<div class="console-input-line">
+				<span class="console-prompt">&gt;</span>
+				<textarea class="console-input" id="console-input" rows="1"
+				          placeholder="hyperscript expression or command..."></textarea>
+			</div>
+		</div>
+	</div>
+</div>
 
-<hr>
-<div id="work-area"></div>
+<div class="status" id="status">Ready &mdash; Ctrl+Enter to run, Ctrl+Space for autocomplete</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/mode/htmlmixed/htmlmixed.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/mode/css/css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/lint/lint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/hint/show-hint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/mode/overlay.min.js"></script>
+
+<!-- Load _hyperscript from src for parsing/linting in the parent frame -->
+<script src="../dist/_hyperscript.js"></script>
+
+<script>
+// ============================================================
+// Hyperscript overlay mode for CodeMirror
+// ============================================================
+var HS_KEYWORDS = [
+	"on", "init", "immediately", "end", "if", "else", "then", "set", "get",
+	"put", "into", "before", "after", "add", "remove", "toggle", "trigger",
+	"send", "take", "log", "call", "wait", "settle", "repeat", "for", "in",
+	"while", "until", "from", "to", "by", "increment", "decrement", "default",
+	"transition", "fetch", "throw", "return", "exit", "halt", "tell",
+	"go", "hide", "show", "with", "when", "changes", "live", "bind", "and",
+	"or", "not", "no", "is", "am", "the", "a", "an", "of", "closest", "next",
+	"previous", "first", "last", "random", "as", "my", "me", "it", "its",
+	"you", "your", "yourself", "result", "event", "target", "detail", "sender",
+	"body", "true", "false", "null", "undefined", "global", "element", "local",
+	"dom", "live", "watch", "behavior", "install", "def", "js", "make",
+	"measure", "append", "pick", "match", "eventsource", "socket",
+	"open", "close", "focus", "blur", "empty", "swap", "select", "ask",
+	"answer", "speak", "scroll", "breakpoint", "render", "escape",
+];
+var HS_KEYWORD_SET = new Set(HS_KEYWORDS);
+
+CodeMirror.defineMode("html-hyperscript", function (config) {
+	return CodeMirror.overlayMode(
+		CodeMirror.getMode(config, "htmlmixed"),
+		{
+			token: function (stream) {
+				if (stream.match("--")) { stream.skipToEnd(); return "hs-comment"; }
+				if (stream.match(/^\^@[a-zA-Z_][\w-]*/)) return "hs-symbol-inherited-attr";
+				if (stream.match(/^\^[a-zA-Z_]\w*/)) return "hs-symbol-dom";
+				if (stream.match(/^\$[a-zA-Z_]\w*/)) return "hs-symbol-global";
+				if (stream.match(/^:[a-zA-Z_]\w*/)) return "hs-symbol-element";
+				stream.next();
+				return null;
+			}
+		}
+	);
+});
+
+// ============================================================
+// Linting
+// ============================================================
+function lintHyperscript(text) {
+	var errors = [];
+	var attrRegex = /_\s*=\s*"([^"]*)"/g;
+	var match;
+	var lines = text.split("\n");
+
+	// Build list of template tag ranges to skip
+	var templateRanges = [];
+	var tmplRegex = /<template[\s>]/gi;
+	var tmplMatch;
+	while ((tmplMatch = tmplRegex.exec(text)) !== null) {
+		var closeIdx = text.indexOf('</template>', tmplMatch.index);
+		if (closeIdx !== -1) {
+			templateRanges.push([tmplMatch.index, closeIdx + '</template>'.length]);
+		}
+	}
+
+	while ((match = attrRegex.exec(text)) !== null) {
+		var inTemplate = templateRanges.some(function (r) {
+			return match.index >= r[0] && match.index < r[1];
+		});
+		if (inTemplate) continue;
+
+		var hsSource = match[1];
+		hsSource = hsSource.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").replace(/&quot;/g, '"');
+		var attrStart = match.index + match[0].indexOf('"') + 1;
+
+		var charCount = 0;
+		var startLine = 0, startCol = 0;
+		for (var i = 0; i < lines.length; i++) {
+			if (charCount + lines[i].length >= attrStart) {
+				startLine = i;
+				startCol = attrStart - charCount;
+				break;
+			}
+			charCount += lines[i].length + 1;
+		}
+
+		try {
+			_hyperscript.parse(hsSource);
+		} catch (e) {
+			var msg = e.message.split("\n")[0];
+			errors.push({
+				from: CodeMirror.Pos(startLine, startCol),
+				to: CodeMirror.Pos(startLine, startCol + hsSource.length),
+				message: msg,
+				severity: "error"
+			});
+		}
+	}
+	return errors;
+}
+
+CodeMirror.registerHelper("lint", "html-hyperscript", lintHyperscript);
+
+// ============================================================
+// Autocomplete
+// ============================================================
+function hsHint(cm) {
+	var cursor = cm.getCursor();
+	var line = cm.getLine(cursor.line);
+	var end = cursor.ch;
+	var start = end;
+	while (start > 0 && /[\w$:^@]/.test(line.charAt(start - 1))) start--;
+	var word = line.slice(start, end).toLowerCase();
+
+	var before = line.slice(0, start);
+	if (!/_\s*=\s*"/.test(before) && !/_\s*=\s*'/.test(before)) return null;
+
+	var completions = HS_KEYWORDS.filter(function (kw) {
+		return kw.startsWith(word) && kw !== word;
+	});
+	if (completions.length === 0) return null;
+
+	return {
+		list: completions,
+		from: CodeMirror.Pos(cursor.line, start),
+		to: CodeMirror.Pos(cursor.line, end)
+	};
+}
+
+CodeMirror.registerHelper("hint", "html-hyperscript", hsHint);
+
+// ============================================================
+// Editor
+// ============================================================
+
+var DEFAULT_HTML = '<style>\n\
+  body { font-family: system-ui, sans-serif; padding: 20px; }\n\
+  button { padding: 8px 16px; margin: 4px; cursor: pointer; }\n\
+  output, .result { display: block; margin: 8px 0; padding: 8px; background: #f0f0f0; border-radius: 4px; min-height: 1.5em; }\n\
+</style>\n\
+\n\
+<h2>Counter</h2>\n\
+<div _="init set ^count to 0">\n\
+  <button _="on click increment ^count">+1</button>\n\
+  <button _="on click decrement ^count">-1</button>\n\
+  <input _="bind ^count to me" />\n\
+</div>\n';
+
+var cm = CodeMirror.fromTextArea(document.getElementById('editor'), {
+	mode: 'html-hyperscript',
+	theme: 'nord',
+	lineNumbers: true,
+	tabSize: 2,
+	indentWithTabs: true,
+	lineWrapping: true,
+	matchBrackets: true,
+	gutters: ["CodeMirror-lint-markers"],
+	lint: { getAnnotations: lintHyperscript, async: false },
+	extraKeys: {
+		'Ctrl-Enter': run,
+		'Cmd-Enter': run,
+		'Ctrl-Space': function (cm) { cm.showHint({ hint: hsHint }); },
+	}
+});
+
+cm.setValue(DEFAULT_HTML);
+
+// ============================================================
+// Preview — loads from src/ with all extensions
+// ============================================================
+var lastErrors = [];
+var replLocals = {};
+
+// Use the test bundle — IIFE, includes all extensions, works with doc.write()
+var scriptPath = new URL('.bundle/_hyperscript.js', window.location.href).href;
+
+function run() {
+	var html = cm.getValue();
+	var iframe = document.getElementById('preview');
+	lastErrors = [];
+	replLocals = {};
+	consoleAppend('separator', '');
+
+	var doc = iframe.contentDocument;
+	doc.open();
+	doc.write(
+		'<!doctype html><html><head><meta charset="utf-8">' +
+		'<script src="' + scriptPath + '"><\/script>' +
+		'<script>\n' +
+		'window.addEventListener("error", function(e) { parent._scratchError(e.message); });\n' +
+		'var _origLog = console.log;\n' +
+		'console.log = function() {\n' +
+		'  var msg = Array.from(arguments).map(function(a) { try { return typeof a === "object" ? JSON.stringify(a) : String(a); } catch(e) { return String(a); } }).join(" ");\n' +
+		'  parent._scratchConsole("log", msg);\n' +
+		'  _origLog.apply(console, arguments);\n' +
+		'};\n' +
+		'var _origWarn = console.warn;\n' +
+		'console.warn = function() {\n' +
+		'  var msg = Array.from(arguments).map(function(a) { return String(a); }).join(" ");\n' +
+		'  parent._scratchConsole("warn", msg);\n' +
+		'  _origWarn.apply(console, arguments);\n' +
+		'};\n' +
+		'var _origErr = console.error;\n' +
+		'var _inError = false;\n' +
+		'console.error = function() {\n' +
+		'  if (_inError) return;\n' +
+		'  _inError = true;\n' +
+		'  var msg = Array.from(arguments).map(function(a) { return typeof a === "string" ? a : ""; }).join(" ");\n' +
+		'  if (msg) parent._scratchError(msg);\n' +
+		'  _origErr.apply(console, arguments);\n' +
+		'  _inError = false;\n' +
+		'};\n' +
+		'<\/script>' +
+		'</head><body>' +
+		html +
+		'</body></html>'
+	);
+	doc.close();
+
+	setTimeout(function () {
+		var status = document.getElementById('status');
+		if (lastErrors.length > 0) {
+			status.innerHTML = '<span class="error">' + lastErrors.length + ' error(s)</span>';
+		} else {
+			status.innerHTML = 'Updated <span style="opacity:0.5">(' + new Date().toLocaleTimeString() + ')</span>';
+		}
+	}, 200);
+}
+
+window._scratchError = function (msg) {
+	lastErrors.push(msg);
+	consoleAppend('error', msg);
+};
+
+window._scratchConsole = function (level, msg) {
+	consoleAppend(level, msg);
+};
+
+// ============================================================
+// Console
+// ============================================================
+var consoleOutput = document.getElementById('console-output');
+var consoleInput = document.getElementById('console-input');
+var consoleHistory = [];
+var historyIndex = -1;
+
+var BLOCK_OPENERS = /(?<!\^[\w$]+\s)\b(if|repeat|on|def|behavior|init|tell|for)\b/g;
+var BLOCK_CLOSERS = /\bend\b/g;
+
+function needsMoreInput(src) {
+	var opens = (src.match(BLOCK_OPENERS) || []).length;
+	var closes = (src.match(BLOCK_CLOSERS) || []).length;
+	return opens > closes;
+}
+
+function consoleAppend(cls, text) {
+	var el = document.createElement('div');
+	el.className = cls;
+	if (cls === 'separator') {
+		el.innerHTML = '&nbsp;';
+	} else {
+		el.textContent = text;
+	}
+	consoleOutput.appendChild(el);
+	consoleOutput.scrollTop = consoleOutput.scrollHeight;
+}
+
+function consoleEval(input) {
+	var lines = input.split('\n');
+	consoleAppend('log', '> ' + lines[0]);
+	for (var i = 1; i < lines.length; i++) {
+		consoleAppend('log', '... ' + lines[i]);
+	}
+	var iframe = document.getElementById('preview');
+	var hs = iframe.contentWindow && iframe.contentWindow._hyperscript;
+	if (!hs) {
+		consoleAppend('error', 'No preview running — press Run first');
+		return;
+	}
+	try {
+		var result = hs(input, { locals: replLocals });
+		if (result !== undefined) {
+			var display;
+			try { display = typeof result === 'object' ? JSON.stringify(result) : String(result); }
+			catch (e) { display = String(result); }
+			consoleAppend('result', display);
+		}
+	} catch (e) {
+		consoleAppend('error', e.message ? e.message.split('\n')[0] : String(e));
+	}
+}
+
+function autoSizeInput() {
+	consoleInput.style.height = '18px';
+	consoleInput.style.height = consoleInput.scrollHeight + 'px';
+}
+
+consoleInput.addEventListener('input', autoSizeInput);
+
+consoleInput.addEventListener('keydown', function (e) {
+	if (e.key === 'Enter') {
+		var src = this.value.trim();
+		if (!src) return;
+		if (needsMoreInput(src) && !e.shiftKey) return;
+		if (!needsMoreInput(src)) {
+			e.preventDefault();
+			var input = this.value;
+			this.value = '';
+			autoSizeInput();
+			consoleHistory.push(input);
+			historyIndex = consoleHistory.length;
+			consoleEval(input);
+		}
+	} else if (e.key === 'ArrowUp' && this.selectionStart === 0 && !this.value.includes('\n')) {
+		e.preventDefault();
+		if (historyIndex > 0) {
+			historyIndex--;
+			this.value = consoleHistory[historyIndex];
+			autoSizeInput();
+		}
+	} else if (e.key === 'ArrowDown' && this.selectionStart === this.value.length && !this.value.includes('\n')) {
+		e.preventDefault();
+		if (historyIndex < consoleHistory.length - 1) {
+			historyIndex++;
+			this.value = consoleHistory[historyIndex];
+			autoSizeInput();
+		} else {
+			historyIndex = consoleHistory.length;
+			this.value = '';
+			autoSizeInput();
+		}
+	}
+});
+
+// ============================================================
+// Controls
+// ============================================================
+document.getElementById('run-btn').addEventListener('click', run);
+
+document.getElementById('clear-btn').addEventListener('click', function () {
+	cm.setValue('');
+	var doc = document.getElementById('preview').contentDocument;
+	doc.open();
+	doc.write('<!doctype html><html><body></body></html>');
+	doc.close();
+	consoleOutput.innerHTML = '';
+	document.getElementById('status').textContent = 'Cleared';
+});
+
+// ============================================================
+// Resizable panes
+// ============================================================
+(function () {
+	var resizeH = document.getElementById('resize-h');
+	var resizeV = document.getElementById('resize-v');
+	var panes = document.querySelector('.panes');
+	var editor = document.querySelector('.editor-pane');
+	var rightPane = document.querySelector('.right-pane');
+	var previewFrame = document.getElementById('preview');
+	var consolePane = document.querySelector('.pane-console');
+
+	function startDrag(handle, onMove, onEnd) {
+		handle.classList.add('dragging');
+		previewFrame.style.pointerEvents = 'none';
+		document.addEventListener('mousemove', onMove);
+		document.addEventListener('mouseup', function up() {
+			handle.classList.remove('dragging');
+			previewFrame.style.pointerEvents = '';
+			document.removeEventListener('mousemove', onMove);
+			document.removeEventListener('mouseup', up);
+			if (onEnd) onEnd();
+		});
+	}
+
+	resizeH.addEventListener('mousedown', function (e) {
+		e.preventDefault();
+		var panesRect = panes.getBoundingClientRect();
+		startDrag(resizeH, function (e) {
+			var x = e.clientX - panesRect.left;
+			var pct = (x / panesRect.width) * 100;
+			pct = Math.max(15, Math.min(85, pct));
+			editor.style.flex = 'none';
+			editor.style.width = pct + '%';
+			rightPane.style.flex = '1';
+		}, function () {
+			cm.refresh();
+		});
+	});
+
+	resizeV.addEventListener('mousedown', function (e) {
+		e.preventDefault();
+		var previewRect = rightPane.getBoundingClientRect();
+		startDrag(resizeV, function (e) {
+			var y = e.clientY - previewRect.top;
+			var available = previewRect.height - 24;
+			var framePct = ((y - 24) / available) * 100;
+			framePct = Math.max(10, Math.min(90, framePct));
+			previewFrame.style.flex = 'none';
+			previewFrame.style.height = framePct + '%';
+			consolePane.style.flex = '1';
+		});
+	});
+})();
+
+// Initial run
+setTimeout(run, 100);
+</script>
 
 </body>
 </html>

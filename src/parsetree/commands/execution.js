@@ -94,21 +94,16 @@ export class JsCommand extends Command {
     }
 
     resolve(context) {
-        var args = [];
-        this.inputs.forEach((input) => {
-            args.push(context.meta.runtime.resolveSymbol(input, context, 'default'));
-        });
+        var args = this.inputs.map(input => context.meta.runtime.resolveSymbol(input, context, 'default'));
         var result = this.function.apply(context.meta.runtime.globalScope, args);
         if (result && typeof result.then === "function") {
-            return new Promise((resolve) => {
-                result.then((actualResult) => {
-                    context.result = actualResult;
-                    resolve(context.meta.runtime.findNext(this, context));
-                });
+            return result.then((actualResult) => {
+                context.result = actualResult;
+                return this.findNext(context);
             });
         } else {
             context.result = result;
-            return context.meta.runtime.findNext(this, context);
+            return this.findNext(context);
         }
     }
 }
@@ -140,6 +135,6 @@ export class GetCommand extends Command {
 
     resolve(context, { result }) {
         context.result = result;
-        return context.meta.runtime.findNext(this, context);
+        return this.findNext(context);
     }
 }

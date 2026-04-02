@@ -16,8 +16,6 @@ The `decrement` command subtracts from an existing variable, property, or attrib
 
 ### Example
 
-If you target a string variable, then `decrement` uses `+=` to add the string to the end of the target variable.
-
 ```hyperscript
 set counter to 5
 decrement counter by 2 -- counter is now 3

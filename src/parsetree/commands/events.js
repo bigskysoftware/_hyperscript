@@ -36,7 +36,7 @@ export class WaitCommand extends Command {
                     events.push(parser.requireElement('expression'))
                 } else {
                     events.push({
-                        name: parser.requireElement("dotOrColonPath", "Expected event name").evaluate(),
+                        name: parser.requireElement("dotOrColonPath", "Expected event name").evalStatically(),
                         args: ParseElement.parseEventArgs(parser),
                     });
                 }
@@ -79,7 +79,7 @@ export class WaitCommand extends Command {
                         }
                         if (!resolved) {
                             resolved = true;
-                            resolve(context.meta.runtime.findNext(this, context));
+                            resolve(this.findNext(context));
                         }
                     };
                     if (eventInfo.name){
@@ -93,7 +93,7 @@ export class WaitCommand extends Command {
         } else {
             return new Promise((resolve) => {
                 setTimeout(() => {
-                    resolve(context.meta.runtime.findNext(this, context));
+                    resolve(this.findNext(context));
                 }, time);
             });
         }
@@ -139,7 +139,7 @@ export class SendCommand extends Command {
         context.meta.runtime.implicitLoop(to, function (target) {
             context.meta.runtime.triggerEvent(target, eventName, details, context.me);
         });
-        return context.meta.runtime.findNext(this, context);
+        return this.findNext(context);
     }
 }
 
@@ -154,8 +154,11 @@ export class EventName extends Expression {
         this.value = value;
     }
 
-    // Called at parse time without a context, so must override evaluate()
-    evaluate() {
+    evalStatically() {
+        return this.value;
+    }
+
+    resolve(context) {
         return this.value;
     }
 

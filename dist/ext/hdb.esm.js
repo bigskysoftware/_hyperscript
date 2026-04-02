@@ -1,7 +1,3 @@
-var __defProp = Object.defineProperty;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
-
 // src/parsetree/base.js
 var ParseElement = class {
   sourceFor() {
@@ -33,30 +29,14 @@ var Command = class extends ParseElement {
     context.meta.command = this;
     return context.meta.runtime.unifiedExec(this, context);
   }
-  static parsePseudopossessiveTarget(parser) {
-    var targets;
-    if (parser.matchToken("the") || parser.matchToken("element") || parser.matchToken("elements") || parser.currentToken().type === "CLASS_REF" || parser.currentToken().type === "ID_REF" || parser.currentToken().op && parser.currentToken().value === "<") {
-      parser.possessivesDisabled = true;
-      try {
-        targets = parser.parseElement("expression");
-      } finally {
-        parser.possessivesDisabled = false;
-      }
-      if (parser.matchOpToken("'")) {
-        parser.requireToken("s");
-      }
-    } else if (parser.currentToken().type === "IDENTIFIER" && parser.currentToken().value === "its") {
-      targets = parser.parseElement("pseudopossessiveIts");
-    } else {
-      parser.matchToken("my") || parser.matchToken("me");
-      targets = parser.parseElement("implicitMeTarget");
-    }
-    return targets;
+  findNext(context) {
+    return context.meta.runtime.findNext(this, context);
   }
 };
 
 // src/ext/hdb.js
-var _BreakpointCommand = class _BreakpointCommand extends Command {
+var BreakpointCommand = class _BreakpointCommand extends Command {
+  static keyword = "breakpoint";
   static parse(parser) {
     if (!parser.matchToken("breakpoint")) return;
     return new _BreakpointCommand();
@@ -71,8 +51,6 @@ var _BreakpointCommand = class _BreakpointCommand extends Command {
     }
   }
 };
-__publicField(_BreakpointCommand, "keyword", "breakpoint");
-var BreakpointCommand = _BreakpointCommand;
 function HDB(ctx, runtime, breakpoint) {
   this.ctx = ctx;
   this.runtime = runtime;

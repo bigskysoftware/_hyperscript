@@ -63,7 +63,7 @@ test.describe("_hyperscript runtime errors", () => {
 	});
 
 	test("reports null errors on transition command properly", async ({error}) => {
-		expect(await error("transition #doesntExist's visibility to 0")).toBe("'#doesntExist' is null");
+		expect(await error("transition #doesntExist's *visibility to 0")).toBe("'#doesntExist' is null");
 	});
 
 	test("reports null errors on send command properly", async ({error}) => {

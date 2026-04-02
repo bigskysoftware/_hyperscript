@@ -70,7 +70,7 @@ class WorkerFeature extends Feature {
 	static parse(parser) {
 		if (parser.matchToken("worker")) {
 			var name = parser.requireElement("dotOrColonPath");
-			var qualifiedName = name.evaluate();
+			var qualifiedName = name.evalStatically();
 			var nameSpace = qualifiedName.split(".");
 			var workerName = nameSpace.pop();
 

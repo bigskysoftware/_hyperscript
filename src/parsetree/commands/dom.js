@@ -11,6 +11,12 @@ import { config } from '../../core/config.js';
  */
 const HIDE_SHOW_STRATEGIES = {
     display: function (op, element, arg, runtime) {
+        if (!arg && element instanceof HTMLDialogElement) {
+            if (op === "hide") element.close();
+            else if (op === "show") { if (!element.open) element.showModal(); }
+            else if (op === "toggle") { if (element.open) element.close(); else element.showModal(); }
+            return;
+        }
         if (arg) {
             element.style.display = arg;
         } else if (op === "toggle") {
@@ -65,6 +71,16 @@ const HIDE_SHOW_STRATEGIES = {
         }
     },
 };
+
+/** Extract property names from a CSS text string like "color: red; font-weight: bold" */
+function _cssPropertyNames(css) {
+    return css.split(";").map(function (p) { return p.split(":")[0].trim(); }).filter(Boolean);
+}
+
+/** Remove named CSS properties from an element */
+function _removeCssProperties(elt, propNames) {
+    for (var i = 0; i < propNames.length; i++) elt.style.removeProperty(propNames[i]);
+}
 
 /**
  * VisibilityCommand - Base class for show/hide/toggle commands
@@ -150,9 +166,6 @@ export class AddCommand extends Command {
         }
 
         if (parser.matchToken("when")) {
-            if (cssDeclaration) {
-                parser.raiseParseError("Only class and properties are supported with a when clause")
-            }
             var when = parser.requireElement("expression");
         }
 
@@ -166,48 +179,52 @@ export class AddCommand extends Command {
     }
 
     resolve(context, { to, classRefs, css }) {
-        context.meta.runtime.nullCheck(to, this.toExpr);
+        var runtime = context.meta.runtime;
+        var cmd = this;
+        runtime.nullCheck(to, this.toExpr);
+        var result;
         if (this.variant === "class") {
-            const when = this.when;
-            context.meta.runtime.forEach(classRefs, function (classRef) {
-                context.meta.runtime.implicitLoop(to, function (target) {
-                    if (when) {
-                        context.result = target;
-                        let whenResult = context.meta.runtime.evaluateNoPromise(when, context);
-                        if (whenResult) {
-                            if (target instanceof Element) target.classList.add(classRef.className);
-                        } else {
-                            if (target instanceof Element) target.classList.remove(classRef.className);
-                        }
-                        context.result = null;
-                    } else {
-                        if (target instanceof Element) target.classList.add(classRef.className);
-                    }
-                });
-            });
-        } else if (this.variant === "attribute") {
-            const attributeRef = this.attributeRef;
-            const when = this.when;
-            context.meta.runtime.implicitLoop(to, function (target) {
-                if (when) {
-                    context.result = target;
-                    let whenResult = context.meta.runtime.evaluateNoPromise(when, context);
-                    if (whenResult) {
-                        target.setAttribute(attributeRef.name, attributeRef.value);
-                    } else {
-                        target.removeAttribute(attributeRef.name);
-                    }
-                    context.result = null;
+            runtime.forEach(classRefs, function (classRef) {
+                if (cmd.when) {
+                    result = runtime.implicitLoopWhen(to, cmd.when, context,
+                        function (t) { if (t instanceof Element) t.classList.add(classRef.className); },
+                        function (t) { if (t instanceof Element) t.classList.remove(classRef.className); }
+                    );
                 } else {
-                    target.setAttribute(attributeRef.name, attributeRef.value);
+                    runtime.implicitLoop(to, function (t) {
+                        if (t instanceof Element) t.classList.add(classRef.className);
+                    });
                 }
             });
+        } else if (this.variant === "attribute") {
+            var attributeRef = this.attributeRef;
+            if (this.when) {
+                result = runtime.implicitLoopWhen(to, this.when, context,
+                    function (t) { t.setAttribute(attributeRef.name, attributeRef.value); },
+                    function (t) { t.removeAttribute(attributeRef.name); }
+                );
+            } else {
+                runtime.implicitLoop(to, function (t) {
+                    t.setAttribute(attributeRef.name, attributeRef.value);
+                });
+            }
         } else {
-            context.meta.runtime.implicitLoop(to, function (target) {
-                target.style.cssText += css;
-            });
+            if (this.when) {
+                var propNames = _cssPropertyNames(css);
+                result = runtime.implicitLoopWhen(to, this.when, context,
+                    function (t) { t.style.cssText += css; },
+                    function (t) { _removeCssProperties(t, propNames); }
+                );
+            } else {
+                runtime.implicitLoop(to, function (t) {
+                    t.style.cssText += css;
+                });
+            }
         }
-        return context.meta.runtime.findNext(this, context);
+        if (result && result.then) {
+            return result.then(function () { return runtime.findNext(cmd, context); });
+        }
+        return runtime.findNext(this, context);
     }
 }
 
@@ -220,16 +237,20 @@ export class AddCommand extends Command {
 export class RemoveCommand extends Command {
     static keyword = "remove";
 
-    constructor(variant, elementExpr, classRefs, attributeRef, fromExpr) {
+    constructor(variant, elementExpr, classRefs, attributeRef, cssDeclaration, fromExpr, when) {
         super();
         this.variant = variant;
         this.elementExpr = elementExpr;
         this.classRefs = classRefs;
         this.attributeRef = attributeRef;
+        this.cssDeclaration = cssDeclaration;
         this.from = fromExpr;
         this.fromExpr = fromExpr;
+        this.when = when;
         if (variant === "element") {
             this.args = { element: elementExpr, from: fromExpr };
+        } else if (variant === "css") {
+            this.args = { css: cssDeclaration, from: fromExpr };
         } else {
             this.args = { classRefs, from: fromExpr };
         }
@@ -240,15 +261,19 @@ export class RemoveCommand extends Command {
 
         var classRef = parser.parseElement("classRef");
         var attributeRef = null;
+        var cssDeclaration = null;
         var elementExpr = null;
         if (classRef == null) {
             attributeRef = parser.parseElement("attributeRef");
             if (attributeRef == null) {
-                elementExpr = parser.parseElement("expression");
-                if (elementExpr == null) {
-                    parser.raiseParseError(
-                        "Expected either a class reference, attribute expression or value expression"
-                    );
+                cssDeclaration = parser.parseElement("styleLiteral");
+                if (cssDeclaration == null) {
+                    elementExpr = parser.parseElement("expression");
+                    if (elementExpr == null) {
+                        parser.raiseParseError(
+                            "Expected either a class reference, attribute expression or value expression"
+                        );
+                    }
                 }
             }
         } else {
@@ -266,37 +291,72 @@ export class RemoveCommand extends Command {
             }
         }
 
+        if (parser.matchToken("when")) {
+            if (elementExpr) {
+                parser.raiseParseError("'when' clause is not supported when removing elements");
+            }
+            var when = parser.requireElement("expression");
+        }
+
         if (elementExpr) {
-            return new RemoveCommand("element", elementExpr, null, null, fromExpr);
+            return new RemoveCommand("element", elementExpr, null, null, null, fromExpr);
+        } else if (cssDeclaration) {
+            return new RemoveCommand("css", null, null, null, cssDeclaration, fromExpr, when);
         } else {
-            return new RemoveCommand("classOrAttr", null, classRefs, attributeRef, fromExpr);
+            return new RemoveCommand("classOrAttr", null, classRefs, attributeRef, null, fromExpr, when);
         }
     }
 
-    resolve(context, { element, classRefs, from }) {
+    resolve(context, { element, classRefs, css, from }) {
+        var runtime = context.meta.runtime;
+        var cmd = this;
+        var result;
         if (this.variant === "element") {
-            context.meta.runtime.nullCheck(element, this.elementExpr);
-            context.meta.runtime.implicitLoop(element, function (target) {
+            runtime.nullCheck(element, this.elementExpr);
+            runtime.implicitLoop(element, function (target) {
                 if (target.parentElement && (from == null || from.contains(target))) {
                     target.parentElement.removeChild(target);
                 }
             });
+        } else if (this.variant === "css") {
+            runtime.nullCheck(from, this.fromExpr);
+            var propNames = _cssPropertyNames(css);
+            runtime.implicitLoop(from, function (target) {
+                _removeCssProperties(target, propNames);
+            });
         } else {
-            context.meta.runtime.nullCheck(from, this.fromExpr);
+            runtime.nullCheck(from, this.fromExpr);
             if (classRefs) {
-                context.meta.runtime.forEach(classRefs, function (classRef) {
-                    context.meta.runtime.implicitLoop(from, function (target) {
-                        target.classList.remove(classRef.className);
-                    });
+                runtime.forEach(classRefs, function (classRef) {
+                    if (cmd.when) {
+                        result = runtime.implicitLoopWhen(from, cmd.when, context,
+                            function (t) { t.classList.remove(classRef.className); },
+                            function (t) { t.classList.add(classRef.className); }
+                        );
+                    } else {
+                        runtime.implicitLoop(from, function (t) {
+                            t.classList.remove(classRef.className);
+                        });
+                    }
                 });
             } else {
-                const attributeRef = this.attributeRef;
-                context.meta.runtime.implicitLoop(from, function (target) {
-                    target.removeAttribute(attributeRef.name);
-                });
+                var attributeRef = this.attributeRef;
+                if (this.when) {
+                    result = runtime.implicitLoopWhen(from, this.when, context,
+                        function (t) { t.removeAttribute(attributeRef.name); },
+                        function (t) { t.setAttribute(attributeRef.name, attributeRef.value); }
+                    );
+                } else {
+                    runtime.implicitLoop(from, function (t) {
+                        t.removeAttribute(attributeRef.name);
+                    });
+                }
             }
         }
-        return context.meta.runtime.findNext(this, context);
+        if (result && result.then) {
+            return result.then(function () { return runtime.findNext(cmd, context); });
+        }
+        return runtime.findNext(this, context);
     }
 }
 
@@ -460,7 +520,7 @@ export class ToggleCommand extends VisibilityCommand {
                 this.toggle(context, on, classRef, classRef2, classRefs);
                 setTimeout(() => {
                     this.toggle(context, on, classRef, classRef2, classRefs);
-                    resolve(context.meta.runtime.findNext(this, context));
+                    resolve(this.findNext(context));
                 }, time);
             });
         } else if (evt) {
@@ -470,7 +530,7 @@ export class ToggleCommand extends VisibilityCommand {
                     evt,
                     () => {
                         this.toggle(context, on, classRef, classRef2, classRefs);
-                        resolve(context.meta.runtime.findNext(this, context));
+                        resolve(this.findNext(context));
                     },
                     { once: true }
                 );
@@ -478,7 +538,7 @@ export class ToggleCommand extends VisibilityCommand {
             });
         } else {
             this.toggle(context, on, classRef, classRef2, classRefs);
-            return context.meta.runtime.findNext(this, context);
+            return this.findNext(context);
         }
     }
 }
@@ -492,10 +552,11 @@ export class ToggleCommand extends VisibilityCommand {
 export class HideCommand extends VisibilityCommand {
     static keyword = "hide";
 
-    constructor(targetExpr, hideShowStrategy) {
+    constructor(targetExpr, when, hideShowStrategy) {
         super();
         this.target = targetExpr;
         this.targetExpr = targetExpr;
+        this.when = when;
         this.hideShowStrategy = hideShowStrategy;
         this.args = { target: targetExpr };
     }
@@ -512,17 +573,34 @@ export class HideCommand extends VisibilityCommand {
                 name = name.slice(1);
             }
         }
+
+        if (parser.matchToken("when")) {
+            var when = parser.requireElement("expression");
+        }
+
         var hideShowStrategy = VisibilityCommand.resolveHideShowStrategy(parser, name);
 
-        return new HideCommand(targetExpr, hideShowStrategy);
+        return new HideCommand(targetExpr, when, hideShowStrategy);
     }
 
     resolve(ctx, { target }) {
-        ctx.meta.runtime.nullCheck(target, this.targetExpr);
-        ctx.meta.runtime.implicitLoop(target, (elt) => {
-            this.hideShowStrategy("hide", elt, null, ctx.meta.runtime);
-        });
-        return ctx.meta.runtime.findNext(this, ctx);
+        var runtime = ctx.meta.runtime;
+        var cmd = this;
+        runtime.nullCheck(target, this.targetExpr);
+        if (this.when) {
+            var result = runtime.implicitLoopWhen(target, this.when, ctx,
+                function (elt) { cmd.hideShowStrategy("hide", elt, null, runtime); },
+                function (elt) { cmd.hideShowStrategy("show", elt, null, runtime); }
+            );
+            if (result && result.then) {
+                return result.then(function () { return runtime.findNext(cmd, ctx); });
+            }
+        } else {
+            runtime.implicitLoop(target, function (elt) {
+                cmd.hideShowStrategy("hide", elt, null, runtime);
+            });
+        }
+        return runtime.findNext(this, ctx);
     }
 }
 
@@ -578,26 +656,26 @@ export class ShowCommand extends VisibilityCommand {
     }
 
     resolve(ctx, { target }) {
-        ctx.meta.runtime.nullCheck(target, this.targetExpr);
-        ctx.meta.runtime.implicitLoop(target, (elt) => {
-            if (this.when) {
-                ctx.result = elt;
-                let whenResult = ctx.meta.runtime.evaluateNoPromise(this.when, ctx);
-                if (whenResult) {
-                    this.hideShowStrategy("show", elt, this.arg, ctx.meta.runtime);
-                } else {
-                    this.hideShowStrategy("hide", elt, null, ctx.meta.runtime);
-                }
-                ctx.result = null;
-            } else {
-                this.hideShowStrategy("show", elt, this.arg, ctx.meta.runtime);
+        var runtime = ctx.meta.runtime;
+        var cmd = this;
+        runtime.nullCheck(target, this.targetExpr);
+        if (this.when) {
+            var result = runtime.implicitLoopWhen(target, this.when, ctx,
+                function (elt) { cmd.hideShowStrategy("show", elt, cmd.arg, runtime); },
+                function (elt) { cmd.hideShowStrategy("hide", elt, null, runtime); }
+            );
+            if (result && result.then) {
+                return result.then(function () { return runtime.findNext(cmd, ctx); });
             }
-        });
-        return ctx.meta.runtime.findNext(this, ctx);
+        } else {
+            runtime.implicitLoop(target, function (elt) {
+                cmd.hideShowStrategy("show", elt, cmd.arg, runtime);
+            });
+        }
+        return runtime.findNext(this, ctx);
     }
 }
 
-// (parsePseudopossessiveTarget is now a static method on Command in base.js)
 
 /**
  * TakeCommand - Take classes or attributes from elements
@@ -698,7 +776,7 @@ export class TakeCommand extends Command {
                 target.setAttribute(this.attributeRef.name, this.attributeRef.value || "");
             });
         }
-        return context.meta.runtime.findNext(this, context);
+        return this.findNext(context);
     }
 }
 
@@ -721,13 +799,39 @@ export class MeasureCommand extends Command {
     static parse(parser) {
         if (!parser.matchToken("measure")) return;
 
-        var targetExpr = Command.parsePseudopossessiveTarget(parser);
-
+        var targetExpr;
         var propsToMeasure = [];
-        if (!parser.commandBoundary(parser.currentToken()))
-            do {
-                propsToMeasure.push(parser.matchTokenType("IDENTIFIER").value);
-            } while (parser.matchOpToken(","));
+
+        var MEASURE_PROPS = ["x", "y", "left", "top", "right", "bottom",
+            "width", "height", "bounds", "scrollLeft", "scrollTop",
+            "scrollLeftMax", "scrollTopMax", "scrollWidth", "scrollHeight", "scroll"];
+
+        if (parser.commandBoundary(parser.currentToken())) {
+            targetExpr = parser.parseElement("implicitMeTarget");
+        } else {
+            var expr = parser.requireElement("expression");
+            if (expr.type === "symbol" && MEASURE_PROPS.includes(expr.name)) {
+                // bare identifier like "top" — it's a measurement property, target is me
+                targetExpr = parser.parseElement("implicitMeTarget");
+                propsToMeasure.push(expr.name);
+            } else if (expr.type === "possessive" && expr.prop) {
+                // "my top" or "#el's top" — root is target, prop is first measurement
+                targetExpr = expr.root;
+                propsToMeasure.push(expr.prop.value);
+            } else if (expr.type === "ofExpression" && expr.prop) {
+                // "top of #el"
+                targetExpr = expr.root;
+                propsToMeasure.push(expr.prop.value);
+            } else {
+                // just a target, e.g. "measure me" or "measure #el"
+                targetExpr = expr;
+            }
+        }
+
+        // additional comma-separated measurement properties
+        while (parser.matchOpToken(",")) {
+            propsToMeasure.push(parser.requireTokenType("IDENTIFIER").value);
+        }
 
         return new MeasureCommand(targetExpr, propsToMeasure);
     }
@@ -770,6 +874,373 @@ export class MeasureCommand extends Command {
             else throw new Error("No such measurement as " + prop);
         });
 
-        return ctx.meta.runtime.findNext(this, ctx);
+        return this.findNext(ctx);
+    }
+}
+
+/**
+ * FocusCommand - Focus an element
+ *
+ * Parses: focus [<expr>]
+ */
+export class FocusCommand extends Command {
+    static keyword = "focus";
+
+    constructor(target) {
+        super();
+        this.args = { target };
+    }
+
+    static parse(parser) {
+        if (!parser.matchToken("focus")) return;
+        var target = null;
+        if (!parser.commandBoundary(parser.currentToken())) {
+            target = parser.requireElement("expression");
+        }
+        return new FocusCommand(target);
+    }
+
+    resolve(ctx, { target }) {
+        (target || ctx.me).focus();
+        return this.findNext(ctx);
+    }
+}
+
+/**
+ * BlurCommand - Blur (unfocus) an element
+ *
+ * Parses: blur [<expr>]
+ */
+export class BlurCommand extends Command {
+    static keyword = "blur";
+
+    constructor(target) {
+        super();
+        this.args = { target };
+    }
+
+    static parse(parser) {
+        if (!parser.matchToken("blur")) return;
+        var target = null;
+        if (!parser.commandBoundary(parser.currentToken())) {
+            target = parser.requireElement("expression");
+        }
+        return new BlurCommand(target);
+    }
+
+    resolve(ctx, { target }) {
+        (target || ctx.me).blur();
+        return this.findNext(ctx);
+    }
+}
+
+/**
+ * EmptyCommand - Clear an element's content
+ *
+ * Parses: empty [<expr>]
+ */
+export class EmptyCommand extends Command {
+    static keyword = "empty";
+
+    constructor(target) {
+        super();
+        this.args = { target };
+    }
+
+    static parse(parser) {
+        if (!parser.matchToken("empty")) return;
+        var target = null;
+        if (!parser.commandBoundary(parser.currentToken())) {
+            target = parser.requireElement("expression");
+        }
+        return new EmptyCommand(target);
+    }
+
+    resolve(ctx, { target }) {
+        var elt = target || ctx.me;
+        ctx.meta.runtime.implicitLoop(elt, function (e) {
+            e.replaceChildren();
+        });
+        return this.findNext(ctx);
+    }
+}
+
+function _openElement(elt) {
+    if (elt instanceof HTMLDialogElement) {
+        if (!elt.open) elt.showModal();
+    } else if (elt instanceof HTMLDetailsElement) {
+        elt.open = true;
+    } else if (elt.hasAttribute && elt.hasAttribute("popover")) {
+        elt.showPopover();
+    } else if (typeof elt.open === "function") {
+        elt.open();
+    }
+}
+
+function _closeElement(elt) {
+    if (elt instanceof HTMLDialogElement) {
+        elt.close();
+    } else if (elt instanceof HTMLDetailsElement) {
+        elt.open = false;
+    } else if (elt.hasAttribute && elt.hasAttribute("popover")) {
+        elt.hidePopover();
+    } else if (typeof elt.close === "function") {
+        elt.close();
+    }
+}
+
+/**
+ * OpenCommand - Open dialogs, details, popovers, or enter fullscreen
+ *
+ * Parses: open [fullscreen] [<expr>]
+ */
+export class OpenCommand extends Command {
+    static keyword = "open";
+
+    constructor(target, fullscreen) {
+        super();
+        this.fullscreen = fullscreen;
+        this.args = { target };
+    }
+
+    static parse(parser) {
+        if (!parser.matchToken("open")) return;
+        var fullscreen = parser.matchToken("fullscreen");
+        var target = null;
+        if (!parser.commandBoundary(parser.currentToken())) {
+            target = parser.requireElement("expression");
+        }
+        return new OpenCommand(target, !!fullscreen);
+    }
+
+    resolve(ctx, { target }) {
+        var elt = target || ctx.me;
+        if (this.fullscreen) {
+            return (target || document.documentElement).requestFullscreen().then(() => {
+                return this.findNext(ctx);
+            });
+        }
+        ctx.meta.runtime.implicitLoop(elt, _openElement);
+        return this.findNext(ctx);
+    }
+}
+
+/**
+ * CloseCommand - Close dialogs, details, popovers, or exit fullscreen
+ *
+ * Parses: close [fullscreen] [<expr>]
+ */
+export class CloseCommand extends Command {
+    static keyword = "close";
+
+    constructor(target, fullscreen) {
+        super();
+        this.fullscreen = fullscreen;
+        this.args = { target };
+    }
+
+    static parse(parser) {
+        if (!parser.matchToken("close")) return;
+        var fullscreen = parser.matchToken("fullscreen");
+        var target = null;
+        if (!parser.commandBoundary(parser.currentToken())) {
+            target = parser.requireElement("expression");
+        }
+        return new CloseCommand(target, !!fullscreen);
+    }
+
+    resolve(ctx, { target }) {
+        if (this.fullscreen) {
+            return document.exitFullscreen().then(() => {
+                return this.findNext(ctx);
+            });
+        }
+        var elt = target || ctx.me;
+        ctx.meta.runtime.implicitLoop(elt, _closeElement);
+        return this.findNext(ctx);
+    }
+}
+
+/**
+ * SpeakCommand - Speak text using the Web Speech API
+ *
+ * Parses: speak <expr> [with voice <expr>] [with rate <expr>] [with pitch <expr>] [with volume <expr>]
+ */
+export class SpeakCommand extends Command {
+    static keyword = "speak";
+
+    constructor(text, voice, rate, pitch, volume) {
+        super();
+        this.voice = voice;
+        this.rate = rate;
+        this.pitch = pitch;
+        this.volume = volume;
+        this.args = { text, voice, rate, pitch, volume };
+    }
+
+    static parse(parser) {
+        if (!parser.matchToken("speak")) return;
+        var text = parser.requireElement("expression");
+        var voice = null, rate = null, pitch = null, volume = null;
+        while (parser.matchToken("with")) {
+            if (parser.matchToken("voice")) {
+                voice = parser.requireElement("expression");
+            } else if (parser.matchToken("rate")) {
+                rate = parser.requireElement("expression");
+            } else if (parser.matchToken("pitch")) {
+                pitch = parser.requireElement("expression");
+            } else if (parser.matchToken("volume")) {
+                volume = parser.requireElement("expression");
+            } else {
+                parser.raiseParseError("Expected voice, rate, pitch, or volume");
+            }
+        }
+        return new SpeakCommand(text, voice, rate, pitch, volume);
+    }
+
+    resolve(ctx, { text, voice, rate, pitch, volume }) {
+        var utterance = new SpeechSynthesisUtterance(String(text));
+        if (voice) {
+            var voices = speechSynthesis.getVoices();
+            var match = voices.find(v => v.name === voice);
+            if (match) utterance.voice = match;
+        }
+        if (rate != null) utterance.rate = rate;
+        if (pitch != null) utterance.pitch = pitch;
+        if (volume != null) utterance.volume = volume;
+        var cmd = this;
+        return new Promise(function (resolve) {
+            utterance.onend = function () {
+                resolve(ctx.meta.runtime.findNext(cmd, ctx));
+            };
+            speechSynthesis.speak(utterance);
+        });
+    }
+}
+
+/**
+ * SelectCommand - Select text in an input or textarea
+ *
+ * Parses: select [<expr>]
+ */
+export class SelectCommand extends Command {
+    static keyword = "select";
+
+    constructor(target) {
+        super();
+        this.args = { target };
+    }
+
+    static parse(parser) {
+        if (!parser.matchToken("select")) return;
+        var target = null;
+        if (!parser.commandBoundary(parser.currentToken())) {
+            target = parser.requireElement("expression");
+        }
+        return new SelectCommand(target);
+    }
+
+    resolve(ctx, { target }) {
+        var elt = target || ctx.me;
+        if (typeof elt.select === "function") elt.select();
+        return this.findNext(ctx);
+    }
+}
+
+/**
+ * AskCommand - Prompt the user for input
+ *
+ * Parses: ask <expr>
+ */
+export class AskCommand extends Command {
+    static keyword = "ask";
+
+    constructor(message) {
+        super();
+        this.args = { message };
+    }
+
+    static parse(parser) {
+        if (!parser.matchToken("ask")) return;
+        var message = parser.requireElement("expression");
+        return new AskCommand(message);
+    }
+
+    resolve(ctx, { message }) {
+        ctx.result = prompt(String(message));
+        return this.findNext(ctx);
+    }
+}
+
+/**
+ * AnswerCommand - Show an alert or confirm dialog
+ *
+ * Parses: answer <expr> [with <expr> or <expr>]
+ */
+export class AnswerCommand extends Command {
+    static keyword = "answer";
+
+    constructor(message, choiceA, choiceB) {
+        super();
+        this.choiceA = choiceA;
+        this.choiceB = choiceB;
+        this.args = { message, choiceA, choiceB };
+    }
+
+    static parse(parser) {
+        if (!parser.matchToken("answer")) return;
+        var message = parser.requireElement("expression");
+        var choiceA = null, choiceB = null;
+        if (parser.matchToken("with")) {
+            parser.pushFollow("or");
+            try {
+                choiceA = parser.requireElement("expression");
+            } finally {
+                parser.popFollow();
+            }
+            parser.requireToken("or");
+            choiceB = parser.requireElement("expression");
+        }
+        return new AnswerCommand(message, choiceA, choiceB);
+    }
+
+    resolve(ctx, { message, choiceA, choiceB }) {
+        if (choiceA) {
+            ctx.result = confirm(String(message)) ? choiceA : choiceB;
+        } else {
+            alert(String(message));
+        }
+        return this.findNext(ctx);
+    }
+}
+
+/**
+ * MorphCommand - Morph an element to match new content
+ *
+ * Parses: morph <target> to <content>
+ * Executes: Morphs the target element to match the new content,
+ *           preserving DOM node identity, focus, and event listeners
+ */
+export class MorphCommand extends Command {
+    static keyword = "morph";
+
+    constructor(target, content) {
+        super();
+        this.args = { target, content };
+    }
+
+    static parse(parser) {
+        if (!parser.matchToken("morph")) return;
+        var target = parser.requireElement("expression");
+        parser.requireToken("to");
+        var content = parser.requireElement("expression");
+        return new MorphCommand(target, content);
+    }
+
+    resolve(ctx, { target, content }) {
+        ctx.meta.runtime.implicitLoop(target, function (elt) {
+            ctx.meta.runtime.morph(elt, content);
+        });
+        return this.findNext(ctx);
     }
 }

@@ -1,0 +1,225 @@
+---
+layout: layout.njk
+title: Patterns - ///_hyperscript
+---
+
+<style>
+.patterns-header {
+    margin-bottom: 1.5rem;
+}
+.patterns-header h1 {
+    margin-bottom: 0.3rem;
+}
+.patterns-header p {
+    color: var(--text-muted);
+}
+
+.patterns-toolbar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+
+.patterns-search {
+    flex: 1;
+    min-width: 200px;
+    font-size: 1rem !important;
+    padding: 8px 12px !important;
+}
+
+.tag-filters {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.tag-btn {
+    font-family: var(--font-heading);
+    font-size: 0.75rem;
+    padding: 3px 10px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: none !important;
+}
+
+.tag-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.tag-btn.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+
+.difficulty-badge {
+    font-family: var(--font-heading);
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    display: inline-block;
+    margin-left: auto;
+}
+
+.difficulty-beginner { background: #e8f5e9; color: #2e7d32; }
+.difficulty-intermediate { background: #fff3e0; color: #e65100; }
+.difficulty-advanced { background: #fce4ec; color: #c62828; }
+
+.pattern-tags {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+}
+
+.pattern-tag {
+    font-family: var(--font-heading);
+    font-size: 0.65rem;
+    padding: 1px 6px;
+    border-radius: 8px;
+    background: var(--bg-subtle);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+}
+
+/* Pattern cards (details/summary) */
+.pattern-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    margin-bottom: 1.5rem;
+}
+
+.pattern-card-header {
+    background: var(--chrome-gradient);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+}
+
+.pattern-card-header::-webkit-details-marker {
+    display: none;
+}
+
+/* OS9 window toggle box */
+.pattern-card-toggle {
+    display: inline-block;
+    width: 11px;
+    height: 11px;
+    border: 1.5px solid #666;
+    background: white;
+    flex-shrink: 0;
+}
+
+.pattern-card[open] .pattern-card-toggle {
+    background: #bbb;
+}
+
+.pattern-card:not([open]) .pattern-card-header {
+    border-bottom: none;
+}
+
+.pattern-card-title {
+    font-family: var(--font-heading);
+    font-size: 1rem;
+}
+
+.pattern-card-body {
+    padding: 16px;
+    background: var(--bg);
+}
+
+.pattern-card-body > :first-child {
+    margin-top: 0;
+}
+
+.pattern-card[hidden] {
+    display: none;
+}
+
+.no-results {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted);
+    font-family: var(--font-heading);
+    display: none;
+}
+</style>
+
+<div class="patterns-header">
+    <h2 class='allcaps'>Patterns</h2>
+    <p>A collection of hyperscript snippets for common web patterns, from simple to complex.</p>
+</div>
+
+<div class="patterns-toolbar">
+    <input type="text" class="patterns-search" id="pattern-search" placeholder="Search patterns..."
+           _="on input
+                add @hidden to #no-results
+                remove @hidden from <.pattern-card/> when it's textContent contains my value ignoring case
+                remove @hidden from #no-results when the result is empty" />
+    <div class="tag-filters">
+        <button class="tag-btn active" data-tag="all"
+                _="on click
+                     take .active from .tag-btn for me
+                     remove @hidden from <.pattern-card/>
+                     add @hidden to #no-results
+                     set #pattern-search's value to ''">all</button>
+        <button class="tag-btn" data-tag="basics"
+                _="on click take .active from .tag-btn for me
+                     remove @hidden from <.pattern-card/> when it's dataset.tags contains 'basics'">basics</button>
+        <button class="tag-btn" data-tag="dom"
+                _="on click take .active from .tag-btn for me
+                     remove @hidden from <.pattern-card/> when it's dataset.tags contains 'dom'">dom</button>
+        <button class="tag-btn" data-tag="events"
+                _="on click take .active from .tag-btn for me
+                     remove @hidden from <.pattern-card/> when it's dataset.tags contains 'events'">events</button>
+        <button class="tag-btn" data-tag="animation"
+                _="on click take .active from .tag-btn for me
+                     remove @hidden from <.pattern-card/> when it's dataset.tags contains 'animation'">animation</button>
+        <button class="tag-btn" data-tag="async"
+                _="on click take .active from .tag-btn for me
+                     remove @hidden from <.pattern-card/> when it's dataset.tags contains 'async'">async</button>
+        <button class="tag-btn" data-tag="forms"
+                _="on click take .active from .tag-btn for me
+                     remove @hidden from <.pattern-card/> when it's dataset.tags contains 'forms'">forms</button>
+        <button class="tag-btn" data-tag="htmx"
+                _="on click take .active from .tag-btn for me
+                     remove @hidden from <.pattern-card/> when it's dataset.tags contains 'htmx'">htmx</button>
+        <button class="tag-btn" data-tag="search"
+                _="on click take .active from .tag-btn for me
+                     remove @hidden from <.pattern-card/> when it's dataset.tags contains 'search'">search</button>
+        <button class="tag-btn" data-tag="interaction"
+                _="on click take .active from .tag-btn for me
+                     remove @hidden from <.pattern-card/> when it's dataset.tags contains 'interaction'">interaction</button>
+    </div>
+</div>
+
+<div id="no-results" class="no-results" hidden>No patterns match your search.</div>
+
+{% for pattern in collections.patterns %}
+<details class="pattern-card" data-tags="{{ pattern.data.tags | join(',') }}" data-difficulty="{{ pattern.data.difficulty }}" open>
+    <summary class="pattern-card-header">
+        <span class="pattern-card-toggle"></span>
+        <span class="pattern-card-title">{{ pattern.data.title }}</span>
+        {% if pattern.data.tags %}<span class="pattern-tags">{% for tag in pattern.data.tags %}<span class="pattern-tag">{{ tag }}</span>{% endfor %}</span>{% endif %}
+        {% if pattern.data.difficulty == "beginner" %}<span class="difficulty-badge difficulty-beginner">beginner</span>
+        {% elif pattern.data.difficulty == "intermediate" %}<span class="difficulty-badge difficulty-intermediate">intermediate</span>
+        {% elif pattern.data.difficulty == "advanced" %}<span class="difficulty-badge difficulty-advanced">advanced</span>
+        {% endif %}
+    </summary>
+    <div class="pattern-card-body">
+        {{ pattern.templateContent | safe }}
+    </div>
+</details>
+{% endfor %}

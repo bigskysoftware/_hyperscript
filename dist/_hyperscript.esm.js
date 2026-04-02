@@ -1,94 +1,112 @@
 var __defProp = Object.defineProperty;
-var __defProps = Object.defineProperties;
-var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
-var __getOwnPropSymbols = Object.getOwnPropertySymbols;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __propIsEnum = Object.prototype.propertyIsEnumerable;
-var __typeError = (msg) => {
-  throw TypeError(msg);
-};
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues = (a, b) => {
-  for (var prop in b || (b = {}))
-    if (__hasOwnProp.call(b, prop))
-      __defNormalProp(a, prop, b[prop]);
-  if (__getOwnPropSymbols)
-    for (var prop of __getOwnPropSymbols(b)) {
-      if (__propIsEnum.call(b, prop))
-        __defNormalProp(a, prop, b[prop]);
-    }
-  return a;
-};
-var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
-var __objRest = (source, exclude) => {
-  var target = {};
-  for (var prop in source)
-    if (__hasOwnProp.call(source, prop) && exclude.indexOf(prop) < 0)
-      target[prop] = source[prop];
-  if (source != null && __getOwnPropSymbols)
-    for (var prop of __getOwnPropSymbols(source)) {
-      if (exclude.indexOf(prop) < 0 && __propIsEnum.call(source, prop))
-        target[prop] = source[prop];
-    }
-  return target;
-};
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
 };
-var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
-var __accessCheck = (obj, member, msg) => member.has(obj) || __typeError("Cannot " + msg);
-var __privateGet = (obj, member, getter) => (__accessCheck(obj, member, "read from private field"), getter ? getter.call(obj) : member.get(obj));
-var __privateAdd = (obj, member, value) => member.has(obj) ? __typeError("Cannot add the same private member more than once") : member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
-var __privateSet = (obj, member, value, setter) => (__accessCheck(obj, member, "write to private field"), setter ? setter.call(obj, value) : member.set(obj, value), value);
-var __privateMethod = (obj, member, method) => (__accessCheck(obj, member, "access private method"), method);
-var __privateWrapper = (obj, member, setter, getter) => ({
-  set _(value) {
-    __privateSet(obj, member, value, setter);
-  },
-  get _() {
-    return __privateGet(obj, member, getter);
-  }
-});
-var __async = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
 
 // src/core/tokenizer.js
-var _tokens, _consumed, _lastConsumed, _follows;
+var ParseError = class {
+  constructor(message, token, source) {
+    this.message = message;
+    this.token = token;
+    this.source = source;
+    this.line = token?.line ?? null;
+    this.column = token?.column ?? null;
+  }
+};
+var ParseRecoverySentinel = class extends Error {
+  constructor(parseError) {
+    super(parseError.message);
+    this.parseError = parseError;
+  }
+};
+function formatErrors(errors) {
+  if (!errors.length) return "";
+  var source = errors[0].source;
+  var lines = source.split("\n");
+  var byLine = /* @__PURE__ */ new Map();
+  for (var e of errors) {
+    var lineIdx = e.token?.line ? e.token.line - 1 : lines.length - 1;
+    if (!byLine.has(lineIdx)) byLine.set(lineIdx, []);
+    byLine.get(lineIdx).push(e);
+  }
+  var maxLine = Math.max(...byLine.keys()) + 1;
+  var gutter = String(maxLine).length;
+  var pad = " ".repeat(gutter + 5);
+  var sortedLines = [...byLine.entries()].sort((a, b) => a[0] - b[0]);
+  var prevLineIdx = -1;
+  var out = "";
+  for (var [lineIdx, lineErrors] of sortedLines) {
+    if (prevLineIdx !== -1 && lineIdx > prevLineIdx + 1) {
+      out += " ".repeat(gutter + 1) + "...\n";
+    } else if (prevLineIdx === -1 && lineIdx > 0) {
+      out += " ".repeat(gutter + 1) + "...\n";
+    }
+    prevLineIdx = lineIdx;
+    var lineNum = String(lineIdx + 1).padStart(gutter);
+    var contextLine = lines[lineIdx] || "";
+    out += "  " + lineNum + " | " + contextLine + "\n";
+    lineErrors.sort((a, b) => (a.column || 0) - (b.column || 0));
+    var underlineChars = Array(contextLine.length + 10).fill(" ");
+    for (var e of lineErrors) {
+      var col = e.token?.line ? e.token.column : Math.max(0, contextLine.length - 1);
+      var len = Math.max(1, e.token?.value?.length || 1);
+      for (var i = 0; i < len; i++) underlineChars[col + i] = "^";
+    }
+    out += pad + underlineChars.join("").trimEnd() + "\n";
+    for (var e of lineErrors) {
+      var col = e.token?.line ? e.token.column : 0;
+      out += pad + " ".repeat(col) + e.message + "\n";
+    }
+  }
+  return out;
+}
 var Tokens = class {
+  #tokens;
+  #consumed = [];
+  #lastConsumed = null;
+  #follows = [];
+  #errors = [];
+  #recoveryMode = false;
+  source;
   constructor(tokens, source) {
-    __privateAdd(this, _tokens);
-    __privateAdd(this, _consumed, []);
-    __privateAdd(this, _lastConsumed, null);
-    __privateAdd(this, _follows, []);
-    __publicField(this, "source");
-    __privateSet(this, _tokens, tokens);
+    this.#tokens = tokens;
     this.source = source;
     this.consumeWhitespace();
   }
   get list() {
-    return __privateGet(this, _tokens);
+    return this.#tokens;
   }
   get consumed() {
-    return __privateGet(this, _consumed);
+    return this.#consumed;
+  }
+  // ----- Error recovery -----
+  enableRecovery() {
+    this.#recoveryMode = true;
+  }
+  get recoveryMode() {
+    return this.#recoveryMode;
+  }
+  get errors() {
+    return this.#errors;
+  }
+  // ----- Debug -----
+  toString() {
+    var cur = this.currentToken();
+    var lines = this.source.split("\n");
+    var lineIdx = cur?.line ? cur.line - 1 : lines.length - 1;
+    var col = cur?.line ? cur.column : 0;
+    var contextLine = lines[lineIdx] || "";
+    var tokenLen = Math.max(1, cur?.value?.length || 1);
+    var gutter = String(lineIdx + 1).length;
+    var out = "Tokens(";
+    out += this.#consumed.filter((t) => t.type !== "WHITESPACE").length + " consumed, ";
+    out += this.#tokens.filter((t) => t.type !== "WHITESPACE").length + " remaining";
+    out += ", line " + (lineIdx + 1) + ")\n";
+    out += "  " + String(lineIdx + 1).padStart(gutter) + " | " + contextLine + "\n";
+    out += " ".repeat(gutter + 5) + " ".repeat(col) + "^".repeat(tokenLen);
+    if (cur) out += " " + cur.type + " '" + cur.value + "'";
+    return out;
   }
   // ----- Token access -----
   currentToken() {
@@ -99,25 +117,25 @@ var Tokens = class {
     var i = 0;
     do {
       if (!includeWhitespace) {
-        while (__privateGet(this, _tokens)[i] && __privateGet(this, _tokens)[i].type === "WHITESPACE") {
+        while (this.#tokens[i] && this.#tokens[i].type === "WHITESPACE") {
           i++;
         }
       }
-      token = __privateGet(this, _tokens)[i];
+      token = this.#tokens[i];
       n--;
       i++;
     } while (n > -1);
     return token || { type: "EOF", value: "<<<EOF>>>" };
   }
   hasMore() {
-    return __privateGet(this, _tokens).length > 0;
+    return this.#tokens.length > 0;
   }
   lastMatch() {
-    return __privateGet(this, _lastConsumed);
+    return this.#lastConsumed;
   }
   // ----- Token matching -----
   matchToken(value, type) {
-    if (__privateGet(this, _follows).includes(value)) return;
+    if (this.#follows.includes(value)) return;
     type = type || "IDENTIFIER";
     if (this.currentToken() && this.currentToken().value === value && this.currentToken().type === type) {
       return this.consumeToken();
@@ -163,23 +181,23 @@ var Tokens = class {
   }
   // ----- Token consuming -----
   consumeToken() {
-    var match = __privateGet(this, _tokens).shift();
-    __privateGet(this, _consumed).push(match);
-    __privateSet(this, _lastConsumed, match);
+    var match = this.#tokens.shift();
+    this.#consumed.push(match);
+    this.#lastConsumed = match;
     this.consumeWhitespace();
     return match;
   }
   consumeWhitespace() {
     while (this.token(0, true).type === "WHITESPACE") {
-      __privateGet(this, _consumed).push(__privateGet(this, _tokens).shift());
+      this.#consumed.push(this.#tokens.shift());
     }
   }
   consumeUntil(value, type) {
     var tokenList = [];
     var currentToken = this.token(0, true);
     while ((type == null || currentToken.type !== type) && (value == null || currentToken.value !== value) && currentToken.type !== "EOF") {
-      var match = __privateGet(this, _tokens).shift();
-      __privateGet(this, _consumed).push(match);
+      var match = this.#tokens.shift();
+      this.#consumed.push(match);
       tokenList.push(currentToken);
       currentToken = this.token(0, true);
     }
@@ -193,48 +211,50 @@ var Tokens = class {
   peekToken(value, peek, type) {
     peek = peek || 0;
     type = type || "IDENTIFIER";
-    if (__privateGet(this, _tokens)[peek] && __privateGet(this, _tokens)[peek].value === value && __privateGet(this, _tokens)[peek].type === type) {
-      return __privateGet(this, _tokens)[peek];
+    if (this.#tokens[peek] && this.#tokens[peek].value === value && this.#tokens[peek].type === type) {
+      return this.#tokens[peek];
     }
   }
   // ----- Whitespace -----
   lastWhitespace() {
-    var last = __privateGet(this, _consumed)[__privateGet(this, _consumed).length - 1];
+    var last = this.#consumed.at(-1);
     return last && last.type === "WHITESPACE" ? last.value : "";
   }
   // ----- Follow set management -----
   pushFollow(str) {
-    __privateGet(this, _follows).push(str);
+    this.#follows.push(str);
   }
   popFollow() {
-    __privateGet(this, _follows).pop();
+    this.#follows.pop();
   }
   clearFollows() {
-    var tmp = __privateGet(this, _follows);
-    __privateSet(this, _follows, []);
+    var tmp = this.#follows;
+    this.#follows = [];
     return tmp;
   }
   restoreFollows(f) {
-    __privateSet(this, _follows, f);
+    this.#follows = f;
   }
   // ----- Error handling -----
   raiseError(message) {
-    message = (message || "Unexpected Token : " + this.currentToken().value) + "\n\n";
+    message = message || "Unexpected Token : " + this.currentToken().value;
     var currentToken = this.currentToken();
+    var parseError = new ParseError(message, currentToken, this.source);
+    if (this.#recoveryMode) {
+      this.#errors.push(parseError);
+      throw new ParseRecoverySentinel(parseError);
+    }
     var lines = this.source.split("\n");
-    var line = currentToken && currentToken.line ? currentToken.line - 1 : lines.length - 1;
-    var contextLine = lines[line];
-    var offset = currentToken && currentToken.line ? currentToken.column : contextLine.length - 1;
-    message += contextLine + "\n" + " ".repeat(offset) + "^^\n\n";
-    var error = new Error(message);
+    var lineIdx = currentToken?.line ? currentToken.line - 1 : lines.length - 1;
+    var contextLine = lines[lineIdx] || "";
+    var col = currentToken?.line ? currentToken.column : Math.max(0, contextLine.length - 1);
+    var tokenLen = Math.max(1, currentToken?.value?.length || 1);
+    var formatted = message + "\n\n" + contextLine + "\n" + " ".repeat(col) + "^".repeat(tokenLen) + "\n";
+    var error = new Error(formatted);
     error["tokens"] = this;
     throw error;
   }
 };
-_tokens = new WeakMap();
-_consumed = new WeakMap();
-_lastConsumed = new WeakMap();
-_follows = new WeakMap();
 var OP_TABLE = {
   "+": "PLUS",
   "-": "MINUS",
@@ -268,412 +288,440 @@ var OP_TABLE = {
   "[": "L_BRACKET",
   "]": "R_BRACKET",
   "=": "EQUALS",
-  "~": "TILDE"
+  "~": "TILDE",
+  "^": "CARET"
 };
-var _source, _position, _column, _line, _lastToken, _templateBraceCount, _tokens2, _template, _Tokenizer_instances, isAlpha_fn, isNumeric_fn, isWhitespace_fn, isNewline_fn, isValidCSSChar_fn, isIdentifierChar_fn, isReservedChar_fn, currentChar_fn, nextChar_fn, charAt_fn, consumeChar_fn, inTemplate_fn, possiblePrecedingSymbol_fn, isValidSingleQuoteStringStart_fn, makeToken_fn, makeOpToken_fn, consumeComment_fn, consumeMultilineComment_fn, consumeWhitespace_fn, consumeClassReference_fn, consumeIdReference_fn, consumeAttributeReference_fn, consumeShortAttributeReference_fn, consumeStyleReference_fn, consumeTemplateIdentifier_fn, consumeIdentifier_fn, consumeNumber_fn, consumeOp_fn, consumeString_fn, consumeHexEscape_fn, isLineComment_fn, isBlockComment_fn, tokenize_fn;
-var _Tokenizer = class _Tokenizer {
-  constructor() {
-    __privateAdd(this, _Tokenizer_instances);
-    // ----- Instance state -----
-    __privateAdd(this, _source, "");
-    __privateAdd(this, _position, 0);
-    __privateAdd(this, _column, 0);
-    __privateAdd(this, _line, 1);
-    __privateAdd(this, _lastToken, "<START>");
-    __privateAdd(this, _templateBraceCount, 0);
-    __privateAdd(this, _tokens2, []);
-    __privateAdd(this, _template, false);
+var Tokenizer = class _Tokenizer {
+  // ----- Instance state -----
+  #source = "";
+  #position = 0;
+  #column = 0;
+  #line = 1;
+  #lastToken = "<START>";
+  #templateBraceCount = 0;
+  #tokens = [];
+  #template = false;
+  #templateMode;
+  // ----- Character classification -----
+  #isAlpha(c) {
+    return c >= "a" && c <= "z" || c >= "A" && c <= "Z";
+  }
+  #isNumeric(c) {
+    return c >= "0" && c <= "9";
+  }
+  #isWhitespace(c) {
+    return c === " " || c === "	" || c === "\r" || c === "\n";
+  }
+  #isNewline(c) {
+    return c === "\r" || c === "\n";
+  }
+  #isValidCSSChar(c) {
+    return this.#isAlpha(c) || this.#isNumeric(c) || c === "-" || c === "_" || c === ":";
+  }
+  #isIdentifierChar(c) {
+    return c === "_" || c === "$";
+  }
+  #isReservedChar(c) {
+    return c === "`";
   }
   static tokenize(string, template) {
     return new _Tokenizer().tokenize(string, template);
   }
   tokenize(string, template) {
-    __privateSet(this, _source, string);
-    __privateSet(this, _position, 0);
-    __privateSet(this, _column, 0);
-    __privateSet(this, _line, 1);
-    __privateSet(this, _lastToken, "<START>");
-    __privateSet(this, _templateBraceCount, 0);
-    __privateSet(this, _tokens2, []);
-    __privateSet(this, _template, template || false);
-    return __privateMethod(this, _Tokenizer_instances, tokenize_fn).call(this);
+    this.#source = string;
+    this.#position = 0;
+    this.#column = 0;
+    this.#line = 1;
+    this.#lastToken = "<START>";
+    this.#templateBraceCount = 0;
+    this.#tokens = [];
+    this.#template = template || false;
+    this.#templateMode = "indeterminant";
+    return this.#tokenize();
   }
-};
-_source = new WeakMap();
-_position = new WeakMap();
-_column = new WeakMap();
-_line = new WeakMap();
-_lastToken = new WeakMap();
-_templateBraceCount = new WeakMap();
-_tokens2 = new WeakMap();
-_template = new WeakMap();
-_Tokenizer_instances = new WeakSet();
-// ----- Character classification -----
-isAlpha_fn = function(c) {
-  return c >= "a" && c <= "z" || c >= "A" && c <= "Z";
-};
-isNumeric_fn = function(c) {
-  return c >= "0" && c <= "9";
-};
-isWhitespace_fn = function(c) {
-  return c === " " || c === "	" || c === "\r" || c === "\n";
-};
-isNewline_fn = function(c) {
-  return c === "\r" || c === "\n";
-};
-isValidCSSChar_fn = function(c) {
-  return __privateMethod(this, _Tokenizer_instances, isAlpha_fn).call(this, c) || __privateMethod(this, _Tokenizer_instances, isNumeric_fn).call(this, c) || c === "-" || c === "_" || c === ":";
-};
-isIdentifierChar_fn = function(c) {
-  return c === "_" || c === "$";
-};
-isReservedChar_fn = function(c) {
-  return c === "`" || c === "^";
-};
-// ----- Character access -----
-currentChar_fn = function() {
-  return __privateGet(this, _source).charAt(__privateGet(this, _position));
-};
-nextChar_fn = function() {
-  return __privateGet(this, _source).charAt(__privateGet(this, _position) + 1);
-};
-charAt_fn = function(offset = 1) {
-  return __privateGet(this, _source).charAt(__privateGet(this, _position) + offset);
-};
-consumeChar_fn = function() {
-  __privateSet(this, _lastToken, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this));
-  __privateWrapper(this, _position)._++;
-  __privateWrapper(this, _column)._++;
-  return __privateGet(this, _lastToken);
-};
-// ----- Context checks -----
-inTemplate_fn = function() {
-  return __privateGet(this, _template) && __privateGet(this, _templateBraceCount) === 0;
-};
-possiblePrecedingSymbol_fn = function() {
-  return __privateMethod(this, _Tokenizer_instances, isAlpha_fn).call(this, __privateGet(this, _lastToken)) || __privateMethod(this, _Tokenizer_instances, isNumeric_fn).call(this, __privateGet(this, _lastToken)) || __privateGet(this, _lastToken) === ")" || __privateGet(this, _lastToken) === '"' || __privateGet(this, _lastToken) === "'" || __privateGet(this, _lastToken) === "`" || __privateGet(this, _lastToken) === "}" || __privateGet(this, _lastToken) === "]";
-};
-isValidSingleQuoteStringStart_fn = function() {
-  if (__privateGet(this, _tokens2).length > 0) {
-    var prev = __privateGet(this, _tokens2)[__privateGet(this, _tokens2).length - 1];
-    if (prev.type === "IDENTIFIER" || prev.type === "CLASS_REF" || prev.type === "ID_REF") {
-      return false;
-    }
-    if (prev.op && (prev.value === ">" || prev.value === ")")) {
-      return false;
-    }
+  // ----- Character access -----
+  #currentChar() {
+    return this.#source.charAt(this.#position);
   }
-  return true;
-};
-// ----- Token constructors -----
-makeToken_fn = function(type, value) {
-  return {
-    type,
-    value: value || "",
-    start: __privateGet(this, _position),
-    end: __privateGet(this, _position) + 1,
-    column: __privateGet(this, _column),
-    line: __privateGet(this, _line)
-  };
-};
-makeOpToken_fn = function(type, value) {
-  var token = __privateMethod(this, _Tokenizer_instances, makeToken_fn).call(this, type, value);
-  token.op = true;
-  return token;
-};
-// ----- Consume methods -----
-consumeComment_fn = function() {
-  while (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) && !__privateMethod(this, _Tokenizer_instances, isNewline_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
-    __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  #nextChar() {
+    return this.#source.charAt(this.#position + 1);
   }
-  __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-};
-consumeMultilineComment_fn = function() {
-  while (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) && !(__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "*" && __privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this) === "/")) {
-    __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  #charAt(offset = 1) {
+    return this.#source.charAt(this.#position + offset);
   }
-  __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-  __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-};
-consumeWhitespace_fn = function() {
-  var ws = __privateMethod(this, _Tokenizer_instances, makeToken_fn).call(this, "WHITESPACE");
-  var value = "";
-  while (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) && __privateMethod(this, _Tokenizer_instances, isWhitespace_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
-    if (__privateMethod(this, _Tokenizer_instances, isNewline_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
-      __privateSet(this, _column, 0);
-      __privateWrapper(this, _line)._++;
-    }
-    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-  }
-  ws.value = value;
-  ws.end = __privateGet(this, _position);
-  return ws;
-};
-consumeClassReference_fn = function() {
-  var token = __privateMethod(this, _Tokenizer_instances, makeToken_fn).call(this, "CLASS_REF");
-  var value = __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-  if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "{") {
-    token.template = true;
-    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-    while (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) && __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) !== "}") {
-      value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-    }
-    if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) !== "}") {
-      throw Error("Unterminated class reference");
+  #consumeChar() {
+    this.#lastToken = this.#currentChar();
+    this.#position++;
+    if (this.#lastToken === "\n") {
+      this.#line++;
+      this.#column = 0;
     } else {
-      value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+      this.#column++;
     }
-  } else {
-    while (__privateMethod(this, _Tokenizer_instances, isValidCSSChar_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) || __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "\\") {
-      if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "\\") __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-      value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+    return this.#lastToken;
+  }
+  // ----- Context checks -----
+  #inTemplate() {
+    return this.#template && this.#templateBraceCount === 0;
+  }
+  #possiblePrecedingSymbol() {
+    return this.#isAlpha(this.#lastToken) || this.#isNumeric(this.#lastToken) || this.#lastToken === ")" || this.#lastToken === '"' || this.#lastToken === "'" || this.#lastToken === "`" || this.#lastToken === "}" || this.#lastToken === "]";
+  }
+  #isValidSingleQuoteStringStart() {
+    if (this.#tokens.length > 0) {
+      var prev = this.#tokens.at(-1);
+      if (prev.type === "IDENTIFIER" || prev.type === "CLASS_REF" || prev.type === "ID_REF") {
+        return false;
+      }
+      if (prev.op && (prev.value === ">" || prev.value === ")")) {
+        return false;
+      }
     }
+    return true;
   }
-  token.value = value;
-  token.end = __privateGet(this, _position);
-  return token;
-};
-consumeIdReference_fn = function() {
-  var token = __privateMethod(this, _Tokenizer_instances, makeToken_fn).call(this, "ID_REF");
-  var value = __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-  if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "{") {
-    token.template = true;
-    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-    while (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) && __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) !== "}") {
-      value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+  // ----- Token constructors -----
+  #makeToken(type, value) {
+    return {
+      type,
+      value: value || "",
+      start: this.#position,
+      end: this.#position + 1,
+      column: this.#column,
+      line: this.#line
+    };
+  }
+  #makeOpToken(type, value) {
+    var token = this.#makeToken(type, value);
+    token.op = true;
+    return token;
+  }
+  // ----- Consume methods -----
+  #consumeComment() {
+    while (this.#currentChar() && !this.#isNewline(this.#currentChar())) {
+      this.#consumeChar();
     }
-    if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) !== "}") {
-      throw Error("Unterminated id reference");
-    } else {
-      __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+    this.#consumeChar();
+  }
+  #consumeMultilineComment() {
+    while (this.#currentChar() && !(this.#currentChar() === "*" && this.#nextChar() === "/")) {
+      this.#consumeChar();
     }
-  } else {
-    while (__privateMethod(this, _Tokenizer_instances, isValidCSSChar_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
-      value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
+    this.#consumeChar();
+    this.#consumeChar();
+  }
+  #consumeWhitespace() {
+    var ws = this.#makeToken("WHITESPACE");
+    var value = "";
+    while (this.#currentChar() && this.#isWhitespace(this.#currentChar())) {
+      if (this.#isNewline(this.#currentChar())) {
+        this.#templateMode = "indeterminant";
+      }
+      value += this.#consumeChar();
     }
+    ws.value = value;
+    ws.end = this.#position;
+    return ws;
   }
-  token.value = value;
-  token.end = __privateGet(this, _position);
-  return token;
-};
-consumeAttributeReference_fn = function() {
-  var token = __privateMethod(this, _Tokenizer_instances, makeToken_fn).call(this, "ATTRIBUTE_REF");
-  var value = __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-  while (__privateGet(this, _position) < __privateGet(this, _source).length && __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) !== "]") {
-    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-  }
-  if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "]") {
-    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-  }
-  token.value = value;
-  token.end = __privateGet(this, _position);
-  return token;
-};
-consumeShortAttributeReference_fn = function() {
-  var token = __privateMethod(this, _Tokenizer_instances, makeToken_fn).call(this, "ATTRIBUTE_REF");
-  var value = __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-  while (__privateMethod(this, _Tokenizer_instances, isValidCSSChar_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
-    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-  }
-  if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "=") {
-    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-    if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === '"' || __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "'") {
-      value += __privateMethod(this, _Tokenizer_instances, consumeString_fn).call(this).value;
-    } else if (__privateMethod(this, _Tokenizer_instances, isAlpha_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) || __privateMethod(this, _Tokenizer_instances, isNumeric_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) || __privateMethod(this, _Tokenizer_instances, isIdentifierChar_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
-      value += __privateMethod(this, _Tokenizer_instances, consumeIdentifier_fn).call(this).value;
-    }
-  }
-  token.value = value;
-  token.end = __privateGet(this, _position);
-  return token;
-};
-consumeStyleReference_fn = function() {
-  var token = __privateMethod(this, _Tokenizer_instances, makeToken_fn).call(this, "STYLE_REF");
-  var value = __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-  while (__privateMethod(this, _Tokenizer_instances, isAlpha_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) || __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "-") {
-    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-  }
-  token.value = value;
-  token.end = __privateGet(this, _position);
-  return token;
-};
-consumeTemplateIdentifier_fn = function() {
-  var token = __privateMethod(this, _Tokenizer_instances, makeToken_fn).call(this, "IDENTIFIER");
-  var value = __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-  var escaped = value === "\\";
-  if (escaped) value = "";
-  while (__privateMethod(this, _Tokenizer_instances, isAlpha_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) || __privateMethod(this, _Tokenizer_instances, isNumeric_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) || __privateMethod(this, _Tokenizer_instances, isIdentifierChar_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) || __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "\\" || __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "{" || __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "}") {
-    if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "$" && !escaped) {
-      break;
-    } else if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "\\") {
-      escaped = true;
-      __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-    } else {
-      escaped = false;
-      value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-    }
-  }
-  if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "!" && value === "beep") {
-    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-  }
-  token.value = value;
-  token.end = __privateGet(this, _position);
-  return token;
-};
-consumeIdentifier_fn = function() {
-  var token = __privateMethod(this, _Tokenizer_instances, makeToken_fn).call(this, "IDENTIFIER");
-  var value = __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-  while (__privateMethod(this, _Tokenizer_instances, isAlpha_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) || __privateMethod(this, _Tokenizer_instances, isNumeric_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) || __privateMethod(this, _Tokenizer_instances, isIdentifierChar_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
-    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-  }
-  if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "!" && value === "beep") {
-    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-  }
-  token.value = value;
-  token.end = __privateGet(this, _position);
-  return token;
-};
-consumeNumber_fn = function() {
-  var token = __privateMethod(this, _Tokenizer_instances, makeToken_fn).call(this, "NUMBER");
-  var value = __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-  while (__privateMethod(this, _Tokenizer_instances, isNumeric_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
-    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-  }
-  if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "." && __privateMethod(this, _Tokenizer_instances, isNumeric_fn).call(this, __privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this))) {
-    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-  }
-  while (__privateMethod(this, _Tokenizer_instances, isNumeric_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
-    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-  }
-  if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "e" || __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "E") {
-    if (__privateMethod(this, _Tokenizer_instances, isNumeric_fn).call(this, __privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this))) {
-      value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-    } else if (__privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this) === "-") {
-      value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-      value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-    }
-  }
-  while (__privateMethod(this, _Tokenizer_instances, isNumeric_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
-    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-  }
-  token.value = value;
-  token.end = __privateGet(this, _position);
-  return token;
-};
-consumeOp_fn = function() {
-  var token = __privateMethod(this, _Tokenizer_instances, makeOpToken_fn).call(this);
-  var value = __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-  while (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) && OP_TABLE[value + __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)]) {
-    value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-  }
-  token.type = OP_TABLE[value];
-  token.value = value;
-  token.end = __privateGet(this, _position);
-  return token;
-};
-consumeString_fn = function() {
-  var token = __privateMethod(this, _Tokenizer_instances, makeToken_fn).call(this, "STRING");
-  var startChar = __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-  token.template = startChar === "`";
-  var value = "";
-  while (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) && __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) !== startChar) {
-    if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "\\") {
-      __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-      let next = __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-      if (next === "b") value += "\b";
-      else if (next === "f") value += "\f";
-      else if (next === "n") value += "\n";
-      else if (next === "r") value += "\r";
-      else if (next === "t") value += "	";
-      else if (next === "v") value += "\v";
-      else if (token.template && next === "$") value += "\\$";
-      else if (next === "x") {
-        const hex = __privateMethod(this, _Tokenizer_instances, consumeHexEscape_fn).call(this);
-        if (Number.isNaN(hex)) {
-          throw Error("Invalid hexadecimal escape at [Line: " + token.line + ", Column: " + token.column + "]");
-        }
-        value += String.fromCharCode(hex);
-      } else value += next;
-    } else {
-      value += __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-    }
-  }
-  if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) !== startChar) {
-    throw Error("Unterminated string at [Line: " + token.line + ", Column: " + token.column + "]");
-  } else {
-    __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this);
-  }
-  token.value = value;
-  token.end = __privateGet(this, _position);
-  return token;
-};
-consumeHexEscape_fn = function() {
-  if (!__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) return NaN;
-  let result = 16 * Number.parseInt(__privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this), 16);
-  if (!__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) return NaN;
-  result += Number.parseInt(__privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this), 16);
-  return result;
-};
-// ----- Main tokenization loop -----
-isLineComment_fn = function() {
-  var c = __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this), n = __privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this), n2 = __privateMethod(this, _Tokenizer_instances, charAt_fn).call(this, 2);
-  return c === "-" && n === "-" && (__privateMethod(this, _Tokenizer_instances, isWhitespace_fn).call(this, n2) || n2 === "" || n2 === "-") || c === "/" && n === "/" && (__privateMethod(this, _Tokenizer_instances, isWhitespace_fn).call(this, n2) || n2 === "" || n2 === "/");
-};
-isBlockComment_fn = function() {
-  var c = __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this), n = __privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this), n2 = __privateMethod(this, _Tokenizer_instances, charAt_fn).call(this, 2);
-  return c === "/" && n === "*" && (__privateMethod(this, _Tokenizer_instances, isWhitespace_fn).call(this, n2) || n2 === "" || n2 === "*");
-};
-tokenize_fn = function() {
-  while (__privateGet(this, _position) < __privateGet(this, _source).length) {
-    if (__privateMethod(this, _Tokenizer_instances, isLineComment_fn).call(this)) {
-      __privateMethod(this, _Tokenizer_instances, consumeComment_fn).call(this);
-    } else if (__privateMethod(this, _Tokenizer_instances, isBlockComment_fn).call(this)) {
-      __privateMethod(this, _Tokenizer_instances, consumeMultilineComment_fn).call(this);
-    } else if (__privateMethod(this, _Tokenizer_instances, isWhitespace_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
-      __privateGet(this, _tokens2).push(__privateMethod(this, _Tokenizer_instances, consumeWhitespace_fn).call(this));
-    } else if (!__privateMethod(this, _Tokenizer_instances, possiblePrecedingSymbol_fn).call(this) && __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "." && (__privateMethod(this, _Tokenizer_instances, isAlpha_fn).call(this, __privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this)) || __privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this) === "{" || __privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this) === "-")) {
-      __privateGet(this, _tokens2).push(__privateMethod(this, _Tokenizer_instances, consumeClassReference_fn).call(this));
-    } else if (!__privateMethod(this, _Tokenizer_instances, possiblePrecedingSymbol_fn).call(this) && __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "#" && (__privateMethod(this, _Tokenizer_instances, isAlpha_fn).call(this, __privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this)) || __privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this) === "{")) {
-      __privateGet(this, _tokens2).push(__privateMethod(this, _Tokenizer_instances, consumeIdReference_fn).call(this));
-    } else if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "[" && __privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this) === "@") {
-      __privateGet(this, _tokens2).push(__privateMethod(this, _Tokenizer_instances, consumeAttributeReference_fn).call(this));
-    } else if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "@") {
-      __privateGet(this, _tokens2).push(__privateMethod(this, _Tokenizer_instances, consumeShortAttributeReference_fn).call(this));
-    } else if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "*" && __privateMethod(this, _Tokenizer_instances, isAlpha_fn).call(this, __privateMethod(this, _Tokenizer_instances, nextChar_fn).call(this))) {
-      __privateGet(this, _tokens2).push(__privateMethod(this, _Tokenizer_instances, consumeStyleReference_fn).call(this));
-    } else if (__privateMethod(this, _Tokenizer_instances, inTemplate_fn).call(this) && (__privateMethod(this, _Tokenizer_instances, isAlpha_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) || __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "\\")) {
-      __privateGet(this, _tokens2).push(__privateMethod(this, _Tokenizer_instances, consumeTemplateIdentifier_fn).call(this));
-    } else if (!__privateMethod(this, _Tokenizer_instances, inTemplate_fn).call(this) && (__privateMethod(this, _Tokenizer_instances, isAlpha_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)) || __privateMethod(this, _Tokenizer_instances, isIdentifierChar_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)))) {
-      __privateGet(this, _tokens2).push(__privateMethod(this, _Tokenizer_instances, consumeIdentifier_fn).call(this));
-    } else if (__privateMethod(this, _Tokenizer_instances, isNumeric_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
-      __privateGet(this, _tokens2).push(__privateMethod(this, _Tokenizer_instances, consumeNumber_fn).call(this));
-    } else if (!__privateMethod(this, _Tokenizer_instances, inTemplate_fn).call(this) && (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === '"' || __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "`")) {
-      __privateGet(this, _tokens2).push(__privateMethod(this, _Tokenizer_instances, consumeString_fn).call(this));
-    } else if (!__privateMethod(this, _Tokenizer_instances, inTemplate_fn).call(this) && __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "'") {
-      if (__privateMethod(this, _Tokenizer_instances, isValidSingleQuoteStringStart_fn).call(this)) {
-        __privateGet(this, _tokens2).push(__privateMethod(this, _Tokenizer_instances, consumeString_fn).call(this));
+  #consumeClassReference() {
+    var token = this.#makeToken("CLASS_REF");
+    var value = this.#consumeChar();
+    if (this.#currentChar() === "{") {
+      token.template = true;
+      value += this.#consumeChar();
+      while (this.#currentChar() && this.#currentChar() !== "}") {
+        value += this.#consumeChar();
+      }
+      if (this.#currentChar() !== "}") {
+        throw new Error("Unterminated class reference");
       } else {
-        __privateGet(this, _tokens2).push(__privateMethod(this, _Tokenizer_instances, consumeOp_fn).call(this));
+        value += this.#consumeChar();
       }
-    } else if (OP_TABLE[__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this)]) {
-      if (__privateGet(this, _lastToken) === "$" && __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "{") {
-        __privateWrapper(this, _templateBraceCount)._++;
-      }
-      if (__privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) === "}") {
-        __privateWrapper(this, _templateBraceCount)._--;
-      }
-      __privateGet(this, _tokens2).push(__privateMethod(this, _Tokenizer_instances, consumeOp_fn).call(this));
-    } else if (__privateMethod(this, _Tokenizer_instances, inTemplate_fn).call(this) || __privateMethod(this, _Tokenizer_instances, isReservedChar_fn).call(this, __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this))) {
-      __privateGet(this, _tokens2).push(__privateMethod(this, _Tokenizer_instances, makeToken_fn).call(this, "RESERVED", __privateMethod(this, _Tokenizer_instances, consumeChar_fn).call(this)));
     } else {
-      if (__privateGet(this, _position) < __privateGet(this, _source).length) {
-        throw Error("Unknown token: " + __privateMethod(this, _Tokenizer_instances, currentChar_fn).call(this) + " ");
+      while (this.#isValidCSSChar(this.#currentChar()) || this.#currentChar() === "\\") {
+        if (this.#currentChar() === "\\") this.#consumeChar();
+        value += this.#consumeChar();
       }
     }
+    token.value = value;
+    token.end = this.#position;
+    return token;
   }
-  return new Tokens(__privateGet(this, _tokens2), __privateGet(this, _source));
+  #consumeIdReference() {
+    var token = this.#makeToken("ID_REF");
+    var value = this.#consumeChar();
+    if (this.#currentChar() === "{") {
+      token.template = true;
+      value += this.#consumeChar();
+      while (this.#currentChar() && this.#currentChar() !== "}") {
+        value += this.#consumeChar();
+      }
+      if (this.#currentChar() !== "}") {
+        throw new Error("Unterminated id reference");
+      } else {
+        this.#consumeChar();
+      }
+    } else {
+      while (this.#isValidCSSChar(this.#currentChar())) {
+        value += this.#consumeChar();
+      }
+    }
+    token.value = value;
+    token.end = this.#position;
+    return token;
+  }
+  #consumeAttributeReference() {
+    var token = this.#makeToken("ATTRIBUTE_REF");
+    var value = this.#consumeChar();
+    while (this.#position < this.#source.length && this.#currentChar() !== "]") {
+      value += this.#consumeChar();
+    }
+    if (this.#currentChar() === "]") {
+      value += this.#consumeChar();
+    }
+    token.value = value;
+    token.end = this.#position;
+    return token;
+  }
+  #consumeShortAttributeReference() {
+    var token = this.#makeToken("ATTRIBUTE_REF");
+    var value = this.#consumeChar();
+    while (this.#isValidCSSChar(this.#currentChar())) {
+      value += this.#consumeChar();
+    }
+    if (this.#currentChar() === "=") {
+      value += this.#consumeChar();
+      if (this.#currentChar() === '"' || this.#currentChar() === "'") {
+        value += this.#consumeString().value;
+      } else if (this.#isAlpha(this.#currentChar()) || this.#isNumeric(this.#currentChar()) || this.#isIdentifierChar(this.#currentChar())) {
+        value += this.#consumeIdentifier().value;
+      }
+    }
+    token.value = value;
+    token.end = this.#position;
+    return token;
+  }
+  #consumeStyleReference() {
+    var token = this.#makeToken("STYLE_REF");
+    var value = this.#consumeChar();
+    while (this.#isAlpha(this.#currentChar()) || this.#currentChar() === "-") {
+      value += this.#consumeChar();
+    }
+    token.value = value;
+    token.end = this.#position;
+    return token;
+  }
+  #consumeTemplateLogic() {
+    var token = this.#makeToken("IDENTIFIER");
+    this.#consumeChar();
+    var value = "";
+    while (this.#isAlpha(this.#currentChar())) {
+      value += this.#consumeChar();
+    }
+    token.value = value;
+    token.end = this.#position;
+    return token;
+  }
+  #consumeTemplateLine() {
+    var token = this.#makeToken("TEMPLATE_LINE");
+    token.value = "TEMPLATE_LINE";
+    var content = "";
+    while (this.#currentChar() && !this.#isNewline(this.#currentChar())) {
+      content += this.#consumeChar();
+    }
+    if (this.#currentChar() && this.#isNewline(this.#currentChar())) {
+      this.#consumeChar();
+      content += "\n";
+      this.#templateMode = "indeterminant";
+    }
+    token.content = content;
+    token.end = this.#position;
+    return token;
+  }
+  #consumeTemplateIdentifier() {
+    var token = this.#makeToken("IDENTIFIER");
+    var value = this.#consumeChar();
+    var escaped = value === "\\";
+    if (escaped) value = "";
+    while (this.#isAlpha(this.#currentChar()) || this.#isNumeric(this.#currentChar()) || this.#isIdentifierChar(this.#currentChar()) || this.#currentChar() === "\\" || this.#currentChar() === "{" || this.#currentChar() === "}") {
+      if (this.#currentChar() === "$" && !escaped) {
+        break;
+      } else if (this.#currentChar() === "\\") {
+        escaped = true;
+        this.#consumeChar();
+      } else {
+        escaped = false;
+        value += this.#consumeChar();
+      }
+    }
+    if (this.#currentChar() === "!" && value === "beep") {
+      value += this.#consumeChar();
+    }
+    token.value = value;
+    token.end = this.#position;
+    return token;
+  }
+  #consumeIdentifier() {
+    var token = this.#makeToken("IDENTIFIER");
+    var value = this.#consumeChar();
+    while (this.#isAlpha(this.#currentChar()) || this.#isNumeric(this.#currentChar()) || this.#isIdentifierChar(this.#currentChar())) {
+      value += this.#consumeChar();
+    }
+    if (this.#currentChar() === "!" && value === "beep") {
+      value += this.#consumeChar();
+    }
+    token.value = value;
+    token.end = this.#position;
+    return token;
+  }
+  #consumeNumber() {
+    var token = this.#makeToken("NUMBER");
+    var value = this.#consumeChar();
+    while (this.#isNumeric(this.#currentChar())) {
+      value += this.#consumeChar();
+    }
+    if (this.#currentChar() === "." && this.#isNumeric(this.#nextChar())) {
+      value += this.#consumeChar();
+    }
+    while (this.#isNumeric(this.#currentChar())) {
+      value += this.#consumeChar();
+    }
+    if (this.#currentChar() === "e" || this.#currentChar() === "E") {
+      if (this.#isNumeric(this.#nextChar())) {
+        value += this.#consumeChar();
+      } else if (this.#nextChar() === "-") {
+        value += this.#consumeChar();
+        value += this.#consumeChar();
+      }
+    }
+    while (this.#isNumeric(this.#currentChar())) {
+      value += this.#consumeChar();
+    }
+    token.value = value;
+    token.end = this.#position;
+    return token;
+  }
+  #consumeOp() {
+    var token = this.#makeOpToken();
+    var value = this.#consumeChar();
+    while (this.#currentChar() && OP_TABLE[value + this.#currentChar()]) {
+      value += this.#consumeChar();
+    }
+    token.type = OP_TABLE[value];
+    token.value = value;
+    token.end = this.#position;
+    return token;
+  }
+  #consumeString() {
+    var token = this.#makeToken("STRING");
+    var startChar = this.#consumeChar();
+    token.template = startChar === "`";
+    var value = "";
+    while (this.#currentChar() && this.#currentChar() !== startChar) {
+      if (this.#currentChar() === "\\") {
+        this.#consumeChar();
+        let next = this.#consumeChar();
+        if (next === "b") value += "\b";
+        else if (next === "f") value += "\f";
+        else if (next === "n") value += "\n";
+        else if (next === "r") value += "\r";
+        else if (next === "t") value += "	";
+        else if (next === "v") value += "\v";
+        else if (token.template && next === "$") value += "\\$";
+        else if (next === "x") {
+          const hex = this.#consumeHexEscape();
+          if (Number.isNaN(hex)) {
+            throw new Error("Invalid hexadecimal escape at [Line: " + token.line + ", Column: " + token.column + "]");
+          }
+          value += String.fromCharCode(hex);
+        } else value += next;
+      } else {
+        value += this.#consumeChar();
+      }
+    }
+    if (this.#currentChar() !== startChar) {
+      throw new Error("Unterminated string at [Line: " + token.line + ", Column: " + token.column + "]");
+    } else {
+      this.#consumeChar();
+    }
+    token.value = value;
+    token.end = this.#position;
+    return token;
+  }
+  #consumeHexEscape() {
+    if (!this.#currentChar()) return NaN;
+    let result = 16 * Number.parseInt(this.#consumeChar(), 16);
+    if (!this.#currentChar()) return NaN;
+    result += Number.parseInt(this.#consumeChar(), 16);
+    return result;
+  }
+  // ----- Main tokenization loop -----
+  #isLineComment() {
+    var c = this.#currentChar(), n = this.#nextChar(), n2 = this.#charAt(2);
+    return c === "-" && n === "-" && (this.#isWhitespace(n2) || n2 === "" || n2 === "-") || c === "/" && n === "/" && (this.#isWhitespace(n2) || n2 === "" || n2 === "/");
+  }
+  #isBlockComment() {
+    var c = this.#currentChar(), n = this.#nextChar(), n2 = this.#charAt(2);
+    return c === "/" && n === "*" && (this.#isWhitespace(n2) || n2 === "" || n2 === "*");
+  }
+  #tokenize() {
+    while (this.#position < this.#source.length) {
+      if (this.#isLineComment()) {
+        this.#consumeComment();
+      } else if (this.#isBlockComment()) {
+        this.#consumeMultilineComment();
+      } else if (this.#isWhitespace(this.#currentChar())) {
+        this.#tokens.push(this.#consumeWhitespace());
+      } else if (!this.#possiblePrecedingSymbol() && this.#currentChar() === "." && (this.#isAlpha(this.#nextChar()) || this.#nextChar() === "{" || this.#nextChar() === "-")) {
+        this.#tokens.push(this.#consumeClassReference());
+      } else if (!this.#possiblePrecedingSymbol() && this.#currentChar() === "#" && (this.#isAlpha(this.#nextChar()) || this.#nextChar() === "{")) {
+        if (this.#template === "lines" && this.#templateMode === "indeterminant") {
+          this.#templateMode = "command";
+          this.#tokens.push(this.#consumeTemplateLogic());
+        } else {
+          this.#tokens.push(this.#consumeIdReference());
+        }
+      } else if (this.#template === "lines" && this.#templateMode === "indeterminant" && this.#templateBraceCount === 0) {
+        this.#templateMode = "template";
+        this.#tokens.push(this.#consumeTemplateLine());
+      } else if (this.#currentChar() === "[" && this.#nextChar() === "@") {
+        this.#tokens.push(this.#consumeAttributeReference());
+      } else if (this.#currentChar() === "@") {
+        this.#tokens.push(this.#consumeShortAttributeReference());
+      } else if (this.#currentChar() === "*" && this.#isAlpha(this.#nextChar())) {
+        this.#tokens.push(this.#consumeStyleReference());
+      } else if (this.#inTemplate() && (this.#isAlpha(this.#currentChar()) || this.#currentChar() === "\\") && this.#templateMode !== "command") {
+        this.#tokens.push(this.#consumeTemplateIdentifier());
+      } else if ((!this.#inTemplate() || this.#templateMode === "command") && (this.#isAlpha(this.#currentChar()) || this.#isIdentifierChar(this.#currentChar()))) {
+        this.#tokens.push(this.#consumeIdentifier());
+      } else if (this.#isNumeric(this.#currentChar())) {
+        this.#tokens.push(this.#consumeNumber());
+      } else if ((!this.#inTemplate() || this.#templateMode === "command") && (this.#currentChar() === '"' || this.#currentChar() === "`")) {
+        this.#tokens.push(this.#consumeString());
+      } else if ((!this.#inTemplate() || this.#templateMode === "command") && this.#currentChar() === "'") {
+        if (this.#isValidSingleQuoteStringStart()) {
+          this.#tokens.push(this.#consumeString());
+        } else {
+          this.#tokens.push(this.#consumeOp());
+        }
+      } else if (OP_TABLE[this.#currentChar()]) {
+        if (this.#lastToken === "$" && this.#currentChar() === "{") {
+          this.#templateBraceCount++;
+        }
+        if (this.#currentChar() === "}") {
+          this.#templateBraceCount--;
+        }
+        this.#tokens.push(this.#consumeOp());
+      } else if (this.#inTemplate() || this.#isReservedChar(this.#currentChar())) {
+        this.#tokens.push(this.#makeToken("RESERVED", this.#consumeChar()));
+      } else {
+        if (this.#position < this.#source.length) {
+          throw new Error("Unknown token: " + this.#currentChar() + " ");
+        }
+      }
+    }
+    return new Tokens(this.#tokens, this.#source);
+  }
 };
-var Tokenizer = _Tokenizer;
 
 // src/parsetree/base.js
 var ParseElement = class {
@@ -705,6 +753,9 @@ var Expression = class extends ParseElement {
   evaluate(context) {
     return context.meta.runtime.unifiedEval(this, context);
   }
+  evalStatically() {
+    throw new Error("This expression cannot be evaluated statically: " + this.type);
+  }
 };
 var Command = class extends ParseElement {
   constructor() {
@@ -717,31 +768,14 @@ var Command = class extends ParseElement {
     context.meta.command = this;
     return context.meta.runtime.unifiedExec(this, context);
   }
-  static parsePseudopossessiveTarget(parser) {
-    var targets;
-    if (parser.matchToken("the") || parser.matchToken("element") || parser.matchToken("elements") || parser.currentToken().type === "CLASS_REF" || parser.currentToken().type === "ID_REF" || parser.currentToken().op && parser.currentToken().value === "<") {
-      parser.possessivesDisabled = true;
-      try {
-        targets = parser.parseElement("expression");
-      } finally {
-        parser.possessivesDisabled = false;
-      }
-      if (parser.matchOpToken("'")) {
-        parser.requireToken("s");
-      }
-    } else if (parser.currentToken().type === "IDENTIFIER" && parser.currentToken().value === "its") {
-      targets = parser.parseElement("pseudopossessiveIts");
-    } else {
-      parser.matchToken("my") || parser.matchToken("me");
-      targets = parser.parseElement("implicitMeTarget");
-    }
-    return targets;
+  findNext(context) {
+    return context.meta.runtime.findNext(this, context);
   }
 };
 var Feature = class extends ParseElement {
+  isFeature = true;
   constructor() {
     super();
-    __publicField(this, "isFeature", true);
     if (this.constructor.keyword) {
       this.type = this.constructor.keyword + "Feature";
     }
@@ -774,7 +808,7 @@ var EmptyCommandListCommand = class extends Command {
     this.type = "emptyCommandListCommand";
   }
   resolve(context) {
-    return context.meta.runtime.findNext(this, context);
+    return this.findNext(context);
   }
 };
 var UnlessStatementModifier = class extends Command {
@@ -796,11 +830,30 @@ var HyperscriptProgram = class {
   constructor(features) {
     this.type = "hyperscript";
     this.features = features;
+    this.errors = [];
   }
   apply(target, source, args, runtime2) {
     for (const feature of this.features) {
       feature.install(target, source, args, runtime2);
     }
+  }
+};
+var FailedFeature = class extends Feature {
+  constructor(error) {
+    super();
+    this.type = "failedFeature";
+    this.error = error;
+  }
+  install() {
+  }
+};
+var FailedCommand = class extends Command {
+  constructor(error) {
+    super();
+    this.type = "failedCommand";
+    this.error = error;
+  }
+  resolve() {
   }
 };
 var ImplicitReturn = class extends Command {
@@ -817,20 +870,296 @@ var ImplicitReturn = class extends Command {
   }
 };
 
-// src/core/parser.js
-var _kernel, _possessivesDisabled;
-var _Parser = class _Parser {
-  constructor(kernel2, tokens) {
-    __privateAdd(this, _kernel);
-    __privateAdd(this, _possessivesDisabled, false);
-    __privateSet(this, _kernel, kernel2);
+// src/parsetree/expressions/literals.js
+var literals_exports = {};
+__export(literals_exports, {
+  ArrayLiteral: () => ArrayLiteral,
+  BooleanLiteral: () => BooleanLiteral,
+  NakedNamedArgumentList: () => NakedNamedArgumentList,
+  NakedString: () => NakedString,
+  NamedArgumentList: () => NamedArgumentList,
+  NullLiteral: () => NullLiteral,
+  NumberLiteral: () => NumberLiteral,
+  ObjectKey: () => ObjectKey,
+  ObjectLiteral: () => ObjectLiteral,
+  StringLike: () => StringLike,
+  StringLiteral: () => StringLiteral
+});
+var NakedString = class _NakedString extends Expression {
+  static grammarName = "nakedString";
+  constructor(tokens) {
+    super();
     this.tokens = tokens;
   }
-  get possessivesDisabled() {
-    return __privateGet(this, _possessivesDisabled);
+  static parse(parser) {
+    if (parser.hasMore()) {
+      var tokenArr = parser.consumeUntilWhitespace();
+      parser.matchTokenType("WHITESPACE");
+      return new _NakedString(tokenArr);
+    }
   }
-  set possessivesDisabled(value) {
-    __privateSet(this, _possessivesDisabled, value);
+  evalStatically() {
+    return this.resolve();
+  }
+  resolve(context) {
+    return this.tokens.map(function(t) {
+      return t.value;
+    }).join("");
+  }
+};
+var BooleanLiteral = class _BooleanLiteral extends Expression {
+  static grammarName = "boolean";
+  static expressionType = "leaf";
+  constructor(value) {
+    super();
+    this.value = value;
+  }
+  static parse(parser) {
+    var booleanLiteral = parser.matchToken("true") || parser.matchToken("false");
+    if (!booleanLiteral) return;
+    const value = booleanLiteral.value === "true";
+    return new _BooleanLiteral(value);
+  }
+  evalStatically() {
+    return this.value;
+  }
+  resolve(context) {
+    return this.value;
+  }
+};
+var NullLiteral = class _NullLiteral extends Expression {
+  static grammarName = "null";
+  static expressionType = "leaf";
+  constructor() {
+    super();
+  }
+  static parse(parser) {
+    if (parser.matchToken("null")) {
+      return new _NullLiteral();
+    }
+  }
+  evalStatically() {
+    return null;
+  }
+  resolve(context) {
+    return null;
+  }
+};
+var NumberLiteral = class _NumberLiteral extends Expression {
+  static grammarName = "number";
+  static expressionType = "leaf";
+  constructor(value, numberToken) {
+    super();
+    this.value = value;
+    this.numberToken = numberToken;
+  }
+  static parse(parser) {
+    var number = parser.matchTokenType("NUMBER");
+    if (!number) return;
+    var numberToken = number;
+    var value = parseFloat(
+      /** @type {string} */
+      number.value
+    );
+    return new _NumberLiteral(value, numberToken);
+  }
+  evalStatically() {
+    return this.value;
+  }
+  resolve(context) {
+    return this.value;
+  }
+};
+var StringLiteral = class _StringLiteral extends Expression {
+  static grammarName = "string";
+  static expressionType = "leaf";
+  constructor(stringToken, rawValue, args) {
+    super();
+    this.token = stringToken;
+    this.rawValue = rawValue;
+    this.args = args.length > 0 ? { parts: args } : null;
+  }
+  static parse(parser) {
+    var stringToken = parser.matchTokenType("STRING");
+    if (!stringToken) return;
+    var rawValue = (
+      /** @type {string} */
+      stringToken.value
+    );
+    var args;
+    if (stringToken.template) {
+      var innerTokens = Tokenizer.tokenize(rawValue, true);
+      var innerParser = parser.createChildParser(innerTokens);
+      args = innerParser.parseStringTemplate();
+    } else {
+      args = [];
+    }
+    return new _StringLiteral(stringToken, rawValue, args);
+  }
+  evalStatically() {
+    if (this.args === null) return this.rawValue;
+    return super.evalStatically();
+  }
+  resolve(context, { parts } = {}) {
+    if (!parts || parts.length === 0) {
+      return this.rawValue;
+    }
+    var returnStr = "";
+    for (var i = 0; i < parts.length; i++) {
+      var val = parts[i];
+      if (val !== void 0) {
+        returnStr += val;
+      }
+    }
+    return returnStr;
+  }
+};
+var ArrayLiteral = class _ArrayLiteral extends Expression {
+  static grammarName = "arrayLiteral";
+  static expressionType = "leaf";
+  constructor(values) {
+    super();
+    this.values = values;
+    this.args = { values };
+  }
+  static parse(parser) {
+    if (!parser.matchOpToken("[")) return;
+    var values = [];
+    if (!parser.matchOpToken("]")) {
+      do {
+        var expr = parser.requireElement("expression");
+        values.push(expr);
+      } while (parser.matchOpToken(","));
+      parser.requireOpToken("]");
+    }
+    return new _ArrayLiteral(values);
+  }
+  resolve(context, { values }) {
+    return values;
+  }
+};
+var ObjectKey = class _ObjectKey extends Expression {
+  static grammarName = "objectKey";
+  constructor(key, expr, args) {
+    super();
+    this.key = key;
+    this.expr = expr;
+    this.args = args;
+  }
+  static parse(parser) {
+    var token;
+    if (token = parser.matchTokenType("STRING")) {
+      return new _ObjectKey(token.value, null, null);
+    } else if (parser.matchOpToken("[")) {
+      var expr = parser.parseElement("expression");
+      parser.requireOpToken("]");
+      return new _ObjectKey(null, expr, { value: expr });
+    } else {
+      var key = "";
+      do {
+        token = parser.matchTokenType("IDENTIFIER") || parser.matchOpToken("-");
+        if (token) key += token.value;
+      } while (token);
+      return new _ObjectKey(key, null, null);
+    }
+  }
+  evalStatically() {
+    if (!this.expr) return this.key;
+    return super.evalStatically();
+  }
+  resolve(ctx, { value } = {}) {
+    if (this.expr) {
+      return value;
+    }
+    return this.key;
+  }
+};
+var ObjectLiteral = class _ObjectLiteral extends Expression {
+  static grammarName = "objectLiteral";
+  static expressionType = "leaf";
+  constructor(keyExpressions, valueExpressions) {
+    super();
+    this.keyExpressions = keyExpressions;
+    this.valueExpressions = valueExpressions;
+    this.args = { keys: keyExpressions, values: valueExpressions };
+  }
+  static parse(parser) {
+    if (!parser.matchOpToken("{")) return;
+    var keyExpressions = [];
+    var valueExpressions = [];
+    if (!parser.matchOpToken("}")) {
+      do {
+        var name = parser.requireElement("objectKey");
+        parser.requireOpToken(":");
+        var value = parser.requireElement("expression");
+        valueExpressions.push(value);
+        keyExpressions.push(name);
+      } while (parser.matchOpToken(",") && !parser.peekToken("}", 0, "R_BRACE"));
+      parser.requireOpToken("}");
+    }
+    return new _ObjectLiteral(keyExpressions, valueExpressions);
+  }
+  resolve(context, { keys, values }) {
+    var returnVal = {};
+    for (var i = 0; i < keys.length; i++) {
+      returnVal[keys[i]] = values[i];
+    }
+    return returnVal;
+  }
+};
+var NamedArgumentList = class _NamedArgumentList extends Expression {
+  static grammarName = "namedArgumentList";
+  constructor(fields, valueExpressions) {
+    super();
+    this.fields = fields;
+    this.args = { values: valueExpressions };
+  }
+  static parseNaked(parser) {
+    var fields = [];
+    var valueExpressions = [];
+    if (parser.currentToken().type === "IDENTIFIER") {
+      do {
+        var name = parser.requireTokenType("IDENTIFIER");
+        parser.requireOpToken(":");
+        var value = parser.requireElement("expression");
+        valueExpressions.push(value);
+        fields.push({ name, value });
+      } while (parser.matchOpToken(","));
+    }
+    return new _NamedArgumentList(fields, valueExpressions);
+  }
+  static parse(parser) {
+    if (!parser.matchOpToken("(")) return;
+    var elt = _NamedArgumentList.parseNaked(parser);
+    parser.requireOpToken(")");
+    return elt;
+  }
+  resolve(context, { values }) {
+    var returnVal = { _namedArgList_: true };
+    for (var i = 0; i < values.length; i++) {
+      var field = this.fields[i];
+      returnVal[field.name.value] = values[i];
+    }
+    return returnVal;
+  }
+};
+var NakedNamedArgumentList = class extends Expression {
+  static grammarName = "nakedNamedArgumentList";
+  static parse = NamedArgumentList.parseNaked;
+};
+var StringLike = class extends Expression {
+  static grammarName = "stringLike";
+  static parse(parser) {
+    return parser.parseAnyOf(["string", "nakedString"]);
+  }
+};
+
+// src/core/parser.js
+var Parser = class _Parser {
+  #kernel;
+  constructor(kernel2, tokens) {
+    this.#kernel = kernel2;
+    this.tokens = tokens;
   }
   // ===========================
   // Token delegation methods
@@ -911,22 +1240,22 @@ var _Parser = class _Parser {
     return this.tokens.list;
   }
   createChildParser(tokens) {
-    return new _Parser(__privateGet(this, _kernel), tokens);
+    return new _Parser(this.#kernel, tokens);
   }
   // ===========================
   // Kernel delegation methods
   // ===========================
   parseElement(type, root = null) {
-    return __privateGet(this, _kernel).parseElement(type, this, root);
+    return this.#kernel.parseElement(type, this, root);
   }
   requireElement(type, message, root) {
-    return __privateGet(this, _kernel).requireElement(type, this, message, root);
+    return this.#kernel.requireElement(type, this, message, root);
   }
   parseAnyOf(types) {
-    return __privateGet(this, _kernel).parseAnyOf(types, this);
+    return this.#kernel.parseAnyOf(types, this);
   }
   raiseParseError(message) {
-    return __privateGet(this, _kernel).raiseParseError(this.tokens, message);
+    return this.#kernel.raiseParseError(this.tokens, message);
   }
   // ===========================
   // Parser-owned methods
@@ -961,10 +1290,10 @@ var _Parser = class _Parser {
     return false;
   }
   commandStart(token) {
-    return __privateGet(this, _kernel).commandStart(token);
+    return this.#kernel.commandStart(token);
   }
   featureStart(token) {
-    return __privateGet(this, _kernel).featureStart(token);
+    return this.#kernel.featureStart(token);
   }
   setParent(elt, parent) {
     if (typeof elt === "object") {
@@ -976,6 +1305,20 @@ var _Parser = class _Parser {
       this.setParent(elt.next, parent);
     }
   }
+  parseURLOrExpression() {
+    var cur = this.currentToken();
+    if (cur.value === "/" && cur.type === "DIVIDE") {
+      var tokens = this.consumeUntilWhitespace();
+      this.matchTokenType("WHITESPACE");
+      return new NakedString(tokens);
+    }
+    if (cur.type === "IDENTIFIER" && (cur.value === "http" || cur.value === "https" || cur.value === "ws" || cur.value === "wss")) {
+      var tokens = this.consumeUntilWhitespace();
+      this.matchTokenType("WHITESPACE");
+      return new NakedString(tokens);
+    }
+    return this.requireElement("expression");
+  }
   ensureTerminated(commandList) {
     var implicitReturn = new ImplicitReturn();
     var end = commandList;
@@ -985,23 +1328,19 @@ var _Parser = class _Parser {
     end.next = implicitReturn;
   }
 };
-_kernel = new WeakMap();
-_possessivesDisabled = new WeakMap();
-var Parser = _Parser;
 
 // src/core/kernel.js
-var _grammar, _commands, _features, _leafExpressions, _indirectExpressions, _postfixExpressions, _unaryExpressions, _topExpressions, _assignableExpressions;
-var _LanguageKernel = class _LanguageKernel {
+var LanguageKernel = class _LanguageKernel {
+  #grammar = {};
+  #commands = {};
+  #features = {};
+  #leafExpressions = [];
+  #indirectExpressions = [];
+  #postfixExpressions = [];
+  #unaryExpressions = [];
+  #topExpressions = [];
+  #assignableExpressions = [];
   constructor() {
-    __privateAdd(this, _grammar, {});
-    __privateAdd(this, _commands, {});
-    __privateAdd(this, _features, {});
-    __privateAdd(this, _leafExpressions, []);
-    __privateAdd(this, _indirectExpressions, []);
-    __privateAdd(this, _postfixExpressions, []);
-    __privateAdd(this, _unaryExpressions, []);
-    __privateAdd(this, _topExpressions, []);
-    __privateAdd(this, _assignableExpressions, []);
     this.addGrammarElement("hyperscript", this.parseHyperscriptProgram.bind(this));
     this.addGrammarElement("feature", this.parseFeature.bind(this));
     this.addGrammarElement("commandList", this.parseCommandList.bind(this));
@@ -1021,7 +1360,7 @@ var _LanguageKernel = class _LanguageKernel {
       parser.requireOpToken(")");
       return featureElement;
     }
-    var featureDefinition = __privateGet(this, _features)[parser.currentToken().value || ""];
+    var featureDefinition = this.#features[parser.currentToken().value || ""];
     if (featureDefinition) {
       return featureDefinition(parser);
     }
@@ -1032,7 +1371,7 @@ var _LanguageKernel = class _LanguageKernel {
       parser.requireOpToken(")");
       return commandElement2;
     }
-    var commandDefinition = __privateGet(this, _commands)[parser.currentToken().value || ""];
+    var commandDefinition = this.#commands[parser.currentToken().value || ""];
     let commandElement;
     if (commandDefinition) {
       commandElement = commandDefinition(parser);
@@ -1046,7 +1385,17 @@ var _LanguageKernel = class _LanguageKernel {
   }
   parseCommandList(parser) {
     if (parser.hasMore()) {
-      var cmd = parser.parseElement("command");
+      var cmd;
+      try {
+        cmd = parser.parseElement("command");
+      } catch (e) {
+        if (e instanceof ParseRecoverySentinel) {
+          cmd = new FailedCommand(e.parseError);
+          this.#syncToCommand(parser);
+        } else {
+          throw e;
+        }
+      }
       if (cmd) {
         parser.matchToken("then");
         const next = parser.parseElement("commandList");
@@ -1057,15 +1406,15 @@ var _LanguageKernel = class _LanguageKernel {
     return new EmptyCommandListCommand();
   }
   parseLeaf(parser) {
-    var result = parser.parseAnyOf(__privateGet(this, _leafExpressions));
+    var result = parser.parseAnyOf(this.#leafExpressions);
     if (result == null) {
       return parser.parseElement("symbol");
     }
     return result;
   }
   parseIndirectExpression(parser, root) {
-    for (var i = 0; i < __privateGet(this, _indirectExpressions).length; i++) {
-      var indirect = __privateGet(this, _indirectExpressions)[i];
+    for (var i = 0; i < this.#indirectExpressions.length; i++) {
+      var indirect = this.#indirectExpressions[i];
       root.endToken = parser.lastMatch();
       var result = this.parseElement(indirect, parser, root);
       if (result) {
@@ -1076,8 +1425,8 @@ var _LanguageKernel = class _LanguageKernel {
   }
   parsePostfixExpression(parser) {
     var root = parser.parseElement("negativeNumber");
-    for (var i = 0; i < __privateGet(this, _postfixExpressions).length; i++) {
-      var postfixType = __privateGet(this, _postfixExpressions)[i];
+    for (var i = 0; i < this.#postfixExpressions.length; i++) {
+      var postfixType = this.#postfixExpressions[i];
       var result = this.parseElement(postfixType, parser, root);
       if (result) {
         return result;
@@ -1087,11 +1436,11 @@ var _LanguageKernel = class _LanguageKernel {
   }
   parseUnaryExpression(parser) {
     parser.matchToken("the");
-    return parser.parseAnyOf(__privateGet(this, _unaryExpressions)) || parser.parseElement("postfixExpression");
+    return parser.parseAnyOf(this.#unaryExpressions) || parser.parseElement("postfixExpression");
   }
   parseExpression(parser) {
     parser.matchToken("the");
-    return parser.parseAnyOf(__privateGet(this, _topExpressions));
+    return parser.parseAnyOf(this.#topExpressions);
   }
   parseAssignableExpression(parser) {
     parser.matchToken("the");
@@ -1100,7 +1449,7 @@ var _LanguageKernel = class _LanguageKernel {
     while (checkExpr && checkExpr.type === "parenthesized") {
       checkExpr = checkExpr.expr;
     }
-    if (checkExpr && __privateGet(this, _assignableExpressions).includes(checkExpr.type)) {
+    if (checkExpr && this.#assignableExpressions.includes(checkExpr.type)) {
       return expr;
     } else {
       parser.raiseParseError(
@@ -1128,10 +1477,36 @@ var _LanguageKernel = class _LanguageKernel {
   parseHyperscriptProgram(parser) {
     var features = [];
     if (parser.hasMore()) {
-      while (parser.featureStart(parser.currentToken()) || parser.currentToken().value === "(") {
-        var feature = parser.requireElement("feature");
-        features.push(feature);
-        parser.matchToken("end");
+      while (parser.currentToken().type !== "EOF") {
+        if (parser.featureStart(parser.currentToken()) || parser.currentToken().value === "(") {
+          try {
+            var feature = parser.requireElement("feature");
+            features.push(feature);
+            parser.matchToken("end");
+          } catch (e) {
+            if (e instanceof ParseRecoverySentinel) {
+              features.push(new FailedFeature(e.parseError));
+              this.#syncToFeature(parser);
+            } else {
+              throw e;
+            }
+          }
+        } else if (parser.currentToken().value === "end") {
+          break;
+        } else if (parser.tokens.recoveryMode) {
+          try {
+            parser.raiseParseError("Unexpected token: " + parser.currentToken().value);
+          } catch (e) {
+            if (e instanceof ParseRecoverySentinel) {
+              features.push(new FailedFeature(e.parseError));
+              this.#syncToFeature(parser);
+            } else {
+              throw e;
+            }
+          }
+        } else {
+          break;
+        }
       }
     }
     return new HyperscriptProgram(features);
@@ -1145,7 +1520,7 @@ var _LanguageKernel = class _LanguageKernel {
     parseElement.programSource = tokens.source;
   }
   parseElement(type, parser, root = void 0) {
-    var elementDefinition = __privateGet(this, _grammar)[type];
+    var elementDefinition = this.#grammar[type];
     if (elementDefinition) {
       var tokens = parser.tokens;
       var start = tokens.currentToken();
@@ -1177,15 +1552,15 @@ var _LanguageKernel = class _LanguageKernel {
     }
   }
   addGrammarElement(name, definition) {
-    if (__privateGet(this, _grammar)[name]) {
+    if (this.#grammar[name]) {
       throw new Error(`Grammar element '${name}' already exists`);
     }
-    __privateGet(this, _grammar)[name] = definition;
+    this.#grammar[name] = definition;
   }
   addCommand(keyword, definition) {
     var commandGrammarType = keyword + "Command";
-    __privateGet(this, _grammar)[commandGrammarType] = definition;
-    __privateGet(this, _commands)[keyword] = definition;
+    this.#grammar[commandGrammarType] = definition;
+    this.#commands[keyword] = definition;
   }
   addCommands(...commandClasses) {
     for (const CommandClass of commandClasses) {
@@ -1212,8 +1587,8 @@ var _LanguageKernel = class _LanguageKernel {
   }
   addFeature(keyword, definition) {
     var featureGrammarType = keyword + "Feature";
-    __privateGet(this, _grammar)[featureGrammarType] = definition;
-    __privateGet(this, _features)[keyword] = definition;
+    this.#grammar[featureGrammarType] = definition;
+    this.#features[keyword] = definition;
   }
   /**
    * Register a parse element class based on its static metadata.
@@ -1255,7 +1630,7 @@ var _LanguageKernel = class _LanguageKernel {
         break;
     }
     if (ElementClass.assignable) {
-      __privateGet(this, _assignableExpressions).push(name);
+      this.#assignableExpressions.push(name);
     }
   }
   /**
@@ -1271,30 +1646,30 @@ var _LanguageKernel = class _LanguageKernel {
     }
   }
   addLeafExpression(name, definition) {
-    __privateGet(this, _leafExpressions).push(name);
+    this.#leafExpressions.push(name);
     this.addGrammarElement(name, definition);
   }
   addIndirectExpression(name, definition) {
-    __privateGet(this, _indirectExpressions).push(name);
+    this.#indirectExpressions.push(name);
     this.addGrammarElement(name, definition);
   }
   addPostfixExpression(name, definition) {
-    __privateGet(this, _postfixExpressions).push(name);
+    this.#postfixExpressions.push(name);
     this.addGrammarElement(name, definition);
   }
   addUnaryExpression(name, definition) {
-    __privateGet(this, _unaryExpressions).push(name);
+    this.#unaryExpressions.push(name);
     this.addGrammarElement(name, definition);
   }
   addTopExpression(name, definition) {
-    __privateGet(this, _topExpressions).push(name);
+    this.#topExpressions.push(name);
     this.addGrammarElement(name, definition);
   }
   commandStart(token) {
-    return __privateGet(this, _commands)[token.value || ""];
+    return this.#commands[token.value || ""];
   }
   featureStart(token) {
-    return __privateGet(this, _features)[token.value || ""];
+    return this.#features[token.value || ""];
   }
   static raiseParseError(tokens, message) {
     tokens.raiseError(message);
@@ -1303,10 +1678,34 @@ var _LanguageKernel = class _LanguageKernel {
     tokens.raiseError(message);
   }
   parseHyperScript(tokens) {
+    tokens.enableRecovery();
     var parser = new Parser(this, tokens);
-    var result = parser.parseElement("hyperscript");
-    if (tokens.hasMore()) this.raiseParseError(tokens);
-    if (result) return result;
+    var result;
+    try {
+      result = parser.parseElement("hyperscript");
+      if (tokens.hasMore()) this.raiseParseError(tokens);
+    } catch (e) {
+      if (!(e instanceof ParseRecoverySentinel)) throw e;
+    }
+    if (result) {
+      result.errors = tokens.errors;
+      return result;
+    }
+  }
+  #syncToFeature(parser) {
+    parser.tokens.clearFollows();
+    while (parser.hasMore() && !parser.featureStart(parser.currentToken()) && parser.currentToken().value !== "end" && parser.currentToken().type !== "EOF") {
+      parser.tokens.consumeToken();
+    }
+  }
+  #syncToCommand(parser) {
+    parser.tokens.clearFollows();
+    while (parser.hasMore() && !parser.commandBoundary(parser.currentToken())) {
+      parser.tokens.consumeToken();
+    }
+    if (parser.hasMore() && parser.currentToken().value === "then") {
+      parser.tokens.consumeToken();
+    }
   }
   parse(tokenizer2, src) {
     var tokens = tokenizer2.tokenize(src);
@@ -1327,30 +1726,24 @@ var _LanguageKernel = class _LanguageKernel {
     }
   }
 };
-_grammar = new WeakMap();
-_commands = new WeakMap();
-_features = new WeakMap();
-_leafExpressions = new WeakMap();
-_indirectExpressions = new WeakMap();
-_postfixExpressions = new WeakMap();
-_unaryExpressions = new WeakMap();
-_topExpressions = new WeakMap();
-_assignableExpressions = new WeakMap();
-var LanguageKernel = _LanguageKernel;
 
 // src/core/config.js
 var config = {
   attributes: "_, script, data-script",
   defaultTransition: "all 500ms ease-in",
   disableSelector: "[disable-scripting], [data-disable-scripting]",
-  hideShowStrategies: {}
+  hideShowStrategies: {},
+  logAll: false,
+  mutatingMethods: {
+    Array: ["push", "pop", "shift", "unshift", "splice", "sort", "reverse", "fill", "copyWithin"],
+    Set: ["add", "delete", "clear"],
+    Map: ["set", "delete", "clear"]
+  }
 };
 
 // src/core/runtime/conversions.js
 var HyperscriptFormData = class {
-  constructor() {
-    __publicField(this, "result", {});
-  }
+  result = {};
   addElement(node) {
     if (node.name == void 0 || node.value == void 0) return;
     if (node.type === "radio" && !node.checked) return;
@@ -1359,15 +1752,16 @@ var HyperscriptFormData = class {
     if (node.type === "checkbox") {
       value = node.checked ? [node.value] : void 0;
     } else if (node.type === "select-multiple") {
-      value = Array.from(node.querySelectorAll("option[selected]"), (o) => o.value);
+      value = Array.from(node.options).filter((o) => o.selected).map((o) => o.value);
     } else {
       value = node.value;
     }
     if (value == void 0) return;
     if (this.result[name] == void 0) {
       this.result[name] = value;
-    } else if (Array.isArray(this.result[name]) && Array.isArray(value)) {
-      this.result[name] = this.result[name].concat(value);
+    } else {
+      var existing = Array.isArray(this.result[name]) ? this.result[name] : [this.result[name]];
+      this.result[name] = existing.concat(value);
     }
   }
   addContainer(node) {
@@ -1393,23 +1787,10 @@ var conversions = {
     },
     // Values conversion - extracts form values from DOM nodes
     function(str, node, runtime2) {
-      if (!(str === "Values" || str.startsWith("Values:"))) {
-        return;
-      }
-      var conversion = str.split(":")[1];
+      if (str !== "Values") return;
       var formData = new HyperscriptFormData();
       runtime2.implicitLoop(node, (node2) => formData.addContainer(node2));
-      if (conversion) {
-        if (conversion === "JSON") {
-          return JSON.stringify(formData.result);
-        } else if (conversion === "Form") {
-          return new URLSearchParams(formData.result).toString();
-        } else {
-          throw "Unknown conversion: " + conversion;
-        }
-      } else {
-        return formData.result;
-      }
+      return formData.result;
     }
   ],
   String: function(val) {
@@ -1428,6 +1809,9 @@ var conversions = {
   Number: function(val) {
     return Number(val);
   },
+  Boolean: function(val) {
+    return !!val;
+  },
   Date: function(val) {
     return new Date(val);
   },
@@ -1435,6 +1819,9 @@ var conversions = {
     return Array.from(val);
   },
   JSON: function(val) {
+    return JSON.parse(val);
+  },
+  JSONString: function(val) {
     return JSON.stringify(val);
   },
   Object: function(val) {
@@ -1446,6 +1833,9 @@ var conversions = {
     } else {
       return Object.assign({}, val);
     }
+  },
+  FormEncoded: function(val) {
+    return new URLSearchParams(val).toString();
   },
   HTML: function(value) {
     var toHTML = (value2) => {
@@ -1487,34 +1877,37 @@ var conversions = {
 };
 
 // src/core/runtime/cookies.js
-var _CookieJar_instances, parseCookies_fn;
 var CookieJar = class {
-  constructor() {
-    __privateAdd(this, _CookieJar_instances);
+  #parseCookies() {
+    if (!document.cookie) return [];
+    return document.cookie.split("; ").map((entry) => {
+      var eq = entry.indexOf("=");
+      return { name: entry.slice(0, eq), value: decodeURIComponent(entry.slice(eq + 1)) };
+    });
   }
   get(target, prop) {
     if (prop === "then") {
       return null;
     } else if (prop === "length") {
-      return __privateMethod(this, _CookieJar_instances, parseCookies_fn).call(this).length;
+      return this.#parseCookies().length;
     } else if (prop === "clear") {
       return (name) => {
         document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT";
       };
     } else if (prop === "clearAll") {
       return () => {
-        for (const cookie of __privateMethod(this, _CookieJar_instances, parseCookies_fn).call(this)) {
+        for (const cookie of this.#parseCookies()) {
           document.cookie = cookie.name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT";
         }
       };
     } else if (prop === Symbol.iterator) {
-      var cookies2 = __privateMethod(this, _CookieJar_instances, parseCookies_fn).call(this);
+      var cookies2 = this.#parseCookies();
       return cookies2[Symbol.iterator].bind(cookies2);
     } else if (typeof prop === "string") {
       if (!isNaN(prop)) {
-        return __privateMethod(this, _CookieJar_instances, parseCookies_fn).call(this)[parseInt(prop)];
+        return this.#parseCookies()[parseInt(prop)];
       }
-      var match = __privateMethod(this, _CookieJar_instances, parseCookies_fn).call(this).find((c) => c.name === prop);
+      var match = this.#parseCookies().find((c) => c.name === prop);
       return match ? match.value : void 0;
     }
   }
@@ -1538,13 +1931,6 @@ var CookieJar = class {
   proxy() {
     return new Proxy({}, this);
   }
-};
-_CookieJar_instances = new WeakSet();
-parseCookies_fn = function() {
-  return document.cookie.split("; ").map((entry) => {
-    var parts = entry.split("=");
-    return { name: parts[0], value: decodeURIComponent(parts[1]) };
-  });
 };
 
 // src/core/runtime/collections.js
@@ -1620,7 +2006,8 @@ var RegExpIterator = class {
   next() {
     const match = this.re.exec(this.str);
     if (match === null) return { done: true };
-    else return { value: match };
+    if (match[0].length === 0) this.re.lastIndex++;
+    return { value: match };
   }
 };
 var RegExpIterable = class {
@@ -1645,6 +2032,16 @@ var HyperscriptModule = class extends EventTarget {
 
 // src/core/runtime/runtime.js
 var cookies = new CookieJar().proxy();
+function _applyWhenResults(elements, results, forwardFn, reverseFn) {
+  var matched = [];
+  for (var i = 0; i < elements.length; i++) {
+    if (results[i]) {
+      forwardFn(elements[i]);
+      matched.push(elements[i]);
+    } else reverseFn(elements[i]);
+  }
+  return matched;
+}
 var Context = class {
   constructor(owner, feature, hyperscriptTarget, event, runtime2, globalScope2, kernel2, tokenizer2) {
     this.meta = {
@@ -1659,34 +2056,60 @@ var Context = class {
     this.locals = {
       cookies
     };
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      Object.defineProperty(this.locals, "clipboard", {
+        get() {
+          return navigator.clipboard.readText();
+        },
+        set(v) {
+          navigator.clipboard.writeText(String(v));
+        },
+        enumerable: true,
+        configurable: true
+      });
+    }
+    if (typeof window !== "undefined" && window.getSelection) {
+      Object.defineProperty(this.locals, "selection", {
+        get() {
+          return window.getSelection().toString();
+        },
+        enumerable: true,
+        configurable: true
+      });
+    }
     this.me = hyperscriptTarget;
     this.you = void 0;
     this.result = void 0;
+    this.beingTested = null;
     this.event = event;
-    this.target = event ? event.target : null;
-    this.detail = event ? event.detail : null;
-    this.sender = event ? event.detail ? event.detail.sender : null : null;
+    this.target = event?.target ?? null;
+    this.detail = event?.detail ?? null;
+    this.sender = event?.detail?.sender ?? null;
     this.body = "document" in globalScope2 ? document.body : null;
     runtime2.addFeatures(owner, this);
   }
 };
-var _kernel2, _tokenizer, _globalScope, _scriptAttrs, _hyperscriptFeaturesMap, _internalDataMap, _Runtime_instances, isReservedWord_fn, isHyperscriptContext_fn, getElementScope_fn, flatGet_fn, isArrayLike_fn, isIterable_fn, getScriptAttributes_fn, getScript_fn, getScriptSelector_fn, initElement_fn;
-var _Runtime = class _Runtime {
-  constructor(globalScope2, kernel2, tokenizer2) {
-    __privateAdd(this, _Runtime_instances);
-    __publicField(this, "HALT", _Runtime.HALT);
-    __privateAdd(this, _kernel2);
-    __privateAdd(this, _tokenizer);
-    __privateAdd(this, _globalScope);
-    __privateAdd(this, _scriptAttrs, null);
-    __privateAdd(this, _hyperscriptFeaturesMap, /* @__PURE__ */ new WeakMap());
-    __privateAdd(this, _internalDataMap, /* @__PURE__ */ new WeakMap());
-    __privateSet(this, _globalScope, globalScope2);
-    __privateSet(this, _kernel2, kernel2);
-    __privateSet(this, _tokenizer, tokenizer2);
+var Runtime = class _Runtime {
+  static HALT = {};
+  HALT = _Runtime.HALT;
+  #kernel;
+  #tokenizer;
+  #globalScope;
+  #reactivity;
+  #morphEngine;
+  #scriptAttrs = null;
+  constructor(globalScope2, kernel2, tokenizer2, reactivity2, morphEngine2) {
+    this.#globalScope = globalScope2;
+    this.#kernel = kernel2;
+    this.#tokenizer = tokenizer2;
+    this.#reactivity = reactivity2;
+    this.#morphEngine = morphEngine2;
   }
   get globalScope() {
-    return __privateGet(this, _globalScope);
+    return this.#globalScope;
+  }
+  get reactivity() {
+    return this.#reactivity;
   }
   // =================================================================
   // Core execution engine
@@ -1713,8 +2136,7 @@ var _Runtime = class _Runtime {
         }
       }
       if (next == null) {
-        console.error(command, " did not return a next element to execute! context: ", ctx);
-        return;
+        throw new Error("Command " + (command.type || "unknown") + " did not return a next element to execute");
       } else if (next.then) {
         next.then((resolvedNext) => {
           this.unifiedExec(resolvedNext, ctx);
@@ -1831,16 +2253,14 @@ var _Runtime = class _Runtime {
   // Context and scope
   // =================================================================
   makeContext(owner, feature, hyperscriptTarget, event) {
-    return new Context(owner, feature, hyperscriptTarget, event, this, __privateGet(this, _globalScope), __privateGet(this, _kernel2), __privateGet(this, _tokenizer));
+    return new Context(owner, feature, hyperscriptTarget, event, this, this.#globalScope, this.#kernel, this.#tokenizer);
   }
   getHyperscriptFeatures(elt) {
-    var hyperscriptFeatures = __privateGet(this, _hyperscriptFeaturesMap).get(elt);
-    if (typeof hyperscriptFeatures === "undefined") {
-      if (elt) {
-        __privateGet(this, _hyperscriptFeaturesMap).set(elt, hyperscriptFeatures = {});
-      }
+    var data = this.getInternalData(elt);
+    if (!data.features) {
+      data.features = {};
     }
-    return hyperscriptFeatures;
+    return data.features;
   }
   addFeatures(owner, ctx) {
     if (owner) {
@@ -1848,104 +2268,257 @@ var _Runtime = class _Runtime {
       this.addFeatures(owner.parentElement, ctx);
     }
   }
-  resolveSymbol(str, context, type) {
-    if (str === "me" || str === "my" || str === "I") {
-      return context.me;
+  // =================================================================
+  // Symbol and property resolution
+  // =================================================================
+  #isReservedWord(str) {
+    return ["meta", "it", "result", "locals", "event", "target", "detail", "sender", "body"].includes(str);
+  }
+  #isHyperscriptContext(context) {
+    return context instanceof Context;
+  }
+  resolveSymbol(str, context, type, targetElement) {
+    if (str === "me" || str === "my" || str === "I") return context.me;
+    if (str === "it" || str === "its") return context.beingTested ?? context.result;
+    if (str === "result") return context.result;
+    if (str === "you" || str === "your" || str === "yourself") return context.you;
+    if (type === "global") {
+      if (this.reactivity.isTracking) this.reactivity.trackGlobalSymbol(str);
+      var val = this.#globalScope[str];
+      this.#trackMutation(val);
+      return val;
     }
-    if (str === "it" || str === "its" || str === "result") {
-      return context.result;
+    if (type === "element") {
+      if (this.reactivity.isTracking) this.reactivity.trackElementSymbol(str, context.meta.owner);
+      var val = this.#getElementScope(context)[str];
+      this.#trackMutation(val);
+      return val;
     }
-    if (str === "you" || str === "your" || str === "yourself") {
-      return context.you;
-    } else {
-      if (type === "global") {
-        return __privateGet(this, _globalScope)[str];
-      } else if (type === "element") {
-        var elementScope = __privateMethod(this, _Runtime_instances, getElementScope_fn).call(this, context);
-        return elementScope[str];
-      } else if (type === "local") {
-        return context.locals[str];
-      } else {
-        if (context.meta && context.meta.context) {
-          var fromMetaContext = context.meta.context[str];
-          if (typeof fromMetaContext !== "undefined") {
-            return fromMetaContext;
-          }
-          if (context.meta.context.detail) {
-            fromMetaContext = context.meta.context.detail[str];
-            if (typeof fromMetaContext !== "undefined") {
-              return fromMetaContext;
-            }
-          }
-        }
-        if (__privateMethod(this, _Runtime_instances, isHyperscriptContext_fn).call(this, context) && !__privateMethod(this, _Runtime_instances, isReservedWord_fn).call(this, str)) {
-          var fromContext = context.locals[str];
-        } else {
-          var fromContext = context[str];
-        }
-        if (typeof fromContext !== "undefined") {
-          return fromContext;
-        } else {
-          var elementScope = __privateMethod(this, _Runtime_instances, getElementScope_fn).call(this, context);
-          fromContext = elementScope[str];
-          if (typeof fromContext !== "undefined") {
-            return fromContext;
-          } else {
-            return __privateGet(this, _globalScope)[str];
-          }
+    if (type === "inherited") {
+      var inherited = this.#resolveInherited(str, context, targetElement);
+      if (this.reactivity.isTracking) {
+        var trackElement = inherited.element || targetElement || context.meta?.owner;
+        if (trackElement) {
+          this.reactivity.trackElementSymbol(str, trackElement);
         }
       }
+      this.#trackMutation(inherited.value);
+      return inherited.value;
     }
+    if (type === "local") return context.locals[str];
+    if (context.meta?.context) {
+      var fromMetaContext = context.meta.context[str];
+      if (typeof fromMetaContext !== "undefined") return fromMetaContext;
+      if (context.meta.context.detail) {
+        fromMetaContext = context.meta.context.detail[str];
+        if (typeof fromMetaContext !== "undefined") return fromMetaContext;
+      }
+    }
+    var fromContext = this.#isHyperscriptContext(context) && !this.#isReservedWord(str) ? context.locals[str] : context[str];
+    if (typeof fromContext !== "undefined") return fromContext;
+    var elementScope = this.#getElementScope(context);
+    fromContext = elementScope[str];
+    if (typeof fromContext !== "undefined") {
+      if (this.reactivity.isTracking) this.reactivity.trackElementSymbol(str, context.meta.owner);
+      this.#trackMutation(fromContext);
+      return fromContext;
+    }
+    if (this.reactivity.isTracking) this.reactivity.trackGlobalSymbol(str);
+    var val = this.#globalScope[str];
+    this.#trackMutation(val);
+    return val;
   }
-  setSymbol(str, context, type, value) {
+  setSymbol(str, context, type, value, targetElement) {
     if (type === "global") {
-      __privateGet(this, _globalScope)[str] = value;
-    } else if (type === "element") {
-      var elementScope = __privateMethod(this, _Runtime_instances, getElementScope_fn).call(this, context);
+      this.#globalScope[str] = value;
+      this.reactivity.notifyGlobalSymbol(str);
+      return;
+    }
+    if (type === "element") {
+      this.#getElementScope(context)[str] = value;
+      this.reactivity.notifyElementSymbol(str, context.meta.owner);
+      return;
+    }
+    if (type === "inherited") {
+      var inherited = this.#resolveInherited(str, context, targetElement);
+      if (inherited.element) {
+        this.getInternalData(inherited.element).elementScope[str] = value;
+        this.reactivity.notifyElementSymbol(str, inherited.element);
+      } else {
+        var owner = targetElement || context.meta?.owner;
+        if (owner) {
+          var internalData = this.getInternalData(owner);
+          if (!internalData.elementScope) internalData.elementScope = {};
+          internalData.elementScope[str] = value;
+          this.reactivity.notifyElementSymbol(str, owner);
+        }
+      }
+      return;
+    }
+    if (type === "local") {
+      context.locals[str] = value;
+      return;
+    }
+    if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str) && typeof context.locals[str] !== "undefined") {
+      context.locals[str] = value;
+      return;
+    }
+    var elementScope = this.#getElementScope(context);
+    if (typeof elementScope[str] !== "undefined") {
       elementScope[str] = value;
-    } else if (type === "local") {
+      this.reactivity.notifyElementSymbol(str, context.meta.owner);
+    } else if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str)) {
       context.locals[str] = value;
     } else {
-      if (__privateMethod(this, _Runtime_instances, isHyperscriptContext_fn).call(this, context) && !__privateMethod(this, _Runtime_instances, isReservedWord_fn).call(this, str) && typeof context.locals[str] !== "undefined") {
-        context.locals[str] = value;
-      } else {
-        var elementScope = __privateMethod(this, _Runtime_instances, getElementScope_fn).call(this, context);
-        var fromContext = elementScope[str];
-        if (typeof fromContext !== "undefined") {
-          elementScope[str] = value;
-        } else {
-          if (__privateMethod(this, _Runtime_instances, isHyperscriptContext_fn).call(this, context) && !__privateMethod(this, _Runtime_instances, isReservedWord_fn).call(this, str)) {
-            context.locals[str] = value;
-          } else {
-            context[str] = value;
-          }
-        }
-      }
+      context[str] = value;
     }
   }
   getInternalData(elt) {
-    var internalData = __privateGet(this, _internalDataMap).get(elt);
-    if (typeof internalData === "undefined") {
-      __privateGet(this, _internalDataMap).set(elt, internalData = {});
+    if (!elt._hyperscript) {
+      elt._hyperscript = {};
     }
-    return internalData;
+    return elt._hyperscript;
+  }
+  #resolveInherited(str, context, startElement) {
+    var elt = startElement || context.meta && context.meta.owner;
+    while (elt) {
+      var internalData = elt._hyperscript;
+      if (internalData && internalData.elementScope && str in internalData.elementScope) {
+        return { value: internalData.elementScope[str], element: elt };
+      }
+      var domScope = elt.getAttribute && elt.getAttribute("dom-scope");
+      if (domScope) {
+        if (domScope === "isolated") {
+          return { value: void 0, element: null };
+        }
+        var match = domScope.match(/^closest\s+(.+)/);
+        if (match) {
+          elt = elt.parentElement && elt.parentElement.closest(match[1]);
+          continue;
+        }
+        match = domScope.match(/^parent\s+of\s+(.+)/);
+        if (match) {
+          var target = elt.closest(match[1]);
+          elt = target && target.parentElement;
+          continue;
+        }
+      }
+      elt = elt.parentElement;
+    }
+    return { value: void 0, element: null };
+  }
+  #getElementScope(context) {
+    var elt = context.meta && context.meta.owner;
+    if (elt) {
+      var internalData = this.getInternalData(elt);
+      var scopeName = "elementScope";
+      if (context.meta.feature && context.meta.feature.behavior) {
+        scopeName = context.meta.feature.behavior + "Scope";
+      }
+      var elementScope = internalData[scopeName];
+      if (!elementScope) {
+        elementScope = {};
+        internalData[scopeName] = elementScope;
+      }
+      return elementScope;
+    } else {
+      return {};
+    }
+  }
+  #flatGet(root, property, getter) {
+    if (root != null) {
+      var val = getter(root, property);
+      if (typeof val !== "undefined") {
+        return val;
+      }
+      if (this.shouldAutoIterate(root)) {
+        var result = [];
+        for (var component of root) {
+          var componentValue = getter(component, property);
+          result.push(componentValue);
+        }
+        return result;
+      }
+    }
   }
   resolveProperty(root, property) {
-    return __privateMethod(this, _Runtime_instances, flatGet_fn).call(this, root, property, (root2, property2) => root2[property2]);
+    if (this.reactivity.isTracking) this.reactivity.trackProperty(root, property);
+    return this.#flatGet(root, property, (root2, property2) => root2[property2]);
+  }
+  /**
+   * Set a property on an object and notify the reactivity system.
+   * @param {Object} obj - DOM element or plain JS object
+   * @param {string} property
+   * @param {any} value
+   */
+  setProperty(obj, property, value) {
+    obj[property] = value;
+    this.reactivity.notifyProperty(obj);
+  }
+  /**
+   * Notify the reactivity system that an object was mutated in-place.
+   * Call this after operations like push, splice, append, etc.
+   * @param {Object} obj - The mutated object
+   */
+  notifyMutation(obj) {
+    this.reactivity.notifyProperty(obj);
+  }
+  morph(elt, content) {
+    this.#morphEngine.morph(elt, content, {
+      beforeNodeRemoved: (node) => {
+        if (node.nodeType === 1) this.cleanup(node);
+      },
+      afterNodeAdded: (node) => {
+        if (node.nodeType === 1) this.processNode(node);
+      },
+      afterNodeMorphed: (node) => {
+        if (node.nodeType === 1) this.processNode(node);
+      }
+    });
+  }
+  replaceInDom(target, value) {
+    this.implicitLoop(target, (elt) => {
+      var parent = elt.parentElement;
+      if (value instanceof Node) {
+        elt.replaceWith(value.cloneNode(true));
+      } else {
+        elt.replaceWith(this.convertValue(value, "Fragment"));
+      }
+      if (parent) this.processNode(parent);
+    });
+  }
+  /**
+   * Check if a method call is known to mutate its receiver, and notify if so.
+   * @param {Object} target - The object the method was called on
+   * @param {string} methodName - The method name
+   */
+  maybeNotify(target, methodName) {
+    if (target == null || typeof target !== "object") return;
+    var typeName = target.constructor && target.constructor.name;
+    var methods = typeName && config.mutatingMethods[typeName];
+    if (methods && methods.includes(methodName)) {
+      this.notifyMutation(target);
+    }
+  }
+  #trackMutation(val) {
+    if (this.reactivity.isTracking && val != null && typeof val === "object") {
+      this.reactivity.trackProperty(val, "__mutation__");
+    }
   }
   resolveAttribute(root, property) {
-    return __privateMethod(this, _Runtime_instances, flatGet_fn).call(this, root, property, (root2, property2) => root2.getAttribute && root2.getAttribute(property2));
+    if (this.reactivity.isTracking) this.reactivity.trackAttribute(root, property);
+    return this.#flatGet(root, property, (root2, property2) => root2.getAttribute && root2.getAttribute(property2));
   }
   resolveStyle(root, property) {
-    return __privateMethod(this, _Runtime_instances, flatGet_fn).call(this, root, property, (root2, property2) => root2.style && root2.style[property2]);
+    return this.#flatGet(root, property, (root2, property2) => root2.style && root2.style[property2]);
   }
   resolveComputedStyle(root, property) {
-    return __privateMethod(this, _Runtime_instances, flatGet_fn).call(this, root, property, (root2, property2) => getComputedStyle(root2).getPropertyValue(property2));
+    return this.#flatGet(root, property, (root2, property2) => getComputedStyle(root2).getPropertyValue(property2));
   }
   assignToNamespace(elt, nameSpace, name, value) {
     let root;
-    if (typeof document !== "undefined" && elt === document.body) {
-      root = __privateGet(this, _globalScope);
+    if (elt == null || typeof document !== "undefined" && elt === document.body) {
+      root = this.#globalScope;
     } else {
       root = this.getHyperscriptFeatures(elt);
     }
@@ -1960,16 +2533,25 @@ var _Runtime = class _Runtime {
     }
     root[name] = value;
   }
+  // =================================================================
+  // Collection and iteration utilities
+  // =================================================================
+  #isArrayLike(value) {
+    return Array.isArray(value) || typeof NodeList !== "undefined" && (value instanceof NodeList || value instanceof HTMLCollection || value instanceof FileList);
+  }
+  #isIterable(value) {
+    return typeof value === "object" && Symbol.iterator in value && typeof value[Symbol.iterator] === "function";
+  }
   shouldAutoIterate(value) {
-    return value != null && value[SHOULD_AUTO_ITERATE_SYM] || __privateMethod(this, _Runtime_instances, isArrayLike_fn).call(this, value);
+    return value != null && value[SHOULD_AUTO_ITERATE_SYM] || this.#isArrayLike(value);
   }
   forEach(value, func) {
     if (value == null) {
-    } else if (__privateMethod(this, _Runtime_instances, isIterable_fn).call(this, value)) {
+    } else if (this.#isIterable(value)) {
       for (const nth of value) {
         func(nth);
       }
-    } else if (__privateMethod(this, _Runtime_instances, isArrayLike_fn).call(this, value)) {
+    } else if (this.#isArrayLike(value)) {
       for (var i = 0; i < value.length; i++) {
         func(value[i]);
       }
@@ -1982,6 +2564,31 @@ var _Runtime = class _Runtime {
       for (const x of value) func(x);
     } else {
       func(value);
+    }
+  }
+  /**
+   * Iterate over targets with a when condition, applying forward or reverse per element.
+   * Supports async conditions transparently -- returns a Promise if any condition is async.
+   */
+  implicitLoopWhen(targets, whenExpr, context, forwardFn, reverseFn) {
+    var elements = [];
+    this.implicitLoop(targets, function(elt) {
+      elements.push(elt);
+    });
+    var conditions = elements.map(function(elt) {
+      context.beingTested = elt;
+      return whenExpr.evaluate(context);
+    });
+    context.beingTested = null;
+    var hasPromise = conditions.some(function(c) {
+      return c && typeof c.then === "function";
+    });
+    if (hasPromise) {
+      return Promise.all(conditions).then(function(results) {
+        context.result = _applyWhenResults(elements, results, forwardFn, reverseFn);
+      });
+    } else {
+      context.result = _applyWhenResults(elements, conditions, forwardFn, reverseFn);
     }
   }
   // =================================================================
@@ -2003,11 +2610,11 @@ var _Runtime = class _Runtime {
     if (converter) {
       return converter(value, this);
     }
-    throw "Unknown conversion : " + type;
+    throw new Error("Unknown conversion : " + type);
   }
   evaluateNoPromise(elt, ctx) {
     let result = elt.evaluate(ctx);
-    if (result.next) {
+    if (result && typeof result.then === "function") {
       throw new Error(elt.sourceFor() + " returned a Promise in a context that they are not allowed.");
     }
     return result;
@@ -2017,7 +2624,9 @@ var _Runtime = class _Runtime {
       return true;
     }
     var typeName = Object.prototype.toString.call(value).slice(8, -1);
-    return typeName === typeString;
+    if (typeName === typeString) return true;
+    var ctor = typeof globalThis !== "undefined" && globalThis[typeString];
+    return typeof ctor === "function" && value instanceof ctor;
   }
   nullCheck(value, elt) {
     if (value == null) {
@@ -2054,6 +2663,9 @@ var _Runtime = class _Runtime {
     detail = detail || {};
     detail["sender"] = sender;
     var event = this.makeEvent(eventName, detail);
+    if (config.logAll) {
+      console.log(eventName, detail, elt);
+    }
     var eventResult = elt.dispatchEvent(event);
     return eventResult;
   }
@@ -2083,19 +2695,146 @@ var _Runtime = class _Runtime {
     }
     return eventQueueForFeature;
   }
-  processNode(elt) {
-    var selector = __privateMethod(this, _Runtime_instances, getScriptSelector_fn).call(this);
-    if (this.matchesSelector(elt, selector)) {
-      __privateMethod(this, _Runtime_instances, initElement_fn).call(this, elt, elt);
+  // =================================================================
+  // DOM initialization
+  // =================================================================
+  #getScriptAttributes() {
+    if (this.#scriptAttrs == null) {
+      this.#scriptAttrs = config.attributes.replaceAll(" ", "").split(",");
+    }
+    return this.#scriptAttrs;
+  }
+  #getScript(elt) {
+    var attrs = this.#getScriptAttributes();
+    for (var i = 0; i < attrs.length; i++) {
+      var scriptAttribute = attrs[i];
+      if (elt.hasAttribute && elt.hasAttribute(scriptAttribute)) {
+        return elt.getAttribute(scriptAttribute);
+      }
     }
     if (elt instanceof HTMLScriptElement && elt.type === "text/hyperscript") {
-      __privateMethod(this, _Runtime_instances, initElement_fn).call(this, elt, document.body);
+      return elt.innerText;
+    }
+    return null;
+  }
+  #scriptSelector;
+  #getScriptSelector() {
+    if (!this.#scriptSelector) {
+      this.#scriptSelector = this.#getScriptAttributes().map((a) => "[" + a + "]").join(", ");
+    }
+    return this.#scriptSelector;
+  }
+  #hashScript(str) {
+    var hash = 5381;
+    for (var i = 0; i < str.length; i++) {
+      hash = (hash << 5) + hash + str.charCodeAt(i);
+    }
+    return hash;
+  }
+  cleanup(elt) {
+    if (!elt._hyperscript) return;
+    this.triggerEvent(elt, "hyperscript:before:cleanup");
+    var data = elt._hyperscript;
+    if (data.listeners) {
+      for (var info of data.listeners) {
+        info.target.removeEventListener(info.event, info.handler);
+      }
+    }
+    if (data.observers) {
+      for (var observer of data.observers) {
+        observer.disconnect();
+      }
+    }
+    if (data.eventState) {
+      for (var state of data.eventState.values()) {
+        if (state.debounced) clearTimeout(state.debounced);
+      }
+    }
+    this.reactivity.stopElementEffects(elt);
+    if (elt.querySelectorAll) {
+      for (var child of elt.querySelectorAll("[data-hyperscript-powered]")) {
+        this.cleanup(child);
+      }
+    }
+    this.triggerEvent(elt, "hyperscript:after:cleanup");
+    elt.removeAttribute("data-hyperscript-powered");
+    delete elt._hyperscript;
+  }
+  #initElement(elt, target) {
+    if (elt.closest && elt.closest(config.disableSelector)) {
+      return;
+    }
+    var internalData = this.getInternalData(elt);
+    var src = this.#getScript(elt);
+    if (!src) return;
+    var hash = this.#hashScript(src);
+    if (internalData.initialized) {
+      if (internalData.scriptHash === hash) return;
+      this.cleanup(elt);
+      internalData = this.getInternalData(elt);
+    }
+    if (!this.triggerEvent(elt, "hyperscript:before:init")) return;
+    internalData.initialized = true;
+    internalData.scriptHash = hash;
+    try {
+      var tokens = this.#tokenizer.tokenize(src);
+      var hyperScript = this.#kernel.parseHyperScript(tokens);
+      if (!hyperScript) return;
+      if (hyperScript.errors?.length) {
+        this.triggerEvent(elt, "hyperscript:parse-error", {
+          errors: hyperScript.errors
+        });
+        console.error(
+          "hyperscript: " + hyperScript.errors.length + " parse error(s) on:",
+          elt,
+          "\n\n" + formatErrors(hyperScript.errors)
+        );
+        return;
+      }
+      hyperScript.apply(target || elt, elt, null, this);
+      elt.setAttribute("data-hyperscript-powered", "true");
+      this.triggerEvent(elt, "hyperscript:after:init");
+      setTimeout(() => {
+        this.triggerEvent(target || elt, "load", {
+          hyperscript: true
+        });
+      }, 1);
+    } catch (e) {
+      this.triggerEvent(elt, "exception", {
+        error: e
+      });
+      console.error(
+        "hyperscript errors were found on the following element:",
+        elt,
+        "\n\n",
+        e.message,
+        e.stack
+      );
+    }
+  }
+  #beforeProcessHooks = [];
+  #afterProcessHooks = [];
+  addBeforeProcessHook(fn) {
+    this.#beforeProcessHooks.push(fn);
+  }
+  addAfterProcessHook(fn) {
+    this.#afterProcessHooks.push(fn);
+  }
+  processNode(elt) {
+    for (var fn of this.#beforeProcessHooks) fn(elt);
+    var selector = this.#getScriptSelector();
+    if (this.matchesSelector(elt, selector)) {
+      this.#initElement(elt, elt);
+    }
+    if (elt instanceof HTMLScriptElement && elt.type === "text/hyperscript") {
+      this.#initElement(elt, document.body);
     }
     if (elt.querySelectorAll) {
       this.forEach(elt.querySelectorAll(selector + ", [type='text/hyperscript']"), (elt2) => {
-        __privateMethod(this, _Runtime_instances, initElement_fn).call(this, elt2, elt2 instanceof HTMLScriptElement && elt2.type === "text/hyperscript" ? document.body : elt2);
+        this.#initElement(elt2, elt2 instanceof HTMLScriptElement && elt2.type === "text/hyperscript" ? document.body : elt2);
       });
     }
+    for (var fn of this.#afterProcessHooks) fn(elt);
   }
   // =================================================================
   // Debug and tracing
@@ -2147,150 +2886,702 @@ var _Runtime = class _Runtime {
   }
   beepValueToConsole(element, expression, value) {
     if (this.triggerEvent(element, "hyperscript:beep", { element, expression, value })) {
-      var typeName;
-      if (value) {
-        if (value instanceof ElementCollection) {
-          typeName = "ElementCollection";
-        } else if (value.constructor) {
-          typeName = value.constructor.name;
-        } else {
-          typeName = "unknown";
-        }
-      } else {
-        typeName = "object (null)";
-      }
-      var logValue = value;
-      if (typeName === "String") {
-        logValue = '"' + logValue + '"';
-      } else if (value instanceof ElementCollection) {
-        logValue = Array.from(value);
-      }
+      var typeName = !value ? "object (null)" : value instanceof ElementCollection ? "ElementCollection" : value.constructor?.name || "unknown";
+      var logValue = typeName === "String" ? '"' + value + '"' : value instanceof ElementCollection ? Array.from(value) : value;
       console.log("///_ BEEP! The expression (" + expression.sourceFor().replace("beep! ", "") + ") evaluates to:", logValue, "of type " + typeName);
     }
   }
 };
-_kernel2 = new WeakMap();
-_tokenizer = new WeakMap();
-_globalScope = new WeakMap();
-_scriptAttrs = new WeakMap();
-_hyperscriptFeaturesMap = new WeakMap();
-_internalDataMap = new WeakMap();
-_Runtime_instances = new WeakSet();
-// =================================================================
-// Symbol and property resolution
-// =================================================================
-isReservedWord_fn = function(str) {
-  return ["meta", "it", "result", "locals", "event", "target", "detail", "sender", "body"].includes(str);
-};
-isHyperscriptContext_fn = function(context) {
-  return context instanceof Context;
-};
-getElementScope_fn = function(context) {
-  var elt = context.meta && context.meta.owner;
-  if (elt) {
-    var internalData = this.getInternalData(elt);
-    var scopeName = "elementScope";
-    if (context.meta.feature && context.meta.feature.behavior) {
-      scopeName = context.meta.feature.behavior + "Scope";
+
+// src/core/runtime/reactivity.js
+function _sameValue(a, b) {
+  return a === b ? a !== 0 || 1 / a === 1 / b : a !== a && b !== b;
+}
+var Effect = class {
+  /**
+   * @param {() => any} expression - The watched expression
+   * @param {(v: any) => void} handler - Called when value changes
+   * @param {Element|null} element - Owner element; auto-stops when disconnected
+   * @param {Reactivity} reactivity - The owning reactivity system
+   */
+  constructor(expression, handler, element, reactivity2) {
+    this.expression = expression;
+    this.handler = handler;
+    this.element = element;
+    this._reactivity = reactivity2;
+    this.dependencies = /* @__PURE__ */ new Map();
+    this._lastValue = void 0;
+    this._isStopped = false;
+    this._consecutiveTriggers = 0;
+  }
+  /**
+   * First evaluation: track deps, subscribe, call handler if non-null.
+   * Both undefined and null are treated as "no value yet" to support
+   * left-side-wins initialization in bind.
+   */
+  initialize() {
+    var reactivity2 = this._reactivity;
+    var prev = reactivity2._currentEffect;
+    reactivity2._currentEffect = this;
+    try {
+      this._lastValue = this.expression();
+    } catch (e) {
+      console.error("Error in reactive expression:", e);
     }
-    var elementScope = internalData[scopeName];
-    if (!elementScope) {
-      elementScope = {};
-      internalData[scopeName] = elementScope;
-    }
-    return elementScope;
-  } else {
-    return {};
-  }
-};
-flatGet_fn = function(root, property, getter) {
-  if (root != null) {
-    var val = getter(root, property);
-    if (typeof val !== "undefined") {
-      return val;
-    }
-    if (this.shouldAutoIterate(root)) {
-      var result = [];
-      for (var component of root) {
-        var componentValue = getter(component, property);
-        result.push(componentValue);
-      }
-      return result;
-    }
-  }
-};
-// =================================================================
-// Collection and iteration utilities
-// =================================================================
-isArrayLike_fn = function(value) {
-  return Array.isArray(value) || typeof NodeList !== "undefined" && (value instanceof NodeList || value instanceof HTMLCollection || value instanceof FileList);
-};
-isIterable_fn = function(value) {
-  return typeof value === "object" && Symbol.iterator in value && typeof value[Symbol.iterator] === "function";
-};
-// =================================================================
-// DOM initialization
-// =================================================================
-getScriptAttributes_fn = function() {
-  if (__privateGet(this, _scriptAttrs) == null) {
-    __privateSet(this, _scriptAttrs, config.attributes.replace(/ /g, "").split(","));
-  }
-  return __privateGet(this, _scriptAttrs);
-};
-getScript_fn = function(elt) {
-  for (var i = 0; i < __privateMethod(this, _Runtime_instances, getScriptAttributes_fn).call(this).length; i++) {
-    var scriptAttribute = __privateMethod(this, _Runtime_instances, getScriptAttributes_fn).call(this)[i];
-    if (elt.hasAttribute && elt.hasAttribute(scriptAttribute)) {
-      return elt.getAttribute(scriptAttribute);
-    }
-  }
-  if (elt instanceof HTMLScriptElement && elt.type === "text/hyperscript") {
-    return elt.innerText;
-  }
-  return null;
-};
-getScriptSelector_fn = function() {
-  return __privateMethod(this, _Runtime_instances, getScriptAttributes_fn).call(this).map(function(attribute) {
-    return "[" + attribute + "]";
-  }).join(", ");
-};
-initElement_fn = function(elt, target) {
-  if (elt.closest && elt.closest(config.disableSelector)) {
-    return;
-  }
-  var internalData = this.getInternalData(elt);
-  if (!internalData.initialized) {
-    var src = __privateMethod(this, _Runtime_instances, getScript_fn).call(this, elt);
-    if (src) {
+    reactivity2._currentEffect = prev;
+    reactivity2._subscribeEffect(this);
+    if (this._lastValue != null) {
       try {
-        internalData.initialized = true;
-        internalData.script = src;
-        var tokens = __privateGet(this, _tokenizer).tokenize(src);
-        var hyperScript = __privateGet(this, _kernel2).parseHyperScript(tokens);
-        if (!hyperScript) return;
-        hyperScript.apply(target || elt, elt, null, this);
-        setTimeout(() => {
-          this.triggerEvent(target || elt, "load", {
-            hyperscript: true
-          });
-        }, 1);
+        this.handler(this._lastValue);
       } catch (e) {
-        this.triggerEvent(elt, "exception", {
-          error: e
-        });
-        console.error(
-          "hyperscript errors were found on the following element:",
-          elt,
-          "\n\n",
-          e.message,
-          e.stack
-        );
+        console.error("Error in reactive handler:", e);
       }
     }
   }
+  /**
+   * Re-evaluate expression with dependency tracking, compare with last
+   * value, and call handler if changed. Returns false if circular
+   * guard tripped (caller should skip this effect).
+   * @returns {boolean} Whether the effect ran successfully
+   */
+  run() {
+    this._consecutiveTriggers++;
+    if (this._consecutiveTriggers > 100) {
+      console.error(
+        "Reactivity loop detected: an effect triggered 100 consecutive times without settling. This usually means an effect is modifying a variable it also depends on.",
+        this.element || this
+      );
+      return false;
+    }
+    var reactivity2 = this._reactivity;
+    reactivity2._unsubscribeEffect(this);
+    var oldDeps = this.dependencies;
+    this.dependencies = /* @__PURE__ */ new Map();
+    var prev = reactivity2._currentEffect;
+    reactivity2._currentEffect = this;
+    var newValue;
+    try {
+      newValue = this.expression();
+    } catch (e) {
+      console.error("Error in reactive expression:", e);
+      this.dependencies = oldDeps;
+      reactivity2._currentEffect = prev;
+      reactivity2._subscribeEffect(this);
+      return true;
+    }
+    reactivity2._currentEffect = prev;
+    reactivity2._subscribeEffect(this);
+    reactivity2._cleanupOrphanedDeps(oldDeps);
+    if (!_sameValue(newValue, this._lastValue)) {
+      this._lastValue = newValue;
+      try {
+        this.handler(newValue);
+      } catch (e) {
+        console.error("Error in reactive handler:", e);
+      }
+    }
+    return true;
+  }
+  /** Reset circular guard after cascade settles. */
+  resetTriggerCount() {
+    this._consecutiveTriggers = 0;
+  }
+  /** Stop this effect and clean up all subscriptions. */
+  stop() {
+    if (this._isStopped) return;
+    this._isStopped = true;
+    this._reactivity._unsubscribeEffect(this);
+    this._reactivity._cleanupOrphanedDeps(this.dependencies);
+    this._reactivity._pendingEffects.delete(this);
+  }
 };
-__publicField(_Runtime, "HALT", {});
-var Runtime = _Runtime;
+var Reactivity = class {
+  constructor() {
+    this._objectState = /* @__PURE__ */ new WeakMap();
+    this._globalSubscriptions = /* @__PURE__ */ new Map();
+    this._nextId = 0;
+    this._currentEffect = null;
+    this._pendingEffects = /* @__PURE__ */ new Set();
+    this._isRunScheduled = false;
+  }
+  /**
+   * Get or create the reactive state object for any object.
+   * Assigns a stable unique ID on first access.
+   * @param {Object} obj - DOM element or plain JS object
+   * @returns {{ id: string, subscriptions: Map|null, propertyHandler: Object|null }}
+   */
+  _getObjectState(obj) {
+    var state = this._objectState.get(obj);
+    if (!state) {
+      this._objectState.set(obj, state = {
+        id: String(++this._nextId),
+        subscriptions: null,
+        propertyHandler: null,
+        attributeObservers: null
+      });
+    }
+    return state;
+  }
+  /**
+   * Whether an effect is currently evaluating its expression().
+   * When true, reads (symbol/property/attribute) are recorded as dependencies.
+   * @returns {boolean}
+   */
+  get isTracking() {
+    return this._currentEffect !== null;
+  }
+  /**
+   * Track a global variable read as a dependency.
+   * @param {string} name - Variable name
+   */
+  trackGlobalSymbol(name) {
+    this._currentEffect.dependencies.set(
+      "symbol:global:" + name,
+      { type: "symbol", name, scope: "global" }
+    );
+  }
+  /**
+   * Track an element-scoped variable read as a dependency.
+   * @param {string} name - Variable name
+   * @param {Element} element - Owning element
+   */
+  trackElementSymbol(name, element) {
+    if (!element) return;
+    var elementId = this._getObjectState(element).id;
+    this._currentEffect.dependencies.set(
+      "symbol:element:" + name + ":" + elementId,
+      { type: "symbol", name, scope: "element", element }
+    );
+  }
+  /**
+   * Track a property read as a dependency.
+   * Subscription is coarse-grained (one handler per object, not per property),
+   * so the dep key uses "*" rather than the property name.
+   * @param {Object} obj - DOM element or plain JS object
+   * @param {string} name - Property name
+   */
+  trackProperty(obj, name) {
+    if (obj == null || typeof obj !== "object" || obj._hsSkipTracking) return;
+    this._currentEffect.dependencies.set(
+      "property:" + this._getObjectState(obj).id,
+      { type: "property", object: obj, name }
+    );
+  }
+  /**
+   * Track a DOM attribute read as a dependency.
+   * @param {Element} element
+   * @param {string} name - Attribute name
+   */
+  trackAttribute(element, name) {
+    if (!(element instanceof Element)) return;
+    this._currentEffect.dependencies.set(
+      "attribute:" + name + ":" + this._getObjectState(element).id,
+      { type: "attribute", element, name }
+    );
+  }
+  /**
+   * Notify that a global variable was written.
+   * @param {string} name - Variable name
+   */
+  notifyGlobalSymbol(name) {
+    var subs = this._globalSubscriptions.get(name);
+    if (subs) {
+      for (var effect of subs) {
+        this._scheduleEffect(effect);
+      }
+    }
+  }
+  /**
+   * Notify that an element-scoped variable was written.
+   * @param {string} name - Variable name
+   * @param {Element} element - Owning element
+   */
+  notifyElementSymbol(name, element) {
+    if (!element) return;
+    var state = this._getObjectState(element);
+    if (state.subscriptions) {
+      var subs = state.subscriptions.get(name);
+      if (subs) {
+        for (var effect of subs) {
+          this._scheduleEffect(effect);
+        }
+      }
+    }
+  }
+  /**
+   * Notify that a property was written programmatically.
+   * Schedules all effects watching properties on this object.
+   * @param {Object} obj - DOM element or plain JS object
+   */
+  notifyProperty(obj) {
+    if (obj == null || typeof obj !== "object" || obj._hsSkipTracking) return;
+    var state = this._objectState.get(obj);
+    if (state && state.propertyHandler) {
+      state.propertyHandler.queueAll();
+    }
+  }
+  /**
+   * Add an effect to the pending set.
+   * Schedules a microtask to run them if one isn't already scheduled.
+   * @param {Effect} effect
+   */
+  _scheduleEffect(effect) {
+    if (effect._isStopped) return;
+    this._pendingEffects.add(effect);
+    if (!this._isRunScheduled) {
+      this._isRunScheduled = true;
+      var self2 = this;
+      queueMicrotask(function() {
+        self2._runPendingEffects();
+      });
+    }
+  }
+  /**
+   * Run all pending effects. Called once per microtask batch.
+   * Effects that re-trigger during this run are queued for the next batch.
+   */
+  _runPendingEffects() {
+    this._isRunScheduled = false;
+    var effects = Array.from(this._pendingEffects);
+    this._pendingEffects.clear();
+    for (var i = 0; i < effects.length; i++) {
+      var effect = effects[i];
+      if (effect._isStopped) continue;
+      if (effect.element && !effect.element.isConnected) {
+        effect.stop();
+        continue;
+      }
+      effect.run();
+    }
+    if (this._pendingEffects.size === 0) {
+      for (var i = 0; i < effects.length; i++) {
+        if (!effects[i]._isStopped) effects[i].resetTriggerCount();
+      }
+    }
+  }
+  /**
+   * Subscribe an effect to all its current deps.
+   * Symbols go into subscription maps, attributes get MutationObservers,
+   * properties use persistent per-element input/change listeners.
+   * @param {Effect} effect
+   */
+  _subscribeEffect(effect) {
+    var reactivity2 = this;
+    for (var [depKey, dep] of effect.dependencies) {
+      if (dep.type === "symbol" && dep.scope === "global") {
+        if (!reactivity2._globalSubscriptions.has(dep.name)) {
+          reactivity2._globalSubscriptions.set(dep.name, /* @__PURE__ */ new Set());
+        }
+        reactivity2._globalSubscriptions.get(dep.name).add(effect);
+      } else if (dep.type === "symbol" && dep.scope === "element") {
+        var state = reactivity2._getObjectState(dep.element);
+        if (!state.subscriptions) {
+          state.subscriptions = /* @__PURE__ */ new Map();
+        }
+        if (!state.subscriptions.has(dep.name)) {
+          state.subscriptions.set(dep.name, /* @__PURE__ */ new Set());
+        }
+        state.subscriptions.get(dep.name).add(effect);
+      } else if (dep.type === "attribute") {
+        reactivity2._subscribeAttributeDependency(dep.element, dep.name, effect);
+      } else if (dep.type === "property") {
+        reactivity2._subscribePropertyDependency(dep.object, dep.name, effect);
+      }
+    }
+  }
+  /**
+   * Subscribe to a DOM attribute. Sets up a persistent MutationObserver
+   * per element+attribute, shared across effects and re-runs.
+   * @param {Element} element
+   * @param {string} attrName
+   * @param {Effect} effect
+   */
+  _subscribeAttributeDependency(element, attrName, effect) {
+    var reactivity2 = this;
+    var state = reactivity2._getObjectState(element);
+    if (!state.attributeObservers) {
+      state.attributeObservers = {};
+    }
+    if (!state.attributeObservers[attrName]) {
+      var trackedEffects = /* @__PURE__ */ new Set();
+      var observer = new MutationObserver(function() {
+        for (var eff of trackedEffects) {
+          reactivity2._scheduleEffect(eff);
+        }
+      });
+      observer.observe(element, {
+        attributes: true,
+        attributeFilter: [attrName]
+      });
+      state.attributeObservers[attrName] = {
+        effects: trackedEffects,
+        observer
+      };
+    }
+    state.attributeObservers[attrName].effects.add(effect);
+  }
+  /**
+   * Subscribe to a property on an object. For DOM elements, sets up
+   * persistent input/change event listeners. For plain objects, only
+   * the subscription map is used (notified via setProperty).
+   * @param {Object} obj - DOM element or plain JS object
+   * @param {string} propName
+   * @param {Effect} effect
+   */
+  _subscribePropertyDependency(obj, propName, effect) {
+    var reactivity2 = this;
+    var state = reactivity2._getObjectState(obj);
+    if (!state.propertyHandler) {
+      var trackedEffects = /* @__PURE__ */ new Set();
+      var queueAll = function() {
+        for (var eff of trackedEffects) {
+          reactivity2._scheduleEffect(eff);
+        }
+      };
+      var remove;
+      if (obj instanceof Element) {
+        obj.addEventListener("input", queueAll);
+        obj.addEventListener("change", queueAll);
+        remove = function() {
+          obj.removeEventListener("input", queueAll);
+          obj.removeEventListener("change", queueAll);
+        };
+      } else {
+        remove = function() {
+        };
+      }
+      state.propertyHandler = {
+        effects: trackedEffects,
+        queueAll,
+        remove
+      };
+    }
+    state.propertyHandler.effects.add(effect);
+  }
+  /** @param {Effect} effect */
+  _unsubscribeEffect(effect) {
+    var reactivity2 = this;
+    for (var [depKey, dep] of effect.dependencies) {
+      if (dep.type === "symbol" && dep.scope === "global") {
+        var subs = reactivity2._globalSubscriptions.get(dep.name);
+        if (subs) {
+          subs.delete(effect);
+          if (subs.size === 0) {
+            reactivity2._globalSubscriptions.delete(dep.name);
+          }
+        }
+      } else if (dep.type === "symbol" && dep.scope === "element") {
+        var state = reactivity2._getObjectState(dep.element);
+        if (state.subscriptions) {
+          var subs = state.subscriptions.get(dep.name);
+          if (subs) {
+            subs.delete(effect);
+            if (subs.size === 0) {
+              state.subscriptions.delete(dep.name);
+            }
+          }
+        }
+      } else if (dep.type === "attribute" && dep.element) {
+        var state = reactivity2._getObjectState(dep.element);
+        if (state.attributeObservers && state.attributeObservers[dep.name]) {
+          state.attributeObservers[dep.name].effects.delete(effect);
+        }
+      } else if (dep.type === "property" && dep.object) {
+        var state = reactivity2._getObjectState(dep.object);
+        if (state.propertyHandler) {
+          state.propertyHandler.effects.delete(effect);
+        }
+      }
+    }
+  }
+  /**
+   * Clean up MutationObservers and property listeners for deps with no remaining effects.
+   * @param {Map<string, Dependency>} deps
+   */
+  _cleanupOrphanedDeps(deps) {
+    var reactivity2 = this;
+    for (var [depKey, dep] of deps) {
+      if (dep.type === "attribute" && dep.element) {
+        var state = reactivity2._getObjectState(dep.element);
+        if (state.attributeObservers && state.attributeObservers[dep.name]) {
+          var obs = state.attributeObservers[dep.name];
+          if (obs.effects.size === 0) {
+            obs.observer.disconnect();
+            delete state.attributeObservers[dep.name];
+          }
+        }
+      } else if (dep.type === "property" && dep.object) {
+        var state = reactivity2._getObjectState(dep.object);
+        if (state.propertyHandler && state.propertyHandler.effects.size === 0) {
+          state.propertyHandler.remove();
+          state.propertyHandler = null;
+        }
+      }
+    }
+  }
+  /**
+   * Create a reactive effect with automatic dependency tracking.
+   * @param {() => any} expression - The watched expression
+   * @param {(value: any) => void} handler - Called when the value changes
+   * @param {Object} [options]
+   * @param {Element} [options.element] - Auto-stop when element disconnects
+   * @returns {() => void} Stop function
+   */
+  createEffect(expression, handler, options) {
+    var effect = new Effect(
+      expression,
+      handler,
+      options && options.element || null,
+      this
+    );
+    effect.initialize();
+    if (effect.element) {
+      var data = effect.element._hyperscript ??= {};
+      data.effects ??= /* @__PURE__ */ new Set();
+      data.effects.add(effect);
+    }
+    return function() {
+      effect.stop();
+    };
+  }
+  /** Stop all reactive effects owned by an element. */
+  stopElementEffects(element) {
+    var data = element._hyperscript;
+    if (!data || !data.effects) return;
+    for (var effect of data.effects) {
+      effect.stop();
+    }
+    delete data.effects;
+  }
+};
+
+// src/core/runtime/morph.js
+var Morph = class {
+  /**
+   * Morph oldNode to match content.
+   * @param {Element} oldNode - The existing DOM element to morph
+   * @param {string|Element|DocumentFragment} content - The new content
+   * @param {MorphCallbacks} [callbacks] - Optional lifecycle callbacks
+   */
+  morph(oldNode, content, callbacks = {}) {
+    var fragment;
+    if (typeof content === "string") {
+      var temp = document.createElement("template");
+      temp.innerHTML = content;
+      fragment = temp.content;
+    } else if (content instanceof DocumentFragment) {
+      fragment = content;
+    } else if (content instanceof Element) {
+      fragment = document.createDocumentFragment();
+      fragment.append(content.cloneNode(true));
+    } else {
+      throw new Error("morph requires an HTML string, element, or document fragment");
+    }
+    var newRoot = fragment.firstElementChild;
+    if (newRoot && !newRoot.nextElementSibling && newRoot.tagName === oldNode.tagName) {
+      _copyAttributes(oldNode, newRoot);
+      fragment = newRoot;
+    }
+    var { persistentIds, idMap } = _createIdMaps(oldNode, fragment);
+    var pantry = document.createElement("div");
+    pantry.hidden = true;
+    (document.body || oldNode.parentElement).after(pantry);
+    var ctx = { target: oldNode, idMap, persistentIds, pantry, futureMatches: /* @__PURE__ */ new WeakSet(), callbacks };
+    _morphChildren(ctx, oldNode, fragment);
+    callbacks.beforeNodeRemoved?.(pantry);
+    pantry.remove();
+  }
+};
+function _morphChildren(ctx, oldParent, newParent, insertionPoint = null, endPoint = null) {
+  if (oldParent instanceof HTMLTemplateElement && newParent instanceof HTMLTemplateElement) {
+    oldParent = oldParent.content;
+    newParent = newParent.content;
+  }
+  insertionPoint ||= oldParent.firstChild;
+  let newChild = newParent.firstChild;
+  while (newChild) {
+    let matchedNode;
+    if (insertionPoint && insertionPoint !== endPoint) {
+      matchedNode = _findBestMatch(ctx, newChild, insertionPoint, endPoint);
+      if (matchedNode && matchedNode !== insertionPoint) {
+        let cursor = insertionPoint;
+        while (cursor && cursor !== matchedNode) {
+          let tempNode = cursor;
+          cursor = cursor.nextSibling;
+          if (tempNode instanceof Element && (ctx.idMap.has(tempNode) || _matchesUpcomingSibling(ctx, tempNode, newChild))) {
+            _moveBefore(oldParent, tempNode, endPoint);
+          } else {
+            _removeNode(ctx, tempNode);
+          }
+        }
+      }
+    }
+    if (!matchedNode && newChild instanceof Element && ctx.persistentIds.has(newChild.id)) {
+      let escapedId = CSS.escape(newChild.id);
+      matchedNode = ctx.target.id === newChild.id && ctx.target || ctx.target.querySelector('[id="' + escapedId + '"]') || ctx.pantry.querySelector('[id="' + escapedId + '"]');
+      let element = matchedNode;
+      while (element = element.parentNode) {
+        let idSet = ctx.idMap.get(element);
+        if (idSet) {
+          idSet.delete(matchedNode.id);
+          if (!idSet.size) ctx.idMap.delete(element);
+        }
+      }
+      _moveBefore(oldParent, matchedNode, insertionPoint);
+    }
+    if (matchedNode) {
+      _morphNode(matchedNode, newChild, ctx);
+      insertionPoint = matchedNode.nextSibling;
+      newChild = newChild.nextSibling;
+      continue;
+    }
+    let nextNewChild = newChild.nextSibling;
+    if (ctx.idMap.has(newChild)) {
+      let placeholder = document.createElement(newChild.tagName);
+      oldParent.insertBefore(placeholder, insertionPoint);
+      _morphNode(placeholder, newChild, ctx);
+      insertionPoint = placeholder.nextSibling;
+    } else {
+      oldParent.insertBefore(newChild, insertionPoint);
+      ctx.callbacks.afterNodeAdded?.(newChild);
+      insertionPoint = newChild.nextSibling;
+    }
+    newChild = nextNewChild;
+  }
+  while (insertionPoint && insertionPoint !== endPoint) {
+    let tempNode = insertionPoint;
+    insertionPoint = insertionPoint.nextSibling;
+    _removeNode(ctx, tempNode);
+  }
+}
+function _morphNode(oldNode, newNode, ctx) {
+  if (!(oldNode instanceof Element)) return;
+  _copyAttributes(oldNode, newNode);
+  if (oldNode instanceof HTMLTextAreaElement && oldNode.defaultValue !== newNode.defaultValue) {
+    oldNode.value = newNode.value;
+  }
+  if (!oldNode.isEqualNode(newNode) || newNode.tagName === "TEMPLATE" || newNode.querySelector?.("template")) {
+    _morphChildren(ctx, oldNode, newNode);
+  }
+  ctx.callbacks.afterNodeMorphed?.(oldNode);
+}
+function _findBestMatch(ctx, node, startPoint, endPoint) {
+  if (!(node instanceof Element)) return null;
+  var softMatch = null, displaceMatchCount = 0, scanLimit = 10;
+  var newSet = ctx.idMap.get(node), nodeMatchCount = newSet?.size || 0;
+  if (node.id && !newSet) return null;
+  var cursor = startPoint;
+  while (cursor && cursor !== endPoint) {
+    var oldSet = ctx.idMap.get(cursor);
+    if (_isSoftMatch(cursor, node)) {
+      if (oldSet && newSet && [...oldSet].some((id) => newSet.has(id))) return cursor;
+      if (!oldSet) {
+        if (scanLimit > 0 && cursor.isEqualNode(node)) return cursor;
+        if (!softMatch) softMatch = cursor;
+      }
+    }
+    displaceMatchCount += oldSet?.size || 0;
+    if (displaceMatchCount > nodeMatchCount) break;
+    if (cursor.contains(document.activeElement)) break;
+    if (--scanLimit < 1 && nodeMatchCount === 0) break;
+    cursor = cursor.nextSibling;
+  }
+  if (softMatch && _matchesUpcomingSibling(ctx, softMatch, node)) return null;
+  return softMatch;
+}
+function _matchesUpcomingSibling(ctx, oldElt, startNode) {
+  if (ctx.futureMatches.has(oldElt)) return true;
+  for (var sibling = startNode.nextSibling, i = 0; sibling && i < 10; sibling = sibling.nextSibling, i++) {
+    if (sibling instanceof Element && oldElt.isEqualNode(sibling)) {
+      ctx.futureMatches.add(oldElt);
+      return true;
+    }
+  }
+  return false;
+}
+function _removeNode(ctx, node) {
+  if (ctx.idMap.has(node)) {
+    _moveBefore(ctx.pantry, node, null);
+  } else {
+    ctx.callbacks.beforeNodeRemoved?.(node);
+    node.remove();
+  }
+}
+function _moveBefore(parentNode, element, after) {
+  if (parentNode.moveBefore) {
+    try {
+      parentNode.moveBefore(element, after);
+      return;
+    } catch (e) {
+    }
+  }
+  parentNode.insertBefore(element, after);
+}
+function _copyAttributes(destination, source) {
+  for (var attr of source.attributes) {
+    if (destination.getAttribute(attr.name) !== attr.value) {
+      destination.setAttribute(attr.name, attr.value);
+      if (attr.name === "value" && destination instanceof HTMLInputElement && destination.type !== "file") {
+        destination.value = attr.value;
+      }
+    }
+  }
+  for (var i = destination.attributes.length - 1; i >= 0; i--) {
+    var attr = destination.attributes[i];
+    if (attr && !source.hasAttribute(attr.name)) {
+      destination.removeAttribute(attr.name);
+    }
+  }
+}
+function _isSoftMatch(oldNode, newNode) {
+  if (!(oldNode instanceof Element) || oldNode.tagName !== newNode.tagName) return false;
+  if (oldNode.tagName === "SCRIPT" && !oldNode.isEqualNode(newNode)) return false;
+  return !oldNode.id || oldNode.id === newNode.id;
+}
+function _createIdMaps(oldNode, newContent) {
+  var oldIdElements = _queryEltAndDescendants(oldNode, "[id]");
+  var newIdElements = newContent.querySelectorAll("[id]");
+  var persistentIds = _createPersistentIds(oldIdElements, newIdElements);
+  var idMap = /* @__PURE__ */ new Map();
+  _populateIdMapWithTree(idMap, persistentIds, oldNode.parentElement, oldIdElements);
+  _populateIdMapWithTree(idMap, persistentIds, newContent, newIdElements);
+  return { persistentIds, idMap };
+}
+function _createPersistentIds(oldIdElements, newIdElements) {
+  var duplicateIds = /* @__PURE__ */ new Set(), oldIdTagNameMap = /* @__PURE__ */ new Map();
+  for (var { id, tagName } of oldIdElements) {
+    if (oldIdTagNameMap.has(id)) duplicateIds.add(id);
+    else if (id) oldIdTagNameMap.set(id, tagName);
+  }
+  var persistentIds = /* @__PURE__ */ new Set();
+  for (var { id, tagName } of newIdElements) {
+    if (persistentIds.has(id)) duplicateIds.add(id);
+    else if (oldIdTagNameMap.get(id) === tagName) persistentIds.add(id);
+  }
+  for (var id of duplicateIds) persistentIds.delete(id);
+  return persistentIds;
+}
+function _populateIdMapWithTree(idMap, persistentIds, root, elements) {
+  for (var elt of elements) {
+    if (persistentIds.has(elt.id)) {
+      var current = elt;
+      while (current && current !== root) {
+        var idSet = idMap.get(current);
+        if (idSet == null) {
+          idSet = /* @__PURE__ */ new Set();
+          idMap.set(current, idSet);
+        }
+        idSet.add(elt.id);
+        current = current.parentElement;
+      }
+    }
+  }
+}
+function _queryEltAndDescendants(elt, selector) {
+  var results = [...elt.querySelectorAll?.(selector) ?? []];
+  if (elt.matches?.(selector)) results.unshift(elt);
+  return results;
+}
 
 // src/parsetree/expressions/expressions.js
 var expressions_exports = {};
@@ -2300,6 +3591,7 @@ __export(expressions_exports, {
   AttributeRefAccess: () => AttributeRefAccess,
   BeepExpression: () => BeepExpression,
   BlockLiteral: () => BlockLiteral,
+  CollectionOp: () => CollectionOp,
   ComparisonOperator: () => ComparisonOperator,
   DotOrColonPath: () => DotOrColonPath,
   FunctionCall: () => FunctionCall,
@@ -2314,7 +3606,9 @@ __export(expressions_exports, {
   PropertyAccess: () => PropertyAccess,
   SymbolRef: () => SymbolRef
 });
-var _ParenthesizedExpression = class _ParenthesizedExpression extends Expression {
+var ParenthesizedExpression = class _ParenthesizedExpression extends Expression {
+  static grammarName = "parenthesized";
+  static expressionType = "leaf";
   constructor(expr) {
     super();
     this.expr = expr;
@@ -2336,10 +3630,9 @@ var _ParenthesizedExpression = class _ParenthesizedExpression extends Expression
     return value;
   }
 };
-__publicField(_ParenthesizedExpression, "grammarName", "parenthesized");
-__publicField(_ParenthesizedExpression, "expressionType", "leaf");
-var ParenthesizedExpression = _ParenthesizedExpression;
-var _BlockLiteral = class _BlockLiteral extends Expression {
+var BlockLiteral = class _BlockLiteral extends Expression {
+  static grammarName = "blockLiteral";
+  static expressionType = "leaf";
   constructor(params, expr) {
     super();
     this.params = params;
@@ -2371,10 +3664,8 @@ var _BlockLiteral = class _BlockLiteral extends Expression {
     };
   }
 };
-__publicField(_BlockLiteral, "grammarName", "blockLiteral");
-__publicField(_BlockLiteral, "expressionType", "leaf");
-var BlockLiteral = _BlockLiteral;
-var _NegativeNumber = class _NegativeNumber extends Expression {
+var NegativeNumber = class _NegativeNumber extends Expression {
+  static grammarName = "negativeNumber";
   constructor(root) {
     super();
     this.root = root;
@@ -2389,12 +3680,12 @@ var _NegativeNumber = class _NegativeNumber extends Expression {
     }
   }
   resolve(context, { value }) {
-    return -1 * value;
+    return -value;
   }
 };
-__publicField(_NegativeNumber, "grammarName", "negativeNumber");
-var NegativeNumber = _NegativeNumber;
-var _LogicalNot = class _LogicalNot extends Expression {
+var LogicalNot = class _LogicalNot extends Expression {
+  static grammarName = "logicalNot";
+  static expressionType = "unary";
   constructor(root) {
     super();
     this.root = root;
@@ -2409,60 +3700,93 @@ var _LogicalNot = class _LogicalNot extends Expression {
     return !val;
   }
 };
-__publicField(_LogicalNot, "grammarName", "logicalNot");
-__publicField(_LogicalNot, "expressionType", "unary");
-var LogicalNot = _LogicalNot;
-var _SymbolRef = class _SymbolRef extends Expression {
-  constructor(token, scope, name) {
+var SymbolRef = class _SymbolRef extends Expression {
+  static grammarName = "symbol";
+  static assignable = true;
+  constructor(token, scope, name, targetExpr) {
     super();
     this.token = token;
     this.scope = scope;
     this.name = name;
+    this.targetExpr = targetExpr || null;
   }
   static parse(parser) {
     var scope = "default";
     if (parser.matchToken("global")) {
       scope = "global";
-    } else if (parser.matchToken("element") || parser.matchToken("module")) {
+    } else if (parser.matchToken("element")) {
       scope = "element";
       if (parser.matchOpToken("'")) {
         parser.requireToken("s");
       }
+    } else if (parser.matchToken("dom")) {
+      scope = "inherited";
     } else if (parser.matchToken("local")) {
       scope = "local";
     }
     let eltPrefix = parser.matchOpToken(":");
+    let caretPrefix = !eltPrefix && parser.matchOpToken("^");
     let identifier = parser.matchTokenType("IDENTIFIER");
     if (identifier && identifier.value) {
       var name = identifier.value;
       if (eltPrefix) {
         name = ":" + name;
+      } else if (caretPrefix) {
+        name = "^" + name;
       }
       if (scope === "default") {
         if (name.startsWith("$")) {
           scope = "global";
-        }
-        if (name.startsWith(":")) {
+        } else if (name.startsWith(":")) {
           scope = "element";
+        } else if (name.startsWith("^")) {
+          scope = "inherited";
         }
       }
-      return new _SymbolRef(identifier, scope, name);
+      var targetExpr = null;
+      if (scope === "inherited" && parser.matchToken("on")) {
+        parser.pushFollow("to");
+        parser.pushFollow("into");
+        parser.pushFollow("before");
+        parser.pushFollow("after");
+        parser.pushFollow("then");
+        try {
+          targetExpr = parser.requireElement("expression");
+        } finally {
+          parser.popFollow();
+          parser.popFollow();
+          parser.popFollow();
+          parser.popFollow();
+          parser.popFollow();
+        }
+      }
+      return new _SymbolRef(identifier, scope, name, targetExpr);
     }
   }
   resolve(context) {
-    return context.meta.runtime.resolveSymbol(this.name, context, this.scope);
+    return context.meta.runtime.resolveSymbol(
+      this.name,
+      context,
+      this.scope,
+      this.targetExpr ? this.targetExpr.evaluate(context) : null
+    );
   }
   get lhs() {
     return {};
   }
   set(ctx, lhs, value) {
-    ctx.meta.runtime.setSymbol(this.name, ctx, this.scope, value);
+    ctx.meta.runtime.setSymbol(
+      this.name,
+      ctx,
+      this.scope,
+      value,
+      this.targetExpr ? this.targetExpr.evaluate(ctx) : null
+    );
   }
 };
-__publicField(_SymbolRef, "grammarName", "symbol");
-__publicField(_SymbolRef, "assignable", true);
-var SymbolRef = _SymbolRef;
-var _BeepExpression = class _BeepExpression extends Expression {
+var BeepExpression = class _BeepExpression extends Expression {
+  static grammarName = "beepExpression";
+  static expressionType = "unary";
   constructor(expression) {
     super();
     this.expression = expression;
@@ -2481,10 +3805,10 @@ var _BeepExpression = class _BeepExpression extends Expression {
     return value;
   }
 };
-__publicField(_BeepExpression, "grammarName", "beepExpression");
-__publicField(_BeepExpression, "expressionType", "unary");
-var BeepExpression = _BeepExpression;
-var _PropertyAccess = class _PropertyAccess extends Expression {
+var PropertyAccess = class _PropertyAccess extends Expression {
+  static grammarName = "propertyAccess";
+  static expressionType = "indirect";
+  static assignable = true;
   constructor(root, prop) {
     super();
     this.root = root;
@@ -2498,24 +3822,23 @@ var _PropertyAccess = class _PropertyAccess extends Expression {
     return parser.parseElement("indirectExpression", propertyAccess);
   }
   resolve(context, { root: rootVal }) {
-    var value = context.meta.runtime.resolveProperty(rootVal, this.prop.value);
-    return value;
+    return context.meta.runtime.resolveProperty(rootVal, this.prop.value);
   }
   get lhs() {
     return { root: this.root };
   }
   set(ctx, lhs, value) {
     ctx.meta.runtime.nullCheck(lhs.root, this.root);
-    ctx.meta.runtime.implicitLoop(lhs.root, (elt) => {
-      elt[this.prop.value] = value;
+    var runtime2 = ctx.meta.runtime;
+    runtime2.implicitLoop(lhs.root, (elt) => {
+      runtime2.setProperty(elt, this.prop.value, value);
     });
   }
 };
-__publicField(_PropertyAccess, "grammarName", "propertyAccess");
-__publicField(_PropertyAccess, "expressionType", "indirect");
-__publicField(_PropertyAccess, "assignable", true);
-var PropertyAccess = _PropertyAccess;
-var _OfExpression = class _OfExpression extends Expression {
+var OfExpression = class _OfExpression extends Expression {
+  static grammarName = "ofExpression";
+  static expressionType = "indirect";
+  static assignable = true;
   constructor(prop, newRoot, attribute, expression, args, urRoot) {
     super();
     this.prop = prop;
@@ -2524,6 +3847,10 @@ var _OfExpression = class _OfExpression extends Expression {
     this.expression = expression;
     this.args = args;
     this._urRoot = urRoot;
+    this._prop = urRoot.name;
+    this._isAttribute = urRoot.type === "attributeRef";
+    this._isStyle = urRoot.type === "styleRef";
+    this._isComputed = urRoot.type === "computedStyleRef";
   }
   static parse(parser, root) {
     if (!parser.matchToken("of")) return;
@@ -2562,20 +3889,14 @@ var _OfExpression = class _OfExpression extends Expression {
     return parser.parseElement("indirectExpression", root);
   }
   resolve(context, { root: rootVal }) {
-    var urRoot = this._urRoot;
-    var prop = urRoot.name;
-    var attribute = urRoot.type === "attributeRef";
-    var style = urRoot.type === "styleRef" || urRoot.type === "computedStyleRef";
-    if (attribute) {
-      return context.meta.runtime.resolveAttribute(rootVal, prop);
-    } else if (style) {
-      if (urRoot.type === "computedStyleRef") {
-        return context.meta.runtime.resolveComputedStyle(rootVal, prop);
-      } else {
-        return context.meta.runtime.resolveStyle(rootVal, prop);
-      }
+    if (this._isAttribute) {
+      return context.meta.runtime.resolveAttribute(rootVal, this._prop);
+    } else if (this._isComputed) {
+      return context.meta.runtime.resolveComputedStyle(rootVal, this._prop);
+    } else if (this._isStyle) {
+      return context.meta.runtime.resolveStyle(rootVal, this._prop);
     } else {
-      return context.meta.runtime.resolveProperty(rootVal, prop);
+      return context.meta.runtime.resolveProperty(rootVal, this._prop);
     }
   }
   get lhs() {
@@ -2583,28 +3904,26 @@ var _OfExpression = class _OfExpression extends Expression {
   }
   set(ctx, lhs, value) {
     ctx.meta.runtime.nullCheck(lhs.root, this.root);
-    var urRoot = this._urRoot;
-    var prop = urRoot.name;
-    if (urRoot.type === "attributeRef") {
+    if (this._isAttribute) {
       ctx.meta.runtime.implicitLoop(lhs.root, (elt) => {
-        value == null ? elt.removeAttribute(prop) : elt.setAttribute(prop, value);
+        value == null ? elt.removeAttribute(this._prop) : elt.setAttribute(this._prop, value);
       });
-    } else if (urRoot.type === "styleRef") {
+    } else if (this._isStyle) {
       ctx.meta.runtime.implicitLoop(lhs.root, (elt) => {
-        elt.style[prop] = value;
+        elt.style[this._prop] = value;
       });
     } else {
-      ctx.meta.runtime.implicitLoop(lhs.root, (elt) => {
-        elt[prop] = value;
+      var runtime2 = ctx.meta.runtime;
+      runtime2.implicitLoop(lhs.root, (elt) => {
+        runtime2.setProperty(elt, this._prop, value);
       });
     }
   }
 };
-__publicField(_OfExpression, "grammarName", "ofExpression");
-__publicField(_OfExpression, "expressionType", "indirect");
-__publicField(_OfExpression, "assignable", true);
-var OfExpression = _OfExpression;
-var _PossessiveExpression = class _PossessiveExpression extends Expression {
+var PossessiveExpression = class _PossessiveExpression extends Expression {
+  static grammarName = "possessive";
+  static expressionType = "indirect";
+  static assignable = true;
   constructor(root, attribute, prop) {
     super();
     this.root = root;
@@ -2613,9 +3932,6 @@ var _PossessiveExpression = class _PossessiveExpression extends Expression {
     this.args = { root };
   }
   static parse(parser, root) {
-    if (parser.possessivesDisabled) {
-      return;
-    }
     var apostrophe = parser.matchOpToken("'");
     if (apostrophe || root.type === "symbol" && (root.name === "my" || root.name === "its" || root.name === "your") && (parser.currentToken().type === "IDENTIFIER" || parser.currentToken().type === "ATTRIBUTE_REF" || parser.currentToken().type === "STYLE_REF")) {
       if (apostrophe) {
@@ -2665,17 +3981,18 @@ var _PossessiveExpression = class _PossessiveExpression extends Expression {
         });
       }
     } else {
-      ctx.meta.runtime.implicitLoop(lhs.root, (elt) => {
-        elt[this.prop.value] = value;
+      var runtime2 = ctx.meta.runtime;
+      var prop = this.prop.value;
+      runtime2.implicitLoop(lhs.root, (elt) => {
+        runtime2.setProperty(elt, prop, value);
       });
     }
   }
 };
-__publicField(_PossessiveExpression, "grammarName", "possessive");
-__publicField(_PossessiveExpression, "expressionType", "indirect");
-__publicField(_PossessiveExpression, "assignable", true);
-var PossessiveExpression = _PossessiveExpression;
-var _InExpression = class _InExpression extends Expression {
+var InExpression = class _InExpression extends Expression {
+  static grammarName = "inExpression";
+  static expressionType = "indirect";
+  static assignable = true;
   constructor(root, target) {
     super();
     this.root = root;
@@ -2689,6 +4006,7 @@ var _InExpression = class _InExpression extends Expression {
     return parser.parseElement("indirectExpression", inExpression);
   }
   resolve(context, { root: rootVal, target }) {
+    if (rootVal == null) return [];
     var returnArr = [];
     if (rootVal.css) {
       context.meta.runtime.implicitLoop(target, function(targetElt) {
@@ -2718,11 +4036,17 @@ var _InExpression = class _InExpression extends Expression {
     }
     return returnArr;
   }
+  get lhs() {
+    return { root: this.root, target: this.target };
+  }
+  set(ctx, lhs, value) {
+    var targets = this.resolve(ctx, lhs);
+    ctx.meta.runtime.replaceInDom(targets, value);
+  }
 };
-__publicField(_InExpression, "grammarName", "inExpression");
-__publicField(_InExpression, "expressionType", "indirect");
-var InExpression = _InExpression;
-var _AsExpression = class _AsExpression extends Expression {
+var AsExpression = class _AsExpression extends Expression {
+  static grammarName = "asExpression";
+  static expressionType = "indirect";
   constructor(root, conversion) {
     super();
     this.root = root;
@@ -2732,18 +4056,21 @@ var _AsExpression = class _AsExpression extends Expression {
   static parse(parser, root) {
     if (!parser.matchToken("as")) return;
     parser.matchToken("a") || parser.matchToken("an");
-    var conversion = parser.requireElement("dotOrColonPath").evaluate();
-    var asExpression = new _AsExpression(root, conversion);
-    return parser.parseElement("indirectExpression", asExpression);
+    var conversion = parser.requireElement("dotOrColonPath").evalStatically();
+    var asExpr = new _AsExpression(root, conversion);
+    while (parser.matchOpToken("|")) {
+      conversion = parser.requireElement("dotOrColonPath").evalStatically();
+      asExpr = new _AsExpression(asExpr, conversion);
+    }
+    return parser.parseElement("indirectExpression", asExpr);
   }
   resolve(context, { root: rootVal }) {
     return context.meta.runtime.convertValue(rootVal, this.conversion);
   }
 };
-__publicField(_AsExpression, "grammarName", "asExpression");
-__publicField(_AsExpression, "expressionType", "indirect");
-var AsExpression = _AsExpression;
-var _FunctionCall = class _FunctionCall extends Expression {
+var FunctionCall = class _FunctionCall extends Expression {
+  static grammarName = "functionCall";
+  static expressionType = "indirect";
   constructor(root, argExpressions, args, isMethodCall) {
     super();
     this.root = root;
@@ -2772,12 +4099,15 @@ var _FunctionCall = class _FunctionCall extends Expression {
   resolve(context, { target, argVals }) {
     if (this._isMethodCall) {
       context.meta.runtime.nullCheck(target, this._parseRoot.root);
-      var func = target[this._parseRoot.prop.value];
+      var methodName = this._parseRoot.prop.value;
+      var func = target[methodName];
       context.meta.runtime.nullCheck(func, this._parseRoot);
       if (func.hyperfunc) {
         argVals.push(context);
       }
-      return func.apply(target, argVals);
+      var result = func.apply(target, argVals);
+      context.meta.runtime.maybeNotify(target, methodName);
+      return result;
     } else {
       context.meta.runtime.nullCheck(target, this._parseRoot);
       if (target.hyperfunc) {
@@ -2787,10 +4117,10 @@ var _FunctionCall = class _FunctionCall extends Expression {
     }
   }
 };
-__publicField(_FunctionCall, "grammarName", "functionCall");
-__publicField(_FunctionCall, "expressionType", "indirect");
-var FunctionCall = _FunctionCall;
-var _AttributeRefAccess = class _AttributeRefAccess extends Expression {
+var AttributeRefAccess = class _AttributeRefAccess extends Expression {
+  static grammarName = "attributeRefAccess";
+  static expressionType = "indirect";
+  static assignable = true;
   constructor(root, attribute) {
     super();
     this.root = root;
@@ -2803,8 +4133,7 @@ var _AttributeRefAccess = class _AttributeRefAccess extends Expression {
     return new _AttributeRefAccess(root, attribute);
   }
   resolve(_ctx, { root: rootVal }) {
-    var value = _ctx.meta.runtime.resolveAttribute(rootVal, this.attribute.name);
-    return value;
+    return _ctx.meta.runtime.resolveAttribute(rootVal, this.attribute.name);
   }
   get lhs() {
     return { root: this.root };
@@ -2816,11 +4145,10 @@ var _AttributeRefAccess = class _AttributeRefAccess extends Expression {
     });
   }
 };
-__publicField(_AttributeRefAccess, "grammarName", "attributeRefAccess");
-__publicField(_AttributeRefAccess, "expressionType", "indirect");
-__publicField(_AttributeRefAccess, "assignable", true);
-var AttributeRefAccess = _AttributeRefAccess;
-var _ArrayIndex = class _ArrayIndex extends Expression {
+var ArrayIndex = class _ArrayIndex extends Expression {
+  static grammarName = "arrayIndex";
+  static expressionType = "indirect";
+  static assignable = true;
   constructor(root, firstIndex, secondIndex, andBefore, andAfter) {
     super();
     this.root = root;
@@ -2884,11 +4212,8 @@ var _ArrayIndex = class _ArrayIndex extends Expression {
     lhs.root[lhs.index] = value;
   }
 };
-__publicField(_ArrayIndex, "grammarName", "arrayIndex");
-__publicField(_ArrayIndex, "expressionType", "indirect");
-__publicField(_ArrayIndex, "assignable", true);
-var ArrayIndex = _ArrayIndex;
-var _MathOperator = class _MathOperator extends Expression {
+var MathOperator = class _MathOperator extends Expression {
+  static grammarName = "mathOperator";
   constructor(lhs, operator, rhs) {
     super();
     this.lhs = lhs;
@@ -2914,6 +4239,7 @@ var _MathOperator = class _MathOperator extends Expression {
   }
   resolve(context, { lhs: lhsVal, rhs: rhsVal }) {
     if (this.operator === "+") {
+      if (Array.isArray(lhsVal)) return lhsVal.concat(rhsVal);
       return lhsVal + rhsVal;
     } else if (this.operator === "-") {
       return lhsVal - rhsVal;
@@ -2926,17 +4252,18 @@ var _MathOperator = class _MathOperator extends Expression {
     }
   }
 };
-__publicField(_MathOperator, "grammarName", "mathOperator");
-var MathOperator = _MathOperator;
-var _ComparisonOperator = class _ComparisonOperator extends Expression {
-  constructor(lhs, operator, rhs, typeName, nullOk) {
+var ComparisonOperator = class _ComparisonOperator extends Expression {
+  static grammarName = "comparisonOperator";
+  constructor(lhs, operator, rhs, typeName, nullOk, ignoringCase, rhs2) {
     super();
     this.operator = operator;
     this.typeName = typeName;
     this.nullOk = nullOk;
+    this.ignoringCase = ignoringCase;
     this.lhs = lhs;
     this.rhs = rhs;
-    this.args = { lhs, rhs };
+    this.rhs2 = rhs2;
+    this.args = { lhs, rhs, rhs2 };
   }
   sloppyContains(src, container, value) {
     if (container["contains"]) {
@@ -2944,7 +4271,7 @@ var _ComparisonOperator = class _ComparisonOperator extends Expression {
     } else if (container["includes"]) {
       return container.includes(value);
     } else {
-      throw Error("The value of " + src.sourceFor() + " does not have a contains or includes method on it");
+      throw new Error("The value of " + src.sourceFor() + " does not have a contains or includes method on it");
     }
   }
   sloppyMatches(src, target, toMatch) {
@@ -2953,7 +4280,7 @@ var _ComparisonOperator = class _ComparisonOperator extends Expression {
     } else if (target["matches"]) {
       return target.matches(toMatch);
     } else {
-      throw Error("The value of " + src.sourceFor() + " does not have a match or matches method on it");
+      throw new Error("The value of " + src.sourceFor() + " does not have a match or matches method on it");
     }
   }
   static parse(parser) {
@@ -2973,6 +4300,8 @@ var _ComparisonOperator = class _ComparisonOperator extends Expression {
           } else if (parser.matchToken("empty")) {
             operator = "not empty";
             hasRightValue = false;
+          } else if (parser.matchToken("between")) {
+            operator = "not between";
           } else {
             if (parser.matchToken("really")) {
               operator = "!==";
@@ -2991,6 +4320,8 @@ var _ComparisonOperator = class _ComparisonOperator extends Expression {
         } else if (parser.matchToken("empty")) {
           operator = "empty";
           hasRightValue = false;
+        } else if (parser.matchToken("between")) {
+          operator = "between";
         } else if (parser.matchToken("less")) {
           parser.requireToken("than");
           if (parser.matchToken("or")) {
@@ -3033,19 +4364,39 @@ var _ComparisonOperator = class _ComparisonOperator extends Expression {
         operator = "contain";
       } else if (parser.matchToken("includes") || parser.matchToken("include")) {
         operator = "include";
+      } else if (parser.matchToken("starts")) {
+        parser.requireToken("with");
+        operator = "start with";
+      } else if (parser.matchToken("ends")) {
+        parser.requireToken("with");
+        operator = "end with";
+      } else if (parser.matchToken("precedes") || parser.matchToken("precede")) {
+        operator = "precede";
+      } else if (parser.matchToken("follows") || parser.matchToken("follow")) {
+        operator = "follow";
       } else if (parser.matchToken("do") || parser.matchToken("does")) {
         parser.requireToken("not");
         if (parser.matchToken("matches") || parser.matchToken("match")) {
           operator = "not match";
         } else if (parser.matchToken("contains") || parser.matchToken("contain")) {
           operator = "not contain";
-        } else if (parser.matchToken("exist") || parser.matchToken("exist")) {
+        } else if (parser.matchToken("exist")) {
           operator = "not exist";
           hasRightValue = false;
         } else if (parser.matchToken("include")) {
           operator = "not include";
+        } else if (parser.matchToken("start")) {
+          parser.requireToken("with");
+          operator = "not start with";
+        } else if (parser.matchToken("end")) {
+          parser.requireToken("with");
+          operator = "not end with";
+        } else if (parser.matchToken("precede")) {
+          operator = "not precede";
+        } else if (parser.matchToken("follow")) {
+          operator = "not follow";
         } else {
-          parser.raiseParseError("Expected matches or contains");
+          parser.raiseParseError("Expected matches, contains, starts with, ends with, precede, or follow");
         }
       }
     }
@@ -3060,79 +4411,67 @@ var _ComparisonOperator = class _ComparisonOperator extends Expression {
           rhs = rhs.css ? rhs.css : rhs;
         }
       }
+      var rhs2 = null;
+      if (operator === "between" || operator === "not between") {
+        parser.requireToken("and");
+        rhs2 = parser.requireElement("mathOperator");
+      }
+      var ignoringCase = false;
+      if (parser.matchToken("ignoring")) {
+        parser.requireToken("case");
+        ignoringCase = true;
+      }
       var lhs = expr;
-      expr = new _ComparisonOperator(lhs, operator, rhs, typeName, nullOk);
+      expr = new _ComparisonOperator(lhs, operator, rhs, typeName, nullOk, ignoringCase, rhs2);
     }
     return expr;
   }
-  resolve(context, { lhs: lhsVal, rhs: rhsVal }) {
+  resolve(context, { lhs: lhsVal, rhs: rhsVal, rhs2: rhs2Val }) {
     const operator = this.operator;
     const lhs = this.lhs;
     const rhs = this.rhs;
     const typeName = this.typeName;
     const nullOk = this.nullOk;
-    if (operator === "==") {
-      return lhsVal == rhsVal;
-    } else if (operator === "!=") {
-      return lhsVal != rhsVal;
+    if (this.ignoringCase) {
+      if (typeof lhsVal === "string") lhsVal = lhsVal.toLowerCase();
+      if (typeof rhsVal === "string") rhsVal = rhsVal.toLowerCase();
     }
-    if (operator === "===") {
-      return lhsVal === rhsVal;
-    } else if (operator === "!==") {
-      return lhsVal !== rhsVal;
-    }
-    if (operator === "match") {
-      return lhsVal != null && this.sloppyMatches(lhs, lhsVal, rhsVal);
-    }
-    if (operator === "not match") {
-      return lhsVal == null || !this.sloppyMatches(lhs, lhsVal, rhsVal);
-    }
-    if (operator === "in") {
-      return rhsVal != null && this.sloppyContains(rhs, rhsVal, lhsVal);
-    }
-    if (operator === "not in") {
-      return rhsVal == null || !this.sloppyContains(rhs, rhsVal, lhsVal);
-    }
-    if (operator === "contain") {
-      return lhsVal != null && this.sloppyContains(lhs, lhsVal, rhsVal);
-    }
-    if (operator === "not contain") {
-      return lhsVal == null || !this.sloppyContains(lhs, lhsVal, rhsVal);
-    }
-    if (operator === "include") {
-      return lhsVal != null && this.sloppyContains(lhs, lhsVal, rhsVal);
-    }
-    if (operator === "not include") {
-      return lhsVal == null || !this.sloppyContains(lhs, lhsVal, rhsVal);
-    }
-    if (operator === "<") {
-      return lhsVal < rhsVal;
-    } else if (operator === ">") {
-      return lhsVal > rhsVal;
-    } else if (operator === "<=") {
-      return lhsVal <= rhsVal;
-    } else if (operator === ">=") {
-      return lhsVal >= rhsVal;
-    } else if (operator === "empty") {
-      return context.meta.runtime.isEmpty(lhsVal);
-    } else if (operator === "not empty") {
-      return !context.meta.runtime.isEmpty(lhsVal);
-    } else if (operator === "exist") {
-      return context.meta.runtime.doesExist(lhsVal);
-    } else if (operator === "not exist") {
-      return !context.meta.runtime.doesExist(lhsVal);
-    } else if (operator === "a") {
-      return context.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
-    } else if (operator === "not a") {
-      return !context.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
-    } else {
-      throw "Unknown comparison : " + operator;
-    }
+    if (operator === "==") return lhsVal == rhsVal;
+    if (operator === "!=") return lhsVal != rhsVal;
+    if (operator === "===") return lhsVal === rhsVal;
+    if (operator === "!==") return lhsVal !== rhsVal;
+    if (operator === "<") return lhsVal < rhsVal;
+    if (operator === ">") return lhsVal > rhsVal;
+    if (operator === "<=") return lhsVal <= rhsVal;
+    if (operator === ">=") return lhsVal >= rhsVal;
+    if (operator === "match") return lhsVal != null && this.sloppyMatches(lhs, lhsVal, rhsVal);
+    if (operator === "not match") return lhsVal == null || !this.sloppyMatches(lhs, lhsVal, rhsVal);
+    if (operator === "in") return rhsVal != null && this.sloppyContains(rhs, rhsVal, lhsVal);
+    if (operator === "not in") return rhsVal == null || !this.sloppyContains(rhs, rhsVal, lhsVal);
+    if (operator === "contain" || operator === "include") return lhsVal != null && this.sloppyContains(lhs, lhsVal, rhsVal);
+    if (operator === "not contain" || operator === "not include") return lhsVal == null || !this.sloppyContains(lhs, lhsVal, rhsVal);
+    if (operator === "start with") return lhsVal != null && String(lhsVal).startsWith(rhsVal);
+    if (operator === "not start with") return lhsVal == null || !String(lhsVal).startsWith(rhsVal);
+    if (operator === "end with") return lhsVal != null && String(lhsVal).endsWith(rhsVal);
+    if (operator === "not end with") return lhsVal == null || !String(lhsVal).endsWith(rhsVal);
+    if (operator === "between") return lhsVal >= rhsVal && lhsVal <= rhs2Val;
+    if (operator === "not between") return lhsVal < rhsVal || lhsVal > rhs2Val;
+    if (operator === "precede") return lhsVal != null && rhsVal != null && (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+    if (operator === "not precede") return lhsVal == null || rhsVal == null || (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_FOLLOWING) === 0;
+    if (operator === "follow") return lhsVal != null && rhsVal != null && (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_PRECEDING) !== 0;
+    if (operator === "not follow") return lhsVal == null || rhsVal == null || (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_PRECEDING) === 0;
+    if (operator === "empty") return context.meta.runtime.isEmpty(lhsVal);
+    if (operator === "not empty") return !context.meta.runtime.isEmpty(lhsVal);
+    if (operator === "exist") return context.meta.runtime.doesExist(lhsVal);
+    if (operator === "not exist") return !context.meta.runtime.doesExist(lhsVal);
+    if (operator === "a") return context.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
+    if (operator === "not a") return !context.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
+    throw new Error("Unknown comparison : " + operator);
   }
 };
-__publicField(_ComparisonOperator, "grammarName", "comparisonOperator");
-var ComparisonOperator = _ComparisonOperator;
-var _LogicalOperator = class _LogicalOperator extends Expression {
+var LogicalOperator = class _LogicalOperator extends Expression {
+  static grammarName = "logicalOperator";
+  static expressionType = "top";
   constructor(lhs, operator, rhs) {
     super();
     this.operator = operator;
@@ -3167,9 +4506,6 @@ var _LogicalOperator = class _LogicalOperator extends Expression {
     return context.meta.runtime.unifiedEval(this, context, this.operator === "or");
   }
 };
-__publicField(_LogicalOperator, "grammarName", "logicalOperator");
-__publicField(_LogicalOperator, "expressionType", "top");
-var LogicalOperator = _LogicalOperator;
 var DotOrColonPathNode = class extends Expression {
   constructor(path, separator) {
     super();
@@ -3177,16 +4513,141 @@ var DotOrColonPathNode = class extends Expression {
     this.path = path;
     this.separator = separator;
   }
-  // Called at both parse time (no context) and runtime, so cannot use the
-  // default evaluate() which requires a context for unifiedEval.
-  evaluate() {
+  evalStatically() {
     return this.path.join(this.separator ? this.separator : "");
   }
   resolve() {
-    return this.path.join(this.separator ? this.separator : "");
+    return this.evalStatically();
+  }
+};
+var COLLECTION_KEYWORDS = ["where", "sorted", "mapped", "split", "joined"];
+function _parseCollectionOperand(parser, keyword) {
+  var follows = COLLECTION_KEYWORDS.filter((k) => k !== keyword);
+  follows.forEach((f) => parser.pushFollow(f));
+  try {
+    return parser.requireElement("expression");
+  } finally {
+    follows.forEach(() => parser.popFollow());
+  }
+}
+var CollectionOp = class extends Expression {
+  static grammarName = "collectionOp";
+  static expressionType = "indirect";
+  static parse(parser, root) {
+    if (parser.matchToken("where")) {
+      var condition = _parseCollectionOperand(parser, "where");
+      root = new WhereExpression(root, condition);
+    } else if (parser.matchToken("sorted")) {
+      parser.requireToken("by");
+      var key = _parseCollectionOperand(parser, "sorted");
+      var descending = parser.matchToken("descending");
+      root = new SortedByExpression(root, key, !!descending);
+    } else if (parser.matchToken("mapped")) {
+      parser.requireToken("to");
+      var projection = _parseCollectionOperand(parser, "mapped");
+      root = new MappedToExpression(root, projection);
+    } else if (parser.matchToken("split")) {
+      parser.requireToken("by");
+      var delimiter = _parseCollectionOperand(parser, "split");
+      root = new SplitByExpression(root, delimiter);
+    } else if (parser.matchToken("joined")) {
+      parser.requireToken("by");
+      var delimiter = _parseCollectionOperand(parser, "joined");
+      root = new JoinedByExpression(root, delimiter);
+    } else {
+      return;
+    }
+    return parser.parseElement("indirectExpression", root);
+  }
+};
+var WhereExpression = class extends Expression {
+  constructor(root, condition) {
+    super();
+    this.root = root;
+    this.condition = condition;
+    this.args = { root };
+  }
+  resolve(context, { root: collection }) {
+    var result = [];
+    var items = Array.from(collection);
+    for (var i = 0; i < items.length; i++) {
+      context.beingTested = items[i];
+      if (this.condition.evaluate(context)) {
+        result.push(items[i]);
+      }
+    }
+    context.beingTested = null;
+    return result;
+  }
+};
+var SortedByExpression = class extends Expression {
+  constructor(root, key, descending) {
+    super();
+    this.root = root;
+    this.key = key;
+    this.descending = descending;
+    this.args = { root };
+  }
+  resolve(context, { root: collection }) {
+    var items = Array.from(collection);
+    var keys = [];
+    for (var i = 0; i < items.length; i++) {
+      context.beingTested = items[i];
+      keys.push(this.key.evaluate(context));
+    }
+    context.beingTested = null;
+    var indices = items.map(function(_, i2) {
+      return i2;
+    });
+    var dir = this.descending ? -1 : 1;
+    indices.sort(function(a, b) {
+      var ka = keys[a], kb = keys[b];
+      if (ka == kb) return 0;
+      return (ka < kb ? -1 : 1) * dir;
+    });
+    return indices.map(function(i2) {
+      return items[i2];
+    });
+  }
+};
+var MappedToExpression = class extends Expression {
+  constructor(root, projection) {
+    super();
+    this.root = root;
+    this.projection = projection;
+    this.args = { root };
+  }
+  resolve(context, { root: collection }) {
+    var items = Array.from(collection);
+    var result = [];
+    for (var i = 0; i < items.length; i++) {
+      context.beingTested = items[i];
+      result.push(this.projection.evaluate(context));
+    }
+    context.beingTested = null;
+    return result;
+  }
+};
+var SplitByExpression = class extends Expression {
+  constructor(root, delimiter) {
+    super();
+    this.args = { root, delimiter };
+  }
+  resolve(context, { root, delimiter }) {
+    return String(root).split(delimiter);
+  }
+};
+var JoinedByExpression = class extends Expression {
+  constructor(root, delimiter) {
+    super();
+    this.args = { root, delimiter };
+  }
+  resolve(context, { root, delimiter }) {
+    return Array.from(root).join(delimiter);
   }
 };
 var DotOrColonPath = class extends Expression {
+  static grammarName = "dotOrColonPath";
   static parse(parser) {
     var root = parser.matchTokenType("IDENTIFIER");
     if (root) {
@@ -3201,280 +4662,6 @@ var DotOrColonPath = class extends Expression {
     }
   }
 };
-__publicField(DotOrColonPath, "grammarName", "dotOrColonPath");
-
-// src/parsetree/expressions/literals.js
-var literals_exports = {};
-__export(literals_exports, {
-  ArrayLiteral: () => ArrayLiteral,
-  BooleanLiteral: () => BooleanLiteral,
-  NakedNamedArgumentList: () => NakedNamedArgumentList,
-  NakedString: () => NakedString,
-  NamedArgumentList: () => NamedArgumentList,
-  NullLiteral: () => NullLiteral,
-  NumberLiteral: () => NumberLiteral,
-  ObjectKey: () => ObjectKey,
-  ObjectLiteral: () => ObjectLiteral,
-  StringLike: () => StringLike,
-  StringLiteral: () => StringLiteral
-});
-var _NakedString = class _NakedString extends Expression {
-  constructor(tokens) {
-    super();
-    this.tokens = tokens;
-  }
-  static parse(parser) {
-    if (parser.hasMore()) {
-      var tokenArr = parser.consumeUntilWhitespace();
-      parser.matchTokenType("WHITESPACE");
-      return new _NakedString(tokenArr);
-    }
-  }
-  resolve(context) {
-    return this.tokens.map(function(t) {
-      return t.value;
-    }).join("");
-  }
-};
-__publicField(_NakedString, "grammarName", "nakedString");
-var NakedString = _NakedString;
-var _BooleanLiteral = class _BooleanLiteral extends Expression {
-  constructor(value) {
-    super();
-    this.value = value;
-  }
-  static parse(parser) {
-    var booleanLiteral = parser.matchToken("true") || parser.matchToken("false");
-    if (!booleanLiteral) return;
-    const value = booleanLiteral.value === "true";
-    return new _BooleanLiteral(value);
-  }
-  resolve(context) {
-    return this.value;
-  }
-};
-__publicField(_BooleanLiteral, "grammarName", "boolean");
-__publicField(_BooleanLiteral, "expressionType", "leaf");
-var BooleanLiteral = _BooleanLiteral;
-var _NullLiteral = class _NullLiteral extends Expression {
-  constructor() {
-    super();
-  }
-  static parse(parser) {
-    if (parser.matchToken("null")) {
-      return new _NullLiteral();
-    }
-  }
-  resolve(context) {
-    return null;
-  }
-};
-__publicField(_NullLiteral, "grammarName", "null");
-__publicField(_NullLiteral, "expressionType", "leaf");
-var NullLiteral = _NullLiteral;
-var _NumberLiteral = class _NumberLiteral extends Expression {
-  constructor(value, numberToken) {
-    super();
-    this.value = value;
-    this.numberToken = numberToken;
-  }
-  static parse(parser) {
-    var number = parser.matchTokenType("NUMBER");
-    if (!number) return;
-    var numberToken = number;
-    var value = parseFloat(
-      /** @type {string} */
-      number.value
-    );
-    return new _NumberLiteral(value, numberToken);
-  }
-  resolve(context) {
-    return this.value;
-  }
-};
-__publicField(_NumberLiteral, "grammarName", "number");
-__publicField(_NumberLiteral, "expressionType", "leaf");
-var NumberLiteral = _NumberLiteral;
-var _StringLiteral = class _StringLiteral extends Expression {
-  constructor(stringToken, rawValue, args) {
-    super();
-    this.token = stringToken;
-    this.rawValue = rawValue;
-    this.args = args.length > 0 ? { parts: args } : null;
-  }
-  static parse(parser) {
-    var stringToken = parser.matchTokenType("STRING");
-    if (!stringToken) return;
-    var rawValue = (
-      /** @type {string} */
-      stringToken.value
-    );
-    var args;
-    if (stringToken.template) {
-      var innerTokens = Tokenizer.tokenize(rawValue, true);
-      var innerParser = parser.createChildParser(innerTokens);
-      args = innerParser.parseStringTemplate();
-    } else {
-      args = [];
-    }
-    return new _StringLiteral(stringToken, rawValue, args);
-  }
-  resolve(context, { parts } = {}) {
-    if (!parts || parts.length === 0) {
-      return this.rawValue;
-    }
-    var returnStr = "";
-    for (var i = 0; i < parts.length; i++) {
-      var val = parts[i];
-      if (val !== void 0) {
-        returnStr += val;
-      }
-    }
-    return returnStr;
-  }
-};
-__publicField(_StringLiteral, "grammarName", "string");
-__publicField(_StringLiteral, "expressionType", "leaf");
-var StringLiteral = _StringLiteral;
-var _ArrayLiteral = class _ArrayLiteral extends Expression {
-  constructor(values) {
-    super();
-    this.values = values;
-    this.args = { values };
-  }
-  static parse(parser) {
-    if (!parser.matchOpToken("[")) return;
-    var values = [];
-    if (!parser.matchOpToken("]")) {
-      do {
-        var expr = parser.requireElement("expression");
-        values.push(expr);
-      } while (parser.matchOpToken(","));
-      parser.requireOpToken("]");
-    }
-    return new _ArrayLiteral(values);
-  }
-  resolve(context, { values }) {
-    return values;
-  }
-};
-__publicField(_ArrayLiteral, "grammarName", "arrayLiteral");
-__publicField(_ArrayLiteral, "expressionType", "leaf");
-var ArrayLiteral = _ArrayLiteral;
-var _ObjectKey = class _ObjectKey extends Expression {
-  constructor(key, expr, args) {
-    super();
-    this.key = key;
-    this.expr = expr;
-    this.args = args;
-  }
-  static parse(parser) {
-    var token;
-    if (token = parser.matchTokenType("STRING")) {
-      return new _ObjectKey(token.value, null, null);
-    } else if (parser.matchOpToken("[")) {
-      var expr = parser.parseElement("expression");
-      parser.requireOpToken("]");
-      return new _ObjectKey(null, expr, { value: expr });
-    } else {
-      var key = "";
-      do {
-        token = parser.matchTokenType("IDENTIFIER") || parser.matchOpToken("-");
-        if (token) key += token.value;
-      } while (token);
-      return new _ObjectKey(key, null, null);
-    }
-  }
-  resolve(ctx, { value } = {}) {
-    if (this.expr) {
-      return value;
-    }
-    return this.key;
-  }
-};
-__publicField(_ObjectKey, "grammarName", "objectKey");
-var ObjectKey = _ObjectKey;
-var _ObjectLiteral = class _ObjectLiteral extends Expression {
-  constructor(keyExpressions, valueExpressions) {
-    super();
-    this.keyExpressions = keyExpressions;
-    this.valueExpressions = valueExpressions;
-    this.args = { keys: keyExpressions, values: valueExpressions };
-  }
-  static parse(parser) {
-    if (!parser.matchOpToken("{")) return;
-    var keyExpressions = [];
-    var valueExpressions = [];
-    if (!parser.matchOpToken("}")) {
-      do {
-        var name = parser.requireElement("objectKey");
-        parser.requireOpToken(":");
-        var value = parser.requireElement("expression");
-        valueExpressions.push(value);
-        keyExpressions.push(name);
-      } while (parser.matchOpToken(",") && !parser.peekToken("}", 0, "R_BRACE"));
-      parser.requireOpToken("}");
-    }
-    return new _ObjectLiteral(keyExpressions, valueExpressions);
-  }
-  resolve(context, { keys, values }) {
-    var returnVal = {};
-    for (var i = 0; i < keys.length; i++) {
-      returnVal[keys[i]] = values[i];
-    }
-    return returnVal;
-  }
-};
-__publicField(_ObjectLiteral, "grammarName", "objectLiteral");
-__publicField(_ObjectLiteral, "expressionType", "leaf");
-var ObjectLiteral = _ObjectLiteral;
-var _NamedArgumentList = class _NamedArgumentList extends Expression {
-  constructor(fields, valueExpressions) {
-    super();
-    this.fields = fields;
-    this.args = { values: valueExpressions };
-  }
-  static parseNaked(parser) {
-    var fields = [];
-    var valueExpressions = [];
-    if (parser.currentToken().type === "IDENTIFIER") {
-      do {
-        var name = parser.requireTokenType("IDENTIFIER");
-        parser.requireOpToken(":");
-        var value = parser.requireElement("expression");
-        valueExpressions.push(value);
-        fields.push({ name, value });
-      } while (parser.matchOpToken(","));
-    }
-    return new _NamedArgumentList(fields, valueExpressions);
-  }
-  static parse(parser) {
-    if (!parser.matchOpToken("(")) return;
-    var elt = _NamedArgumentList.parseNaked(parser);
-    parser.requireOpToken(")");
-    return elt;
-  }
-  resolve(context, { values }) {
-    var returnVal = { _namedArgList_: true };
-    for (var i = 0; i < values.length; i++) {
-      var field = this.fields[i];
-      returnVal[field.name.value] = values[i];
-    }
-    return returnVal;
-  }
-};
-__publicField(_NamedArgumentList, "grammarName", "namedArgumentList");
-var NamedArgumentList = _NamedArgumentList;
-var NakedNamedArgumentList = class extends Expression {
-};
-__publicField(NakedNamedArgumentList, "grammarName", "nakedNamedArgumentList");
-__publicField(NakedNamedArgumentList, "parse", NamedArgumentList.parseNaked);
-var StringLike = class extends Expression {
-  static parse(parser) {
-    return parser.parseAnyOf(["string", "nakedString"]);
-  }
-};
-__publicField(StringLike, "grammarName", "stringLike");
 
 // src/parsetree/expressions/webliterals.js
 var webliterals_exports = {};
@@ -3486,7 +4673,10 @@ __export(webliterals_exports, {
   StyleLiteral: () => StyleLiteral,
   StyleRef: () => StyleRef
 });
-var _IdRef = class _IdRef extends Expression {
+var IdRef = class _IdRef extends Expression {
+  static grammarName = "idRef";
+  static expressionType = "leaf";
+  static assignable = true;
   constructor(variant, css, value, innerExpression) {
     super();
     this.variant = variant;
@@ -3517,11 +4707,18 @@ var _IdRef = class _IdRef extends Expression {
       return context.meta.runtime.getRootNode(context.me).getElementById(this.value);
     }
   }
+  get lhs() {
+    return {};
+  }
+  set(ctx, lhs, value) {
+    var target = this.resolve(ctx);
+    if (target) ctx.meta.runtime.replaceInDom(target, value);
+  }
 };
-__publicField(_IdRef, "grammarName", "idRef");
-__publicField(_IdRef, "expressionType", "leaf");
-var IdRef = _IdRef;
-var _ClassRef = class _ClassRef extends Expression {
+var ClassRef = class _ClassRef extends Expression {
+  static grammarName = "classRef";
+  static expressionType = "leaf";
+  static assignable = true;
   constructor(variant, css, className, innerExpression) {
     super();
     this.variant = variant;
@@ -3553,11 +4750,18 @@ var _ClassRef = class _ClassRef extends Expression {
       return new ElementCollection(this.css, context.me, true, context.meta.runtime);
     }
   }
+  get lhs() {
+    return {};
+  }
+  set(ctx, lhs, value) {
+    var targets = Array.from(this.resolve(ctx));
+    ctx.meta.runtime.replaceInDom(targets, value);
+  }
 };
-__publicField(_ClassRef, "grammarName", "classRef");
-__publicField(_ClassRef, "expressionType", "leaf");
-var ClassRef = _ClassRef;
-var _QueryRef = class _QueryRef extends Expression {
+var QueryRef = class _QueryRef extends Expression {
+  static grammarName = "queryRef";
+  static expressionType = "leaf";
+  static assignable = true;
   constructor(css, args, template) {
     super();
     this.css = css;
@@ -3594,11 +4798,18 @@ var _QueryRef = class _QueryRef extends Expression {
       return new ElementCollection(this.css, context.me, false, context.meta.runtime);
     }
   }
+  get lhs() {
+    return this.template ? { parts: this.templateArgs } : {};
+  }
+  set(ctx, lhs, value) {
+    var targets = Array.from(this.resolve(ctx, lhs));
+    ctx.meta.runtime.replaceInDom(targets, value);
+  }
 };
-__publicField(_QueryRef, "grammarName", "queryRef");
-__publicField(_QueryRef, "expressionType", "leaf");
-var QueryRef = _QueryRef;
-var _AttributeRef = class _AttributeRef extends Expression {
+var AttributeRef = class _AttributeRef extends Expression {
+  static grammarName = "attributeRef";
+  static expressionType = "leaf";
+  static assignable = true;
   constructor(name, css, value) {
     super();
     this.name = name;
@@ -3629,7 +4840,7 @@ var _AttributeRef = class _AttributeRef extends Expression {
   resolve(context) {
     var target = context.you || context.me;
     if (target) {
-      return target.getAttribute(this.name);
+      return context.meta.runtime.resolveAttribute(target, this.name);
     }
   }
   get lhs() {
@@ -3642,11 +4853,10 @@ var _AttributeRef = class _AttributeRef extends Expression {
     }
   }
 };
-__publicField(_AttributeRef, "grammarName", "attributeRef");
-__publicField(_AttributeRef, "expressionType", "leaf");
-__publicField(_AttributeRef, "assignable", true);
-var AttributeRef = _AttributeRef;
-var _StyleRef = class _StyleRef extends Expression {
+var StyleRef = class _StyleRef extends Expression {
+  static grammarName = "styleRef";
+  static expressionType = "leaf";
+  static assignable = true;
   constructor(variant, name) {
     super();
     this.variant = variant;
@@ -3685,11 +4895,8 @@ var _StyleRef = class _StyleRef extends Expression {
     }
   }
 };
-__publicField(_StyleRef, "grammarName", "styleRef");
-__publicField(_StyleRef, "expressionType", "leaf");
-__publicField(_StyleRef, "assignable", true);
-var StyleRef = _StyleRef;
-var _StyleLiteral = class _StyleLiteral extends Expression {
+var StyleLiteral = class _StyleLiteral extends Expression {
+  static grammarName = "styleLiteral";
   constructor(stringParts, exprs) {
     super();
     this.stringParts = stringParts;
@@ -3728,8 +4935,6 @@ var _StyleLiteral = class _StyleLiteral extends Expression {
     return rv;
   }
 };
-__publicField(_StyleLiteral, "grammarName", "styleLiteral");
-var StyleLiteral = _StyleLiteral;
 
 // src/parsetree/expressions/postfix.js
 var postfix_exports = {};
@@ -3760,7 +4965,9 @@ var STRING_POSTFIXES = [
   "pt",
   "px"
 ];
-var _StringPostfixExpression = class _StringPostfixExpression extends Expression {
+var StringPostfixExpression = class _StringPostfixExpression extends Expression {
+  static grammarName = "stringPostfixExpression";
+  static expressionType = "postfix";
   constructor(root, postfix) {
     super();
     this.postfix = postfix;
@@ -3775,10 +4982,9 @@ var _StringPostfixExpression = class _StringPostfixExpression extends Expression
     return "" + val + this.postfix;
   }
 };
-__publicField(_StringPostfixExpression, "grammarName", "stringPostfixExpression");
-__publicField(_StringPostfixExpression, "expressionType", "postfix");
-var StringPostfixExpression = _StringPostfixExpression;
-var _TimeExpression = class _TimeExpression extends Expression {
+var TimeExpression = class _TimeExpression extends Expression {
+  static grammarName = "timeExpression";
+  static expressionType = "postfix";
   constructor(root, timeFactor) {
     super();
     this.time = root;
@@ -3795,14 +5001,16 @@ var _TimeExpression = class _TimeExpression extends Expression {
     if (!timeFactor) return;
     return new _TimeExpression(root, timeFactor);
   }
+  evalStatically() {
+    return this.time.evalStatically() * this.factor;
+  }
   resolve(context, { value: val }) {
     return val * this.factor;
   }
 };
-__publicField(_TimeExpression, "grammarName", "timeExpression");
-__publicField(_TimeExpression, "expressionType", "postfix");
-var TimeExpression = _TimeExpression;
-var _TypeCheckExpression = class _TypeCheckExpression extends Expression {
+var TypeCheckExpression = class _TypeCheckExpression extends Expression {
+  static grammarName = "typeCheckExpression";
+  static expressionType = "postfix";
   constructor(root, typeName, nullOk) {
     super();
     this.typeName = typeName;
@@ -3825,9 +5033,6 @@ var _TypeCheckExpression = class _TypeCheckExpression extends Expression {
     }
   }
 };
-__publicField(_TypeCheckExpression, "grammarName", "typeCheckExpression");
-__publicField(_TypeCheckExpression, "expressionType", "postfix");
-var TypeCheckExpression = _TypeCheckExpression;
 
 // src/parsetree/expressions/positional.js
 var positional_exports = {};
@@ -3836,7 +5041,9 @@ __export(positional_exports, {
   PositionalExpression: () => PositionalExpression,
   RelativePositionalExpression: () => RelativePositionalExpression
 });
-var _RelativePositionalExpression = class _RelativePositionalExpression extends Expression {
+var RelativePositionalExpression = class _RelativePositionalExpression extends Expression {
+  static grammarName = "relativePositionalExpression";
+  static expressionType = "unary";
   constructor(thingElt, from, forwardSearch, inSearch, wrapping, inElt, withinElt, operator) {
     super();
     this.thingElt = thingElt;
@@ -3940,7 +5147,7 @@ var _RelativePositionalExpression = class _RelativePositionalExpression extends 
   resolve(context, { thing, from, inElt, withinElt }) {
     var css = thing.css;
     if (css == null) {
-      throw "Expected a CSS value to be returned by " + this.thingElt.sourceFor();
+      throw new Error("Expected a CSS value to be returned by " + this.thingElt.sourceFor());
     }
     if (this.inSearch) {
       if (inElt) {
@@ -3961,10 +5168,9 @@ var _RelativePositionalExpression = class _RelativePositionalExpression extends 
     }
   }
 };
-__publicField(_RelativePositionalExpression, "grammarName", "relativePositionalExpression");
-__publicField(_RelativePositionalExpression, "expressionType", "unary");
-var RelativePositionalExpression = _RelativePositionalExpression;
-var _PositionalExpression = class _PositionalExpression extends Expression {
+var PositionalExpression = class _PositionalExpression extends Expression {
+  static grammarName = "positionalExpression";
+  static expressionType = "unary";
   constructor(rhs, operator) {
     super();
     this.rhs = rhs;
@@ -3997,9 +5203,6 @@ var _PositionalExpression = class _PositionalExpression extends Expression {
     }
   }
 };
-__publicField(_PositionalExpression, "grammarName", "positionalExpression");
-__publicField(_PositionalExpression, "expressionType", "unary");
-var PositionalExpression = _PositionalExpression;
 var ClosestExprNode = class extends Expression {
   constructor(parentSearch, expr, css, to) {
     super();
@@ -4011,28 +5214,31 @@ var ClosestExprNode = class extends Expression {
     this.args = { to };
   }
   resolve(ctx, { to }) {
-    if (to == null) {
-      return null;
-    } else {
-      let result = [];
-      const css = this.css;
-      const parentSearch = this.parentSearch;
-      ctx.meta.runtime.implicitLoop(to, function(to2) {
-        if (parentSearch) {
-          result.push(to2.parentElement ? to2.parentElement.closest(css) : null);
-        } else {
-          result.push(to2.closest(css));
-        }
-      });
-      if (ctx.meta.runtime.shouldAutoIterate(to)) {
-        return result;
+    if (to == null) return null;
+    let result = [];
+    const css = this.css;
+    const parentSearch = this.parentSearch;
+    ctx.meta.runtime.implicitLoop(to, function(to2) {
+      if (parentSearch) {
+        result.push(to2.parentElement ? to2.parentElement.closest(css) : null);
       } else {
-        return result[0];
+        result.push(to2.closest(css));
       }
-    }
+    });
+    return ctx.meta.runtime.shouldAutoIterate(to) ? result : result[0];
+  }
+  get lhs() {
+    return { to: this.to };
+  }
+  set(ctx, lhs, value) {
+    var target = this.resolve(ctx, lhs);
+    if (target) ctx.meta.runtime.replaceInDom(target, value);
   }
 };
 var ClosestExpr = class extends Expression {
+  static grammarName = "closestExpr";
+  static expressionType = "leaf";
+  static assignable = true;
   static parse(parser) {
     if (!parser.matchToken("closest")) return;
     var parentSearch = false;
@@ -4066,8 +5272,6 @@ var ClosestExpr = class extends Expression {
     }
   }
 };
-__publicField(ClosestExpr, "grammarName", "closestExpr");
-__publicField(ClosestExpr, "expressionType", "leaf");
 
 // src/parsetree/expressions/existentials.js
 var existentials_exports = {};
@@ -4075,7 +5279,9 @@ __export(existentials_exports, {
   NoExpression: () => NoExpression,
   SomeExpression: () => SomeExpression
 });
-var _NoExpression = class _NoExpression extends Expression {
+var NoExpression = class _NoExpression extends Expression {
+  static grammarName = "noExpression";
+  static expressionType = "unary";
   constructor(root) {
     super();
     this.root = root;
@@ -4090,10 +5296,9 @@ var _NoExpression = class _NoExpression extends Expression {
     return context.meta.runtime.isEmpty(val);
   }
 };
-__publicField(_NoExpression, "grammarName", "noExpression");
-__publicField(_NoExpression, "expressionType", "unary");
-var NoExpression = _NoExpression;
-var _SomeExpression = class _SomeExpression extends Expression {
+var SomeExpression = class _SomeExpression extends Expression {
+  static grammarName = "some";
+  static expressionType = "leaf";
   constructor(root) {
     super();
     this.root = root;
@@ -4108,16 +5313,14 @@ var _SomeExpression = class _SomeExpression extends Expression {
     return !context.meta.runtime.isEmpty(val);
   }
 };
-__publicField(_SomeExpression, "grammarName", "some");
-__publicField(_SomeExpression, "expressionType", "leaf");
-var SomeExpression = _SomeExpression;
 
 // src/parsetree/expressions/targets.js
 var targets_exports = {};
 __export(targets_exports, {
   ImplicitMeTarget: () => ImplicitMeTarget
 });
-var _ImplicitMeTarget = class _ImplicitMeTarget extends Expression {
+var ImplicitMeTarget = class _ImplicitMeTarget extends Expression {
+  static grammarName = "implicitMeTarget";
   constructor() {
     super();
   }
@@ -4128,31 +5331,6 @@ var _ImplicitMeTarget = class _ImplicitMeTarget extends Expression {
     return context.you || context.me;
   }
 };
-__publicField(_ImplicitMeTarget, "grammarName", "implicitMeTarget");
-var ImplicitMeTarget = _ImplicitMeTarget;
-
-// src/parsetree/expressions/pseudopossessive.js
-var pseudopossessive_exports = {};
-__export(pseudopossessive_exports, {
-  PseudopossessiveIts: () => PseudopossessiveIts
-});
-var _PseudopossessiveIts = class _PseudopossessiveIts extends Expression {
-  constructor(token) {
-    super();
-    this.token = token;
-    this.name = token.value;
-  }
-  static parse(parser) {
-    if (parser.currentToken().type === "IDENTIFIER" && parser.currentToken().value === "its") {
-      return new _PseudopossessiveIts(parser.matchToken("its"));
-    }
-  }
-  resolve(context) {
-    return context.meta.runtime.resolveSymbol("it", context);
-  }
-};
-__publicField(_PseudopossessiveIts, "grammarName", "pseudopossessiveIts");
-var PseudopossessiveIts = _PseudopossessiveIts;
 
 // src/parsetree/commands/basic.js
 var basic_exports = {};
@@ -4167,6 +5345,7 @@ __export(basic_exports, {
   MakeCommand: () => MakeCommand,
   PickCommand: () => PickCommand,
   ReturnCommand: () => ReturnCommand,
+  ScrollCommand: () => ScrollCommand,
   ThrowCommand: () => ThrowCommand
 });
 var ImplicitResultSymbol = class extends Expression {
@@ -4184,7 +5363,8 @@ var ImplicitResultSymbol = class extends Expression {
     ctx.meta.runtime.setSymbol("result", ctx, null, value);
   }
 };
-var _LogCommand = class _LogCommand extends Command {
+var LogCommand = class _LogCommand extends Command {
+  static keyword = "log";
   constructor(exprs, withExpr) {
     super();
     this.exprs = exprs;
@@ -4208,12 +5388,11 @@ var _LogCommand = class _LogCommand extends Command {
     } else {
       console.log(...values);
     }
-    return ctx.meta.runtime.findNext(this, ctx);
+    return this.findNext(ctx);
   }
 };
-__publicField(_LogCommand, "keyword", "log");
-var LogCommand = _LogCommand;
-var _BeepCommand = class _BeepCommand extends Command {
+var BeepCommand = class _BeepCommand extends Command {
+  static keyword = "beep!";
   constructor(exprs) {
     super();
     this.exprs = exprs;
@@ -4233,12 +5412,11 @@ var _BeepCommand = class _BeepCommand extends Command {
       const val = values[i];
       ctx.meta.runtime.beepValueToConsole(ctx.me, expr, val);
     }
-    return ctx.meta.runtime.findNext(this, ctx);
+    return this.findNext(ctx);
   }
 };
-__publicField(_BeepCommand, "keyword", "beep!");
-var BeepCommand = _BeepCommand;
-var _ThrowCommand = class _ThrowCommand extends Command {
+var ThrowCommand = class _ThrowCommand extends Command {
+  static keyword = "throw";
   constructor(expr) {
     super();
     this.expr = expr;
@@ -4254,9 +5432,8 @@ var _ThrowCommand = class _ThrowCommand extends Command {
     throw value;
   }
 };
-__publicField(_ThrowCommand, "keyword", "throw");
-var ThrowCommand = _ThrowCommand;
-var _ReturnCommand = class _ReturnCommand extends Command {
+var ReturnCommand = class _ReturnCommand extends Command {
+  static keyword = "return";
   constructor(value) {
     super();
     this.value = value;
@@ -4264,10 +5441,9 @@ var _ReturnCommand = class _ReturnCommand extends Command {
   }
   static parse(parser) {
     if (!parser.matchToken("return")) return;
-    if (parser.commandBoundary(parser.currentToken())) {
-      parser.raiseParseError("'return' commands must return a value.  If you do not wish to return a value, use 'exit' instead.");
-    } else {
-      var value = parser.requireElement("expression");
+    var value;
+    if (!parser.commandBoundary(parser.currentToken())) {
+      value = parser.requireElement("expression");
     }
     return new _ReturnCommand(value);
   }
@@ -4275,22 +5451,12 @@ var _ReturnCommand = class _ReturnCommand extends Command {
     var resolve = context.meta.resolve;
     context.meta.returned = true;
     context.meta.returnValue = value;
-    if (resolve) {
-      if (value) {
-        resolve(value);
-      } else {
-        resolve();
-      }
-    }
+    if (resolve) resolve(value);
     return context.meta.runtime.HALT;
   }
 };
-__publicField(_ReturnCommand, "keyword", "return");
-var ReturnCommand = _ReturnCommand;
-var _ExitCommand = class _ExitCommand extends Command {
-  constructor() {
-    super();
-  }
+var ExitCommand = class _ExitCommand extends Command {
+  static keyword = "exit";
   static parse(parser) {
     if (!parser.matchToken("exit")) return;
     return new _ExitCommand();
@@ -4305,9 +5471,8 @@ var _ExitCommand = class _ExitCommand extends Command {
     return context.meta.runtime.HALT;
   }
 };
-__publicField(_ExitCommand, "keyword", "exit");
-var ExitCommand = _ExitCommand;
-var _HaltCommand = class _HaltCommand extends Command {
+var HaltCommand = class _HaltCommand extends Command {
+  static keyword = "halt";
   constructor(bubbling, haltDefault, keepExecuting, exit) {
     super();
     this.keepExecuting = keepExecuting;
@@ -4342,17 +5507,16 @@ var _HaltCommand = class _HaltCommand extends Command {
         ctx.event.stopPropagation();
         ctx.event.preventDefault();
       }
-      if (this.keepExecuting) {
-        return ctx.meta.runtime.findNext(this, ctx);
-      } else {
-        return this.exit;
-      }
+    }
+    if (this.keepExecuting) {
+      return this.findNext(ctx);
+    } else {
+      return this.exit;
     }
   }
 };
-__publicField(_HaltCommand, "keyword", "halt");
-var HaltCommand = _HaltCommand;
-var _MakeCommand = class _MakeCommand extends Command {
+var MakeCommand = class _MakeCommand extends Command {
+  static keyword = "make";
   constructor(variant, expr, constructorArgs, target) {
     super();
     this.variant = variant;
@@ -4391,10 +5555,7 @@ var _MakeCommand = class _MakeCommand extends Command {
       }
       var result = document.createElement(tagname);
       if (id !== void 0) result.id = id;
-      for (var i = 0; i < classes.length; i++) {
-        var cls = classes[i];
-        result.classList.add(cls);
-      }
+      result.classList.add(...classes);
       ctx.result = result;
     } else {
       ctx.result = new expr(...constructorArgs);
@@ -4402,19 +5563,18 @@ var _MakeCommand = class _MakeCommand extends Command {
     if (this.target) {
       ctx.meta.runtime.setSymbol(this.target.name, ctx, this.target.scope, ctx.result);
     }
-    return ctx.meta.runtime.findNext(this, ctx);
+    return this.findNext(ctx);
   }
 };
-__publicField(_MakeCommand, "keyword", "make");
-var MakeCommand = _MakeCommand;
-var _AppendCommand = class _AppendCommand extends Command {
+var AppendCommand = class _AppendCommand extends Command {
+  static keyword = "append";
   constructor(value, targetExpr, assignable) {
     super();
     this.value = value;
     this._target = targetExpr;
     this.assignable = assignable;
     if (assignable) {
-      this.args = __spreadValues({ target: targetExpr, value }, targetExpr.lhs);
+      this.args = { target: targetExpr, value, ...targetExpr.lhs };
     } else {
       this.args = { target: targetExpr, value };
     }
@@ -4434,10 +5594,10 @@ var _AppendCommand = class _AppendCommand extends Command {
     return new _AppendCommand(value, targetExpr, assignable);
   }
   resolve(context, args) {
-    var _a = args, { target, value } = _a, lhs = __objRest(_a, ["target", "value"]);
+    var { target, value, ...lhs } = args;
     if (Array.isArray(target)) {
       target.push(value);
-      return context.meta.runtime.findNext(this, context);
+      context.meta.runtime.notifyMutation(target);
     } else if (target instanceof Element) {
       if (value instanceof Element) {
         target.insertAdjacentElement("beforeend", value);
@@ -4445,32 +5605,32 @@ var _AppendCommand = class _AppendCommand extends Command {
         target.insertAdjacentHTML("beforeend", value);
       }
       context.meta.runtime.processNode(target);
-      return context.meta.runtime.findNext(this, context);
     } else if (this.assignable) {
       this._target.set(context, lhs, (target || "") + value);
-      return context.meta.runtime.findNext(this, context);
     } else {
-      throw Error("Unable to append a value!");
+      throw new Error("Unable to append a value!");
     }
+    return this.findNext(context);
   }
 };
-__publicField(_AppendCommand, "keyword", "append");
-var AppendCommand = _AppendCommand;
-var _PickCommand = class _PickCommand extends Command {
-  constructor(variant, root, range, re, flags) {
+var PickCommand = class _PickCommand extends Command {
+  static keyword = "pick";
+  constructor(variant, root, range, re, flags, count) {
     super();
     this.variant = variant;
     this.range = range;
     this.flags = flags;
     if (variant === "range") {
       this.args = { root, from: range.from, to: range.to };
+    } else if (variant === "first" || variant === "last" || variant === "random") {
+      this.args = { root, count };
     } else {
       this.args = { root, re };
     }
   }
   static parsePickRange(parser) {
     parser.matchToken("at") || parser.matchToken("from");
-    const rv = { includeStart: true, includeEnd: false };
+    var rv = { includeStart: true, includeEnd: false };
     rv.from = parser.matchToken("start") ? 0 : parser.requireElement("expression");
     if (parser.matchToken("to") || parser.matchOpToken("..")) {
       if (parser.matchToken("end")) {
@@ -4483,56 +5643,134 @@ var _PickCommand = class _PickCommand extends Command {
     else if (parser.matchToken("exclusive")) rv.includeStart = false;
     return rv;
   }
+  static parseSource(parser) {
+    if (!parser.matchAnyToken("of", "from")) {
+      parser.raiseParseError("Expected 'of' or 'from'");
+    }
+    return parser.requireElement("expression");
+  }
   static parse(parser) {
     if (!parser.matchToken("pick")) return;
     parser.matchToken("the");
+    if (parser.matchToken("first")) {
+      parser.pushFollow("of");
+      parser.pushFollow("from");
+      try {
+        var count = parser.requireElement("expression");
+      } finally {
+        parser.popFollow();
+        parser.popFollow();
+      }
+      var root = _PickCommand.parseSource(parser);
+      return new _PickCommand("first", root, null, null, null, count);
+    }
+    if (parser.matchToken("last")) {
+      parser.pushFollow("of");
+      parser.pushFollow("from");
+      try {
+        var count = parser.requireElement("expression");
+      } finally {
+        parser.popFollow();
+        parser.popFollow();
+      }
+      var root = _PickCommand.parseSource(parser);
+      return new _PickCommand("last", root, null, null, null, count);
+    }
+    if (parser.matchToken("random")) {
+      var count = null;
+      if (parser.currentToken().type === "NUMBER") {
+        parser.pushFollow("of");
+        parser.pushFollow("from");
+        try {
+          count = parser.requireElement("expression");
+        } finally {
+          parser.popFollow();
+          parser.popFollow();
+        }
+      }
+      var root = _PickCommand.parseSource(parser);
+      return new _PickCommand("random", root, null, null, null, count);
+    }
     if (parser.matchToken("item") || parser.matchToken("items") || parser.matchToken("character") || parser.matchToken("characters")) {
-      const range = _PickCommand.parsePickRange(parser);
-      parser.requireToken("from");
-      const root = parser.requireElement("expression");
+      parser.pushFollow("of");
+      parser.pushFollow("from");
+      try {
+        var range = _PickCommand.parsePickRange(parser);
+      } finally {
+        parser.popFollow();
+        parser.popFollow();
+      }
+      var root = _PickCommand.parseSource(parser);
       return new _PickCommand("range", root, range, null, null);
     }
     if (parser.matchToken("match")) {
       parser.matchToken("of");
-      const re = parser.parseElement("expression");
-      let flags = "";
-      if (parser.matchOpToken("|")) {
-        flags = parser.requireTokenType("IDENTIFIER").value;
+      parser.pushFollow("of");
+      parser.pushFollow("from");
+      try {
+        var re = parser.parseElement("expression");
+        var flags = "";
+        if (parser.matchOpToken("|")) {
+          flags = parser.requireTokenType("IDENTIFIER").value;
+        }
+      } finally {
+        parser.popFollow();
+        parser.popFollow();
       }
-      parser.requireToken("from");
-      const root = parser.parseElement("expression");
+      var root = _PickCommand.parseSource(parser);
       return new _PickCommand("match", root, null, re, flags);
     }
     if (parser.matchToken("matches")) {
       parser.matchToken("of");
-      const re = parser.parseElement("expression");
-      let flags = "gu";
-      if (parser.matchOpToken("|")) {
-        flags = "g" + parser.requireTokenType("IDENTIFIER").value.replace("g", "");
+      parser.pushFollow("of");
+      parser.pushFollow("from");
+      try {
+        var re = parser.parseElement("expression");
+        var flags = "gu";
+        if (parser.matchOpToken("|")) {
+          flags = "g" + parser.requireTokenType("IDENTIFIER").value.replace("g", "");
+        }
+      } finally {
+        parser.popFollow();
+        parser.popFollow();
       }
-      parser.requireToken("from");
-      const root = parser.parseElement("expression");
+      var root = _PickCommand.parseSource(parser);
       return new _PickCommand("matches", root, null, re, flags);
     }
   }
-  resolve(ctx, { root, from, to, re }) {
-    if (this.variant === "range") {
+  resolve(ctx, { root, from, to, re, count }) {
+    if (this.variant === "first") {
+      ctx.result = root.slice(0, count);
+    } else if (this.variant === "last") {
+      ctx.result = root.slice(-count);
+    } else if (this.variant === "random") {
+      if (count == null) {
+        ctx.result = root[Math.floor(Math.random() * root.length)];
+      } else {
+        var copy = Array.from(root);
+        var result = [];
+        for (var i = 0; i < count && copy.length > 0; i++) {
+          var idx = Math.floor(Math.random() * copy.length);
+          result.push(copy.splice(idx, 1)[0]);
+        }
+        ctx.result = result;
+      }
+    } else if (this.variant === "range") {
       if (this.range.toEnd) to = root.length;
       if (!this.range.includeStart) from++;
       if (this.range.includeEnd) to++;
-      if (to == null || to == void 0) to = from + 1;
+      if (to == null) to = from + 1;
       ctx.result = root.slice(from, to);
     } else if (this.variant === "match") {
       ctx.result = new RegExp(re, this.flags).exec(root);
     } else {
       ctx.result = new RegExpIterable(re, this.flags, root);
     }
-    return ctx.meta.runtime.findNext(this, ctx);
+    return this.findNext(ctx);
   }
 };
-__publicField(_PickCommand, "keyword", "pick");
-var PickCommand = _PickCommand;
-var _FetchCommand = class _FetchCommand extends Command {
+var FetchCommand = class _FetchCommand extends Command {
+  static keyword = "fetch";
   constructor(url, argExprs, conversionType, conversion) {
     super();
     this.url = url;
@@ -4545,21 +5783,21 @@ var _FetchCommand = class _FetchCommand extends Command {
     var type = "text";
     var conversion;
     parser.matchToken("a") || parser.matchToken("an");
-    if (parser.matchToken("json") || parser.matchToken("Object")) {
+    if (parser.matchToken("json") || parser.matchToken("JSON") || parser.matchToken("Object")) {
       type = "json";
     } else if (parser.matchToken("response")) {
       type = "response";
-    } else if (parser.matchToken("html")) {
+    } else if (parser.matchToken("html") || parser.matchToken("HTML")) {
       type = "html";
-    } else if (parser.matchToken("text")) {
+    } else if (parser.matchToken("text") || parser.matchToken("String")) {
     } else {
-      conversion = parser.requireElement("dotOrColonPath").evaluate();
+      conversion = parser.requireElement("dotOrColonPath").evalStatically();
     }
     return { type, conversion };
   }
   static parse(parser) {
     if (!parser.matchToken("fetch")) return;
-    var url = parser.requireElement("stringLike");
+    var url = parser.parseURLOrExpression();
     if (parser.matchToken("as")) {
       var conversionInfo = _FetchCommand.parseConversionInfo(parser);
     }
@@ -4576,188 +5814,235 @@ var _FetchCommand = class _FetchCommand extends Command {
     return new _FetchCommand(url, argExprs, type, conversion);
   }
   resolve(context, { url, options }) {
-    const type = this.conversionType;
-    const conversion = this.conversion;
-    const fetchCmd = this;
     var detail = options || {};
-    detail["sender"] = context.me;
-    detail["headers"] = detail["headers"] || {};
+    detail.sender = context.me;
+    detail.headers = detail.headers || {};
     var abortController = new AbortController();
-    let abortListener = context.me.addEventListener("fetch:abort", function() {
-      abortController.abort();
-    }, { once: true });
-    detail["signal"] = abortController.signal;
+    var abortListener = () => abortController.abort();
+    context.me.addEventListener("fetch:abort", abortListener, { once: true });
+    detail.signal = abortController.signal;
     context.meta.runtime.triggerEvent(context.me, "hyperscript:beforeFetch", detail);
     context.meta.runtime.triggerEvent(context.me, "fetch:beforeRequest", detail);
     var finished = false;
     if (detail.timeout) {
-      setTimeout(function() {
-        if (!finished) {
-          abortController.abort();
-        }
+      setTimeout(() => {
+        if (!finished) abortController.abort();
       }, detail.timeout);
     }
-    return fetch(url, detail).then(function(resp) {
-      let resultDetails = { response: resp };
+    var complete = (result) => {
+      context.result = result;
+      context.meta.runtime.triggerEvent(context.me, "fetch:afterRequest", { result });
+      finished = true;
+      return this.findNext(context);
+    };
+    return fetch(url, detail).then((resp) => {
+      var resultDetails = { response: resp };
       context.meta.runtime.triggerEvent(context.me, "fetch:afterResponse", resultDetails);
       resp = resultDetails.response;
-      if (type === "response") {
-        context.result = resp;
-        context.meta.runtime.triggerEvent(context.me, "fetch:afterRequest", { result: resp });
-        finished = true;
-        return context.meta.runtime.findNext(fetchCmd, context);
-      }
-      if (type === "json") {
-        return resp.json().then(function(result) {
-          context.result = result;
-          context.meta.runtime.triggerEvent(context.me, "fetch:afterRequest", { result });
-          finished = true;
-          return context.meta.runtime.findNext(fetchCmd, context);
-        });
-      }
-      return resp.text().then(function(result) {
-        if (conversion) result = context.meta.runtime.convertValue(result, conversion);
-        if (type === "html") result = context.meta.runtime.convertValue(result, "Fragment");
-        context.result = result;
-        context.meta.runtime.triggerEvent(context.me, "fetch:afterRequest", { result });
-        finished = true;
-        return context.meta.runtime.findNext(fetchCmd, context);
+      if (this.conversionType === "response") return complete(resp);
+      if (this.conversionType === "json") return resp.json().then(complete);
+      return resp.text().then((result) => {
+        if (this.conversion) result = context.meta.runtime.convertValue(result, this.conversion);
+        if (this.conversionType === "html") result = context.meta.runtime.convertValue(result, "Fragment");
+        return complete(result);
       });
-    }).catch(function(reason) {
-      context.meta.runtime.triggerEvent(context.me, "fetch:error", {
-        reason
-      });
+    }).catch((reason) => {
+      context.meta.runtime.triggerEvent(context.me, "fetch:error", { reason });
       throw reason;
-    }).finally(function() {
+    }).finally(() => {
       context.me.removeEventListener("fetch:abort", abortListener);
     });
   }
 };
-__publicField(_FetchCommand, "keyword", "fetch");
-var FetchCommand = _FetchCommand;
-var _GoCommand = class _GoCommand extends Command {
-  constructor(target, offset, back, url, newWindow, plusOrMinus, scrollOptions) {
+function _parseScrollModifiers(parser) {
+  parser.matchToken("the");
+  var verticalPosition = parser.matchAnyToken("top", "middle", "bottom");
+  var horizontalPosition = parser.matchAnyToken("left", "center", "right");
+  if (verticalPosition || horizontalPosition) {
+    parser.requireToken("of");
+  }
+  var target = parser.requireElement("unaryExpression");
+  var plusOrMinus = parser.matchAnyOpToken("+", "-");
+  var offset;
+  if (plusOrMinus) {
+    parser.pushFollow("px");
+    try {
+      offset = parser.requireElement("expression");
+    } finally {
+      parser.popFollow();
+    }
+  }
+  parser.matchToken("px");
+  var container;
+  if (parser.matchToken("in")) {
+    container = parser.requireElement("unaryExpression");
+  }
+  var smoothness = parser.matchAnyToken("smoothly", "instantly");
+  var scrollOptions = { block: "start", inline: "nearest" };
+  var blockMap = { top: "start", bottom: "end", middle: "center" };
+  var inlineMap = { left: "start", center: "center", right: "end" };
+  var behaviorMap = { smoothly: "smooth", instantly: "instant" };
+  if (verticalPosition) scrollOptions.block = blockMap[verticalPosition.value];
+  if (horizontalPosition) scrollOptions.inline = inlineMap[horizontalPosition.value];
+  if (smoothness) scrollOptions.behavior = behaviorMap[smoothness.value];
+  return { target, offset, plusOrMinus, scrollOptions, container };
+}
+function _parseSmoothness(parser) {
+  var smoothness = parser.matchAnyToken("smoothly", "instantly");
+  if (!smoothness) return void 0;
+  return smoothness.value === "smoothly" ? "smooth" : "instant";
+}
+function _resolveScroll(ctx, to, offset, plusOrMinus, scrollOptions, container) {
+  ctx.meta.runtime.implicitLoop(to, function(target) {
+    if (target === window) target = document.body;
+    if (container) {
+      var ctr = container instanceof Element ? container : container;
+      var top = target.offsetTop - ctr.offsetTop;
+      var left = target.offsetLeft - ctr.offsetLeft;
+      if (plusOrMinus) {
+        var adj = plusOrMinus.value === "+" ? offset : offset * -1;
+        top += adj;
+      }
+      ctr.scrollTo({ top, left, behavior: scrollOptions.behavior || "auto" });
+      return;
+    }
+    if (plusOrMinus) {
+      var boundingRect = target.getBoundingClientRect();
+      var scrollShim = document.createElement("div");
+      var actualOffset = plusOrMinus.value === "+" ? offset : offset * -1;
+      var offsetX = scrollOptions.inline == "start" || scrollOptions.inline == "end" ? actualOffset : 0;
+      var offsetY = scrollOptions.block == "start" || scrollOptions.block == "end" ? actualOffset : 0;
+      scrollShim.style.position = "absolute";
+      scrollShim.style.top = boundingRect.top + window.scrollY + offsetY + "px";
+      scrollShim.style.left = boundingRect.left + window.scrollX + offsetX + "px";
+      scrollShim.style.height = boundingRect.height + "px";
+      scrollShim.style.width = boundingRect.width + "px";
+      scrollShim.style.zIndex = "" + Number.MIN_SAFE_INTEGER;
+      scrollShim.style.opacity = "0";
+      document.body.appendChild(scrollShim);
+      setTimeout(function() {
+        document.body.removeChild(scrollShim);
+      }, 100);
+      target = scrollShim;
+    }
+    target.scrollIntoView(scrollOptions);
+  });
+}
+var ScrollCommand = class _ScrollCommand extends Command {
+  static keyword = "scroll";
+  constructor(target, offset, plusOrMinus, scrollOptions, container, byMode) {
+    super();
+    this.target = target;
+    this.plusOrMinus = plusOrMinus;
+    this.scrollOptions = scrollOptions;
+    this.byMode = byMode;
+    this.args = { target, offset, container };
+  }
+  static parse(parser) {
+    if (!parser.matchToken("scroll")) return;
+    if (parser.matchToken("to")) {
+      var scroll = _parseScrollModifiers(parser);
+      return new _ScrollCommand(scroll.target, scroll.offset, scroll.plusOrMinus, scroll.scrollOptions, scroll.container);
+    }
+    var direction = parser.matchAnyToken("up", "down", "left", "right");
+    var target;
+    if (!direction && parser.currentToken().value !== "by") {
+      target = parser.requireElement("unaryExpression");
+      direction = parser.matchAnyToken("up", "down", "left", "right");
+    }
+    parser.requireToken("by");
+    parser.pushFollow("px");
+    var offset;
+    try {
+      offset = parser.requireElement("expression");
+    } finally {
+      parser.popFollow();
+    }
+    parser.matchToken("px");
+    var behavior = _parseSmoothness(parser);
+    var scrollOptions = {};
+    if (behavior) scrollOptions.behavior = behavior;
+    var byMode = { direction: direction ? direction.value : "down" };
+    return new _ScrollCommand(target, offset, null, scrollOptions, null, byMode);
+  }
+  resolve(ctx, { target, offset, container }) {
+    if (this.byMode) {
+      var el = target || document.documentElement;
+      var dir = this.byMode.direction;
+      var top = dir === "up" || dir === "down" ? dir === "up" ? -offset : offset : 0;
+      var left = dir === "left" || dir === "right" ? dir === "left" ? -offset : offset : 0;
+      var opts = { top, left };
+      if (this.scrollOptions.behavior) opts.behavior = this.scrollOptions.behavior;
+      el.scrollBy(opts);
+    } else {
+      _resolveScroll(ctx, target, offset, this.plusOrMinus, this.scrollOptions, container);
+    }
+    return this.findNext(ctx);
+  }
+};
+var GoCommand = class _GoCommand extends Command {
+  static keyword = "go";
+  constructor(target, offset, back, newWindow, plusOrMinus, scrollOptions) {
     super();
     this.target = target;
     this.args = { target, offset };
     this.back = back;
-    this.url = url;
     this.newWindow = newWindow;
     this.plusOrMinus = plusOrMinus;
     this.scrollOptions = scrollOptions;
   }
   static parse(parser) {
-    if (parser.matchToken("go")) {
-      if (parser.matchToken("back")) {
-        var back = true;
-      } else {
-        parser.matchToken("to");
-        if (parser.matchToken("url")) {
-          var target = parser.requireElement("stringLike");
-          var url = true;
-          if (parser.matchToken("in")) {
-            parser.requireToken("new");
-            parser.requireToken("window");
-            var newWindow = true;
-          }
-        } else {
-          parser.matchToken("the");
-          var verticalPosition = parser.matchAnyToken("top", "middle", "bottom");
-          var horizontalPosition = parser.matchAnyToken("left", "center", "right");
-          if (verticalPosition || horizontalPosition) {
-            parser.requireToken("of");
-          }
-          var target = parser.requireElement("unaryExpression");
-          var plusOrMinus = parser.matchAnyOpToken("+", "-");
-          if (plusOrMinus) {
-            parser.pushFollow("px");
-            try {
-              var offset = parser.requireElement("expression");
-            } finally {
-              parser.popFollow();
-            }
-          }
-          parser.matchToken("px");
-          var smoothness = parser.matchAnyToken("smoothly", "instantly");
-          var scrollOptions = {
-            block: "start",
-            inline: "nearest"
-          };
-          if (verticalPosition) {
-            if (verticalPosition.value === "top") {
-              scrollOptions.block = "start";
-            } else if (verticalPosition.value === "bottom") {
-              scrollOptions.block = "end";
-            } else if (verticalPosition.value === "middle") {
-              scrollOptions.block = "center";
-            }
-          }
-          if (horizontalPosition) {
-            if (horizontalPosition.value === "left") {
-              scrollOptions.inline = "start";
-            } else if (horizontalPosition.value === "center") {
-              scrollOptions.inline = "center";
-            } else if (horizontalPosition.value === "right") {
-              scrollOptions.inline = "end";
-            }
-          }
-          if (smoothness) {
-            if (smoothness.value === "smoothly") {
-              scrollOptions.behavior = "smooth";
-            } else if (smoothness.value === "instantly") {
-              scrollOptions.behavior = "instant";
-            }
-          }
-        }
-      }
-      return new _GoCommand(target, offset, back, url, newWindow, plusOrMinus, scrollOptions);
+    if (!parser.matchToken("go")) return;
+    if (parser.matchToken("back")) {
+      return new _GoCommand(null, null, true);
     }
+    parser.matchToken("to");
+    if (parser.matchToken("url")) {
+      var target = parser.requireElement("stringLike");
+      var newWindow = false;
+      if (parser.matchToken("in")) {
+        parser.requireToken("new");
+        parser.requireToken("window");
+        newWindow = true;
+      }
+      return new _GoCommand(target, null, false, newWindow);
+    }
+    var cur = parser.currentToken();
+    if (cur.value === "the" || cur.value === "top" || cur.value === "middle" || cur.value === "bottom" || cur.value === "left" || cur.value === "center" || cur.value === "right") {
+      var scroll = _parseScrollModifiers(parser);
+      return new _GoCommand(scroll.target, scroll.offset, false, false, scroll.plusOrMinus, scroll.scrollOptions);
+    }
+    var target = parser.parseURLOrExpression();
+    var newWindow = false;
+    if (parser.matchToken("in")) {
+      parser.requireToken("new");
+      parser.requireToken("window");
+      newWindow = true;
+    }
+    return new _GoCommand(target, null, false, newWindow);
   }
   resolve(ctx, { target: to, offset }) {
     if (this.back) {
       window.history.back();
-    } else if (this.url) {
-      if (to) {
-        if (this.newWindow) {
-          window.open(to);
+    } else if (this.scrollOptions) {
+      _resolveScroll(ctx, to, offset, this.plusOrMinus, this.scrollOptions);
+    } else if (to != null) {
+      if (to instanceof Element) {
+        to.scrollIntoView({ block: "start", inline: "nearest" });
+      } else {
+        var str = String(to);
+        if (str.startsWith("#")) {
+          window.location.hash = str;
+        } else if (this.newWindow) {
+          window.open(str);
         } else {
-          window.location.href = to;
+          window.location.href = str;
         }
       }
-    } else {
-      const plusOrMinus = this.plusOrMinus;
-      const scrollOptions = this.scrollOptions;
-      ctx.meta.runtime.implicitLoop(to, function(target) {
-        if (target === window) {
-          target = document.body;
-        }
-        if (plusOrMinus) {
-          let boundingRect = target.getBoundingClientRect();
-          let scrollShim = document.createElement("div");
-          let actualOffset = plusOrMinus.value === "+" ? offset : offset * -1;
-          let offsetX = scrollOptions.inline == "start" || scrollOptions.inline == "end" ? actualOffset : 0;
-          let offsetY = scrollOptions.block == "start" || scrollOptions.block == "end" ? actualOffset : 0;
-          scrollShim.style.position = "absolute";
-          scrollShim.style.top = boundingRect.top + window.scrollY + offsetY + "px";
-          scrollShim.style.left = boundingRect.left + window.scrollX + offsetX + "px";
-          scrollShim.style.height = boundingRect.height + "px";
-          scrollShim.style.width = boundingRect.width + "px";
-          scrollShim.style.zIndex = "" + Number.MIN_SAFE_INTEGER;
-          scrollShim.style.opacity = "0";
-          document.body.appendChild(scrollShim);
-          setTimeout(function() {
-            document.body.removeChild(scrollShim);
-          }, 100);
-          target = scrollShim;
-        }
-        target.scrollIntoView(scrollOptions);
-      });
     }
-    return ctx.meta.runtime.findNext(this, ctx);
+    return this.findNext(ctx);
   }
 };
-__publicField(_GoCommand, "keyword", "go");
-var GoCommand = _GoCommand;
 
 // src/parsetree/commands/setters.js
 var setters_exports = {};
@@ -4766,9 +6051,11 @@ __export(setters_exports, {
   DefaultCommand: () => DefaultCommand,
   IncrementCommand: () => IncrementCommand,
   PutCommand: () => PutCommand,
-  SetCommand: () => SetCommand
+  SetCommand: () => SetCommand,
+  SwapCommand: () => SwapCommand
 });
-var _SetCommand = class _SetCommand extends Command {
+var SetCommand = class _SetCommand extends Command {
+  static keyword = "set";
   constructor(target, valueExpr, objectLiteral = null) {
     super();
     this.target = target;
@@ -4776,7 +6063,7 @@ var _SetCommand = class _SetCommand extends Command {
     if (objectLiteral) {
       this.args = { obj: objectLiteral, setTarget: target };
     } else {
-      this.args = __spreadProps(__spreadValues({}, target.lhs), { value: valueExpr });
+      this.args = { ...target.lhs, value: valueExpr };
     }
   }
   static parse(parser) {
@@ -4803,15 +6090,14 @@ var _SetCommand = class _SetCommand extends Command {
       var { obj, setTarget } = args;
       Object.assign(setTarget, obj);
     } else {
-      var _a = args, { value } = _a, lhs = __objRest(_a, ["value"]);
+      var { value, ...lhs } = args;
       this.target.set(context, lhs, value);
     }
-    return context.meta.runtime.findNext(this, context);
+    return this.findNext(context);
   }
 };
-__publicField(_SetCommand, "keyword", "set");
-var SetCommand = _SetCommand;
-var _DefaultCommand = class _DefaultCommand extends Command {
+var DefaultCommand = class _DefaultCommand extends Command {
+  static keyword = "default";
   constructor(target, setter) {
     super();
     this.target = target;
@@ -4835,21 +6121,20 @@ var _DefaultCommand = class _DefaultCommand extends Command {
     return defaultCmd;
   }
   resolve(context, { targetValue }) {
-    if (targetValue) {
-      return context.meta.runtime.findNext(this, context);
+    if (targetValue != null && targetValue !== "") {
+      return this.findNext(context);
     } else {
       return this.setter;
     }
   }
 };
-__publicField(_DefaultCommand, "keyword", "default");
-var DefaultCommand = _DefaultCommand;
-var _IncrementCommand = class _IncrementCommand extends Command {
+var IncrementCommand = class _IncrementCommand extends Command {
+  static keyword = "increment";
   constructor(target, amountExpr) {
     super();
     this.target = target;
     this.amountExpr = amountExpr;
-    this.args = __spreadValues({ targetValue: target, amount: amountExpr }, target.lhs);
+    this.args = { targetValue: target, amount: amountExpr, ...target.lhs };
   }
   static parse(parser) {
     if (!parser.matchToken("increment")) return;
@@ -4862,23 +6147,22 @@ var _IncrementCommand = class _IncrementCommand extends Command {
     return new _IncrementCommand(target, amountExpr);
   }
   resolve(context, args) {
-    var _a = args, { targetValue, amount } = _a, lhs = __objRest(_a, ["targetValue", "amount"]);
+    var { targetValue, amount, ...lhs } = args;
     targetValue = targetValue ? parseFloat(targetValue) : 0;
     amount = this.amountExpr ? parseFloat(amount) : 1;
     var newValue = targetValue + amount;
     context.result = newValue;
     this.target.set(context, lhs, newValue);
-    return context.meta.runtime.findNext(this, context);
+    return this.findNext(context);
   }
 };
-__publicField(_IncrementCommand, "keyword", "increment");
-var IncrementCommand = _IncrementCommand;
-var _DecrementCommand = class _DecrementCommand extends Command {
+var DecrementCommand = class _DecrementCommand extends Command {
+  static keyword = "decrement";
   constructor(target, amountExpr) {
     super();
     this.target = target;
     this.amountExpr = amountExpr;
-    this.args = __spreadValues({ targetValue: target, amount: amountExpr }, target.lhs);
+    this.args = { targetValue: target, amount: amountExpr, ...target.lhs };
   }
   static parse(parser) {
     if (!parser.matchToken("decrement")) return;
@@ -4896,18 +6180,59 @@ var _DecrementCommand = class _DecrementCommand extends Command {
     return new _DecrementCommand(target, amountExpr);
   }
   resolve(context, args) {
-    var _a = args, { targetValue, amount } = _a, lhs = __objRest(_a, ["targetValue", "amount"]);
+    var { targetValue, amount, ...lhs } = args;
     targetValue = targetValue ? parseFloat(targetValue) : 0;
     amount = this.amountExpr ? parseFloat(amount) : 1;
     var newValue = targetValue - amount;
     context.result = newValue;
     this.target.set(context, lhs, newValue);
-    return context.meta.runtime.findNext(this, context);
+    return this.findNext(context);
   }
 };
-__publicField(_DecrementCommand, "keyword", "decrement");
-var DecrementCommand = _DecrementCommand;
-var _PutCommand = class _PutCommand extends Command {
+var SwapCommand = class _SwapCommand extends Command {
+  static keyword = "swap";
+  constructor(target1, target2) {
+    super();
+    this.target1 = target1;
+    this.target2 = target2;
+    this.args = {
+      value1: target1,
+      value2: target2,
+      root1: target1.lhs.root,
+      index1: target1.lhs.index,
+      root2: target2.lhs.root,
+      index2: target2.lhs.index
+    };
+  }
+  static parse(parser) {
+    if (!parser.matchToken("swap")) return;
+    try {
+      parser.pushFollow("with");
+      var target1 = parser.requireElement("assignableExpression");
+    } finally {
+      parser.popFollow();
+    }
+    while (target1.type === "parenthesized") target1 = target1.expr;
+    parser.requireToken("with");
+    var target2 = parser.requireElement("assignableExpression");
+    while (target2.type === "parenthesized") target2 = target2.expr;
+    return new _SwapCommand(target1, target2);
+  }
+  resolve(context, { value1, value2, root1, index1, root2, index2 }) {
+    if (value1 instanceof Element && value2 instanceof Element) {
+      var placeholder = document.createComment("");
+      value1.replaceWith(placeholder);
+      value2.replaceWith(value1);
+      placeholder.replaceWith(value2);
+    } else {
+      this.target1.set(context, { root: root1, index: index1 }, value2);
+      this.target2.set(context, { root: root2, index: index2 }, value1);
+    }
+    return this.findNext(context);
+  }
+};
+var PutCommand = class _PutCommand extends Command {
+  static keyword = "put";
   constructor(target, operation, value, rootExpr) {
     super();
     this.target = target;
@@ -4992,7 +6317,11 @@ var _PutCommand = class _PutCommand extends Command {
       if (this.operation === "into") {
         if (this.attributeWrite) {
           context.meta.runtime.implicitLoop(root, function(elt) {
-            elt.setAttribute(prop, valueToPut);
+            if (valueToPut == null) {
+              elt.removeAttribute(prop);
+            } else {
+              elt.setAttribute(prop, valueToPut);
+            }
           });
         } else if (this.styleWrite) {
           context.meta.runtime.implicitLoop(root, function(elt) {
@@ -5007,7 +6336,13 @@ var _PutCommand = class _PutCommand extends Command {
           });
         }
       } else {
-        var op = this.operation === "before" ? Element.prototype.before : this.operation === "after" ? Element.prototype.after : this.operation === "start" ? Element.prototype.prepend : this.operation === "end" ? Element.prototype.append : Element.prototype.append;
+        var ops = {
+          before: Element.prototype.before,
+          after: Element.prototype.after,
+          start: Element.prototype.prepend,
+          end: Element.prototype.append
+        };
+        var op = ops[this.operation] || Element.prototype.append;
         context.meta.runtime.implicitLoop(root, function(elt) {
           op.call(
             elt,
@@ -5021,11 +6356,9 @@ var _PutCommand = class _PutCommand extends Command {
         });
       }
     }
-    return context.meta.runtime.findNext(this, context);
+    return this.findNext(context);
   }
 };
-__publicField(_PutCommand, "keyword", "put");
-var PutCommand = _PutCommand;
 
 // src/parsetree/commands/events.js
 var events_exports = {};
@@ -5034,7 +6367,8 @@ __export(events_exports, {
   SendCommand: () => SendCommand,
   WaitCommand: () => WaitCommand
 });
-var _WaitCommand = class _WaitCommand extends Command {
+var WaitCommand = class _WaitCommand extends Command {
+  static keyword = "wait";
   constructor(variant, events, on, time) {
     super();
     this.variant = variant;
@@ -5054,7 +6388,7 @@ var _WaitCommand = class _WaitCommand extends Command {
           events.push(parser.requireElement("expression"));
         } else {
           events.push({
-            name: parser.requireElement("dotOrColonPath", "Expected event name").evaluate(),
+            name: parser.requireElement("dotOrColonPath", "Expected event name").evalStatically(),
             args: ParseElement.parseEventArgs(parser)
           });
         }
@@ -5092,7 +6426,7 @@ var _WaitCommand = class _WaitCommand extends Command {
             }
             if (!resolved) {
               resolved = true;
-              resolve(context.meta.runtime.findNext(this, context));
+              resolve(this.findNext(context));
             }
           };
           if (eventInfo.name) {
@@ -5106,15 +6440,14 @@ var _WaitCommand = class _WaitCommand extends Command {
     } else {
       return new Promise((resolve) => {
         setTimeout(() => {
-          resolve(context.meta.runtime.findNext(this, context));
+          resolve(this.findNext(context));
         }, time);
       });
     }
   }
 };
-__publicField(_WaitCommand, "keyword", "wait");
-var WaitCommand = _WaitCommand;
-var _SendCommand = class _SendCommand extends Command {
+var SendCommand = class _SendCommand extends Command {
+  static keyword = ["send", "trigger"];
   constructor(eventName, details, toExpr) {
     super();
     this.eventName = eventName;
@@ -5140,18 +6473,19 @@ var _SendCommand = class _SendCommand extends Command {
     context.meta.runtime.implicitLoop(to, function(target) {
       context.meta.runtime.triggerEvent(target, eventName, details, context.me);
     });
-    return context.meta.runtime.findNext(this, context);
+    return this.findNext(context);
   }
 };
-__publicField(_SendCommand, "keyword", ["send", "trigger"]);
-var SendCommand = _SendCommand;
-var _EventName = class _EventName extends Expression {
+var EventName = class _EventName extends Expression {
+  static grammarName = "eventName";
   constructor(value) {
     super();
     this.value = value;
   }
-  // Called at parse time without a context, so must override evaluate()
-  evaluate() {
+  evalStatically() {
+    return this.value;
+  }
+  resolve(context) {
     return this.value;
   }
   static parse(parser) {
@@ -5162,8 +6496,6 @@ var _EventName = class _EventName extends Expression {
     return parser.parseElement("dotOrColonPath");
   }
 };
-__publicField(_EventName, "grammarName", "eventName");
-var EventName = _EventName;
 
 // src/parsetree/commands/controlflow.js
 var controlflow_exports = {};
@@ -5180,11 +6512,8 @@ var WaitATick = class extends Command {
     this.type = "waitATick";
   }
   resolve(context) {
-    const self2 = this;
-    return new Promise(function(resolve) {
-      setTimeout(function() {
-        resolve(context.meta.runtime.findNext(self2));
-      }, 0);
+    return new Promise((resolve) => {
+      setTimeout(() => resolve(context.meta.runtime.findNext(this)), 0);
     });
   }
 };
@@ -5201,6 +6530,7 @@ var RepeatLoopCommand = class extends Command {
     this.event = config2.event;
     this.on = config2.on;
     this.whileExpr = config2.whileExpr;
+    this.bottomTested = config2.bottomTested;
     this.loop = loop;
     this.args = { whileValue: config2.whileExpr, times: config2.times };
   }
@@ -5211,7 +6541,9 @@ var RepeatLoopCommand = class extends Command {
     var iteratorInfo = context.meta.iterators[this.slot];
     var keepLooping = false;
     var loopVal = null;
-    if (this.forever) {
+    if (this.bottomTested && iteratorInfo.index === 0) {
+      keepLooping = true;
+    } else if (this.forever) {
       keepLooping = true;
     } else if (this.until) {
       if (this.event) {
@@ -5245,7 +6577,8 @@ var RepeatLoopCommand = class extends Command {
     }
   }
 };
-var _IfCommand = class _IfCommand extends Command {
+var IfCommand = class _IfCommand extends Command {
+  static keyword = "if";
   constructor(expr, trueBranch, falseBranch) {
     super();
     this.expr = expr;
@@ -5283,13 +6616,12 @@ var _IfCommand = class _IfCommand extends Command {
     } else if (this.falseBranch) {
       return this.falseBranch;
     } else {
-      return context.meta.runtime.findNext(this, context);
+      return this.findNext(context);
     }
   }
 };
-__publicField(_IfCommand, "keyword", "if");
-var IfCommand = _IfCommand;
-var _RepeatCommand = class _RepeatCommand extends Command {
+var RepeatCommand = class _RepeatCommand extends Command {
+  static keyword = ["repeat", "for"];
   constructor(expression, evt, on, slot, repeatLoopCommand) {
     super();
     this.expression = expression;
@@ -5348,6 +6680,19 @@ var _RepeatCommand = class _RepeatCommand extends Command {
       var waitATick = new WaitATick();
       last.next = waitATick;
     }
+    var bottomTested = false;
+    if (forever && parser.hasMore()) {
+      if (parser.matchToken("until")) {
+        forever = false;
+        isUntil = true;
+        bottomTested = true;
+        whileExpr = parser.requireElement("expression");
+      } else if (parser.matchToken("while")) {
+        forever = false;
+        bottomTested = true;
+        whileExpr = parser.requireElement("expression");
+      }
+    }
     if (parser.hasMore()) {
       parser.requireToken("end");
     }
@@ -5367,7 +6712,8 @@ var _RepeatCommand = class _RepeatCommand extends Command {
       until: isUntil,
       event: evt,
       on,
-      whileExpr
+      whileExpr,
+      bottomTested
     };
     const repeatLoopCommand = new RepeatLoopCommand(loopConfig, loop);
     const repeatCommand = new _RepeatCommand(expression, evt, on, slot, repeatLoopCommand);
@@ -5411,9 +6757,8 @@ var _RepeatCommand = class _RepeatCommand extends Command {
     return this.repeatLoopCommand;
   }
 };
-__publicField(_RepeatCommand, "keyword", ["repeat", "for"]);
-var RepeatCommand = _RepeatCommand;
-var _ContinueCommand = class _ContinueCommand extends Command {
+var ContinueCommand = class _ContinueCommand extends Command {
+  static keyword = "continue";
   static parse(parser) {
     if (!parser.matchToken("continue")) return;
     return new _ContinueCommand();
@@ -5427,9 +6772,8 @@ var _ContinueCommand = class _ContinueCommand extends Command {
     throw new Error("Command `continue` cannot be used outside of a `repeat` loop.");
   }
 };
-__publicField(_ContinueCommand, "keyword", "continue");
-var ContinueCommand = _ContinueCommand;
-var _BreakCommand = class _BreakCommand extends Command {
+var BreakCommand = class _BreakCommand extends Command {
+  static keyword = "break";
   static parse(parser) {
     if (!parser.matchToken("break")) return;
     return new _BreakCommand();
@@ -5443,9 +6787,8 @@ var _BreakCommand = class _BreakCommand extends Command {
     throw new Error("Command `break` cannot be used outside of a `repeat` loop.");
   }
 };
-__publicField(_BreakCommand, "keyword", "break");
-var BreakCommand = _BreakCommand;
-var _TellCommand = class _TellCommand extends Command {
+var TellCommand = class _TellCommand extends Command {
+  static keyword = "tell";
   constructor(value, body, slot) {
     super();
     this.value = value;
@@ -5494,8 +6837,6 @@ var _TellCommand = class _TellCommand extends Command {
     return this.resolveNext(context);
   }
 };
-__publicField(_TellCommand, "keyword", "tell");
-var TellCommand = _TellCommand;
 
 // src/parsetree/commands/execution.js
 var execution_exports = {};
@@ -5504,7 +6845,8 @@ __export(execution_exports, {
   JsBody: () => JsBody,
   JsCommand: () => JsCommand
 });
-var _JsBody = class _JsBody {
+var JsBody = class _JsBody {
+  static grammarName = "jsBody";
   constructor(jsSource, exposedFunctionNames) {
     this.type = "jsBody";
     this.jsSource = jsSource;
@@ -5541,9 +6883,8 @@ var _JsBody = class _JsBody {
     );
   }
 };
-__publicField(_JsBody, "grammarName", "jsBody");
-var JsBody = _JsBody;
-var _JsCommand = class _JsCommand extends Command {
+var JsCommand = class _JsCommand extends Command {
+  static keyword = "js";
   constructor(jsSource, func, inputs) {
     super();
     this.jsSource = jsSource;
@@ -5569,27 +6910,21 @@ var _JsCommand = class _JsCommand extends Command {
     return new _JsCommand(jsBody.jsSource, func, inputs);
   }
   resolve(context) {
-    var args = [];
-    this.inputs.forEach((input) => {
-      args.push(context.meta.runtime.resolveSymbol(input, context, "default"));
-    });
+    var args = this.inputs.map((input) => context.meta.runtime.resolveSymbol(input, context, "default"));
     var result = this.function.apply(context.meta.runtime.globalScope, args);
     if (result && typeof result.then === "function") {
-      return new Promise((resolve) => {
-        result.then((actualResult) => {
-          context.result = actualResult;
-          resolve(context.meta.runtime.findNext(this, context));
-        });
+      return result.then((actualResult) => {
+        context.result = actualResult;
+        return this.findNext(context);
       });
     } else {
       context.result = result;
-      return context.meta.runtime.findNext(this, context);
+      return this.findNext(context);
     }
   }
 };
-__publicField(_JsCommand, "keyword", "js");
-var JsCommand = _JsCommand;
-var _GetCommand = class _GetCommand extends Command {
+var GetCommand = class _GetCommand extends Command {
+  static keyword = ["get", "call"];
   constructor(expr) {
     super();
     this.expr = expr;
@@ -5606,18 +6941,17 @@ var _GetCommand = class _GetCommand extends Command {
   }
   resolve(context, { result }) {
     context.result = result;
-    return context.meta.runtime.findNext(this, context);
+    return this.findNext(context);
   }
 };
-__publicField(_GetCommand, "keyword", ["get", "call"]);
-var GetCommand = _GetCommand;
 
 // src/parsetree/commands/pseudoCommand.js
 var pseudoCommand_exports = {};
 __export(pseudoCommand_exports, {
   PseudoCommand: () => PseudoCommand
 });
-var _PseudoCommand = class _PseudoCommand extends Command {
+var PseudoCommand = class _PseudoCommand extends Command {
+  static grammarName = "pseudoCommand";
   constructor(variant, expr, realRoot, root) {
     super();
     this.variant = variant;
@@ -5663,34 +6997,54 @@ var _PseudoCommand = class _PseudoCommand extends Command {
   resolve(context, { target, argVals, result }) {
     if (this.variant === "target") {
       context.meta.runtime.nullCheck(target, this._realRoot);
-      var func = target[this._root.root.name];
+      var methodName = this._root.root.name;
+      var func = target[methodName];
       context.meta.runtime.nullCheck(func, this._root);
       if (func.hyperfunc) {
         argVals.push(context);
       }
       context.result = func.apply(target, argVals);
+      context.meta.runtime.maybeNotify(target, methodName);
     } else {
       context.result = result;
     }
-    return context.meta.runtime.findNext(this, context);
+    return this.findNext(context);
   }
 };
-__publicField(_PseudoCommand, "grammarName", "pseudoCommand");
-var PseudoCommand = _PseudoCommand;
 
 // src/parsetree/commands/dom.js
 var dom_exports = {};
 __export(dom_exports, {
   AddCommand: () => AddCommand,
+  AnswerCommand: () => AnswerCommand,
+  AskCommand: () => AskCommand,
+  BlurCommand: () => BlurCommand,
+  CloseCommand: () => CloseCommand,
+  EmptyCommand: () => EmptyCommand,
+  FocusCommand: () => FocusCommand,
   HideCommand: () => HideCommand,
   MeasureCommand: () => MeasureCommand,
+  MorphCommand: () => MorphCommand,
+  OpenCommand: () => OpenCommand,
   RemoveCommand: () => RemoveCommand,
+  SelectCommand: () => SelectCommand,
   ShowCommand: () => ShowCommand,
+  SpeakCommand: () => SpeakCommand,
   TakeCommand: () => TakeCommand,
   ToggleCommand: () => ToggleCommand
 });
 var HIDE_SHOW_STRATEGIES = {
   display: function(op, element, arg, runtime2) {
+    if (!arg && element instanceof HTMLDialogElement) {
+      if (op === "hide") element.close();
+      else if (op === "show") {
+        if (!element.open) element.showModal();
+      } else if (op === "toggle") {
+        if (element.open) element.close();
+        else element.showModal();
+      }
+      return;
+    }
     if (arg) {
       element.style.display = arg;
     } else if (op === "toggle") {
@@ -5745,6 +7099,14 @@ var HIDE_SHOW_STRATEGIES = {
     }
   }
 };
+function _cssPropertyNames(css) {
+  return css.split(";").map(function(p) {
+    return p.split(":")[0].trim();
+  }).filter(Boolean);
+}
+function _removeCssProperties(elt, propNames) {
+  for (var i = 0; i < propNames.length; i++) elt.style.removeProperty(propNames[i]);
+}
 var VisibilityCommand = class extends Command {
   static parseShowHideTarget(parser) {
     var currentTokenValue = parser.currentToken();
@@ -5768,7 +7130,8 @@ var VisibilityCommand = class extends Command {
     return value;
   }
 };
-var _AddCommand = class _AddCommand extends Command {
+var AddCommand = class _AddCommand extends Command {
+  static keyword = "add";
   constructor(variant, classRefs, attributeRef, cssDeclaration, toExpr, when) {
     super();
     this.variant = variant;
@@ -5811,9 +7174,6 @@ var _AddCommand = class _AddCommand extends Command {
       var toExpr = parser.requireElement("implicitMeTarget");
     }
     if (parser.matchToken("when")) {
-      if (cssDeclaration) {
-        parser.raiseParseError("Only class and properties are supported with a when clause");
-      }
       var when = parser.requireElement("expression");
     }
     if (classRefs) {
@@ -5825,63 +7185,93 @@ var _AddCommand = class _AddCommand extends Command {
     }
   }
   resolve(context, { to, classRefs, css }) {
-    context.meta.runtime.nullCheck(to, this.toExpr);
+    var runtime2 = context.meta.runtime;
+    var cmd = this;
+    runtime2.nullCheck(to, this.toExpr);
+    var result;
     if (this.variant === "class") {
-      const when = this.when;
-      context.meta.runtime.forEach(classRefs, function(classRef) {
-        context.meta.runtime.implicitLoop(to, function(target) {
-          if (when) {
-            context.result = target;
-            let whenResult = context.meta.runtime.evaluateNoPromise(when, context);
-            if (whenResult) {
-              if (target instanceof Element) target.classList.add(classRef.className);
-            } else {
-              if (target instanceof Element) target.classList.remove(classRef.className);
+      runtime2.forEach(classRefs, function(classRef) {
+        if (cmd.when) {
+          result = runtime2.implicitLoopWhen(
+            to,
+            cmd.when,
+            context,
+            function(t) {
+              if (t instanceof Element) t.classList.add(classRef.className);
+            },
+            function(t) {
+              if (t instanceof Element) t.classList.remove(classRef.className);
             }
-            context.result = null;
-          } else {
-            if (target instanceof Element) target.classList.add(classRef.className);
-          }
-        });
-      });
-    } else if (this.variant === "attribute") {
-      const attributeRef = this.attributeRef;
-      const when = this.when;
-      context.meta.runtime.implicitLoop(to, function(target) {
-        if (when) {
-          context.result = target;
-          let whenResult = context.meta.runtime.evaluateNoPromise(when, context);
-          if (whenResult) {
-            target.setAttribute(attributeRef.name, attributeRef.value);
-          } else {
-            target.removeAttribute(attributeRef.name);
-          }
-          context.result = null;
+          );
         } else {
-          target.setAttribute(attributeRef.name, attributeRef.value);
+          runtime2.implicitLoop(to, function(t) {
+            if (t instanceof Element) t.classList.add(classRef.className);
+          });
         }
       });
+    } else if (this.variant === "attribute") {
+      var attributeRef = this.attributeRef;
+      if (this.when) {
+        result = runtime2.implicitLoopWhen(
+          to,
+          this.when,
+          context,
+          function(t) {
+            t.setAttribute(attributeRef.name, attributeRef.value);
+          },
+          function(t) {
+            t.removeAttribute(attributeRef.name);
+          }
+        );
+      } else {
+        runtime2.implicitLoop(to, function(t) {
+          t.setAttribute(attributeRef.name, attributeRef.value);
+        });
+      }
     } else {
-      context.meta.runtime.implicitLoop(to, function(target) {
-        target.style.cssText += css;
+      if (this.when) {
+        var propNames = _cssPropertyNames(css);
+        result = runtime2.implicitLoopWhen(
+          to,
+          this.when,
+          context,
+          function(t) {
+            t.style.cssText += css;
+          },
+          function(t) {
+            _removeCssProperties(t, propNames);
+          }
+        );
+      } else {
+        runtime2.implicitLoop(to, function(t) {
+          t.style.cssText += css;
+        });
+      }
+    }
+    if (result && result.then) {
+      return result.then(function() {
+        return runtime2.findNext(cmd, context);
       });
     }
-    return context.meta.runtime.findNext(this, context);
+    return runtime2.findNext(this, context);
   }
 };
-__publicField(_AddCommand, "keyword", "add");
-var AddCommand = _AddCommand;
-var _RemoveCommand = class _RemoveCommand extends Command {
-  constructor(variant, elementExpr, classRefs, attributeRef, fromExpr) {
+var RemoveCommand = class _RemoveCommand extends Command {
+  static keyword = "remove";
+  constructor(variant, elementExpr, classRefs, attributeRef, cssDeclaration, fromExpr, when) {
     super();
     this.variant = variant;
     this.elementExpr = elementExpr;
     this.classRefs = classRefs;
     this.attributeRef = attributeRef;
+    this.cssDeclaration = cssDeclaration;
     this.from = fromExpr;
     this.fromExpr = fromExpr;
+    this.when = when;
     if (variant === "element") {
       this.args = { element: elementExpr, from: fromExpr };
+    } else if (variant === "css") {
+      this.args = { css: cssDeclaration, from: fromExpr };
     } else {
       this.args = { classRefs, from: fromExpr };
     }
@@ -5890,15 +7280,19 @@ var _RemoveCommand = class _RemoveCommand extends Command {
     if (!parser.matchToken("remove")) return;
     var classRef = parser.parseElement("classRef");
     var attributeRef = null;
+    var cssDeclaration = null;
     var elementExpr = null;
     if (classRef == null) {
       attributeRef = parser.parseElement("attributeRef");
       if (attributeRef == null) {
-        elementExpr = parser.parseElement("expression");
-        if (elementExpr == null) {
-          parser.raiseParseError(
-            "Expected either a class reference, attribute expression or value expression"
-          );
+        cssDeclaration = parser.parseElement("styleLiteral");
+        if (cssDeclaration == null) {
+          elementExpr = parser.parseElement("expression");
+          if (elementExpr == null) {
+            parser.raiseParseError(
+              "Expected either a class reference, attribute expression or value expression"
+            );
+          }
         }
       }
     } else {
@@ -5914,41 +7308,90 @@ var _RemoveCommand = class _RemoveCommand extends Command {
         var fromExpr = parser.requireElement("implicitMeTarget");
       }
     }
+    if (parser.matchToken("when")) {
+      if (elementExpr) {
+        parser.raiseParseError("'when' clause is not supported when removing elements");
+      }
+      var when = parser.requireElement("expression");
+    }
     if (elementExpr) {
-      return new _RemoveCommand("element", elementExpr, null, null, fromExpr);
+      return new _RemoveCommand("element", elementExpr, null, null, null, fromExpr);
+    } else if (cssDeclaration) {
+      return new _RemoveCommand("css", null, null, null, cssDeclaration, fromExpr, when);
     } else {
-      return new _RemoveCommand("classOrAttr", null, classRefs, attributeRef, fromExpr);
+      return new _RemoveCommand("classOrAttr", null, classRefs, attributeRef, null, fromExpr, when);
     }
   }
-  resolve(context, { element, classRefs, from }) {
+  resolve(context, { element, classRefs, css, from }) {
+    var runtime2 = context.meta.runtime;
+    var cmd = this;
+    var result;
     if (this.variant === "element") {
-      context.meta.runtime.nullCheck(element, this.elementExpr);
-      context.meta.runtime.implicitLoop(element, function(target) {
+      runtime2.nullCheck(element, this.elementExpr);
+      runtime2.implicitLoop(element, function(target) {
         if (target.parentElement && (from == null || from.contains(target))) {
           target.parentElement.removeChild(target);
         }
       });
+    } else if (this.variant === "css") {
+      runtime2.nullCheck(from, this.fromExpr);
+      var propNames = _cssPropertyNames(css);
+      runtime2.implicitLoop(from, function(target) {
+        _removeCssProperties(target, propNames);
+      });
     } else {
-      context.meta.runtime.nullCheck(from, this.fromExpr);
+      runtime2.nullCheck(from, this.fromExpr);
       if (classRefs) {
-        context.meta.runtime.forEach(classRefs, function(classRef) {
-          context.meta.runtime.implicitLoop(from, function(target) {
-            target.classList.remove(classRef.className);
-          });
+        runtime2.forEach(classRefs, function(classRef) {
+          if (cmd.when) {
+            result = runtime2.implicitLoopWhen(
+              from,
+              cmd.when,
+              context,
+              function(t) {
+                t.classList.remove(classRef.className);
+              },
+              function(t) {
+                t.classList.add(classRef.className);
+              }
+            );
+          } else {
+            runtime2.implicitLoop(from, function(t) {
+              t.classList.remove(classRef.className);
+            });
+          }
         });
       } else {
-        const attributeRef = this.attributeRef;
-        context.meta.runtime.implicitLoop(from, function(target) {
-          target.removeAttribute(attributeRef.name);
-        });
+        var attributeRef = this.attributeRef;
+        if (this.when) {
+          result = runtime2.implicitLoopWhen(
+            from,
+            this.when,
+            context,
+            function(t) {
+              t.removeAttribute(attributeRef.name);
+            },
+            function(t) {
+              t.setAttribute(attributeRef.name, attributeRef.value);
+            }
+          );
+        } else {
+          runtime2.implicitLoop(from, function(t) {
+            t.removeAttribute(attributeRef.name);
+          });
+        }
       }
     }
-    return context.meta.runtime.findNext(this, context);
+    if (result && result.then) {
+      return result.then(function() {
+        return runtime2.findNext(cmd, context);
+      });
+    }
+    return runtime2.findNext(this, context);
   }
 };
-__publicField(_RemoveCommand, "keyword", "remove");
-var RemoveCommand = _RemoveCommand;
-var _ToggleCommand = class _ToggleCommand extends VisibilityCommand {
+var ToggleCommand = class _ToggleCommand extends VisibilityCommand {
+  static keyword = "toggle";
   constructor(classRef, classRef2, classRefs, attributeRef, attributeRef2, onExpr, time, evt, from, visibility, betweenClass, betweenAttr, hideShowStrategy) {
     super();
     this.classRef = classRef;
@@ -6090,7 +7533,7 @@ var _ToggleCommand = class _ToggleCommand extends VisibilityCommand {
         this.toggle(context, on, classRef, classRef2, classRefs);
         setTimeout(() => {
           this.toggle(context, on, classRef, classRef2, classRefs);
-          resolve(context.meta.runtime.findNext(this, context));
+          resolve(this.findNext(context));
         }, time);
       });
     } else if (evt) {
@@ -6100,7 +7543,7 @@ var _ToggleCommand = class _ToggleCommand extends VisibilityCommand {
           evt,
           () => {
             this.toggle(context, on, classRef, classRef2, classRefs);
-            resolve(context.meta.runtime.findNext(this, context));
+            resolve(this.findNext(context));
           },
           { once: true }
         );
@@ -6108,17 +7551,17 @@ var _ToggleCommand = class _ToggleCommand extends VisibilityCommand {
       });
     } else {
       this.toggle(context, on, classRef, classRef2, classRefs);
-      return context.meta.runtime.findNext(this, context);
+      return this.findNext(context);
     }
   }
 };
-__publicField(_ToggleCommand, "keyword", "toggle");
-var ToggleCommand = _ToggleCommand;
-var _HideCommand = class _HideCommand extends VisibilityCommand {
-  constructor(targetExpr, hideShowStrategy) {
+var HideCommand = class _HideCommand extends VisibilityCommand {
+  static keyword = "hide";
+  constructor(targetExpr, when, hideShowStrategy) {
     super();
     this.target = targetExpr;
     this.targetExpr = targetExpr;
+    this.when = when;
     this.hideShowStrategy = hideShowStrategy;
     this.args = { target: targetExpr };
   }
@@ -6132,20 +7575,43 @@ var _HideCommand = class _HideCommand extends VisibilityCommand {
         name = name.slice(1);
       }
     }
+    if (parser.matchToken("when")) {
+      var when = parser.requireElement("expression");
+    }
     var hideShowStrategy = VisibilityCommand.resolveHideShowStrategy(parser, name);
-    return new _HideCommand(targetExpr, hideShowStrategy);
+    return new _HideCommand(targetExpr, when, hideShowStrategy);
   }
   resolve(ctx, { target }) {
-    ctx.meta.runtime.nullCheck(target, this.targetExpr);
-    ctx.meta.runtime.implicitLoop(target, (elt) => {
-      this.hideShowStrategy("hide", elt, null, ctx.meta.runtime);
-    });
-    return ctx.meta.runtime.findNext(this, ctx);
+    var runtime2 = ctx.meta.runtime;
+    var cmd = this;
+    runtime2.nullCheck(target, this.targetExpr);
+    if (this.when) {
+      var result = runtime2.implicitLoopWhen(
+        target,
+        this.when,
+        ctx,
+        function(elt) {
+          cmd.hideShowStrategy("hide", elt, null, runtime2);
+        },
+        function(elt) {
+          cmd.hideShowStrategy("show", elt, null, runtime2);
+        }
+      );
+      if (result && result.then) {
+        return result.then(function() {
+          return runtime2.findNext(cmd, ctx);
+        });
+      }
+    } else {
+      runtime2.implicitLoop(target, function(elt) {
+        cmd.hideShowStrategy("hide", elt, null, runtime2);
+      });
+    }
+    return runtime2.findNext(this, ctx);
   }
 };
-__publicField(_HideCommand, "keyword", "hide");
-var HideCommand = _HideCommand;
-var _ShowCommand = class _ShowCommand extends VisibilityCommand {
+var ShowCommand = class _ShowCommand extends VisibilityCommand {
+  static keyword = "show";
   constructor(targetExpr, when, arg, hideShowStrategy) {
     super();
     this.target = targetExpr;
@@ -6180,27 +7646,36 @@ var _ShowCommand = class _ShowCommand extends VisibilityCommand {
     return new _ShowCommand(targetExpr, when, arg, hideShowStrategy);
   }
   resolve(ctx, { target }) {
-    ctx.meta.runtime.nullCheck(target, this.targetExpr);
-    ctx.meta.runtime.implicitLoop(target, (elt) => {
-      if (this.when) {
-        ctx.result = elt;
-        let whenResult = ctx.meta.runtime.evaluateNoPromise(this.when, ctx);
-        if (whenResult) {
-          this.hideShowStrategy("show", elt, this.arg, ctx.meta.runtime);
-        } else {
-          this.hideShowStrategy("hide", elt, null, ctx.meta.runtime);
+    var runtime2 = ctx.meta.runtime;
+    var cmd = this;
+    runtime2.nullCheck(target, this.targetExpr);
+    if (this.when) {
+      var result = runtime2.implicitLoopWhen(
+        target,
+        this.when,
+        ctx,
+        function(elt) {
+          cmd.hideShowStrategy("show", elt, cmd.arg, runtime2);
+        },
+        function(elt) {
+          cmd.hideShowStrategy("hide", elt, null, runtime2);
         }
-        ctx.result = null;
-      } else {
-        this.hideShowStrategy("show", elt, this.arg, ctx.meta.runtime);
+      );
+      if (result && result.then) {
+        return result.then(function() {
+          return runtime2.findNext(cmd, ctx);
+        });
       }
-    });
-    return ctx.meta.runtime.findNext(this, ctx);
+    } else {
+      runtime2.implicitLoop(target, function(elt) {
+        cmd.hideShowStrategy("show", elt, cmd.arg, runtime2);
+      });
+    }
+    return runtime2.findNext(this, ctx);
   }
 };
-__publicField(_ShowCommand, "keyword", "show");
-var ShowCommand = _ShowCommand;
-var _TakeCommand = class _TakeCommand extends Command {
+var TakeCommand = class _TakeCommand extends Command {
+  static keyword = "take";
   constructor(variant, classRefs, attributeRef, fromExpr, forExpr, replacementValue) {
     super();
     this.variant = variant;
@@ -6283,12 +7758,11 @@ var _TakeCommand = class _TakeCommand extends Command {
         target.setAttribute(this.attributeRef.name, this.attributeRef.value || "");
       });
     }
-    return context.meta.runtime.findNext(this, context);
+    return this.findNext(context);
   }
 };
-__publicField(_TakeCommand, "keyword", "take");
-var TakeCommand = _TakeCommand;
-var _MeasureCommand = class _MeasureCommand extends Command {
+var MeasureCommand = class _MeasureCommand extends Command {
+  static keyword = "measure";
   constructor(targetExpr, propsToMeasure) {
     super();
     this.properties = propsToMeasure;
@@ -6297,12 +7771,46 @@ var _MeasureCommand = class _MeasureCommand extends Command {
   }
   static parse(parser) {
     if (!parser.matchToken("measure")) return;
-    var targetExpr = Command.parsePseudopossessiveTarget(parser);
+    var targetExpr;
     var propsToMeasure = [];
-    if (!parser.commandBoundary(parser.currentToken()))
-      do {
-        propsToMeasure.push(parser.matchTokenType("IDENTIFIER").value);
-      } while (parser.matchOpToken(","));
+    var MEASURE_PROPS = [
+      "x",
+      "y",
+      "left",
+      "top",
+      "right",
+      "bottom",
+      "width",
+      "height",
+      "bounds",
+      "scrollLeft",
+      "scrollTop",
+      "scrollLeftMax",
+      "scrollTopMax",
+      "scrollWidth",
+      "scrollHeight",
+      "scroll"
+    ];
+    if (parser.commandBoundary(parser.currentToken())) {
+      targetExpr = parser.parseElement("implicitMeTarget");
+    } else {
+      var expr = parser.requireElement("expression");
+      if (expr.type === "symbol" && MEASURE_PROPS.includes(expr.name)) {
+        targetExpr = parser.parseElement("implicitMeTarget");
+        propsToMeasure.push(expr.name);
+      } else if (expr.type === "possessive" && expr.prop) {
+        targetExpr = expr.root;
+        propsToMeasure.push(expr.prop.value);
+      } else if (expr.type === "ofExpression" && expr.prop) {
+        targetExpr = expr.root;
+        propsToMeasure.push(expr.prop.value);
+      } else {
+        targetExpr = expr;
+      }
+    }
+    while (parser.matchOpToken(",")) {
+      propsToMeasure.push(parser.requireTokenType("IDENTIFIER").value);
+    }
     return new _MeasureCommand(targetExpr, propsToMeasure);
   }
   resolve(ctx, { target }) {
@@ -6337,13 +7845,284 @@ var _MeasureCommand = class _MeasureCommand extends Command {
     };
     ctx.meta.runtime.forEach(this.properties, (prop) => {
       if (prop in ctx.result) ctx.locals[prop] = ctx.result[prop];
-      else throw "No such measurement as " + prop;
+      else throw new Error("No such measurement as " + prop);
     });
-    return ctx.meta.runtime.findNext(this, ctx);
+    return this.findNext(ctx);
   }
 };
-__publicField(_MeasureCommand, "keyword", "measure");
-var MeasureCommand = _MeasureCommand;
+var FocusCommand = class _FocusCommand extends Command {
+  static keyword = "focus";
+  constructor(target) {
+    super();
+    this.args = { target };
+  }
+  static parse(parser) {
+    if (!parser.matchToken("focus")) return;
+    var target = null;
+    if (!parser.commandBoundary(parser.currentToken())) {
+      target = parser.requireElement("expression");
+    }
+    return new _FocusCommand(target);
+  }
+  resolve(ctx, { target }) {
+    (target || ctx.me).focus();
+    return this.findNext(ctx);
+  }
+};
+var BlurCommand = class _BlurCommand extends Command {
+  static keyword = "blur";
+  constructor(target) {
+    super();
+    this.args = { target };
+  }
+  static parse(parser) {
+    if (!parser.matchToken("blur")) return;
+    var target = null;
+    if (!parser.commandBoundary(parser.currentToken())) {
+      target = parser.requireElement("expression");
+    }
+    return new _BlurCommand(target);
+  }
+  resolve(ctx, { target }) {
+    (target || ctx.me).blur();
+    return this.findNext(ctx);
+  }
+};
+var EmptyCommand = class _EmptyCommand extends Command {
+  static keyword = "empty";
+  constructor(target) {
+    super();
+    this.args = { target };
+  }
+  static parse(parser) {
+    if (!parser.matchToken("empty")) return;
+    var target = null;
+    if (!parser.commandBoundary(parser.currentToken())) {
+      target = parser.requireElement("expression");
+    }
+    return new _EmptyCommand(target);
+  }
+  resolve(ctx, { target }) {
+    var elt = target || ctx.me;
+    ctx.meta.runtime.implicitLoop(elt, function(e) {
+      e.replaceChildren();
+    });
+    return this.findNext(ctx);
+  }
+};
+function _openElement(elt) {
+  if (elt instanceof HTMLDialogElement) {
+    if (!elt.open) elt.showModal();
+  } else if (elt instanceof HTMLDetailsElement) {
+    elt.open = true;
+  } else if (elt.hasAttribute && elt.hasAttribute("popover")) {
+    elt.showPopover();
+  } else if (typeof elt.open === "function") {
+    elt.open();
+  }
+}
+function _closeElement(elt) {
+  if (elt instanceof HTMLDialogElement) {
+    elt.close();
+  } else if (elt instanceof HTMLDetailsElement) {
+    elt.open = false;
+  } else if (elt.hasAttribute && elt.hasAttribute("popover")) {
+    elt.hidePopover();
+  } else if (typeof elt.close === "function") {
+    elt.close();
+  }
+}
+var OpenCommand = class _OpenCommand extends Command {
+  static keyword = "open";
+  constructor(target, fullscreen) {
+    super();
+    this.fullscreen = fullscreen;
+    this.args = { target };
+  }
+  static parse(parser) {
+    if (!parser.matchToken("open")) return;
+    var fullscreen = parser.matchToken("fullscreen");
+    var target = null;
+    if (!parser.commandBoundary(parser.currentToken())) {
+      target = parser.requireElement("expression");
+    }
+    return new _OpenCommand(target, !!fullscreen);
+  }
+  resolve(ctx, { target }) {
+    var elt = target || ctx.me;
+    if (this.fullscreen) {
+      return (target || document.documentElement).requestFullscreen().then(() => {
+        return this.findNext(ctx);
+      });
+    }
+    ctx.meta.runtime.implicitLoop(elt, _openElement);
+    return this.findNext(ctx);
+  }
+};
+var CloseCommand = class _CloseCommand extends Command {
+  static keyword = "close";
+  constructor(target, fullscreen) {
+    super();
+    this.fullscreen = fullscreen;
+    this.args = { target };
+  }
+  static parse(parser) {
+    if (!parser.matchToken("close")) return;
+    var fullscreen = parser.matchToken("fullscreen");
+    var target = null;
+    if (!parser.commandBoundary(parser.currentToken())) {
+      target = parser.requireElement("expression");
+    }
+    return new _CloseCommand(target, !!fullscreen);
+  }
+  resolve(ctx, { target }) {
+    if (this.fullscreen) {
+      return document.exitFullscreen().then(() => {
+        return this.findNext(ctx);
+      });
+    }
+    var elt = target || ctx.me;
+    ctx.meta.runtime.implicitLoop(elt, _closeElement);
+    return this.findNext(ctx);
+  }
+};
+var SpeakCommand = class _SpeakCommand extends Command {
+  static keyword = "speak";
+  constructor(text, voice, rate, pitch, volume) {
+    super();
+    this.voice = voice;
+    this.rate = rate;
+    this.pitch = pitch;
+    this.volume = volume;
+    this.args = { text, voice, rate, pitch, volume };
+  }
+  static parse(parser) {
+    if (!parser.matchToken("speak")) return;
+    var text = parser.requireElement("expression");
+    var voice = null, rate = null, pitch = null, volume = null;
+    while (parser.matchToken("with")) {
+      if (parser.matchToken("voice")) {
+        voice = parser.requireElement("expression");
+      } else if (parser.matchToken("rate")) {
+        rate = parser.requireElement("expression");
+      } else if (parser.matchToken("pitch")) {
+        pitch = parser.requireElement("expression");
+      } else if (parser.matchToken("volume")) {
+        volume = parser.requireElement("expression");
+      } else {
+        parser.raiseParseError("Expected voice, rate, pitch, or volume");
+      }
+    }
+    return new _SpeakCommand(text, voice, rate, pitch, volume);
+  }
+  resolve(ctx, { text, voice, rate, pitch, volume }) {
+    var utterance = new SpeechSynthesisUtterance(String(text));
+    if (voice) {
+      var voices = speechSynthesis.getVoices();
+      var match = voices.find((v) => v.name === voice);
+      if (match) utterance.voice = match;
+    }
+    if (rate != null) utterance.rate = rate;
+    if (pitch != null) utterance.pitch = pitch;
+    if (volume != null) utterance.volume = volume;
+    var cmd = this;
+    return new Promise(function(resolve) {
+      utterance.onend = function() {
+        resolve(ctx.meta.runtime.findNext(cmd, ctx));
+      };
+      speechSynthesis.speak(utterance);
+    });
+  }
+};
+var SelectCommand = class _SelectCommand extends Command {
+  static keyword = "select";
+  constructor(target) {
+    super();
+    this.args = { target };
+  }
+  static parse(parser) {
+    if (!parser.matchToken("select")) return;
+    var target = null;
+    if (!parser.commandBoundary(parser.currentToken())) {
+      target = parser.requireElement("expression");
+    }
+    return new _SelectCommand(target);
+  }
+  resolve(ctx, { target }) {
+    var elt = target || ctx.me;
+    if (typeof elt.select === "function") elt.select();
+    return this.findNext(ctx);
+  }
+};
+var AskCommand = class _AskCommand extends Command {
+  static keyword = "ask";
+  constructor(message) {
+    super();
+    this.args = { message };
+  }
+  static parse(parser) {
+    if (!parser.matchToken("ask")) return;
+    var message = parser.requireElement("expression");
+    return new _AskCommand(message);
+  }
+  resolve(ctx, { message }) {
+    ctx.result = prompt(String(message));
+    return this.findNext(ctx);
+  }
+};
+var AnswerCommand = class _AnswerCommand extends Command {
+  static keyword = "answer";
+  constructor(message, choiceA, choiceB) {
+    super();
+    this.choiceA = choiceA;
+    this.choiceB = choiceB;
+    this.args = { message, choiceA, choiceB };
+  }
+  static parse(parser) {
+    if (!parser.matchToken("answer")) return;
+    var message = parser.requireElement("expression");
+    var choiceA = null, choiceB = null;
+    if (parser.matchToken("with")) {
+      parser.pushFollow("or");
+      try {
+        choiceA = parser.requireElement("expression");
+      } finally {
+        parser.popFollow();
+      }
+      parser.requireToken("or");
+      choiceB = parser.requireElement("expression");
+    }
+    return new _AnswerCommand(message, choiceA, choiceB);
+  }
+  resolve(ctx, { message, choiceA, choiceB }) {
+    if (choiceA) {
+      ctx.result = confirm(String(message)) ? choiceA : choiceB;
+    } else {
+      alert(String(message));
+    }
+    return this.findNext(ctx);
+  }
+};
+var MorphCommand = class _MorphCommand extends Command {
+  static keyword = "morph";
+  constructor(target, content) {
+    super();
+    this.args = { target, content };
+  }
+  static parse(parser) {
+    if (!parser.matchToken("morph")) return;
+    var target = parser.requireElement("expression");
+    parser.requireToken("to");
+    var content = parser.requireElement("expression");
+    return new _MorphCommand(target, content);
+  }
+  resolve(ctx, { target, content }) {
+    ctx.meta.runtime.implicitLoop(target, function(elt) {
+      ctx.meta.runtime.morph(elt, content);
+    });
+    return this.findNext(ctx);
+  }
+};
 
 // src/parsetree/commands/animations.js
 var animations_exports = {};
@@ -6351,6 +8130,18 @@ __export(animations_exports, {
   SettleCommand: () => SettleCommand,
   TransitionCommand: () => TransitionCommand
 });
+function _extractStyleProp(expr) {
+  if (expr.type === "styleRef") {
+    return { name: expr.name, target: null };
+  }
+  if (expr.type === "possessive" && expr.attribute && (expr.attribute.type === "styleRef" || expr.attribute.type === "computedStyleRef")) {
+    return { name: expr.attribute.name, target: expr.root };
+  }
+  if (expr.type === "ofExpression" && expr._urRoot && (expr._urRoot.type === "styleRef" || expr._urRoot.type === "computedStyleRef")) {
+    return { name: expr._urRoot.name, target: expr.root };
+  }
+  return null;
+}
 var StyleRefValue = class extends Expression {
   constructor(styleProp) {
     super();
@@ -6370,7 +8161,8 @@ var InitialLiteral = class extends Expression {
     return "initial";
   }
 };
-var _SettleCommand = class _SettleCommand extends Command {
+var SettleCommand = class _SettleCommand extends Command {
+  static keyword = "settle";
   constructor(onExpr) {
     super();
     this.onExpr = onExpr;
@@ -6388,41 +8180,36 @@ var _SettleCommand = class _SettleCommand extends Command {
   }
   resolve(context, { on }) {
     context.meta.runtime.nullCheck(on, this.onExpr);
-    var resolve = null;
-    var resolved = false;
-    var transitionStarted = false;
-    var promise = new Promise((r) => {
-      resolve = r;
+    var cmd = this;
+    var elements = on instanceof Element ? [on] : Array.from(on);
+    return Promise.all(elements.map(_settleOne)).then(function() {
+      return context.meta.runtime.findNext(cmd, context);
     });
-    on.addEventListener(
-      "transitionstart",
-      () => {
-        transitionStarted = true;
-      },
-      { once: true }
-    );
-    setTimeout(() => {
-      if (!transitionStarted && !resolved) {
-        resolved = true;
-        resolve(context.meta.runtime.findNext(this, context));
-      }
-    }, 500);
-    on.addEventListener(
-      "transitionend",
-      () => {
-        if (!resolved) {
-          resolved = true;
-          resolve(context.meta.runtime.findNext(this, context));
-        }
-      },
-      { once: true }
-    );
-    return promise;
   }
 };
-__publicField(_SettleCommand, "keyword", "settle");
-var SettleCommand = _SettleCommand;
-var _TransitionCommand = class _TransitionCommand extends Command {
+function _settleOne(elt) {
+  return new Promise(function(resolve) {
+    var resolved = false;
+    var transitionStarted = false;
+    elt.addEventListener("transitionstart", function() {
+      transitionStarted = true;
+    }, { once: true });
+    setTimeout(function() {
+      if (!transitionStarted && !resolved) {
+        resolved = true;
+        resolve();
+      }
+    }, 500);
+    elt.addEventListener("transitionend", function() {
+      if (!resolved) {
+        resolved = true;
+        resolve();
+      }
+    }, { once: true });
+  });
+}
+var TransitionCommand = class _TransitionCommand extends Command {
+  static keyword = "transition";
   constructor(targetsExpr, to, properties, from, usingExpr, over) {
     super();
     this.to = to;
@@ -6435,18 +8222,36 @@ var _TransitionCommand = class _TransitionCommand extends Command {
   }
   static parse(parser) {
     if (parser.matchToken("transition")) {
-      var targetsExpr = Command.parsePseudopossessiveTarget(parser);
+      var targetsExpr;
       var properties = [];
       var from = [];
       var to = [];
+      var firstExpr = parser.requireElement("expression");
+      var firstProp = _extractStyleProp(firstExpr);
+      if (firstProp) {
+        targetsExpr = firstProp.target || parser.parseElement("implicitMeTarget");
+        properties.push(new StyleRefValue(firstProp.name));
+      } else {
+        parser.raiseParseError("Expected a style reference (e.g. *opacity) for transition");
+      }
+      if (parser.matchToken("from")) {
+        from.push(parser.requireElement("expression"));
+      } else {
+        from.push(null);
+      }
+      parser.requireToken("to");
+      if (parser.matchToken("initial")) {
+        to.push(new InitialLiteral());
+      } else {
+        to.push(parser.requireElement("expression"));
+      }
       var currentToken = parser.currentToken();
       while (!parser.commandBoundary(currentToken) && currentToken.value !== "over" && currentToken.value !== "using") {
         if (parser.currentToken().type === "STYLE_REF") {
-          let styleRef = parser.consumeToken();
-          let styleProp = styleRef.value.slice(1);
-          properties.push(new StyleRefValue(styleProp));
+          var styleRef = parser.consumeToken();
+          properties.push(new StyleRefValue(styleRef.value.slice(1)));
         } else {
-          properties.push(parser.requireElement("stringLike"));
+          break;
         }
         if (parser.matchToken("from")) {
           from.push(parser.requireElement("expression"));
@@ -6546,44 +8351,41 @@ var _TransitionCommand = class _TransitionCommand extends Command {
       promises.push(promise);
     });
     return Promise.all(promises).then(() => {
-      return context.meta.runtime.findNext(this, context);
+      return this.findNext(context);
     });
   }
 };
-__publicField(_TransitionCommand, "keyword", "transition");
-var TransitionCommand = _TransitionCommand;
 
 // src/parsetree/commands/debug.js
 var debug_exports = {};
 __export(debug_exports, {
   BreakpointCommand: () => BreakpointCommand
 });
-var _BreakpointCommand = class _BreakpointCommand extends Command {
+var BreakpointCommand = class _BreakpointCommand extends Command {
+  static keyword = "breakpoint";
   static parse(parser) {
     if (!parser.matchToken("breakpoint")) return;
     return new _BreakpointCommand();
   }
   resolve(ctx) {
     debugger;
-    return ctx.meta.runtime.findNext(this, ctx);
+    return this.findNext(ctx);
   }
 };
-__publicField(_BreakpointCommand, "keyword", "breakpoint");
-var BreakpointCommand = _BreakpointCommand;
 
 // src/parsetree/features/on.js
 var on_exports = {};
 __export(on_exports, {
   OnFeature: () => OnFeature
 });
-var _OnFeature = class _OnFeature extends Feature {
+var OnFeature = class _OnFeature extends Feature {
+  static keyword = "on";
   constructor(displayName, events, start, every, errorHandler, errorSymbol, finallyHandler, queueAll, queueFirst, queueNone, queueLast) {
     super();
     this.displayName = displayName;
     this.events = events;
     this.start = start;
     this.every = every;
-    this.execCount = 0;
     this.errorHandler = errorHandler;
     this.errorSymbol = errorSymbol;
     this.finallyHandler = finallyHandler;
@@ -6610,7 +8412,6 @@ var _OnFeature = class _OnFeature extends Feature {
       eventQueueInfo.queue.push(ctx);
       return;
     }
-    onFeature.execCount++;
     eventQueueInfo.executing = true;
     ctx.meta.onHalt = function() {
       eventQueueInfo.executing = false;
@@ -6649,12 +8450,21 @@ var _OnFeature = class _OnFeature extends Feature {
       } else {
         targets = [elt];
       }
+      var internalData = runtime2.getInternalData(elt);
+      if (!internalData.eventState) internalData.eventState = /* @__PURE__ */ new Map();
+      if (!internalData.eventState.has(eventSpec)) {
+        internalData.eventState.set(eventSpec, { execCount: 0, debounced: void 0, lastExec: void 0 });
+      }
+      var eventState = internalData.eventState.get(eventSpec);
       runtime2.implicitLoop(targets, function(target) {
         var eventName = eventSpec.on;
         if (target == null) {
           console.warn("'%s' feature ignored because target does not exists:", displayName, elt);
           return;
         }
+        var eltData = runtime2.getInternalData(elt);
+        if (!eltData.listeners) eltData.listeners = [];
+        if (!eltData.observers) eltData.observers = [];
         if (eventSpec.mutationSpec) {
           eventName = "hyperscript:mutation";
           const observer = new MutationObserver(function(mutationList, observer2) {
@@ -6666,6 +8476,7 @@ var _OnFeature = class _OnFeature extends Feature {
             }
           });
           observer.observe(target, eventSpec.mutationSpec);
+          eltData.observers.push(observer);
         }
         if (eventSpec.intersectionSpec) {
           eventName = "hyperscript:intersection";
@@ -6680,9 +8491,27 @@ var _OnFeature = class _OnFeature extends Feature {
             }
           }, eventSpec.intersectionSpec);
           observer.observe(target);
+          eltData.observers.push(observer);
+        }
+        if (eventSpec.resizeSpec) {
+          eventName = "hyperscript:resize";
+          const observer = new ResizeObserver(function(entries) {
+            for (const entry of entries) {
+              var detail = {
+                width: entry.contentRect.width,
+                height: entry.contentRect.height,
+                contentRect: entry.contentRect,
+                entry
+              };
+              runtime2.triggerEvent(target, eventName, detail);
+            }
+          });
+          observer.observe(target);
+          eltData.observers.push(observer);
         }
         var addEventListener = target.addEventListener || target.on;
-        addEventListener.call(target, eventName, function listener(evt) {
+        var handler;
+        addEventListener.call(target, eventName, handler = function listener(evt) {
           if (typeof Node !== "undefined" && elt instanceof Node && target !== elt && !elt.isConnected) {
             target.removeEventListener(eventName, listener);
             return;
@@ -6698,8 +8527,8 @@ var _OnFeature = class _OnFeature extends Feature {
             let eventValue = ctx.event[arg.value];
             if (eventValue !== void 0) {
               ctx.locals[arg.value] = eventValue;
-            } else if ("detail" in ctx.event) {
-              ctx.locals[arg.value] = ctx.event["detail"][arg.value];
+            } else if (ctx.event.detail != null) {
+              ctx.locals[arg.value] = ctx.event.detail[arg.value];
             }
           }
           ctx.meta.errorHandler = errorHandler;
@@ -6710,10 +8539,7 @@ var _OnFeature = class _OnFeature extends Feature {
             ctx.meta.context = ctx.event;
             try {
               var value = eventSpec.filter.evaluate(ctx);
-              if (value) {
-              } else {
-                return;
-              }
+              if (!value) return;
             } finally {
               ctx.meta.context = initialCtx;
             }
@@ -6732,52 +8558,56 @@ var _OnFeature = class _OnFeature extends Feature {
               }
             }
           }
-          eventSpec.execCount++;
+          eventState.execCount++;
           if (eventSpec.startCount) {
             if (eventSpec.endCount) {
-              if (eventSpec.execCount < eventSpec.startCount || eventSpec.execCount > eventSpec.endCount) {
+              if (eventState.execCount < eventSpec.startCount || eventState.execCount > eventSpec.endCount) {
                 return;
               }
             } else if (eventSpec.unbounded) {
-              if (eventSpec.execCount < eventSpec.startCount) {
+              if (eventState.execCount < eventSpec.startCount) {
                 return;
               }
-            } else if (eventSpec.execCount !== eventSpec.startCount) {
+            } else if (eventState.execCount !== eventSpec.startCount) {
               return;
             }
           }
           if (eventSpec.debounceTime) {
-            if (eventSpec.debounced) {
-              clearTimeout(eventSpec.debounced);
+            if (eventState.debounced) {
+              clearTimeout(eventState.debounced);
             }
-            eventSpec.debounced = setTimeout(function() {
+            eventState.debounced = setTimeout(function() {
               onFeature.execute(ctx);
             }, eventSpec.debounceTime);
             return;
           }
           if (eventSpec.throttleTime) {
-            if (eventSpec.lastExec && Date.now() < eventSpec.lastExec + eventSpec.throttleTime) {
+            if (eventState.lastExec && Date.now() < eventState.lastExec + eventSpec.throttleTime) {
               return;
             } else {
-              eventSpec.lastExec = Date.now();
+              eventState.lastExec = Date.now();
             }
           }
           onFeature.execute(ctx);
         });
+        eltData.listeners.push({ target, event: eventName, handler });
       });
     }
   }
   static parse(parser) {
     if (!parser.matchToken("on")) return;
     var every = false;
+    var first = false;
     if (parser.matchToken("every")) {
       every = true;
+    } else if (parser.matchToken("first")) {
+      first = true;
     }
     var events = [];
     var displayName = null;
     do {
       var on = parser.requireElement("eventName", "Expected event name");
-      var eventName = on.evaluate();
+      var eventName = on.evalStatically();
       if (displayName) {
         displayName = displayName + " or " + eventName;
       } else {
@@ -6790,7 +8620,9 @@ var _OnFeature = class _OnFeature extends Feature {
         parser.requireOpToken("]");
       }
       var startCount, endCount, unbounded;
-      if (parser.currentToken().type === "NUMBER") {
+      if (first) {
+        startCount = 1;
+      } else if (parser.currentToken().type === "NUMBER") {
         var startCountToken = parser.consumeToken();
         if (!startCountToken.value) return;
         startCount = parseInt(startCountToken.value);
@@ -6803,28 +8635,27 @@ var _OnFeature = class _OnFeature extends Feature {
           parser.requireToken("on");
         }
       }
-      var intersectionSpec, mutationSpec;
-      if (eventName === "intersection") {
+      var intersectionSpec, mutationSpec, resizeSpec;
+      if (eventName === "resize") {
+        resizeSpec = true;
+      } else if (eventName === "intersection") {
         intersectionSpec = {};
         if (parser.matchToken("with")) {
-          intersectionSpec["with"] = parser.requireElement("expression").evaluate();
+          intersectionSpec["with"] = parser.requireElement("expression").evalStatically();
         }
         if (parser.matchToken("having")) {
           do {
             if (parser.matchToken("margin")) {
-              intersectionSpec["rootMargin"] = parser.requireElement("stringLike").evaluate();
+              intersectionSpec["rootMargin"] = parser.requireElement("stringLike").evalStatically();
             } else if (parser.matchToken("threshold")) {
-              intersectionSpec["threshold"] = parser.requireElement("expression").evaluate();
+              intersectionSpec["threshold"] = parser.requireElement("expression").evalStatically();
             } else {
               parser.raiseParseError("Unknown intersection config specification");
             }
           } while (parser.matchToken("and"));
         }
       } else if (eventName === "mutation") {
-        mutationSpec = {
-          attributeOldValue: true,
-          characterDataOldValue: true
-        };
+        mutationSpec = {};
         if (parser.matchToken("of")) {
           do {
             if (parser.matchToken("anything")) {
@@ -6856,10 +8687,18 @@ var _OnFeature = class _OnFeature extends Feature {
               parser.raiseParseError("Unknown mutation config specification");
             }
           } while (parser.matchToken("or"));
+          if (mutationSpec["attributes"] || mutationSpec["attributeFilter"]) {
+            mutationSpec["attributeOldValue"] = true;
+          }
+          if (mutationSpec["characterData"]) {
+            mutationSpec["characterDataOldValue"] = true;
+          }
         } else {
           mutationSpec["attributes"] = true;
           mutationSpec["characterData"] = true;
           mutationSpec["childList"] = true;
+          mutationSpec["attributeOldValue"] = true;
+          mutationSpec["characterDataOldValue"] = true;
         }
       }
       var from = null;
@@ -6888,14 +8727,13 @@ var _OnFeature = class _OnFeature extends Feature {
       if (parser.matchToken("debounced")) {
         parser.requireToken("at");
         var timeExpr = parser.requireElement("unaryExpression");
-        var debounceTime = timeExpr.evaluate({});
+        var debounceTime = timeExpr.evalStatically();
       } else if (parser.matchToken("throttled")) {
         parser.requireToken("at");
         var timeExpr = parser.requireElement("unaryExpression");
-        var throttleTime = timeExpr.evaluate({});
+        var throttleTime = timeExpr.evalStatically();
       }
       events.push({
-        execCount: 0,
         every,
         on: eventName,
         args,
@@ -6910,8 +8748,7 @@ var _OnFeature = class _OnFeature extends Feature {
         throttleTime,
         mutationSpec,
         intersectionSpec,
-        debounced: void 0,
-        lastExec: void 0
+        resizeSpec
       });
     } while (parser.matchToken("or"));
     var queueLast = true;
@@ -6937,15 +8774,14 @@ var _OnFeature = class _OnFeature extends Feature {
     return onFeature;
   }
 };
-__publicField(_OnFeature, "keyword", "on");
-var OnFeature = _OnFeature;
 
 // src/parsetree/features/def.js
 var def_exports = {};
 __export(def_exports, {
   DefFeature: () => DefFeature
 });
-var _DefFeature = class _DefFeature extends Feature {
+var DefFeature = class _DefFeature extends Feature {
+  static keyword = "def";
   constructor(funcName, nameSpace, nameVal, args, start, errorHandler, errorSymbol, finallyHandler) {
     super();
     this.displayName = funcName + "(" + args.map(function(arg) {
@@ -6986,7 +8822,7 @@ var _DefFeature = class _DefFeature extends Feature {
       if (ctx.meta.caller) {
         ctx.meta.callingCommand = ctx.meta.caller.meta.command;
       }
-      var resolve, reject = null;
+      var resolve, reject;
       var promise = new Promise(function(theResolve, theReject) {
         resolve = theResolve;
         reject = theReject;
@@ -7007,7 +8843,7 @@ var _DefFeature = class _DefFeature extends Feature {
   static parse(parser) {
     if (!parser.matchToken("def")) return;
     var functionName = parser.requireElement("dotOrColonPath");
-    var nameVal = functionName.evaluate();
+    var nameVal = functionName.evalStatically();
     var nameSpace = nameVal.split(".");
     var funcName = nameSpace.pop();
     var args = [];
@@ -7031,15 +8867,14 @@ var _DefFeature = class _DefFeature extends Feature {
     return functionFeature;
   }
 };
-__publicField(_DefFeature, "keyword", "def");
-var DefFeature = _DefFeature;
 
 // src/parsetree/features/set.js
 var set_exports = {};
 __export(set_exports, {
   SetFeature: () => SetFeature
 });
-var _SetFeature = class _SetFeature extends Feature {
+var SetFeature = class _SetFeature extends Feature {
+  static keyword = "set";
   constructor(setCmd) {
     super();
     this.start = setCmd;
@@ -7050,8 +8885,8 @@ var _SetFeature = class _SetFeature extends Feature {
   static parse(parser) {
     let setCmd = parser.parseElement("setCommand");
     if (setCmd) {
-      if (setCmd.target.scope !== "element") {
-        parser.raiseParseError("variables declared at the feature level must be element scoped.");
+      if (setCmd.target.scope !== "element" && setCmd.target.scope !== "inherited") {
+        parser.raiseParseError("variables declared at the feature level must be element or DOM scoped.");
       }
       let setFeature = new _SetFeature(setCmd);
       parser.ensureTerminated(setCmd);
@@ -7059,28 +8894,28 @@ var _SetFeature = class _SetFeature extends Feature {
     }
   }
 };
-__publicField(_SetFeature, "keyword", "set");
-var SetFeature = _SetFeature;
 
 // src/parsetree/features/init.js
 var init_exports = {};
 __export(init_exports, {
   InitFeature: () => InitFeature
 });
-var _InitFeature = class _InitFeature extends Feature {
+var InitFeature = class _InitFeature extends Feature {
+  static keyword = "init";
   constructor(start, immediately) {
     super();
     this.start = start;
     this.immediately = immediately;
   }
   install(target, source, args, runtime2) {
-    let handler = () => {
-      this.start && this.start.execute(runtime2.makeContext(target, this, target, null));
+    var feature = this;
+    var handler = function() {
+      feature.start && feature.start.execute(runtime2.makeContext(target, feature, target, null));
     };
     if (this.immediately) {
       handler();
     } else {
-      setTimeout(handler, 0);
+      queueMicrotask(handler);
     }
   }
   static parse(parser) {
@@ -7093,8 +8928,6 @@ var _InitFeature = class _InitFeature extends Feature {
     return initFeature;
   }
 };
-__publicField(_InitFeature, "keyword", "init");
-var InitFeature = _InitFeature;
 
 // src/parsetree/features/worker.js
 var worker_exports = {};
@@ -7102,6 +8935,7 @@ __export(worker_exports, {
   WorkerFeature: () => WorkerFeature
 });
 var WorkerFeature = class extends Feature {
+  static keyword = "worker";
   static parse(parser) {
     if (parser.matchToken("worker")) {
       parser.raiseParseError(
@@ -7111,14 +8945,14 @@ var WorkerFeature = class extends Feature {
     }
   }
 };
-__publicField(WorkerFeature, "keyword", "worker");
 
 // src/parsetree/features/behavior.js
 var behavior_exports = {};
 __export(behavior_exports, {
   BehaviorFeature: () => BehaviorFeature
 });
-var _BehaviorFeature = class _BehaviorFeature extends Feature {
+var BehaviorFeature = class _BehaviorFeature extends Feature {
+  static keyword = "behavior";
   constructor(path, nameSpace, name, formalParams, hs) {
     super();
     this.path = path;
@@ -7134,7 +8968,7 @@ var _BehaviorFeature = class _BehaviorFeature extends Feature {
     const formalParams = this.formalParams;
     const hs = this.hs;
     runtime2.assignToNamespace(
-      runtime2.globalScope.document && runtime2.globalScope.document.body,
+      null,
       nameSpace,
       name,
       function(target2, source2, innerArgs) {
@@ -7150,7 +8984,7 @@ var _BehaviorFeature = class _BehaviorFeature extends Feature {
   }
   static parse(parser) {
     if (!parser.matchToken("behavior")) return;
-    var path = parser.requireElement("dotOrColonPath").evaluate();
+    var path = parser.requireElement("dotOrColonPath").evalStatically();
     var nameSpace = path.split(".");
     var name = nameSpace.pop();
     var formalParams = [];
@@ -7168,15 +9002,14 @@ var _BehaviorFeature = class _BehaviorFeature extends Feature {
     return new _BehaviorFeature(path, nameSpace, name, formalParams, hs);
   }
 };
-__publicField(_BehaviorFeature, "keyword", "behavior");
-var BehaviorFeature = _BehaviorFeature;
 
 // src/parsetree/features/install.js
 var install_exports = {};
 __export(install_exports, {
   InstallFeature: () => InstallFeature
 });
-var _InstallFeature = class _InstallFeature extends Feature {
+var InstallFeature = class _InstallFeature extends Feature {
+  static keyword = "install";
   constructor(behaviorPath, behaviorNamespace, args) {
     super();
     this.behaviorPath = behaviorPath;
@@ -7198,21 +9031,20 @@ var _InstallFeature = class _InstallFeature extends Feature {
   }
   static parse(parser) {
     if (!parser.matchToken("install")) return;
-    var behaviorPath = parser.requireElement("dotOrColonPath").evaluate();
+    var behaviorPath = parser.requireElement("dotOrColonPath").evalStatically();
     var behaviorNamespace = behaviorPath.split(".");
     var args = parser.parseElement("namedArgumentList");
     return new _InstallFeature(behaviorPath, behaviorNamespace, args);
   }
 };
-__publicField(_InstallFeature, "keyword", "install");
-var InstallFeature = _InstallFeature;
 
 // src/parsetree/features/js.js
 var js_exports = {};
 __export(js_exports, {
   JsFeature: () => JsFeature
 });
-var _JsFeature = class _JsFeature extends Feature {
+var JsFeature = class _JsFeature extends Feature {
+  static keyword = "js";
   constructor(jsSource, func, exposedFunctionNames) {
     super();
     this.jsSource = jsSource;
@@ -7232,15 +9064,668 @@ var _JsFeature = class _JsFeature extends Feature {
     return new _JsFeature(jsSource, func, jsBody.exposedFunctionNames);
   }
 };
-__publicField(_JsFeature, "keyword", "js");
-var JsFeature = _JsFeature;
+
+// src/parsetree/features/when.js
+var when_exports = {};
+__export(when_exports, {
+  WhenFeature: () => WhenFeature
+});
+var WhenFeature = class _WhenFeature extends Feature {
+  static keyword = "when";
+  /**
+   * Parse when feature
+   * @param {Parser} parser
+   * @returns {WhenFeature | undefined}
+   */
+  static parse(parser) {
+    if (!parser.matchToken("when")) return;
+    var exprs = [];
+    do {
+      parser.pushFollow("or");
+      try {
+        exprs.push(parser.requireElement("expression"));
+      } finally {
+        parser.popFollow();
+      }
+    } while (parser.matchToken("or"));
+    for (var i = 0; i < exprs.length; i++) {
+      var expr = exprs[i];
+      if (expr.type === "symbol" && expr.scope === "default" && !expr.name.startsWith("$") && !expr.name.startsWith(":")) {
+        parser.raiseParseError(
+          "Cannot watch local variable '" + expr.name + "'. Local variables are not reactive. Use '$" + expr.name + "' (global) or ':" + expr.name + "' (element-scoped) instead."
+        );
+      }
+    }
+    parser.requireToken("changes");
+    var start = parser.requireElement("commandList");
+    parser.ensureTerminated(start);
+    var feature = new _WhenFeature(exprs, start);
+    parser.setParent(start, feature);
+    return feature;
+  }
+  constructor(exprs, start) {
+    super();
+    this.exprs = exprs;
+    this.start = start;
+    this.displayName = "when ... changes";
+  }
+  install(target, source, args, runtime2) {
+    var feature = this;
+    queueMicrotask(function() {
+      for (var i = 0; i < feature.exprs.length; i++) {
+        (function(expr) {
+          runtime2.reactivity.createEffect(
+            function() {
+              return expr.evaluate(
+                runtime2.makeContext(target, feature, target, null)
+              );
+            },
+            function(newValue) {
+              var ctx = runtime2.makeContext(target, feature, target, null);
+              ctx.result = newValue;
+              ctx.meta.reject = function(err) {
+                console.error(err.message ? err.message : err);
+                runtime2.triggerEvent(target, "exception", { error: err });
+              };
+              ctx.meta.onHalt = function() {
+              };
+              feature.start.execute(ctx);
+            },
+            { element: target }
+          );
+        })(feature.exprs[i]);
+      }
+    });
+  }
+};
+
+// src/parsetree/features/bind.js
+var bind_exports = {};
+__export(bind_exports, {
+  BindFeature: () => BindFeature
+});
+var BindFeature = class _BindFeature extends Feature {
+  static keyword = "bind";
+  /**
+   * Parse bind feature
+   * @param {Parser} parser
+   * @returns {BindFeature | undefined}
+   */
+  static parse(parser) {
+    if (!parser.matchToken("bind")) return;
+    parser.pushFollow("and");
+    parser.pushFollow("with");
+    parser.pushFollow("to");
+    var left;
+    try {
+      left = parser.requireElement("expression");
+    } finally {
+      parser.popFollow();
+      parser.popFollow();
+      parser.popFollow();
+    }
+    if (!parser.matchToken("and") && !parser.matchToken("with") && !parser.matchToken("to")) {
+      parser.raiseParseError("bind requires a connector: 'and', 'with', or 'to'");
+    }
+    var right = parser.requireElement("expression");
+    return new _BindFeature(left, right);
+  }
+  constructor(left, right) {
+    super();
+    this.left = left;
+    this.right = right;
+    this.displayName = "bind";
+  }
+  install(target, source, args, runtime2) {
+    var feature = this;
+    queueMicrotask(function() {
+      try {
+        _bind(feature.left, feature.right, target, feature, runtime2);
+      } catch (e) {
+        console.error(e.message || e);
+      }
+    });
+  }
+};
+function _registerListener(runtime2, elt, listenerTarget, event, handler) {
+  var eltData = runtime2.getInternalData(elt);
+  if (!eltData.listeners) eltData.listeners = [];
+  eltData.listeners.push({ target: listenerTarget, event, handler });
+}
+function _isAssignable(expr) {
+  if (expr.type === "classRef") return true;
+  if (expr.type === "attributeRef") return true;
+  return typeof expr.set === "function";
+}
+function _bind(left, right, target, feature, runtime2) {
+  var ctx = runtime2.makeContext(target, feature, target, null);
+  var leftSide = _resolveSide(left, target, feature, runtime2, ctx);
+  var rightSide = _resolveSide(right, target, feature, runtime2, ctx);
+  if (!leftSide.element && !_isAssignable(left)) {
+    throw new Error("bind requires a writable expression on the left side, but '" + left.type + "' cannot be assigned to");
+  }
+  if (!rightSide.element && !_isAssignable(right)) {
+    throw new Error("bind requires a writable expression on the right side, but '" + right.type + "' cannot be assigned to");
+  }
+  runtime2.reactivity.createEffect(
+    function() {
+      return leftSide.read();
+    },
+    function(newValue) {
+      rightSide.write(newValue);
+    },
+    { element: target }
+  );
+  runtime2.reactivity.createEffect(
+    function() {
+      return rightSide.read();
+    },
+    function(newValue) {
+      leftSide.write(newValue);
+    },
+    { element: target }
+  );
+  _setupFormReset(leftSide, rightSide, target, runtime2);
+}
+function _resolveSide(expr, target, feature, runtime2, ctx) {
+  var value = expr.evaluate(ctx);
+  if (value instanceof Element) {
+    return _createElementSide(value, runtime2);
+  }
+  return _createExpressionSide(expr, target, feature, runtime2);
+}
+var _bindProperty = {
+  "INPUT:checkbox": "checked",
+  "INPUT:number": "valueAsNumber",
+  "INPUT:range": "valueAsNumber",
+  "INPUT": "value",
+  "TEXTAREA": "value",
+  "SELECT": "value"
+};
+function _createElementSide(element, runtime2) {
+  var tag = element.tagName;
+  var type = tag === "INPUT" ? element.getAttribute("type") || "text" : null;
+  if (tag === "INPUT" && type === "radio") {
+    var radioValue = element.value;
+    return {
+      element,
+      read: function() {
+        var checked = runtime2.resolveProperty(element, "checked");
+        return checked ? radioValue : void 0;
+      },
+      write: function(value) {
+        element.checked = value === radioValue;
+      }
+    };
+  }
+  var prop = _bindProperty[tag + ":" + type] || _bindProperty[tag];
+  if (!prop && element.hasAttribute("contenteditable") && element.getAttribute("contenteditable") !== "false") {
+    prop = "textContent";
+  }
+  if (!prop && tag.includes("-") && "value" in element) {
+    prop = "value";
+  }
+  if (!prop) {
+    throw new Error(
+      "bind cannot auto-detect a property for <" + tag.toLowerCase() + ">. Use an explicit property (e.g. 'bind $var to #el's value')."
+    );
+  }
+  var isNumeric = prop === "valueAsNumber";
+  return {
+    element,
+    read: function() {
+      var val = runtime2.resolveProperty(element, prop);
+      return isNumeric && val !== val ? null : val;
+    },
+    write: function(value) {
+      element[prop] = value;
+    }
+  };
+}
+function _createExpressionSide(expr, target, feature, runtime2) {
+  if (expr.type === "classRef") {
+    return {
+      read: function() {
+        runtime2.resolveAttribute(target, "class");
+        return target.classList.contains(expr.className);
+      },
+      write: function(value) {
+        if (value) {
+          target.classList.add(expr.className);
+        } else {
+          target.classList.remove(expr.className);
+        }
+      }
+    };
+  }
+  return {
+    read: function() {
+      return expr.evaluate(runtime2.makeContext(target, feature, target, null));
+    },
+    write: function(value) {
+      var ctx = runtime2.makeContext(target, feature, target, null);
+      _assignTo(runtime2, expr, ctx, value);
+    }
+  };
+}
+function _setupFormReset(leftSide, rightSide, target, runtime2) {
+  _addResetListener(leftSide, rightSide, target, runtime2);
+  _addResetListener(rightSide, leftSide, target, runtime2);
+}
+function _addResetListener(source, dest, target, runtime2) {
+  if (!source.element) return;
+  var form = source.element.closest("form");
+  if (!form) return;
+  var resetHandler = function() {
+    setTimeout(function() {
+      if (!target.isConnected) return;
+      var val = source.read();
+      dest.write(val);
+    }, 0);
+  };
+  form.addEventListener("reset", resetHandler);
+  _registerListener(runtime2, target, form, "reset", resetHandler);
+}
+function _setAttr(elt, name, value) {
+  if (typeof value === "boolean") {
+    if (name.startsWith("aria-")) {
+      elt.setAttribute(name, String(value));
+    } else if (value) {
+      elt.setAttribute(name, "");
+    } else {
+      elt.removeAttribute(name);
+    }
+  } else if (value == null) {
+    elt.removeAttribute(name);
+  } else {
+    elt.setAttribute(name, value);
+  }
+}
+function _assignTo(runtime2, target, ctx, value) {
+  if (target.type === "classRef") {
+    var elt = ctx.you || ctx.me;
+    if (elt) value ? elt.classList.add(target.className) : elt.classList.remove(target.className);
+  } else if (target.type === "attributeRef" && typeof value === "boolean") {
+    var elt = ctx.you || ctx.me;
+    if (elt) _setAttr(elt, target.name, value);
+  } else {
+    var lhs = {};
+    if (target.lhs) {
+      for (var key in target.lhs) {
+        var expr = target.lhs[key];
+        lhs[key] = expr && expr.evaluate ? expr.evaluate(ctx) : expr;
+      }
+    }
+    target.set(ctx, lhs, value);
+  }
+}
+
+// src/parsetree/features/live.js
+var live_exports = {};
+__export(live_exports, {
+  LiveFeature: () => LiveFeature
+});
+var LiveFeature = class _LiveFeature extends Feature {
+  static keyword = "live";
+  constructor(commands) {
+    super();
+    this.commands = commands;
+    this.displayName = "live";
+  }
+  static parse(parser) {
+    if (!parser.matchToken("live")) return;
+    var start = parser.requireElement("commandList");
+    var feature = new _LiveFeature(start);
+    parser.ensureTerminated(start);
+    parser.setParent(start, feature);
+    return feature;
+  }
+  install(target, source, args, runtime2) {
+    var feature = this;
+    queueMicrotask(function() {
+      runtime2.reactivity.createEffect(
+        function() {
+          feature.commands.execute(
+            runtime2.makeContext(target, feature, target, null)
+          );
+        },
+        function() {
+        },
+        { element: target }
+      );
+    });
+  }
+};
+
+// src/parsetree/commands/template.js
+var template_exports = {};
+__export(template_exports, {
+  EscapeExpression: () => EscapeExpression,
+  RenderCommand: () => RenderCommand,
+  TemplateForCommand: () => TemplateForCommand,
+  TemplateForLoopCommand: () => TemplateForLoopCommand,
+  TemplateTextCommand: () => TemplateTextCommand
+});
+function escapeHTML(html) {
+  return String(html).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+}
+var TemplateTextCommand = class _TemplateTextCommand extends Command {
+  static keyword = "TEMPLATE_LINE";
+  constructor(parts, errors) {
+    super();
+    this.parts = parts;
+    this.errors = errors;
+  }
+  static parse(parser) {
+    var tok = parser.currentToken();
+    if (tok.type !== "TEMPLATE_LINE") return;
+    parser.consumeToken();
+    var parts = [];
+    var errors = [];
+    var raw = tok.content;
+    var i = 0;
+    while (i < raw.length) {
+      var nextDollar = raw.indexOf("${", i);
+      if (nextDollar === -1) {
+        if (i < raw.length) parts.push({ type: "literal", value: raw.slice(i) });
+        break;
+      }
+      if (nextDollar > i) {
+        parts.push({ type: "literal", value: raw.slice(i, nextDollar) });
+      }
+      var depth = 1;
+      var j = nextDollar + 2;
+      while (j < raw.length && depth > 0) {
+        if (raw[j] === "{") depth++;
+        else if (raw[j] === "}") depth--;
+        j++;
+      }
+      if (depth > 0) {
+        errors.push({ line: tok.line, message: "Unterminated ${} expression", expr: raw.slice(nextDollar) });
+        parts.push({ type: "literal", value: "" });
+        break;
+      }
+      var exprStr = raw.slice(nextDollar + 2, j - 1);
+      var escape = true;
+      var trimmed = exprStr.trimStart();
+      if (trimmed.startsWith("unescaped ")) {
+        escape = false;
+        exprStr = trimmed.slice("unescaped ".length).trim();
+      }
+      var conditionalMatch = exprStr.match(/^(.+?)\s+if\s+(.+?)(?:\s+else\s+(.+))?$/);
+      if (conditionalMatch) {
+        try {
+          var valueStr = conditionalMatch[1].trim();
+          var conditionStr = conditionalMatch[2].trim();
+          var elseStr = conditionalMatch[3] ? conditionalMatch[3].trim() : null;
+          var valueTokens = new Tokenizer().tokenize(valueStr);
+          var valueParser = parser.createChildParser(valueTokens);
+          var valueNode = valueParser.requireElement("expression");
+          var conditionTokens = new Tokenizer().tokenize(conditionStr);
+          var conditionParser = parser.createChildParser(conditionTokens);
+          var conditionNode = conditionParser.requireElement("expression");
+          var elseNode = null;
+          if (elseStr) {
+            var elseTokens = new Tokenizer().tokenize(elseStr);
+            var elseParser = parser.createChildParser(elseTokens);
+            elseNode = elseParser.requireElement("expression");
+          }
+          parts.push({
+            type: "conditional",
+            valueNode,
+            conditionNode,
+            elseNode,
+            escape
+          });
+        } catch (e) {
+          errors.push({
+            line: tok.line,
+            column: tok.column + nextDollar,
+            message: e.message || String(e),
+            expr: exprStr
+          });
+          parts.push({ type: "literal", value: "" });
+        }
+      } else {
+        try {
+          var exprTokens = new Tokenizer().tokenize(exprStr);
+          var exprParser = parser.createChildParser(exprTokens);
+          var node = exprParser.requireElement("expression");
+          parts.push({ type: "expr", node, escape });
+        } catch (e) {
+          errors.push({
+            line: tok.line,
+            column: tok.column + nextDollar,
+            message: e.message || String(e),
+            expr: exprStr
+          });
+          parts.push({ type: "literal", value: "" });
+        }
+      }
+      i = j;
+    }
+    return new _TemplateTextCommand(parts, errors);
+  }
+  resolve(ctx) {
+    var vals = this.parts.map((part) => {
+      if (part.type === "literal") return part.value;
+      if (part.type === "conditional") {
+        var condition = part.conditionNode.evaluate(ctx);
+        if (condition) {
+          return part.valueNode.evaluate(ctx);
+        } else if (part.elseNode) {
+          return part.elseNode.evaluate(ctx);
+        } else {
+          return void 0;
+        }
+      }
+      return part.node.evaluate(ctx);
+    });
+    var stringify = (val, part) => {
+      if (part.type === "literal") return val;
+      if (val === void 0 || val === null) return "";
+      if (part.escape) return escapeHTML(String(val));
+      return String(val);
+    };
+    if (vals.some((v) => v && v.then)) {
+      return Promise.all(vals).then((resolved) => {
+        ctx.meta.__ht_template_result.push(
+          resolved.map((val, i) => stringify(val, this.parts[i])).join("")
+        );
+        return this.findNext(ctx);
+      });
+    }
+    ctx.meta.__ht_template_result.push(
+      vals.map((val, i) => stringify(val, this.parts[i])).join("")
+    );
+    return this.findNext(ctx);
+  }
+};
+var RenderCommand = class _RenderCommand extends Command {
+  static keyword = "render";
+  constructor(template_, templateArgs) {
+    super();
+    this.template_ = template_;
+    this.args = { template: template_, templateArgs };
+  }
+  static parse(parser) {
+    if (!parser.matchToken("render")) return;
+    var template_ = parser.requireElement("expression");
+    var templateArgs = {};
+    if (parser.matchToken("with")) {
+      templateArgs = parser.parseElement("nakedNamedArgumentList");
+    }
+    var cmd = new _RenderCommand(template_, templateArgs);
+    cmd._parser = parser;
+    return cmd;
+  }
+  resolve(ctx, { template, templateArgs }) {
+    if (!(template instanceof Element)) throw new Error(this.template_.sourceFor() + " is not an element");
+    var buf = [];
+    var runtime2 = ctx.meta.runtime;
+    var renderCtx = runtime2.makeContext(ctx.me, null, ctx.me, null);
+    renderCtx.locals = Object.assign({}, ctx.locals, templateArgs);
+    renderCtx.meta.__ht_template_result = buf;
+    var tokens = new Tokenizer().tokenize(template.innerHTML, "lines");
+    var parser = this._parser.createChildParser(tokens);
+    var commandList;
+    try {
+      commandList = parser.parseElement("commandList");
+      parser.ensureTerminated(commandList);
+    } catch (e) {
+      console.error("hyperscript template parse error:", e.message || e);
+      ctx.result = "";
+      return runtime2.findNext(this, ctx);
+    }
+    var errors = [];
+    var cmd = commandList;
+    while (cmd) {
+      if (cmd.errors && cmd.errors.length) errors.push(...cmd.errors);
+      cmd = cmd.next;
+    }
+    if (errors.length) {
+      for (var err of errors) {
+        console.error("hyperscript template error (line " + err.line + "): " + err.message + (err.expr ? " in ${" + err.expr + "}" : ""));
+      }
+    }
+    var resolve, reject;
+    var promise = new Promise(function(res, rej) {
+      resolve = res;
+      reject = rej;
+    });
+    commandList.execute(renderCtx);
+    if (renderCtx.meta.returned) {
+      ctx.result = buf.join("");
+      return runtime2.findNext(this, ctx);
+    }
+    renderCtx.meta.resolve = resolve;
+    renderCtx.meta.reject = reject;
+    return promise.then(() => {
+      ctx.result = buf.join("");
+      return runtime2.findNext(this, ctx);
+    });
+  }
+};
+var EscapeExpression = class _EscapeExpression extends Expression {
+  static grammarName = "escape";
+  static expressionType = "leaf";
+  constructor(arg, unescaped, escapeType) {
+    super();
+    this.unescaped = unescaped;
+    this.escapeType = escapeType;
+    this.args = { value: arg };
+  }
+  static parse(parser) {
+    if (!parser.matchToken("escape")) return;
+    var escapeType = parser.matchTokenType("IDENTIFIER").value;
+    var unescaped = parser.matchToken("unescaped");
+    var arg = parser.requireElement("expression");
+    return new _EscapeExpression(arg, unescaped, escapeType);
+  }
+  resolve(ctx, { value }) {
+    if (this.unescaped) return value;
+    if (value === void 0) return "";
+    switch (this.escapeType) {
+      case "html":
+        return escapeHTML(value);
+      default:
+        throw new Error("Unknown escape: " + this.escapeType);
+    }
+  }
+};
+var TemplateForLoopCommand = class extends Command {
+  constructor(identifier, slot, loopBody, elseBranch) {
+    super();
+    this.identifier = identifier;
+    this.slot = slot;
+    this.loop = loopBody;
+    this.elseBranch = elseBranch;
+  }
+  resolveNext() {
+    return this;
+  }
+  resolve(context) {
+    var iterator = context.meta.iterators[this.slot];
+    if (!iterator) {
+      return context.meta.runtime.findNext(this.parent, context);
+    }
+    var nextVal = iterator.iterator.next();
+    if (!nextVal.done) {
+      iterator.didIterate = true;
+      context.locals[iterator.identifier] = nextVal.value;
+      context.result = nextVal.value;
+      return this.loop;
+    } else {
+      var didIterate = iterator.didIterate;
+      context.meta.iterators[this.slot] = null;
+      if (!didIterate && this.elseBranch) {
+        return this.elseBranch;
+      }
+      return context.meta.runtime.findNext(this.parent, context);
+    }
+  }
+};
+var TemplateForCommand = class _TemplateForCommand extends Command {
+  static keyword = "for";
+  constructor(expression, identifier, slot, loopCommand) {
+    super();
+    this.expression = expression;
+    this.identifier = identifier;
+    this.slot = slot;
+    this.loopCommand = loopCommand;
+  }
+  static parse(parser) {
+    var startToken = parser.currentToken();
+    if (!parser.matchToken("for")) return;
+    var identifierToken = parser.requireTokenType("IDENTIFIER");
+    var identifier = identifierToken.value;
+    parser.requireToken("in");
+    var expression = parser.requireElement("expression");
+    var loopBody = parser.parseElement("commandList");
+    var elseBranch = null;
+    if (parser.matchToken("else")) {
+      elseBranch = parser.parseElement("commandList");
+    }
+    if (parser.hasMore()) {
+      parser.requireToken("end");
+    }
+    var slot = "template_for_" + startToken.start;
+    var loopCommand = new TemplateForLoopCommand(identifier, slot, loopBody, elseBranch);
+    var cmd = new _TemplateForCommand(expression, identifier, slot, loopCommand);
+    parser.setParent(loopBody, loopCommand);
+    if (elseBranch) {
+      parser.setParent(elseBranch, loopCommand);
+    }
+    parser.setParent(loopCommand, cmd);
+    return cmd;
+  }
+  resolve(context) {
+    var collection = this.expression.evaluate(context);
+    var iteratorInfo = {
+      identifier: this.identifier,
+      iterator: null,
+      didIterate: false
+    };
+    if (collection && collection[Symbol.iterator]) {
+      iteratorInfo.iterator = collection[Symbol.iterator]();
+    } else if (collection && typeof collection === "object") {
+      iteratorInfo.iterator = Object.keys(collection)[Symbol.iterator]();
+    } else {
+      iteratorInfo.iterator = [][Symbol.iterator]();
+    }
+    context.meta.iterators[this.slot] = iteratorInfo;
+    return this.loopCommand;
+  }
+};
 
 // src/_hyperscript.js
 var globalScope = typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : void 0;
 config.conversions = conversions;
 var kernel = new LanguageKernel();
 var tokenizer = new Tokenizer();
-var runtime = new Runtime(globalScope, kernel, tokenizer);
+var reactivity = new Reactivity();
+var morphEngine = new Morph();
+var runtime = new Runtime(globalScope, kernel, tokenizer, reactivity, morphEngine);
 kernel.registerModule(expressions_exports);
 kernel.registerModule(literals_exports);
 kernel.registerModule(webliterals_exports);
@@ -7248,7 +9733,6 @@ kernel.registerModule(postfix_exports);
 kernel.registerModule(positional_exports);
 kernel.registerModule(existentials_exports);
 kernel.registerModule(targets_exports);
-kernel.registerModule(pseudopossessive_exports);
 kernel.registerModule(basic_exports);
 kernel.registerModule(setters_exports);
 kernel.registerModule(events_exports);
@@ -7266,6 +9750,10 @@ kernel.registerModule(worker_exports);
 kernel.registerModule(behavior_exports);
 kernel.registerModule(install_exports);
 kernel.registerModule(js_exports);
+kernel.registerModule(when_exports);
+kernel.registerModule(bind_exports);
+kernel.registerModule(live_exports);
+kernel.registerModule(template_exports);
 function evaluate(src, ctx, args) {
   let body;
   if ("document" in globalScope) {
@@ -7295,16 +9783,20 @@ var _hyperscript = Object.assign(
     internals: {
       tokenizer,
       runtime,
+      reactivity,
       createParser: (tokens) => new Parser(kernel, tokens)
     },
     addFeature: kernel.addFeature.bind(kernel),
     addCommand: kernel.addCommand.bind(kernel),
     addLeafExpression: kernel.addLeafExpression.bind(kernel),
+    addBeforeProcessHook: (fn) => runtime.addBeforeProcessHook(fn),
+    addAfterProcessHook: (fn) => runtime.addAfterProcessHook(fn),
     evaluate,
     parse: (src) => kernel.parse(tokenizer, src),
     process: (elt) => runtime.processNode(elt),
     processNode: (elt) => runtime.processNode(elt),
     // deprecated alias
+    cleanup: (elt) => runtime.cleanup(elt),
     version: "0.9.90"
   }
 );
@@ -7323,28 +9815,36 @@ function mergeMetaConfig() {
   }
 }
 if (typeof document !== "undefined") {
-  (function() {
-    return __async(this, null, function* () {
-      mergeMetaConfig();
-      let scriptNodes = globalScope.document.querySelectorAll("script[type='text/hyperscript'][src]");
-      const scripts = Array.from(scriptNodes);
-      const scriptTexts = yield Promise.all(
-        scripts.map((script) => __async(null, null, function* () {
-          const res = yield fetch(script.src);
-          return res.text();
-        }))
-      );
-      scriptTexts.forEach((sc) => _hyperscript(sc));
-      ready(() => {
-        runtime.processNode(document.documentElement);
-        document.dispatchEvent(new Event("hyperscript:ready"));
-        globalScope.document.addEventListener("htmx:load", (evt) => {
-          runtime.processNode(evt.detail.elt);
-        });
-        globalScope.document.addEventListener("htmx:after:process", (evt) => {
-          runtime.processNode(evt.target);
-        });
+  (async function() {
+    mergeMetaConfig();
+    let scriptNodes = globalScope.document.querySelectorAll("script[type='text/hyperscript'][src]");
+    const scripts = Array.from(scriptNodes);
+    const scriptTexts = await Promise.all(
+      scripts.map(async (script) => {
+        const res = await fetch(script.src);
+        return res.text();
+      })
+    );
+    scriptTexts.forEach((sc) => _hyperscript(sc));
+    ready(() => {
+      _hyperscript.process(document.documentElement);
+      document.dispatchEvent(new Event("hyperscript:ready"));
+      var _processingFromHtmx = false;
+      globalScope.document.addEventListener("htmx:load", (evt) => {
+        _processingFromHtmx = true;
+        _hyperscript.process(evt.detail.elt);
+        _processingFromHtmx = false;
       });
+      globalScope.document.addEventListener("htmx:after:process", (evt) => {
+        _processingFromHtmx = true;
+        _hyperscript.process(evt.target);
+        _processingFromHtmx = false;
+      });
+      if (typeof htmx !== "undefined") {
+        _hyperscript.addAfterProcessHook(function(elt) {
+          if (!_processingFromHtmx) htmx.process(elt);
+        });
+      }
     });
   })();
 }

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>hyperscript Worker Tests</title>
+  <style>
+    body { font-family: system-ui; max-width: 60ch; margin: 2em auto; }
+    .test { padding: 0.5em; margin: 0.3em 0; border-radius: 4px; }
+    .pass { background: #d4edda; }
+    .fail { background: #f8d7da; }
+    .pending { background: #fff3cd; }
+    #results { margin-top: 1em; }
+    pre { background: #f5f5f5; padding: 0.5em; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>Worker Manual Tests</h1>
+  <p>Serve this directory with any HTTP server, e.g. <code>npx serve dist</code> from the project root,
+     then open this file. Tests run automatically on load.</p>
+  <div id="results"></div>
+
+  <script src="/dist/_hyperscript.js"></script>
+  <script src="/dist/ext/worker.js"></script>
+
+  <script>
+    var results = document.getElementById('results');
+    var passCount = 0, failCount = 0;
+
+    function report(name, passed, detail) {
+      var div = document.createElement('div');
+      div.className = 'test ' + (passed ? 'pass' : 'fail');
+      div.textContent = (passed ? 'PASS' : 'FAIL') + ': ' + name;
+      if (detail) {
+        var pre = document.createElement('pre');
+        pre.textContent = detail;
+        div.appendChild(pre);
+      }
+      results.appendChild(div);
+      if (passed) passCount++; else failCount++;
+    }
+
+    function summary() {
+      var div = document.createElement('div');
+      div.style.marginTop = '1em';
+      div.style.fontWeight = 'bold';
+      div.textContent = passCount + ' passed, ' + failCount + ' failed';
+      results.appendChild(div);
+    }
+
+    async function runTests() {
+      // Test 1: Basic no-arg worker function
+      try {
+        var script = document.createElement('script');
+        script.type = 'text/hyperscript';
+        script.textContent = `
+          worker TestWorker1
+            def getFortyTwo()
+              return 42
+            end
+          end
+        `;
+        document.body.appendChild(script);
+        _hyperscript.processNode(script);
+
+        // Give worker time to init
+        await new Promise(r => setTimeout(r, 500));
+        var result = await TestWorker1.getFortyTwo();
+        report('basic no-arg function', result === 42, 'Expected 42, got ' + result);
+      } catch (e) {
+        report('basic no-arg function', false, e.toString());
+      }
+
+      // Test 2: One-arg worker function
+      try {
+        var script = document.createElement('script');
+        script.type = 'text/hyperscript';
+        script.textContent = `
+          worker TestWorker2
+            def increment(i)
+              return i + 1
+            end
+          end
+        `;
+        document.body.appendChild(script);
+        _hyperscript.processNode(script);
+
+        await new Promise(r => setTimeout(r, 500));
+        var result = await TestWorker2.increment(41);
+        report('one-arg function', result === 42, 'Expected 42, got ' + result);
+      } catch (e) {
+        report('one-arg function', false, e.toString());
+      }
+
+      // Test 3: Multi-arg worker function
+      try {
+        var script = document.createElement('script');
+        script.type = 'text/hyperscript';
+        script.textContent = `
+          worker TestWorker3
+            def add(a, b)
+              return a + b
+            end
+          end
+        `;
+        document.body.appendChild(script);
+        _hyperscript.processNode(script);
+
+        await new Promise(r => setTimeout(r, 500));
+        var result = await TestWorker3.add(20, 22);
+        report('multi-arg function', result === 42, 'Expected 42, got ' + result);
+      } catch (e) {
+        report('multi-arg function', false, e.toString());
+      }
+
+      // Test 4: Multiple functions in one worker
+      try {
+        var script = document.createElement('script');
+        script.type = 'text/hyperscript';
+        script.textContent = `
+          worker TestWorker4
+            def double(x)
+              return x * 2
+            end
+            def triple(x)
+              return x * 3
+            end
+          end
+        `;
+        document.body.appendChild(script);
+        _hyperscript.processNode(script);
+
+        await new Promise(r => setTimeout(r, 500));
+        var d = await TestWorker4.double(5);
+        var t = await TestWorker4.triple(5);
+        var passed = d === 10 && t === 15;
+        report('multiple functions', passed, 'double(5)=' + d + ', triple(5)=' + t);
+      } catch (e) {
+        report('multiple functions', false, e.toString());
+      }
+
+      // Test 5: Worker with inline JS
+      try {
+        var script = document.createElement('script');
+        script.type = 'text/hyperscript';
+        script.textContent = `
+          worker TestWorker5
+            js
+              function jsHelper() { return 99; }
+            end
+            def callHelper()
+              return jsHelper()
+            end
+          end
+        `;
+        document.body.appendChild(script);
+        _hyperscript.processNode(script);
+
+        await new Promise(r => setTimeout(r, 500));
+        var result = await TestWorker5.callHelper();
+        report('inline JS in worker', result === 99, 'Expected 99, got ' + result);
+      } catch (e) {
+        report('inline JS in worker', false, e.toString());
+      }
+
+      // Test 6: Calling worker from hyperscript
+      try {
+        var div = document.createElement('div');
+        div.id = 'worker-result';
+        div.setAttribute('_', 'on load call TestWorker2.increment(99) then put it into me');
+        document.body.appendChild(div);
+        _hyperscript.processNode(div);
+        div.dispatchEvent(new Event('load'));
+
+        await new Promise(r => setTimeout(r, 1000));
+        var text = div.textContent;
+        report('call from hyperscript', text === '100', 'Expected "100", got "' + text + '"');
+      } catch (e) {
+        report('call from hyperscript', false, e.toString());
+      }
+
+      // Test 7: Namespaced worker
+      try {
+        var script = document.createElement('script');
+        script.type = 'text/hyperscript';
+        script.textContent = `
+          worker MyApp.compute
+            def square(x)
+              return x * x
+            end
+          end
+        `;
+        document.body.appendChild(script);
+        _hyperscript.processNode(script);
+
+        await new Promise(r => setTimeout(r, 500));
+        var result = await MyApp.compute.square(7);
+        report('namespaced worker', result === 49, 'Expected 49, got ' + result);
+      } catch (e) {
+        report('namespaced worker', false, e.toString());
+      }
+
+      summary();
+    }
+
+    runTests();
+  </script>
+</body>
+</html>

@@ -29,7 +29,16 @@ test.describe("the fetch command", () => {
 	test("can do a simple fetch w/ json", async ({html, find, mock}) => {
 		await mock('GET', '/test', '{"foo":1}', {status: 200, contentType: 'application/json'});
 		await html(
-			"<div _='on click fetch /test as json then get result as JSON then put it into my.innerHTML'></div>"
+			"<div _='on click fetch /test as json then get result as JSONString then put it into my.innerHTML'></div>"
+		);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText('{"foo":1}');
+	});
+
+	test("can do a simple fetch w/ json using JSON syntax", async ({html, find, mock}) => {
+		await mock('GET', '/test', '{"foo":1}', {status: 200, contentType: 'application/json'});
+		await html(
+			"<div _='on click fetch /test as JSON then get result as JSONString then put it into my.innerHTML'></div>"
 		);
 		await find('div').dispatchEvent('click');
 		await expect(find('div')).toHaveText('{"foo":1}');
@@ -38,7 +47,7 @@ test.describe("the fetch command", () => {
 	test("can do a simple fetch w/ json using Object syntax", async ({html, find, mock}) => {
 		await mock('GET', '/test', '{"foo":1}', {status: 200, contentType: 'application/json'});
 		await html(
-			"<div _='on click fetch /test as Object then get result as JSON then put it into my.innerHTML'></div>"
+			"<div _='on click fetch /test as Object then get result as JSONString then put it into my.innerHTML'></div>"
 		);
 		await find('div').dispatchEvent('click');
 		await expect(find('div')).toHaveText('{"foo":1}');
@@ -47,7 +56,7 @@ test.describe("the fetch command", () => {
 	test("can do a simple fetch w/ json using Object syntax and an 'an' prefix", async ({html, find, mock}) => {
 		await mock('GET', '/test', '{"foo":1}', {status: 200, contentType: 'application/json'});
 		await html(
-			"<div _='on click fetch /test as an Object then get result as JSON then put it into my.innerHTML'></div>"
+			"<div _='on click fetch /test as an Object then get result as JSONString then put it into my.innerHTML'></div>"
 		);
 		await find('div').dispatchEvent('click');
 		await expect(find('div')).toHaveText('{"foo":1}');

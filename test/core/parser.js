@@ -101,4 +101,83 @@ test.describe("the _hyperscript parser", () => {
 		await find('div').dispatchEvent('click');
 		await expect(find('div')).toHaveText("clicked");
 	});
+
+	// ----- Error recovery tests -----
+
+	test("recovers across feature boundaries and reports all errors", async ({html, evaluate}) => {
+		await html(
+			"<div id='d1' _='on click blargh end on mouseenter put \"hovered\" into my.innerHTML'></div>"
+		);
+		// Element should not execute at all (no features installed)
+		var powered = await evaluate(() => document.querySelector('#d1').hasAttribute('data-hyperscript-powered'));
+		expect(powered).toBe(false);
+	});
+
+	test("recovers across multiple feature errors", async ({html, evaluate}) => {
+		await html(
+			"<div id='d1' _='on click blargh end on mouseenter also_bad end on focus put \"focused\" into my.innerHTML'></div>"
+		);
+		// Element should not execute — errors prevent all features
+		var powered = await evaluate(() => document.querySelector('#d1').hasAttribute('data-hyperscript-powered'));
+		expect(powered).toBe(false);
+	});
+
+	test("fires hyperscript:parse-error event with all errors", async ({evaluate}) => {
+		var errorCount = await evaluate(() => {
+			var div = document.createElement('div');
+			div.setAttribute('_', 'on click blargh end on mouseenter also_bad');
+			var count = 0;
+			div.addEventListener('hyperscript:parse-error', (e) => {
+				count = e.detail.errors.length;
+			});
+			document.body.appendChild(div);
+			_hyperscript.processNode(div);
+			return count;
+		});
+		expect(errorCount).toBe(2);
+	});
+
+	test("element-level isolation still works with error recovery", async ({html, find}) => {
+		await html(
+			"<div>" +
+				"<div id='d1' _='on click blargh end on mouseenter also_bad'></div>" +
+				"<div id='d2' _='on click put \"clicked\" into my.innerHTML'></div>" +
+			"</div>"
+		);
+		await find('#d2').dispatchEvent('click');
+		await expect(find('#d2')).toHaveText("clicked");
+	});
+
+	test("_hyperscript() evaluate API still throws on first error", async ({error}) => {
+		var msg = await error("add - to");
+		expect(msg).toMatch(/^Expected either a class reference or attribute expression/);
+	});
+
+	test("error positions are correct after multiline comments", async ({evaluate}) => {
+		// Error on line 3 should show line 3's source, not line 1's
+		var result = await evaluate(() => {
+			try {
+				_hyperscript("/* comment\nline2 */\nadd - to");
+				return "no-error";
+			} catch (e) {
+				return e.message;
+			}
+		});
+		// The error context should show "add - to" (line 3), not "/* comment" (line 1)
+		expect(result).toContain("add - to");
+	})
+
+	test("parse error at EOF on trailing newline does not crash", async ({evaluate}) => {
+		// source ending with \n means last line is empty; EOF token has no .line
+		var result = await evaluate((src) => {
+			try {
+				_hyperscript(src);
+				return "no-error";
+			} catch (e) {
+				if (e instanceof RangeError) return "RangeError: " + e.message;
+				return "ok: " + typeof e.message;
+			}
+		}, "set x to\n");
+		expect(result).toMatch(/^ok:/);
+	});
 });

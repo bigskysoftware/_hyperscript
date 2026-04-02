@@ -16,11 +16,8 @@ class WaitATick extends Command {
     }
 
     resolve(context) {
-        const self = this;
-        return new Promise(function (resolve) {
-            setTimeout(function () {
-                resolve(context.meta.runtime.findNext(self));
-            }, 0);
+        return new Promise((resolve) => {
+            setTimeout(() => resolve(context.meta.runtime.findNext(this)), 0);
         });
     }
 }
@@ -41,6 +38,7 @@ class RepeatLoopCommand extends Command {
         this.event = config.event;
         this.on = config.on;
         this.whileExpr = config.whileExpr;
+        this.bottomTested = config.bottomTested;
         this.loop = loop;
         this.args = { whileValue: config.whileExpr, times: config.times };
     }
@@ -54,7 +52,9 @@ class RepeatLoopCommand extends Command {
         var keepLooping = false;
         var loopVal = null;
 
-        if (this.forever) {
+        if (this.bottomTested && iteratorInfo.index === 0) {
+            keepLooping = true;
+        } else if (this.forever) {
             keepLooping = true;
         } else if (this.until) {
             if (this.event) {
@@ -141,7 +141,7 @@ export class IfCommand extends Command {
         } else if (this.falseBranch) {
             return this.falseBranch;
         } else {
-            return context.meta.runtime.findNext(this, context);
+            return this.findNext(context);
         }
     }
 }
@@ -219,6 +219,22 @@ export class RepeatCommand extends Command {
             var waitATick = new WaitATick();
             last.next = waitATick;
         }
+
+        // Bottom-tested loop: bare "repeat" body "until"/"while" condition "end"
+        var bottomTested = false;
+        if (forever && parser.hasMore()) {
+            if (parser.matchToken("until")) {
+                forever = false;
+                isUntil = true;
+                bottomTested = true;
+                whileExpr = parser.requireElement("expression");
+            } else if (parser.matchToken("while")) {
+                forever = false;
+                bottomTested = true;
+                whileExpr = parser.requireElement("expression");
+            }
+        }
+
         if (parser.hasMore()) {
             parser.requireToken("end");
         }
@@ -240,7 +256,8 @@ export class RepeatCommand extends Command {
             until: isUntil,
             event: evt,
             on: on,
-            whileExpr: whileExpr
+            whileExpr: whileExpr,
+            bottomTested: bottomTested
         };
 
         const repeatLoopCommand = new RepeatLoopCommand(loopConfig, loop);

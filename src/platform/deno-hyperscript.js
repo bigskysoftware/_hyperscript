@@ -23,7 +23,7 @@ class ImportFeature extends Feature {
 
     static parse(parser) {
         if (!parser.matchToken("import")) return;
-        var id = parser.requireElement("nakedString").evaluate();
+        var id = parser.requireElement("nakedString").evalStatically();
         var name;
         if (parser.matchToken("as")) {
             name = parser.requireTokenType("IDENTIFIER").value;

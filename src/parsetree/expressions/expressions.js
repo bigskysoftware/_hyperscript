@@ -109,7 +109,7 @@ export class NegativeNumber extends Expression {
     }
 
     resolve(context, { value }) {
-        return -1 * value;
+        return -value;
     }
 }
 
@@ -150,55 +150,81 @@ export class SymbolRef extends Expression {
     static grammarName = "symbol";
     static assignable = true;
 
-    constructor(token, scope, name) {
+    constructor(token, scope, name, targetExpr) {
         super();
         this.token = token;
         this.scope = scope;
         this.name = name;
+        this.targetExpr = targetExpr || null;
     }
 
     static parse(parser) {
         var scope = "default";
         if (parser.matchToken("global")) {
             scope = "global";
-        } else if (parser.matchToken("element") || parser.matchToken("module")) {
+        } else if (parser.matchToken("element")) {
             scope = "element";
             // optional possessive
             if (parser.matchOpToken("'")) {
                 parser.requireToken("s");
             }
+        } else if (parser.matchToken("dom")) {
+            scope = "inherited";
         } else if (parser.matchToken("local")) {
             scope = "local";
         }
 
         // TODO better look ahead here
         let eltPrefix = parser.matchOpToken(":");
+        let caretPrefix = !eltPrefix && parser.matchOpToken("^");
         let identifier = parser.matchTokenType("IDENTIFIER");
         if (identifier && identifier.value) {
             var name = identifier.value;
             if (eltPrefix) {
                 name = ":" + name;
+            } else if (caretPrefix) {
+                name = "^" + name;
             }
             if (scope === "default") {
                 if (name.startsWith("$")) {
                     scope = "global";
-                }
-                if (name.startsWith(":")) {
+                } else if (name.startsWith(":")) {
                     scope = "element";
+                } else if (name.startsWith("^")) {
+                    scope = "inherited";
                 }
             }
-            return new SymbolRef(identifier, scope, name);
+            var targetExpr = null;
+            if (scope === "inherited" && parser.matchToken("on")) {
+                parser.pushFollow("to");
+                parser.pushFollow("into");
+                parser.pushFollow("before");
+                parser.pushFollow("after");
+                parser.pushFollow("then");
+                try {
+                    targetExpr = parser.requireElement("expression");
+                } finally {
+                    parser.popFollow();
+                    parser.popFollow();
+                    parser.popFollow();
+                    parser.popFollow();
+                    parser.popFollow();
+                }
+            }
+            return new SymbolRef(identifier, scope, name, targetExpr);
         }
     }
 
     resolve(context) {
-        return context.meta.runtime.resolveSymbol(this.name, context, this.scope);
+        return context.meta.runtime.resolveSymbol(this.name, context, this.scope,
+            this.targetExpr ? this.targetExpr.evaluate(context) : null);
     }
 
     get lhs() { return {}; }
 
     set(ctx, lhs, value) {
-        ctx.meta.runtime.setSymbol(this.name, ctx, this.scope, value);
+        ctx.meta.runtime.setSymbol(this.name, ctx, this.scope, value,
+            this.targetExpr ? this.targetExpr.evaluate(ctx) : null);
     }
 }
 
@@ -259,15 +285,17 @@ export class PropertyAccess extends Expression {
     }
 
     resolve(context, { root: rootVal }) {
-        var value = context.meta.runtime.resolveProperty(rootVal, this.prop.value);
-        return value;
+        return context.meta.runtime.resolveProperty(rootVal, this.prop.value);
     }
 
     get lhs() { return { root: this.root }; }
 
     set(ctx, lhs, value) {
         ctx.meta.runtime.nullCheck(lhs.root, this.root);
-        ctx.meta.runtime.implicitLoop(lhs.root, elt => { elt[this.prop.value] = value; });
+        var runtime = ctx.meta.runtime;
+        runtime.implicitLoop(lhs.root, elt => {
+            runtime.setProperty(elt, this.prop.value, value);
+        });
     }
 }
 
@@ -289,7 +317,11 @@ export class OfExpression extends Expression {
         this.attribute = attribute;
         this.expression = expression;
         this.args = args;
-        this._urRoot = urRoot; // store the urRoot for op function
+        this._urRoot = urRoot;
+        this._prop = urRoot.name;
+        this._isAttribute = urRoot.type === "attributeRef";
+        this._isStyle = urRoot.type === "styleRef";
+        this._isComputed = urRoot.type === "computedStyleRef";
     }
 
     static parse(parser, root) {
@@ -333,21 +365,14 @@ export class OfExpression extends Expression {
     }
 
     resolve(context, { root: rootVal }) {
-        var urRoot = this._urRoot;
-        var prop = urRoot.name;
-        var attribute = urRoot.type === "attributeRef";
-        var style = urRoot.type === "styleRef" || urRoot.type === "computedStyleRef";
-
-        if (attribute) {
-            return context.meta.runtime.resolveAttribute(rootVal, prop);
-        } else if (style) {
-            if (urRoot.type === "computedStyleRef") {
-                return context.meta.runtime.resolveComputedStyle(rootVal, prop);
-            } else {
-                return context.meta.runtime.resolveStyle(rootVal, prop);
-            }
+        if (this._isAttribute) {
+            return context.meta.runtime.resolveAttribute(rootVal, this._prop);
+        } else if (this._isComputed) {
+            return context.meta.runtime.resolveComputedStyle(rootVal, this._prop);
+        } else if (this._isStyle) {
+            return context.meta.runtime.resolveStyle(rootVal, this._prop);
         } else {
-            return context.meta.runtime.resolveProperty(rootVal, prop);
+            return context.meta.runtime.resolveProperty(rootVal, this._prop);
         }
     }
 
@@ -355,16 +380,17 @@ export class OfExpression extends Expression {
 
     set(ctx, lhs, value) {
         ctx.meta.runtime.nullCheck(lhs.root, this.root);
-        var urRoot = this._urRoot;
-        var prop = urRoot.name;
-        if (urRoot.type === "attributeRef") {
+        if (this._isAttribute) {
             ctx.meta.runtime.implicitLoop(lhs.root, elt => {
-                value == null ? elt.removeAttribute(prop) : elt.setAttribute(prop, value);
+                value == null ? elt.removeAttribute(this._prop) : elt.setAttribute(this._prop, value);
             });
-        } else if (urRoot.type === "styleRef") {
-            ctx.meta.runtime.implicitLoop(lhs.root, elt => { elt.style[prop] = value; });
+        } else if (this._isStyle) {
+            ctx.meta.runtime.implicitLoop(lhs.root, elt => { elt.style[this._prop] = value; });
         } else {
-            ctx.meta.runtime.implicitLoop(lhs.root, elt => { elt[prop] = value; });
+            var runtime = ctx.meta.runtime;
+            runtime.implicitLoop(lhs.root, elt => {
+                runtime.setProperty(elt, this._prop, value);
+            });
         }
     }
 }
@@ -389,9 +415,6 @@ export class PossessiveExpression extends Expression {
     }
 
     static parse(parser, root) {
-        if (parser.possessivesDisabled) {
-            return;
-        }
         var apostrophe = parser.matchOpToken("'");
         if (
             apostrophe ||
@@ -446,7 +469,11 @@ export class PossessiveExpression extends Expression {
                 });
             }
         } else {
-            ctx.meta.runtime.implicitLoop(lhs.root, elt => { elt[this.prop.value] = value; });
+            var runtime = ctx.meta.runtime;
+            var prop = this.prop.value;
+            runtime.implicitLoop(lhs.root, elt => {
+                runtime.setProperty(elt, prop, value);
+            });
         }
     }
 }
@@ -460,6 +487,7 @@ export class PossessiveExpression extends Expression {
 export class InExpression extends Expression {
     static grammarName = "inExpression";
     static expressionType = "indirect";
+    static assignable = true;
 
     constructor(root, target) {
         super();
@@ -476,6 +504,7 @@ export class InExpression extends Expression {
     }
 
     resolve(context, { root: rootVal, target }) {
+        if (rootVal == null) return [];
         var returnArr = [];
         if (rootVal.css) {
             context.meta.runtime.implicitLoop(target, function (targetElt) {
@@ -505,12 +534,18 @@ export class InExpression extends Expression {
         }
         return returnArr;
     }
+
+    get lhs() { return { root: this.root, target: this.target }; }
+    set(ctx, lhs, value) {
+        var targets = this.resolve(ctx, lhs);
+        ctx.meta.runtime.replaceInDom(targets, value);
+    }
 }
 
 /**
  * AsExpression - Type conversion expression
  *
- * Parses: expression as Type
+ * Parses: expression as Type [| Type]*
  * Returns: converted value
  */
 export class AsExpression extends Expression {
@@ -527,9 +562,13 @@ export class AsExpression extends Expression {
     static parse(parser, root) {
         if (!parser.matchToken("as")) return;
         parser.matchToken("a") || parser.matchToken("an");
-        var conversion = parser.requireElement("dotOrColonPath").evaluate(); // OK No promise
-        var asExpression = new AsExpression(root, conversion);
-        return parser.parseElement("indirectExpression", asExpression);
+        var conversion = parser.requireElement("dotOrColonPath").evalStatically();
+        var asExpr = new AsExpression(root, conversion);
+        while (parser.matchOpToken("|")) {
+            conversion = parser.requireElement("dotOrColonPath").evalStatically();
+            asExpr = new AsExpression(asExpr, conversion);
+        }
+        return parser.parseElement("indirectExpression", asExpr);
     }
 
     resolve(context, { root: rootVal }) {
@@ -578,12 +617,15 @@ export class FunctionCall extends Expression {
     resolve(context, { target, argVals }) {
         if (this._isMethodCall) {
             context.meta.runtime.nullCheck(target, this._parseRoot.root);
-            var func = target[this._parseRoot.prop.value];
+            var methodName = this._parseRoot.prop.value;
+            var func = target[methodName];
             context.meta.runtime.nullCheck(func, this._parseRoot);
             if (func.hyperfunc) {
                 argVals.push(context);
             }
-            return func.apply(target, argVals);
+            var result = func.apply(target, argVals);
+            context.meta.runtime.maybeNotify(target, methodName);
+            return result;
         } else {
             context.meta.runtime.nullCheck(target, this._parseRoot);
             if (target.hyperfunc) {
@@ -619,8 +661,7 @@ export class AttributeRefAccess extends Expression {
     }
 
     resolve(_ctx, { root: rootVal }) {
-        var value = _ctx.meta.runtime.resolveAttribute(rootVal, this.attribute.name);
-        return value;
+        return _ctx.meta.runtime.resolveAttribute(rootVal, this.attribute.name);
     }
 
     get lhs() { return { root: this.root }; }
@@ -750,6 +791,7 @@ export class MathOperator extends Expression {
 
     resolve(context, { lhs: lhsVal, rhs: rhsVal }) {
         if (this.operator === "+") {
+            if (Array.isArray(lhsVal)) return lhsVal.concat(rhsVal);
             return lhsVal + rhsVal;
         } else if (this.operator === "-") {
             return lhsVal - rhsVal;
@@ -768,19 +810,21 @@ export class MathOperator extends Expression {
  *
  * Parses: expr == expr | expr < expr | expr is empty | expr matches pattern | etc.
  * Returns: boolean result
- * Supports: ==, !=, ===, !==, <, >, <=, >=, is, am, match, contain, include, exist, empty
+ * Supports: ==, !=, ===, !==, <, >, <=, >=, is, am, match, contain, include, start with, end with, between, precede, follow, exist, empty
  */
 export class ComparisonOperator extends Expression {
     static grammarName = "comparisonOperator";
 
-    constructor(lhs, operator, rhs, typeName, nullOk) {
+    constructor(lhs, operator, rhs, typeName, nullOk, ignoringCase, rhs2) {
         super();
         this.operator = operator;
         this.typeName = typeName;
         this.nullOk = nullOk;
+        this.ignoringCase = ignoringCase;
         this.lhs = lhs;
         this.rhs = rhs;
-        this.args = { lhs, rhs };
+        this.rhs2 = rhs2;
+        this.args = { lhs, rhs, rhs2 };
     }
 
     sloppyContains(src, container, value) {
@@ -789,7 +833,7 @@ export class ComparisonOperator extends Expression {
         } else if (container['includes']) {
             return container.includes(value);
         } else {
-            throw Error("The value of " + src.sourceFor() + " does not have a contains or includes method on it");
+            throw new Error("The value of " + src.sourceFor() + " does not have a contains or includes method on it");
         }
     }
 
@@ -799,7 +843,7 @@ export class ComparisonOperator extends Expression {
         } else if (target['matches']) {
             return target.matches(toMatch);
         } else {
-            throw Error("The value of " + src.sourceFor() + " does not have a match or matches method on it");
+            throw new Error("The value of " + src.sourceFor() + " does not have a match or matches method on it");
         }
     }
 
@@ -821,6 +865,8 @@ export class ComparisonOperator extends Expression {
                     } else if (parser.matchToken("empty")) {
                         operator = "not empty";
                         hasRightValue = false;
+                    } else if (parser.matchToken("between")) {
+                        operator = "not between";
                     } else {
                         if (parser.matchToken("really")) {
                             operator = "!==";
@@ -839,6 +885,8 @@ export class ComparisonOperator extends Expression {
                 } else if (parser.matchToken("empty")) {
                     operator = "empty";
                     hasRightValue = false;
+                } else if (parser.matchToken("between")) {
+                    operator = "between";
                 } else if (parser.matchToken("less")) {
                     parser.requireToken("than");
                     if (parser.matchToken("or")) {
@@ -881,19 +929,39 @@ export class ComparisonOperator extends Expression {
                 operator = "contain";
             } else if (parser.matchToken("includes") || parser.matchToken("include")) {
                 operator = "include";
+            } else if (parser.matchToken("starts")) {
+                parser.requireToken("with");
+                operator = "start with";
+            } else if (parser.matchToken("ends")) {
+                parser.requireToken("with");
+                operator = "end with";
+            } else if (parser.matchToken("precedes") || parser.matchToken("precede")) {
+                operator = "precede";
+            } else if (parser.matchToken("follows") || parser.matchToken("follow")) {
+                operator = "follow";
             } else if (parser.matchToken("do") || parser.matchToken("does")) {
                 parser.requireToken("not");
                 if (parser.matchToken("matches") || parser.matchToken("match")) {
                     operator = "not match";
                 } else if (parser.matchToken("contains") || parser.matchToken("contain")) {
                     operator = "not contain";
-                } else if (parser.matchToken("exist") || parser.matchToken("exist")) {
+                } else if (parser.matchToken("exist")) {
                     operator = "not exist";
                     hasRightValue = false;
                 } else if (parser.matchToken("include")) {
                     operator = "not include";
+                } else if (parser.matchToken("start")) {
+                    parser.requireToken("with");
+                    operator = "not start with";
+                } else if (parser.matchToken("end")) {
+                    parser.requireToken("with");
+                    operator = "not end with";
+                } else if (parser.matchToken("precede")) {
+                    operator = "not precede";
+                } else if (parser.matchToken("follow")) {
+                    operator = "not follow";
                 } else {
-                    parser.raiseParseError("Expected matches or contains");
+                    parser.raiseParseError("Expected matches, contains, starts with, ends with, precede, or follow");
                 }
             }
         }
@@ -909,76 +977,65 @@ export class ComparisonOperator extends Expression {
                     rhs = rhs.css ? rhs.css : rhs;
                 }
             }
+            var rhs2 = null;
+            if (operator === "between" || operator === "not between") {
+                parser.requireToken("and");
+                rhs2 = parser.requireElement("mathOperator");
+            }
+            var ignoringCase = false;
+            if (parser.matchToken("ignoring")) {
+                parser.requireToken("case");
+                ignoringCase = true;
+            }
             var lhs = expr;
-            expr = new ComparisonOperator(lhs, operator, rhs, typeName, nullOk);
+            expr = new ComparisonOperator(lhs, operator, rhs, typeName, nullOk, ignoringCase, rhs2);
         }
         return expr;
     }
 
-    resolve(context, { lhs: lhsVal, rhs: rhsVal }) {
+    resolve(context, { lhs: lhsVal, rhs: rhsVal, rhs2: rhs2Val }) {
         const operator = this.operator;
         const lhs = this.lhs;
         const rhs = this.rhs;
         const typeName = this.typeName;
         const nullOk = this.nullOk;
 
-        if (operator === "==") {
-            return lhsVal == rhsVal;
-        } else if (operator === "!=") {
-            return lhsVal != rhsVal;
+        if (this.ignoringCase) {
+            if (typeof lhsVal === "string") lhsVal = lhsVal.toLowerCase();
+            if (typeof rhsVal === "string") rhsVal = rhsVal.toLowerCase();
         }
-        if (operator === "===") {
-            return lhsVal === rhsVal;
-        } else if (operator === "!==") {
-            return lhsVal !== rhsVal;
-        }
-        if (operator === "match") {
-            return lhsVal != null && this.sloppyMatches(lhs, lhsVal, rhsVal);
-        }
-        if (operator === "not match") {
-            return lhsVal == null || !this.sloppyMatches(lhs, lhsVal, rhsVal);
-        }
-        if (operator === "in") {
-            return rhsVal != null && this.sloppyContains(rhs, rhsVal, lhsVal);
-        }
-        if (operator === "not in") {
-            return rhsVal == null || !this.sloppyContains(rhs, rhsVal, lhsVal);
-        }
-        if (operator === "contain") {
-            return lhsVal != null && this.sloppyContains(lhs, lhsVal, rhsVal);
-        }
-        if (operator === "not contain") {
-            return lhsVal == null || !this.sloppyContains(lhs, lhsVal, rhsVal);
-        }
-        if (operator === "include") {
-            return lhsVal != null && this.sloppyContains(lhs, lhsVal, rhsVal);
-        }
-        if (operator === "not include") {
-            return lhsVal == null || !this.sloppyContains(lhs, lhsVal, rhsVal);
-        }
-        if (operator === "<") {
-            return lhsVal < rhsVal;
-        } else if (operator === ">") {
-            return lhsVal > rhsVal;
-        } else if (operator === "<=") {
-            return lhsVal <= rhsVal;
-        } else if (operator === ">=") {
-            return lhsVal >= rhsVal;
-        } else if (operator === "empty") {
-            return context.meta.runtime.isEmpty(lhsVal);
-        } else if (operator === "not empty") {
-            return !context.meta.runtime.isEmpty(lhsVal);
-        } else if (operator === "exist") {
-            return context.meta.runtime.doesExist(lhsVal);
-        } else if (operator === "not exist") {
-            return !context.meta.runtime.doesExist(lhsVal);
-        } else if (operator === "a") {
-            return context.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
-        } else if (operator === "not a") {
-            return !context.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
-        } else {
-            throw new Error("Unknown comparison : " + operator);
-        }
+
+        if (operator === "==") return lhsVal == rhsVal;
+        if (operator === "!=") return lhsVal != rhsVal;
+        if (operator === "===") return lhsVal === rhsVal;
+        if (operator === "!==") return lhsVal !== rhsVal;
+        if (operator === "<") return lhsVal < rhsVal;
+        if (operator === ">") return lhsVal > rhsVal;
+        if (operator === "<=") return lhsVal <= rhsVal;
+        if (operator === ">=") return lhsVal >= rhsVal;
+        if (operator === "match") return lhsVal != null && this.sloppyMatches(lhs, lhsVal, rhsVal);
+        if (operator === "not match") return lhsVal == null || !this.sloppyMatches(lhs, lhsVal, rhsVal);
+        if (operator === "in") return rhsVal != null && this.sloppyContains(rhs, rhsVal, lhsVal);
+        if (operator === "not in") return rhsVal == null || !this.sloppyContains(rhs, rhsVal, lhsVal);
+        if (operator === "contain" || operator === "include") return lhsVal != null && this.sloppyContains(lhs, lhsVal, rhsVal);
+        if (operator === "not contain" || operator === "not include") return lhsVal == null || !this.sloppyContains(lhs, lhsVal, rhsVal);
+        if (operator === "start with") return lhsVal != null && String(lhsVal).startsWith(rhsVal);
+        if (operator === "not start with") return lhsVal == null || !String(lhsVal).startsWith(rhsVal);
+        if (operator === "end with") return lhsVal != null && String(lhsVal).endsWith(rhsVal);
+        if (operator === "not end with") return lhsVal == null || !String(lhsVal).endsWith(rhsVal);
+        if (operator === "between") return lhsVal >= rhsVal && lhsVal <= rhs2Val;
+        if (operator === "not between") return lhsVal < rhsVal || lhsVal > rhs2Val;
+        if (operator === "precede") return lhsVal != null && rhsVal != null && (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+        if (operator === "not precede") return lhsVal == null || rhsVal == null || (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_FOLLOWING) === 0;
+        if (operator === "follow") return lhsVal != null && rhsVal != null && (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_PRECEDING) !== 0;
+        if (operator === "not follow") return lhsVal == null || rhsVal == null || (lhsVal.compareDocumentPosition(rhsVal) & Node.DOCUMENT_POSITION_PRECEDING) === 0;
+        if (operator === "empty") return context.meta.runtime.isEmpty(lhsVal);
+        if (operator === "not empty") return !context.meta.runtime.isEmpty(lhsVal);
+        if (operator === "exist") return context.meta.runtime.doesExist(lhsVal);
+        if (operator === "not exist") return !context.meta.runtime.doesExist(lhsVal);
+        if (operator === "a") return context.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
+        if (operator === "not a") return !context.meta.runtime.typeCheck(lhsVal, typeName.value, nullOk);
+        throw new Error("Unknown comparison : " + operator);
     }
 }
 
@@ -1046,14 +1103,162 @@ class DotOrColonPathNode extends Expression {
         this.separator = separator;
     }
 
-    // Called at both parse time (no context) and runtime, so cannot use the
-    // default evaluate() which requires a context for unifiedEval.
-    evaluate() {
+    evalStatically() {
         return this.path.join(this.separator ? this.separator : "");
     }
 
     resolve() {
-        return this.path.join(this.separator ? this.separator : "");
+        return this.evalStatically();
+    }
+}
+
+/**
+ * CollectionOp - Centralized parser for collection postfix expressions.
+ *
+ * Handles: where, sorted by, mapped to, split by, joined by
+ *
+ * All collection keywords live in one list. When parsing the operand of any
+ * collection op, the OTHER keywords are pushed as follows so they act as
+ * boundaries. This is the single place to update when adding new collection ops.
+ */
+const COLLECTION_KEYWORDS = ["where", "sorted", "mapped", "split", "joined"];
+
+function _parseCollectionOperand(parser, keyword) {
+    var follows = COLLECTION_KEYWORDS.filter(k => k !== keyword);
+    follows.forEach(f => parser.pushFollow(f));
+    try {
+        return parser.requireElement("expression");
+    } finally {
+        follows.forEach(() => parser.popFollow());
+    }
+}
+
+export class CollectionOp extends Expression {
+    static grammarName = "collectionOp";
+    static expressionType = "indirect";
+
+    static parse(parser, root) {
+        if (parser.matchToken("where")) {
+            var condition = _parseCollectionOperand(parser, "where");
+            root = new WhereExpression(root, condition);
+        } else if (parser.matchToken("sorted")) {
+            parser.requireToken("by");
+            var key = _parseCollectionOperand(parser, "sorted");
+            var descending = parser.matchToken("descending");
+            root = new SortedByExpression(root, key, !!descending);
+        } else if (parser.matchToken("mapped")) {
+            parser.requireToken("to");
+            var projection = _parseCollectionOperand(parser, "mapped");
+            root = new MappedToExpression(root, projection);
+        } else if (parser.matchToken("split")) {
+            parser.requireToken("by");
+            var delimiter = _parseCollectionOperand(parser, "split");
+            root = new SplitByExpression(root, delimiter);
+        } else if (parser.matchToken("joined")) {
+            parser.requireToken("by");
+            var delimiter = _parseCollectionOperand(parser, "joined");
+            root = new JoinedByExpression(root, delimiter);
+        } else {
+            return;
+        }
+        return parser.parseElement("indirectExpression", root);
+    }
+}
+
+/** Filter a collection: <collection> where <condition using it/its> */
+class WhereExpression extends Expression {
+    constructor(root, condition) {
+        super();
+        this.root = root;
+        this.condition = condition;
+        this.args = { root };
+    }
+
+    resolve(context, { root: collection }) {
+        var result = [];
+        var items = Array.from(collection);
+        for (var i = 0; i < items.length; i++) {
+            context.beingTested = items[i];
+            if (this.condition.evaluate(context)) {
+                result.push(items[i]);
+            }
+        }
+        context.beingTested = null;
+        return result;
+    }
+}
+
+/** Sort a collection: <collection> sorted by <expr> [descending] */
+class SortedByExpression extends Expression {
+    constructor(root, key, descending) {
+        super();
+        this.root = root;
+        this.key = key;
+        this.descending = descending;
+        this.args = { root };
+    }
+
+    resolve(context, { root: collection }) {
+        var items = Array.from(collection);
+        var keys = [];
+        for (var i = 0; i < items.length; i++) {
+            context.beingTested = items[i];
+            keys.push(this.key.evaluate(context));
+        }
+        context.beingTested = null;
+        var indices = items.map(function (_, i) { return i; });
+        var dir = this.descending ? -1 : 1;
+        indices.sort(function (a, b) {
+            var ka = keys[a], kb = keys[b];
+            if (ka == kb) return 0;
+            return (ka < kb ? -1 : 1) * dir;
+        });
+        return indices.map(function (i) { return items[i]; });
+    }
+}
+
+/** Map a collection: <collection> mapped to <expr> */
+class MappedToExpression extends Expression {
+    constructor(root, projection) {
+        super();
+        this.root = root;
+        this.projection = projection;
+        this.args = { root };
+    }
+
+    resolve(context, { root: collection }) {
+        var items = Array.from(collection);
+        var result = [];
+        for (var i = 0; i < items.length; i++) {
+            context.beingTested = items[i];
+            result.push(this.projection.evaluate(context));
+        }
+        context.beingTested = null;
+        return result;
+    }
+}
+
+/** Split a string: <expr> split by <expr> */
+class SplitByExpression extends Expression {
+    constructor(root, delimiter) {
+        super();
+        this.args = { root, delimiter };
+    }
+
+    resolve(context, { root, delimiter }) {
+        return String(root).split(delimiter);
+    }
+}
+
+/** Join an array: <expr> joined by <expr> */
+class JoinedByExpression extends Expression {
+    constructor(root, delimiter) {
+        super();
+        this.args = { root, delimiter };
+    }
+
+    resolve(context, { root, delimiter }) {
+        return Array.from(root).join(delimiter);
     }
 }
 

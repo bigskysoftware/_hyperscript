@@ -45,4 +45,25 @@ test.describe("the mathOperator expression", () => {
 		})
 		expect(result).toBe(43)
 	})
+
+	test("array + array concats", async ({run}) => {
+		expect(await run("[1, 2] + [3, 4]")).toEqual([1, 2, 3, 4])
+	})
+
+	test("array + single value appends", async ({run}) => {
+		expect(await run("[1, 2] + 3")).toEqual([1, 2, 3])
+	})
+
+	test("array + array does not mutate original", async ({run}) => {
+		var result = await run("set a to [1, 2] then set b to a + [3] then return a")
+		expect(result).toEqual([1, 2])
+	})
+
+	test("array concat chains", async ({run}) => {
+		expect(await run("[1] + [2] + [3]")).toEqual([1, 2, 3])
+	})
+
+	test("empty array + array works", async ({run}) => {
+		expect(await run("[] + [1, 2]")).toEqual([1, 2])
+	})
 })

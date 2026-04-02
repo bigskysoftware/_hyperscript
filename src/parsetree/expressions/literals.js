@@ -28,6 +28,10 @@ export class NakedString extends Expression {
         }
     }
 
+    evalStatically() {
+        return this.resolve();
+    }
+
     resolve(context) {
         return this.tokens
             .map(function (t) {
@@ -59,6 +63,10 @@ export class BooleanLiteral extends Expression {
         return new BooleanLiteral(value);
     }
 
+    evalStatically() {
+        return this.value;
+    }
+
     resolve(context) {
         return this.value;
     }
@@ -82,6 +90,10 @@ export class NullLiteral extends Expression {
         if (parser.matchToken("null")) {
             return new NullLiteral();
         }
+    }
+
+    evalStatically() {
+        return null;
     }
 
     resolve(context) {
@@ -111,6 +123,10 @@ export class NumberLiteral extends Expression {
         var numberToken = number;
         var value = parseFloat(/** @type {string} */ (number.value));
         return new NumberLiteral(value, numberToken);
+    }
+
+    evalStatically() {
+        return this.value;
     }
 
     resolve(context) {
@@ -149,6 +165,11 @@ export class StringLiteral extends Expression {
             args = [];
         }
         return new StringLiteral(stringToken, rawValue, args);
+    }
+
+    evalStatically() {
+        if (this.args === null) return this.rawValue;
+        return super.evalStatically();
     }
 
     resolve(context, { parts } = {}) {
@@ -232,6 +253,11 @@ export class ObjectKey extends Expression {
             } while (token);
             return new ObjectKey(key, null, null);
         }
+    }
+
+    evalStatically() {
+        if (!this.expr) return this.key;
+        return super.evalStatically();
     }
 
     resolve(ctx, { value } = {}) {

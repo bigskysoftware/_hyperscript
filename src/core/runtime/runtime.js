@@ -3,9 +3,20 @@ import { config } from '../config.js';
 import { conversions } from './conversions.js';
 import { CookieJar } from './cookies.js';
 import { ElementCollection, SHOULD_AUTO_ITERATE_SYM } from './collections.js';
+import { formatErrors } from '../tokenizer.js';
 
 // cookie jar proxy for runtime
 let cookies = new CookieJar().proxy();
+
+/** Apply forward/reverse functions based on when-clause results, return matched elements */
+function _applyWhenResults(elements, results, forwardFn, reverseFn) {
+    var matched = [];
+    for (var i = 0; i < elements.length; i++) {
+        if (results[i]) { forwardFn(elements[i]); matched.push(elements[i]); }
+        else reverseFn(elements[i]);
+    }
+    return matched;
+}
 
 
 export class Context {
@@ -22,13 +33,29 @@ export class Context {
         this.locals = {
             cookies: cookies
         };
+        if (typeof navigator !== "undefined" && navigator.clipboard) {
+            Object.defineProperty(this.locals, 'clipboard', {
+                get() { return navigator.clipboard.readText(); },
+                set(v) { navigator.clipboard.writeText(String(v)); },
+                enumerable: true,
+                configurable: true
+            });
+        }
+        if (typeof window !== "undefined" && window.getSelection) {
+            Object.defineProperty(this.locals, 'selection', {
+                get() { return window.getSelection().toString(); },
+                enumerable: true,
+                configurable: true
+            });
+        }
         this.me = hyperscriptTarget;
         this.you = undefined
         this.result = undefined
+        this.beingTested = null
         this.event = event;
-        this.target = event ? event.target : null;
-        this.detail = event ? event.detail : null;
-        this.sender = event ? event.detail ? event.detail.sender : null : null;
+        this.target = event?.target ?? null;
+        this.detail = event?.detail ?? null;
+        this.sender = event?.detail?.sender ?? null;
         this.body = "document" in globalScope ? document.body : null;
         runtime.addFeatures(owner, this);
     }
@@ -43,16 +70,24 @@ export class Runtime {
         #kernel;
         #tokenizer;
         #globalScope;
+        #reactivity;
+        #morphEngine;
         #scriptAttrs = null;
 
-        constructor(globalScope, kernel, tokenizer) {
+        constructor(globalScope, kernel, tokenizer, reactivity, morphEngine) {
             this.#globalScope = globalScope;
             this.#kernel = kernel;
             this.#tokenizer = tokenizer;
+            this.#reactivity = reactivity;
+            this.#morphEngine = morphEngine;
         }
 
         get globalScope() {
             return this.#globalScope;
+        }
+
+        get reactivity() {
+            return this.#reactivity;
         }
 
         // =================================================================
@@ -236,80 +271,109 @@ export class Runtime {
             return context instanceof Context;
         }
 
-        resolveSymbol(str, context, type) {
-            if (str === "me" || str === "my" || str === "I") {
-                return context.me;
+        resolveSymbol(str, context, type, targetElement) {
+            if (str === "me" || str === "my" || str === "I") return context.me;
+            if (str === "it" || str === "its") return context.beingTested ?? context.result;
+            if (str === "result") return context.result;
+            if (str === "you" || str === "your" || str === "yourself") return context.you;
+
+            if (type === "global") {
+                if (this.reactivity.isTracking) this.reactivity.trackGlobalSymbol(str);
+                var val = this.#globalScope[str];
+                this.#trackMutation(val);
+                return val;
             }
-            if (str === "it" || str === "its" || str === "result") {
-                return context.result;
+            if (type === "element") {
+                if (this.reactivity.isTracking) this.reactivity.trackElementSymbol(str, context.meta.owner);
+                var val = this.#getElementScope(context)[str];
+                this.#trackMutation(val);
+                return val;
             }
-            if (str === "you" || str === "your" || str === "yourself") {
-                return context.you;
-            } else {
-                if (type === "global") {
-                    return this.#globalScope[str];
-                } else if (type === "element") {
-                    var elementScope = this.#getElementScope(context);
-                    return elementScope[str];
-                } else if (type === "local") {
-                    return context.locals[str];
-                } else {
-                    if (context.meta && context.meta.context) {
-                        var fromMetaContext = context.meta.context[str];
-                        if (typeof fromMetaContext !== "undefined") {
-                            return fromMetaContext;
-                        }
-                        if (context.meta.context.detail) {
-                            fromMetaContext = context.meta.context.detail[str];
-                            if (typeof fromMetaContext !== "undefined") {
-                                return fromMetaContext;
-                            }
-                        }
-                    }
-                    if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str)) {
-                        var fromContext = context.locals[str];
-                    } else {
-                        var fromContext = context[str];
-                    }
-                    if (typeof fromContext !== "undefined") {
-                        return fromContext;
-                    } else {
-                        var elementScope = this.#getElementScope(context);
-                        fromContext = elementScope[str];
-                        if (typeof fromContext !== "undefined") {
-                            return fromContext;
-                        } else {
-                            return this.#globalScope[str];
-                        }
+            if (type === "inherited") {
+                var inherited = this.#resolveInherited(str, context, targetElement);
+                if (this.reactivity.isTracking) {
+                    var trackElement = inherited.element || targetElement || context.meta?.owner;
+                    if (trackElement) {
+                        this.reactivity.trackElementSymbol(str, trackElement);
                     }
                 }
+                this.#trackMutation(inherited.value);
+                return inherited.value;
             }
+            if (type === "local") return context.locals[str];
+
+            // default scope resolution
+            if (context.meta?.context) {
+                var fromMetaContext = context.meta.context[str];
+                if (typeof fromMetaContext !== "undefined") return fromMetaContext;
+                if (context.meta.context.detail) {
+                    fromMetaContext = context.meta.context.detail[str];
+                    if (typeof fromMetaContext !== "undefined") return fromMetaContext;
+                }
+            }
+            var fromContext = this.#isHyperscriptContext(context) && !this.#isReservedWord(str)
+                ? context.locals[str] : context[str];
+            if (typeof fromContext !== "undefined") return fromContext;
+
+            // element scope
+            var elementScope = this.#getElementScope(context);
+            fromContext = elementScope[str];
+            if (typeof fromContext !== "undefined") {
+                if (this.reactivity.isTracking) this.reactivity.trackElementSymbol(str, context.meta.owner);
+                this.#trackMutation(fromContext);
+                return fromContext;
+            }
+            // global scope (or not found — track as global so we catch the first write)
+            if (this.reactivity.isTracking) this.reactivity.trackGlobalSymbol(str);
+            var val = this.#globalScope[str];
+            this.#trackMutation(val);
+            return val;
         }
 
-        setSymbol(str, context, type, value) {
+        setSymbol(str, context, type, value, targetElement) {
             if (type === "global") {
                 this.#globalScope[str] = value;
-            } else if (type === "element") {
-                var elementScope = this.#getElementScope(context);
-                elementScope[str] = value;
-            } else if (type === "local") {
-                context.locals[str] = value;
-            } else {
-                if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str) && typeof context.locals[str] !== "undefined") {
-                    context.locals[str] = value;
+                this.reactivity.notifyGlobalSymbol(str);
+                return;
+            }
+            if (type === "element") {
+                this.#getElementScope(context)[str] = value;
+                this.reactivity.notifyElementSymbol(str, context.meta.owner);
+                return;
+            }
+            if (type === "inherited") {
+                var inherited = this.#resolveInherited(str, context, targetElement);
+                if (inherited.element) {
+                    this.getInternalData(inherited.element).elementScope[str] = value;
+                    this.reactivity.notifyElementSymbol(str, inherited.element);
                 } else {
-                    var elementScope = this.#getElementScope(context);
-                    var fromContext = elementScope[str];
-                    if (typeof fromContext !== "undefined") {
-                        elementScope[str] = value;
-                    } else {
-                        if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str)) {
-                            context.locals[str] = value;
-                        } else {
-                            context[str] = value;
-                        }
+                    var owner = targetElement || context.meta?.owner;
+                    if (owner) {
+                        var internalData = this.getInternalData(owner);
+                        if (!internalData.elementScope) internalData.elementScope = {};
+                        internalData.elementScope[str] = value;
+                        this.reactivity.notifyElementSymbol(str, owner);
                     }
                 }
+                return;
+            }
+            if (type === "local") {
+                context.locals[str] = value;
+                return;
+            }
+            // default scope resolution
+            if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str) && typeof context.locals[str] !== "undefined") {
+                context.locals[str] = value;
+                return;
+            }
+            var elementScope = this.#getElementScope(context);
+            if (typeof elementScope[str] !== "undefined") {
+                elementScope[str] = value;
+                this.reactivity.notifyElementSymbol(str, context.meta.owner);
+            } else if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str)) {
+                context.locals[str] = value;
+            } else {
+                context[str] = value;
             }
         }
 
@@ -318,6 +382,38 @@ export class Runtime {
                 elt._hyperscript = {};
             }
             return elt._hyperscript;
+        }
+
+        #resolveInherited(str, context, startElement) {
+            var elt = startElement || (context.meta && context.meta.owner);
+            while (elt) {
+                var internalData = elt._hyperscript;
+                if (internalData && internalData.elementScope && str in internalData.elementScope) {
+                    return { value: internalData.elementScope[str], element: elt };
+                }
+                // Check dom-scope attribute for scope control
+                var domScope = elt.getAttribute && elt.getAttribute('dom-scope');
+                if (domScope) {
+                    if (domScope === 'isolated') {
+                        return { value: undefined, element: null };
+                    }
+                    // "closest <selector>" — jump to matching ancestor
+                    var match = domScope.match(/^closest\s+(.+)/);
+                    if (match) {
+                        elt = elt.parentElement && elt.parentElement.closest(match[1]);
+                        continue;
+                    }
+                    // "parent of <selector>" — jump to the parent of the nearest matching ancestor
+                    match = domScope.match(/^parent\s+of\s+(.+)/);
+                    if (match) {
+                        var target = elt.closest(match[1]);
+                        elt = target && target.parentElement;
+                        continue;
+                    }
+                }
+                elt = elt.parentElement;
+            }
+            return { value: undefined, element: null };
         }
 
         #getElementScope(context) {
@@ -357,19 +453,87 @@ export class Runtime {
         }
 
         resolveProperty(root, property) {
-            return this.#flatGet(root, property, (root, property) => root[property] )
+            if (this.reactivity.isTracking) this.reactivity.trackProperty(root, property);
+            return this.#flatGet(root, property, (root, property) => root[property])
+        }
+
+        /**
+         * Set a property on an object and notify the reactivity system.
+         * @param {Object} obj - DOM element or plain JS object
+         * @param {string} property
+         * @param {any} value
+         */
+        setProperty(obj, property, value) {
+            obj[property] = value;
+            this.reactivity.notifyProperty(obj);
+        }
+
+        /**
+         * Notify the reactivity system that an object was mutated in-place.
+         * Call this after operations like push, splice, append, etc.
+         * @param {Object} obj - The mutated object
+         */
+        notifyMutation(obj) {
+            this.reactivity.notifyProperty(obj);
+        }
+
+        morph(elt, content) {
+            this.#morphEngine.morph(elt, content, {
+                beforeNodeRemoved: (node) => {
+                    if (node.nodeType === 1) this.cleanup(node);
+                },
+                afterNodeAdded: (node) => {
+                    if (node.nodeType === 1) this.processNode(node);
+                },
+                afterNodeMorphed: (node) => {
+                    if (node.nodeType === 1) this.processNode(node);
+                }
+            });
+        }
+
+        replaceInDom(target, value) {
+            this.implicitLoop(target, (elt) => {
+                var parent = elt.parentElement;
+                if (value instanceof Node) {
+                    elt.replaceWith(value.cloneNode(true));
+                } else {
+                    elt.replaceWith(this.convertValue(value, "Fragment"));
+                }
+                if (parent) this.processNode(parent);
+            });
+        }
+
+        /**
+         * Check if a method call is known to mutate its receiver, and notify if so.
+         * @param {Object} target - The object the method was called on
+         * @param {string} methodName - The method name
+         */
+        maybeNotify(target, methodName) {
+            if (target == null || typeof target !== "object") return;
+            var typeName = target.constructor && target.constructor.name;
+            var methods = typeName && config.mutatingMethods[typeName];
+            if (methods && methods.includes(methodName)) {
+                this.notifyMutation(target);
+            }
+        }
+
+        #trackMutation(val) {
+            if (this.reactivity.isTracking && val != null && typeof val === "object") {
+                this.reactivity.trackProperty(val, "__mutation__");
+            }
         }
 
         resolveAttribute(root, property) {
-            return this.#flatGet(root, property, (root, property) => root.getAttribute && root.getAttribute(property) )
+            if (this.reactivity.isTracking) this.reactivity.trackAttribute(root, property);
+            return this.#flatGet(root, property, (root, property) => root.getAttribute && root.getAttribute(property))
         }
 
         resolveStyle(root, property) {
-            return this.#flatGet(root, property, (root, property) => root.style && root.style[property] )
+            return this.#flatGet(root, property, (root, property) => root.style && root.style[property])
         }
 
         resolveComputedStyle(root, property) {
-            return this.#flatGet(root, property, (root, property) => getComputedStyle(root).getPropertyValue(property) )
+            return this.#flatGet(root, property, (root, property) => getComputedStyle(root).getPropertyValue(property))
         }
 
         assignToNamespace(elt, nameSpace, name, value) {
@@ -435,6 +599,30 @@ export class Runtime {
             }
         }
 
+        /**
+         * Iterate over targets with a when condition, applying forward or reverse per element.
+         * Supports async conditions transparently -- returns a Promise if any condition is async.
+         */
+        implicitLoopWhen(targets, whenExpr, context, forwardFn, reverseFn) {
+            var elements = [];
+            this.implicitLoop(targets, function (elt) { elements.push(elt); });
+
+            var conditions = elements.map(function (elt) {
+                context.beingTested = elt;
+                return whenExpr.evaluate(context);
+            });
+            context.beingTested = null;
+
+            var hasPromise = conditions.some(function (c) { return c && typeof c.then === "function"; });
+            if (hasPromise) {
+                return Promise.all(conditions).then(function (results) {
+                    context.result = _applyWhenResults(elements, results, forwardFn, reverseFn);
+                });
+            } else {
+                context.result = _applyWhenResults(elements, conditions, forwardFn, reverseFn);
+            }
+        }
+
         // =================================================================
         // Type system
         // =================================================================
@@ -460,7 +648,7 @@ export class Runtime {
 
         evaluateNoPromise(elt, ctx) {
             let result = elt.evaluate(ctx);
-            if (result.next) {
+            if (result && typeof result.then === "function") {
                 throw new Error(elt.sourceFor() + " returned a Promise in a context that they are not allowed.");
             }
             return result;
@@ -471,7 +659,10 @@ export class Runtime {
                 return true;
             }
             var typeName = Object.prototype.toString.call(value).slice(8, -1);
-            return typeName === typeString;
+            if (typeName === typeString) return true;
+            // instanceof fallback for base classes
+            var ctor = typeof globalThis !== "undefined" && globalThis[typeString];
+            return typeof ctor === "function" && value instanceof ctor;
         }
 
         nullCheck(value, elt) {
@@ -557,14 +748,15 @@ export class Runtime {
 
         #getScriptAttributes() {
             if (this.#scriptAttrs == null) {
-                this.#scriptAttrs = config.attributes.replace(/ /g, "").split(",");
+                this.#scriptAttrs = config.attributes.replaceAll(" ", "").split(",");
             }
             return this.#scriptAttrs;
         }
 
         #getScript(elt) {
-            for (var i = 0; i < this.#getScriptAttributes().length; i++) {
-                var scriptAttribute = this.#getScriptAttributes()[i];
+            var attrs = this.#getScriptAttributes();
+            for (var i = 0; i < attrs.length; i++) {
+                var scriptAttribute = attrs[i];
                 if (elt.hasAttribute && elt.hasAttribute(scriptAttribute)) {
                     return elt.getAttribute(scriptAttribute);
                 }
@@ -575,12 +767,12 @@ export class Runtime {
             return null;
         }
 
+        #scriptSelector;
         #getScriptSelector() {
-            return this.#getScriptAttributes()
-                .map(function (attribute) {
-                    return "[" + attribute + "]";
-                })
-                .join(", ");
+            if (!this.#scriptSelector) {
+                this.#scriptSelector = this.#getScriptAttributes().map(a => "[" + a + "]").join(", ");
+            }
+            return this.#scriptSelector;
         }
 
         #hashScript(str) {
@@ -619,6 +811,9 @@ export class Runtime {
                 }
             }
 
+            // Stop reactive effects
+            this.reactivity.stopElementEffects(elt);
+
             // Recursively clean children
             if (elt.querySelectorAll) {
                 for (var child of elt.querySelectorAll('[data-hyperscript-powered]')) {
@@ -655,6 +850,19 @@ export class Runtime {
                 var tokens = this.#tokenizer.tokenize(src);
                 var hyperScript = this.#kernel.parseHyperScript(tokens);
                 if (!hyperScript) return;
+
+                if (hyperScript.errors?.length) {
+                    this.triggerEvent(elt, "hyperscript:parse-error", {
+                        errors: hyperScript.errors,
+                    });
+                    console.error(
+                        "hyperscript: " + hyperScript.errors.length + " parse error(s) on:",
+                        elt,
+                        "\n\n" + formatErrors(hyperScript.errors)
+                    );
+                    return;
+                }
+
                 hyperScript.apply(target || elt, elt, null, this);
                 elt.setAttribute('data-hyperscript-powered', 'true');
                 this.triggerEvent(elt, "hyperscript:after:init");
@@ -677,7 +885,15 @@ export class Runtime {
             }
         }
 
+        #beforeProcessHooks = [];
+        #afterProcessHooks = [];
+
+        addBeforeProcessHook(fn) { this.#beforeProcessHooks.push(fn); }
+        addAfterProcessHook(fn) { this.#afterProcessHooks.push(fn); }
+
         processNode(elt) {
+            for (var fn of this.#beforeProcessHooks) fn(elt);
+
             var selector = this.#getScriptSelector();
             if (this.matchesSelector(elt, selector)) {
                 this.#initElement(elt, elt);
@@ -690,6 +906,8 @@ export class Runtime {
                     this.#initElement(elt, elt instanceof HTMLScriptElement && elt.type === "text/hyperscript" ? document.body : elt);
                 });
             }
+
+            for (var fn of this.#afterProcessHooks) fn(elt);
         }
 
         // =================================================================
@@ -745,24 +963,12 @@ export class Runtime {
 
         beepValueToConsole(element, expression, value) {
             if (this.triggerEvent(element, "hyperscript:beep", {element, expression, value})) {
-                var typeName;
-                if (value) {
-                    if (value instanceof ElementCollection) {
-                        typeName = "ElementCollection";
-                    } else if (value.constructor) {
-                        typeName = value.constructor.name;
-                    } else {
-                        typeName = "unknown";
-                    }
-                } else {
-                    typeName = "object (null)"
-                }
-                var logValue = value;
-                if (typeName === "String") {
-                    logValue = '"' + logValue + '"';
-                } else if (value instanceof ElementCollection) {
-                    logValue = Array.from(value);
-                }
+                var typeName = !value ? "object (null)"
+                    : value instanceof ElementCollection ? "ElementCollection"
+                    : value.constructor?.name || "unknown";
+                var logValue = typeName === "String" ? '"' + value + '"'
+                    : value instanceof ElementCollection ? Array.from(value)
+                    : value;
                 console.log("///_ BEEP! The expression (" + expression.sourceFor().replace("beep! ", "") + ") evaluates to:", logValue, "of type " + typeName);
             }
         }

@@ -61,15 +61,17 @@ export class PseudoCommand extends Command {
     resolve(context, { target, argVals, result }) {
         if (this.variant === "target") {
             context.meta.runtime.nullCheck(target, this._realRoot);
-            var func = target[this._root.root.name];
+            var methodName = this._root.root.name;
+            var func = target[methodName];
             context.meta.runtime.nullCheck(func, this._root);
             if (func.hyperfunc) {
                 argVals.push(context);
             }
             context.result = func.apply(target, argVals);
+            context.meta.runtime.maybeNotify(target, methodName);
         } else {
             context.result = result;
         }
-        return context.meta.runtime.findNext(this, context);
+        return this.findNext(context);
     }
 }

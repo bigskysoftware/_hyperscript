@@ -1,6 +1,77 @@
 // Tokenizer - Lexical analysis for _hyperscript
 
 // ============================================================
+// Parse error types
+// ============================================================
+
+export class ParseError {
+    constructor(message, token, source) {
+        this.message = message;
+        this.token = token;
+        this.source = source;
+        this.line = token?.line ?? null;
+        this.column = token?.column ?? null;
+    }
+}
+
+export class ParseRecoverySentinel extends Error {
+    constructor(parseError) {
+        super(parseError.message);
+        this.parseError = parseError;
+    }
+}
+
+export function formatErrors(errors) {
+    if (!errors.length) return "";
+    var source = errors[0].source;
+    var lines = source.split("\n");
+
+    // Group errors by line number
+    var byLine = new Map();
+    for (var e of errors) {
+        var lineIdx = e.token?.line ? e.token.line - 1 : lines.length - 1;
+        if (!byLine.has(lineIdx)) byLine.set(lineIdx, []);
+        byLine.get(lineIdx).push(e);
+    }
+
+    var maxLine = Math.max(...byLine.keys()) + 1;
+    var gutter = String(maxLine).length;
+    var pad = " ".repeat(gutter + 5);
+    var sortedLines = [...byLine.entries()].sort((a, b) => a[0] - b[0]);
+    var prevLineIdx = -1;
+    var out = "";
+
+    for (var [lineIdx, lineErrors] of sortedLines) {
+        if (prevLineIdx !== -1 && lineIdx > prevLineIdx + 1) {
+            out += " ".repeat(gutter + 1) + "...\n";
+        } else if (prevLineIdx === -1 && lineIdx > 0) {
+            out += " ".repeat(gutter + 1) + "...\n";
+        }
+        prevLineIdx = lineIdx;
+
+        var lineNum = String(lineIdx + 1).padStart(gutter);
+        var contextLine = lines[lineIdx] || "";
+        out += "  " + lineNum + " | " + contextLine + "\n";
+
+        lineErrors.sort((a, b) => (a.column || 0) - (b.column || 0));
+
+        var underlineChars = Array(contextLine.length + 10).fill(" ");
+        for (var e of lineErrors) {
+            var col = e.token?.line ? e.token.column : Math.max(0, contextLine.length - 1);
+            var len = Math.max(1, e.token?.value?.length || 1);
+            for (var i = 0; i < len; i++) underlineChars[col + i] = "^";
+        }
+        out += pad + underlineChars.join("").trimEnd() + "\n";
+
+        for (var e of lineErrors) {
+            var col = e.token?.line ? e.token.column : 0;
+            out += pad + " ".repeat(col) + e.message + "\n";
+        }
+    }
+    return out;
+}
+
+// ============================================================
 // Tokens - Token stream with matching/consuming API
 // ============================================================
 
@@ -9,6 +80,8 @@ export class Tokens {
     #consumed = [];
     #lastConsumed = null;
     #follows = [];
+    #errors = [];
+    #recoveryMode = false;
     source;
 
     constructor(tokens, source) {
@@ -23,6 +96,41 @@ export class Tokens {
 
     get consumed() {
         return this.#consumed;
+    }
+
+    // ----- Error recovery -----
+
+    enableRecovery() {
+        this.#recoveryMode = true;
+    }
+
+    get recoveryMode() {
+        return this.#recoveryMode;
+    }
+
+    get errors() {
+        return this.#errors;
+    }
+
+    // ----- Debug -----
+
+    toString() {
+        var cur = this.currentToken();
+        var lines = this.source.split("\n");
+        var lineIdx = cur?.line ? cur.line - 1 : lines.length - 1;
+        var col = cur?.line ? cur.column : 0;
+        var contextLine = lines[lineIdx] || "";
+        var tokenLen = Math.max(1, cur?.value?.length || 1);
+        var gutter = String(lineIdx + 1).length;
+
+        var out = "Tokens(";
+        out += this.#consumed.filter(t => t.type !== "WHITESPACE").length + " consumed, ";
+        out += this.#tokens.filter(t => t.type !== "WHITESPACE").length + " remaining";
+        out += ", line " + (lineIdx + 1) + ")\n";
+        out += "  " + String(lineIdx + 1).padStart(gutter) + " | " + contextLine + "\n";
+        out += " ".repeat(gutter + 5) + " ".repeat(col) + "^".repeat(tokenLen);
+        if (cur) out += " " + cur.type + " '" + cur.value + "'";
+        return out;
     }
 
     // ----- Token access -----
@@ -161,7 +269,7 @@ export class Tokens {
     // ----- Whitespace -----
 
     lastWhitespace() {
-        var last = this.#consumed[this.#consumed.length - 1];
+        var last = this.#consumed.at(-1);
         return (last && last.type === "WHITESPACE") ? last.value : "";
     }
 
@@ -188,14 +296,21 @@ export class Tokens {
     // ----- Error handling -----
 
     raiseError(message) {
-        message = (message || "Unexpected Token : " + this.currentToken().value) + "\n\n";
+        message = message || "Unexpected Token : " + this.currentToken().value;
         var currentToken = this.currentToken();
+        var parseError = new ParseError(message, currentToken, this.source);
+        if (this.#recoveryMode) {
+            this.#errors.push(parseError);
+            throw new ParseRecoverySentinel(parseError);
+        }
+        // Non-recovery: message first, then source context
         var lines = this.source.split("\n");
-        var line = currentToken && currentToken.line ? currentToken.line - 1 : lines.length - 1;
-        var contextLine = lines[line];
-        var offset = currentToken && currentToken.line ? currentToken.column : contextLine.length - 1;
-        message += contextLine + "\n" + " ".repeat(offset) + "^^\n\n";
-        var error = new Error(message);
+        var lineIdx = currentToken?.line ? currentToken.line - 1 : lines.length - 1;
+        var contextLine = lines[lineIdx] || "";
+        var col = currentToken?.line ? currentToken.column : Math.max(0, contextLine.length - 1);
+        var tokenLen = Math.max(1, currentToken?.value?.length || 1);
+        var formatted = message + "\n\n" + contextLine + "\n" + " ".repeat(col) + "^".repeat(tokenLen) + "\n";
+        var error = new Error(formatted);
         error["tokens"] = this;
         throw error;
     }
@@ -239,6 +354,7 @@ const OP_TABLE = {
     "]": "R_BRACKET",
     "=": "EQUALS",
     "~": "TILDE",
+    "^": "CARET",
 };
 
 export class Tokenizer {
@@ -281,7 +397,7 @@ export class Tokenizer {
     }
 
     #isReservedChar(c) {
-        return c === "`" || c === "^";
+        return c === "`";
     }
 
     static tokenize(string, template) {
@@ -318,7 +434,12 @@ export class Tokenizer {
     #consumeChar() {
         this.#lastToken = this.#currentChar();
         this.#position++;
-        this.#column++;
+        if (this.#lastToken === "\n") {
+            this.#line++;
+            this.#column = 0;
+        } else {
+            this.#column++;
+        }
         return this.#lastToken;
     }
 
@@ -343,7 +464,7 @@ export class Tokenizer {
 
     #isValidSingleQuoteStringStart() {
         if (this.#tokens.length > 0) {
-            var prev = this.#tokens[this.#tokens.length - 1];
+            var prev = this.#tokens.at(-1);
             if (prev.type === "IDENTIFIER" || prev.type === "CLASS_REF" || prev.type === "ID_REF") {
                 return false;
             }
@@ -395,8 +516,6 @@ export class Tokenizer {
         var value = "";
         while (this.#currentChar() && this.#isWhitespace(this.#currentChar())) {
             if (this.#isNewline(this.#currentChar())) {
-                this.#column = 0;
-                this.#line++;
                 this.#templateMode = "indeterminant";
             }
             value += this.#consumeChar();
@@ -416,7 +535,7 @@ export class Tokenizer {
                 value += this.#consumeChar();
             }
             if (this.#currentChar() !== "}") {
-                throw Error("Unterminated class reference");
+                throw new Error("Unterminated class reference");
             } else {
                 value += this.#consumeChar();
             }
@@ -441,7 +560,7 @@ export class Tokenizer {
                 value += this.#consumeChar();
             }
             if (this.#currentChar() !== "}") {
-                throw Error("Unterminated id reference");
+                throw new Error("Unterminated id reference");
             } else {
                 this.#consumeChar();
             }
@@ -522,7 +641,9 @@ export class Tokenizer {
             content += this.#consumeChar();
         }
         if (this.#currentChar() && this.#isNewline(this.#currentChar())) {
+            this.#consumeChar();
             content += "\n";
+            this.#templateMode = "indeterminant";
         }
         token.content = content;
         token.end = this.#position;
@@ -638,7 +759,7 @@ export class Tokenizer {
                 else if (next === "x") {
                     const hex = this.#consumeHexEscape();
                     if (Number.isNaN(hex)) {
-                        throw Error("Invalid hexadecimal escape at [Line: " + token.line + ", Column: " + token.column + "]");
+                        throw new Error("Invalid hexadecimal escape at [Line: " + token.line + ", Column: " + token.column + "]");
                     }
                     value += String.fromCharCode(hex);
                 }
@@ -648,7 +769,7 @@ export class Tokenizer {
             }
         }
         if (this.#currentChar() !== startChar) {
-            throw Error("Unterminated string at [Line: " + token.line + ", Column: " + token.column + "]");
+            throw new Error("Unterminated string at [Line: " + token.line + ", Column: " + token.column + "]");
         } else {
             this.#consumeChar();
         }
@@ -741,7 +862,7 @@ export class Tokenizer {
                 this.#tokens.push(this.#makeToken("RESERVED", this.#consumeChar()));
             } else {
                 if (this.#position < this.#source.length) {
-                    throw Error("Unknown token: " + this.#currentChar() + " ");
+                    throw new Error("Unknown token: " + this.#currentChar() + " ");
                 }
             }
         }

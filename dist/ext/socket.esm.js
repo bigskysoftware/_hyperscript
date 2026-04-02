@@ -1,7 +1,3 @@
-var __defProp = Object.defineProperty;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
-
 // src/parsetree/base.js
 var ParseElement = class {
   sourceFor() {
@@ -23,9 +19,9 @@ var ParseElement = class {
   }
 };
 var Feature = class extends ParseElement {
+  isFeature = true;
   constructor() {
     super();
-    __publicField(this, "isFeature", true);
     if (this.constructor.keyword) {
       this.type = this.constructor.keyword + "Feature";
     }
@@ -71,7 +67,8 @@ function parseUrl(url) {
   return finalUrl;
 }
 var PROXY_BLACKLIST = ["then", "catch", "length", "toJSON"];
-var _SocketFeature = class _SocketFeature extends Feature {
+var SocketFeature = class _SocketFeature extends Feature {
+  static keyword = "socket";
   constructor(socketName, nameSpace, socketObject, messageHandler) {
     super();
     this.socketName = socketName;
@@ -86,15 +83,15 @@ var _SocketFeature = class _SocketFeature extends Feature {
   static parse(parser) {
     if (!parser.matchToken("socket")) return;
     var name = parser.requireElement("dotOrColonPath");
-    var qualifiedName = name.evaluate();
+    var qualifiedName = name.evalStatically();
     var nameSpace = qualifiedName.split(".");
     var socketName = nameSpace.pop();
     var promises = {};
-    var url = parser.requireElement("stringLike");
+    var url = parser.parseURLOrExpression();
     var defaultTimeout = 1e4;
     if (parser.matchToken("with")) {
       parser.requireToken("timeout");
-      defaultTimeout = parser.requireElement("expression").evaluate();
+      defaultTimeout = parser.requireElement("expression").evalStatically();
     }
     var jsonMessages = false;
     var messageHandler = null;
@@ -107,7 +104,7 @@ var _SocketFeature = class _SocketFeature extends Feature {
       messageHandler = parser.requireElement("commandList");
       parser.ensureTerminated(messageHandler);
     }
-    var socket = new WebSocket(parseUrl(url.evaluate()));
+    var socket = new WebSocket(parseUrl(url.evalStatically()));
     function getProxy(timeout) {
       return new Proxy(
         {},
@@ -133,7 +130,7 @@ var _SocketFeature = class _SocketFeature extends Feature {
                   function: property,
                   args
                 };
-                socket = socket ? socket : new WebSocket(parseUrl(url.evaluate()));
+                socket = socket ? socket : new WebSocket(parseUrl(url.evalStatically()));
                 socket.send(JSON.stringify(rpcInfo));
                 var promise = new Promise(function(resolve, reject) {
                   promises[uuid] = {
@@ -189,7 +186,7 @@ var _SocketFeature = class _SocketFeature extends Feature {
             context.locals.message = dataAsJson;
             context.result = dataAsJson;
           } else {
-            throw "Received non-JSON message from socket: " + data;
+            throw new Error("Received non-JSON message from socket: " + data);
           }
         } else {
           context.locals.message = data;
@@ -207,8 +204,6 @@ var _SocketFeature = class _SocketFeature extends Feature {
     return feature;
   }
 };
-__publicField(_SocketFeature, "keyword", "socket");
-var SocketFeature = _SocketFeature;
 function socketPlugin(_hyperscript) {
   _hyperscript.addFeature(SocketFeature.keyword, SocketFeature.parse.bind(SocketFeature));
 }

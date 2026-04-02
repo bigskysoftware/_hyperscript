@@ -9,6 +9,8 @@ import {Runtime} from './core/runtime/runtime.js';
 import {HyperscriptModule} from './core/runtime/collections.js';
 import {config} from './core/config.js';
 import {conversions} from './core/runtime/conversions.js';
+import {Reactivity} from './core/runtime/reactivity.js';
+import {Morph} from './core/runtime/morph.js';
 
 // Import parse element modules
 import * as Expressions from './parsetree/expressions/expressions.js';
@@ -18,7 +20,6 @@ import * as Postfix from './parsetree/expressions/postfix.js';
 import * as Positional from './parsetree/expressions/positional.js';
 import * as Existentials from './parsetree/expressions/existentials.js';
 import * as Targets from './parsetree/expressions/targets.js';
-import * as Pseudopossessive from './parsetree/expressions/pseudopossessive.js';
 import * as BasicCommands from './parsetree/commands/basic.js';
 import * as SetterCommands from './parsetree/commands/setters.js';
 import * as EventCommands from './parsetree/commands/events.js';
@@ -36,6 +37,10 @@ import * as WorkerFeatureModule from './parsetree/features/worker.js';
 import * as BehaviorFeatureModule from './parsetree/features/behavior.js';
 import * as InstallFeatureModule from './parsetree/features/install.js';
 import * as JsFeatureModule from './parsetree/features/js.js';
+import * as WhenFeatureModule from './parsetree/features/when.js';
+import * as BindFeatureModule from './parsetree/features/bind.js';
+import * as LiveFeatureModule from './parsetree/features/live.js';
+import * as TemplateCommands from './parsetree/commands/template.js';
 
 const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'undefined' ? global : this);
 
@@ -45,9 +50,11 @@ config.conversions = conversions;
 // Create and configure kernel
 const kernel = new LanguageKernel();
 
-// Create tokenizer first, then runtime with kernel and tokenizer
+// Create subsystems and wire them together
 const tokenizer = new Tokenizer();
-const runtime = new Runtime(globalScope, kernel, tokenizer);
+const reactivity = new Reactivity();
+const morphEngine = new Morph();
+const runtime = new Runtime(globalScope, kernel, tokenizer, reactivity, morphEngine);
 
 // ===== Grammar Registration =====
 // Register all parse elements from modules (expressions, commands, features)
@@ -58,7 +65,6 @@ kernel.registerModule(Postfix);
 kernel.registerModule(Positional);
 kernel.registerModule(Existentials);
 kernel.registerModule(Targets);
-kernel.registerModule(Pseudopossessive);
 kernel.registerModule(BasicCommands);
 kernel.registerModule(SetterCommands);
 kernel.registerModule(EventCommands);
@@ -76,6 +82,10 @@ kernel.registerModule(WorkerFeatureModule);
 kernel.registerModule(BehaviorFeatureModule);
 kernel.registerModule(InstallFeatureModule);
 kernel.registerModule(JsFeatureModule);
+kernel.registerModule(WhenFeatureModule);
+kernel.registerModule(BindFeatureModule);
+kernel.registerModule(LiveFeatureModule);
+kernel.registerModule(TemplateCommands);
 
 // ===== Public API =====
 
@@ -111,13 +121,15 @@ const _hyperscript = Object.assign(
         },
 
         internals: {
-            tokenizer, runtime,
+            tokenizer, runtime, reactivity,
             createParser: (tokens) => new Parser(kernel, tokens),
         },
 
         addFeature: kernel.addFeature.bind(kernel),
         addCommand: kernel.addCommand.bind(kernel),
         addLeafExpression: kernel.addLeafExpression.bind(kernel),
+        addBeforeProcessHook: (fn) => runtime.addBeforeProcessHook(fn),
+        addAfterProcessHook: (fn) => runtime.addAfterProcessHook(fn),
 
         evaluate: evaluate,
         parse: (src) => kernel.parse(tokenizer, src),
@@ -164,14 +176,28 @@ if (typeof document !== 'undefined') {
 
         // Wait for DOM ready, then initialize
         ready(() => {
-            runtime.processNode(document.documentElement);
+            _hyperscript.process(document.documentElement);
             document.dispatchEvent(new Event("hyperscript:ready"));
+
+            // htmx -> hyperscript: process new htmx content
+            var _processingFromHtmx = false;
             globalScope.document.addEventListener("htmx:load", (/** @type {CustomEvent} */ evt) => {
-                runtime.processNode(evt.detail.elt);
+                _processingFromHtmx = true;
+                _hyperscript.process(evt.detail.elt);
+                _processingFromHtmx = false;
             });
             globalScope.document.addEventListener("htmx:after:process", (/** @type {CustomEvent} */ evt) => {
-                runtime.processNode(evt.target);
+                _processingFromHtmx = true;
+                _hyperscript.process(evt.target);
+                _processingFromHtmx = false;
             });
+
+            // hyperscript -> htmx: notify htmx about hyperscript-inserted content
+            if (typeof htmx !== 'undefined') {
+                _hyperscript.addAfterProcessHook(function(elt) {
+                    if (!_processingFromHtmx) htmx.process(elt);
+                });
+            }
         });
     })();
 }

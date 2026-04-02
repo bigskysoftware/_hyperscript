@@ -7,7 +7,7 @@ const dev = process.argv.includes('--watch')
 const coreEntry = ['src/_hyperscript.js']
 const extEntries = [
   'src/ext/hdb.js',
-  'src/ext/template.js',
+
   'src/ext/socket.js',
   'src/ext/worker.js',
   'src/ext/eventsource.js',
@@ -18,7 +18,7 @@ const shared = {
   bundle: true,
   sourcemap: true,
   platform: 'browser',
-  target: 'es2015',
+  target: 'es2022',
 }
 
 function builds(entryPoints, outOptions) {
