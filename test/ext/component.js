@@ -205,10 +205,10 @@ test.describe('the component extension', () => {
 		await expect.poll(() => find('test-bind-attr span').textContent()).toBe('99')
 	})
 
-	test('args evaluates attribute as hyperscript in parent scope', async ({html, find, run, evaluate}) => {
+	test('attrs evaluates attribute as hyperscript in parent scope', async ({html, find, run, evaluate}) => {
 		await run("set $stuff to ['a', 'b', 'c']")
 		await html(`
-			<template hyper-component="test-args" _="init set ^list to args.items">
+			<template hyper-component="test-args" _="init set ^list to attrs.items">
 				<ul>
 				#for item in ^list
 					<li>${"\x24"}{item}</li>
@@ -222,10 +222,10 @@ test.describe('the component extension', () => {
 		await evaluate(() => { delete window.$stuff })
 	})
 
-	test('args works with bind for reactive pass-through', async ({html, find, run}) => {
+	test('attrs works with bind for reactive pass-through', async ({html, find, run}) => {
 		await run("set $count to 10")
 		await html(`
-			<template hyper-component="test-args-bind" _="bind ^val to args.count">
+			<template hyper-component="test-args-bind" _="bind ^val to attrs.count">
 				<span>${"\x24"}{^val}</span>
 			</template>
 			<test-args-bind count="$count"></test-args-bind>
@@ -236,10 +236,10 @@ test.describe('the component extension', () => {
 		await expect.poll(() => find('test-args-bind span').textContent()).toBe('11')
 	})
 
-	test('args bind is bidirectional — inner changes flow outward', async ({html, find, run, evaluate}) => {
+	test('attrs bind is bidirectional — inner changes flow outward', async ({html, find, run, evaluate}) => {
 		await run("set $count to 10")
 		await html(`
-			<template hyper-component="test-args-bidir" _="bind ^count to args.count">
+			<template hyper-component="test-args-bidir" _="bind ^count to attrs.count">
 				<span>${"\x24"}{^count}</span>
 				<button _="on click increment ^count">+</button>
 			</template>
@@ -251,7 +251,7 @@ test.describe('the component extension', () => {
 		await find('test-args-bidir button').click()
 		// Inner ^count should update
 		await expect.poll(() => find('test-args-bidir span').textContent()).toBe('11')
-		// Outer $count should also update via args write-back
+		// Outer $count should also update via attrs write-back
 		await expect.poll(() => find('p').textContent(), { timeout: 2000 }).toBe('11')
 		await evaluate(() => { delete window.$count })
 	})

@@ -23,7 +23,7 @@ TODO: `${}` interpolation, `#for`, `#if`
 
 TODO: default slots, named slots
 
-### The `args` Proxy {#args}
+### The `attrs` Proxy {#attrs}
 
 TODO: attribute evaluation in parent scope, bidirectional binding
 
@@ -40,7 +40,7 @@ TODO: `dom-scope="isolated"`, `^var` scoping boundaries
 #### Filterable List Component
 
   ~~~ html
-  <template hyper-component="filter-list" _="set ^list to args.items">
+  <template hyper-component="filter-list" _="set ^list to attrs.items">
     <input type="text" placeholder="Search..."
            _="on input
                 hide #no-match
@@ -69,7 +69,7 @@ Usage:
 Demo:
 
 <div>
-<template hyper-component="filter-list" _="set ^list to args.items">
+<template hyper-component="filter-list" _="set ^list to attrs.items">
     <input type="text" placeholder="Search..."
            _="on input
                 hide #no-match
